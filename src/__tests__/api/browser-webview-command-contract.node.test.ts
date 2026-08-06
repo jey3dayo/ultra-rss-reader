@@ -4,6 +4,7 @@ import { Result } from "@praha/byethrow";
 import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { extractRustStructFields, runValidationCommandCases } from "@tests/helpers/tauri-command-contract";
 import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { parse } from "valibot";
 import { describe, expect, it } from "vitest";
 import {
   BrowserWebviewDiagnosticsPayloadSchema,
@@ -16,6 +17,7 @@ import {
   BrowserWebviewClosedPayloadSchema,
   BrowserWebviewDebugInputPayloadSchema,
 } from "@/api/schemas/browser-webview";
+import { objectEntries } from "@/api/schemas/validation";
 import {
   closeBrowserWebview,
   createOrUpdateBrowserWebview,
@@ -78,7 +80,7 @@ describe("browser webview command contract", () => {
   });
 
   it("keeps BrowserWebviewState schema fields aligned with the Rust DTO", () => {
-    expect(Object.keys(BrowserWebviewStateSchema.shape).toSorted()).toEqual(
+    expect(Object.keys(objectEntries(BrowserWebviewStateSchema)).toSorted()).toEqual(
       extractRustStructFields(readRustBrowserWebviewSource(), "BrowserWebviewState", "Rust browser_webview.rs"),
     );
   });
@@ -86,14 +88,17 @@ describe("browser webview command contract", () => {
   it("keeps browser webview event payload schemas aligned with the Rust DTOs", () => {
     const source = readRustBrowserWebviewSource();
 
-    expect(Object.keys(BrowserWebviewFallbackPayloadSchema.shape).toSorted()).toEqual(
+    expect(Object.keys(objectEntries(BrowserWebviewFallbackPayloadSchema)).toSorted()).toEqual(
       extractRustStructFields(source, "BrowserWebviewFallbackPayload", "Rust browser_webview.rs"),
     );
-    expect(Object.keys(BrowserWebviewDiagnosticsPayloadSchema.shape).toSorted()).toEqual(
+    expect(Object.keys(objectEntries(BrowserWebviewDiagnosticsPayloadSchema)).toSorted()).toEqual(
       extractRustStructFields(source, "BrowserWebviewDiagnosticsPayload", "Rust browser_webview.rs"),
     );
-    expect(Object.keys(BrowserWebviewClosedPayloadSchema.shape).toSorted()).toEqual(["load_generation", "url"]);
-    expect(BrowserWebviewDebugInputPayloadSchema.parse("native-click target=webview")).toBe(
+    expect(Object.keys(objectEntries(BrowserWebviewClosedPayloadSchema)).toSorted()).toEqual([
+      "load_generation",
+      "url",
+    ]);
+    expect(parse(BrowserWebviewDebugInputPayloadSchema, "native-click target=webview")).toBe(
       "native-click target=webview",
     );
   });

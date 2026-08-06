@@ -4,6 +4,7 @@
  */
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { parse } from "valibot";
 import { type CommandArgsSchemaRegistry, commandArgsSchemas, SettingsProfileSchema } from "@/api/schemas";
 import type {
   AccountDto,
@@ -80,7 +81,7 @@ type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = SchemaOutput<
 >;
 type RawMockIpcPayload = unknown;
 
-type DevSettingsProfile = ReturnType<typeof SettingsProfileSchema.parse>;
+type DevSettingsProfile = import("valibot").InferOutput<typeof SettingsProfileSchema>;
 type DevLocalSyncSettings = {
   account_id: string;
   sync_folder_path: string;
@@ -98,7 +99,7 @@ function parseMockArgs<TCommand extends MockCommandWithArgs>(
   rawIpcPayload: RawMockIpcPayload,
 ): ParsedBrowserMockArgs<TCommand>;
 function parseMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMockIpcPayload): Record<string, unknown> {
-  return browserMockCommandArgsSchemas[command].parse(rawIpcPayload);
+  return parse(browserMockCommandArgsSchemas[command], rawIpcPayload);
 }
 
 function parseBrowserMockArgs<TCommand extends MockCommandWithArgs>(
@@ -894,7 +895,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "import_settings_profile": {
         const { profileJson } = parseBrowserMockArgs("import_settings_profile", rawIpcPayload);
-        return importSettingsProfileIntoDevMocks(SettingsProfileSchema.parse(JSON.parse(profileJson)));
+        return importSettingsProfileIntoDevMocks(parse(SettingsProfileSchema, JSON.parse(profileJson)));
       }
 
       case "set_mute_auto_mark_read": {

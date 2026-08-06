@@ -1,3 +1,4 @@
+import { parse, safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
 import {
   DevRuntimeOptionsSchema,
@@ -14,9 +15,9 @@ describe("platform-info schemas", () => {
       dev_window_height: null,
     };
 
-    expect(DevRuntimeOptionsSchema.parse(validOptions)).toEqual(validOptions);
+    expect(parse(DevRuntimeOptionsSchema, validOptions)).toEqual(validOptions);
     expect(
-      DevRuntimeOptionsSchema.safeParse({
+      safeParse(DevRuntimeOptionsSchema, {
         ...validOptions,
         future_dev_option: true,
       }).success,
@@ -25,7 +26,7 @@ describe("platform-info schemas", () => {
 
   it("rejects malformed dev runtime option values at the IPC boundary", () => {
     expect(
-      DevRuntimeOptionsSchema.safeParse({
+      safeParse(DevRuntimeOptionsSchema, {
         dev_intent: null,
         dev_web_url: null,
         dev_window_width: 10_001,
@@ -56,25 +57,25 @@ describe("platform-info schemas", () => {
       },
     ];
 
-    expect(PlatformPermissionDeniedRecoveryListSchema.parse(recoveries)).toEqual(recoveries);
+    expect(parse(PlatformPermissionDeniedRecoveryListSchema, recoveries)).toEqual(recoveries);
     expect(recoveries.map((recovery) => recovery.surface)).toEqual(["file", "dialog", "keyring", "clipboard"]);
   });
 
   it("keeps permission denied recovery entries narrow and non-empty", () => {
     expect(
-      PlatformPermissionDeniedRecoverySchema.safeParse({
+      safeParse(PlatformPermissionDeniedRecoverySchema, {
         surface: "network",
         user_action_copy: "Network access denied.",
       }).success,
     ).toBe(false);
     expect(
-      PlatformPermissionDeniedRecoverySchema.safeParse({
+      safeParse(PlatformPermissionDeniedRecoverySchema, {
         surface: "file",
         user_action_copy: "   ",
       }).success,
     ).toBe(false);
     expect(
-      PlatformPermissionDeniedRecoverySchema.safeParse({
+      safeParse(PlatformPermissionDeniedRecoverySchema, {
         surface: "file",
         user_action_copy: "File access was denied.",
         diagnostics: "permission denied",

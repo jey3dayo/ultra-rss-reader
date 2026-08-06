@@ -1,4 +1,6 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
+import { unwrapStrictObjectSchema } from "@/api/schemas/validation";
 
 export const APP_ERROR_MESSAGE_MAX_CHARS = 2048;
 
@@ -9,22 +11,23 @@ function hasForbiddenControlCharacter(message: string): boolean {
   });
 }
 
-const appErrorMessageSchema = z
-  .string()
-  .refine((message) => message.trim().length > 0, {
-    message: "AppError message must not be empty",
-  })
-  .max(APP_ERROR_MESSAGE_MAX_CHARS, {
-    message: `AppError message must be ${APP_ERROR_MESSAGE_MAX_CHARS} characters or less`,
-  })
-  .refine((message) => !hasForbiddenControlCharacter(message), {
-    message: "AppError message must not contain newlines or control characters",
-  });
+const appErrorMessageSchema = v.pipe(
+  v.string(),
+  v.check((message) => message.trim().length > 0, "AppError message must not be empty"),
+  v.maxLength(
+    APP_ERROR_MESSAGE_MAX_CHARS,
+    `AppError message must be ${APP_ERROR_MESSAGE_MAX_CHARS} characters or less`,
+  ),
+  v.check(
+    (message) => !hasForbiddenControlCharacter(message),
+    "AppError message must not contain newlines or control characters",
+  ),
+);
 
-export const AppErrorSchema = z.discriminatedUnion("type", [
-  z.strictObject({ type: z.literal("UserVisible"), message: appErrorMessageSchema }),
-  z.strictObject({ type: z.literal("Retryable"), message: appErrorMessageSchema }),
-  z.strictObject({ type: z.literal("Diagnostics"), message: appErrorMessageSchema }),
+export const AppErrorSchema = v.variant("type", [
+  unwrapStrictObjectSchema(s.strictObject({ type: v.literal("UserVisible"), message: appErrorMessageSchema })),
+  unwrapStrictObjectSchema(s.strictObject({ type: v.literal("Retryable"), message: appErrorMessageSchema })),
+  unwrapStrictObjectSchema(s.strictObject({ type: v.literal("Diagnostics"), message: appErrorMessageSchema })),
 ]);
 
-export type AppError = z.infer<typeof AppErrorSchema>;
+export type AppError = v.InferOutput<typeof AppErrorSchema>;

@@ -1,3 +1,4 @@
+import { parse, safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { type DatabaseInfoDto, DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 
@@ -10,12 +11,12 @@ const getDatabaseInfoResponseFixture = {
 
 describe("DatabaseInfoDtoSchema", () => {
   it("parses a get_database_info read-only command response fixture", () => {
-    expect(DatabaseInfoDtoSchema.parse(getDatabaseInfoResponseFixture)).toEqual(getDatabaseInfoResponseFixture);
+    expect(parse(DatabaseInfoDtoSchema, getDatabaseInfoResponseFixture)).toEqual(getDatabaseInfoResponseFixture);
   });
 
   it("accepts nonnegative integer byte sizes with a total covering db and wal sizes", () => {
     expect(
-      DatabaseInfoDtoSchema.safeParse({
+      safeParse(DatabaseInfoDtoSchema, {
         db_size_bytes: 100,
         wal_size_bytes: 20,
         shm_size_bytes: 30,
@@ -26,7 +27,7 @@ describe("DatabaseInfoDtoSchema", () => {
 
   it("accepts safe integer byte sizes up to the JavaScript precision boundary", () => {
     expect(
-      DatabaseInfoDtoSchema.safeParse({
+      safeParse(DatabaseInfoDtoSchema, {
         db_size_bytes: Number.MAX_SAFE_INTEGER - 2,
         wal_size_bytes: 1,
         shm_size_bytes: 1,
@@ -37,7 +38,7 @@ describe("DatabaseInfoDtoSchema", () => {
 
   it("rejects negative, fractional, and inconsistent byte sizes", () => {
     expect(
-      DatabaseInfoDtoSchema.safeParse({
+      safeParse(DatabaseInfoDtoSchema, {
         db_size_bytes: -1,
         wal_size_bytes: 20,
         shm_size_bytes: 0,
@@ -45,7 +46,7 @@ describe("DatabaseInfoDtoSchema", () => {
       }).success,
     ).toBe(false);
     expect(
-      DatabaseInfoDtoSchema.safeParse({
+      safeParse(DatabaseInfoDtoSchema, {
         db_size_bytes: 100.5,
         wal_size_bytes: 20,
         shm_size_bytes: 0,
@@ -53,7 +54,7 @@ describe("DatabaseInfoDtoSchema", () => {
       }).success,
     ).toBe(false);
     expect(
-      DatabaseInfoDtoSchema.safeParse({
+      safeParse(DatabaseInfoDtoSchema, {
         db_size_bytes: 100,
         wal_size_bytes: 20,
         shm_size_bytes: 0,
@@ -64,7 +65,7 @@ describe("DatabaseInfoDtoSchema", () => {
 
   it("rejects byte sizes above the JavaScript safe integer boundary", () => {
     expect(
-      DatabaseInfoDtoSchema.safeParse({
+      safeParse(DatabaseInfoDtoSchema, {
         db_size_bytes: Number.MAX_SAFE_INTEGER + 1,
         wal_size_bytes: 0,
         shm_size_bytes: 0,

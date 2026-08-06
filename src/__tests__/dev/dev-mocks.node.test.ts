@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { readTauriCommandsSource } from "@tests/helpers/tauri-command-source";
+import { parse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { commandArgsSchemas, PlatformInfoSchema } from "@/api/schemas";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
@@ -12,7 +13,7 @@ function readSource(path: string): string {
 
 describe("dev mock static contracts", () => {
   it("keeps browser-only mock platform capabilities aligned with production defaults", () => {
-    expect(PlatformInfoSchema.parse(DEV_MOCK_PLATFORM_INFO)).toEqual(DEV_MOCK_PLATFORM_INFO);
+    expect(parse(PlatformInfoSchema, DEV_MOCK_PLATFORM_INFO)).toEqual(DEV_MOCK_PLATFORM_INFO);
     expect(DEV_MOCK_PLATFORM_INFO).toEqual(DEFAULT_PLATFORM_INFO);
   });
 

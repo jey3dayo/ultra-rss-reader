@@ -1,3 +1,4 @@
+import { parse } from "valibot";
 import { create } from "zustand";
 import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
@@ -680,7 +681,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       subscriptionsWorkspace: returnState
         ? {
             kind: "index",
-            returnState: SubscriptionsWorkspaceReturnStateSchema.parse(returnState),
+            returnState: parse(SubscriptionsWorkspaceReturnStateSchema, returnState),
           }
         : { kind: "index" },
       focusedPane: "content",

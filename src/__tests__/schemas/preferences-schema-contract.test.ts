@@ -1,5 +1,7 @@
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { settingsPreferenceLabelKeys } from "@tests/helpers/settings-fixtures";
+import type { BaseIssue, BaseSchema } from "valibot";
+import { parse, safeParse } from "valibot";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { PreferencesDtoSchema } from "@/api/schemas/preferences";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
@@ -22,6 +24,16 @@ import {
 import frontendSource from "@/schemas/preferences.ts?raw";
 import preferenceRulesSource from "../../../.claude/rules/preferences-pattern.md?raw";
 import backendSource from "../../../src-tauri/src/domain/preference.rs?raw";
+
+function safeParsePreferenceSchema(
+  schema: BaseSchema<unknown, unknown, BaseIssue<unknown>> | undefined,
+  value: unknown,
+) {
+  if (!schema) {
+    throw new Error("Expected preference schema to exist");
+  }
+  return safeParse(schema, value);
+}
 
 function extractBlock(source: string, pattern: RegExp, label: string): string {
   const matched = source.match(pattern)?.[1];
@@ -217,7 +229,7 @@ describe("preference contract", () => {
     for (const { stored, normalized } of afterReadingStoredValueCases) {
       expect(normalizePreferenceValue("after_reading", stored)).toBe(normalized);
       expect(resolvePreferenceValue({ after_reading: stored }, "after_reading")).toBe(normalized);
-      expect(afterReadingSchema?.safeParse(normalized).success).toBe(true);
+      expect(safeParsePreferenceSchema(afterReadingSchema, normalized).success).toBe(true);
     }
   });
 
@@ -229,8 +241,8 @@ describe("preference contract", () => {
     expect(
       resolvePreferenceValue({ debug_agentation_visibility: "hide_in_settings" }, "debug_agentation_visibility"),
     ).toBe("always");
-    expect(agentationVisibilitySchema?.safeParse("always").success).toBe(true);
-    expect(agentationVisibilitySchema?.safeParse("off").success).toBe(true);
+    expect(safeParsePreferenceSchema(agentationVisibilitySchema, "always").success).toBe(true);
+    expect(safeParsePreferenceSchema(agentationVisibilitySchema, "off").success).toBe(true);
   });
 
   it("keeps developer mode as a boolean string preference", () => {
@@ -240,9 +252,9 @@ describe("preference contract", () => {
     expect(normalizePreferenceValue("developer_mode", "true")).toBe("true");
     expect(normalizePreferenceValue("developer_mode", "false")).toBe("false");
     expect(normalizePreferenceValue("developer_mode", "sometimes")).toBe("false");
-    expect(developerModeSchema?.safeParse("true").success).toBe(true);
-    expect(developerModeSchema?.safeParse("false").success).toBe(true);
-    expect(developerModeSchema?.safeParse("sometimes").success).toBe(false);
+    expect(safeParsePreferenceSchema(developerModeSchema, "true").success).toBe(true);
+    expect(safeParsePreferenceSchema(developerModeSchema, "false").success).toBe(true);
+    expect(safeParsePreferenceSchema(developerModeSchema, "sometimes").success).toBe(false);
   });
 
   it("normalizes known, shortcut, and unknown preference values at the frontend boundary", () => {
@@ -278,13 +290,13 @@ describe("preference contract", () => {
       after_reading: normalizePreferenceValue("after_reading", "mark_as_read"),
     };
 
-    expect(PreferencesDtoSchema.parse(currentPreferenceValues)).toEqual(currentPreferenceValues);
-    expect(PreferencesDtoSchema.parse({ custom_backend_preference: "preserved" })).toEqual({
+    expect(parse(PreferencesDtoSchema, currentPreferenceValues)).toEqual(currentPreferenceValues);
+    expect(parse(PreferencesDtoSchema, { custom_backend_preference: "preserved" })).toEqual({
       custom_backend_preference: "preserved",
     });
-    expect(PreferencesDtoSchema.safeParse({ theme: "midnight" }).success).toBe(false);
-    expect(PreferencesDtoSchema.safeParse({ after_reading: "mark_as_read" }).success).toBe(false);
-    expect(PreferencesDtoSchema.safeParse({ shortcut_unknown_action: "Shift+X" }).success).toBe(false);
+    expect(safeParse(PreferencesDtoSchema, { theme: "midnight" }).success).toBe(false);
+    expect(safeParse(PreferencesDtoSchema, { after_reading: "mark_as_read" }).success).toBe(false);
+    expect(safeParse(PreferencesDtoSchema, { shortcut_unknown_action: "Shift+X" }).success).toBe(false);
   });
 
   it("normalizes preference records into prototype-pollution-safe passthrough output", () => {
@@ -309,34 +321,34 @@ describe("preference contract", () => {
     const debugWebPreviewUrlSchema = getPreferenceValueSchema("debug_web_preview_url");
     const shortcutSchema = getPreferenceValueSchema("shortcut_next_article");
 
-    expect(selectedAccountIdSchema?.safeParse(" account-1 ").data).toBe("account-1");
-    expect(selectedAccountIdSchema?.safeParse("a".repeat(256)).success).toBe(true);
-    expect(selectedAccountIdSchema?.safeParse("a".repeat(257)).success).toBe(false);
-    expect(selectedAccountIdSchema?.safeParse("account\n1").success).toBe(false);
+    expect(safeParsePreferenceSchema(selectedAccountIdSchema, " account-1 ").output).toBe("account-1");
+    expect(safeParsePreferenceSchema(selectedAccountIdSchema, "a".repeat(256)).success).toBe(true);
+    expect(safeParsePreferenceSchema(selectedAccountIdSchema, "a".repeat(257)).success).toBe(false);
+    expect(safeParsePreferenceSchema(selectedAccountIdSchema, "account\n1").success).toBe(false);
     expect(normalizePreferenceValue("selected_account_id", " account-1 ")).toBe("account-1");
     expect(normalizePreferenceValue("selected_account_id", "account\n1")).toBe("");
 
-    expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/path?q=1").success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1024)).success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1025)).success).toBe(false);
-    expect(debugWebPreviewUrlSchema?.safeParse("あ".repeat(341)).success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("あ".repeat(342)).success).toBe(false);
-    expect(debugWebPreviewUrlSchema?.safeParse("😀".repeat(256)).success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("😀".repeat(257)).success).toBe(false);
-    expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success).toBe(false);
-    expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0085").success).toBe(false);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "https://example.com/path?q=1").success).toBe(true);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "a".repeat(1024)).success).toBe(true);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "a".repeat(1025)).success).toBe(false);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "あ".repeat(341)).success).toBe(true);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "あ".repeat(342)).success).toBe(false);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "😀".repeat(256)).success).toBe(true);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "😀".repeat(257)).success).toBe(false);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "https://example.com/\u0000").success).toBe(false);
+    expect(safeParsePreferenceSchema(debugWebPreviewUrlSchema, "https://example.com/\u0085").success).toBe(false);
     expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025))).toBe("https://news.yahoo.co.jp/");
     expect(normalizePreferenceValue("debug_web_preview_url", "あ".repeat(342))).toBe("https://news.yahoo.co.jp/");
 
-    expect(shortcutSchema?.safeParse(" Shift+J ").data).toBe("Shift+J");
-    expect(shortcutSchema?.safeParse("a".repeat(128)).success).toBe(true);
-    expect(shortcutSchema?.safeParse("a".repeat(129)).success).toBe(false);
-    expect(shortcutSchema?.safeParse("あ".repeat(42)).success).toBe(true);
-    expect(shortcutSchema?.safeParse("あ".repeat(43)).success).toBe(false);
-    expect(shortcutSchema?.safeParse("😀".repeat(32)).success).toBe(true);
-    expect(shortcutSchema?.safeParse("😀".repeat(33)).success).toBe(false);
-    expect(shortcutSchema?.safeParse("Shift+\nJ").success).toBe(false);
-    expect(shortcutSchema?.safeParse("Shift+\u009fJ").success).toBe(false);
+    expect(safeParsePreferenceSchema(shortcutSchema, " Shift+J ").output).toBe("Shift+J");
+    expect(safeParsePreferenceSchema(shortcutSchema, "a".repeat(128)).success).toBe(true);
+    expect(safeParsePreferenceSchema(shortcutSchema, "a".repeat(129)).success).toBe(false);
+    expect(safeParsePreferenceSchema(shortcutSchema, "あ".repeat(42)).success).toBe(true);
+    expect(safeParsePreferenceSchema(shortcutSchema, "あ".repeat(43)).success).toBe(false);
+    expect(safeParsePreferenceSchema(shortcutSchema, "😀".repeat(32)).success).toBe(true);
+    expect(safeParsePreferenceSchema(shortcutSchema, "😀".repeat(33)).success).toBe(false);
+    expect(safeParsePreferenceSchema(shortcutSchema, "Shift+\nJ").success).toBe(false);
+    expect(safeParsePreferenceSchema(shortcutSchema, "Shift+\u009fJ").success).toBe(false);
   });
 
   it("classifies likely unknown passthrough typos without rejecting backend-owned keys", () => {

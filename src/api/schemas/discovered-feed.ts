@@ -1,4 +1,5 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 
 function isHttpUrl(value: string) {
   try {
@@ -9,22 +10,19 @@ function isHttpUrl(value: string) {
   }
 }
 
-const httpUrlSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .refine((url) => !url.includes("\n") && !url.includes("\r"), {
-    message: "Discovered feed URLs must not contain newlines",
-  })
-  .refine(isHttpUrl, {
-    message: "Only valid http:// and https:// URLs are supported",
-  });
+const httpUrlSchema = v.pipe(
+  v.string(),
+  v.trim(),
+  v.minLength(1),
+  v.check((url) => !url.includes("\n") && !url.includes("\r"), "Discovered feed URLs must not contain newlines"),
+  v.check(isHttpUrl, "Only valid http:// and https:// URLs are supported"),
+);
 
-export const DiscoveredFeedDtoSchema = z.strictObject({
+export const DiscoveredFeedDtoSchema = s.strictObject({
   url: httpUrlSchema,
-  title: z.string(),
+  title: v.string(),
 });
 
-export const DiscoveredFeedDtoListSchema = z.array(DiscoveredFeedDtoSchema);
+export const DiscoveredFeedDtoListSchema = v.array(DiscoveredFeedDtoSchema);
 
-export type DiscoveredFeedDto = z.output<typeof DiscoveredFeedDtoSchema>;
+export type DiscoveredFeedDto = v.InferOutput<typeof DiscoveredFeedDtoSchema>;

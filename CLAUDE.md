@@ -79,7 +79,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 
 - Prefer `type` aliases for object shapes, unions, mapped types, and component or hook contracts.
 - Use `interface` only when declaration merging or external augmentation is required, such as `ImportMetaEnv`, `Window`, or library module augmentation.
-- Derive DTO and runtime-boundary types from schemas with `z.output` / `z.infer` or from the Tauri command wrapper source of truth.
+- Derive DTO and runtime-boundary types from schemas with Valibot's `InferOutput` / `InferInput` or from the Tauri command wrapper source of truth.
 - Treat `as` assertions as boundary code only. Prefer `unknown` plus narrowing, schema parsing, `satisfies`, or small typed helpers.
 
 ## Rule Routing

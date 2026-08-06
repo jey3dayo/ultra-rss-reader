@@ -1,4 +1,5 @@
 import type { Result } from "@praha/byethrow";
+import { parse } from "valibot";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   AccountDtoSchema,
@@ -180,12 +181,12 @@ describe("test fixtures", () => {
   });
 
   it("keeps sample account, feed, article, mute keyword, and tag fixtures compatible with DTO schemas", () => {
-    expect(sampleAccounts.map((account) => AccountDtoSchema.parse(account))).toEqual(sampleAccounts);
-    expect(sampleFolders.map((folder) => FolderDtoSchema.parse(folder))).toEqual(sampleFolders);
-    expect(sampleFeeds.map((feed) => FeedDtoSchema.parse(feed))).toEqual(sampleFeeds);
-    expect(sampleArticles.map((article) => ArticleDtoSchema.parse(article))).toEqual(sampleArticles);
-    expect(sampleMuteKeywords.map((keyword) => MuteKeywordDtoSchema.parse(keyword))).toEqual(sampleMuteKeywords);
-    expect(sampleTags.map((tag) => TagDtoSchema.parse(tag))).toEqual(sampleTags);
+    expect(sampleAccounts.map((account) => parse(AccountDtoSchema, account))).toEqual(sampleAccounts);
+    expect(sampleFolders.map((folder) => parse(FolderDtoSchema, folder))).toEqual(sampleFolders);
+    expect(sampleFeeds.map((feed) => parse(FeedDtoSchema, feed))).toEqual(sampleFeeds);
+    expect(sampleArticles.map((article) => parse(ArticleDtoSchema, article))).toEqual(sampleArticles);
+    expect(sampleMuteKeywords.map((keyword) => parse(MuteKeywordDtoSchema, keyword))).toEqual(sampleMuteKeywords);
+    expect(sampleTags.map((tag) => parse(TagDtoSchema, tag))).toEqual(sampleTags);
   });
 
   it("keeps required fixture identity and display fields populated", () => {

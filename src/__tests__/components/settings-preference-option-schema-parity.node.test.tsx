@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { settingsPreferenceLabelKeys } from "@tests/helpers/settings-fixtures";
+import { safeParse } from "valibot";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { useAppearanceSettingsViewProps } from "@/components/settings/hooks/use-appearance-settings-view-props";
 import { useGeneralSettingsViewProps } from "@/components/settings/hooks/use-general-settings-view-props";
@@ -19,7 +20,7 @@ function expectPreferenceWriteMatchesSchema(key: string, value: string) {
   const schema = preferenceSchemas[key as keyof typeof preferenceSchemas];
 
   expect(schema, `Missing preference schema for ${key}`).toBeDefined();
-  expect(schema?.safeParse(value).success, `Invalid value ${value} for ${key}`).toBe(true);
+  expect(schema ? safeParse(schema, value).success : false, `Invalid value ${value} for ${key}`).toBe(true);
   expect(settingsPreferenceLabelKeys, `Missing settings preference fixture owner for ${key}`).toHaveProperty(key);
 }
 
@@ -29,7 +30,9 @@ function assertControlSchemaParity(control: SettingsPageControl, setPref: Return
 
     if (schema) {
       for (const option of control.options) {
-        expect(schema.safeParse(option.value).success, `Invalid option ${option.value} for ${control.name}`).toBe(true);
+        expect(safeParse(schema, option.value).success, `Invalid option ${option.value} for ${control.name}`).toBe(
+          true,
+        );
       }
     }
 

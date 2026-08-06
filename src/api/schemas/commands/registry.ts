@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { BaseIssue, BaseSchema } from "valibot";
 import {
   addAccountArgs,
   deleteAccountArgs,
@@ -83,7 +83,7 @@ import {
   untagArticleArgs,
 } from "./tag";
 
-type CommandArgsSchema = z.ZodType<Record<string, unknown>>;
+type CommandArgsSchema = BaseSchema<Record<string, unknown>, Record<string, unknown>, BaseIssue<unknown>>;
 
 // Registry: command names (snake_case) -> schema (only commands with args)
 export const commandArgsSchemas = {

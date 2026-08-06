@@ -1,20 +1,23 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import { NonnegativeIntegerSchema } from "./common";
 
-const nonBlankTrimmedStringSchema = z.string().trim().min(1);
-const tagColorSchema = z
-  .string()
-  .regex(/^#[0-9a-fA-F]{6}$/)
-  .transform((value) => value.toLowerCase())
-  .nullable();
+const nonBlankTrimmedStringSchema = v.pipe(v.string(), v.trim(), v.minLength(1));
+const tagColorSchema = v.nullable(
+  v.pipe(
+    v.string(),
+    v.regex(/^#[0-9a-fA-F]{6}$/u),
+    v.transform((value) => value.toLowerCase()),
+  ),
+);
 
-export const TagDtoSchema = z.strictObject({
-  id: z.string(),
+export const TagDtoSchema = s.strictObject({
+  id: v.string(),
   name: nonBlankTrimmedStringSchema,
   color: tagColorSchema,
 });
 
-export const TagDtoListSchema = z.array(TagDtoSchema);
-export const TagArticleCountsSchema = z.record(z.string(), NonnegativeIntegerSchema);
+export const TagDtoListSchema = v.array(TagDtoSchema);
+export const TagArticleCountsSchema = s.record(v.string(), NonnegativeIntegerSchema);
 
-export type TagDto = z.output<typeof TagDtoSchema>;
+export type TagDto = v.InferOutput<typeof TagDtoSchema>;

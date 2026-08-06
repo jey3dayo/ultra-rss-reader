@@ -1,21 +1,22 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import { MuteKeywordScopeSchema } from "../mute-keyword";
 import { nonBlankTrimmedIdSchema, nonBlankTrimmedStringSchema } from "./shared";
 
-export const createMuteKeywordArgs = z.object({
+export const createMuteKeywordArgs = s.object({
   keyword: nonBlankTrimmedStringSchema,
   scope: MuteKeywordScopeSchema,
 });
 
-export const deleteMuteKeywordArgs = z.object({
+export const deleteMuteKeywordArgs = s.object({
   muteKeywordId: nonBlankTrimmedIdSchema,
 });
 
-export const updateMuteKeywordArgs = z.object({
+export const updateMuteKeywordArgs = s.object({
   muteKeywordId: nonBlankTrimmedIdSchema,
   scope: MuteKeywordScopeSchema,
 });
 
-export const setMuteAutoMarkReadArgs = z.object({
-  enabled: z.boolean(),
+export const setMuteAutoMarkReadArgs = s.object({
+  enabled: v.boolean(),
 });

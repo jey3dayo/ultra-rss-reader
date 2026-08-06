@@ -1,3 +1,4 @@
+import { safeParse } from "valibot";
 import { describe, expect, it, vi } from "vitest";
 import { useGeneralSettingsViewProps as buildGeneralSettingsViewProps } from "@/components/settings/hooks/use-general-settings-view-props";
 import i18n from "@/lib/i18n";
@@ -98,9 +99,9 @@ describe("useGeneralSettingsViewProps", () => {
     expect(languagePreferenceValues).toEqual(["system", ...i18nResourceLocales]);
     expect(languageValues).toEqual([...languagePreferenceValues]);
     for (const language of languageValues) {
-      expect(preferenceSchemas.language.safeParse(language).success).toBe(true);
+      expect(safeParse(preferenceSchemas.language, language).success).toBe(true);
     }
-    expect(preferenceSchemas.language.safeParse("fr").success).toBe(false);
+    expect(safeParse(preferenceSchemas.language, "fr").success).toBe(false);
   });
 
   it("writes app startup sync from the general sync section", () => {

@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
+import { safeParse } from "valibot";
 import {
   UpdateDownloadProgressEventPayloadSchema,
   type UpdateInfoDto,
@@ -214,7 +215,7 @@ function normalizeDownloadProgressPercent(percent: number | null): number | null
 }
 
 function readDownloadProgressPercent(payload: unknown): number | null | undefined {
-  const result = UpdateDownloadProgressEventPayloadSchema.safeParse(payload);
+  const result = safeParse(UpdateDownloadProgressEventPayloadSchema, payload);
   if (!result.success) {
     return undefined;
   }
@@ -223,19 +224,19 @@ function readDownloadProgressPercent(payload: unknown): number | null | undefine
     return undefined;
   }
 
-  if (staleDownloadSessionIds.has(result.data.session_id)) {
+  if (staleDownloadSessionIds.has(result.output.session_id)) {
     return undefined;
   }
 
   if (activeDownloadSessionId === null) {
-    activeDownloadSessionId = result.data.session_id;
+    activeDownloadSessionId = result.output.session_id;
   }
 
-  if (result.data.session_id !== activeDownloadSessionId) {
+  if (result.output.session_id !== activeDownloadSessionId) {
     return undefined;
   }
 
-  const percent = normalizeDownloadProgressPercent(result.data.percent);
+  const percent = normalizeDownloadProgressPercent(result.output.percent);
   if (percent === null) {
     return percent;
   }
@@ -249,20 +250,20 @@ function readDownloadProgressPercent(payload: unknown): number | null | undefine
 }
 
 function isCurrentDownloadReady(payload: unknown): boolean {
-  const result = UpdateReadyEventPayloadSchema.safeParse(payload);
+  const result = safeParse(UpdateReadyEventPayloadSchema, payload);
   if (!result.success || !downloadInFlight) {
     return false;
   }
 
-  if (staleDownloadSessionIds.has(result.data.session_id)) {
+  if (staleDownloadSessionIds.has(result.output.session_id)) {
     return false;
   }
 
-  if (activeDownloadSessionId !== null && result.data.session_id !== activeDownloadSessionId) {
+  if (activeDownloadSessionId !== null && result.output.session_id !== activeDownloadSessionId) {
     return false;
   }
 
-  activeDownloadSessionId = result.data.session_id;
+  activeDownloadSessionId = result.output.session_id;
   return true;
 }
 

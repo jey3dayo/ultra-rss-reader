@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { parse } from "valibot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import {
@@ -376,13 +377,13 @@ describe("useDataSettingsController", () => {
   });
 
   it("uses schema-validated total size including WAL and SHM for display and vacuum saved copy", async () => {
-    const initialInfo = DatabaseInfoDtoSchema.parse({
+    const initialInfo = parse(DatabaseInfoDtoSchema, {
       db_size_bytes: 1024,
       wal_size_bytes: 256,
       shm_size_bytes: 128,
       total_size_bytes: 1408,
     });
-    const vacuumedInfo = DatabaseInfoDtoSchema.parse({
+    const vacuumedInfo = parse(DatabaseInfoDtoSchema, {
       db_size_bytes: 768,
       wal_size_bytes: 256,
       shm_size_bytes: 0,
@@ -413,13 +414,13 @@ describe("useDataSettingsController", () => {
   });
 
   it("clamps vacuum saved copy when the database grows after cleanup", async () => {
-    const initialInfo = DatabaseInfoDtoSchema.parse({
+    const initialInfo = parse(DatabaseInfoDtoSchema, {
       db_size_bytes: 1024,
       wal_size_bytes: 0,
       shm_size_bytes: 0,
       total_size_bytes: 1024,
     });
-    const vacuumedInfo = DatabaseInfoDtoSchema.parse({
+    const vacuumedInfo = parse(DatabaseInfoDtoSchema, {
       db_size_bytes: 2048,
       wal_size_bytes: 0,
       shm_size_bytes: 0,
@@ -602,7 +603,7 @@ describe("useDataSettingsController", () => {
   });
 
   it("exposes write corruption from vacuum as runtime recovery surface", async () => {
-    const initialInfo = DatabaseInfoDtoSchema.parse({
+    const initialInfo = parse(DatabaseInfoDtoSchema, {
       db_size_bytes: 1024,
       wal_size_bytes: 0,
       shm_size_bytes: 0,

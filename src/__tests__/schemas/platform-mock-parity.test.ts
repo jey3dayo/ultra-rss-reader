@@ -1,4 +1,5 @@
 import { mockPlatformInfo } from "@tests/helpers/tauri-mocks";
+import { parse, safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { PlatformInfoSchema } from "@/api/schemas";
 import { DEFAULT_PLATFORM_CAPABILITIES, DEFAULT_PLATFORM_INFO, PLATFORM_KINDS } from "@/constants/platform";
@@ -56,7 +57,7 @@ describe("platform mock parity", () => {
     const missingMockFields = realCapabilityFields.filter((field) => !mockCapabilityFields.includes(field));
     const staleMockFields = mockCapabilityFields.filter((field) => !realCapabilityFields.includes(field));
 
-    expect(PlatformInfoSchema.parse(mockPlatformInfo)).toEqual(mockPlatformInfo);
+    expect(parse(PlatformInfoSchema, mockPlatformInfo)).toEqual(mockPlatformInfo);
     expect(missingMockFields).toEqual([]);
     expect(staleMockFields).toEqual([]);
   });
@@ -96,13 +97,13 @@ describe("platform mock parity", () => {
       stale_top_level_key: true,
     };
 
-    expect(PlatformInfoSchema.safeParse(platformWithExtraCapability).success).toBe(false);
-    expect(PlatformInfoSchema.safeParse(platformWithExtraTopLevelKey).success).toBe(false);
+    expect(safeParse(PlatformInfoSchema, platformWithExtraCapability).success).toBe(false);
+    expect(safeParse(PlatformInfoSchema, platformWithExtraTopLevelKey).success).toBe(false);
   });
 
   it("normalizes unknown platform kinds to safe feature flag fallbacks", () => {
     expect(
-      PlatformInfoSchema.parse({
+      parse(PlatformInfoSchema, {
         kind: "freebsd",
         capabilities: {
           supports_reading_list: true,
@@ -116,6 +117,6 @@ describe("platform mock parity", () => {
   });
 
   it("keeps browser dev platform mock on the default safe platform schema", () => {
-    expect(PlatformInfoSchema.parse(DEV_MOCK_PLATFORM_INFO)).toEqual(DEFAULT_PLATFORM_INFO);
+    expect(parse(PlatformInfoSchema, DEV_MOCK_PLATFORM_INFO)).toEqual(DEFAULT_PLATFORM_INFO);
   });
 });

@@ -1,3 +1,4 @@
+import { safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { AccountSyncWarningSchema, SyncResultSchema } from "@/api/schemas/sync-result";
 
@@ -10,9 +11,9 @@ const retryScheduledWarning = {
 
 describe("AccountSyncWarningSchema", () => {
   it("accepts missing retry seconds and rejects fractional values", () => {
-    expect(AccountSyncWarningSchema.safeParse(retryScheduledWarning).success).toBe(true);
+    expect(safeParse(AccountSyncWarningSchema, retryScheduledWarning).success).toBe(true);
     expect(
-      AccountSyncWarningSchema.safeParse({
+      safeParse(AccountSyncWarningSchema, {
         ...retryScheduledWarning,
         retry_in_seconds: 1.5,
       }).success,
@@ -21,7 +22,7 @@ describe("AccountSyncWarningSchema", () => {
 
   it("accepts backend null retry metadata for generic warnings", () => {
     expect(
-      AccountSyncWarningSchema.safeParse({
+      safeParse(AccountSyncWarningSchema, {
         ...retryScheduledWarning,
         kind: "generic",
         retry_at: null,
@@ -32,13 +33,13 @@ describe("AccountSyncWarningSchema", () => {
 
   it("rejects negative or non-finite retry seconds", () => {
     expect(
-      AccountSyncWarningSchema.safeParse({
+      safeParse(AccountSyncWarningSchema, {
         ...retryScheduledWarning,
         retry_in_seconds: -1,
       }).success,
     ).toBe(false);
     expect(
-      AccountSyncWarningSchema.safeParse({
+      safeParse(AccountSyncWarningSchema, {
         ...retryScheduledWarning,
         retry_in_seconds: Number.POSITIVE_INFINITY,
       }).success,
@@ -74,7 +75,7 @@ describe("SyncResultSchema", () => {
     ["warnings", "message", "   "],
   ] as const)("rejects blank %s account %s before display", (collection, field, value) => {
     expect(
-      SyncResultSchema.safeParse({
+      safeParse(SyncResultSchema, {
         ...syncResult,
         [collection]: [{ ...syncResult[collection][0], [field]: value }],
       }).success,
@@ -87,7 +88,7 @@ describe("SyncResultSchema", () => {
     ["warnings", ""],
     ["warnings", "   "],
   ] as const)("accepts blank %s account names so display can fall back to account id", (collection, value) => {
-    const result = SyncResultSchema.safeParse({
+    const result = safeParse(SyncResultSchema, {
       ...syncResult,
       [collection]: [{ ...syncResult[collection][0], account_name: value }],
     });
@@ -96,11 +97,11 @@ describe("SyncResultSchema", () => {
     if (!result.success) {
       throw new Error("Expected blank account names to parse");
     }
-    expect(result.data[collection][0]?.account_name).toBe("");
+    expect(result.output[collection][0]?.account_name).toBe("");
   });
 
   it("accepts account, feed, credential, and scheduler issue owners", () => {
-    const result = SyncResultSchema.safeParse({
+    const result = safeParse(SyncResultSchema, {
       ...syncResult,
       total: 3,
       failed: [
@@ -119,13 +120,13 @@ describe("SyncResultSchema", () => {
 
   it("rejects unknown issue owners before feedback aggregation", () => {
     expect(
-      SyncResultSchema.safeParse({
+      safeParse(SyncResultSchema, {
         ...syncResult,
         failed: [{ ...syncResult.failed[0], action_owner: "article" }],
       }).success,
     ).toBe(false);
     expect(
-      SyncResultSchema.safeParse({
+      safeParse(SyncResultSchema, {
         ...syncResult,
         warnings: [{ ...syncResult.warnings[0], action_owner: "mutation" }],
       }).success,
@@ -134,21 +135,21 @@ describe("SyncResultSchema", () => {
 
   it("requires total to match succeeded plus failed account count", () => {
     expect(
-      SyncResultSchema.safeParse({
+      safeParse(SyncResultSchema, {
         ...syncResult,
         total: 2,
         succeeded: 1,
       }).success,
     ).toBe(true);
     expect(
-      SyncResultSchema.safeParse({
+      safeParse(SyncResultSchema, {
         ...syncResult,
         total: 3,
         succeeded: 1,
       }).success,
     ).toBe(false);
     expect(
-      SyncResultSchema.safeParse({
+      safeParse(SyncResultSchema, {
         ...syncResult,
         total: 1,
         succeeded: 1,

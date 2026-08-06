@@ -410,14 +410,54 @@ function typescriptFilesUnder(paths: readonly string[]) {
   });
 }
 
-function isSchemaOwnedZodImportPath(path: string) {
+const valibotValidationBoundaryPaths = new Set([
+  "src/__tests__/api/browser-webview-command-contract.node.test.ts",
+  "src/__tests__/api/bulk-count-schemas.test.ts",
+  "src/__tests__/api/command-args-validation.node.test.ts",
+  "src/__tests__/api/schema-barrel-public-api.test.ts",
+  "src/__tests__/api/schemas.node.test.ts",
+  "src/__tests__/api/schemas/database-info.test.ts",
+  "src/__tests__/api/schemas/feed-integrity.test.ts",
+  "src/__tests__/api/schemas/platform-info.test.ts",
+  "src/__tests__/api/schemas/sync-result.test.ts",
+  "src/__tests__/api/schemas/update-info.test.ts",
+  "src/__tests__/components/article-content-view.test.tsx",
+  "src/__tests__/components/settings-preference-option-schema-parity.node.test.tsx",
+  "src/__tests__/components/use-data-settings-controller.node.test.ts",
+  "src/__tests__/components/use-general-settings-view-props.node.test.ts",
+  "src/__tests__/constants/source-of-truth.test.ts",
+  "src/__tests__/dev/dev-mock-data.test.ts",
+  "src/__tests__/dev/dev-mocks-browser.node.test.ts",
+  "src/__tests__/dev/dev-mocks.node.test.ts",
+  "src/__tests__/hooks/tag-mute-settings-contract.test.ts",
+  "src/__tests__/schemas/package-scripts.test.ts",
+  "src/__tests__/schemas/parse.test.ts",
+  "src/__tests__/schemas/platform-mock-parity.test.ts",
+  "src/__tests__/schemas/preferences-schema-contract.test.ts",
+  "src/__tests__/schemas/storage.test.ts",
+  "src/__tests__/stores/ui-store.node.test.ts",
+  "tests/helpers/app-error.ts",
+  "tests/helpers/fixtures.test.ts",
+  "tests/helpers/tauri-mocks.node.test.ts",
+]);
+
+function isSchemaOwnedValibotImportPath(path: string) {
   return (
     path.startsWith("src/api/schemas/") ||
     path.startsWith("src/schemas/") ||
-    path === "src/__tests__/api/schemas.node.test.ts" ||
-    path.startsWith("src/__tests__/api/schemas/") ||
-    path === "src/__tests__/schemas/parse.test.ts" ||
-    path === "tests/helpers/command-args-schema-keys.ts"
+    valibotValidationBoundaryPaths.has(path) ||
+    path === "src/api/tauri-commands/local-account-sync.ts" ||
+    path === "src/api/tauri-commands/runtime.ts" ||
+    path === "src/api/tauri-commands/system.ts" ||
+    path === "src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts" ||
+    path === "src/components/reader/hooks/sidebar/use-sidebar-sync.ts" ||
+    path === "src/components/storybook/ui-reference-navigation-specimens.tsx" ||
+    path === "src/dev/intent.ts" ||
+    path === "src/dev/mocks.ts" ||
+    path === "src/hooks/use-updater.ts" ||
+    path === "src/lib/browser/browser-webview-event-payloads.ts" ||
+    path === "src/lib/command-palette/command-history-storage.ts" ||
+    path === "src/stores/ui-store.ts"
   );
 }
 
@@ -1239,7 +1279,7 @@ describe("repository static contracts", () => {
   });
 
   it("keeps API schema files covered by barrel exports and schema tests", () => {
-    const schemaFileStems = readDirectoryFileStems("src/api/schemas");
+    const schemaFileStems = readDirectoryFileStems("src/api/schemas").filter((stem) => stem !== "validation");
     const schemaBarrelExportTargets = extractSchemaBarrelExportTargets(readRepoFile("src/api/schemas/index.ts"));
     const dedicatedSchemaTestStems = readDirectoryFileStems("src/__tests__/api/schemas").map((fileName) =>
       fileName.replace(/\.test$/, ""),
@@ -2273,18 +2313,18 @@ describe("repository static contracts", () => {
     expect(eagerScenarioImports).toEqual([]);
   });
 
-  it("keeps direct zod imports limited to schema modules and explicit schema contract tests", () => {
-    const zodImportPattern = /\bfrom\s+["']zod["']|\bimport\(\s*["']zod["']\s*\)/;
-    const directZodImportPaths = typescriptFilesUnder(["src", "tests"])
-      .filter((path) => zodImportPattern.test(readRepoFile(path)))
-      .filter((path) => !isSchemaOwnedZodImportPath(path))
+  it("keeps direct Valibot imports limited to schema owners and validation boundaries", () => {
+    const valibotImportPattern = /\bfrom\s+["']valibot["']|\bimport\(\s*["']valibot["']\s*\)/;
+    const directValibotImportPaths = typescriptFilesUnder(["src", "tests"])
+      .filter((path) => valibotImportPattern.test(readRepoFile(path)))
+      .filter((path) => !isSchemaOwnedValibotImportPath(path))
       .toSorted();
 
-    expect(directZodImportPaths).toEqual([]);
+    expect(directValibotImportPaths).toEqual([]);
   });
 
   it("keeps frontend schema files covered by schema contract tests", () => {
-    const schemaFileStems = readDirectoryFileStems("src/schemas");
+    const schemaFileStems = readDirectoryFileStems("src/schemas").filter((stem) => stem !== "validation");
     const schemaTestSource = typescriptFilesUnder(["src/__tests__/schemas", "src/__tests__/stores"]).map(
       (path) => [path, readRepoFile(path)] as const,
     );
@@ -2308,15 +2348,19 @@ describe("repository static contracts", () => {
     }
   });
 
-  it("keeps test-local zod schemas out of schema tests unless they exercise parse helpers", () => {
-    const localZodSchemaDeclarations = typescriptFilesUnder(["src/__tests__/schemas"])
+  it("keeps test-local Valibot schemas out of schema tests unless they exercise parse helpers", () => {
+    const localValibotSchemaDeclarations = typescriptFilesUnder(["src/__tests__/schemas"])
       .filter((path) => path !== "src/__tests__/schemas/parse.test.ts")
       .flatMap((path) => {
         const source = readRepoFile(path);
-        return /\bconst\s+\w+Schema\s*=\s*z\./.test(source) ? [path] : [];
+        return /\bconst\s+\w+Schema\s*=\s*(?:[A-Za-z_$][\w$]*\.)?(?:object|pipe|strictObject|looseObject|variant|union|picklist|record|array|string|number|boolean)\s*\(/.test(
+          source,
+        )
+          ? [path]
+          : [];
       });
 
-    expect(localZodSchemaDeclarations).toEqual([]);
+    expect(localValibotSchemaDeclarations).toEqual([]);
   });
 
   it("keeps test-only command schema introspection helpers out of production schema modules", () => {

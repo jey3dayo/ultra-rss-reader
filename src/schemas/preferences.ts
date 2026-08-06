@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as v from "valibot";
 import { isShortcutPreferenceKey } from "@/lib/keyboard/keyboard-shortcuts";
 import {
   afterReadingPreferenceValues,
@@ -58,50 +58,57 @@ export {
 
 export { languagePreferenceValues };
 
-export const themeSchema = z.enum(themePreferenceValues);
-const languageSchema = z.enum(languagePreferenceValues);
-const unreadBadgeSchema = z.enum(unreadBadgePreferenceValues);
-const openLinksSchema = z.enum(openLinksPreferenceValues);
-const booleanStringSchema = z.enum(booleanStringPreferenceValues);
-const sortOrderSchema = z.enum(sortOrderPreferenceValues);
-const groupBySchema = z.enum(groupByPreferenceValues);
-const listSelectionStyleSchema = z.enum(listSelectionStylePreferenceValues);
-const sidebarDensitySchema = z.enum(sidebarDensityPreferenceValues);
-const layoutSchema = z.enum(layoutPreferenceValues);
-const fontStyleSchema = z.enum(fontStylePreferenceValues);
-const fontSizeSchema = z.enum(fontSizePreferenceValues);
-const imagePreviewsSchema = z.enum(imagePreviewsPreferenceValues);
-const afterReadingSchema = z.enum(afterReadingPreferenceValues);
-const sortSubscriptionsSchema = z.enum(sortSubscriptionsPreferenceValues);
-const startupFolderExpansionSchema = z.enum(startupFolderExpansionPreferenceValues);
-const developerModeSchema = z.enum(developerModePreferenceValues);
-const debugAgentationVisibilitySchema = z
-  .enum(debugAgentationVisibilityPreferenceValues)
-  .transform((value) => (value === "hide_in_settings" ? "always" : value));
-const persistedBooleanPreferenceSchema = z.enum(booleanStringPreferenceValues);
+export const themeSchema = v.picklist(themePreferenceValues);
+const languageSchema = v.picklist(languagePreferenceValues);
+const unreadBadgeSchema = v.picklist(unreadBadgePreferenceValues);
+const openLinksSchema = v.picklist(openLinksPreferenceValues);
+const booleanStringSchema = v.picklist(booleanStringPreferenceValues);
+const sortOrderSchema = v.picklist(sortOrderPreferenceValues);
+const groupBySchema = v.picklist(groupByPreferenceValues);
+const listSelectionStyleSchema = v.picklist(listSelectionStylePreferenceValues);
+const sidebarDensitySchema = v.picklist(sidebarDensityPreferenceValues);
+const layoutSchema = v.picklist(layoutPreferenceValues);
+const fontStyleSchema = v.picklist(fontStylePreferenceValues);
+const fontSizeSchema = v.picklist(fontSizePreferenceValues);
+const imagePreviewsSchema = v.picklist(imagePreviewsPreferenceValues);
+const afterReadingSchema = v.picklist(afterReadingPreferenceValues);
+const sortSubscriptionsSchema = v.picklist(sortSubscriptionsPreferenceValues);
+const startupFolderExpansionSchema = v.picklist(startupFolderExpansionPreferenceValues);
+const developerModeSchema = v.picklist(developerModePreferenceValues);
+const debugAgentationVisibilitySchema = v.pipe(
+  v.picklist(debugAgentationVisibilityPreferenceValues),
+  v.transform((value) => (value === "hide_in_settings" ? "always" : value)),
+);
+const persistedBooleanPreferenceSchema = v.picklist(booleanStringPreferenceValues);
 const textEncoder = new TextEncoder();
 const hasControlCharacter = (value: string): boolean =>
   Array.from(value).some((character) => {
     const codePoint = character.codePointAt(0);
     return codePoint !== undefined && ((codePoint >= 0 && codePoint <= 31) || (codePoint >= 127 && codePoint <= 159));
   });
-const freeformPreferenceStringSchema = z.string().refine((value) => !hasControlCharacter(value));
+const freeformPreferenceStringSchema = v.pipe(
+  v.string(),
+  v.check((value) => !hasControlCharacter(value)),
+);
 const utf8ByteLimitedStringSchema = (maxBytes: number) =>
-  freeformPreferenceStringSchema.refine((value) => textEncoder.encode(value).length <= maxBytes);
-const debugWebPreviewUrlSchema = utf8ByteLimitedStringSchema(preferenceValueMaxUtf8Bytes);
-const selectedAccountIdSchema = freeformPreferenceStringSchema
-  .transform((value) => value.trim())
-  .pipe(z.string().min(1).max(256));
-export const shortcutPreferenceValueSchema = z
-  .string()
-  .refine((value) => !hasControlCharacter(value))
-  .transform((value) => value.trim())
-  .pipe(
-    z
-      .string()
-      .min(1)
-      .refine((value) => textEncoder.encode(value).length <= 128),
+  v.pipe(
+    freeformPreferenceStringSchema,
+    v.check((value) => textEncoder.encode(value).length <= maxBytes),
   );
+const debugWebPreviewUrlSchema = utf8ByteLimitedStringSchema(preferenceValueMaxUtf8Bytes);
+const selectedAccountIdSchema = v.pipe(
+  freeformPreferenceStringSchema,
+  v.transform((value) => value.trim()),
+  v.minLength(1),
+  v.maxLength(256),
+);
+export const shortcutPreferenceValueSchema = v.pipe(
+  v.string(),
+  v.check((value) => !hasControlCharacter(value)),
+  v.transform((value) => value.trim()),
+  v.minLength(1),
+  v.check((value) => textEncoder.encode(value).length <= 128),
+);
 
 export const preferenceSchemas = {
   language: languageSchema,
@@ -151,7 +158,9 @@ export const preferenceSchemas = {
   mute_auto_mark_read: booleanStringSchema,
 };
 
-export function getPreferenceValueSchema(key: string): z.ZodType | undefined {
+export function getPreferenceValueSchema(
+  key: string,
+): v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>> | undefined {
   if (isKnownPreferenceKey(key)) {
     return preferenceSchemas[key];
   }
@@ -177,6 +186,6 @@ export function isReservedUnknownPreferenceKey(key: string): boolean {
 
 export function parsePreferenceValue(key: KnownPreferenceKey, value: string): string | null {
   const schema = preferenceSchemas[key];
-  const result = schema.safeParse(value);
-  return result.success ? result.data : null;
+  const result = v.safeParse(schema, value);
+  return result.success ? result.output : null;
 }

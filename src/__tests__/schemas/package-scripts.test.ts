@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { is, parse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { type PackageJson, PackageJsonSchema } from "@/schemas/app-config";
 import { isSchemaParseError, parseJsonWithSchema } from "@/schemas/parse";
@@ -131,7 +132,7 @@ describe("package scripts", () => {
     expect(packageJson.type).toBe("module");
 
     expect(
-      PackageJsonSchema.parse({
+      parse(PackageJsonSchema, {
         engines: {
           node: ">=20",
           pnpm: ">=10",
@@ -141,6 +142,19 @@ describe("package scripts", () => {
       node: ">=20",
       pnpm: ">=10",
     });
+  });
+
+  it("rejects arrays at package object and nested record boundaries", () => {
+    const arrayInput: unknown = [];
+    const nestedRecordArrayInput: unknown = { scripts: ["x"] };
+
+    expect(is(PackageJsonSchema, arrayInput)).toBe(false);
+    expect(is(PackageJsonSchema, nestedRecordArrayInput)).toBe(false);
+    expect(
+      parse(PackageJsonSchema, {
+        scripts: { build: "pnpm build" },
+      }).scripts,
+    ).toEqual({ build: "pnpm build" });
   });
 
   it("keeps markdown format and lint task globs aligned with env definitions", () => {

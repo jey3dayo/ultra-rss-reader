@@ -1,4 +1,5 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import { BROWSER_WEBVIEW_BOUNDS_MAX_VALUE } from "./shared";
 import { parseHttpUrl, readingListUrlSchema } from "./url";
 
@@ -19,36 +20,43 @@ function isDevWebPreviewGeometryFixtureUrl(value: string): boolean {
   );
 }
 
-const devWebPreviewGeometryFixtureUrlSchema = z.string().trim().refine(isDevWebPreviewGeometryFixtureUrl, {
-  message: "Only the dev web preview geometry fixture may target localhost",
-});
-const browserWebviewUrlSchema = z.union([readingListUrlSchema, devWebPreviewGeometryFixtureUrlSchema]);
-
-export const checkBrowserEmbedSupportArgs = z.object({ url: readingListUrlSchema });
-
-const geometryIntegerSchema = z
-  .number()
-  .finite()
-  .int()
-  .transform((value) => (Object.is(value, -0) ? 0 : value));
-const browserWebviewCoordinateSchema = geometryIntegerSchema.pipe(
-  z.number().nonnegative().max(BROWSER_WEBVIEW_BOUNDS_MAX_VALUE),
+const devWebPreviewGeometryFixtureUrlSchema = v.pipe(
+  v.string(),
+  v.trim(),
+  v.check(isDevWebPreviewGeometryFixtureUrl, "Only the dev web preview geometry fixture may target localhost"),
 );
-const positiveGeometryIntegerSchema = geometryIntegerSchema.pipe(
-  z.number().positive().max(BROWSER_WEBVIEW_BOUNDS_MAX_VALUE),
+const browserWebviewUrlSchema = v.union([readingListUrlSchema, devWebPreviewGeometryFixtureUrlSchema]);
+
+export const checkBrowserEmbedSupportArgs = s.object({ url: readingListUrlSchema });
+
+const geometryIntegerSchema = v.pipe(
+  v.number(),
+  v.finite(),
+  v.integer(),
+  v.transform((value) => (Object.is(value, -0) ? 0 : value)),
+);
+const browserWebviewCoordinateSchema = v.pipe(
+  geometryIntegerSchema,
+  v.minValue(0),
+  v.maxValue(BROWSER_WEBVIEW_BOUNDS_MAX_VALUE),
+);
+const positiveGeometryIntegerSchema = v.pipe(
+  geometryIntegerSchema,
+  v.gtValue(0),
+  v.maxValue(BROWSER_WEBVIEW_BOUNDS_MAX_VALUE),
 );
 
-export const browserWebviewBoundsArgs = z.object({
+export const browserWebviewBoundsArgs = s.object({
   x: browserWebviewCoordinateSchema,
   y: browserWebviewCoordinateSchema,
   width: positiveGeometryIntegerSchema,
   height: positiveGeometryIntegerSchema,
-  unit: z.enum(["logical", "physical"]).optional(),
+  unit: v.optional(v.picklist(["logical", "physical"])),
 });
-export const createOrUpdateBrowserWebviewArgs = z.object({
+export const createOrUpdateBrowserWebviewArgs = s.object({
   url: browserWebviewUrlSchema,
   bounds: browserWebviewBoundsArgs,
 });
-export const setBrowserWebviewBoundsArgs = z.object({
+export const setBrowserWebviewBoundsArgs = s.object({
   bounds: browserWebviewBoundsArgs,
 });

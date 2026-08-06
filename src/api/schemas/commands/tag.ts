@@ -1,4 +1,5 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import {
   articleListModeSchema,
   nonBlankTrimmedIdSchema,
@@ -14,42 +15,42 @@ export function normalizeTagColorForCommand(value: string | null | undefined): s
     return null;
   }
 
-  return nullableTagColorSchema.parse(value) ?? null;
+  return v.parse(nullableTagColorSchema, value) ?? null;
 }
 
 export function normalizeTagColorForView(value: string | null | undefined): string | null {
-  const result = nullableTagColorSchema.safeParse(value);
-  return result.success ? (result.data ?? null) : null;
+  const result = v.safeParse(nullableTagColorSchema, value);
+  return result.success ? (result.output ?? null) : null;
 }
 
-export const createTagArgs = z.object({
+export const createTagArgs = s.object({
   name: tagNameSchema,
   color: optionalTagColorSchema,
 });
 
-export const renameTagArgs = z.object({
+export const renameTagArgs = s.object({
   tagId: nonBlankTrimmedIdSchema,
   name: tagNameSchema,
   color: nullableTagColorSchema,
 });
 
-export const deleteTagArgs = z.object({ tagId: nonBlankTrimmedIdSchema });
-export const tagArticleArgs = z.object({
+export const deleteTagArgs = s.object({ tagId: nonBlankTrimmedIdSchema });
+export const tagArticleArgs = s.object({
   articleId: nonBlankTrimmedIdSchema,
   tagId: nonBlankTrimmedIdSchema,
 });
-export const untagArticleArgs = z.object({
+export const untagArticleArgs = s.object({
   articleId: nonBlankTrimmedIdSchema,
   tagId: nonBlankTrimmedIdSchema,
 });
-export const getArticleTagsArgs = z.object({ articleId: nonBlankTrimmedIdSchema });
-export const listArticlesByTagArgs = z.object({
+export const getArticleTagsArgs = s.object({ articleId: nonBlankTrimmedIdSchema });
+export const listArticlesByTagArgs = s.object({
   tagId: nonBlankTrimmedIdSchema,
-  mode: articleListModeSchema.optional(),
-  offset: paginationOffsetSchema.optional(),
-  limit: paginationLimitSchema.optional(),
-  accountId: nonBlankTrimmedIdSchema.optional(),
+  mode: v.optional(articleListModeSchema),
+  offset: v.optional(paginationOffsetSchema),
+  limit: v.optional(paginationLimitSchema),
+  accountId: v.optional(nonBlankTrimmedIdSchema),
 });
-export const getTagArticleCountsArgs = z.object({
-  accountId: nonBlankTrimmedIdSchema.optional(),
+export const getTagArticleCountsArgs = s.object({
+  accountId: v.optional(nonBlankTrimmedIdSchema),
 });

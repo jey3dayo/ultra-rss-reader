@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
+import { nullable, parse } from "valibot";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   commandArgsSchemas,
@@ -238,7 +239,7 @@ describe("setupTauriMocks fixture isolation", () => {
   it("returns a schema-valid dry-run cleanup response from default mocks", async () => {
     const cleanup = Result.unwrap(await cleanupFeedIntegrityOrphans(true));
 
-    expect(FeedIntegrityCleanupDtoSchema.parse(cleanup)).toEqual(cleanup);
+    expect(parse(FeedIntegrityCleanupDtoSchema, cleanup)).toEqual(cleanup);
     expect(cleanup).toEqual({
       dry_run: true,
       orphaned_article_count: 0,
@@ -253,10 +254,10 @@ describe("setupTauriMocks fixture isolation", () => {
     const databaseInfo = Result.unwrap(await getDatabaseInfo());
     const updateInfo = Result.unwrap(await checkForUpdate());
 
-    expect(FeedArticleSummaryDtoListSchema.parse(feedSummaries)).toEqual(feedSummaries);
-    expect(PreferencesDtoSchema.parse(preferences)).toEqual(preferences);
-    expect(DatabaseInfoDtoSchema.parse(databaseInfo)).toEqual(databaseInfo);
-    expect(UpdateInfoDtoSchema.nullable().parse(updateInfo)).toEqual(updateInfo);
+    expect(parse(FeedArticleSummaryDtoListSchema, feedSummaries)).toEqual(feedSummaries);
+    expect(parse(PreferencesDtoSchema, preferences)).toEqual(preferences);
+    expect(parse(DatabaseInfoDtoSchema, databaseInfo)).toEqual(databaseInfo);
+    expect(parse(nullable(UpdateInfoDtoSchema), updateInfo)).toEqual(updateInfo);
   });
 
   it("rejects invalid cleanup responses through the command response schema", async () => {

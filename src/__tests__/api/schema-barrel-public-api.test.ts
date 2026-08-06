@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
+import { parse } from "valibot";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type {
   AccountDto,
@@ -245,9 +246,9 @@ describe("schema barrel public API", () => {
 
   it("keeps shared nonnegative integer schema internal while preserving public response schemas", () => {
     expect("NonnegativeIntegerSchema" in apiSchemas).toBe(false);
-    expect(apiSchemas.CountResponseSchema.parse(0)).toBe(0);
-    expect(apiSchemas.NonnegativeIntResponseSchema.parse(0)).toBe(0);
-    expect(NonnegativeIntegerSchema.parse(0)).toBe(0);
+    expect(parse(apiSchemas.CountResponseSchema, 0)).toBe(0);
+    expect(parse(apiSchemas.NonnegativeIntResponseSchema, 0)).toBe(0);
+    expect(parse(NonnegativeIntegerSchema, 0)).toBe(0);
     expect(apiSchemas.CountResponseSchema).not.toBe(apiSchemas.NonnegativeIntResponseSchema);
     expect(apiSchemas.CountResponseSchema).not.toBe(NonnegativeIntegerSchema);
   });
@@ -266,7 +267,7 @@ describe("schema barrel public API", () => {
   });
 
   it("keeps every API schema file either barrel-exported or intentionally internal", () => {
-    const schemaFileStems = readDirectoryFileStems("src/api/schemas");
+    const schemaFileStems = readDirectoryFileStems("src/api/schemas").filter((stem) => stem !== "validation");
     const schemaBarrelExportTargets = extractSchemaBarrelExportTargets(readSource("src/api/schemas/index.ts"));
 
     expectSortedKeysForTarget("src/api/schemas files", schemaFileStems, expectedSchemaFileStems);

@@ -1,13 +1,14 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import { IsoDateTimeStringSchema } from "./common";
 
-const nullableIsoDateTimeStringSchema = IsoDateTimeStringSchema.nullable();
+const nullableIsoDateTimeStringSchema = v.nullable(IsoDateTimeStringSchema);
 
-export const AccountSyncStatusSchema = z.strictObject({
+export const AccountSyncStatusSchema = s.strictObject({
   last_success_at: nullableIsoDateTimeStringSchema,
-  last_error: z.string().nullable(),
-  error_count: z.number().int().nonnegative().finite(),
+  last_error: v.nullable(v.string()),
+  error_count: v.pipe(v.number(), v.integer(), v.minValue(0), v.finite()),
   next_retry_at: nullableIsoDateTimeStringSchema,
 });
 
-export type AccountSyncStatusDto = z.output<typeof AccountSyncStatusSchema>;
+export type AccountSyncStatusDto = v.InferOutput<typeof AccountSyncStatusSchema>;

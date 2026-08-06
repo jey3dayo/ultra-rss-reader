@@ -1,5 +1,5 @@
+import { integer, isoTimestamp, minValue, number, object, parse, picklist, pipe, string, ValiError } from "valibot";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
 import {
   JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS,
   PARSE_JSON_WITH_SCHEMA_OR_NULL_CALLER_OWNERS,
@@ -9,9 +9,9 @@ import {
   safeParseJsonWithSchema,
 } from "@/schemas/parse";
 
-const userSchema = z.object({
-  id: z.string(),
-  unreadCount: z.number().int().nonnegative(),
+const userSchema = object({
+  id: string(),
+  unreadCount: pipe(number(), integer(), minValue(0)),
 });
 const FROZEN_TEST_NOW = new Date("2026-04-15T00:00:00.000Z");
 
@@ -37,8 +37,8 @@ describe("schema parse helpers", () => {
     });
   });
 
-  it("throws a ZodError when the value does not match the schema", () => {
-    expect(() => parseWithSchema(userSchema, { id: "acc-1", unreadCount: -1 })).toThrow(z.ZodError);
+  it("throws a ValiError when the value does not match the schema", () => {
+    expect(() => parseWithSchema(userSchema, { id: "acc-1", unreadCount: -1 })).toThrow(ValiError);
   });
 
   it("keeps malformed JSON as a throwing parse helper failure", () => {
@@ -46,7 +46,7 @@ describe("schema parse helpers", () => {
   });
 
   it("keeps schema failures as throwing parse helper failures", () => {
-    expect(() => parseJsonWithSchema('{"id":"acc-2","unreadCount":-1}', userSchema)).toThrow(z.ZodError);
+    expect(() => parseJsonWithSchema('{"id":"acc-2","unreadCount":-1}', userSchema)).toThrow(ValiError);
   });
 
   it("keeps throwing JSON parse helper error categories distinguishable by callers", () => {
@@ -66,7 +66,7 @@ describe("schema parse helpers", () => {
     }
 
     expect(malformedJsonError).toBeInstanceOf(SyntaxError);
-    expect(schemaInvalidError).toBeInstanceOf(z.ZodError);
+    expect(schemaInvalidError).toBeInstanceOf(ValiError);
   });
 
   it("parses JSON contents through the provided schema", () => {
@@ -187,13 +187,13 @@ describe("schema parse helpers", () => {
     vi.useFakeTimers();
     vi.setSystemTime(FROZEN_TEST_NOW);
 
-    const dateFixtureSchema = z.object({
-      publishedAt: z.string().datetime({ offset: true }),
-      relativeDay: z.enum(["past", "future"]),
+    const dateFixtureSchema = object({
+      publishedAt: pipe(string(), isoTimestamp()),
+      relativeDay: picklist(["past", "future"]),
     });
 
     expect(
-      dateFixtureSchema.parse({
+      parse(dateFixtureSchema, {
         publishedAt: relativeIsoDate(-1),
         relativeDay: "past",
       }),

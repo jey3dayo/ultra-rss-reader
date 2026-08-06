@@ -1,3 +1,4 @@
+import { is, safeParse } from "valibot";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { SyncProgressRuntimeEventDto } from "@/api/schemas";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
@@ -873,8 +874,23 @@ describe("useUiStore", () => {
       },
     });
 
+    const arrayExpandedGroupsReturnState: unknown = {
+      accountId: "acc-1",
+      activeSummaryFilter: "stale",
+      selectedFeedId: "feed-1",
+      expandedGroups: [],
+      listScrollTop: {
+        scrollTop: 18,
+        layoutGeneration: "feed-1",
+        viewportHeight: 720,
+      },
+      keptFeedIds: [],
+      deferredFeedIds: [],
+    };
+    expect(is(SubscriptionsWorkspaceReturnStateSchema, arrayExpandedGroupsReturnState)).toBe(false);
+
     expect(
-      SubscriptionsWorkspaceReturnStateSchema.safeParse({
+      safeParse(SubscriptionsWorkspaceReturnStateSchema, {
         accountId: "acc-1",
         activeSummaryFilter: "stale",
         selectedFeedId: "feed-1",
@@ -892,7 +908,7 @@ describe("useUiStore", () => {
     ).toBe(false);
 
     expect(
-      SubscriptionsWorkspaceReturnStateSchema.safeParse({
+      safeParse(SubscriptionsWorkspaceReturnStateSchema, {
         accountId: "acc-1",
         activeSummaryFilter: "stale",
         selectedFeedId: "feed-1",
@@ -941,7 +957,7 @@ describe("useUiStore", () => {
       deferredFeedIds: [],
     } satisfies Parameters<UiStoreState["openSubscriptionsIndex"]>[0];
 
-    expect(SubscriptionsWorkspaceReturnStateSchema.safeParse(returnState).success).toBe(true);
+    expect(safeParse(SubscriptionsWorkspaceReturnStateSchema, returnState).success).toBe(true);
     expect(() => useUiStore.getState().openSubscriptionsIndex(returnState)).not.toThrow();
     expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
       kind: "index",

@@ -1,5 +1,6 @@
 import { List, Settings2 } from "lucide-react";
 import { useState } from "react";
+import { parse } from "valibot";
 import { FeedDtoListSchema, FolderDtoSchema } from "@/api/schemas";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { FolderSectionView } from "@/components/reader/folder-section";
@@ -65,14 +66,14 @@ const ACCOUNT_CARDS: AccountNavItem[] = [
   { id: "acc-3", name: "Local", kind: "local", isActive: false },
 ];
 
-const NAV_SAMPLE_FOLDER: FolderDto = FolderDtoSchema.parse({
+const NAV_SAMPLE_FOLDER: FolderDto = parse(FolderDtoSchema, {
   id: "folder-interior",
   account_id: "acc-1",
   name: "Interior",
   sort_order: 0,
 });
 
-const NAV_SAMPLE_FEEDS: FeedDto[] = FeedDtoListSchema.parse([
+const NAV_SAMPLE_FEEDS: FeedDto[] = parse(FeedDtoListSchema, [
   {
     id: "feed-diy",
     account_id: "acc-1",

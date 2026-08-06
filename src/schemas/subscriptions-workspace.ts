@@ -1,5 +1,6 @@
-import { z } from "zod";
+import * as v from "valibot";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
+import * as s from "@/schemas/validation";
 
 export type SubscriptionsWorkspaceExpandedGroupKey = `group:${string}`;
 
@@ -7,39 +8,44 @@ export type SubscriptionsWorkspaceExpandedGroupKey = `group:${string}`;
 // otherwise restoring a returnState whose activeSummaryFilter uses the missing
 // key throws at parse time. The type guard below fails to compile if a new
 // filter key is added to the union but not to this enum.
-const subscriptionSummaryFilterStateSchema = z.enum(["all", "review", "stale", "frequent"]);
+const subscriptionSummaryFilterStateSchema = v.picklist(["all", "review", "stale", "frequent"]);
 type PersistedSummaryFilterDriftGuard = Exclude<
   SubscriptionSummaryFilterKey,
-  z.infer<typeof subscriptionSummaryFilterStateSchema>
+  v.InferOutput<typeof subscriptionSummaryFilterStateSchema>
 >;
 // If this line errors, add the missing key(s) to the enum above.
 const _assertAllSummaryFiltersPersisted: PersistedSummaryFilterDriftGuard extends never ? true : never = true;
 void _assertAllSummaryFiltersPersisted;
 
-const subscriptionsWorkspaceAccountIdSchema = z.string().trim().min(1).nullable();
+const subscriptionsWorkspaceAccountIdSchema = v.nullable(v.pipe(v.string(), v.trim(), v.minLength(1)));
 
-const subscriptionsWorkspaceIdentitySchema = z.string().trim().min(1);
+const subscriptionsWorkspaceIdentitySchema = v.pipe(v.string(), v.trim(), v.minLength(1));
 
-const subscriptionsWorkspaceExpandedGroupKeySchema = z.custom<SubscriptionsWorkspaceExpandedGroupKey>(
+const subscriptionsWorkspaceExpandedGroupKeySchema = v.custom<SubscriptionsWorkspaceExpandedGroupKey>(
   (value) => typeof value === "string" && value.startsWith("group:") && value.length > "group:".length,
 );
 
-export const SubscriptionsWorkspaceListScrollStateSchema = z.strictObject({
-  scrollTop: z.number().finite().nonnegative(),
-  layoutGeneration: z.string(),
-  viewportHeight: z.number().finite().nonnegative(),
+export const SubscriptionsWorkspaceListScrollStateSchema = s.strictObject({
+  scrollTop: v.pipe(v.number(), v.finite(), v.minValue(0)),
+  layoutGeneration: v.string(),
+  viewportHeight: v.pipe(v.number(), v.finite(), v.minValue(0)),
 });
 
-export type SubscriptionsWorkspaceListScrollState = z.output<typeof SubscriptionsWorkspaceListScrollStateSchema>;
+export type SubscriptionsWorkspaceListScrollState = v.InferOutput<typeof SubscriptionsWorkspaceListScrollStateSchema>;
 
-export const SubscriptionsWorkspaceReturnStateSchema = z.strictObject({
+export const SubscriptionsWorkspaceReturnStateSchema = s.strictObject({
   accountId: subscriptionsWorkspaceAccountIdSchema,
   activeSummaryFilter: subscriptionSummaryFilterStateSchema,
-  selectedFeedId: subscriptionsWorkspaceIdentitySchema.nullable(),
-  expandedGroups: z.record(subscriptionsWorkspaceExpandedGroupKeySchema, z.boolean()),
+  selectedFeedId: v.nullable(subscriptionsWorkspaceIdentitySchema),
+  expandedGroups: v.pipe(
+    s.record(v.string(), v.boolean()),
+    v.check((groups) =>
+      Object.keys(groups).every((key) => v.safeParse(subscriptionsWorkspaceExpandedGroupKeySchema, key).success),
+    ),
+  ),
   listScrollTop: SubscriptionsWorkspaceListScrollStateSchema,
-  keptFeedIds: z.array(subscriptionsWorkspaceIdentitySchema),
-  deferredFeedIds: z.array(subscriptionsWorkspaceIdentitySchema),
+  keptFeedIds: v.array(subscriptionsWorkspaceIdentitySchema),
+  deferredFeedIds: v.array(subscriptionsWorkspaceIdentitySchema),
 });
 
-export type SubscriptionsWorkspaceReturnState = z.output<typeof SubscriptionsWorkspaceReturnStateSchema>;
+export type SubscriptionsWorkspaceReturnState = v.InferOutput<typeof SubscriptionsWorkspaceReturnStateSchema>;

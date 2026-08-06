@@ -1,3 +1,4 @@
+import { parse } from "valibot";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AccountDtoListSchema,
@@ -54,11 +55,11 @@ describe("dev mock data", () => {
   });
 
   it("keeps exported DTO fixtures aligned with frontend response schemas", () => {
-    expect(AccountDtoListSchema.parse(mockAccounts)).toEqual(mockAccounts);
-    expect(FolderDtoListSchema.parse(mockFolders)).toEqual(mockFolders);
-    expect(FeedDtoListSchema.parse(mockFeeds)).toEqual(mockFeeds);
-    expect(ArticleDtoListSchema.parse(mockArticles)).toEqual(mockArticles);
-    expect(TagDtoListSchema.parse(mockTags)).toEqual(mockTags);
+    expect(parse(AccountDtoListSchema, mockAccounts)).toEqual(mockAccounts);
+    expect(parse(FolderDtoListSchema, mockFolders)).toEqual(mockFolders);
+    expect(parse(FeedDtoListSchema, mockFeeds)).toEqual(mockFeeds);
+    expect(parse(ArticleDtoListSchema, mockArticles)).toEqual(mockArticles);
+    expect(parse(TagDtoListSchema, mockTags)).toEqual(mockTags);
   });
 
   it("does not include the known ORB-blocked thumbnail URL", () => {

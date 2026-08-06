@@ -1,3 +1,4 @@
+import { nullable } from "valibot";
 import {
   exportLocalAccountSyncOperationsArgs,
   getLocalAccountSyncSettingsArgs,
@@ -13,7 +14,7 @@ export const getLocalAccountSyncSettings = (accountId: string) =>
   safeInvoke(
     "get_local_account_sync_settings",
     {
-      response: LocalAccountSyncSettingsDtoSchema.nullable(),
+      response: nullable(LocalAccountSyncSettingsDtoSchema),
       args: getLocalAccountSyncSettingsArgs,
     },
     { accountId },

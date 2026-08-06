@@ -1,3 +1,4 @@
+import { parse, safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
 import {
   type FeedIntegrityCleanupDto,
@@ -34,20 +35,20 @@ const cleanupDryRunFixture = {
 
 describe("FeedIntegrityReportDtoSchema", () => {
   it("parses a get_feed_integrity_report read-only command response fixture", () => {
-    expect(FeedIntegrityReportDtoSchema.parse(getFeedIntegrityReportResponseFixture)).toEqual(
+    expect(parse(FeedIntegrityReportDtoSchema, getFeedIntegrityReportResponseFixture)).toEqual(
       getFeedIntegrityReportResponseFixture,
     );
   });
 
   it("rejects invalid orphan counts", () => {
     expect(
-      FeedIntegrityReportDtoSchema.safeParse({
+      safeParse(FeedIntegrityReportDtoSchema, {
         ...getFeedIntegrityReportResponseFixture,
         orphaned_article_count: -1,
       }).success,
     ).toBe(false);
     expect(
-      FeedIntegrityReportDtoSchema.safeParse({
+      safeParse(FeedIntegrityReportDtoSchema, {
         ...getFeedIntegrityReportResponseFixture,
         orphaned_feeds: [
           {
@@ -58,7 +59,7 @@ describe("FeedIntegrityReportDtoSchema", () => {
       }).success,
     ).toBe(false);
     expect(
-      FeedIntegrityReportDtoSchema.safeParse({
+      safeParse(FeedIntegrityReportDtoSchema, {
         ...getFeedIntegrityReportResponseFixture,
         orphaned_feeds: [
           {
@@ -72,7 +73,7 @@ describe("FeedIntegrityReportDtoSchema", () => {
 
   it("rejects invalid orphan latest article timestamps", () => {
     expect(
-      FeedIntegrityReportDtoSchema.safeParse({
+      safeParse(FeedIntegrityReportDtoSchema, {
         ...getFeedIntegrityReportResponseFixture,
         orphaned_feeds: [
           {
@@ -83,7 +84,7 @@ describe("FeedIntegrityReportDtoSchema", () => {
       }).success,
     ).toBe(false);
     expect(
-      FeedIntegrityReportDtoSchema.safeParse({
+      safeParse(FeedIntegrityReportDtoSchema, {
         ...getFeedIntegrityReportResponseFixture,
         orphaned_feeds: [
           {
@@ -97,13 +98,13 @@ describe("FeedIntegrityReportDtoSchema", () => {
 
   it("rejects unknown backend DTO fields", () => {
     expect(
-      FeedIntegrityReportDtoSchema.safeParse({
+      safeParse(FeedIntegrityReportDtoSchema, {
         ...getFeedIntegrityReportResponseFixture,
         backend_added_field: "unexpected",
       }).success,
     ).toBe(false);
     expect(
-      FeedIntegrityReportDtoSchema.safeParse({
+      safeParse(FeedIntegrityReportDtoSchema, {
         ...getFeedIntegrityReportResponseFixture,
         orphaned_feeds: [
           {
@@ -118,9 +119,9 @@ describe("FeedIntegrityReportDtoSchema", () => {
 
 describe("FeedIntegrityCleanupDtoSchema", () => {
   it("accepts dry-run cleanup only when no articles were deleted", () => {
-    expect(FeedIntegrityCleanupDtoSchema.parse(cleanupDryRunFixture)).toEqual(cleanupDryRunFixture);
+    expect(parse(FeedIntegrityCleanupDtoSchema, cleanupDryRunFixture)).toEqual(cleanupDryRunFixture);
     expect(
-      FeedIntegrityCleanupDtoSchema.safeParse({
+      safeParse(FeedIntegrityCleanupDtoSchema, {
         ...cleanupDryRunFixture,
         deleted_article_count: 1,
       }).success,
@@ -129,14 +130,14 @@ describe("FeedIntegrityCleanupDtoSchema", () => {
 
   it("accepts destructive cleanup count drift as a partial result", () => {
     expect(
-      FeedIntegrityCleanupDtoSchema.safeParse({
+      safeParse(FeedIntegrityCleanupDtoSchema, {
         dry_run: false,
         orphaned_article_count: 2,
         deleted_article_count: 2,
       }).success,
     ).toBe(true);
     expect(
-      FeedIntegrityCleanupDtoSchema.safeParse({
+      safeParse(FeedIntegrityCleanupDtoSchema, {
         dry_run: false,
         orphaned_article_count: 2,
         deleted_article_count: 3,

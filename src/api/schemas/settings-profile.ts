@@ -1,53 +1,56 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import { PreferencesDtoSchema } from "./preferences";
 
-const accountKindSchema = z.enum(["Local", "FreshRss"]);
-const nonBlankTrimmedStringSchema = z.string().trim().min(1);
-const optionalStringSchema = z.string().nullable();
-const syncIntervalSecsSchema = z.number().int().finite().min(60).max(86_400);
-const keepReadItemsDaysSchema = z.number().int().finite().min(0).max(3650);
-const tagColorSchema = z
-  .string()
-  .regex(/^#[0-9a-fA-F]{6}$/)
-  .transform((value) => value.toLowerCase())
-  .nullable();
-const muteKeywordScopeSchema = z.enum(["title", "body", "title_and_body"]);
+const accountKindSchema = v.picklist(["Local", "FreshRss"]);
+const nonBlankTrimmedStringSchema = v.pipe(v.string(), v.trim(), v.minLength(1));
+const optionalStringSchema = v.nullable(v.string());
+const syncIntervalSecsSchema = v.pipe(v.number(), v.integer(), v.finite(), v.minValue(60), v.maxValue(86_400));
+const keepReadItemsDaysSchema = v.pipe(v.number(), v.integer(), v.finite(), v.minValue(0), v.maxValue(3650));
+const tagColorSchema = v.nullable(
+  v.pipe(
+    v.string(),
+    v.regex(/^#[0-9a-fA-F]{6}$/u),
+    v.transform((value) => value.toLowerCase()),
+  ),
+);
+const muteKeywordScopeSchema = v.picklist(["title", "body", "title_and_body"]);
 
-export const SettingsProfileAccountSchema = z.strictObject({
+export const SettingsProfileAccountSchema = s.strictObject({
   source_id: nonBlankTrimmedStringSchema,
   kind: accountKindSchema,
   name: nonBlankTrimmedStringSchema,
   server_url: optionalStringSchema,
   username: optionalStringSchema,
   sync_interval_secs: syncIntervalSecsSchema,
-  sync_on_startup: z.boolean(),
-  sync_on_wake: z.boolean(),
+  sync_on_startup: v.boolean(),
+  sync_on_wake: v.boolean(),
   keep_read_items_days: keepReadItemsDaysSchema,
 });
 
-export const SettingsProfileTagSchema = z.strictObject({
+export const SettingsProfileTagSchema = s.strictObject({
   name: nonBlankTrimmedStringSchema,
   color: tagColorSchema,
 });
 
-export const SettingsProfileMuteKeywordSchema = z.strictObject({
+export const SettingsProfileMuteKeywordSchema = s.strictObject({
   keyword: nonBlankTrimmedStringSchema,
   scope: muteKeywordScopeSchema,
 });
 
-export const SettingsProfileSchema = z.strictObject({
-  version: z.literal(1),
+export const SettingsProfileSchema = s.strictObject({
+  version: v.literal(1),
   exported_at: nonBlankTrimmedStringSchema,
-  content_type: z.literal("application/vnd.ultra-rss-reader.settings-profile+json"),
+  content_type: v.literal("application/vnd.ultra-rss-reader.settings-profile+json"),
   preferences: PreferencesDtoSchema,
-  accounts: z.array(SettingsProfileAccountSchema),
-  tags: z.array(SettingsProfileTagSchema),
-  mute_keywords: z.array(SettingsProfileMuteKeywordSchema),
+  accounts: v.array(SettingsProfileAccountSchema),
+  tags: v.array(SettingsProfileTagSchema),
+  mute_keywords: v.array(SettingsProfileMuteKeywordSchema),
 });
 
-const nonnegativeCountSchema = z.number().int().finite().nonnegative();
+const nonnegativeCountSchema = v.pipe(v.number(), v.integer(), v.finite(), v.minValue(0));
 
-export const SettingsProfileImportResultSchema = z.strictObject({
+export const SettingsProfileImportResultSchema = s.strictObject({
   accounts_created: nonnegativeCountSchema,
   accounts_updated: nonnegativeCountSchema,
   preferences_imported: nonnegativeCountSchema,
@@ -58,5 +61,5 @@ export const SettingsProfileImportResultSchema = z.strictObject({
   mute_keywords_skipped: nonnegativeCountSchema,
 });
 
-export type SettingsProfile = z.output<typeof SettingsProfileSchema>;
-export type SettingsProfileImportResult = z.output<typeof SettingsProfileImportResultSchema>;
+export type SettingsProfile = v.InferOutput<typeof SettingsProfileSchema>;
+export type SettingsProfileImportResult = v.InferOutput<typeof SettingsProfileImportResultSchema>;

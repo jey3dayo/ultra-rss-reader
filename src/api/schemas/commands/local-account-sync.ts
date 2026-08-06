@@ -1,20 +1,21 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import { nonBlankTrimmedIdSchema, nonBlankTrimmedStringSchema } from "./shared";
 
-export const getLocalAccountSyncSettingsArgs = z.object({
+export const getLocalAccountSyncSettingsArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
 });
 
-export const setLocalAccountSyncSettingsArgs = z.object({
+export const setLocalAccountSyncSettingsArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
   syncFolderPath: nonBlankTrimmedStringSchema,
-  enabled: z.boolean(),
+  enabled: v.boolean(),
 });
 
-export const exportLocalAccountSyncOperationsArgs = z.object({
+export const exportLocalAccountSyncOperationsArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
 });
 
-export const importLocalAccountSyncOperationsArgs = z.object({
+export const importLocalAccountSyncOperationsArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
 });

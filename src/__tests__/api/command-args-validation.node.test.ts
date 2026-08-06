@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { Result } from "@praha/byethrow";
 import { readTauriCommandsSource } from "@tests/helpers/tauri-command-source";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { parse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { TagDtoSchema } from "@/api/schemas";
 import {
@@ -79,7 +80,7 @@ describe("command args validation parity", () => {
 
   it("keeps frontend command name lengths aligned with Rust validation", () => {
     expect(
-      renameAccountArgs.parse({
+      parse(renameAccountArgs, {
         accountId: "acc-1",
         name: ` ${"a".repeat(ACCOUNT_NAME_MAX_CHARS)} `,
       }),
@@ -88,7 +89,7 @@ describe("command args validation parity", () => {
       name: "a".repeat(ACCOUNT_NAME_MAX_CHARS),
     });
     expect(
-      renameFeedArgs.parse({
+      parse(renameFeedArgs, {
         feedId: "feed-1",
         title: ` ${"a".repeat(FEED_TITLE_MAX_CHARS)} `,
       }),
@@ -97,7 +98,7 @@ describe("command args validation parity", () => {
       title: "a".repeat(FEED_TITLE_MAX_CHARS),
     });
     expect(
-      createFolderArgs.parse({
+      parse(createFolderArgs, {
         accountId: "acc-1",
         name: ` ${"a".repeat(FOLDER_NAME_MAX_CHARS)} `,
       }),
@@ -106,7 +107,7 @@ describe("command args validation parity", () => {
       name: "a".repeat(FOLDER_NAME_MAX_CHARS),
     });
     expect(
-      renameTagArgs.parse({
+      parse(renameTagArgs, {
         tagId: "tag-1",
         name: ` ${"a".repeat(TAG_NAME_MAX_CHARS)} `,
       }),
@@ -116,25 +117,25 @@ describe("command args validation parity", () => {
     });
 
     expect(() =>
-      renameAccountArgs.parse({
+      parse(renameAccountArgs, {
         accountId: "acc-1",
         name: "a".repeat(ACCOUNT_NAME_MAX_CHARS + 1),
       }),
     ).toThrow(`Account name must be ${ACCOUNT_NAME_MAX_CHARS} characters or less`);
     expect(() =>
-      renameFeedArgs.parse({
+      parse(renameFeedArgs, {
         feedId: "feed-1",
         title: "a".repeat(FEED_TITLE_MAX_CHARS + 1),
       }),
     ).toThrow(`Feed title must be ${FEED_TITLE_MAX_CHARS} characters or less`);
     expect(() =>
-      createFolderArgs.parse({
+      parse(createFolderArgs, {
         accountId: "acc-1",
         name: "a".repeat(FOLDER_NAME_MAX_CHARS + 1),
       }),
     ).toThrow(`Folder name must be ${FOLDER_NAME_MAX_CHARS} characters or less`);
     expect(() =>
-      renameTagArgs.parse({
+      parse(renameTagArgs, {
         tagId: "tag-1",
         name: "a".repeat(TAG_NAME_MAX_CHARS + 1),
       }),
@@ -171,26 +172,26 @@ describe("command args validation parity", () => {
       OPML_IMPORT_CONTENT_MAX_BYTES,
     );
 
-    expect(addToReadingListArgs.parse({ url: "https://example.com/" }).url).toBe("https://example.com/");
+    expect(parse(addToReadingListArgs, { url: "https://example.com/" }).url).toBe("https://example.com/");
     expect(
-      copyToClipboardArgs.parse({
+      parse(copyToClipboardArgs, {
         text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
       }).text,
     ).toBe("x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS));
     expect(() =>
-      copyToClipboardArgs.parse({
+      parse(copyToClipboardArgs, {
         text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1),
       }),
     ).toThrow(`Clipboard text must be ${SHARE_COMMAND_TEXT_MAX_CHARS} graphemes or less`);
   });
 
   it("keeps OPML import command args bounded for large files", () => {
-    expect(importOpmlArgs.parse({ accountId: "acc-1", opmlContent: "<opml />" })).toEqual({
+    expect(parse(importOpmlArgs, { accountId: "acc-1", opmlContent: "<opml />" })).toEqual({
       accountId: "acc-1",
       opmlContent: "<opml />",
     });
     expect(() =>
-      importOpmlArgs.parse({
+      parse(importOpmlArgs, {
         accountId: "acc-1",
         opmlContent: "a".repeat(OPML_IMPORT_CONTENT_MAX_BYTES + 1),
       }),
@@ -198,22 +199,22 @@ describe("command args validation parity", () => {
   });
 
   it("normalizes tag colors with the same command and view helper contract", () => {
-    expect(renameTagArgs.parse({ tagId: "tag-1", name: "Review", color: "#Cf7868" })).toEqual({
+    expect(parse(renameTagArgs, { tagId: "tag-1", name: "Review", color: "#Cf7868" })).toEqual({
       tagId: "tag-1",
       name: "Review",
       color: "#cf7868",
     });
-    expect(renameTagArgs.parse({ tagId: "tag-1", name: "Review", color: "   " })).toEqual({
+    expect(parse(renameTagArgs, { tagId: "tag-1", name: "Review", color: "   " })).toEqual({
       tagId: "tag-1",
       name: "Review",
       color: null,
     });
-    expect(renameTagArgs.parse({ tagId: "tag-1", name: "Review", color: null })).toEqual({
+    expect(parse(renameTagArgs, { tagId: "tag-1", name: "Review", color: null })).toEqual({
       tagId: "tag-1",
       name: "Review",
       color: null,
     });
-    expect(createTagArgs.parse({ name: "Review", color: "   " })).toEqual({
+    expect(parse(createTagArgs, { name: "Review", color: "   " })).toEqual({
       name: "Review",
       color: undefined,
     });
@@ -221,15 +222,15 @@ describe("command args validation parity", () => {
     expect(normalizeTagColorForCommand("   ")).toBeNull();
     expect(normalizeTagColorForView("#Cf7868")).toBe("#cf7868");
     expect(normalizeTagColorForView("#fff")).toBeNull();
-    expect(TagDtoSchema.parse({ id: "tag-1", name: "Review", color: "#ABCDEF" }).color).toBe("#abcdef");
+    expect(parse(TagDtoSchema, { id: "tag-1", name: "Review", color: "#ABCDEF" }).color).toBe("#abcdef");
 
-    expect(() => renameTagArgs.parse({ tagId: "tag-1", name: "Review", color: "#fff" })).toThrow(
+    expect(() => parse(renameTagArgs, { tagId: "tag-1", name: "Review", color: "#fff" })).toThrow(
       TAG_COLOR_VALIDATION_MESSAGE,
     );
-    expect(() => renameTagArgs.parse({ tagId: "tag-1", name: "Review", color: "ff0000" })).toThrow(
+    expect(() => parse(renameTagArgs, { tagId: "tag-1", name: "Review", color: "ff0000" })).toThrow(
       TAG_COLOR_VALIDATION_MESSAGE,
     );
-    expect(() => renameTagArgs.parse({ tagId: "tag-1", name: "Review", color: "#gg0000" })).toThrow(
+    expect(() => parse(renameTagArgs, { tagId: "tag-1", name: "Review", color: "#gg0000" })).toThrow(
       TAG_COLOR_VALIDATION_MESSAGE,
     );
     expect(readRustCommandSource("tag_commands.rs")).toContain(TAG_COLOR_VALIDATION_MESSAGE);
@@ -286,7 +287,7 @@ describe("command args validation parity", () => {
 
   it("aligns Local account blank credential policy with FreshRSS command args", () => {
     expect(
-      addAccountArgs.parse({
+      parse(addAccountArgs, {
         kind: "Local",
         name: " Local ",
         serverUrl: "   ",
@@ -304,13 +305,13 @@ describe("command args validation parity", () => {
       username: undefined,
       password: undefined,
     });
-    expect(addAccountArgs.parse({ kind: "Local", name: "Local" })).toEqual({
+    expect(parse(addAccountArgs, { kind: "Local", name: "Local" })).toEqual({
       kind: "Local",
       name: "Local",
     });
 
     expect(() =>
-      addAccountArgs.parse({
+      parse(addAccountArgs, {
         kind: "FreshRss",
         name: "FreshRSS",
         serverUrl: "   ",
@@ -319,7 +320,7 @@ describe("command args validation parity", () => {
       }),
     ).toThrow();
     expect(() =>
-      addAccountArgs.parse({
+      parse(addAccountArgs, {
         kind: "FreshRss",
         name: "FreshRSS",
         serverUrl: "https://example.com",
@@ -373,9 +374,9 @@ describe("command args validation parity", () => {
 
     for (const { input, expected, valid } of cases) {
       const parsers = [
-        () => discoverFeedsArgs.parse({ url: input }),
-        () => addLocalFeedArgs.parse({ accountId: "acc-1", url: input }),
-        () => openInBrowserArgs.parse({ url: input }),
+        () => parse(discoverFeedsArgs, { url: input }),
+        () => parse(addLocalFeedArgs, { accountId: "acc-1", url: input }),
+        () => parse(openInBrowserArgs, { url: input }),
       ];
 
       for (const parse of parsers) {
@@ -429,41 +430,41 @@ describe("command args validation parity", () => {
 
     for (const { input, expected, valid } of cases) {
       if (valid) {
-        expect(openExternalUrlArgs.parse({ url: input }).url).toBe(expected);
+        expect(parse(openExternalUrlArgs, { url: input }).url).toBe(expected);
         continue;
       }
 
-      expect(() => openExternalUrlArgs.parse({ url: input })).toThrow();
+      expect(() => parse(openExternalUrlArgs, { url: input })).toThrow();
     }
   });
 
   it("aligns external URL uppercase scheme policy with browser/open commands", () => {
-    expect(openExternalUrlArgs.parse({ url: " HTTPS://example.com/article " })).toEqual({
+    expect(parse(openExternalUrlArgs, { url: " HTTPS://example.com/article " })).toEqual({
       url: "HTTPS://example.com/article",
     });
-    expect(openExternalUrlArgs.parse({ url: " MAILTO:reader@example.com " })).toEqual({
+    expect(parse(openExternalUrlArgs, { url: " MAILTO:reader@example.com " })).toEqual({
       url: "MAILTO:reader@example.com",
     });
-    expect(openInBrowserArgs.parse({ url: " HTTPS://example.com/article " })).toEqual({
+    expect(parse(openInBrowserArgs, { url: " HTTPS://example.com/article " })).toEqual({
       url: "HTTPS://example.com/article",
     });
 
-    expect(() => openExternalUrlArgs.parse({ url: "javascript:alert(1)" })).toThrow();
-    expect(() => openExternalUrlArgs.parse({ url: "https://example.com/\rarticle" })).toThrow();
-    expect(() => openExternalUrlArgs.parse({ url: "mailto:?subject=Hello world" })).toThrow();
-    expect(() => openExternalUrlArgs.parse({ url: "mailto:?subject=Hello\tworld" })).toThrow();
-    expect(() => openInBrowserArgs.parse({ url: "MAILTO:reader@example.com" })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "javascript:alert(1)" })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "https://example.com/\rarticle" })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "mailto:?subject=Hello world" })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "mailto:?subject=Hello\tworld" })).toThrow();
+    expect(() => parse(openInBrowserArgs, { url: "MAILTO:reader@example.com" })).toThrow();
   });
 
   it("fixes Safari Reading List URL control, whitespace, credential, and length policy", () => {
-    expect(addToReadingListArgs.parse({ url: " HTTPS://example.com/article " })).toEqual({
+    expect(parse(addToReadingListArgs, { url: " HTTPS://example.com/article " })).toEqual({
       url: "HTTPS://example.com/article",
     });
 
     const maxUrl = `https://example.com/article?token=${"x".repeat(
       READING_LIST_URL_MAX_BYTES - "https://example.com/article?token=".length,
     )}`;
-    expect(addToReadingListArgs.parse({ url: maxUrl })).toEqual({
+    expect(parse(addToReadingListArgs, { url: maxUrl })).toEqual({
       url: maxUrl,
     });
 
@@ -475,30 +476,30 @@ describe("command args validation parity", () => {
       "https://user:pass@example.com/article",
       `${maxUrl}x`,
     ]) {
-      expect(() => addToReadingListArgs.parse({ url })).toThrow();
+      expect(() => parse(addToReadingListArgs, { url })).toThrow();
     }
   });
 
   it("fixes clipboard text policy by control characters, graphemes, and UTF-8 bytes", () => {
     expect(
-      copyToClipboardArgs.parse({
+      parse(copyToClipboardArgs, {
         text: "🙂".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
       }).text,
     ).toBe("🙂".repeat(SHARE_COMMAND_TEXT_MAX_CHARS));
-    expect(copyToClipboardArgs.parse({ text: `e${"\u0301".repeat(16)}` }).text).toBe(`e${"\u0301".repeat(16)}`);
-    expect(copyToClipboardArgs.parse({ text: "👨‍👩‍👧‍👦" }).text).toBe("👨‍👩‍👧‍👦");
+    expect(parse(copyToClipboardArgs, { text: `e${"\u0301".repeat(16)}` }).text).toBe(`e${"\u0301".repeat(16)}`);
+    expect(parse(copyToClipboardArgs, { text: "👨‍👩‍👧‍👦" }).text).toBe("👨‍👩‍👧‍👦");
 
     for (const text of ["hello\u0000", "hello\tworld", "hello\nworld"]) {
-      expect(() => copyToClipboardArgs.parse({ text })).toThrow();
+      expect(() => parse(copyToClipboardArgs, { text })).toThrow();
     }
 
     expect(() =>
-      copyToClipboardArgs.parse({
+      parse(copyToClipboardArgs, {
         text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1),
       }),
     ).toThrow();
     expect(() =>
-      copyToClipboardArgs.parse({
+      parse(copyToClipboardArgs, {
         text: `e${"\u0301".repeat(SHARE_COMMAND_TEXT_MAX_BYTES / 2 + 1)}`,
       }),
     ).toThrow();

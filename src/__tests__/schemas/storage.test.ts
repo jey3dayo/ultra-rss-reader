@@ -1,3 +1,4 @@
+import { is, parse, safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
 import {
   MAX_COMMAND_HISTORY,
@@ -11,15 +12,26 @@ import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import {
   CommandHistoryStorageSchema,
   DatabaseRestoreStorageReconciliationPolicySchema,
+  SidebarExpandedFoldersStorageVersionMarkerSchema,
   STORAGE_SCHEMA_CAPACITY_FIXTURES,
   StorageCleanupPolicyConnectionsSchema,
   StoredSidebarExpandedFoldersSchema,
 } from "@/schemas/storage";
 
 describe("storage schemas", () => {
+  it("rejects arrays at the loose version-marker object boundary while preserving passthrough fields", () => {
+    const arrayInput: unknown = [];
+
+    expect(is(SidebarExpandedFoldersStorageVersionMarkerSchema, arrayInput)).toBe(false);
+    expect(parse(SidebarExpandedFoldersStorageVersionMarkerSchema, { version: 2, extra: true })).toEqual({
+      version: 2,
+      extra: true,
+    });
+  });
+
   it("drops non-string and blank command history entries while preserving string order", () => {
     expect(
-      CommandHistoryStorageSchema.parse([
+      parse(CommandHistoryStorageSchema, [
         "  feed:feed-1  ",
         null,
         { kind: "feed", id: "feed-2" },
@@ -36,7 +48,12 @@ describe("storage schemas", () => {
     const oversizedEntry = `feed:${"x".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH + 20)}`;
 
     expect(
-      CommandHistoryStorageSchema.parse([" feed:feed-1 ", "feed:feed-1", "action:\u0000open-settings", oversizedEntry]),
+      parse(CommandHistoryStorageSchema, [
+        " feed:feed-1 ",
+        "feed:feed-1",
+        "action:\u0000open-settings",
+        oversizedEntry,
+      ]),
     ).toEqual(["feed:feed-1", "action:open-settings", oversizedEntry.slice(0, MAX_COMMAND_HISTORY_ENTRY_LENGTH)]);
   });
 
@@ -44,7 +61,7 @@ describe("storage schemas", () => {
     const combiningEntry = `${"x".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1)}e\u0301`;
     const emojiEntry = `${"y".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1)}😀`;
 
-    expect(CommandHistoryStorageSchema.parse([combiningEntry, emojiEntry])).toEqual([
+    expect(parse(CommandHistoryStorageSchema, [combiningEntry, emojiEntry])).toEqual([
       "x".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1),
       "y".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1),
     ]);
@@ -53,13 +70,13 @@ describe("storage schemas", () => {
   it("caps persisted command history entries at the storage boundary", () => {
     const entries = Array.from({ length: MAX_COMMAND_HISTORY + 5 }, (_, index) => ` item-${index} `);
 
-    expect(CommandHistoryStorageSchema.parse(entries)).toEqual(
+    expect(parse(CommandHistoryStorageSchema, entries)).toEqual(
       entries.slice(0, MAX_COMMAND_HISTORY).map((entry) => entry.trim()),
     );
   });
 
   it("keeps command history root failures as typed parse failures for caller fallback", () => {
-    const result = CommandHistoryStorageSchema.safeParse({
+    const result = safeParse(CommandHistoryStorageSchema, {
       0: "action:open-settings",
     });
 
@@ -72,7 +89,7 @@ describe("storage schemas", () => {
   });
 
   it("keeps account folder expansion maps while dropping invalid entries", () => {
-    const parsed = StoredSidebarExpandedFoldersSchema.parse({
+    const parsed = parse(StoredSidebarExpandedFoldersSchema, {
       " account-1 ": [" folder-1 ", 42, "folder-2", null, "folder-1", "folder-2", "folder-3"],
       "account-2": "folder-3",
       "account-3": ["folder-2", "folder-4", "folder-2"],
@@ -104,7 +121,7 @@ describe("storage schemas", () => {
     });
     raw["account-\u0085id"] = ["folder-\u009fid", "folder-\u0000id"];
 
-    const parsed = StoredSidebarExpandedFoldersSchema.parse(raw);
+    const parsed = parse(StoredSidebarExpandedFoldersSchema, raw);
 
     expect(Object.getPrototypeOf(parsed)).toBeNull();
     expect(Object.getOwnPropertyDescriptor(parsed, "__proto__")).toMatchObject({
@@ -122,7 +139,7 @@ describe("storage schemas", () => {
       [`folder-${index}`],
     ]);
 
-    const parsed = StoredSidebarExpandedFoldersSchema.parse(Object.fromEntries(entries));
+    const parsed = parse(StoredSidebarExpandedFoldersSchema, Object.fromEntries(entries));
 
     expect(Object.keys(parsed)).toEqual(
       entries.slice(0, MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS).map(([accountId]) => accountId),
@@ -141,7 +158,7 @@ describe("storage schemas", () => {
       folderIds,
     ]);
 
-    const parsed = StoredSidebarExpandedFoldersSchema.parse(Object.fromEntries(entries));
+    const parsed = parse(StoredSidebarExpandedFoldersSchema, Object.fromEntries(entries));
 
     expect(Object.keys(parsed)).toEqual(
       entries.slice(0, MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS).map(([accountId]) => accountId),
@@ -150,7 +167,7 @@ describe("storage schemas", () => {
   });
 
   it("keeps sidebar expansion root failures as typed parse failures for caller fallback", () => {
-    const result = StoredSidebarExpandedFoldersSchema.safeParse(["folder-1"]);
+    const result = safeParse(StoredSidebarExpandedFoldersSchema, ["folder-1"]);
 
     expect(result.success).toBe(false);
     expect(STORAGE_SCHEMA_CAPACITY_FIXTURES.sidebarExpandedFolders.fallbackOwner).toBe(
@@ -161,7 +178,7 @@ describe("storage schemas", () => {
   });
 
   it("validates storage cleanup policy connections for settings reset and private export", () => {
-    expect(StorageCleanupPolicyConnectionsSchema.parse(STORAGE_CLEANUP_POLICY_CONNECTIONS)).toEqual({
+    expect(parse(StorageCleanupPolicyConnectionsSchema, STORAGE_CLEANUP_POLICY_CONNECTIONS)).toEqual({
       settingsDataResetKeys: [
         STORAGE_KEYS.commandHistory,
         STORAGE_KEYS.sidebarExpandedFolders,
@@ -175,13 +192,13 @@ describe("storage schemas", () => {
       ],
     });
     expect(
-      StorageCleanupPolicyConnectionsSchema.safeParse({
+      safeParse(StorageCleanupPolicyConnectionsSchema, {
         settingsDataResetKeys: ["unknown"],
         privateDataExportKeys: [STORAGE_KEYS.theme],
       }).success,
     ).toBe(false);
     expect(
-      StorageCleanupPolicyConnectionsSchema.safeParse({
+      safeParse(StorageCleanupPolicyConnectionsSchema, {
         ...STORAGE_CLEANUP_POLICY_CONNECTIONS,
         futureStoragePolicy: [STORAGE_KEYS.theme],
       }).success,
@@ -189,7 +206,7 @@ describe("storage schemas", () => {
   });
 
   it("fixes DB restore localStorage reconciliation to DB-derived user-clearable keys", () => {
-    expect(DatabaseRestoreStorageReconciliationPolicySchema.parse(undefined as unknown)).toEqual({
+    expect(parse(DatabaseRestoreStorageReconciliationPolicySchema, undefined as unknown)).toEqual({
       removeKeys: [
         STORAGE_KEYS.commandHistory,
         STORAGE_KEYS.sidebarExpandedFolders,
@@ -199,7 +216,7 @@ describe("storage schemas", () => {
     });
 
     expect(
-      DatabaseRestoreStorageReconciliationPolicySchema.safeParse({
+      safeParse(DatabaseRestoreStorageReconciliationPolicySchema, {
         removeKeys: [STORAGE_KEYS.theme],
         retainKeys: [STORAGE_KEYS.commandHistory],
       }).success,

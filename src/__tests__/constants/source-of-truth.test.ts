@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parse } from "valibot";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { PlatformInfoSchema } from "@/api/schemas";
 import {
@@ -154,13 +155,13 @@ describe("constants source of truth", () => {
 
   it("uses platform constants as the platform-kind and capability source of truth", () => {
     expect(
-      PlatformInfoSchema.parse({
+      parse(PlatformInfoSchema, {
         kind: "macos",
         capabilities: DEFAULT_PLATFORM_CAPABILITIES,
       }).kind,
     ).toBe("macos");
     expect(
-      PlatformInfoSchema.parse({
+      parse(PlatformInfoSchema, {
         kind: "ios",
         capabilities: DEFAULT_PLATFORM_CAPABILITIES,
       }),

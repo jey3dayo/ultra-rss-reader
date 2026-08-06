@@ -3,8 +3,9 @@ import { join } from "node:path";
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { extractRustStructFields, extractSafeInvokeCommandsWithArgs } from "@tests/helpers/tauri-command-contract";
 import { readTauriCommandsSource } from "@tests/helpers/tauri-command-source";
+import type { BaseIssue, BaseSchema } from "valibot";
+import { is, parse, safeParse, unwrap } from "valibot";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import {
   AccountDtoSchema,
   AccountSyncStatusSchema,
@@ -100,6 +101,7 @@ import {
 } from "@/api/schemas/commands";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
+import { objectEntries } from "@/api/schemas/validation";
 import { APP_ACTIONS, isAppAction } from "@/lib/app-actions";
 
 function readRustCommandDtoSource() {
@@ -172,44 +174,36 @@ function extractRustU32Const(source: string, constName: string) {
   return Number(match?.[1].replaceAll("_", ""));
 }
 
-function zodObjectShapeKeys(schema: z.ZodTypeAny) {
-  let current: z.ZodTypeAny | z.core.$ZodType = schema;
+type ParseSchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>;
 
-  while (current instanceof z.ZodOptional || current instanceof z.ZodNullable) {
-    current = current.unwrap();
-  }
-
-  if (!(current instanceof z.ZodObject)) {
-    throw new Error(`Expected object schema, got ${current.constructor.name}`);
-  }
-
-  return Object.keys(current.shape).toSorted();
+function objectSchemaKeys(schema: unknown) {
+  return Object.keys(objectEntries(schema)).toSorted();
 }
 
-function expectPaginationArgsSchema(schema: { parse: (value: unknown) => unknown }, base: Record<string, unknown>) {
-  expect(schema.parse({ ...base, offset: 0, limit: 1 })).toEqual({
+function expectPaginationArgsSchema(schema: ParseSchema, base: Record<string, unknown>) {
+  expect(parse(schema, { ...base, offset: 0, limit: 1 })).toEqual({
     ...base,
     offset: 0,
     limit: 1,
   });
-  expect(schema.parse({ ...base, offset: 0, limit: MAX_IPC_PAGINATION_LIMIT })).toEqual({
+  expect(parse(schema, { ...base, offset: 0, limit: MAX_IPC_PAGINATION_LIMIT })).toEqual({
     ...base,
     offset: 0,
     limit: MAX_IPC_PAGINATION_LIMIT,
   });
-  expect(schema.parse({ ...base, offset: MAX_IPC_PAGINATION_OFFSET, limit: 1 })).toEqual({
+  expect(parse(schema, { ...base, offset: MAX_IPC_PAGINATION_OFFSET, limit: 1 })).toEqual({
     ...base,
     offset: MAX_IPC_PAGINATION_OFFSET,
     limit: 1,
   });
-  expect(() => schema.parse({ ...base, offset: -1, limit: 1 })).toThrow();
-  expect(() => schema.parse({ ...base, offset: MAX_IPC_PAGINATION_OFFSET + 1, limit: 1 })).toThrow();
-  expect(() => schema.parse({ ...base, offset: 0.5, limit: 1 })).toThrow();
-  expect(() => schema.parse({ ...base, offset: Number.NaN, limit: 1 })).toThrow();
-  expect(() => schema.parse({ ...base, offset: 0, limit: 0 })).toThrow();
-  expect(() => schema.parse({ ...base, offset: 0, limit: MAX_IPC_PAGINATION_LIMIT + 1 })).toThrow();
-  expect(() => schema.parse({ ...base, offset: 0, limit: 1.5 })).toThrow();
-  expect(() => schema.parse({ ...base, offset: 0, limit: Number.POSITIVE_INFINITY })).toThrow();
+  expect(() => parse(schema, { ...base, offset: -1, limit: 1 })).toThrow();
+  expect(() => parse(schema, { ...base, offset: MAX_IPC_PAGINATION_OFFSET + 1, limit: 1 })).toThrow();
+  expect(() => parse(schema, { ...base, offset: 0.5, limit: 1 })).toThrow();
+  expect(() => parse(schema, { ...base, offset: Number.NaN, limit: 1 })).toThrow();
+  expect(() => parse(schema, { ...base, offset: 0, limit: 0 })).toThrow();
+  expect(() => parse(schema, { ...base, offset: 0, limit: MAX_IPC_PAGINATION_LIMIT + 1 })).toThrow();
+  expect(() => parse(schema, { ...base, offset: 0, limit: 1.5 })).toThrow();
+  expect(() => parse(schema, { ...base, offset: 0, limit: Number.POSITIVE_INFINITY })).toThrow();
 }
 
 function extractImportedApiSchemaNamesFromTauriCommands(source: string) {
@@ -224,7 +218,7 @@ function extractImportedApiSchemaNamesFromTauriCommands(source: string) {
 }
 
 function extractSafeInvokeResponseSchemaNames(source: string) {
-  return [...source.matchAll(/\bresponse:\s*([A-Z][A-Za-z0-9]+Schema)\b/g)]
+  return [...source.matchAll(/\bresponse:\s*(?:[a-zA-Z_$][A-Za-z0-9_$]*\(\s*)?([A-Z][A-Za-z0-9]+Schema)\b/g)]
     .map((match) => match[1])
     .filter((name): name is string => name !== undefined)
     .toSorted();
@@ -267,7 +261,7 @@ describe("DTO schemas", () => {
       sync_on_wake: false,
       keep_read_items_days: 30,
     };
-    expect(AccountDtoSchema.parse(data)).toEqual(data);
+    expect(parse(AccountDtoSchema, data)).toEqual(data);
   });
   it("parses provider-specific AccountDto capability fixtures without changing display copy", () => {
     const providerFixtures = [
@@ -343,7 +337,7 @@ describe("DTO schemas", () => {
     ];
 
     for (const fixture of providerFixtures) {
-      expect(AccountDtoSchema.parse(fixture)).toEqual(fixture);
+      expect(parse(AccountDtoSchema, fixture)).toEqual(fixture);
     }
   });
   it("parses valid AccountSyncStatusDto", () => {
@@ -353,7 +347,7 @@ describe("DTO schemas", () => {
       error_count: 0,
       next_retry_at: null,
     };
-    expect(AccountSyncStatusSchema.parse(data)).toEqual(data);
+    expect(parse(AccountSyncStatusSchema, data)).toEqual(data);
   });
   it("keeps account sync status error counts nonnegative integers", () => {
     const data = {
@@ -363,14 +357,14 @@ describe("DTO schemas", () => {
       next_retry_at: null,
     };
 
-    expect(AccountSyncStatusSchema.parse({ ...data, error_count: 1 })).toEqual({
+    expect(parse(AccountSyncStatusSchema, { ...data, error_count: 1 })).toEqual({
       ...data,
       error_count: 1,
     });
-    expect(() => AccountSyncStatusSchema.parse({ ...data, error_count: -1 })).toThrow();
-    expect(() => AccountSyncStatusSchema.parse({ ...data, error_count: 0.5 })).toThrow();
+    expect(() => parse(AccountSyncStatusSchema, { ...data, error_count: -1 })).toThrow();
+    expect(() => parse(AccountSyncStatusSchema, { ...data, error_count: 0.5 })).toThrow();
     expect(() =>
-      AccountSyncStatusSchema.parse({
+      parse(AccountSyncStatusSchema, {
         ...data,
         error_count: Number.POSITIVE_INFINITY,
       }),
@@ -384,28 +378,28 @@ describe("DTO schemas", () => {
       next_retry_at: "2026-04-15T02:00:00Z",
     };
 
-    expect(AccountSyncStatusSchema.parse(data)).toEqual(data);
+    expect(parse(AccountSyncStatusSchema, data)).toEqual(data);
     expect(() =>
-      AccountSyncStatusSchema.parse({
+      parse(AccountSyncStatusSchema, {
         ...data,
         last_success_at: "2026-04-15",
       }),
     ).toThrow();
     expect(() =>
-      AccountSyncStatusSchema.parse({
+      parse(AccountSyncStatusSchema, {
         ...data,
         next_retry_at: "2026-04-15T02:00:00",
       }),
     ).toThrow();
     expect(() =>
-      AccountSyncStatusSchema.parse({
+      parse(AccountSyncStatusSchema, {
         ...data,
         next_retry_at: "not-a-date",
       }),
     ).toThrow();
   });
   it("rejects AccountDto with missing fields", () => {
-    expect(() => AccountDtoSchema.parse({ id: "acc-1" })).toThrow();
+    expect(() => parse(AccountDtoSchema, { id: "acc-1" })).toThrow();
   });
   it("normalizes AccountDto identity fields and rejects blank identity values", () => {
     const data = {
@@ -429,16 +423,16 @@ describe("DTO schemas", () => {
       keep_read_items_days: 30,
     };
 
-    expect(AccountDtoSchema.parse(data)).toEqual({
+    expect(parse(AccountDtoSchema, data)).toEqual({
       ...data,
       id: "acc-1",
       kind: "local",
       name: "Local",
       display_name: "Local",
     });
-    expect(() => AccountDtoSchema.parse({ ...data, id: "" })).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, kind: "   " })).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, name: "\t" })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, id: "" })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, kind: "   " })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, name: "\t" })).toThrow();
   });
   it("normalizes blank optional AccountDto display names to undefined", () => {
     const data = {
@@ -462,7 +456,7 @@ describe("DTO schemas", () => {
       keep_read_items_days: 30,
     };
 
-    expect(AccountDtoSchema.parse(data)).toEqual({
+    expect(parse(AccountDtoSchema, data)).toEqual({
       ...data,
       display_name: undefined,
     });
@@ -480,32 +474,32 @@ describe("DTO schemas", () => {
       keep_read_items_days: 30,
     };
 
-    expect(AccountDtoSchema.parse({ ...data, sync_interval_secs: 60 })).toEqual({
+    expect(parse(AccountDtoSchema, { ...data, sync_interval_secs: 60 })).toEqual({
       ...data,
       sync_interval_secs: 60,
     });
-    expect(AccountDtoSchema.parse({ ...data, keep_read_items_days: 3650 })).toEqual({
+    expect(parse(AccountDtoSchema, { ...data, keep_read_items_days: 3650 })).toEqual({
       ...data,
       keep_read_items_days: 3650,
     });
-    expect(AccountDtoSchema.parse({ ...data, keep_read_items_days: 0 })).toEqual({
+    expect(parse(AccountDtoSchema, { ...data, keep_read_items_days: 0 })).toEqual({
       ...data,
       keep_read_items_days: 0,
     });
-    expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 59 })).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 86_401 })).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 60.5 })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, sync_interval_secs: 59 })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, sync_interval_secs: 86_401 })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, sync_interval_secs: 60.5 })).toThrow();
     expect(() =>
-      AccountDtoSchema.parse({
+      parse(AccountDtoSchema, {
         ...data,
         sync_interval_secs: Number.POSITIVE_INFINITY,
       }),
     ).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: -1 })).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 3651 })).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 30.5 })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, keep_read_items_days: -1 })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, keep_read_items_days: 3651 })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, keep_read_items_days: 30.5 })).toThrow();
     expect(() =>
-      AccountDtoSchema.parse({
+      parse(AccountDtoSchema, {
         ...data,
         keep_read_items_days: Number.POSITIVE_INFINITY,
       }),
@@ -527,19 +521,19 @@ describe("DTO schemas", () => {
       connection_verification_error: null,
     };
 
-    expect(AccountDtoSchema.parse(data)).toEqual(data);
-    expect(AccountDtoSchema.parse({ ...data, connection_verified_at: null })).toEqual({
+    expect(parse(AccountDtoSchema, data)).toEqual(data);
+    expect(parse(AccountDtoSchema, { ...data, connection_verified_at: null })).toEqual({
       ...data,
       connection_verified_at: null,
     });
-    expect(() => AccountDtoSchema.parse({ ...data, connection_verified_at: "2026-04-15" })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, connection_verified_at: "2026-04-15" })).toThrow();
     expect(() =>
-      AccountDtoSchema.parse({
+      parse(AccountDtoSchema, {
         ...data,
         connection_verified_at: "2026-04-15T01:00:00",
       }),
     ).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, connection_verified_at: "not-a-date" })).toThrow();
+    expect(() => parse(AccountDtoSchema, { ...data, connection_verified_at: "not-a-date" })).toThrow();
   });
   it("accepts quarantined AccountDto status and rejects unknown connection verification statuses", () => {
     const data = {
@@ -566,9 +560,9 @@ describe("DTO schemas", () => {
       connection_verification_error: "Unknown provider kind: DebugProvider",
     };
 
-    expect(AccountDtoSchema.parse(data)).toEqual(data);
+    expect(parse(AccountDtoSchema, data)).toEqual(data);
     expect(() =>
-      AccountDtoSchema.parse({
+      parse(AccountDtoSchema, {
         ...data,
         connection_verification_status: "unknown",
       }),
@@ -578,15 +572,15 @@ describe("DTO schemas", () => {
     );
   });
   it("keeps AccountDto schema fields aligned with Rust DTO fields", () => {
-    expect(Object.keys(AccountDtoSchema.shape).toSorted()).toEqual(
+    expect(objectSchemaKeys(AccountDtoSchema)).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountDto", "Rust command DTOs"),
     );
-    expect(zodObjectShapeKeys(AccountDtoSchema.shape.capabilities)).toEqual(
+    expect(objectSchemaKeys(unwrap(objectEntries(AccountDtoSchema).capabilities))).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountProviderCapabilitiesDto", "Rust command DTOs"),
     );
   });
   it("keeps AccountSyncStatus schema fields aligned with Rust DTO fields", () => {
-    expect(Object.keys(AccountSyncStatusSchema.shape).toSorted()).toEqual(
+    expect(objectSchemaKeys(AccountSyncStatusSchema)).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountSyncStatus", "Rust command DTOs"),
     );
   });
@@ -597,7 +591,7 @@ describe("DTO schemas", () => {
       name: "Tech",
       sort_order: 0,
     };
-    expect(FolderDtoSchema.parse(data)).toEqual(data);
+    expect(parse(FolderDtoSchema, data)).toEqual(data);
   });
   it("rejects blank FolderDto identity and display fields", () => {
     const data = {
@@ -607,12 +601,12 @@ describe("DTO schemas", () => {
       sort_order: 0,
     };
 
-    expect(() => FolderDtoSchema.parse({ ...data, id: "" })).toThrow();
-    expect(() => FolderDtoSchema.parse({ ...data, id: "   " })).toThrow();
-    expect(() => FolderDtoSchema.parse({ ...data, account_id: "" })).toThrow();
-    expect(() => FolderDtoSchema.parse({ ...data, account_id: "   " })).toThrow();
-    expect(() => FolderDtoSchema.parse({ ...data, name: "" })).toThrow();
-    expect(() => FolderDtoSchema.parse({ ...data, name: "   " })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, id: "" })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, id: "   " })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, account_id: "" })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, account_id: "   " })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, name: "" })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, name: "   " })).toThrow();
   });
   it("keeps FolderDto sort_order as a nonnegative integer order value", () => {
     const data = {
@@ -622,13 +616,13 @@ describe("DTO schemas", () => {
       sort_order: 0,
     };
 
-    expect(FolderDtoSchema.parse({ ...data, sort_order: 1 })).toEqual({
+    expect(parse(FolderDtoSchema, { ...data, sort_order: 1 })).toEqual({
       ...data,
       sort_order: 1,
     });
-    expect(() => FolderDtoSchema.parse({ ...data, sort_order: -1 })).toThrow();
-    expect(() => FolderDtoSchema.parse({ ...data, sort_order: 0.5 })).toThrow();
-    expect(() => FolderDtoSchema.parse({ ...data, sort_order: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, sort_order: -1 })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, sort_order: 0.5 })).toThrow();
+    expect(() => parse(FolderDtoSchema, { ...data, sort_order: Number.POSITIVE_INFINITY })).toThrow();
   });
   it("parses valid FeedDto", () => {
     const data = {
@@ -643,7 +637,7 @@ describe("DTO schemas", () => {
       reader_mode: "on",
       web_preview_mode: "off",
     };
-    expect(FeedDtoSchema.parse(data)).toEqual(data);
+    expect(parse(FeedDtoSchema, data)).toEqual(data);
   });
   it("rejects FeedDto blank identity and title fields", () => {
     const data = {
@@ -659,12 +653,12 @@ describe("DTO schemas", () => {
       web_preview_mode: "off",
     };
 
-    expect(() => FeedDtoSchema.parse({ ...data, id: "" })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, id: "   " })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, account_id: "" })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, account_id: "   " })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, title: "" })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, title: "   " })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, id: "" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, id: "   " })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, account_id: "" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, account_id: "   " })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, title: "" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, title: "   " })).toThrow();
   });
   it("rejects FeedDto invalid and non-http feed URLs", () => {
     const data = {
@@ -680,28 +674,28 @@ describe("DTO schemas", () => {
       web_preview_mode: "off",
     };
 
-    expect(() => FeedDtoSchema.parse({ ...data, url: "" })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, url: "   " })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, url: " https://example.com/feed.xml " })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, url: "https://" })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, url: "ftp://example.com/feed.xml" })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, url: "mailto:feed@example.com" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, url: "" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, url: "   " })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, url: " https://example.com/feed.xml " })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, url: "https://" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, url: "ftp://example.com/feed.xml" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, url: "mailto:feed@example.com" })).toThrow();
     expect(() =>
-      FeedDtoSchema.parse({
+      parse(FeedDtoSchema, {
         ...data,
         url: "https://example.com/feed.xml\nnext",
       }),
     ).toThrow();
-    expect(FeedDtoSchema.parse({ ...data, site_url: "" })).toEqual({
+    expect(parse(FeedDtoSchema, { ...data, site_url: "" })).toEqual({
       ...data,
       site_url: "",
     });
-    expect(() => FeedDtoSchema.parse({ ...data, site_url: "   " })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, site_url: " https://example.com " })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, site_url: "ftp://example.com" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, site_url: "   " })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, site_url: " https://example.com " })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, site_url: "ftp://example.com" })).toThrow();
   });
   it("keeps FeedDto schema fields aligned with Rust DTO fields", () => {
-    expect(Object.keys(FeedDtoSchema.shape).toSorted()).toEqual(
+    expect(objectSchemaKeys(FeedDtoSchema)).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "FeedDto", "Rust command DTOs"),
     );
   });
@@ -719,10 +713,10 @@ describe("DTO schemas", () => {
       web_preview_mode: "off",
     };
 
-    expect(() => FeedDtoSchema.parse({ ...data, unread_count: -1 })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, unread_count: 1.5 })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, unread_count: Number.POSITIVE_INFINITY })).toThrow();
-    expect(() => FeedDtoSchema.parse({ ...data, unread_count: "1" })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, unread_count: -1 })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, unread_count: 1.5 })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, unread_count: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => parse(FeedDtoSchema, { ...data, unread_count: "1" })).toThrow();
   });
   it("parses valid FeedArticleSummaryDto", () => {
     const data = {
@@ -731,8 +725,8 @@ describe("DTO schemas", () => {
       starred_count: 2,
       recent_article_count: 12,
     };
-    expect(FeedArticleSummaryDtoSchema.parse(data)).toEqual(data);
-    expect(FeedArticleSummaryDtoSchema.parse({ ...data, latest_article_at: null })).toEqual({
+    expect(parse(FeedArticleSummaryDtoSchema, data)).toEqual(data);
+    expect(parse(FeedArticleSummaryDtoSchema, { ...data, latest_article_at: null })).toEqual({
       ...data,
       latest_article_at: null,
     });
@@ -745,28 +739,28 @@ describe("DTO schemas", () => {
       recent_article_count: 0,
     };
 
-    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, starred_count: -1 })).toThrow();
-    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, starred_count: 1.5 })).toThrow();
+    expect(() => parse(FeedArticleSummaryDtoSchema, { ...data, starred_count: -1 })).toThrow();
+    expect(() => parse(FeedArticleSummaryDtoSchema, { ...data, starred_count: 1.5 })).toThrow();
     expect(() =>
-      FeedArticleSummaryDtoSchema.parse({
+      parse(FeedArticleSummaryDtoSchema, {
         ...data,
         starred_count: Number.POSITIVE_INFINITY,
       }),
     ).toThrow();
     expect(() =>
-      FeedArticleSummaryDtoSchema.parse({
+      parse(FeedArticleSummaryDtoSchema, {
         ...data,
         latest_article_at: "2026-04-01",
       }),
     ).toThrow();
     expect(() =>
-      FeedArticleSummaryDtoSchema.parse({
+      parse(FeedArticleSummaryDtoSchema, {
         ...data,
         latest_article_at: "2026-04-01T10:00:00",
       }),
     ).toThrow();
     expect(() =>
-      FeedArticleSummaryDtoSchema.parse({
+      parse(FeedArticleSummaryDtoSchema, {
         ...data,
         latest_article_at: "not-a-date",
       }),
@@ -782,11 +776,11 @@ describe("DTO schemas", () => {
 
     // strictObject: the field is required, so the backend must always send it.
     const { recent_article_count: _omitted, ...withoutRecentCount } = data;
-    expect(() => FeedArticleSummaryDtoSchema.parse(withoutRecentCount)).toThrow();
-    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, recent_article_count: -1 })).toThrow();
-    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, recent_article_count: 1.5 })).toThrow();
+    expect(() => parse(FeedArticleSummaryDtoSchema, withoutRecentCount)).toThrow();
+    expect(() => parse(FeedArticleSummaryDtoSchema, { ...data, recent_article_count: -1 })).toThrow();
+    expect(() => parse(FeedArticleSummaryDtoSchema, { ...data, recent_article_count: 1.5 })).toThrow();
     expect(() =>
-      FeedArticleSummaryDtoSchema.parse({ ...data, recent_article_count: Number.POSITIVE_INFINITY }),
+      parse(FeedArticleSummaryDtoSchema, { ...data, recent_article_count: Number.POSITIVE_INFINITY }),
     ).toThrow();
   });
   it("parses valid ArticleDto", () => {
@@ -803,7 +797,7 @@ describe("DTO schemas", () => {
       is_read: false,
       is_starred: false,
     };
-    expect(ArticleDtoSchema.parse(data)).toEqual(data);
+    expect(parse(ArticleDtoSchema, data)).toEqual(data);
   });
   it("rejects ArticleDto invalid published timestamps", () => {
     const data = {
@@ -820,12 +814,12 @@ describe("DTO schemas", () => {
       is_starred: false,
     };
 
-    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "" })).toThrow();
-    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "2026-03-25" })).toThrow();
-    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "2026-03-25T10:00:00" })).toThrow();
-    expect(() => ArticleDtoSchema.parse({ ...data, published_at: "not-a-date" })).toThrow();
-    expect(() => ArticleDtoSchema.parse({ ...data, viewed_at: "2026-03-25" })).toThrow();
-    expect(() => ArticleDtoSchema.parse({ ...data, viewed_at: "not-a-date" })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, published_at: "" })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, published_at: "2026-03-25" })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, published_at: "2026-03-25T10:00:00" })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, published_at: "not-a-date" })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, viewed_at: "2026-03-25" })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, viewed_at: "not-a-date" })).toThrow();
   });
   it("normalizes ArticleDto URL fields and rejects blank strings", () => {
     const data = {
@@ -842,12 +836,12 @@ describe("DTO schemas", () => {
       is_starred: false,
     };
 
-    expect(ArticleDtoSchema.parse(data)).toMatchObject({
+    expect(parse(ArticleDtoSchema, data)).toMatchObject({
       url: "https://example.com/article",
       thumbnail: "https://example.com/thumb.png",
     });
-    expect(() => ArticleDtoSchema.parse({ ...data, url: "   " })).toThrow();
-    expect(() => ArticleDtoSchema.parse({ ...data, thumbnail: "   " })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, url: "   " })).toThrow();
+    expect(() => parse(ArticleDtoSchema, { ...data, thumbnail: "   " })).toThrow();
   });
   it("rejects ArticleDto thumbnails outside the reader image privacy contract", () => {
     const data = {
@@ -865,19 +859,19 @@ describe("DTO schemas", () => {
     };
 
     expect(() =>
-      ArticleDtoSchema.parse({
+      parse(ArticleDtoSchema, {
         ...data,
         thumbnail: "http://example.com/thumb.png",
       }),
     ).toThrow();
     expect(() =>
-      ArticleDtoSchema.parse({
+      parse(ArticleDtoSchema, {
         ...data,
         thumbnail: "data:image/svg+xml,<svg></svg>",
       }),
     ).toThrow();
     expect(() =>
-      ArticleDtoSchema.parse({
+      parse(ArticleDtoSchema, {
         ...data,
         thumbnail: "https://user:pass@example.com/thumb.png",
       }),
@@ -885,7 +879,7 @@ describe("DTO schemas", () => {
   });
   it("parses valid TagDto", () => {
     expect(
-      TagDtoSchema.parse({
+      parse(TagDtoSchema, {
         id: "tag-1",
         name: " Important ",
         color: "#ff0000",
@@ -897,20 +891,28 @@ describe("DTO schemas", () => {
     });
   });
   it("parses TagDto with null color", () => {
-    expect(TagDtoSchema.parse({ id: "tag-1", name: "Important", color: null })).toEqual({
+    expect(parse(TagDtoSchema, { id: "tag-1", name: "Important", color: null })).toEqual({
       id: "tag-1",
       name: "Important",
       color: null,
     });
   });
   it("rejects invalid TagDto display fields", () => {
-    expect(() => TagDtoSchema.parse({ id: "tag-1", name: "   ", color: null })).toThrow();
-    expect(() => TagDtoSchema.parse({ id: "tag-1", name: "Important", color: "red" })).toThrow();
-    expect(() => TagDtoSchema.parse({ id: "tag-1", name: "Important", color: "#fff" })).toThrow();
+    expect(() => parse(TagDtoSchema, { id: "tag-1", name: "   ", color: null })).toThrow();
+    expect(() => parse(TagDtoSchema, { id: "tag-1", name: "Important", color: "red" })).toThrow();
+    expect(() => parse(TagDtoSchema, { id: "tag-1", name: "Important", color: "#fff" })).toThrow();
   });
   it("rejects invalid tag article counts", () => {
-    expect(() => TagArticleCountsSchema.parse({ "tag-1": -1 })).toThrow();
-    expect(() => TagArticleCountsSchema.parse({ "tag-1": 1.5 })).toThrow();
+    expect(() => parse(TagArticleCountsSchema, { "tag-1": -1 })).toThrow();
+    expect(() => parse(TagArticleCountsSchema, { "tag-1": 1.5 })).toThrow();
+  });
+  it("rejects arrays at the tag article counts record boundary", () => {
+    const emptyArray: unknown = [];
+    const numberArray: unknown = [1];
+
+    expect(is(TagArticleCountsSchema, emptyArray)).toBe(false);
+    expect(is(TagArticleCountsSchema, numberArray)).toBe(false);
+    expect(parse(TagArticleCountsSchema, { "tag-1": 1 })).toEqual({ "tag-1": 1 });
   });
   it("parses valid MuteKeywordDto", () => {
     const data = {
@@ -920,7 +922,7 @@ describe("DTO schemas", () => {
       created_at: "2026-04-15T01:00:00Z",
       updated_at: "2026-04-15T01:00:00Z",
     };
-    expect(MuteKeywordDtoSchema.parse({ ...data, keyword: " Kindle Unlimited " })).toEqual(data);
+    expect(parse(MuteKeywordDtoSchema, { ...data, keyword: " Kindle Unlimited " })).toEqual(data);
   });
   it("rejects blank mute keyword DTO response keywords", () => {
     const data = {
@@ -931,8 +933,8 @@ describe("DTO schemas", () => {
       updated_at: "2026-04-15T01:00:00Z",
     };
 
-    expect(() => MuteKeywordDtoSchema.parse({ ...data, keyword: "" })).toThrow();
-    expect(() => MuteKeywordDtoSchema.parse({ ...data, keyword: "   " })).toThrow();
+    expect(() => parse(MuteKeywordDtoSchema, { ...data, keyword: "" })).toThrow();
+    expect(() => parse(MuteKeywordDtoSchema, { ...data, keyword: "   " })).toThrow();
   });
   it("rejects mute keyword DTO response timestamps without ISO datetime offsets", () => {
     const data = {
@@ -943,18 +945,18 @@ describe("DTO schemas", () => {
       updated_at: "2026-04-15T01:00:00Z",
     };
 
-    expect(() => MuteKeywordDtoSchema.parse({ ...data, created_at: "2026-04-15" })).toThrow();
+    expect(() => parse(MuteKeywordDtoSchema, { ...data, created_at: "2026-04-15" })).toThrow();
     expect(() =>
-      MuteKeywordDtoSchema.parse({
+      parse(MuteKeywordDtoSchema, {
         ...data,
         created_at: "2026-04-15T01:00:00",
       }),
     ).toThrow();
-    expect(() => MuteKeywordDtoSchema.parse({ ...data, updated_at: "not-a-date" })).toThrow();
+    expect(() => parse(MuteKeywordDtoSchema, { ...data, updated_at: "not-a-date" })).toThrow();
   });
   it("parses valid DiscoveredFeedDto", () => {
     expect(
-      DiscoveredFeedDtoSchema.parse({
+      parse(DiscoveredFeedDtoSchema, {
         url: " https://example.com/feed.xml ",
         title: "",
       }),
@@ -963,7 +965,7 @@ describe("DTO schemas", () => {
       title: "",
     });
     expect(
-      DiscoveredFeedDtoSchema.parse({
+      parse(DiscoveredFeedDtoSchema, {
         url: "http://example.com/feed.xml",
         title: "Blog",
       }),
@@ -971,16 +973,16 @@ describe("DTO schemas", () => {
       url: "http://example.com/feed.xml",
       title: "Blog",
     });
-    expect(() => DiscoveredFeedDtoSchema.parse({ url: "   ", title: "Blog" })).toThrow();
-    expect(() => DiscoveredFeedDtoSchema.parse({ url: "https://", title: "Blog" })).toThrow();
+    expect(() => parse(DiscoveredFeedDtoSchema, { url: "   ", title: "Blog" })).toThrow();
+    expect(() => parse(DiscoveredFeedDtoSchema, { url: "https://", title: "Blog" })).toThrow();
     expect(() =>
-      DiscoveredFeedDtoSchema.parse({
+      parse(DiscoveredFeedDtoSchema, {
         url: "mailto:hello@example.com",
         title: "Blog",
       }),
     ).toThrow();
     expect(() =>
-      DiscoveredFeedDtoSchema.parse({
+      parse(DiscoveredFeedDtoSchema, {
         url: "https://example.com/feed.xml\nnext",
         title: "Blog",
       }),
@@ -988,7 +990,7 @@ describe("DTO schemas", () => {
   });
   it("parses valid UpdateInfoDto", () => {
     expect(
-      UpdateInfoDtoSchema.parse({
+      parse(UpdateInfoDtoSchema, {
         version: " 1.0.0+build.7 ",
         body: "Release notes",
         channel: "stable",
@@ -1005,7 +1007,7 @@ describe("DTO schemas", () => {
   });
   it("keeps UpdateInfoDto body null or empty for updater UI compatibility", () => {
     expect(
-      UpdateInfoDtoSchema.parse({
+      parse(UpdateInfoDtoSchema, {
         version: "1.0.0",
         body: null,
         channel: "stable",
@@ -1020,7 +1022,7 @@ describe("DTO schemas", () => {
       source: "github-latest-json",
     });
     expect(
-      UpdateInfoDtoSchema.parse({
+      parse(UpdateInfoDtoSchema, {
         version: "1.0.0",
         body: "",
         channel: "stable",
@@ -1042,8 +1044,8 @@ describe("DTO schemas", () => {
       prerelease: false,
       source: "github-latest-json",
     };
-    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "" })).toThrow();
-    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "   " })).toThrow();
+    expect(() => parse(UpdateInfoDtoSchema, { ...stableUpdate, version: "" })).toThrow();
+    expect(() => parse(UpdateInfoDtoSchema, { ...stableUpdate, version: "   " })).toThrow();
   });
   it("rejects malformed UpdateInfoDto semantic versions", () => {
     const stableUpdate = {
@@ -1053,7 +1055,7 @@ describe("DTO schemas", () => {
       source: "github-latest-json",
     };
     for (const version of ["v1.2.3", "1.2", "1.2.3.4", "01.2.3", "1.02.3", "1.2.03", "1.2.3+", "1.2.3-"]) {
-      expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version })).toThrow();
+      expect(() => parse(UpdateInfoDtoSchema, { ...stableUpdate, version })).toThrow();
     }
   });
   it("rejects UpdateInfoDto with blank source", () => {
@@ -1063,8 +1065,8 @@ describe("DTO schemas", () => {
       channel: "stable",
       prerelease: false,
     };
-    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, source: "" })).toThrow();
-    expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, source: "   " })).toThrow();
+    expect(() => parse(UpdateInfoDtoSchema, { ...stableUpdate, source: "" })).toThrow();
+    expect(() => parse(UpdateInfoDtoSchema, { ...stableUpdate, source: "   " })).toThrow();
   });
   it("rejects non-stable or prerelease UpdateInfoDto manifests", () => {
     const stableUpdate = {
@@ -1073,14 +1075,14 @@ describe("DTO schemas", () => {
       source: "github-latest-json",
     };
     expect(() =>
-      UpdateInfoDtoSchema.parse({
+      parse(UpdateInfoDtoSchema, {
         ...stableUpdate,
         channel: "beta",
         prerelease: false,
       }),
     ).toThrow();
     expect(() =>
-      UpdateInfoDtoSchema.parse({
+      parse(UpdateInfoDtoSchema, {
         ...stableUpdate,
         channel: "stable",
         prerelease: true,
@@ -1089,7 +1091,7 @@ describe("DTO schemas", () => {
   });
   it("accepts finite updater progress event payloads and rejects malformed values", () => {
     expect(
-      UpdateDownloadProgressEventPayloadSchema.parse({
+      parse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: 42,
         loaded: 100,
@@ -1100,7 +1102,7 @@ describe("DTO schemas", () => {
       loaded: 100,
     });
     expect(
-      UpdateDownloadProgressEventPayloadSchema.parse({
+      parse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: null,
       }),
@@ -1109,38 +1111,38 @@ describe("DTO schemas", () => {
       percent: null,
     });
     expect(
-      UpdateDownloadProgressEventPayloadSchema.safeParse({
+      safeParse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: "42",
       }).success,
     ).toBe(false);
     expect(
-      UpdateDownloadProgressEventPayloadSchema.safeParse({
+      safeParse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: Number.NaN,
       }).success,
     ).toBe(false);
     expect(
-      UpdateDownloadProgressEventPayloadSchema.safeParse({
+      safeParse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: Number.POSITIVE_INFINITY,
       }).success,
     ).toBe(false);
     expect(
-      UpdateDownloadProgressEventPayloadSchema.safeParse({
+      safeParse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 0,
         percent: 42,
       }).success,
     ).toBe(false);
-    expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ loaded: 100 }).success).toBe(false);
-    expect(UpdateReadyEventPayloadSchema.parse({ session_id: 1 })).toEqual({
+    expect(safeParse(UpdateDownloadProgressEventPayloadSchema, { loaded: 100 }).success).toBe(false);
+    expect(parse(UpdateReadyEventPayloadSchema, { session_id: 1 })).toEqual({
       session_id: 1,
     });
-    expect(UpdateReadyEventPayloadSchema.safeParse({ session_id: 0 }).success).toBe(false);
+    expect(safeParse(UpdateReadyEventPayloadSchema, { session_id: 0 }).success).toBe(false);
   });
   it("rejects unknown backend DTO fields while preserving updater progress event passthrough fields", () => {
     expect(
-      ArticleDtoSchema.safeParse({
+      safeParse(ArticleDtoSchema, {
         id: "art-1",
         feed_id: "feed-1",
         title: "Hello",
@@ -1156,7 +1158,7 @@ describe("DTO schemas", () => {
       }).success,
     ).toBe(false);
     expect(
-      AccountDtoSchema.safeParse({
+      safeParse(AccountDtoSchema, {
         id: "acc-1",
         kind: "local",
         name: "Local",
@@ -1177,7 +1179,7 @@ describe("DTO schemas", () => {
       }).success,
     ).toBe(false);
     expect(
-      FeedDtoSchema.safeParse({
+      safeParse(FeedDtoSchema, {
         id: "feed-1",
         account_id: "acc-1",
         folder_id: null,
@@ -1192,7 +1194,7 @@ describe("DTO schemas", () => {
       }).success,
     ).toBe(false);
     expect(
-      UpdateDownloadProgressEventPayloadSchema.parse({
+      parse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: 1,
         loaded: 100,
@@ -1214,14 +1216,14 @@ describe("DTO schemas", () => {
         uses_dev_file_credentials: false,
       },
     };
-    expect(PlatformInfoSchema.parse(data)).toEqual(data);
+    expect(parse(PlatformInfoSchema, data)).toEqual(data);
   });
   it("keeps dev runtime window dimensions aligned with Rust command max", () => {
     const rustMaxDimension = extractRustU32Const(readRustPlatformCommandSource(), "MAX_DEV_WINDOW_DIMENSION_PX");
 
     expect(rustMaxDimension).toBe(MAX_DEV_WINDOW_DIMENSION_PX);
     expect(
-      DevRuntimeOptionsSchema.parse({
+      parse(DevRuntimeOptionsSchema, {
         dev_intent: null,
         dev_web_url: null,
         dev_window_width: MAX_DEV_WINDOW_DIMENSION_PX,
@@ -1234,7 +1236,7 @@ describe("DTO schemas", () => {
       dev_window_height: null,
     });
     expect(() =>
-      DevRuntimeOptionsSchema.parse({
+      parse(DevRuntimeOptionsSchema, {
         dev_intent: null,
         dev_web_url: null,
         dev_window_width: MAX_DEV_WINDOW_DIMENSION_PX + 1,
@@ -1247,7 +1249,7 @@ describe("DTO schemas", () => {
 describe("AppErrorSchema", () => {
   it("parses UserVisible error", () => {
     expect(
-      AppErrorSchema.parse({
+      parse(AppErrorSchema, {
         type: "UserVisible",
         message: "Something went wrong",
       }),
@@ -1257,35 +1259,35 @@ describe("AppErrorSchema", () => {
     });
   });
   it("parses Retryable error", () => {
-    expect(AppErrorSchema.parse({ type: "Retryable", message: "Network timeout" })).toEqual({
+    expect(parse(AppErrorSchema, { type: "Retryable", message: "Network timeout" })).toEqual({
       type: "Retryable",
       message: "Network timeout",
     });
   });
   it("rejects unknown error type", () => {
-    expect(() => AppErrorSchema.parse({ type: "Unknown", message: "?" })).toThrow();
+    expect(() => parse(AppErrorSchema, { type: "Unknown", message: "?" })).toThrow();
   });
   it("rejects empty AppError messages", () => {
-    expect(() => AppErrorSchema.parse({ type: "UserVisible", message: "" })).toThrow();
-    expect(() => AppErrorSchema.parse({ type: "UserVisible", message: "   " })).toThrow();
-    expect(() => AppErrorSchema.parse({ type: "Retryable", message: "" })).toThrow();
-    expect(() => AppErrorSchema.parse({ type: "Retryable", message: "   " })).toThrow();
+    expect(() => parse(AppErrorSchema, { type: "UserVisible", message: "" })).toThrow();
+    expect(() => parse(AppErrorSchema, { type: "UserVisible", message: "   " })).toThrow();
+    expect(() => parse(AppErrorSchema, { type: "Retryable", message: "" })).toThrow();
+    expect(() => parse(AppErrorSchema, { type: "Retryable", message: "   " })).toThrow();
   });
   it("keeps AppError message length and control character policy synced with Rust DTOs", () => {
     expect(extractRustUsizeConst(readRustCommandDtoSource(), "APP_ERROR_MESSAGE_MAX_CHARS")).toBe(
       APP_ERROR_MESSAGE_MAX_CHARS,
     );
-    expect(AppErrorSchema.parse({ type: "UserVisible", message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS) })).toEqual({
+    expect(parse(AppErrorSchema, { type: "UserVisible", message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS) })).toEqual({
       type: "UserVisible",
       message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS),
     });
 
     expect(() =>
-      AppErrorSchema.parse({ type: "UserVisible", message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS + 1) }),
+      parse(AppErrorSchema, { type: "UserVisible", message: "x".repeat(APP_ERROR_MESSAGE_MAX_CHARS + 1) }),
     ).toThrow();
-    expect(() => AppErrorSchema.parse({ type: "UserVisible", message: "line 1\nline 2" })).toThrow();
-    expect(() => AppErrorSchema.parse({ type: "UserVisible", message: "bad\u0000message" })).toThrow();
-    expect(AppErrorSchema.parse({ type: "UserVisible", message: "https://example.com/token/abc123" })).toEqual({
+    expect(() => parse(AppErrorSchema, { type: "UserVisible", message: "line 1\nline 2" })).toThrow();
+    expect(() => parse(AppErrorSchema, { type: "UserVisible", message: "bad\u0000message" })).toThrow();
+    expect(parse(AppErrorSchema, { type: "UserVisible", message: "https://example.com/token/abc123" })).toEqual({
       type: "UserVisible",
       message: "https://example.com/token/abc123",
     });
@@ -1293,14 +1295,14 @@ describe("AppErrorSchema", () => {
 
   it("keeps support codes and diagnostics ids out of the AppError wire contract", () => {
     expect(() =>
-      AppErrorSchema.parse({
+      parse(AppErrorSchema, {
         type: "UserVisible",
         message: "Something went wrong",
         supportCode: "URR-0001",
       }),
     ).toThrow();
     expect(() =>
-      AppErrorSchema.parse({
+      parse(AppErrorSchema, {
         type: "Diagnostics",
         message: "Response validation failed. See diagnostics for details.",
         diagnosticsId: "diag-1",
@@ -1311,43 +1313,43 @@ describe("AppErrorSchema", () => {
 
 describe("primitive command result schemas", () => {
   it("keeps primitive Tauri command result parsing strict", () => {
-    expect(NullResponseSchema.parse(null)).toBeNull();
-    expect(IntResponseSchema.parse(0)).toBe(0);
-    expect(NonnegativeIntResponseSchema.parse(0)).toBe(0);
-    expect(CountResponseSchema.parse(1)).toBe(1);
-    expect(StringResponseSchema.parse("ok")).toBe("ok");
-    expect(BooleanResponseSchema.parse(false)).toBe(false);
+    expect(parse(NullResponseSchema, null)).toBeNull();
+    expect(parse(IntResponseSchema, 0)).toBe(0);
+    expect(parse(NonnegativeIntResponseSchema, 0)).toBe(0);
+    expect(parse(CountResponseSchema, 1)).toBe(1);
+    expect(parse(StringResponseSchema, "ok")).toBe("ok");
+    expect(parse(BooleanResponseSchema, false)).toBe(false);
 
-    expect(() => NullResponseSchema.parse(undefined)).toThrow();
-    expect(() => IntResponseSchema.parse(1.5)).toThrow();
-    expect(() => IntResponseSchema.parse(Number.NaN)).toThrow();
-    expect(() => NonnegativeIntResponseSchema.parse(-1)).toThrow();
-    expect(() => NonnegativeIntResponseSchema.parse(Number.NaN)).toThrow();
-    expect(() => CountResponseSchema.parse(-1)).toThrow();
-    expect(() => CountResponseSchema.parse(1.5)).toThrow();
-    expect(() => CountResponseSchema.parse(Number.MAX_SAFE_INTEGER + 1)).toThrow();
-    expect(() => StringResponseSchema.parse(1)).toThrow();
-    expect(() => BooleanResponseSchema.parse("false")).toThrow();
+    expect(() => parse(NullResponseSchema, undefined)).toThrow();
+    expect(() => parse(IntResponseSchema, 1.5)).toThrow();
+    expect(() => parse(IntResponseSchema, Number.NaN)).toThrow();
+    expect(() => parse(NonnegativeIntResponseSchema, -1)).toThrow();
+    expect(() => parse(NonnegativeIntResponseSchema, Number.NaN)).toThrow();
+    expect(() => parse(CountResponseSchema, -1)).toThrow();
+    expect(() => parse(CountResponseSchema, 1.5)).toThrow();
+    expect(() => parse(CountResponseSchema, Number.MAX_SAFE_INTEGER + 1)).toThrow();
+    expect(() => parse(StringResponseSchema, 1)).toThrow();
+    expect(() => parse(BooleanResponseSchema, "false")).toThrow();
   });
 
   it("keeps count response safe integer cap synced with Rust DTOs", () => {
-    expect(CountResponseSchema.parse(0)).toBe(0);
-    expect(CountResponseSchema.parse(COUNT_RESPONSE_MAX_VALUE)).toBe(COUNT_RESPONSE_MAX_VALUE);
-    expect(NonnegativeIntResponseSchema.parse(0)).toBe(0);
+    expect(parse(CountResponseSchema, 0)).toBe(0);
+    expect(parse(CountResponseSchema, COUNT_RESPONSE_MAX_VALUE)).toBe(COUNT_RESPONSE_MAX_VALUE);
+    expect(parse(NonnegativeIntResponseSchema, 0)).toBe(0);
     expect(CountResponseSchema).not.toBe(NonnegativeIntResponseSchema);
     expect(COUNT_RESPONSE_MAX_VALUE).toBe(Number.MAX_SAFE_INTEGER);
     expect(extractRustI64Const(readRustCommandDtoSource(), "COUNT_RESPONSE_MAX_VALUE")).toBe(COUNT_RESPONSE_MAX_VALUE);
-    expect(() => CountResponseSchema.parse(COUNT_RESPONSE_MAX_VALUE + 1)).toThrow();
+    expect(() => parse(CountResponseSchema, COUNT_RESPONSE_MAX_VALUE + 1)).toThrow();
   });
   it("normalizes nullable starred counts and rejects invalid count values", () => {
-    expect(NullableStarredCountSchema.parse(null)).toBe(0);
-    expect(NullableStarredCountSchema.parse(0)).toBe(0);
-    expect(NullableStarredCountSchema.parse(2)).toBe(2);
+    expect(parse(NullableStarredCountSchema, null)).toBe(0);
+    expect(parse(NullableStarredCountSchema, 0)).toBe(0);
+    expect(parse(NullableStarredCountSchema, 2)).toBe(2);
 
-    expect(() => NullableStarredCountSchema.parse(-1)).toThrow();
-    expect(() => NullableStarredCountSchema.parse(1.5)).toThrow();
-    expect(() => NullableStarredCountSchema.parse(Number.NaN)).toThrow();
-    expect(() => NullableStarredCountSchema.parse(Number.POSITIVE_INFINITY)).toThrow();
+    expect(() => parse(NullableStarredCountSchema, -1)).toThrow();
+    expect(() => parse(NullableStarredCountSchema, 1.5)).toThrow();
+    expect(() => parse(NullableStarredCountSchema, Number.NaN)).toThrow();
+    expect(() => parse(NullableStarredCountSchema, Number.POSITIVE_INFINITY)).toThrow();
   });
 });
 
@@ -1371,7 +1373,7 @@ describe("frontend schema runtime contracts", () => {
 describe("PreferencesDtoSchema", () => {
   it("accepts known, shortcut, and unknown string preference keys while rejecting invalid records", () => {
     expect(
-      PreferencesDtoSchema.parse({
+      parse(PreferencesDtoSchema, {
         theme: "dark",
         shortcut_next_article: "j",
         custom_backend_preference: "preserved",
@@ -1384,15 +1386,15 @@ describe("PreferencesDtoSchema", () => {
       debug_web_preview_url: "",
     });
 
-    expect(() => PreferencesDtoSchema.parse({ "": "blank" })).toThrow();
-    expect(() => PreferencesDtoSchema.parse({ "   ": "blank" })).toThrow();
-    expect(() => PreferencesDtoSchema.parse({ theme: null })).toThrow();
-    expect(() => PreferencesDtoSchema.parse({ theme: true })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { "": "blank" })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { "   ": "blank" })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { theme: null })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { theme: true })).toThrow();
   });
 
   it("keeps API preference result parsing strict for known keys without normalizing values", () => {
     expect(
-      PreferencesDtoSchema.parse({
+      parse(PreferencesDtoSchema, {
         theme: "dark",
         shortcut_next_article: " Shift+J ",
         selected_account_id: "acc-1",
@@ -1403,37 +1405,37 @@ describe("PreferencesDtoSchema", () => {
       selected_account_id: "acc-1",
     });
 
-    expect(() => PreferencesDtoSchema.parse({ theme: "midnight" })).toThrow();
-    expect(() => PreferencesDtoSchema.parse({ shortcut_next_article: "   " })).toThrow();
-    expect(() => PreferencesDtoSchema.parse({ selected_account_id: "" })).toThrow();
-    expect(() => PreferencesDtoSchema.parse({ theme: 1 })).toThrow();
-    expect(() => PreferencesDtoSchema.parse([])).toThrow();
-    expect(() => PreferencesDtoSchema.parse(null)).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { theme: "midnight" })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { shortcut_next_article: "   " })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { selected_account_id: "" })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { theme: 1 })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, [])).toThrow();
+    expect(() => parse(PreferencesDtoSchema, null)).toThrow();
   });
 
   it("keeps unknown preference passthrough bounded by size, prefix, and retirement policy", () => {
     expect(
-      PreferencesDtoSchema.parse({
+      parse(PreferencesDtoSchema, {
         custom_backend_preference: "a".repeat(1024),
       }),
     ).toEqual({
       custom_backend_preference: "a".repeat(1024),
     });
 
-    expect(() => PreferencesDtoSchema.parse({ [`${"a".repeat(129)}`]: "too-long-key" })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { [`${"a".repeat(129)}`]: "too-long-key" })).toThrow();
     expect(() =>
-      PreferencesDtoSchema.parse({
+      parse(PreferencesDtoSchema, {
         custom_backend_preference: "a".repeat(1025),
       }),
     ).toThrow();
-    expect(() => PreferencesDtoSchema.parse({ shortcut_unknown_action: "x" })).toThrow();
+    expect(() => parse(PreferencesDtoSchema, { shortcut_unknown_action: "x" })).toThrow();
   });
 });
 
 describe("SettingsProfileSchema", () => {
   it("accepts v1 settings profiles and import result counts", () => {
     expect(
-      SettingsProfileSchema.parse({
+      parse(SettingsProfileSchema, {
         version: 1,
         exported_at: "2026-06-08T00:00:00Z",
         content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
@@ -1463,7 +1465,7 @@ describe("SettingsProfileSchema", () => {
     });
 
     expect(
-      SettingsProfileImportResultSchema.parse({
+      parse(SettingsProfileImportResultSchema, {
         accounts_created: 1,
         accounts_updated: 2,
         preferences_imported: 3,
@@ -1496,12 +1498,12 @@ describe("SettingsProfileSchema", () => {
       mute_keywords: [],
     };
 
-    expect(() => SettingsProfileSchema.parse({ ...validProfile, version: 2 })).toThrow();
-    expect(() => SettingsProfileSchema.parse({ ...validProfile, preferences: { theme: "invalid" } })).toThrow();
-    expect(() => SettingsProfileSchema.parse({ ...validProfile, accounts: [{ kind: "FreshRss" }] })).toThrow();
-    expect(() => SettingsProfileSchema.parse({ ...validProfile, tags: [{ name: "Tech", color: "green" }] })).toThrow();
+    expect(() => parse(SettingsProfileSchema, { ...validProfile, version: 2 })).toThrow();
+    expect(() => parse(SettingsProfileSchema, { ...validProfile, preferences: { theme: "invalid" } })).toThrow();
+    expect(() => parse(SettingsProfileSchema, { ...validProfile, accounts: [{ kind: "FreshRss" }] })).toThrow();
+    expect(() => parse(SettingsProfileSchema, { ...validProfile, tags: [{ name: "Tech", color: "green" }] })).toThrow();
     expect(() =>
-      SettingsProfileImportResultSchema.parse({
+      parse(SettingsProfileImportResultSchema, {
         accounts_created: -1,
         accounts_updated: 0,
         preferences_imported: 0,
@@ -1518,7 +1520,7 @@ describe("SettingsProfileSchema", () => {
 describe("BrowserWebviewStateSchema", () => {
   it("accepts an empty string URL as the backend state value", () => {
     expect(
-      BrowserWebviewStateSchema.parse({
+      parse(BrowserWebviewStateSchema, {
         url: "",
         can_go_back: false,
         can_go_forward: false,
@@ -1536,7 +1538,7 @@ describe("BrowserWebviewStateSchema", () => {
 
   it("accepts a relative URL as the backend state value", () => {
     expect(
-      BrowserWebviewStateSchema.parse({
+      parse(BrowserWebviewStateSchema, {
         url: "/reader/article",
         can_go_back: false,
         can_go_forward: true,
@@ -1554,7 +1556,7 @@ describe("BrowserWebviewStateSchema", () => {
 
   it("accepts an HTTP URL as the backend state value", () => {
     expect(
-      BrowserWebviewStateSchema.parse({
+      parse(BrowserWebviewStateSchema, {
         url: "http://example.com/article",
         can_go_back: true,
         can_go_forward: false,
@@ -1574,7 +1576,7 @@ describe("BrowserWebviewStateSchema", () => {
 describe("BrowserWebviewFallbackPayloadSchema", () => {
   it("accepts the native fallback event payload shape", () => {
     expect(
-      BrowserWebviewFallbackPayloadSchema.parse({
+      parse(BrowserWebviewFallbackPayloadSchema, {
         url: "https://example.com/fallback",
         opened_external: false,
         error_message: null,
@@ -1588,7 +1590,7 @@ describe("BrowserWebviewFallbackPayloadSchema", () => {
 
   it("rejects unknown and malformed native fallback event fields", () => {
     expect(() =>
-      BrowserWebviewFallbackPayloadSchema.parse({
+      parse(BrowserWebviewFallbackPayloadSchema, {
         url: "https://example.com/fallback",
         opened_external: false,
         error_message: null,
@@ -1596,7 +1598,7 @@ describe("BrowserWebviewFallbackPayloadSchema", () => {
       }),
     ).toThrow();
     expect(() =>
-      BrowserWebviewFallbackPayloadSchema.parse({
+      parse(BrowserWebviewFallbackPayloadSchema, {
         url: "https://example.com/fallback",
         opened_external: "false",
         error_message: null,
@@ -1608,7 +1610,7 @@ describe("BrowserWebviewFallbackPayloadSchema", () => {
 describe("BrowserWebviewDiagnosticsPayloadSchema", () => {
   it("accepts the native diagnostics event payload shape", () => {
     expect(
-      BrowserWebviewDiagnosticsPayloadSchema.parse({
+      parse(BrowserWebviewDiagnosticsPayloadSchema, {
         action: "resize",
         requestedLogical: { x: 1, y: 2, width: 300, height: 200 },
         appliedLogical: { x: 1, y: 2, width: 300, height: 200 },
@@ -1626,7 +1628,7 @@ describe("BrowserWebviewDiagnosticsPayloadSchema", () => {
 
   it("rejects unknown and malformed native diagnostics event fields", () => {
     expect(() =>
-      BrowserWebviewDiagnosticsPayloadSchema.parse({
+      parse(BrowserWebviewDiagnosticsPayloadSchema, {
         action: "resize",
         requestedLogical: { x: 1, y: 2, width: 300, height: 200, right: 301 },
         appliedLogical: { x: 1, y: 2, width: 300, height: 200 },
@@ -1635,7 +1637,7 @@ describe("BrowserWebviewDiagnosticsPayloadSchema", () => {
       }),
     ).toThrow();
     expect(() =>
-      BrowserWebviewDiagnosticsPayloadSchema.parse({
+      parse(BrowserWebviewDiagnosticsPayloadSchema, {
         action: "resize",
         requestedLogical: { x: 1, y: 2, width: 300, height: 200 },
         appliedLogical: { x: 1, y: 2, width: 300, height: 200 },
@@ -1647,7 +1649,7 @@ describe("BrowserWebviewDiagnosticsPayloadSchema", () => {
 
   it("rejects native diagnostics coordinates outside the support-safe cap", () => {
     expect(() =>
-      BrowserWebviewDiagnosticsPayloadSchema.parse({
+      parse(BrowserWebviewDiagnosticsPayloadSchema, {
         action: "resize",
         requestedLogical: { x: -10001, y: 2, width: 300, height: 200 },
         appliedLogical: { x: 1, y: 2, width: 300, height: 200 },
@@ -1656,7 +1658,7 @@ describe("BrowserWebviewDiagnosticsPayloadSchema", () => {
       }),
     ).toThrow();
     expect(() =>
-      BrowserWebviewDiagnosticsPayloadSchema.parse({
+      parse(BrowserWebviewDiagnosticsPayloadSchema, {
         action: "resize",
         requestedLogical: { x: 1, y: 2, width: 300, height: 200 },
         appliedLogical: { x: 1, y: 2, width: 300, height: 200 },
@@ -1669,33 +1671,33 @@ describe("BrowserWebviewDiagnosticsPayloadSchema", () => {
 
 describe("command args schemas", () => {
   it("parses listArticlesArgs", () => {
-    expect(listArticlesArgs.parse({ feedId: "f-1" })).toEqual({
+    expect(parse(listArticlesArgs, { feedId: "f-1" })).toEqual({
       feedId: "f-1",
     });
   });
   it("parses listArticlesArgs with optional fields", () => {
-    expect(listArticlesArgs.parse({ feedId: "f-1", offset: 0, limit: 20 })).toEqual({
+    expect(parse(listArticlesArgs, { feedId: "f-1", offset: 0, limit: 20 })).toEqual({
       feedId: "f-1",
       offset: 0,
       limit: 20,
     });
   });
   it("accepts listArticlesArgs with a single article state filter", () => {
-    expect(listArticlesArgs.parse({ feedId: "f-1", unreadOnly: true })).toEqual({
+    expect(parse(listArticlesArgs, { feedId: "f-1", unreadOnly: true })).toEqual({
       feedId: "f-1",
       unreadOnly: true,
     });
-    expect(listArticlesArgs.parse({ feedId: "f-1", starredOnly: true })).toEqual({
+    expect(parse(listArticlesArgs, { feedId: "f-1", starredOnly: true })).toEqual({
       feedId: "f-1",
       starredOnly: true,
     });
   });
   it("rejects listArticlesArgs with missing feedId", () => {
-    expect(() => listArticlesArgs.parse({})).toThrow();
+    expect(() => parse(listArticlesArgs, {})).toThrow();
   });
   it("rejects listArticlesArgs with mutually exclusive filters", () => {
     expect(() =>
-      listArticlesArgs.parse({
+      parse(listArticlesArgs, {
         feedId: "f-1",
         unreadOnly: true,
         starredOnly: true,
@@ -1703,19 +1705,19 @@ describe("command args schemas", () => {
     ).toThrow("Article list filters are mutually exclusive");
   });
   it("parses markArticleReadArgs with optional read", () => {
-    expect(markArticleReadArgs.parse({ articleId: "a-1" })).toEqual({
+    expect(parse(markArticleReadArgs, { articleId: "a-1" })).toEqual({
       articleId: "a-1",
     });
   });
   it("rejects empty bulk markArticlesReadArgs article id lists", () => {
-    expect(markArticlesReadArgs.parse({ articleIds: ["a-1"] })).toEqual({
+    expect(parse(markArticlesReadArgs, { articleIds: ["a-1"] })).toEqual({
       articleIds: ["a-1"],
     });
-    expect(() => markArticlesReadArgs.parse({ articleIds: [] })).toThrow();
+    expect(() => parse(markArticlesReadArgs, { articleIds: [] })).toThrow();
   });
   it("parses listStarredArticlesArgs", () => {
     expect(
-      listStarredArticlesArgs.parse({
+      parse(listStarredArticlesArgs, {
         accountId: "acc-1",
         offset: 0,
         limit: 20,
@@ -1728,7 +1730,7 @@ describe("command args schemas", () => {
   });
   it("parses listRecentArticlesArgs with mode", () => {
     expect(
-      listRecentArticlesArgs.parse({
+      parse(listRecentArticlesArgs, {
         accountId: "acc-1",
         mode: "unread",
         offset: 0,
@@ -1742,11 +1744,11 @@ describe("command args schemas", () => {
     });
   });
   it("parses countAccountStarredArticlesArgs", () => {
-    expect(countAccountStarredArticlesArgs.parse({ accountId: "acc-1" })).toEqual({ accountId: "acc-1" });
+    expect(parse(countAccountStarredArticlesArgs, { accountId: "acc-1" })).toEqual({ accountId: "acc-1" });
   });
   it("parses oldUnreadArticlesArgs and rejects arbitrary periods", () => {
     expect(
-      oldUnreadArticlesArgs.parse({
+      parse(oldUnreadArticlesArgs, {
         scopeKind: "feed",
         targetId: "feed-1",
         olderThanDays: 30,
@@ -1757,7 +1759,7 @@ describe("command args schemas", () => {
       olderThanDays: 30,
     });
     expect(() =>
-      oldUnreadArticlesArgs.parse({
+      parse(oldUnreadArticlesArgs, {
         scopeKind: "feed",
         targetId: "feed-1",
         olderThanDays: 14,
@@ -1766,7 +1768,7 @@ describe("command args schemas", () => {
   });
   it("rejects oldUnreadArticlesArgs periods above the supported 90 day preset", () => {
     expect(
-      oldUnreadArticlesArgs.parse({
+      parse(oldUnreadArticlesArgs, {
         scopeKind: "feed",
         targetId: "feed-1",
         olderThanDays: 90,
@@ -1777,7 +1779,7 @@ describe("command args schemas", () => {
       olderThanDays: 90,
     });
     expect(() =>
-      oldUnreadArticlesArgs.parse({
+      parse(oldUnreadArticlesArgs, {
         scopeKind: "feed",
         targetId: "feed-1",
         olderThanDays: 91,
@@ -1785,24 +1787,24 @@ describe("command args schemas", () => {
     ).toThrow();
   });
   it("parses toggleArticleStarArgs", () => {
-    expect(toggleArticleStarArgs.parse({ articleId: "a-1", starred: true })).toEqual({
+    expect(parse(toggleArticleStarArgs, { articleId: "a-1", starred: true })).toEqual({
       articleId: "a-1",
       starred: true,
     });
   });
   it("parses addAccountArgs", () => {
-    expect(addAccountArgs.parse({ kind: "Local", name: "Test" })).toEqual({
+    expect(parse(addAccountArgs, { kind: "Local", name: "Test" })).toEqual({
       kind: "Local",
       name: "Test",
     });
   });
   it("keeps addAccount provider args discriminated by provider kind", () => {
-    expect(addAccountArgs.parse({ kind: "Local", name: "Test" })).toEqual({
+    expect(parse(addAccountArgs, { kind: "Local", name: "Test" })).toEqual({
       kind: "Local",
       name: "Test",
     });
     expect(
-      addAccountArgs.parse({
+      parse(addAccountArgs, {
         kind: "FreshRss",
         name: "FreshRSS",
         serverUrl: " https://rss.example.com ",
@@ -1816,9 +1818,9 @@ describe("command args schemas", () => {
       username: "alice",
       password: "secret",
     });
-    expect(() => addAccountArgs.parse({ kind: "FreshRss", name: "FreshRSS" })).toThrow();
+    expect(() => parse(addAccountArgs, { kind: "FreshRss", name: "FreshRSS" })).toThrow();
     expect(() =>
-      addAccountArgs.parse({
+      parse(addAccountArgs, {
         kind: "FreshRss",
         name: "FreshRSS",
         serverUrl: "",
@@ -1827,7 +1829,7 @@ describe("command args schemas", () => {
       }),
     ).toThrow();
     expect(() =>
-      addAccountArgs.parse({
+      parse(addAccountArgs, {
         kind: "FreshRss",
         name: "FreshRSS",
         serverUrl: "https://rss.example.com",
@@ -1835,14 +1837,14 @@ describe("command args schemas", () => {
         password: "pw",
       }),
     ).toThrow();
-    expect(() => addAccountArgs.parse({ kind: "Unknown", name: "Test" })).toThrow();
+    expect(() => parse(addAccountArgs, { kind: "Unknown", name: "Test" })).toThrow();
   });
   it("trims and rejects blank feed URL command args", () => {
-    expect(discoverFeedsArgs.parse({ url: " https://example.com/feed.xml " })).toEqual({
+    expect(parse(discoverFeedsArgs, { url: " https://example.com/feed.xml " })).toEqual({
       url: "https://example.com/feed.xml",
     });
     expect(
-      addLocalFeedArgs.parse({
+      parse(addLocalFeedArgs, {
         accountId: "acc-1",
         url: " https://example.com/feed.xml ",
       }),
@@ -1851,10 +1853,10 @@ describe("command args schemas", () => {
       url: "https://example.com/feed.xml",
     });
 
-    expect(() => discoverFeedsArgs.parse({ url: "" })).toThrow();
-    expect(() => discoverFeedsArgs.parse({ url: "   " })).toThrow();
-    expect(() => addLocalFeedArgs.parse({ accountId: "acc-1", url: "" })).toThrow();
-    expect(() => addLocalFeedArgs.parse({ accountId: "acc-1", url: "   " })).toThrow();
+    expect(() => parse(discoverFeedsArgs, { url: "" })).toThrow();
+    expect(() => parse(discoverFeedsArgs, { url: "   " })).toThrow();
+    expect(() => parse(addLocalFeedArgs, { accountId: "acc-1", url: "" })).toThrow();
+    expect(() => parse(addLocalFeedArgs, { accountId: "acc-1", url: "   " })).toThrow();
   });
   it.each([
     ["listFoldersArgs.accountId", listFoldersArgs, { accountId: " acc-1 " }, { accountId: "acc-1" }, "accountId"],
@@ -2056,20 +2058,20 @@ describe("command args schemas", () => {
       "muteKeywordId",
     ],
   ] as const)("keeps %s on the shared nonblank trimmed id contract", (_name, schema, input, expected, blankField) => {
-    expect(schema.parse(input)).toEqual(expected);
-    expect(() => schema.parse({ ...input, [blankField]: "" })).toThrow("Command id must not be blank");
-    expect(() => schema.parse({ ...input, [blankField]: "   " })).toThrow("Command id must not be blank");
+    expect(parse(schema, input)).toEqual(expected);
+    expect(() => parse(schema, { ...input, [blankField]: "" })).toThrow("Command id must not be blank");
+    expect(() => parse(schema, { ...input, [blankField]: "   " })).toThrow("Command id must not be blank");
   });
   it("keeps markArticlesReadArgs ids on the shared nonblank trimmed id contract", () => {
-    expect(markArticlesReadArgs.parse({ articleIds: [" article-1 "] })).toEqual({
+    expect(parse(markArticlesReadArgs, { articleIds: [" article-1 "] })).toEqual({
       articleIds: ["article-1"],
     });
-    expect(() => markArticlesReadArgs.parse({ articleIds: [""] })).toThrow("Command id must not be blank");
-    expect(() => markArticlesReadArgs.parse({ articleIds: ["   "] })).toThrow("Command id must not be blank");
+    expect(() => parse(markArticlesReadArgs, { articleIds: [""] })).toThrow("Command id must not be blank");
+    expect(() => parse(markArticlesReadArgs, { articleIds: ["   "] })).toThrow("Command id must not be blank");
   });
   it("trims and rejects blank create folder names", () => {
     expect(
-      createFolderArgs.parse({
+      parse(createFolderArgs, {
         accountId: "acc-1",
         name: " Reading ",
       }),
@@ -2078,8 +2080,8 @@ describe("command args schemas", () => {
       name: "Reading",
     });
 
-    expect(() => createFolderArgs.parse({ accountId: "acc-1", name: "" })).toThrow();
-    expect(() => createFolderArgs.parse({ accountId: "acc-1", name: "   " })).toThrow();
+    expect(() => parse(createFolderArgs, { accountId: "acc-1", name: "" })).toThrow();
+    expect(() => parse(createFolderArgs, { accountId: "acc-1", name: "   " })).toThrow();
   });
   it("validates updateAccountSyncArgs numeric range", () => {
     const valid = {
@@ -2090,25 +2092,25 @@ describe("command args schemas", () => {
       keepReadItemsDays: 30,
     };
 
-    expect(updateAccountSyncArgs.parse(valid)).toEqual(valid);
-    expect(updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 60 })).toEqual({
+    expect(parse(updateAccountSyncArgs, valid)).toEqual(valid);
+    expect(parse(updateAccountSyncArgs, { ...valid, syncIntervalSecs: 60 })).toEqual({
       ...valid,
       syncIntervalSecs: 60,
     });
-    expect(updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 3650 })).toEqual({
+    expect(parse(updateAccountSyncArgs, { ...valid, keepReadItemsDays: 3650 })).toEqual({
       ...valid,
       keepReadItemsDays: 3650,
     });
-    expect(() => updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 59 })).toThrow();
-    expect(() => updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 86_401 })).toThrow();
-    expect(() => updateAccountSyncArgs.parse({ ...valid, syncIntervalSecs: 60.5 })).toThrow();
-    expect(() => updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 0 })).toThrow();
-    expect(() => updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 3651 })).toThrow();
-    expect(() => updateAccountSyncArgs.parse({ ...valid, keepReadItemsDays: 30.5 })).toThrow();
+    expect(() => parse(updateAccountSyncArgs, { ...valid, syncIntervalSecs: 59 })).toThrow();
+    expect(() => parse(updateAccountSyncArgs, { ...valid, syncIntervalSecs: 86_401 })).toThrow();
+    expect(() => parse(updateAccountSyncArgs, { ...valid, syncIntervalSecs: 60.5 })).toThrow();
+    expect(() => parse(updateAccountSyncArgs, { ...valid, keepReadItemsDays: 0 })).toThrow();
+    expect(() => parse(updateAccountSyncArgs, { ...valid, keepReadItemsDays: 3651 })).toThrow();
+    expect(() => parse(updateAccountSyncArgs, { ...valid, keepReadItemsDays: 30.5 })).toThrow();
   });
   it("parses createMuteKeywordArgs", () => {
     expect(
-      createMuteKeywordArgs.parse({
+      parse(createMuteKeywordArgs, {
         keyword: "Kindle Unlimited",
         scope: "title",
       }),
@@ -2119,7 +2121,7 @@ describe("command args schemas", () => {
   });
   it("trims and rejects blank create mute keyword args", () => {
     expect(
-      createMuteKeywordArgs.parse({
+      parse(createMuteKeywordArgs, {
         keyword: " spoiler ",
         scope: "title",
       }),
@@ -2128,22 +2130,22 @@ describe("command args schemas", () => {
       scope: "title",
     });
 
-    expect(() => createMuteKeywordArgs.parse({ keyword: "", scope: "title" })).toThrow();
-    expect(() => createMuteKeywordArgs.parse({ keyword: "   ", scope: "title" })).toThrow();
+    expect(() => parse(createMuteKeywordArgs, { keyword: "", scope: "title" })).toThrow();
+    expect(() => parse(createMuteKeywordArgs, { keyword: "   ", scope: "title" })).toThrow();
   });
   it("parses deleteMuteKeywordArgs", () => {
-    expect(deleteMuteKeywordArgs.parse({ muteKeywordId: "mute-1" })).toEqual({
+    expect(parse(deleteMuteKeywordArgs, { muteKeywordId: "mute-1" })).toEqual({
       muteKeywordId: "mute-1",
     });
   });
   it("parses setMuteAutoMarkReadArgs", () => {
-    expect(setMuteAutoMarkReadArgs.parse({ enabled: true })).toEqual({
+    expect(parse(setMuteAutoMarkReadArgs, { enabled: true })).toEqual({
       enabled: true,
     });
   });
   it("parses listFolderArticlesArgs", () => {
     expect(
-      listFolderArticlesArgs.parse({
+      parse(listFolderArticlesArgs, {
         folderId: "folder-1",
         mode: "starred",
         offset: 0,
@@ -2157,27 +2159,27 @@ describe("command args schemas", () => {
     });
   });
   it("parses listFeedArticleSummariesArgs", () => {
-    expect(listFeedArticleSummariesArgs.parse({ accountId: "acc-1" })).toEqual({
+    expect(parse(listFeedArticleSummariesArgs, { accountId: "acc-1" })).toEqual({
       accountId: "acc-1",
     });
   });
   it("normalizes updateFeedFolderArgs folder ids", () => {
-    expect(updateFeedFolderArgs.parse({ feedId: "feed-1", folderId: null })).toEqual({
+    expect(parse(updateFeedFolderArgs, { feedId: "feed-1", folderId: null })).toEqual({
       feedId: "feed-1",
       folderId: null,
     });
-    expect(updateFeedFolderArgs.parse({ feedId: "feed-1", folderId: "   " })).toEqual({
+    expect(parse(updateFeedFolderArgs, { feedId: "feed-1", folderId: "   " })).toEqual({
       feedId: "feed-1",
       folderId: null,
     });
-    expect(updateFeedFolderArgs.parse({ feedId: "feed-1", folderId: " folder-1 " })).toEqual({
+    expect(parse(updateFeedFolderArgs, { feedId: "feed-1", folderId: " folder-1 " })).toEqual({
       feedId: "feed-1",
       folderId: "folder-1",
     });
   });
   it("parses listArticlesByTagArgs with mode", () => {
     expect(
-      listArticlesByTagArgs.parse({
+      parse(listArticlesByTagArgs, {
         tagId: "tag-1",
         mode: "starred",
         accountId: "acc-1",
@@ -2204,7 +2206,7 @@ describe("command args schemas", () => {
   });
   it("trims and rejects blank search article queries", () => {
     expect(
-      searchArticlesArgs.parse({
+      parse(searchArticlesArgs, {
         accountId: "acc-1",
         query: " fresh ",
       }),
@@ -2213,8 +2215,8 @@ describe("command args schemas", () => {
       query: "fresh",
     });
 
-    expect(() => searchArticlesArgs.parse({ accountId: "acc-1", query: "" })).toThrow();
-    expect(() => searchArticlesArgs.parse({ accountId: "acc-1", query: "   " })).toThrow();
+    expect(() => parse(searchArticlesArgs, { accountId: "acc-1", query: "" })).toThrow();
+    expect(() => parse(searchArticlesArgs, { accountId: "acc-1", query: "   " })).toThrow();
   });
   it("keeps IPC pagination schemas aligned with Rust command boundaries", () => {
     expect(extractRustUsizeConst(readRustArticleCommandSource(), "MAX_ARTICLE_COMMAND_LIST_LIMIT")).toBe(
@@ -2229,7 +2231,7 @@ describe("command args schemas", () => {
   });
   it("parses finite browser webview bounds and rejects invalid dimensions", () => {
     expect(
-      browserWebviewBoundsArgs.parse({
+      parse(browserWebviewBoundsArgs, {
         x: 0,
         y: 12,
         width: 320,
@@ -2242,7 +2244,7 @@ describe("command args schemas", () => {
       height: 240,
     });
     expect(() =>
-      browserWebviewBoundsArgs.parse({
+      parse(browserWebviewBoundsArgs, {
         x: 0.5,
         y: 12,
         width: 320,
@@ -2250,7 +2252,7 @@ describe("command args schemas", () => {
       }),
     ).toThrow();
     expect(() =>
-      browserWebviewBoundsArgs.parse({
+      parse(browserWebviewBoundsArgs, {
         x: Number.NaN,
         y: 0,
         width: 320,
@@ -2258,16 +2260,16 @@ describe("command args schemas", () => {
       }),
     ).toThrow();
     expect(() =>
-      browserWebviewBoundsArgs.parse({
+      parse(browserWebviewBoundsArgs, {
         x: 0,
         y: Number.POSITIVE_INFINITY,
         width: 320,
         height: 240,
       }),
     ).toThrow();
-    expect(() => browserWebviewBoundsArgs.parse({ x: -1, y: 0, width: 320, height: 240 })).toThrow();
+    expect(() => parse(browserWebviewBoundsArgs, { x: -1, y: 0, width: 320, height: 240 })).toThrow();
     expect(() =>
-      browserWebviewBoundsArgs.parse({
+      parse(browserWebviewBoundsArgs, {
         x: 0,
         y: BROWSER_WEBVIEW_BOUNDS_MAX_VALUE + 1,
         width: 320,
@@ -2275,40 +2277,40 @@ describe("command args schemas", () => {
       }),
     ).toThrow();
     expect(() =>
-      browserWebviewBoundsArgs.parse({
+      parse(browserWebviewBoundsArgs, {
         x: 0,
         y: 0,
         width: BROWSER_WEBVIEW_BOUNDS_MAX_VALUE + 1,
         height: 240,
       }),
     ).toThrow();
-    expect(() => browserWebviewBoundsArgs.parse({ x: 0, y: 0, width: 0, height: 240 })).toThrow();
-    expect(() => browserWebviewBoundsArgs.parse({ x: 0, y: 0, width: 320, height: -1 })).toThrow();
+    expect(() => parse(browserWebviewBoundsArgs, { x: 0, y: 0, width: 0, height: 240 })).toThrow();
+    expect(() => parse(browserWebviewBoundsArgs, { x: 0, y: 0, width: 320, height: -1 })).toThrow();
   });
   it("accepts only http or https Reading List URLs without CR/LF", () => {
-    expect(addToReadingListArgs.parse({ url: "http://example.com/article" })).toEqual({
+    expect(parse(addToReadingListArgs, { url: "http://example.com/article" })).toEqual({
       url: "http://example.com/article",
     });
     expect(
-      addToReadingListArgs.parse({
+      parse(addToReadingListArgs, {
         url: 'https://example.com/article?title="quoted"',
       }),
     ).toEqual({
       url: 'https://example.com/article?title="quoted"',
     });
     expect(
-      addToReadingListArgs.parse({
+      parse(addToReadingListArgs, {
         url: " https://example.com/article ",
       }),
     ).toEqual({
       url: "https://example.com/article",
     });
-    expect(() => addToReadingListArgs.parse({ url: "mailto:hello@example.com" })).toThrow();
-    expect(() => addToReadingListArgs.parse({ url: "ftp://example.com/article" })).toThrow();
-    expect(() => addToReadingListArgs.parse({ url: "" })).toThrow();
-    expect(() => addToReadingListArgs.parse({ url: "   " })).toThrow();
-    expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\nnext" })).toThrow();
-    expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\rnext" })).toThrow();
+    expect(() => parse(addToReadingListArgs, { url: "mailto:hello@example.com" })).toThrow();
+    expect(() => parse(addToReadingListArgs, { url: "ftp://example.com/article" })).toThrow();
+    expect(() => parse(addToReadingListArgs, { url: "" })).toThrow();
+    expect(() => parse(addToReadingListArgs, { url: "   " })).toThrow();
+    expect(() => parse(addToReadingListArgs, { url: "https://example.com/article\nnext" })).toThrow();
+    expect(() => parse(addToReadingListArgs, { url: "https://example.com/article\rnext" })).toThrow();
   });
   it("keeps share command args covered by generated schemas", () => {
     expect(commandArgsSchemas.copy_to_clipboard).toBe(copyToClipboardArgs);
@@ -2325,44 +2327,44 @@ describe("command args schemas", () => {
     expect(extractRustUsizeConst(rustShareCommandSource, "CLIPBOARD_TEXT_MAX_CHARS")).toBe(
       SHARE_COMMAND_TEXT_MAX_CHARS,
     );
-    expect(copyToClipboardArgs.parse({ text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS) })).toEqual({
+    expect(parse(copyToClipboardArgs, { text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS) })).toEqual({
       text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
     });
-    expect(() => copyToClipboardArgs.parse({ text: "" })).toThrow();
-    expect(() => copyToClipboardArgs.parse({ text: "   " })).toThrow();
-    expect(() => copyToClipboardArgs.parse({ text: "first line\nsecond line" })).toThrow();
-    expect(() => copyToClipboardArgs.parse({ text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1) })).toThrow();
-    expect(() => addToReadingListArgs.parse({ url: "mailto:hello@example.com" })).toThrow();
+    expect(() => parse(copyToClipboardArgs, { text: "" })).toThrow();
+    expect(() => parse(copyToClipboardArgs, { text: "   " })).toThrow();
+    expect(() => parse(copyToClipboardArgs, { text: "first line\nsecond line" })).toThrow();
+    expect(() => parse(copyToClipboardArgs, { text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1) })).toThrow();
+    expect(() => parse(addToReadingListArgs, { url: "mailto:hello@example.com" })).toThrow();
   });
   it("accepts mailto only at the external URL command boundary", () => {
     expect(
-      openExternalUrlArgs.parse({
+      parse(openExternalUrlArgs, {
         url: "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
       }),
     ).toEqual({
       url: "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
     });
-    expect(openExternalUrlArgs.parse({ url: "https://example.com/article" })).toEqual({
+    expect(parse(openExternalUrlArgs, { url: "https://example.com/article" })).toEqual({
       url: "https://example.com/article",
     });
     expect(
-      openExternalUrlArgs.parse({
+      parse(openExternalUrlArgs, {
         url: " mailto:?subject=First&body=https%3A%2F%2Fexample.com ",
       }),
     ).toEqual({
       url: "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
     });
-    expect(openExternalUrlArgs.parse({ url: " https://example.com/article " })).toEqual({
+    expect(parse(openExternalUrlArgs, { url: " https://example.com/article " })).toEqual({
       url: "https://example.com/article",
     });
-    expect(() => openExternalUrlArgs.parse({ url: "ftp://example.com/article" })).toThrow();
-    expect(() => openExternalUrlArgs.parse({ url: "" })).toThrow();
-    expect(() => openExternalUrlArgs.parse({ url: "   " })).toThrow();
-    expect(() => openExternalUrlArgs.parse({ url: "mailto:?subject=First\nbody=Bad" })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "ftp://example.com/article" })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "" })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "   " })).toThrow();
+    expect(() => parse(openExternalUrlArgs, { url: "mailto:?subject=First\nbody=Bad" })).toThrow();
   });
   it("accepts only http or https open-in-browser URLs without CR/LF", () => {
     expect(
-      commandArgsSchemas.open_in_browser.parse({
+      parse(commandArgsSchemas.open_in_browser, {
         url: " https://example.com/article ",
         background: true,
       }),
@@ -2370,27 +2372,27 @@ describe("command args schemas", () => {
       url: "https://example.com/article",
       background: true,
     });
-    expect(() => commandArgsSchemas.open_in_browser.parse({ url: "" })).toThrow();
-    expect(() => commandArgsSchemas.open_in_browser.parse({ url: "   " })).toThrow();
+    expect(() => parse(commandArgsSchemas.open_in_browser, { url: "" })).toThrow();
+    expect(() => parse(commandArgsSchemas.open_in_browser, { url: "   " })).toThrow();
     expect(() =>
-      commandArgsSchemas.open_in_browser.parse({
+      parse(commandArgsSchemas.open_in_browser, {
         url: "https://example.com/article\nnext",
       }),
     ).toThrow();
     expect(() =>
-      commandArgsSchemas.open_in_browser.parse({
+      parse(commandArgsSchemas.open_in_browser, {
         url: "mailto:hello@example.com",
       }),
     ).toThrow();
     expect(() =>
-      commandArgsSchemas.open_in_browser.parse({
+      parse(commandArgsSchemas.open_in_browser, {
         url: "file:///tmp/article.html",
       }),
     ).toThrow();
   });
   it("rejects unknown shortcut preference keys and validates known shortcut values", () => {
     expect(
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "shortcut_next_article",
         value: "Shift+J",
       }),
@@ -2398,24 +2400,24 @@ describe("command args schemas", () => {
       key: "shortcut_next_article",
       value: "Shift+J",
     });
-    expect(() => setPreferenceArgs.parse({ key: "shortcut_unknown_action", value: "x" })).toThrow();
-    expect(() => setPreferenceArgs.parse({ key: "shortcut_next_article", value: "   " })).toThrow();
-    expect(setPreferenceArgs.parse({ key: "selected_account_id", value: "acc-1" })).toEqual({
+    expect(() => parse(setPreferenceArgs, { key: "shortcut_unknown_action", value: "x" })).toThrow();
+    expect(() => parse(setPreferenceArgs, { key: "shortcut_next_article", value: "   " })).toThrow();
+    expect(parse(setPreferenceArgs, { key: "selected_account_id", value: "acc-1" })).toEqual({
       key: "selected_account_id",
       value: "acc-1",
     });
   });
   it("validates known preference values while preserving backend-only and unknown passthrough keys", () => {
-    expect(setPreferenceArgs.parse({ key: "theme", value: "dark" })).toEqual({
+    expect(parse(setPreferenceArgs, { key: "theme", value: "dark" })).toEqual({
       key: "theme",
       value: "dark",
     });
-    expect(setPreferenceArgs.parse({ key: "debug_web_preview_url", value: "" })).toEqual({
+    expect(parse(setPreferenceArgs, { key: "debug_web_preview_url", value: "" })).toEqual({
       key: "debug_web_preview_url",
       value: "",
     });
     expect(
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "custom_backend_preference",
         value: "preserved",
       }),
@@ -2424,20 +2426,20 @@ describe("command args schemas", () => {
       value: "preserved",
     });
 
-    expect(() => setPreferenceArgs.parse({ key: "theme", value: "sepia" })).toThrow();
-    expect(() => setPreferenceArgs.parse({ key: "sync_on_startup", value: "yes" })).toThrow();
-    expect(() => setPreferenceArgs.parse({ key: "selected_account_id", value: "" })).toThrow();
+    expect(() => parse(setPreferenceArgs, { key: "theme", value: "sepia" })).toThrow();
+    expect(() => parse(setPreferenceArgs, { key: "sync_on_startup", value: "yes" })).toThrow();
+    expect(() => parse(setPreferenceArgs, { key: "selected_account_id", value: "" })).toThrow();
   });
   it("rejects non-displayable shortcut preference values", () => {
-    expect(() => setPreferenceArgs.parse({ key: "shortcut_next_article", value: "k\n" })).toThrow();
+    expect(() => parse(setPreferenceArgs, { key: "shortcut_next_article", value: "k\n" })).toThrow();
     expect(() =>
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "shortcut_next_article",
         value: "k\u0000",
       }),
     ).toThrow();
     expect(() =>
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "shortcut_next_article",
         value: "\u001B",
       }),
@@ -2447,7 +2449,7 @@ describe("command args schemas", () => {
     const maxUtf8Value = `${"あ".repeat(341)}a`;
 
     expect(
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "debug_web_preview_url",
         value: "a".repeat(1024),
       }),
@@ -2457,7 +2459,7 @@ describe("command args schemas", () => {
     });
     expect(new TextEncoder().encode(maxUtf8Value).length).toBe(1024);
     expect(
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "debug_web_preview_url",
         value: maxUtf8Value,
       }),
@@ -2466,13 +2468,13 @@ describe("command args schemas", () => {
       value: maxUtf8Value,
     });
     expect(() =>
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "debug_web_preview_url",
         value: "a".repeat(1025),
       }),
     ).toThrow();
     expect(() =>
-      setPreferenceArgs.parse({
+      parse(setPreferenceArgs, {
         key: "debug_web_preview_url",
         value: "あ".repeat(342),
       }),
@@ -2494,9 +2496,9 @@ describe("command args schemas", () => {
       ],
     };
 
-    expect(SyncResultSchema.parse(valid)).toEqual(valid);
+    expect(parse(SyncResultSchema, valid)).toEqual(valid);
     expect(
-      SyncResultSchema.parse({
+      parse(SyncResultSchema, {
         ...valid,
         total: 2,
         failed: [
@@ -2532,11 +2534,11 @@ describe("command args schemas", () => {
         },
       ],
     });
-    expect(() => SyncResultSchema.parse({ ...valid, total: -1 })).toThrow();
-    expect(() => SyncResultSchema.parse({ ...valid, total: 1.5 })).toThrow();
-    expect(() => SyncResultSchema.parse({ ...valid, succeeded: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => parse(SyncResultSchema, { ...valid, total: -1 })).toThrow();
+    expect(() => parse(SyncResultSchema, { ...valid, total: 1.5 })).toThrow();
+    expect(() => parse(SyncResultSchema, { ...valid, succeeded: Number.POSITIVE_INFINITY })).toThrow();
     expect(
-      SyncResultSchema.parse({
+      parse(SyncResultSchema, {
         ...valid,
         total: 2,
         failed: [
@@ -2549,31 +2551,31 @@ describe("command args schemas", () => {
       }).failed[0]?.account_name,
     ).toBe("");
     expect(() =>
-      SyncResultSchema.parse({
+      parse(SyncResultSchema, {
         ...valid,
         warnings: [{ ...valid.warnings[0], message: "   " }],
       }),
     ).toThrow();
     expect(() =>
-      SyncResultSchema.parse({
+      parse(SyncResultSchema, {
         ...valid,
         warnings: [{ ...valid.warnings[0], retry_in_seconds: 0.5 }],
       }),
     ).toThrow();
     expect(() =>
-      SyncResultSchema.parse({
+      parse(SyncResultSchema, {
         ...valid,
         warnings: [{ ...valid.warnings[0], retry_at: "2026-04-15" }],
       }),
     ).toThrow();
     expect(() =>
-      SyncResultSchema.parse({
+      parse(SyncResultSchema, {
         ...valid,
         warnings: [{ ...valid.warnings[0], retry_at: "2026-04-15T01:00:00" }],
       }),
     ).toThrow();
     expect(() =>
-      SyncResultSchema.parse({
+      parse(SyncResultSchema, {
         ...valid,
         warnings: [{ ...valid.warnings[0], retry_at: "not-a-date" }],
       }),

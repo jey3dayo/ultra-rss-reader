@@ -1,4 +1,5 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import {
   articleListModeSchema,
   nonBlankTrimmedIdSchema,
@@ -9,105 +10,109 @@ import {
   paginationOffsetSchema,
 } from "./shared";
 
-export const listArticlesArgs = z
-  .object({
+export const listArticlesArgs = v.pipe(
+  s.object({
     feedId: nonBlankTrimmedIdSchema,
-    unreadOnly: z.boolean().optional(),
-    starredOnly: z.boolean().optional(),
-    offset: paginationOffsetSchema.optional(),
-    limit: paginationLimitSchema.optional(),
-  })
-  .refine((args) => !(args.unreadOnly === true && args.starredOnly === true), {
-    message: "Article list filters are mutually exclusive",
-    path: ["starredOnly"],
-  });
+    unreadOnly: v.optional(v.boolean()),
+    starredOnly: v.optional(v.boolean()),
+    offset: v.optional(paginationOffsetSchema),
+    limit: v.optional(paginationLimitSchema),
+  }),
+  v.forward(
+    v.check(
+      (args) => !(args.unreadOnly === true && args.starredOnly === true),
+      "Article list filters are mutually exclusive",
+    ),
+    ["starredOnly"],
+  ),
+);
 
-export const getArticleArgs = z.object({
+export const getArticleArgs = s.object({
   articleId: nonBlankTrimmedIdSchema,
 });
 
-export const listAccountArticlesArgs = z.object({
+export const listAccountArticlesArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
-  unreadOnly: z.boolean().optional(),
-  offset: paginationOffsetSchema.optional(),
-  limit: paginationLimitSchema.optional(),
+  unreadOnly: v.optional(v.boolean()),
+  offset: v.optional(paginationOffsetSchema),
+  limit: v.optional(paginationLimitSchema),
 });
 
-export const listFeedArticleSummariesArgs = z.object({
+export const listFeedArticleSummariesArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
 });
 
-export const listFolderArticlesArgs = z.object({
+export const listFolderArticlesArgs = s.object({
   folderId: nonBlankTrimmedIdSchema,
-  mode: articleListModeSchema.optional(),
-  offset: paginationOffsetSchema.optional(),
-  limit: paginationLimitSchema.optional(),
+  mode: v.optional(articleListModeSchema),
+  offset: v.optional(paginationOffsetSchema),
+  limit: v.optional(paginationLimitSchema),
 });
 
-export const listStarredArticlesArgs = z.object({
+export const listStarredArticlesArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
-  offset: paginationOffsetSchema.optional(),
-  limit: paginationLimitSchema.optional(),
+  offset: v.optional(paginationOffsetSchema),
+  limit: v.optional(paginationLimitSchema),
 });
 
-export const listRecentArticlesArgs = z.object({
+export const listRecentArticlesArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
-  mode: articleListModeSchema.optional(),
-  offset: paginationOffsetSchema.optional(),
-  limit: paginationLimitSchema.optional(),
+  mode: v.optional(articleListModeSchema),
+  offset: v.optional(paginationOffsetSchema),
+  limit: v.optional(paginationLimitSchema),
 });
 
-export const countAccountUnreadArticlesArgs = z.object({
-  accountId: nonBlankTrimmedIdSchema,
-});
-
-export const countAccountStarredArticlesArgs = z.object({
+export const countAccountUnreadArticlesArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
 });
 
-export const markAccountReadArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
+export const countAccountStarredArticlesArgs = s.object({
+  accountId: nonBlankTrimmedIdSchema,
+});
 
-export const oldUnreadArticlesArgs = z.object({
+export const markAccountReadArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+
+export const oldUnreadArticlesArgs = s.object({
   scopeKind: oldUnreadScopeKindSchema,
   targetId: nonBlankTrimmedIdSchema,
   olderThanDays: oldUnreadDaysSchema,
 });
 
-export const unstarAccountArticlesArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
-export const cleanupFeedIntegrityOrphansArgs = z.object({
-  dryRun: z.boolean(),
-  orphanedArticleIds: z.array(nonBlankTrimmedIdSchema).optional(),
+export const unstarAccountArticlesArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const cleanupFeedIntegrityOrphansArgs = s.object({
+  dryRun: v.boolean(),
+  orphanedArticleIds: v.optional(v.array(nonBlankTrimmedIdSchema)),
 });
 
-export const searchArticlesArgs = z.object({
+export const searchArticlesArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
   query: nonBlankTrimmedStringSchema,
-  offset: paginationOffsetSchema.optional(),
-  limit: paginationLimitSchema.optional(),
+  offset: v.optional(paginationOffsetSchema),
+  limit: v.optional(paginationLimitSchema),
 });
 
-export const markArticleReadArgs = z.object({
+export const markArticleReadArgs = s.object({
   articleId: nonBlankTrimmedIdSchema,
-  read: z.boolean().optional(),
+  read: v.optional(v.boolean()),
 });
 
-export const recordArticleViewArgs = z.object({
+export const recordArticleViewArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
   articleId: nonBlankTrimmedIdSchema,
 });
 
-export const clearArticleViewHistoryArgs = z.object({
+export const clearArticleViewHistoryArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
 });
 
-export const markArticlesReadArgs = z.object({
-  articleIds: z.array(nonBlankTrimmedIdSchema).nonempty(),
+export const markArticlesReadArgs = s.object({
+  articleIds: v.pipe(v.array(nonBlankTrimmedIdSchema), v.minLength(1)),
 });
 
-export const toggleArticleStarArgs = z.object({
+export const toggleArticleStarArgs = s.object({
   articleId: nonBlankTrimmedIdSchema,
-  starred: z.boolean(),
+  starred: v.boolean(),
 });
 
-export const markFeedReadArgs = z.object({ feedId: nonBlankTrimmedIdSchema });
-export const markFolderReadArgs = z.object({ folderId: nonBlankTrimmedIdSchema });
+export const markFeedReadArgs = s.object({ feedId: nonBlankTrimmedIdSchema });
+export const markFolderReadArgs = s.object({ folderId: nonBlankTrimmedIdSchema });

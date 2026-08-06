@@ -1,44 +1,51 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 import { IsoDateTimeStringSchema } from "./common";
 
-const AccountConnectionVerificationStatusSchema = z.enum(["verified", "unverified", "error", "quarantined"]);
-const accountSyncIntervalSecsSchema = z.number().int().finite().min(60).max(86_400);
-const accountKeepReadItemsDaysSchema = z.number().int().finite().min(0).max(3650);
-const nonBlankTrimmedStringSchema = z.string().trim().min(1);
-const optionalBlankStringToUndefinedSchema = z.preprocess((value) => {
-  if (typeof value !== "string") {
-    return value;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}, z.string().optional());
+const AccountConnectionVerificationStatusSchema = v.picklist(["verified", "unverified", "error", "quarantined"]);
+const accountSyncIntervalSecsSchema = v.pipe(v.number(), v.integer(), v.finite(), v.minValue(60), v.maxValue(86_400));
+const accountKeepReadItemsDaysSchema = v.pipe(v.number(), v.integer(), v.finite(), v.minValue(0), v.maxValue(3650));
+const nonBlankTrimmedStringSchema = v.pipe(v.string(), v.trim(), v.minLength(1));
+const optionalBlankStringToUndefinedSchema = v.optional(
+  v.pipe(
+    v.unknown(),
+    v.transform((value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }),
+    v.optional(v.string()),
+  ),
+);
 
-const AccountProviderCapabilitiesSchema = z.strictObject({
-  supports_folders: z.boolean(),
-  supports_starring: z.boolean(),
-  supports_search: z.boolean(),
-  supports_delta_sync: z.boolean(),
-  supports_remote_state: z.boolean(),
+const AccountProviderCapabilitiesSchema = s.strictObject({
+  supports_folders: v.boolean(),
+  supports_starring: v.boolean(),
+  supports_search: v.boolean(),
+  supports_delta_sync: v.boolean(),
+  supports_remote_state: v.boolean(),
 });
 
-export const AccountDtoSchema = z.strictObject({
+export const AccountDtoSchema = s.strictObject({
   id: nonBlankTrimmedStringSchema,
   kind: nonBlankTrimmedStringSchema,
   name: nonBlankTrimmedStringSchema,
   display_name: optionalBlankStringToUndefinedSchema,
-  icon_url: z.string().nullable().optional(),
-  capabilities: AccountProviderCapabilitiesSchema.optional(),
-  server_url: z.string().nullable(),
-  username: z.string().nullable(),
+  icon_url: v.optional(v.nullable(v.string())),
+  capabilities: v.optional(AccountProviderCapabilitiesSchema),
+  server_url: v.nullable(v.string()),
+  username: v.nullable(v.string()),
   sync_interval_secs: accountSyncIntervalSecsSchema,
-  sync_on_startup: z.boolean(),
-  sync_on_wake: z.boolean(),
+  sync_on_startup: v.boolean(),
+  sync_on_wake: v.boolean(),
   keep_read_items_days: accountKeepReadItemsDaysSchema,
-  connection_verification_status: AccountConnectionVerificationStatusSchema.optional(),
-  connection_verified_at: IsoDateTimeStringSchema.nullable().optional(),
-  connection_verification_error: z.string().nullable().optional(),
+  connection_verification_status: v.optional(AccountConnectionVerificationStatusSchema),
+  connection_verified_at: v.optional(v.nullable(IsoDateTimeStringSchema)),
+  connection_verification_error: v.optional(v.nullable(v.string())),
 });
 
-export const AccountDtoListSchema = z.array(AccountDtoSchema);
+export const AccountDtoListSchema = v.array(AccountDtoSchema);
 
-export type AccountDto = z.output<typeof AccountDtoSchema>;
+export type AccountDto = v.InferOutput<typeof AccountDtoSchema>;

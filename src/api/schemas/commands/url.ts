@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as v from "valibot";
 import { isPrivateIpv4Host } from "@/lib/runtime/host-privacy";
 import { controlCharPattern, READING_LIST_URL_MAX_BYTES, textEncoder, whitespacePattern } from "./shared";
 
@@ -73,40 +73,33 @@ export function hasPrivateHttpHost(value: string): boolean {
   return host === "localhost" || isPrivateIpv4Host(host) || isPrivateIpv6Host(host);
 }
 
-export const httpCommandUrlSchema = z
-  .string()
-  .trim()
-  .refine((url) => url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://"), {
-    message: "Only http:// and https:// URLs are supported",
-  })
-  .refine(isValidHttpUrl, {
-    message: "Only http:// and https:// URLs are supported",
-  })
-  .refine((url) => !url.includes("\n") && !url.includes("\r"), {
-    message: "HTTP URLs must not contain newlines",
-  })
-  .refine((url) => !hasPrivateHttpHost(url), {
-    message: "Requests to private/loopback addresses are not allowed",
-  });
+export const httpCommandUrlSchema = v.pipe(
+  v.string(),
+  v.trim(),
+  v.check(
+    (url) => url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://"),
+    "Only http:// and https:// URLs are supported",
+  ),
+  v.check(isValidHttpUrl, "Only http:// and https:// URLs are supported"),
+  v.check((url) => !url.includes("\n") && !url.includes("\r"), "HTTP URLs must not contain newlines"),
+  v.check((url) => !hasPrivateHttpHost(url), "Requests to private/loopback addresses are not allowed"),
+);
 
-export const safariReadingListUrlSchema = httpCommandUrlSchema
-  .refine((url) => textEncoder.encode(url).length <= READING_LIST_URL_MAX_BYTES, {
-    message: `Reading List URL must be ${READING_LIST_URL_MAX_BYTES} UTF-8 bytes or less`,
-  })
-  .refine((url) => !controlCharPattern.test(url), {
-    message: "Reading List URL must not contain control characters",
-  })
-  .refine((url) => !whitespacePattern.test(url), {
-    message: "Reading List URL must not contain whitespace",
-  })
-  .refine((url) => !hasHttpUrlCredentials(url), {
-    message: "Reading List URL must not contain credentials",
-  });
+export const safariReadingListUrlSchema = v.pipe(
+  httpCommandUrlSchema,
+  v.check(
+    (url) => textEncoder.encode(url).length <= READING_LIST_URL_MAX_BYTES,
+    `Reading List URL must be ${READING_LIST_URL_MAX_BYTES} UTF-8 bytes or less`,
+  ),
+  v.check((url) => !controlCharPattern.test(url), "Reading List URL must not contain control characters"),
+  v.check((url) => !whitespacePattern.test(url), "Reading List URL must not contain whitespace"),
+  v.check((url) => !hasHttpUrlCredentials(url), "Reading List URL must not contain credentials"),
+);
 
 export const readingListUrlSchema = httpCommandUrlSchema;
 
 export function normalizeHttpCommandUrl(value: string): string | null {
-  const result = httpCommandUrlSchema.safeParse(value);
+  const result = v.safeParse(httpCommandUrlSchema, value);
 
-  return result.success ? result.data : null;
+  return result.success ? result.output : null;
 }

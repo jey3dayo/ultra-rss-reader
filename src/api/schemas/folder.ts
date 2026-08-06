@@ -1,15 +1,19 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 
-const nonBlankStringSchema = z.string().refine((value) => value.trim().length > 0);
-const folderSortOrderSchema = z.number().int().nonnegative().finite();
+const nonBlankStringSchema = v.pipe(
+  v.string(),
+  v.check((value) => value.trim().length > 0),
+);
+const folderSortOrderSchema = v.pipe(v.number(), v.integer(), v.minValue(0), v.finite());
 
-export const FolderDtoSchema = z.strictObject({
+export const FolderDtoSchema = s.strictObject({
   id: nonBlankStringSchema,
   account_id: nonBlankStringSchema,
   name: nonBlankStringSchema,
   sort_order: folderSortOrderSchema,
 });
 
-export const FolderDtoListSchema = z.array(FolderDtoSchema);
+export const FolderDtoListSchema = v.array(FolderDtoSchema);
 
-export type FolderDto = z.output<typeof FolderDtoSchema>;
+export type FolderDto = v.InferOutput<typeof FolderDtoSchema>;

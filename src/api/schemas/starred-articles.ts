@@ -1,14 +1,12 @@
-import { z } from "zod";
+import * as v from "valibot";
 import { ArticleDtoSchema } from "./article";
 
-export const NullableStarredArticlesSchema = z
-  .array(ArticleDtoSchema)
-  .nullable()
-  .transform((value) => value ?? []);
+export const NullableStarredArticlesSchema = v.pipe(
+  v.nullable(v.array(ArticleDtoSchema)),
+  v.transform((value) => value ?? []),
+);
 
-export const NullableStarredCountSchema = z
-  .number()
-  .int()
-  .nonnegative()
-  .nullable()
-  .transform((value) => value ?? 0);
+export const NullableStarredCountSchema = v.pipe(
+  v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0))),
+  v.transform((value) => value ?? 0),
+);

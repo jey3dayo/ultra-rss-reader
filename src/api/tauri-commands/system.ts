@@ -1,3 +1,4 @@
+import { nullable } from "valibot";
 import {
   BooleanResponseSchema,
   DatabaseInfoDtoSchema,
@@ -21,7 +22,7 @@ export const resetOversizedDevCredentialsStore = () =>
   });
 
 // Updater
-export const checkForUpdate = () => safeInvoke("check_for_update", { response: UpdateInfoDtoSchema.nullable() });
+export const checkForUpdate = () => safeInvoke("check_for_update", { response: nullable(UpdateInfoDtoSchema) });
 
 export const downloadUpdate = () => safeInvoke("download_update", { response: NullResponseSchema });
 

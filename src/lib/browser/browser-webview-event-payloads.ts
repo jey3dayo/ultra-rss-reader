@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { parse } from "valibot";
 import {
   type BrowserWebviewClosedPayload,
   BrowserWebviewClosedPayloadSchema,
@@ -9,7 +10,7 @@ import {
   BrowserWebviewStateSchema,
 } from "@/api/schemas/browser-webview";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
-import type { SchemaParseError } from "@/schemas/parse";
+import { isSchemaParseError, type RuntimeSchema, type SchemaParseError } from "@/schemas/parse";
 
 export type { BrowserWebviewClosedPayload };
 
@@ -36,21 +37,17 @@ function parseBrowserWebviewPayload(
   payload: unknown,
 ): Result.Result<BrowserDebugGeometryNativeDiagnostics, SchemaParseError>;
 function parseBrowserWebviewPayload(
-  schema: {
-    safeParse: (payload: unknown) =>
-      | {
-          success: true;
-          data: BrowserWebviewEventPayload;
-        }
-      | {
-          success: false;
-          error: SchemaParseError;
-        };
-  },
+  schema: RuntimeSchema<BrowserWebviewEventPayload>,
   payload: unknown,
 ): Result.Result<BrowserWebviewEventPayload, SchemaParseError> {
-  const result = schema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
+  try {
+    return Result.succeed(parse(schema, payload));
+  } catch (error) {
+    if (isSchemaParseError(error)) {
+      return Result.fail(error);
+    }
+    throw error;
+  }
 }
 
 export function parseBrowserWebviewStatePayload(
@@ -93,11 +90,21 @@ function malformedPayloadSummary(payload: unknown) {
   return typeof payload;
 }
 
-function malformedPayloadIssueSummary(error: SchemaParseError) {
+function malformedPayloadIssueSummary(payload: unknown, error: SchemaParseError) {
+  // Strict object validation reports one issue per expected key for arrays; the event boundary exposes one root type issue.
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return "invalid_type:<root>";
+  }
+
   return error.issues
-    .map((issue) => `${issue.code}:${issue.path.length > 0 ? issue.path.join(".") : "<root>"}`)
+    .map((issue) => `${issue.type}:${formatIssuePath(issue.path)}`)
     .toSorted()
     .join(",");
+}
+
+function formatIssuePath(path: readonly import("valibot").IssuePathItem[] | undefined): string {
+  const keys = path?.map((item) => String(item.key)) ?? [];
+  return keys.length > 0 ? keys.join(".") : "<root>";
 }
 
 export function warnMalformedBrowserWebviewEvent(
@@ -107,7 +114,7 @@ export function warnMalformedBrowserWebviewEvent(
   error: SchemaParseError,
 ) {
   const payloadSummary = malformedPayloadSummary(payload);
-  const issueSummary = malformedPayloadIssueSummary(error);
+  const issueSummary = malformedPayloadIssueSummary(payload, error);
   const warningKey = `${eventName}:${payloadSummary}:${issueSummary}`;
   if (warnedMalformedPayloadShapes.has(warningKey)) {
     return;

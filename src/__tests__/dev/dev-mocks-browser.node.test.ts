@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import { parse } from "valibot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AccountDtoListSchema,
@@ -254,7 +255,7 @@ describe("setupDevMocks", () => {
     const result = await getFeedIntegrityReport();
     const report = Result.unwrap(result);
 
-    expect(FeedIntegrityReportDtoSchema.parse(report)).toEqual(report);
+    expect(parse(FeedIntegrityReportDtoSchema, report)).toEqual(report);
     expect(report).toEqual({
       orphaned_article_count: 0,
       orphaned_feeds: [],
@@ -331,9 +332,9 @@ describe("setupDevMocks", () => {
       error_count: 1,
       next_retry_at: null,
     });
-    expect(AccountSyncStatusSchema.parse(unknown)).toEqual(unknown);
-    expect(AccountSyncStatusSchema.parse(local)).toEqual(local);
-    expect(AccountSyncStatusSchema.parse(deleted)).toEqual(deleted);
+    expect(parse(AccountSyncStatusSchema, unknown)).toEqual(unknown);
+    expect(parse(AccountSyncStatusSchema, local)).toEqual(local);
+    expect(parse(AccountSyncStatusSchema, deleted)).toEqual(deleted);
   });
 
   it("regenerates browser-only today and yesterday article dates when mock state resets", async () => {
@@ -393,74 +394,79 @@ describe("setupDevMocks", () => {
     setupDevMocks();
 
     const accounts = Result.unwrap(await listAccounts());
-    expect(AccountDtoListSchema.parse(accounts)).toEqual(accounts);
-    expect(AccountDtoSchema.parse(Result.unwrap(await testAccountConnection("acc-freshrss")))).toBeDefined();
-    expect(AccountSyncStatusSchema.parse(Result.unwrap(await getAccountSyncStatus("acc-freshrss")))).toBeDefined();
+    expect(parse(AccountDtoListSchema, accounts)).toEqual(accounts);
+    expect(parse(AccountDtoSchema, Result.unwrap(await testAccountConnection("acc-freshrss")))).toBeDefined();
+    expect(parse(AccountSyncStatusSchema, Result.unwrap(await getAccountSyncStatus("acc-freshrss")))).toBeDefined();
 
     const folders = Result.unwrap(await listFolders("acc-freshrss"));
-    expect(FolderDtoListSchema.parse(folders)).toEqual(folders);
-    expect(FolderDtoSchema.parse(Result.unwrap(await createFolder("acc-freshrss", "Schema")))).toMatchObject({
+    expect(parse(FolderDtoListSchema, folders)).toEqual(folders);
+    expect(parse(FolderDtoSchema, Result.unwrap(await createFolder("acc-freshrss", "Schema")))).toMatchObject({
       account_id: "acc-freshrss",
       name: "Schema",
     });
 
     const feeds = Result.unwrap(await listFeeds("acc-freshrss"));
-    expect(FeedDtoListSchema.parse(feeds)).toEqual(feeds);
+    expect(parse(FeedDtoListSchema, feeds)).toEqual(feeds);
     const addedFeed = Result.unwrap(await addLocalFeed("acc-local", "https://schema.example.com/feed.xml"));
-    expect(FeedDtoSchema.parse(addedFeed)).toEqual(addedFeed);
+    expect(parse(FeedDtoSchema, addedFeed)).toEqual(addedFeed);
 
-    expect(ArticleDtoListSchema.parse(Result.unwrap(await listArticles("feed-automaton", 0, 10)))).toBeDefined();
-    expect(ArticleDtoListSchema.parse(Result.unwrap(await listAccountArticles("acc-freshrss", 0, 10)))).toBeDefined();
-    expect(ArticleDtoListSchema.parse(Result.unwrap(await listStarredArticles("acc-freshrss")))).toBeDefined();
-    expect(ArticleDtoListSchema.parse(Result.unwrap(await listRecentArticles("acc-freshrss", 0, 10)))).toBeDefined();
-    expect(ArticleDtoListSchema.parse(Result.unwrap(await searchArticles("acc-local", "Sample", 0, 10)))).toBeDefined();
+    expect(parse(ArticleDtoListSchema, Result.unwrap(await listArticles("feed-automaton", 0, 10)))).toBeDefined();
+    expect(parse(ArticleDtoListSchema, Result.unwrap(await listAccountArticles("acc-freshrss", 0, 10)))).toBeDefined();
+    expect(parse(ArticleDtoListSchema, Result.unwrap(await listStarredArticles("acc-freshrss")))).toBeDefined();
+    expect(parse(ArticleDtoListSchema, Result.unwrap(await listRecentArticles("acc-freshrss", 0, 10)))).toBeDefined();
     expect(
-      ArticleDtoListSchema.parse(Result.unwrap(await listArticlesByTag("tag-important", 0, 10, "acc-freshrss", "all"))),
+      parse(ArticleDtoListSchema, Result.unwrap(await searchArticles("acc-local", "Sample", 0, 10))),
+    ).toBeDefined();
+    expect(
+      parse(
+        ArticleDtoListSchema,
+        Result.unwrap(await listArticlesByTag("tag-important", 0, 10, "acc-freshrss", "all")),
+      ),
     ).toBeDefined();
 
     const summaries = Result.unwrap(await listFeedArticleSummaries("acc-freshrss"));
-    expect(FeedArticleSummaryDtoListSchema.parse(summaries)).toEqual(summaries);
+    expect(parse(FeedArticleSummaryDtoListSchema, summaries)).toEqual(summaries);
 
     const tags = Result.unwrap(await listTags());
-    expect(TagDtoListSchema.parse(tags)).toEqual(tags);
-    expect(TagDtoSchema.parse(Result.unwrap(await createTag("schema")))).toBeDefined();
-    expect(TagDtoListSchema.parse(Result.unwrap(await getArticleTags("art-1")))).toBeDefined();
+    expect(parse(TagDtoListSchema, tags)).toEqual(tags);
+    expect(parse(TagDtoSchema, Result.unwrap(await createTag("schema")))).toBeDefined();
+    expect(parse(TagDtoListSchema, Result.unwrap(await getArticleTags("art-1")))).toBeDefined();
     const tagCounts = Result.unwrap(await getTagArticleCounts("acc-freshrss"));
-    expect(TagArticleCountsSchema.parse(tagCounts)).toEqual(tagCounts);
+    expect(parse(TagArticleCountsSchema, tagCounts)).toEqual(tagCounts);
 
-    expect(MuteKeywordDtoSchema.parse(Result.unwrap(await createMuteKeyword("schema", "title")))).toBeDefined();
-    expect(MuteKeywordDtoListSchema.parse(Result.unwrap(await listMuteKeywords()))).toBeDefined();
+    expect(parse(MuteKeywordDtoSchema, Result.unwrap(await createMuteKeyword("schema", "title")))).toBeDefined();
+    expect(parse(MuteKeywordDtoListSchema, Result.unwrap(await listMuteKeywords()))).toBeDefined();
 
-    expect(DevRuntimeOptionsSchema.parse(Result.unwrap(await getDevRuntimeOptions()))).toBeDefined();
-    expect(PlatformInfoSchema.parse(Result.unwrap(await getPlatformInfo()))).toBeDefined();
-    expect(PreferencesDtoSchema.parse(Result.unwrap(await getPreferences()))).toBeDefined();
+    expect(parse(DevRuntimeOptionsSchema, Result.unwrap(await getDevRuntimeOptions()))).toBeDefined();
+    expect(parse(PlatformInfoSchema, Result.unwrap(await getPlatformInfo()))).toBeDefined();
+    expect(parse(PreferencesDtoSchema, Result.unwrap(await getPreferences()))).toBeDefined();
 
     const browserState = Result.unwrap(
       await createOrUpdateBrowserWebview("https://example.com/article", browserBounds),
     );
-    expect(BrowserWebviewStateSchema.parse(browserState)).toEqual(browserState);
-    expect(BrowserWebviewStateSchema.parse(Result.unwrap(await goBackBrowserWebview()))).toBeDefined();
-    expect(BrowserWebviewStateSchema.parse(Result.unwrap(await goForwardBrowserWebview()))).toBeDefined();
-    expect(BrowserWebviewStateSchema.parse(Result.unwrap(await reloadBrowserWebview()))).toBeDefined();
+    expect(parse(BrowserWebviewStateSchema, browserState)).toEqual(browserState);
+    expect(parse(BrowserWebviewStateSchema, Result.unwrap(await goBackBrowserWebview()))).toBeDefined();
+    expect(parse(BrowserWebviewStateSchema, Result.unwrap(await goForwardBrowserWebview()))).toBeDefined();
+    expect(parse(BrowserWebviewStateSchema, Result.unwrap(await reloadBrowserWebview()))).toBeDefined();
 
     expect(
-      DiscoveredFeedDtoListSchema.parse(Result.unwrap(await discoverFeeds("https://schema.example.com"))),
+      parse(DiscoveredFeedDtoListSchema, Result.unwrap(await discoverFeeds("https://schema.example.com"))),
     ).toBeDefined();
-    expect(SyncResultSchema.parse(Result.unwrap(await triggerSync()))).toBeDefined();
-    expect(SyncResultSchema.parse(Result.unwrap(await triggerStartupSync("acc-freshrss")))).toBeDefined();
-    expect(SyncResultSchema.parse(Result.unwrap(await syncAccount("acc-freshrss")))).toBeDefined();
-    expect(SyncResultSchema.parse(Result.unwrap(await syncFeed("feed-automaton")))).toBeDefined();
-    expect(SyncResultSchema.parse(Result.unwrap(await triggerAutomaticSync()))).toBeDefined();
+    expect(parse(SyncResultSchema, Result.unwrap(await triggerSync()))).toBeDefined();
+    expect(parse(SyncResultSchema, Result.unwrap(await triggerStartupSync("acc-freshrss")))).toBeDefined();
+    expect(parse(SyncResultSchema, Result.unwrap(await syncAccount("acc-freshrss")))).toBeDefined();
+    expect(parse(SyncResultSchema, Result.unwrap(await syncFeed("feed-automaton")))).toBeDefined();
+    expect(parse(SyncResultSchema, Result.unwrap(await triggerAutomaticSync()))).toBeDefined();
     expect(Result.unwrap(await exportOpmlToFile("acc-freshrss", "/tmp/acc-freshrss-feeds.opml"))).toBeNull();
-    expect(SettingsProfileSchema.parse(JSON.parse(Result.unwrap(await exportSettingsProfile())))).toMatchObject({
+    expect(parse(SettingsProfileSchema, JSON.parse(Result.unwrap(await exportSettingsProfile())))).toMatchObject({
       version: 1,
       content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
     });
     expect(
-      CountResponseSchema.parse(Result.unwrap(await clearArticleViewHistory("acc-freshrss"))),
+      parse(CountResponseSchema, Result.unwrap(await clearArticleViewHistory("acc-freshrss"))),
     ).toBeGreaterThanOrEqual(0);
-    expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await getDatabaseInfo()))).toBeDefined();
-    expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await vacuumDatabase()))).toBeDefined();
+    expect(parse(DatabaseInfoDtoSchema, Result.unwrap(await getDatabaseInfo()))).toBeDefined();
+    expect(parse(DatabaseInfoDtoSchema, Result.unwrap(await vacuumDatabase()))).toBeDefined();
   });
 
   it("merges settings profile imports in browser-only mode like the backend contract", async () => {
@@ -501,7 +507,7 @@ describe("setupDevMocks", () => {
       ),
     );
 
-    expect(SettingsProfileImportResultSchema.parse(result)).toEqual({
+    expect(parse(SettingsProfileImportResultSchema, result)).toEqual({
       accounts_created: 0,
       accounts_updated: 1,
       preferences_imported: 2,
@@ -1027,7 +1033,7 @@ describe("setupDevMocks", () => {
     const result = await getFeedIntegrityReport();
     const report = Result.unwrap(result);
 
-    expect(FeedIntegrityReportDtoSchema.parse(report)).toEqual(report);
+    expect(parse(FeedIntegrityReportDtoSchema, report)).toEqual(report);
     expect(report).toEqual({
       orphaned_article_count: 0,
       orphaned_feeds: [],
@@ -1041,8 +1047,8 @@ describe("setupDevMocks", () => {
     const dryRun = Result.unwrap(await cleanupFeedIntegrityOrphans(true));
     const cleanup = Result.unwrap(await cleanupFeedIntegrityOrphans(false));
 
-    expect(FeedIntegrityCleanupDtoSchema.parse(dryRun)).toEqual(dryRun);
-    expect(FeedIntegrityCleanupDtoSchema.parse(cleanup)).toEqual(cleanup);
+    expect(parse(FeedIntegrityCleanupDtoSchema, dryRun)).toEqual(dryRun);
+    expect(parse(FeedIntegrityCleanupDtoSchema, cleanup)).toEqual(cleanup);
     expect(dryRun).toEqual({
       dry_run: true,
       orphaned_article_count: 0,

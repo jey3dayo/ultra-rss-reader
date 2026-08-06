@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { parse } from "valibot";
 import {
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
@@ -193,7 +194,7 @@ function pruneStoredSidebarExpandedFolders(
       pruneSidebarExpandedFoldersForKnownAccounts(accounts, accountFolderIds, accountId);
     }
 
-    return normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
+    return normalizeStoredSidebarExpandedFolders(parse(StoredSidebarExpandedFoldersSchema, accounts));
   }
 
   const prunedFolderIds = (accounts[accountId] ?? []).filter((folderId) => validFolderIds.has(folderId));
@@ -207,7 +208,7 @@ function pruneStoredSidebarExpandedFolders(
     pruneSidebarExpandedFoldersForKnownAccounts(accounts, accountFolderIds, accountId);
   }
 
-  return normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
+  return normalizeStoredSidebarExpandedFolders(parse(StoredSidebarExpandedFoldersSchema, accounts));
 }
 
 function getStoredSidebarExpandedFolders(
@@ -245,7 +246,7 @@ function setStoredSidebarExpandedFolders(
         Object.entries(currentState.accounts).filter(([storedAccountId]) => storedAccountId !== accountId),
       ),
     };
-    const nextState = normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
+    const nextState = normalizeStoredSidebarExpandedFolders(parse(StoredSidebarExpandedFoldersSchema, accounts));
     tryWriteSidebarExpandedFoldersStorage(nextState, "write");
   } catch (error) {
     logSidebarExpandedFoldersStorageFailure("write", error);

@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
+import type { IssuePathItem } from "valibot";
+import { safeParse } from "valibot";
 import { type AppError, AppErrorSchema } from "@/api/schemas";
 import { redactRuntimeDiagnosticText } from "@/lib/runtime/diagnostics";
 import { createSchemaParseAppError, RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
@@ -59,17 +61,18 @@ function runtimeErrorMessage(error: unknown): string {
   return String(error);
 }
 
-function formatZodIssuePath(path: ReadonlyArray<PropertyKey>): string {
-  return path.length > 0 ? path.join(".") : "<root>";
+function formatSchemaIssuePath(path: readonly IssuePathItem[] | undefined): string {
+  const keys = path?.map((item) => item.key).filter((key): key is PropertyKey => key !== undefined) ?? [];
+  return keys.length > 0 ? keys.join(".") : "<root>";
 }
 
 function limitValidationDetail(detail: string): string {
   return detail.length <= VALIDATION_DETAIL_MAX_LENGTH ? detail : `${detail.slice(0, VALIDATION_DETAIL_MAX_LENGTH)}...`;
 }
 
-function formatZodIssues(error: SchemaParseError): string {
+function formatSchemaIssues(error: SchemaParseError): string {
   const issues = error.issues.slice(0, VALIDATION_ISSUE_LIMIT).map((issue) => {
-    return `${formatZodIssuePath(issue.path)}: ${issue.message}`;
+    return `${formatSchemaIssuePath(issue.path)}: ${issue.message}`;
   });
   const omittedCount = error.issues.length - issues.length;
   if (omittedCount > 0) {
@@ -91,19 +94,19 @@ function isRetryableRuntimeErrorMessage(message: string): boolean {
 
 function toAppError(cmd: string, error: unknown): AppError {
   if (error instanceof ResponseValidationError) {
-    const detail = formatZodIssues(error.cause);
+    const detail = formatSchemaIssues(error.cause);
     console.error(`[tauri-commands] ${cmd} response validation failed:`, detail);
     return createSchemaParseAppError("response", detail);
   }
 
   if (isSchemaParseError(error)) {
-    const detail = formatZodIssues(error);
+    const detail = formatSchemaIssues(error);
     console.error(`[tauri-commands] ${cmd} args validation failed:`, detail);
     return createSchemaParseAppError("args", detail);
   }
-  const result = AppErrorSchema.safeParse(error);
+  const result = safeParse(AppErrorSchema, error);
   if (result.success) {
-    const appError = redactAppError(result.data);
+    const appError = redactAppError(result.output);
     console.error(`[tauri-commands] ${cmd} failed:`, appError);
     return appError;
   }

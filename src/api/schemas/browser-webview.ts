@@ -1,4 +1,5 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
 
 export const BROWSER_WEBVIEW_EVENT_NAMES = {
   stateChanged: "browser-webview-state-changed",
@@ -10,64 +11,65 @@ export const BROWSER_WEBVIEW_EVENT_NAMES = {
 
 export type BrowserWebviewEventName = (typeof BROWSER_WEBVIEW_EVENT_NAMES)[keyof typeof BROWSER_WEBVIEW_EVENT_NAMES];
 
-export const BrowserWebviewStateSchema = z.strictObject({
-  url: z.string(),
-  can_go_back: z.boolean(),
-  can_go_forward: z.boolean(),
-  is_loading: z.boolean(),
-  load_generation: z.number().int().nonnegative(),
+export const BrowserWebviewStateSchema = s.strictObject({
+  url: v.string(),
+  can_go_back: v.boolean(),
+  can_go_forward: v.boolean(),
+  is_loading: v.boolean(),
+  load_generation: v.pipe(v.number(), v.integer(), v.minValue(0)),
 });
 
-export type BrowserWebviewState = z.output<typeof BrowserWebviewStateSchema>;
+export type BrowserWebviewState = v.InferOutput<typeof BrowserWebviewStateSchema>;
 
-export const BrowserWebviewFallbackPayloadSchema = z.strictObject({
-  url: z.string(),
-  opened_external: z.boolean(),
-  error_message: z.string().nullable(),
+export const BrowserWebviewFallbackPayloadSchema = s.strictObject({
+  url: v.string(),
+  opened_external: v.boolean(),
+  error_message: v.nullable(v.string()),
 });
 
-export type BrowserWebviewFallbackPayload = z.output<typeof BrowserWebviewFallbackPayloadSchema>;
+export type BrowserWebviewFallbackPayload = v.InferOutput<typeof BrowserWebviewFallbackPayloadSchema>;
 
-export const BrowserWebviewClosedPayloadSchema = z.strictObject({
-  url: z.string(),
-  load_generation: z.number().int().nonnegative(),
+export const BrowserWebviewClosedPayloadSchema = s.strictObject({
+  url: v.string(),
+  load_generation: v.pipe(v.number(), v.integer(), v.minValue(0)),
 });
 
-export type BrowserWebviewClosedPayload = z.output<typeof BrowserWebviewClosedPayloadSchema>;
+export type BrowserWebviewClosedPayload = v.InferOutput<typeof BrowserWebviewClosedPayloadSchema>;
 
 const BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE = 10_000;
 
-const BrowserWebviewDiagnosticsNumberSchema = z
-  .number()
-  .finite()
-  .min(-BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE)
-  .max(BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE);
+const BrowserWebviewDiagnosticsNumberSchema = v.pipe(
+  v.number(),
+  v.finite(),
+  v.minValue(-BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE),
+  v.maxValue(BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE),
+);
 
-const BrowserWebviewLogicalRectSchema = z.strictObject({
+const BrowserWebviewLogicalRectSchema = s.strictObject({
   x: BrowserWebviewDiagnosticsNumberSchema,
   y: BrowserWebviewDiagnosticsNumberSchema,
   width: BrowserWebviewDiagnosticsNumberSchema,
   height: BrowserWebviewDiagnosticsNumberSchema,
 });
 
-export const BrowserWebviewDiagnosticsPayloadSchema = z.strictObject({
-  action: z.string(),
+export const BrowserWebviewDiagnosticsPayloadSchema = s.strictObject({
+  action: v.string(),
   requestedLogical: BrowserWebviewLogicalRectSchema,
   appliedLogical: BrowserWebviewLogicalRectSchema,
-  scaleFactor: z.number().finite(),
-  nativeWebviewBounds: BrowserWebviewLogicalRectSchema.nullable(),
+  scaleFactor: v.pipe(v.number(), v.finite()),
+  nativeWebviewBounds: v.nullable(BrowserWebviewLogicalRectSchema),
 });
 
-export type BrowserWebviewDiagnosticsPayload = z.output<typeof BrowserWebviewDiagnosticsPayloadSchema>;
+export type BrowserWebviewDiagnosticsPayload = v.InferOutput<typeof BrowserWebviewDiagnosticsPayloadSchema>;
 
-export const BrowserWebviewDebugInputPayloadSchema = z.string();
+export const BrowserWebviewDebugInputPayloadSchema = v.string();
 
-export type BrowserWebviewDebugInputPayload = z.output<typeof BrowserWebviewDebugInputPayloadSchema>;
+export type BrowserWebviewDebugInputPayload = v.InferOutput<typeof BrowserWebviewDebugInputPayloadSchema>;
 
 export const BROWSER_WEBVIEW_EVENT_PAYLOAD_SCHEMAS = {
   [BROWSER_WEBVIEW_EVENT_NAMES.stateChanged]: BrowserWebviewStateSchema,
-  [BROWSER_WEBVIEW_EVENT_NAMES.closed]: BrowserWebviewClosedPayloadSchema.nullish(),
+  [BROWSER_WEBVIEW_EVENT_NAMES.closed]: v.nullish(BrowserWebviewClosedPayloadSchema),
   [BROWSER_WEBVIEW_EVENT_NAMES.fallback]: BrowserWebviewFallbackPayloadSchema,
   [BROWSER_WEBVIEW_EVENT_NAMES.diagnostics]: BrowserWebviewDiagnosticsPayloadSchema,
   [BROWSER_WEBVIEW_EVENT_NAMES.debugInput]: BrowserWebviewDebugInputPayloadSchema,
-} as const satisfies Record<BrowserWebviewEventName, z.ZodType>;
+} as const satisfies Record<BrowserWebviewEventName, v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>;

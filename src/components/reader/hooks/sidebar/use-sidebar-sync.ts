@@ -1,6 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import type { IssuePathItem } from "valibot";
+import { safeParse } from "valibot";
 import { type SyncProgressEventDto, SyncProgressEventSchema } from "@/api/schemas/sync-progress";
 import {
   type SyncCompletedPayload,
@@ -86,9 +88,9 @@ function getPayloadType(payload: unknown) {
 function reportMalformedSyncEventOnce(
   eventName: string,
   payload: unknown,
-  error: { issues: Array<{ path: PropertyKey[] }> },
+  error: { issues: ReadonlyArray<{ path?: readonly IssuePathItem[] }> },
 ) {
-  const issuePath = error.issues[0]?.path.join(".");
+  const issuePath = error.issues[0]?.path?.map((item) => String(item.key)).join(".");
   const issue = issuePath ? issuePath : "payload";
   const warningKey = `${eventName}:${issue}`;
   if (malformedSyncEventWarnings.has(warningKey)) {
@@ -139,29 +141,29 @@ function startSidebarCooldownInterval(onTick: () => void) {
 
 export function resolveSidebarSyncProgressPayload(event: unknown): SidebarSyncProgressPayload | null {
   const payload = extractTauriEventPayload(event);
-  const result = SyncProgressEventSchema.safeParse(payload);
+  const result = safeParse(SyncProgressEventSchema, payload);
   if (!result.success) {
-    reportMalformedSyncEventOnce("sync-progress", payload, result.error);
+    reportMalformedSyncEventOnce("sync-progress", payload, result);
     return null;
   }
-  return result.data;
+  return result.output;
 }
 
 export function resolveSidebarSyncWarningPayload(event: unknown): SidebarSyncWarningPayload | null {
   const payload = extractTauriEventPayload(event);
-  const result = SyncWarningPayloadSchema.safeParse(payload);
+  const result = safeParse(SyncWarningPayloadSchema, payload);
   if (!result.success) {
-    reportMalformedSyncEventOnce("sync-warning", payload, result.error);
+    reportMalformedSyncEventOnce("sync-warning", payload, result);
     return null;
   }
-  return result.data;
+  return result.output;
 }
 
 export function isSidebarSyncCompletedPayload(event: unknown): boolean {
   const payload = extractTauriEventPayload(event);
-  const result = SyncCompletedPayloadSchema.safeParse(payload);
+  const result = safeParse(SyncCompletedPayloadSchema, payload);
   if (!result.success) {
-    reportMalformedSyncEventOnce("sync-completed", payload, result.error);
+    reportMalformedSyncEventOnce("sync-completed", payload, result);
     return false;
   }
   return true;

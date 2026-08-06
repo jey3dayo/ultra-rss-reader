@@ -1,3 +1,4 @@
+import { parse, safeParse } from "valibot";
 import { MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
@@ -94,13 +95,13 @@ export function getHistory(): string[] {
       return [];
     }
 
-    const result = CommandHistoryStorageSchema.safeParse(parsed);
+    const result = safeParse(CommandHistoryStorageSchema, parsed);
     if (!result.success) {
       removeInvalidHistory(storage);
       return [];
     }
 
-    const history = result.data;
+    const history = result.output;
     writeNormalizedHistory(storage, raw, history);
     return history;
   } catch (error) {
@@ -110,12 +111,12 @@ export function getHistory(): string[] {
 }
 
 export function compactCommandHistory(entries: readonly string[], id: string): string[] {
-  const [normalizedId] = CommandHistoryStorageSchema.parse([id]);
+  const [normalizedId] = parse(CommandHistoryStorageSchema, [id]);
   if (!normalizedId) {
-    return CommandHistoryStorageSchema.parse(entries);
+    return parse(CommandHistoryStorageSchema, entries);
   }
 
-  return CommandHistoryStorageSchema.parse([normalizedId, ...entries]);
+  return parse(CommandHistoryStorageSchema, [normalizedId, ...entries]);
 }
 
 export function normalizeCommandHistoryForExistingEntries(existingEntryKeys: ReadonlySet<string>): string[] {

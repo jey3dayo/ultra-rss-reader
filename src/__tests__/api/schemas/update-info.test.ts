@@ -1,3 +1,4 @@
+import { parse, safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
 import {
   UpdateDownloadProgressEventPayloadSchema,
@@ -15,15 +16,15 @@ describe("updater event payload schemas", () => {
       source: "github",
     };
 
-    expect(UpdateInfoDtoSchema.parse(updateInfo)).toEqual(updateInfo);
+    expect(parse(UpdateInfoDtoSchema, updateInfo)).toEqual(updateInfo);
     expect(
-      UpdateInfoDtoSchema.safeParse({
+      safeParse(UpdateInfoDtoSchema, {
         ...updateInfo,
         future_response_field: "unexpected",
       }).success,
     ).toBe(false);
     expect(
-      UpdateReadyEventPayloadSchema.parse({
+      parse(UpdateReadyEventPayloadSchema, {
         session_id: 2,
         future_event_field: "preserved",
       }),
@@ -35,7 +36,7 @@ describe("updater event payload schemas", () => {
 
   it("preserves unknown event fields while validating known drift-sensitive fields", () => {
     expect(
-      UpdateDownloadProgressEventPayloadSchema.parse({
+      parse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: 50,
         loaded: 1024,
@@ -48,7 +49,7 @@ describe("updater event payload schemas", () => {
       content_length: 2048,
     });
     expect(
-      UpdateReadyEventPayloadSchema.parse({
+      parse(UpdateReadyEventPayloadSchema, {
         session_id: 2,
         artifact_path: "/tmp/update",
       }),
@@ -59,13 +60,13 @@ describe("updater event payload schemas", () => {
   });
 
   it("rejects missing or malformed required updater event fields", () => {
-    expect(UpdateDownloadProgressEventPayloadSchema.safeParse({ loaded: 100 }).success).toBe(false);
+    expect(safeParse(UpdateDownloadProgressEventPayloadSchema, { loaded: 100 }).success).toBe(false);
     expect(
-      UpdateDownloadProgressEventPayloadSchema.safeParse({
+      safeParse(UpdateDownloadProgressEventPayloadSchema, {
         session_id: 1,
         percent: Number.POSITIVE_INFINITY,
       }).success,
     ).toBe(false);
-    expect(UpdateReadyEventPayloadSchema.safeParse({ session_id: 0 }).success).toBe(false);
+    expect(safeParse(UpdateReadyEventPayloadSchema, { session_id: 0 }).success).toBe(false);
   });
 });

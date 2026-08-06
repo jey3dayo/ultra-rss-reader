@@ -1,4 +1,6 @@
-import { z } from "zod";
+import * as v from "valibot";
+import * as s from "@/api/schemas/validation";
+import { unwrapObjectSchema } from "@/api/schemas/validation";
 import {
   accountNameSchema,
   nonBlankTrimmedIdSchema,
@@ -6,8 +8,8 @@ import {
   optionalNonBlankTrimmedStringSchema,
 } from "./shared";
 
-const localAddAccountArgs = z.object({
-  kind: z.literal("Local"),
+const localAddAccountArgs = s.object({
+  kind: v.literal("Local"),
   name: accountNameSchema,
   serverUrl: optionalBlankStringToUndefinedSchema,
   appId: optionalBlankStringToUndefinedSchema,
@@ -15,44 +17,47 @@ const localAddAccountArgs = z.object({
   username: optionalBlankStringToUndefinedSchema,
   password: optionalBlankStringToUndefinedSchema,
 });
-const freshRssAddAccountArgs = z.object({
-  kind: z.literal("FreshRss"),
+const freshRssAddAccountArgs = s.object({
+  kind: v.literal("FreshRss"),
   name: accountNameSchema,
-  serverUrl: z.string().trim().min(1),
-  appId: z.string().optional(),
-  appKey: z.string().optional(),
-  username: z.string().trim().min(1),
-  password: z.string().trim().min(1),
+  serverUrl: v.pipe(v.string(), v.trim(), v.minLength(1)),
+  appId: v.optional(v.string()),
+  appKey: v.optional(v.string()),
+  username: v.pipe(v.string(), v.trim(), v.minLength(1)),
+  password: v.pipe(v.string(), v.trim(), v.minLength(1)),
 });
-export const addAccountArgs = z.discriminatedUnion("kind", [localAddAccountArgs, freshRssAddAccountArgs]);
+export const addAccountArgs = v.variant("kind", [
+  unwrapObjectSchema(localAddAccountArgs),
+  unwrapObjectSchema(freshRssAddAccountArgs),
+]);
 
-const syncIntervalSecsSchema = z.number().int().min(60).max(86_400);
-const keepReadItemsDaysSchema = z.number().int().min(1).max(3650);
+const syncIntervalSecsSchema = v.pipe(v.number(), v.integer(), v.minValue(60), v.maxValue(86_400));
+const keepReadItemsDaysSchema = v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(3650));
 
-export const updateAccountSyncArgs = z.object({
+export const updateAccountSyncArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
   syncIntervalSecs: syncIntervalSecsSchema,
-  syncOnStartup: z.boolean(),
-  syncOnWake: z.boolean(),
+  syncOnStartup: v.boolean(),
+  syncOnWake: v.boolean(),
   keepReadItemsDays: keepReadItemsDaysSchema,
 });
 
-export const updateAccountCredentialsArgs = z.object({
+export const updateAccountCredentialsArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
   serverUrl: optionalNonBlankTrimmedStringSchema,
   username: optionalNonBlankTrimmedStringSchema,
-  password: z.string().optional(),
+  password: v.optional(v.string()),
 });
 
-export const renameAccountArgs = z.object({
+export const renameAccountArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
   name: accountNameSchema,
 });
 
-export const syncAccountArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
-export const getAccountSyncStatusArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
-export const startupSyncArgs = z.object({
+export const syncAccountArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const getAccountSyncStatusArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const startupSyncArgs = s.object({
   preferredAccountId: optionalBlankStringToUndefinedSchema,
 });
-export const testAccountConnectionArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
-export const deleteAccountArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
+export const testAccountConnectionArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const deleteAccountArgs = s.object({ accountId: nonBlankTrimmedIdSchema });

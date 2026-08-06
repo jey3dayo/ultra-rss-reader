@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as v from "valibot";
 import {
   MAX_COMMAND_HISTORY,
   MAX_COMMAND_HISTORY_ENTRY_LENGTH,
@@ -9,6 +9,7 @@ import {
   SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
   STORAGE_KEYS,
 } from "@/constants/storage";
+import * as s from "@/schemas/validation";
 
 const CONTROL_CHARACTER_RANGES = "\\u0000-\\u001F\\u007F-\\u009F";
 const CONTROL_CHARACTERS_PATTERN = new RegExp(`[${CONTROL_CHARACTER_RANGES}]`, "g");
@@ -72,16 +73,16 @@ function collectNormalizedUniqueStrings(
   return entries;
 }
 
-export const CommandHistoryStorageSchema = z
-  .array(z.unknown())
-  .transform((items) => collectNormalizedUniqueStrings(items, normalizeCommandHistoryEntry, MAX_COMMAND_HISTORY));
+export const CommandHistoryStorageSchema = v.pipe(
+  v.array(v.unknown()),
+  v.transform((items) => collectNormalizedUniqueStrings(items, normalizeCommandHistoryEntry, MAX_COMMAND_HISTORY)),
+);
 
-export type CommandHistoryStorage = z.output<typeof CommandHistoryStorageSchema>;
+export type CommandHistoryStorage = v.InferOutput<typeof CommandHistoryStorageSchema>;
 
-export const StoredSidebarExpandedFoldersSchema = z
-  .unknown()
-  .refine(isUnknownRecord)
-  .transform((parsed): Record<string, string[]> => {
+export const StoredSidebarExpandedFoldersSchema = v.pipe(
+  v.custom<Record<string, unknown>>(isUnknownRecord),
+  v.transform((parsed): Record<string, string[]> => {
     const expandedFolders: Record<string, string[]> = Object.create(null);
     let accountCount = 0;
 
@@ -114,29 +115,30 @@ export const StoredSidebarExpandedFoldersSchema = z
     }
 
     return expandedFolders;
-  });
+  }),
+);
 
-export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;
+export type StoredSidebarExpandedFolders = v.InferOutput<typeof StoredSidebarExpandedFoldersSchema>;
 
-export const StoredSidebarExpandedFoldersStorageSchema = z.strictObject({
-  version: z.literal(SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION),
+export const StoredSidebarExpandedFoldersStorageSchema = s.strictObject({
+  version: v.literal(SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION),
   accounts: StoredSidebarExpandedFoldersSchema,
 });
 
-export const SidebarExpandedFoldersStorageVersionMarkerSchema = z.looseObject({ version: z.unknown() });
+export const SidebarExpandedFoldersStorageVersionMarkerSchema = s.looseObject({ version: v.unknown() });
 
-export type SidebarExpandedFoldersStorage = z.output<typeof StoredSidebarExpandedFoldersStorageSchema>;
+export type SidebarExpandedFoldersStorage = v.InferOutput<typeof StoredSidebarExpandedFoldersStorageSchema>;
 
-const DatabaseRestoreStorageReconciliationPolicySchemaBase = z.strictObject({
-  removeKeys: z.tuple([
-    z.literal(STORAGE_KEYS.commandHistory),
-    z.literal(STORAGE_KEYS.sidebarExpandedFolders),
-    z.literal(STORAGE_KEYS.startupSyncLastTriggeredAt),
+const DatabaseRestoreStorageReconciliationPolicySchemaBase = s.strictObject({
+  removeKeys: v.tuple([
+    v.literal(STORAGE_KEYS.commandHistory),
+    v.literal(STORAGE_KEYS.sidebarExpandedFolders),
+    v.literal(STORAGE_KEYS.startupSyncLastTriggeredAt),
   ]),
-  retainKeys: z.tuple([z.literal(STORAGE_KEYS.theme)]),
+  retainKeys: v.tuple([v.literal(STORAGE_KEYS.theme)]),
 });
 
-export const DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY: z.input<
+export const DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY: v.InferInput<
   typeof DatabaseRestoreStorageReconciliationPolicySchemaBase
 > = {
   removeKeys: [
@@ -147,10 +149,12 @@ export const DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY: z.input<
   retainKeys: [STORAGE_KEYS.theme],
 };
 
-export const DatabaseRestoreStorageReconciliationPolicySchema =
-  DatabaseRestoreStorageReconciliationPolicySchemaBase.default(DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY);
+export const DatabaseRestoreStorageReconciliationPolicySchema = v.optional(
+  DatabaseRestoreStorageReconciliationPolicySchemaBase,
+  DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
+);
 
-export type DatabaseRestoreStorageReconciliationPolicy = z.output<
+export type DatabaseRestoreStorageReconciliationPolicy = v.InferOutput<
   typeof DatabaseRestoreStorageReconciliationPolicySchema
 >;
 
@@ -187,16 +191,16 @@ export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
   },
 } as const;
 
-const StorageKeySchema = z.enum([
+const StorageKeySchema = v.picklist([
   STORAGE_KEYS.theme,
   STORAGE_KEYS.commandHistory,
   STORAGE_KEYS.sidebarExpandedFolders,
   STORAGE_KEYS.startupSyncLastTriggeredAt,
 ]);
 
-export const StorageCleanupPolicyConnectionsSchema = z.strictObject({
-  settingsDataResetKeys: z.array(StorageKeySchema).readonly(),
-  privateDataExportKeys: z.array(StorageKeySchema).readonly(),
+export const StorageCleanupPolicyConnectionsSchema = s.strictObject({
+  settingsDataResetKeys: v.pipe(v.array(StorageKeySchema), v.readonly()),
+  privateDataExportKeys: v.pipe(v.array(StorageKeySchema), v.readonly()),
 });
 
-export type StorageCleanupPolicyConnections = z.output<typeof StorageCleanupPolicyConnectionsSchema>;
+export type StorageCleanupPolicyConnections = v.InferOutput<typeof StorageCleanupPolicyConnectionsSchema>;

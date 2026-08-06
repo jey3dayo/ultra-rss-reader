@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { safeParse } from "valibot";
 import { DevRuntimeOptionsSchema, MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import type { DevRuntimeOptions } from "@/api/tauri-commands";
 import { getDevRuntimeOptions } from "@/api/tauri-commands";
@@ -170,19 +171,19 @@ function resolveLoadedDevRuntimeOptions(
     return Result.fail("request_failed");
   }
 
-  const parsed = DevRuntimeOptionsSchema.safeParse(result.value);
+  const parsed = safeParse(DevRuntimeOptionsSchema, result.value);
   if (!parsed.success) {
-    logRuntimeDiagnostic("dev-runtime-options-load", "Ignored malformed runtime dev options:", parsed.error);
+    logRuntimeDiagnostic("dev-runtime-options-load", "Ignored malformed runtime dev options:", parsed.issues);
     return Result.fail("malformed_runtime_options");
   }
 
-  const runtimeIntent = parseDevIntentResult(parsed.data.dev_intent ?? undefined);
+  const runtimeIntent = parseDevIntentResult(parsed.output.dev_intent ?? undefined);
   if (Result.isFailure(runtimeIntent) && runtimeIntent.error !== "missing_value") {
-    logRuntimeDiagnostic("dev-runtime-options-load", "Ignored unknown runtime dev intent:", parsed.data.dev_intent);
+    logRuntimeDiagnostic("dev-runtime-options-load", "Ignored unknown runtime dev intent:", parsed.output.dev_intent);
     return Result.fail(runtimeIntent.error);
   }
 
-  return Result.succeed(parsed.data);
+  return Result.succeed(parsed.output);
 }
 
 function shouldRetryDevRuntimeOptionsLoad(error: LoadDevRuntimeOptionsError | null): boolean {

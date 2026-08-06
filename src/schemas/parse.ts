@@ -1,8 +1,9 @@
-import { z } from "zod";
+import type { BaseIssue, BaseSchema, InferOutput, ValiError } from "valibot";
+import { isValiError, parse, safeParse } from "valibot";
 
-export type RuntimeSchema<TOutput = unknown> = z.ZodType<TOutput>;
-export type SchemaOutput<TSchema extends RuntimeSchema> = z.output<TSchema>;
-export type SchemaParseError = z.ZodError;
+export type RuntimeSchema<TOutput = unknown> = BaseSchema<unknown, TOutput, BaseIssue<unknown>>;
+export type SchemaOutput<TSchema extends RuntimeSchema> = InferOutput<TSchema>;
+export type SchemaParseError = ValiError<RuntimeSchema>;
 
 type NullableParseResult<TSchema extends RuntimeSchema> = SchemaOutput<TSchema> | null;
 
@@ -55,19 +56,15 @@ export const JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS = {
  * Use only where the callsite immediately converts the throw into Result/reject or intentionally fails a test.
  */
 export function isSchemaParseError(error: unknown): error is SchemaParseError {
-  return error instanceof z.ZodError;
+  return isValiError(error);
 }
 
 export function parseWithSchema<TSchema extends RuntimeSchema>(schema: TSchema, value: unknown): SchemaOutput<TSchema> {
-  const result = schema.safeParse(value);
-  if (!result.success) {
-    throw result.error;
-  }
-  return result.data;
+  return parse(schema, value);
 }
 
 /**
- * Throwing JSON + schema boundary. Malformed JSON throws SyntaxError; invalid data throws ZodError.
+ * Throwing JSON + schema boundary. Malformed JSON throws SyntaxError; invalid data throws a ValiError.
  */
 export function parseJsonWithSchema<TSchema extends RuntimeSchema>(
   contents: string,
@@ -86,8 +83,8 @@ export function parseJsonWithSchemaOrNull<TSchema extends RuntimeSchema>(
 ): NullableParseResult<TSchema> {
   try {
     const parsed = JSON.parse(contents) as unknown;
-    const result = schema.safeParse(parsed);
-    return result.success ? result.data : null;
+    const result = safeParse(schema, parsed);
+    return result.success ? result.output : null;
   } catch {
     return null;
   }
