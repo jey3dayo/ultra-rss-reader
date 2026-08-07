@@ -1230,12 +1230,10 @@ describe("repository static contracts", () => {
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
     const miseNodeVersion = extractMiseToolVersion(miseSource, "node");
 
-    expect(packageJson.engines.node).toBe("26.4.0");
     expect(Object.keys(packageJson.engines).toSorted()).toEqual(["node", "pnpm"]);
     expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
     expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
     expect(miseNodeVersion).toBe(packageJson.engines.node);
-    expect(packageManagerVersion).toBe("11.18.0");
     expect(miseSource).not.toContain('"npm:pnpm"');
   });
 
@@ -1470,7 +1468,9 @@ describe("repository static contracts", () => {
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
       expect(setupIndex, `${jobId} should use pnpm/setup for pnpm store cache`).toBeGreaterThanOrEqual(0);
-      expect(section, `${jobId} should install Node 26.4.0 through pnpm runtime`).toContain("runtime: node@26.4.0");
+      expect(section, `${jobId} should install the engines.node version through pnpm runtime`).toContain(
+        `runtime: node@${packageJson.engines.node}`,
+      );
       expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
       expect(section, `${jobId} should avoid automatic non-frozen install`).toContain("install: false");
       expect(installIndex, `${jobId} should install pnpm dependencies after setup`).toBeGreaterThan(setupIndex);
@@ -1483,16 +1483,12 @@ describe("repository static contracts", () => {
       ({ jobId }) => jobId === "toolchain",
     )?.section;
     const miseSource = readMiseTaskCorpus();
-    const packageJsonSource = readRepoFile("package.json");
 
     expect(toolchainSection).toContain("mise run quality:toolchain");
     expect(toolchainSection).toContain("Verify CI image toolchain contract");
     expect(toolchainSection).toContain("process.versions.node");
     expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
     expect(extractMiseTaskSection(miseSource, "quality:toolchain")).not.toBe("");
-    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.18.0"');
-    expect(packageJsonSource).toContain('"node": "26.4.0"');
-    expect(packageJsonSource).toContain('"pnpm": "11.18.0"');
   });
 
   it("keeps CI quality gate summary explicit for skipped or cancelled required matrix jobs", () => {

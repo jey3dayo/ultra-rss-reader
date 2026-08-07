@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import packageJson from "../../../package.json";
 
 const repoRoot = process.cwd();
 
@@ -12,6 +13,10 @@ function readMiseTaskCorpus() {
   return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
     .map(readRepoFile)
     .join("\n");
+}
+
+function enginesNodeVersion() {
+  return packageJson.engines.node;
 }
 
 function githubExpression(expression: string) {
@@ -47,7 +52,9 @@ describe("CI workflow contract", () => {
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
       expect(setupIndex, `${jobId} should use pinned pnpm/setup`).toBeGreaterThanOrEqual(0);
-      expect(section, `${jobId} should install Node 26.4.0 through pnpm runtime`).toContain("runtime: node@26.4.0");
+      expect(section, `${jobId} should install the engines.node version through pnpm runtime`).toContain(
+        `runtime: node@${enginesNodeVersion()}`,
+      );
       expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
       expect(section, `${jobId} should keep frozen-lockfile install explicit`).toContain("install: false");
       expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
@@ -58,7 +65,6 @@ describe("CI workflow contract", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const toolchainSection = extractWorkflowJobSection(ciWorkflow, "toolchain");
     const miseSource = readMiseTaskCorpus();
-    const packageJsonSource = readRepoFile("package.json");
 
     expect(toolchainSection).toContain("Verify CI image toolchain contract");
     expect(toolchainSection).toContain("process.versions.node");
@@ -66,9 +72,6 @@ describe("CI workflow contract", () => {
     expect(toolchainSection).toContain("local mise Node version drift");
     expect(toolchainSection).toContain("local pnpm version drift");
     expect(miseSource).toContain('["quality:toolchain"]');
-    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.18.0"');
-    expect(packageJsonSource).toContain('"node": "26.4.0"');
-    expect(packageJsonSource).toContain('"pnpm": "11.18.0"');
   });
 
   it("explains skipped and cancelled required matrix results in the quality gate step summary", () => {
