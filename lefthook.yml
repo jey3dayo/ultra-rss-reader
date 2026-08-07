@@ -29,13 +29,27 @@ pre-commit:
 
 pre-push:
   jobs:
+    # glob は各 mise タスクの実際の入力に合わせる（biome/rustfmt/taplo/markdownlint の走査対象）
     - name: format:check
+      glob: "*.{ts,tsx,js,jsx,mjs,json,jsonc,css,rs,toml,md}"
       run: mise run format:check
     - name: test:unit:ci
+      glob:
+        - "*.{ts,tsx,js,jsx,mjs,json,jsonc}"
+        - "pnpm-lock.yaml"
       run: mise run test:unit:ci
+    # lint は tsc/biome/clippy/markdownlint/yamllint/actionlint/workflow-pins を含むため広め
     - name: lint
+      glob: "*.{ts,tsx,js,jsx,mjs,json,jsonc,css,rs,toml,md,yml,yaml}"
       run: mise run lint
     - name: test:rust
+      glob:
+        - "*.rs"
+        - "src-tauri/**/*.toml"
+        - "src-tauri/Cargo.lock"
       run: mise run test:rust
     - name: build
+      glob:
+        - "*.{ts,tsx,js,jsx,mjs,json,jsonc,css,html}"
+        - "pnpm-lock.yaml"
       run: mise run build
