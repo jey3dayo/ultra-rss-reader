@@ -4,6 +4,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.11] - 2026-08-07
+
+### Maintenance
+
+- lefthook pre-push の各ジョブに mise タスクの入力範囲に合わせた glob を追加し、無関係な push でのジョブ実行をスキップするようにした。
+- 契約テストから pnpm / Node のハードコードされたバージョン固定を削除し、package.json・mise・CI 間の整合性チェックだけを残した。
+- バリデーションを valibot へ移行した。
+- pnpm を 11.20.0、@base-ui/react を 1.7.0 に更新し、Biome schema 参照を 2.5.7 に更新した。
+
 ## [0.54.10] - 2026-08-05
 
 ### Bug Fixes
