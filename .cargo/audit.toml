@@ -21,4 +21,12 @@ ignore = [
   # ships. Reviewed 2026-07-15.
   "RUSTSEC-2026-0194",
   "RUSTSEC-2026-0195",
+  # RUSTSEC-2026-0235: rkyv <0.8.17 out-of-bounds reads in archives
+  # containing Rc/Arc. rkyv 0.7.46 enters Cargo.lock only as an optional
+  # (disabled) feature of rust_decimal via tauri-plugin-log -> byte-unit;
+  # `cargo tree -i rkyv --target all` prints nothing, so the crate is never
+  # compiled into any artifact. Latest rust_decimal (1.42.1) still declares
+  # rkyv 0.7; remove this entry once rust_decimal moves to rkyv >=0.8.17 or
+  # drops the feature. Reviewed 2026-08-07.
+  "RUSTSEC-2026-0235",
 ]
