@@ -3,7 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/icons/app-icon-light.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/icons/app-icon-dark.png"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       (() => {
@@ -12,7 +23,9 @@
         const readStoredTheme = () => {
           try {
             const value = window.localStorage.getItem(themeStorageKey);
-            return value === "light" || value === "dark" || value === "system" ? value : "light";
+            return value === "light" || value === "dark" || value === "system"
+              ? value
+              : "light";
           } catch {
             return "light";
           }
@@ -23,7 +36,8 @@
           storedTheme === "system" &&
           typeof window.matchMedia === "function" &&
           window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const resolvedTheme = storedTheme === "dark" || prefersDark ? "dark" : "light";
+        const resolvedTheme =
+          storedTheme === "dark" || prefersDark ? "dark" : "light";
 
         root.classList.toggle("dark", resolvedTheme === "dark");
         root.style.colorScheme = resolvedTheme;
