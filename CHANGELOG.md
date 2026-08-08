@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.12] - 2026-08-08
+
+### Bug Fixes
+
+- 自動 sync 有効化と scheduler shutdown の待機に lost wakeup の窓があり、初回 sync 完了と待機開始が競合すると自動 sync が起動しないことがある問題を修正した。
+- 汎用 sync フロー（sync_flow）が同一 sync 内で push 済みの mutation を pull 後の保護リストへマージせず、既読状態が古いリモート状態で巻き戻りうる問題を修正した（TOCTOU 回帰テスト付き）。
+
+### Maintenance
+
+- 記事リスト行のテキストプレビュー生成をキャッシュ化し、ペインフォーカス切替のたびに全行で DOMParser のフルパースが走らないようにした。
+- GReader sync の pending mutation 所有判定を per-mutation クエリから一括クエリへ置き換えた。
+- 契約テストに残っていた Node バージョン直書きを engines.node からの導出に置換し、ci.yml の pnpm/setup 契約の重複を 1 所有者へ整理した。
+- CI の cargo-audit をソースビルドからプリビルトバイナリ取得（バージョン pin 付き）へ変更した。
+- shadcn を devDependencies へ移し、prod audit の advisory を解消した。
+- RUSTSEC-2026-0235（rkyv、無効化された optional feature 経由）を理由付きで audit ignore に追加した。
+
 ## [0.54.11] - 2026-08-07
 
 ### Maintenance
