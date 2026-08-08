@@ -183,6 +183,8 @@ export const MOTION_TRANSITION_TOKEN_DECLARATIONS = [
   "--motion-duration-content-swap: 180ms;",
   "--motion-duration-hold-confirm: 2000ms;",
   "--motion-duration-hold-confirm-release: 200ms;",
+  "--motion-duration-popup-enter: 200ms;",
+  "--motion-duration-popup-exit: 120ms;",
   "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
   "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
 ] as const;

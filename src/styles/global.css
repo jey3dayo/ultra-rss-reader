@@ -115,6 +115,8 @@
   --motion-duration-article-slide: 380ms;
   --motion-duration-hold-confirm: 2000ms;
   --motion-duration-hold-confirm-release: 200ms;
+  --motion-duration-popup-enter: 200ms;
+  --motion-duration-popup-exit: 120ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
   --theme-canvas: #f2f1ed;
@@ -1473,7 +1475,12 @@ html.vertical-wipe-transition::view-transition-new(root) {
 }
 
 .motion-popup-overlay {
-  transition: opacity var(--motion-duration-popup) var(--motion-ease-standard);
+  transition: opacity var(--motion-duration-popup-enter) var(--motion-ease-standard);
+}
+
+/* Dismissal gets out of the way faster than arrival. */
+.motion-popup-overlay[data-ending-style] {
+  transition-duration: var(--motion-duration-popup-exit);
 }
 
 .motion-popup-overlay[data-open] {
@@ -1488,8 +1495,13 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transform: translate(-50%, -50%) scale(1);
   transform-origin: center;
   transition:
-    opacity var(--motion-duration-popup) var(--motion-ease-standard),
-    transform var(--motion-duration-popup) var(--motion-ease-emphasized);
+    opacity var(--motion-duration-popup-enter) var(--motion-ease-standard),
+    transform var(--motion-duration-popup-enter) var(--motion-ease-emphasized);
+}
+
+/* Dismissal gets out of the way faster than arrival. */
+.motion-popup-dialog[data-ending-style] {
+  transition-duration: var(--motion-duration-popup-exit);
 }
 
 .motion-popup-dialog[data-open] {
@@ -1599,14 +1611,38 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-feed-selection-marker::before,
   .motion-content-swap,
   .motion-resize-surface,
-  .motion-popup-overlay,
-  .motion-popup-dialog,
-  .motion-popup-surface,
   .motion-browser-overlay-panel,
   .motion-settings-modal,
   .motion-state-toggle [data-state-toggle-icon="true"],
   .motion-article-state-slot {
     transition-duration: 0ms;
+  }
+
+  /* Popups keep a short cross-fade: motion sensitivity is about transforms,
+     not opacity, so feedback stays while translation/scale is pinned. */
+  .motion-popup-overlay,
+  .motion-popup-overlay[data-ending-style],
+  .motion-popup-dialog,
+  .motion-popup-dialog[data-ending-style],
+  .motion-popup-surface,
+  .motion-popup-surface[data-ending-style] {
+    transition: opacity var(--motion-duration-popup-exit) var(--motion-ease-standard);
+  }
+
+  .motion-popup-dialog,
+  .motion-popup-dialog[data-open],
+  .motion-popup-dialog[data-closed],
+  .motion-popup-dialog[data-starting-style],
+  .motion-popup-dialog[data-ending-style] {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .motion-popup-surface,
+  .motion-popup-surface[data-open],
+  .motion-popup-surface[data-closed],
+  .motion-popup-surface[data-starting-style],
+  .motion-popup-surface[data-ending-style] {
+    transform: translate(0, 0) scale(1);
   }
 
   .motion-loading-dot {
