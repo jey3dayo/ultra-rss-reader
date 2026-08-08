@@ -5,6 +5,7 @@ import {
   type MouseEvent,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -48,13 +49,14 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
 
   useEffect(() => cancelHold, [cancelHold]);
 
-  // Derive the rendered hold state from `enabled` instead of syncing it via an
-  // effect; only the pending timer itself needs an explicit side-effect clear.
+  // Disabling detaches the pointer handlers, so a release can no longer clear the
+  // press. Reset the state itself or a later re-enable would resume a fill with no
+  // timer behind it.
   useEffect(() => {
     if (!enabled) {
-      clearTimer();
+      cancelHold();
     }
-  }, [clearTimer, enabled]);
+  }, [cancelHold, enabled]);
 
   const handlePointerDown = useCallback(() => {
     if (!enabled || timerRef.current !== null) {
@@ -161,6 +163,8 @@ export function ConfirmDialogView({
   const tone = confirmDialogVariantStyles[variant];
   const Icon = icon ?? tone.fallbackIcon;
   const holdEnabled = variant === "destructive" && !confirmDisabled;
+  const holdHintId = useId();
+  const showHoldHint = holdEnabled && holdHint !== undefined;
   const { holding, cancelHold, handlePointerDown, handleClick } = useHoldToConfirm({
     enabled: holdEnabled,
     onConfirm,
@@ -198,6 +202,7 @@ export function ConfirmDialogView({
               {...(holdEnabled ? { [MOTION_DATA_HOLD_ATTRIBUTE]: holding ? "true" : "false" } : {})}
               disabled={confirmDisabled}
               aria-label={actionAccessibleLabel}
+              aria-describedby={showHoldHint ? holdHintId : undefined}
               aria-busy={confirmDisabled || undefined}
               variant={tone.actionButtonVariant}
               className={cn(
@@ -216,8 +221,8 @@ export function ConfirmDialogView({
               ) : null}
               <span className="relative">{actionLabel}</span>
             </Button>
-            {holdEnabled && holdHint ? (
-              <p aria-hidden="true" className="text-center text-foreground-soft text-xs">
+            {showHoldHint ? (
+              <p id={holdHintId} className="text-center text-foreground-soft text-xs">
                 {holdHint}
               </p>
             ) : null}

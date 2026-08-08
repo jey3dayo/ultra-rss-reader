@@ -234,12 +234,43 @@ describe("ConfirmDialogView destructive hold-to-confirm", () => {
 
     expect(screen.getByTestId("confirm-dialog-hold-fill")).toBeInTheDocument();
     expect(deleteButton).toHaveAttribute("data-motion-hold", "false");
-    expect(screen.getByText("Press and hold to confirm")).toHaveAttribute("aria-hidden", "true");
+    expect(deleteButton).toHaveAccessibleDescription("Press and hold to confirm");
 
     holdToConfirm(deleteButton);
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(deleteButton).toHaveAttribute("data-motion-hold", "false");
+  });
+
+  it("drops a pending hold when the action is disabled mid-press and re-enabled", () => {
+    const onConfirm = vi.fn();
+    const props = {
+      open: true,
+      title: "Delete account",
+      message: "Delete this account?",
+      actionLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "destructive" as const,
+      holdHint: "Press and hold to confirm",
+      onOpenChange: vi.fn(),
+      onConfirm,
+      onCancel: vi.fn(),
+    };
+    const { rerender } = render(<ConfirmDialogView {...props} />);
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Delete" }));
+    // Disabling detaches the pointer handlers, so the press can never be released.
+    rerender(<ConfirmDialogView {...props} confirmDisabled={true} />);
+    rerender(<ConfirmDialogView {...props} confirmDisabled={false} />);
+
+    const deleteButton = screen.getByRole("button", { name: "Delete" });
+    expect(deleteButton).toHaveAttribute("data-motion-hold", "false");
+
+    act(() => {
+      vi.advanceTimersByTime(MOTION_HOLD_CONFIRM_DURATION_MS);
+    });
+
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it("does not confirm when the destructive hold is released early", () => {
