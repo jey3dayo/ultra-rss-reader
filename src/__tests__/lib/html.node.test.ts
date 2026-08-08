@@ -103,6 +103,33 @@ describe("stripHtmlTags", () => {
     }
   });
 
+  it("keeps the plain-text fast path aligned with the full parse path for tagless, entity-free NBSP and whitespace input", () => {
+    expect(stripHtmlTags("Hello world   there")).toBe("Hello world there");
+    expect(stripHtmlTags("  leading and trailing  ")).toBe("leading and trailing");
+    expect(stripHtmlTags("Hello world")).toBe("Hello world");
+  });
+
+  it("caches the result so a repeated call with the same input returns an equal (not just referentially fresh) value", () => {
+    const html = "<p>Hello <strong>world</strong></p>";
+
+    const first = stripHtmlTags(html);
+    const second = stripHtmlTags(html);
+
+    expect(second).toBe(first);
+    expect(second).toBe("Hello world");
+  });
+
+  it("strips article-body-sized HTML correctly and identically on repeat calls (input larger than the per-entry cache size guard)", () => {
+    const largeArticleBody = `<p>${"Body paragraph text. ".repeat(2_000)}</p>`;
+
+    const first = stripHtmlTags(largeArticleBody);
+    const second = stripHtmlTags(largeArticleBody);
+
+    expect(first).toBe(second);
+    expect(first.startsWith("Body paragraph text.")).toBe(true);
+    expect(first).not.toContain("<p>");
+  });
+
   it("keeps regex fallback safe for malformed entities and large malformed HTML", () => {
     const originalDomParser = globalThis.DOMParser;
     // @ts-expect-error legacy escape: DOMParser global is intentionally unavailable in this fallback test.

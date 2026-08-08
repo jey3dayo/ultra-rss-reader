@@ -22,15 +22,73 @@ export function fromSanitizedArticleHtml(contentSanitized: string): SanitizedArt
   return contentSanitized as SanitizedArticleHtml;
 }
 
+// Article list rows re-run `stripHtmlTags(summary)` on every render because
+// each row subscribes to `focusedPane` (see article-list-item.tsx), so
+// list<->reader focus changes re-strip every visible row's summary even
+// though the summary text only changes when the article data itself
+// changes. Cache by exact input string to skip the DOMParser/regex work on
+// repeat calls. Bounded by insertion-order eviction (Map preserves
+// insertion order) since summaries are a few hundred bytes to a few KB and
+// the cache holds at most STRIP_HTML_TAGS_CACHE_LIMIT entries.
+//
+// `stripHtmlTags` also runs on full article body HTML via
+// `normalizeArticleBodyHtml` below, which is not bounded the same way as a
+// summary. Skip caching (key and value) above
+// STRIP_HTML_TAGS_CACHE_MAX_INPUT_LENGTH so a handful of large article
+// bodies cannot make the cache hold megabytes; the result is still computed
+// and returned, just not cached.
+const STRIP_HTML_TAGS_CACHE_LIMIT = 500;
+const STRIP_HTML_TAGS_CACHE_MAX_INPUT_LENGTH = 16_000;
+const stripHtmlTagsCache = new Map<string, string>();
+
+function cacheStripHtmlTagsResult(html: string, result: string): string {
+  if (html.length > STRIP_HTML_TAGS_CACHE_MAX_INPUT_LENGTH) {
+    return result;
+  }
+
+  stripHtmlTagsCache.set(html, result);
+  if (stripHtmlTagsCache.size > STRIP_HTML_TAGS_CACHE_LIMIT) {
+    const oldestKey = stripHtmlTagsCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      stripHtmlTagsCache.delete(oldestKey);
+    }
+  }
+  return result;
+}
+
+// Text containing neither `<` nor `&` cannot contain a tag or an entity
+// reference, so the DOMParser body textContent for it is the input itself:
+// whitespace normalization is the only transformation `stripHtmlTagsSlow`
+// would apply. Entities are excluded from this fast path so decoding
+// behavior is untouched.
+const HAS_MARKUP_OR_ENTITY = /[<&]/;
+
+function stripHtmlTagsFastPath(html: string): string {
+  return html.replace(/ /g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function stripHtmlTags(html: string): string {
+  if (!html) return "";
+
+  const cached = stripHtmlTagsCache.get(html);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  if (!HAS_MARKUP_OR_ENTITY.test(html)) {
+    return cacheStripHtmlTagsResult(html, stripHtmlTagsFastPath(html));
+  }
+
+  return cacheStripHtmlTagsResult(html, stripHtmlTagsSlow(html));
+}
+
 /**
  * Strip HTML tags from a string and return plain text.
  *
  * Uses DOMParser when available (browser), falls back to regex for
  * environments where DOMParser is not present (e.g. tests without jsdom).
  */
-export function stripHtmlTags(html: string): string {
-  if (!html) return "";
-
+function stripHtmlTagsSlow(html: string): string {
   if (typeof DOMParser !== "undefined") {
     const doc = new DOMParser().parseFromString(html, "text/html");
     doc.querySelectorAll("script, style").forEach((node) => {
