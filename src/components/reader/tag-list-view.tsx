@@ -51,29 +51,28 @@ export function TagListView({
         data-state={isOpen ? "open" : "closed"}
         data-empty={isEmpty ? "true" : "false"}
         aria-hidden={isOpen ? "false" : "true"}
+        inert={isOpen ? undefined : true}
         className="motion-disclosure-panel"
       >
-        {isOpen ? (
-          <div className="motion-disclosure-body">
-            <div className={cn(tokens.treeRootPadding, tokens.tagListGap)}>
-              {isEmpty ? (
-                emptyLabel ? (
-                  <p className="select-none px-2 py-1.5 text-sm text-sidebar-foreground/65">{emptyLabel}</p>
-                ) : null
-              ) : (
-                tags.map((tag) => (
-                  <TagListItem
-                    key={tag.id}
-                    tag={tag}
-                    sidebarDensity={sidebarDensity}
-                    onSelectTag={onSelectTag}
-                    renderContextMenu={renderContextMenu}
-                  />
-                ))
-              )}
-            </div>
+        <div className="motion-disclosure-body">
+          <div className={cn(tokens.treeRootPadding, tokens.tagListGap)}>
+            {isEmpty ? (
+              emptyLabel ? (
+                <p className="select-none px-2 py-1.5 text-sm text-sidebar-foreground/65">{emptyLabel}</p>
+              ) : null
+            ) : (
+              tags.map((tag) => (
+                <TagListItem
+                  key={tag.id}
+                  tag={tag}
+                  sidebarDensity={sidebarDensity}
+                  onSelectTag={onSelectTag}
+                  renderContextMenu={renderContextMenu}
+                />
+              ))
+            )}
           </div>
-        ) : null}
+        </div>
       </div>
     </div>
   );

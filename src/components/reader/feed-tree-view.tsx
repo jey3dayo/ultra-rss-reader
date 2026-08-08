@@ -58,66 +58,72 @@ export function FeedTreeView({
     onDragEnd,
   });
 
-  if (!isOpen) {
-    return null;
-  }
-
   if (!hasFeeds) {
+    if (!isOpen) {
+      return null;
+    }
     return <FeedTreeEmptyState {...emptyState} />;
   }
 
   return (
-    <>
-      <div className={cn(tokens.treeRootPadding, tokens.treeGap)}>
-        {showUnfolderedDropZone ? (
-          <FeedTreeUnfolderedDropZone
-            enabled={canDragFeeds}
-            active={activeUnfoldered}
-            onDropToUnfoldered={onDropToUnfoldered}
-          />
-        ) : null}
-        {folders.map((folder) => (
-          <FeedTreeFolderSection
-            key={folder.id}
-            sidebarDensity={sidebarDensity}
-            folder={folder}
-            activeDropTarget={activeVisualDropTarget}
-            draggedFeedId={normalizedDraggedFeedId}
-            onToggleFolder={onToggleFolder}
-            onSelectFolder={onSelectFolder}
-            onSelectFeed={onSelectFeed}
-            onMarkFeedRead={onMarkFeedRead}
-            onMarkFolderRead={onMarkFolderRead}
-            displayFavicons={displayFavicons}
-            renderFolderContextMenu={renderFolderContextMenu}
-            renderFeedContextMenu={renderFeedContextMenu}
-            canDragFeeds={canDragFeeds}
-            onDragStartFeed={onDragStartFeed}
-            onDropToFolder={onDropToFolder}
-            onPointerDownFeed={handlePointerDownFeed}
-            consumeSuppressedHandleClick={consumeSuppressedHandleClick}
-          />
-        ))}
-        {hasUnfolderedFeeds ? (
-          <FeedTreeUnfolderedSection
-            sidebarDensity={sidebarDensity}
-            unfolderedFeeds={unfolderedFeeds}
-            unfolderedLabel={unfolderedLabel}
-            onSelectFeed={onSelectFeed}
-            onMarkFeedRead={onMarkFeedRead}
-            displayFavicons={displayFavicons}
-            renderFeedContextMenu={renderFeedContextMenu}
-            canDragFeeds={canDragFeeds}
-            normalizedDraggedFeedId={normalizedDraggedFeedId}
-            onDragStartFeed={onDragStartFeed}
-            onPointerDownFeed={handlePointerDownFeed}
-            consumeSuppressedHandleClick={consumeSuppressedHandleClick}
-          />
+    <div
+      data-state={isOpen ? "open" : "closed"}
+      aria-hidden={isOpen ? "false" : "true"}
+      inert={isOpen ? undefined : true}
+      className="motion-disclosure-panel"
+    >
+      <div className="motion-disclosure-body">
+        <div className={cn(tokens.treeRootPadding, tokens.treeGap)}>
+          {showUnfolderedDropZone ? (
+            <FeedTreeUnfolderedDropZone
+              enabled={canDragFeeds}
+              active={activeUnfoldered}
+              onDropToUnfoldered={onDropToUnfoldered}
+            />
+          ) : null}
+          {folders.map((folder) => (
+            <FeedTreeFolderSection
+              key={folder.id}
+              sidebarDensity={sidebarDensity}
+              folder={folder}
+              activeDropTarget={activeVisualDropTarget}
+              draggedFeedId={normalizedDraggedFeedId}
+              onToggleFolder={onToggleFolder}
+              onSelectFolder={onSelectFolder}
+              onSelectFeed={onSelectFeed}
+              onMarkFeedRead={onMarkFeedRead}
+              onMarkFolderRead={onMarkFolderRead}
+              displayFavicons={displayFavicons}
+              renderFolderContextMenu={renderFolderContextMenu}
+              renderFeedContextMenu={renderFeedContextMenu}
+              canDragFeeds={canDragFeeds}
+              onDragStartFeed={onDragStartFeed}
+              onDropToFolder={onDropToFolder}
+              onPointerDownFeed={handlePointerDownFeed}
+              consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+            />
+          ))}
+          {hasUnfolderedFeeds ? (
+            <FeedTreeUnfolderedSection
+              sidebarDensity={sidebarDensity}
+              unfolderedFeeds={unfolderedFeeds}
+              unfolderedLabel={unfolderedLabel}
+              onSelectFeed={onSelectFeed}
+              onMarkFeedRead={onMarkFeedRead}
+              displayFavicons={displayFavicons}
+              renderFeedContextMenu={renderFeedContextMenu}
+              canDragFeeds={canDragFeeds}
+              normalizedDraggedFeedId={normalizedDraggedFeedId}
+              onDragStartFeed={onDragStartFeed}
+              onPointerDownFeed={handlePointerDownFeed}
+              consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+            />
+          ) : null}
+        </div>
+        {pointerDragPreview ? (
+          <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />
         ) : null}
       </div>
-      {pointerDragPreview ? (
-        <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />
-      ) : null}
-    </>
+    </div>
   );
 }

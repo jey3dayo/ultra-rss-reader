@@ -1,7 +1,8 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger, MotionNumber } from "@/design-system";
+import { MotionNumber } from "@/design-system";
 import { sumUnreadCounts } from "@/lib/sidebar/sidebar";
+import { cn } from "@/lib/utils";
 import { FeedItemView } from "./feed-item";
 
 function getFolderUnreadCount(feeds: FeedDto[]) {
@@ -33,7 +34,9 @@ function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: F
   return (
     <>
       <div className="flex items-center gap-1">
-        {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+        <span aria-hidden="true" className="motion-disclosure-trigger flex size-3 shrink-0 items-center justify-center">
+          <ChevronDown className={cn("motion-disclosure-icon size-3", isExpanded ? "rotate-0" : "-rotate-90")} />
+        </span>
         <span className="font-medium">{folderName}</span>
       </div>
       {folderUnread > 0 && <MotionNumber value={folderUnread.toLocaleString()} className="text-foreground-soft" />}
@@ -52,30 +55,41 @@ export function FolderSectionView({
   grayscaleFavicons = false,
 }: FolderSectionViewProps) {
   const folderUnread = getFolderUnreadCount(feeds);
+  const panelId = `folder-section-panel-${folder.id}`;
 
   return (
-    <Collapsible open={isExpanded}>
-      <CollapsibleTrigger
+    <div>
+      <button
+        type="button"
         onClick={() => onToggle(folder.id)}
         className={getFolderTriggerClassName()}
         aria-expanded={isExpanded}
+        aria-controls={panelId}
       >
         <FolderSectionTriggerContent folderName={folder.name} folderUnread={folderUnread} isExpanded={isExpanded} />
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="space-y-0.5 pl-3">
-          {feeds.map((feed) => (
-            <FeedItemView
-              key={feed.id}
-              feed={feed}
-              isSelected={selectedFeedId === feed.id}
-              onSelect={onSelectFeed}
-              displayFavicons={displayFavicons}
-              grayscaleFavicons={grayscaleFavicons}
-            />
-          ))}
+      </button>
+      <div
+        id={panelId}
+        data-state={isExpanded ? "open" : "closed"}
+        aria-hidden={isExpanded ? "false" : "true"}
+        inert={isExpanded ? undefined : true}
+        className="motion-disclosure-panel"
+      >
+        <div className="motion-disclosure-body">
+          <div className="space-y-0.5 pl-3">
+            {feeds.map((feed) => (
+              <FeedItemView
+                key={feed.id}
+                feed={feed}
+                isSelected={selectedFeedId === feed.id}
+                onSelect={onSelectFeed}
+                displayFavicons={displayFavicons}
+                grayscaleFavicons={grayscaleFavicons}
+              />
+            ))}
+          </div>
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+      </div>
+    </div>
   );
 }

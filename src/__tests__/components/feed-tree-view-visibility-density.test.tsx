@@ -49,7 +49,7 @@ describe("FeedTreeView visibility and density contract", () => {
       />,
     );
 
-    expect(container.firstElementChild).toHaveClass("pl-3", "pr-0");
+    expect(container.querySelector(".motion-disclosure-body > div")).toHaveClass("pl-3", "pr-0");
     expect(container.querySelector(".border-l")).toHaveClass("ml-2", "pl-3");
     expect(screen.getByRole("button", { name: /Example Feed/ })).toHaveClass("min-h-8", "py-0.5");
   });

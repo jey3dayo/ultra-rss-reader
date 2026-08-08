@@ -71,7 +71,7 @@ describe("FolderSectionView", () => {
     expect(feedButton).toHaveClass("before:bg-border-strong");
     expect(feedButton).toHaveClass("min-h-11");
     expect(feedButton).not.toHaveAttribute("aria-haspopup");
-    expect(container.querySelector('[data-slot="collapsible-content"]')).not.toBeNull();
+    expect(container.querySelector(".motion-disclosure-panel")).toHaveAttribute("data-state", "open");
 
     await user.click(trigger);
     await user.click(feedButton);

@@ -3090,7 +3090,7 @@ describe("Sidebar", () => {
 
     await user.click(await screen.findByRole("button", { name: "Subscriptions" }));
 
-    expect(screen.queryByText("Tech Blog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Tech Blog/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(useUiStore.getState().settingsOpen).toBe(true);
