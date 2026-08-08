@@ -1428,6 +1428,106 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn sync_account_protects_articles_pushed_earlier_in_same_sync() {
+        // Regression for .claude/rules/remote-state-reconciliation.md: a mutation
+        // pushed and deleted from the pending queue earlier in this same sync must
+        // still be treated as a protected local intent when apply_remote_state runs,
+        // even though pull_state (a stale/not-yet-propagated remote read) reports the
+        // article as unread. Before the fix, step 5 only re-read the pending queue
+        // (now empty because the push already deleted the row) and reverted the
+        // article back to unread.
+        let db = DbManager::new_in_memory().unwrap();
+        // A remote-capable account is required: SqlitePendingMutationRepository::save
+        // rejects pending mutations for `ProviderKind::Local` accounts, and this test
+        // needs a real, mutating pending-mutation queue (see below) to reproduce the
+        // same-sync TOCTOU window.
+        let account = Account {
+            kind: ProviderKind::FreshRss,
+            server_url: Some("https://example.com".to_string()),
+            ..test_account()
+        };
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let feed = Feed {
+            id: FeedId("remote-feed".to_string()),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: Some("feed/remote-1".to_string()),
+            title: "Remote Feed".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        feed_repo.save(&feed).unwrap();
+
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let mut article = stale_saved_article(&feed, 0);
+        article.sanitizer_version = sanitizer::SANITIZER_VERSION;
+        article.remote_id = Some("remote-entry-1".to_string());
+        article.is_read = true;
+        article_repo.upsert(&[article.clone()]).unwrap();
+
+        // pull_state reports the remote as not-yet-caught-up: the article is
+        // still unread from the remote's point of view (RemoteState::default()).
+        let provider = RemoteStateProvider {
+            pushed: Mutex::new(Vec::new()),
+        };
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        // Use the real SQLite-backed repository (not a fake) so that the row
+        // pushed and deleted in step 1 is genuinely gone from the queue by the
+        // time step 5 re-reads it in the same sync — the exact same-sync TOCTOU
+        // window the rule is guarding against.
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+        pending_repo
+            .save(&PendingMutation {
+                id: None,
+                account_id: account.id.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "remote-entry-1".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            })
+            .unwrap();
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+        assert!(
+            pending_repo
+                .find_by_account(&account.id)
+                .unwrap()
+                .is_empty(),
+            "the pushed mutation must be deleted from the queue by the end of the sync"
+        );
+
+        let saved = article_repo
+            .find_by_feed(&feed.id, &crate::repository::article::Pagination::default())
+            .unwrap()
+            .into_iter()
+            .find(|saved| saved.id == article.id)
+            .unwrap();
+        assert!(
+            saved.is_read,
+            "article read earlier in this sync must stay read even though \
+             pull_state (queried after the push already cleared the pending \
+             mutation) still reports it as unread"
+        );
+    }
+
+    #[tokio::test]
     async fn sync_account_deletes_each_pending_mutation_after_its_remote_push() {
         let db = DbManager::new_in_memory().unwrap();
         let account = test_account();
