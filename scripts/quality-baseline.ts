@@ -107,8 +107,8 @@ const reactDoctorBaselines = {
 } as const;
 
 const knipBaseline = {
-  issueCount: 56,
-  findingsCount: 115,
+  issueCount: 32,
+  findingsCount: 78,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {
