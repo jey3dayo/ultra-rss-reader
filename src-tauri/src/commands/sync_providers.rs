@@ -896,38 +896,38 @@ fn resolve_greader_folder_sort_order(
         })
 }
 
-fn pending_mutation_targets_provider_managed_greader_feed(
+fn pending_mutation_ids_targeting_provider_managed_greader_feeds(
     db: &Mutex<DbManager>,
-    pending_mutation_id: i64,
-) -> Result<bool, AppError> {
+    account_id: &AccountId,
+) -> Result<std::collections::HashSet<i64>, AppError> {
     let db_guard = lock_db(db)?;
-    match db_guard.reader().query_row(
-        "SELECT EXISTS (
-                 SELECT 1
-                 FROM pending_mutations pm
-                 JOIN articles a ON a.remote_id = pm.remote_entry_id
-                 JOIN feeds f ON f.id = a.feed_id
-                 WHERE pm.id = ?1
-                   AND f.account_id = pm.account_id
-                   AND f.remote_id LIKE 'feed/%'
-             ) AND NOT EXISTS (
-                 SELECT 1
-                 FROM pending_mutations pm
-                 JOIN articles a ON a.remote_id = pm.remote_entry_id
-                 JOIN feeds f ON f.id = a.feed_id
-                 WHERE pm.id = ?1
-                   AND f.account_id = pm.account_id
-                   AND (f.remote_id IS NULL OR f.remote_id NOT LIKE 'feed/%')
-             )",
-        rusqlite::params![pending_mutation_id],
-        |row| row.get::<_, bool>(0),
-    ) {
-        Ok(targets_provider_feed) => Ok(targets_provider_feed),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(false),
-        Err(error) => Err(AppError::from(crate::domain::error::DomainError::from(
-            error,
-        ))),
+    let mut stmt = db_guard
+        .reader()
+        .prepare(
+            "SELECT pm.id
+             FROM pending_mutations pm
+             JOIN articles a ON a.remote_id = pm.remote_entry_id
+             JOIN feeds f ON f.id = a.feed_id AND f.account_id = pm.account_id
+             WHERE pm.account_id = ?1
+             GROUP BY pm.id
+             HAVING SUM(CASE WHEN f.remote_id LIKE 'feed/%' THEN 1 ELSE 0 END) > 0
+                AND SUM(CASE WHEN f.remote_id IS NULL OR f.remote_id NOT LIKE 'feed/%' THEN 1 ELSE 0 END) = 0",
+        )
+        .map_err(|error| {
+            AppError::from(crate::domain::error::DomainError::from(error))
+        })?;
+    let rows = stmt
+        .query_map(rusqlite::params![account_id.as_ref()], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
+    let mut ids = std::collections::HashSet::new();
+    for row in rows {
+        let id =
+            row.map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
+        ids.insert(id);
     }
+    Ok(ids)
 }
 
 async fn sync_greader_account_entries(
@@ -1148,6 +1148,8 @@ async fn sync_greader_feeds(
         let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
         pending_repo.find_by_account(&account.id)?
     };
+    let provider_managed_pending_mutation_ids =
+        pending_mutation_ids_targeting_provider_managed_greader_feeds(db, &account.id)?;
 
     let mut pushed_read_remote_ids: Vec<String> = Vec::new();
     let mut pushed_starred_remote_ids: Vec<String> = Vec::new();
@@ -1156,7 +1158,7 @@ async fn sync_greader_feeds(
             continue;
         };
 
-        if !pending_mutation_targets_provider_managed_greader_feed(db, pending_mutation_id)? {
+        if !provider_managed_pending_mutation_ids.contains(&pending_mutation_id) {
             warn!(
                 "Dropping pending mutation {} for non-GReader feed entry {}",
                 pm.mutation_type.as_str(),
@@ -2109,8 +2111,9 @@ mod tests {
             pending_mutation_id
         };
 
+        let _ = pending_mutation_id;
         let result =
-            pending_mutation_targets_provider_managed_greader_feed(&db, pending_mutation_id);
+            pending_mutation_ids_targeting_provider_managed_greader_feeds(&db, &account.id);
 
         assert!(result.is_err());
         let pending_count: i64 = db
@@ -2148,11 +2151,11 @@ mod tests {
             db_guard.writer().last_insert_rowid()
         };
 
-        let targets_greader =
-            pending_mutation_targets_provider_managed_greader_feed(&db, pending_mutation_id)
+        let provider_managed_ids =
+            pending_mutation_ids_targeting_provider_managed_greader_feeds(&db, &account.id)
                 .unwrap();
 
-        assert!(!targets_greader);
+        assert!(!provider_managed_ids.contains(&pending_mutation_id));
     }
 
     #[test]
@@ -2234,11 +2237,118 @@ mod tests {
             db_guard.writer().last_insert_rowid()
         };
 
-        let targets_greader =
-            pending_mutation_targets_provider_managed_greader_feed(&db, pending_mutation_id)
+        let provider_managed_ids =
+            pending_mutation_ids_targeting_provider_managed_greader_feeds(&db, &account.id)
                 .unwrap();
 
-        assert!(!targets_greader);
+        assert!(!provider_managed_ids.contains(&pending_mutation_id));
+    }
+
+    #[test]
+    fn pending_mutation_ids_targeting_provider_managed_greader_feeds_returns_exact_subset() {
+        let db = test_db();
+        let (account, feeds) = insert_account_and_feeds(
+            &db,
+            "https://rss.example.com",
+            &[
+                (
+                    "feed/https://example.com/provider-a.xml",
+                    "Provider Feed A",
+                    "https://example.com/provider-a.xml",
+                    "https://example.com/provider-a",
+                ),
+                (
+                    "feed/https://example.com/provider-b.xml",
+                    "Provider Feed B",
+                    "https://example.com/provider-b.xml",
+                    "https://example.com/provider-b",
+                ),
+                (
+                    "",
+                    "Local Collision",
+                    "https://example.com/local.xml",
+                    "https://example.com/local",
+                ),
+                (
+                    "feed/https://example.com/remote-collision.xml",
+                    "Remote Collision",
+                    "https://example.com/remote-collision.xml",
+                    "https://example.com/remote-collision",
+                ),
+            ],
+        );
+
+        fn make_article(id: &str, feed_id: &FeedId, remote_id: &str) -> Article {
+            Article {
+                id: ArticleId(id.to_string()),
+                feed_id: feed_id.clone(),
+                remote_id: Some(remote_id.to_string()),
+                title: id.to_string(),
+                content_raw: "body".to_string(),
+                content_sanitized: "body".to_string(),
+                sanitizer_version: sanitizer::SANITIZER_VERSION,
+                summary: None,
+                url: Some(format!("https://example.com/{id}")),
+                author: None,
+                published_at: chrono::Utc::now(),
+                thumbnail: None,
+                is_read: false,
+                is_starred: false,
+                fetched_at: chrono::Utc::now(),
+            }
+        }
+
+        let (
+            provider_mutation_id_a,
+            provider_mutation_id_b,
+            collision_mutation_id,
+            no_match_mutation_id,
+        ) = {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            article_repo
+                .upsert(&[
+                    make_article("provider-entry-a", &feeds[0].id, "provider-entry-a"),
+                    make_article("provider-entry-b", &feeds[1].id, "provider-entry-b"),
+                    make_article("local-collision-entry", &feeds[2].id, "collision-entry"),
+                    make_article("remote-collision-entry", &feeds[3].id, "collision-entry"),
+                ])
+                .unwrap();
+
+            let insert_pending = |remote_entry_id: &str| -> i64 {
+                db_guard
+                    .writer()
+                    .execute(
+                        "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                         VALUES (?1, ?2, ?3, ?4)",
+                        rusqlite::params![
+                            account.id.as_ref(),
+                            PendingMutationType::MarkRead.as_str(),
+                            remote_entry_id,
+                            "2024-01-01T00:00:00Z"
+                        ],
+                    )
+                    .unwrap();
+                db_guard.writer().last_insert_rowid()
+            };
+
+            (
+                insert_pending("provider-entry-a"),
+                insert_pending("provider-entry-b"),
+                insert_pending("collision-entry"),
+                insert_pending("missing-entry"),
+            )
+        };
+
+        let provider_managed_ids =
+            pending_mutation_ids_targeting_provider_managed_greader_feeds(&db, &account.id)
+                .unwrap();
+
+        assert!(provider_managed_ids.contains(&provider_mutation_id_a));
+        assert!(provider_managed_ids.contains(&provider_mutation_id_b));
+        assert!(!provider_managed_ids.contains(&collision_mutation_id));
+        assert!(!provider_managed_ids.contains(&no_match_mutation_id));
+        assert_eq!(provider_managed_ids.len(), 2);
     }
 
     fn test_feed(account_id: &AccountId) -> Feed {
