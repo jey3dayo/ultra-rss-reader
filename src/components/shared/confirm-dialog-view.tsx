@@ -33,21 +33,27 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
   const [holding, setHolding] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const cancelHold = useCallback(() => {
+  const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    setHolding(false);
   }, []);
+
+  const cancelHold = useCallback(() => {
+    clearTimer();
+    setHolding(false);
+  }, [clearTimer]);
 
   useEffect(() => cancelHold, [cancelHold]);
 
+  // Derive the rendered hold state from `enabled` instead of syncing it via an
+  // effect; only the pending timer itself needs an explicit side-effect clear.
   useEffect(() => {
     if (!enabled) {
-      cancelHold();
+      clearTimer();
     }
-  }, [cancelHold, enabled]);
+  }, [clearTimer, enabled]);
 
   const handlePointerDown = useCallback(() => {
     if (!enabled || timerRef.current !== null) {
@@ -80,7 +86,7 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
     [enabled, onConfirm],
   );
 
-  return { holding, cancelHold, handlePointerDown, handleClick };
+  return { holding: holding && enabled, cancelHold, handlePointerDown, handleClick };
 }
 
 type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
