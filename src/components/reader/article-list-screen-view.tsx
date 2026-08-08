@@ -5,6 +5,7 @@ import { MOTION_CONTENT_SWAP_SLOW_DURATION_MS, MOTION_CONTENT_SWAP_SLOW_OFFSET_P
 import { ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
+import { ArticleListSkeleton } from "./article-list-skeleton";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 import { ReaderPassiveCard, readerListPassiveCardOffsetClassName } from "./reader-passive-card";
 
@@ -63,14 +64,8 @@ export function ArticleListScreenView({
   if (isLoading) {
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
-        <div className="flex h-full items-center justify-center p-6">
-          <div
-            role="status"
-            aria-live="polite"
-            className="rounded-md border border-border/70 bg-surface-1/72 px-4 py-3 text-center text-sm text-foreground-soft"
-          >
-            {loadingMessage}
-          </div>
+        <div className="p-2">
+          <ArticleListSkeleton label={loadingMessage} />
         </div>
       </ScrollArea>
     );
