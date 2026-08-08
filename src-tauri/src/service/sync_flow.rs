@@ -34,22 +34,28 @@ pub async fn sync_account(
     repair_outdated_sanitized_articles(article_repo)?;
 
     // Step 1: Push pending mutations (remote providers only)
+    let mut pushed_read_remote_ids: Vec<String> = Vec::new();
+    let mut pushed_starred_remote_ids: Vec<String> = Vec::new();
     if caps.supports_remote_state {
         let pending = pending_mutation_repo.find_by_account(account_id)?;
         for pending_mutation in pending {
+            let Some(pending_mutation_id) = pending_mutation.id else {
+                continue;
+            };
+
             let mutation = pending_to_provider_mutation(&pending_mutation);
             provider
                 .push_mutations(std::slice::from_ref(&mutation))
                 .await?;
-            if let Some(pending_mutation_id) = pending_mutation.id {
-                pending_mutation_repo.delete(&[pending_mutation_id])?;
-            } else {
-                pending_mutation_repo.delete_by_account_remote_entry_ids_and_axis(
-                    account_id,
-                    std::slice::from_ref(&pending_mutation.remote_entry_id),
-                    pending_mutation.mutation_type.axis(),
-                )?;
+            match pending_mutation.mutation_type.axis() {
+                PendingMutationAxis::ReadState => {
+                    pushed_read_remote_ids.push(pending_mutation.remote_entry_id.clone());
+                }
+                PendingMutationAxis::StarState => {
+                    pushed_starred_remote_ids.push(pending_mutation.remote_entry_id.clone());
+                }
             }
+            pending_mutation_repo.delete(&[pending_mutation_id])?;
         }
     }
 
@@ -189,16 +195,22 @@ pub async fn sync_account(
     if caps.supports_remote_state {
         let state = provider.pull_state().await?;
         let pending = pending_mutation_repo.find_by_account(account_id)?;
-        let pending_read_ids: Vec<String> = pending
+        let mut pending_read_ids: Vec<String> = pending
             .iter()
             .filter(|p| p.mutation_type.axis() == PendingMutationAxis::ReadState)
             .map(|p| p.remote_entry_id.clone())
             .collect();
-        let pending_starred_ids: Vec<String> = pending
+        pending_read_ids.extend(pushed_read_remote_ids);
+        pending_read_ids.sort();
+        pending_read_ids.dedup();
+        let mut pending_starred_ids: Vec<String> = pending
             .iter()
             .filter(|p| p.mutation_type.axis() == PendingMutationAxis::StarState)
             .map(|p| p.remote_entry_id.clone())
             .collect();
+        pending_starred_ids.extend(pushed_starred_remote_ids);
+        pending_starred_ids.sort();
+        pending_starred_ids.dedup();
         article_repo.apply_remote_state(
             account_id,
             &state.read_ids,
@@ -1366,7 +1378,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sync_account_deletes_pushed_pending_mutation_by_remote_id() {
+    async fn sync_account_skips_pending_mutation_push_when_row_id_is_missing() {
+        // A pending mutation without a row id cannot be deleted by row id after
+        // push, and the previous broad `remote_entry_id + axis` delete could
+        // remove a different, newer mutation queued for the same entry/axis
+        // (see .claude/rules/remote-state-reconciliation.md). The row must be
+        // skipped instead of pushed.
         let db = DbManager::new_in_memory().unwrap();
         let account = test_account();
         let account_repo = SqliteAccountRepository::new(db.writer());
@@ -1400,10 +1417,13 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(provider.pushed.lock().unwrap().len(), 1);
-        assert_eq!(
-            *pending_repo.deleted_ids.lock().unwrap(),
-            vec![Vec::<i64>::new()]
+        assert!(
+            provider.pushed.lock().unwrap().is_empty(),
+            "row without an id must not be pushed to the provider"
+        );
+        assert!(
+            pending_repo.deleted_ids.lock().unwrap().is_empty(),
+            "row without an id must not trigger any delete call"
         );
     }
 
