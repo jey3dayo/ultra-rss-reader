@@ -44,7 +44,7 @@ export function AppToastView({
     <div
       data-open
       data-ending-style={ending ? "" : undefined}
-      data-side="top"
+      data-side={showInBrowserRail ? "bottom" : "top"}
       data-testid={testId}
       aria-hidden={ending || undefined}
       inert={ending || undefined}
@@ -81,7 +81,7 @@ export function AppToastView({
               style={{ width: `${clampProgressWidth(progress)}%` }}
             />
           ) : (
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
+            <div className="h-full w-1/3 animate-indeterminate rounded-full bg-primary" />
           )}
         </div>
       )}

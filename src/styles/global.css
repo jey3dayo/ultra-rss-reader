@@ -1522,8 +1522,13 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transform: translate(0, 0) scale(1);
   transform-origin: top center;
   transition:
-    opacity var(--motion-duration-popup) var(--motion-ease-standard),
-    transform var(--motion-duration-popup) var(--motion-ease-emphasized);
+    opacity var(--motion-duration-popup-enter) var(--motion-ease-standard),
+    transform var(--motion-duration-popup-enter) var(--motion-ease-emphasized);
+}
+
+/* Dismissal gets out of the way faster than arrival. */
+.motion-popup-surface[data-ending-style] {
+  transition-duration: var(--motion-duration-popup-exit);
 }
 
 .motion-popup-surface[data-side="top"] {

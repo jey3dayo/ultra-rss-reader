@@ -18,7 +18,7 @@ describe("AppToastView", () => {
 
     rerender(<AppToastView toastMessage={{ message: "Downloading", progress: null }} onClose={onClose} />);
 
-    expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveClass("w-1/3", "animate-pulse");
+    expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveClass("w-1/3", "animate-indeterminate");
   });
 
   it("keeps fixed toast above modal and browser overlay layers", () => {
