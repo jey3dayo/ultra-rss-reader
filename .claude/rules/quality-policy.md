@@ -12,7 +12,6 @@ CI runs `mise run audit:deps` (pnpm, prod paths) and `mise run audit:deps:rust` 
 
 Ignore entries:
 
-- `RUSTSEC-2026-0194`, `RUSTSEC-2026-0195` — quick-xml <0.41 (quadratic-time attribute parsing, unbounded namespace-declaration allocation) via `feed-rs 2.3.1` (untrusted RSS/Atom parsing, reachable) and via `plist 1.9.0 -> tauri 2.11.3` (lower reachability); no upstream fix released yet for either crate; our own direct quick-xml dependency is already on 0.41. Tracked as P1 in `TODO.md` to remove once feed-rs/plist ship a fix; reviewed 2026-07-15.
 - `RUSTSEC-2026-0235` — rkyv <0.8.17 (out-of-bounds reads in archives containing Rc/Arc) via `tauri-plugin-log -> byte-unit -> rust_decimal` as a disabled optional feature; `cargo tree -i rkyv --target all` prints nothing, so rkyv is never compiled. Remove once rust_decimal adopts rkyv >=0.8.17 or drops the feature; reviewed 2026-08-07.
 
 Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.

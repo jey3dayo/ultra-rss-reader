@@ -74,19 +74,6 @@
 
 ### Reader Content / Feed Discovery / Security
 
-- [ ] P1 quick-xml <0.41 advisories via feed-rs/plist — BLOCKED (external)
-  - domain shard: `security-privacy`
-  - 対象: `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `.cargo/audit.toml`
-  - 検証: `cargo info feed-rs`
-  - 検証: `cargo info plist`
-  - 検証: `cargo audit --file src-tauri/Cargo.lock`
-  - 完了条件: `mise run audit:deps:rust` が ignore エントリなしで成功する
-  - defer: feed-rs / plist の upstream リリース待ち
-  - created batch: 2026-07-15
-  - work type: dependency upgrade follow-up
-  - blocked: RUSTSEC-2026-0194 / RUSTSEC-2026-0195 (quick-xml quadratic-time attribute parsing + unbounded namespace-declaration memory exhaustion) remain via `feed-rs 2.3.1` (parses untrusted RSS/Atom feed content — reachable) and `plist 1.9.0 -> tauri 2.11.3` (lower reachability). Neither crate has released a version pinning quick-xml >=0.41 yet. Ignored in `.cargo/audit.toml` per `.claude/rules/quality-policy.md` Dependency Advisory Policy; our own direct quick-xml dependency is already bumped to 0.41 and unaffected
-  - unblock 条件: feed-rs または plist が quick-xml >=0.41 を取り込んだ新バージョンをリリースしたら `cargo update -p feed-rs` / `cargo update -p plist` で追従し、`.cargo/audit.toml` の該当 ignore エントリと `quality-policy.md` の記録を削除する
-
 ### Release / Native / Keyboard / I18n / A11y
 
 ### Database / Updater / Window
