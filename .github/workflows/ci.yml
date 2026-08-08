@@ -365,7 +365,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        # taiki-e/install-action@v2.85.10 (cargo-audit 0.22.2 pinned)
+        uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad
+        with:
+          tool: cargo-audit@0.22.2
 
       - name: Run npm dependency audit (prod paths)
         run: mise run audit:deps
