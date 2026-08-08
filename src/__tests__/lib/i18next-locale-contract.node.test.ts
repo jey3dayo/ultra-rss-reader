@@ -608,12 +608,6 @@ describe("i18next locale contract", () => {
         en: "Unread 0",
         ja: "未読 0件",
       },
-      {
-        key: "common:mark_as_read_count_action",
-        count: 1234,
-        en: "Mark 1,234 as Read",
-        ja: "1,234件を既読にする",
-      },
     ] as const;
 
     for (const locale of ["en", "ja"] as const) {

@@ -70,7 +70,7 @@ describe("useConfirmMarkAllRead", () => {
     });
 
     expect(showConfirm).toHaveBeenCalledWith("confirm_mark_feed_read:3", onConfirm, {
-      actionLabel: "mark_as_read_count_action",
+      actionLabel: "mark_as_read_action",
       actionAccessibleLabel: "mark_read_count_accessible_label:3",
       variant: "warning",
     });

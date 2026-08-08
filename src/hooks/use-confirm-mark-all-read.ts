@@ -43,7 +43,7 @@ export function useConfirmMarkAllRead() {
           void closeBrowserWebviewBeforeReaderMode().finally(() => {
             closeBrowser();
             showConfirm(confirmMessage, onConfirm, {
-              actionLabel: tc("mark_as_read_count_action", { count }),
+              actionLabel: tc("mark_as_read_action"),
               actionAccessibleLabel: t("mark_read_count_accessible_label", {
                 count,
               }),
@@ -53,7 +53,7 @@ export function useConfirmMarkAllRead() {
           return;
         }
         showConfirm(confirmMessage, onConfirm, {
-          actionLabel: tc("mark_as_read_count_action", { count }),
+          actionLabel: tc("mark_as_read_action"),
           actionAccessibleLabel: t("mark_read_count_accessible_label", {
             count,
           }),
