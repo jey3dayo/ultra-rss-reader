@@ -511,7 +511,10 @@ mod tests {
 
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].id, Some("entity-1".to_string()));
-        assert_eq!(entries[0].title, "");
+        // The contract is non-expansion: feed-rs >=2.4 (quick-xml 0.41) keeps
+        // the unresolved entity reference as literal text instead of dropping
+        // it. The external file content must never appear here.
+        assert_eq!(entries[0].title, "&xxe;");
     }
 
     #[test]
@@ -537,7 +540,9 @@ mod tests {
         let entries = normalize_feed(feed.as_bytes(), "https://example.com/feed.xml").unwrap();
 
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].title, "");
+        // Non-expansion contract: the nested entity chain must stay a literal
+        // reference ("&c;"), never the exponentially expanded payload.
+        assert_eq!(entries[0].title, "&c;");
     }
 
     #[test]

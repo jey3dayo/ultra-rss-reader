@@ -2148,7 +2148,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn feed_parser_boundary_keeps_empty_title_when_invalid_bytes_drop_text() {
+    async fn feed_parser_boundary_falls_back_to_feed_url_when_invalid_bytes_drop_title() {
         let invalid_feed = [
             br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>"#
                 .as_slice(),
@@ -2168,7 +2168,11 @@ mod tests {
         let provider = local_provider_allowing_private_feed_urls();
         let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
-        assert_eq!(subscription.title, "");
+        // feed-rs >=2.4 drops the invalid-byte title entirely (None instead of
+        // empty text), so the missing-title fallback applies: the subscription
+        // title falls back to the feed URL, matching
+        // create_subscription_uses_feed_url_when_feed_title_and_site_link_are_missing.
+        assert_eq!(subscription.title, feed_url);
         assert_eq!(subscription.site_url, "https://example.com/");
         mock.assert_async().await;
     }
