@@ -92,8 +92,8 @@ describe("SubscriptionDetailPane", () => {
     expect(feedLink).toHaveAttribute("target", "_blank");
     expect(contentLink).toHaveAttribute("href", "https://example.com");
     expect(contentLink).toHaveAttribute("target", "_blank");
-    expect(metricsList?.nextElementSibling).toContainElement(feedLink);
-    expect(feedLink.nextElementSibling).toBe(contentLink);
+    expect(metricsList?.nextElementSibling).toContainElement(contentLink);
+    expect(contentLink.nextElementSibling).toBe(feedLink);
   });
 
   it("renders shared workspace management action button styles by intent", () => {

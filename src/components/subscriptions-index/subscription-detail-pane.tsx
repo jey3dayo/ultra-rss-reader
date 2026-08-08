@@ -114,10 +114,10 @@ export function SubscriptionDetailPane({
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const detailLinks = [
-    ...(feedUrlHref ? [{ href: feedUrlHref, label: feedUrlLabel, icon: Rss }] : []),
     ...(contentUrlHref && contentUrlHref !== feedUrlHref
       ? [{ href: contentUrlHref, label: contentUrlLabel, icon: Globe }]
       : []),
+    ...(feedUrlHref ? [{ href: feedUrlHref, label: feedUrlLabel, icon: Rss }] : []),
   ];
 
   return (
