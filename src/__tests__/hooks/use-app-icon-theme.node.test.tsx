@@ -4,6 +4,7 @@ import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createLegacyMatchMedia, createModernMatchMedia } from "@tests/helpers/match-media";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_ICON_THEME_PATHS, useAppIconTheme } from "@/hooks/use-app-icon-theme";
 import { RUNTIME_DIAGNOSTIC_POLICIES, resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
@@ -38,8 +39,6 @@ function HookHarness() {
   return null;
 }
 
-type MatchMediaChangeEvent = Pick<MediaQueryListEvent, "matches">;
-
 function stubMatchMedia(matchMedia: ((query: string) => unknown) | undefined) {
   vi.stubGlobal("matchMedia", matchMedia);
   Object.defineProperty(window, "matchMedia", {
@@ -47,65 +46,6 @@ function stubMatchMedia(matchMedia: ((query: string) => unknown) | undefined) {
     writable: true,
     value: matchMedia,
   });
-}
-
-function createMatchMedia(matches: boolean) {
-  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
-
-  return {
-    get matches() {
-      return matches;
-    },
-    media: "(prefers-color-scheme: dark)",
-    onchange: null,
-    addEventListener: (_: string, listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.add(listener);
-    },
-    removeEventListener: (_: string, listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.delete(listener);
-    },
-    listenerCount() {
-      return listeners.size;
-    },
-    dispatch(nextMatches: boolean) {
-      matches = nextMatches;
-      const event: MatchMediaChangeEvent = { matches: nextMatches };
-      for (const listener of listeners) {
-        listener(event);
-      }
-    },
-  };
-}
-
-function createLegacyMatchMedia(matches: boolean, options: { throwOnRemove?: boolean } = {}) {
-  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
-
-  return {
-    get matches() {
-      return matches;
-    },
-    media: "(prefers-color-scheme: dark)",
-    onchange: null,
-    addListener: (listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.add(listener);
-    },
-    removeListener: (listener: (event: MatchMediaChangeEvent) => void) => {
-      if (options.throwOnRemove) {
-        throw new Error("legacy cleanup unavailable");
-      }
-      listeners.delete(listener);
-    },
-    listenerCount() {
-      return listeners.size;
-    },
-    dispatch(nextMatches: boolean) {
-      matches = nextMatches;
-      const event: MatchMediaChangeEvent = { matches: nextMatches };
-      for (const listener of listeners) {
-        listener(event);
-      }
-    },
-  };
 }
 
 function createDeferred<T>() {
@@ -155,7 +95,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("uses the light icon when the theme is light", async () => {
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -177,7 +117,7 @@ describe("useAppIconTheme", () => {
 
   it("classifies runtime diagnostics without toast and with secret redaction", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     setIconMock.mockResolvedValue(
       Result.fail(new Error("TOKEN=secret https://alice:password@example.com/icon.png?token=secret#secret")),
     );
@@ -220,7 +160,7 @@ describe("useAppIconTheme", () => {
 
   it("treats missing dev icon files as a no-op runtime icon replacement", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     setIconMock.mockResolvedValue(Result.fail(new Error("指定されたパスが見つかりません。 (os error 3)")));
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
@@ -241,7 +181,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("tracks system theme changes", async () => {
-    const mql = createMatchMedia(true);
+    const mql = createModernMatchMedia(true);
     stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
@@ -263,7 +203,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("coalesces rapid system theme changes before starting the icon side effect", async () => {
-    const mql = createMatchMedia(true);
+    const mql = createModernMatchMedia(true);
     stubMatchMedia(vi.fn(() => mql));
     setIconMock.mockResolvedValue(undefined);
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
@@ -286,7 +226,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("removes the system theme listener when switching to an explicit theme", async () => {
-    const mql = createMatchMedia(true);
+    const mql = createModernMatchMedia(true);
     stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
@@ -320,7 +260,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("skips runtime icon replacement when capability is disabled", async () => {
-    const mql = createMatchMedia(true);
+    const mql = createModernMatchMedia(true);
     stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
@@ -337,7 +277,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("skips runtime icon replacement when platform info is not loaded", async () => {
-    const mql = createMatchMedia(true);
+    const mql = createModernMatchMedia(true);
     stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
@@ -414,7 +354,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("applies icon after platform info loads and runtime replacement becomes available", async () => {
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
       loaded: false,
@@ -440,7 +380,7 @@ describe("useAppIconTheme", () => {
 
   it("treats runtime icon replacement failures as no-op and reflects the next theme state", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     setIconMock
       .mockResolvedValueOnce(Result.fail(new Error("runtime icon unavailable")))
       .mockResolvedValue(Result.succeed(undefined));
@@ -473,7 +413,7 @@ describe("useAppIconTheme", () => {
     const firstIconRequest = createDeferred<
       ReturnType<typeof Result.succeed<undefined>> | ReturnType<typeof Result.fail<Error>>
     >();
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({
@@ -510,7 +450,7 @@ describe("useAppIconTheme", () => {
       ReturnType<typeof Result.succeed<undefined>> | ReturnType<typeof Result.fail<Error>>
     >();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({
@@ -551,7 +491,7 @@ describe("useAppIconTheme", () => {
 
   it("does not replay a stale intermediate system theme request when the latest request matches the in-flight icon", async () => {
     const firstIconRequest = createDeferred<ReturnType<typeof Result.succeed<undefined>>>();
-    const mql = createMatchMedia(true);
+    const mql = createModernMatchMedia(true);
     stubMatchMedia(vi.fn(() => mql));
     setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
@@ -586,7 +526,7 @@ describe("useAppIconTheme", () => {
 
   it("does not apply queued icon requests after unmount", async () => {
     const firstIconRequest = createDeferred<ReturnType<typeof Result.succeed<undefined>>>();
-    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    stubMatchMedia(vi.fn(() => createModernMatchMedia(false)));
     setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({

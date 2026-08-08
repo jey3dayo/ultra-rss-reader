@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createLegacyMatchMedia, createModernMatchMedia } from "@tests/helpers/match-media";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
@@ -151,68 +152,6 @@ function setReducedMotionPreference(matches: boolean) {
       dispatchEvent: vi.fn(),
     })),
   });
-}
-
-type MatchMediaChangeEvent = Pick<MediaQueryListEvent, "matches">;
-
-function createControllableMatchMedia(initialMatches: boolean, media: string) {
-  let matches = initialMatches;
-  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
-
-  return {
-    get matches() {
-      return matches;
-    },
-    media,
-    onchange: null,
-    addEventListener: (_type: "change", listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.add(listener);
-    },
-    removeEventListener: (_type: "change", listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.delete(listener);
-    },
-    addListener: (listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.add(listener);
-    },
-    removeListener: (listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.delete(listener);
-    },
-    dispatch(nextMatches: boolean) {
-      matches = nextMatches;
-      const event: MatchMediaChangeEvent = { matches: nextMatches };
-      for (const listener of listeners) {
-        listener(event);
-      }
-    },
-  };
-}
-
-function createLegacyColorSchemeMatchMedia(matches: boolean, options: { throwOnRemove?: boolean } = {}) {
-  const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
-
-  return {
-    get matches() {
-      return matches;
-    },
-    media: "(prefers-color-scheme: dark)",
-    onchange: null,
-    addListener: (listener: (event: MatchMediaChangeEvent) => void) => {
-      listeners.add(listener);
-    },
-    removeListener: (listener: (event: MatchMediaChangeEvent) => void) => {
-      if (options.throwOnRemove) {
-        throw new Error("legacy cleanup unavailable");
-      }
-      listeners.delete(listener);
-    },
-    dispatch(nextMatches: boolean) {
-      matches = nextMatches;
-      const event: MatchMediaChangeEvent = { matches: nextMatches };
-      for (const listener of listeners) {
-        listener(event);
-      }
-    },
-  };
 }
 
 type BrowserViewHarnessProps = {
@@ -684,7 +623,7 @@ describe("BrowserView", () => {
 
   it("uses legacy system theme listeners for the theme wipe and ignores cleanup failures", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    const colorSchemeQuery = createLegacyColorSchemeMatchMedia(false, {
+    const colorSchemeQuery = createLegacyMatchMedia(false, {
       throwOnRemove: true,
     });
     Object.defineProperty(window, "matchMedia", {
@@ -764,7 +703,7 @@ describe("BrowserView", () => {
 
   it("restarts rapid theme wipes and clears the overlay when reduced motion changes", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    const reducedMotionQuery = createControllableMatchMedia(false, "(prefers-reduced-motion: reduce)");
+    const reducedMotionQuery = createModernMatchMedia(false, "(prefers-reduced-motion: reduce)");
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       writable: true,
