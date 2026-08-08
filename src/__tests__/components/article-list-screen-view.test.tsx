@@ -235,7 +235,8 @@ describe("ArticleListScreenView", () => {
     const rowBefore = screen.getByRole("option", {
       name: "Retained unread article (starred)",
     });
-    expect(rowBefore.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).toBeNull();
+    // The dot stays mounted with the filled tone; read state hides it via opacity fade.
+    expect(rowBefore.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).toHaveClass("opacity-0");
 
     rerender(
       <ArticleListScreenView
@@ -271,7 +272,7 @@ describe("ArticleListScreenView", () => {
     const rowAfter = screen.getByRole("option", {
       name: "Retained unread article (unread) (starred)",
     });
-    expect(rowAfter.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).not.toBeNull();
+    expect(rowAfter.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).not.toHaveClass("opacity-0");
   });
 
   it("renders empty-state actions outside the article listbox", () => {
