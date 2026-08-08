@@ -84,8 +84,16 @@ impl SchedulerShutdown {
     }
 
     async fn wait(&self) {
-        while !self.is_requested() {
-            self.notify.notified().await;
+        loop {
+            let notified = self.notify.notified();
+            tokio::pin!(notified);
+            // Register the waiter before checking the flag so a request()
+            // that lands between the check and the await cannot be missed.
+            notified.as_mut().enable();
+            if self.is_requested() {
+                return;
+            }
+            notified.await;
         }
     }
 }
@@ -943,8 +951,17 @@ pub async fn wait_for_automatic_sync_enabled(
     automatic_sync_enabled: &std::sync::atomic::AtomicBool,
     automatic_sync_notify: &tokio::sync::Notify,
 ) {
-    while !automatic_sync_enabled.load(Ordering::SeqCst) {
-        automatic_sync_notify.notified().await;
+    loop {
+        let notified = automatic_sync_notify.notified();
+        tokio::pin!(notified);
+        // Register the waiter before checking the flag so an
+        // enable_automatic_sync() that lands between the check and the
+        // await cannot be missed (lost wakeup).
+        notified.as_mut().enable();
+        if automatic_sync_enabled.load(Ordering::SeqCst) {
+            return;
+        }
+        notified.await;
     }
 }
 
@@ -1086,6 +1103,27 @@ mod tests {
             .await
             .expect("waiter should complete after notify")
             .expect("wait task should not panic");
+    }
+
+    #[tokio::test]
+    async fn wait_for_automatic_sync_enabled_does_not_miss_pre_wait_notification() {
+        let automatic_sync_enabled = AtomicBool::new(false);
+        let automatic_sync_notify = Notify::new();
+
+        // Flip the flag and fire notify_waiters() before any waiter is
+        // registered, mirroring enable_automatic_sync()'s single
+        // false->true notification. A check-then-wait implementation that
+        // registers the waiter only inside notified().await would hang here
+        // forever because the notification already fired.
+        automatic_sync_enabled.store(true, Ordering::SeqCst);
+        automatic_sync_notify.notify_waiters();
+
+        tokio::time::timeout(
+            Duration::from_millis(50),
+            wait_for_automatic_sync_enabled(&automatic_sync_enabled, &automatic_sync_notify),
+        )
+        .await
+        .expect("pre-wait notification should not be lost");
     }
 
     #[test]
@@ -1696,6 +1734,16 @@ mod tests {
             .await
             .expect("shutdown waiter should complete after request")
             .expect("shutdown waiter task should not panic");
+    }
+
+    #[tokio::test]
+    async fn scheduler_shutdown_wait_completes_when_requested_before_wait() {
+        let shutdown = SchedulerShutdown::new();
+        shutdown.request();
+
+        tokio::time::timeout(Duration::from_millis(50), shutdown.wait())
+            .await
+            .expect("wait() should return immediately when shutdown was already requested");
     }
 
     #[tokio::test]
