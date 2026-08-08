@@ -77,23 +77,23 @@ Role guidance:
 
 Detailed hierarchy:
 
-| Role            | Font           | Size             | Weight  | Line Height    | Letter Spacing | Notes                                |
-| --------------- | -------------- | ---------------- | ------- | -------------- | -------------- | ------------------------------------ |
-| Display Hero    | System UI Sans | 72px (4.50rem)   | 500     | 1.10 (tight)   | -2.16px        | Maximum compression, hero statements |
-| Section Heading | System UI Sans | 36px (2.25rem)   | 500     | 1.20 (tight)   | -0.72px        | Feature sections, CTA headlines      |
-| Sub-heading     | System UI Sans | 26px (1.63rem)   | 500     | 1.25 (tight)   | -0.325px       | Card headings, sub-sections          |
-| Title Small     | System UI Sans | 22px (1.38rem)   | 500     | 1.30 (tight)   | -0.11px        | Smaller titles, list headings        |
-| Body Serif      | System Serif   | 19.2px (1.20rem) | 500     | 1.50           | normal         | Editorial body for reading surfaces  |
-| Body Serif SM   | System Serif   | 17.28px (1.08rem)| 400     | 1.35           | normal         | Standard body text, descriptions     |
-| Body Sans       | System UI Sans | 16px (1.00rem)   | 400     | 1.50           | normal/0.08px  | UI body text                         |
-| Button Label    | System UI Sans | 14px (0.88rem)   | 500     | 1.00 (tight)   | normal         | Primary button text                  |
-| Button Caption  | System UI Sans | 14px (0.88rem)   | 400     | 1.50           | 0.14px         | Secondary button label               |
-| Caption         | System UI Sans | 11px (0.69rem)   | 400-500 | 1.50           | normal         | Small captions, metadata             |
-| System Heading  | system-ui      | 20px (1.25rem)   | 700     | 1.55           | normal         | System UI headings                   |
-| System Caption  | system-ui      | 13px (0.81rem)   | 500-600 | 1.33           | normal         | System UI labels                     |
-| System Micro    | system-ui      | 11px (0.69rem)   | 500     | 1.27 (tight)   | 0.048px        | Uppercase micro labels               |
-| Mono Body       | System Mono    | 12px (0.75rem)   | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
-| Mono Small      | System Mono    | 11px (0.69rem)   | 400     | 1.33           | -0.275px       | Inline code, terminal                |
+| Role            | Font           | Size              | Weight  | Line Height    | Letter Spacing | Notes                                |
+| --------------- | -------------- | ----------------- | ------- | -------------- | -------------- | ------------------------------------ |
+| Display Hero    | System UI Sans | 72px (4.50rem)    | 500     | 1.10 (tight)   | -2.16px        | Maximum compression, hero statements |
+| Section Heading | System UI Sans | 36px (2.25rem)    | 500     | 1.20 (tight)   | -0.72px        | Feature sections, CTA headlines      |
+| Sub-heading     | System UI Sans | 26px (1.63rem)    | 500     | 1.25 (tight)   | -0.325px       | Card headings, sub-sections          |
+| Title Small     | System UI Sans | 22px (1.38rem)    | 500     | 1.30 (tight)   | -0.11px        | Smaller titles, list headings        |
+| Body Serif      | System Serif   | 19.2px (1.20rem)  | 500     | 1.50           | normal         | Editorial body for reading surfaces  |
+| Body Serif SM   | System Serif   | 17.28px (1.08rem) | 400     | 1.35           | normal         | Standard body text, descriptions     |
+| Body Sans       | System UI Sans | 16px (1.00rem)    | 400     | 1.50           | normal/0.08px  | UI body text                         |
+| Button Label    | System UI Sans | 14px (0.88rem)    | 500     | 1.00 (tight)   | normal         | Primary button text                  |
+| Button Caption  | System UI Sans | 14px (0.88rem)    | 400     | 1.50           | 0.14px         | Secondary button label               |
+| Caption         | System UI Sans | 11px (0.69rem)    | 400-500 | 1.50           | normal         | Small captions, metadata             |
+| System Heading  | system-ui      | 20px (1.25rem)    | 700     | 1.55           | normal         | System UI headings                   |
+| System Caption  | system-ui      | 13px (0.81rem)    | 500-600 | 1.33           | normal         | System UI labels                     |
+| System Micro    | system-ui      | 11px (0.69rem)    | 500     | 1.27 (tight)   | 0.048px        | Uppercase micro labels               |
+| Mono Body       | System Mono    | 12px (0.75rem)    | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
+| Mono Small      | System Mono    | 11px (0.69rem)    | 400     | 1.33           | -0.275px       | Inline code, terminal                |
 
 Typography principles:
 
@@ -113,14 +113,14 @@ Shadow philosophy:
 
 Elevation scale:
 
-| Level                    | Treatment                                                                   | Use                                         |
-| ------------------------ | --------------------------------------------------------------------------- | ------------------------------------------- |
-| Flat (Level 0)           | No shadow                                                                   | Page background, text blocks                |
-| Border Ring (Level 1)    | `oklab(0.263 / 0.1) 0px 0px 0px 1px`                                        | Standard card/container border              |
-| Border Medium (Level 1b) | `oklab(0.263 / 0.2) 0px 0px 0px 1px`                                        | Emphasized borders, active states           |
-| Ambient (Level 2)        | `rgba(0,0,0,0.02) 0px 0px 16px, rgba(0,0,0,0.008) 0px 0px 8px`              | Floating elements, subtle glow              |
-| Elevated Card (Level 3)  | `rgba(0,0,0,0.14) 0px 28px 70px, rgba(0,0,0,0.1) 0px 14px 32px, oklab ring` | Modals, popovers, elevated cards            |
-| Focus                    | `rgba(0,0,0,0.1) 0px 4px 12px`                                              | Focus feedback for primary interactive UI   |
+| Level                    | Treatment                                                                   | Use                                       |
+| ------------------------ | --------------------------------------------------------------------------- | ----------------------------------------- |
+| Flat (Level 0)           | No shadow                                                                   | Page background, text blocks              |
+| Border Ring (Level 1)    | `oklab(0.263 / 0.1) 0px 0px 0px 1px`                                        | Standard card/container border            |
+| Border Medium (Level 1b) | `oklab(0.263 / 0.2) 0px 0px 0px 1px`                                        | Emphasized borders, active states         |
+| Ambient (Level 2)        | `rgba(0,0,0,0.02) 0px 0px 16px, rgba(0,0,0,0.008) 0px 0px 8px`              | Floating elements, subtle glow            |
+| Elevated Card (Level 3)  | `rgba(0,0,0,0.14) 0px 28px 70px, rgba(0,0,0,0.1) 0px 14px 32px, oklab ring` | Modals, popovers, elevated cards          |
+| Focus                    | `rgba(0,0,0,0.1) 0px 4px 12px`                                              | Focus feedback for primary interactive UI |
 
 ## Components
 
@@ -227,6 +227,7 @@ Surface governance:
 - Links may shift toward primary or add understated underline emphasis
 - Cards intensify shadow or border contrast subtly rather than jumping in scale
 - Dense workspace rows and summary cards should default to non-lifting hover treatments. If hover needs stronger emphasis, increase border or surface contrast before adding translate or scale.
+- Semantic state buttons (warning / danger / success surfaces) must still give hover feedback: keep the semantic hue and step the surface up via the paired `--state-*-surface-hover` token (border mixed into surface). Never pin hover to the resting surface color, and never swap to a neutral hover tone that loses the semantic meaning.
 
 ### Focus States
 
@@ -280,6 +281,20 @@ Manual/a11y smoke:
 - These cues should feel mechanical and calm, not celebratory. They are confirmation, not decoration.
 - Use this pattern for compact refresh and navigation controls such as sidebar sync and in-app-browser reload, back, and forward actions.
 
+### Destructive Hold-to-Confirm
+
+- Destructive confirmation dialogs gate the pointer action behind a press-and-hold of about 2 seconds instead of a single click. Keyboard activation stays immediate so the gate never depends on key-repeat behavior.
+- Progress feedback is a linear fill inside the action button that sweeps over the hold duration; an early release retracts quickly (about 200ms) from the current progress instead of snapping.
+- Pair the gated action with a short static hint line under the button (for example "Press and hold to confirm") so the affordance is discoverable without motion.
+- Under `prefers-reduced-motion`, keep the same hold duration but soften the fill into an opacity ramp; the gate itself is behavior, not flourish, and must not be removed.
+- The hold timer and its CSS duration token must stay one value defined in the token layer, not duplicated literals.
+
+### Loading Skeletons
+
+- List surfaces that load asynchronously should show skeleton rows that match the real row geometry (leading dot, title line, meta line) instead of a centered loading card, so the loaded list does not reflow against the placeholder.
+- Skeleton groups carry one accessible status label for the whole region; individual placeholder shapes stay `aria-hidden`.
+- Skeleton fills use quiet warm surface tones from the token layer, one step apart for primary and meta lines, never saturated accents.
+
 ### Expandable Sections
 
 - Section and sidebar disclosure patterns should feel calm and mechanical, not springy or theatrical.
@@ -289,7 +304,7 @@ Manual/a11y smoke:
 - Chevron icons should rotate to communicate state, but the motion should stay compact. A quarter-turn is preferred for collapsed side-rail toggles and folder rows.
 - Revealed content should move only slightly. A small upward offset while collapsing is preferred over large slide distances.
 - Hover lift on expandable headers or rows may use a 1px translate at most. Disclosure UI should suggest responsiveness, not float dramatically.
-- Keep disclosure surfaces interactive only when visible. Collapsed content should disable pointer interaction and expose a hidden state to accessibility APIs, for example through `aria-hidden` when appropriate.
+- Keep disclosure surfaces interactive only when visible. Collapsed content stays mounted for continuity but must be fully inert: pair `aria-hidden` with the `inert` attribute so hidden panels are excluded from pointer interaction, focus order, and the accessibility tree.
 - Preserve semantic state while animating. Header buttons should continue to own `aria-expanded`, and the controlled region should be addressable via `aria-controls`.
 - Respect `prefers-reduced-motion`: keep state changes functional, but remove or minimize transform and timing-based flourish.
 

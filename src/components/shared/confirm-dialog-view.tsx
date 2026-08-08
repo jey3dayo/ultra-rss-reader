@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
+import { stateSurfaceButtonClassName } from "@/components/shared/state-surface-button";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -129,8 +130,7 @@ const confirmDialogVariantStyles = {
     iconContainerClassName: "bg-state-warning-surface",
     iconClassName: "text-state-warning-foreground",
     actionButtonVariant: "outline",
-    actionButtonClassName:
-      "border-state-warning-border bg-state-warning-surface text-state-warning-foreground shadow-none hover:border-state-warning-border hover:bg-state-warning-surface hover:text-state-warning-foreground focus-visible:border-state-warning-border",
+    actionButtonClassName: stateSurfaceButtonClassName("warning"),
     fallbackIcon: AlertTriangle,
   },
   destructive: {

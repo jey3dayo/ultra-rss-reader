@@ -430,7 +430,6 @@ describe("UI Reference canvases", () => {
     expect(screen.getAllByText("Body Serif").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Mono Small").length).toBeGreaterThan(0);
     expect(screen.getByTestId("reference-semantic-state-grid")).toHaveClass("grid");
-    expect(screen.getByText("Review accent")).toBeInTheDocument();
     expect(screen.getAllByText("Thinking accent").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Surface roles").length).toBeGreaterThan(0);
   });

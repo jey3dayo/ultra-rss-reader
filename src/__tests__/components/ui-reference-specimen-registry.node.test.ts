@@ -120,11 +120,6 @@ const requiredReferenceTokenCoverage = [
     sourceSnippet: "bg-state-warning-surface",
   },
   {
-    token: "--state-review-surface",
-    specimenSource: "ui-reference-foundation-specimens.tsx",
-    sourceSnippet: "bg-state-review-surface",
-  },
-  {
     token: "--state-danger-surface",
     specimenSource: "ui-reference-foundation-specimens.tsx",
     sourceSnippet: "bg-state-danger-surface",

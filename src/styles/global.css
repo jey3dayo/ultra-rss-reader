@@ -44,15 +44,15 @@
   --color-overlay-action-surface-chrome-hover: var(--overlay-action-surface-chrome-hover);
   --color-overlay-action-surface-chrome-active: var(--overlay-action-surface-chrome-active);
   --color-state-warning-surface: var(--state-warning-surface);
+  --color-state-warning-surface-hover: var(--state-warning-surface-hover);
   --color-state-warning-border: var(--state-warning-border);
   --color-state-warning-foreground: var(--state-warning-foreground);
   --color-state-success-surface: var(--state-success-surface);
+  --color-state-success-surface-hover: var(--state-success-surface-hover);
   --color-state-success-border: var(--state-success-border);
   --color-state-success-foreground: var(--state-success-foreground);
-  --color-state-review-surface: var(--state-review-surface);
-  --color-state-review-border: var(--state-review-border);
-  --color-state-review-foreground: var(--state-review-foreground);
   --color-state-danger-surface: var(--state-danger-surface);
+  --color-state-danger-surface-hover: var(--state-danger-surface-hover);
   --color-state-danger-border: var(--state-danger-border);
   --color-state-danger-foreground: var(--state-danger-foreground);
   --color-dialog-overlay: var(--dialog-overlay);
@@ -261,7 +261,6 @@
   --subscriptions-summary-active-shadow-stale: 0 18px 38px -24px rgba(0, 0, 0, 0.38);
   --subscriptions-summary-active-shadow-danger: 0 18px 38px -24px rgba(0, 0, 0, 0.42);
   --subscriptions-summary-active-ring-neutral: color-mix(in srgb, var(--color-border-strong) 60%, transparent);
-  --subscriptions-summary-active-ring-review: color-mix(in srgb, var(--color-state-review-border) 45%, transparent);
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
   --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
   --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(38, 37, 30, 0.08);
@@ -373,6 +372,11 @@
   --feed-tree-drag-overlay-shadow: var(--shadow-elevation-2);
   --state-warning-surface: rgba(255, 251, 235, 0.78);
   --state-warning-border: rgba(251, 191, 36, 0.28);
+  /* Hover steps derive from surface+border at use time, so light/dark and
+     forced-colors overrides of the base tokens stay the single source. */
+  --state-warning-surface-hover: color-mix(in srgb, var(--state-warning-border) 30%, var(--state-warning-surface));
+  --state-success-surface-hover: color-mix(in srgb, var(--state-success-border) 30%, var(--state-success-surface));
+  --state-danger-surface-hover: color-mix(in srgb, var(--state-danger-border) 30%, var(--state-danger-surface));
   --state-warning-foreground: rgb(120, 53, 15);
   --state-success-surface: rgba(16, 185, 129, 0.08);
   --state-success-border: rgba(16, 185, 129, 0.2);
@@ -426,9 +430,6 @@
     var(--tone-starred) var(--tone-foreground-strength),
     var(--foreground)
   );
-  --state-review-surface: rgba(245, 78, 0, 0.08);
-  --state-review-border: rgba(245, 78, 0, 0.18);
-  --state-review-foreground: rgb(154, 52, 18);
   --state-danger-surface: rgba(207, 45, 86, 0.08);
   --state-danger-border: rgba(207, 45, 86, 0.2);
   --state-danger-foreground: rgb(159, 18, 57);
@@ -627,7 +628,6 @@
   --subscriptions-summary-active-shadow-stale: 0 18px 38px -24px rgba(0, 0, 0, 0.44);
   --subscriptions-summary-active-shadow-danger: 0 18px 38px -24px rgba(0, 0, 0, 0.48);
   --subscriptions-summary-active-ring-neutral: color-mix(in srgb, var(--color-border-strong) 60%, transparent);
-  --subscriptions-summary-active-ring-review: color-mix(in srgb, var(--color-state-review-border) 45%, transparent);
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
   --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
   --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(243, 239, 230, 0.08);
@@ -735,6 +735,11 @@
   --feed-tree-drag-overlay-shadow: var(--shadow-elevation-2);
   --state-warning-surface: rgba(245, 158, 11, 0.1);
   --state-warning-border: rgba(245, 158, 11, 0.3);
+  /* Same derivation as :root — restated so the theme-token contract can verify
+     dark explicitly backs every @theme alias. */
+  --state-warning-surface-hover: color-mix(in srgb, var(--state-warning-border) 30%, var(--state-warning-surface));
+  --state-success-surface-hover: color-mix(in srgb, var(--state-success-border) 30%, var(--state-success-surface));
+  --state-danger-surface-hover: color-mix(in srgb, var(--state-danger-border) 30%, var(--state-danger-surface));
   --state-warning-foreground: rgb(254, 243, 199);
   --state-success-surface: rgba(16, 185, 129, 0.12);
   --state-success-border: rgba(16, 185, 129, 0.24);
@@ -788,9 +793,6 @@
     var(--tone-starred) var(--tone-foreground-strength),
     var(--foreground)
   );
-  --state-review-surface: rgba(245, 78, 0, 0.14);
-  --state-review-border: rgba(245, 78, 0, 0.22);
-  --state-review-foreground: rgb(255, 220, 201);
   --state-danger-surface: rgba(255, 125, 154, 0.12);
   --state-danger-border: rgba(255, 125, 154, 0.24);
   --state-danger-foreground: rgb(255, 205, 217);
@@ -920,9 +922,6 @@
     --state-success-surface: Canvas;
     --state-success-border: ButtonBorder;
     --state-success-foreground: CanvasText;
-    --state-review-surface: Canvas;
-    --state-review-border: ButtonBorder;
-    --state-review-foreground: CanvasText;
     --state-danger-surface: Canvas;
     --state-danger-border: ButtonBorder;
     --state-danger-foreground: CanvasText;

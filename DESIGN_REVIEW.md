@@ -35,6 +35,7 @@ Routing rules:
 - form rows, validation, and disabled states go in `Input Controls Canvas`
 - button variants, decision/delete/form actions, settings actions, and utility icon action strips go in `Button Controls Canvas`
 - settings-form row behavior, control rail alignment, and shared radius rules belong in `shared` once they repeat
+- semantic state-surface button colors (warning / danger / success) must come from `stateSurfaceButtonClassName` in `src/components/shared/state-surface-button.ts`; do not hand-write the `border/bg/text/hover` state-token recipe in components (the shadcn-managed `destructive` variant in `src/components/ui/button-variants.ts` is the one accepted duplicate)
 - app-level outer frames, dialog shells, and menu shells go in `Shell & Overlay Canvas`
 - runtime chrome frames and overlay surfaces belong in `Shell & Overlay Canvas`; their compact action buttons should still be checked against `Button Controls Canvas`
 - feature-local display fragments and density specimens go in `View Specimens Canvas`

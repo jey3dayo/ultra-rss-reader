@@ -135,13 +135,6 @@ export function SemanticStateSurfaceSpecimen() {
           className="border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
         />
         <ReferenceSemanticStateCard
-          title="Review accent"
-          description="Soft editorial emphasis for flagged-but-not-dangerous states."
-          chipLabel="Review"
-          chipTone="warning"
-          className="border-state-review-border bg-state-review-surface text-state-review-foreground"
-        />
-        <ReferenceSemanticStateCard
           title="Unread accent"
           description="Reading-context state. Usually tint or light wash, not a solid block."
           chipLabel="Unread"

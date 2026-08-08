@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 
+import { stateToneSurfaceClassNames } from "@/components/shared/state-tone";
 import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
 
@@ -63,15 +64,15 @@ const surfaceCardVariants = cva(
       },
       {
         tone: "success",
-        className: "border-state-success-border bg-state-success-surface text-state-success-foreground",
+        className: stateToneSurfaceClassNames.success,
       },
       {
         tone: "warning",
-        className: "border-state-warning-border bg-state-warning-surface text-state-warning-foreground",
+        className: stateToneSurfaceClassNames.warning,
       },
       {
         tone: "danger",
-        className: "border-state-danger-border bg-state-danger-surface text-state-danger-foreground",
+        className: stateToneSurfaceClassNames.danger,
       },
       {
         frame: "borderless",
