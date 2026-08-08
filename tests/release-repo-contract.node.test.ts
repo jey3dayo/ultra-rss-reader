@@ -33,6 +33,9 @@ type PackageJson = {
   private: boolean;
   scripts: Record<string, string>;
   version: string;
+  engines: {
+    node: string;
+  };
 };
 
 type TauriConfig = {
@@ -354,11 +357,6 @@ const extractTaskBlock = (source: string, taskName: string): string => {
     throw new Error(`Missing mise task block: ${taskName}`);
   }
   return value;
-};
-
-const extractPnpmSetupBlocks = (source: string): string[] => {
-  const setupPattern = /- uses: pnpm\/setup@5d160c5bc68a09337ad0d5654e237e03253b5879\n(?<block>(?: {8}.+\n?)*)/g;
-  return [...source.matchAll(setupPattern)].map((match) => match.groups?.block ?? "");
 };
 
 const extractWorkflowUses = (source: string): string[] => {
@@ -798,7 +796,7 @@ describe("release repository contract", () => {
   it("keeps release dependency cache handled by pinned pnpm setup", () => {
     const releasePnpmSetupBlock = extractPnpmSetupBlock(releaseWorkflow);
 
-    expect(releasePnpmSetupBlock).toContain("runtime: node@26.4.0");
+    expect(releasePnpmSetupBlock).toContain(`runtime: node@${packageJson.engines.node}`);
     expect(releasePnpmSetupBlock).toContain("cache: true");
     expect(releasePnpmSetupBlock).toContain("install: false");
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
@@ -807,19 +805,6 @@ describe("release repository contract", () => {
     expect(releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879")).toBeLessThan(
       releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
     );
-  });
-
-  it("keeps CI pnpm setup cache bounded by frozen lockfile installs", () => {
-    const ciPnpmSetupBlocks = extractPnpmSetupBlocks(ciWorkflow);
-
-    expect(ciPnpmSetupBlocks.length).toBeGreaterThan(0);
-    for (const setupBlock of ciPnpmSetupBlocks) {
-      expect(setupBlock).toContain("runtime: node@26.4.0");
-      expect(setupBlock).toContain("cache: true");
-      expect(setupBlock).toContain("install: false");
-    }
-    expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(ciPnpmSetupBlocks.length);
-    expect(ciWorkflow).not.toContain("node_modules");
   });
 
   it("pins third-party actions in all workflows to commit SHAs", () => {

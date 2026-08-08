@@ -1460,23 +1460,6 @@ describe("repository static contracts", () => {
     expect(extractQualityGateNeeds(ciWorkflow)).toEqual(extractWorkflowCheckJobIds(ciWorkflow).toSorted());
   });
 
-  it("keeps CI check jobs setting up pnpm runtime cache before install", () => {
-    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-
-    for (const { jobId, section } of extractWorkflowCheckJobSections(ciWorkflow)) {
-      const setupIndex = section.indexOf("uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
-      const installIndex = section.indexOf("pnpm install --frozen-lockfile");
-
-      expect(setupIndex, `${jobId} should use pnpm/setup for pnpm store cache`).toBeGreaterThanOrEqual(0);
-      expect(section, `${jobId} should install the engines.node version through pnpm runtime`).toContain(
-        `runtime: node@${packageJson.engines.node}`,
-      );
-      expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
-      expect(section, `${jobId} should avoid automatic non-frozen install`).toContain("install: false");
-      expect(installIndex, `${jobId} should install pnpm dependencies after setup`).toBeGreaterThan(setupIndex);
-    }
-  });
-
   it("keeps CI verifying package manager and engine contracts through mise and the CI image", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const toolchainSection = extractWorkflowCheckJobSections(ciWorkflow).find(

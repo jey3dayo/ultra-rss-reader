@@ -46,8 +46,9 @@ function extractCheckJobSections(source: string) {
 describe("CI workflow contract", () => {
   it("sets up pnpm and Node through the pinned pnpm setup action before frozen installs", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const checkJobSections = extractCheckJobSections(ciWorkflow);
 
-    for (const { jobId, section } of extractCheckJobSections(ciWorkflow)) {
+    for (const { jobId, section } of checkJobSections) {
       const setupIndex = section.indexOf("uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
@@ -59,6 +60,9 @@ describe("CI workflow contract", () => {
       expect(section, `${jobId} should keep frozen-lockfile install explicit`).toContain("install: false");
       expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
     }
+
+    expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(checkJobSections.length);
+    expect(ciWorkflow).not.toContain("node_modules");
   });
 
   it("verifies package manager and engine contracts against local mise and the CI image", () => {
