@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { holdToConfirm, releaseHoldEarly } from "@tests/helpers/hold-to-confirm";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MOTION_HOLD_CONFIRM_DURATION_MS } from "@/constants";
 import { ConfirmDialogView } from "@/design-system";
 
 describe("ConfirmDialogView", () => {
@@ -196,5 +198,120 @@ describe("ConfirmDialogView", () => {
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Dismiss" })).toHaveFocus();
+  });
+});
+
+describe("ConfirmDialogView destructive hold-to-confirm", () => {
+  const renderDestructive = (onConfirm: () => void, open = true) =>
+    render(
+      <ConfirmDialogView
+        open={open}
+        title="Delete account"
+        message="Delete this account?"
+        actionLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        holdHint="Press and hold to confirm"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("confirms only after the destructive hold completes", () => {
+    const onConfirm = vi.fn();
+    renderDestructive(onConfirm);
+
+    const deleteButton = screen.getByRole("button", { name: "Delete" });
+
+    expect(screen.getByTestId("confirm-dialog-hold-fill")).toBeInTheDocument();
+    expect(deleteButton).toHaveAttribute("data-motion-hold", "false");
+    expect(screen.getByText("Press and hold to confirm")).toHaveAttribute("aria-hidden", "true");
+
+    holdToConfirm(deleteButton);
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(deleteButton).toHaveAttribute("data-motion-hold", "false");
+  });
+
+  it("does not confirm when the destructive hold is released early", () => {
+    const onConfirm = vi.fn();
+    renderDestructive(onConfirm);
+
+    releaseHoldEarly(screen.getByRole("button", { name: "Delete" }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("cancels a pending destructive hold when the dialog closes", () => {
+    const onConfirm = vi.fn();
+    const { rerender } = renderDestructive(onConfirm);
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Delete" }));
+
+    rerender(
+      <ConfirmDialogView
+        open={false}
+        title="Delete account"
+        message="Delete this account?"
+        actionLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(MOTION_HOLD_CONFIRM_DURATION_MS);
+    });
+
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("keeps keyboard activation immediate for destructive confirms", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onConfirm = vi.fn();
+    renderDestructive(onConfirm);
+
+    screen.getByRole("button", { name: "Delete" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps non-destructive confirms on plain click without hold affordances", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onConfirm = vi.fn();
+
+    render(
+      <ConfirmDialogView
+        open={true}
+        title="Mark all read"
+        message="Mark all as read?"
+        actionLabel="Mark all read"
+        cancelLabel="Cancel"
+        holdHint="Press and hold to confirm"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId("confirm-dialog-hold-fill")).not.toBeInTheDocument();
+    expect(screen.queryByText("Press and hold to confirm")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Mark all read" }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });

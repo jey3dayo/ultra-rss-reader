@@ -1,10 +1,87 @@
 import { AlertTriangle, CheckCheck, Trash2 } from "lucide-react";
-import type { ComponentProps, ComponentType } from "react";
+import {
+  type ComponentProps,
+  type ComponentType,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
+import {
+  MOTION_DATA_HOLD_ATTRIBUTE,
+  MOTION_HOLD_CONFIRM_CLASS_NAME,
+  MOTION_HOLD_CONFIRM_DURATION_MS,
+  MOTION_HOLD_CONFIRM_FILL_CLASS_NAME,
+  PHRASE_AWARE_TEXT_CLASS_NAME,
+} from "@/constants";
 import { cn } from "@/lib/utils";
+
+type UseHoldToConfirmOptions = {
+  enabled: boolean;
+  onConfirm: () => void;
+};
+
+/**
+ * Pointer press-and-hold gate for destructive confirms. Keyboard activation stays
+ * immediate so the action does not depend on key repeat behavior.
+ */
+function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
+  const [holding, setHolding] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelHold = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setHolding(false);
+  }, []);
+
+  useEffect(() => cancelHold, [cancelHold]);
+
+  useEffect(() => {
+    if (!enabled) {
+      cancelHold();
+    }
+  }, [cancelHold, enabled]);
+
+  const handlePointerDown = useCallback(() => {
+    if (!enabled || timerRef.current !== null) {
+      return;
+    }
+
+    setHolding(true);
+    const handle = setTimeout(() => {
+      // Ignore a timer that a newer press or a cleanup already replaced.
+      if (timerRef.current !== handle) {
+        return;
+      }
+      timerRef.current = null;
+      setHolding(false);
+      onConfirm();
+    }, MOTION_HOLD_CONFIRM_DURATION_MS);
+    timerRef.current = handle;
+  }, [enabled, onConfirm]);
+
+  const handleClick = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      // detail === 0 is keyboard activation (Enter / Space); pointer clicks are
+      // handled by the hold timer instead.
+      if (enabled && event.detail > 0) {
+        return;
+      }
+
+      onConfirm();
+    },
+    [enabled, onConfirm],
+  );
+
+  return { holding, cancelHold, handlePointerDown, handleClick };
+}
 
 type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
 
@@ -16,6 +93,8 @@ type ConfirmDialogViewProps = {
   actionAccessibleLabel?: string;
   cancelLabel: string;
   variant?: ConfirmDialogVariant;
+  /** Localized hint shown under a hold-to-confirm destructive action. */
+  holdHint?: string;
   icon?: ConfirmDialogIcon;
   confirmDisabled?: boolean;
   cancelDisabled?: boolean;
@@ -65,6 +144,7 @@ export function ConfirmDialogView({
   actionAccessibleLabel,
   cancelLabel,
   variant = "default",
+  holdHint,
   icon,
   confirmDisabled = false,
   cancelDisabled = false,
@@ -74,6 +154,17 @@ export function ConfirmDialogView({
 }: ConfirmDialogViewProps) {
   const tone = confirmDialogVariantStyles[variant];
   const Icon = icon ?? tone.fallbackIcon;
+  const holdEnabled = variant === "destructive" && !confirmDisabled;
+  const { holding, cancelHold, handlePointerDown, handleClick } = useHoldToConfirm({
+    enabled: holdEnabled,
+    onConfirm,
+  });
+
+  useEffect(() => {
+    if (!open) {
+      cancelHold();
+    }
+  }, [cancelHold, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,15 +183,38 @@ export function ConfirmDialogView({
           </p>
           <div className="flex w-full flex-col gap-2">
             <Button
-              onClick={onConfirm}
+              onClick={handleClick}
+              onPointerDown={holdEnabled ? handlePointerDown : undefined}
+              onPointerUp={holdEnabled ? cancelHold : undefined}
+              onPointerLeave={holdEnabled ? cancelHold : undefined}
+              onPointerCancel={holdEnabled ? cancelHold : undefined}
+              onBlur={holdEnabled ? cancelHold : undefined}
+              {...(holdEnabled ? { [MOTION_DATA_HOLD_ATTRIBUTE]: holding ? "true" : "false" } : {})}
               disabled={confirmDisabled}
               aria-label={actionAccessibleLabel}
               aria-busy={confirmDisabled || undefined}
               variant={tone.actionButtonVariant}
-              className={cn("min-h-11 w-full", tone.actionButtonClassName)}
+              className={cn(
+                "min-h-11 w-full",
+                // A 2s press must not start a text selection or a touch scroll.
+                holdEnabled && `${MOTION_HOLD_CONFIRM_CLASS_NAME} touch-none select-none`,
+                tone.actionButtonClassName,
+              )}
             >
-              {actionLabel}
+              {holdEnabled ? (
+                <span
+                  aria-hidden="true"
+                  data-testid="confirm-dialog-hold-fill"
+                  className={MOTION_HOLD_CONFIRM_FILL_CLASS_NAME}
+                />
+              ) : null}
+              <span className="relative">{actionLabel}</span>
             </Button>
+            {holdEnabled && holdHint ? (
+              <p aria-hidden="true" className="text-center text-foreground-soft text-xs">
+                {holdHint}
+              </p>
+            ) : null}
             <Button
               variant="ghost"
               onClick={onCancel}

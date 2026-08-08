@@ -11,6 +11,7 @@
   "loading": "Loading…",
   "confirm": "Confirm",
   "ok": "OK",
+  "hold_to_confirm": "Press and hold to confirm",
   "mark_as_read_action": "Mark as Read",
   "mark_as_read_count_action": "Mark {{count, count}} as Read",
   "back": "Back",

@@ -32,6 +32,9 @@ export const MOTION_ICON_SWAP_ICON_CLASS_NAME = "motion-icon-swap-icon";
 const MOTION_FILTER_TOGGLE_CLASS_NAME = "motion-filter-toggle";
 const MOTION_LIST_ITEM_ENTER_CLASS_NAME = "motion-list-item-enter";
 const MOTION_LOADING_DOT_CLASS_NAME = "motion-loading-dot";
+export const MOTION_HOLD_CONFIRM_CLASS_NAME = "motion-hold-confirm";
+export const MOTION_HOLD_CONFIRM_FILL_CLASS_NAME = "motion-hold-confirm-fill";
+export const MOTION_HOLD_CONFIRM_DURATION_MS = 2000;
 export const MOTION_CLASS_NAMES = [
   MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
@@ -63,6 +66,8 @@ export const MOTION_CLASS_NAMES = [
   MOTION_FILTER_TOGGLE_CLASS_NAME,
   MOTION_LIST_ITEM_ENTER_CLASS_NAME,
   MOTION_LOADING_DOT_CLASS_NAME,
+  MOTION_HOLD_CONFIRM_CLASS_NAME,
+  MOTION_HOLD_CONFIRM_FILL_CLASS_NAME,
 ] as const;
 export type MotionClassName = (typeof MOTION_CLASS_NAMES)[number];
 
@@ -108,6 +113,7 @@ const MOTION_DATA_PRESSED_ATTRIBUTE = "data-pressed";
 const MOTION_DATA_STATE_TOGGLE_ICON_ATTRIBUTE = "data-state-toggle-icon";
 const MOTION_DATA_STATE_TOGGLE_ICON_TONE_ATTRIBUTE = "data-state-toggle-icon-tone";
 const MOTION_DATA_ARTICLE_STATE_SLOT_ATTRIBUTE = "data-article-state-slot";
+export const MOTION_DATA_HOLD_ATTRIBUTE = "data-motion-hold";
 export const MOTION_DATA_ATTRIBUTES = [
   MOTION_DATA_PHASE_ATTRIBUTE,
   MOTION_DATA_DIRECTION_ATTRIBUTE,
@@ -125,6 +131,7 @@ export const MOTION_DATA_ATTRIBUTES = [
   MOTION_DATA_PRESSED_ATTRIBUTE,
   MOTION_DATA_STATE_TOGGLE_ICON_ATTRIBUTE,
   MOTION_DATA_STATE_TOGGLE_ICON_TONE_ATTRIBUTE,
+  MOTION_DATA_HOLD_ATTRIBUTE,
 ] as const;
 export type MotionDataAttribute = (typeof MOTION_DATA_ATTRIBUTES)[number];
 
@@ -174,6 +181,8 @@ export const MOTION_TRANSITION_TOKEN_DECLARATIONS = [
   "--motion-duration-theme: 180ms;",
   "--motion-duration-contextual: 180ms;",
   "--motion-duration-content-swap: 180ms;",
+  "--motion-duration-hold-confirm: 2000ms;",
+  "--motion-duration-hold-confirm-release: 200ms;",
   "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
   "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
 ] as const;
@@ -209,5 +218,7 @@ export const MOTION_GLOBAL_CSS_CONTRACT_SELECTORS = [
   `.${MOTION_POPUP_SURFACE_CLASS_NAME}[${MOTION_DATA_ENDING_STYLE_ATTRIBUTE}]`,
   `.${MOTION_BROWSER_OVERLAY_CLASS_NAME}[${MOTION_DATA_OPEN_ATTRIBUTE}="false"] *`,
   `.${MOTION_BROWSER_OVERLAY_CLASS_NAME}[${MOTION_DATA_OPEN_ATTRIBUTE}="true"]`,
+  `.${MOTION_HOLD_CONFIRM_FILL_CLASS_NAME}`,
+  `.${MOTION_HOLD_CONFIRM_CLASS_NAME}[${MOTION_DATA_HOLD_ATTRIBUTE}="true"] > .${MOTION_HOLD_CONFIRM_FILL_CLASS_NAME}`,
 ] as const;
 export type MotionGlobalCssContractSelector = (typeof MOTION_GLOBAL_CSS_CONTRACT_SELECTORS)[number];

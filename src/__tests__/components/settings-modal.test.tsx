@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, type sampleTags } from "@tests/helpers/fixtures";
+import { holdToConfirmRealTime } from "@tests/helpers/hold-to-confirm";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
@@ -653,7 +654,7 @@ describe("SettingsModal", () => {
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    await user.click(confirmDeleteButton);
+    await holdToConfirmRealTime(confirmDeleteButton);
 
     await waitFor(() => {
       expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
@@ -706,7 +707,7 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
-    await user.click(
+    await holdToConfirmRealTime(
       within(await screen.findByRole("dialog", { name: "Confirm" })).getByRole("button", { name: /^Delete\b/ }),
     );
 

@@ -11,6 +11,7 @@
   "loading": "読み込み中…",
   "confirm": "確認",
   "ok": "OK",
+  "hold_to_confirm": "長押しで実行",
   "mark_as_read_action": "既読にする",
   "mark_as_read_count_action": "{{count, count}}件を既読にする",
   "back": "戻る",

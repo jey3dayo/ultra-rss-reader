@@ -2,12 +2,18 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { holdToConfirm } from "@tests/helpers/hold-to-confirm";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("AppConfirmDialog", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     useUiStore.setState(useUiStore.getInitialState());
   });
 
@@ -35,7 +41,8 @@ describe("AppConfirmDialog", () => {
       name: 'Delete "Local". This cannot be undone.',
     });
 
-    await user.dblClick(deleteButton);
+    holdToConfirm(deleteButton);
+    holdToConfirm(deleteButton);
     await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
     expect(deleteButton).toBeDisabled();
     expect(deleteButton).toHaveAttribute("aria-busy", "true");
@@ -52,7 +59,6 @@ describe("AppConfirmDialog", () => {
   });
 
   it("keeps the dialog open and re-enables actions when the confirm callback rejects", async () => {
-    const user = userEvent.setup();
     const error = new Error("delete rejected");
     const deferred = createDeferred<void>();
     const onConfirm = vi.fn(() => deferred.promise);
@@ -73,7 +79,7 @@ describe("AppConfirmDialog", () => {
         name: 'Delete "Local". This cannot be undone.',
       });
 
-      await user.click(deleteButton);
+      holdToConfirm(deleteButton);
       expect(deleteButton).toBeDisabled();
 
       act(() => deferred.reject(error));
@@ -95,7 +101,6 @@ describe("AppConfirmDialog", () => {
   });
 
   it("closes after success without refocusing a removed opener", async () => {
-    const user = userEvent.setup();
     const opener = document.createElement("button");
     opener.textContent = "Open feed delete";
     document.body.append(opener);
@@ -113,7 +118,7 @@ describe("AppConfirmDialog", () => {
 
     opener.remove();
 
-    await user.click(await screen.findByRole("button", { name: "Delete" }));
+    holdToConfirm(await screen.findByRole("button", { name: "Delete" }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Confirm" })).not.toBeInTheDocument());
@@ -121,7 +126,6 @@ describe("AppConfirmDialog", () => {
   });
 
   it("closes after success when there is no active element to restore", async () => {
-    const user = userEvent.setup();
     const activeElementSpy = vi.spyOn(document, "activeElement", "get").mockReturnValue(null);
     const onConfirm = vi.fn();
 
@@ -135,7 +139,7 @@ describe("AppConfirmDialog", () => {
         });
       });
 
-      await user.click(await screen.findByRole("button", { name: "Delete" }));
+      holdToConfirm(await screen.findByRole("button", { name: "Delete" }));
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
       await waitFor(() => expect(screen.queryByRole("dialog", { name: "Confirm" })).not.toBeInTheDocument());
@@ -145,7 +149,6 @@ describe("AppConfirmDialog", () => {
   });
 
   it("keeps the dialog open and re-enables actions when the confirm callback throws", async () => {
-    const user = userEvent.setup();
     const error = new Error("delete failed");
     const onConfirm = vi.fn(() => {
       throw error;
@@ -163,7 +166,7 @@ describe("AppConfirmDialog", () => {
         });
       });
 
-      await user.click(
+      holdToConfirm(
         await screen.findByRole("button", {
           name: 'Delete "Local". This cannot be undone.',
         }),

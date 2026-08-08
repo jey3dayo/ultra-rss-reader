@@ -15,6 +15,7 @@ import {
   MOTION_CLASS_NAMES,
   MOTION_DATA_ATTRIBUTES,
   MOTION_GLOBAL_CSS_CONTRACT_SELECTORS,
+  MOTION_HOLD_CONFIRM_DURATION_MS,
   MOTION_KEYFRAMES_NAMES,
   MOTION_TRANSITION_TOKEN_DECLARATIONS,
   type MotionClassName,
@@ -151,6 +152,12 @@ describe("constants source of truth", () => {
     for (const tokenDeclaration of MOTION_TRANSITION_TOKEN_DECLARATIONS) {
       expect(globalCss).toContain(tokenDeclaration);
     }
+  });
+
+  it("keeps the hold-to-confirm timer aligned with its CSS duration token", () => {
+    expect(MOTION_TRANSITION_TOKEN_DECLARATIONS).toContain(
+      `--motion-duration-hold-confirm: ${MOTION_HOLD_CONFIRM_DURATION_MS}ms;`,
+    );
   });
 
   it("uses platform constants as the platform-kind and capability source of truth", () => {

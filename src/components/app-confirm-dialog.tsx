@@ -69,6 +69,7 @@ export function AppConfirmDialog() {
       actionAccessibleLabel={confirmDialog.actionAccessibleLabel ?? undefined}
       cancelLabel={t("cancel")}
       variant={confirmDialog.variant}
+      holdHint={t("hold_to_confirm")}
       icon={confirmDialog.icon}
       confirmDisabled={confirmInFlight}
       cancelDisabled={confirmInFlight}

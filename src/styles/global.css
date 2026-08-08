@@ -113,6 +113,8 @@
   --motion-duration-contextual: 180ms;
   --motion-duration-content-swap: 180ms;
   --motion-duration-article-slide: 380ms;
+  --motion-duration-hold-confirm: 2000ms;
+  --motion-duration-hold-confirm-release: 200ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
   --theme-canvas: #f2f1ed;
@@ -1161,6 +1163,28 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transform: translateY(0);
 }
 
+.motion-hold-confirm {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hold progress is a plain two-state transition so an early release interpolates
+   back from the current progress instead of snapping from a keyframe end state. */
+.motion-hold-confirm-fill {
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  opacity: 0.24;
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--motion-duration-hold-confirm-release) var(--motion-ease-standard);
+}
+
+.motion-hold-confirm[data-motion-hold="true"] > .motion-hold-confirm-fill {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path var(--motion-duration-hold-confirm) linear;
+}
+
 .motion-static-hover-surface {
   transition-property: background-color, border-color, color, box-shadow, opacity;
   transition-duration: var(--motion-duration-contextual);
@@ -1588,6 +1612,19 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-loading-dot {
     animation: none;
     opacity: 0.7;
+  }
+
+  /* Keep the same hold duration; only soften the fill into an opacity ramp. */
+  .motion-hold-confirm-fill {
+    clip-path: none;
+    opacity: 0;
+    transition: opacity var(--motion-duration-hold-confirm-release) var(--motion-ease-standard);
+  }
+
+  .motion-hold-confirm[data-motion-hold="true"] > .motion-hold-confirm-fill {
+    clip-path: none;
+    opacity: 0.24;
+    transition: opacity var(--motion-duration-hold-confirm) linear;
   }
 
   .motion-disclosure-panel[data-state="open"] > .motion-disclosure-body,
