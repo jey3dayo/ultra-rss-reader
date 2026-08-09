@@ -281,6 +281,12 @@ Manual/a11y smoke:
 - These cues should feel mechanical and calm, not celebratory. They are confirmation, not decoration.
 - Use this pattern for compact refresh and navigation controls such as sidebar sync and in-app-browser reload, back, and forward actions.
 
+### Popup Enter and Exit
+
+- Dialogs, overlays, menus, and popovers arrive a little more deliberately than they leave: use a longer enter duration and a shorter exit duration from the token layer rather than one symmetric value. Dismissal follows a decision the user already made, so it should clear the view quickly.
+- Keep the enter and exit paths themselves symmetric. Only the duration differs; a surface must not leave along a different direction or origin than it arrived from.
+- Under `prefers-reduced-motion`, pin translation and scale but keep a short opacity cross-fade. Reduced motion means a gentler transition, not an instant swap with no feedback.
+
 ### Destructive Hold-to-Confirm
 
 - Destructive confirmation dialogs gate the pointer action behind a press-and-hold of about 2 seconds instead of a single click. Keyboard activation stays immediate so the gate never depends on key-repeat behavior.

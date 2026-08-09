@@ -37,6 +37,16 @@
 
 ### Reader UI / Account Settings
 
+- [ ] P3 hold-to-confirm と state hover トークンの残ギャップ
+  - domain shard: `a11y-keyboard`
+  - 対象: `src/components/shared/confirm-dialog-view.tsx`, `src/styles/global.css`
+  - 完了条件: マルチタッチで別ポインタの離しが保持を解除しないこと、forced-colors で hover 面が十分なコントラストを持つことのいずれかを固定するか、現状維持の理由を記録する
+  - 検証: focused test（pointerId 分離）+ manual native verification（Windows ハイコントラスト）
+  - created batch: 2026-08-10
+  - work type: implementation + manual verification
+  - 背景: hold は単一 `timerRef` 管理で `pointerId` を区別しないため、同一ボタンに 2 本指が触れると 1 本目の離しで保持が解除される。`--state-*-surface-hover` は border 30% の機械的導出で、`forced-colors` ブロックに上書きがない
+  - defer: 実害の報告がなく、いずれもデスクトップ主用途では再現しにくいため次バッチ以降
+
 - [ ] P3 MAX_RETAINED_ARTICLE_IDS=50 と一括既読の仕様判断
   - domain shard: `reader-state`
   - 対象: `src/lib/articles/article-retention.ts`, `src/hooks/use-articles.ts`
