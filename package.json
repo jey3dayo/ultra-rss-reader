@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.54.12",
   "type": "module",
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": "26.4.0",
-    "pnpm": "11.20.0"
+    "pnpm": "11.21.0"
   },
   "scripts": {
     "dev": "pnpm exec vite",
@@ -67,7 +67,7 @@
     "date-fns": "^4.4.0",
     "i18next": "^26.3.6",
     "i18next-browser-languagedetector": "^8.2.1",
-    "lucide-react": "^1.30.0",
+    "lucide-react": "^1.31.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.11",
@@ -97,7 +97,7 @@
     "lefthook": "2.1.10",
     "markdownlint-cli2": "^0.23.2",
     "portless": "^0.15.5",
-    "react-doctor": "0.9.8",
+    "react-doctor": "0.9.11",
     "shadcn": "^4.16.2",
     "storybook": "^10.5.7",
     "tailwindcss": "^4.3.3",
