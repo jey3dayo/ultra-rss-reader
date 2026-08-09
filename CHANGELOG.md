@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-08-10
+
 ### Features
 
 - 破壊的操作の確認ダイアログを、単発クリックではなく約 2 秒の長押しで実行する方式に変更した。押下中はボタン内にプログレスが伸び、途中で離すと現在位置から戻る。キーボード操作は従来どおり即時実行で、`prefers-reduced-motion` では同じ長さのまま控えめな表現になる。
