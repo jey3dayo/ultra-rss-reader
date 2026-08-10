@@ -46,6 +46,7 @@ type FeedEditDialogViewProps = {
 
 const FEED_EDIT_ROW_CLASS_NAME =
   "min-h-10 border-b-0 py-1.5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-x-5 lg:grid-cols-[8.5rem_minmax(0,1fr)] lg:items-center lg:gap-x-5";
+const FEED_EDIT_UNSUBSCRIBE_ROW_CLASS_NAME = "sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_auto]";
 const FEED_EDIT_CONTROL_CLASS_NAME = "sm:ml-auto sm:max-w-[17rem] lg:max-w-[17rem]";
 const FEED_EDIT_INPUT_CLASS_NAME = "min-h-10 bg-surface-1/78 shadow-none";
 const FEED_EDIT_SELECT_CLASS_NAME =
@@ -164,7 +165,7 @@ export function FeedEditDialogView({
       <LabeledControlRow
         label={labels.unsubscribe}
         description={labels.unsubscribeDescription}
-        className={`${FEED_EDIT_ROW_CLASS_NAME} mt-3 border-t border-border/70 pt-3`}
+        className={`${FEED_EDIT_ROW_CLASS_NAME} ${FEED_EDIT_UNSUBSCRIBE_ROW_CLASS_NAME} mt-3 border-t border-border/70 pt-3`}
       >
         {({ descriptionId }) => (
           <DeleteButton

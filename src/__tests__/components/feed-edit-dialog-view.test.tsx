@@ -102,6 +102,10 @@ describe("FeedEditDialogView", () => {
     expect(screen.getByRole("combobox", { name: "Folder" })).not.toHaveClass("sm:mr-2", "lg:mr-2");
     expect(screen.getByText("Unsubscribe")).toBeInTheDocument();
     const unsubscribeDescription = screen.getByText("Articles from this feed will also be deleted.");
+    expect(unsubscribeDescription.closest(".grid")).toHaveClass(
+      "sm:grid-cols-[minmax(0,1fr)_auto]",
+      "lg:grid-cols-[minmax(0,1fr)_auto]",
+    );
     expect(screen.getByRole("button", { name: "Unsubscribe…" })).toHaveAttribute(
       "aria-describedby",
       unsubscribeDescription.id,
