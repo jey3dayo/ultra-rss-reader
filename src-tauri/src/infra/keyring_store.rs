@@ -1099,8 +1099,9 @@ mod tests {
             .spawn()
             .unwrap();
 
-        let output = super::wait_for_security_cli_output(child, std::time::Duration::from_secs(1))
-            .expect("completed process should return output");
+        let output =
+            super::wait_for_security_cli_output(child, super::KEYRING_SECURITY_CLI_TIMEOUT)
+                .expect("completed process should return output");
 
         assert!(output.status.success());
         assert_eq!(output.stdout, b"ok");
