@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.55.1] - 2026-08-10
+
+### Maintenance
+
+- npm と Cargo の minor / patch 依存関係を更新し、Tauri CLI 2.11.4、Tauri 2.11.5、tokio 1.53.1 などへ追従した。
+- React Doctor 0.9.11 に合わせて full baseline を更新した。
+
 ## [0.55.0] - 2026-08-10
 
 ### Features
