@@ -37,8 +37,17 @@ export function FormActionButtons({
   };
 
   return (
-    <>
-      <Button type={cancelType} variant="outline" onClick={onCancel} disabled={cancelDisabled} className="min-h-11">
+    <div
+      data-slot="form-action-buttons"
+      className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3"
+    >
+      <Button
+        type={cancelType}
+        variant="outline"
+        onClick={onCancel}
+        disabled={cancelDisabled}
+        className="min-h-11 min-w-20 px-4"
+      >
         {cancelLabel}
       </Button>
       <Button
@@ -46,12 +55,12 @@ export function FormActionButtons({
         onClick={handleSubmit}
         disabled={submitBlocked}
         aria-busy={loading || undefined}
-        className="min-h-11"
+        className="min-h-11 min-w-20 px-4"
       >
         <LoadingActionContent loading={loading} loadingLabel={submittingLabel}>
           {submitLabel}
         </LoadingActionContent>
       </Button>
-    </>
+    </div>
   );
 }

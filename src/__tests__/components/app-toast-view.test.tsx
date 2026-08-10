@@ -43,6 +43,30 @@ describe("AppToastView", () => {
     );
   });
 
+  it("gives update toasts an aligned action rail and clear action hierarchy", () => {
+    render(
+      <AppToastView
+        toastMessage={{
+          message: "Update ready",
+          variant: "update",
+          actions: [
+            { label: "Restart now", onClick: vi.fn() },
+            { label: "Close", onClick: vi.fn() },
+          ],
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const primaryAction = screen.getByRole("button", { name: "Restart now" });
+    const secondaryAction = screen.getByText("Close", { selector: "button" });
+
+    expect(screen.getByTestId("app-toast")).toHaveClass("gap-3", "px-4", "py-3");
+    expect(primaryAction.parentElement).toHaveClass("items-center", "-ml-3", "gap-3");
+    expect(primaryAction).toHaveClass("text-primary", "hover:text-primary");
+    expect(secondaryAction).toHaveClass("text-foreground-soft", "hover:text-foreground");
+  });
+
   it("keeps long toast messages from pushing dismiss and actions out of the row", () => {
     render(
       <AppToastView
@@ -56,7 +80,11 @@ describe("AppToastView", () => {
 
     expect(screen.getByText(/really\/long\/path/)).toHaveClass("min-w-0", "break-words", "leading-snug");
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("shrink-0");
-    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8", "focus-visible:border-transparent");
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass(
+      "min-h-8",
+      "text-primary",
+      "focus-visible:border-transparent",
+    );
   });
 
   it("keeps recovery toast actions and dismiss reachable from the keyboard", async () => {

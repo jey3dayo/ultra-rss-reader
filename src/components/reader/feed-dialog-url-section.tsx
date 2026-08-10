@@ -31,7 +31,7 @@ type FeedDialogUrlSectionViewProps = FeedDialogUrlSectionProps & {
 };
 
 const FEED_DIALOG_ROW_CLASS_NAME =
-  "min-h-[52px] border-b-0 py-2.5 sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)] sm:items-start sm:gap-x-8 [&>div]:sm:flex [&>div]:sm:items-start [&>div]:sm:justify-end [&>div]:lg:pr-0";
+  "min-h-[52px] border-b-0 py-2.5 sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)] sm:items-start sm:gap-x-8 [&>div]:sm:flex [&>div]:sm:items-start [&>div]:sm:justify-end";
 const FEED_DIALOG_CONTROL_CLASS_NAME =
   "grid min-w-0 gap-2 sm:w-[20rem] min-[560px]:grid-cols-[minmax(0,1fr)_auto] min-[560px]:items-center";
 const FEED_DIALOG_INPUT_CLASS_NAME = "min-h-11 bg-surface-1/78 shadow-none";

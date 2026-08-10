@@ -95,25 +95,24 @@ describe("FolderSelectView", () => {
     expect(screen.getByText("Folder").closest(".grid")).toHaveClass(
       "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
       "border-b-0",
+      "[&>div]:sm:flex",
+      "[&>div]:sm:justify-end",
     );
     expect(screen.getByText("Folder")).toHaveClass("whitespace-nowrap", "text-[color:var(--form-row-label)]");
-    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass(
-      "min-h-11",
-      "w-full",
-      "sm:w-[20rem]",
-      "sm:justify-self-end",
-    );
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass("min-h-11", "w-full", "sm:w-[20rem]");
+    expect(screen.getByRole("combobox", { name: "Folder" })).not.toHaveClass("sm:mr-2", "lg:mr-2");
+    expect(screen.getByText("Folder").closest(".grid")?.lastElementChild).toHaveClass("lg:pr-2");
     expect(screen.getByText("Folder name").closest(".grid")).toHaveClass(
       "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
       "border-b-0",
+      "[&>div]:sm:flex",
+      "[&>div]:sm:justify-end",
     );
     expect(screen.getByText("Folder name")).toHaveClass("whitespace-nowrap", "text-[color:var(--form-row-label)]");
-    expect(screen.getByLabelText("Folder name")).toHaveClass(
-      "min-h-11",
-      "w-full",
-      "sm:w-[20rem]",
-      "sm:justify-self-end",
-    );
+    const newFolderInput = screen.getByLabelText("Folder name");
+    expect(newFolderInput).toHaveClass("min-h-11", "w-full");
+    expect(newFolderInput.parentElement?.parentElement).toHaveClass("sm:w-[20rem]", "sm:max-w-[20rem]");
+    expect(screen.getByText("Folder name").closest(".grid")?.lastElementChild).toHaveClass("lg:pr-2");
   });
 
   it("omits the new folder option when folder creation is disabled", async () => {

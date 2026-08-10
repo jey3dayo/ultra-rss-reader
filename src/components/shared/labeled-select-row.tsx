@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { AppSelectPopup } from "./app-select-popup";
 
 export type LabeledSelectRowProps = {
+  labelId?: string;
   label: string;
   name: string;
   value: string;
@@ -22,6 +23,7 @@ export type LabeledSelectRowProps = {
 };
 
 export function LabeledSelectRow({
+  labelId,
   label,
   name,
   value,
@@ -34,18 +36,22 @@ export function LabeledSelectRow({
   triggerClassName,
   popupClassName,
 }: LabeledSelectRowProps) {
-  const labelId = useId();
-  const handleValueChange = createSelectValueChangeHandler({ disabled, onChange });
+  const generatedLabelId = useId();
+  const resolvedLabelId = labelId ?? generatedLabelId;
+  const handleValueChange = createSelectValueChangeHandler({
+    disabled,
+    onChange,
+  });
 
   return (
     <LabeledControlRow
       label={label}
-      labelId={labelId}
+      labelId={resolvedLabelId}
       className={rowClassName}
       labelClassName={cn("whitespace-nowrap", labelClassName)}
     >
       <Select name={name} value={value} onValueChange={handleValueChange} disabled={disabled} open={open}>
-        <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
+        <SelectTrigger aria-labelledby={resolvedLabelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
           <SelectOptionValue options={options} />
         </SelectTrigger>
         <AppSelectPopup className={popupClassName}>

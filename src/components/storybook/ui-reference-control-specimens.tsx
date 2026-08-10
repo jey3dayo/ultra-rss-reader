@@ -240,14 +240,12 @@ export function LoadingAndFormActionsSpecimen() {
           <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
             Form footer
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <FormActionButtons
-              cancelLabel="Cancel"
-              submitLabel="Save"
-              onCancel={() => undefined}
-              onSubmit={() => undefined}
-            />
-          </div>
+          <FormActionButtons
+            cancelLabel="Cancel"
+            submitLabel="Save"
+            onCancel={() => undefined}
+            onSubmit={() => undefined}
+          />
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
           <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">

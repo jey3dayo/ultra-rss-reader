@@ -139,18 +139,16 @@ export function AccountConfigFormView({
           </SurfaceCard>
         ) : null}
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
-          <FormActionButtons
-            cancelLabel={cancelLabel}
-            submitLabel={submitLabel}
-            submittingLabel={submittingLabel}
-            loading={submitting}
-            submitDisabled={submitting || submitDisabled}
-            cancelDisabled={submitting}
-            onCancel={onCancel}
-            submitType="submit"
-          />
-        </div>
+        <FormActionButtons
+          cancelLabel={cancelLabel}
+          submitLabel={submitLabel}
+          submittingLabel={submittingLabel}
+          loading={submitting}
+          submitDisabled={submitting || submitDisabled}
+          cancelDisabled={submitting}
+          onCancel={onCancel}
+          submitType="submit"
+        />
       </form>
     </div>
   );

@@ -92,6 +92,14 @@ describe("FeedEditDialogView", () => {
     expect(screen.getByText("https://example.com/feed.xml")).not.toHaveAttribute("title");
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
+    const titleRow = screen.getByLabelText("Title").closest(".grid");
+    const displayModeRow = screen.getByRole("combobox", { name: "Display Mode" }).closest(".grid");
+    const folderRow = screen.getByRole("combobox", { name: "Folder" }).closest(".grid");
+    expect(titleRow?.lastElementChild).toHaveClass("lg:pr-2");
+    expect(displayModeRow?.lastElementChild).toHaveClass("lg:pr-2");
+    expect(folderRow?.lastElementChild).toHaveClass("lg:pr-2");
+    expect(folderRow).toHaveClass("[&>div]:sm:flex", "[&>div]:sm:justify-end");
+    expect(screen.getByRole("combobox", { name: "Folder" })).not.toHaveClass("sm:mr-2", "lg:mr-2");
     expect(screen.getByText("Unsubscribe")).toBeInTheDocument();
     const unsubscribeDescription = screen.getByText("Articles from this feed will also be deleted.");
     expect(screen.getByRole("button", { name: "Unsubscribe…" })).toHaveAttribute(

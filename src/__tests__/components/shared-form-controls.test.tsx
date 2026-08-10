@@ -52,36 +52,49 @@ describe("shared form controls", () => {
     const onSubmit = vi.fn();
 
     const { rerender } = render(
-      <div className="flex gap-2">
-        <FormActionButtons
-          cancelLabel="Cancel"
-          submitLabel="Save"
-          submittingLabel="Saving"
-          onCancel={onCancel}
-          onSubmit={onSubmit}
-        />
-      </div>,
+      <FormActionButtons
+        cancelLabel="Cancel"
+        submitLabel="Save"
+        submittingLabel="Saving"
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+      />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    const submitButton = screen.getByRole("button", { name: "Save" });
+    const actionGroup = cancelButton.closest('[data-slot="form-action-buttons"]');
+
+    expect(actionGroup).toHaveClass(
+      "flex",
+      "w-full",
+      "flex-col-reverse",
+      "gap-2",
+      "sm:flex-row",
+      "sm:flex-wrap",
+      "sm:justify-end",
+      "sm:gap-3",
+    );
+    expect(cancelButton).toHaveClass("min-h-11", "min-w-20", "px-4", "border-border-strong", "bg-surface-1");
+    expect(submitButton).toHaveClass("min-h-11", "min-w-20", "px-4", "border-border", "bg-surface-3");
+
+    await user.click(cancelButton);
+    await user.click(submitButton);
 
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledTimes(1);
 
     rerender(
-      <div className="flex gap-2">
-        <FormActionButtons
-          cancelLabel="Cancel"
-          submitLabel="Save"
-          submittingLabel="Saving"
-          loading={true}
-          cancelDisabled={true}
-          submitDisabled={true}
-          onCancel={onCancel}
-          onSubmit={onSubmit}
-        />
-      </div>,
+      <FormActionButtons
+        cancelLabel="Cancel"
+        submitLabel="Save"
+        submittingLabel="Saving"
+        loading={true}
+        cancelDisabled={true}
+        submitDisabled={true}
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+      />,
     );
 
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
@@ -187,6 +200,7 @@ describe("shared form controls", () => {
       "flex",
       "max-h-[calc(100dvh-2rem)]",
       "flex-col",
+      "gap-0",
       "rounded-xl",
       "bg-surface-2",
       "shadow-elevation-3",

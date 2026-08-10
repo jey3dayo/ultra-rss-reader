@@ -51,6 +51,8 @@ When a design concern appears, resolve it in this order:
 2. `shared`
 3. feature-local components
 
+Before adding a feature-local alignment or action-spacing nudge, inspect the shared labeled-row or action-group owner and compare its sibling consumers.
+
 ### 1. `DESIGN.md`
 
 Update `DESIGN.md` first when the issue comes from:
@@ -69,6 +71,7 @@ Promote a fix into `shared` only when all of these are true:
 - the accessibility behavior is the same
 - the pattern is repeated or clearly reusable
 - the row alignment rule or radius rule should stay consistent across multiple settings surfaces
+- row or action geometry is promoted only when semantic role, state model, and accessibility behavior match; destructive dialog footers remain a separate semantic family even when they share dimensions with ordinary form actions
 - compact utility-action chrome keeps the same borderless resting state, focus treatment, and tonal selected treatment across screens
 - compact ghost utility actions that share the same semantic role and state model should reuse the same shared interaction class or shared primitive for hover, focus, active, disabled, and pressed behavior
 - button families can preserve their semantic role names instead of collapsing into a generic `Button`
@@ -131,6 +134,8 @@ When reviewing settings rows or input-control specimens, check these before sugg
 - label column is stable
 - control column is stable
 - controls resolve against one shared right-column endpoint
+- breakpoint ownership is reviewed at the same breakpoint where the row grid changes, rather than relying on a different viewport or container threshold
+- visible text and control edges align across composite controls, selects, and follow-up fields; outer hit-area boxes, invisible padding, and local margin compensation are not used as the alignment reference
 - shared primitives use approved Tailwind radius tokens only
 - compact controls do not invent one-off placement
 - explanatory or safety copy is integrated into the settings row-group rhythm instead of becoming a centered prose block between controls

@@ -95,11 +95,12 @@ describe("AddFeedDialogView", () => {
       "bg-surface-1/72",
       "shadow-elevation-1",
     );
-    expect(screen.getByTestId("feed-dialog-url-section").closest(".grid")).toHaveClass(
-      "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
-      "border-b-0",
-      "[&>div]:lg:pr-0",
-    );
+    const urlRow = screen.getByTestId("feed-dialog-url-section").closest(".grid");
+    const folderRow = screen.getByText("Folder").closest(".grid");
+
+    expect(urlRow).toHaveClass("sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]", "border-b-0");
+    expect(urlRow?.lastElementChild).toHaveClass("lg:pr-2");
+    expect(folderRow?.lastElementChild).toHaveClass("lg:pr-2");
     expect(screen.getByTestId("feed-dialog-url-section").querySelector(".grid")).toHaveClass("sm:w-[20rem]");
     expect(screen.getByText("Feed")).toHaveClass("whitespace-nowrap", "text-[color:var(--form-row-label)]");
     expect(screen.queryByText("Paste a feed or site URL.")).not.toBeInTheDocument();
@@ -120,7 +121,8 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("radiogroup", { name: "Found 2 feeds" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Tech Blog" }).closest("label")).toHaveClass("min-h-11");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
-    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass("sm:w-[20rem]", "sm:justify-self-end");
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass("sm:w-[20rem]");
+    expect(screen.getByRole("combobox", { name: "Folder" })).not.toHaveClass("sm:mr-2", "lg:mr-2");
     expect(screen.getByLabelText("Folder name")).toHaveValue("Reading");
     expect(screen.getByText("Feed detected").closest('[data-surface-card="info"]')).toHaveClass(
       "motion-content-swap",
@@ -215,7 +217,6 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByTestId("feed-dialog-url-section").closest(".grid")).toHaveClass(
       "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
       "border-b-0",
-      "[&>div]:lg:pr-0",
     );
     expect(helperText).toHaveClass("motion-content-swap", "rounded-md");
     expect(helperText).toHaveAttribute("data-motion-phase", "entering");
@@ -318,8 +319,9 @@ describe("AddFeedDialogView", () => {
 
     const folderLabel = screen.getByText("Folder");
     const folderSelect = screen.getByRole("combobox", { name: "Folder" });
+    const folderLabelContainer = folderLabel.closest("[id]");
 
-    expect(folderLabel).toHaveAttribute("id", "folder-label");
+    expect(folderLabelContainer).toHaveAttribute("id", "folder-label");
     expect(folderSelect).toHaveAttribute("aria-labelledby", "folder-label");
   });
 

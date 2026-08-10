@@ -8,7 +8,7 @@ const meta = {
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="flex flex-wrap gap-2 p-6">
+      <div className="p-6">
         <Story />
       </div>
     ),

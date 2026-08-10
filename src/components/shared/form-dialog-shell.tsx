@@ -77,7 +77,7 @@ export function FormDialogShell({
         showCloseButton={false}
         portalContainer={portalContainer}
         className={cn(
-          "flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-xl border border-border/70 bg-surface-2 p-0 shadow-elevation-3",
+          "flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden rounded-xl border border-border/70 bg-surface-2 p-0 shadow-elevation-3",
           formDialogSizeClassName[size],
           contentClassName,
         )}

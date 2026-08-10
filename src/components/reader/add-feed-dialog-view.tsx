@@ -105,7 +105,7 @@ export function AddFeedDialogView({
         </div>
       </div>
 
-      <div role="status" aria-live="polite" aria-atomic="true">
+      <div role="status" aria-live="polite" aria-atomic="true" className="empty:hidden">
         {successMessage && !error ? (
           <SurfaceCard
             variant="info"

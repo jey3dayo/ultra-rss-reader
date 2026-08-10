@@ -58,6 +58,7 @@ export function AppToastView({
         showInBrowserRail &&
           "max-w-[min(22rem,calc(100vw-12rem))] gap-0 rounded-md px-3 py-1 text-xs shadow-elevation-1",
         variant === "update" && UPDATE_TOAST_WIDTH_CLASS_NAME,
+        variant === "update" && "gap-3 px-4 py-3",
       )}
     >
       <div className="flex items-center gap-2">
@@ -86,8 +87,8 @@ export function AppToastView({
         </div>
       )}
       {actions && actions.length > 0 && (
-        <div className="flex gap-2">
-          {actions.map((action) => (
+        <div className={cn("flex items-center gap-2", variant === "update" && "-ml-3 gap-3")}>
+          {actions.map((action, index) => (
             <Button
               key={action.label}
               type="button"
@@ -95,7 +96,10 @@ export function AppToastView({
               disabled={resolveActionDisabled(action.disabled)}
               variant="ghost"
               size="sm"
-              className="min-h-8 px-3 py-1 text-xs font-medium text-primary hover:text-primary"
+              className={cn(
+                "min-h-8 px-3 py-1 text-xs font-medium text-primary hover:text-primary",
+                variant === "update" && index > 0 && "text-foreground-soft hover:text-foreground",
+              )}
             >
               {action.label}
             </Button>
