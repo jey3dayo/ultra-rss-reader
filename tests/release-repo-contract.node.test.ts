@@ -121,6 +121,7 @@ const PACKAGED_WINDOW_ICON_PATHS = [
   "icons/128x128@2x.png",
   "icons/icon.icns",
   "icons/icon.ico",
+  "icons/Assets.car",
 ] as const;
 const MOBILE_ICON_ASSET_HASHES = {
   "icons/android/mipmap-anydpi-v26/ic_launcher.xml": "760d4b8a06bf7163dd010c33ad2cac9e4a75fa0177afaba042f83e311eef0c3e",

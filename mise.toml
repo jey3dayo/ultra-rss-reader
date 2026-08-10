@@ -175,6 +175,52 @@ run = "node ./scripts/tauri-cli-dispatch.ts build --debug"
 description = "Generate app icons from source image"
 run = "tauri icon assets/app-icon-tauri-source.png"
 
+[tasks."app:icon:liquid"]
+description = "Regenerate the macOS Liquid Glass app icon asset catalog"
+run = """
+set -eu
+
+if [ "$(uname)" != "Darwin" ]; then
+  echo "app:icon:liquid is macOS-only (requires Xcode actool and sips)." >&2
+  exit 1
+fi
+
+mkdir -p tmp
+ICON_TMP_DIR="$(mktemp -d tmp/app-icon-liquid.XXXXXX)"
+case "$ICON_TMP_DIR" in
+  tmp/app-icon-liquid.*) ;;
+  *)
+    echo "Refusing to remove an unexpected temporary directory: $ICON_TMP_DIR" >&2
+    exit 1
+    ;;
+esac
+trap 'rm -rf "$ICON_TMP_DIR"' EXIT
+
+mkdir -p src-tauri/icons/AppIcon.icon/Assets
+sips --resampleHeightWidth 1024 1024 assets/app-icon-liquid-foreground.png \
+  --out src-tauri/icons/AppIcon.icon/Assets/foreground.png
+
+xcrun actool src-tauri/icons/AppIcon.icon \
+  --compile "$ICON_TMP_DIR" \
+  --output-format human-readable-text \
+  --notices \
+  --warnings \
+  --output-partial-info-plist "$ICON_TMP_DIR/assetcatalog_generated_info.plist" \
+  --app-icon AppIcon \
+  --include-all-app-icons \
+  --accent-color AccentColor \
+  --enable-on-demand-resources NO \
+  --development-region en \
+  --target-device mac \
+  --minimum-deployment-target 26.0 \
+  --platform macosx
+
+test -f "$ICON_TMP_DIR/Assets.car"
+test "$(plutil -extract CFBundleIconName raw "$ICON_TMP_DIR/assetcatalog_generated_info.plist")" = "AppIcon"
+cp "$ICON_TMP_DIR/Assets.car" src-tauri/icons/Assets.car
+"""
+run_windows = "echo 'app:icon:liquid is macOS-only (requires Xcode actool and sips).'; exit 1"
+
 # ========================================
 # エイリアス（まとめ実行）
 # ========================================

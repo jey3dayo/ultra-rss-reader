@@ -2084,7 +2084,15 @@ describe("repository static contracts", () => {
     const docsReadme = readRepoFile("docs/README.md");
     const miseSource = readRepoFile("mise.toml");
     const appIconTask = extractMiseTaskSection(miseSource, "app:icon");
+    const liquidIconTask = extractMiseTaskSection(miseSource, "app:icon:liquid");
     const bundleIcons = tauriConfig.bundle.icon;
+    const liquidIconFiles = [
+      "assets/app-icon-liquid-foreground.png",
+      "assets/app-icon-liquid-v2.png",
+      "src-tauri/icons/AppIcon.icon/icon.json",
+      "src-tauri/icons/AppIcon.icon/Assets/foreground.png",
+      "src-tauri/icons/Assets.car",
+    ];
 
     expect(bundleIcons).toEqual([
       "icons/32x32.png",
@@ -2092,14 +2100,25 @@ describe("repository static contracts", () => {
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico",
+      "icons/Assets.car",
     ]);
     for (const iconPath of bundleIcons) {
       expect(existsSync(join(repoRoot, "src-tauri", iconPath)), iconPath).toBe(true);
     }
     expect(existsSync(join(repoRoot, "assets/app-icon.png"))).toBe(true);
+    expect(existsSync(join(repoRoot, "assets/app-icon-light.png"))).toBe(true);
     expect(existsSync(join(repoRoot, "assets/app-icon-tauri-source.png"))).toBe(true);
     expect(existsSync(join(repoRoot, "src-tauri/icons/icon.png"))).toBe(true);
+    for (const iconPath of liquidIconFiles) {
+      expect(existsSync(join(repoRoot, iconPath)), iconPath).toBe(true);
+    }
     expect(appIconTask).toContain("tauri icon assets/app-icon-tauri-source.png");
+    expect(liquidIconTask).toContain("sips --resampleHeightWidth 1024 1024 assets/app-icon-liquid-foreground.png");
+    expect(liquidIconTask).toContain("--out src-tauri/icons/AppIcon.icon/Assets/foreground.png");
+    expect(liquidIconTask).toContain("mktemp -d tmp/app-icon-liquid.XXXXXX");
+    expect(liquidIconTask).toContain("xcrun actool src-tauri/icons/AppIcon.icon");
+    expect(liquidIconTask).toContain("CFBundleIconName");
+    expect(liquidIconTask).toContain('cp "$ICON_TMP_DIR/Assets.car" src-tauri/icons/Assets.car');
     expect(docsReadme).toContain("Bundled app icon provenance");
     expect(docsReadme).toContain("`assets/app-icon.png` is the checked-in raster design master");
     expect(docsReadme).toContain("`assets/app-icon-tauri-source.png` is the checked-in Tauri source image");
