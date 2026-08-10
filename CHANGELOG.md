@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-08-10
+
+### Features
+
+- macOS 26 向けの Liquid Glass アプリアイコンを追加し、旧 macOS 向けの `.icns` フォールバックを維持した。
+
+### Maintenance
+
+- macOS Keychain CLI の完了確認テストを本番と同じタイムアウトへ揃え、高負荷時の誤検知を防いだ。
+
 ## [0.55.1] - 2026-08-10
 
 ### Maintenance
