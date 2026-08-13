@@ -198,7 +198,7 @@ export function MuteSettingsView({
                     key={rule.id}
                     data-testid={`mute-settings-row-${rule.id}`}
                     className={cn(
-                      "motion-contextual-surface flex min-h-12 items-center justify-between gap-3 border-b py-1.5",
+                      "motion-contextual-surface flex min-h-12 items-center justify-between gap-3 border-b py-1.5 last:border-b-0",
                       SETTINGS_DIVIDER_CLASS,
                     )}
                   >
