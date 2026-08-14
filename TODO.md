@@ -78,6 +78,15 @@
   - blocked: `@typescript-eslint/typescript-estree` の peer dependency は現時点で `typescript >=4.8.4 <6.1.0` であり TypeScript 7(`typescript-7` = `typescript@rc`)を正式サポートしていない。`quality-policy.md` によりリスクのある依存移行を incidental cleanup として実施しない
   - unblock 条件: typescript-eslint 等の TypeScript API 依存ツールが TS7 を peer として正式サポートしたら、`@typescript/typescript6` alias と `typescript-7` を外し `tsc6` を `tsc` に戻して emit build も TS7 へ移行する
 
+- [ ] P2 Sentry release source map upload
+  - domain shard: `quality-tooling`
+  - 対象: `vite.config.ts`, `package.json`, `pnpm-lock.yaml`, `src-tauri/tauri.conf.json` (配布 artifact 除外設定)
+  - 完了条件: production ビルドで Vite の hidden source map(`build.sourcemap: "hidden"`)を生成し、`@sentry/vite-plugin` で Sentry へアップロードした上で、配布 artifact(dist / packaged app)から `.map` を除外する。auth token は 1Password 管理のシークレットとして扱い、リポジトリへ平文で置かない
+  - 検証: `mise run ci`、release build 後に配布 artifact に `.map` が含まれないことの手動確認
+  - created batch: 2026-08-14
+  - work type: implementation
+  - 詳細: 現状 production ビルドに source map がなく、Sentry へ送られるスタックトレースが minify 済みで読めない。`@sentry/vite-plugin` 導入・upload 設定・auth token 扱い・配布物からの map 除外をセットで実装する必要がある
+
 ### Rust Provider / DB / Scheduler
 
 ### Query / Store / Browser Runtime

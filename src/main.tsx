@@ -1,8 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./lib/i18n";
+import { createReactErrorHandlers, initMonitoring } from "@/lib/runtime/monitoring";
 import { App } from "./App";
 import "./styles/global.css";
+
+initMonitoring();
 
 export const APP_ROOT_MISSING_FALLBACK_TEXT = "アプリの起動に失敗しました。ウィンドウを再読み込みしてください。";
 const APP_ROOT_SELECTOR = "#root";
@@ -46,7 +49,7 @@ export function mountApp(rootElement: HTMLElement | null = resolveAppRoot()) {
   }
 
   try {
-    ReactDOM.createRoot(rootElement).render(
+    ReactDOM.createRoot(rootElement, createReactErrorHandlers()).render(
       <React.StrictMode>
         <App />
       </React.StrictMode>,

@@ -1989,7 +1989,21 @@ describe("repository static contracts", () => {
       identifier: "opener:allow-open-url",
       allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
     });
-    expect(tauriConfig.app.security.csp).toContain("connect-src ipc: http://ipc.localhost");
+    expect(tauriConfig.app.security.csp).toContain(
+      "connect-src ipc: http://ipc.localhost https://o4511908351180800.ingest.us.sentry.io",
+    );
+  });
+
+  it("allows Sentry event ingest from the packaged app CSP", () => {
+    const tauriConfig = JSON.parse(readRepoFile("src-tauri/tauri.conf.json"));
+    const connectSrcDirective = tauriConfig.app.security.csp
+      .split(";")
+      .map((directive: string) => directive.trim())
+      .find((directive: string) => directive.startsWith("connect-src"));
+
+    expect(connectSrcDirective).toBeDefined();
+    expect(connectSrcDirective.split(/\s+/)).toContain("https://o4511908351180800.ingest.us.sentry.io");
+    expect(connectSrcDirective).not.toContain("*");
   });
 
   it("uses the native Windows URL opener for percent-encoded article links", () => {
