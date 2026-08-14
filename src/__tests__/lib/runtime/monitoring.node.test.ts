@@ -130,6 +130,31 @@ describe("initMonitoring", () => {
 
     vi.unstubAllEnvs();
   });
+
+  it("falls back to DEFAULT_SENTRY_DSN when VITE_SENTRY_DSN is an undecrypted dotenvx placeholder", () => {
+    vi.stubEnv("VITE_SENTRY_DSN", "encrypted:BNcsDdELVUx9Uavb2MZ8mQ==");
+
+    const result = initMonitoring({ isDev: false, mode: "production" });
+
+    expect(initMock).toHaveBeenCalledWith(expect.objectContaining({ dsn: DEFAULT_SENTRY_DSN }));
+    expect(result).toBe(true);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps a deliberate non-default DSN as-is so origin validation rejects it loudly", () => {
+    vi.stubEnv("VITE_SENTRY_DSN", "https://key@other-org.ingest.us.sentry.io/123");
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const result = initMonitoring({ isDev: false, mode: "production" });
+
+    expect(initMock).not.toHaveBeenCalled();
+    expect(result).toBe(false);
+    expect(consoleWarn).toHaveBeenCalled();
+
+    consoleWarn.mockRestore();
+    vi.unstubAllEnvs();
+  });
 });
 
 describe("createReactErrorHandlers", () => {

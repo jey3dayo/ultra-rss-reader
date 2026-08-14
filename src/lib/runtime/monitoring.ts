@@ -60,8 +60,20 @@ export function shouldInitMonitoring({ dsn, isDev, mode }: MonitoringInitOptions
   return true;
 }
 
+// A dotenvx-managed .env stores VITE_SENTRY_DSN as a non-null "encrypted:..." string,
+// so a plain `?? DEFAULT_SENTRY_DSN` fallback never fires in builds that lack the
+// decryption key. Treat the undecrypted placeholder as "not configured" and fall back;
+// keep the empty string as the explicit opt-out and any other value as-is so a
+// deliberate misconfiguration still fails loudly via origin validation.
+export function resolveMonitoringDsn(rawDsn: string | undefined = import.meta.env.VITE_SENTRY_DSN): string {
+  if (rawDsn === undefined || rawDsn.startsWith("encrypted:")) {
+    return DEFAULT_SENTRY_DSN;
+  }
+  return rawDsn;
+}
+
 export function initMonitoring({
-  dsn = import.meta.env.VITE_SENTRY_DSN ?? DEFAULT_SENTRY_DSN,
+  dsn = resolveMonitoringDsn(),
   isDev = import.meta.env.DEV,
   mode = import.meta.env.MODE,
 }: MonitoringInitOptions = {}): boolean {
