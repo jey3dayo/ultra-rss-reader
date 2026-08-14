@@ -7,6 +7,13 @@ setupBrowserTestDom();
 const renderMock = vi.hoisted(() => vi.fn());
 const createRootMock = vi.hoisted(() => vi.fn(() => ({ render: renderMock })));
 const setupDevMocksMock = vi.hoisted(() => vi.fn());
+const initMonitoringMock = vi.hoisted(() => vi.fn());
+const reactErrorHandlers = vi.hoisted(() => ({
+  onCaughtError: vi.fn(),
+  onRecoverableError: vi.fn(),
+  onUncaughtError: vi.fn(),
+}));
+const createReactErrorHandlersMock = vi.hoisted(() => vi.fn(() => reactErrorHandlers));
 
 vi.mock("react-dom/client", () => ({
   default: {
@@ -16,6 +23,11 @@ vi.mock("react-dom/client", () => ({
 
 vi.mock("@/dev/mocks", () => ({
   setupDevMocks: setupDevMocksMock,
+}));
+
+vi.mock("@/lib/runtime/monitoring", () => ({
+  createReactErrorHandlers: createReactErrorHandlersMock,
+  initMonitoring: initMonitoringMock,
 }));
 
 vi.mock("@/App", () => ({
@@ -36,19 +48,47 @@ describe("main app root bootstrap", () => {
     createRootMock.mockClear();
     renderMock.mockClear();
     setupDevMocksMock.mockClear();
+    initMonitoringMock.mockClear();
+    createReactErrorHandlersMock.mockClear();
     Reflect.deleteProperty(window, "__TAURI_INTERNALS__");
     document.body.innerHTML = "";
   });
 
   it("mounts the app when exactly one #root element exists", async () => {
+    initMonitoringMock.mockReturnValue(true);
+    document.body.innerHTML = '<div id="root"></div>';
+
+    await importMainAndWaitForBootstrap();
+
+    expect(createRootMock).toHaveBeenCalledOnce();
+    expect(createRootMock).toHaveBeenCalledWith(document.getElementById("root"), reactErrorHandlers);
+    expect(createReactErrorHandlersMock).toHaveBeenCalledOnce();
+    expect(renderMock).toHaveBeenCalledOnce();
+    expect(document.querySelector("[data-app-root-missing-fallback]")).toBeNull();
+  });
+
+  it("wires Sentry React root error hooks into createRoot when monitoring initialized", async () => {
+    initMonitoringMock.mockReturnValue(true);
+    document.body.innerHTML = '<div id="root"></div>';
+
+    await importMainAndWaitForBootstrap();
+
+    const [, options] = createRootMock.mock.calls[0] as unknown as [HTMLElement, typeof reactErrorHandlers];
+    expect(options.onCaughtError).toBe(reactErrorHandlers.onCaughtError);
+    expect(options.onRecoverableError).toBe(reactErrorHandlers.onRecoverableError);
+    expect(options.onUncaughtError).toBe(reactErrorHandlers.onUncaughtError);
+  });
+
+  it("does not wire Sentry React root error hooks when monitoring did not initialize", async () => {
+    initMonitoringMock.mockReturnValue(false);
     document.body.innerHTML = '<div id="root"></div>';
 
     await importMainAndWaitForBootstrap();
 
     expect(createRootMock).toHaveBeenCalledOnce();
     expect(createRootMock).toHaveBeenCalledWith(document.getElementById("root"));
+    expect(createReactErrorHandlersMock).not.toHaveBeenCalled();
     expect(renderMock).toHaveBeenCalledOnce();
-    expect(document.querySelector("[data-app-root-missing-fallback]")).toBeNull();
   });
 
   it("renders a user-visible fallback when #root is missing", async () => {

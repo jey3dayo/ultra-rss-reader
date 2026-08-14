@@ -24,7 +24,7 @@ Ultra RSS Reader is currently compatibility-first for feed content.
 - Remote `http:` / `https:` frames are allowed because Web Preview is an explicit embedded-browser feature.
 - The local app database is not encrypted by Ultra RSS Reader at rest in this release.
 - Support/debug copy must not include a stable app or environment fingerprint by default.
-- The app ships no outbound telemetry, analytics, or crash-reporting service. Diagnostics stay in local file logs and in-app support/debug copy, and no error data is sent to any remote endpoint automatically. This is a deliberate single-maintainer decision, not a deferred integration; field failures are expected to surface to the maintainer directly rather than through remote reporting.
+- The app ships no outbound product analytics and no app-action telemetry. It does ship one narrowly scoped outbound crash-reporting path: Sentry error monitoring, described under [Remote Error Monitoring](#remote-error-monitoring).
 
 This means the app does not currently promise that opening an article avoids all third-party network requests.
 
@@ -233,6 +233,25 @@ Decision: do not add telemetry for app actions. A local-only, redacted, size-cap
 Action diagnostics may record action id, surface class, success/failure class, and coarse timing/order. They must not store account names, feed names, article titles, raw URLs, server URLs, local paths, credentials, tokens, cookies, clipboard payloads, or raw menu/shortcut payloads. Support copy may include the redacted action sequence only after explicit consent and preview, and it must follow the same 16 KiB per-event and 256 KiB history caps as other runtime diagnostics.
 
 If action sequencing is needed before a diagnostics export exists, support should ask for a manually redacted app.log excerpt or reproduction steps rather than adding remote telemetry.
+
+### Remote Error Monitoring
+
+Decision: crash and error reporting may be sent to Sentry. This supersedes the earlier decision to ship no outbound crash-reporting service; app-action telemetry and product analytics remain prohibited under [Local App Action Diagnostics](#local-app-action-diagnostics).
+
+Scope of what may leave the device:
+
+- exception type, message, and stack trace, plus the release environment
+- nothing else by default: `sendDefaultPii` is disabled, and `Sentry.init` is given an explicit allowlist of default integrations (`ALLOWED_SENTRY_INTEGRATIONS`) instead of an exclude list, so only the minimal set needed for error capture is kept: `InboundFilters`, `FunctionToString`, `BrowserApiErrors`, `GlobalHandlers`, `LinkedErrors`, `Dedupe`
+
+The allowlist is a hard requirement, not a default: it also drops `HttpContext` (URL, Referer, user agent), `CultureContext` (locale, timezone), and `BrowserSession` (session envelopes sent even without an exception), in addition to `Breadcrumbs` (DOM clicks, console arguments, `fetch`/XHR URLs, history navigation). This app's `console.error` calls carry raw errors that can contain feed, article, and server URLs, which the rest of this document prohibits sending remotely. Any future opt-in of an excluded integration needs a redaction allowlist and its own tests before it lands.
+
+Operational constraints:
+
+- the DSN is a public value, not a secret. `initMonitoring` uses `VITE_SENTRY_DSN` when set at build time, and otherwise falls back to a built-in default DSN (`DEFAULT_SENTRY_DSN`) so monitoring stays enabled in release builds that do not inject the dotenvx decryption key for the encrypted `.env` value. A build that sets `VITE_SENTRY_DSN` to an empty string is the explicit opt-out
+- the Tauri production CSP `connect-src` must allow exactly the project's Sentry ingest origin, never a wildcard
+- exception messages are not redacted before sending. Error copy that would embed feed, article, or server URLs into a thrown message must be treated as a defect in that call site
+
+Owner: `src/lib/runtime/monitoring.ts`.
 
 ### Destructive Action Copy And Private Names
 

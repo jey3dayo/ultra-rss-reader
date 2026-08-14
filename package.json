@@ -58,6 +58,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@praha/byethrow": "^0.12.0",
+    "@sentry/react": "^10.70.0",
     "@tanstack/react-query": "^5.101.4",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",

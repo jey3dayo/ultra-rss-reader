@@ -1,8 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./lib/i18n";
+import { createReactErrorHandlers, initMonitoring } from "@/lib/runtime/monitoring";
 import { App } from "./App";
 import "./styles/global.css";
+
+const monitoringEnabled = initMonitoring();
 
 export const APP_ROOT_MISSING_FALLBACK_TEXT = "アプリの起動に失敗しました。ウィンドウを再読み込みしてください。";
 const APP_ROOT_SELECTOR = "#root";
@@ -40,13 +43,22 @@ export function resolveAppRoot(ownerDocument: Document = document): HTMLElement 
   return null;
 }
 
-export function mountApp(rootElement: HTMLElement | null = resolveAppRoot()) {
+export function mountApp(
+  rootElement: HTMLElement | null = resolveAppRoot(),
+  { errorHandlersEnabled = monitoringEnabled }: { errorHandlersEnabled?: boolean } = {},
+) {
   if (!rootElement) {
     return;
   }
 
   try {
-    ReactDOM.createRoot(rootElement).render(
+    // Only wire Sentry's React root error hooks when monitoring actually initialized.
+    // Passing them unconditionally would replace React 19's default root error console
+    // reporting with a no-op handler whenever Sentry is disabled (missing DSN, dev, test).
+    const root = errorHandlersEnabled
+      ? ReactDOM.createRoot(rootElement, createReactErrorHandlers())
+      : ReactDOM.createRoot(rootElement);
+    root.render(
       <React.StrictMode>
         <App />
       </React.StrictMode>,
