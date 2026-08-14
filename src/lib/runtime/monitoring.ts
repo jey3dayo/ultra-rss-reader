@@ -7,6 +7,29 @@ import type { ErrorInfo } from "react";
 // blocked by CSP.
 export const SENTRY_INGEST_ORIGIN = "https://o4511908351180800.ingest.us.sentry.io";
 
+// Public Sentry DSN (not a secret). Release builds do not receive the dotenvx
+// decryption key, so `VITE_SENTRY_DSN` (an `encrypted:` value in `.env`) stays
+// encrypted at build time and fails origin validation, silently disabling
+// monitoring. This default keeps monitoring enabled unless a build explicitly
+// opts out with an empty `VITE_SENTRY_DSN`.
+export const DEFAULT_SENTRY_DSN =
+  "https://6b07cc097a80795f8ea1883e0f2f108b0@o4511908351180800.ingest.us.sentry.io/4511908558012416";
+
+// Reviewed allowlist of default Sentry integrations kept enabled, matching the
+// remote telemetry privacy contract in docs/feed-content-privacy.md. Only the
+// minimal set needed for error capture, stack quality, dedupe, and inbound
+// filtering is allowed; integrations that send DOM/URL/referrer/UA data
+// (Breadcrumbs, HttpContext), locale/timezone data (CultureContext), or
+// session envelopes without an exception (BrowserSession) are excluded.
+export const ALLOWED_SENTRY_INTEGRATIONS = [
+  "InboundFilters",
+  "FunctionToString",
+  "BrowserApiErrors",
+  "GlobalHandlers",
+  "LinkedErrors",
+  "Dedupe",
+] as const;
+
 export type MonitoringInitOptions = {
   dsn?: string;
   isDev?: boolean;
@@ -38,7 +61,7 @@ export function shouldInitMonitoring({ dsn, isDev, mode }: MonitoringInitOptions
 }
 
 export function initMonitoring({
-  dsn = import.meta.env.VITE_SENTRY_DSN,
+  dsn = import.meta.env.VITE_SENTRY_DSN ?? DEFAULT_SENTRY_DSN,
   isDev = import.meta.env.DEV,
   mode = import.meta.env.MODE,
 }: MonitoringInitOptions = {}): boolean {
@@ -56,9 +79,12 @@ export function initMonitoring({
       dsn,
       environment: mode,
       sendDefaultPii: false,
-      // Breadcrumbs default integration records DOM clicks, console args, fetch/XHR URLs,
-      // and history navigation; excluded per docs/feed-content-privacy.md remote telemetry policy.
-      integrations: (defaults) => defaults.filter((integration) => integration.name !== "Breadcrumbs"),
+      // Allowlist (not an exclude list) of default Sentry integrations, per the
+      // remote telemetry privacy contract in docs/feed-content-privacy.md.
+      integrations: (defaults) => {
+        const allowedIntegrationNames: readonly string[] = ALLOWED_SENTRY_INTEGRATIONS;
+        return defaults.filter((integration) => allowedIntegrationNames.includes(integration.name));
+      },
     });
     return true;
   } catch (error) {

@@ -9,11 +9,19 @@ vi.mock("@sentry/react", () => ({
 }));
 
 import {
+  ALLOWED_SENTRY_INTEGRATIONS,
   createReactErrorHandlers,
+  DEFAULT_SENTRY_DSN,
   initMonitoring,
   SENTRY_INGEST_ORIGIN,
   shouldInitMonitoring,
 } from "@/lib/runtime/monitoring";
+
+describe("DEFAULT_SENTRY_DSN", () => {
+  it("has an origin matching the packaged app's allowed CSP connect-src origin", () => {
+    expect(new URL(DEFAULT_SENTRY_DSN).origin).toBe(SENTRY_INGEST_ORIGIN);
+  });
+});
 
 describe("shouldInitMonitoring", () => {
   it("skips when dsn is missing", () => {
@@ -66,13 +74,6 @@ describe("initMonitoring", () => {
     expect(result).toBe(true);
   });
 
-  it("returns false without calling Sentry.init when dsn is missing", () => {
-    const result = initMonitoring({ dsn: undefined, isDev: false, mode: "production" });
-
-    expect(initMock).not.toHaveBeenCalled();
-    expect(result).toBe(false);
-  });
-
   it("returns false without throwing when Sentry.init throws", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     initMock.mockImplementationOnce(() => {
@@ -86,13 +87,48 @@ describe("initMonitoring", () => {
     consoleError.mockRestore();
   });
 
-  it("excludes the Breadcrumbs integration to keep default breadcrumbs off per feed-content-privacy policy", () => {
+  it("keeps only the reviewed allowlist of default integrations per feed-content-privacy policy", () => {
     initMonitoring({ dsn: `${SENTRY_INGEST_ORIGIN}/1`, isDev: false, mode: "production" });
 
     const initArgs = initMock.mock.calls[0]?.[0] as { integrations: (defaults: { name: string }[]) => unknown };
-    const defaults = [{ name: "Breadcrumbs" }, { name: "Dedupe" }, { name: "HttpContext" }];
+    // Mirrors the real @sentry/browser default integration list, including the
+    // ones that must be excluded (Breadcrumbs, HttpContext, CultureContext, BrowserSession).
+    const defaults = [
+      { name: "InboundFilters" },
+      { name: "FunctionToString" },
+      { name: "BrowserApiErrors" },
+      { name: "Breadcrumbs" },
+      { name: "GlobalHandlers" },
+      { name: "LinkedErrors" },
+      { name: "Dedupe" },
+      { name: "HttpContext" },
+      { name: "CultureContext" },
+      { name: "BrowserSession" },
+    ];
 
-    expect(initArgs.integrations(defaults)).toEqual([{ name: "Dedupe" }, { name: "HttpContext" }]);
+    expect(initArgs.integrations(defaults)).toEqual(ALLOWED_SENTRY_INTEGRATIONS.map((name) => ({ name })));
+  });
+
+  it("uses DEFAULT_SENTRY_DSN when VITE_SENTRY_DSN is not set", () => {
+    vi.stubEnv("VITE_SENTRY_DSN", undefined);
+
+    const result = initMonitoring({ isDev: false, mode: "production" });
+
+    expect(initMock).toHaveBeenCalledWith(expect.objectContaining({ dsn: DEFAULT_SENTRY_DSN }));
+    expect(result).toBe(true);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("treats an explicit empty VITE_SENTRY_DSN as opt-out and does not fall back to the default", () => {
+    vi.stubEnv("VITE_SENTRY_DSN", "");
+
+    const result = initMonitoring({ isDev: false, mode: "production" });
+
+    expect(initMock).not.toHaveBeenCalled();
+    expect(result).toBe(false);
+
+    vi.unstubAllEnvs();
   });
 });
 

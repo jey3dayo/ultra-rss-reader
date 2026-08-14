@@ -241,13 +241,13 @@ Decision: crash and error reporting may be sent to Sentry. This supersedes the e
 Scope of what may leave the device:
 
 - exception type, message, and stack trace, plus the release environment
-- nothing else by default: `sendDefaultPii` is disabled, and the SDK's default Breadcrumbs integration is excluded so DOM clicks, console arguments, `fetch`/XHR URLs, and history navigation are not collected
+- nothing else by default: `sendDefaultPii` is disabled, and `Sentry.init` is given an explicit allowlist of default integrations (`ALLOWED_SENTRY_INTEGRATIONS`) instead of an exclude list, so only the minimal set needed for error capture is kept: `InboundFilters`, `FunctionToString`, `BrowserApiErrors`, `GlobalHandlers`, `LinkedErrors`, `Dedupe`
 
-The Breadcrumbs exclusion is a hard requirement, not a default: this app's `console.error` calls carry raw errors that can contain feed, article, and server URLs, which the rest of this document prohibits sending remotely. Any future opt-in of a breadcrumb source needs a redaction allowlist and its own tests before it lands.
+The allowlist is a hard requirement, not a default: it also drops `HttpContext` (URL, Referer, user agent), `CultureContext` (locale, timezone), and `BrowserSession` (session envelopes sent even without an exception), in addition to `Breadcrumbs` (DOM clicks, console arguments, `fetch`/XHR URLs, history navigation). This app's `console.error` calls carry raw errors that can contain feed, article, and server URLs, which the rest of this document prohibits sending remotely. Any future opt-in of an excluded integration needs a redaction allowlist and its own tests before it lands.
 
 Operational constraints:
 
-- monitoring is off unless `VITE_SENTRY_DSN` is set at build time, so a build without a DSN is the opt-out
+- the DSN is a public value, not a secret. `initMonitoring` uses `VITE_SENTRY_DSN` when set at build time, and otherwise falls back to a built-in default DSN (`DEFAULT_SENTRY_DSN`) so monitoring stays enabled in release builds that do not inject the dotenvx decryption key for the encrypted `.env` value. A build that sets `VITE_SENTRY_DSN` to an empty string is the explicit opt-out
 - the Tauri production CSP `connect-src` must allow exactly the project's Sentry ingest origin, never a wildcard
 - exception messages are not redacted before sending. Error copy that would embed feed, article, or server URLs into a thrown message must be treated as a defect in that call site
 
