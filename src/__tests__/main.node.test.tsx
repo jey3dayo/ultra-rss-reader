@@ -55,6 +55,7 @@ describe("main app root bootstrap", () => {
   });
 
   it("mounts the app when exactly one #root element exists", async () => {
+    initMonitoringMock.mockReturnValue(true);
     document.body.innerHTML = '<div id="root"></div>';
 
     await importMainAndWaitForBootstrap();
@@ -66,7 +67,8 @@ describe("main app root bootstrap", () => {
     expect(document.querySelector("[data-app-root-missing-fallback]")).toBeNull();
   });
 
-  it("wires Sentry React root error hooks into createRoot", async () => {
+  it("wires Sentry React root error hooks into createRoot when monitoring initialized", async () => {
+    initMonitoringMock.mockReturnValue(true);
     document.body.innerHTML = '<div id="root"></div>';
 
     await importMainAndWaitForBootstrap();
@@ -75,6 +77,18 @@ describe("main app root bootstrap", () => {
     expect(options.onCaughtError).toBe(reactErrorHandlers.onCaughtError);
     expect(options.onRecoverableError).toBe(reactErrorHandlers.onRecoverableError);
     expect(options.onUncaughtError).toBe(reactErrorHandlers.onUncaughtError);
+  });
+
+  it("does not wire Sentry React root error hooks when monitoring did not initialize", async () => {
+    initMonitoringMock.mockReturnValue(false);
+    document.body.innerHTML = '<div id="root"></div>';
+
+    await importMainAndWaitForBootstrap();
+
+    expect(createRootMock).toHaveBeenCalledOnce();
+    expect(createRootMock).toHaveBeenCalledWith(document.getElementById("root"));
+    expect(createReactErrorHandlersMock).not.toHaveBeenCalled();
+    expect(renderMock).toHaveBeenCalledOnce();
   });
 
   it("renders a user-visible fallback when #root is missing", async () => {

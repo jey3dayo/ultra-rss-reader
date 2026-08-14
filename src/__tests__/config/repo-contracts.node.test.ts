@@ -41,6 +41,7 @@ import packageJson from "../../../package.json";
 import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../../../scripts/quality-baseline";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
 import tauriReleaseConfig from "../../../src-tauri/tauri.release.conf.json";
+import { SENTRY_INGEST_ORIGIN } from "../../lib/runtime/monitoring";
 
 const repoRoot = process.cwd();
 type CapabilityPermission =
@@ -1989,9 +1990,7 @@ describe("repository static contracts", () => {
       identifier: "opener:allow-open-url",
       allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
     });
-    expect(tauriConfig.app.security.csp).toContain(
-      "connect-src ipc: http://ipc.localhost https://o4511908351180800.ingest.us.sentry.io",
-    );
+    expect(tauriConfig.app.security.csp).toContain(`connect-src ipc: http://ipc.localhost ${SENTRY_INGEST_ORIGIN}`);
   });
 
   it("allows Sentry event ingest from the packaged app CSP", () => {
@@ -2002,7 +2001,7 @@ describe("repository static contracts", () => {
       .find((directive: string) => directive.startsWith("connect-src"));
 
     expect(connectSrcDirective).toBeDefined();
-    expect(connectSrcDirective.split(/\s+/)).toContain("https://o4511908351180800.ingest.us.sentry.io");
+    expect(connectSrcDirective.split(/\s+/)).toContain(SENTRY_INGEST_ORIGIN);
     expect(connectSrcDirective).not.toContain("*");
   });
 

@@ -8,7 +8,12 @@ vi.mock("@sentry/react", () => ({
   reactErrorHandler: reactErrorHandlerMock,
 }));
 
-import { createReactErrorHandlers, initMonitoring, shouldInitMonitoring } from "@/lib/runtime/monitoring";
+import {
+  createReactErrorHandlers,
+  initMonitoring,
+  SENTRY_INGEST_ORIGIN,
+  shouldInitMonitoring,
+} from "@/lib/runtime/monitoring";
 
 describe("shouldInitMonitoring", () => {
   it("skips when dsn is missing", () => {
@@ -20,15 +25,25 @@ describe("shouldInitMonitoring", () => {
   });
 
   it("skips in dev mode", () => {
-    expect(shouldInitMonitoring({ dsn: "https://example/1", isDev: true, mode: "production" })).toBe(false);
+    expect(shouldInitMonitoring({ dsn: `${SENTRY_INGEST_ORIGIN}/1`, isDev: true, mode: "production" })).toBe(false);
   });
 
   it("skips in test mode", () => {
-    expect(shouldInitMonitoring({ dsn: "https://example/1", isDev: false, mode: "test" })).toBe(false);
+    expect(shouldInitMonitoring({ dsn: `${SENTRY_INGEST_ORIGIN}/1`, isDev: false, mode: "test" })).toBe(false);
   });
 
-  it("initializes with dsn, non-dev, production mode", () => {
-    expect(shouldInitMonitoring({ dsn: "https://example/1", isDev: false, mode: "production" })).toBe(true);
+  it("initializes with dsn matching the allowed CSP ingest origin, non-dev, production mode", () => {
+    expect(shouldInitMonitoring({ dsn: `${SENTRY_INGEST_ORIGIN}/1`, isDev: false, mode: "production" })).toBe(true);
+  });
+
+  it("skips when dsn origin does not match the packaged CSP ingest origin", () => {
+    expect(
+      shouldInitMonitoring({ dsn: "https://o999999.ingest.us.sentry.io/1", isDev: false, mode: "production" }),
+    ).toBe(false);
+  });
+
+  it("skips when dsn is not a parseable URL", () => {
+    expect(shouldInitMonitoring({ dsn: "not-a-valid-url", isDev: false, mode: "production" })).toBe(false);
   });
 });
 
@@ -38,11 +53,11 @@ describe("initMonitoring", () => {
   });
 
   it("calls Sentry.init and returns true when conditions are met", () => {
-    const result = initMonitoring({ dsn: "https://example/1", isDev: false, mode: "production" });
+    const result = initMonitoring({ dsn: `${SENTRY_INGEST_ORIGIN}/1`, isDev: false, mode: "production" });
 
     expect(initMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        dsn: "https://example/1",
+        dsn: `${SENTRY_INGEST_ORIGIN}/1`,
         environment: "production",
         sendDefaultPii: false,
         integrations: expect.any(Function),
@@ -64,7 +79,7 @@ describe("initMonitoring", () => {
       throw new Error("init failed");
     });
 
-    const result = initMonitoring({ dsn: "https://example/1", isDev: false, mode: "production" });
+    const result = initMonitoring({ dsn: `${SENTRY_INGEST_ORIGIN}/1`, isDev: false, mode: "production" });
 
     expect(result).toBe(false);
     expect(consoleError).toHaveBeenCalled();
@@ -72,7 +87,7 @@ describe("initMonitoring", () => {
   });
 
   it("excludes the Breadcrumbs integration to keep default breadcrumbs off per feed-content-privacy policy", () => {
-    initMonitoring({ dsn: "https://example/1", isDev: false, mode: "production" });
+    initMonitoring({ dsn: `${SENTRY_INGEST_ORIGIN}/1`, isDev: false, mode: "production" });
 
     const initArgs = initMock.mock.calls[0]?.[0] as { integrations: (defaults: { name: string }[]) => unknown };
     const defaults = [{ name: "Breadcrumbs" }, { name: "Dedupe" }, { name: "HttpContext" }];
