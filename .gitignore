@@ -34,3 +34,9 @@ plans/
 # Development certificate
 devcert.pfx
 devcert.cer
+
+# MSIX packaging output
+dist-msix/
+*.msix
+*.msixbundle
+msix-out/
