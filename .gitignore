@@ -30,3 +30,7 @@ debug-storybook.log
 # APM dependencies
 apm_modules/
 plans/
+
+# Development certificate
+devcert.pfx
+devcert.cer
