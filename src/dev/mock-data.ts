@@ -358,9 +358,9 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-9",
     feedId: "feed-nhk",
-    title: "“アメリカ・イランが攻撃停止で合意 30日に協議”米報道",
+    title: "国際宇宙ステーション補給ミッション成功 民間機で初の往復再利用",
     summary:
-      "中東のホルムズ海峡をめぐるアメリカとイランの攻撃の応酬が続くなか、アメリカのメディアは28日、アメリカとイランが互いに攻撃を停止することで合意し、30日に仲介国のカタールで協議を行う見通しだと伝えました。",
+      "国際宇宙ステーションへの補給ミッションが28日、無事に完了しました。民間の補給機として初めて往復での機体再利用に成功し、輸送コストの大幅な低減につながると期待されています。",
     url: "https://news.web.nhk/newsweb/na/na-k10015163371000",
     author: "NHK",
     date: now,
@@ -371,9 +371,9 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-10",
     feedId: "feed-nhk",
-    title: "近鉄京都線 京都駅の構内で脱線 乗員や乗客にけが人なし",
+    title: "京都駅に新しい観光案内ラウンジ 多言語対応で乗り換え案内も",
     summary:
-      "29日午前5時すぎ、近鉄京都線の京都駅の構内で、4両編成の始発の普通列車が脱線し、京都線は一部の区間で運転の見合わせが続いています。乗員や乗客にけが人はいないということです。",
+      "京都駅の構内に29日、観光案内ラウンジがオープンしました。4か国語に対応した案内スタッフが常駐し、周辺路線への乗り換え案内やモデルコースの提案を行います。",
     url: "https://news.web.nhk/newsweb/na/na-k10015163381000",
     author: "NHK",
     date: now,
@@ -383,9 +383,9 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-11",
     feedId: "feed-nhk",
-    title: "【地震情報】青森県 岩手県で震度5弱 今後1週間程度 注意を",
+    title: "国内キャッシュレス決済比率 過去最高を更新 経済産業省が発表",
     summary:
-      "28日 朝早く岩手県沖で地震があり、青森県と岩手県で震度5弱の強い揺れを観測しました。気象庁は、1週間程度、最大震度6強程度の地震に注意するよう呼びかけています。",
+      "経済産業省は28日、昨年度の国内キャッシュレス決済比率が過去最高を更新したと発表しました。コード決済の伸びが全体をけん引しているとしています。",
     url: "https://news.web.nhk/newsweb/na/na-k10015162811000",
     author: "NHK",
     date: now,
@@ -395,9 +395,9 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-12",
     feedId: "feed-nhk",
-    title: "ベネズエラ地震から4日 各国救助チームの活動本格化",
+    title: "南米各国が新たな貿易枠組みで合意 関税引き下げへ",
     summary:
-      "南米ベネズエラの地震では、発生から4日がたった28日までに1450人の死亡が確認されました。建物への被害が集中している地域で各国の救助チームの活動が本格化しています。",
+      "南米の主要国は28日、域内の貿易枠組みを見直すことで合意しました。段階的な関税の引き下げにより、農産品や工業製品の取引拡大を目指すとしています。",
     url: "https://news.web.nhk/newsweb/na/na-k10015163301000",
     author: "NHK",
     date: now,
@@ -419,9 +419,9 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-14",
     feedId: "feed-nhk",
-    title: "大分 別府ひき逃げ事件から4年 新映像公開し情報提供呼びかけ",
+    title: "大分 別府温泉の観光客数が過去最多 インバウンドが押し上げ",
     summary:
-      "大分県別府市で大学生が車にひき逃げされて死亡し、八田與一容疑者が殺人などの疑いで重要指名手配されている事件は、29日で発生から4年です。",
+      "大分県別府市の温泉施設を訪れた観光客数が昨年度に過去最多となりました。海外からの旅行者が全体の3割を占め、市は受け入れ体制の拡充を進めています。",
     url: "https://news.web.nhk/newsweb/na/na-k10015163331000",
     author: "NHK",
     date: now,
@@ -431,9 +431,9 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-15",
     feedId: "feed-nhk",
-    title: "7月発表の短観予測 イラン情勢影響で悪化予測多く",
+    title: "7月発表の短観予測 設備投資の回復で改善見込む声",
     summary:
-      "7月1日に公表される日銀の短観について、民間の調査会社の間では、イラン情勢の悪化による価格上昇や物流コストの上昇が収益を押し下げているとして、悪化を予測する見方が多くなっています。",
+      "7月1日に公表される日銀の短観について、民間の調査会社の間では、製造業の設備投資が回復していることを背景に、景況感の改善を予測する見方が多くなっています。",
     url: "https://news.web.nhk/newsweb/na/na-k10015163221000",
     author: "NHK",
     date: now,
@@ -443,8 +443,8 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-16",
     feedId: "feed-hatena",
-    title: "“伝家の宝刀” なんてない「異常で恐ろしい」首相の衆院解散権",
-    summary: "衆議院の解散権をめぐる論点を、過去の事例とともに整理します。",
+    title: "“積ん読”は悪くない 読書量より「本との出会い方」を見直す",
+    summary: "積ん読との付き合い方を、読書習慣の研究や書店員の視点とともに整理します。",
     url: "https://b.hatena.ne.jp/hotentry/mock-1",
     author: "日本経済新聞",
     date: now,
@@ -467,8 +467,8 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-18",
     feedId: "feed-hatena",
-    title: "欧州で航空燃料不足、6月に欠航拡大の恐れ ANA・JAL途中給油探る",
-    summary: "欧州で航空燃料不足が続き、日本の航空会社も運航計画を見直しています。",
+    title: "欧州路線に持続可能燃料を本格導入、6月から対象便を順次拡大",
+    summary: "欧州路線で持続可能な航空燃料の導入が進み、日本の航空会社も対象便を拡大しています。",
     url: "https://b.hatena.ne.jp/hotentry/mock-3",
     author: "日本経済新聞",
     date: now,
@@ -682,9 +682,9 @@ const mockArticleSeeds = [
   {
     id: "art-6",
     feed_id: "feed-hatena",
-    title: "競馬場で喜ぶCMは封幸心おある、選挙期間に競馬広告「ほとんどの方が馬券外れている」",
-    content_sanitized: "<p>競馬場のCMについての考察記事です。</p>",
-    summary: "選挙期間中の競馬広告について。「ほとんどの方が馬券外れている」という指摘。",
+    title: "街の書店が復活の兆し、選書イベントが生む「偶然の一冊」との出会い",
+    content_sanitized: "<p>独立系書店の取り組みについての考察記事です。</p>",
+    summary: "独立系書店の選書イベントについて。「偶然の一冊」との出会いが集客につながっているという指摘。",
     url: "https://example.com/keiba",
     author: null,
     published_at: mockArticlePublishedAt(now, 15, 56),
@@ -695,9 +695,10 @@ const mockArticleSeeds = [
   {
     id: "art-7",
     feed_id: "feed-nhk",
-    title: "【地震速報】岩手で震度4 津波被害の心配なし",
-    content_sanitized: "<p>26日午前、岩手県で震度4の地震がありました。この地震による津波の心配はありません。</p>",
-    summary: "26日午前、岩手県で震度4の地震。津波被害の心配なし。",
+    title: "全国の桜 記録的な早咲き 各地で開花宣言",
+    content_sanitized:
+      "<p>26日午前、各地の気象台が桜の開花を発表しました。平年より1週間ほど早い開花となっています。</p>",
+    summary: "26日午前、各地で桜の開花を発表。平年より1週間ほど早い。",
     url: "https://www3.nhk.or.jp/news/html/example.html",
     author: "NHK",
     published_at: mockArticlePublishedAt(now, 11, 30),
