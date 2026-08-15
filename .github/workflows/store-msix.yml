@@ -4,8 +4,8 @@ name: Store MSIX
 # GitHub Release とは独立した配布経路のため、タグ push には連動させない。
 # Store 提出用パッケージは Store 側が Microsoft 証明書で再署名するため、
 # このワークフローでは署名しない（sideload 検証用の署名はローカルで行う）。
-# 前提: Phase 2 (issue #57) で winapp init が生成した Package.appxmanifest と
-# Assets/ がリポジトリにコミットされていること。
+# 前提: Phase 2 (issue #57) で winapp が生成した msix/Package.appxmanifest と
+# msix/Assets/ がリポジトリにコミットされていること。
 
 on:
   workflow_dispatch:
@@ -37,8 +37,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! -f "Package.appxmanifest" ]]; then
-            echo "::error::Package.appxmanifest is missing. Run 'winapp init' on Windows and commit the manifest and Assets/ first (issue #57)."
+          if [[ ! -f "msix/Package.appxmanifest" ]]; then
+            echo "::error::msix/Package.appxmanifest is missing. Run 'winapp manifest generate msix ...' on Windows and commit msix/Package.appxmanifest and msix/Assets/ first (issue #57)."
             exit 1
           fi
 
@@ -80,7 +80,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force -Path dist-msix | Out-Null
           Copy-Item src-tauri\target\release\ultra-rss-reader.exe dist-msix\
-          winapp pack .\dist-msix
+          winapp pack .\dist-msix --manifest msix\Package.appxmanifest
 
       - name: Collect MSIX artifacts
         shell: pwsh
