@@ -1,6 +1,6 @@
 # Quality Policy
 
-React Doctor / Knip / similarity / TODO priority rules that are too durable for `TODO.md` live here.
+React Doctor / Knip / similarity / task priority rules that are too durable for `todo.txt` or a GitHub Issue live here.
 
 ## Dependency Advisory Policy
 
@@ -16,25 +16,25 @@ Ignore entries:
 
 Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.
 
-## TODO Priority Taxonomy
+## Task Priority Taxonomy
 
-- `P0`: release-blocking regression, data loss, security issue, or broken app start/build.
-- `P1`: user-visible defect or workflow break that should be fixed before the next planned release.
-- `P2`: quality debt with clear implementation work, test gap, or warning cleanup that can be batched safely.
-- `P3`: policy, taxonomy, adoption preflight, documentation, or low-risk cleanup that should prevent future drift but does not change runtime behavior by itself.
+Tasks live in `todo.txt` (tuxedo format) with rich context in linked GitHub Issues. Priority mapping: `(A)`=P0, `(B)`=P1, `(C)`=P2, `(D)`=P3.
 
-When a TODO item becomes a durable rule, move the rule into `CLAUDE.md` or `.claude/rules/` and let the main session remove the corresponding `TODO.md` item after verifying the rule is discoverable.
+- `(A)` P0: release-blocking regression, data loss, security issue, or broken app start/build.
+- `(B)` P1: user-visible defect or workflow break that should be fixed before the next planned release.
+- `(C)` P2: quality debt with clear implementation work, test gap, or warning cleanup that can be batched safely.
+- `(D)` P3: policy, taxonomy, adoption preflight, documentation, or low-risk cleanup that should prevent future drift but does not change runtime behavior by itself.
 
-## TODO Priority Aging
+When a task becomes a durable rule, move the rule into `CLAUDE.md` or `.claude/rules/`, then close the issue and remove the `todo.txt` line after verifying the rule is discoverable.
 
-TODO aging is review pressure, not automatic priority mutation. Use `node scripts/todo-triage.ts aging TODO.md` when triaging backlog age or preparing worker batches.
+## Task Aging
 
-- Add `created batch: YYYY-MM-DD ...` when introducing a new risk TODO batch, and `last reviewed: YYYY-MM-DD ...` when intentionally keeping an older item.
-- Treat a `P1` with no review for 30 days as escalation input: either start it, split it into a ready tranche, or explicitly downgrade with a reason.
-- Treat a `P2` with no review for 60 days as stale triage input: refresh owner/domain/verification, merge it into an existing tranche, or defer it with a concrete blocker.
-- Treat a `P3` with no review for 90 days as an archive candidate unless it still prevents concrete drift through tooling, policy, or contract-test planning.
-- Move completed user-visible work to `CHANGELOG.md` only after the implementation lands; keep `completed by` only as a short transition marker until that move is done.
-- Missing `created batch` / `last reviewed` markers should trigger review, not deletion.
+Aging is review pressure, not automatic priority mutation. The todo.txt creation date (second field) is the age reference.
+
+- Treat a `(B)` with no review for 30 days as escalation input: either start it, split it, or explicitly downgrade with a reason recorded in the linked issue.
+- Treat a `(C)` with no review for 60 days as stale triage input: refresh owner/scope/verification in the issue, merge into related work, or defer with a concrete blocker.
+- Treat a `(D)` with no review for 90 days as an archive candidate unless it still prevents concrete drift through tooling, policy, or contract-test planning.
+- Move completed user-visible work to `CHANGELOG.md` only after the implementation lands; archive the todo.txt line with `tuxedo done` + `archive` and close the linked issue.
 
 ## React Compiler Adoption
 

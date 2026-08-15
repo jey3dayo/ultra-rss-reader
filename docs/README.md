@@ -20,7 +20,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - [../CLAUDE.md](../CLAUDE.md): short repository-local agent workflow, quality gates, and rule routing
 - [../AGENTS.md](../AGENTS.md): thin entry point for agents that read it before repository-local guidance
 - [../llms.txt](../llms.txt): compressed LLM-oriented map of sources, constraints, and main code areas
-- [../TODO.md](../TODO.md): active and upcoming work only
+- [../todo.txt](../todo.txt): active and upcoming work as one-line tuxedo tasks; rich context lives in linked GitHub Issues
 - [../CHANGELOG.md](../CHANGELOG.md): completed user-visible changes
 
 ## Documentation Routing
@@ -59,7 +59,6 @@ When current product behavior, architecture, commands, or verification scope mat
 - Dependency license inventory: `mise run report:licenses` writes pnpm and Cargo license reports to `tmp/dependency-licenses/`. Review `pnpm-licenses.json` and `cargo-licenses.json` for unknown, missing, or dual-license entries before release or store-distribution review.
 - Release provenance checklist: [release-manual-verification.md](./release-manual-verification.md) records the release tag SHA, source commit, workflow run, artifact checksum sidecars, updater signatures, SBOM or dependency provenance record, and dev-only contamination gate evidence for packaged releases.
 - Bundled app icon provenance: `assets/app-icon.png` is the checked-in raster design master, `assets/app-icon-tauri-source.png` is the checked-in Tauri source image that preserves the intended rounded-card presentation at 1024x1024, and `mise run app:icon` / `pnpm exec tauri icon assets/app-icon-tauri-source.png` regenerates the platform-specific PNG, ICO, and ICNS outputs. Treat those PNG files as the icon source of truth unless the product icon is intentionally redesigned. The current bundled app icon set is project-owned artwork with no third-party attribution requirement. If a third-party or externally generated source asset is introduced, add the source URL, license, and attribution note here before release review.
-- TODO triage export: `scripts/todo-triage.ts` parses `TODO.md` into priority, implementation order, domain bucket, target files, focused verification, duplicate groups, worker issue Markdown/JSON, and domain-owner shard plans. Use the `json`, `duplicates`, `shards`, `export-json`, or `export-md` command before splitting risk TODOs into issues or worker prompts.
 - Markdown lint scope: `mise run quality:markdownlint-contract` fixes the markdownlint glob and ignore pattern contract from `mise.toml`, including `node_modules`, `.worktrees`, `target`, and generated Tauri schema output.
 - Test isolation policy:
   - Frontend suites must be safe to run in parallel unless the file explicitly documents a serial-only reason. Tests that touch `localStorage`, `sessionStorage`, clipboard, `window` globals, fake timers, observers, or singleton stores must restore them in `afterEach` and must not depend on file execution order.

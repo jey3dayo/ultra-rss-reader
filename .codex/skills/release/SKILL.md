@@ -102,7 +102,7 @@ Required outputs:
 - `src-tauri/Cargo.lock` included only if Cargo updates it;
 - previous `v*` tag and non-merge release commit range identified before the release commit exists;
 - Japanese GitHub Release notes and `CHANGELOG.md` entry generated from the filtered commit history;
-- `TODO.md` changed only when matching release tasks are clear.
+- `todo.txt` changed only when matching release tasks are clear.
 
 Show the generated release notes and changed files. If publication intent already covers release publication and the notes are grounded in inspected commits, continue to Phase 3 without waiting.
 

@@ -430,14 +430,14 @@ Known-issue policy:
 - User-visible risk, data-loss risk, privacy risk, failed migration risk, broken
   updater/install path, or a required user workaround must be public release
   note material for the affected release.
-- Internal-only risk may stay in `TODO.md` when it has no expected user-facing
-  behavior and no user action can reduce the risk.
-- If a TODO risk is mentioned publicly, describe the risk in user terms and link
-  to stable public docs or issue references when available. Do not link release
-  notes directly to `TODO.md`; it is an internal planning file and may be
-  rewritten or removed.
+- Internal-only risk may stay in `todo.txt` or its linked GitHub issue when it
+  has no expected user-facing behavior and no user action can reduce the risk.
+- If a tracked risk is mentioned publicly, describe the risk in user terms and
+  link to stable public docs or issue references when available. Do not link
+  release notes directly to `todo.txt`; it is an internal planning file and may
+  be rewritten or removed.
 - If no public link exists, keep the release note self-contained and record the
-  internal TODO name in the release handoff or verification notes.
+  internal task name in the release handoff or verification notes.
 - A known issue should include a workaround when one exists. If no workaround
   exists, say that plainly and include the expected fixed-version or follow-up
   tracking path when known.

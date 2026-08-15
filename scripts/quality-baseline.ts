@@ -40,7 +40,7 @@ export const markdownlintRepoContract = {
     ".codex/skills",
   ],
   generatedMarkdownIgnorePatterns: ["src-tauri/gen/**"],
-  rootMarkdownFiles: ["AGENTS.md", "CLAUDE.md", "README.md", "TODO.md"],
+  rootMarkdownFiles: ["AGENTS.md", "CLAUDE.md", "README.md"],
 } as const;
 
 export const generatedFixtureSnapshotSizeBudget = {

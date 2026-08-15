@@ -17,7 +17,7 @@ Flaky tests may be quarantined only when the unresolved risk remains discoverabl
 
 Every quarantined test must include all of the following:
 
-- a `TODO.md` item or GitHub issue that names the user-visible or release risk;
+- a `todo.txt` entry or GitHub issue that names the user-visible or release risk;
 - an owner handle or team name;
 - an expiry date in `YYYY-MM-DD` format;
 - retry evidence, including the failed command and at least one rerun result;

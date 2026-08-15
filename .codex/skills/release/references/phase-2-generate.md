@@ -88,7 +88,7 @@ Update `CHANGELOG.md` so the top release area looks like this:
 - Insert the new version section immediately after `## [Unreleased]`.
 - Clear any existing items that were under `[Unreleased]` because they now belong to the new version.
 - If `## [Unreleased]` does not exist, insert both `## [Unreleased]` and the new version section near the top of the file after the header.
-- Mark matching release tasks in `TODO.md` as `[x]` only when the mapping is clear from the release contents. Otherwise leave `TODO.md` unchanged.
+- Mark matching release tasks in `todo.txt` done (`tuxedo done` + `archive`) only when the mapping is clear from the release contents. Otherwise leave `todo.txt` unchanged.
 
 ## Optional Read-Only Subagent
 

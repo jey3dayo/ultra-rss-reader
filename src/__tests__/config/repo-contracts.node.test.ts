@@ -1830,14 +1830,6 @@ describe("repository static contracts", () => {
     expect(topLevelDocsSection).not.toContain(["R", "T", "K"].join(""));
   });
 
-  it("keeps TODO limited to active backlog entries", () => {
-    const todoSource = readRepoFile("TODO.md");
-    const completedTodoEntries = [...todoSource.matchAll(/^- \[x\] .+$/gim)].map((match) => match[0]);
-
-    expect(todoSource).toContain("完了済みの項目は `CHANGELOG.md` を参照");
-    expect(completedTodoEntries).toEqual([]);
-  });
-
   it("keeps AGENTS as a thin router to CLAUDE guidance", () => {
     const agents = readRepoFile("AGENTS.md");
 
@@ -2412,12 +2404,6 @@ describe("repository static contracts", () => {
   it("keeps TypeScript type surface inventory scoped to retained shared contracts", () => {
     const inventoryPaths = typeSurfaceInventory.map(({ path }) => path);
     const inventoryClassifications = new Set(typeSurfaceInventory.map(({ classification }) => classification));
-    const representativeSourceGlobs = [
-      "src/components/reader/*types.ts",
-      "src/components/settings/*types.ts",
-      "src/lib/**/*.types.ts",
-      "src/stores/*.types.ts",
-    ];
 
     expect(inventoryPaths.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
     expect(inventoryPaths).toEqual([...inventoryPaths].toSorted());
@@ -2460,10 +2446,6 @@ describe("repository static contracts", () => {
         .filter(({ path }) => auditedReaderTypeSurfacePathSet.has(path))
         .every((inventoryItem) => "auditedExports" in inventoryItem && inventoryItem.auditedExports.length > 0),
     ).toBe(true);
-
-    for (const sourceGlob of representativeSourceGlobs) {
-      expect(readRepoFile("TODO.md")).not.toContain(sourceGlob);
-    }
   });
 
   it("keeps remaining TypeScript type surface files on an explicit allowlist", () => {

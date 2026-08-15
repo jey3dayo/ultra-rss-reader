@@ -1,0 +1,7 @@
+(C) 2026-08-14 Sentry release source map upload +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/56
+(D) 2026-07-04 local-sync auto path rejected_operations warning + i18n +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/51
+(D) 2026-07-10 TypeScript 7 alias cleanup @blocked +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/55
+(D) 2026-07-14 reader next-article has-next search mismatch (known edge) +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/54
+(D) 2026-07-20 MAX_RETAINED_ARTICLE_IDS=50 と一括既読の仕様判断 +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/53
+(D) 2026-07-28 window-state Windows 実機検証 + windows-schema 再生成 +release-native note:docs/release-manual-verification.md
+(D) 2026-08-10 hold-to-confirm pointerId / forced-colors hover +a11y-keyboard note:https://github.com/jey3dayo/ultra-rss-reader/issues/52

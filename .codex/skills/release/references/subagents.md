@@ -31,8 +31,8 @@ Use when the commit range is long or release note wording is ambiguous.
 ## CHANGELOG/TODO Review Worker
 
 ```text
-Review the proposed CHANGELOG.md and TODO.md release diff.
-Check that CHANGELOG headings are plain text, Unreleased is cleared correctly, and TODO items are only checked when clearly mapped to released contents.
+Review the proposed CHANGELOG.md and todo.txt release diff.
+Check that CHANGELOG headings are plain text, Unreleased is cleared correctly, and todo.txt entries are only marked done when clearly mapped to released contents.
 Return findings with file/line references when possible.
 Do not edit files.
 ```

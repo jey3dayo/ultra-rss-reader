@@ -31,7 +31,7 @@ Contract tests should capture durable boundaries: runtime inputs, DTO shapes, pu
 - If the same kind of TODO appears across multiple modules, first consider a rule update under `.claude/rules/` instead of adding more duplicate TODOs.
 - If the TODO is caused by old code not matching an existing rule, record it as cleanup/refactor, not as a new rule gap.
 - If the TODO needs a product decision, say what decision is missing and avoid encoding one possible answer as the only implementation path.
-- Finished TODOs should leave `TODO.md`; user-visible completed work goes to `CHANGELOG.md` when it stabilizes.
+- Finished tasks should leave `todo.txt` (`tuxedo done` + `archive`) and close their linked issue; user-visible completed work goes to `CHANGELOG.md` when it stabilizes.
 
 ## Boundary Values Worth Testing
 

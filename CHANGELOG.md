@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Maintenance
+
+- タスク管理を `TODO.md` から `todo.txt`（tuxedo）+ GitHub Issues（#51〜#56）へ移行し、TODO.md 前提の triage ツーリング（`scripts/todo-triage.ts`、`todo-triage-format` skill）を退役した。
+
 ## [0.56.1] - 2026-08-10
 
 ### Bug Fixes

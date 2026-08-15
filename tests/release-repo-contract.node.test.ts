@@ -1707,10 +1707,10 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain(
       "User-visible risk, data-loss risk, privacy risk, failed migration risk",
     );
-    expect(releaseManualVerification).toContain("Internal-only risk may stay in `TODO.md`");
-    expect(releaseManualVerification).toContain("Do not link release\n  notes directly to `TODO.md`");
+    expect(releaseManualVerification).toContain("Internal-only risk may stay in `todo.txt` or its linked GitHub issue");
+    expect(releaseManualVerification).toContain("Do not link\n  release notes directly to `todo.txt`");
     expect(releaseManualVerification).toContain(
-      "record the\n  internal TODO name in the release handoff or verification notes",
+      "record the\n  internal task name in the release handoff or verification notes",
     );
     expect(releaseManualVerification).toContain("A known issue should include a workaround when one exists");
   });
@@ -1728,7 +1728,7 @@ describe("release repository contract", () => {
       });
     });
 
-    expect(flakyPolicy).toContain("TODO.md");
+    expect(flakyPolicy).toContain("todo.txt");
     expect(flakyPolicy).toContain("GitHub issue");
     expect(flakyPolicy).toContain("owner=<owner>");
     expect(flakyPolicy).toContain("expires=<YYYY-MM-DD>");

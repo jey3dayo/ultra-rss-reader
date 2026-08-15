@@ -35,7 +35,7 @@ Do not duplicate the same fact across documents; update the owning source and ke
 | Domain and repository contracts | [src-tauri/src/domain/](src-tauri/src/domain/) and [src-tauri/src/repository/](src-tauri/src/repository/) | Core domain types and data-access trait boundaries |
 | App action IDs and protocol-like markers | [src/lib/app-actions.ts](src/lib/app-actions.ts) and [src/lib/actions.ts](src/lib/actions.ts) | Keyboard, menu, command palette, and dev-scenario action identifiers and execution routing |
 | Build, verification commands, and tool versions | [mise.toml](mise.toml), `mise/*.toml`, and [package.json](package.json) | mise tasks, package scripts, package manager version, engines, and toolchain contract |
-| Active work tracking | [TODO.md](TODO.md) | In-progress work, follow-up tasks, known gaps, and TODO triage inputs |
+| Active work tracking | [todo.txt](todo.txt) and GitHub Issues | Lightweight one-line tasks in `todo.txt` (tuxedo); rich context, decisions, and discussion in GitHub Issues linked via `note:<issue URL>` |
 | Completed user-visible changes | [CHANGELOG.md](CHANGELOG.md) | Completed user-visible changes and release readiness notes |
 | Generated artifacts | `dist/` and `src-tauri/gen/schemas/` | Not source of truth; regenerate from owning source before reviewing or committing artifact drift |
 
@@ -96,11 +96,12 @@ and compatibility regex next to the parser or schema that owns the fallback.
 
 ## Task Tracking
 
-- `TODO.md` tracks in-progress and upcoming work only.
+- `todo.txt` (tuxedo format) tracks in-progress and upcoming work as one-line entries: `(priority) YYYY-MM-DD summary +<domain-shard> note:<issue URL or docs path>`. Priority mapping: P0→(A), P1→(B), P2→(C), P3→(D).
+- Tasks needing multi-line context (background, acceptance criteria, verification steps, decisions) live in GitHub Issues, referenced from `todo.txt` via `note:`.
 - `CHANGELOG.md` records completed user-visible changes.
-- Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
-- Classify new TODO entries as implementation, contract test, rule update, manual verification, or type placement cleanup.
-- If the durable answer is a rule, update `CLAUDE.md` or `.claude/rules/` instead of growing `TODO.md`.
+- On completion: `tuxedo done` then `archive` (moves to `done.txt`), close the linked issue, and add a `CHANGELOG.md` entry once the work stabilizes.
+- Do not add a task without a discovery method; state how it will be verified (code audit, focused test, manual verification, or CI gate) in the issue or the todo line.
+- If the durable answer is a rule, update `CLAUDE.md` or `.claude/rules/` instead of keeping it as a task.
 - React Doctor / Knip baselines live in `scripts/quality-baseline.ts`; similarity false-positive baselines live in `scripts/similarity-report.ts`. Update those constants only after running the matching pinned task and confirming expected drift.
 
 ## Native, Browser, And Skills
