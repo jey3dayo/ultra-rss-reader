@@ -383,9 +383,9 @@ const generatedMockArticles = [
   createMockArticle({
     id: "art-11",
     feedId: "feed-nhk",
-    title: "国内キャッシュレス決済比率 過去最高を更新 経済産業省が発表",
+    title: "全国の桜 記録的な早咲き 各地で開花宣言 見頃は今週末から",
     summary:
-      "経済産業省は28日、昨年度の国内キャッシュレス決済比率が過去最高を更新したと発表しました。コード決済の伸びが全体をけん引しているとしています。",
+      "28日、全国の気象台が相次いで桜の開花を発表しました。平年より1週間ほど早い開花で、各地の名所では今週末から見頃を迎える見通しです。",
     url: "https://news.web.nhk/newsweb/na/na-k10015162811000",
     author: "NHK",
     date: now,
@@ -695,10 +695,10 @@ const mockArticleSeeds = [
   {
     id: "art-7",
     feed_id: "feed-nhk",
-    title: "全国の桜 記録的な早咲き 各地で開花宣言",
+    title: "国内キャッシュレス決済比率 過去最高を更新 経済産業省が発表",
     content_sanitized:
-      "<p>26日午前、各地の気象台が桜の開花を発表しました。平年より1週間ほど早い開花となっています。</p>",
-    summary: "26日午前、各地で桜の開花を発表。平年より1週間ほど早い。",
+      "<p>26日午前、経済産業省は昨年度の国内キャッシュレス決済比率が過去最高を更新したと発表しました。</p>",
+    summary: "26日午前、キャッシュレス決済比率が過去最高を更新。コード決済が伸びをけん引。",
     url: "https://www3.nhk.or.jp/news/html/example.html",
     author: "NHK",
     published_at: mockArticlePublishedAt(now, 11, 30),
