@@ -2170,6 +2170,12 @@ describe("repository static contracts", () => {
           contents: "write",
         },
       },
+      {
+        path: ".github/workflows/store-msix.yml",
+        permissions: {
+          contents: "read",
+        },
+      },
     ]);
     expect(writePermissions).toEqual([
       ".github/workflows/labeler.yml:pull-requests",

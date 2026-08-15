@@ -1,0 +1,104 @@
+name: Store MSIX
+
+# Microsoft Store 提出用の MSIX を手動トリガーでビルドする。
+# GitHub Release とは独立した配布経路のため、タグ push には連動させない。
+# Store 提出用パッケージは Store 側が Microsoft 証明書で再署名するため、
+# このワークフローでは署名しない（sideload 検証用の署名はローカルで行う）。
+# 前提: Phase 2 (issue #57) で winapp init が生成した Package.appxmanifest と
+# Assets/ がリポジトリにコミットされていること。
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to build (branch, tag, or SHA). Defaults to the default branch."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  msix:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      # actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Validate MSIX manifest presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f "Package.appxmanifest" ]]; then
+            echo "::error::Package.appxmanifest is missing. Run 'winapp init' on Windows and commit the manifest and Assets/ first (issue #57)."
+            exit 1
+          fi
+
+      # jdx/mise-action@v4.0.1
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+        with:
+          runtime: node@26.4.0
+          cache: true
+          install: false
+
+      # dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: stable
+
+      # Swatinem/rust-cache@v2.9.1
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4
+        with:
+          workspaces: src-tauri
+          shared-key: store-msix-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+
+      - run: pnpm install --frozen-lockfile
+
+      # Store 用 config で updater を無効化した exe をビルドする。
+      # インストーラーは不要なので --no-bundle で exe のみ生成する。
+      - name: Build store executable
+        shell: bash
+        run: pnpm tauri build --no-bundle --config src-tauri/tauri.store.conf.json --ci
+
+      # microsoft/setup-WinAppCli@v0.2
+      - uses: microsoft/setup-WinAppCli@b93bbddc1f7abc061ca0d3a8119e3a0c7dd71495
+
+      - name: Package MSIX
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path dist-msix | Out-Null
+          Copy-Item src-tauri\target\release\ultra-rss-reader.exe dist-msix\
+          winapp pack .\dist-msix
+
+      - name: Collect MSIX artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $msix = Get-ChildItem -Recurse -Include *.msix, *.msixbundle -File |
+            Where-Object { $_.FullName -notmatch '\\node_modules\\|\\target\\(?!.*msix)' }
+          if (-not $msix) {
+            Write-Error "No .msix or .msixbundle produced by winapp pack."
+          }
+          New-Item -ItemType Directory -Force -Path msix-out | Out-Null
+          $msix | Copy-Item -Destination msix-out\
+          Get-ChildItem msix-out
+
+      # actions/upload-artifact@v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: store-msix
+          path: msix-out/
+          if-no-files-found: error
+          retention-days: 14
