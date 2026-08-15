@@ -2261,6 +2261,17 @@ describe("repository static contracts", () => {
     expect(readRepoFile("docs/release-manual-verification.md")).toContain("packaged updater verification passed");
   });
 
+  it("keeps store config updater disabled via empty config instead of null", () => {
+    const storeConfig = JSON.parse(readRepoFile("src-tauri/tauri.store.conf.json"));
+
+    // plugins.updater: null crashes plugin initialization at startup ("invalid type: null, expected struct Config").
+    expect(storeConfig.plugins.updater).not.toBeNull();
+    expect(typeof storeConfig.plugins.updater).toBe("object");
+    expect(storeConfig.plugins.updater.endpoints).toEqual([]);
+    expect(storeConfig.plugins.updater.pubkey).toBe("");
+    expect(storeConfig.bundle.createUpdaterArtifacts).toBe(false);
+  });
+
   it("keeps release dry-run version sources consistent", () => {
     const packageVersion = packageJson.version;
     const cargoVersion = extractCargoPackageVersion(readRepoFile("src-tauri/Cargo.toml"));
