@@ -1,24 +1,7 @@
 lockfile_version: '1'
-generated_at: '2026-07-28T01:21:22.998991+00:00'
-apm_version: 0.22.0
+generated_at: '2026-08-14T10:38:40.007884+00:00'
+apm_version: 0.28.0
 dependencies:
-- repo_url: EpicenterHQ/epicenter
-  name: epicenter
-  host: github.com
-  resolved_commit: f5dc86890b0976e2e6034c964977200dfc730129
-  version: unknown
-  virtual_path: .agents/skills/tauri
-  is_virtual: true
-  package_type: claude_skill
-  deployed_files:
-  - .agents/skills/tauri
-  - .agents/skills/tauri/SKILL.md
-  - .claude/skills/tauri
-  - .claude/skills/tauri/SKILL.md
-  deployed_file_hashes:
-    .agents/skills/tauri/SKILL.md: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
-    .claude/skills/tauri/SKILL.md: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
-  content_hash: sha256:1e4ae283d9d0afa6f7afe5598c5525e465735dbd245704000088239100752a86
 - repo_url: _local/tauri-icon-gen
   name: tauri-icon-gen
   version: 0.0.0
@@ -32,9 +15,9 @@ dependencies:
   - .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py
   deployed_file_hashes:
     .agents/skills/tauri-icon-gen/SKILL.md: sha256:cb238a15ba006f4f1e4000e8ac93cac49c56c82eddb3c29eb2051c645b0dbe17
-    .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:3f4e6fc1ff8ae0f9ef6aa4c465dc02209cd27ea0627f4c4d38698c889be6e480
+    .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
     .claude/skills/tauri-icon-gen/SKILL.md: sha256:cb238a15ba006f4f1e4000e8ac93cac49c56c82eddb3c29eb2051c645b0dbe17
-    .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:3f4e6fc1ff8ae0f9ef6aa4c465dc02209cd27ea0627f4c4d38698c889be6e480
+    .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   source: local
   local_path: ./.apm/skills/tauri-icon-gen
 - repo_url: _local/tauri-webview-geometry
@@ -63,22 +46,8 @@ dependencies:
     .claude/skills/tauri-webview-geometry/references/lifecycle-contracts.md: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
   source: local
   local_path: ./.apm/skills/tauri-webview-geometry
-- repo_url: _local/todo-triage-format
-  name: todo-triage-format
-  version: 0.0.0
-  package_type: claude_skill
-  deployed_files:
-  - .agents/skills/todo-triage-format
-  - .agents/skills/todo-triage-format/SKILL.md
-  - .claude/skills/todo-triage-format
-  - .claude/skills/todo-triage-format/SKILL.md
-  deployed_file_hashes:
-    .agents/skills/todo-triage-format/SKILL.md: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
-    .claude/skills/todo-triage-format/SKILL.md: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
-  source: local
-  local_path: ./.apm/skills/todo-triage-format
 - repo_url: apollographql/skills
-  name: skills
+  name: rust-best-practices
   host: github.com
   resolved_commit: 7df6a608dd71f937e664b19183fb60d101bb13a1
   version: unknown
@@ -158,6 +127,545 @@ dependencies:
   skill_subset:
   - agentation
   - agentation-self-driving
+- repo_url: epicenterhq/epicenter
+  materialization_repo_url: EpicenterHQ/epicenter
+  name: tauri
+  host: github.com
+  resolved_commit: f5dc86890b0976e2e6034c964977200dfc730129
+  version: unknown
+  virtual_path: .agents/skills/tauri
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/tauri
+  - .agents/skills/tauri/SKILL.md
+  - .claude/skills/tauri
+  - .claude/skills/tauri/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/tauri/SKILL.md: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
+    .claude/skills/tauri/SKILL.md: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
+  content_hash: sha256:1e4ae283d9d0afa6f7afe5598c5525e465735dbd245704000088239100752a86
+deployments:
+- kind: project-relative
+  target: agents
+  value: .agents/skills/todo-triage-format
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: agents
+  value: .agents/skills/todo-triage-format/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
+- kind: project-relative
+  target: claude
+  value: .claude/skills/agentation
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/agentation-self-driving
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/agentation-self-driving/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
+- kind: project-relative
+  target: claude
+  value: .claude/skills/agentation-self-driving/references/two-session-workflow.md
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
+- kind: project-relative
+  target: claude
+  value: .claude/skills/agentation/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:0b66fa852d1dfcd5de86e71970e6f484bcd44b991265f95034365c38ed1ad3a8
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:80eeb8ab3da0c889eaaacf1963e8c6126d02e22fae2d4abd9056b4c16c7cc083
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_01.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:96130f7b81a525f16824b0fc319d9e7ad3e913e8dcd75cc03e85d3ae83947df4
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_02.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:05c6495150ea1b3a038555231e1965b75dc4c2499e4c7a784a0a35640eaee579
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_03.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:160883f80db912c748cb73884942b6824be0599c98b8f16e9256f27fb9a44c6a
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_04.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:3257b7dfa06698bd59fe2d315b33b22181926d30cda3776bc16c792b51eeb239
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_05.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:0f976571e145f12c2435de60ec7a8791d9618917ee84fef9c90c0e5e6fe3a198
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_06.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:c001d3dbffe3e403cfc52ad81e4fe0468416f61add2e140d0f442fee1812049c
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_07.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:a3c989e1aff99c6de53123ce97f3cf9496e0d68fe4099faabe436758ac1a5475
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_08.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:c546b765720e9bdd98af1f4ca0818ae1703d0552531d18776b0ce56487cb93cf
+- kind: project-relative
+  target: claude
+  value: .claude/skills/rust-best-practices/references/chapter_09.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:6edd831122b04ee9f11c0a529a9ebddf2d34b5d1d8edef9bd6929d41693ad262
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri
+  runtime: null
+  scope: project
+  owners:
+  - epicenterhq/epicenter/.agents/skills/tauri
+  active_owner: epicenterhq/epicenter/.agents/skills/tauri
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-icon-gen
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-icon-gen
+  - .
+  active_owner: ./.apm/skills/tauri-icon-gen
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-icon-gen/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-icon-gen
+  - .
+  active_owner: ./.apm/skills/tauri-icon-gen
+  content_hash: sha256:cb238a15ba006f4f1e4000e8ac93cac49c56c82eddb3c29eb2051c645b0dbe17
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-icon-gen
+  - .
+  active_owner: ./.apm/skills/tauri-icon-gen
+  content_hash: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-webview-geometry
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-webview-geometry/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:a207ea36720f5f1a3cedff710ca36bf7f32411b9f3dd1485aa3a0266b20ce768
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-webview-geometry/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:4ed20d4f9141cf4909a2c34fb6226c738f38021887b3dc6b16922709527ebfa7
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-webview-geometry/references/geometry-model.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:3d31e2c9075415414b1acb1939329b51cce92a3cfe6d44f25b5c826c275c58b4
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri-webview-geometry/references/lifecycle-contracts.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
+- kind: project-relative
+  target: claude
+  value: .claude/skills/tauri/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - epicenterhq/epicenter/.agents/skills/tauri
+  active_owner: epicenterhq/epicenter/.agents/skills/tauri
+  content_hash: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
+- kind: project-relative
+  target: codex
+  value: .agents/skills/agentation
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/agentation-self-driving
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/agentation-self-driving/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
+- kind: project-relative
+  target: codex
+  value: .agents/skills/agentation-self-driving/references/two-session-workflow.md
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
+- kind: project-relative
+  target: codex
+  value: .agents/skills/agentation/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - benjitaylor/agentation
+  active_owner: benjitaylor/agentation
+  content_hash: sha256:0b66fa852d1dfcd5de86e71970e6f484bcd44b991265f95034365c38ed1ad3a8
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:80eeb8ab3da0c889eaaacf1963e8c6126d02e22fae2d4abd9056b4c16c7cc083
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_01.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:96130f7b81a525f16824b0fc319d9e7ad3e913e8dcd75cc03e85d3ae83947df4
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_02.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:05c6495150ea1b3a038555231e1965b75dc4c2499e4c7a784a0a35640eaee579
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_03.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:160883f80db912c748cb73884942b6824be0599c98b8f16e9256f27fb9a44c6a
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_04.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:3257b7dfa06698bd59fe2d315b33b22181926d30cda3776bc16c792b51eeb239
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_05.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:0f976571e145f12c2435de60ec7a8791d9618917ee84fef9c90c0e5e6fe3a198
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_06.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:c001d3dbffe3e403cfc52ad81e4fe0468416f61add2e140d0f442fee1812049c
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_07.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:a3c989e1aff99c6de53123ce97f3cf9496e0d68fe4099faabe436758ac1a5475
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_08.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:c546b765720e9bdd98af1f4ca0818ae1703d0552531d18776b0ce56487cb93cf
+- kind: project-relative
+  target: codex
+  value: .agents/skills/rust-best-practices/references/chapter_09.md
+  runtime: null
+  scope: project
+  owners:
+  - apollographql/skills/skills/rust-best-practices
+  active_owner: apollographql/skills/skills/rust-best-practices
+  content_hash: sha256:6edd831122b04ee9f11c0a529a9ebddf2d34b5d1d8edef9bd6929d41693ad262
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri
+  runtime: null
+  scope: project
+  owners:
+  - epicenterhq/epicenter/.agents/skills/tauri
+  active_owner: epicenterhq/epicenter/.agents/skills/tauri
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-icon-gen
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-icon-gen
+  - .
+  active_owner: ./.apm/skills/tauri-icon-gen
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-icon-gen/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-icon-gen
+  - .
+  active_owner: ./.apm/skills/tauri-icon-gen
+  content_hash: sha256:cb238a15ba006f4f1e4000e8ac93cac49c56c82eddb3c29eb2051c645b0dbe17
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-icon-gen
+  - .
+  active_owner: ./.apm/skills/tauri-icon-gen
+  content_hash: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-webview-geometry
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-webview-geometry/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:a207ea36720f5f1a3cedff710ca36bf7f32411b9f3dd1485aa3a0266b20ce768
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-webview-geometry/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:4ed20d4f9141cf4909a2c34fb6226c738f38021887b3dc6b16922709527ebfa7
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-webview-geometry/references/geometry-model.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:3d31e2c9075415414b1acb1939329b51cce92a3cfe6d44f25b5c826c275c58b4
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri-webview-geometry/references/lifecycle-contracts.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.apm/skills/tauri-webview-geometry
+  - .
+  active_owner: ./.apm/skills/tauri-webview-geometry
+  content_hash: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
+- kind: project-relative
+  target: codex
+  value: .agents/skills/tauri/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - epicenterhq/epicenter/.agents/skills/tauri
+  active_owner: epicenterhq/epicenter/.agents/skills/tauri
+  content_hash: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
+- kind: uri
+  target: mcp
+  value: agentation
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: tauri-mcp-server
+  runtime: codex
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
 mcp_servers:
 - agentation
 - tauri-mcp-server
@@ -179,6 +687,10 @@ mcp_configs:
     - '@hypothesi/tauri-mcp-server'
     registry: false
     command: npx
+mcp_target_servers:
+  codex:
+  - agentation
+  - tauri-mcp-server
 local_deployed_files:
 - .agents/skills/tauri-icon-gen
 - .agents/skills/tauri-icon-gen/SKILL.md
@@ -198,20 +710,17 @@ local_deployed_files:
 - .claude/skills/tauri-webview-geometry/agents/openai.yaml
 - .claude/skills/tauri-webview-geometry/references/geometry-model.md
 - .claude/skills/tauri-webview-geometry/references/lifecycle-contracts.md
-- .claude/skills/todo-triage-format
-- .claude/skills/todo-triage-format/SKILL.md
 local_deployed_file_hashes:
   .agents/skills/tauri-icon-gen/SKILL.md: sha256:cb238a15ba006f4f1e4000e8ac93cac49c56c82eddb3c29eb2051c645b0dbe17
-  .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:3f4e6fc1ff8ae0f9ef6aa4c465dc02209cd27ea0627f4c4d38698c889be6e480
+  .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   .agents/skills/tauri-webview-geometry/SKILL.md: sha256:a207ea36720f5f1a3cedff710ca36bf7f32411b9f3dd1485aa3a0266b20ce768
   .agents/skills/tauri-webview-geometry/agents/openai.yaml: sha256:4ed20d4f9141cf4909a2c34fb6226c738f38021887b3dc6b16922709527ebfa7
   .agents/skills/tauri-webview-geometry/references/geometry-model.md: sha256:3d31e2c9075415414b1acb1939329b51cce92a3cfe6d44f25b5c826c275c58b4
   .agents/skills/tauri-webview-geometry/references/lifecycle-contracts.md: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
   .agents/skills/todo-triage-format/SKILL.md: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
   .claude/skills/tauri-icon-gen/SKILL.md: sha256:cb238a15ba006f4f1e4000e8ac93cac49c56c82eddb3c29eb2051c645b0dbe17
-  .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:3f4e6fc1ff8ae0f9ef6aa4c465dc02209cd27ea0627f4c4d38698c889be6e480
+  .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   .claude/skills/tauri-webview-geometry/SKILL.md: sha256:a207ea36720f5f1a3cedff710ca36bf7f32411b9f3dd1485aa3a0266b20ce768
   .claude/skills/tauri-webview-geometry/agents/openai.yaml: sha256:4ed20d4f9141cf4909a2c34fb6226c738f38021887b3dc6b16922709527ebfa7
   .claude/skills/tauri-webview-geometry/references/geometry-model.md: sha256:3d31e2c9075415414b1acb1939329b51cce92a3cfe6d44f25b5c826c275c58b4
   .claude/skills/tauri-webview-geometry/references/lifecycle-contracts.md: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
-  .claude/skills/todo-triage-format/SKILL.md: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9

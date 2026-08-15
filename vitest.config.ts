@@ -29,7 +29,6 @@ const nodeEnvironmentTestGlobs = [
   "tests/helpers/diagnostics-reporters.test.ts",
   "tests/helpers/fixtures.test.ts",
   "tests/helpers/repo-contract-parser.test.ts",
-  "tests/todo-triage.test.ts",
   "tests/type-surface-contract.test.ts",
   "tests/windows-dispatch.test.ts",
 ] as const;
