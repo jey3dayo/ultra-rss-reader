@@ -4,9 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-08-15
+
+### Features
+
+- Sentry によるエラーモニタリングを追加した。 (#50)
+
+### Bug Fixes
+
+- 設定画面のミュートキーワード末尾の区切り線が残る問題を修正した。
+
 ### Maintenance
 
 - タスク管理を `TODO.md` から `todo.txt`（tuxedo）+ GitHub Issues（#51〜#56）へ移行し、TODO.md 前提の triage ツーリング（`scripts/todo-triage.ts`、`todo-triage-format` skill）を退役した。
+- ランタイムおよび開発依存関係を更新した。
 
 ## [0.56.1] - 2026-08-10
 
