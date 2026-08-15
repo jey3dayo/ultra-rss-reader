@@ -16,7 +16,8 @@ When current product behavior, architecture, commands, or verification scope mat
 
 ## Top-Level Docs
 
-- [../README.md](../README.md): source of truth for product overview, architecture, development modes, commands, and verification model
+- [../README.md](../README.md): user-facing product landing page (features, install, keyboard shortcuts); Japanese version in [../README.ja.md](../README.ja.md)
+- [../CONTRIBUTING.md](../CONTRIBUTING.md): source of truth for development setup, development modes, commands, architecture, and verification model
 - [../CLAUDE.md](../CLAUDE.md): short repository-local agent workflow, quality gates, and rule routing
 - [../AGENTS.md](../AGENTS.md): thin entry point for agents that read it before repository-local guidance
 - [../llms.txt](../llms.txt): compressed LLM-oriented map of sources, constraints, and main code areas
@@ -26,7 +27,8 @@ When current product behavior, architecture, commands, or verification scope mat
 ## Documentation Routing
 
 - Unknown operational or historical document: start here.
-- Product overview, architecture, command details, development modes, verification matrix, and release summary: [../README.md](../README.md).
+- Product overview, install, and feature summary: [../README.md](../README.md).
+- Architecture, command details, development modes, verification matrix, and release summary: [../CONTRIBUTING.md](../CONTRIBUTING.md).
 - Agent workflow, quality gate selection, and rule routing: [../CLAUDE.md](../CLAUDE.md).
 - Packaged builds, updater checks, live-service checks, release provenance, and release sign-off: [release-manual-verification.md](./release-manual-verification.md).
 - Logs, backups, recovery, updater, keyring, and sync triage: [incident-runbook.md](./incident-runbook.md).
@@ -45,8 +47,6 @@ When current product behavior, architecture, commands, or verification scope mat
 - [reader-keyboard-navigation.md](./reader-keyboard-navigation.md): source of truth for reader pane keyboard navigation, focus return behavior, and focus styling contracts
 - [reader-article-scope-matrix.md](./reader-article-scope-matrix.md): source of truth for reader article source, scope, and filter combinations
 - [flaky-test-quarantine-policy.md](./flaky-test-quarantine-policy.md): policy for quarantining, documenting, and retiring flaky tests
-- [similarity-refactor-guidance.md](./similarity-refactor-guidance.md): guidance for interpreting similarity reports before extracting shared code
-- [freshrss-feed-organization-pushback.md](./freshrss-feed-organization-pushback.md): design spike confirming the current FreshRSS feed rename/folder-move overwrite behavior, GReader `subscription/edit` request shapes, and the recommended push-back mechanism
 
 ## Project Guidance
 

@@ -370,17 +370,17 @@ describe("package scripts", () => {
   });
 
   it("keeps local app install docs separate from published release verification", () => {
-    const readme = readWorkspaceFile("README.md");
+    const contributing = readWorkspaceFile("CONTRIBUTING.md");
     const miseToml = readMiseTaskCorpus();
     const releaseManual = readWorkspaceFile("docs/release-manual-verification.md");
 
     expect(miseToml).toContain(
       'description = "Build, locally re-sign, and install the current checkout; not a published release artifact verification"',
     );
-    expect(readme).toContain(
+    expect(contributing).toContain(
       "mise run app:install  # Build, locally re-sign, and install the current checkout; not published release verification",
     );
-    expect(readme).toContain("Published release install verification must use the artifact from GitHub Releases");
+    expect(contributing).toContain("Published release install verification must use the artifact from GitHub Releases");
     expect(releaseManual).toContain("### 2. Published Release Install Verification");
     expect(releaseManual).toContain("Release asset digest");
     expect(releaseManual).toContain("Codesign result");

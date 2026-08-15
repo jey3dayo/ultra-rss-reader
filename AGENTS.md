@@ -13,8 +13,8 @@ Use `./CLAUDE.md` as the master document for repository-local agent instructions
   for jsdom, DOM, React rendering, PR handoff, release, native, or Storybook impact,
   record `mise run test:unit:dom`, `mise run ci`, or a focused test in the PR verification notes.
 - Put day-to-day agent guidance, coding standards, workflows, and project-rule links in `CLAUDE.md`.
-- Put longer operational detail in skills, `README.md`, or `docs/`.
+- Put longer operational detail in skills, `CONTRIBUTING.md`, or `docs/`.
 - For product, architecture, commands, and verification scope,
-  use `README.md` as the source of truth after reading `CLAUDE.md`.
+  use `CONTRIBUTING.md` as the source of truth after reading `CLAUDE.md`; `README.md` is the user-facing product landing page.
 - If a configured external notification tool is unavailable in the current agent runtime, report that limitation instead of blocking the task.
 - Do not deviate from `CLAUDE.md` or the documents it routes to unless explicitly instructed.

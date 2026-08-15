@@ -1,6 +1,6 @@
 # Ultra RSS Reader Agent Guide
 
-Use [README.md](README.md) as the source of truth for product overview, architecture, development modes, command details, and verification scope.
+Use [README.md](README.md) for the user-facing product overview and [CONTRIBUTING.md](CONTRIBUTING.md) as the source of truth for architecture, development modes, command details, and verification scope.
 This file is the short repository-local workflow guide for agents.
 
 ## First Actions
@@ -22,7 +22,8 @@ Do not duplicate the same fact across documents; update the owning source and ke
 | --- | --- | --- |
 | Agent runtime entry | [AGENTS.md](AGENTS.md) | Thin router for runtimes that read `AGENTS.md` before repository-local guidance |
 | Agent workflow, source routing, and this SoTT | [CLAUDE.md](CLAUDE.md) | Repository-local workflow, quality-gate selection, rule routing, and source ownership |
-| Product scope, setup, usage, architecture overview, and verification scope | [README.md](README.md) | User-facing product overview, development modes, command details, and architecture summary |
+| Product scope, install, usage, and feature overview | [README.md](README.md) (English) / [README.ja.md](README.ja.md) | User-facing product landing page: features, install, keyboard shortcuts |
+| Development setup, development modes, commands, architecture, and verification scope | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer-facing setup, dev modes, command details, architecture, coding conventions, and verification matrix |
 | Operational docs and historical records index | [docs/README.md](docs/README.md) | Entry point for focused operational docs and historical design/planning records |
 | Visual design rules, UX principles, and style-token policy | [DESIGN.md](DESIGN.md) | Durable reusable visual guidance; implementation tokens live in [src/styles/global.css](src/styles/global.css) |
 | UI review and abstraction routing | [DESIGN_REVIEW.md](DESIGN_REVIEW.md) | Review process, shared-vs-local routing, exceptions, and escalation |

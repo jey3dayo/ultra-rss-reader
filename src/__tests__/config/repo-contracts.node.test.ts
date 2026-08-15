@@ -2055,7 +2055,7 @@ describe("repository static contracts", () => {
 
   it("keeps release install verification separate from local app install helpers", () => {
     const releaseManualVerification = readRepoFile("docs/release-manual-verification.md");
-    const readme = readRepoFile("README.md");
+    const contributing = readRepoFile("CONTRIBUTING.md");
     const miseSource = readRepoFile("mise.toml");
     const windowsInstallScript = readRepoFile("scripts/install-windows-app.ts");
     const appInstallTask = extractMiseTaskSection(miseSource, "app:install");
@@ -2076,9 +2076,9 @@ describe("repository static contracts", () => {
       "Current release policy assumes no Apple Developer Program / Developer ID",
     );
     expect(releaseManualVerification).toContain("Gatekeeper assessment result or ad-hoc signing policy result");
-    expect(readme).toContain("Published release install verification must use the artifact from GitHub Releases");
-    expect(readme).toContain("macOS releases currently assume no Apple Developer Program / Developer ID");
-    expect(readme).toContain("`mise run app:install` rebuilds from the current checkout");
+    expect(contributing).toContain("Published release install verification must use the artifact from GitHub Releases");
+    expect(contributing).toContain("macOS releases currently assume no Apple Developer Program / Developer ID");
+    expect(contributing).toContain("`mise run app:install` rebuilds from the current checkout");
     expect(appInstallTask).toContain("Build, locally re-sign, and install the current checkout");
     expect(appInstallTask).toContain("src-tauri/target/release/bundle/macos");
     expect(appInstallTask).toContain("scripts/install-windows-app.ts");
@@ -2262,7 +2262,7 @@ describe("repository static contracts", () => {
     expect(packageVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(cargoVersion).toBe(packageVersion);
     expect(tauriConfig.version).toBe(packageVersion);
-    expect(readRepoFile("README.md")).toContain(
+    expect(readRepoFile("CONTRIBUTING.md")).toContain(
       "Version is kept in sync across `tauri.conf.json`, `Cargo.toml`, and `package.json`.",
     );
   });

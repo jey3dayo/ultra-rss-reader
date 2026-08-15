@@ -96,7 +96,7 @@ git rev-list -n 1 v{new_version}   # release commit hash と一致すること
 RELEASE_TAG=v{new_version} mise run release:preflight:local
 ```
 
-`release:preflight:local` はリリース固有の検証（version parity、release build contamination）を含む push 直前専用ゲート。format / lint / test は pre-push フックでも走る。
+`release:preflight:local` は通常の commit hook ではなく、release commit と annotated tag を作った後、push 直前だけに実行するリリース固有の検証（version parity、release build contamination）ゲート。format / lint / test は pre-push フックでも走る。
 
 push 前に「旧→新バージョン、リリースノート、コミットハッシュ、タグ名」を表示し、確認を待たずに続行する。
 

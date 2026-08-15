@@ -7,7 +7,7 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 
 1. `AGENTS.md`: thin router and instruction precedence for external agents.
 2. `CLAUDE.md`: short repository-local agent workflow.
-3. `README.md`: source of truth for product behavior, architecture, commands, and verification.
+3. `README.md`: user-facing product landing page; `CONTRIBUTING.md`: source of truth for architecture, commands, and verification.
 4. `docs/README.md`: index for operational docs, current behavior references, and historical design records.
 
 ## Source Of Truth
@@ -74,4 +74,4 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 
 - `docs/superpowers/specs/`: dated design documents.
 - `docs/superpowers/plans/`: dated implementation plans and execution checklists.
-- Historical docs are not the primary source of truth for current behavior. Prefer `README.md`, `docs/README.md`, operational docs, and code.
+- Historical docs are not the primary source of truth for current behavior. Prefer `CONTRIBUTING.md`, `docs/README.md`, operational docs, and code.
