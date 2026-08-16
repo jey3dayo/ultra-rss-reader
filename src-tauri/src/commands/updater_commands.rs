@@ -370,6 +370,13 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
     let pending = app.state::<PendingUpdate>();
     clear_pending_update(&mut *pending.0.lock().await);
 
+    // Store builds ship with empty updater endpoints/pubkey (updater disabled).
+    // Skip the check instead of letting the plugin surface an EmptyEndpoints
+    // error on every startup check.
+    if !is_updater_manual_check_configured(app.config()) {
+        return Ok(None);
+    }
+
     let updater = app.updater().map_err(|e| AppError::Retryable {
         message: updater_initialization_error_message(e),
     })?;

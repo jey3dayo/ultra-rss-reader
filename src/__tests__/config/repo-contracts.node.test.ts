@@ -2170,6 +2170,12 @@ describe("repository static contracts", () => {
           contents: "write",
         },
       },
+      {
+        path: ".github/workflows/store-msix.yml",
+        permissions: {
+          contents: "read",
+        },
+      },
     ]);
     expect(writePermissions).toEqual([
       ".github/workflows/labeler.yml:pull-requests",
@@ -2253,6 +2259,25 @@ describe("repository static contracts", () => {
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
     expect(readRepoFile(".github/workflows/release.yml")).toContain("--config src-tauri/tauri.release.conf.json");
     expect(readRepoFile("docs/release-manual-verification.md")).toContain("packaged updater verification passed");
+  });
+
+  it("keeps store config updater disabled via empty config instead of null", () => {
+    const storeConfig = JSON.parse(readRepoFile("src-tauri/tauri.store.conf.json"));
+
+    // plugins.updater: null crashes plugin initialization at startup ("invalid type: null, expected struct Config").
+    expect(storeConfig.plugins.updater).not.toBeNull();
+    expect(typeof storeConfig.plugins.updater).toBe("object");
+    expect(storeConfig.plugins.updater.endpoints).toEqual([]);
+    expect(storeConfig.plugins.updater.pubkey).toBe("");
+    expect(storeConfig.bundle.createUpdaterArtifacts).toBe(false);
+  });
+
+  it("keeps MSIX manifest Identity version in sync with package.json", () => {
+    const manifestSource = readRepoFile("msix/Package.appxmanifest");
+    const identityBlock = manifestSource.match(/<Identity\b[\s\S]*?\/>/)?.[0];
+    const manifestVersion = identityBlock?.match(/Version="([^"]+)"/)?.[1];
+
+    expect(manifestVersion).toBe(`${packageJson.version}.0`);
   });
 
   it("keeps release dry-run version sources consistent", () => {
