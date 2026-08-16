@@ -2272,6 +2272,14 @@ describe("repository static contracts", () => {
     expect(storeConfig.bundle.createUpdaterArtifacts).toBe(false);
   });
 
+  it("keeps MSIX manifest Identity version in sync with package.json", () => {
+    const manifestSource = readRepoFile("msix/Package.appxmanifest");
+    const identityBlock = manifestSource.match(/<Identity\b[\s\S]*?\/>/)?.[0];
+    const manifestVersion = identityBlock?.match(/Version="([^"]+)"/)?.[1];
+
+    expect(manifestVersion).toBe(`${packageJson.version}.0`);
+  });
+
   it("keeps release dry-run version sources consistent", () => {
     const packageVersion = packageJson.version;
     const cargoVersion = extractCargoPackageVersion(readRepoFile("src-tauri/Cargo.toml"));

@@ -55,7 +55,10 @@ const tauriDevConfig = readJson<TauriConfig>(DEV_TAURI_CONFIG_PATH);
 const defaultCapability = readJson<TauriCapabilityFile>("src-tauri/capabilities/default.json");
 const cargoToml = readFileSync("src-tauri/Cargo.toml", "utf8");
 const releaseWorkflow = readFileSync(".github/workflows/release.yml", "utf8");
+const msixManifest = readFileSync("msix/Package.appxmanifest", "utf8");
 const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
+const msixManifestIdentityBlock = msixManifest.match(/<Identity\b[\s\S]*?\/>/)?.[0];
+const msixManifestVersion = msixManifestIdentityBlock?.match(/Version="([^"]+)"/)?.[1];
 const expectedTag = `v${packageJson.version}`;
 const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
 const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
@@ -75,6 +78,11 @@ if (tauriConfig.version !== packageJson.version) {
 if (cargoVersion !== packageJson.version) {
   errors.push(
     `src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`,
+  );
+}
+if (msixManifestVersion !== `${packageJson.version}.0`) {
+  errors.push(
+    `msix/Package.appxmanifest Identity version ${msixManifestVersion ?? "(missing)"} does not match package.json version ${packageJson.version}.0`,
   );
 }
 if (tauriReleaseConfig.identifier !== tauriConfig.identifier) {
