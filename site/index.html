@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ultra RSS Reader — Your feeds, on your machine</title>
+<meta name="description" content="A keyboard-first desktop RSS reader with offline full-text search and FreshRSS sync. No account, no cloud, no subscription." />
+<link rel="canonical" href="https://ultra-rss.jey3dayo.net/" />
+<link rel="alternate" hreflang="en" href="https://ultra-rss.jey3dayo.net/" />
+<link rel="alternate" hreflang="ja" href="https://ultra-rss.jey3dayo.net/ja/" />
+<link rel="alternate" hreflang="x-default" href="https://ultra-rss.jey3dayo.net/" />
+<link rel="icon" href="assets/app-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Ultra RSS Reader — Your feeds, on your machine" />
+<meta property="og:description" content="A keyboard-first desktop RSS reader with offline full-text search and FreshRSS sync. No account, no cloud, no subscription." />
+<meta property="og:image" content="https://ultra-rss.jey3dayo.net/assets/screenshot-reader-light.jpg" />
+<meta property="og:url" content="https://ultra-rss.jey3dayo.net/" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Ultra RSS Reader — Your feeds, on your machine" />
+<meta name="twitter:description" content="A keyboard-first desktop RSS reader with offline full-text search and FreshRSS sync. No account, no cloud, no subscription." />
+<meta name="twitter:image" content="https://ultra-rss.jey3dayo.net/assets/screenshot-reader-light.jpg" />
+
+<style>
+  :root {
+    --canvas: #f2f1ed;
+    --foreground: #26251e;
+    --surface-1: #f7f7f4;
+    --surface-3: #ebeae5;
+    --card: #e6e5e0;
+    --primary: #f54e00;
+    --primary-foreground: #fff7f2;
+    --border: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --font-sans:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+      "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
+    --font-serif:
+      ui-serif, Georgia, Cambria, "Times New Roman", Times, "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #1c1915;
+      --foreground: #f3efe6;
+      --surface-1: #221e19;
+      --surface-3: #2d2822;
+      --card: #26221d;
+      --primary: #f54e00;
+      --primary-foreground: #1c1915;
+      --border: color-mix(in oklab, var(--foreground) 14%, transparent);
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  img {
+    max-width: 100%;
+    display: block;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  header.site-header {
+    padding: 20px 0;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .brand img {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .lang-switch a {
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .lang-switch a:hover {
+    background: var(--surface-3);
+  }
+
+  main {
+    display: block;
+  }
+
+  .hero {
+    padding: 48px 0 32px;
+    text-align: center;
+  }
+
+  .hero img.app-icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 22px;
+    margin: 0 auto 20px;
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.15;
+    margin: 0 0 12px;
+  }
+
+  .tagline {
+    font-size: clamp(1.05rem, 2vw, 1.25rem);
+    max-width: 640px;
+    margin: 0 auto 32px;
+    opacity: 0.85;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1rem;
+    border: 1px solid transparent;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .btn-secondary {
+    background: var(--surface-1);
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+
+  .btn-secondary:hover,
+  .btn-primary:hover {
+    filter: brightness(1.05);
+  }
+
+  .fine-print {
+    font-size: 0.82rem;
+    opacity: 0.7;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .fine-print a {
+    text-decoration: underline;
+  }
+
+  .all-platforms {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    opacity: 0.8;
+  }
+
+  .screenshot-section {
+    padding: 16px 0 56px;
+  }
+
+  .screenshot-frame {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    box-shadow: 0 20px 60px -30px rgba(0, 0, 0, 0.35);
+  }
+
+  section {
+    padding: 48px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  h2 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin: 0 0 28px;
+    text-align: center;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .card-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 900px) {
+    .card-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .card strong {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .card p {
+    margin: 0;
+    font-size: 0.92rem;
+    opacity: 0.85;
+  }
+
+  .shortcuts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+
+  .shortcuts-table th,
+  .shortcuts-table td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .shortcuts-table kbd {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 7px;
+    font-family: var(--font-sans);
+    font-size: 0.85em;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .compare p {
+    max-width: 720px;
+    margin: 0 auto 16px;
+  }
+
+  .compare a {
+    text-decoration: underline;
+  }
+
+  footer.site-footer {
+    padding: 32px 0 48px;
+    border-top: 1px solid var(--border);
+    font-size: 0.88rem;
+    opacity: 0.85;
+  }
+
+  .footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-links a {
+    text-decoration: underline;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .btn {
+      transition: filter 120ms ease;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .wrap {
+      padding: 0 16px;
+    }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="#top">
+      <img src="assets/app-icon.png" alt="" width="28" height="28" />
+      <span>Ultra RSS Reader</span>
+    </a>
+    <nav class="lang-switch">
+      <a href="/ja/" hreflang="ja">日本語</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <img class="app-icon" src="assets/app-icon.png" alt="Ultra RSS Reader app icon" width="96" height="96" />
+      <h1>Ultra RSS Reader</h1>
+      <p class="tagline">
+        <strong>Your feeds, on your machine.</strong> A keyboard-first desktop RSS reader with offline full-text
+        search and FreshRSS sync — no account, no cloud, no subscription.
+      </p>
+
+      <div class="cta-row">
+        <a id="download-btn" class="btn btn-primary" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">
+          Download for macOS / Windows
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/jey3dayo/ultra-rss-reader">View on GitHub</a>
+      </div>
+
+      <p class="fine-print" id="gatekeeper-note">
+        <strong>macOS note:</strong> releases are currently ad-hoc signed (no Apple Developer ID), so Gatekeeper will
+        warn on first launch. Right-click the app → <strong>Open</strong>, or run
+        <code>xattr -dr com.apple.quarantine "/Applications/Ultra RSS Reader.app"</code>.
+      </p>
+      <a class="all-platforms" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">
+        See all platforms and installers →
+      </a>
+    </div>
+  </section>
+
+  <section class="screenshot-section">
+    <div class="wrap">
+      <div class="screenshot-frame">
+        <picture>
+          <source srcset="assets/screenshot-reader-dark.jpg" media="(prefers-color-scheme: dark)" />
+          <img
+            src="assets/screenshot-reader-light.jpg"
+            width="1322"
+            height="896"
+            alt="Ultra RSS Reader three-pane view: feed sidebar, article list, and reading pane"
+          />
+        </picture>
+      </div>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="wrap">
+      <h2>Why Ultra RSS Reader?</h2>
+      <div class="card-grid">
+        <div class="card">
+          <strong>Local-first, no account required</strong>
+          <p>
+            All articles live in an embedded SQLite database on your machine. Full-text search (FTS5) works offline
+            across everything you have ever fetched.
+          </p>
+        </div>
+        <div class="card">
+          <strong>First-class FreshRSS sync</strong>
+          <p>
+            Connect a FreshRSS server via the Google Reader API. Read status and stars sync bidirectionally, with
+            pending local changes protected from being overwritten by stale remote state.
+          </p>
+        </div>
+        <div class="card">
+          <strong>Credentials in the OS keyring</strong>
+          <p>Passwords and tokens go to Keychain / Credential Manager / Secret Service, never into the database.</p>
+        </div>
+        <div class="card">
+          <strong>Keyboard-driven</strong>
+          <p>
+            <code>j</code>/<code>k</code> navigation, single-key actions, a <code>⌘K</code> command palette that
+            jumps straight to any feed, and fully customizable bindings.
+          </p>
+        </div>
+        <div class="card">
+          <strong>Read the real page without leaving</strong>
+          <p>Web Preview embeds the publisher page inside the reading flow with dedicated browser controls.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="shortcuts">
+    <div class="wrap">
+      <h2>Keyboard Shortcuts</h2>
+      <p style="text-align: center; opacity: 0.8; margin-top: -12px">
+        All bindings are customizable in Settings. Defaults:
+      </p>
+      <div class="table-scroll">
+        <table class="shortcuts-table">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Action</th>
+              <th>Key</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd>j</kbd> / <kbd>k</kbd></td>
+              <td>Next / previous article</td>
+              <td><kbd>m</kbd></td>
+              <td>Toggle read</td>
+            </tr>
+            <tr>
+              <td><kbd>h</kbd> / <kbd>l</kbd></td>
+              <td>Previous / next feed</td>
+              <td><kbd>s</kbd></td>
+              <td>Toggle star</td>
+            </tr>
+            <tr>
+              <td><kbd>Space</kbd> / <kbd>Shift+Space</kbd></td>
+              <td>Scroll article</td>
+              <td><kbd>a</kbd></td>
+              <td>Mark all read</td>
+            </tr>
+            <tr>
+              <td><kbd>v</kbd></td>
+              <td>Open in-app browser</td>
+              <td><kbd>b</kbd></td>
+              <td>Open external browser</td>
+            </tr>
+            <tr>
+              <td><kbd>/</kbd></td>
+              <td>Search</td>
+              <td><kbd>f</kbd></td>
+              <td>Cycle filter</td>
+            </tr>
+            <tr>
+              <td><kbd>⌘1</kbd> / <kbd>⌘2</kbd> / <kbd>⌘3</kbd></td>
+              <td>Unread / All / Starred</td>
+              <td><kbd>u</kbd></td>
+              <td>Focus sidebar</td>
+            </tr>
+            <tr>
+              <td><kbd>⌘K</kbd></td>
+              <td>Command palette</td>
+              <td><kbd>⌘\</kbd></td>
+              <td>Toggle sidebar</td>
+            </tr>
+            <tr>
+              <td><kbd>Esc</kbd></td>
+              <td>Close / clear</td>
+              <td><kbd>⌘,</kbd></td>
+              <td>Settings</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare" class="compare">
+    <div class="wrap">
+      <h2>How it compares</h2>
+      <p>
+        There are a lot of good RSS readers, and the right one depends on what you want to optimize for.
+      </p>
+      <p>
+        Ultra RSS Reader is built for people who want their archive to live on their own machine and their hands to
+        stay on the keyboard. Everything you have ever fetched stays in a local SQLite database and is searchable
+        offline, and sync is optional — point it at your own FreshRSS server or run it with no account at all. It is
+        free and MIT-licensed.
+      </p>
+      <p>
+        If you want a polished native reader on Apple platforms,
+        <a href="https://netnewswire.com/">NetNewsWire</a> and <a href="https://reederapp.com/">Reeder</a> are
+        excellent. If you want a hosted service with mobile apps and discovery features,
+        <a href="https://feedly.com/">Feedly</a> or <a href="https://www.inoreader.com/">Inoreader</a> will serve you
+        better. Ultra RSS Reader deliberately does none of the hosted parts.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <div class="footer-links">
+      <a href="https://github.com/jey3dayo/ultra-rss-reader">GitHub</a>
+      <a href="https://github.com/jey3dayo/ultra-rss-reader/releases">Releases</a>
+      <a href="https://github.com/jey3dayo/ultra-rss-reader/blob/main/LICENSE">License (MIT)</a>
+      <a href="/ja/" hreflang="ja">日本語</a>
+    </div>
+    <span>© 2026 jey3dayo</span>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById("download-btn");
+    var fallbackUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest";
+
+    function detectPlatform() {
+      var uaDataPlatform = navigator.userAgentData && navigator.userAgentData.platform;
+      var platform = (uaDataPlatform || navigator.userAgent || "").toLowerCase();
+      if (platform.indexOf("mac") !== -1) return "mac";
+      if (platform.indexOf("win") !== -1) return "windows";
+      return null;
+    }
+
+    function pickAsset(assets, platform) {
+      if (!assets) return null;
+      if (platform === "mac") {
+        return assets.find(function (a) {
+          return /\.dmg$/i.test(a.name);
+        });
+      }
+      if (platform === "windows") {
+        return (
+          assets.find(function (a) {
+            return /\.exe$/i.test(a.name);
+          }) ||
+          assets.find(function (a) {
+            return /\.msi$/i.test(a.name);
+          })
+        );
+      }
+      return null;
+    }
+
+    var platform = detectPlatform();
+    if (!platform) return;
+
+    fetch("https://api.github.com/repos/jey3dayo/ultra-rss-reader/releases/latest")
+      .then(function (res) {
+        if (!res.ok) throw new Error("GitHub API error: " + res.status);
+        return res.json();
+      })
+      .then(function (release) {
+        var asset = pickAsset(release.assets, platform);
+        if (!asset) return;
+        btn.href = asset.browser_download_url;
+        var label = platform === "mac" ? "Download for macOS" : "Download for Windows";
+        if (release.tag_name) label += " (" + release.tag_name + ")";
+        btn.textContent = label;
+      })
+      .catch(function () {
+        btn.href = fallbackUrl;
+      });
+  })();
+</script>
+</body>
+</html>
