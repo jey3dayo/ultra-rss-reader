@@ -23,7 +23,7 @@ const now = getCurrentDate();
 const yesterday = addLocalDays(now, -1);
 
 const MOCK_ARTICLE_FALLBACK_NOTE_EN =
-  "A sample article prepared for browser development use, to make it easy to check keyboard navigation and scroll behavior.";
+  "Analysts note that the shift has been gradual rather than sudden, with most organizations adjusting policy in small increments instead of sweeping changes. Similar patterns have shown up across several unrelated industries over the same period.";
 
 function createMockArticleEn(seed: MockArticleSeed): ArticleDto {
   return createMockArticle(seed, MOCK_ARTICLE_FALLBACK_NOTE_EN);
@@ -32,7 +32,7 @@ function createMockArticleEn(seed: MockArticleSeed): ArticleDto {
 export const relativeMockArticlePublishedAtEn: RelativeMockArticlePublishedAtMap = {
   "art-en-1": { dayOffset: 0, hours: 9, minutes: 12 },
   "art-en-2": { dayOffset: 0, hours: 8, minutes: 5 },
-  "art-en-3": { dayOffset: -1, hours: 19, minutes: 40 },
+  "art-en-3": { dayOffset: 0, hours: 9, minutes: 30 },
   "art-en-4": { dayOffset: -1, hours: 11, minutes: 15 },
   "art-en-5": { dayOffset: 0, hours: 16, minutes: 22 },
   "art-en-6": { dayOffset: 0, hours: 14, minutes: 50 },
@@ -186,10 +186,24 @@ const mockArticleTagSeedsEn = [
   { article_id: "art-en-4", tag_id: "tag-read-later" },
 ] satisfies readonly MockArticleTag[];
 
-const longReaderKeyboardContentEn = Array.from({ length: 18 }, (_, index) => {
-  const sectionNumber = index + 1;
-  return `<p>Long-scroll verification section ${sectionNumber}. This body text is long enough to confirm that, while the reader pane has focus, pressing the up and down arrow keys only scrolls the reader's own scroll region. It gives enough content to observe scrollTop changes in both the browser preview and the desktop app.</p>`;
-}).join("");
+const longReaderKeyboardContentParagraphsEn = [
+  "Teams that made the switch describe a slow build-up rather than a single rewrite. Suites grew flaky one merge at a time, and the fix came the same way: replacing the shakiest end-to-end checks with faster, narrower tests as each one caused enough friction to justify the work.",
+  "The common thread across the interviews was ownership. Suites that stayed healthy had a clear owner who triaged failures within a day or two, while suites that were nobody's job in particular tended to accumulate skipped tests until almost nothing in them was trusted.",
+  "Cost was the other recurring theme. Full end-to-end runs are expensive in both compute time and attention, so several teams now reserve them for a small set of critical user journeys and push everything else down to faster layers that give feedback in seconds instead of minutes.",
+  "None of this means end-to-end testing is going away. The teams interviewed still keep a handful of browser-driven checks for the flows that matter most to customers, they just no longer expect that layer to catch every regression on its own.",
+  "Tooling played a smaller role in the shift than expected. Most teams kept their existing frameworks and instead changed what they asked those tools to cover, favoring fewer, more deliberate end-to-end scenarios over broad but brittle coverage.",
+  "The pattern shows up outside of testing too. Whenever a process becomes expensive to maintain relative to the value it delivers, teams tend to narrow its scope rather than abandon it outright, keeping the parts that pay for themselves and trimming the rest.",
+  "Several engineering leads pointed to flakiness itself as the real cost driver, more than raw runtime. A test that fails once in twenty runs for no discernible reason erodes trust faster than a suite that is merely slow, because every red run forces someone to decide whether it is a real regression.",
+  "The teams that recovered from chronically flaky suites tended to start with a moratorium: no new end-to-end tests until the existing ones were either fixed or deleted. That constraint forced a harder conversation about which flows genuinely needed browser-level coverage in the first place.",
+  "A recurring mistake was writing end-to-end tests to cover logic that a unit test could exercise far more cheaply. Once teams pushed that logic down a layer, the remaining end-to-end suite shrank naturally, and what was left tended to be the tests worth keeping.",
+  "Feedback loop length came up again and again as the practical reason to change course. A ten-minute wait to learn whether a one-line fix worked pushed engineers toward batching changes and context-switching away, which in turn slowed down the whole team's iteration speed.",
+  "Migration wasn't free. Several teams described a multi-quarter effort to build confidence in the new layered approach before they were willing to delete old end-to-end coverage, running both in parallel long enough to catch any gaps the faster tests missed.",
+  "By the end of the transition, most teams described their testing pyramid as noticeably flatter than the textbook version: a large base of fast tests, a modest middle layer, and a deliberately small set of end-to-end checks reserved for the journeys that would hurt the most to get wrong.",
+];
+
+const longReaderKeyboardContentEn = longReaderKeyboardContentParagraphsEn
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("");
 
 const mockArticleSeedsEn = [
   createMockArticleEn({
@@ -231,9 +245,9 @@ const mockArticleSeedsEn = [
     contentHtml: longReaderKeyboardContentEn,
     url: "https://example.com/dev-weekly/rethinking-e2e-tests",
     author: "Dev Weekly Editors",
-    date: yesterday,
-    hours: 19,
-    minutes: 40,
+    date: now,
+    hours: 9,
+    minutes: 30,
     isRead: false,
     isStarred: false,
   }),

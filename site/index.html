@@ -222,6 +222,11 @@
     box-shadow: 0 20px 60px -30px rgba(0, 0, 0, 0.35);
   }
 
+  .screenshot-frame img {
+    width: 100%;
+    height: auto;
+  }
+
   section {
     padding: 48px 0;
     border-top: 1px solid var(--border);
@@ -350,7 +355,7 @@
       <img src="assets/app-icon.png" alt="" width="28" height="28" />
       <span>Ultra RSS Reader</span>
     </a>
-    <nav class="lang-switch">
+    <nav class="lang-switch" aria-label="Language">
       <a href="/ja/" hreflang="ja">日本語</a>
     </nav>
   </div>
@@ -391,8 +396,8 @@
           <source srcset="assets/screenshot-reader-dark.jpg" media="(prefers-color-scheme: dark)" />
           <img
             src="assets/screenshot-reader-light.jpg"
-            width="1322"
-            height="896"
+            width="1600"
+            height="900"
             alt="Ultra RSS Reader three-pane view: feed sidebar, article list, and reading pane"
           />
         </picture>
