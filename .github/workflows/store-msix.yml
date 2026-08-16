@@ -72,7 +72,10 @@ jobs:
         run: pnpm tauri build --no-bundle --config src-tauri/tauri.store.conf.json --ci
 
       # microsoft/setup-WinAppCli@v0.2
+      # CLI version pinned for reproducibility
       - uses: microsoft/setup-WinAppCli@b93bbddc1f7abc061ca0d3a8119e3a0c7dd71495
+        with:
+          version: v0.6.0
 
       - name: Package MSIX
         shell: pwsh
