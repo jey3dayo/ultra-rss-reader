@@ -1,0 +1,1 @@
+x 2026-08-16 2026-08-16 Windows実機でMSIX化+sideload検証 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57
