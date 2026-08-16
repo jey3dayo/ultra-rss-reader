@@ -4,7 +4,7 @@
 
 # Ultra RSS Reader
 
-**A fast, keyboard-driven desktop RSS reader. Local-first, syncs with FreshRSS, and keeps your credentials in the OS keyring.**
+**Your feeds, on your machine.** A keyboard-first desktop RSS reader with offline full-text search and FreshRSS sync — no account, no cloud, no subscription.
 
 [![Latest release](https://img.shields.io/github/v/release/jey3dayo/ultra-rss-reader)](https://github.com/jey3dayo/ultra-rss-reader/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/jey3dayo/ultra-rss-reader/total)](https://github.com/jey3dayo/ultra-rss-reader/releases)
@@ -31,6 +31,14 @@
 - **Credentials in the OS keyring** — Passwords and tokens go to Keychain / Credential Manager / Secret Service, never into the database.
 - **Keyboard-driven** — `j`/`k` navigation, single-key actions, a `⌘K` command palette that jumps straight to any feed, and fully customizable bindings.
 - **Read the real page without leaving** — Web Preview embeds the publisher page inside the reading flow with dedicated browser controls.
+
+## How it compares
+
+There are a lot of good RSS readers, and the right one depends on what you want to optimize for.
+
+Ultra RSS Reader is built for people who want their archive to live on their own machine and their hands to stay on the keyboard. Everything you have ever fetched stays in a local SQLite database and is searchable offline, and sync is optional — point it at your own FreshRSS server or run it with no account at all. It is free and MIT-licensed.
+
+If you want a polished native reader on Apple platforms, [NetNewsWire](https://netnewswire.com/) and [Reeder](https://reederapp.com/) are excellent. If you want a hosted service with mobile apps and discovery features, [Feedly](https://feedly.com/) or [Inoreader](https://www.inoreader.com/) will serve you better. Ultra RSS Reader deliberately does none of the hosted parts.
 
 ## Install
 
@@ -80,6 +88,15 @@ All bindings are customizable in Settings. Defaults:
 Tauri 2 (Rust) · React 19 · TypeScript · SQLite (rusqlite + FTS5) · Tailwind CSS v4 · Zustand + TanStack Query
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full architecture, development modes, and verification commands.
+
+## Roadmap
+
+Currently planned, roughly in order:
+
+- **Linux builds** — `.deb` / `.AppImage` from the release workflow ([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
+- **Smoother installs** — signed and notarized macOS builds, plus Homebrew cask and winget, so first launch stops needing a Gatekeeper workaround
+- **Microsoft Store distribution** ([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
+- **More sync providers** — Feedly is being tracked separately ([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
 
 ## Contributing
 

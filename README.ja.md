@@ -4,7 +4,7 @@
 
 # Ultra RSS Reader
 
-**高速・キーボード操作中心のデスクトップ RSS リーダー。ローカルファーストで FreshRSS と同期し、認証情報は OS キーリングに保存。**
+**フィードは、あなたの手元に。** キーボード操作中心のデスクトップ RSS リーダー。全文検索はオフラインで動き、FreshRSS と同期できます。アカウント不要・クラウド不要・サブスク不要。
 
 [![Latest release](https://img.shields.io/github/v/release/jey3dayo/ultra-rss-reader)](https://github.com/jey3dayo/ultra-rss-reader/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/jey3dayo/ultra-rss-reader/total)](https://github.com/jey3dayo/ultra-rss-reader/releases)
@@ -31,6 +31,14 @@
 - **認証情報は OS キーリングへ** — パスワードやトークンは Keychain / Credential Manager / Secret Service に保存され、データベースには入りません。
 - **キーボード駆動** — `j`/`k` ナビゲーション、単キーアクション、任意のフィードへ直接ジャンプできる `⌘K` コマンドパレット。バインドはすべてカスタマイズ可能です。
 - **リーディングフローを離れず元ページを閲覧** — Web Preview が配信元ページをアプリ内に埋め込み、専用のブラウザ操作を提供します。
+
+## 他のリーダーとの違い
+
+優れた RSS リーダーは他にもたくさんあり、何を重視するかで最適解は変わります。
+
+Ultra RSS Reader は、記事のアーカイブを自分のマシンに置いておきたい人、そして手をキーボードから離したくない人のために作っています。取得した記事はすべてローカルの SQLite に残り、オフラインで全文検索できます。同期は任意で、自分の FreshRSS サーバーに向けることも、アカウントなしで使うこともできます。MIT ライセンスの無料ソフトウェアです。
+
+Apple プラットフォームで完成度の高いネイティブリーダーが欲しいなら [NetNewsWire](https://netnewswire.com/) や [Reeder](https://reederapp.com/) が優れています。モバイルアプリや記事推薦を含むホスティング型サービスが欲しいなら [Feedly](https://feedly.com/) や [Inoreader](https://www.inoreader.com/) の方が向いています。Ultra RSS Reader はホスティング側の機能を意図的に持ちません。
 
 ## インストール
 
@@ -80,6 +88,15 @@
 Tauri 2 (Rust) · React 19 · TypeScript · SQLite (rusqlite + FTS5) · Tailwind CSS v4 · Zustand + TanStack Query
 
 アーキテクチャ、開発モード、検証コマンドの詳細は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+
+## ロードマップ
+
+現時点で予定しているもの(おおよその順序):
+
+- **Linux ビルド** — release workflow から `.deb` / `.AppImage` を配布([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
+- **インストールの摩擦解消** — macOS の署名・notarization に加えて Homebrew cask と winget 対応。初回起動で Gatekeeper の回避操作が不要になる
+- **Microsoft Store 配布**([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
+- **同期プロバイダの追加** — Feedly は別 issue で追跡中([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
 
 ## コントリビュート
 
