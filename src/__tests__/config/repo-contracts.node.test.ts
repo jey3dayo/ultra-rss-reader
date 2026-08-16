@@ -428,6 +428,7 @@ const valibotValidationBoundaryPaths = new Set([
   "src/__tests__/components/use-general-settings-view-props.node.test.ts",
   "src/__tests__/constants/source-of-truth.test.ts",
   "src/__tests__/dev/dev-mock-data.test.ts",
+  "src/__tests__/dev/dev-mock-data-demo-en.test.ts",
   "src/__tests__/dev/dev-mocks-browser.node.test.ts",
   "src/__tests__/dev/dev-mocks.node.test.ts",
   "src/__tests__/hooks/tag-mute-settings-contract.test.ts",

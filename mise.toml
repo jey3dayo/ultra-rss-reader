@@ -141,6 +141,10 @@ run_windows = "echo 'app:dev:signed is macOS-only (requires codesign and Unix sh
 description = "Run frontend dev server for browser UI testing"
 run = "vite --host 127.0.0.1 --port 4173 --strictPort"
 
+[tasks."app:dev:browser:demo-en"]
+description = "Run frontend dev server with English demo mock data for README/landing-page screenshots"
+run = "VITE_DEV_MOCK_LOCALE=en vite --host 127.0.0.1 --port 4173 --strictPort"
+
 [tasks."app:dev:vite-check"]
 description = "Check that the Tauri Vite dev port is available"
 run = "node ./scripts/tauri-dev-vite-manager.ts --check"

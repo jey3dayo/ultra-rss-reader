@@ -7,6 +7,7 @@ import {
   mockFolders,
   resetMockDataForDevMocks,
 } from "@/dev/mock-data";
+import { readDevMockLocale } from "@/dev/mock-data-locale";
 import { stripHtmlTags } from "@/lib/content/html";
 
 let nextAccountId = 100;
@@ -16,6 +17,21 @@ let nextTagId = 100;
 let nextMuteKeywordId = 100;
 
 export const mockPreferences = new Map<string, string>();
+
+/**
+ * Seeds the `language` preference default for the active dev-mock locale.
+ * `VITE_DEV_MOCK_LOCALE=en` demo runs need the UI to actually render in
+ * English; leaving `language` unset falls back to the frontend schema
+ * default of `"system"`, which does not force English regardless of the
+ * mock content locale.
+ */
+function seedDevMockPreferencesForLocale() {
+  if (readDevMockLocale() === "en") {
+    mockPreferences.set("language", "en");
+  }
+}
+
+seedDevMockPreferencesForLocale();
 export const mockMuteKeywords: MuteKeywordDto[] = [];
 export const mockArticleViewHistory: {
   accountId: string;
@@ -23,7 +39,7 @@ export const mockArticleViewHistory: {
   viewedAt: string;
 }[] = [];
 
-const initialMockMuteKeywords: MuteKeywordDto[] = [
+const initialMockMuteKeywordsJa: MuteKeywordDto[] = [
   {
     id: "dev-mute-sale",
     keyword: "セール告知",
@@ -47,6 +63,39 @@ const initialMockMuteKeywords: MuteKeywordDto[] = [
   },
 ];
 
+/**
+ * English-locale equivalent of `initialMockMuteKeywordsJa`, used only under
+ * `VITE_DEV_MOCK_LOCALE=en` so the Settings > Mute keyword list does not show
+ * Japanese copy in English-locale dev screenshots.
+ */
+const initialMockMuteKeywordsEn: MuteKeywordDto[] = [
+  {
+    id: "dev-mute-sale",
+    keyword: "sale announcement",
+    scope: "title_and_body",
+    created_at: "2026-04-20T10:10:00Z",
+    updated_at: "2026-04-20T10:10:00Z",
+  },
+  {
+    id: "dev-mute-pr",
+    keyword: "PR",
+    scope: "title",
+    created_at: "2026-04-20T10:05:00Z",
+    updated_at: "2026-04-20T10:05:00Z",
+  },
+  {
+    id: "dev-mute-sponsored",
+    keyword: "sponsored",
+    scope: "body",
+    created_at: "2026-04-20T10:00:00Z",
+    updated_at: "2026-04-20T10:00:00Z",
+  },
+];
+
+function initialMockMuteKeywordsForLocale(): MuteKeywordDto[] {
+  return readDevMockLocale() === "en" ? initialMockMuteKeywordsEn : initialMockMuteKeywordsJa;
+}
+
 const initialMockArticleViewHistory: typeof mockArticleViewHistory = [
   {
     accountId: "acc-freshrss",
@@ -67,7 +116,12 @@ export function resetDevMockDataState() {
   nextTagId = 100;
   nextMuteKeywordId = 100;
   mockPreferences.clear();
-  mockMuteKeywords.splice(0, mockMuteKeywords.length, ...initialMockMuteKeywords.map((item) => structuredClone(item)));
+  seedDevMockPreferencesForLocale();
+  mockMuteKeywords.splice(
+    0,
+    mockMuteKeywords.length,
+    ...initialMockMuteKeywordsForLocale().map((item) => structuredClone(item)),
+  );
   mockArticleViewHistory.splice(
     0,
     mockArticleViewHistory.length,

@@ -4,7 +4,16 @@
  */
 
 import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
-import { addLocalDays, createLocalDateTime, getCurrentDate, toIsoTimestamp } from "@/lib/datetime";
+import { mockDataSeedsEn, relativeMockArticlePublishedAtEn } from "@/dev/mock-data-demo-en";
+import { readDevMockLocale } from "@/dev/mock-data-locale";
+import {
+  createMockArticle,
+  type DevMockSeedState,
+  type MockArticleTag,
+  mockArticlePublishedAt,
+  type RelativeMockArticlePublishedAtMap,
+} from "@/dev/mock-data-shared";
+import { addLocalDays, getCurrentDate } from "@/lib/datetime";
 
 const now = getCurrentDate();
 const yesterday = addLocalDays(now, -1);
@@ -18,11 +27,7 @@ export const DEV_MOCK_NETWORK_ISOLATION_POLICY = {
   feedDiscovery: "synthetic",
 } as const;
 
-function mockArticlePublishedAt(baseDate: Date, hours: number, minutes: number): string {
-  return toIsoTimestamp(createLocalDateTime(baseDate, hours, minutes));
-}
-
-const relativeMockArticlePublishedAt: Record<string, { dayOffset: number; hours: number; minutes: number }> = {
+const relativeMockArticlePublishedAtJa: RelativeMockArticlePublishedAtMap = {
   "art-1": { dayOffset: 0, hours: 9, minutes: 7 },
   "art-2": { dayOffset: 0, hours: 8, minutes: 30 },
   "art-3": { dayOffset: -1, hours: 18, minutes: 24 },
@@ -307,47 +312,11 @@ const mockTagSeeds = [
   { id: "tag-work", name: "work", color: "#5f9670" },
 ] satisfies readonly TagDto[];
 
-type MockArticleTag = { article_id: string; tag_id: string };
-
 const mockArticleTagSeeds = [
   { article_id: "art-1", tag_id: "tag-important" },
   { article_id: "art-1", tag_id: "tag-work" },
   { article_id: "art-4", tag_id: "tag-read-later" },
 ] satisfies readonly MockArticleTag[];
-
-type MockArticleSeed = {
-  id: string;
-  feedId: string;
-  title: string;
-  summary: string;
-  url: string;
-  author: string | null;
-  date: Date;
-  hours: number;
-  minutes: number;
-  contentHtml?: string;
-  thumbnail?: string | null;
-  isRead?: boolean;
-  isStarred?: boolean;
-};
-
-function createMockArticle(seed: MockArticleSeed): ArticleDto {
-  return {
-    id: seed.id,
-    feed_id: seed.feedId,
-    title: seed.title,
-    content_sanitized:
-      seed.contentHtml ??
-      `<p>${seed.summary}</p><p>キーボード操作とスクロール量を確認しやすいように用意したブラウザ開発用のサンプル記事です。</p>`,
-    summary: seed.summary,
-    url: seed.url,
-    author: seed.author,
-    published_at: mockArticlePublishedAt(seed.date, seed.hours, seed.minutes),
-    thumbnail: seed.thumbnail ?? null,
-    is_read: seed.isRead ?? false,
-    is_starred: seed.isStarred ?? false,
-  };
-}
 
 const longReaderKeyboardContent = Array.from({ length: 18 }, (_, index) => {
   const sectionNumber = index + 1;
@@ -750,16 +719,7 @@ type DevMockRuntimeState = {
   articles: ArticleDto[];
 };
 
-type DevMockSeedState = {
-  readonly accounts: readonly AccountDto[];
-  readonly folders: readonly FolderDto[];
-  readonly feeds: readonly FeedDto[];
-  readonly tags: readonly TagDto[];
-  readonly articleTags: readonly MockArticleTag[];
-  readonly articles: readonly ArticleDto[];
-};
-
-export const mockDataSeeds: DevMockSeedState = {
+const mockDataSeedsJa: DevMockSeedState = {
   accounts: mockAccountSeeds,
   folders: mockFolderSeeds,
   feeds: mockFeedSeeds,
@@ -767,6 +727,13 @@ export const mockDataSeeds: DevMockSeedState = {
   articleTags: mockArticleTagSeeds,
   articles: mockArticleSeeds,
 };
+
+const activeDevMockLocale = readDevMockLocale();
+
+const relativeMockArticlePublishedAt: RelativeMockArticlePublishedAtMap =
+  activeDevMockLocale === "en" ? relativeMockArticlePublishedAtEn : relativeMockArticlePublishedAtJa;
+
+export const mockDataSeeds: DevMockSeedState = activeDevMockLocale === "en" ? mockDataSeedsEn : mockDataSeedsJa;
 
 function syncUnreadCounts(feeds: FeedDto[], articles: readonly ArticleDto[]) {
   const unreadCountByFeedId = new Map<string, number>();
