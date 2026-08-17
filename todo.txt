@@ -8,4 +8,3 @@
 (D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (C) 2026-08-17 LP 自動デプロイ GitHub Actions + wrangler 導入 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (D) 2026-08-17 ProviderSyncWarning の i18n 対応(全て英語ハードコード) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/62
-(D) 2026-08-17 CI リリースビルドで SENTRY_AUTH_TOKEN を repository secret から渡す +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/56
