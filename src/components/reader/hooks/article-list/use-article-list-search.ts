@@ -133,7 +133,11 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const isCurrentSearchOwner =
     currentSearchOwner !== null && searchOwner !== null && currentSearchOwner.key === searchOwner.key;
   const searchResults = isCurrentSearchOwner && !isPlaceholderSearchData ? ownedSearchResults : undefined;
-  const isSearching = isCurrentSearchOwner && isSearchQueryFetching;
+  // Only show the loading state when there is nothing displayable yet. A background
+  // refetch of the same search key (e.g. triggered by mark-read invalidation) keeps
+  // `isFetching: true` while `searchResults` is still populated; treating that as
+  // "searching" would blank the article list on every read-state mutation (issue #63).
+  const isSearching = isCurrentSearchOwner && isSearchQueryFetching && searchResults === undefined;
 
   const focusSearchInput = useCallback(() => {
     cancelSearchFocusRetry();

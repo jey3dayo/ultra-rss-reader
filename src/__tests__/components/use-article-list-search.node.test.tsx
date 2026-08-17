@@ -402,6 +402,35 @@ describe("useArticleListSearch", () => {
     expect(result.current.isSearching).toBe(false);
   });
 
+  it("does not report searching while the same query background-refetches with results still displayable", () => {
+    useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
+      data: query ? [{ id: "search-result" }] : undefined,
+      isFetching: true,
+      isPlaceholderData: false,
+      searchOwner:
+        _accountId && query
+          ? {
+              accountId: _accountId,
+              query,
+              key: `${_accountId}\0${query}`,
+            }
+          : null,
+    }));
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery("urgent");
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("urgent");
+    expect(result.current.searchResults).toEqual([{ id: "search-result" }]);
+    expect(result.current.isSearching).toBe(false);
+  });
+
   it("keeps operator-like syntax as literal search text before the backend search boundary", () => {
     const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
