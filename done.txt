@@ -9,3 +9,4 @@ x 2026-08-17 2026-07-20 MAX_RETAINED_ARTICLE_IDS=50 と一括既読の仕様判�
 x 2026-08-17 2026-08-17 LP 自動デプロイ GitHub Actions + wrangler 導入 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 x 2026-08-17 2026-08-17 検索中に記事を送るとリストが一瞬消える +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/63
 x 2026-08-17 2026-07-14 reader next-article has-next search mismatch (known edge) +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/54
+x 2026-08-17 2026-08-16 Linux ビルド対応 release workflow + 配布 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/59
