@@ -3,8 +3,8 @@
 > Static where you can, dynamic where you must
 
 Rust allows you to handle polymorphic code in two ways:
-* **Generics / Static Dispatch**: compile-time, monomorphized per use.
-* **Trait Objects / Dynamic Dispatch**: runtime vtable, single implementation.
+* Generics / Static Dispatch: compile-time, monomorphized per use.
+* Trait Objects / Dynamic Dispatch: runtime vtable, single implementation.
 
 Understanding the trade-offs lets you write faster, smaller and more flexible code.
 
@@ -131,7 +131,7 @@ fn all_animals_greeting(animals: Vec<Box<dyn Animal>>) {
 * Prefer `&dyn Trait` over `Box<dyn Trait>` when you don't need ownership.
 * Use `Arc<dyn Trait>` for shared access across threads.
 * Don't use `dyn Trait` if the trait has methods that return `Self`.
-* **Avoid boxing too early**. Don't box inside structs unless you are sure it'll be beneficial or is required (recursive).
+* Avoid boxing too early. Don't box inside structs unless you are sure it'll be beneficial or is required (recursive).
 ```rust
 // ✅ Use generics when possible
 struct Renderer<B: Backend> {
@@ -144,7 +144,7 @@ struct Renderer {
 }
 ```
 * If you must expose a `dyn trait` in a public API, `Box` at the boundary, not internally.
-* **Object Safety**: You can only create `dyn Traits` from object-safe traits:
+* Object Safety: You can only create `dyn Traits` from object-safe traits:
     * It has **no generic methods**.
     * It doesn't require `Self: Sized`.
     * All method signatures use `&self`, `&mut self` or `self`.
