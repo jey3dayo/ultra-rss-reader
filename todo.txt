@@ -1,5 +1,4 @@
 (D) 2026-07-10 TypeScript 7 alias cleanup @blocked +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/55
-(D) 2026-07-14 reader next-article has-next search mismatch (known edge) +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/54
 (D) 2026-07-28 window-state Windows 実機検証 + windows-schema 再生成 +release-native note:docs/release-manual-verification.md
 (D) 2026-08-10 hold-to-confirm pointerId / forced-colors hover +a11y-keyboard note:https://github.com/jey3dayo/ultra-rss-reader/issues/52
 (C) 2026-08-16 Linux ビルド対応 release workflow + 配布 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/59
