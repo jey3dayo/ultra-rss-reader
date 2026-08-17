@@ -3,6 +3,30 @@
 Static product landing page for Ultra RSS Reader, deployed to Cloudflare Pages at
 `ultra-rss.jey3dayo.net`.
 
+## Deployment
+
+Cloudflare Pages project `ultra-rss-reader`, account `4e7695e2370bc9cef6ae9f2802517dd3`.
+Deploys are direct uploads, not a GitHub integration, so a push to `main` does not
+publish anything on its own:
+
+```bash
+dotenvx run -- sh -c 'CLOUDFLARE_ACCOUNT_ID=4e7695e2370bc9cef6ae9f2802517dd3 \
+  pnpm dlx wrangler@latest pages deploy site --project-name=ultra-rss-reader --branch=main'
+```
+
+The custom domain needs a DNS record that Cloudflare does not create on its own:
+a proxied `CNAME` from `ultra-rss` to `ultra-rss-reader.pages.dev` in the
+`jey3dayo.net` zone. Attaching the domain to the project (`POST .../pages/projects/
+ultra-rss-reader/domains`) only registers it; without that record the domain stays
+`pending` and never issues a certificate.
+
+`CLOUDFLARE_API_TOKEN` in `.env` carries Account/Cloudflare Pages Edit plus
+Zone/DNS Edit scoped to `jey3dayo.net`. It cannot enumerate accounts, so the
+account ID above has to be passed explicitly.
+
+Web Analytics is enabled from the Pages project settings in the dashboard, which
+injects the beacon at the edge — deliberately not in the HTML.
+
 ## Design constraints
 
 - Plain HTML with inline CSS. No React, no Tailwind, no build tool, no external CDN
