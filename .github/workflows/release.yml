@@ -19,6 +19,11 @@ on:
         required: false
         default: false
         type: boolean
+      build_linux:
+        description: "Build optional Linux .deb and AppImage artifacts."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -37,6 +42,7 @@ jobs:
     outputs:
       should_publish: ${{ steps.signing-preflight.outputs.should_publish }}
       should_build: ${{ steps.signing-preflight.outputs.should_build }}
+      release_matrix: ${{ steps.resolve-release-matrix.outputs.matrix }}
 
     steps:
       # actions/checkout@v6.0.2
@@ -116,6 +122,24 @@ jobs:
           echo "should_publish=true" >> "$GITHUB_OUTPUT"
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
+      # Linux packaging is opt-in because it is not in the current user rollout.
+      # Last successful manual verification: <YYYY-MM-DD @ commit SHA> (update after a build_linux=true dispatch).
+      # Existing entries remain platform: macos-latest / args: --target aarch64-apple-darwin and platform: windows-latest / args: "".
+      - name: Resolve release build matrix
+        id: resolve-release-matrix
+        shell: bash
+        env:
+          BUILD_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.build_linux || false }}
+        run: |
+          set -euo pipefail
+
+          matrix='{"include":[{"platform":"macos-latest","artifact_platform":"darwin","artifact_arch":"aarch64","updater_platform":"darwin-aarch64","updater_asset_pattern":".app.tar.gz","updater_signature_pattern":".app.tar.gz.sig","updater_enabled":true,"args":"--target aarch64-apple-darwin"},{"platform":"windows-latest","artifact_platform":"windows","artifact_arch":"x86_64","updater_platform":"windows-x86_64","updater_asset_pattern":"-setup.exe","updater_signature_pattern":"-setup.exe.sig","updater_enabled":true,"args":""}'
+          if [[ "$BUILD_LINUX" == "true" ]]; then
+            matrix+=',{"platform":"ubuntu-24.04","artifact_platform":"linux","artifact_arch":"x86_64","updater_platform":"linux-x86_64","updater_asset_pattern":".AppImage","updater_signature_pattern":".AppImage.sig","updater_enabled":false,"args":"--bundles deb,appimage --config src-tauri/tauri.linux.release.conf.json"}'
+          fi
+          matrix+=']}'
+          printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
+
   quality:
     needs: preflight
     if: needs.preflight.outputs.should_build == 'true'
@@ -155,22 +179,7 @@ jobs:
       github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            artifact_platform: darwin
-            artifact_arch: aarch64
-            updater_platform: darwin-aarch64
-            updater_asset_pattern: .app.tar.gz
-            updater_signature_pattern: .app.tar.gz.sig
-            args: --target aarch64-apple-darwin
-          - platform: windows-latest
-            artifact_platform: windows
-            artifact_arch: x86_64
-            updater_platform: windows-x86_64
-            updater_asset_pattern: -setup.exe
-            updater_signature_pattern: -setup.exe.sig
-            args: ""
+      matrix: ${{ fromJSON(needs.preflight.outputs.release_matrix) }}
 
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 60
@@ -215,6 +224,23 @@ jobs:
           save-if: ${{ github.event_name == 'push' }}
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
 
       - name: Validate release version parity
         shell: bash
@@ -333,9 +359,11 @@ jobs:
           releaseDraft: ${{ steps.release-policy.outputs.draft }}
           generateReleaseNotes: false
           prerelease: ${{ steps.release-policy.outputs.prerelease }}
+          uploadUpdaterJson: ${{ matrix.updater_enabled }}
+          uploadUpdaterSignatures: ${{ matrix.updater_enabled }}
           args: >-
-            ${{ matrix.args }}
             --config src-tauri/tauri.release.conf.json
+            ${{ matrix.args }}
             --ci
 
       - name: Validate macOS app signing
@@ -349,31 +377,31 @@ jobs:
         run: node ./scripts/release/artifacts.ts validate-macos-app-signature
 
       - name: Validate updater manifest asset contract
-        if: steps.signing-preflight.outputs.should_build == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true' && matrix.updater_enabled == true
         shell: bash
         run: node ./scripts/release/artifacts.ts validate-updater-assets
 
       - name: Generate updater asset checksums
-        if: steps.signing-preflight.outputs.should_build == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true' && matrix.updater_enabled == true
         shell: bash
         run: node ./scripts/release/artifacts.ts generate-updater-checksums
 
       - name: Generate release dependency provenance
-        if: steps.signing-preflight.outputs.should_build == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true' && matrix.updater_enabled == true
         shell: bash
         run: |
           mise run report:licenses
           node ./scripts/release/artifacts.ts generate-dependency-provenance
 
       - name: Generate release provenance record
-        if: steps.signing-preflight.outputs.should_build == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true' && matrix.updater_enabled == true
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         run: node ./scripts/release/artifacts.ts generate-release-provenance
 
       - name: Upload updater asset checksums
-        if: steps.signing-preflight.outputs.should_build == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true' && matrix.updater_enabled == true
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -381,7 +409,7 @@ jobs:
         run: node ./scripts/release/artifacts.ts upload-updater-checksums
 
       - name: Upload release provenance assets
-        if: steps.signing-preflight.outputs.should_build == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true' && matrix.updater_enabled == true
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -389,7 +417,7 @@ jobs:
         run: node ./scripts/release/artifacts.ts upload-release-provenance
 
       - name: Validate existing draft release assets
-        if: steps.signing-preflight.outputs.should_publish == 'true' && steps.signing-preflight.outputs.should_build == 'false'
+        if: steps.signing-preflight.outputs.should_publish == 'true' && steps.signing-preflight.outputs.should_build == 'false' && matrix.updater_enabled == true
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

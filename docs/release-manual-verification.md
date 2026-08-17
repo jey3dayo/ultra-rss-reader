@@ -324,6 +324,31 @@ Confirm and record:
 
 If crash visibility depends on a code change, skip that part for the current release and record the missing behavior as release risk instead of changing native code during manual verification.
 
+### 2g. Optional Linux Packaging Verification
+
+Linux packaging is intentionally opt-in. Tag pushes keep the regular macOS and
+Windows release matrix unchanged; use `workflow_dispatch` with
+`build_linux: true` when Linux packaging needs to be exercised. The input
+defaults to `false` because Linux is not in the current user rollout.
+
+When the optional job is enabled, verify:
+
+- The `ubuntu-24.04` runner installs the Tauri 2 Debian/Ubuntu prerequisites
+  from the [Tauri prerequisites guide](https://v2.tauri.app/start/prerequisites/):
+  `libwebkit2gtk-4.1-dev`, `build-essential`, `curl`, `wget`, `file`,
+  `libxdo-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, and
+  `librsvg2-dev` (plus `patchelf` for AppImage bundling).
+- The release contains one `.deb` and one `.AppImage` artifact, and does not
+  contain an `.rpm` artifact.
+- The Linux job remains excluded from the updater manifest in this change.
+  Tauri 2 supports a Linux AppImage updater artifact using the
+  `linux-x86_64` platform key with `.AppImage` and `.AppImage.sig`, but this
+  workflow keeps `latest.json` limited to macOS and Windows until Linux updater
+  support is deliberately added to the repository's release contract and
+  packaged verification.
+- The maintainer records the workflow run URL, source commit, artifact names,
+  and SHA-256 digests after the first successful `build_linux: true` dispatch.
+
 ### 3. Native Keyring Verification
 
 Run the packaged app on the target OS with normal credentials storage enabled.

@@ -1535,16 +1535,23 @@ describe("release repository contract", () => {
       expect(releaseArtifactsScript).toContain(`assetPattern: "${contract.assetPattern}"`);
       expect(releaseArtifactsScript).toContain(`signaturePattern: "${contract.signaturePattern}"`);
       expect(releaseArtifactsScript).toContain(`checksumPattern: "${contract.checksumPattern}"`);
-      expect(releaseWorkflow).toContain(`platform: ${contract.matrixPlatform}`);
-      expect(releaseWorkflow).toContain(`artifact_platform: ${contract.artifactPlatform}`);
-      expect(releaseWorkflow).toContain(`artifact_arch: ${contract.artifactArch}`);
-      expect(releaseWorkflow).toContain(`updater_platform: ${contract.platformKey}`);
-      expect(releaseWorkflow).toContain(`updater_asset_pattern: ${contract.assetPattern}`);
-      expect(releaseWorkflow).toContain(`updater_signature_pattern: ${contract.signaturePattern}`);
-      expect(releaseWorkflow).toContain(`args: ${contract.matrixArgs}`);
+      expect(releaseWorkflow).toContain(`"platform":"${contract.matrixPlatform}"`);
+      expect(releaseWorkflow).toContain(`"artifact_platform":"${contract.artifactPlatform}"`);
+      expect(releaseWorkflow).toContain(`"artifact_arch":"${contract.artifactArch}"`);
+      expect(releaseWorkflow).toContain(`"updater_platform":"${contract.platformKey}"`);
+      expect(releaseWorkflow).toContain(`"updater_asset_pattern":"${contract.assetPattern}"`);
+      expect(releaseWorkflow).toContain(`"updater_signature_pattern":"${contract.signaturePattern}"`);
+      const matrixArgs = contract.matrixArgs === '""' ? '"args":""' : `"args":"${contract.matrixArgs}"`;
+      expect(releaseWorkflow).toContain(matrixArgs);
       expect(contract.signaturePattern).toBe(`${contract.assetPattern}.sig`);
       expect(contract.checksumPattern).toBe(`${contract.assetPattern}.sha256`);
     }
+
+    expect(releaseWorkflow).toContain("build_linux:");
+    expect(releaseWorkflow).toContain("default: false");
+    expect(releaseWorkflow).toContain('"platform":"ubuntu-24.04"');
+    expect(releaseWorkflow).toContain('"updater_enabled":false');
+    expect(releaseWorkflow).toContain("matrix.updater_enabled == true");
 
     for (const unsupportedPlatformKey of UNSUPPORTED_UPDATER_PLATFORM_KEYS) {
       expect(releaseArtifactsScript).toContain('UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"]');

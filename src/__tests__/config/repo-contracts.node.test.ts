@@ -1932,9 +1932,14 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
-    expect(releaseWorkflow).toContain("platform: macos-latest");
-    expect(releaseWorkflow).toContain("args: --target aarch64-apple-darwin");
-    expect(releaseWorkflow).toContain("platform: windows-latest");
+    expect(releaseWorkflow).toContain('"platform":"macos-latest"');
+    expect(releaseWorkflow).toContain('"args":"--target aarch64-apple-darwin"');
+    expect(releaseWorkflow).toContain('"platform":"windows-latest"');
+    expect(releaseWorkflow).toContain("build_linux:");
+    expect(releaseWorkflow).toContain("default: false");
+    expect(releaseWorkflow).toContain('"platform":"ubuntu-24.04"');
+    expect(releaseWorkflow).toContain('"updater_enabled":false');
+    expect(releaseWorkflow).toContain("matrix.updater_enabled == true");
     expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json");
     expect(releaseWorkflow).toContain("--ci");
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
