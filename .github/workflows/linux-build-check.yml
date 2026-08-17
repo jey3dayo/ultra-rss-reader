@@ -1,6 +1,7 @@
-# Throwaway verification copy of the Linux build job introduced in
-# release.yml (feat(release): add opt-in Linux artifacts). It reproduces,
-# from the `release` job in release.yml:
+# Manual pre-flight for the opt-in Linux matrix entry in release.yml. Run it
+# from the Actions tab before flipping `build_linux: true` on a real release,
+# so a Linux packaging break surfaces here instead of mid-release. It
+# reproduces, from the `release` job in release.yml:
 #   - checkout + mise-action + pnpm/setup + rust-toolchain + rust-cache setup
 #   - the "Install Linux build dependencies" apt package list
 #   - `pnpm install --frozen-lockfile`
@@ -9,12 +10,11 @@
 #     --config src-tauri/tauri.linux.release.conf.json --ci`
 # It intentionally skips signing, draft release creation, and asset upload.
 #
-# This file only exists to let a human confirm the Linux build succeeds
-# before flipping `build_linux: true` on a real release.yml dispatch. If
-# release.yml's Linux job steps change, update this file to match or delete
-# it — it is not wired into release.yml and nothing else depends on it.
-# Once the Linux path has been verified via a real workflow_dispatch, this
-# file may be deleted.
+# Nothing triggers this automatically and release.yml does not depend on it,
+# so it only stays useful while it mirrors release.yml's Linux steps. Update
+# it whenever those change; a copy that has silently drifted is worse than no
+# copy, because a green run here would no longer predict a green release.
+# Last confirmed in sync: 2026-08-17 @ 7bbfa70e (run 32012252816).
 name: Linux Build Check
 
 on:
@@ -100,8 +100,8 @@ jobs:
 
           echo "::notice::found $deb_count .deb and $appimage_count .AppImage artifact(s)"
 
-      # actions/upload-artifact@v4.6.2
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      # actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: linux-build-check-bundles
           path: |

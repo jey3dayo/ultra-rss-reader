@@ -152,7 +152,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: frontend-${{ matrix.os }}-lint-log
           path: tmp/ci-artifacts/frontend/lint.log
@@ -161,7 +161,7 @@ jobs:
 
       - name: Upload Rust failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: rust-${{ matrix.os }}-lint-log
           path: tmp/ci-artifacts/rust/lint.log
@@ -213,7 +213,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: frontend-${{ matrix.os }}-test-log
           path: tmp/ci-artifacts/frontend/test.log
@@ -222,7 +222,7 @@ jobs:
 
       - name: Upload Rust failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: rust-${{ matrix.os }}-test-log
           path: tmp/ci-artifacts/rust/test.log
@@ -261,7 +261,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: frontend-${{ matrix.os }}-build-log
           path: tmp/ci-artifacts/frontend/build.log
@@ -320,7 +320,7 @@ jobs:
 
       - name: Upload native smoke failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: native-smoke-${{ matrix.os }}-debug-log
           path: tmp/ci-artifacts/native-smoke/debug-build.log
@@ -329,7 +329,7 @@ jobs:
 
       - name: Upload native smoke debug build artifacts
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: native-smoke-${{ matrix.os }}-debug-build-artifacts
           path: |
