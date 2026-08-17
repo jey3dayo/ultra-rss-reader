@@ -80,6 +80,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
     "@playwright/test": "^1.62.1",
+    "@sentry/vite-plugin": "^5.4.0",
     "@storybook/addon-a11y": "^10.5.8",
     "@storybook/addon-docs": "^10.5.8",
     "@storybook/react-vite": "^10.5.8",

@@ -1,4 +1,5 @@
 import path from "node:path";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -14,11 +15,23 @@ const productionDevAliases = {
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   const isProductionBuild = command === "build" && mode === "production";
+  const sentrySourceMapUploadEnabled = isProductionBuild && Boolean(process.env.SENTRY_AUTH_TOKEN);
+  const sentryPlugin = sentrySourceMapUploadEnabled
+    ? sentryVitePlugin({
+        org: "jey3dayo",
+        project: "ultra-rss-reader",
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        sourcemaps: {
+          filesToDeleteAfterUpload: ["dist/**/*.map"],
+        },
+      })
+    : undefined;
 
   return {
-    plugins: [tailwindcss(), react()],
+    plugins: [tailwindcss(), react(), ...(sentryPlugin ? [sentryPlugin] : [])],
     build: {
       target: "es2023",
+      ...(sentrySourceMapUploadEnabled ? { sourcemap: "hidden" } : {}),
     },
     resolve: {
       alias: {
