@@ -123,7 +123,9 @@ jobs:
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
       # Linux packaging is opt-in because it is not in the current user rollout.
-      # Last successful manual verification: <YYYY-MM-DD @ commit SHA> (update after a build_linux=true dispatch).
+      # Last successful verification: 2026-08-17 @ 7bbfa70e, via the linux-build-check workflow
+      # (run 32012252816), which builds this same matrix entry without releasing. It produced
+      # 1 .deb and 1 .AppImage. Re-verify there before flipping build_linux=true on a real release.
       # Existing entries remain platform: macos-latest / args: --target aarch64-apple-darwin and platform: windows-latest / args: "".
       - name: Resolve release build matrix
         id: resolve-release-matrix
