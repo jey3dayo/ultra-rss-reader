@@ -82,6 +82,9 @@ export type UiState = {
   pendingBrowserCloseAction: PendingBrowserCloseAction | null;
   pendingBrowserCloseActionQueue: PendingBrowserCloseAction[];
   articleNavigationDirection: ArticleNavigationDirection | null;
+  // Published by the article list pane, which owns the navigable list (search results
+  // included). The content pane must not re-derive it from its own source-agnostic list.
+  hasNextArticle: boolean;
   expandedFolderIds: Set<string>;
   isFeedsSectionOpen: boolean;
   isTagsSectionOpen: boolean;
@@ -151,6 +154,7 @@ export type UiActions = {
   setBrowserCloseInFlight: (inFlight: boolean) => void;
   setPendingBrowserCloseAction: (action: PendingBrowserCloseAction | null) => void;
   setViewMode: (mode: ViewMode) => void;
+  setHasNextArticle: (hasNext: boolean) => void;
   setSearchQuery: (query: string) => void;
   toggleFolder: (folderId: string) => void;
   setExpandedFolders: (folderIds: Iterable<string>) => void;

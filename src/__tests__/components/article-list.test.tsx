@@ -540,6 +540,83 @@ describe("ArticleList", () => {
     });
   });
 
+  // The next-article control must follow the list that navigation actually walks. While search is
+  // active that list is the search result list, even though the article itself is fetched by id.
+  function setupSearchNavigationMocks(searchMatches: typeof sampleArticles) {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles;
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return searchMatches;
+        case "get_article":
+          return (
+            searchMatches.find((article) => article.id === args.articleId) ??
+            sampleArticles.find((article) => article.id === args.articleId)
+          );
+        default:
+          return undefined;
+      }
+    });
+  }
+
+  async function openSearchResultInReader(query: string, matchTitle: string) {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().setViewMode("all");
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Search articles" }));
+    await user.type(screen.getByRole("textbox", { name: "Search articles" }), query);
+
+    const matchRow = await screen.findByRole("option", { name: new RegExp(matchTitle, "i") });
+    await user.click(matchRow);
+
+    // Guard against a vacuous assertion: the reader body must actually be rendered before
+    // checking whether it shows the next-article control.
+    await screen.findByTestId("article-reader-scroll-area");
+  }
+
+  it("hides the next-article control when the selected search result is the last match", async () => {
+    const onlyMatch = { ...sampleArticles[0], id: "search-only-match", title: "Only Search Match" };
+    setupSearchNavigationMocks([onlyMatch]);
+
+    await openSearchResultInReader("Only", "Only Search Match");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("search-only-match");
+    });
+    expect(screen.queryByRole("button", { name: "Next article" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the next-article control when a later search result exists", async () => {
+    const firstMatch = { ...sampleArticles[0], id: "search-match-1", title: "First Search Match" };
+    const secondMatch = { ...sampleArticles[1], id: "search-match-2", title: "Second Search Match" };
+    setupSearchNavigationMocks([firstMatch, secondMatch]);
+
+    await openSearchResultInReader("Search Match", "First Search Match");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("search-match-1");
+    });
+    expect(await screen.findByRole("button", { name: "Next article" })).toBeInTheDocument();
+  });
+
   it("keeps the current list visible until the debounced search actually starts", async () => {
     useUiStore.getState().selectAccount("acc-1");
 

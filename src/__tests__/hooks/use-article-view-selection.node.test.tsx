@@ -112,6 +112,7 @@ describe("useArticleViewSelection", () => {
       selectedAccountId: null,
       retainedArticleIds: new Set(),
       viewMode: "unread",
+      hasNextArticle: false,
     });
   });
 
@@ -248,9 +249,10 @@ describe("useArticleViewSelection", () => {
     });
   });
 
-  it("reports hasNextArticle true when a later article exists in the filtered list", () => {
+  // hasNextArticle is published by the article list pane, which owns the list navigation walks
+  // (search results included). This hook's own list is source-agnostic and must not decide it.
+  it("reports hasNextArticle true when the list pane published a next article", () => {
     const currentArticle = { ...sampleArticles[0], id: "selected-article" };
-    const nextArticle = { ...sampleArticles[0], id: "next-article" };
 
     useUiStore.setState({
       contentMode: "reader",
@@ -261,10 +263,12 @@ describe("useArticleViewSelection", () => {
       selectedAccountId: "acc-1",
       retainedArticleIds: new Set(),
       viewMode: "all",
+      hasNextArticle: true,
     });
     useArticleListDataMock.mockReturnValue({
       feedId: null,
-      filteredArticles: [currentArticle, nextArticle],
+      // Deliberately the last entry of this hook's own list: the published value still wins.
+      filteredArticles: [currentArticle],
       tagId: null,
     });
     useArticleMock.mockReturnValue({ data: currentArticle });
@@ -274,8 +278,9 @@ describe("useArticleViewSelection", () => {
     expect(result.current).toMatchObject({ kind: "article", hasNextArticle: true });
   });
 
-  it("reports hasNextArticle false when the selected article is the last in the filtered list", () => {
+  it("reports hasNextArticle false when the list pane published no next article", () => {
     const currentArticle = { ...sampleArticles[0], id: "selected-article" };
+    const nextArticleInOwnList = { ...sampleArticles[0], id: "next-article" };
 
     useUiStore.setState({
       contentMode: "reader",
@@ -286,10 +291,12 @@ describe("useArticleViewSelection", () => {
       selectedAccountId: "acc-1",
       retainedArticleIds: new Set(),
       viewMode: "all",
+      hasNextArticle: false,
     });
     useArticleListDataMock.mockReturnValue({
       feedId: null,
-      filteredArticles: [currentArticle],
+      // This hook's own list has a later article, but navigation would not go there.
+      filteredArticles: [currentArticle, nextArticleInOwnList],
       tagId: null,
     });
     useArticleMock.mockReturnValue({ data: currentArticle });

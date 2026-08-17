@@ -6,7 +6,6 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useArticle, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useArticlesByTag, useTags } from "@/hooks/use-tags";
-import { getAdjacentArticleId } from "@/lib/articles/article-list";
 import { type ArticleViewSummaryState, buildArticleViewSummaryResult } from "@/lib/articles/article-view";
 import { resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { resolveReaderSelectionSourceKind, resolveReaderSourceArticles } from "@/lib/reader/reader-source-articles";
@@ -67,6 +66,8 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
+  // Owned by the article list pane, which decides where "next article" actually goes.
+  const hasNextArticle = useUiStore((s) => s.hasNextArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const webPreviewSessionMode = useUiStore((s) => s.webPreviewSessionMode);
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
@@ -186,8 +187,5 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   }
 
   const feed = sources.feeds?.find((candidate) => candidate.id === article.feed_id);
-  const adjacentArticleId = getAdjacentArticleId(data.filteredArticles, selectedArticleId, 1);
-  const hasNextArticle = Result.isSuccess(adjacentArticleId) && Result.unwrap(adjacentArticleId) !== selectedArticleId;
-
   return { kind: "article", article, feed, hasNextArticle };
 }

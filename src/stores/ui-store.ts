@@ -346,6 +346,7 @@ const initialState: UiState = {
   pendingBrowserCloseAction: null,
   pendingBrowserCloseActionQueue: [],
   articleNavigationDirection: null,
+  hasNextArticle: false,
   expandedFolderIds: new Set(),
   isFeedsSectionOpen: true,
   isTagsSectionOpen: true,
@@ -590,6 +591,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       retainedArticleIds: new Set(),
       articleReaderScrollPositions: new Map(),
     }),
+  setHasNextArticle: (hasNext) => set({ hasNextArticle: hasNext }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleFolder: (folderId) =>
     set((s) => {
