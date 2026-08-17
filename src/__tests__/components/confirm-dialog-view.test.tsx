@@ -282,6 +282,44 @@ describe("ConfirmDialogView destructive hold-to-confirm", () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
+  it("keeps the hold active when a different pointer is released", () => {
+    const onConfirm = vi.fn();
+    renderDestructive(onConfirm);
+
+    const deleteButton = screen.getByRole("button", { name: "Delete" });
+    fireEvent.pointerDown(deleteButton, { pointerId: 1 });
+    fireEvent.pointerDown(deleteButton, { pointerId: 2 });
+    fireEvent.pointerUp(deleteButton, { pointerId: 2 });
+
+    expect(deleteButton).toHaveAttribute("data-motion-hold", "true");
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(deleteButton, { pointerId: 1 });
+    act(() => {
+      vi.advanceTimersByTime(MOTION_HOLD_CONFIRM_DURATION_MS);
+    });
+
+    expect(deleteButton).toHaveAttribute("data-motion-hold", "false");
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("confirms when the active pointer remains down after another pointer is released", () => {
+    const onConfirm = vi.fn();
+    renderDestructive(onConfirm);
+
+    const deleteButton = screen.getByRole("button", { name: "Delete" });
+    fireEvent.pointerDown(deleteButton, { pointerId: 1 });
+    fireEvent.pointerDown(deleteButton, { pointerId: 2 });
+    fireEvent.pointerUp(deleteButton, { pointerId: 2 });
+
+    act(() => {
+      vi.advanceTimersByTime(MOTION_HOLD_CONFIRM_DURATION_MS);
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(deleteButton).toHaveAttribute("data-motion-hold", "false");
+  });
+
   it("cancels a pending destructive hold when the dialog closes", () => {
     const onConfirm = vi.fn();
     const { rerender } = renderDestructive(onConfirm);

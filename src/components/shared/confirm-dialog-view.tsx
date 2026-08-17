@@ -3,6 +3,7 @@ import {
   type ComponentProps,
   type ComponentType,
   type MouseEvent,
+  type PointerEvent,
   useCallback,
   useEffect,
   useId,
@@ -34,6 +35,7 @@ type UseHoldToConfirmOptions = {
 function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
   const [holding, setHolding] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -44,8 +46,20 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
 
   const cancelHold = useCallback(() => {
     clearTimer();
+    activePointerIdRef.current = null;
     setHolding(false);
   }, [clearTimer]);
+
+  const cancelPointerHold = useCallback(
+    (event: PointerEvent<HTMLButtonElement>) => {
+      if (activePointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      cancelHold();
+    },
+    [cancelHold],
+  );
 
   useEffect(() => cancelHold, [cancelHold]);
 
@@ -58,23 +72,28 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
     }
   }, [cancelHold, enabled]);
 
-  const handlePointerDown = useCallback(() => {
-    if (!enabled || timerRef.current !== null) {
-      return;
-    }
-
-    setHolding(true);
-    const handle = setTimeout(() => {
-      // Ignore a timer that a newer press or a cleanup already replaced.
-      if (timerRef.current !== handle) {
+  const handlePointerDown = useCallback(
+    (event: PointerEvent<HTMLButtonElement>) => {
+      if (!enabled || timerRef.current !== null) {
         return;
       }
-      timerRef.current = null;
-      setHolding(false);
-      onConfirm();
-    }, MOTION_HOLD_CONFIRM_DURATION_MS);
-    timerRef.current = handle;
-  }, [enabled, onConfirm]);
+
+      activePointerIdRef.current = event.pointerId;
+      setHolding(true);
+      const handle = setTimeout(() => {
+        // Ignore a timer that a newer press or a cleanup already replaced.
+        if (timerRef.current !== handle) {
+          return;
+        }
+        timerRef.current = null;
+        activePointerIdRef.current = null;
+        setHolding(false);
+        onConfirm();
+      }, MOTION_HOLD_CONFIRM_DURATION_MS);
+      timerRef.current = handle;
+    },
+    [enabled, onConfirm],
+  );
 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
@@ -89,7 +108,13 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
     [enabled, onConfirm],
   );
 
-  return { holding: holding && enabled, cancelHold, handlePointerDown, handleClick };
+  return {
+    holding: holding && enabled,
+    cancelHold,
+    cancelPointerHold,
+    handlePointerDown,
+    handleClick,
+  };
 }
 
 type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
@@ -165,7 +190,7 @@ export function ConfirmDialogView({
   const holdEnabled = variant === "destructive" && !confirmDisabled;
   const holdHintId = useId();
   const showHoldHint = holdEnabled && holdHint !== undefined;
-  const { holding, cancelHold, handlePointerDown, handleClick } = useHoldToConfirm({
+  const { holding, cancelHold, cancelPointerHold, handlePointerDown, handleClick } = useHoldToConfirm({
     enabled: holdEnabled,
     onConfirm,
   });
@@ -195,9 +220,9 @@ export function ConfirmDialogView({
             <Button
               onClick={handleClick}
               onPointerDown={holdEnabled ? handlePointerDown : undefined}
-              onPointerUp={holdEnabled ? cancelHold : undefined}
-              onPointerLeave={holdEnabled ? cancelHold : undefined}
-              onPointerCancel={holdEnabled ? cancelHold : undefined}
+              onPointerUp={holdEnabled ? cancelPointerHold : undefined}
+              onPointerLeave={holdEnabled ? cancelPointerHold : undefined}
+              onPointerCancel={holdEnabled ? cancelPointerHold : undefined}
               onBlur={holdEnabled ? cancelHold : undefined}
               {...(holdEnabled ? { [MOTION_DATA_HOLD_ATTRIBUTE]: holding ? "true" : "false" } : {})}
               disabled={confirmDisabled}
