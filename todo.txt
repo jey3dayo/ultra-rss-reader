@@ -1,5 +1,4 @@
 (C) 2026-08-14 Sentry release source map upload +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/56
-(D) 2026-07-04 local-sync auto path rejected_operations warning + i18n +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/51
 (D) 2026-07-10 TypeScript 7 alias cleanup @blocked +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/55
 (D) 2026-07-14 reader next-article has-next search mismatch (known edge) +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/54
 (D) 2026-07-20 MAX_RETAINED_ARTICLE_IDS=50 と一括既読の仕様判断 +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/53
@@ -9,3 +8,4 @@
 (B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57
 (D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (C) 2026-08-17 LP 自動デプロイ GitHub Actions + wrangler 導入 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
+(D) 2026-08-17 ProviderSyncWarning の i18n 対応(全て英語ハードコード) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/62
