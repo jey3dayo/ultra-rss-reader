@@ -2,7 +2,10 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 type ArticleRetentionViewMode = ViewMode;
 
-export const MAX_RETAINED_ARTICLE_IDS = 50;
+// Keep a large but finite safety cap: this short-lived, non-persisted Set is
+// consumed only through O(1) membership checks, and 10,000 fixed 64-character
+// SHA-256 hex IDs are about 1.3 MB of string data.
+export const MAX_RETAINED_ARTICLE_IDS = 10000;
 
 export type RetainedArticleSelectionParams = {
   articleId: string;
@@ -41,5 +44,7 @@ export function addRetainedArticles(
 }
 
 function capRetainedArticleIds(articleIds: Iterable<string>): Set<string> {
+  // The source order is not a contract because some Rust responses have no
+  // ORDER BY. If this safety cap is reached, which IDs survive is undefined.
   return new Set([...articleIds].slice(-MAX_RETAINED_ARTICLE_IDS));
 }

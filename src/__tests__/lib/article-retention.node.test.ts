@@ -105,6 +105,14 @@ describe("article retention", () => {
     expect(result).toEqual(new Set(["art-1", "art-2", "art-3"]));
   });
 
+  it("keeps a realistic bulk read batch retained without evicting article ids", () => {
+    const articleIds = Array.from({ length: 51 }, (_, index) => `art-${index}`);
+
+    const result = addRetainedArticles(new Set(), articleIds);
+
+    expect(result).toEqual(new Set(articleIds));
+  });
+
   it("caps bulk retained articles to the newest ids", () => {
     const articleIds = Array.from({ length: MAX_RETAINED_ARTICLE_IDS + 10 }, (_, index) => `art-${index}`);
 
