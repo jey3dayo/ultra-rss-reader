@@ -26,11 +26,11 @@
 
 ## Why Ultra RSS Reader?
 
-- **Local-first, no account required** — All articles live in an embedded SQLite database on your machine. Full-text search (FTS5) works offline across everything you have ever fetched.
-- **First-class FreshRSS sync** — Connect a FreshRSS server via the Google Reader API. Read status and stars sync bidirectionally, with pending local changes protected from being overwritten by stale remote state.
-- **Credentials in the OS keyring** — Passwords and tokens go to Keychain / Credential Manager / Secret Service, never into the database.
-- **Keyboard-driven** — `j`/`k` navigation, single-key actions, a `⌘K` command palette that jumps straight to any feed, and fully customizable bindings.
-- **Read the real page without leaving** — Web Preview embeds the publisher page inside the reading flow with dedicated browser controls.
+- Local-first, no account required — All articles live in an embedded SQLite database on your machine. Full-text search (FTS5) works offline across everything you have ever fetched.
+- First-class FreshRSS sync — Connect a FreshRSS server via the Google Reader API. Read status and stars sync bidirectionally, with pending local changes protected from being overwritten by stale remote state.
+- Credentials in the OS keyring — Passwords and tokens go to Keychain / Credential Manager / Secret Service, never into the database.
+- Keyboard-driven — `j`/`k` navigation, single-key actions, a `⌘K` command palette that jumps straight to any feed, and fully customizable bindings.
+- Read the real page without leaving — Web Preview embeds the publisher page inside the reading flow with dedicated browser controls.
 
 ## How it compares
 
@@ -93,10 +93,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full architecture, development mo
 
 Currently planned, roughly in order:
 
-- **Linux builds** — `.deb` / `.AppImage` from the release workflow ([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
-- **Smoother installs** — signed and notarized macOS builds, plus Homebrew cask and winget, so first launch stops needing a Gatekeeper workaround
-- **Microsoft Store distribution** ([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
-- **More sync providers** — Feedly is being tracked separately ([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
+- Linux builds — `.deb` / `.AppImage` from the release workflow ([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
+- Smoother installs — signed and notarized macOS builds, plus Homebrew cask and winget, so first launch stops needing a Gatekeeper workaround
+- Microsoft Store distribution ([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
+- More sync providers — Feedly is being tracked separately ([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
 
 ## Contributing
 

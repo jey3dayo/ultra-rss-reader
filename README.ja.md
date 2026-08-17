@@ -26,11 +26,11 @@
 
 ## なぜ Ultra RSS Reader?
 
-- **ローカルファースト、アカウント不要** — 全記事が組み込み SQLite に保存され、FTS5 全文検索がオフラインで動作します。
-- **FreshRSS 同期** — Google Reader API 経由で FreshRSS サーバーと接続。既読・スターは双方向同期し、ローカルの未送信変更が古いリモート状態で巻き戻されないよう保護されます。
-- **認証情報は OS キーリングへ** — パスワードやトークンは Keychain / Credential Manager / Secret Service に保存され、データベースには入りません。
-- **キーボード駆動** — `j`/`k` ナビゲーション、単キーアクション、任意のフィードへ直接ジャンプできる `⌘K` コマンドパレット。バインドはすべてカスタマイズ可能です。
-- **リーディングフローを離れず元ページを閲覧** — Web Preview が配信元ページをアプリ内に埋め込み、専用のブラウザ操作を提供します。
+- ローカルファースト、アカウント不要 — 全記事が組み込み SQLite に保存され、FTS5 全文検索がオフラインで動作します。
+- FreshRSS 同期 — Google Reader API 経由で FreshRSS サーバーと接続。既読・スターは双方向同期し、ローカルの未送信変更が古いリモート状態で巻き戻されないよう保護されます。
+- 認証情報は OS キーリングへ — パスワードやトークンは Keychain / Credential Manager / Secret Service に保存され、データベースには入りません。
+- キーボード駆動 — `j`/`k` ナビゲーション、単キーアクション、任意のフィードへ直接ジャンプできる `⌘K` コマンドパレット。バインドはすべてカスタマイズ可能です。
+- リーディングフローを離れず元ページを閲覧 — Web Preview が配信元ページをアプリ内に埋め込み、専用のブラウザ操作を提供します。
 
 ## 他のリーダーとの違い
 
@@ -93,10 +93,10 @@ Tauri 2 (Rust) · React 19 · TypeScript · SQLite (rusqlite + FTS5) · Tailwind
 
 現時点で予定しているもの(おおよその順序):
 
-- **Linux ビルド** — release workflow から `.deb` / `.AppImage` を配布([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
-- **インストールの摩擦解消** — macOS の署名・notarization に加えて Homebrew cask と winget 対応。初回起動で Gatekeeper の回避操作が不要になる
-- **Microsoft Store 配布**([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
-- **同期プロバイダの追加** — Feedly は別 issue で追跡中([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
+- Linux ビルド — release workflow から `.deb` / `.AppImage` を配布([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
+- インストールの摩擦解消 — macOS の署名・notarization に加えて Homebrew cask と winget 対応。初回起動で Gatekeeper の回避操作が不要になる
+- Microsoft Store 配布([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
+- 同期プロバイダの追加 — Feedly は別 issue で追跡中([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
 
 ## コントリビュート
 

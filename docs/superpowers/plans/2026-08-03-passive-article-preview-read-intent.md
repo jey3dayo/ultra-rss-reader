@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Keep automatically displayed articles unread until the user explicitly selects or navigates to an article, then apply the existing `after_reading` preference.
+Goal: Keep automatically displayed articles unread until the user explicitly selects or navigates to an article, then apply the existing `after_reading` preference.
 
-**Architecture:** Add an article engagement value to the Zustand UI store and make `selectArticle` default to explicit `reading` engagement. Automatic landing paths opt into `preview`, while `useArticleAutoMark` starts its existing mutation/timer flow only for `reading`.
+Architecture: Add an article engagement value to the Zustand UI store and make `selectArticle` default to explicit `reading` engagement. Automatic landing paths opt into `preview`, while `useArticleAutoMark` starts its existing mutation/timer flow only for `reading`.
 
-**Tech Stack:** React 19, TypeScript 6, Zustand, TanStack React Query, Vitest, Testing Library
+Tech Stack: React 19, TypeScript 6, Zustand, TanStack React Query, Vitest, Testing Library
 
 ## Global Constraints
 
@@ -36,13 +36,13 @@
 
 ### Task 1: Add the article engagement state contract
 
-**Files:**
+### Files:
 
 - Modify: `src/stores/ui-store.types.ts`
 - Modify: `src/stores/ui-store.ts`
 - Test: `src/__tests__/stores/ui-store.node.test.ts`
 
-**Interfaces:**
+### Interfaces:
 
 - Consumes: existing `UiState`, `UiActions`, and `selectArticle` Zustand contracts.
 - Produces: `export type ArticleEngagement = "preview" | "reading"`, `UiState.articleEngagement`, and `selectArticle(id, { engagement?, navigationDirection? })`.
@@ -158,7 +158,7 @@ git commit -m "feat(reader): track article reading engagement"
 
 ### Task 2: Make automatic landing passive and gate automatic read handling
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-view.tsx`
 - Modify: `src/hooks/use-feed-landing.ts`
@@ -168,7 +168,7 @@ git commit -m "feat(reader): track article reading engagement"
 - Test: `src/__tests__/hooks/use-feed-landing.node.test.tsx`
 - Test: `src/__tests__/components/article-view.test.tsx`
 
-**Interfaces:**
+### Interfaces:
 
 - Consumes: `ArticleEngagement` and the extended `selectArticle` contract from Task 1.
 - Produces: automatic landing calls with `{ engagement: "preview" }` and `useArticleAutoMark({ articleEngagement })` behavior that schedules only for `reading`.

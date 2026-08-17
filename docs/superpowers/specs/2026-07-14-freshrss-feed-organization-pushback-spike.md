@@ -13,7 +13,7 @@ owner: project-maintainers
 
 This is a design/spike document (see `plans/005-freshrss-feed-organization-pushback-spike.md`, historical — not tracked in this repository's checked-in tree). It does not implement anything. It confirms current behavior, defines the remote API shape, evaluates mechanisms, and outlines a follow-up build plan.
 
-**Problem**: on a FreshRSS (GReader protocol) account, `rename_feed` and `update_feed_folder` write only to local SQLite. Nothing pushes the change to the server. Because folder/subscription structure is re-applied from the server on every full sync, a local rename or folder move is silently overwritten on the next sync. Read/star/tag mutations already round-trip via `push_mutations` + pending-mutation queue; feed organization does not.
+Problem: on a FreshRSS (GReader protocol) account, `rename_feed` and `update_feed_folder` write only to local SQLite. Nothing pushes the change to the server. Because folder/subscription structure is re-applied from the server on every full sync, a local rename or folder move is silently overwritten on the next sync. Read/star/tag mutations already round-trip via `push_mutations` + pending-mutation queue; feed organization does not.
 
 All line numbers below are current as of this spike (see `git log -1 --format=%H` on the branch this document was written on) and cite files under `src-tauri/src/`.
 
@@ -29,7 +29,7 @@ All line numbers below are current as of this spike (see `git log -1 --format=%H
 
 The authoritative FreshRSS sync path is `sync_greader_account` (`src-tauri/src/commands/sync_providers.rs:514-617`), invoked from the one production call site `src-tauri/src/commands/sync_commands.rs:489`. It runs on every full FreshRSS account sync (manual sync trigger, startup, wake, or interval — all route through the same `sync_commands.rs` entry point).
 
-**Folder name**: the folder-sync block (`sync_providers.rs:549-596`) matches each remote folder to a local one by `remote_id`, falling back to a case-insensitive name match (`sync_providers.rs:562-573`, `folder_name_case_key` at `sync_providers.rs:871-873`), then builds:
+Folder name: the folder-sync block (`sync_providers.rs:549-596`) matches each remote folder to a local one by `remote_id`, falling back to a case-insensitive name match (`sync_providers.rs:562-573`, `folder_name_case_key` at `sync_providers.rs:871-873`), then builds:
 
 ```rust
 let folder = Folder {
@@ -44,7 +44,7 @@ folder_repo.save(&folder)?;          // sync_providers.rs:589 — unconditional 
 
 `name` is unconditionally set to `rf.name` (the server's label name) and saved every sync. There is no comparison against the existing local name. **A local folder rename is discarded on the next sync.**
 
-**Feed title and folder assignment**: `sync_greader_feeds` (`sync_providers.rs:1025-…`) calls `provider.get_subscriptions()` then `save_greader_subscriptions` (`sync_providers.rs:777-820`):
+Feed title and folder assignment: `sync_greader_feeds` (`sync_providers.rs:1025-…`) calls `provider.get_subscriptions()` then `save_greader_subscriptions` (`sync_providers.rs:777-820`):
 
 ```rust
 let feed = Feed {
@@ -73,7 +73,7 @@ remote_folder_id
 
 The server's `folder_remote_id` (from `RemoteSubscription`, populated in `get_subscriptions` from the feed's GReader category, `src-tauri/src/infra/provider/greader.rs:708-742`) wins whenever it resolves to a known local folder. The local `existing_feed.folder_id` is used **only** when the server reports no folder for that subscription, or reports one this account doesn't have locally. So: **as long as the feed remains categorized under any label server-side, a local folder move is overwritten back to the server's label on the next sync.** The only case where a local folder assignment survives is when the server genuinely has no label for that subscription — confirmed by the sibling generic-path tests `sync_account_preserves_local_folder_when_remote_subscription_has_no_folder` and `sync_account_preserves_existing_folder_when_remote_subscription_folder_is_unknown` (`src-tauri/src/service/sync_flow.rs:1717`, `:1784`).
 
-**Conclusion**: for both rename and folder-move, the answer is **(b) overwritten by the server value**, not (a) retained or (c) left diverged — deterministically, on the very next full sync of that account.
+Conclusion: for both rename and folder-move, the answer is **(b) overwritten by the server value**, not (a) retained or (c) left diverged — deterministically, on the very next full sync of that account.
 
 ### 1.3 Why `sync_flow.rs` isn't the operative path for FreshRSS
 
@@ -102,11 +102,11 @@ All evidence below is from `src-tauri/src/infra/provider/greader.rs`, currently 
 
 These are **not** present in this codebase today; no test exercises them. They are inferred from the GReader protocol convention that this codebase already partially implements (same `subscription/edit` endpoint already used for `ac=unsubscribe`; same `a=`/`r=` label-add/remove convention already used for quickadd and edit-tag).
 
-- **Rename**: `POST {api_base}/reader/api/0/subscription/edit`, body `ac=edit&s=<urlencoded(remote_id)>&t=<urlencoded(new_title)>`.
-- **Add to folder**: `...&a=<urlencoded("user/-/label/")><urlencoded(folder_name)>` (same construction as `create_subscription`'s folder param).
-- **Remove from folder**: `...&r=<urlencoded("user/-/label/")><urlencoded(folder_name)>`.
+- Rename: `POST {api_base}/reader/api/0/subscription/edit`, body `ac=edit&s=<urlencoded(remote_id)>&t=<urlencoded(new_title)>`.
+- Add to folder: `...&a=<urlencoded("user/-/label/")><urlencoded(folder_name)>` (same construction as `create_subscription`'s folder param).
+- Remove from folder: `...&r=<urlencoded("user/-/label/")><urlencoded(folder_name)>`.
 - **Move between folders** (add new label, remove old label) and **rename** can be combined into a single POST: `ac=edit&s=<remote_id>&t=<new_title>&a=user%2F-%2Flabel%2F<new>&r=user%2F-%2Flabel%2F<old>`.
-- **Remove from all folders** (no target folder): only `r=` for the old label, no `a=`.
+- Remove from all folders (no target folder): only `r=` for the old label, no `a=`.
 - Same headers (`Authorization: GoogleLogin auth=<token>`, `Content-Type: application/x-www-form-urlencoded`) and same error-mapping chain (`ensure_success_response` / `from_provider_http_error`) as every other write call in this file.
 
 This is **not** a capability gap — the endpoint is already wired (unsubscribe) and `ProviderCapabilities.supports_folders` is `true` for FreshRSS (`domain/provider.rs:187-193`) — it is simply unused for this purpose. Exact request/response confirmation against a live FreshRSS server is deferred to `test:live` in the follow-up build plan (out of scope here per the spike's Scope section); see Open Question 1 in §6.
@@ -117,7 +117,7 @@ This is **not** a capability gap — the endpoint is already wired (unsubscribe)
 
 Add a method (e.g. `edit_subscription(remote_id, title: Option<&str>, add_folder_label: Option<&str>, remove_folder_label: Option<&str>) -> DomainResult<()>`) to `FeedProvider` (`src-tauri/src/infra/provider/traits.rs:12-32`, currently 9 methods, none of which cover rename/folder-edit). Implement it in `GReaderProvider` using §2.2's shape. Convert `rename_feed`/`update_feed_folder` to `async fn`, branch on `account.kind == ProviderKind::FreshRss`, and reuse the already-extracted `authenticated_freshrss_provider` helper (`feed_commands.rs:299-322`) — this is precisely the pattern `delete_feed_with_remote_sync_boundary` already established (`feed_commands.rs:274-297`).
 
-**Blast radius**:
+#### Blast radius
 
 - `#[tauri::command] pub fn` → `pub async fn`. Tauri's command macro supports async fns natively and the JS-side `invoke()` already returns a Promise regardless of whether the Rust fn is sync or async, so `src/api/tauri-commands/feeds.ts` call sites are unaffected.
 - Must follow the DB-lock-across-`.await` discipline already documented in `.claude/rules/rust-async-mutex.md` and already implemented by `delete_feed_after_provider_unsubscribe` (lock → read → drop; await provider; lock → write).
@@ -129,7 +129,7 @@ Add a method (e.g. `edit_subscription(remote_id, title: Option<&str>, add_folder
 
 Add new `Mutation` variants (`domain/provider.rs:97-108` currently has only `MarkRead`/`MarkUnread`/`SetStarred`) for rename/folder-move, extend `push_mutations` in `GReaderProvider` (`greader.rs:816-862`, currently only POSTs to `/reader/api/0/edit-tag`) to branch to `/reader/api/0/subscription/edit` for the new variants, and extend the `pending_mutations` persistence to carry these.
 
-**Blast radius**:
+#### Blast radius
 
 - The `pending_mutations` table (`src-tauri/migrations/V1__initial.sql:66-72`) is `(id, account_id, mutation_type, remote_entry_id, created_at)`, with a `UNIQUE(account_id, mutation_type, remote_entry_id)` index added specifically for read/star dedup (`src-tauri/migrations/V18__db_repository_contracts.sql:9-10`). `remote_entry_id` is an **article**-scoped identifier by name and by use: the query that decides whether a pending mutation targets a provider-managed GReader feed does `JOIN articles a ON a.remote_id = pm.remote_entry_id` (`sync_providers.rs:895-910`). A feed-remote-id or folder-label-id would never match an article's `remote_id` there — reusing this column for feed/folder targets is a semantic overload with a real correctness risk (that JOIN would silently misclassify or drop the new mutation types) unless every touch point is audited and special-cased, not just an effort increase.
 - `PendingMutationType`/`PendingMutationAxis` (`src-tauri/src/repository/pending_mutation.rs:6-73`) would need a third axis threaded through `axis()`, `is_supported_by`, `replacement_type_values`, and the generic pending-push loop in `sync_flow.rs:36-54` (which pushes every pending row for any provider with `supports_remote_state`, regardless of a per-axis capability check beyond that).
@@ -148,7 +148,7 @@ The two options are not mutually exclusive long-term: if offline resilience for 
 
 ## 4. Folder Semantics
 
-**Correction to this spike's own starting premise**: the plan that scoped this spike (see `plans/005-freshrss-feed-organization-pushback-spike.md`) frames this as mapping "the app's nested folder hierarchy" onto FreshRSS's flat label. That premise does not match the code. The app's folder model is **flat**, not nested:
+Correction to this spike's own starting premise: the plan that scoped this spike (see `plans/005-freshrss-feed-organization-pushback-spike.md`) frames this as mapping "the app's nested folder hierarchy" onto FreshRSS's flat label. That premise does not match the code. The app's folder model is **flat**, not nested:
 
 - `Folder` (`src-tauri/src/domain/folder.rs:23-29`) is `{ id, account_id, remote_id, name, sort_order }` — no `parent_id` or any parent reference.
 - The `folders` table DDL (`src-tauri/migrations/V1__initial.sql:12-19`) has no parent column; only `UNIQUE(account_id, remote_id)`.
@@ -157,11 +157,11 @@ The two options are not mutually exclusive long-term: if offline resilience for 
 
 So there is no hierarchy-to-flat-label mapping problem to design around — the app's folder unit already matches FreshRSS's flat label unit almost 1:1.
 
-**Mapping**: `Folder.name` ↔ label display name; `Folder.remote_id` ↔ `user/-/label/<name>` (`LABEL_PREFIX`, `greader.rs:134`, `normalize_label_remote_id` at `greader.rs:206-217`).
+Mapping: `Folder.name` ↔ label display name; `Folder.remote_id` ↔ `user/-/label/<name>` (`LABEL_PREFIX`, `greader.rs:134`, `normalize_label_remote_id` at `greader.rs:206-217`).
 
-**Asymmetry to flag for the build plan**: a local _feed_ rename maps 1:1 to one `subscription/edit` call (§2.2). A local _folder_ rename does not have a single corresponding remote call, because GReader has no "rename this label as an entity" endpoint in this dialect — a label only exists server-side as an attribute of the feeds that carry it (`get_folders`/`tag/list`, `greader.rs:744-771`, is read-only). Renaming a folder locally must fan out: for every feed currently assigned to that folder, issue `a=<new label>&r=<old label>` on `subscription/edit`. This is materially different work from a feed rename and should be a distinct code path, not an accidental one-liner extension of feed rename.
+Asymmetry to flag for the build plan: a local _feed_ rename maps 1:1 to one `subscription/edit` call (§2.2). A local _folder_ rename does not have a single corresponding remote call, because GReader has no "rename this label as an entity" endpoint in this dialect — a label only exists server-side as an attribute of the feeds that carry it (`get_folders`/`tag/list`, `greader.rs:744-771`, is read-only). Renaming a folder locally must fan out: for every feed currently assigned to that folder, issue `a=<new label>&r=<old label>` on `subscription/edit`. This is materially different work from a feed rename and should be a distinct code path, not an accidental one-liner extension of feed rename.
 
-**Edge cases to flag, not solve here**:
+#### Edge cases to flag, not solve here
 
 - A folder with zero feeds has nothing to push; renaming it is purely local until a feed is added to it.
 - The existing case-insensitive fallback match on sync (`folder_name_case_key`, `sync_providers.rs:871-873`, used at `:566-569`) could misinterpret a partially-pushed rename (some feeds updated, sync runs mid-way) as a "new" folder distinct from the old one. The build plan needs an explicit ordering/atomicity answer for the fan-out in the previous paragraph.
@@ -188,10 +188,10 @@ So there is no hierarchy-to-flat-label mapping problem to design around — the 
 
 ### Build plan outline (tranches)
 
-1. **Trait extension**: add the chosen method(s) (see Open Question 5) to `FeedProvider` (`traits.rs`); stub bodies in `LocalProvider` and every test-double implementor (`feed_commands.rs` test module, `sync_flow.rs` test module).
-2. **GReader implementation**: implement the method(s) in `GReaderProvider` per §2.2, following the existing `urlencoded`/`auth_header`/`ensure_success_response` conventions.
-3. **Command wiring**: convert `rename_feed`/`update_feed_folder` to `async fn`, mirroring `delete_feed_with_remote_sync_boundary`; branch on `account.kind == FreshRss`; push-before-local-write.
-4. **Folder-rename fan-out**: implement the per-member-feed fan-out strategy decided in Open Question 2, as a distinct path from single-feed folder move.
-5. **Optimistic/rollback UI**: resolve Open Question 3; no change needed for folder move.
-6. **Contract tests**: mock-server tests for the new GReader request shapes (mirroring the existing mockito pattern for unsubscribe/quickadd, e.g. `feed_commands.rs` FreshRSS delete test, `greader.rs` test module) plus command-level tests mirroring `delete_feed_command_resolves_missing_remote_id_in_freshrss_path`.
-7. **`test:live` verification matrix**: confirm exact FreshRSS request/response shape for rename and folder add/remove/move against a real FreshRSS instance before release, per the conventions in `docs/release-manual-verification.md`.
+1. Trait extension: add the chosen method(s) (see Open Question 5) to `FeedProvider` (`traits.rs`); stub bodies in `LocalProvider` and every test-double implementor (`feed_commands.rs` test module, `sync_flow.rs` test module).
+2. GReader implementation: implement the method(s) in `GReaderProvider` per §2.2, following the existing `urlencoded`/`auth_header`/`ensure_success_response` conventions.
+3. Command wiring: convert `rename_feed`/`update_feed_folder` to `async fn`, mirroring `delete_feed_with_remote_sync_boundary`; branch on `account.kind == FreshRss`; push-before-local-write.
+4. Folder-rename fan-out: implement the per-member-feed fan-out strategy decided in Open Question 2, as a distinct path from single-feed folder move.
+5. Optimistic/rollback UI: resolve Open Question 3; no change needed for folder move.
+6. Contract tests: mock-server tests for the new GReader request shapes (mirroring the existing mockito pattern for unsubscribe/quickadd, e.g. `feed_commands.rs` FreshRSS delete test, `greader.rs` test module) plus command-level tests mirroring `delete_feed_command_resolves_missing_remote_id_in_freshrss_path`.
+7. `test:live` verification matrix: confirm exact FreshRSS request/response shape for rename and folder add/remove/move against a real FreshRSS instance before release, per the conventions in `docs/release-manual-verification.md`.
