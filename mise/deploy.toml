@@ -1,0 +1,4 @@
+["deploy:site"]
+description = "Deploy the static landing page to Cloudflare Pages"
+env = { CLOUDFLARE_ACCOUNT_ID = "4e7695e2370bc9cef6ae9f2802517dd3" }
+run = "wrangler pages deploy site --project-name=ultra-rss-reader --branch=main"

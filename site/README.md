@@ -10,9 +10,14 @@ Deploys are direct uploads, not a GitHub integration, so a push to `main` does n
 publish anything on its own:
 
 ```bash
-dotenvx run -- sh -c 'CLOUDFLARE_ACCOUNT_ID=4e7695e2370bc9cef6ae9f2802517dd3 \
-  pnpm dlx wrangler@latest pages deploy site --project-name=ultra-rss-reader --branch=main'
+dotenvx run -- mise run deploy:site
 ```
+
+The repository also deploys the site automatically through
+`.github/workflows/deploy-site.yml` when a push to `main` changes `site/**`. The
+workflow can also be started with `workflow_dispatch`, uses the
+`CLOUDFLARE_API_TOKEN` GitHub Actions secret, and checks both public language pages
+after deployment, retrying transient edge propagation failures.
 
 The custom domain needs a DNS record that Cloudflare does not create on its own:
 a proxied `CNAME` from `ultra-rss` to `ultra-rss-reader.pages.dev` in the

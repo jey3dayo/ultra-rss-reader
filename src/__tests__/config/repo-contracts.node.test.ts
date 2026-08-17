@@ -2151,6 +2151,12 @@ describe("repository static contracts", () => {
         },
       },
       {
+        path: ".github/workflows/deploy-site.yml",
+        permissions: {
+          contents: "read",
+        },
+      },
+      {
         path: ".github/workflows/labeler.yml",
         permissions: {
           contents: "read",

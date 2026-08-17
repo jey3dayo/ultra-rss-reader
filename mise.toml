@@ -34,6 +34,7 @@ includes = [
   "mise/quality.toml",
   "mise/test.toml",
   "mise/setup.toml",
+  "mise/deploy.toml",
 ]
 
 # ========================================

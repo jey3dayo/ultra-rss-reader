@@ -1,0 +1,73 @@
+name: Deploy Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy landing page
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      # jdx/mise-action@v4.0.1
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+        with:
+          runtime: node@26.4.0
+          cache: true
+          install: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Deploy Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: mise run deploy:site
+
+      - name: Verify public landing pages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          check_url() {
+            local url="$1"
+            local attempt
+            local status="000"
+
+            for attempt in 1 2 3 4; do
+              status="$(curl --fail --silent --show-error --location \
+                --connect-timeout 5 --max-time 15 \
+                --output /dev/null --write-out '%{http_code}' "$url" || true)"
+              if [[ "$status" == "200" ]]; then
+                echo "$url returned HTTP 200"
+                return 0
+              fi
+
+              if [[ "$attempt" -lt 4 ]]; then
+                sleep $((attempt * 2))
+              fi
+            done
+
+            echo "::error::$url did not return HTTP 200 (last status: $status)"
+            return 1
+          }
+
+          check_url "https://ultra-rss.jey3dayo.net/"
+          check_url "https://ultra-rss.jey3dayo.net/ja/"
