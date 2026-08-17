@@ -4,10 +4,14 @@ overrides:
   "brace-expansion@>=5.0.0 <5.0.8": ">=5.0.8"
   fast-uri: 3.1.4
 allowBuilds:
+  # Both postinstalls fetch the platform binary the tool is a wrapper for, so
+  # denying them leaves @sentry/vite-plugin and wrangler unable to run at all.
+  "@sentry/cli": true
   esbuild: true
   lefthook: true
   msgpackr-extract: true
   msw: true
+  workerd: true
 minimumReleaseAgeExclude:
   - "@tanstack/query-core@5.101.0 || 5.101.1 || 5.101.2 || 5.101.3"
   - "@tanstack/react-query@5.101.0 || 5.101.1 || 5.101.2 || 5.101.3"
