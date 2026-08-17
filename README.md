@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
 
-[Download](#install) • [Features](#features) • [Keyboard Shortcuts](#keyboard-shortcuts) • [日本語](README.ja.md)
+[**ultra-rss.jey3dayo.net**](https://ultra-rss.jey3dayo.net) • [Download](#install) • [Features](#features) • [Keyboard Shortcuts](#keyboard-shortcuts) • [日本語](README.ja.md)
 
 </div>
 

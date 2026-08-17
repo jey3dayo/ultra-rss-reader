@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
 
-[ダウンロード](#インストール) • [機能](#機能) • [キーボードショートカット](#キーボードショートカット) • [English](README.md)
+[**ultra-rss.jey3dayo.net**](https://ultra-rss.jey3dayo.net/ja/) • [ダウンロード](#インストール) • [機能](#機能) • [キーボードショートカット](#キーボードショートカット) • [English](README.md)
 
 </div>
 

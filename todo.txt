@@ -7,5 +7,5 @@
 (D) 2026-08-10 hold-to-confirm pointerId / forced-colors hover +a11y-keyboard note:https://github.com/jey3dayo/ultra-rss-reader/issues/52
 (C) 2026-08-16 Linux ビルド対応 release workflow + 配布 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/59
 (B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57
-(C) 2026-08-17 LP を Cloudflare Pages へデプロイ + ドメイン + Analytics +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
-(D) 2026-08-17 GitHub About の homepage と topics 設定 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
+(D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
+(C) 2026-08-17 LP 自動デプロイ GitHub Actions + wrangler 導入 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
