@@ -6,5 +6,6 @@
 (D) 2026-07-28 window-state Windows 実機検証 + windows-schema 再生成 +release-native note:docs/release-manual-verification.md
 (D) 2026-08-10 hold-to-confirm pointerId / forced-colors hover +a11y-keyboard note:https://github.com/jey3dayo/ultra-rss-reader/issues/52
 (C) 2026-08-16 Linux ビルド対応 release workflow + 配布 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/59
-(C) 2026-08-16 プロダクトLP ultra-rss.jey3dayo.net GIF完成後着手 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57
+(C) 2026-08-17 LP を Cloudflare Pages へデプロイ + ドメイン + Analytics +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
+(D) 2026-08-17 GitHub About の homepage と topics 設定 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
