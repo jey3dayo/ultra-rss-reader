@@ -6,3 +6,4 @@
 (B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57
 (D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (D) 2026-08-17 ProviderSyncWarning の i18n 対応(全て英語ハードコード) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/62
+(B) 2026-08-17 検索中に記事を送るとリストが一瞬消える +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/63
