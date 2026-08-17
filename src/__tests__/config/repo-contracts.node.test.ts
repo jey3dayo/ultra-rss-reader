@@ -2169,6 +2169,12 @@ describe("repository static contracts", () => {
         },
       },
       {
+        path: ".github/workflows/linux-build-check.yml",
+        permissions: {
+          contents: "read",
+        },
+      },
+      {
         path: ".github/workflows/pr-insights-labeler.yml",
         permissions: {
           contents: "read",

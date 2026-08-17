@@ -1,0 +1,111 @@
+# Throwaway verification copy of the Linux build job introduced in
+# release.yml (feat(release): add opt-in Linux artifacts). It reproduces,
+# from the `release` job in release.yml:
+#   - checkout + mise-action + pnpm/setup + rust-toolchain + rust-cache setup
+#   - the "Install Linux build dependencies" apt package list
+#   - `pnpm install --frozen-lockfile`
+#   - the tauri-action build args used for the Linux matrix entry:
+#     `--config src-tauri/tauri.release.conf.json --bundles deb,appimage
+#     --config src-tauri/tauri.linux.release.conf.json --ci`
+# It intentionally skips signing, draft release creation, and asset upload.
+#
+# This file only exists to let a human confirm the Linux build succeeds
+# before flipping `build_linux: true` on a real release.yml dispatch. If
+# release.yml's Linux job steps change, update this file to match or delete
+# it — it is not wired into release.yml and nothing else depends on it.
+# Once the Linux path has been verified via a real workflow_dispatch, this
+# file may be deleted.
+name: Linux Build Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      # actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      # jdx/mise-action@v4.0.1
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+        with:
+          runtime: node@26.4.0
+          cache: true
+          install: false
+
+      # dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
+        with:
+          toolchain: stable
+
+      # Swatinem/rust-cache@v2.9.1
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4
+        with:
+          workspaces: src-tauri
+          shared-key: linux-build-check-${{ hashFiles('src-tauri/Cargo.lock') }}
+          save-if: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Linux build dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      # tauri-apps/tauri-action@v0.6.2
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5
+        with:
+          args: >-
+            --config src-tauri/tauri.release.conf.json
+            --bundles deb,appimage
+            --config src-tauri/tauri.linux.release.conf.json
+            --ci
+
+      - name: Verify Linux bundle artifacts were produced
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          deb_count=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' 2>/dev/null | wc -l)
+          appimage_count=$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' 2>/dev/null | wc -l)
+
+          if [[ "$deb_count" -lt 1 ]]; then
+            echo "::error::no .deb bundle found under src-tauri/target/release/bundle/deb"
+            exit 1
+          fi
+          if [[ "$appimage_count" -lt 1 ]]; then
+            echo "::error::no .AppImage bundle found under src-tauri/target/release/bundle/appimage"
+            exit 1
+          fi
+
+          echo "::notice::found $deb_count .deb and $appimage_count .AppImage artifact(s)"
+
+      # actions/upload-artifact@v4.6.2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: linux-build-check-bundles
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          retention-days: 3
+          if-no-files-found: error
