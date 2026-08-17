@@ -357,14 +357,18 @@ fn local_account_sync_error_warning(operation: &str, error: &AppError) -> Provid
 fn local_account_import_result_warning(
     report: &LocalAccountSyncImportReport,
 ) -> Option<ProviderSyncWarning> {
-    if report.applied && report.conflicted_candidates == 0 && report.rejected_files == 0 {
+    if report.applied
+        && report.conflicted_candidates == 0
+        && report.rejected_files == 0
+        && report.rejected_operations == 0
+    {
         return None;
     }
     Some(ProviderSyncWarning {
         kind: AccountSyncWarningKind::Generic,
         message: format!(
-            "Local sync folder import found {} conflicted and {} rejected file(s); use the manual import/export buttons in account settings to resolve them.",
-            report.conflicted_candidates, report.rejected_files
+            "Local sync folder import found {} conflicted candidate(s), {} rejected file(s), and {} rejected operation(s); use the manual import/export buttons in account settings to resolve them.",
+            report.conflicted_candidates, report.rejected_files, report.rejected_operations
         ),
         retry_at: None,
         retry_in_seconds: None,
@@ -2148,15 +2152,13 @@ mod tests {
         );
     }
 
-    /// Pins current behavior for the auto-import rejected-only branch: when
-    /// the folder/file load itself succeeds (no rejected files, no
-    /// conflicted candidates) but merge-level operation validation rejects
-    /// one operation (mismatched entity key/action), the merge still applies
-    /// the remaining valid operations and `run_local_account_auto_import`
-    /// does not surface any warning. Rejected merge-level operations are
-    /// silently dropped in the auto path today.
+    /// Verifies that the auto-import rejected-only branch reports a warning:
+    /// when merge-level operation validation rejects one operation (mismatched
+    /// entity key/action), the merge still applies the remaining valid
+    /// operations and `run_local_account_auto_import` surfaces the rejected
+    /// operation count.
     #[tokio::test]
-    async fn local_sync_account_silently_drops_merge_rejected_operations_without_warning() {
+    async fn local_sync_account_returns_warning_for_merge_rejected_operations() {
         use crate::domain::local_account_sync::{
             normalize_tag_name, LocalAccountSyncOperation, LocalSyncAccountId, LocalSyncAction,
             LocalSyncDeviceId, LocalSyncEntityKey, LocalSyncOperationId,
@@ -2203,11 +2205,10 @@ mod tests {
 
         let outcome = sync_account(&db, &account).await.unwrap();
 
-        assert!(
-            outcome.warnings.is_empty(),
-            "merge-level rejected operations are not currently surfaced as warnings: {:?}",
-            outcome.warnings
-        );
+        assert_eq!(outcome.warnings.len(), 1);
+        assert!(outcome.warnings[0]
+            .message
+            .contains("1 rejected operation(s)"));
 
         let folder_count: i64 = db
             .lock()
