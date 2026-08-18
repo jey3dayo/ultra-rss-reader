@@ -2158,6 +2158,7 @@ describe("release repository contract", () => {
       "V21__local_account_sync_settings.sql",
       "V22__local_account_sync_export_state.sql",
       "V23__reset_empty_freshrss_feed_sync_state.sql",
+      "V24__feed_icon_url.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

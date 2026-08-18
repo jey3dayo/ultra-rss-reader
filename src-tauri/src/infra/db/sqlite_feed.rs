@@ -71,9 +71,10 @@ fn row_to_feed(row: &rusqlite::Row) -> rusqlite::Result<Feed> {
         url: row.get(5)?,
         site_url: row.get(6)?,
         icon: row.get(7)?,
-        unread_count: normalize_unread_count(row.get::<_, i64>(8)?),
-        reader_mode: row.get(9)?,
-        web_preview_mode: row.get(10)?,
+        icon_url: row.get(8)?,
+        unread_count: normalize_unread_count(row.get::<_, i64>(9)?),
+        reader_mode: row.get(10)?,
+        web_preview_mode: row.get(11)?,
     })
 }
 
@@ -162,8 +163,7 @@ pub(crate) fn recalculate_unread_counts_with_conn(
     Ok(())
 }
 
-const SELECT_COLS: &str =
-    "id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode";
+const SELECT_COLS: &str = "id, account_id, folder_id, remote_id, title, url, site_url, icon, icon_url, unread_count, reader_mode, web_preview_mode";
 
 impl FeedRepository for SqliteFeedRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Feed>> {
@@ -186,6 +186,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                     f.url,
                     f.site_url,
                     f.icon,
+                    f.icon_url,
                     (
                         SELECT COUNT(*)
                         FROM articles a
@@ -222,8 +223,8 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         Self::validate_display_modes(&feed.reader_mode, &feed.web_preview_mode)?;
 
         self.conn.execute(
-            "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+            "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, icon_url, unread_count, reader_mode, web_preview_mode)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
              ON CONFLICT(id) DO UPDATE SET
                folder_id = excluded.folder_id,
                remote_id = excluded.remote_id,
@@ -231,6 +232,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                url = excluded.url,
                site_url = excluded.site_url,
                icon = excluded.icon,
+               icon_url = excluded.icon_url,
                unread_count = excluded.unread_count,
                reader_mode = excluded.reader_mode,
                web_preview_mode = excluded.web_preview_mode
@@ -250,11 +252,13 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                title = excluded.title,
                site_url = excluded.site_url,
                icon = excluded.icon,
+               icon_url = excluded.icon_url,
                unread_count = excluded.unread_count
              ON CONFLICT(account_id, remote_id) DO UPDATE SET
                folder_id = excluded.folder_id,
                url = excluded.url,
                icon = excluded.icon,
+               icon_url = excluded.icon_url,
                unread_count = excluded.unread_count",
             params![
                 feed.id.0,
@@ -265,6 +269,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                 feed.url,
                 feed.site_url,
                 feed.icon,
+                feed.icon_url,
                 normalize_unread_count(i64::from(feed.unread_count)),
                 feed.reader_mode,
                 feed.web_preview_mode,
@@ -418,6 +423,7 @@ mod tests {
             url: url.to_string(),
             site_url: String::new(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -1286,6 +1292,7 @@ mod tests {
             url: "http://example.com/rss".to_string(),
             site_url: "http://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "on".to_string(),
             web_preview_mode: "off".to_string(),
@@ -1308,6 +1315,7 @@ mod tests {
             url: existing_feed.url.clone(),
             site_url: "https://example.com".to_string(),
             icon: Some(vec![1, 2, 3]),
+            icon_url: None,
             unread_count: 12,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -1347,6 +1355,7 @@ mod tests {
             url: "https://other.example/rss".to_string(),
             site_url: "https://other.example".to_string(),
             icon: Some(vec![1, 2, 3]),
+            icon_url: None,
             unread_count: 3,
             reader_mode: "off".to_string(),
             web_preview_mode: "on".to_string(),
@@ -1391,6 +1400,7 @@ mod tests {
             url: "http://example.com/rss".to_string(),
             site_url: "http://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "on".to_string(),
             web_preview_mode: "off".to_string(),
@@ -1413,6 +1423,7 @@ mod tests {
             url: existing_feed.url.clone(),
             site_url: "https://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 3,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -1447,6 +1458,7 @@ mod tests {
             url: "http://example.com/rss".to_string(),
             site_url: "http://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 7,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -1462,6 +1474,7 @@ mod tests {
             url: existing_feed.url.clone(),
             site_url: "https://example.com/articles".to_string(),
             icon: Some(vec![9, 8, 7]),
+            icon_url: None,
             unread_count: 0,
             reader_mode: "off".to_string(),
             web_preview_mode: "on".to_string(),

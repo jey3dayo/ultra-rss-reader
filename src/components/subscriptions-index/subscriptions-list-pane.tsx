@@ -303,6 +303,7 @@ export function SubscriptionsListPane({
                                   title={row.feed.title}
                                   url={row.feed.url}
                                   siteUrl={row.feed.site_url}
+                                  iconUrl={row.feed.icon_url}
                                   size="md"
                                 />
                               </span>

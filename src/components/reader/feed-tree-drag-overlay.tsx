@@ -28,7 +28,13 @@ function FeedTreeDragOverlayCard({ feed, displayFavicons }: FeedTreeDragOverlayC
       <div className="flex items-center gap-2">
         {displayFavicons ? (
           <span className="flex size-5 shrink-0 items-center justify-center">
-            <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
+            <FeedFavicon
+              title={feed.title}
+              url={feed.url}
+              siteUrl={feed.siteUrl}
+              iconUrl={feed.iconUrl}
+              grayscale={feed.grayscaleFavicon}
+            />
           </span>
         ) : null}
         <span className="truncate">{feed.title}</span>
