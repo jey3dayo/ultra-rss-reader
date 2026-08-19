@@ -934,11 +934,15 @@ describe("release repository contract", () => {
     expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
   });
 
-  it("keeps CI apt mirror failures bounded by an explicit retry policy", () => {
-    expect(ciWorkflow.match(/sudo apt-get update -o Acquire::Retries=3/g)).toHaveLength(2);
+  it("keeps CI apt mirror failures bounded by retry and timeout policies", () => {
     expect(
       ciWorkflow.match(
-        /sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
+        /timeout 300s sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20/g,
+      ),
+    ).toHaveLength(2);
+    expect(
+      ciWorkflow.match(
+        /timeout 300s sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
       ),
     ).toHaveLength(2);
     expect(ciWorkflow).not.toContain("sudo apt-get install -y $" + "{{ env.TAURI_SYSTEM_DEPS }}");

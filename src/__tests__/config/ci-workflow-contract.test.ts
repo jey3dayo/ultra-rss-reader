@@ -114,10 +114,10 @@ describe("CI workflow contract", () => {
       );
       expect(jobSection, `${jobId} should preserve apt retries`).toContain("Acquire::Retries=3");
       expect(jobSection, `${jobId} should force IPv4 for apt update`).toContain(
-        "sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true",
+        "timeout 300s sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20",
       );
       expect(jobSection, `${jobId} should force IPv4 for apt install`).toContain(
-        "sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true",
+        "timeout 300s sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20",
       );
     }
   });
