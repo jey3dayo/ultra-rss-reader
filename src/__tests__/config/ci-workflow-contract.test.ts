@@ -91,7 +91,7 @@ describe("CI workflow contract", () => {
   it("keeps test job timeout large enough for Windows post-cache cleanup", () => {
     const testSection = extractWorkflowJobSection(readRepoFile(".github/workflows/ci.yml"), "test");
 
-    expect(testSection).toContain("timeout-minutes: 20");
+    expect(testSection).toContain("timeout-minutes: 30");
   });
 
   it("classifies CI failure artifact retention by frontend, Rust, and native smoke families", () => {
