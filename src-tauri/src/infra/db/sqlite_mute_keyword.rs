@@ -287,6 +287,15 @@ mod tests {
     use crate::domain::types::{AccountId, ArticleId, FeedId};
     use crate::infra::db::connection::DbManager;
 
+    fn sqlite_feed_module_source() -> String {
+        [
+            include_str!("sqlite_feed/mod.rs"),
+            include_str!("sqlite_feed/mapping.rs"),
+            include_str!("sqlite_feed/unread.rs"),
+        ]
+        .join("\n")
+    }
+
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
     }
@@ -441,10 +450,11 @@ mod tests {
 
     #[test]
     fn sql_clause_builder_callers_are_limited_to_repository_sql_surfaces() {
+        let sqlite_feed_source = sqlite_feed_module_source();
         let caller_inventory = [
             ("sqlite_article.rs", include_str!("sqlite_article.rs"), 18),
             ("sqlite_tag.rs", include_str!("sqlite_tag.rs"), 3),
-            ("sqlite_feed.rs", include_str!("sqlite_feed.rs"), 3),
+            ("sqlite_feed.rs", sqlite_feed_source.as_str(), 3),
         ];
 
         for (owner, source, expected_exclusion_calls) in caller_inventory {
@@ -472,7 +482,7 @@ mod tests {
             "sqlite_tag.rs should only use the exclusion clause wrapper"
         );
         assert_eq!(
-            include_str!("sqlite_feed.rs")
+            sqlite_feed_source
                 .matches("build_mute_keyword_match_clause(")
                 .count(),
             0,

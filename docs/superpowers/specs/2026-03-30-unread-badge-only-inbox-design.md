@@ -22,7 +22,7 @@ Settings > General > 未読バッジの `only_inbox` を、`feeds.unread_count` 
 
 - [src/hooks/use-badge.ts](../../../src/hooks/use-badge.ts) は `badgePref !== "dont_display"` の場合、常に `feeds.unread_count` の総和をバッジに設定している
 - [src/stores/preferences-store.ts](../../../src/stores/preferences-store.ts) には `unread_badge = "dont_display" | "all_unread" | "only_inbox"` が既に存在する
-- [src-tauri/src/infra/db/sqlite_feed.rs](../../../src-tauri/src/infra/db/sqlite_feed.rs) の `recalculate_unread_count` は feed 単位の `is_read = 0` 件数だけを保持している
+- [src-tauri/src/infra/db/sqlite_feed/](../../../src-tauri/src/infra/db/sqlite_feed/) の `recalculate_unread_count` は feed 単位の `is_read = 0` 件数だけを保持している
 - 現行データモデルには「inbox 専用状態」はないため、当面の `only_inbox` は「feed 集計に依存しないアカウント単位未読件数」を意味する
 
 ## Recommended Approach
