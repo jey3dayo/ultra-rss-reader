@@ -125,8 +125,8 @@ jobs:
               sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' "$apt_source"
             fi
           done
-          sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 ${{ env.TAURI_SYSTEM_DEPS }}
+          sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true ${{ env.TAURI_SYSTEM_DEPS }}
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
@@ -193,8 +193,8 @@ jobs:
               sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' "$apt_source"
             fi
           done
-          sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 ${{ env.TAURI_SYSTEM_DEPS }}
+          sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true ${{ env.TAURI_SYSTEM_DEPS }}
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 

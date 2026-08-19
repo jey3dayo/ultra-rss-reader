@@ -113,6 +113,12 @@ describe("CI workflow contract", () => {
         "s|azure.archive.ubuntu.com|archive.ubuntu.com|g",
       );
       expect(jobSection, `${jobId} should preserve apt retries`).toContain("Acquire::Retries=3");
+      expect(jobSection, `${jobId} should force IPv4 for apt update`).toContain(
+        "sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true",
+      );
+      expect(jobSection, `${jobId} should force IPv4 for apt install`).toContain(
+        "sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true",
+      );
     }
   });
 
