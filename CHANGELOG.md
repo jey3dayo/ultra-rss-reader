@@ -4,20 +4,42 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
-## [0.57.0] - 2026-08-15
+## [0.57.0] - 2026-08-19
 
 ### Features
 
-- Sentry によるエラーモニタリングを追加した。 (#50)
+- Sentry によるエラーモニタリングを追加した。(#50)
+- Linux 向けの任意アーティファクトビルドを追加した。
+- 製品ランディングページ（Cloudflare Pages 配信）と英語版デモデータセットを追加した。
 
 ### Bug Fixes
 
 - 設定画面のミュートキーワード末尾の区切り線が残る問題を修正した。
+- プロバイダ提供の favicon URL を同期時に保持するようにした。
+- リーダーの「次の記事」制御を表示中の記事一覧から正しく導出するよう修正した。
+- 検索結果のバックグラウンド再取得をローディング扱いしないよう修正した。
+- 記事保持数の一括既読化の安全上限を引き上げた。
+- 確認ダイアログの長押しポインタを ID 単位で分離した。
+- ローカルアカウント自動同期で拒否された操作を可視化した。
+- ヒーロー画像を 16:9 に統一し、レスポンシブ時のアスペクト比崩れを修正した。
+- store-msix ワークフローの upload-artifact 誤ダウングレードを修正した。
+
+### Documentation
+
+- README・ランディングページのポジショニングと導線を整理し、ロードマップを追加した。
+- Microsoft Store 向けプライバシーポリシーとサードパーティ処理の開示を追加した。(#60)
+- reader のスクリーンショットを最新モックデータで再撮影した。
+- similarity ガイダンスを rules に統合し、旧調査資料をアーカイブした。
 
 ### Maintenance
 
 - タスク管理を `TODO.md` から `todo.txt`（tuxedo）+ GitHub Issues（#51〜#56）へ移行し、TODO.md 前提の triage ツーリング（`scripts/todo-triage.ts`、`todo-triage-format` skill）を退役した。
 - ランタイムおよび開発依存関係を更新した。
+- `commands/dto.rs`・`infra/db/migration.rs`・`commands/sync_providers.rs`・`infra/db/sqlite_feed.rs`・`service/sync_flow.rs` を 500 行制限に沿ってディレクトリモジュールへ分割した。
+- Microsoft Store 配布用 MSIX ビルドワークフローを追加した。(#58)
+- Sentry ソースマップアップロードと CI シークレット運用を整備した。
+- Cloudflare Pages への自動デプロイを整備した。
+- リリース事前チェックを lefthook の pre-push フック委譲に整理した。
 
 ## [0.56.1] - 2026-08-10
 
