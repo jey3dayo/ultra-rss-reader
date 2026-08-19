@@ -10,6 +10,12 @@ use crate::repository::feed::FeedRepository;
 use crate::repository::mute_keyword::MuteKeywordRepository;
 use crate::repository::sync_state::SyncStateScopeKey;
 
+mod mapping;
+mod unread;
+
+use mapping::{normalize_unread_count, row_to_feed};
+pub(crate) use unread::{recalculate_unread_count_with_conn, recalculate_unread_counts_with_conn};
+
 pub struct SqliteFeedRepository<'a> {
     conn: &'a Connection,
 }
@@ -58,108 +64,6 @@ impl<'a> SqliteFeedRepository<'a> {
 
         Ok(())
     }
-}
-
-fn row_to_feed(row: &rusqlite::Row) -> rusqlite::Result<Feed> {
-    let folder_id: Option<String> = row.get(2)?;
-    Ok(Feed {
-        id: FeedId(row.get(0)?),
-        account_id: AccountId(row.get(1)?),
-        folder_id: folder_id.map(FolderId),
-        remote_id: row.get(3)?,
-        title: row.get(4)?,
-        url: row.get(5)?,
-        site_url: row.get(6)?,
-        icon: row.get(7)?,
-        unread_count: normalize_unread_count(row.get::<_, i64>(8)?),
-        reader_mode: row.get(9)?,
-        web_preview_mode: row.get(10)?,
-    })
-}
-
-fn normalize_unread_count(count: i64) -> i32 {
-    count.clamp(0, i64::from(i32::MAX)) as i32
-}
-
-pub(crate) fn recalculate_unread_count_with_conn(
-    conn: &Connection,
-    feed_id: &FeedId,
-) -> DomainResult<i32> {
-    if !SqliteMuteKeywordRepository::new(conn).has_any()? {
-        conn.execute(
-            "UPDATE feeds SET unread_count = (SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0) WHERE id = ?1",
-            params![feed_id.0],
-        )?;
-    } else {
-        let mute_clause = build_mute_keyword_exclusion_clause(
-            "title",
-            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
-        );
-        let sql = format!(
-            "UPDATE feeds
-             SET unread_count = (
-               SELECT COUNT(*)
-               FROM articles
-               WHERE feed_id = ?1
-                 AND is_read = 0
-                 AND {mute_clause}
-             )
-             WHERE id = ?1"
-        );
-        conn.execute(&sql, params![feed_id.0])?;
-    }
-    let count: i64 = conn.query_row(
-        "SELECT unread_count FROM feeds WHERE id = ?1",
-        params![feed_id.0],
-        |row| row.get(0),
-    )?;
-    Ok(normalize_unread_count(count))
-}
-
-pub(crate) fn recalculate_unread_counts_with_conn(
-    conn: &Connection,
-    feed_ids: &[FeedId],
-) -> DomainResult<()> {
-    if feed_ids.is_empty() {
-        return Ok(());
-    }
-
-    let placeholders = std::iter::repeat_n("?", feed_ids.len())
-        .collect::<Vec<_>>()
-        .join(", ");
-    let params: Vec<&dyn rusqlite::types::ToSql> = feed_ids
-        .iter()
-        .map(|id| &id.0 as &dyn rusqlite::types::ToSql)
-        .collect();
-
-    if !SqliteMuteKeywordRepository::new(conn).has_any()? {
-        let sql = format!(
-            "UPDATE feeds
-             SET unread_count = (
-               SELECT COUNT(*) FROM articles WHERE articles.feed_id = feeds.id AND articles.is_read = 0
-             )
-             WHERE feeds.id IN ({placeholders})"
-        );
-        conn.execute(&sql, rusqlite::params_from_iter(params))?;
-    } else {
-        let mute_clause = build_mute_keyword_exclusion_clause(
-            "title",
-            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
-        );
-        let sql = format!(
-            "UPDATE feeds
-             SET unread_count = (
-               SELECT COUNT(*)
-               FROM articles
-               WHERE articles.feed_id = feeds.id
-                 AND articles.is_read = 0
-                 AND {mute_clause}
-             )
-             WHERE feeds.id IN ({placeholders})"
-        );
-        conn.execute(&sql, rusqlite::params_from_iter(params))?;
-    }
-    Ok(())
 }
 
 const SELECT_COLS: &str =
@@ -1016,18 +920,18 @@ mod tests {
     #[test]
     fn v8_migration_rejects_unknown_display_modes_at_db_boundary() {
         let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(include_str!("../../../migrations/V1__initial.sql"))
+        conn.execute_batch(include_str!("../../../../migrations/V1__initial.sql"))
             .unwrap();
         conn.execute_batch(include_str!(
-            "../../../migrations/V5__feed_display_mode.sql"
+            "../../../../migrations/V5__feed_display_mode.sql"
         ))
         .unwrap();
         conn.execute_batch(include_str!(
-            "../../../migrations/V7__feed_display_mode_inherit.sql"
+            "../../../../migrations/V7__feed_display_mode_inherit.sql"
         ))
         .unwrap();
         conn.execute_batch(include_str!(
-            "../../../migrations/V8__feed_reader_preview_modes.sql"
+            "../../../../migrations/V8__feed_reader_preview_modes.sql"
         ))
         .unwrap();
         conn.execute(
