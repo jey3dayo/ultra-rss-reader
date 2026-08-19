@@ -33,6 +33,8 @@ const MIGRATION_V22: &str =
     include_str!("../../../migrations/V22__local_account_sync_export_state.sql");
 const MIGRATION_V23: &str =
     include_str!("../../../migrations/V23__reset_empty_freshrss_feed_sync_state.sql");
+#[cfg(test)]
+const MIGRATION_V24: &str = include_str!("../../../migrations/V24__feed_icon_url.sql");
 
 const V8_READER_MODE_COLUMN: &str = "reader_mode";
 const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
@@ -47,6 +49,8 @@ const V16_CONNECTION_VERIFICATION_ERROR_SQL: &str =
 const V22_LAST_EXPORT_DIGEST_COLUMN: &str = "last_export_digest";
 const V22_LAST_EXPORT_DIGEST_SQL: &str =
     "ALTER TABLE local_account_sync_settings ADD COLUMN last_export_digest TEXT";
+const V24_FEED_ICON_URL_COLUMN: &str = "icon_url";
+const V24_FEED_ICON_URL_SQL: &str = "ALTER TABLE feeds ADD COLUMN icon_url TEXT";
 
 /// Result of a migration run.
 #[derive(Debug)]
@@ -66,7 +70,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 23;
+pub const LATEST_VERSION: i32 = 24;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -157,6 +161,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 23 {
         tx.execute_batch(MIGRATION_V23)?;
+    }
+    if from_version < 24 {
+        apply_v24_feed_icon_url(&tx)?;
     }
 
     let to_version = read_schema_version(&tx)?;
@@ -390,6 +397,18 @@ fn apply_v22_local_account_sync_export_state(conn: &Connection) -> DomainResult<
     Ok(())
 }
 
+fn apply_v24_feed_icon_url(conn: &Connection) -> DomainResult<()> {
+    add_column_if_missing(
+        conn,
+        "feeds",
+        V24_FEED_ICON_URL_COLUMN,
+        V24_FEED_ICON_URL_SQL,
+    )?;
+
+    set_schema_version(conn, 24)?;
+    Ok(())
+}
+
 fn add_column_if_missing(
     conn: &Connection,
     table_name: &str,
@@ -573,6 +592,33 @@ mod tests {
     }
 
     #[test]
+    fn v24_file_migration_matches_inline_contract() {
+        let inline_v24_sql = format!(
+            "{V24_FEED_ICON_URL_SQL};
+             DELETE FROM schema_version;
+             INSERT INTO schema_version (version) VALUES (24);"
+        );
+
+        assert_eq!(
+            normalize_sql(MIGRATION_V24),
+            normalize_sql(&inline_v24_sql),
+            "file-based V24 migration must stay in sync with the inline migration"
+        );
+    }
+
+    #[test]
+    fn v24_allows_duplicate_feed_icon_url_column_only() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+        set_schema_version(&conn, 23).unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 23);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        assert!(conn.prepare("SELECT icon_url FROM feeds LIMIT 0").is_ok());
+    }
+
+    #[test]
     fn v22_allows_duplicate_last_export_digest_column_only() {
         let mut conn = open_in_memory();
         run_migrations(&mut conn).unwrap();
@@ -686,8 +732,8 @@ mod tests {
         let result = run_migrations(&mut conn).unwrap();
 
         assert_eq!(result.from_version, 22);
-        assert_eq!(result.to_version, 23);
-        assert_eq!(get_schema_version(&conn), 23);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        assert_eq!(get_schema_version(&conn), LATEST_VERSION);
 
         let sync_state_count = |account_id: &str, scope_key: &str| {
             conn.query_row(

@@ -30,7 +30,13 @@ function getFeedItemButtonProps({ feed, displayFavicons, grayscaleFavicons }: Fe
   return {
     leading: displayFavicons ? (
       <span className="flex size-5 shrink-0 items-center justify-center">
-        <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} grayscale={grayscaleFavicons} />
+        <FeedFavicon
+          title={feed.title}
+          url={feed.url}
+          siteUrl={feed.site_url}
+          iconUrl={feed.icon_url}
+          grayscale={grayscaleFavicons}
+        />
       </span>
     ) : undefined,
     title: <span className="truncate">{feed.title}</span>,

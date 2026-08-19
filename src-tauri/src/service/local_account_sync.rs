@@ -220,7 +220,7 @@ fn build_current_state_operations(
     }
 
     let mut feed_stmt = conn.prepare(
-        "SELECT f.url, f.title, f.site_url, folders.name
+        "SELECT f.url, f.title, f.site_url, f.icon_url, folders.name
          FROM feeds f
          LEFT JOIN folders ON folders.id = f.folder_id
          WHERE f.account_id = ?1
@@ -233,10 +233,11 @@ fn build_current_state_operations(
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, Option<String>>(3)?,
+                row.get::<_, Option<String>>(4)?,
             ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    for (url, title, site_url, folder_name) in feeds {
+    for (url, title, site_url, icon_url, folder_name) in feeds {
         operations.push(operation(
             sync_account_id,
             device_id,
@@ -247,6 +248,7 @@ fn build_current_state_operations(
             LocalSyncAction::UpsertFeed {
                 title,
                 site_url,
+                icon_url,
                 folder_name,
             },
         ));
@@ -451,8 +453,8 @@ mod tests {
             .unwrap();
         db.writer()
             .execute(
-                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
-                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com', 'inherit', 'inherit')",
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, icon_url, reader_mode, web_preview_mode)
+                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com', 'https://example.com/icon.png', 'inherit', 'inherit')",
                 [&account_id.0],
             )
             .unwrap();
@@ -516,8 +518,8 @@ mod tests {
             .unwrap();
         db.writer()
             .execute(
-                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
-                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com', 'inherit', 'inherit')",
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, icon_url, reader_mode, web_preview_mode)
+                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com', 'https://example.com/icon.png', 'inherit', 'inherit')",
                 [&account_id.0],
             )
             .unwrap();
@@ -565,10 +567,18 @@ mod tests {
             crate::infra::local_account_sync_files::load_local_sync_operation_dir(dir.path())
                 .unwrap();
         assert_eq!(load_report.operations.len(), 7);
-        assert!(load_report
-            .operations
-            .iter()
-            .any(|operation| matches!(operation.action, LocalSyncAction::UpsertFeed { .. })));
+        let exported_icon_url =
+            load_report
+                .operations
+                .iter()
+                .find_map(|operation| match &operation.action {
+                    LocalSyncAction::UpsertFeed { icon_url, .. } => Some(icon_url.as_deref()),
+                    _ => None,
+                });
+        assert_eq!(
+            exported_icon_url,
+            Some(Some("https://example.com/icon.png"))
+        );
         assert!(load_report.operations.iter().any(|operation| matches!(
             operation.action,
             LocalSyncAction::SetRead { is_read: true }

@@ -794,7 +794,10 @@ fn save_greader_subscriptions(
     let db_guard = lock_db(db)?;
     let feed_repo = SqliteFeedRepository::new(db_guard.writer());
     for rs in remote_subs {
-        let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
+        let existing = match feed_repo.find_by_remote_id(&account.id, &rs.remote_id)? {
+            Some(feed) => Some(feed),
+            None => feed_repo.find_by_url(&account.id, &rs.url)?,
+        };
         if existing.is_none() && sync_started_remote_feed_ids.contains(&rs.remote_id) {
             continue;
         }
@@ -814,6 +817,10 @@ fn save_greader_subscriptions(
             url: rs.url.clone(),
             site_url: rs.site_url.clone(),
             icon: existing.as_ref().and_then(|f| f.icon.clone()),
+            icon_url: rs
+                .icon_url
+                .clone()
+                .or_else(|| existing.as_ref().and_then(|feed| feed.icon_url.clone())),
             unread_count: 0,
             reader_mode: existing
                 .as_ref()
@@ -1886,6 +1893,7 @@ mod tests {
             url: "https://example.com/local.xml".to_string(),
             site_url: "https://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -1988,6 +1996,115 @@ mod tests {
                 .is_some(),
             "remote subscriptions not present at sync start are regular additions"
         );
+    }
+
+    #[test]
+    fn save_greader_subscriptions_preserves_existing_icon_when_remote_icon_is_missing() {
+        let db = test_db();
+        let (account, mut feed) = insert_account_and_feed(&db, "https://rss.example.com");
+        feed.icon_url = Some("https://example.com/old-icon.png".to_string());
+        feed.reader_mode = "on".to_string();
+        feed.web_preview_mode = "off".to_string();
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteFeedRepository::new(db_guard.writer())
+                .save(&feed)
+                .expect("existing feed with icon should be saved");
+        }
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &[RemoteSubscription {
+                remote_id: FEED_REMOTE_ID.to_string(),
+                title: "Example Feed".to_string(),
+                url: "https://example.com/rss".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: Some("https://example.com/new-icon.png".to_string()),
+            }],
+            &HashSet::new(),
+        )
+        .expect("provider icon should be persisted");
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &[RemoteSubscription {
+                remote_id: FEED_REMOTE_ID.to_string(),
+                title: "Example Feed".to_string(),
+                url: "https://example.com/rss".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+            &HashSet::new(),
+        )
+        .expect("missing provider icon should not fail subscription sync");
+
+        let db_guard = db.lock().unwrap();
+        let saved = SqliteFeedRepository::new(db_guard.reader())
+            .find_by_remote_id(&account.id, FEED_REMOTE_ID)
+            .expect("saved feed lookup should succeed")
+            .expect("existing feed should remain present");
+        assert_eq!(
+            saved.icon_url.as_deref(),
+            Some("https://example.com/new-icon.png")
+        );
+        assert_eq!(saved.reader_mode, "on");
+        assert_eq!(saved.web_preview_mode, "off");
+    }
+
+    #[test]
+    fn save_greader_subscriptions_preserves_local_feed_icon_when_url_conflicts() {
+        let db = test_db();
+        let account = test_account("https://rss.example.com");
+        let mut feed = test_local_feed(&account.id, "https://example.com/rss");
+        feed.icon = Some(vec![1, 2, 3]);
+        feed.icon_url = Some("https://example.com/old-icon.png".to_string());
+        feed.reader_mode = "on".to_string();
+        feed.web_preview_mode = "off".to_string();
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteAccountRepository::new(db_guard.writer())
+                .save(&account)
+                .expect("test account should be saved");
+            SqliteFeedRepository::new(db_guard.writer())
+                .save(&feed)
+                .expect("existing local feed should be saved");
+        }
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &[RemoteSubscription {
+                remote_id: FEED_REMOTE_ID.to_string(),
+                title: "Example Feed".to_string(),
+                url: feed.url.clone(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+            &HashSet::new(),
+        )
+        .expect("URL-conflicting subscription should be saved");
+
+        let db_guard = db.lock().unwrap();
+        let saved = SqliteFeedRepository::new(db_guard.reader())
+            .find_by_remote_id(&account.id, FEED_REMOTE_ID)
+            .expect("saved feed lookup should succeed")
+            .expect("URL-conflicting feed should remain present");
+        assert_eq!(saved.id, feed.id);
+        assert_eq!(saved.icon.as_deref(), Some(&[1, 2, 3][..]));
+        assert_eq!(
+            saved.icon_url.as_deref(),
+            Some("https://example.com/old-icon.png")
+        );
+        assert_eq!(saved.reader_mode, "on");
+        assert_eq!(saved.web_preview_mode, "off");
     }
 
     #[test]
@@ -2361,6 +2478,7 @@ mod tests {
             url: "https://example.com/rss".to_string(),
             site_url: "https://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -2464,6 +2582,7 @@ mod tests {
             url: url.to_string(),
             site_url: site_url.to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -2521,6 +2640,7 @@ mod tests {
             url: feed_url.to_string(),
             site_url: "https://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -2590,6 +2710,7 @@ mod tests {
             url: "https://example.com/rss".to_string(),
             site_url: "https://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "on".to_string(),
             web_preview_mode: "off".to_string(),
@@ -2971,6 +3092,7 @@ mod tests {
             url: "https://example.com/sibling-rss".to_string(),
             site_url: "https://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),

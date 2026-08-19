@@ -131,7 +131,13 @@ export function FeedTreeRow({
         >
           {displayFavicons && (
             <span className="flex size-5 shrink-0 items-center justify-center">
-              <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
+              <FeedFavicon
+                title={feed.title}
+                url={feed.url}
+                siteUrl={feed.siteUrl}
+                iconUrl={feed.iconUrl}
+                grayscale={feed.grayscaleFavicon}
+              />
             </span>
           )}
           <span className="max-w-full truncate font-medium" dir="auto" title={feed.title}>

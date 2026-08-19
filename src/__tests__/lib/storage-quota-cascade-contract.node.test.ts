@@ -34,6 +34,7 @@ const feeds: FeedDto[] = [
     title: "Feed",
     url: "https://example.com/feed.xml",
     site_url: "https://example.com",
+    icon_url: null,
     unread_count: 1,
     reader_mode: "inherit",
     web_preview_mode: "inherit",

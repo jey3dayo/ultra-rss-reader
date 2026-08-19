@@ -633,11 +633,48 @@ describe("DTO schemas", () => {
       title: "Blog",
       url: "https://example.com/feed.xml",
       site_url: "https://example.com",
+      icon_url: null,
       unread_count: 5,
       reader_mode: "on",
       web_preview_mode: "off",
     };
     expect(parse(FeedDtoSchema, data)).toEqual(data);
+  });
+  it("rejects FeedDto when icon_url is omitted", () => {
+    const data = {
+      id: "feed-1",
+      account_id: "acc-1",
+      folder_id: null,
+      remote_id: null,
+      title: "Blog",
+      url: "https://example.com/feed.xml",
+      site_url: "https://example.com",
+      unread_count: 0,
+      reader_mode: "on",
+      web_preview_mode: "off",
+    };
+
+    expect(() => parse(FeedDtoSchema, data)).toThrow();
+  });
+  it("accepts FeedDto null and valid icon_url values", () => {
+    const data = {
+      id: "feed-1",
+      account_id: "acc-1",
+      folder_id: null,
+      remote_id: null,
+      title: "Blog",
+      url: "https://example.com/feed.xml",
+      site_url: "https://example.com",
+      unread_count: 0,
+      reader_mode: "on",
+      web_preview_mode: "off",
+    };
+
+    expect(parse(FeedDtoSchema, { ...data, icon_url: null })).toEqual({ ...data, icon_url: null });
+    expect(parse(FeedDtoSchema, { ...data, icon_url: "https://example.com/icon.png" })).toEqual({
+      ...data,
+      icon_url: "https://example.com/icon.png",
+    });
   });
   it("rejects FeedDto blank identity and title fields", () => {
     const data = {
@@ -648,6 +685,7 @@ describe("DTO schemas", () => {
       title: "Blog",
       url: "https://example.com/feed.xml",
       site_url: "https://example.com",
+      icon_url: null,
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
@@ -669,6 +707,7 @@ describe("DTO schemas", () => {
       title: "Blog",
       url: "https://example.com/feed.xml",
       site_url: "https://example.com",
+      icon_url: null,
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
@@ -708,6 +747,7 @@ describe("DTO schemas", () => {
       title: "Blog",
       url: "https://example.com/feed.xml",
       site_url: "https://example.com",
+      icon_url: null,
       unread_count: 0,
       reader_mode: "on",
       web_preview_mode: "off",
@@ -1187,6 +1227,7 @@ describe("DTO schemas", () => {
         title: "Blog",
         url: "https://example.com/feed.xml",
         site_url: "",
+        icon_url: null,
         unread_count: 0,
         reader_mode: "on",
         web_preview_mode: "off",

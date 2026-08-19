@@ -102,13 +102,14 @@ fn upsert_feeds(
             .and_then(|normalized_name| folder_ids.get(&normalized_name).cloned());
         conn.execute(
             "INSERT INTO feeds (
-                id, account_id, folder_id, title, url, site_url, unread_count, reader_mode, web_preview_mode
+                id, account_id, folder_id, title, url, site_url, icon_url, unread_count, reader_mode, web_preview_mode
              )
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 'inherit', 'inherit')
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 'inherit', 'inherit')
              ON CONFLICT(account_id, url) DO UPDATE SET
                folder_id = excluded.folder_id,
                title = excluded.title,
-               site_url = excluded.site_url",
+               site_url = excluded.site_url,
+               icon_url = COALESCE(excluded.icon_url, feeds.icon_url)",
             params![
                 feed_id.0,
                 account_id.0,
@@ -116,6 +117,7 @@ fn upsert_feeds(
                 feed.title,
                 normalized_feed_url,
                 feed.site_url,
+                feed.icon_url,
             ],
         )?;
         report.feeds_upserted += 1;
@@ -431,8 +433,8 @@ mod tests {
         let sync_account_id = LocalSyncAccountId("sync-account".to_string());
         seed_account(conn, &account_id);
         conn.execute(
-            "INSERT INTO feeds (id, account_id, title, url, site_url, reader_mode, web_preview_mode)
-             VALUES ('feed-existing', ?1, 'Old Feed', 'https://example.com/feed.xml', '', 'inherit', 'inherit')",
+            "INSERT INTO feeds (id, account_id, title, url, site_url, icon_url, reader_mode, web_preview_mode)
+             VALUES ('feed-existing', ?1, 'Old Feed', 'https://example.com/feed.xml', '', NULL, 'inherit', 'inherit')",
             params![account_id.0],
         )
         .unwrap();
@@ -480,6 +482,7 @@ mod tests {
                 LocalSyncAction::UpsertFeed {
                     title: "New Feed".to_string(),
                     site_url: "https://example.com".to_string(),
+                    icon_url: Some("https://example.com/icon.png".to_string()),
                     folder_name: Some("Tech".to_string()),
                 },
             ),
@@ -556,6 +559,14 @@ mod tests {
             )
             .unwrap();
         assert_eq!(feed_count, 1);
+        let icon_url: Option<String> = conn
+            .query_row(
+                "SELECT icon_url FROM feeds WHERE account_id = ?1 AND url = ?2",
+                params![account_id.0, feed_url],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(icon_url.as_deref(), Some("https://example.com/icon.png"));
         let article_tag_count: i64 = conn
             .query_row("SELECT COUNT(*) FROM article_tags", [], |row| row.get(0))
             .unwrap();
@@ -564,6 +575,64 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM mute_keywords", [], |row| row.get(0))
             .unwrap();
         assert_eq!(mute_count, 1);
+    }
+
+    #[test]
+    fn apply_preserves_existing_feed_icon_when_legacy_operation_omits_icon_url() {
+        let db = DbManager::new_in_memory().unwrap();
+        let conn = db.writer();
+        let account_id = AccountId("local-account".to_string());
+        let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+        seed_account(conn, &account_id);
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url, icon_url, reader_mode, web_preview_mode)
+             VALUES ('feed-existing', ?1, 'Old Feed', ?2, '', ?3, 'inherit', 'inherit')",
+            params![
+                account_id.0,
+                "https://example.com/existing.xml",
+                "https://example.com/old-icon.png"
+            ],
+        )
+        .unwrap();
+
+        let legacy_operation: crate::domain::local_account_sync::LocalAccountSyncOperation =
+            serde_json::from_str(
+                r#"
+                {
+                  "sync_account_id": "sync-account",
+                  "device_id": "device-a",
+                  "operation_id": "legacy-feed",
+                  "occurred_at": "1970-01-01T00:00:10Z",
+                  "entity_key": {
+                    "kind": "feed",
+                    "normalized_feed_url": "https://example.com/existing.xml"
+                  },
+                  "action": {
+                    "type": "upsert_feed",
+                    "title": "Updated Feed",
+                    "site_url": "https://example.com",
+                    "folder_name": null
+                  }
+                }
+                "#,
+            )
+            .unwrap();
+        let projection = merge_local_account_sync_operations([legacy_operation]).projection;
+
+        apply_local_account_sync_projection(&db, &account_id, &sync_account_id, &projection)
+            .unwrap();
+
+        let icon_url: Option<String> = conn
+            .query_row(
+                "SELECT icon_url FROM feeds WHERE account_id = ?1 AND url = ?2",
+                params![account_id.0, "https://example.com/existing.xml"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            icon_url.as_deref(),
+            Some("https://example.com/old-icon.png")
+        );
     }
 
     #[test]

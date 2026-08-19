@@ -11,6 +11,7 @@ export type FeedTreeFeedViewModel = {
   title: string;
   url: string;
   siteUrl: string;
+  iconUrl?: string | null;
   unreadCount: number;
   readerMode: TriStateDisplayMode;
   webPreviewMode: TriStateDisplayMode;
@@ -157,6 +158,7 @@ export function mapFeedsToFeedTreeViewModels(
     title: feed.title,
     url: feed.url,
     siteUrl: feed.site_url,
+    iconUrl: feed.icon_url,
     unreadCount: viewMode === "starred" ? (starredCountByFeedId.get(feed.id) ?? 0) : feed.unread_count,
     readerMode: feed.reader_mode ?? "inherit",
     webPreviewMode: feed.web_preview_mode ?? "inherit",
