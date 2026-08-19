@@ -2107,7 +2107,9 @@ describe("release repository contract", () => {
       },
       {
         name: "PlatformKind",
-        rust: extractRustEnumVariants(readText("src-tauri/src/commands/dto.rs"), "PlatformKindDto").map(toSnakeCase),
+        rust: extractRustEnumVariants(readText("src-tauri/src/commands/dto/platform.rs"), "PlatformKindDto").map(
+          toSnakeCase,
+        ),
         typescript: extractTypeScriptStringArray(platformConstantsSource, "PLATFORM_KINDS"),
         labels: extractTypeScriptStringArray(platformConstantsSource, "PLATFORM_KINDS"),
         unknownFallback: "PlatformInfoSchema falls back to DEFAULT_PLATFORM_INFO",

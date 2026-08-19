@@ -68,7 +68,7 @@
     "date-fns": "^4.4.0",
     "i18next": "^26.3.6",
     "i18next-browser-languagedetector": "^8.2.1",
-    "lucide-react": "^1.31.0",
+    "lucide-react": "^1.32.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.11",
@@ -78,17 +78,17 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.8",
+    "@biomejs/biome": "^2.5.9",
     "@playwright/test": "^1.62.1",
     "@sentry/vite-plugin": "^5.4.0",
-    "@storybook/addon-a11y": "^10.5.8",
-    "@storybook/addon-docs": "^10.5.8",
-    "@storybook/react-vite": "^10.5.8",
+    "@storybook/addon-a11y": "^10.5.9",
+    "@storybook/addon-docs": "^10.5.9",
+    "@storybook/react-vite": "^10.5.9",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2.11.4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.4",
+    "@testing-library/user-event": "^14.6.5",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
@@ -101,12 +101,12 @@
     "portless": "^0.15.5",
     "react-doctor": "0.9.12",
     "shadcn": "^4.18.0",
-    "storybook": "^10.5.8",
+    "storybook": "^10.5.9",
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@rc",
     "vite": "^8.2.1",
-    "vitest": "^4.1.10",
-    "wrangler": "4.123.0"
+    "vitest": "^4.1.11",
+    "wrangler": "4.124.0"
   }
 }
