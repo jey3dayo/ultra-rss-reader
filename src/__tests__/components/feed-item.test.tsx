@@ -12,6 +12,7 @@ const baseFeed: FeedDto = {
   title: "AUTOMATON",
   url: "https://automaton-media.com/feed/",
   site_url: "https://automaton-media.com",
+  icon_url: null,
   unread_count: 42,
   reader_mode: "on",
   web_preview_mode: "off",

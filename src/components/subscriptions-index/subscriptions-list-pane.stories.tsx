@@ -17,6 +17,7 @@ function buildFeed(overrides: Partial<FeedDto>): FeedDto {
     reader_mode: "inherit",
     web_preview_mode: "inherit",
     ...overrides,
+    icon_url: overrides.icon_url ?? null,
   };
 }
 

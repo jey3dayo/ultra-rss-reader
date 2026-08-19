@@ -99,6 +99,7 @@ describe("AddFeedDialog", () => {
             title: "Imported Feed",
             url: args.url,
             site_url: args.url,
+            icon_url: null,
             unread_count: 0,
             reader_mode: "on",
             web_preview_mode: "off",

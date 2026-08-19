@@ -22,6 +22,7 @@ const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   reader_mode: "on",
   web_preview_mode: "off",
   ...overrides,
+  icon_url: overrides.icon_url ?? null,
 });
 
 const sampleArticle = sampleArticles[0];

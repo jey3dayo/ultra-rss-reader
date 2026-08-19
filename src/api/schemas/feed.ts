@@ -35,7 +35,7 @@ export const FeedDtoSchema = s.strictObject({
   title: nonBlankStringSchema,
   url: feedUrlSchema,
   site_url: optionalFeedSiteUrlSchema,
-  icon_url: v.optional(v.nullable(feedUrlSchema)),
+  icon_url: v.nullable(feedUrlSchema),
   unread_count: NonnegativeIntegerSchema,
   reader_mode: FeedDisplayModeSchema,
   web_preview_mode: FeedDisplayModeSchema,
