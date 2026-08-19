@@ -1,0 +1,1896 @@
+use super::*;
+use crate::domain::account::{Account, ConnectionVerificationStatus};
+use crate::domain::feed::Feed;
+use crate::domain::folder::Folder;
+use crate::domain::provider::ProviderKind;
+use crate::domain::types::FolderId;
+use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_account::SqliteAccountRepository;
+use crate::infra::db::sqlite_article::SqliteArticleRepository;
+use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::db::sqlite_folder::SqliteFolderRepository;
+use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
+use crate::infra::provider::greader::GReaderProvider;
+use crate::infra::provider::traits::Credentials;
+use crate::repository::account::AccountRepository;
+use crate::repository::pending_mutation::PendingMutation;
+use async_trait::async_trait;
+use std::sync::Mutex;
+
+#[derive(Clone, Copy)]
+enum ProviderFailureKind {
+    Network,
+    Auth,
+    RateLimit,
+}
+
+impl ProviderFailureKind {
+    fn to_error(self) -> DomainError {
+        match self {
+            Self::Network => DomainError::Network("network unavailable".to_string()),
+            Self::Auth => DomainError::Auth("session expired".to_string()),
+            Self::RateLimit => DomainError::RateLimit("retry later".to_string()),
+        }
+    }
+}
+
+struct FailingPullProvider {
+    failure: ProviderFailureKind,
+}
+
+struct FolderSyncProvider {
+    folders: Vec<RemoteFolder>,
+}
+
+struct RemoteStateProvider {
+    pushed: Mutex<Vec<Mutation>>,
+}
+
+struct FailingSecondPushProvider {
+    pushed: Mutex<Vec<Mutation>>,
+}
+
+struct DeleteFailurePendingMutationRepository {
+    pending: Vec<PendingMutation>,
+    deleted_ids: Mutex<Vec<Vec<i64>>>,
+}
+
+struct RemoteSubscriptionProvider {
+    subscriptions: Vec<RemoteSubscription>,
+}
+
+struct RemoteSubscriptionEntryProvider {
+    subscription: RemoteSubscription,
+    entry: RemoteEntry,
+}
+
+struct DeltaSyncProvider;
+
+struct FakePendingMutationRepository {
+    pending: Vec<PendingMutation>,
+    deleted_ids: Mutex<Vec<Vec<i64>>>,
+}
+
+struct SnapshotDeletePendingMutationRepository {
+    replay_snapshot: Vec<PendingMutation>,
+    current_queue: Vec<PendingMutation>,
+    deleted_ids: Mutex<Vec<Vec<i64>>>,
+}
+
+#[async_trait]
+impl FeedProvider for FailingPullProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Local
+    }
+
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderKind::Local.capabilities()
+    }
+
+    async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+        Ok(Vec::new())
+    }
+
+    async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+        Ok(Vec::new())
+    }
+
+    async fn pull_entries(
+        &self,
+        _scope: PullScope,
+        _cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        Err(self.failure.to_error())
+    }
+
+    async fn pull_state(&self) -> DomainResult<RemoteState> {
+        Ok(RemoteState::default())
+    }
+
+    async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn create_subscription(
+        &self,
+        _url: &str,
+        _folder: Option<&str>,
+    ) -> DomainResult<RemoteSubscription> {
+        Err(DomainError::Validation(
+            "test provider does not create subscriptions".to_string(),
+        ))
+    }
+
+    async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl FeedProvider for FolderSyncProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Local
+    }
+
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities {
+            supports_folders: true,
+            supports_starring: false,
+            supports_search: false,
+            supports_delta_sync: false,
+            supports_remote_state: false,
+        }
+    }
+
+    async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+        Ok(Vec::new())
+    }
+
+    async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+        Ok(self.folders.clone())
+    }
+
+    async fn pull_entries(
+        &self,
+        _scope: PullScope,
+        _cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        Ok(PullResult {
+            entries: Vec::new(),
+            next_cursor: None,
+            has_more: false,
+            not_modified: false,
+            skipped_entries: 0,
+        })
+    }
+
+    async fn pull_state(&self) -> DomainResult<RemoteState> {
+        Ok(RemoteState::default())
+    }
+
+    async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn create_subscription(
+        &self,
+        _url: &str,
+        _folder: Option<&str>,
+    ) -> DomainResult<RemoteSubscription> {
+        Err(DomainError::Validation(
+            "test provider does not create subscriptions".to_string(),
+        ))
+    }
+
+    async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl FeedProvider for RemoteStateProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Local
+    }
+
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities {
+            supports_folders: false,
+            supports_starring: true,
+            supports_search: false,
+            supports_delta_sync: false,
+            supports_remote_state: true,
+        }
+    }
+
+    async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+        Ok(Vec::new())
+    }
+
+    async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+        Ok(Vec::new())
+    }
+
+    async fn pull_entries(
+        &self,
+        _scope: PullScope,
+        _cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        Ok(PullResult {
+            entries: Vec::new(),
+            next_cursor: None,
+            has_more: false,
+            not_modified: false,
+            skipped_entries: 0,
+        })
+    }
+
+    async fn pull_state(&self) -> DomainResult<RemoteState> {
+        Ok(RemoteState::default())
+    }
+
+    async fn push_mutations(&self, mutations: &[Mutation]) -> DomainResult<()> {
+        self.pushed.lock().unwrap().extend_from_slice(mutations);
+        Ok(())
+    }
+
+    async fn create_subscription(
+        &self,
+        _url: &str,
+        _folder: Option<&str>,
+    ) -> DomainResult<RemoteSubscription> {
+        Err(DomainError::Validation(
+            "test provider does not create subscriptions".to_string(),
+        ))
+    }
+
+    async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl FeedProvider for FailingSecondPushProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Local
+    }
+
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities {
+            supports_folders: false,
+            supports_starring: true,
+            supports_search: false,
+            supports_delta_sync: false,
+            supports_remote_state: true,
+        }
+    }
+
+    async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+        Ok(Vec::new())
+    }
+
+    async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+        Ok(Vec::new())
+    }
+
+    async fn pull_entries(
+        &self,
+        _scope: PullScope,
+        _cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        Ok(PullResult {
+            entries: Vec::new(),
+            next_cursor: None,
+            has_more: false,
+            not_modified: false,
+            skipped_entries: 0,
+        })
+    }
+
+    async fn pull_state(&self) -> DomainResult<RemoteState> {
+        Ok(RemoteState::default())
+    }
+
+    async fn push_mutations(&self, mutations: &[Mutation]) -> DomainResult<()> {
+        let mut pushed = self.pushed.lock().unwrap();
+        if !pushed.is_empty() {
+            return Err(DomainError::Network("second push failed".to_string()));
+        }
+        pushed.extend_from_slice(mutations);
+        Ok(())
+    }
+
+    async fn create_subscription(
+        &self,
+        _url: &str,
+        _folder: Option<&str>,
+    ) -> DomainResult<RemoteSubscription> {
+        Err(DomainError::Validation(
+            "test provider does not create subscriptions".to_string(),
+        ))
+    }
+
+    async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl FeedProvider for RemoteSubscriptionProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Local
+    }
+
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities {
+            supports_folders: false,
+            supports_starring: false,
+            supports_search: false,
+            supports_delta_sync: false,
+            supports_remote_state: true,
+        }
+    }
+
+    async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+        Ok(self.subscriptions.clone())
+    }
+
+    async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+        Ok(Vec::new())
+    }
+
+    async fn pull_entries(
+        &self,
+        _scope: PullScope,
+        _cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        Ok(PullResult {
+            entries: Vec::new(),
+            next_cursor: None,
+            has_more: false,
+            not_modified: false,
+            skipped_entries: 0,
+        })
+    }
+
+    async fn pull_state(&self) -> DomainResult<RemoteState> {
+        Ok(RemoteState::default())
+    }
+
+    async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn create_subscription(
+        &self,
+        _url: &str,
+        _folder: Option<&str>,
+    ) -> DomainResult<RemoteSubscription> {
+        Err(DomainError::Validation(
+            "test provider does not create subscriptions".to_string(),
+        ))
+    }
+
+    async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl FeedProvider for RemoteSubscriptionEntryProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::Local
+    }
+
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities {
+            supports_folders: false,
+            supports_starring: false,
+            supports_search: false,
+            supports_delta_sync: false,
+            supports_remote_state: true,
+        }
+    }
+
+    async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+        Ok(vec![self.subscription.clone()])
+    }
+
+    async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+        Ok(Vec::new())
+    }
+
+    async fn pull_entries(
+        &self,
+        scope: PullScope,
+        _cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        let entries = match scope {
+            PullScope::Feed(FeedIdentifier::Remote { remote_id })
+                if remote_id == self.subscription.remote_id =>
+            {
+                vec![self.entry.clone()]
+            }
+            _ => Vec::new(),
+        };
+
+        Ok(PullResult {
+            entries,
+            next_cursor: None,
+            has_more: false,
+            not_modified: false,
+            skipped_entries: 0,
+        })
+    }
+
+    async fn pull_state(&self) -> DomainResult<RemoteState> {
+        Ok(RemoteState::default())
+    }
+
+    async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn create_subscription(
+        &self,
+        _url: &str,
+        _folder: Option<&str>,
+    ) -> DomainResult<RemoteSubscription> {
+        Err(DomainError::Validation(
+            "test provider does not create subscriptions".to_string(),
+        ))
+    }
+
+    async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+        Ok(())
+    }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl FeedProvider for DeltaSyncProvider {
+    fn kind(&self) -> ProviderKind {
+        ProviderKind::FreshRss
+    }
+
+    fn capabilities(&self) -> ProviderCapabilities {
+        ProviderCapabilities {
+            supports_folders: true,
+            supports_starring: true,
+            supports_search: true,
+            supports_delta_sync: true,
+            supports_remote_state: true,
+        }
+    }
+
+    async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+        unreachable!("sync_account must reject delta-sync providers before authentication")
+    }
+
+    async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+        unreachable!("sync_account must reject delta-sync providers before subscriptions sync")
+    }
+
+    async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+        unreachable!("sync_account must reject delta-sync providers before folders sync")
+    }
+
+    async fn pull_entries(
+        &self,
+        _scope: PullScope,
+        _cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        unreachable!("sync_account must reject delta-sync providers before entry sync")
+    }
+
+    async fn pull_state(&self) -> DomainResult<RemoteState> {
+        unreachable!("sync_account must reject delta-sync providers before state sync")
+    }
+
+    async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
+        unreachable!("sync_account must reject delta-sync providers before mutation push")
+    }
+
+    async fn create_subscription(
+        &self,
+        _url: &str,
+        _folder: Option<&str>,
+    ) -> DomainResult<RemoteSubscription> {
+        unreachable!("sync_account must not manage provider subscriptions")
+    }
+
+    async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+        unreachable!("sync_account must not manage provider subscriptions")
+    }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        unreachable!("sync_account must not manage provider subscriptions")
+    }
+}
+
+impl PendingMutationRepository for FakePendingMutationRepository {
+    fn find_by_account(&self, _account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
+        Ok(self.pending.clone())
+    }
+
+    fn save(&self, _mutation: &PendingMutation) -> DomainResult<()> {
+        Ok(())
+    }
+
+    fn delete(&self, ids: &[i64]) -> DomainResult<()> {
+        self.deleted_ids.lock().unwrap().push(ids.to_vec());
+        Ok(())
+    }
+
+    fn delete_by_account_remote_entry_ids_and_axis(
+        &self,
+        _account_id: &AccountId,
+        remote_entry_ids: &[String],
+        axis: PendingMutationAxis,
+    ) -> DomainResult<()> {
+        let ids = self
+            .pending
+            .iter()
+            .filter(|pending| {
+                remote_entry_ids.contains(&pending.remote_entry_id)
+                    && pending.mutation_type.axis() == axis
+            })
+            .filter_map(|pending| pending.id)
+            .collect::<Vec<_>>();
+        self.deleted_ids.lock().unwrap().push(ids);
+        Ok(())
+    }
+}
+
+impl PendingMutationRepository for DeleteFailurePendingMutationRepository {
+    fn find_by_account(&self, _account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
+        Ok(self.pending.clone())
+    }
+
+    fn save(&self, _mutation: &PendingMutation) -> DomainResult<()> {
+        Ok(())
+    }
+
+    fn delete(&self, ids: &[i64]) -> DomainResult<()> {
+        self.deleted_ids.lock().unwrap().push(ids.to_vec());
+        Err(DomainError::Persistence("delete failed".to_string()))
+    }
+
+    fn delete_by_account_remote_entry_ids_and_axis(
+        &self,
+        _account_id: &AccountId,
+        remote_entry_ids: &[String],
+        axis: PendingMutationAxis,
+    ) -> DomainResult<()> {
+        let ids = self
+            .pending
+            .iter()
+            .filter(|pending| {
+                remote_entry_ids.contains(&pending.remote_entry_id)
+                    && pending.mutation_type.axis() == axis
+            })
+            .filter_map(|pending| pending.id)
+            .collect::<Vec<_>>();
+        self.deleted_ids.lock().unwrap().push(ids);
+        Err(DomainError::Persistence("delete failed".to_string()))
+    }
+}
+
+impl PendingMutationRepository for SnapshotDeletePendingMutationRepository {
+    fn find_by_account(&self, _account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
+        Ok(self.replay_snapshot.clone())
+    }
+
+    fn save(&self, _mutation: &PendingMutation) -> DomainResult<()> {
+        Ok(())
+    }
+
+    fn delete(&self, ids: &[i64]) -> DomainResult<()> {
+        self.deleted_ids.lock().unwrap().push(ids.to_vec());
+        Ok(())
+    }
+
+    fn delete_by_account_remote_entry_ids_and_axis(
+        &self,
+        _account_id: &AccountId,
+        remote_entry_ids: &[String],
+        axis: PendingMutationAxis,
+    ) -> DomainResult<()> {
+        let ids = self
+            .current_queue
+            .iter()
+            .filter(|pending| {
+                remote_entry_ids.contains(&pending.remote_entry_id)
+                    && pending.mutation_type.axis() == axis
+            })
+            .filter_map(|pending| pending.id)
+            .collect::<Vec<_>>();
+        self.deleted_ids.lock().unwrap().push(ids);
+        Ok(())
+    }
+}
+
+fn test_account() -> Account {
+    Account {
+        id: AccountId::new(),
+        kind: ProviderKind::Local,
+        name: "Local".to_string(),
+        server_url: None,
+        username: None,
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+        connection_verification_status: ConnectionVerificationStatus::Unverified,
+        connection_verified_at: None,
+        connection_verification_error: None,
+    }
+}
+
+fn test_feed(account_id: &AccountId) -> Feed {
+    Feed {
+        id: FeedId::new(),
+        account_id: account_id.clone(),
+        folder_id: None,
+        remote_id: None,
+        title: "Local Feed".to_string(),
+        url: "https://example.com/rss".to_string(),
+        site_url: "https://example.com".to_string(),
+        icon: None,
+        unread_count: 0,
+        reader_mode: "inherit".to_string(),
+        web_preview_mode: "inherit".to_string(),
+    }
+}
+
+fn stale_saved_article(feed: &Feed, index: usize) -> Article {
+    let timestamp = Utc::now() + chrono::Duration::seconds(index as i64);
+    Article {
+        id: crate::domain::types::ArticleId(format!("saved-old-policy-{index:03}")),
+        feed_id: feed.id.clone(),
+        remote_id: Some(format!("remote-saved-old-policy-{index:03}")),
+        title: format!("Saved article {index}"),
+        content_raw: format!(
+            r#"<article><p onclick="evil()">Lead {index}</p><img src="https://cdn.example.com/body-{index}.jpg" onerror="evil()" alt="Body"><script>alert(1)</script></article>"#
+        ),
+        content_sanitized: "<script>stale saved html</script>".to_string(),
+        sanitizer_version: sanitizer::SANITIZER_VERSION - 1,
+        summary: None,
+        url: Some(format!("https://publisher.example.com/read/{index}")),
+        author: None,
+        published_at: timestamp,
+        thumbnail: None,
+        is_read: false,
+        is_starred: false,
+        fetched_at: timestamp,
+    }
+}
+
+#[tokio::test]
+async fn sync_account_rejects_delta_sync_providers() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId::new();
+    let provider = GReaderProvider::for_freshrss("https://example.com");
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    let error = sync_account(
+        &account_id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        DomainError::Validation(message)
+            if message.contains("commands::sync_providers")
+    ));
+}
+
+#[tokio::test]
+async fn sync_account_rejects_delta_sync_providers_before_orchestration_side_effects() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId::new();
+    let provider = DeltaSyncProvider;
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = FakePendingMutationRepository {
+        pending: vec![PendingMutation {
+            id: Some(1),
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "remote-entry-1".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        }],
+        deleted_ids: Mutex::new(Vec::new()),
+    };
+
+    let error = sync_account(
+        &account_id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        DomainError::Validation(message)
+            if message.contains("commands::sync_providers")
+    ));
+    assert!(pending_repo.deleted_ids.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn sync_account_preserves_provider_failure_categories() {
+    let cases = [
+        (
+            ProviderFailureKind::Network,
+            "Network error: network unavailable",
+        ),
+        (ProviderFailureKind::Auth, "Auth error: session expired"),
+        (
+            ProviderFailureKind::RateLimit,
+            "Rate limit error: retry later",
+        ),
+    ];
+
+    for (failure, expected_message) in cases {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let feed = test_feed(&account.id);
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+        feed_repo.save(&feed).unwrap();
+
+        let provider = FailingPullProvider { failure };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        let error = sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(error.to_string(), expected_message);
+    }
+}
+
+#[tokio::test]
+async fn sync_account_repairs_outdated_saved_articles_before_provider_pull() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let feed = test_feed(&account.id);
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+    feed_repo.save(&feed).unwrap();
+
+    let article = Article {
+        id: crate::domain::types::ArticleId("saved-old-policy".to_string()),
+        feed_id: feed.id.clone(),
+        remote_id: Some("remote-saved-old-policy".to_string()),
+        title: "Saved article".to_string(),
+        content_raw: r#"
+            <article>
+              <p onclick="evil()">Lead <strong>body</strong></p>
+              <a href="https://publisher.example.com/read" ping="https://tracker.example.com">Read</a>
+              <img src="https://cdn.example.com/body.jpg" onerror="evil()" alt="Body">
+              <script>alert(1)</script>
+            </article>
+        "#
+        .to_string(),
+        content_sanitized: "<script>stale saved html</script>".to_string(),
+        sanitizer_version: sanitizer::SANITIZER_VERSION - 1,
+        summary: None,
+        url: Some("https://publisher.example.com/read".to_string()),
+        author: None,
+        published_at: Utc::now(),
+        thumbnail: None,
+        is_read: false,
+        is_starred: false,
+        fetched_at: Utc::now(),
+    };
+    article_repo.upsert(&[article.clone()]).unwrap();
+
+    let provider = FailingPullProvider {
+        failure: ProviderFailureKind::Network,
+    };
+    let error = sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .expect_err("provider pull fails after saved article repair");
+
+    assert_eq!(error.to_string(), "Network error: network unavailable");
+
+    let saved = article_repo
+        .find_by_feed(&feed.id, &crate::repository::article::Pagination::default())
+        .unwrap()
+        .into_iter()
+        .find(|saved| saved.id == article.id)
+        .unwrap();
+
+    assert_eq!(saved.sanitizer_version, sanitizer::SANITIZER_VERSION);
+    assert!(saved.content_sanitized.contains("Lead"));
+    assert!(saved
+        .content_sanitized
+        .contains(r#"src="https://cdn.example.com/body.jpg""#));
+    assert!(saved
+        .content_sanitized
+        .contains(r#"rel="noopener noreferrer""#));
+    assert!(!saved.content_sanitized.contains("<script"));
+    assert!(!saved.content_sanitized.contains("onclick"));
+    assert!(!saved.content_sanitized.contains("onerror"));
+    assert!(!saved.content_sanitized.contains("ping="));
+}
+
+#[tokio::test]
+async fn sync_account_repairs_saved_articles_in_bounded_batches_across_launches() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let feed = test_feed(&account.id);
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+    feed_repo.save(&feed).unwrap();
+
+    let stale_articles = (0..501)
+        .map(|index| stale_saved_article(&feed, index))
+        .collect::<Vec<_>>();
+    article_repo.upsert(&stale_articles).unwrap();
+
+    let provider = FailingPullProvider {
+        failure: ProviderFailureKind::Network,
+    };
+
+    let first_error = sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .expect_err("provider pull fails after first repair batch");
+    assert_eq!(
+        first_error.to_string(),
+        "Network error: network unavailable"
+    );
+
+    let remaining_after_first_batch = article_repo
+        .find_by_sanitizer_version_below(sanitizer::SANITIZER_VERSION, 1_000)
+        .unwrap();
+    assert_eq!(
+        remaining_after_first_batch.len(),
+        1,
+        "repair should process at most one 500-row batch before provider work"
+    );
+
+    let second_error = sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .expect_err("provider pull fails after second repair batch");
+    assert_eq!(
+        second_error.to_string(),
+        "Network error: network unavailable"
+    );
+
+    let remaining_after_second_batch = article_repo
+        .find_by_sanitizer_version_below(sanitizer::SANITIZER_VERSION, 1_000)
+        .unwrap();
+    assert!(
+        remaining_after_second_batch.is_empty(),
+        "next launch should continue repairing saved articles left by the previous batch"
+    );
+}
+
+#[tokio::test]
+async fn sync_account_reuses_existing_remote_folder_id() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let existing_folder_id = FolderId::new();
+    folder_repo
+        .save(&Folder {
+            id: existing_folder_id.clone(),
+            account_id: account.id.clone(),
+            remote_id: Some("folder/tech".to_string()),
+            name: "Old Tech".to_string(),
+            sort_order: 3,
+        })
+        .unwrap();
+
+    let provider = FolderSyncProvider {
+        folders: vec![RemoteFolder {
+            remote_id: "folder/tech".to_string(),
+            name: "Tech".to_string(),
+            sort_order: Some(1),
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let folders = folder_repo.find_by_account(&account.id).unwrap();
+    assert_eq!(folders.len(), 1);
+    assert_eq!(folders[0].id, existing_folder_id);
+    assert_eq!(folders[0].name, "Tech");
+    assert_eq!(folders[0].sort_order, 1);
+}
+
+#[tokio::test]
+async fn sync_account_reuses_existing_local_folder_on_name_collision() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let existing_folder_id = FolderId::new();
+    folder_repo
+        .save(&Folder {
+            id: existing_folder_id.clone(),
+            account_id: account.id.clone(),
+            remote_id: None,
+            name: "Tech".to_string(),
+            sort_order: 3,
+        })
+        .unwrap();
+
+    let provider = FolderSyncProvider {
+        folders: vec![RemoteFolder {
+            remote_id: "user/-/label/Tech".to_string(),
+            name: " tech ".to_string(),
+            sort_order: Some(1),
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let folders = folder_repo.find_by_account(&account.id).unwrap();
+    assert_eq!(folders.len(), 1);
+    assert_eq!(folders[0].id, existing_folder_id);
+    assert_eq!(folders[0].remote_id.as_deref(), Some("user/-/label/Tech"));
+    assert_eq!(folders[0].name, " tech ");
+    assert_eq!(folders[0].sort_order, 1);
+}
+
+#[tokio::test]
+async fn sync_account_skips_pending_mutation_push_when_row_id_is_missing() {
+    // A pending mutation without a row id cannot be deleted by row id after
+    // push, and the previous broad `remote_entry_id + axis` delete could
+    // remove a different, newer mutation queued for the same entry/axis
+    // (see .claude/rules/remote-state-reconciliation.md). The row must be
+    // skipped instead of pushed.
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let provider = RemoteStateProvider {
+        pushed: Mutex::new(Vec::new()),
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = FakePendingMutationRepository {
+        pending: vec![PendingMutation {
+            id: None,
+            account_id: account.id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "remote-entry-1".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        }],
+        deleted_ids: Mutex::new(Vec::new()),
+    };
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    assert!(
+        provider.pushed.lock().unwrap().is_empty(),
+        "row without an id must not be pushed to the provider"
+    );
+    assert!(
+        pending_repo.deleted_ids.lock().unwrap().is_empty(),
+        "row without an id must not trigger any delete call"
+    );
+}
+
+#[tokio::test]
+async fn sync_account_protects_articles_pushed_earlier_in_same_sync() {
+    // Regression for .claude/rules/remote-state-reconciliation.md: a mutation
+    // pushed and deleted from the pending queue earlier in this same sync must
+    // still be treated as a protected local intent when apply_remote_state runs,
+    // even though pull_state (a stale/not-yet-propagated remote read) reports the
+    // article as unread. Before the fix, step 5 only re-read the pending queue
+    // (now empty because the push already deleted the row) and reverted the
+    // article back to unread.
+    let db = DbManager::new_in_memory().unwrap();
+    // A remote-capable account is required: SqlitePendingMutationRepository::save
+    // rejects pending mutations for `ProviderKind::Local` accounts, and this test
+    // needs a real, mutating pending-mutation queue (see below) to reproduce the
+    // same-sync TOCTOU window.
+    let account = Account {
+        kind: ProviderKind::FreshRss,
+        server_url: Some("https://example.com".to_string()),
+        ..test_account()
+    };
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let feed = Feed {
+        id: FeedId("remote-feed".to_string()),
+        account_id: account.id.clone(),
+        folder_id: None,
+        remote_id: Some("feed/remote-1".to_string()),
+        title: "Remote Feed".to_string(),
+        url: "https://example.com/rss.xml".to_string(),
+        site_url: "https://example.com".to_string(),
+        icon: None,
+        unread_count: 0,
+        reader_mode: "inherit".to_string(),
+        web_preview_mode: "inherit".to_string(),
+    };
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    feed_repo.save(&feed).unwrap();
+
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let mut article = stale_saved_article(&feed, 0);
+    article.sanitizer_version = sanitizer::SANITIZER_VERSION;
+    article.remote_id = Some("remote-entry-1".to_string());
+    article.is_read = true;
+    article_repo.upsert(&[article.clone()]).unwrap();
+
+    // pull_state reports the remote as not-yet-caught-up: the article is
+    // still unread from the remote's point of view (RemoteState::default()).
+    let provider = RemoteStateProvider {
+        pushed: Mutex::new(Vec::new()),
+    };
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    // Use the real SQLite-backed repository (not a fake) so that the row
+    // pushed and deleted in step 1 is genuinely gone from the queue by the
+    // time step 5 re-reads it in the same sync — the exact same-sync TOCTOU
+    // window the rule is guarding against.
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+    pending_repo
+        .save(&PendingMutation {
+            id: None,
+            account_id: account.id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "remote-entry-1".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+    assert!(
+        pending_repo
+            .find_by_account(&account.id)
+            .unwrap()
+            .is_empty(),
+        "the pushed mutation must be deleted from the queue by the end of the sync"
+    );
+
+    let saved = article_repo
+        .find_by_feed(&feed.id, &crate::repository::article::Pagination::default())
+        .unwrap()
+        .into_iter()
+        .find(|saved| saved.id == article.id)
+        .unwrap();
+    assert!(
+        saved.is_read,
+        "article read earlier in this sync must stay read even though \
+         pull_state (queried after the push already cleared the pending \
+         mutation) still reports it as unread"
+    );
+}
+
+#[tokio::test]
+async fn sync_account_deletes_each_pending_mutation_after_its_remote_push() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let provider = FailingSecondPushProvider {
+        pushed: Mutex::new(Vec::new()),
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = FakePendingMutationRepository {
+        pending: vec![
+            PendingMutation {
+                id: Some(10),
+                account_id: account.id.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "remote-entry-1".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            },
+            PendingMutation {
+                id: Some(11),
+                account_id: account.id.clone(),
+                mutation_type: PendingMutationType::Star,
+                remote_entry_id: "remote-entry-2".to_string(),
+                created_at: "2024-01-01T00:00:01Z".to_string(),
+            },
+        ],
+        deleted_ids: Mutex::new(Vec::new()),
+    };
+
+    let error = sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .expect_err("second remote push should fail");
+
+    assert_eq!(error.to_string(), "Network error: second push failed");
+    assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+    assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+}
+
+#[tokio::test]
+async fn sync_account_stops_when_delete_after_remote_push_fails() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let provider = RemoteStateProvider {
+        pushed: Mutex::new(Vec::new()),
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = DeleteFailurePendingMutationRepository {
+        pending: vec![
+            PendingMutation {
+                id: Some(10),
+                account_id: account.id.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "remote-entry-1".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            },
+            PendingMutation {
+                id: Some(11),
+                account_id: account.id.clone(),
+                mutation_type: PendingMutationType::Star,
+                remote_entry_id: "remote-entry-2".to_string(),
+                created_at: "2024-01-01T00:00:01Z".to_string(),
+            },
+        ],
+        deleted_ids: Mutex::new(Vec::new()),
+    };
+
+    let error = sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .expect_err("delete failure after remote push should stop sync");
+
+    assert_eq!(error.to_string(), "Persistence error: delete failed");
+    assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+    assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+}
+
+#[tokio::test]
+async fn sync_account_deletes_pushed_pending_mutation_by_remote_id_and_axis() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let provider = FailingSecondPushProvider {
+        pushed: Mutex::new(Vec::new()),
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = FakePendingMutationRepository {
+        pending: vec![
+            PendingMutation {
+                id: Some(10),
+                account_id: account.id.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "remote-entry-1".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            },
+            PendingMutation {
+                id: Some(11),
+                account_id: account.id.clone(),
+                mutation_type: PendingMutationType::Star,
+                remote_entry_id: "remote-entry-1".to_string(),
+                created_at: "2024-01-01T00:00:01Z".to_string(),
+            },
+        ],
+        deleted_ids: Mutex::new(Vec::new()),
+    };
+
+    let error = sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .expect_err("second axis push should fail");
+
+    assert_eq!(error.to_string(), "Network error: second push failed");
+    assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+    assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+}
+
+#[tokio::test]
+async fn sync_account_deletes_pushed_pending_mutation_by_snapshot_id() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let provider = RemoteStateProvider {
+        pushed: Mutex::new(Vec::new()),
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let replayed = PendingMutation {
+        id: Some(10),
+        account_id: account.id.clone(),
+        mutation_type: PendingMutationType::MarkRead,
+        remote_entry_id: "remote-entry-1".to_string(),
+        created_at: "2024-01-01T00:00:00Z".to_string(),
+    };
+    let newer_same_axis_local_intent = PendingMutation {
+        id: Some(12),
+        account_id: account.id.clone(),
+        mutation_type: PendingMutationType::MarkRead,
+        remote_entry_id: "remote-entry-1".to_string(),
+        created_at: "2024-01-01T00:00:01Z".to_string(),
+    };
+    let pending_repo = SnapshotDeletePendingMutationRepository {
+        replay_snapshot: vec![replayed.clone()],
+        current_queue: vec![newer_same_axis_local_intent],
+        deleted_ids: Mutex::new(Vec::new()),
+    };
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+    assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+}
+
+#[tokio::test]
+async fn sync_account_recalculates_unread_count_for_remote_subscription_added_during_sync() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let remote_id = "feed/https://example.com/new.xml".to_string();
+    let provider = RemoteSubscriptionEntryProvider {
+        subscription: RemoteSubscription {
+            remote_id: remote_id.clone(),
+            title: "New Remote".to_string(),
+            url: "https://example.com/new.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            folder_remote_id: None,
+            icon_url: None,
+        },
+        entry: RemoteEntry {
+            id: Some("remote-entry-new".to_string()),
+            source_feed_id: FeedIdentifier::Remote {
+                remote_id: remote_id.clone(),
+            },
+            title: "Unread remote entry".to_string(),
+            content: "<p>Unread</p>".to_string(),
+            summary: None,
+            url: Some("https://example.com/new-entry".to_string()),
+            published_at: Some(Utc::now()),
+            updated_at: None,
+            thumbnail: None,
+            author: None,
+            is_read: Some(false),
+            is_starred: Some(false),
+        },
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let saved_feed = feed_repo
+        .find_by_remote_id(&account.id, &remote_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved_feed.unread_count, 1);
+}
+
+#[tokio::test]
+async fn article_summary_is_sanitized_at_ingest() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let remote_id = "feed/https://example.com/summary.xml".to_string();
+    let provider = RemoteSubscriptionEntryProvider {
+        subscription: RemoteSubscription {
+            remote_id: remote_id.clone(),
+            title: "Summary Remote".to_string(),
+            url: "https://example.com/summary.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            folder_remote_id: None,
+            icon_url: None,
+        },
+        entry: RemoteEntry {
+            id: Some("remote-entry-summary".to_string()),
+            source_feed_id: FeedIdentifier::Remote {
+                remote_id: remote_id.clone(),
+            },
+            title: "Entry with dangerous summary".to_string(),
+            content: "<p>Body</p>".to_string(),
+            summary: Some(r#"<script>alert(1)</script><p onclick="evil()">Lead</p>"#.to_string()),
+            url: Some("https://example.com/summary-entry".to_string()),
+            published_at: Some(Utc::now()),
+            updated_at: None,
+            thumbnail: None,
+            author: None,
+            is_read: Some(false),
+            is_starred: Some(false),
+        },
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let saved_feed = feed_repo
+        .find_by_remote_id(&account.id, &remote_id)
+        .unwrap()
+        .unwrap();
+    let saved = article_repo
+        .find_by_feed(
+            &saved_feed.id,
+            &crate::repository::article::Pagination::default(),
+        )
+        .unwrap()
+        .into_iter()
+        .find(|article| article.remote_id.as_deref() == Some("remote-entry-summary"))
+        .unwrap();
+
+    let summary = saved
+        .summary
+        .expect("sanitized summary should still carry the visible text");
+    assert!(!summary.contains("<script"));
+    assert!(!summary.contains("onclick"));
+    assert!(summary.contains("Lead"));
+}
+
+#[tokio::test]
+async fn sync_account_does_not_merge_remote_subscription_into_different_remote_feed_by_url() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    feed_repo
+        .save(&Feed {
+            id: FeedId("existing-remote-feed".to_string()),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: Some("feed/remote-a".to_string()),
+            title: "Remote A".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com/a".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        })
+        .unwrap();
+
+    let provider = RemoteSubscriptionProvider {
+        subscriptions: vec![RemoteSubscription {
+            remote_id: "feed/remote-b".to_string(),
+            title: "Remote B".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com/b".to_string(),
+            folder_remote_id: None,
+            icon_url: None,
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let feeds = feed_repo.find_by_account(&account.id).unwrap();
+    assert_eq!(feeds.len(), 1);
+    let existing = feed_repo
+        .find_by_remote_id(&account.id, "feed/remote-a")
+        .unwrap()
+        .unwrap();
+    assert_eq!(existing.id.0, "existing-remote-feed");
+    assert_eq!(existing.title, "Remote A");
+    assert_eq!(existing.site_url, "https://example.com/a");
+
+    assert!(feed_repo
+        .find_by_remote_id(&account.id, "feed/remote-b")
+        .unwrap()
+        .is_none());
+}
+
+#[tokio::test]
+async fn sync_account_adopts_existing_local_feed_when_remote_subscription_matches_url() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    feed_repo
+        .save(&Feed {
+            id: FeedId("existing-local-feed".to_string()),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Local title".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com/local".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        })
+        .unwrap();
+
+    let provider = RemoteSubscriptionProvider {
+        subscriptions: vec![RemoteSubscription {
+            remote_id: "feed/remote".to_string(),
+            title: "Remote title".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com/remote".to_string(),
+            folder_remote_id: None,
+            icon_url: None,
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let saved = feed_repo
+        .find_by_remote_id(&account.id, "feed/remote")
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.id.0, "existing-local-feed");
+    assert_eq!(saved.title, "Remote title");
+    assert_eq!(feed_repo.find_by_account(&account.id).unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn sync_account_preserves_local_folder_when_remote_subscription_has_no_folder() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let folder_id = FolderId::new();
+    folder_repo
+        .save(&Folder {
+            id: folder_id.clone(),
+            account_id: account.id.clone(),
+            remote_id: Some("folder/tech".to_string()),
+            name: "Tech".to_string(),
+            sort_order: 0,
+        })
+        .unwrap();
+    let feed = Feed {
+        id: FeedId("existing-feed".to_string()),
+        account_id: account.id.clone(),
+        folder_id: Some(folder_id.clone()),
+        remote_id: Some("feed/remote".to_string()),
+        title: "Existing".to_string(),
+        url: "https://example.com/rss.xml".to_string(),
+        site_url: "https://example.com".to_string(),
+        icon: None,
+        unread_count: 0,
+        reader_mode: "inherit".to_string(),
+        web_preview_mode: "inherit".to_string(),
+    };
+    feed_repo.save(&feed).unwrap();
+
+    let provider = RemoteSubscriptionProvider {
+        subscriptions: vec![RemoteSubscription {
+            remote_id: "feed/remote".to_string(),
+            title: "Remote title".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            folder_remote_id: None,
+            icon_url: None,
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let saved = feed_repo
+        .find_by_remote_id(&account.id, "feed/remote")
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.id.0, "existing-feed");
+    assert_eq!(saved.folder_id, Some(folder_id));
+    assert_eq!(feed_repo.find_by_account(&account.id).unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn sync_account_preserves_existing_folder_when_remote_subscription_folder_is_unknown() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let folder_id = FolderId::new();
+    folder_repo
+        .save(&Folder {
+            id: folder_id.clone(),
+            account_id: account.id.clone(),
+            remote_id: Some("folder/known".to_string()),
+            name: "Known".to_string(),
+            sort_order: 0,
+        })
+        .unwrap();
+    feed_repo
+        .save(&Feed {
+            id: FeedId("existing-feed".to_string()),
+            account_id: account.id.clone(),
+            folder_id: Some(folder_id.clone()),
+            remote_id: Some("feed/remote".to_string()),
+            title: "Existing".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        })
+        .unwrap();
+
+    let provider = RemoteSubscriptionProvider {
+        subscriptions: vec![RemoteSubscription {
+            remote_id: "feed/remote".to_string(),
+            title: "Remote title".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            folder_remote_id: Some("folder/temporarily-missing".to_string()),
+            icon_url: None,
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let saved = feed_repo
+        .find_by_remote_id(&account.id, "feed/remote")
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.id.0, "existing-feed");
+    assert_eq!(saved.folder_id, Some(folder_id));
+}
+
+#[tokio::test]
+async fn sync_account_retains_stale_remote_folder_when_subscription_sync_omits_folders() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    let folder_id = FolderId::new();
+    folder_repo
+        .save(&Folder {
+            id: folder_id.clone(),
+            account_id: account.id.clone(),
+            remote_id: Some("folder/stale".to_string()),
+            name: "Stale Remote Folder".to_string(),
+            sort_order: 7,
+        })
+        .unwrap();
+
+    let provider = RemoteSubscriptionProvider {
+        subscriptions: vec![RemoteSubscription {
+            remote_id: "feed/remote".to_string(),
+            title: "Remote title".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            folder_remote_id: Some("folder/stale".to_string()),
+            icon_url: None,
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let folders = folder_repo.find_by_account(&account.id).unwrap();
+    assert_eq!(folders.len(), 1);
+    assert_eq!(folders[0].id, folder_id);
+    assert_eq!(folders[0].remote_id.as_deref(), Some("folder/stale"));
+
+    let saved = feed_repo
+        .find_by_remote_id(&account.id, "feed/remote")
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.folder_id, Some(folders[0].id.clone()));
+}
