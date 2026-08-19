@@ -938,7 +938,7 @@ describe("release repository contract", () => {
     expect(ciWorkflow.match(/sudo apt-get update -o Acquire::Retries=3/g)).toHaveLength(2);
     expect(
       ciWorkflow.match(
-        /sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
+        /sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
       ),
     ).toHaveLength(2);
     expect(ciWorkflow).not.toContain("sudo apt-get install -y $" + "{{ env.TAURI_SYSTEM_DEPS }}");
