@@ -208,6 +208,10 @@ const RELEASE_CSP_FORBIDDEN_SOURCES = [
 ] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
+const readMigrationModuleSource = (): string =>
+  ["mod.rs", "consts.rs", "repairs.rs", "tests.rs"]
+    .map((file) => readText(`src-tauri/src/infra/db/migration/${file}`))
+    .join("\n");
 const readMiseTaskCorpus = (): string =>
   ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"].map(readText).join("\n");
 const readReleaseSkillCorpus = (): string =>
@@ -635,7 +639,7 @@ describe("release repository contract", () => {
   const releaseContaminationChecker = readText("scripts/check-release-build-contamination.ts");
   const tauriLib = readText("src-tauri/src/lib.rs");
   const updaterCommandsSource = readText("src-tauri/src/commands/updater_commands.rs");
-  const migrationSource = readText("src-tauri/src/infra/db/migration.rs");
+  const migrationSource = readMigrationModuleSource();
   const devMocks = readText("src/dev/mocks.ts");
   const feedContentPrivacy = readText("docs/feed-content-privacy.md");
   const incidentRunbook = readText("docs/incident-runbook.md");
@@ -2176,7 +2180,7 @@ describe("release repository contract", () => {
       }
     }
     expect(tauriLib).toContain("fn migration_error_message_includes_restore_steps()");
-    expect(readText("src-tauri/src/infra/db/migration.rs")).toContain("fn fresh_db_migrates_to_latest()");
+    expect(readMigrationModuleSource()).toContain("fn fresh_db_migrates_to_latest()");
   });
 
   it("checks repository SQL strings against migration-defined table, column, and index inventory", () => {
