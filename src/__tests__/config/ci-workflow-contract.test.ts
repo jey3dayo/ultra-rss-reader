@@ -88,9 +88,12 @@ describe("CI workflow contract", () => {
     );
   });
 
-  it("keeps test job timeout large enough for Windows post-cache cleanup", () => {
-    const testSection = extractWorkflowJobSection(readRepoFile(".github/workflows/ci.yml"), "test");
+  it("keeps lint and test job timeouts at 60 minutes", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const lintSection = extractWorkflowJobSection(ciWorkflow, "lint");
+    const testSection = extractWorkflowJobSection(ciWorkflow, "test");
 
+    expect(lintSection).toContain("timeout-minutes: 60");
     expect(testSection).toContain("timeout-minutes: 60");
   });
 

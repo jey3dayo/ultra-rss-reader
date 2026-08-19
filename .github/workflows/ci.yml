@@ -108,7 +108,7 @@ jobs:
   lint:
     name: "Check: Lint"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
