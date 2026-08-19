@@ -10,13 +10,13 @@ use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
-use crate::domain::provider::{
-    FeedIdentifier, Mutation, PullResult, PullScope, RemoteEntry, RemoteSubscription, SyncCursor,
-};
-use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
+use crate::domain::provider::{FeedIdentifier, Mutation, PullScope};
+#[cfg(test)]
+use crate::domain::provider::{RemoteSubscription, SyncCursor};
+#[cfg(test)]
+use crate::domain::types::ArticleId;
+use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
-use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_conn;
-use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
@@ -33,12 +33,35 @@ use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::{
     PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
-use crate::repository::sync_state::{
-    normalize_http_etag_validator, normalize_http_last_modified_validator, SyncState,
-    SyncStateRepository, SyncStateScopeKey,
-};
+use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 use super::feed_commands::lock_db;
+
+mod local;
+
+pub(super) use local::sync_local_feed;
+#[cfg(test)]
+use local::{local_feed_scope_key, upsert_articles_in_current_transaction};
+
+mod state;
+mod subscriptions;
+mod unread;
+
+use state::{
+    article_count_for_feed, cursor_from_state, feed_scope_key, load_sync_state,
+    mark_remote_state_sync_completed, save_greader_sync_failure_state, save_sync_state,
+    should_pull_remote_state, sync_state_timestamp_usec, update_latest_timestamp_usec,
+    update_latest_timestamp_usec_from_entries,
+};
+#[cfg(test)]
+use subscriptions::resolve_greader_subscription_folder_id;
+use subscriptions::{
+    delete_missing_greader_subscriptions, folder_name_case_key, is_provider_managed_greader_feed,
+    pending_mutation_ids_targeting_provider_managed_greader_feeds,
+    provider_managed_remote_feed_ids, resolve_greader_folder_sort_order,
+    save_greader_subscriptions,
+};
+use unread::reconcile_greader_unread_counts;
 
 const G_READER_PASSWORD_LOOKUP_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -89,87 +112,6 @@ where
     }
 }
 
-fn upsert_articles_in_current_transaction(
-    conn: &rusqlite::Connection,
-    articles: &[Article],
-) -> Result<(), AppError> {
-    let mut stmt = conn
-        .prepare(
-            "INSERT INTO articles (id, account_id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
-             VALUES (?1, (SELECT account_id FROM feeds WHERE id = ?2), ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
-             ON CONFLICT(id) DO UPDATE SET
-               account_id = excluded.account_id,
-               feed_id = excluded.feed_id,
-               title = excluded.title,
-               content_raw = excluded.content_raw,
-               content_sanitized = excluded.content_sanitized,
-               content_text = excluded.content_text,
-               sanitizer_version = excluded.sanitizer_version,
-               summary = excluded.summary,
-               url = excluded.url,
-               author = excluded.author,
-               published_at = MIN(articles.published_at, excluded.published_at),
-               thumbnail = excluded.thumbnail,
-               fetched_at = excluded.fetched_at",
-        )
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    for article in articles {
-        stmt.execute(rusqlite::params![
-            article.id.0,
-            article.feed_id.0,
-            article.remote_id,
-            article.title,
-            article.content_raw,
-            article.content_sanitized,
-            article.sanitizer_version,
-            article.summary,
-            article.url,
-            article.author,
-            article.published_at.to_rfc3339(),
-            article.thumbnail,
-            article.is_read,
-            article.is_starred,
-            article.fetched_at.to_rfc3339(),
-            if article.content_sanitized.trim().is_empty() {
-                article.summary.clone().unwrap_or_default()
-            } else {
-                sanitizer::extract_visible_text(&article.content_sanitized)
-            },
-        ])
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    }
-    Ok(())
-}
-
-fn save_local_feed_sync_result_in_current_transaction(
-    conn: &rusqlite::Connection,
-    account_id: &AccountId,
-    feed: &Feed,
-    articles: &[Article],
-    next_states: &[SyncState],
-) -> Result<(), AppError> {
-    let feed_repo = SqliteFeedRepository::new(conn);
-    if !articles.is_empty() {
-        upsert_articles_in_current_transaction(conn, articles)?;
-        let candidate_ids = articles
-            .iter()
-            .map(|article| article.id.clone())
-            .collect::<Vec<ArticleId>>();
-        mark_muted_unread_as_read_with_conn(conn, account_id, Some(&candidate_ids))?;
-    } else {
-        mark_muted_unread_as_read_for_feed_with_conn(conn, account_id, &feed.id)?;
-    }
-    feed_repo.recalculate_unread_count(&feed.id)?;
-
-    let sync_state_repo = SqliteSyncStateRepository::new(conn);
-    for next_state in next_states {
-        sync_state_repo.save(next_state)?;
-    }
-    Ok(())
-}
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct ProviderSyncOutcome {
     pub warnings: Vec<ProviderSyncWarning>,
@@ -200,8 +142,6 @@ struct GReaderAccountEntriesSyncOutcome {
     delta_pages: usize,
     feeds_seen: usize,
 }
-
-const GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES: i64 = 10;
 
 fn pending_mutation_retry_warning(mutation_type: PendingMutationType) -> ProviderSyncWarning {
     ProviderSyncWarning {
@@ -280,258 +220,6 @@ fn build_article_from_remote_entry(
         is_starred: entry.is_starred.unwrap_or(false),
         fetched_at: chrono::Utc::now(),
     }
-}
-
-fn update_latest_timestamp_usec(
-    latest_timestamp_usec: &mut Option<i64>,
-    next_cursor: Option<&SyncCursor>,
-) {
-    if let Some(next_timestamp_usec) = next_cursor
-        .and_then(|cursor| cursor.since)
-        .map(|ts| ts.timestamp_micros())
-        .and_then(valid_sync_cursor_timestamp_usec)
-    {
-        *latest_timestamp_usec = Some(
-            latest_timestamp_usec
-                .map(|current| current.max(next_timestamp_usec))
-                .unwrap_or(next_timestamp_usec),
-        );
-    }
-}
-
-fn valid_sync_cursor_timestamp_usec(timestamp_usec: i64) -> Option<i64> {
-    if timestamp_usec < 0 {
-        return None;
-    }
-    let timestamp = chrono::DateTime::from_timestamp_micros(timestamp_usec)?;
-    if timestamp > chrono::Utc::now() {
-        return None;
-    }
-    Some(timestamp_usec)
-}
-
-fn sync_state_timestamp_usec(state: Option<&SyncState>) -> Option<i64> {
-    state
-        .and_then(|state| state.timestamp_usec)
-        .and_then(valid_sync_cursor_timestamp_usec)
-}
-
-fn update_latest_timestamp_usec_from_entries(
-    latest_timestamp_usec: &mut Option<i64>,
-    entries: &[RemoteEntry],
-) {
-    if let Some(next_timestamp_usec) = entries
-        .iter()
-        .filter_map(|entry| entry.updated_at.or(entry.published_at))
-        .map(|timestamp| timestamp.timestamp_micros())
-        .filter_map(valid_sync_cursor_timestamp_usec)
-        .max()
-    {
-        *latest_timestamp_usec = Some(
-            latest_timestamp_usec
-                .map(|current| current.max(next_timestamp_usec))
-                .unwrap_or(next_timestamp_usec),
-        );
-    }
-}
-
-fn load_sync_state(
-    db: &Mutex<DbManager>,
-    account_id: &AccountId,
-    scope_key: &SyncStateScopeKey,
-) -> Result<Option<SyncState>, AppError> {
-    let db_guard = lock_db(db)?;
-    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
-    Ok(sync_state_repo.get(account_id, scope_key)?)
-}
-
-fn save_sync_state(db: &Mutex<DbManager>, state: &SyncState) -> Result<(), AppError> {
-    let db_guard = lock_db(db)?;
-    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
-    sync_state_repo.save(state)?;
-    Ok(())
-}
-
-fn save_greader_sync_failure_state(
-    db: &Mutex<DbManager>,
-    account_id: &AccountId,
-    scope_key: &SyncStateScopeKey,
-    saved_state: Option<&SyncState>,
-    latest_timestamp_usec: Option<i64>,
-    error: &AppError,
-) -> Result<(), AppError> {
-    save_sync_state(
-        db,
-        &SyncState {
-            account_id: account_id.clone(),
-            scope_key: scope_key.as_string(),
-            timestamp_usec: latest_timestamp_usec
-                .or_else(|| saved_state.and_then(|state| state.timestamp_usec)),
-            continuation: None,
-            etag: None,
-            last_modified: None,
-            last_success_at: saved_state.and_then(|state| state.last_success_at.clone()),
-            last_error: Some(error.to_string()),
-            error_count: saved_state
-                .map(|state| state.error_count.saturating_add(1))
-                .unwrap_or(1),
-            next_retry_at: None,
-        },
-    )
-}
-
-fn should_pull_remote_state(
-    db: &Mutex<DbManager>,
-    account_id: &AccountId,
-    now: chrono::DateTime<chrono::Utc>,
-) -> Result<bool, AppError> {
-    let scope_key = SyncStateScopeKey::greader_remote_state_full();
-    let state = load_sync_state(db, account_id, &scope_key)?;
-    let Some(last_success_at) = state.and_then(|saved| saved.last_success_at) else {
-        return Ok(true);
-    };
-
-    let Ok(last_success_at) = chrono::DateTime::parse_from_rfc3339(&last_success_at) else {
-        return Ok(true);
-    };
-    let last_success_at = last_success_at.with_timezone(&chrono::Utc);
-    if last_success_at > now {
-        return Ok(true);
-    }
-
-    Ok(now.signed_duration_since(last_success_at)
-        >= chrono::Duration::minutes(GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES))
-}
-
-fn mark_remote_state_sync_completed(
-    db: &Mutex<DbManager>,
-    account_id: &AccountId,
-    now: chrono::DateTime<chrono::Utc>,
-) -> Result<(), AppError> {
-    let scope_key = SyncStateScopeKey::greader_remote_state_full();
-    save_sync_state(
-        db,
-        &SyncState {
-            account_id: account_id.clone(),
-            scope_key: scope_key.as_string(),
-            timestamp_usec: Some(now.timestamp_micros()),
-            continuation: None,
-            etag: None,
-            last_modified: None,
-            last_success_at: Some(now.to_rfc3339()),
-            last_error: None,
-            error_count: 0,
-            next_retry_at: None,
-        },
-    )
-}
-
-/// Fetch articles for a single local feed and save them to DB.
-pub(super) async fn sync_local_feed(
-    db: &Mutex<DbManager>,
-    provider: &LocalProvider,
-    account_id: &AccountId,
-    feed: &Feed,
-) -> Result<(), AppError> {
-    let scope_key = local_feed_scope_key(&feed.url);
-    let saved_state = {
-        let db_guard = lock_db(db)?;
-        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
-        sync_state_repo.get(account_id, &scope_key)?
-    };
-    let scope = PullScope::Feed(FeedIdentifier::Local {
-        feed_url: feed.url.clone(),
-    });
-
-    let result = provider
-        .pull_entries(
-            scope,
-            saved_state.as_ref().map(|state| SyncCursor {
-                continuation: None,
-                since: None,
-                etag: normalize_http_etag_validator(state.etag.clone()),
-                last_modified: normalize_http_last_modified_validator(state.last_modified.clone()),
-            }),
-        )
-        .await?;
-
-    let articles: Vec<Article> = if result.not_modified {
-        Vec::new()
-    } else {
-        result
-            .entries
-            .iter()
-            .map(|entry| {
-                let id = generate_entry_id(
-                    account_id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: chrono::Utc::now(),
-                }
-            })
-            .collect()
-    };
-
-    let effective_scope_key = local_feed_effective_scope_key(&scope_key, &result);
-    let next_state = SyncState {
-        account_id: account_id.clone(),
-        scope_key: effective_scope_key.as_string(),
-        timestamp_usec: None,
-        continuation: None,
-        etag: normalize_http_etag_validator(
-            result
-                .next_cursor
-                .as_ref()
-                .and_then(|cursor| cursor.etag.clone()),
-        ),
-        last_modified: normalize_http_last_modified_validator(
-            result
-                .next_cursor
-                .as_ref()
-                .and_then(|cursor| cursor.last_modified.clone()),
-        ),
-        last_success_at: Some(chrono::Utc::now().to_rfc3339()),
-        last_error: None,
-        error_count: 0,
-        next_retry_at: None,
-    };
-    let next_states = local_feed_validator_states_for_scope_keys(next_state, &scope_key);
-    let db_guard = lock_db(db)?;
-    let tx = db_guard
-        .writer()
-        .unchecked_transaction()
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    save_local_feed_sync_result_in_current_transaction(
-        &tx,
-        account_id,
-        feed,
-        &articles,
-        &next_states,
-    )?;
-    tx.commit()
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-
-    Ok(())
 }
 
 /// Sync a GReader-compatible account: authenticate, sync folders, subscriptions, entries, state, unread counts.
@@ -767,167 +455,6 @@ pub(super) async fn sync_greader_feed(
     }
 
     Ok(ProviderSyncOutcome { warnings })
-}
-
-fn is_provider_managed_greader_feed(remote_id: Option<&str>) -> bool {
-    remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
-}
-
-fn resolve_greader_subscription_folder_id(
-    remote_folder_id: Option<&str>,
-    folder_remote_id_map: &HashMap<String, FolderId>,
-    existing_feed: Option<&Feed>,
-) -> Option<FolderId> {
-    remote_folder_id
-        .and_then(|remote_id| folder_remote_id_map.get(remote_id))
-        .cloned()
-        .or_else(|| existing_feed.and_then(|feed| feed.folder_id.clone()))
-}
-
-fn save_greader_subscriptions(
-    db: &Mutex<DbManager>,
-    account: &Account,
-    folder_remote_id_map: &HashMap<String, FolderId>,
-    remote_subs: &[RemoteSubscription],
-    sync_started_remote_feed_ids: &HashSet<String>,
-) -> Result<(), AppError> {
-    let db_guard = lock_db(db)?;
-    let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-    for rs in remote_subs {
-        let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
-        if existing.is_none() && sync_started_remote_feed_ids.contains(&rs.remote_id) {
-            continue;
-        }
-        let feed = Feed {
-            id: existing
-                .as_ref()
-                .map(|f| f.id.clone())
-                .unwrap_or_else(FeedId::new),
-            account_id: account.id.clone(),
-            folder_id: resolve_greader_subscription_folder_id(
-                rs.folder_remote_id.as_deref(),
-                folder_remote_id_map,
-                existing.as_ref(),
-            ),
-            remote_id: Some(rs.remote_id.clone()),
-            title: rs.title.clone(),
-            url: rs.url.clone(),
-            site_url: rs.site_url.clone(),
-            icon: existing.as_ref().and_then(|f| f.icon.clone()),
-            unread_count: 0,
-            reader_mode: existing
-                .as_ref()
-                .map(|f| f.reader_mode.clone())
-                .unwrap_or_else(|| "inherit".to_string()),
-            web_preview_mode: existing
-                .as_ref()
-                .map(|f| f.web_preview_mode.clone())
-                .unwrap_or_else(|| "inherit".to_string()),
-        };
-        feed_repo.save(&feed)?;
-    }
-    Ok(())
-}
-
-fn delete_missing_greader_subscriptions(
-    db: &Mutex<DbManager>,
-    account: &Account,
-    remote_subscription_ids: &HashSet<String>,
-) -> Result<usize, AppError> {
-    let db_guard = lock_db(db)?;
-    let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-    let feeds = feed_repo.find_by_account(&account.id)?;
-    let mut deleted_count = 0usize;
-
-    for feed in feeds {
-        let Some(remote_id) = feed.remote_id.as_deref() else {
-            continue;
-        };
-        if !is_provider_managed_greader_feed(Some(remote_id))
-            || remote_subscription_ids.contains(remote_id)
-        {
-            continue;
-        }
-
-        info!(
-            account_id = %account.id.as_ref(),
-            account_name = %account.name,
-            feed_id = %feed.id.as_ref(),
-            remote_id = %remote_id,
-            feed_title = %feed.title,
-            "Deleting local FreshRSS feed missing from remote subscriptions"
-        );
-        feed_repo.delete(&feed.id)?;
-        deleted_count = deleted_count.saturating_add(1);
-    }
-
-    Ok(deleted_count)
-}
-
-fn provider_managed_remote_feed_ids(
-    db: &Mutex<DbManager>,
-    account_id: &AccountId,
-) -> Result<HashSet<String>, AppError> {
-    let db_guard = lock_db(db)?;
-    let feed_repo = SqliteFeedRepository::new(db_guard.reader());
-    Ok(feed_repo
-        .find_by_account(account_id)?
-        .into_iter()
-        .filter_map(|feed| feed.remote_id)
-        .filter(|remote_id| is_provider_managed_greader_feed(Some(remote_id)))
-        .collect())
-}
-
-fn folder_name_case_key(name: &str) -> String {
-    name.trim().to_lowercase()
-}
-
-fn resolve_greader_folder_sort_order(
-    remote_sort_order: Option<i32>,
-    existing_folder: Option<&Folder>,
-    next_sort_order: &mut i32,
-) -> i32 {
-    remote_sort_order
-        .or_else(|| existing_folder.map(|folder| folder.sort_order))
-        .unwrap_or_else(|| {
-            let sort_order = *next_sort_order;
-            *next_sort_order = next_sort_order.saturating_add(1);
-            sort_order
-        })
-}
-
-fn pending_mutation_ids_targeting_provider_managed_greader_feeds(
-    db: &Mutex<DbManager>,
-    account_id: &AccountId,
-) -> Result<std::collections::HashSet<i64>, AppError> {
-    let db_guard = lock_db(db)?;
-    let mut stmt = db_guard
-        .reader()
-        .prepare(
-            "SELECT pm.id
-             FROM pending_mutations pm
-             JOIN articles a ON a.remote_id = pm.remote_entry_id
-             JOIN feeds f ON f.id = a.feed_id AND f.account_id = pm.account_id
-             WHERE pm.account_id = ?1
-             GROUP BY pm.id
-             HAVING SUM(CASE WHEN f.remote_id LIKE 'feed/%' THEN 1 ELSE 0 END) > 0
-                AND SUM(CASE WHEN f.remote_id IS NULL OR f.remote_id NOT LIKE 'feed/%' THEN 1 ELSE 0 END) = 0",
-        )
-        .map_err(|error| {
-            AppError::from(crate::domain::error::DomainError::from(error))
-        })?;
-    let rows = stmt
-        .query_map(rusqlite::params![account_id.as_ref()], |row| {
-            row.get::<_, i64>(0)
-        })
-        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
-    let mut ids = std::collections::HashSet::new();
-    for row in rows {
-        let id =
-            row.map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
-        ids.insert(id);
-    }
-    Ok(ids)
 }
 
 async fn sync_greader_account_entries(
@@ -1318,233 +845,6 @@ async fn sync_greader_feeds(
     );
 
     Ok(ProviderSyncOutcome { warnings })
-}
-
-async fn reconcile_greader_unread_counts(
-    db: &Mutex<DbManager>,
-    provider: &GReaderProvider,
-    account: &Account,
-    feeds: &[Feed],
-    server_unread_counts: &HashMap<String, i32>,
-) -> Result<usize, AppError> {
-    let mut backfilled_feeds = 0usize;
-    for feed in feeds {
-        let Some(remote_id) = feed.remote_id.as_deref() else {
-            continue;
-        };
-        if !is_provider_managed_greader_feed(Some(remote_id)) {
-            continue;
-        }
-
-        let server_unread_count = server_unread_counts.get(remote_id).copied().unwrap_or(0);
-        let local_unread_count = {
-            let db_guard = lock_db(db)?;
-            let feed_repo = SqliteFeedRepository::new(db_guard.reader());
-            feed_repo
-                .find_by_id(&feed.id)?
-                .map(|current_feed| current_feed.unread_count)
-                .unwrap_or(0)
-        };
-
-        if server_unread_count != local_unread_count {
-            reconcile_greader_unread_state_for_feed(db, provider, account, feed).await?;
-            if server_unread_count > local_unread_count {
-                backfilled_feeds += 1;
-            }
-        }
-
-        let db_guard = lock_db(db)?;
-        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        feed_repo.recalculate_unread_count(&feed.id)?;
-    }
-
-    Ok(backfilled_feeds)
-}
-
-async fn reconcile_greader_unread_state_for_feed(
-    db: &Mutex<DbManager>,
-    provider: &GReaderProvider,
-    account: &Account,
-    feed: &Feed,
-) -> Result<(), AppError> {
-    let unread_remote_ids =
-        fetch_greader_unread_entries_for_feed(db, provider, account, feed).await?;
-    let pending_remote_ids = {
-        let db_guard = lock_db(db)?;
-        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-        pending_repo
-            .find_by_account(&account.id)?
-            .into_iter()
-            .filter(|mutation| mutation.mutation_type.axis() == PendingMutationAxis::ReadState)
-            .map(|mutation| mutation.remote_entry_id)
-            .collect::<HashSet<_>>()
-    };
-
-    let db_guard = lock_db(db)?;
-    let tx = db_guard
-        .writer()
-        .unchecked_transaction()
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    let rows = {
-        let mut stmt = tx
-            .prepare(
-                "SELECT id, remote_id
-             FROM articles
-             WHERE feed_id = ?1 AND remote_id IS NOT NULL",
-            )
-            .map_err(crate::domain::error::DomainError::from)
-            .map_err(AppError::from)?;
-        let rows = stmt
-            .query_map(rusqlite::params![feed.id.as_ref()], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })
-            .map_err(crate::domain::error::DomainError::from)
-            .map_err(AppError::from)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(crate::domain::error::DomainError::from)
-            .map_err(AppError::from)?;
-        rows
-    };
-
-    {
-        let mut update_stmt = tx
-            .prepare("UPDATE articles SET is_read = ?1 WHERE id = ?2")
-            .map_err(crate::domain::error::DomainError::from)
-            .map_err(AppError::from)?;
-        for (article_id, remote_id) in rows {
-            if pending_remote_ids.contains(&remote_id) {
-                continue;
-            }
-            update_stmt
-                .execute(rusqlite::params![
-                    !unread_remote_ids.contains(&remote_id),
-                    article_id
-                ])
-                .map_err(crate::domain::error::DomainError::from)
-                .map_err(AppError::from)?;
-        }
-    }
-
-    tx.commit()
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    drop(db_guard);
-
-    let db_guard = lock_db(db)?;
-    mark_muted_unread_as_read_for_feed_with_conn(db_guard.writer(), &account.id, &feed.id)?;
-
-    Ok(())
-}
-
-async fn fetch_greader_unread_entries_for_feed(
-    db: &Mutex<DbManager>,
-    provider: &GReaderProvider,
-    account: &Account,
-    feed: &Feed,
-) -> Result<HashSet<String>, AppError> {
-    let Some(remote_id) = feed.remote_id.as_deref() else {
-        return Ok(HashSet::new());
-    };
-
-    let mut unread_remote_ids = HashSet::new();
-    let mut cursor: Option<SyncCursor> = None;
-    loop {
-        let result = provider
-            .pull_unread_entries_for_feed(remote_id, cursor.clone())
-            .await?;
-
-        let articles: Vec<Article> = result
-            .entries
-            .iter()
-            .map(|entry| {
-                if let Some(remote_id) = entry.id.as_ref() {
-                    unread_remote_ids.insert(remote_id.clone());
-                }
-                build_article_from_remote_entry(account, feed, entry)
-            })
-            .collect();
-
-        if !articles.is_empty() {
-            let db_guard = lock_db(db)?;
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            article_repo.upsert(&articles)?;
-            let candidate_ids = articles
-                .iter()
-                .map(|article| article.id.clone())
-                .collect::<Vec<_>>();
-            article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
-        }
-
-        if !result.has_more {
-            break;
-        }
-        cursor = result.next_cursor;
-    }
-
-    Ok(unread_remote_ids)
-}
-
-fn feed_scope_key(remote_id: &str) -> SyncStateScopeKey {
-    SyncStateScopeKey::feed(remote_id)
-}
-
-fn local_feed_scope_key(feed_url: &str) -> SyncStateScopeKey {
-    SyncStateScopeKey::local_feed(feed_url)
-}
-
-fn local_feed_effective_scope_key(
-    requested_scope_key: &SyncStateScopeKey,
-    result: &PullResult,
-) -> SyncStateScopeKey {
-    result
-        .entries
-        .iter()
-        .find_map(|entry| match &entry.source_feed_id {
-            FeedIdentifier::Local { feed_url } => Some(local_feed_scope_key(feed_url)),
-            FeedIdentifier::Remote { .. } => None,
-        })
-        .unwrap_or_else(|| requested_scope_key.clone())
-}
-
-fn local_feed_validator_states_for_scope_keys(
-    next_state: SyncState,
-    requested_scope_key: &SyncStateScopeKey,
-) -> Vec<SyncState> {
-    let requested_scope_key = requested_scope_key.as_string();
-    if requested_scope_key == next_state.scope_key {
-        return vec![next_state];
-    }
-
-    let mut requested_state = next_state.clone();
-    requested_state.scope_key = requested_scope_key;
-    vec![next_state, requested_state]
-}
-
-fn article_count_for_feed(db: &Mutex<DbManager>, feed_id: &FeedId) -> Result<usize, AppError> {
-    let db_guard = lock_db(db)?;
-    let count = db_guard
-        .reader()
-        .query_row(
-            "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
-            rusqlite::params![feed_id.as_ref()],
-            |row| row.get::<_, i64>(0),
-        )
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    Ok(count as usize)
-}
-
-fn cursor_from_state(state: Option<&SyncState>) -> Option<SyncCursor> {
-    state.map(|state| SyncCursor {
-        // Cross-sync resumes are timestamp-based. Continuation tokens are only
-        // valid within a single pagination run and must not be revived later.
-        continuation: None,
-        since: sync_state_timestamp_usec(Some(state))
-            .and_then(chrono::DateTime::from_timestamp_micros),
-        etag: None,
-        last_modified: None,
-    })
 }
 
 async fn sync_greader_feed_entries(

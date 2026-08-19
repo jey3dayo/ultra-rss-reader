@@ -112,7 +112,7 @@ describe("test isolation policy contract", () => {
 
   it("keeps Rust env-mutating tests behind named guards", () => {
     const platformCommands = readRepoFile("src-tauri/src/commands/platform_commands.rs");
-    const syncProviders = readRepoFile("src-tauri/src/commands/sync_providers.rs");
+    const syncProviders = readRepoFile("src-tauri/src/commands/sync_providers/mod.rs");
     const httpDefaults = readRepoFile("src-tauri/src/infra/provider/http_defaults.rs");
 
     expect(platformCommands).toContain("static ENV_LOCK: Mutex<()> = Mutex::new(())");
