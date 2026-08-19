@@ -794,7 +794,10 @@ fn save_greader_subscriptions(
     let db_guard = lock_db(db)?;
     let feed_repo = SqliteFeedRepository::new(db_guard.writer());
     for rs in remote_subs {
-        let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
+        let existing = match feed_repo.find_by_remote_id(&account.id, &rs.remote_id)? {
+            Some(feed) => Some(feed),
+            None => feed_repo.find_by_url(&account.id, &rs.url)?,
+        };
         if existing.is_none() && sync_started_remote_feed_ids.contains(&rs.remote_id) {
             continue;
         }
@@ -2049,6 +2052,56 @@ mod tests {
         assert_eq!(
             saved.icon_url.as_deref(),
             Some("https://example.com/new-icon.png")
+        );
+        assert_eq!(saved.reader_mode, "on");
+        assert_eq!(saved.web_preview_mode, "off");
+    }
+
+    #[test]
+    fn save_greader_subscriptions_preserves_local_feed_icon_when_url_conflicts() {
+        let db = test_db();
+        let account = test_account("https://rss.example.com");
+        let mut feed = test_local_feed(&account.id, "https://example.com/rss");
+        feed.icon = Some(vec![1, 2, 3]);
+        feed.icon_url = Some("https://example.com/old-icon.png".to_string());
+        feed.reader_mode = "on".to_string();
+        feed.web_preview_mode = "off".to_string();
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteAccountRepository::new(db_guard.writer())
+                .save(&account)
+                .expect("test account should be saved");
+            SqliteFeedRepository::new(db_guard.writer())
+                .save(&feed)
+                .expect("existing local feed should be saved");
+        }
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &[RemoteSubscription {
+                remote_id: FEED_REMOTE_ID.to_string(),
+                title: "Example Feed".to_string(),
+                url: feed.url.clone(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+            &HashSet::new(),
+        )
+        .expect("URL-conflicting subscription should be saved");
+
+        let db_guard = db.lock().unwrap();
+        let saved = SqliteFeedRepository::new(db_guard.reader())
+            .find_by_remote_id(&account.id, FEED_REMOTE_ID)
+            .expect("saved feed lookup should succeed")
+            .expect("URL-conflicting feed should remain present");
+        assert_eq!(saved.id, feed.id);
+        assert_eq!(saved.icon.as_deref(), Some(&[1, 2, 3][..]));
+        assert_eq!(
+            saved.icon_url.as_deref(),
+            Some("https://example.com/old-icon.png")
         );
         assert_eq!(saved.reader_mode, "on");
         assert_eq!(saved.web_preview_mode, "off");
