@@ -654,7 +654,7 @@ async fn add_local_feed_with_provider(
         url: sub.url,
         site_url: sub.site_url,
         icon: None,
-        icon_url: None,
+        icon_url: sub.icon_url,
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
@@ -751,7 +751,7 @@ async fn add_freshrss_feed_with_account(
         url: sub.url,
         site_url: sub.site_url,
         icon: None,
-        icon_url: None,
+        icon_url: sub.icon_url,
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
@@ -1258,7 +1258,8 @@ mod tests {
                             "id": "feed/https://example.com/rss",
                             "title": "Example Feed",
                             "url": "https://example.com/rss",
-                            "htmlUrl": "https://example.com"
+                            "htmlUrl": "https://example.com",
+                            "iconUrl": "https://example.com/icon.png"
                         }
                     ]
                 }"#,
@@ -1298,6 +1299,10 @@ mod tests {
         assert_eq!(
             added_feed.remote_id.as_deref(),
             Some("feed/https://example.com/rss")
+        );
+        assert_eq!(
+            added_feed.icon_url.as_deref(),
+            Some("https://example.com/icon.png")
         );
         let guard = db.lock().unwrap();
         let feed_repo = SqliteFeedRepository::new(guard.reader());
@@ -2434,12 +2439,13 @@ mod tests {
     #[tokio::test]
     async fn add_local_feed_uses_create_fetch_for_metadata_and_pull_fetch_for_articles() {
         let create_feed = r#"<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-  <channel>
-    <title>Create Fetch Title</title>
-    <link>https://example.com/create</link>
-  </channel>
-</rss>"#;
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Create Fetch Title</title>
+  <id>https://example.com/create</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="alternate" href="https://example.com/create" />
+  <icon>https://example.com/icon.png</icon>
+</feed>"#;
         let pull_feed = r#"<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -2489,6 +2495,10 @@ mod tests {
         pull_mock.assert_async().await;
         assert_eq!(feed.title, "Create Fetch Title");
         assert_eq!(feed.site_url, "https://example.com/create");
+        assert_eq!(
+            feed.icon_url.as_deref(),
+            Some("https://example.com/icon.png")
+        );
         assert_eq!(feed.unread_count, 1);
 
         let (article_title, article_url, saved_etag): (String, String, String) = {

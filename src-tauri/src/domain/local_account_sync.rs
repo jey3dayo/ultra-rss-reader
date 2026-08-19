@@ -90,6 +90,8 @@ pub enum LocalSyncAction {
     UpsertFeed {
         title: String,
         site_url: String,
+        #[serde(default)]
+        icon_url: Option<String>,
         folder_name: Option<String>,
     },
     UpsertFolder {
@@ -139,6 +141,7 @@ pub struct LocalAccountSyncProjection {
 pub struct LocalSyncFeedState {
     pub title: String,
     pub site_url: String,
+    pub icon_url: Option<String>,
     pub folder_name: Option<String>,
     pub updated_at: DateTime<Utc>,
 }
@@ -371,6 +374,7 @@ fn apply_operation(
             LocalSyncAction::UpsertFeed {
                 title,
                 site_url,
+                icon_url,
                 folder_name,
             },
         ) => {
@@ -384,6 +388,7 @@ fn apply_operation(
                     LocalSyncFeedState {
                         title: title.trim().to_string(),
                         site_url: site_url.trim().to_string(),
+                        icon_url: icon_url.as_ref().map(|url| url.trim().to_string()),
                         folder_name: folder_name.as_ref().map(|name| name.trim().to_string()),
                         updated_at: operation.occurred_at,
                     },
@@ -732,6 +737,7 @@ mod tests {
                 LocalSyncAction::UpsertFeed {
                     title: "Old".to_string(),
                     site_url: "https://example.com".to_string(),
+                    icon_url: Some("https://example.com/old-icon.png".to_string()),
                     folder_name: Some("Tech".to_string()),
                 },
             ),
@@ -744,6 +750,7 @@ mod tests {
                 LocalSyncAction::UpsertFeed {
                     title: "New".to_string(),
                     site_url: "https://example.com/blog".to_string(),
+                    icon_url: Some("https://example.com/new-icon.png".to_string()),
                     folder_name: None,
                 },
             ),
@@ -762,6 +769,10 @@ mod tests {
             .get(&feed_url)
             .expect("feed should merge by normalized feed URL");
         assert_eq!(feed.title, "New");
+        assert_eq!(
+            feed.icon_url.as_deref(),
+            Some("https://example.com/new-icon.png")
+        );
         assert_eq!(feed.folder_name, None);
     }
 
@@ -910,5 +921,38 @@ mod tests {
         assert!(error
             .to_string()
             .contains("Unsupported local sync operation version"));
+    }
+
+    #[test]
+    fn parse_operation_defaults_missing_feed_icon_url_to_none() {
+        let operation = op(
+            "feed-op",
+            ts(10),
+            LocalSyncEntityKey::Feed {
+                normalized_feed_url: "https://example.com/feed.xml".to_string(),
+            },
+            LocalSyncAction::UpsertFeed {
+                title: "Feed".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon_url: Some("https://example.com/icon.png".to_string()),
+                folder_name: None,
+            },
+        );
+        let mut value = serde_json::to_value(operation_file(operation))
+            .expect("test operation file should serialize to JSON");
+        value["operation"]["action"]
+            .as_object_mut()
+            .expect("feed action should serialize as an object")
+            .remove("icon_url");
+
+        let parsed = parse_operation_file(
+            &serde_json::to_string(&value).expect("legacy operation should serialize to JSON"),
+        )
+        .expect("legacy operation without icon_url should parse");
+
+        let LocalSyncAction::UpsertFeed { icon_url, .. } = parsed.operation.action else {
+            panic!("expected feed upsert action");
+        };
+        assert_eq!(icon_url, None);
     }
 }
