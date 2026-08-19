@@ -111,6 +111,12 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
+function readMigrationModuleSource() {
+  return ["mod.rs", "consts.rs", "repairs.rs"]
+    .map((file) => readRepoFile(`src-tauri/src/infra/db/migration/${file}`))
+    .join("\n");
+}
+
 function readMiseTaskCorpus() {
   return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
     .map(readRepoFile)
@@ -2311,7 +2317,7 @@ describe("repository static contracts", () => {
   });
 
   it("keeps migration manifest versions aligned with the Rust runner", () => {
-    const migrationSource = readRepoFile("src-tauri/src/infra/db/migration.rs");
+    const migrationSource = readMigrationModuleSource();
     const fileVersions = migrationVersionsFromFiles();
     const fileVersionSet = new Set(fileVersions);
     const latestVersion = extractRustLatestMigrationVersion(migrationSource);
