@@ -40,7 +40,7 @@ convention unless nearby code already proves that shape.
 - Service code may call provider or sanitizer infrastructure when it is part of
   the current sync flow boundary. Move only repeated orchestration or policy
   drift after checking the existing service and provider shape.
-- `commands/sync_providers.rs` currently owns provider-specific sync command
+- `commands/sync_providers/` currently owns provider-specific sync command
   behavior. Do not relocate that surface as part of an unrelated cleanup.
 
 ## Rules
