@@ -12,9 +12,10 @@ pub(super) fn row_to_feed(row: &rusqlite::Row) -> rusqlite::Result<Feed> {
         url: row.get(5)?,
         site_url: row.get(6)?,
         icon: row.get(7)?,
-        unread_count: normalize_unread_count(row.get::<_, i64>(8)?),
-        reader_mode: row.get(9)?,
-        web_preview_mode: row.get(10)?,
+        icon_url: row.get(8)?,
+        unread_count: normalize_unread_count(row.get::<_, i64>(9)?),
+        reader_mode: row.get(10)?,
+        web_preview_mode: row.get(11)?,
     })
 }
 

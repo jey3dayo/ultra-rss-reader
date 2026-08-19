@@ -15,8 +15,9 @@ use consts::{
 };
 use repairs::{
     apply_v16_account_connection_verification, apply_v20_article_account_ordered_indexes,
-    apply_v22_local_account_sync_export_state, apply_v8_feed_reader_preview_modes,
-    feed_mode_columns_need_repair, repair_missing_feed_mode_columns,
+    apply_v22_local_account_sync_export_state, apply_v24_feed_icon_url,
+    apply_v8_feed_reader_preview_modes, feed_mode_columns_need_repair,
+    repair_missing_feed_mode_columns,
 };
 
 /// Result of a migration run.
@@ -37,7 +38,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 23;
+pub const LATEST_VERSION: i32 = 24;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -128,6 +129,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 23 {
         tx.execute_batch(MIGRATION_V23)?;
+    }
+    if from_version < 24 {
+        apply_v24_feed_icon_url(&tx)?;
     }
 
     let to_version = read_schema_version(&tx)?;

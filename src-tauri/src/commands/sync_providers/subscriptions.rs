@@ -39,7 +39,10 @@ pub(super) fn save_greader_subscriptions(
     let db_guard = lock_db(db)?;
     let feed_repo = SqliteFeedRepository::new(db_guard.writer());
     for rs in remote_subs {
-        let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
+        let existing = match feed_repo.find_by_remote_id(&account.id, &rs.remote_id)? {
+            Some(feed) => Some(feed),
+            None => feed_repo.find_by_url(&account.id, &rs.url)?,
+        };
         if existing.is_none() && sync_started_remote_feed_ids.contains(&rs.remote_id) {
             continue;
         }
@@ -59,6 +62,10 @@ pub(super) fn save_greader_subscriptions(
             url: rs.url.clone(),
             site_url: rs.site_url.clone(),
             icon: existing.as_ref().and_then(|f| f.icon.clone()),
+            icon_url: rs
+                .icon_url
+                .clone()
+                .or_else(|| existing.as_ref().and_then(|feed| feed.icon_url.clone())),
             unread_count: 0,
             reader_mode: existing
                 .as_ref()

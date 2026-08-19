@@ -411,6 +411,7 @@ export function setupDevMocks(): RestoreDevMocks {
           title: titleFromUrl(url),
           url,
           site_url: url,
+          icon_url: null,
           unread_count: 3,
           reader_mode: "inherit",
           web_preview_mode: "inherit",

@@ -132,7 +132,14 @@ function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSel
               !hasUnread && "opacity-60",
             )}
           >
-            <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="md" grayscale={!hasUnread} />
+            <FeedFavicon
+              title={feed.title}
+              url={feed.url}
+              siteUrl={feed.site_url}
+              iconUrl={feed.icon_url}
+              size="md"
+              grayscale={!hasUnread}
+            />
             <span className={cn("min-w-0 flex-1 truncate", !hasUnread && "text-foreground-soft")} dir="auto">
               {feed.title}
             </span>
@@ -350,7 +357,13 @@ function buildSummaryIdentityProps(
           readerT("feed_or_site_url")
         ),
       visual: (
-        <FeedFavicon title={summary.feed.title} url={summary.feed.url} siteUrl={summary.feed.site_url} size="md" />
+        <FeedFavicon
+          title={summary.feed.title}
+          url={summary.feed.url}
+          siteUrl={summary.feed.site_url}
+          iconUrl={summary.feed.icon_url}
+          size="md"
+        />
       ),
       metrics: buildMetrics({
         unreadCount: summary.feed.unread_count,

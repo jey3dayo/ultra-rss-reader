@@ -88,10 +88,44 @@ describe("CI workflow contract", () => {
     );
   });
 
-  it("keeps test job timeout large enough for Windows post-cache cleanup", () => {
-    const testSection = extractWorkflowJobSection(readRepoFile(".github/workflows/ci.yml"), "test");
+  it("keeps lint and test job timeouts at 60 minutes", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const lintSection = extractWorkflowJobSection(ciWorkflow, "lint");
+    const testSection = extractWorkflowJobSection(ciWorkflow, "test");
 
-    expect(testSection).toContain("timeout-minutes: 20");
+    expect(lintSection).toContain("timeout-minutes: 60");
+    expect(testSection).toContain("timeout-minutes: 60");
+  });
+
+  it("uses the stable Ubuntu apt mirror for Linux Tauri dependencies in lint and test", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+
+    for (const jobId of ["lint", "test"]) {
+      const jobSection = extractWorkflowJobSection(ciWorkflow, jobId);
+
+      expect(jobSection, `${jobId} should keep Tauri dependency setup Linux-only`).toContain(
+        "if: matrix.os == 'ubuntu-latest'",
+      );
+      expect(jobSection, `${jobId} should check apt source files before editing`).toContain(
+        'if [ -f "$apt_source" ]; then',
+      );
+      expect(jobSection, `${jobId} should replace the Azure Ubuntu mirror`).toContain(
+        "s|azure.archive.ubuntu.com|archive.ubuntu.com|g",
+      );
+      expect(jobSection, `${jobId} should preserve apt retries`).toContain("Acquire::Retries=3");
+      expect(jobSection, `${jobId} should define bounded apt options`).toContain(
+        "apt_options=(-o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)",
+      );
+      expect(jobSection, `${jobId} should retry apt with a fallback mirror`).toContain(
+        "mirror.math.princeton.edu/pub/ubuntu",
+      );
+      expect(jobSection, `${jobId} should bound apt update`).toContain(
+        `if ! timeout 300s sudo apt-get update "\${apt_options[@]}"; then`,
+      );
+      expect(jobSection, `${jobId} should bound apt install`).toContain(
+        `timeout 300s sudo apt-get install -y --no-install-recommends "\${apt_options[@]}"`,
+      );
+    }
   });
 
   it("classifies CI failure artifact retention by frontend, Rust, and native smoke families", () => {

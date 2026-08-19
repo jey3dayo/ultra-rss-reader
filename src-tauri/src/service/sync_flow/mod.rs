@@ -126,6 +126,11 @@ pub async fn sync_account(
                 url: rs.url.clone(),
                 site_url: rs.site_url,
                 icon: None,
+                icon_url: rs.icon_url.or_else(|| {
+                    existing_feed
+                        .as_ref()
+                        .and_then(|feed| feed.icon_url.clone())
+                }),
                 unread_count: 0,
                 reader_mode: "inherit".to_string(),
                 web_preview_mode: "inherit".to_string(),

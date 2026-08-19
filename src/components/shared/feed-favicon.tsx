@@ -8,6 +8,7 @@ type FeedFaviconProps = {
   title: string;
   url: string;
   siteUrl: string;
+  iconUrl?: string | null;
   grayscale?: boolean;
   size?: FeedFaviconSize;
 };
@@ -19,10 +20,9 @@ type FaviconSizeClassNames = {
   requestSize: number;
 };
 
-type FailedFaviconKey = {
-  host: string;
-  siteUrl: string;
-  src: string;
+type FaviconAttemptState = {
+  key: string;
+  failedCount: number;
 };
 
 const GOOGLE_FAVICON_ENDPOINT = "https://www.google.com/s2/favicons";
@@ -67,21 +67,23 @@ function resolveFallbackLabel(title: string): string {
   return firstGrapheme?.toLocaleUpperCase() || "?";
 }
 
-export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
-  const [failedFaviconKey, setFailedFaviconKey] = useState<FailedFaviconKey | null>(null);
+export function FeedFavicon({ title, url, siteUrl, iconUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
+  const [attemptState, setAttemptState] = useState<FaviconAttemptState | null>(null);
   const resolvedHost = resolveExternalFaviconHost(siteUrl, url);
   const sizeClassName = faviconSizeClassNames[size];
   const fallbackLabel = resolveFallbackLabel(title);
-  const faviconSrc = resolvedHost ? resolveGoogleFaviconSrc(resolvedHost, sizeClassName.requestSize) : null;
-  const currentFaviconKey = resolvedHost && faviconSrc ? { host: resolvedHost, siteUrl, src: faviconSrc } : null;
-  const isFailedFavicon =
-    currentFaviconKey !== null &&
-    failedFaviconKey !== null &&
-    failedFaviconKey.src === currentFaviconKey.src &&
-    failedFaviconKey.host === currentFaviconKey.host &&
-    failedFaviconKey.siteUrl === currentFaviconKey.siteUrl;
 
-  if (currentFaviconKey === null || isFailedFavicon) {
+  const trimmedIconUrl = iconUrl?.trim();
+  const candidates = [
+    trimmedIconUrl && trimmedIconUrl.length > 0 ? trimmedIconUrl : null,
+    resolvedHost ? resolveGoogleFaviconSrc(resolvedHost, sizeClassName.requestSize) : null,
+  ].filter((candidate): candidate is string => candidate !== null);
+
+  const candidateKey = `${trimmedIconUrl ?? ""}|${resolvedHost ?? ""}|${siteUrl}`;
+  const failedCount = attemptState?.key === candidateKey ? attemptState.failedCount : 0;
+  const currentSrc = candidates[failedCount] ?? null;
+
+  if (currentSrc === null) {
     return (
       <span
         aria-hidden="true"
@@ -97,14 +99,14 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
 
   return (
     <img
-      src={currentFaviconKey.src}
+      src={currentSrc}
       alt=""
       className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
       width={sizeClassName.pixels}
       height={sizeClassName.pixels}
       referrerPolicy="no-referrer"
       onError={() => {
-        setFailedFaviconKey(currentFaviconKey);
+        setAttemptState({ key: candidateKey, failedCount: failedCount + 1 });
       }}
     />
   );

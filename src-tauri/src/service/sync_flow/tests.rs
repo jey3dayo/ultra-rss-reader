@@ -726,6 +726,7 @@ fn test_feed(account_id: &AccountId) -> Feed {
         url: "https://example.com/rss".to_string(),
         site_url: "https://example.com".to_string(),
         icon: None,
+        icon_url: None,
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
@@ -1189,6 +1190,7 @@ async fn sync_account_protects_articles_pushed_earlier_in_same_sync() {
         url: "https://example.com/rss.xml".to_string(),
         site_url: "https://example.com".to_string(),
         icon: None,
+        icon_url: None,
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
@@ -1600,6 +1602,7 @@ async fn sync_account_does_not_merge_remote_subscription_into_different_remote_f
             url: "https://example.com/rss.xml".to_string(),
             site_url: "https://example.com/a".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -1665,6 +1668,7 @@ async fn sync_account_adopts_existing_local_feed_when_remote_subscription_matche
             url: "https://example.com/rss.xml".to_string(),
             site_url: "https://example.com/local".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),
@@ -1678,7 +1682,7 @@ async fn sync_account_adopts_existing_local_feed_when_remote_subscription_matche
             url: "https://example.com/rss.xml".to_string(),
             site_url: "https://example.com/remote".to_string(),
             folder_remote_id: None,
-            icon_url: None,
+            icon_url: Some("https://example.com/provider-icon.png".to_string()),
         }],
     };
     let article_repo = SqliteArticleRepository::new(db.writer());
@@ -1702,7 +1706,71 @@ async fn sync_account_adopts_existing_local_feed_when_remote_subscription_matche
         .unwrap();
     assert_eq!(saved.id.0, "existing-local-feed");
     assert_eq!(saved.title, "Remote title");
+    assert_eq!(
+        saved.icon_url.as_deref(),
+        Some("https://example.com/provider-icon.png")
+    );
     assert_eq!(feed_repo.find_by_account(&account.id).unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn sync_account_preserves_existing_icon_when_remote_icon_is_missing() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account = test_account();
+    let account_repo = SqliteAccountRepository::new(db.writer());
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    account_repo.save(&account).unwrap();
+
+    feed_repo
+        .save(&Feed {
+            id: FeedId("existing-feed".to_string()),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: Some("feed/remote".to_string()),
+            title: "Existing".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            icon_url: Some("https://example.com/existing-icon.png".to_string()),
+            unread_count: 0,
+            reader_mode: "on".to_string(),
+            web_preview_mode: "off".to_string(),
+        })
+        .unwrap();
+
+    let provider = RemoteSubscriptionProvider {
+        subscriptions: vec![RemoteSubscription {
+            remote_id: "feed/remote".to_string(),
+            title: "Remote title".to_string(),
+            url: "https://example.com/rss.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            folder_remote_id: None,
+            icon_url: None,
+        }],
+    };
+    let article_repo = SqliteArticleRepository::new(db.writer());
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    sync_account(
+        &account.id,
+        &provider,
+        &article_repo,
+        &feed_repo,
+        &folder_repo,
+        &pending_repo,
+    )
+    .await
+    .unwrap();
+
+    let saved = feed_repo
+        .find_by_remote_id(&account.id, "feed/remote")
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        saved.icon_url.as_deref(),
+        Some("https://example.com/existing-icon.png")
+    );
 }
 
 #[tokio::test]
@@ -1733,6 +1801,7 @@ async fn sync_account_preserves_local_folder_when_remote_subscription_has_no_fol
         url: "https://example.com/rss.xml".to_string(),
         site_url: "https://example.com".to_string(),
         icon: None,
+        icon_url: None,
         unread_count: 0,
         reader_mode: "inherit".to_string(),
         web_preview_mode: "inherit".to_string(),
@@ -1801,6 +1870,7 @@ async fn sync_account_preserves_existing_folder_when_remote_subscription_folder_
             url: "https://example.com/rss.xml".to_string(),
             site_url: "https://example.com".to_string(),
             icon: None,
+            icon_url: None,
             unread_count: 0,
             reader_mode: "inherit".to_string(),
             web_preview_mode: "inherit".to_string(),

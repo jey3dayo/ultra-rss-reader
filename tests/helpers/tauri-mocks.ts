@@ -429,6 +429,7 @@ function createDefaultHandler(): MockHandler {
           title: "New Feed",
           url: args.url,
           site_url: args.url,
+          icon_url: null,
           unread_count: 0,
           reader_mode: "inherit",
           web_preview_mode: "inherit",

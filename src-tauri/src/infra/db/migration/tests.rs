@@ -134,6 +134,33 @@ fn v22_allows_duplicate_last_export_digest_column_only() {
 }
 
 #[test]
+fn v24_file_migration_matches_inline_contract() {
+    let inline_v24_sql = format!(
+        "{V24_FEED_ICON_URL_SQL};
+         DELETE FROM schema_version;
+         INSERT INTO schema_version (version) VALUES (24);"
+    );
+
+    assert_eq!(
+        normalize_sql(MIGRATION_V24),
+        normalize_sql(&inline_v24_sql),
+        "file-based V24 migration must stay in sync with the inline migration"
+    );
+}
+
+#[test]
+fn v24_allows_duplicate_feed_icon_url_column_only() {
+    let mut conn = open_in_memory();
+    run_migrations(&mut conn).unwrap();
+    set_schema_version(&conn, 23).unwrap();
+
+    let result = run_migrations(&mut conn).unwrap();
+    assert_eq!(result.from_version, 23);
+    assert_eq!(result.to_version, LATEST_VERSION);
+    assert!(conn.prepare("SELECT icon_url FROM feeds LIMIT 0").is_ok());
+}
+
+#[test]
 fn v23_resets_only_freshrss_accounts_with_empty_provider_feeds() {
     let conn = open_in_memory();
     migrate_to_v19(&conn);
@@ -233,8 +260,8 @@ fn v23_resets_only_freshrss_accounts_with_empty_provider_feeds() {
     let result = run_migrations(&mut conn).unwrap();
 
     assert_eq!(result.from_version, 22);
-    assert_eq!(result.to_version, 23);
-    assert_eq!(get_schema_version(&conn), 23);
+    assert_eq!(result.to_version, LATEST_VERSION);
+    assert_eq!(get_schema_version(&conn), LATEST_VERSION);
 
     let sync_state_count = |account_id: &str, scope_key: &str| {
         conn.query_row(

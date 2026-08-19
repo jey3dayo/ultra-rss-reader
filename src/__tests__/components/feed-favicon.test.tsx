@@ -244,6 +244,79 @@ describe("FeedFavicon", () => {
     expect(container.querySelector("img")).toHaveClass("grayscale");
   });
 
+  it("prefers the provider-supplied icon URL over the external favicon proxy", () => {
+    const { container } = render(
+      <FeedFavicon
+        title="Gamma"
+        url="https://example.com/feed.xml"
+        siteUrl="https://example.com"
+        iconUrl="https://freshrss.example.net/favicons/gamma.ico"
+      />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://freshrss.example.net/favicons/gamma.ico");
+  });
+
+  it("falls back to the external favicon proxy after the provider icon URL fails to load", () => {
+    const { container } = render(
+      <FeedFavicon
+        title="Gamma"
+        url="https://example.com/feed.xml"
+        siteUrl="https://example.com"
+        iconUrl="https://freshrss.example.net/favicons/gamma.ico"
+      />,
+    );
+
+    const providerImage = container.querySelector("img");
+    expect(providerImage).toHaveAttribute("src", "https://freshrss.example.net/favicons/gamma.ico");
+
+    fireEvent.error(providerImage as HTMLImageElement);
+
+    const googleImage = container.querySelector("img");
+    expect(googleImage).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+  });
+
+  it("falls back to the title initial after both the provider icon and the favicon proxy fail", () => {
+    const { container } = render(
+      <FeedFavicon
+        title="Gamma"
+        url="https://example.com/feed.xml"
+        siteUrl="https://example.com"
+        iconUrl="https://freshrss.example.net/favicons/gamma.ico"
+      />,
+    );
+
+    fireEvent.error(container.querySelector("img") as HTMLImageElement);
+    fireEvent.error(container.querySelector("img") as HTMLImageElement);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("ignores a blank provider icon URL and uses the favicon proxy instead", () => {
+    const { container } = render(
+      <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" iconUrl="   " />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+  });
+
+  it("uses the provider icon URL even when the host cannot be resolved for the favicon proxy", () => {
+    const { container } = render(
+      <FeedFavicon title="Gamma" url="" siteUrl="" iconUrl="https://freshrss.example.net/favicons/gamma.ico" />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://freshrss.example.net/favicons/gamma.ico");
+
+    fireEvent.error(image as HTMLImageElement);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("keeps provider brand icons decorative and color-inheriting", () => {
     render(<FreshRssLogoIcon data-testid="provider-icon" className="text-primary" />);
 

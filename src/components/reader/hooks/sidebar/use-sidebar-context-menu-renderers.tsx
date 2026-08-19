@@ -32,6 +32,7 @@ function toFeedContextMenuFeed(feed: FeedTreeFeedViewModel) {
     title: feed.title,
     url: feed.url,
     site_url: feed.siteUrl,
+    icon_url: null,
     unread_count: feed.unreadCount,
     reader_mode: feed.readerMode,
     web_preview_mode: feed.webPreviewMode,

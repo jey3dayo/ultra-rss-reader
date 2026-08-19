@@ -938,11 +938,13 @@ describe("release repository contract", () => {
     expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
   });
 
-  it("keeps CI apt mirror failures bounded by an explicit retry policy", () => {
-    expect(ciWorkflow.match(/sudo apt-get update -o Acquire::Retries=3/g)).toHaveLength(2);
+  it("keeps CI apt mirror failures bounded with a fallback mirror", () => {
+    expect(ciWorkflow.match(/apt_options=\(-o Acquire::Retries=3/g)).toHaveLength(2);
+    expect(ciWorkflow.match(/if ! timeout 300s sudo apt-get update/g)).toHaveLength(2);
+    expect(ciWorkflow.match(/mirror\.math\.princeton\.edu\/pub\/ubuntu/g)).toHaveLength(2);
     expect(
       ciWorkflow.match(
-        /sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
+        /timeout 300s sudo apt-get install -y --no-install-recommends "\$\{apt_options\[@\]\}" \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
       ),
     ).toHaveLength(2);
     expect(ciWorkflow).not.toContain("sudo apt-get install -y $" + "{{ env.TAURI_SYSTEM_DEPS }}");
@@ -2164,6 +2166,7 @@ describe("release repository contract", () => {
       "V21__local_account_sync_settings.sql",
       "V22__local_account_sync_export_state.sql",
       "V23__reset_empty_freshrss_feed_sync_state.sql",
+      "V24__feed_icon_url.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

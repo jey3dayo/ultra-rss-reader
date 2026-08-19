@@ -15,6 +15,7 @@ const feed: FeedDto = {
   title: "Tech Blog",
   url: "https://example.com/feed.xml",
   site_url: "https://example.com",
+  icon_url: null,
   unread_count: 5,
   reader_mode: "inherit",
   web_preview_mode: "inherit",

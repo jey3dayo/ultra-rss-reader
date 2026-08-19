@@ -38,6 +38,9 @@ pub(super) const MIGRATION_V22: &str =
     include_str!("../../../../migrations/V22__local_account_sync_export_state.sql");
 pub(super) const MIGRATION_V23: &str =
     include_str!("../../../../migrations/V23__reset_empty_freshrss_feed_sync_state.sql");
+#[cfg(test)]
+pub(super) const MIGRATION_V24: &str =
+    include_str!("../../../../migrations/V24__feed_icon_url.sql");
 
 pub(super) const V8_READER_MODE_COLUMN: &str = "reader_mode";
 pub(super) const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
@@ -52,3 +55,5 @@ pub(super) const V16_CONNECTION_VERIFICATION_ERROR_SQL: &str =
 pub(super) const V22_LAST_EXPORT_DIGEST_COLUMN: &str = "last_export_digest";
 pub(super) const V22_LAST_EXPORT_DIGEST_SQL: &str =
     "ALTER TABLE local_account_sync_settings ADD COLUMN last_export_digest TEXT";
+pub(super) const V24_FEED_ICON_URL_COLUMN: &str = "icon_url";
+pub(super) const V24_FEED_ICON_URL_SQL: &str = "ALTER TABLE feeds ADD COLUMN icon_url TEXT";
