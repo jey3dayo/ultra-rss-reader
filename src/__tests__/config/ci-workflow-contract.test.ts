@@ -113,11 +113,17 @@ describe("CI workflow contract", () => {
         "s|azure.archive.ubuntu.com|archive.ubuntu.com|g",
       );
       expect(jobSection, `${jobId} should preserve apt retries`).toContain("Acquire::Retries=3");
-      expect(jobSection, `${jobId} should force IPv4 for apt update`).toContain(
-        "timeout 300s sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20",
+      expect(jobSection, `${jobId} should define bounded apt options`).toContain(
+        "apt_options=(-o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)",
       );
-      expect(jobSection, `${jobId} should force IPv4 for apt install`).toContain(
-        "timeout 300s sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20",
+      expect(jobSection, `${jobId} should retry apt with a fallback mirror`).toContain(
+        "mirror.math.princeton.edu/pub/ubuntu",
+      );
+      expect(jobSection, `${jobId} should bound apt update`).toContain(
+        'if ! timeout 300s sudo apt-get update "${apt_options[@]}"; then',
+      );
+      expect(jobSection, `${jobId} should bound apt install`).toContain(
+        'timeout 300s sudo apt-get install -y --no-install-recommends "${apt_options[@]}"',
       );
     }
   });

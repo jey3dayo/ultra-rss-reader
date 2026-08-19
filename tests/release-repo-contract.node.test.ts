@@ -934,15 +934,13 @@ describe("release repository contract", () => {
     expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
   });
 
-  it("keeps CI apt mirror failures bounded by retry and timeout policies", () => {
+  it("keeps CI apt mirror failures bounded with a fallback mirror", () => {
+    expect(ciWorkflow.match(/apt_options=\(-o Acquire::Retries=3/g)).toHaveLength(2);
+    expect(ciWorkflow.match(/if ! timeout 300s sudo apt-get update/g)).toHaveLength(2);
+    expect(ciWorkflow.match(/mirror\.math\.princeton\.edu\/pub\/ubuntu/g)).toHaveLength(2);
     expect(
       ciWorkflow.match(
-        /timeout 300s sudo apt-get update -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20/g,
-      ),
-    ).toHaveLength(2);
-    expect(
-      ciWorkflow.match(
-        /timeout 300s sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
+        /timeout 300s sudo apt-get install -y --no-install-recommends "\$\{apt_options\[@\]\}" \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
       ),
     ).toHaveLength(2);
     expect(ciWorkflow).not.toContain("sudo apt-get install -y $" + "{{ env.TAURI_SYSTEM_DEPS }}");
