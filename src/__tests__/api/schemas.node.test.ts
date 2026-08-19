@@ -104,8 +104,12 @@ import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema
 import { objectEntries } from "@/api/schemas/validation";
 import { APP_ACTIONS, isAppAction } from "@/lib/app-actions";
 
+const RUST_COMMAND_DTO_MODULE_FILES = ["mod.rs", "error.rs", "feed.rs", "platform.rs", "sync.rs"];
+
 function readRustCommandDtoSource() {
-  return readFileSync(join(process.cwd(), "src-tauri/src/commands/dto.rs"), "utf8");
+  return RUST_COMMAND_DTO_MODULE_FILES.map((file) =>
+    readFileSync(join(process.cwd(), "src-tauri/src/commands/dto", file), "utf8"),
+  ).join("\n");
 }
 
 function readRustArticleCommandSource() {
