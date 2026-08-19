@@ -120,10 +120,10 @@ describe("CI workflow contract", () => {
         "mirror.math.princeton.edu/pub/ubuntu",
       );
       expect(jobSection, `${jobId} should bound apt update`).toContain(
-        'if ! timeout 300s sudo apt-get update "${apt_options[@]}"; then',
+        `if ! timeout 300s sudo apt-get update "\${apt_options[@]}"; then`,
       );
       expect(jobSection, `${jobId} should bound apt install`).toContain(
-        'timeout 300s sudo apt-get install -y --no-install-recommends "${apt_options[@]}"',
+        `timeout 300s sudo apt-get install -y --no-install-recommends "\${apt_options[@]}"`,
       );
     }
   });
