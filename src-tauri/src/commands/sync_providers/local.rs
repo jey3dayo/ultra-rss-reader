@@ -75,7 +75,7 @@ pub(super) fn upsert_articles_in_current_transaction(
     Ok(())
 }
 
-pub(super) fn save_local_feed_sync_result_in_current_transaction(
+fn save_local_feed_sync_result_in_current_transaction(
     conn: &rusqlite::Connection,
     account_id: &AccountId,
     feed: &Feed,
@@ -106,7 +106,7 @@ pub(super) fn local_feed_scope_key(feed_url: &str) -> SyncStateScopeKey {
     SyncStateScopeKey::local_feed(feed_url)
 }
 
-pub(super) fn local_feed_effective_scope_key(
+fn local_feed_effective_scope_key(
     requested_scope_key: &SyncStateScopeKey,
     result: &PullResult,
 ) -> SyncStateScopeKey {
@@ -120,7 +120,7 @@ pub(super) fn local_feed_effective_scope_key(
         .unwrap_or_else(|| requested_scope_key.clone())
 }
 
-pub(super) fn local_feed_validator_states_for_scope_keys(
+fn local_feed_validator_states_for_scope_keys(
     next_state: SyncState,
     requested_scope_key: &SyncStateScopeKey,
 ) -> Vec<SyncState> {
