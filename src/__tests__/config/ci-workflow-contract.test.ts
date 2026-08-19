@@ -97,6 +97,25 @@ describe("CI workflow contract", () => {
     expect(testSection).toContain("timeout-minutes: 60");
   });
 
+  it("uses the stable Ubuntu apt mirror for Linux Tauri dependencies in lint and test", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+
+    for (const jobId of ["lint", "test"]) {
+      const jobSection = extractWorkflowJobSection(ciWorkflow, jobId);
+
+      expect(jobSection, `${jobId} should keep Tauri dependency setup Linux-only`).toContain(
+        "if: matrix.os == 'ubuntu-latest'",
+      );
+      expect(jobSection, `${jobId} should check apt source files before editing`).toContain(
+        'if [ -f "$apt_source" ]; then',
+      );
+      expect(jobSection, `${jobId} should replace the Azure Ubuntu mirror`).toContain(
+        "s|azure.archive.ubuntu.com|archive.ubuntu.com|g",
+      );
+      expect(jobSection, `${jobId} should preserve apt retries`).toContain("Acquire::Retries=3");
+    }
+  });
+
   it("classifies CI failure artifact retention by frontend, Rust, and native smoke families", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
