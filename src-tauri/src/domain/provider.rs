@@ -129,7 +129,7 @@ impl ProviderCapabilities {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProviderSideDeletionRetention {
     NotApplicable,
-    RetainLocal,
+    DeleteLocal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -277,8 +277,8 @@ impl ProviderKind {
                 missing_remote_folder: ProviderSideDeletionRetention::NotApplicable,
             },
             Self::FreshRss => ProviderDeletionRetentionPolicy {
-                missing_remote_feed: ProviderSideDeletionRetention::RetainLocal,
-                missing_remote_folder: ProviderSideDeletionRetention::RetainLocal,
+                missing_remote_feed: ProviderSideDeletionRetention::DeleteLocal,
+                missing_remote_folder: ProviderSideDeletionRetention::DeleteLocal,
             },
         }
     }
@@ -332,8 +332,8 @@ mod tests {
                     supports_remote_state: true,
                 },
                 ProviderDeletionRetentionPolicy {
-                    missing_remote_feed: ProviderSideDeletionRetention::RetainLocal,
-                    missing_remote_folder: ProviderSideDeletionRetention::RetainLocal,
+                    missing_remote_feed: ProviderSideDeletionRetention::DeleteLocal,
+                    missing_remote_folder: ProviderSideDeletionRetention::DeleteLocal,
                 },
                 ProviderOptimisticMutationConflictPolicy {
                     read_state: RemoteDeleteOptimisticMutationConflict::KeepPendingLocalMutation,
@@ -461,8 +461,8 @@ mod tests {
         assert_eq!(
             ProviderKind::FreshRss.deletion_retention_policy(),
             ProviderDeletionRetentionPolicy {
-                missing_remote_feed: ProviderSideDeletionRetention::RetainLocal,
-                missing_remote_folder: ProviderSideDeletionRetention::RetainLocal,
+                missing_remote_feed: ProviderSideDeletionRetention::DeleteLocal,
+                missing_remote_folder: ProviderSideDeletionRetention::DeleteLocal,
             }
         );
         assert_eq!(

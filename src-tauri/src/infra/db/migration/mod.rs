@@ -11,7 +11,8 @@ use crate::domain::error::{DomainError, DomainResult};
 use consts::{
     MIGRATION_V1, MIGRATION_V11, MIGRATION_V12, MIGRATION_V13, MIGRATION_V14, MIGRATION_V15,
     MIGRATION_V17, MIGRATION_V18, MIGRATION_V19, MIGRATION_V2, MIGRATION_V21, MIGRATION_V23,
-    MIGRATION_V3, MIGRATION_V4, MIGRATION_V5, MIGRATION_V6, MIGRATION_V7, MIGRATION_V9,
+    MIGRATION_V25, MIGRATION_V3, MIGRATION_V4, MIGRATION_V5, MIGRATION_V6, MIGRATION_V7,
+    MIGRATION_V9,
 };
 use repairs::{
     apply_v16_account_connection_verification, apply_v20_article_account_ordered_indexes,
@@ -38,7 +39,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 24;
+pub const LATEST_VERSION: i32 = 25;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -132,6 +133,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 24 {
         apply_v24_feed_icon_url(&tx)?;
+    }
+    if from_version < 25 {
+        tx.execute_batch(MIGRATION_V25)?;
     }
 
     let to_version = read_schema_version(&tx)?;

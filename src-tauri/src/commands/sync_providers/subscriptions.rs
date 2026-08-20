@@ -8,11 +8,14 @@ use crate::commands::feed_commands::lock_db;
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
+use crate::domain::provider::ProviderKind;
 use crate::domain::provider::RemoteSubscription;
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::repository::feed::FeedRepository;
+use crate::repository::folder::FolderRepository;
 
 pub(super) fn is_provider_managed_greader_feed(remote_id: Option<&str>) -> bool {
     remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
@@ -112,6 +115,34 @@ pub(super) fn delete_missing_greader_subscriptions(
         feed_repo.delete(&feed.id)?;
         deleted_count = deleted_count.saturating_add(1);
     }
+
+    Ok(deleted_count)
+}
+
+pub(super) fn delete_missing_greader_folders(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    remote_folder_ids: &HashSet<String>,
+) -> Result<usize, AppError> {
+    if account.kind != ProviderKind::FreshRss {
+        return Ok(0);
+    }
+
+    let db_guard = lock_db(db)?;
+    let folder_repo = SqliteFolderRepository::new(db_guard.writer());
+    let local_folders = folder_repo.find_by_account(&account.id)?;
+    let stale_folder_ids = local_folders
+        .into_iter()
+        .filter_map(|folder| {
+            let remote_id = folder.remote_id.as_deref()?;
+            if remote_id.trim().is_empty() || remote_folder_ids.contains(remote_id) {
+                return None;
+            }
+            Some(folder.id)
+        })
+        .collect::<Vec<_>>();
+    let deleted_count = stale_folder_ids.len();
+    folder_repo.detach_feeds_and_delete_many(&stale_folder_ids)?;
 
     Ok(deleted_count)
 }

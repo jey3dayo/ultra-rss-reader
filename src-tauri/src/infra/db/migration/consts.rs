@@ -41,6 +41,8 @@ pub(super) const MIGRATION_V23: &str =
 #[cfg(test)]
 pub(super) const MIGRATION_V24: &str =
     include_str!("../../../../migrations/V24__feed_icon_url.sql");
+pub(super) const MIGRATION_V25: &str =
+    include_str!("../../../../migrations/V25__folder_name_scope.sql");
 
 pub(super) const V8_READER_MODE_COLUMN: &str = "reader_mode";
 pub(super) const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";

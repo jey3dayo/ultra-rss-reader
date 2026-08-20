@@ -109,6 +109,7 @@ const MIGRATION_OWNER_BY_DESCRIPTION_PATTERN = [
   [/^reader_/, "reader"],
   [/^account_/, "accounts"],
   [/^local_account_sync_/, "local-account-sync"],
+  [/^folder_/, "folders"],
   [/^sync_/, "sync"],
   [/^reset_empty_freshrss_feed_sync_state$/, "sync"],
   [/^mute_/, "mute-keywords"],
@@ -1382,14 +1383,22 @@ describe("release repository contract", () => {
       "FreshRSS uses the GReader protocol with diagnostics label `freshrss-greader`",
     );
     expect(feedContentPrivacy).toContain("server product version detection is unsupported by the current GReader");
-    expect(feedContentPrivacy).toContain("FreshRSS through the GReader API retains local feeds and folders");
+    expect(feedContentPrivacy).toContain("FreshRSS subscription reconciliation removes provider-managed local feeds");
+    expect(feedContentPrivacy).toContain("This existing feed");
+    expect(feedContentPrivacy).toContain("deletion behavior is separate from folder reconciliation");
+    expect(feedContentPrivacy).toContain("after a successful complete folder snapshot");
+    expect(feedContentPrivacy).toContain("account; its feeds are detached");
+    expect(feedContentPrivacy).toContain("into the no-folder bucket and retained");
+    expect(feedContentPrivacy).toContain("A folder-fetch/auth/network failure does not");
     expect(feedContentPrivacy).toContain("HTTP 401 or 403 after reauthentication is an auth failure");
     expect(feedContentPrivacy).toContain(
       "A slow, failed, or retry-delayed account must not block another ready account",
     );
     expect(feedContentPrivacy).toContain("Partial success, all failed, scheduler suppression, and offline");
     expect(incidentRunbook).toContain("### Provider Sync Triage");
-    expect(incidentRunbook).toContain("Remote missing feeds or folders are not automatic local deletes for FreshRSS.");
+    expect(incidentRunbook).toContain("Existing FreshRSS subscription reconciliation removes provider-managed local");
+    expect(incidentRunbook).toContain("detached into the no-folder bucket");
+    expect(incidentRunbook).toContain("A folder-fetch or authentication/network failure does not delete");
     expect(releaseManualVerification).toContain("expired or rejected tokens surface as auth failure/backoff");
     expect(releaseManualVerification).toContain(
       "Partial sync success remains visible with matching freshness language",
@@ -2075,7 +2084,7 @@ describe("release repository contract", () => {
     expect(providerSource).toContain("supports_read_state_mutations");
     expect(providerSource).toContain("supports_star_state_mutations");
     expect(providerSource).toContain("optimistic_mutation_conflict_policy");
-    expect(providerSource).toContain("ProviderSideDeletionRetention::RetainLocal");
+    expect(providerSource).toContain("ProviderSideDeletionRetention::DeleteLocal");
     expect(feedContentPrivacy).toContain("### Provider Account Kind Migration Checklist");
     expect(feedContentPrivacy).toContain("Checklist template:");
     expect(feedContentPrivacy).toContain(
@@ -2167,6 +2176,7 @@ describe("release repository contract", () => {
       "V22__local_account_sync_export_state.sql",
       "V23__reset_empty_freshrss_feed_sync_state.sql",
       "V24__feed_icon_url.sql",
+      "V25__folder_name_scope.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

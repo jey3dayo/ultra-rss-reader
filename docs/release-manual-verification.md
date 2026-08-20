@@ -174,9 +174,12 @@ Confirm:
   expired or rejected tokens surface as auth failure/backoff instead of a
   background refresh loop.
 - Initial sync completes without manual DB cleanup.
-- Remote deletion of a FreshRSS feed or folder does not implicitly remove local
-  starred articles, pending read/star mutations, tags, history, or
-  OPML-exportable subscription metadata.
+- Existing FreshRSS subscription reconciliation removes provider-managed local
+  feeds missing from the remote subscription snapshot. Separately, remote
+  folder deletion removes the local folder only after a successful complete
+  folder snapshot and detaches its feeds into the no-folder bucket. Folder
+  cleanup does not remove local starred articles, pending read/star mutations,
+  tags, history, or OPML-exportable subscription metadata.
 - Many-account sync drains overdue accounts fairly, and one slow or
   retry-delayed account does not prevent another ready account from syncing on a
   later tick or manual sync.

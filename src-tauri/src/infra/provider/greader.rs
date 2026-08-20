@@ -753,19 +753,23 @@ impl FeedProvider for GReaderProvider {
             .and_then(Self::ensure_success_response)?;
         let resp: TagListResponse = Self::read_json_response(resp).await?;
 
-        let folders = resp
-            .tags
-            .into_iter()
-            .filter_map(|tag| {
-                normalize_label_remote_id(&tag.id, tag.label.as_deref()).map(|(remote_id, name)| {
-                    RemoteFolder {
-                        remote_id,
-                        name,
-                        sort_order: None,
-                    }
-                })
-            })
-            .collect();
+        let mut folders = Vec::with_capacity(resp.tags.len());
+        for tag in resp.tags {
+            if !tag.id.starts_with(LABEL_PREFIX) {
+                continue;
+            }
+            let (remote_id, name) = normalize_label_remote_id(&tag.id, tag.label.as_deref())
+                .ok_or_else(|| {
+                    DomainError::Parse(
+                        "FreshRSS folder snapshot contained an invalid label".to_string(),
+                    )
+                })?;
+            folders.push(RemoteFolder {
+                remote_id,
+                name,
+                sort_order: None,
+            });
+        }
 
         Ok(folders)
     }
@@ -1961,6 +1965,51 @@ mod tests {
         assert_eq!(folders[0].remote_id, "user/-/label/Tech");
         assert_eq!(folders[1].name, "News");
 
+        tag_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_folders_rejects_invalid_user_label_snapshot_instead_of_dropping_it() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let tag_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/tag/list?output=json")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "tags": [
+                        {"id": "user/-/state/com.google/starred"},
+                        {"id": "user/-/label/Bad%ZZ"},
+                        {"id": "user/-/label/Bad%2FName"},
+                        {"id": "user/-/label/%20%20"}
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let error = provider
+            .get_folders()
+            .await
+            .expect_err("invalid user label must fail the folder snapshot");
+
+        assert!(matches!(error, DomainError::Parse(message) if message.contains("invalid label")));
         tag_mock.assert_async().await;
     }
 

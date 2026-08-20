@@ -29,6 +29,7 @@ const FEED_TITLE_MAX_CHARS: usize = 200;
 const UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE: &str =
     "feed not found or folder does not belong to feed account";
 const FOLDER_NAME_UNIQUE_INDEX: &str = "idx_folders_account_name_nocase_unique";
+const FOLDER_LOCAL_NAME_UNIQUE_INDEX: &str = "idx_folders_account_local_name_nocase_unique";
 const FOLDER_SORT_ORDER_UNIQUE_INDEX: &str = "idx_folders_account_sort_order_unique";
 
 pub(super) fn lock_db(
@@ -74,7 +75,10 @@ fn validate_folder_name(name: &str, existing_names: &[String]) -> Result<String,
 
 fn classify_create_folder_persistence_error(error: DomainError, name: &str) -> AppError {
     match &error {
-        DomainError::Persistence(message) if message.contains(FOLDER_NAME_UNIQUE_INDEX) => {
+        DomainError::Persistence(message)
+            if message.contains(FOLDER_NAME_UNIQUE_INDEX)
+                || message.contains(FOLDER_LOCAL_NAME_UNIQUE_INDEX) =>
+        {
             AppError::UserVisible {
                 message: format!("Folder name \"{name}\" is already in use"),
             }
@@ -160,6 +164,7 @@ fn create_folder_in_db(
         &name,
         &existing
             .iter()
+            .filter(|folder| folder.remote_id.is_none())
             .map(|folder| folder.name.clone())
             .collect::<Vec<_>>(),
     )?;
@@ -947,11 +952,13 @@ mod tests {
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_account::SqliteAccountRepository;
     use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+    use crate::infra::db::sqlite_folder::SqliteFolderRepository;
     use crate::infra::keyring_store;
     use crate::infra::provider::local::LocalProvider;
     use crate::infra::provider::traits::{Credentials, FeedProvider};
     use crate::repository::account::AccountRepository;
     use crate::repository::feed::FeedRepository;
+    use crate::repository::folder::FolderRepository;
     use mockito::Matcher;
 
     const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -1961,6 +1968,43 @@ mod tests {
             .unwrap();
 
         assert_eq!(duplicate_order_count, 0);
+    }
+
+    #[test]
+    fn create_folder_allows_local_only_name_when_remote_folder_has_same_name() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, remote_id, name, sort_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    "remote-tech",
+                    account_id.0.clone(),
+                    "user/-/label/Tech",
+                    "Tech",
+                    0
+                ],
+            )
+            .unwrap();
+
+        let created = create_folder_in_db(&db, account_id.0.clone(), "Tech".to_string())
+            .expect("local-only folder should coexist with remote folder of same name");
+
+        assert_eq!(created.name, "Tech");
+        assert_eq!(created.sort_order, 1);
+        let folders = SqliteFolderRepository::new(db.reader())
+            .find_by_account(&account_id)
+            .unwrap();
+        assert_eq!(folders.len(), 2);
+        assert!(folders
+            .iter()
+            .any(|folder| folder.remote_id.as_deref() == Some("user/-/label/Tech")));
+        let local_folder = folders
+            .iter()
+            .find(|folder| folder.id.0 == created.id)
+            .expect("created local-only folder should be present");
+        assert!(local_folder.remote_id.is_none());
     }
 
     #[test]

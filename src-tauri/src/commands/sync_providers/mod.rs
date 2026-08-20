@@ -10,7 +10,7 @@ use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
-use crate::domain::provider::{FeedIdentifier, Mutation, PullScope};
+use crate::domain::provider::{FeedIdentifier, Mutation, PullScope, RemoteFolder};
 #[cfg(test)]
 use crate::domain::provider::{RemoteSubscription, SyncCursor};
 #[cfg(test)]
@@ -56,7 +56,8 @@ use state::{
 #[cfg(test)]
 use subscriptions::resolve_greader_subscription_folder_id;
 use subscriptions::{
-    delete_missing_greader_subscriptions, folder_name_case_key, is_provider_managed_greader_feed,
+    delete_missing_greader_folders, delete_missing_greader_subscriptions, folder_name_case_key,
+    is_provider_managed_greader_feed,
     pending_mutation_ids_targeting_provider_managed_greader_feeds,
     provider_managed_remote_feed_ids, resolve_greader_folder_sort_order,
     save_greader_subscriptions,
@@ -167,6 +168,17 @@ fn dropped_pending_mutation_warning(mutation_type: PendingMutationType) -> Provi
     }
 }
 
+fn deleted_greader_folders_warning(count: usize) -> ProviderSyncWarning {
+    ProviderSyncWarning {
+        kind: AccountSyncWarningKind::Generic,
+        message: format!(
+            "FreshRSS removed {count} folder(s) that no longer exist remotely; their feeds were moved to Uncategorized."
+        ),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
+}
+
 /// Read the current pending-mutation protection lists (read axis, star axis).
 ///
 /// Must be called inside the same DB lock as `apply_remote_state`: reading the
@@ -222,6 +234,61 @@ fn build_article_from_remote_entry(
     }
 }
 
+fn save_greader_folders_snapshot(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    remote_folders: &[RemoteFolder],
+) -> Result<HashSet<String>, AppError> {
+    let remote_folder_ids = remote_folders
+        .iter()
+        .filter(|folder| !folder.remote_id.trim().is_empty())
+        .map(|folder| folder.remote_id.clone())
+        .collect::<HashSet<_>>();
+    let db_guard = lock_db(db)?;
+    let folder_repo = SqliteFolderRepository::new(db_guard.writer());
+    let mut local_folders = folder_repo.find_by_account(&account.id)?;
+    let mut next_sort_order = local_folders
+        .iter()
+        .map(|folder| folder.sort_order)
+        .max()
+        .map_or(0, |sort_order| sort_order.saturating_add(1));
+
+    for rf in remote_folders {
+        let existing_remote_index = local_folders
+            .iter()
+            .position(|folder| folder.remote_id.as_deref() == Some(rf.remote_id.as_str()));
+        let existing_name_index = if existing_remote_index.is_none() {
+            let remote_name_key = folder_name_case_key(&rf.name);
+            local_folders.iter().position(|folder| {
+                folder.remote_id.is_some() && folder_name_case_key(&folder.name) == remote_name_key
+            })
+        } else {
+            None
+        };
+        let existing_index = existing_remote_index.or(existing_name_index);
+        let existing_folder = existing_index.and_then(|index| local_folders.get(index));
+        let sort_order =
+            resolve_greader_folder_sort_order(rf.sort_order, existing_folder, &mut next_sort_order);
+        let folder = Folder {
+            id: existing_folder
+                .map(|folder| folder.id.clone())
+                .unwrap_or_else(FolderId::new),
+            account_id: account.id.clone(),
+            remote_id: Some(rf.remote_id.clone()),
+            name: rf.name.clone(),
+            sort_order,
+        };
+        folder_repo.save(&folder)?;
+        if let Some(index) = existing_index {
+            local_folders[index] = folder;
+        } else {
+            local_folders.push(folder);
+        }
+    }
+
+    Ok(remote_folder_ids)
+}
+
 /// Sync a GReader-compatible account: authenticate, sync folders, subscriptions, entries, state, unread counts.
 pub(super) async fn sync_greader_account(
     db: &Mutex<DbManager>,
@@ -258,64 +325,37 @@ pub(super) async fn sync_greader_account(
         "FreshRSS sync phase completed"
     );
 
-    // Step 2: Sync folders
+    // Step 2: Sync folders. A successful get_folders response is a complete
+    // snapshot; stale folders are reconciled after the account sync succeeds.
     let folders_started_at = Instant::now();
     let remote_folders = provider.get_folders().await?;
-    {
-        let db_guard = lock_db(db)?;
-        let folder_repo = SqliteFolderRepository::new(db_guard.writer());
-        let mut local_folders = folder_repo.find_by_account(&account.id)?;
-        let mut next_sort_order = local_folders
-            .iter()
-            .map(|folder| folder.sort_order)
-            .max()
-            .map_or(0, |sort_order| sort_order.saturating_add(1));
-        for rf in &remote_folders {
-            let existing_remote_index = local_folders
-                .iter()
-                .position(|folder| folder.remote_id.as_deref() == Some(rf.remote_id.as_str()));
-            let existing_name_index = if existing_remote_index.is_none() {
-                let remote_name_key = folder_name_case_key(&rf.name);
-                local_folders
-                    .iter()
-                    .position(|folder| folder_name_case_key(&folder.name) == remote_name_key)
-            } else {
-                None
-            };
-            let existing_index = existing_remote_index.or(existing_name_index);
-            let existing_folder = existing_index.and_then(|index| local_folders.get(index));
-            let sort_order = resolve_greader_folder_sort_order(
-                rf.sort_order,
-                existing_folder,
-                &mut next_sort_order,
-            );
-            let folder = Folder {
-                id: existing_folder
-                    .map(|folder| folder.id.clone())
-                    .unwrap_or_else(FolderId::new),
-                account_id: account.id.clone(),
-                remote_id: Some(rf.remote_id.clone()),
-                name: rf.name.clone(),
-                sort_order,
-            };
-            folder_repo.save(&folder)?;
-            if let Some(index) = existing_index {
-                local_folders[index] = folder;
-            } else {
-                local_folders.push(folder);
-            }
-        }
-    }
+    let remote_folder_ids = save_greader_folders_snapshot(db, account, &remote_folders)?;
     info!(
         account_id = %account.id.as_ref(),
         account_name = %account.name,
         phase = "folders",
+        remote_folder_count = remote_folder_ids.len(),
         elapsed_ms = folders_started_at.elapsed().as_millis() as u64,
         "FreshRSS sync phase completed"
     );
 
     // Steps 3-7
-    let outcome = sync_greader_feeds(db, &provider, account).await?;
+    let mut outcome = sync_greader_feeds(db, &provider, account).await?;
+    let folder_cleanup_started_at = Instant::now();
+    let deleted_folder_count = delete_missing_greader_folders(db, account, &remote_folder_ids)?;
+    if deleted_folder_count > 0 {
+        outcome
+            .warnings
+            .insert(0, deleted_greader_folders_warning(deleted_folder_count));
+    }
+    info!(
+        account_id = %account.id.as_ref(),
+        account_name = %account.name,
+        phase = "folder_cleanup",
+        deleted_folder_count,
+        elapsed_ms = folder_cleanup_started_at.elapsed().as_millis() as u64,
+        "FreshRSS sync phase completed"
+    );
 
     info!(
         account_id = %account.id.as_ref(),
@@ -1207,6 +1247,410 @@ mod tests {
         assert!(feed_repo.find_by_id(&feeds[0].id).unwrap().is_some());
         assert!(feed_repo.find_by_id(&feeds[1].id).unwrap().is_none());
         assert!(feed_repo.find_by_id(&local_feed.id).unwrap().is_some());
+    }
+
+    #[test]
+    fn delete_missing_greader_folders_removes_stale_remote_folder_and_detaches_feeds() {
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, "https://rss.example.com");
+        let stale_folder = Folder {
+            id: FolderId::new(),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Stale".to_string()),
+            name: "Stale".to_string(),
+            sort_order: 0,
+        };
+        let local_only_folder = Folder {
+            id: FolderId::new(),
+            account_id: account.id.clone(),
+            remote_id: None,
+            name: "Local Only".to_string(),
+            sort_order: 1,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let folder_repo = SqliteFolderRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            folder_repo.save(&stale_folder).unwrap();
+            folder_repo.save(&local_only_folder).unwrap();
+            feed_repo
+                .update_folder(&feed.id, Some(&stale_folder.id))
+                .unwrap();
+        }
+
+        let deleted_count = delete_missing_greader_folders(&db, &account, &HashSet::new()).unwrap();
+
+        assert_eq!(deleted_count, 1);
+        let db_guard = db.lock().unwrap();
+        let folder_repo = SqliteFolderRepository::new(db_guard.reader());
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        assert!(folder_repo
+            .find_by_remote_id(&account.id, "user/-/label/Stale")
+            .unwrap()
+            .is_none());
+        assert!(folder_repo
+            .find_by_account(&account.id)
+            .unwrap()
+            .iter()
+            .any(|folder| folder.id == local_only_folder.id));
+        assert_eq!(
+            feed_repo.find_by_id(&feed.id).unwrap().unwrap().folder_id,
+            None
+        );
+    }
+
+    #[test]
+    fn greader_folder_lifecycle_keeps_same_name_local_folder_when_remote_folder_appears_and_disappears(
+    ) {
+        let db = test_db();
+        let (account, _) = insert_account_and_feed(&db, "https://rss.example.com");
+        let local_folder = Folder {
+            id: FolderId::new(),
+            account_id: account.id.clone(),
+            remote_id: None,
+            name: "Tech".to_string(),
+            sort_order: 0,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteFolderRepository::new(db_guard.writer())
+                .save(&local_folder)
+                .unwrap();
+        }
+
+        let remote_folder = RemoteFolder {
+            remote_id: "user/-/label/Tech".to_string(),
+            name: "Tech".to_string(),
+            sort_order: None,
+        };
+        let remote_folder_ids =
+            save_greader_folders_snapshot(&db, &account, std::slice::from_ref(&remote_folder))
+                .unwrap();
+
+        {
+            let db_guard = db.lock().unwrap();
+            let folders = SqliteFolderRepository::new(db_guard.reader())
+                .find_by_account(&account.id)
+                .unwrap();
+            assert_eq!(folders.len(), 2);
+            assert!(folders
+                .iter()
+                .any(|folder| folder.id == local_folder.id && folder.remote_id.is_none()));
+            assert!(folders.iter().any(|folder| {
+                folder.remote_id.as_deref() == Some(remote_folder.remote_id.as_str())
+            }));
+        }
+
+        assert_eq!(
+            delete_missing_greader_folders(&db, &account, &HashSet::new()).unwrap(),
+            1
+        );
+        let db_guard = db.lock().unwrap();
+        let folders = SqliteFolderRepository::new(db_guard.reader())
+            .find_by_account(&account.id)
+            .unwrap();
+        assert_eq!(folders.len(), 1);
+        assert_eq!(folders[0].id, local_folder.id);
+        assert!(folders[0].remote_id.is_none());
+        assert!(remote_folder_ids.contains(&remote_folder.remote_id));
+    }
+
+    #[test]
+    fn delete_missing_greader_folders_rolls_back_all_detaches_when_batch_transaction_fails() {
+        let db = test_db();
+        let (account, feed_a) = insert_account_and_feed(&db, "https://rss.example.com");
+        let feed_b = make_test_feed(
+            &account.id,
+            "feed/https://example.com/second.xml",
+            "Second Feed",
+            "https://example.com/second.xml",
+            "https://example.com",
+        );
+        let stale_folder_a = Folder {
+            id: FolderId("stale-folder-a".to_string()),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Stale A".to_string()),
+            name: "Stale A".to_string(),
+            sort_order: 0,
+        };
+        let stale_folder_b = Folder {
+            id: FolderId("stale-folder-b".to_string()),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Stale B".to_string()),
+            name: "Stale B".to_string(),
+            sort_order: 1,
+        };
+        let keep_folder = Folder {
+            id: FolderId("keep-folder".to_string()),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Keep".to_string()),
+            name: "Keep".to_string(),
+            sort_order: 2,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let folder_repo = SqliteFolderRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo.save(&feed_b).unwrap();
+            folder_repo.save(&stale_folder_a).unwrap();
+            folder_repo.save(&stale_folder_b).unwrap();
+            folder_repo.save(&keep_folder).unwrap();
+            feed_repo
+                .update_folder(&feed_a.id, Some(&stale_folder_a.id))
+                .unwrap();
+            feed_repo
+                .update_folder(&feed_b.id, Some(&stale_folder_b.id))
+                .unwrap();
+            db_guard
+                .writer()
+                .execute_batch(
+                    "CREATE TRIGGER fail_folder_keep_renumber
+                     BEFORE UPDATE OF sort_order ON folders
+                     WHEN OLD.id = 'keep-folder'
+                     BEGIN
+                       SELECT RAISE(ABORT, 'renumber failed');
+                     END;",
+                )
+                .unwrap();
+        }
+
+        let error = delete_missing_greader_folders(
+            &db,
+            &account,
+            &HashSet::from([keep_folder.remote_id.clone().unwrap()]),
+        )
+        .expect_err("batch folder cleanup should roll back on renumber failure");
+
+        assert!(error.to_string().contains("renumber failed"));
+        let db_guard = db.lock().unwrap();
+        let folder_repo = SqliteFolderRepository::new(db_guard.reader());
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        for (folder, feed) in [(&stale_folder_a, &feed_a), (&stale_folder_b, &feed_b)] {
+            assert!(folder_repo
+                .find_by_remote_id(&account.id, folder.remote_id.as_deref().unwrap())
+                .unwrap()
+                .is_some());
+            assert_eq!(
+                feed_repo.find_by_id(&feed.id).unwrap().unwrap().folder_id,
+                Some(folder.id.clone())
+            );
+        }
+    }
+
+    #[test]
+    fn delete_missing_greader_folders_isolated_by_account_and_provider_kind() {
+        let db = test_db();
+        let (account, _) = insert_account_and_feed(&db, "https://rss.example.com");
+        let other_account = test_account("https://other.example.com");
+        let local_account = test_local_account();
+        let stale_remote_id = "user/-/label/Stale";
+        {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            let folder_repo = SqliteFolderRepository::new(db_guard.writer());
+            account_repo.save(&other_account).unwrap();
+            account_repo.save(&local_account).unwrap();
+            for account_id in [&account.id, &other_account.id, &local_account.id] {
+                folder_repo
+                    .save(&Folder {
+                        id: FolderId::new(),
+                        account_id: account_id.clone(),
+                        remote_id: Some(stale_remote_id.to_string()),
+                        name: "Stale".to_string(),
+                        sort_order: 0,
+                    })
+                    .unwrap();
+            }
+        }
+
+        let deleted_count = delete_missing_greader_folders(&db, &account, &HashSet::new()).unwrap();
+
+        assert_eq!(deleted_count, 1);
+        let db_guard = db.lock().unwrap();
+        let folder_repo = SqliteFolderRepository::new(db_guard.reader());
+        assert!(folder_repo
+            .find_by_remote_id(&account.id, stale_remote_id)
+            .unwrap()
+            .is_none());
+        assert!(folder_repo
+            .find_by_remote_id(&other_account.id, stale_remote_id)
+            .unwrap()
+            .is_some());
+        assert!(folder_repo
+            .find_by_remote_id(&local_account.id, stale_remote_id)
+            .unwrap()
+            .is_some());
+    }
+
+    #[test]
+    fn deleted_greader_folders_warning_reports_cleanup_count_and_recovery_message() {
+        let warning = deleted_greader_folders_warning(2);
+
+        assert_eq!(warning.kind, AccountSyncWarningKind::Generic);
+        assert_eq!(
+            warning.message,
+            "FreshRSS removed 2 folder(s) that no longer exist remotely; their feeds were moved to Uncategorized."
+        );
+    }
+
+    #[tokio::test]
+    async fn sync_greader_account_keeps_stale_folder_when_folder_snapshot_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_provider_response(ProviderHttpResponseFixture::auth_token())
+            .create_async()
+            .await;
+        let folder_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/tag/list")
+            .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_provider_response(ProviderHttpResponseFixture::status(500))
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let account = test_account(&server.url());
+        let stale_folder = Folder {
+            id: FolderId::new(),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Stale".to_string()),
+            name: "Stale".to_string(),
+            sort_order: 0,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteAccountRepository::new(db_guard.writer())
+                .save(&account)
+                .unwrap();
+            SqliteFolderRepository::new(db_guard.writer())
+                .save(&stale_folder)
+                .unwrap();
+        }
+        let _credentials = configure_dev_credentials(&account.id).await;
+
+        let error =
+            sync_greader_account(&db, &account, GReaderProvider::for_freshrss(&server.url()))
+                .await
+                .expect_err("folder snapshot failure should fail sync before cleanup");
+
+        folder_mock.assert_async().await;
+        assert!(error.to_string().contains("500"));
+        let db_guard = db.lock().unwrap();
+        assert!(SqliteFolderRepository::new(db_guard.reader())
+            .find_by_remote_id(&account.id, "user/-/label/Stale")
+            .unwrap()
+            .is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_greader_account_keeps_stale_folder_when_folder_snapshot_is_malformed() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_provider_response(ProviderHttpResponseFixture::auth_token())
+            .create_async()
+            .await;
+        let folder_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/tag/list")
+            .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_provider_response(ProviderHttpResponseFixture::json(
+                r#"{ "tags": [{ "id": "user/-/label/Bad%ZZ" }] }"#,
+            ))
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let account = test_account(&server.url());
+        let stale_folder = Folder {
+            id: FolderId::new(),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Stale".to_string()),
+            name: "Stale".to_string(),
+            sort_order: 0,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteAccountRepository::new(db_guard.writer())
+                .save(&account)
+                .unwrap();
+            SqliteFolderRepository::new(db_guard.writer())
+                .save(&stale_folder)
+                .unwrap();
+        }
+        let _credentials = configure_dev_credentials(&account.id).await;
+
+        let error =
+            sync_greader_account(&db, &account, GReaderProvider::for_freshrss(&server.url()))
+                .await
+                .expect_err("malformed folder snapshot should fail before cleanup");
+
+        folder_mock.assert_async().await;
+        assert!(error.to_string().contains("invalid label"));
+        let db_guard = db.lock().unwrap();
+        assert!(SqliteFolderRepository::new(db_guard.reader())
+            .find_by_remote_id(&account.id, "user/-/label/Stale")
+            .unwrap()
+            .is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_greader_account_keeps_stale_folder_when_later_subscription_sync_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_provider_response(ProviderHttpResponseFixture::auth_token())
+            .create_async()
+            .await;
+        let folder_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/tag/list")
+            .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_provider_response(ProviderHttpResponseFixture::json(r#"{ "tags": [] }"#))
+            .create_async()
+            .await;
+        let subscription_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/subscription/list")
+            .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_provider_response(ProviderHttpResponseFixture::status(500))
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let account = test_account(&server.url());
+        let stale_folder = Folder {
+            id: FolderId::new(),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Stale".to_string()),
+            name: "Stale".to_string(),
+            sort_order: 0,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteAccountRepository::new(db_guard.writer())
+                .save(&account)
+                .unwrap();
+            SqliteFolderRepository::new(db_guard.writer())
+                .save(&stale_folder)
+                .unwrap();
+        }
+        let _credentials = configure_dev_credentials(&account.id).await;
+
+        let error =
+            sync_greader_account(&db, &account, GReaderProvider::for_freshrss(&server.url()))
+                .await
+                .expect_err("later subscription failure should leave stale folder untouched");
+
+        folder_mock.assert_async().await;
+        subscription_mock.assert_async().await;
+        assert!(error.to_string().contains("500"));
+        let db_guard = db.lock().unwrap();
+        assert!(SqliteFolderRepository::new(db_guard.reader())
+            .find_by_remote_id(&account.id, "user/-/label/Stale")
+            .unwrap()
+            .is_some());
     }
 
     #[test]
@@ -2254,6 +2698,19 @@ mod tests {
                 ),
             ],
         );
+        let stale_folder = Folder {
+            id: FolderId::new(),
+            account_id: account.id.clone(),
+            remote_id: Some("user/-/label/Stale".to_string()),
+            name: "Stale".to_string(),
+            sort_order: 0,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteFolderRepository::new(db_guard.writer())
+                .save(&stale_folder)
+                .unwrap();
+        }
         let _credentials = configure_dev_credentials(&account.id).await;
 
         let provider = GReaderProvider::for_freshrss(&server.url());
@@ -2266,6 +2723,7 @@ mod tests {
         let db_guard = db.lock().unwrap();
         let article_repo = SqliteArticleRepository::new(db_guard.reader());
         let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        let folder_repo = SqliteFolderRepository::new(db_guard.reader());
         let feed_one_articles = article_repo
             .find_by_feed(&feeds[0].id, &Pagination::default())
             .unwrap();
@@ -2275,7 +2733,15 @@ mod tests {
         let feed_one = feed_repo.find_by_id(&feeds[0].id).unwrap().unwrap();
         let feed_two = feed_repo.find_by_id(&feeds[1].id).unwrap().unwrap();
 
-        assert!(outcome.warnings.is_empty());
+        assert_eq!(outcome.warnings.len(), 1);
+        assert_eq!(
+            outcome.warnings[0].message,
+            "FreshRSS removed 1 folder(s) that no longer exist remotely; their feeds were moved to Uncategorized."
+        );
+        assert!(folder_repo
+            .find_by_remote_id(&account.id, "user/-/label/Stale")
+            .unwrap()
+            .is_none());
         assert_eq!(feed_one.icon.as_deref(), None);
         assert_eq!(feed_one_articles.len(), 1);
         assert_eq!(feed_two_articles.len(), 1);

@@ -524,14 +524,20 @@ Provider-side deletion retention contract:
 
 - Local accounts do not have a provider-side deletion source. Missing remote
   feed and folder retention is not applicable.
-- FreshRSS through the GReader API retains local feeds and folders when they are
-  missing from a remote subscription or folder snapshot. A missing remote feed
-  or folder must not delete local starred articles, pending read/star
-  mutations, tags, history, or OPML-exportable subscription metadata by
-  implication.
-- FreshRSS manual resubscribe may reconnect to retained local state only through
-  an explicit app flow or stable feed identity match. A normal sync must not
-  silently treat a remote deletion as a local unsubscribe confirmation.
+- FreshRSS subscription reconciliation removes provider-managed local feeds
+  that are missing from a remote subscription snapshot. This existing feed
+  deletion behavior is separate from folder reconciliation. A missing remote
+  folder is removed only after a successful complete folder snapshot for that
+  account; its feeds are detached into the no-folder bucket and retained
+  locally.
+- Removing a missing FreshRSS folder must not delete local feeds, starred
+  articles, pending read/star mutations, tags, history, or OPML-exportable
+  subscription metadata. Folder recovery is remote-first: restore the remote
+  category, then sync again. A folder-fetch/auth/network failure does not
+  trigger local folder deletion.
+- FreshRSS manual resubscribe may reconnect through an explicit app flow or
+  stable feed identity match. A normal sync must keep the existing subscription
+  deletion behavior separate from folder cleanup.
 - Quarantined accounts do not sync. Missing remote feed and folder retention is
   not applicable until the account is repaired into a concrete provider kind.
 

@@ -1,6 +1,6 @@
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::folder::Folder;
 use crate::domain::types::{AccountId, FolderId};
 use crate::repository::folder::FolderRepository;
@@ -17,13 +17,17 @@ impl<'a> SqliteFolderRepository<'a> {
     fn normalize_name_case_before_unique_index(&self) -> DomainResult<()> {
         let duplicate_groups = {
             let mut stmt = self.conn.prepare(
-                "SELECT account_id, lower(name)
+                "SELECT account_id, lower(name), remote_id IS NULL
                  FROM folders
-                 GROUP BY account_id, lower(name)
+                 GROUP BY account_id, lower(name), remote_id IS NULL
                  HAVING COUNT(*) > 1",
             )?;
             let rows = stmt.query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)? != 0,
+                ))
             })?;
             rows.collect::<Result<Vec<_>, _>>()?
         };
@@ -32,17 +36,19 @@ impl<'a> SqliteFolderRepository<'a> {
         }
 
         let tx = self.conn.unchecked_transaction()?;
-        for (account_id, name_key) in duplicate_groups {
+        for (account_id, name_key, local_only) in duplicate_groups {
             let duplicate_folders = {
                 let mut stmt = tx.prepare(
                     "SELECT folders.id, folders.remote_id, folders.sort_order, COUNT(feeds.id) AS feed_count
                      FROM folders
                      LEFT JOIN feeds ON feeds.folder_id = folders.id
-                     WHERE folders.account_id = ?1 AND lower(folders.name) = ?2
+                     WHERE folders.account_id = ?1
+                       AND lower(folders.name) = ?2
+                       AND (folders.remote_id IS NULL) = ?3
                      GROUP BY folders.id, folders.remote_id, folders.sort_order
                      ORDER BY feed_count DESC, folders.sort_order, folders.id",
                 )?;
-                let rows = stmt.query_map(params![account_id, name_key], |row| {
+                let rows = stmt.query_map(params![account_id, name_key, local_only], |row| {
                     Ok((
                         row.get::<_, String>(0)?,
                         row.get::<_, Option<String>>(1)?,
@@ -125,32 +131,102 @@ impl<'a> SqliteFolderRepository<'a> {
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_account_sort_order_unique
                ON folders(account_id, sort_order);
              CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_account_name_nocase_unique
-               ON folders(account_id, lower(name));",
+               ON folders(account_id, lower(name)) WHERE remote_id IS NOT NULL;
+             CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_account_local_name_nocase_unique
+               ON folders(account_id, lower(name)) WHERE remote_id IS NULL;",
         )?;
         Ok(())
     }
 
     fn ensure_name_case_contract(&self, folder: &Folder) -> DomainResult<()> {
         let incoming_name_key = folder_name_case_key(&folder.name);
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, name FROM folders WHERE account_id = ?1 AND id != ?2")?;
+        let mut stmt = self.conn.prepare(
+            "SELECT id, name, remote_id FROM folders WHERE account_id = ?1 AND id != ?2",
+        )?;
         let existing_folders = stmt
             .query_map(params![folder.account_id.0, folder.id.0], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
             })?
             .collect::<Result<Vec<_>, _>>()?;
 
-        if existing_folders
-            .iter()
-            .any(|(_, name)| folder_name_case_key(name) == incoming_name_key)
-        {
+        if existing_folders.iter().any(|(_, name, remote_id)| {
+            remote_id.is_some() == folder.remote_id.is_some()
+                && folder_name_case_key(name) == incoming_name_key
+        }) {
             return Err(crate::domain::error::DomainError::Validation(format!(
                 "Folder name already exists for account: {}",
                 folder.name
             )));
         }
 
+        Ok(())
+    }
+
+    pub fn detach_feeds_and_delete(&self, id: &FolderId) -> DomainResult<()> {
+        self.detach_feeds_and_delete_many(std::slice::from_ref(id))
+    }
+
+    pub fn detach_feeds_and_delete_many(&self, ids: &[FolderId]) -> DomainResult<()> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+
+        self.ensure_order_contract()?;
+        let tx = self.conn.unchecked_transaction()?;
+        let mut account_id: Option<String> = None;
+        for id in ids {
+            let folder_account_id = tx
+                .query_row(
+                    "SELECT account_id FROM folders WHERE id = ?1",
+                    params![id.0],
+                    |row| row.get::<_, String>(0),
+                )
+                .optional()?;
+            let Some(folder_account_id) = folder_account_id else {
+                continue;
+            };
+
+            if let Some(expected_account_id) = account_id.as_ref() {
+                if expected_account_id != &folder_account_id {
+                    return Err(DomainError::Validation(
+                        "folders must belong to the same account for batch deletion".to_string(),
+                    ));
+                }
+            } else {
+                account_id = Some(folder_account_id);
+            }
+
+            tx.execute(
+                "UPDATE feeds SET folder_id = NULL WHERE folder_id = ?1",
+                params![id.0],
+            )?;
+            tx.execute("DELETE FROM folders WHERE id = ?1", params![id.0])?;
+        }
+
+        if let Some(account_id) = account_id {
+            let folder_ids = {
+                let mut stmt = tx.prepare(
+                    "SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id",
+                )?;
+                let folder_ids = stmt
+                    .query_map(params![account_id], |row| row.get::<_, String>(0))?
+                    .collect::<Result<Vec<_>, _>>()?;
+                folder_ids
+            };
+
+            for (sort_order, folder_id) in folder_ids.iter().enumerate() {
+                tx.execute(
+                    "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
+                    params![sort_order as i32, folder_id],
+                )?;
+            }
+        }
+
+        tx.commit()?;
         Ok(())
     }
 }
@@ -204,39 +280,7 @@ impl FolderRepository for SqliteFolderRepository<'_> {
     }
 
     fn delete(&self, id: &FolderId) -> DomainResult<()> {
-        self.ensure_order_contract()?;
-        let tx = self.conn.unchecked_transaction()?;
-        let account_id = tx
-            .query_row(
-                "SELECT account_id FROM folders WHERE id = ?1",
-                params![id.0],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()?;
-
-        tx.execute("DELETE FROM folders WHERE id = ?1", params![id.0])?;
-
-        if let Some(account_id) = account_id {
-            let folder_ids = {
-                let mut stmt = tx.prepare(
-                    "SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id",
-                )?;
-                let folder_ids = stmt
-                    .query_map(params![account_id], |row| row.get::<_, String>(0))?
-                    .collect::<Result<Vec<_>, _>>()?;
-                folder_ids
-            };
-
-            for (sort_order, folder_id) in folder_ids.iter().enumerate() {
-                tx.execute(
-                    "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
-                    params![sort_order as i32, folder_id],
-                )?;
-            }
-        }
-
-        tx.commit()?;
-        Ok(())
+        self.detach_feeds_and_delete(id)
     }
 
     fn find_by_remote_id(
@@ -644,7 +688,7 @@ mod tests {
         assert_eq!(feed_folder_id, "folder-news-upper");
         db.reader()
             .execute(
-                "INSERT INTO folders (id, account_id, name, sort_order) VALUES ('folder-news-duplicate', ?1, 'NEWS', 3)",
+                "INSERT INTO folders (id, account_id, remote_id, name, sort_order) VALUES ('folder-news-duplicate', ?1, 'user/-/label/NEWS', 'NEWS', 3)",
                 params![account_id.as_ref()],
             )
             .expect_err("unique name index should be active after repair");
