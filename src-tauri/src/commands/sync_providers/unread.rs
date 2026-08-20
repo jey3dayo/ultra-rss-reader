@@ -7,10 +7,11 @@ use crate::domain::account::Account;
 use crate::domain::article::Article;
 use crate::domain::feed::Feed;
 use crate::domain::provider::SyncCursor;
+use crate::domain::types::FeedId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_conn;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
-use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::db::sqlite_feed::{unread_counts_for_feed_ids_with_conn, SqliteFeedRepository};
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::repository::article::ArticleRepository;
@@ -27,24 +28,27 @@ pub(super) async fn reconcile_greader_unread_counts(
     feeds: &[Feed],
     server_unread_counts: &HashMap<String, i32>,
 ) -> Result<usize, AppError> {
-    let mut backfilled_feeds = 0usize;
-    for feed in feeds {
-        let Some(remote_id) = feed.remote_id.as_deref() else {
-            continue;
-        };
-        if !is_provider_managed_greader_feed(Some(remote_id)) {
-            continue;
-        }
+    let target_feeds: Vec<&Feed> = feeds
+        .iter()
+        .filter(|feed| is_provider_managed_greader_feed(feed.remote_id.as_deref()))
+        .collect();
 
+    if target_feeds.is_empty() {
+        return Ok(0);
+    }
+
+    let target_feed_ids: Vec<FeedId> = target_feeds.iter().map(|feed| feed.id.clone()).collect();
+    let local_unread_counts = fetch_local_unread_counts(db, &target_feed_ids)?;
+
+    let mut backfilled_feeds = 0usize;
+    for feed in &target_feeds {
+        // Safe: target_feeds is filtered to feeds with a provider-managed remote_id above.
+        let remote_id = feed
+            .remote_id
+            .as_deref()
+            .expect("target_feeds only contains feeds with a remote_id");
         let server_unread_count = server_unread_counts.get(remote_id).copied().unwrap_or(0);
-        let local_unread_count = {
-            let db_guard = lock_db(db)?;
-            let feed_repo = SqliteFeedRepository::new(db_guard.reader());
-            feed_repo
-                .find_by_id(&feed.id)?
-                .map(|current_feed| current_feed.unread_count)
-                .unwrap_or(0)
-        };
+        let local_unread_count = local_unread_counts.get(&feed.id).copied().unwrap_or(0);
 
         if server_unread_count != local_unread_count {
             reconcile_greader_unread_state_for_feed(db, provider, account, feed).await?;
@@ -52,13 +56,29 @@ pub(super) async fn reconcile_greader_unread_counts(
                 backfilled_feeds += 1;
             }
         }
+    }
 
+    // Single batched recalculate for all target feeds instead of one lock_db
+    // round trip per feed (see quality audit #3: feed-count x2-3 lock acquisitions).
+    {
         let db_guard = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        feed_repo.recalculate_unread_count(&feed.id)?;
+        feed_repo.recalculate_unread_counts(&target_feed_ids)?;
     }
 
     Ok(backfilled_feeds)
+}
+
+fn fetch_local_unread_counts(
+    db: &Mutex<DbManager>,
+    feed_ids: &[FeedId],
+) -> Result<HashMap<FeedId, i32>, AppError> {
+    if feed_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let db_guard = lock_db(db)?;
+    unread_counts_for_feed_ids_with_conn(db_guard.reader(), feed_ids).map_err(AppError::from)
 }
 
 async fn reconcile_greader_unread_state_for_feed(
@@ -183,4 +203,145 @@ async fn fetch_greader_unread_entries_for_feed(
     }
 
     Ok(unread_remote_ids)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::account::ConnectionVerificationStatus;
+    use crate::domain::article::Article;
+    use crate::domain::provider::ProviderKind;
+    use crate::domain::types::{AccountId, ArticleId};
+    use crate::infra::db::sqlite_account::SqliteAccountRepository;
+    use crate::infra::sanitizer;
+    use crate::repository::account::AccountRepository;
+    use crate::repository::article::ArticleRepository;
+    use chrono::Utc;
+
+    fn test_db() -> Mutex<DbManager> {
+        Mutex::new(DbManager::new_in_memory().unwrap())
+    }
+
+    fn test_account() -> Account {
+        Account {
+            id: AccountId::new(),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: Some("http://localhost".to_string()),
+            username: Some("u".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        }
+    }
+
+    fn test_feed(account_id: &AccountId, remote_id: &str, url: &str) -> Feed {
+        Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: None,
+            remote_id: Some(remote_id.to_string()),
+            title: "Feed".to_string(),
+            url: url.to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            icon_url: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        }
+    }
+
+    fn test_article(feed_id: &FeedId, remote_id: &str, is_read: bool) -> Article {
+        let now = Utc::now();
+        Article {
+            id: ArticleId(format!("{}-{remote_id}", feed_id.0)),
+            feed_id: feed_id.clone(),
+            remote_id: Some(remote_id.to_string()),
+            title: "Article".to_string(),
+            content_raw: "body".to_string(),
+            content_sanitized: "body".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION,
+            summary: None,
+            url: None,
+            author: None,
+            published_at: now,
+            thumbnail: None,
+            is_read,
+            is_starred: false,
+            fetched_at: now,
+        }
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_counts_batch_recalculates_multiple_feeds_in_one_call() {
+        let db = test_db();
+        let account = test_account();
+        let feed_a = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let feed_b = test_feed(&account.id, "feed/b", "https://example.com/b.rss");
+
+        {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            account_repo.save(&account).unwrap();
+            feed_repo.save(&feed_a).unwrap();
+            feed_repo.save(&feed_b).unwrap();
+            // Two unread articles per feed, while feeds.unread_count stays at the
+            // stale default (0) until recalculation runs.
+            article_repo
+                .upsert(&[
+                    test_article(&feed_a.id, "a1", false),
+                    test_article(&feed_a.id, "a2", false),
+                    test_article(&feed_b.id, "b1", false),
+                    test_article(&feed_b.id, "b2", false),
+                ])
+                .unwrap();
+        }
+
+        // Server counts match the (stale) local column value of 0, so no per-feed
+        // reconciliation network call is triggered; only the final batch
+        // recalculate should run and correct the stored unread_count.
+        let server_unread_counts =
+            HashMap::from([("feed/a".to_string(), 0), ("feed/b".to_string(), 0)]);
+        let provider = GReaderProvider::for_freshrss("http://localhost");
+
+        let backfilled = reconcile_greader_unread_counts(
+            &db,
+            &provider,
+            &account,
+            &[feed_a.clone(), feed_b.clone()],
+            &server_unread_counts,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(backfilled, 0);
+
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        assert_eq!(
+            feed_repo
+                .find_by_id(&feed_a.id)
+                .unwrap()
+                .unwrap()
+                .unread_count,
+            2,
+            "feed A unread_count should be recalculated from its actual unread articles"
+        );
+        assert_eq!(
+            feed_repo
+                .find_by_id(&feed_b.id)
+                .unwrap()
+                .unwrap()
+                .unread_count,
+            2,
+            "feed B unread_count should be recalculated from its actual unread articles"
+        );
+    }
 }

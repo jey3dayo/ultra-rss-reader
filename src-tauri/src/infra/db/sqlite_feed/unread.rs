@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rusqlite::{params, Connection};
 
 use crate::domain::error::DomainResult;
@@ -88,4 +90,31 @@ pub(crate) fn recalculate_unread_counts_with_conn(
         conn.execute(&sql, rusqlite::params_from_iter(params))?;
     }
     Ok(())
+}
+
+pub(crate) fn unread_counts_for_feed_ids_with_conn(
+    conn: &Connection,
+    feed_ids: &[FeedId],
+) -> DomainResult<HashMap<FeedId, i32>> {
+    if feed_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let placeholders = std::iter::repeat_n("?", feed_ids.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let params: Vec<&dyn rusqlite::types::ToSql> = feed_ids
+        .iter()
+        .map(|id| &id.0 as &dyn rusqlite::types::ToSql)
+        .collect();
+
+    let sql = format!("SELECT id, unread_count FROM feeds WHERE id IN ({placeholders})");
+    let mut stmt = conn.prepare(&sql)?;
+    let counts = stmt
+        .query_map(rusqlite::params_from_iter(params), |row| {
+            Ok((FeedId(row.get::<_, String>(0)?), row.get::<_, i32>(1)?))
+        })?
+        .collect::<Result<HashMap<_, _>, _>>()?;
+
+    Ok(counts)
 }

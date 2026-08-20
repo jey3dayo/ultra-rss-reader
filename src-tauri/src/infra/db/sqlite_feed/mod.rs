@@ -14,7 +14,10 @@ mod mapping;
 mod unread;
 
 use mapping::{normalize_unread_count, row_to_feed};
-pub(crate) use unread::{recalculate_unread_count_with_conn, recalculate_unread_counts_with_conn};
+pub(crate) use unread::{
+    recalculate_unread_count_with_conn, recalculate_unread_counts_with_conn,
+    unread_counts_for_feed_ids_with_conn,
+};
 
 pub struct SqliteFeedRepository<'a> {
     conn: &'a Connection,
