@@ -5,3 +5,4 @@
 (D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (D) 2026-08-17 ProviderSyncWarning の i18n 対応(全て英語ハードコード) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/62
 (C) 2026-08-19 sync_providers/分割Phase3: 残るGReader orchestration本体(mod.rs, TOCTOU注意)とtests.rsの追分割検討。state/subscriptions/unreadは分離済み +refactor-file-split note:.plans/goofy-juggling-hare.md
+(C) 2026-08-21 sanitizer_version検索に複合INDEX追加(監査#6) +perf-db note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
