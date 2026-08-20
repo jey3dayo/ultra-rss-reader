@@ -40,12 +40,34 @@ pub(super) fn save_greader_subscriptions(
     sync_started_remote_feed_ids: &HashSet<String>,
 ) -> Result<(), AppError> {
     let db_guard = lock_db(db)?;
+
+    // Load all existing feeds for the account once and index them by
+    // remote_id / url in memory, instead of running a find_by_remote_id and
+    // find_by_url SELECT per remote subscription (N+1).
     let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+    let existing_feeds = feed_repo.find_by_account(&account.id)?;
+    let mut by_remote_id: HashMap<String, Feed> = HashMap::new();
+    let mut by_url: HashMap<String, Feed> = HashMap::new();
+    for feed in existing_feeds {
+        if let Some(remote_id) = feed.remote_id.clone() {
+            by_remote_id.insert(remote_id, feed.clone());
+        }
+        by_url.insert(feed.url.clone(), feed);
+    }
+
+    // Apply all upserts inside a single transaction so N feeds commit once
+    // instead of once per feed.
+    let tx = db_guard
+        .writer()
+        .unchecked_transaction()
+        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
+    let tx_feed_repo = SqliteFeedRepository::new(&tx);
+
     for rs in remote_subs {
-        let existing = match feed_repo.find_by_remote_id(&account.id, &rs.remote_id)? {
-            Some(feed) => Some(feed),
-            None => feed_repo.find_by_url(&account.id, &rs.url)?,
-        };
+        let existing = by_remote_id
+            .get(&rs.remote_id)
+            .cloned()
+            .or_else(|| by_url.get(&rs.url).cloned());
         if existing.is_none() && sync_started_remote_feed_ids.contains(&rs.remote_id) {
             continue;
         }
@@ -79,8 +101,19 @@ pub(super) fn save_greader_subscriptions(
                 .map(|f| f.web_preview_mode.clone())
                 .unwrap_or_else(|| "inherit".to_string()),
         };
-        feed_repo.save(&feed)?;
+        tx_feed_repo.save(&feed)?;
+        // Keep the in-memory indices in sync so a later remote subscription
+        // in the same batch (e.g. a URL that matches a feed just upserted)
+        // observes the update, matching the previous per-item read/write
+        // ordering.
+        if let Some(remote_id) = feed.remote_id.clone() {
+            by_remote_id.insert(remote_id, feed.clone());
+        }
+        by_url.insert(feed.url.clone(), feed);
     }
+
+    tx.commit()
+        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
     Ok(())
 }
 
