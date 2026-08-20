@@ -332,14 +332,16 @@ pub async fn rename_feed(
     feed_id: String,
     title: String,
 ) -> Result<(), AppError> {
-    rename_feed_with_remote_sync_boundary(&state.db, feed_id, title).await
+    rename_feed_with_remote_sync_boundary(&state.db, state.syncing.as_ref(), feed_id, title).await
 }
 
 async fn rename_feed_with_remote_sync_boundary(
     db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
     feed_id: String,
     title: String,
 ) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
     let title = validate_feed_title(&title)?;
     let feed_id_typed = FeedId(feed_id.clone());
     let feed = {
@@ -377,14 +379,22 @@ pub async fn update_feed_folder(
     feed_id: String,
     folder_id: Option<String>,
 ) -> Result<(), AppError> {
-    update_feed_folder_with_remote_sync_boundary(&state.db, feed_id, folder_id).await
+    update_feed_folder_with_remote_sync_boundary(
+        &state.db,
+        state.syncing.as_ref(),
+        feed_id,
+        folder_id,
+    )
+    .await
 }
 
 async fn update_feed_folder_with_remote_sync_boundary(
     db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
     feed_id: String,
     folder_id: Option<String>,
 ) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
     let feed_id_typed = FeedId(feed_id.clone());
     let feed = {
         let db = lock_db(db)?;
@@ -1513,6 +1523,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rename_feed_command_rejects_while_sync_boundary_is_busy() {
+        let db = Mutex::new(test_db());
+        let syncing = AtomicBool::new(true);
+
+        let error = rename_feed_with_remote_sync_boundary(
+            &db,
+            &syncing,
+            "missing-feed".to_string(),
+            "Renamed Feed".to_string(),
+        )
+        .await
+        .expect_err("feed rename should not run while sync boundary is busy");
+
+        assert!(matches!(error, AppError::UserVisible { .. }));
+        assert!(syncing.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
     async fn rename_feed_command_pushes_title_to_freshrss_before_local_write() {
         let mut server = mockito::Server::new_async().await;
         server
@@ -1545,10 +1573,16 @@ mod tests {
             insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
         };
         let _credentials = configure_dev_credentials(&account_id).await;
+        let syncing = AtomicBool::new(false);
 
-        rename_feed_with_remote_sync_boundary(&db, feed_id.0.clone(), "Renamed Feed".to_string())
-            .await
-            .expect("FreshRSS rename should push the new title before the local write");
+        rename_feed_with_remote_sync_boundary(
+            &db,
+            &syncing,
+            feed_id.0.clone(),
+            "Renamed Feed".to_string(),
+        )
+        .await
+        .expect("FreshRSS rename should push the new title before the local write");
 
         edit_mock.assert_async().await;
         let guard = db.lock().unwrap();
@@ -1583,9 +1617,11 @@ mod tests {
             insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
         };
         let _credentials = configure_dev_credentials(&account_id).await;
+        let syncing = AtomicBool::new(false);
 
         let error = rename_feed_with_remote_sync_boundary(
             &db,
+            &syncing,
             feed_id.0.clone(),
             "Renamed Feed".to_string(),
         )
@@ -1611,9 +1647,15 @@ mod tests {
             insert_test_feed(&guard, &account_id)
         };
 
-        rename_feed_with_remote_sync_boundary(&db, feed_id.0.clone(), "Renamed Feed".to_string())
-            .await
-            .expect("local account rename should not require a remote provider");
+        let syncing = AtomicBool::new(false);
+        rename_feed_with_remote_sync_boundary(
+            &db,
+            &syncing,
+            feed_id.0.clone(),
+            "Renamed Feed".to_string(),
+        )
+        .await
+        .expect("local account rename should not require a remote provider");
 
         let guard = db.lock().unwrap();
         let feed_repo = SqliteFeedRepository::new(guard.reader());
@@ -1640,6 +1682,24 @@ mod tests {
             error,
             AppError::UserVisible { message } if message == "Feed not found"
         ));
+    }
+
+    #[tokio::test]
+    async fn update_feed_folder_command_rejects_while_sync_boundary_is_busy() {
+        let db = Mutex::new(test_db());
+        let syncing = AtomicBool::new(true);
+
+        let error = update_feed_folder_with_remote_sync_boundary(
+            &db,
+            &syncing,
+            "missing-feed".to_string(),
+            None,
+        )
+        .await
+        .expect_err("feed folder move should not run while sync boundary is busy");
+
+        assert!(matches!(error, AppError::UserVisible { .. }));
+        assert!(syncing.load(Ordering::SeqCst));
     }
 
     #[test]
@@ -1770,9 +1830,11 @@ mod tests {
                 .unwrap();
         }
         let _credentials = configure_dev_credentials(&account_id).await;
+        let syncing = AtomicBool::new(false);
 
         update_feed_folder_with_remote_sync_boundary(
             &db,
+            &syncing,
             feed_id.0.clone(),
             Some(new_folder_id.0.clone()),
         )
@@ -1823,9 +1885,11 @@ mod tests {
                 .unwrap();
         }
         let _credentials = configure_dev_credentials(&account_id).await;
+        let syncing = AtomicBool::new(false);
 
         update_feed_folder_with_remote_sync_boundary(
             &db,
+            &syncing,
             feed_id.0.clone(),
             Some(new_folder_id.0.clone()),
         )
@@ -1861,8 +1925,10 @@ mod tests {
                 .unwrap();
         }
 
+        let syncing = AtomicBool::new(false);
         update_feed_folder_with_remote_sync_boundary(
             &db,
+            &syncing,
             feed_id.0.clone(),
             Some(folder_id.0.clone()),
         )
