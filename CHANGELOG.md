@@ -13,6 +13,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 ### Maintenance
 
 - FreshRSS同期の未読照合と購読反映を一括処理化し、フィード数に比例したDBアクセスとコミット回数を削減した。
+- 記事のsanitizer_version backfill検索用の複合INDEXを追加した(DBスキーマ v26)。このバージョンへ更新後は旧バージョンへのダウングレード起動がブロックされる。
 
 ### Documentation
 
