@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.57.2] - 2026-08-21
+
+### Bug Fixes
+
+- FreshRSSで削除済みのカテゴリを成功同期後に整理し、所属フィードを未分類へ移すようにした。ローカル専用カテゴリや記事・スター等のローカルデータは保持する。
+- Microsoft Store向けMSIX manifestのバージョンをアプリ本体と同期した。
+
+### Maintenance
+
+- 依存関係とワークスペースのリリース年齢除外を更新した。
+
 ## [0.57.1] - 2026-08-20
 
 ### Bug Fixes
