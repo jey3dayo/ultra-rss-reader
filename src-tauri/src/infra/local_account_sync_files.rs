@@ -1,10 +1,27 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use tracing::warn;
+
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::local_account_sync::{
     operation_file, parse_operation_file, LocalAccountSyncOperation, LocalSyncDeviceId,
 };
+
+/// Recursion depth limit for scanning the local sync operation directory tree.
+///
+/// The expected shape is `<account_root>/ops/<device_id>/*.json`, which is only
+/// 2 levels deep from the account root. 16 gives generous headroom for
+/// unexpected nesting while still bounding stack usage against pathological or
+/// adversarial directory trees (e.g. deeply nested or cyclical structures).
+const MAX_LOCAL_SYNC_SCAN_DEPTH: usize = 16;
+
+/// Maximum size accepted for a single local sync operation JSON file.
+///
+/// Real operation files are tiny JSON documents (well under a few KB). 32 MiB
+/// is generous headroom that still prevents an oversized file from being
+/// fully loaded into memory via `fs::read_to_string`.
+const MAX_LOCAL_SYNC_OPERATION_FILE_BYTES: u64 = 32 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalSyncLoadReport {
@@ -24,6 +41,15 @@ pub enum LocalSyncFileRejectReason {
     ParseError,
     UnsupportedSchemaVersion,
     PartialTemporaryFile,
+    /// Entry is a symlink (file or directory); skipped to avoid following
+    /// links outside the account root or into a cycle.
+    SymlinkSkipped,
+    /// Directory recursion reached `MAX_LOCAL_SYNC_SCAN_DEPTH`; the subtree
+    /// was not scanned further.
+    MaxDepthExceeded,
+    /// Operation JSON file exceeded `MAX_LOCAL_SYNC_OPERATION_FILE_BYTES` and
+    /// was not read into memory.
+    FileTooLarge,
 }
 
 pub fn local_sync_operation_path(
@@ -158,7 +184,7 @@ pub fn load_local_sync_operation_dir(dir: &Path) -> DomainResult<LocalSyncLoadRe
     if !dir.exists() {
         return Ok(report);
     }
-    load_local_sync_operation_dir_inner(dir, &mut report)?;
+    load_local_sync_operation_dir_inner(dir, &mut report, 0)?;
     report.operations.sort_by(|left, right| {
         left.occurred_at
             .cmp(&right.occurred_at)
@@ -182,6 +208,7 @@ pub fn is_local_sync_conflicted_copy(path: &Path) -> bool {
 fn load_local_sync_operation_dir_inner(
     dir: &Path,
     report: &mut LocalSyncLoadReport,
+    depth: usize,
 ) -> DomainResult<()> {
     for entry in fs::read_dir(dir).map_err(|error| {
         DomainError::Persistence(format!(
@@ -195,8 +222,40 @@ fn load_local_sync_operation_dir_inner(
             ))
         })?;
         let path = entry.path();
-        if path.is_dir() {
-            load_local_sync_operation_dir_inner(&path, report)?;
+
+        let file_type = entry.file_type().map_err(|error| {
+            DomainError::Persistence(format!(
+                "Failed to read local sync directory entry type {}: {error}",
+                redacted_sync_path_label(&path)
+            ))
+        })?;
+
+        if file_type.is_symlink() {
+            warn!(
+                path = %redacted_sync_path_label(&path),
+                "Skipping symlinked entry while scanning local sync operation directory"
+            );
+            report.rejected_files.push(RejectedLocalSyncFile {
+                path,
+                reason: LocalSyncFileRejectReason::SymlinkSkipped,
+            });
+            continue;
+        }
+
+        if file_type.is_dir() {
+            if depth >= MAX_LOCAL_SYNC_SCAN_DEPTH {
+                warn!(
+                    path = %redacted_sync_path_label(&path),
+                    depth,
+                    "Skipping local sync operation subdirectory beyond max scan depth"
+                );
+                report.rejected_files.push(RejectedLocalSyncFile {
+                    path,
+                    reason: LocalSyncFileRejectReason::MaxDepthExceeded,
+                });
+                continue;
+            }
+            load_local_sync_operation_dir_inner(&path, report, depth + 1)?;
             continue;
         }
         if is_local_sync_conflicted_copy(&path) {
@@ -218,7 +277,17 @@ fn load_local_sync_operation_dir_inner(
         }
 
         match read_local_sync_operation_file(&path) {
-            Ok(operation) => report.operations.push(operation),
+            Ok(Some(operation)) => report.operations.push(operation),
+            Ok(None) => {
+                warn!(
+                    path = %redacted_sync_path_label(&path),
+                    "Skipping oversized local sync operation file"
+                );
+                report.rejected_files.push(RejectedLocalSyncFile {
+                    path,
+                    reason: LocalSyncFileRejectReason::FileTooLarge,
+                });
+            }
             Err(error) => {
                 let reason = if error
                     .to_string()
@@ -237,14 +306,29 @@ fn load_local_sync_operation_dir_inner(
     Ok(())
 }
 
-fn read_local_sync_operation_file(path: &Path) -> DomainResult<LocalAccountSyncOperation> {
+/// Reads and parses a local sync operation JSON file.
+///
+/// Returns `Ok(None)` when the file exceeds `MAX_LOCAL_SYNC_OPERATION_FILE_BYTES`
+/// so the caller can record it as a skipped/rejected file instead of loading
+/// an attacker-sized file fully into memory.
+fn read_local_sync_operation_file(path: &Path) -> DomainResult<Option<LocalAccountSyncOperation>> {
+    let metadata = fs::metadata(path).map_err(|error| {
+        DomainError::Persistence(format!(
+            "Failed to read local sync operation file metadata {}: {error}",
+            redacted_sync_path_label(path)
+        ))
+    })?;
+    if metadata.len() > MAX_LOCAL_SYNC_OPERATION_FILE_BYTES {
+        return Ok(None);
+    }
+
     let content = fs::read_to_string(path).map_err(|error| {
         DomainError::Persistence(format!(
             "Failed to read local sync operation file {}: {error}",
             redacted_sync_path_label(path)
         ))
     })?;
-    parse_operation_file(&content).map(|file| file.operation)
+    parse_operation_file(&content).map(|file| Some(file.operation))
 }
 
 fn validated_device_dir_name(device_id: &LocalSyncDeviceId) -> DomainResult<&str> {
@@ -422,5 +506,102 @@ mod tests {
 
         assert_eq!(report.conflicted_candidates.len(), 1);
         assert_eq!(report.rejected_files.len(), 1);
+    }
+
+    #[test]
+    fn scan_stops_recursing_beyond_max_depth_without_panicking() {
+        let dir = tempfile::tempdir().unwrap();
+        let account_root = dir.path();
+
+        // Build a chain nested deeper than MAX_LOCAL_SYNC_SCAN_DEPTH.
+        let mut current = account_root.to_path_buf();
+        for level in 0..(MAX_LOCAL_SYNC_SCAN_DEPTH + 4) {
+            current = current.join(format!("level-{level}"));
+            fs::create_dir_all(&current).unwrap();
+            if level == 2 {
+                // Within the depth limit: should still be scanned.
+                fs::write(
+                    current.join("00000001.json"),
+                    serde_json::to_string(&operation_file(operation("op-within-limit"))).unwrap(),
+                )
+                .unwrap();
+            }
+        }
+        // Deepest file, beyond the depth limit: should be skipped.
+        fs::write(
+            current.join("00000002.json"),
+            serde_json::to_string(&operation_file(operation("op-beyond-limit"))).unwrap(),
+        )
+        .unwrap();
+
+        let report = load_local_sync_operation_dir(account_root)
+            .expect("scan should complete without panicking or erroring");
+
+        assert_eq!(report.operations.len(), 1);
+        assert_eq!(
+            report.operations[0].operation_id,
+            LocalSyncOperationId("op-within-limit".to_string())
+        );
+        assert!(report
+            .rejected_files
+            .iter()
+            .any(|file| file.reason == LocalSyncFileRejectReason::MaxDepthExceeded));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn scan_skips_symlinked_entries_without_following_them() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        let account_root = dir.path();
+        let op_dir = account_root.join("ops").join("device-a");
+        fs::create_dir_all(&op_dir).unwrap();
+        fs::write(
+            op_dir.join("00000001.json"),
+            serde_json::to_string(&operation_file(operation("op-real"))).unwrap(),
+        )
+        .unwrap();
+
+        // A symlinked directory pointing back at the account root, which
+        // would cause infinite recursion if followed.
+        symlink(account_root, op_dir.join("loop-link")).unwrap();
+
+        let report = load_local_sync_operation_dir(account_root)
+            .expect("scan should complete without following the symlink");
+
+        assert_eq!(report.operations.len(), 1);
+        assert!(report.rejected_files.iter().any(|file| file.reason
+            == LocalSyncFileRejectReason::SymlinkSkipped
+            && file.path.file_name().and_then(|name| name.to_str()) == Some("loop-link")));
+    }
+
+    #[test]
+    fn scan_skips_oversized_operation_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let account_root = dir.path();
+        let op_dir = account_root.join("ops").join("device-a");
+        fs::create_dir_all(&op_dir).unwrap();
+
+        fs::write(
+            op_dir.join("00000001.json"),
+            serde_json::to_string(&operation_file(operation("op-normal"))).unwrap(),
+        )
+        .unwrap();
+
+        let oversized = vec![b'a'; (MAX_LOCAL_SYNC_OPERATION_FILE_BYTES + 1) as usize];
+        fs::write(op_dir.join("00000002.json"), &oversized).unwrap();
+
+        let report = load_local_sync_operation_dir(account_root).unwrap();
+
+        assert_eq!(report.operations.len(), 1);
+        assert_eq!(
+            report.operations[0].operation_id,
+            LocalSyncOperationId("op-normal".to_string())
+        );
+        assert!(report
+            .rejected_files
+            .iter()
+            .any(|file| file.reason == LocalSyncFileRejectReason::FileTooLarge));
     }
 }
