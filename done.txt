@@ -16,3 +16,4 @@ x 2026-08-21 2026-08-21 未読照合のfeed毎SELECT+COUNTを一括recalculate�
 x 2026-08-21 2026-08-21 購読同期N+1のバッチ化(監査#9、#3の後) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
 x 2026-08-21 2026-08-21 local sync走査に深さ/symlink/サイズ上限(監査#10) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
 x 2026-08-21 2026-08-21 CONTRIBUTING service/表・dotenvx矛盾・hooks:install追記(監査#7+#8) +docs note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+x 2026-08-21 2026-08-21 sanitizer_version検索に複合INDEX追加(監査#6) +perf-db note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
