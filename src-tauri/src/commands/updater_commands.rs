@@ -31,7 +31,64 @@ pub(crate) struct PendingUpdateHandle {
 /// Cached update handle from the last successful check. The version/source
 /// metadata is verified again before install so a stale handle cannot be used
 /// after a later check cleared or replaced the pending update.
-pub struct PendingUpdate(pub(crate) Arc<Mutex<Option<PendingUpdateHandle>>>);
+pub struct PendingUpdate(Arc<Mutex<PendingUpdateSlot<PendingUpdateHandle>>>);
+
+impl Default for PendingUpdate {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(PendingUpdateSlot::default())))
+    }
+}
+
+struct PendingUpdateSlot<T> {
+    generation: u64,
+    value: Option<T>,
+}
+
+impl<T> Default for PendingUpdateSlot<T> {
+    fn default() -> Self {
+        Self {
+            generation: 0,
+            value: None,
+        }
+    }
+}
+
+impl<T> PendingUpdateSlot<T> {
+    #[cfg(test)]
+    fn with_value(value: Option<T>) -> Self {
+        Self {
+            generation: 0,
+            value,
+        }
+    }
+
+    fn advance_generation(&mut self) {
+        self.generation = self.generation.wrapping_add(1);
+    }
+
+    fn clear(&mut self) {
+        self.replace(None);
+    }
+
+    fn replace(&mut self, value: Option<T>) {
+        self.advance_generation();
+        self.value = value;
+    }
+
+    fn take(&mut self) -> (u64, Option<T>) {
+        self.advance_generation();
+        (self.generation, self.value.take())
+    }
+
+    fn restore_if_unchanged(&mut self, take_generation: u64, value: T) -> bool {
+        if self.generation != take_generation {
+            return false;
+        }
+
+        self.replace(Some(value));
+        true
+    }
+}
 
 pub(crate) fn is_updater_manual_check_configured(config: &Config) -> bool {
     let Some(updater_config) = config.plugins.0.get("updater") else {
@@ -55,10 +112,6 @@ pub(crate) fn is_updater_manual_check_configured(config: &Config) -> bool {
         .is_some_and(|pubkey| !pubkey.trim().is_empty());
 
     has_endpoint && has_pubkey
-}
-
-fn clear_pending_update<T>(pending: &mut Option<T>) {
-    *pending = None;
 }
 
 struct DownloadGuard {
@@ -151,25 +204,36 @@ pub async fn restart_app(app: AppHandle) -> Result<(), AppError> {
     // where the sync/maintenance guard was busy when the download finished.
     // After a macOS immediate install there is nothing pending here.
     let pending = app.state::<PendingUpdate>();
-    let pending_update = pending.0.lock().await.take();
+    let (take_generation, pending_update) = pending.0.lock().await.take();
     if let Some(pending_update) = pending_update {
-        if let Some(bytes) = pending_update.downloaded_bytes {
-            let update = pending_update.update;
-            if !pending_update_metadata_matches(
+        if let Some(bytes) = pending_update.downloaded_bytes.as_ref() {
+            let install_result = if !pending_update_metadata_matches(
                 &pending_update.version,
                 &pending_update.source,
-                &update,
+                &pending_update.update,
             ) {
-                return Err(AppError::UserVisible {
+                Err(AppError::UserVisible {
                     message: "Pending update handle changed before install".to_string(),
-                });
+                })
+            } else if let Some(message) = update_policy_error(&pending_update.update) {
+                Err(AppError::UserVisible { message })
+            } else {
+                pending_update
+                    .update
+                    .install(bytes)
+                    .map_err(|e| AppError::UserVisible {
+                        message: format!("Failed to install update: {e}"),
+                    })
+            };
+
+            if let Err(error) = install_result {
+                pending
+                    .0
+                    .lock()
+                    .await
+                    .restore_if_unchanged(take_generation, pending_update);
+                return Err(error);
             }
-            if let Some(message) = update_policy_error(&update) {
-                return Err(AppError::UserVisible { message });
-            }
-            update.install(bytes).map_err(|e| AppError::UserVisible {
-                message: format!("Failed to install update: {e}"),
-            })?;
         }
     }
 
@@ -368,7 +432,7 @@ fn updater_endpoint_error_message(error: impl std::fmt::Display) -> String {
 #[tauri::command]
 pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppError> {
     let pending = app.state::<PendingUpdate>();
-    clear_pending_update(&mut *pending.0.lock().await);
+    pending.0.lock().await.clear();
 
     // Store builds ship with empty updater endpoints/pubkey (updater disabled).
     // Skip the check instead of letting the plugin surface an EmptyEndpoints
@@ -400,7 +464,11 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
     let info = update.as_ref().map(make_update_info);
 
     // Cache the update handle for download_update
-    *pending.0.lock().await = update.map(make_pending_update_handle);
+    pending
+        .0
+        .lock()
+        .await
+        .replace(update.map(make_pending_update_handle));
 
     Ok(info)
 }
@@ -424,7 +492,7 @@ async fn do_download_update(
 ) -> Result<(), AppError> {
     // Take the cached update handle, falling back to a fresh check if empty
     let pending = app.state::<PendingUpdate>();
-    let update = {
+    let (_, update) = {
         let mut guard = pending.0.lock().await;
         guard.take()
     };
@@ -508,12 +576,12 @@ async fn do_download_update(
                 })?;
             }
             PostDownloadInstall::DeferUntilRestart => {
-                *pending.0.lock().await = Some(PendingUpdateHandle {
+                pending.0.lock().await.replace(Some(PendingUpdateHandle {
                     version: pending_update.version,
                     source: pending_update.source,
                     update,
                     downloaded_bytes: Some(bytes),
-                });
+                }));
             }
         }
         emit_update_event_log_only(app, "update-ready", UpdateReady { session_id });
@@ -522,12 +590,12 @@ async fn do_download_update(
     #[cfg(not(target_os = "macos"))]
     {
         // Defer install until the user requests a restart (see `restart_app`).
-        *pending.0.lock().await = Some(PendingUpdateHandle {
+        pending.0.lock().await.replace(Some(PendingUpdateHandle {
             version: pending_update.version,
             source: pending_update.source,
             update,
             downloaded_bytes: Some(bytes),
-        });
+        }));
         emit_update_event_log_only(app, "update-ready", UpdateReady { session_id });
     }
 
@@ -557,30 +625,74 @@ mod tests {
     use std::panic;
 
     use super::{
-        clear_pending_update, is_prerelease_version, is_strictly_newer_version,
-        is_update_download_in_flight, is_updater_manual_check_configured,
-        next_download_progress_percent, next_download_session_id, parse_semantic_version_parts,
+        is_prerelease_version, is_strictly_newer_version, is_update_download_in_flight,
+        is_updater_manual_check_configured, next_download_progress_percent,
+        next_download_session_id, parse_semantic_version_parts,
         pending_update_metadata_matches_parts, resolve_post_download_install,
         update_event_emit_warning, update_policy_error_parts, updater_endpoint_error_message,
-        updater_initialization_error_message, DownloadGuard, PostDownloadInstall, SyncInstallGuard,
-        ACTIVE_DOWNLOAD_SESSION_ID, DOWNLOADING, DOWNLOAD_SESSION_ID,
+        updater_initialization_error_message, DownloadGuard, PendingUpdateSlot,
+        PostDownloadInstall, SyncInstallGuard, ACTIVE_DOWNLOAD_SESSION_ID, DOWNLOADING,
+        DOWNLOAD_SESSION_ID,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
     use std::sync::Mutex as StdMutex;
-    use tauri::utils::config::{Config, Updater};
+    use tauri::utils::config::Config;
 
     static UPDATER_COMMAND_TEST_LOCK: StdMutex<()> = StdMutex::new(());
 
     #[test]
-    fn clear_pending_update_drops_stale_cached_update_before_runtime_check() {
-        let mut pending = Some("stale-update");
+    fn pending_update_restores_after_a_take_when_no_newer_state_exists() {
+        let mut pending = PendingUpdateSlot::with_value(Some("original-update"));
+        let (take_generation, taken) = pending.take();
 
-        clear_pending_update(&mut pending);
+        assert!(pending.restore_if_unchanged(take_generation, taken.expect("fixture value")));
 
-        assert_eq!(pending, None);
+        let (_, restored) = pending.take();
+        assert_eq!(restored, Some("original-update"));
+    }
+
+    #[test]
+    fn pending_update_does_not_restore_after_a_concurrent_take() {
+        let mut pending = PendingUpdateSlot::with_value(Some("original-update"));
+        let (restart_generation, taken) = pending.take();
+
+        let (download_generation, downloaded) = pending.take();
+
+        assert_ne!(restart_generation, download_generation);
+        assert_eq!(downloaded, None);
+        assert!(!pending.restore_if_unchanged(restart_generation, taken.expect("fixture value")));
+
+        let (_, current) = pending.take();
+        assert_eq!(current, None);
+    }
+
+    #[test]
+    fn pending_update_does_not_restore_after_a_clear() {
+        let mut pending = PendingUpdateSlot::with_value(Some("original-update"));
+        let (take_generation, taken) = pending.take();
+
+        pending.clear();
+
+        assert!(!pending.restore_if_unchanged(take_generation, taken.expect("fixture value")));
+
+        let (_, current) = pending.take();
+        assert_eq!(current, None);
+    }
+
+    #[test]
+    fn pending_update_does_not_restore_over_a_replacement() {
+        let mut pending = PendingUpdateSlot::with_value(Some("original-update"));
+        let (take_generation, taken) = pending.take();
+
+        pending.replace(Some("newer-update"));
+
+        assert!(!pending.restore_if_unchanged(take_generation, taken.expect("fixture value")));
+
+        let (_, current) = pending.take();
+        assert_eq!(current, Some("newer-update"));
     }
 
     #[test]

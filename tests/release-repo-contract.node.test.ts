@@ -2210,11 +2210,12 @@ describe("release repository contract", () => {
   });
 
   it("keeps stale update installs gated by updater policy and database schema compatibility", () => {
-    expect(updaterCommandsSource).toContain("clear_pending_update(&mut *pending.0.lock().await)");
+    expect(updaterCommandsSource).toContain("pending.0.lock().await.clear()");
     expect(updaterCommandsSource).toContain("pending_update_metadata_matches");
     expect(updaterCommandsSource).toContain("fn pending_update_metadata_contract_rejects_changed_version_or_source()");
     expect(updaterCommandsSource).toContain("Pending update handle changed before install");
-    expect(updaterCommandsSource).toContain("update_policy_error(&update)");
+    expect(updaterCommandsSource).toContain("update_policy_error(&pending_update.update)");
+    expect(updaterCommandsSource).toContain("restore_if_unchanged(take_generation, pending_update)");
     expect(updaterCommandsSource).toContain("Downgrade or same-version update is not allowed");
     expect(updaterCommandsSource).toContain("Unsupported update channel");
     expect(updaterCommandsSource).toContain("Prerelease update is not allowed");

@@ -1026,7 +1026,7 @@ pub fn run() {
                 automatic_sync_notify: Arc::new(tokio::sync::Notify::new()),
                 browser_webview: Mutex::new(browser_webview::BrowserWebviewTracker::default()),
             });
-            app.manage(PendingUpdate(Arc::new(tokio::sync::Mutex::new(None))));
+            app.manage(PendingUpdate::default());
 
             // Start background periodic sync
             let state = app.state::<AppState>();
