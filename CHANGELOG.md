@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.57.1] - 2026-08-20
+
+### Bug Fixes
+
+- アップデート再試行時に保留中の更新情報を保持し、再試行後も更新対象が失われないようにした。
+
 ## [0.57.0] - 2026-08-19
 
 ### Features
