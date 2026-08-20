@@ -7,10 +7,11 @@ For the product overview, see [README.md](README.md). For agent workflow and rul
 
 1. Read [README.md](README.md) for the product overview, then this file for development workflow.
 2. Run `mise install` and `pnpm install`.
-3. Start the app with `mise run app:dev`.
-4. Use `mise run check` as the default fast local verification gate.
-5. Use `mise run check:wsl` when formatter/linter stability or WSL parity matters.
-6. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before any release or packaged-build handoff.
+3. Run `pnpm hooks:install` to install the lefthook pre-commit / pre-push hooks.
+4. Start the app with `mise run app:dev`.
+5. Use `mise run check` as the default fast local verification gate.
+6. Use `mise run check:wsl` when formatter/linter stability or WSL parity matters.
+7. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before any release or packaged-build handoff.
 
 ## Prerequisites
 
@@ -25,6 +26,9 @@ For the product overview, see [README.md](README.md). For agent workflow and rul
 # Install tool versions and dependencies
 mise install
 pnpm install
+
+# Install lefthook pre-commit / pre-push hooks
+pnpm hooks:install
 
 # Run the desktop app in development mode
 mise run app:dev
@@ -156,7 +160,7 @@ Commands (IPC boundary)
 | `repository/`     | Data access trait definitions                                             |
 | `infra/db/`       | SQLite implementations, migrations, DbManager                             |
 | `infra/provider/` | FeedProvider implementations (local RSS, FreshRSS GReader)                |
-| `service/`        | sync_service, sync_flow, event_bus, housekeeping, sync_scheduler          |
+| `service/`        | local_account_sync, local_account_sync_apply, sync_flow, sync_scheduler   |
 | `commands/`       | Tauri IPC handlers, DTOs, AppState, AppError                              |
 
 Error mapping: `DomainError` → `AppError` at the command boundary (`Network` → `Retryable`, others → `UserVisible`).
@@ -237,7 +241,7 @@ Keep labels short enough for dense controls, prefer natural Japanese over litera
 - Tightening CSP further requires checking article rendering, thumbnail loading, and embedded browser behavior across the supported providers.
 - Credentials (FreshRSS passwords, tokens) are stored in the OS keyring, never in SQLite.
 - Setting `DEV_CREDENTIALS=1` switches development builds to a file-based credential store; production builds continue to use the OS keyring.
-- `.env` files are encrypted with dotenvx. Never commit `.env` or plaintext secrets.
+- `.env` is encrypted with dotenvx and safe to commit; only encrypted `encrypted:` values ever land in git. Never commit plaintext secrets, `.env.keys` (the decryption key), or `.env.local`.
 
 ## Release
 
