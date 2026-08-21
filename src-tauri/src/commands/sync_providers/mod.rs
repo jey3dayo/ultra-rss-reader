@@ -10,7 +10,9 @@ use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
-use crate::domain::provider::{FeedIdentifier, Mutation, PullScope, RemoteFolder};
+use crate::domain::provider::{
+    FeedIdentifier, Mutation, PullScope, RemoteFolder, GREADER_FEED_ID_PREFIX,
+};
 #[cfg(test)]
 use crate::domain::provider::{RemoteSubscription, SyncCursor};
 #[cfg(test)]
@@ -1009,13 +1011,13 @@ fn provider_managed_feed_snapshots(
     let db_guard = lock_db(db)?;
     let mut stmt = db_guard
         .reader()
-        .prepare(
+        .prepare(&format!(
             "SELECT f.id, f.title, COUNT(a.id)
          FROM feeds f
          LEFT JOIN articles a ON a.feed_id = f.id
-         WHERE f.account_id = ?1 AND f.remote_id LIKE 'feed/%'
-         GROUP BY f.id, f.title",
-        )
+         WHERE f.account_id = ?1 AND f.remote_id LIKE '{GREADER_FEED_ID_PREFIX}%'
+         GROUP BY f.id, f.title"
+        ))
         .map_err(crate::domain::error::DomainError::from)
         .map_err(AppError::from)?;
 

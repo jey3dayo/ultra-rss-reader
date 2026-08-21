@@ -227,7 +227,7 @@ fn normalized_url_match_key(raw_url: &str) -> Option<String> {
 }
 
 fn feed_stream_url(stream_id: &str) -> Option<&str> {
-    stream_id.strip_prefix("feed/")
+    stream_id.strip_prefix(GREADER_FEED_ID_PREFIX)
 }
 
 fn quickadd_match_keys(requested_url: &str, response_body: &str) -> HashSet<String> {

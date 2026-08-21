@@ -11,6 +11,7 @@ use crate::domain::article::{
 use crate::domain::constants::ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE;
 use crate::domain::constants::{RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS, RECENT_ARTICLE_HISTORY_LIMIT};
 use crate::domain::error::DomainResult;
+use crate::domain::provider::{is_greader_managed_feed_remote_id, GREADER_FEED_ID_PREFIX};
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_feed::recalculate_unread_count_with_conn;
 use crate::infra::db::sqlite_mute_keyword::{
@@ -583,9 +584,7 @@ fn mark_muted_unread_as_read_with_scope(
         for (_, _, remote_entry_id, account_kind, row_account_id, feed_remote_id) in &rows {
             if let Some(remote_entry_id) = remote_entry_id {
                 let supports_remote_mutations = matches!(account_kind.as_str(), "FreshRss")
-                    && feed_remote_id
-                        .as_deref()
-                        .is_some_and(|remote_id| remote_id.starts_with("feed/"));
+                    && is_greader_managed_feed_remote_id(feed_remote_id.as_deref());
 
                 if supports_remote_mutations {
                     let mutation = PendingMutation {
@@ -1292,13 +1291,13 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             .collect();
 
         // Get all articles with remote_id in this account (via feed -> account join)
-        let mut stmt = tx.prepare(
+        let mut stmt = tx.prepare(&format!(
             "SELECT a.id, a.remote_id, a.is_read, a.is_starred FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              WHERE f.account_id = ?1
                AND a.remote_id IS NOT NULL
-               AND f.remote_id LIKE 'feed/%'",
-        )?;
+               AND f.remote_id LIKE '{GREADER_FEED_ID_PREFIX}%'"
+        ))?;
 
         let rows: Vec<(String, String, bool, bool)> = stmt
             .query_map(params![account_id.0], |row| {
