@@ -41,6 +41,7 @@ pub(super) async fn reconcile_greader_unread_counts(
     let local_unread_counts = fetch_local_unread_counts(db, &target_feed_ids)?;
 
     let mut backfilled_feeds = 0usize;
+    let mut first_error: Option<AppError> = None;
     for feed in &target_feeds {
         // Safe: target_feeds is filtered to feeds with a provider-managed remote_id above.
         let remote_id = feed
@@ -51,9 +52,20 @@ pub(super) async fn reconcile_greader_unread_counts(
         let local_unread_count = local_unread_counts.get(&feed.id).copied().unwrap_or(0);
 
         if server_unread_count != local_unread_count {
-            reconcile_greader_unread_state_for_feed(db, provider, account, feed).await?;
-            if server_unread_count > local_unread_count {
-                backfilled_feeds += 1;
+            match reconcile_greader_unread_state_for_feed(db, provider, account, feed).await {
+                Ok(()) => {
+                    if server_unread_count > local_unread_count {
+                        backfilled_feeds += 1;
+                    }
+                }
+                Err(error) => {
+                    // Stop reconciling further feeds, but still recalculate below so
+                    // feeds already mutated before this failure don't keep a stale
+                    // unread_count (see PR review: recalculate from `articles` is
+                    // safe/idempotent for all target feeds, not only the successful ones).
+                    first_error = Some(error);
+                    break;
+                }
             }
         }
     }
@@ -64,6 +76,10 @@ pub(super) async fn reconcile_greader_unread_counts(
         let db_guard = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
         feed_repo.recalculate_unread_counts(&target_feed_ids)?;
+    }
+
+    if let Some(error) = first_error {
+        return Err(error);
     }
 
     Ok(backfilled_feeds)
@@ -213,6 +229,7 @@ mod tests {
     use crate::domain::provider::ProviderKind;
     use crate::domain::types::{AccountId, ArticleId};
     use crate::infra::db::sqlite_account::SqliteAccountRepository;
+    use crate::infra::provider::traits::{Credentials, FeedProvider};
     use crate::infra::sanitizer;
     use crate::repository::account::AccountRepository;
     use crate::repository::article::ArticleRepository;
@@ -342,6 +359,88 @@ mod tests {
                 .unread_count,
             2,
             "feed B unread_count should be recalculated from its actual unread articles"
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_counts_recalculates_earlier_feeds_when_a_later_feed_fails() {
+        let db = test_db();
+        let account = test_account();
+        let feed_a = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let feed_b = test_feed(&account.id, "feed/b", "https://example.com/b.rss");
+
+        {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            account_repo.save(&account).unwrap();
+            feed_repo.save(&feed_a).unwrap();
+            feed_repo.save(&feed_b).unwrap();
+        }
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        // feed/a's stream-contents endpoint is mocked and succeeds, reporting two
+        // unread entries for feed A.
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::Any)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"items": [{"id": "feed-a-entry-1"}, {"id": "feed-a-entry-2"}]}"#)
+            .create_async()
+            .await;
+        // feed/b's stream-contents endpoint is intentionally left unmocked, so the
+        // request fails (mockito returns 501 for unmatched routes).
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("password".to_string()),
+                token: Some("user".to_string()),
+            })
+            .await
+            .unwrap();
+
+        // Both feeds start at the stale local unread_count of 0 (from feed_repo.save
+        // above) and disagree with the server counts below, so both are queued for
+        // per-feed reconciliation; feed_b's reconciliation will fail.
+        let server_unread_counts =
+            HashMap::from([("feed/a".to_string(), 2), ("feed/b".to_string(), 2)]);
+
+        let result = reconcile_greader_unread_counts(
+            &db,
+            &provider,
+            &account,
+            &[feed_a.clone(), feed_b.clone()],
+            &server_unread_counts,
+        )
+        .await;
+
+        assert!(
+            result.is_err(),
+            "reconciliation should surface feed_b's failure to the caller"
+        );
+
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        assert_eq!(
+            feed_repo
+                .find_by_id(&feed_a.id)
+                .unwrap()
+                .unwrap()
+                .unread_count,
+            2,
+            "feed A should still be recalculated from its actual unread articles \
+             even though feed B's reconciliation failed afterward"
         );
     }
 }
