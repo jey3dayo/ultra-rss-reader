@@ -324,17 +324,50 @@ pub fn cleanup_browser_webview_for_shutdown<R: Runtime>(app_handle: &AppHandle<R
 pub fn load_browser_preview_prefs<R: Runtime>(
     app_handle: &AppHandle<R>,
 ) -> Result<HashMap<String, String>, std::io::Error> {
-    use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
-    use crate::repository::preference::PreferenceRepository;
-
     let app_state = app_handle.state::<crate::commands::AppState>();
     let db = app_state
         .db
         .lock()
         .map_err(|error| std::io::Error::other(format!("Preference DB lock error: {error}")))?;
+    load_browser_preview_prefs_from_db(&db)
+}
+
+fn load_browser_preview_prefs_from_db(
+    db: &crate::infra::db::connection::DbManager,
+) -> Result<HashMap<String, String>, std::io::Error> {
+    use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
+    use crate::repository::preference::PreferenceRepository;
+
     let repo = SqlitePreferenceRepository::new(db.reader());
     repo.get_all()
         .map_err(|error| std::io::Error::other(format!("Preference read error: {error}")))
+}
+
+/// Loads preferences without allowing a native key monitor to wait behind a database operation.
+/// A lock miss is distinct from a read error: the caller must pass the event through so a
+/// shortcut is not dispatched from a stale or incomplete preference snapshot.
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
+fn try_load_browser_preview_prefs<R: Runtime>(
+    app_handle: &AppHandle<R>,
+) -> Option<Result<HashMap<String, String>, std::io::Error>> {
+    let app_state = app_handle.state::<crate::commands::AppState>();
+    try_load_browser_preview_prefs_from_db(&app_state.db)
+}
+
+fn try_load_browser_preview_prefs_from_db(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+) -> Option<Result<HashMap<String, String>, std::io::Error>> {
+    let db = match crate::commands::try_lock_db(db) {
+        Ok(db) => db,
+        Err(error) => {
+            tracing::warn!(
+                "Skipping embedded browser shortcut dispatch because preference DB lock is unavailable: {error}"
+            );
+            return None;
+        }
+    };
+
+    Some(load_browser_preview_prefs_from_db(&db))
 }
 
 pub fn browser_preview_focus_override_source(prefs: &HashMap<String, String>) -> Option<String> {
@@ -664,6 +697,8 @@ const MACOS_NS_LEFT_ARROW_FUNCTION_KEY: char = '\u{F702}';
 const MACOS_NS_RIGHT_ARROW_FUNCTION_KEY: char = '\u{F703}';
 const MACOS_NS_FUNCTION_KEY_RANGE_START: char = '\u{F700}';
 const MACOS_NS_FUNCTION_KEY_RANGE_END: char = '\u{F8FF}';
+const MACOS_NS_FUNCTION_KEY_F1: char = '\u{F704}';
+const MACOS_NS_FUNCTION_KEY_F12: char = '\u{F70F}';
 
 /// Resolves the logical shortcut key from `NSEvent.charactersIgnoringModifiers()` instead
 /// of a fixed US-keyboard `keyCode` table, so layout-dependent bindings (JIS symbols,
@@ -690,6 +725,12 @@ fn browser_shortcut_key_from_macos_event_characters(characters: &str) -> Option<
         MACOS_NS_DOWN_ARROW_FUNCTION_KEY => "ArrowDown".to_string(),
         MACOS_NS_LEFT_ARROW_FUNCTION_KEY => "ArrowLeft".to_string(),
         MACOS_NS_RIGHT_ARROW_FUNCTION_KEY => "ArrowRight".to_string(),
+        function_key @ MACOS_NS_FUNCTION_KEY_F1..=MACOS_NS_FUNCTION_KEY_F12 => {
+            format!(
+                "F{}",
+                function_key as u32 - MACOS_NS_FUNCTION_KEY_F1 as u32 + 1
+            )
+        }
         unmapped_function_key
             if (MACOS_NS_FUNCTION_KEY_RANGE_START..=MACOS_NS_FUNCTION_KEY_RANGE_END)
                 .contains(&unmapped_function_key) =>
@@ -966,8 +1007,9 @@ fn browser_preview_action_for_virtual_key<R: Runtime>(
     shift: bool,
     alt: bool,
 ) -> Option<&'static str> {
+    let prefs_result = try_load_browser_preview_prefs(app_handle)?;
     browser_preview_action_for_virtual_key_from_prefs_result(
-        load_browser_preview_prefs(app_handle),
+        prefs_result,
         virtual_key,
         command_or_control,
         shift,
@@ -976,11 +1018,60 @@ fn browser_preview_action_for_virtual_key<R: Runtime>(
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn browser_shortcut_key_from_virtual_key_name(virtual_key: u32) -> Option<&'static str> {
+    // Keep the stable Win32 VK_* values in a platform-independent pure table so this mapping
+    // remains unit-testable on non-Windows hosts; layout-dependent keys use MapVirtualKeyW below.
+    match virtual_key {
+        0x0D => Some("Enter"),
+        0x09 => Some("Tab"),
+        0x08 => Some("Backspace"),
+        0x20 => Some("Space"),
+        0x25 => Some("ArrowLeft"),
+        0x26 => Some("ArrowUp"),
+        0x27 => Some("ArrowRight"),
+        0x28 => Some("ArrowDown"),
+        0x70 => Some("F1"),
+        0x71 => Some("F2"),
+        0x72 => Some("F3"),
+        0x73 => Some("F4"),
+        0x74 => Some("F5"),
+        0x75 => Some("F6"),
+        0x76 => Some("F7"),
+        0x77 => Some("F8"),
+        0x78 => Some("F9"),
+        0x79 => Some("F10"),
+        0x7A => Some("F11"),
+        0x7B => Some("F12"),
+        0x1B => Some("Escape"),
+        _ => None,
+    }
+}
+
+#[cfg(windows)]
+fn browser_shortcut_key_from_windows_layout(virtual_key: u32) -> Option<String> {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{MapVirtualKeyW, MAPVK_VK_TO_CHAR};
+
+    let mapped_character = unsafe { MapVirtualKeyW(virtual_key, MAPVK_VK_TO_CHAR) };
+    if mapped_character == 0 || mapped_character & 0x8000 != 0 {
+        return None;
+    }
+
+    let character = char::from_u32(mapped_character)?;
+    (!character.is_control()).then(|| character.to_string())
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn browser_shortcut_key_from_virtual_key(virtual_key: u32) -> Option<String> {
+    if let Some(named_key) = browser_shortcut_key_from_virtual_key_name(virtual_key) {
+        return Some(named_key.to_string());
+    }
+
     match virtual_key {
         0x30..=0x39 => char::from_u32(virtual_key).map(|ch| ch.to_string()),
         0x41..=0x5A => char::from_u32(virtual_key).map(|ch| ch.to_ascii_lowercase().to_string()),
-        0x1B => Some("Escape".to_string()),
+        #[cfg(windows)]
+        _ => browser_shortcut_key_from_windows_layout(virtual_key),
+        #[cfg(not(windows))]
         _ => None,
     }
 }
@@ -1223,7 +1314,10 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
             if !browser_webview_open || !(command_or_control || alt) {
                 return event.as_ptr();
             }
-            let prefs = match load_browser_preview_prefs(&app_handle) {
+            let Some(prefs_result) = try_load_browser_preview_prefs(&app_handle) else {
+                return event.as_ptr();
+            };
+            let prefs = match prefs_result {
                 Ok(prefs) => prefs,
                 Err(error) => {
                     tracing::warn!(
@@ -1520,12 +1614,14 @@ mod tests {
         browser_preview_focus_override_source, browser_preview_initialization_script,
         browser_preview_initialization_script_from_prefs_result,
         browser_preview_shortcut_preferences_read_warning,
-        browser_shortcut_key_from_macos_event_characters, browser_webview_diagnostics_enabled,
+        browser_shortcut_key_from_macos_event_characters,
+        browser_shortcut_key_from_virtual_key_name, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
         should_handle_macos_browser_escape_key, should_trigger_timeout_fallback,
-        supports_native_navigation, BrowserNavigationAvailability,
-        BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
-        BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
+        supports_native_navigation, try_load_browser_preview_prefs_from_db,
+        BrowserNavigationAvailability, BrowserWebviewDiagnosticsPayload,
+        BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect, BrowserWebviewState,
+        BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
         BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK, BROWSER_WEBVIEW_LABEL,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
@@ -2167,6 +2263,20 @@ mod tests {
             browser_shortcut_key_from_macos_event_characters("\u{F703}"),
             Some("ArrowRight".to_string())
         );
+        for (index, expected) in [
+            "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let characters = char::from_u32(0xF704 + index as u32)
+                .expect("NSFunctionKey F1-F12 values should be valid characters")
+                .to_string();
+            assert_eq!(
+                browser_shortcut_key_from_macos_event_characters(&characters),
+                Some(expected.to_string())
+            );
+        }
         assert_eq!(
             browser_shortcut_key_from_macos_event_characters("\r"),
             Some("Enter".to_string())
@@ -2202,6 +2312,54 @@ mod tests {
             None,
             "unmapped NSFunctionKey characters must not fall through as literal text"
         );
+    }
+
+    #[test]
+    fn windows_virtual_key_name_mapping_covers_recorder_named_keys() {
+        let cases = [
+            (0x0D, "Enter"),
+            (0x09, "Tab"),
+            (0x08, "Backspace"),
+            (0x20, "Space"),
+            (0x25, "ArrowLeft"),
+            (0x26, "ArrowUp"),
+            (0x27, "ArrowRight"),
+            (0x28, "ArrowDown"),
+            (0x70, "F1"),
+            (0x71, "F2"),
+            (0x72, "F3"),
+            (0x73, "F4"),
+            (0x74, "F5"),
+            (0x75, "F6"),
+            (0x76, "F7"),
+            (0x77, "F8"),
+            (0x78, "F9"),
+            (0x79, "F10"),
+            (0x7A, "F11"),
+            (0x7B, "F12"),
+            (0x1B, "Escape"),
+        ];
+
+        for (virtual_key, expected) in cases {
+            assert_eq!(
+                browser_shortcut_key_from_virtual_key_name(virtual_key),
+                Some(expected),
+                "virtual key 0x{virtual_key:02X} should normalize to {expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn browser_preview_preferences_try_lock_skips_busy_database() {
+        let db = std::sync::Mutex::new(
+            crate::infra::db::connection::DbManager::new_in_memory()
+                .expect("in-memory database should be available for lock test"),
+        );
+        let _guard = db
+            .lock()
+            .expect("database lock should be available for setup");
+
+        assert!(try_load_browser_preview_prefs_from_db(&db).is_none());
     }
 
     #[test]
