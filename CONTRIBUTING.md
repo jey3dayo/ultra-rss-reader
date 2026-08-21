@@ -154,14 +154,14 @@ Commands (IPC boundary)
                       └── Infra (SQLite, HTTP, providers)
 ```
 
-| Module            | Responsibility                                                            |
-| ----------------- | ------------------------------------------------------------------------- |
-| `domain/`         | Core types (Account, Feed, Article, Folder), DomainError, provider traits |
-| `repository/`     | Data access trait definitions                                             |
-| `infra/db/`       | SQLite implementations, migrations, DbManager                             |
-| `infra/provider/` | FeedProvider implementations (local RSS, FreshRSS GReader)                |
-| `service/`        | local_account_sync, local_account_sync_apply, sync_flow, sync_scheduler   |
-| `commands/`       | Tauri IPC handlers, DTOs, AppState, AppError                              |
+| Module            | Responsibility                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `domain/`         | Core types (Account, Feed, Article, Folder), DomainError, provider traits          |
+| `repository/`     | Data access trait definitions                                                      |
+| `infra/db/`       | SQLite implementations, migrations, DbManager                                      |
+| `infra/provider/` | FeedProvider implementations (local RSS, FreshRSS GReader)                         |
+| `service/`        | article_materializer, local_account_sync, local_account_sync_apply, sync_scheduler |
+| `commands/`       | Tauri IPC handlers, DTOs, AppState, AppError                                       |
 
 Error mapping: `DomainError` → `AppError` at the command boundary (`Network` → `Retryable`, others → `UserVisible`).
 
