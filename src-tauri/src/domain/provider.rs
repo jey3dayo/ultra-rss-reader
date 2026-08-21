@@ -8,6 +8,18 @@ pub enum ProviderKind {
     Quarantined,
 }
 
+/// GReader protocol stream-id prefix for feed-backed streams (e.g.
+/// `feed/https://example.com/rss`). Single owner for the identity check used
+/// by both Rust predicates and raw SQL `LIKE` construction, so a prefix
+/// change cannot update one side without the other.
+pub const GREADER_FEED_ID_PREFIX: &str = "feed/";
+
+/// Whether `remote_id` identifies a GReader-protocol feed stream, i.e. a feed
+/// synced from a provider that speaks the GReader API (currently FreshRSS).
+pub fn is_greader_managed_feed_remote_id(remote_id: Option<&str>) -> bool {
+    remote_id.is_some_and(|id| id.starts_with(GREADER_FEED_ID_PREFIX))
+}
+
 #[derive(Debug, Clone)]
 pub enum FeedIdentifier {
     Local { feed_url: String },
@@ -53,21 +65,6 @@ pub struct RemoteEntry {
     pub author: Option<String>,
     pub is_read: Option<bool>,
     pub is_starred: Option<bool>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProviderResponseTrustBoundary {
-    TrustedBackend,
-    UntrustedFeed,
-}
-
-impl RemoteEntry {
-    pub fn response_trust_boundary(&self) -> ProviderResponseTrustBoundary {
-        match self.source_feed_id {
-            FeedIdentifier::Local { .. } => ProviderResponseTrustBoundary::UntrustedFeed,
-            FeedIdentifier::Remote { .. } => ProviderResponseTrustBoundary::TrustedBackend,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -508,47 +505,13 @@ mod tests {
     }
 
     #[test]
-    fn remote_entry_response_trust_boundary_follows_provider_source() {
-        let local = RemoteEntry {
-            id: Some("local-entry".to_string()),
-            source_feed_id: FeedIdentifier::Local {
-                feed_url: "https://example.com/feed.xml".to_string(),
-            },
-            title: "Local".to_string(),
-            content: "<p>local</p>".to_string(),
-            summary: None,
-            url: Some("https://example.com/local".to_string()),
-            published_at: None,
-            updated_at: None,
-            thumbnail: None,
-            author: None,
-            is_read: None,
-            is_starred: None,
-        };
-        let remote = RemoteEntry {
-            id: Some("remote-entry".to_string()),
-            source_feed_id: FeedIdentifier::Remote {
-                remote_id: "feed/https://example.com/feed.xml".to_string(),
-            },
-            title: "Remote".to_string(),
-            content: "<p>remote</p>".to_string(),
-            summary: None,
-            url: Some("https://example.com/remote".to_string()),
-            published_at: None,
-            updated_at: None,
-            thumbnail: None,
-            author: None,
-            is_read: Some(false),
-            is_starred: Some(false),
-        };
-
-        assert_eq!(
-            local.response_trust_boundary(),
-            ProviderResponseTrustBoundary::UntrustedFeed
-        );
-        assert_eq!(
-            remote.response_trust_boundary(),
-            ProviderResponseTrustBoundary::TrustedBackend
-        );
+    fn is_greader_managed_feed_remote_id_matches_feed_prefix_only() {
+        assert!(is_greader_managed_feed_remote_id(Some("feed/1")));
+        assert!(is_greader_managed_feed_remote_id(Some(
+            "feed/http://example.com/rss"
+        )));
+        assert!(!is_greader_managed_feed_remote_id(Some("user/-/label/x")));
+        assert!(!is_greader_managed_feed_remote_id(Some("")));
+        assert!(!is_greader_managed_feed_remote_id(None));
     }
 }

@@ -18,6 +18,7 @@ use crate::commands::AppState;
 use crate::commands::{start_database_maintenance, try_lock_db};
 use crate::domain::article::Article;
 use crate::domain::error::DomainError;
+use crate::domain::provider::is_greader_managed_feed_remote_id;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::domain::url_policy::validate_public_http_url;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
@@ -212,7 +213,7 @@ fn provider_supports_pending_article_mutations(account_kind: &str) -> bool {
 }
 
 fn feed_supports_pending_article_mutations(feed_remote_id: Option<&str>) -> bool {
-    feed_remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
+    is_greader_managed_feed_remote_id(feed_remote_id)
 }
 
 fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -> bool {

@@ -10,6 +10,7 @@ use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
 use crate::domain::provider::ProviderKind;
 use crate::domain::provider::RemoteSubscription;
+use crate::domain::provider::{is_greader_managed_feed_remote_id, GREADER_FEED_ID_PREFIX};
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
@@ -17,8 +18,11 @@ use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
+/// Compatibility wrapper kept in this module because callers throughout
+/// `commands/sync_providers/` already reference this name; the identity
+/// check itself is owned by [`is_greader_managed_feed_remote_id`].
 pub(super) fn is_provider_managed_greader_feed(remote_id: Option<&str>) -> bool {
-    remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
+    is_greader_managed_feed_remote_id(remote_id)
 }
 
 pub(super) fn resolve_greader_subscription_folder_id(
@@ -229,16 +233,16 @@ pub(super) fn pending_mutation_ids_targeting_provider_managed_greader_feeds(
     let db_guard = lock_db(db)?;
     let mut stmt = db_guard
         .reader()
-        .prepare(
+        .prepare(&format!(
             "SELECT pm.id
              FROM pending_mutations pm
              JOIN articles a ON a.remote_id = pm.remote_entry_id
              JOIN feeds f ON f.id = a.feed_id AND f.account_id = pm.account_id
              WHERE pm.account_id = ?1
              GROUP BY pm.id
-             HAVING SUM(CASE WHEN f.remote_id LIKE 'feed/%' THEN 1 ELSE 0 END) > 0
-                AND SUM(CASE WHEN f.remote_id IS NULL OR f.remote_id NOT LIKE 'feed/%' THEN 1 ELSE 0 END) = 0",
-        )
+             HAVING SUM(CASE WHEN f.remote_id LIKE '{GREADER_FEED_ID_PREFIX}%' THEN 1 ELSE 0 END) > 0
+                AND SUM(CASE WHEN f.remote_id IS NULL OR f.remote_id NOT LIKE '{GREADER_FEED_ID_PREFIX}%' THEN 1 ELSE 0 END) = 0"
+        ))
         .map_err(|error| {
             AppError::from(crate::domain::error::DomainError::from(error))
         })?;
