@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ### Features
 
+- 修飾キー付きショートカットのネイティブ変換で Enter/Tab/Backspace/Space/矢印/F1-F12 と記号キー(Windowsは現行キーボードレイアウト準拠)に対応した。同期中のキー入力で画面が待たされないよう設定読み取りを非ブロッキング化した。
 - 修飾キー(Cmd/Ctrl/Alt)付きに設定したショートカットは、Web Preview 表示中もOSネイティブのキー監視経由で動作するようにした(macOS/Windows)。修飾なしの単一キーは従来どおりプレビュー中はページ側に譲る。
 
 ### Bug Fixes
