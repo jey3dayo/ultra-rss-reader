@@ -93,10 +93,10 @@ describe("browser preview shortcut bridge contract", () => {
     ]);
   });
 
-  it("keeps Windows remote-page actions behind postMessage and native snapshot filtering", () => {
+  it("keeps the Windows injected script free of bindings/close/mouse capture and native snapshot filtering intact", () => {
     const windowsBridgeBlock = extractBlock(
       backendSource,
-      /fn browser_preview_script_bridge_source[\s\S]*?Some\(format!\(\s*r#"\n([\s\S]*?)"#\s*\)\)/,
+      /fn browser_preview_script_bridge_source[\s\S]*?Some\(\s*r#"\n([\s\S]*?)"#\s*\n\s*\.to_string\(\),\s*\)/,
       "Windows browser preview script bridge source",
     );
     const nativeMessageHandlerBlock = extractBlock(
@@ -120,16 +120,22 @@ describe("browser preview shortcut bridge contract", () => {
       "browser preview bridge action allowlist",
     );
 
-    expect(windowsBridgeBlock).toContain("window.chrome?.webview?.postMessage");
-    expect(windowsBridgeBlock).toContain("JSON.stringify({{ action, url: window.location.href }})");
-    expect(windowsBridgeBlock).toContain("event.button === 3 ? 'mouse-back' : 'mouse-forward'");
-    expect(windowsBridgeBlock).not.toContain("__TAURI_INTERNALS__");
+    // Bridge actions this script used to send (bindings dispatch via postMessage, and mouse
+    // button 3/4 capture) are discarded at the native layer (plan 019 Phase A/B), so keydown
+    // capture here must be limited to Space-key page scrolling and the page-forgeable
+    // postMessage channel must be gone entirely.
+    expect(windowsBridgeBlock).not.toContain("postMessage");
+    expect(windowsBridgeBlock).not.toContain("bindings");
+    expect(windowsBridgeBlock).not.toContain("mousedown");
+    expect(windowsBridgeBlock).not.toContain("mouseup");
+    expect(windowsBridgeBlock).toContain("getSpaceScrollDirection");
+    expect(windowsBridgeBlock).toContain("if (!event.defaultPrevented && spaceScrollDirection !== 0)");
+    // The native WebMessageReceived handler and its supporting parsers stay in place as
+    // defense-in-depth for any page that still tries to forge a postMessage payload directly;
+    // they must keep stopping at logging and never dispatching an app action.
     expect(nativeMessageHandlerBlock).toContain(
       "browser_preview_bridge_message_action(&raw_message, snapshot.as_ref())",
     );
-    // Page-origin postMessage must never reach MENU_ACTION_EVENT: the injected bridge script is
-    // readable/forgeable by the hosted page, so this native handler stops at logging the parsed
-    // action and never dispatches it as an app action (see docs/feed-content-privacy.md).
     expect(nativeMessageHandlerBlock).not.toContain("app_handle.emit(MENU_ACTION_EVENT, action)");
     expect(nativeMessageHandlerBlock).not.toContain("focus_main_webview_window(&app_handle);");
     expect(bridgeMessageActionBlock).toContain("serde_json::from_str(raw_message).ok()?");
@@ -175,52 +181,50 @@ describe("browser preview shortcut bridge contract", () => {
     expect(macosModifierHandlerBlock).toContain("emit(MENU_ACTION_EVENT, action)");
   });
 
-  it("keeps non-Windows close/mouse bridge actions on denied-invoke recovery with direct commands", () => {
+  it("keeps the non-Windows injected script free of close/bindings/mouse capture (native monitors own those channels)", () => {
     const closeBridgeBlock = extractBlock(
       backendSource,
-      /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(format!\(\s*r#"\n([\s\S]*?)"#\s*\)\)/,
+      /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(\s*r#"\n([\s\S]*?)"#\s*\n\s*\.to_string\(\),\s*\)/,
       "non-Windows browser preview close bridge source",
     );
 
-    expect(closeBridgeBlock).toContain("const getInvoke = () => window.__TAURI_INTERNALS__?.invoke;");
-    expect(closeBridgeBlock).toContain("await invoke('close_browser_webview');");
-    expect(closeBridgeBlock).toContain("void invoke('go_back_browser_webview')");
-    expect(closeBridgeBlock).toContain("void invoke('go_forward_browser_webview')");
+    // `invoke('close_browser_webview')` is ACL-denied for the child webview capability
+    // (`browser-webview` only grants `core:event:default`), and the scheme-navigation fallback
+    // is discarded at the native layer (plan 019 Phase A). Capturing Escape/bindings/mouse
+    // buttons 3-4 here only swallowed them for both the app and the page, so none of that
+    // capture remains; macOS Escape (NSEvent monitor) and Windows (AcceleratorKeyPressed)
+    // handle those shortcuts before the WebView sees them.
+    expect(closeBridgeBlock).not.toContain("invoke(");
+    expect(closeBridgeBlock).not.toContain("close_browser_webview");
+    expect(closeBridgeBlock).not.toContain("closeBrowserPreview");
+    expect(closeBridgeBlock).not.toContain("closeBinding");
+    expect(closeBridgeBlock).not.toContain("closeInFlight");
+    expect(closeBridgeBlock).not.toContain("mouseNavigationInFlight");
+    expect(closeBridgeBlock).not.toContain("go_back_browser_webview");
+    expect(closeBridgeBlock).not.toContain("go_forward_browser_webview");
+    expect(closeBridgeBlock).not.toContain("ultra-rss-browser-shortcut://");
     expect(closeBridgeBlock).not.toContain("emit(MENU_ACTION_EVENT");
-    expect(closeBridgeBlock).toContain("closeInFlight = false;");
-    expect(closeBridgeBlock).toContain(
-      "console.error('Failed to close embedded browser webview from bridge:', error);",
-    );
-    expect(closeBridgeBlock).toContain("if (!state?.can_go_back)");
-    expect(closeBridgeBlock).toContain("return closeBrowserPreview();");
-    expect(closeBridgeBlock).toContain("ultra-rss-browser-shortcut://mouse-back");
-    expect(closeBridgeBlock).toContain("ultra-rss-browser-shortcut://mouse-forward");
-
-    const specs = extractBrowserPreviewShortcutSpecs(backendSource);
-    const queueOnlyActions = specs
-      .filter((spec) => spec.supportsScriptBridge && spec.appAction !== "close-browser")
-      .map((spec) => spec.appAction);
-    for (const action of queueOnlyActions) {
-      expect(closeBridgeBlock).not.toContain(`invoke('${action}'`);
-    }
   });
 
-  it("queues the full script-bridge shortcut set on non-Windows via serialized scheme navigation", () => {
+  it("keeps bindings dispatch and its scheme-navigation queue out of the non-Windows injected script", () => {
     const closeBridgeBlock = extractBlock(
       backendSource,
-      /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(format!\(\s*r#"\n([\s\S]*?)"#\s*\)\)/,
+      /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(\s*r#"\n([\s\S]*?)"#\s*\n\s*\.to_string\(\),\s*\)/,
       "non-Windows browser preview close bridge source",
     );
     const specs = extractBrowserPreviewShortcutSpecs(backendSource);
     const scriptBridgeActions = specs.filter((spec) => spec.supportsScriptBridge).map((spec) => spec.appAction);
 
+    // The spec table still marks these actions as historically script-bridge-eligible (used by
+    // `is_supported_browser_preview_bridge_action` for scheme-nav classification), but the
+    // injected script itself no longer builds or dispatches a bindings map for any of them.
     expect(scriptBridgeActions).toContain("toggle-read");
-    expect(closeBridgeBlock).toContain("const bindings = {bindings_json};");
-    expect(closeBridgeBlock).toContain("const actionQueue = [];");
-    expect(closeBridgeBlock).toContain("let actionDrainInFlight = false;");
-    expect(closeBridgeBlock).toContain("window.location.href = 'ultra-rss-browser-shortcut://' + action;");
-    expect(closeBridgeBlock).toContain("const action = bindings[normalized];");
-    expect(closeBridgeBlock).toContain("queueBridgeAction(action);");
-    expect(closeBridgeBlock).toContain("if (normalized === closeBinding) {");
+    expect(closeBridgeBlock).not.toContain("const bindings");
+    expect(closeBridgeBlock).not.toContain("actionQueue");
+    expect(closeBridgeBlock).not.toContain("actionDrainInFlight");
+    expect(closeBridgeBlock).not.toContain("queueBridgeAction");
+    expect(closeBridgeBlock).not.toContain("requestActionViaNavigation");
+    expect(closeBridgeBlock).not.toContain("bindings[normalized]");
+    expect(closeBridgeBlock).toContain("getSpaceScrollDirection");
   });
 });

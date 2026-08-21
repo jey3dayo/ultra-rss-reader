@@ -637,24 +637,6 @@ pub fn browser_preview_action_for_shortcut(
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
-fn browser_preview_script_bindings(
-    prefs: &HashMap<String, String>,
-) -> HashMap<String, &'static str> {
-    BROWSER_PREVIEW_SHORTCUT_SPECS
-        .iter()
-        .filter(|shortcut| shortcut.supports_script_bridge)
-        .filter_map(|shortcut| {
-            let binding = prefs
-                .get(shortcut.pref_key)
-                .map(String::as_str)
-                .unwrap_or(shortcut.default_binding);
-            normalize_saved_browser_shortcut(binding)
-                .map(|normalized| (normalized, shortcut.app_action))
-        })
-        .collect()
-}
-
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn is_supported_browser_preview_script_action(action: &str) -> bool {
     BROWSER_PREVIEW_SHORTCUT_SPECS
         .iter()
@@ -837,326 +819,129 @@ fn browser_preview_bridge_message_action(
     should_accept_browser_preview_bridge_message(&message, snapshot).then_some(message.action)
 }
 
+// Bridge actions this script used to send (scheme navigation) are discarded at the native
+// layer (see `handle_browser_webview_shortcut_navigation` in
+// `commands/browser_webview_commands.rs`), and the native macOS Escape monitor / Windows
+// `AcceleratorKeyPressed` handler already intercepts modified shortcuts and close before the
+// WebView sees them. Capturing those keys/buttons here only swallowed them for both the app
+// and the page. The one behavior this script still owns is Space-key page scrolling, which is
+// not an app action.
 #[cfg(any(test, not(windows)))]
-pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
-    let close_binding = BROWSER_PREVIEW_SHORTCUT_SPECS
-        .iter()
-        .find(|shortcut| shortcut.app_action == "close-browser")
-        .and_then(|shortcut| {
-            let binding = prefs
-                .get(shortcut.pref_key)
-                .map(String::as_str)
-                .unwrap_or(shortcut.default_binding);
-            normalize_saved_browser_shortcut(binding)
-        })?;
-    let bindings = browser_preview_script_bindings(prefs);
-
-    let close_binding_json = serde_json::to_string(&close_binding).ok()?;
-    let bindings_json = serde_json::to_string(&bindings).ok()?;
-    Some(format!(
+pub fn browser_preview_close_bridge_source(_prefs: &HashMap<String, String>) -> Option<String> {
+    Some(
         r#"
-(() => {{
+(() => {
   if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;
-  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {{
+  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {
     configurable: false,
     value: true,
-  }});
+  });
 
-  const closeBinding = {close_binding_json};
-  const bindings = {bindings_json};
-  let closeInFlight = false;
-  let mouseNavigationInFlight = false;
-  const actionQueue = [];
-  let actionDrainInFlight = false;
-  const isEditableTarget = (target) => {{
+  const isEditableTarget = (target) => {
     if (!(target instanceof Element)) return false;
-    if (target.closest('[data-disable-global-shortcuts="true"]')) {{
+    if (target.closest('[data-disable-global-shortcuts="true"]')) {
       return true;
-    }}
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
+    }
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
       return true;
-    }}
-    if (target.isContentEditable) {{
+    }
+    if (target.isContentEditable) {
       return true;
-    }}
+    }
     return Boolean(target.closest(
       'input, textarea, select, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"], [role="searchbox"]'
     ));
-  }};
-  const normalize = (event) => {{
-    if (event.altKey) return null;
-    const parts = [];
-    if (event.metaKey || event.ctrlKey) parts.push('⌘');
-    if (event.shiftKey && event.key !== 'Shift') parts.push('Shift');
-    let key = event.key;
-    if (!key) return null;
-    if (key.length === 1) {{
-      key = event.shiftKey ? key.toUpperCase() : key.toLowerCase();
-    }}
-    parts.push(key);
-    return parts.join('+');
-  }};
-  const getInvoke = () => window.__TAURI_INTERNALS__?.invoke;
-  const requestCloseViaNavigation = () => {{
-    window.location.href = 'ultra-rss-browser-shortcut://close-browser';
-  }};
-  const requestMouseNavigationViaNavigation = (action) => {{
-    window.location.href = action === 'mouse-back'
-      ? 'ultra-rss-browser-shortcut://mouse-back'
-      : 'ultra-rss-browser-shortcut://mouse-forward';
-  }};
-  const requestActionViaNavigation = (action) => {{
-    window.location.href = 'ultra-rss-browser-shortcut://' + action;
-  }};
-  const drainActionQueue = () => {{
-    const next = actionQueue.shift();
-    if (next === undefined) {{
-      actionDrainInFlight = false;
-      return;
-    }}
-    requestActionViaNavigation(next);
-    window.setTimeout(drainActionQueue, 0);
-  }};
-  const queueBridgeAction = (action) => {{
-    actionQueue.push(action);
-    if (actionDrainInFlight) {{
-      return;
-    }}
-    actionDrainInFlight = true;
-    drainActionQueue();
-  }};
-  const getSpaceScrollDirection = (event) => {{
-    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
+  };
+  const getSpaceScrollDirection = (event) => {
+    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {
       return 0;
-    }}
+    }
     return event.shiftKey ? -1 : 1;
-  }};
-  const scrollByPageStep = (direction) => {{
+  };
+  const scrollByPageStep = (direction) => {
     const scrollTarget = document.scrollingElement || document.documentElement || document.body;
-    if (!scrollTarget) {{
+    if (!scrollTarget) {
       return;
-    }}
+    }
     const amount = Math.max(72, Math.round(window.innerHeight * 0.8)) * direction;
-    scrollTarget.scrollBy({{ top: amount, behavior: 'auto' }});
-  }};
-  const closeBrowserPreview = async () => {{
-    if (closeInFlight) {{
+    scrollTarget.scrollBy({ top: amount, behavior: 'auto' });
+  };
+  window.addEventListener('keydown', (event) => {
+    if (isEditableTarget(event.target)) {
       return;
-    }}
-
-    const invoke = getInvoke();
-    if (typeof invoke !== 'function') {{
-      closeInFlight = true;
-      requestCloseViaNavigation();
-      return;
-    }}
-
-    closeInFlight = true;
-    try {{
-      await invoke('close_browser_webview');
-    }} catch (error) {{
-      console.error('Failed to close embedded browser webview from bridge:', error);
-      requestCloseViaNavigation();
-    }}
-  }};
-  window.addEventListener('keydown', (event) => {{
-    if (isEditableTarget(event.target)) {{
-      return;
-    }}
+    }
     const spaceScrollDirection = getSpaceScrollDirection(event);
-    if (!event.defaultPrevented && spaceScrollDirection !== 0) {{
+    if (!event.defaultPrevented && spaceScrollDirection !== 0) {
       event.preventDefault();
       event.stopPropagation();
       scrollByPageStep(spaceScrollDirection);
-      return;
-    }}
-    const normalized = normalize(event);
-    if (!normalized) {{
-      return;
-    }}
-    if (normalized === closeBinding) {{
-      if (closeInFlight) {{
-        return;
-      }}
-      event.preventDefault();
-      event.stopPropagation();
-      void closeBrowserPreview();
-      return;
-    }}
-    const action = bindings[normalized];
-    if (!action) {{
-      return;
-    }}
-    event.preventDefault();
-    event.stopPropagation();
-    queueBridgeAction(action);
-  }}, true);
-  window.addEventListener('mousedown', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    event.preventDefault();
-    event.stopPropagation();
-  }}, true);
-  window.addEventListener('mouseup', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    event.preventDefault();
-    event.stopPropagation();
-    if (mouseNavigationInFlight) {{
-      return;
-    }}
-
-    const invoke = getInvoke();
-    if (typeof invoke !== 'function') {{
-      requestMouseNavigationViaNavigation(event.button === 3 ? 'mouse-back' : 'mouse-forward');
-      return;
-    }}
-
-    mouseNavigationInFlight = true;
-
-    if (event.button === 3) {{
-      void invoke('go_back_browser_webview')
-        .then((state) => {{
-          if (!state?.can_go_back) {{
-            return closeBrowserPreview();
-          }}
-          return null;
-        }})
-        .catch((error) => {{
-          console.error('Failed to navigate back from mouse bridge:', error);
-          requestMouseNavigationViaNavigation('mouse-back');
-        }})
-        .finally(() => {{
-          mouseNavigationInFlight = false;
-        }});
-      return;
-    }}
-
-    void invoke('go_forward_browser_webview')
-      .catch((error) => {{
-        console.error('Failed to navigate forward from mouse bridge:', error);
-        requestMouseNavigationViaNavigation('mouse-forward');
-      }})
-      .finally(() => {{
-        mouseNavigationInFlight = false;
-      }});
-  }}, true);
-}})();
+    }
+  }, true);
+})();
 "#
-    ))
+        .to_string(),
+    )
 }
 
+// See the comment above `browser_preview_close_bridge_source`: the bindings/close/mouse
+// capture this Windows variant used to `postMessage` to the native side is discarded there
+// (`install_escape_accelerator_bridge`'s WebMessageReceived handler intentionally never
+// dispatches `MENU_ACTION_EVENT`). Only Space-key page scrolling remains.
 #[cfg(any(test, windows))]
-fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
-    let bindings = browser_preview_script_bindings(prefs);
-    if bindings.is_empty() {
-        return None;
-    }
-
-    let bindings_json = serde_json::to_string(&bindings).ok()?;
-    Some(format!(
+fn browser_preview_script_bridge_source(_prefs: &HashMap<String, String>) -> Option<String> {
+    Some(
         r#"
-(() => {{
+(() => {
   if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;
-  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {{
+  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {
     configurable: false,
     value: true,
-  }});
+  });
 
-  const bindings = {bindings_json};
-  const isEditableTarget = (target) => {{
+  const isEditableTarget = (target) => {
     if (!(target instanceof Element)) return false;
-    if (target.closest('[data-disable-global-shortcuts="true"]')) {{
+    if (target.closest('[data-disable-global-shortcuts="true"]')) {
       return true;
-    }}
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
+    }
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
       return true;
-    }}
-    if (target.isContentEditable) {{
+    }
+    if (target.isContentEditable) {
       return true;
-    }}
+    }
     return Boolean(target.closest(
       'input, textarea, select, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"], [role="searchbox"]'
     ));
-  }};
-  const normalize = (event) => {{
-    if (event.altKey || event.metaKey) return null;
-    const parts = [];
-    if (event.ctrlKey) parts.push('⌘');
-    if (event.shiftKey) parts.push('Shift');
-    let key = event.key;
-    if (!key) return null;
-    if (key.length === 1) {{
-      key = event.shiftKey ? key.toUpperCase() : key.toLowerCase();
-    }}
-    parts.push(key);
-    return parts.join('+');
-  }};
-  const getSpaceScrollDirection = (event) => {{
-    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
+  };
+  const getSpaceScrollDirection = (event) => {
+    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {
       return 0;
-    }}
+    }
     return event.shiftKey ? -1 : 1;
-  }};
-  const scrollByPageStep = (direction) => {{
+  };
+  const scrollByPageStep = (direction) => {
     const scrollTarget = document.scrollingElement || document.documentElement || document.body;
-    if (!scrollTarget) {{
+    if (!scrollTarget) {
       return;
-    }}
+    }
     const amount = Math.max(72, Math.round(window.innerHeight * 0.8)) * direction;
-    scrollTarget.scrollBy({{ top: amount, behavior: 'auto' }});
-  }};
-  const postBridgeAction = (action) => {{
-    window.chrome?.webview?.postMessage(JSON.stringify({{ action, url: window.location.href }}));
-  }};
-  window.addEventListener('keydown', (event) => {{
-    if (isEditableTarget(event.target)) {{
+    scrollTarget.scrollBy({ top: amount, behavior: 'auto' });
+  };
+  window.addEventListener('keydown', (event) => {
+    if (isEditableTarget(event.target)) {
       return;
-    }}
+    }
     const spaceScrollDirection = getSpaceScrollDirection(event);
-    if (!event.defaultPrevented && spaceScrollDirection !== 0) {{
+    if (!event.defaultPrevented && spaceScrollDirection !== 0) {
       event.preventDefault();
       event.stopPropagation();
       scrollByPageStep(spaceScrollDirection);
-      return;
-    }}
-    const normalized = normalize(event);
-    if (!normalized) {{
-      return;
-    }}
-    const action = bindings[normalized];
-    if (!action) {{
-      return;
-    }}
-    event.preventDefault();
-    event.stopPropagation();
-    postBridgeAction(action);
-  }}, true);
-  window.addEventListener('mousedown', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    event.preventDefault();
-    event.stopPropagation();
-  }}, true);
-  window.addEventListener('mouseup', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    const action = event.button === 3 ? 'mouse-back' : 'mouse-forward';
-    event.preventDefault();
-    event.stopPropagation();
-    postBridgeAction(action);
-  }}, true);
-}})();
+    }
+  }, true);
+})();
 "#
-    ))
+        .to_string(),
+    )
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -1740,7 +1525,7 @@ mod tests {
         browser_preview_action_for_virtual_key_from_prefs_result,
         browser_preview_bridge_message_action, browser_preview_close_bridge_source,
         browser_preview_focus_override_source, browser_preview_initialization_script,
-        browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
+        browser_preview_initialization_script_from_prefs_result,
         browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
         should_handle_macos_browser_escape_key, should_trigger_timeout_fallback,
@@ -2405,36 +2190,6 @@ mod tests {
     }
 
     #[test]
-    fn browser_preview_script_bindings_include_supported_preview_shortcuts() {
-        let prefs = HashMap::from([
-            ("shortcut_toggle_read".to_string(), "x".to_string()),
-            ("shortcut_toggle_star".to_string(), "Shift+S".to_string()),
-            (
-                "shortcut_open_external_browser".to_string(),
-                "⌘+B".to_string(),
-            ),
-            ("shortcut_next_article".to_string(), "n".to_string()),
-            ("shortcut_prev_article".to_string(), "p".to_string()),
-            ("shortcut_next_feed".to_string(), "Shift+F".to_string()),
-            ("shortcut_prev_feed".to_string(), "⌘+H".to_string()),
-            ("shortcut_reload_webview".to_string(), "Shift+R".to_string()),
-            ("shortcut_close_or_clear".to_string(), "Escape".to_string()),
-        ]);
-
-        let bindings = browser_preview_script_bindings(&prefs);
-
-        assert_eq!(bindings.get("Escape"), Some(&"close-browser"));
-        assert_eq!(bindings.get("x"), Some(&"toggle-read"));
-        assert_eq!(bindings.get("Shift+S"), Some(&"toggle-star"));
-        assert_eq!(bindings.get("⌘+b"), Some(&"open-in-default-browser"));
-        assert_eq!(bindings.get("n"), Some(&"next-article"));
-        assert_eq!(bindings.get("p"), Some(&"prev-article"));
-        assert_eq!(bindings.get("Shift+F"), Some(&"next-feed"));
-        assert_eq!(bindings.get("⌘+h"), Some(&"prev-feed"));
-        assert_eq!(bindings.get("Shift+R"), Some(&"reload-webview"));
-    }
-
-    #[test]
     fn macos_escape_monitor_handles_escape_only_when_browser_webview_is_open() {
         assert!(should_handle_macos_browser_escape_key(53, true));
         assert!(!should_handle_macos_browser_escape_key(53, false));
@@ -2583,90 +2338,44 @@ mod tests {
     }
 
     #[test]
-    fn browser_preview_close_bridge_uses_default_escape_binding() {
+    fn browser_preview_close_bridge_only_captures_space_scroll() {
         let prefs = HashMap::new();
 
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("default close bridge script should exist");
+        let script =
+            browser_preview_close_bridge_source(&prefs).expect("close bridge script should exist");
 
-        assert!(script.contains("\"Escape\""));
-        assert!(script.contains("close_browser_webview"));
-        assert!(script.contains("ultra-rss-browser-shortcut://close-browser"));
-        assert!(script.contains("requestCloseViaNavigation();"));
-        assert!(script.contains("go_back_browser_webview"));
-        assert!(script.contains("go_forward_browser_webview"));
+        // Bridge actions this script used to send (bindings dispatch, close capture, and mouse
+        // button 3/4 capture) are discarded at the native layer, so the page must see those
+        // keys/buttons uninterrupted. Only Space-key scrolling remains captured.
         assert!(script.contains("getSpaceScrollDirection"));
         assert!(script.contains("window.innerHeight * 0.8"));
-        assert!(script.contains("event.button === 3"));
-        assert!(script.contains("event.button !== 4"));
         assert!(script.contains("data-disable-global-shortcuts=\"true\""));
-        assert!(script.contains("if (mouseNavigationInFlight)"));
         assert!(script.contains("if (isEditableTarget(event.target))"));
         assert!(script.contains("if (!event.defaultPrevented && spaceScrollDirection !== 0)"));
-        assert!(script.contains("requestMouseNavigationViaNavigation"));
-        assert!(script.contains("ultra-rss-browser-shortcut://mouse-back"));
-        assert!(script.contains("ultra-rss-browser-shortcut://mouse-forward"));
-        assert!(!script.contains(
-            "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
-        ));
-    }
-
-    #[test]
-    fn browser_preview_close_bridge_queues_full_shortcut_bindings_via_navigation() {
-        let prefs = HashMap::new();
-
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("default close bridge script should exist");
-
-        assert!(script.contains("\"m\":\"toggle-read\""));
-        assert!(script.contains("\"s\":\"toggle-star\""));
-        assert!(script.contains("\"j\":\"next-article\""));
-        assert!(script.contains("\"k\":\"prev-article\""));
-        assert!(script.contains("const actionQueue = [];"));
-        assert!(script.contains("let actionDrainInFlight = false;"));
-        assert!(script.contains("const requestActionViaNavigation = (action)"));
-        assert!(script.contains("window.location.href = 'ultra-rss-browser-shortcut://' + action;"));
-        assert!(script.contains("const drainActionQueue = ()"));
-        assert!(script.contains("const queueBridgeAction = (action)"));
-        assert!(script.contains("const action = bindings[normalized];"));
-        assert!(script.contains("queueBridgeAction(action);"));
-        assert!(script.contains("if (normalized === closeBinding) {"));
+        assert!(!script.contains("close_browser_webview"));
+        assert!(!script.contains("closeBrowserPreview"));
+        assert!(!script.contains("closeBinding"));
+        assert!(!script.contains("ultra-rss-browser-shortcut://"));
+        assert!(!script.contains("bindings["));
+        assert!(!script.contains("queueBridgeAction"));
+        assert!(!script.contains("requestActionViaNavigation"));
+        assert!(!script.contains("mousedown"));
+        assert!(!script.contains("mouseup"));
+        assert!(!script.contains("event.button"));
+        assert!(!script.contains("go_back_browser_webview"));
+        assert!(!script.contains("go_forward_browser_webview"));
     }
 
     #[test]
     fn browser_preview_close_bridge_guards_against_duplicate_listener_installation() {
         let prefs = HashMap::new();
 
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("default close bridge script should exist");
+        let script =
+            browser_preview_close_bridge_source(&prefs).expect("close bridge script should exist");
 
         assert!(script.contains("__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__"));
         assert!(script.contains("if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;"));
         assert!(script.contains("configurable: false"));
-    }
-
-    #[test]
-    fn browser_preview_close_bridge_uses_saved_close_binding() {
-        let prefs = HashMap::from([("shortcut_close_or_clear".to_string(), "Shift+X".to_string())]);
-
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("saved close bridge script should exist");
-
-        assert!(script.contains("\"Shift+X\""));
-    }
-
-    #[test]
-    fn browser_preview_close_bridge_json_escapes_saved_shortcut_preferences() {
-        let prefs = HashMap::from([(
-            "shortcut_close_or_clear".to_string(),
-            "Escape\";window.__ultraRssInjected=true;//".to_string(),
-        )]);
-
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("saved close bridge script should exist");
-
-        assert!(script.contains(r#""Escape\";window.__ultraRssInjected=true;//""#));
-        assert!(!script.contains(r#""Escape";window.__ultraRssInjected=true;//""#));
     }
 
     #[test]
@@ -2748,20 +2457,21 @@ mod tests {
         let prefs = HashMap::from([("shortcut_toggle_read".to_string(), "x".to_string())]);
 
         let script = super::browser_preview_script_bridge_source(&prefs)
-            .expect("script bridge should exist when supported shortcuts exist");
+            .expect("script bridge should exist");
 
+        // Bindings dispatch (postMessage) and mouse button 3/4 capture used to be sent to a
+        // native side that discards them; only Space-key scrolling remains captured here.
         assert!(script.contains("__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__"));
-        assert!(script.contains("\"x\":\"toggle-read\""));
-        assert!(script.contains("postBridgeAction(action);"));
-        assert!(script.contains("JSON.stringify({ action, url: window.location.href })"));
         assert!(script.contains("window.addEventListener('keydown'"));
-        assert!(script.contains("window.addEventListener('mouseup'"));
         assert!(script.contains("data-disable-global-shortcuts=\"true\""));
         assert!(script.contains("if (isEditableTarget(event.target))"));
         assert!(script.contains("if (!event.defaultPrevented && spaceScrollDirection !== 0)"));
-        assert!(!script.contains(
-            "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
-        ));
+        assert!(!script.contains("postBridgeAction"));
+        assert!(!script.contains("postMessage"));
+        assert!(!script.contains("bindings"));
+        assert!(!script.contains("mousedown"));
+        assert!(!script.contains("mouseup"));
+        assert!(!script.contains("event.button"));
     }
 
     #[test]
@@ -2786,8 +2496,8 @@ mod tests {
         assert!(enabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
         assert!(enabled_script.contains("Document.prototype, 'webkitVisibilityState', 'visible'"));
         assert!(enabled_script.contains("Document.prototype, 'hasFocus', () => true"));
-        assert!(disabled_script.contains("close_browser_webview"));
-        assert!(missing_script.contains("close_browser_webview"));
+        assert!(disabled_script.contains("getSpaceScrollDirection"));
+        assert!(missing_script.contains("getSpaceScrollDirection"));
         assert!(!disabled_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
         assert!(!disabled_script.contains("__MBU_FOCUS_OVERRIDE_APPLIED__"));
         assert!(!missing_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
@@ -2814,7 +2524,7 @@ mod tests {
 
         assert!(!script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
         assert!(!script.contains("window.__ultraRssInjected=true"));
-        assert!(script.contains("close_browser_webview"));
+        assert!(script.contains("getSpaceScrollDirection"));
     }
 
     #[test]
