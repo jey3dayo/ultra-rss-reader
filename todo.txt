@@ -1,8 +1,9 @@
 (D) 2026-07-10 TypeScript 7 alias cleanup @blocked +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/55
-(D) 2026-07-28 window-state Windows 実機検証 + windows-schema 再生成 +release-native note:docs/release-manual-verification.md
+(D) 2026-07-28 Windows実機検証: window-state + windows-schema再生成 + Web Preview修飾キーショートカット(PR#71/#73のToUnicode経路) +release-native note:docs/release-manual-verification.md
 (D) 2026-08-10 hold-to-confirm pointerId / forced-colors hover +a11y-keyboard note:https://github.com/jey3dayo/ultra-rss-reader/issues/52
 (B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57
 (D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (D) 2026-08-17 ProviderSyncWarning の i18n 対応(全て英語ハードコード) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/62
-(C) 2026-08-19 sync_providers/分割Phase3: 残るGReader orchestration本体(mod.rs, TOCTOU注意)とtests.rsの追分割検討。state/subscriptions/unreadは分離済み +refactor-file-split note:.plans/goofy-juggling-hare.md
+(C) 2026-08-19 sync_providers/分割Phase3: 残るGReader orchestration本体(mod.rs)とtests.rsの追分割検討。前提のロック契約はplan021のcontract testで保護済み(2026-08-21レビュー: 021/023完了で着手可) +refactor-file-split note:.plans/goofy-juggling-hare.md
 (D) 2026-08-21 監査#11: FreshRSS URL検証統一。LAN自己ホスト方針の決定が先(検証: 統一url_policyのcontract test) +security note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+(D) 2026-08-21 アーキ候補5後半: hasNextArticleのmount順依存解消。検索UI stateのstore昇格=検索クローズ時リセット廃止の挙動変更を伴うため方針判断が先(検証: 一覧pane未mount画面でのcursor正しさのfocused test) +reader-ui note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
