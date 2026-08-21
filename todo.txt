@@ -5,5 +5,4 @@
 (D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61
 (D) 2026-08-17 ProviderSyncWarning の i18n 対応(全て英語ハードコード) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/62
 (C) 2026-08-19 sync_providers/分割Phase3: 残るGReader orchestration本体(mod.rs, TOCTOU注意)とtests.rsの追分割検討。state/subscriptions/unreadは分離済み +refactor-file-split note:.plans/goofy-juggling-hare.md
-(D) 2026-08-21 アーキ候補2: sync_flowデコイ解消/AccountSync一本化。候補1の結果を見てから判断(検証: 層方向code audit+全テスト緑) +refactor-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
 (D) 2026-08-21 監査#11: FreshRSS URL検証統一。LAN自己ホスト方針の決定が先(検証: 統一url_policyのcontract test) +security note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
