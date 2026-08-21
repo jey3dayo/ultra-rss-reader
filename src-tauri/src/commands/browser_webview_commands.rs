@@ -672,20 +672,22 @@ fn create_browser_webview(
             if handle_browser_webview_shortcut_navigation(&navigation_window, target_url) {
                 return false;
             }
+            // Restore the pre-refactor early return: the Windows `about:blank` placeholder
+            // must skip tracker_start entirely (no transient loading-state emit / timeout
+            // arm), so it is checked before the allow/deny gate below.
+            if uses_placeholder_url && is_placeholder_browser_webview_url(target_url.as_str()) {
+                return true;
+            }
             if !allow_browser_webview_navigation(target_url, uses_placeholder_url) {
-                let app_state = navigation_app_handle.state::<AppState>();
-                let redacted_url =
-                    crate::commands::redacted_browser_url_for_display(target_url.as_str());
-                if let Err(error) = emit_browser_webview_navigation_failure(
-                    &navigation_app_handle,
-                    app_state.inner(),
-                    redacted_url.clone(),
-                    format!("Blocked embedded browser navigation to disallowed URL: {redacted_url}"),
-                ) {
-                    tracing::warn!(
-                        "Failed to emit embedded browser navigation failure events: {error}"
-                    );
-                }
+                // Silent cancel: the webview stays open on its current page. Do not emit
+                // `emit_browser_webview_navigation_failure` here — it closes the whole Web
+                // Preview overlay (via emit_browser_webview_closed) and its fallback event is
+                // dropped by the frontend's exact-match URL comparison anyway, so it would
+                // both surprise the user and never actually reach them.
+                tracing::warn!(
+                    "Blocked embedded browser navigation to disallowed URL: {}",
+                    crate::commands::redacted_browser_url_for_display(target_url.as_str())
+                );
                 return false;
             }
             let app_state = navigation_app_handle.state::<AppState>();
