@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Features
+
+- 修飾キー(Cmd/Ctrl/Alt)付きに設定したショートカットは、Web Preview 表示中もOSネイティブのキー監視経由で動作するようにした(macOS/Windows)。修飾なしの単一キーは従来どおりプレビュー中はページ側に譲る。
+
 ### Bug Fixes
 
 - Web Preview内の表示ページからアプリ操作(既読化・スター・記事移動など)を発火できないようにした。ショートカットはOSのネイティブキー入力経由のみになり、Linuxおよび全OSのマウス戻る/進むボタンによるプレビュー内操作は当面無効(意図した制限、プレビュー上部のUIボタンは利用可能)。
