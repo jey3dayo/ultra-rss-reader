@@ -978,7 +978,7 @@ fn browser_preview_action_for_virtual_key_from_prefs_result(
     shift: bool,
     alt: bool,
 ) -> Option<&'static str> {
-    let key = browser_shortcut_key_from_virtual_key(virtual_key)?;
+    let key = browser_shortcut_key_from_virtual_key(virtual_key, shift)?;
     let prefs = match prefs_result {
         Ok(prefs) => prefs,
         Err(error) => {
@@ -1047,30 +1047,78 @@ fn browser_shortcut_key_from_virtual_key_name(virtual_key: u32) -> Option<&'stat
     }
 }
 
-#[cfg(windows)]
-fn browser_shortcut_key_from_windows_layout(virtual_key: u32) -> Option<String> {
-    use windows::Win32::UI::Input::KeyboardAndMouse::{MapVirtualKeyW, MAPVK_VK_TO_CHAR};
+/// Windows virtual-key code for the Shift key (`VK_SHIFT` = 0x10), duplicated here as a
+/// plain constant so `synthesize_shift_only_key_state` stays testable without the
+/// `windows` crate's Windows-only bindings.
+const VIRTUAL_KEY_SHIFT_INDEX: usize = 0x10;
+/// `GetKeyState`/`ToUnicode` key-state array convention: the high bit (0x80) marks a key
+/// as currently down.
+const KEY_STATE_DOWN_BIT: u8 = 0x80;
 
-    let mapped_character = unsafe { MapVirtualKeyW(virtual_key, MAPVK_VK_TO_CHAR) };
-    if mapped_character == 0 || mapped_character & 0x8000 != 0 {
+/// Builds a `ToUnicode` key-state array reflecting only the Shift key, leaving Ctrl/Alt
+/// unset even when the accelerator handler observed them held. Ctrl/Alt intentionally stay
+/// out of this synthesized state: including them would let `ToUnicode` apply AltGr-style
+/// composition on layouts where Ctrl+Alt changes the produced character, but shortcuts here
+/// are recorded and matched on the base character plus an explicit Shift flag, not on
+/// AltGr composition.
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn synthesize_shift_only_key_state(shift: bool) -> [u8; 256] {
+    let mut key_state = [0u8; 256];
+    if shift {
+        key_state[VIRTUAL_KEY_SHIFT_INDEX] = KEY_STATE_DOWN_BIT;
+    }
+    key_state
+}
+
+#[cfg(windows)]
+fn browser_shortcut_key_from_windows_layout(virtual_key: u32, shift: bool) -> Option<String> {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{MapVirtualKeyW, ToUnicode, MAPVK_VK_TO_VSC};
+
+    // Bit 2 (0x4) tells `ToUnicode` not to modify the calling thread's keyboard state
+    // (Windows 10 1607+). Without it, probing a shortcut here would corrupt any dead-key
+    // composition the user is mid-way through typing into the page itself.
+    const TOUNICODE_DO_NOT_MODIFY_KEYBOARD_STATE: u32 = 0x4;
+
+    let scan_code = unsafe { MapVirtualKeyW(virtual_key, MAPVK_VK_TO_VSC) };
+    let key_state = synthesize_shift_only_key_state(shift);
+    let mut buffer = [0u16; 8];
+    let result = unsafe {
+        ToUnicode(
+            virtual_key,
+            scan_code,
+            Some(&key_state),
+            &mut buffer,
+            TOUNICODE_DO_NOT_MODIFY_KEYBOARD_STATE,
+        )
+    };
+
+    // `result < 0`: dead key. `result == 0`: no translation. `result > 1`: composed into
+    // more than one UTF-16 code unit. None of these map to a single stable logical key.
+    if result != 1 {
         return None;
     }
 
-    let character = char::from_u32(mapped_character)?;
+    let character = char::decode_utf16(buffer[..1].iter().copied())
+        .next()?
+        .ok()?;
     (!character.is_control()).then(|| character.to_string())
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
-fn browser_shortcut_key_from_virtual_key(virtual_key: u32) -> Option<String> {
+fn browser_shortcut_key_from_virtual_key(virtual_key: u32, shift: bool) -> Option<String> {
     if let Some(named_key) = browser_shortcut_key_from_virtual_key_name(virtual_key) {
         return Some(named_key.to_string());
     }
 
     match virtual_key {
-        0x30..=0x39 => char::from_u32(virtual_key).map(|ch| ch.to_string()),
+        // The fixed "0".."9" table only applies unshifted. Shift+digit produces a
+        // layout-dependent symbol (US: "!", "@", ...), which must go through `ToUnicode`
+        // so the resolved key matches the shift-applied glyph the frontend recorded from
+        // `KeyboardEvent.key` (see PR #71 review: a fixed digit table ignored Shift).
+        0x30..=0x39 if !shift => char::from_u32(virtual_key).map(|ch| ch.to_string()),
         0x41..=0x5A => char::from_u32(virtual_key).map(|ch| ch.to_ascii_lowercase().to_string()),
         #[cfg(windows)]
-        _ => browser_shortcut_key_from_windows_layout(virtual_key),
+        _ => browser_shortcut_key_from_windows_layout(virtual_key, shift),
         #[cfg(not(windows))]
         _ => None,
     }
@@ -1614,15 +1662,16 @@ mod tests {
         browser_preview_focus_override_source, browser_preview_initialization_script,
         browser_preview_initialization_script_from_prefs_result,
         browser_preview_shortcut_preferences_read_warning,
-        browser_shortcut_key_from_macos_event_characters,
+        browser_shortcut_key_from_macos_event_characters, browser_shortcut_key_from_virtual_key,
         browser_shortcut_key_from_virtual_key_name, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
         should_handle_macos_browser_escape_key, should_trigger_timeout_fallback,
-        supports_native_navigation, try_load_browser_preview_prefs_from_db,
-        BrowserNavigationAvailability, BrowserWebviewDiagnosticsPayload,
-        BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect, BrowserWebviewState,
-        BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
-        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK, BROWSER_WEBVIEW_LABEL,
+        supports_native_navigation, synthesize_shift_only_key_state,
+        try_load_browser_preview_prefs_from_db, BrowserNavigationAvailability,
+        BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
+        BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
+        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK, BROWSER_WEBVIEW_LABEL, KEY_STATE_DOWN_BIT,
+        VIRTUAL_KEY_SHIFT_INDEX,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -2345,6 +2394,56 @@ mod tests {
                 browser_shortcut_key_from_virtual_key_name(virtual_key),
                 Some(expected),
                 "virtual key 0x{virtual_key:02X} should normalize to {expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn synthesized_shift_key_state_only_marks_shift_down() {
+        let unshifted = synthesize_shift_only_key_state(false);
+        assert!(
+            unshifted.iter().all(|&byte| byte == 0),
+            "unshifted key state should leave every virtual key up"
+        );
+
+        let shifted = synthesize_shift_only_key_state(true);
+        assert_eq!(
+            shifted[VIRTUAL_KEY_SHIFT_INDEX], KEY_STATE_DOWN_BIT,
+            "shifted key state should mark VK_SHIFT down"
+        );
+        assert!(
+            shifted
+                .iter()
+                .enumerate()
+                .filter(|&(index, _)| index != VIRTUAL_KEY_SHIFT_INDEX)
+                .all(|(_, &byte)| byte == 0),
+            "synthesized key state must not mark Ctrl/Alt down, since AltGr composition \
+             would otherwise change the resolved character on some layouts"
+        );
+    }
+
+    #[test]
+    fn shifted_digit_virtual_keys_do_not_use_the_fixed_unshifted_table() {
+        // Regression for PR #71 review: `Shift+1` must not resolve to the fixed "1" table
+        // entry, because the frontend recorder saves the shift-applied glyph (e.g. "!" on a
+        // US layout) and a fixed digit would never match it. Real layout translation goes
+        // through `ToUnicode`, which is only callable on Windows; here we assert the pure
+        // dispatch no longer takes the fixed-table shortcut once Shift is held.
+        for virtual_key in 0x30..=0x39u32 {
+            assert_ne!(
+                browser_shortcut_key_from_virtual_key(virtual_key, true),
+                char::from_u32(virtual_key).map(|ch| ch.to_string()),
+                "virtual key 0x{virtual_key:02X} with Shift held must not fall back to the \
+                 fixed unshifted digit table"
+            );
+        }
+
+        for virtual_key in 0x30..=0x39u32 {
+            assert_eq!(
+                browser_shortcut_key_from_virtual_key(virtual_key, false),
+                char::from_u32(virtual_key).map(|ch| ch.to_string()),
+                "virtual key 0x{virtual_key:02X} without Shift should keep the fixed digit \
+                 table"
             );
         }
     }
