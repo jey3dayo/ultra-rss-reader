@@ -1,9 +1,8 @@
-import { Result } from "@praha/byethrow";
 import { useEffect, useMemo, useRef } from "react";
 import { useArticleListGlobalEvents } from "@/components/reader/hooks/article-list/use-article-list-global-events";
 import { useArticleListKeydownHandler } from "@/components/reader/hooks/article-list/use-article-list-keydown-handler";
 import { useArticleListNavigation } from "@/components/reader/hooks/article-list/use-article-list-navigation";
-import { getAdjacentArticleId } from "@/lib/articles/article-list";
+import { resolveArticleCursor } from "@/lib/articles/article-list";
 import { buildKeyToActionMap } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 import type {
@@ -37,12 +36,17 @@ export function useArticleListInteractions({
   const setHasNextArticle = useUiStore((state) => state.setHasNextArticle);
 
   // This pane owns the list that `navigateArticle` actually walks (search results included), so it
-  // publishes whether a next article exists. The content pane renders its next-article control from
-  // this value instead of re-deriving it from its own source-agnostic list. Unmounting this pane
-  // also drops the `navigateArticle` listener, so publishing "no next" on cleanup stays accurate.
+  // publishes whether a next article exists via `resolveArticleCursor` — the same cursor helper
+  // `useArticleListNavigation` relies on for the boundary check. The content pane renders its
+  // next-article control from this published value instead of re-deriving it from its own
+  // source-agnostic list, because that list is built without search applied (see
+  // `useArticleViewSelection`). Unmounting this pane also drops the `navigateArticle` listener, so
+  // publishing "no next" on cleanup stays accurate for as long as this pane is the one mounted;
+  // when this pane never mounts at all (e.g. content-only layout before the list pane is visited),
+  // the published value is not corrected — see docs/reader-article-scope-matrix.md.
   useEffect(() => {
-    const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, 1);
-    setHasNextArticle(Result.isSuccess(nextArticleId) && Result.unwrap(nextArticleId) !== selectedArticleId);
+    const cursor = resolveArticleCursor(filteredArticles, selectedArticleId);
+    setHasNextArticle(cursor.hasNext);
 
     return () => {
       setHasNextArticle(false);
