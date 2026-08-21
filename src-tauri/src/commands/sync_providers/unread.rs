@@ -16,8 +16,8 @@ use crate::infra::provider::greader::GReaderProvider;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 
-use super::build_article_from_remote_entry;
 use super::subscriptions::is_provider_managed_greader_feed;
+use crate::service::sync_flow::article_from_remote_entry;
 
 pub(super) async fn reconcile_greader_unread_counts(
     db: &Mutex<DbManager>,
@@ -194,7 +194,7 @@ async fn fetch_greader_unread_entries_for_feed(
                 if let Some(remote_id) = entry.id.as_ref() {
                     unread_remote_ids.insert(remote_id.clone());
                 }
-                build_article_from_remote_entry(account, feed, entry)
+                article_from_remote_entry(&account.id, feed, entry)
             })
             .collect();
 

@@ -1,78 +1,35 @@
 use std::sync::Mutex;
 
 use crate::commands::dto::AppError;
-use crate::domain::article::{generate_entry_id, Article};
+use crate::domain::article::Article;
 use crate::domain::feed::Feed;
 use crate::domain::provider::{FeedIdentifier, PullResult, PullScope, SyncCursor};
 use crate::domain::types::{AccountId, ArticleId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_conn;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
+use crate::infra::db::sqlite_article::upsert_articles_with_conn;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::FeedProvider;
-use crate::infra::sanitizer;
 use crate::repository::feed::FeedRepository;
 use crate::repository::sync_state::{
     normalize_http_etag_validator, normalize_http_last_modified_validator, SyncState,
     SyncStateRepository, SyncStateScopeKey,
 };
+use crate::service::sync_flow::article_from_remote_entry;
 
 use crate::commands::feed_commands::lock_db;
 
+/// Delegates to `infra::db::sqlite_article::upsert_articles_with_conn`, which
+/// does not open its own transaction, so this rides on the caller's existing
+/// transaction (see `save_local_feed_sync_result_in_current_transaction`).
 pub(super) fn upsert_articles_in_current_transaction(
     conn: &rusqlite::Connection,
     articles: &[Article],
 ) -> Result<(), AppError> {
-    let mut stmt = conn
-        .prepare(
-            "INSERT INTO articles (id, account_id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
-             VALUES (?1, (SELECT account_id FROM feeds WHERE id = ?2), ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
-             ON CONFLICT(id) DO UPDATE SET
-               account_id = excluded.account_id,
-               feed_id = excluded.feed_id,
-               title = excluded.title,
-               content_raw = excluded.content_raw,
-               content_sanitized = excluded.content_sanitized,
-               content_text = excluded.content_text,
-               sanitizer_version = excluded.sanitizer_version,
-               summary = excluded.summary,
-               url = excluded.url,
-               author = excluded.author,
-               published_at = MIN(articles.published_at, excluded.published_at),
-               thumbnail = excluded.thumbnail,
-               fetched_at = excluded.fetched_at",
-        )
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    for article in articles {
-        stmt.execute(rusqlite::params![
-            article.id.0,
-            article.feed_id.0,
-            article.remote_id,
-            article.title,
-            article.content_raw,
-            article.content_sanitized,
-            article.sanitizer_version,
-            article.summary,
-            article.url,
-            article.author,
-            article.published_at.to_rfc3339(),
-            article.thumbnail,
-            article.is_read,
-            article.is_starred,
-            article.fetched_at.to_rfc3339(),
-            if article.content_sanitized.trim().is_empty() {
-                article.summary.clone().unwrap_or_default()
-            } else {
-                sanitizer::extract_visible_text(&article.content_sanitized)
-            },
-        ])
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    }
-    Ok(())
+    upsert_articles_with_conn(conn, articles).map_err(AppError::from)
 }
 
 fn save_local_feed_sync_result_in_current_transaction(
@@ -169,32 +126,7 @@ pub(in crate::commands) async fn sync_local_feed(
         result
             .entries
             .iter()
-            .map(|entry| {
-                let id = generate_entry_id(
-                    account_id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: chrono::Utc::now(),
-                }
-            })
+            .map(|entry| article_from_remote_entry(account_id, feed, entry))
             .collect()
     };
 
