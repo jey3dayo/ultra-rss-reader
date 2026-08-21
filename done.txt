@@ -21,3 +21,4 @@ x 2026-08-21 2026-08-21 アーキ候補4: feed identity判定の重複解消+未
 x 2026-08-21 2026-08-21 アーキ候補5: navigable article list+cursorの単一所有、#54再発防止(検証: cursor一貫性のfocused test+ブラウザ実画面) +reader-ui note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
 x 2026-08-21 2026-08-21 アーキ候補1: Sync sessionのロック所有。plan作成→レビュー→実装の3段、Phase3より先、候補5の後(検証: remote-state-reconciliation回帰テスト維持+contract test) +refactor-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
 x 2026-08-21 2026-08-21 アーキ候補2: sync_flowデコイ解消/AccountSync一本化。候補1の結果を見てから判断(検証: 層方向code audit+全テスト緑) +refactor-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
+x 2026-08-21 2026-08-21 アーキ候補5後半: hasNextArticleのmount順依存解消。検索UI stateのstore昇格=検索クローズ時リセット廃止の挙動変更を伴うため方針判断が先(検証: 一覧pane未mount画面でのcursor正しさのfocused test) +reader-ui note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
