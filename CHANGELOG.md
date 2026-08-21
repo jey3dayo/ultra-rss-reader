@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-08-22
+
 ### Features
 
 - 修飾キー付きショートカットのネイティブ変換で Enter/Tab/Backspace/Space/矢印/F1-F12 と記号キー(Windowsは現行キーボードレイアウト準拠)に対応した。同期中のキー入力で画面が待たされないよう設定読み取りを非ブロッキング化した。
