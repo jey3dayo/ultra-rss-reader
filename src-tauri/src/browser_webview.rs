@@ -655,70 +655,55 @@ fn should_handle_macos_browser_escape_key(key_code: u16, browser_webview_open: b
     browser_webview_open && key_code == MACOS_ESCAPE_KEY_CODE
 }
 
+/// NSFunctionKey range (arrow keys, etc.) as documented on `NSEvent`: characters in
+/// U+F700-U+F8FF are "function key" characters, not printable text, and must be mapped
+/// to their symbolic name instead of used literally.
+const MACOS_NS_UP_ARROW_FUNCTION_KEY: char = '\u{F700}';
+const MACOS_NS_DOWN_ARROW_FUNCTION_KEY: char = '\u{F701}';
+const MACOS_NS_LEFT_ARROW_FUNCTION_KEY: char = '\u{F702}';
+const MACOS_NS_RIGHT_ARROW_FUNCTION_KEY: char = '\u{F703}';
+const MACOS_NS_FUNCTION_KEY_RANGE_START: char = '\u{F700}';
+const MACOS_NS_FUNCTION_KEY_RANGE_END: char = '\u{F8FF}';
+
+/// Resolves the logical shortcut key from `NSEvent.charactersIgnoringModifiers()` instead
+/// of a fixed US-keyboard `keyCode` table, so layout-dependent bindings (JIS symbols,
+/// QWERTZ/AZERTY letters) match the same logical key the frontend recorded from
+/// `KeyboardEvent.key`. See `.claude/rules` PR #67 review: a keyCode table silently
+/// mismatches on any non-US physical layout.
 #[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
-fn browser_shortcut_key_from_macos_key_code(key_code: u16) -> Option<&'static str> {
-    Some(match key_code {
-        0 => "a",
-        1 => "s",
-        2 => "d",
-        3 => "f",
-        4 => "h",
-        5 => "g",
-        6 => "z",
-        7 => "x",
-        8 => "c",
-        9 => "v",
-        11 => "b",
-        12 => "q",
-        13 => "w",
-        14 => "e",
-        15 => "r",
-        16 => "y",
-        17 => "t",
-        18 => "1",
-        19 => "2",
-        20 => "3",
-        21 => "4",
-        22 => "6",
-        23 => "5",
-        24 => "=",
-        25 => "9",
-        26 => "7",
-        27 => "-",
-        28 => "8",
-        29 => "0",
-        30 => "]",
-        31 => "o",
-        32 => "u",
-        33 => "[",
-        34 => "i",
-        35 => "p",
-        37 => "l",
-        38 => "j",
-        39 => "'",
-        40 => "k",
-        41 => ";",
-        42 => "\\",
-        43 => ",",
-        44 => "/",
-        45 => "n",
-        46 => "m",
-        47 => ".",
-        49 => "Space",
-        50 => "`",
-        53 => "Escape",
-        123 => "ArrowLeft",
-        124 => "ArrowRight",
-        125 => "ArrowDown",
-        126 => "ArrowUp",
-        _ => return None,
+fn browser_shortcut_key_from_macos_event_characters(characters: &str) -> Option<String> {
+    let mut chars = characters.chars();
+    let first = chars.next()?;
+    if chars.next().is_some() {
+        // Dead keys / IME composition can yield multi-character strings; those are not a
+        // single logical shortcut key we can normalize against a saved binding.
+        return None;
+    }
+
+    Some(match first {
+        '\r' | '\u{3}' => "Enter".to_string(),
+        '\t' => "Tab".to_string(),
+        '\u{7f}' | '\u{8}' => "Backspace".to_string(),
+        '\u{1b}' => "Escape".to_string(),
+        ' ' => "Space".to_string(),
+        MACOS_NS_UP_ARROW_FUNCTION_KEY => "ArrowUp".to_string(),
+        MACOS_NS_DOWN_ARROW_FUNCTION_KEY => "ArrowDown".to_string(),
+        MACOS_NS_LEFT_ARROW_FUNCTION_KEY => "ArrowLeft".to_string(),
+        MACOS_NS_RIGHT_ARROW_FUNCTION_KEY => "ArrowRight".to_string(),
+        unmapped_function_key
+            if (MACOS_NS_FUNCTION_KEY_RANGE_START..=MACOS_NS_FUNCTION_KEY_RANGE_END)
+                .contains(&unmapped_function_key) =>
+        {
+            return None;
+        }
+        other => other.to_string(),
     })
 }
 
 #[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
 fn browser_preview_action_for_macos_key_event(
     prefs: &HashMap<String, String>,
-    key_code: u16,
+    characters: &str,
     command_or_control: bool,
     shift: bool,
     alt: bool,
@@ -728,8 +713,8 @@ fn browser_preview_action_for_macos_key_event(
         return None;
     }
 
-    let key = browser_shortcut_key_from_macos_key_code(key_code)?;
-    browser_preview_action_for_shortcut(prefs, key, command_or_control, shift, alt)
+    let key = browser_shortcut_key_from_macos_event_characters(characters)?;
+    browser_preview_action_for_shortcut(prefs, &key, command_or_control, shift, alt)
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -1210,8 +1195,13 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
 
     let app_handle = app_handle.clone();
     let handler = block2::RcBlock::new(move |event: std::ptr::NonNull<NSEvent>| -> *mut NSEvent {
-        let (key_code, modifier_flags) =
-            unsafe { (event.as_ref().keyCode(), event.as_ref().modifierFlags()) };
+        let (key_code, modifier_flags, characters_ignoring_modifiers) = unsafe {
+            (
+                event.as_ref().keyCode(),
+                event.as_ref().modifierFlags(),
+                event.as_ref().charactersIgnoringModifiers(),
+            )
+        };
         let browser_webview_open = app_handle
             .try_state::<crate::commands::AppState>()
             .and_then(|app_state| {
@@ -1243,9 +1233,12 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                     HashMap::new()
                 }
             };
+            let characters_ignoring_modifiers = characters_ignoring_modifiers
+                .map(|characters| characters.to_string())
+                .unwrap_or_default();
             let Some(action) = browser_preview_action_for_macos_key_event(
                 &prefs,
-                key_code,
+                &characters_ignoring_modifiers,
                 command_or_control,
                 shift,
                 alt,
@@ -1526,7 +1519,8 @@ mod tests {
         browser_preview_bridge_message_action, browser_preview_close_bridge_source,
         browser_preview_focus_override_source, browser_preview_initialization_script,
         browser_preview_initialization_script_from_prefs_result,
-        browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
+        browser_preview_shortcut_preferences_read_warning,
+        browser_shortcut_key_from_macos_event_characters, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
         should_handle_macos_browser_escape_key, should_trigger_timeout_fallback,
         supports_native_navigation, BrowserNavigationAvailability,
@@ -2126,27 +2120,87 @@ mod tests {
         ]);
 
         assert_eq!(
-            browser_preview_action_for_macos_key_event(&prefs, 46, false, false, false, true),
+            browser_preview_action_for_macos_key_event(&prefs, "m", false, false, false, true),
             None,
             "bare key bindings must stay in the hosted page"
         );
         assert_eq!(
-            browser_preview_action_for_macos_key_event(&prefs, 1, false, false, false, true),
+            browser_preview_action_for_macos_key_event(&prefs, "s", false, false, false, true),
             None,
             "an unmatched key must not be handled natively"
         );
         assert_eq!(
-            browser_preview_action_for_macos_key_event(&prefs, 1, true, false, false, true),
+            browser_preview_action_for_macos_key_event(&prefs, "s", true, false, false, true),
             Some("toggle-star")
         );
         assert_eq!(
-            browser_preview_action_for_macos_key_event(&prefs, 11, false, false, true, true),
+            browser_preview_action_for_macos_key_event(&prefs, "b", false, false, true, true),
             Some("open-in-default-browser")
         );
         assert_eq!(
-            browser_preview_action_for_macos_key_event(&prefs, 46, false, false, false, false),
+            browser_preview_action_for_macos_key_event(&prefs, "m", false, false, false, false),
             None,
             "native shortcuts must not run when the browser webview is closed"
+        );
+    }
+
+    #[test]
+    fn macos_shortcut_key_from_event_characters_normalizes_control_and_function_keys() {
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("m"),
+            Some("m".to_string()),
+            "plain printable characters pass through unchanged"
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F700}"),
+            Some("ArrowUp".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F701}"),
+            Some("ArrowDown".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F702}"),
+            Some("ArrowLeft".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F703}"),
+            Some("ArrowRight".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\r"),
+            Some("Enter".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters(" "),
+            Some("Space".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\t"),
+            Some("Tab".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{7f}"),
+            Some("Backspace".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{1b}"),
+            Some("Escape".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters(""),
+            None,
+            "an empty characters string has no logical key"
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("ab"),
+            None,
+            "multi-character IME/dead-key output is not a single logical shortcut key"
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F729}"),
+            None,
+            "unmapped NSFunctionKey characters must not fall through as literal text"
         );
     }
 
