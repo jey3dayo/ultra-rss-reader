@@ -36,8 +36,10 @@ export function useArticleListInteractions({
   const setHasNextArticle = useUiStore((state) => state.setHasNextArticle);
 
   // This pane owns the list that `navigateArticle` actually walks (search results included), so it
-  // publishes whether a next article exists via `resolveArticleCursor` — the same cursor helper
-  // `useArticleListNavigation` relies on for the boundary check. The content pane renders its
+  // publishes whether a next article exists via `resolveArticleCursor`, which applies the same
+  // `getAdjacentArticleId` clamp rule that `useArticleListNavigation` checks (that hook still calls
+  // `getAdjacentArticleId` directly because boundary hits re-select the current article there,
+  // which the cursor's null-on-boundary shape does not express). The content pane renders its
   // next-article control from this published value instead of re-deriving it from its own
   // source-agnostic list, because that list is built without search applied (see
   // `useArticleViewSelection`). Unmounting this pane also drops the `navigateArticle` listener, so
