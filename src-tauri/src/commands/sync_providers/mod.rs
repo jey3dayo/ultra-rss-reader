@@ -205,6 +205,45 @@ fn pending_remote_ids_by_axis(
     Ok((read_ids, starred_ids))
 }
 
+/// The only sanctioned way to overwrite local state with remote state.
+///
+/// Acquires the DB lock, re-reads the pending-mutation protection lists
+/// inside that same lock, merges `extra_protected_(read|starred)_ids` (e.g.
+/// mutations pushed earlier in this sync), then applies. See
+/// `.claude/rules/remote-state-reconciliation.md`: the protection snapshot
+/// must never be read before an `.await` (such as `pull_state()`) that
+/// precedes the apply, since a local mutation made in that window would be
+/// reverted to the stale remote state.
+fn apply_remote_state_with_protection(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    read_ids: &[String],
+    starred_ids: &[String],
+    extra_protected_read_ids: &[String],
+    extra_protected_starred_ids: &[String],
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let (mut pending_read_remote_ids, mut pending_starred_remote_ids) =
+        pending_remote_ids_by_axis(db_guard.reader(), account_id)?;
+    pending_read_remote_ids.extend(extra_protected_read_ids.iter().cloned());
+    pending_read_remote_ids.sort();
+    pending_read_remote_ids.dedup();
+    pending_starred_remote_ids.extend(extra_protected_starred_ids.iter().cloned());
+    pending_starred_remote_ids.sort();
+    pending_starred_remote_ids.dedup();
+
+    let article_repo = SqliteArticleRepository::new(db_guard.writer());
+    article_repo
+        .apply_remote_state(
+            account_id,
+            read_ids,
+            starred_ids,
+            &pending_read_remote_ids,
+            &pending_starred_remote_ids,
+        )
+        .map_err(AppError::from)
+}
+
 fn build_article_from_remote_entry(
     account: &Account,
     feed: &Feed,
@@ -396,19 +435,16 @@ pub(super) async fn repair_greader_remote_state(
         .await?;
 
     let remote_state = provider.pull_state().await?;
+    apply_remote_state_with_protection(
+        db,
+        &account.id,
+        &remote_state.read_ids,
+        &remote_state.starred_ids,
+        &[],
+        &[],
+    )?;
     let feeds = {
         let db_guard = lock_db(db)?;
-        let (pending_read_remote_ids, pending_starred_remote_ids) =
-            pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
-        let article_repo = SqliteArticleRepository::new(db_guard.writer());
-        article_repo.apply_remote_state(
-            &account.id,
-            &remote_state.read_ids,
-            &remote_state.starred_ids,
-            &pending_read_remote_ids,
-            &pending_starred_remote_ids,
-        )?;
-
         let feed_repo = SqliteFeedRepository::new(db_guard.reader());
         feed_repo.find_by_account(&account.id)?
     };
@@ -787,26 +823,14 @@ async fn sync_greader_feeds(
     let should_pull_remote_state = should_pull_remote_state(db, &account.id, now)?;
     if should_pull_remote_state {
         let remote_state = provider.pull_state().await?;
-        {
-            let db_guard = lock_db(db)?;
-            let (mut pending_read_remote_ids, mut pending_starred_remote_ids) =
-                pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
-            pending_read_remote_ids.extend(pushed_read_remote_ids);
-            pending_read_remote_ids.sort();
-            pending_read_remote_ids.dedup();
-            pending_starred_remote_ids.extend(pushed_starred_remote_ids);
-            pending_starred_remote_ids.sort();
-            pending_starred_remote_ids.dedup();
-
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            article_repo.apply_remote_state(
-                &account.id,
-                &remote_state.read_ids,
-                &remote_state.starred_ids,
-                &pending_read_remote_ids,
-                &pending_starred_remote_ids,
-            )?;
-        }
+        apply_remote_state_with_protection(
+            db,
+            &account.id,
+            &remote_state.read_ids,
+            &remote_state.starred_ids,
+            &pushed_read_remote_ids,
+            &pushed_starred_remote_ids,
+        )?;
         mark_remote_state_sync_completed(db, &account.id, now)?;
     }
     info!(
@@ -2323,6 +2347,71 @@ mod tests {
         feed_repo.save(&feed).unwrap();
 
         (account, feed)
+    }
+
+    #[test]
+    fn apply_remote_state_with_protection_reads_pending_mutations_saved_before_the_call() {
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, "http://localhost");
+        let remote_id = "protected-entry".to_string();
+        let article_id = ArticleId("protected-article".to_string());
+
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            article_repo
+                .upsert(&[Article {
+                    id: article_id.clone(),
+                    feed_id: feed.id.clone(),
+                    remote_id: Some(remote_id.clone()),
+                    title: "Protected".to_string(),
+                    content_raw: "body".to_string(),
+                    content_sanitized: "body".to_string(),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: None,
+                    url: None,
+                    author: None,
+                    published_at: chrono::Utc::now(),
+                    thumbnail: None,
+                    is_read: true,
+                    is_starred: false,
+                    fetched_at: chrono::Utc::now(),
+                }])
+                .unwrap();
+
+            // A pending MarkRead mutation, saved directly to the DB (not passed via
+            // `extra_protected_read_ids`), must still be picked up: the helper is
+            // responsible for re-reading pending mutations from the DB inside its
+            // own lock, not relying on a caller-supplied snapshot.
+            let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+            pending_repo
+                .save(&PendingMutation {
+                    id: None,
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::MarkRead,
+                    remote_entry_id: remote_id.clone(),
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                })
+                .unwrap();
+        }
+
+        // Remote reports the entry as unread; without protection this would
+        // revert the article to unread.
+        apply_remote_state_with_protection(&db, &account.id, &[], &[], &[], &[]).unwrap();
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let article = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap()
+            .into_iter()
+            .find(|article| article.id == article_id)
+            .unwrap();
+        assert!(
+            article.is_read,
+            "pending MarkRead mutation saved before the call should protect the article \
+             from being reverted to the remote's stale unread state"
+        );
     }
 
     #[test]
