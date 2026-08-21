@@ -591,6 +591,39 @@ export function getAdjacentArticleId(
   return Result.succeed(Result.unwrap(nextArticleId));
 }
 
+export type ArticleCursor = {
+  currentId: string | null;
+  prevId: string | null;
+  nextId: string | null;
+  hasPrev: boolean;
+  hasNext: boolean;
+};
+
+/**
+ * Single source of truth for "does a prev/next article exist relative to the current
+ * navigable list". `getAdjacentArticleId` clamps at the list boundary and returns the
+ * *same* id back instead of failing, so callers must not treat any successful result as
+ * "an adjacent article exists" — they must also compare it against `selectedArticleId`.
+ * Centralizing that comparison here keeps the article list pane's keyboard navigation and
+ * the content pane's next/prev affordance from drifting on this boundary check.
+ */
+export function resolveArticleCursor(articles: ArticleDto[], selectedArticleId: string | null): ArticleCursor {
+  const nextResult = getAdjacentArticleId(articles, selectedArticleId, 1);
+  const prevResult = getAdjacentArticleId(articles, selectedArticleId, -1);
+  const candidateNextId = Result.isSuccess(nextResult) ? Result.unwrap(nextResult) : null;
+  const candidatePrevId = Result.isSuccess(prevResult) ? Result.unwrap(prevResult) : null;
+  const hasNext = candidateNextId !== null && candidateNextId !== selectedArticleId;
+  const hasPrev = candidatePrevId !== null && candidatePrevId !== selectedArticleId;
+
+  return {
+    currentId: selectedArticleId,
+    prevId: hasPrev ? candidatePrevId : null,
+    nextId: hasNext ? candidateNextId : null,
+    hasPrev,
+    hasNext,
+  };
+}
+
 export function calculateArticleNavigationScrollTop(params: CalculateArticleNavigationScrollTopParams): number | null {
   const {
     currentScrollTop,

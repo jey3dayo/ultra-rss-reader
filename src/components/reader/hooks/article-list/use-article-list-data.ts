@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import {
   buildArticleListFeedNameMap,
+  buildArticleListSourcePlanKey,
   buildFolderFeedIdSet,
   groupArticles,
   resolveEffectiveRetainedArticleIds,
@@ -91,80 +92,59 @@ export function useArticleListData(params: UseArticleListDataParams): UseArticle
     sortUnread,
     groupBy,
   } = params;
-  const sourceFilter = sourcePlan.query?.filter ?? null;
-  const effectiveViewMode = useMemo<ViewMode>(() => {
-    return sourcePlan.effectiveViewMode;
-  }, [sourcePlan.effectiveViewMode]);
+  // `sourcePlan` is recreated on every render by `useArticleListSources`, but its content
+  // (not its identity) is what should drive recomputation — see the memo-stability contract
+  // pinned by `use-article-list-data.node.test.tsx`. Keep the previous reference as long as
+  // `buildArticleListSourcePlanKey` reports the same content so the memo below only sees a
+  // changed `sourcePlan` when something it actually reads (source, filter, view mode, order)
+  // changed.
+  const sourcePlanRef = useRef(sourcePlan);
+  if (buildArticleListSourcePlanKey(sourcePlanRef.current) !== buildArticleListSourcePlanKey(sourcePlan)) {
+    sourcePlanRef.current = sourcePlan;
+  }
+  const stableSourcePlan = sourcePlanRef.current;
 
-  const effectiveRetainedArticleIds = useMemo(() => {
-    return resolveEffectiveRetainedArticleIds({
-      sourceFilter,
-      effectiveViewMode,
-      retainedArticleIds,
+  // A single `buildArticleListData` call, memoized on its individual scalar/array
+  // dependencies, keeps this hook's production behavior identical to the plain function
+  // the tests exercise directly. Do not reintroduce a parallel step-by-step recomputation
+  // here; that previously let the hook body drift from `buildArticleListData`.
+  return useMemo(
+    () =>
+      buildArticleListData({
+        feedId,
+        folderId,
+        tagId,
+        sourcePlan: stableSourcePlan,
+        accountListScopeId,
+        selectedArticleId,
+        retainedArticleIds,
+        feeds,
+        articles,
+        accountArticles,
+        tagArticles,
+        searchResults,
+        showSearch,
+        trimmedDebouncedQuery,
+        sortUnread,
+        groupBy,
+      }),
+    [
+      feedId,
+      folderId,
+      tagId,
+      stableSourcePlan,
+      accountListScopeId,
       selectedArticleId,
-    });
-  }, [effectiveViewMode, retainedArticleIds, selectedArticleId, sourceFilter]);
-
-  const feedNameMap = useMemo(() => {
-    return buildArticleListFeedNameMap(feeds);
-  }, [feeds]);
-
-  const folderFeedIds = useMemo(() => {
-    return buildFolderFeedIdSet(feeds, folderId);
-  }, [feeds, folderId]);
-
-  const filteredArticles = useMemo(() => {
-    return selectVisibleArticles({
+      retainedArticleIds,
+      feeds,
       articles,
       accountArticles,
       tagArticles,
       searchResults,
-      feedId,
-      tagId,
-      folderFeedIds: showSearch ? folderFeedIds : null,
-      viewMode: effectiveViewMode,
-      sourceFilter,
-      preservesSourceOrder: sourcePlan.preservesRecentOrder,
       showSearch,
-      searchQuery: trimmedDebouncedQuery,
+      trimmedDebouncedQuery,
       sortUnread,
-      retainedArticleIds: effectiveRetainedArticleIds,
-    });
-  }, [
-    effectiveRetainedArticleIds,
-    accountArticles,
-    articles,
-    feedId,
-    folderFeedIds,
-    tagArticles,
-    tagId,
-    effectiveViewMode,
-    sourceFilter,
-    sourcePlan.preservesRecentOrder,
-    showSearch,
-    trimmedDebouncedQuery,
-    searchResults,
-    sortUnread,
-  ]);
-
-  const groupedArticles = useMemo(() => {
-    return groupArticles({
-      articles: filteredArticles,
       groupBy,
-      feedNameMap,
-    });
-  }, [filteredArticles, groupBy, feedNameMap]);
-
-  const selectedFeed = useMemo(() => feeds?.find((feed) => feed.id === feedId), [feeds, feedId]);
-
-  return {
-    feedId,
-    tagId,
-    accountListScopeId,
-    effectiveViewMode,
-    feedNameMap,
-    filteredArticles,
-    groupedArticles,
-    selectedFeed,
-  };
+    ],
+  );
 }
