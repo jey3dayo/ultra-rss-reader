@@ -40,12 +40,34 @@ pub(super) fn save_greader_subscriptions(
     sync_started_remote_feed_ids: &HashSet<String>,
 ) -> Result<(), AppError> {
     let db_guard = lock_db(db)?;
+
+    // Load all existing feeds for the account once and index them by
+    // remote_id / url in memory, instead of running a find_by_remote_id and
+    // find_by_url SELECT per remote subscription (N+1).
     let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+    let existing_feeds = feed_repo.find_by_account(&account.id)?;
+    let mut by_remote_id: HashMap<String, Feed> = HashMap::new();
+    let mut by_url: HashMap<String, Feed> = HashMap::new();
+    for feed in existing_feeds {
+        if let Some(remote_id) = feed.remote_id.clone() {
+            by_remote_id.insert(remote_id, feed.clone());
+        }
+        by_url.insert(feed.url.clone(), feed);
+    }
+
+    // Apply all upserts inside a single transaction so N feeds commit once
+    // instead of once per feed.
+    let tx = db_guard
+        .writer()
+        .unchecked_transaction()
+        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
+    let tx_feed_repo = SqliteFeedRepository::new(&tx);
+
     for rs in remote_subs {
-        let existing = match feed_repo.find_by_remote_id(&account.id, &rs.remote_id)? {
-            Some(feed) => Some(feed),
-            None => feed_repo.find_by_url(&account.id, &rs.url)?,
-        };
+        let existing = by_remote_id
+            .get(&rs.remote_id)
+            .cloned()
+            .or_else(|| by_url.get(&rs.url).cloned());
         if existing.is_none() && sync_started_remote_feed_ids.contains(&rs.remote_id) {
             continue;
         }
@@ -79,8 +101,29 @@ pub(super) fn save_greader_subscriptions(
                 .map(|f| f.web_preview_mode.clone())
                 .unwrap_or_else(|| "inherit".to_string()),
         };
-        feed_repo.save(&feed)?;
+        tx_feed_repo.save(&feed)?;
+        // Keep the in-memory indices in sync so a later remote subscription
+        // in the same batch (e.g. a URL that matches a feed just upserted)
+        // observes the update, matching the previous per-item read/write
+        // ordering. Remove the matched feed's pre-update identity first: if
+        // its url or remote_id changed, a stale by_url/by_remote_id entry
+        // would otherwise still point a later, unrelated remote subscription
+        // (e.g. one that now legitimately reuses the old url) at this
+        // already-migrated feed instead of treating it as a new feed.
+        if let Some(existing) = &existing {
+            if let Some(remote_id) = existing.remote_id.as_deref() {
+                by_remote_id.remove(remote_id);
+            }
+            by_url.remove(&existing.url);
+        }
+        if let Some(remote_id) = feed.remote_id.clone() {
+            by_remote_id.insert(remote_id, feed.clone());
+        }
+        by_url.insert(feed.url.clone(), feed);
     }
+
+    tx.commit()
+        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
     Ok(())
 }
 
@@ -211,4 +254,118 @@ pub(super) fn pending_mutation_ids_targeting_provider_managed_greader_feeds(
         ids.insert(id);
     }
     Ok(ids)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::account::{Account, ConnectionVerificationStatus};
+
+    fn test_db() -> Mutex<DbManager> {
+        Mutex::new(DbManager::new_in_memory().expect("in-memory db should initialize"))
+    }
+
+    fn test_account() -> Account {
+        Account {
+            id: AccountId::new(),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: Some("http://localhost".to_string()),
+            username: Some("u".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        }
+    }
+
+    fn make_remote_sub(remote_id: &str, url: &str) -> RemoteSubscription {
+        RemoteSubscription {
+            remote_id: remote_id.to_string(),
+            title: format!("Title for {remote_id}"),
+            url: url.to_string(),
+            site_url: String::new(),
+            folder_remote_id: None,
+            icon_url: None,
+        }
+    }
+
+    #[test]
+    fn save_greader_subscriptions_treats_reused_url_as_new_feed_after_remote_id_matched_feed_url_changes(
+    ) {
+        let db = test_db();
+        let account = test_account();
+
+        // Pre-existing feed, previously synced as remote_id "feed/a" with the old url.
+        let existing_feed = Feed {
+            id: FeedId::new(),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: Some("feed/a".to_string()),
+            title: "Feed A (old)".to_string(),
+            url: "http://old.example.com/a.rss".to_string(),
+            site_url: String::new(),
+            icon: None,
+            icon_url: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                    rusqlite::params![account.id.0, "FreshRss", &account.name],
+                )
+                .unwrap();
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo.save(&existing_feed).unwrap();
+        }
+
+        // First item: same remote_id "feed/a" as the pre-existing feed, but its url
+        // has changed upstream to a new url.
+        // Second item: a different, never-seen remote_id "feed/b" whose url happens
+        // to reuse the pre-existing feed's now-stale old url.
+        let remote_subs = vec![
+            make_remote_sub("feed/a", "http://new.example.com/a.rss"),
+            make_remote_sub("feed/b", "http://old.example.com/a.rss"),
+        ];
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &remote_subs,
+            &HashSet::new(),
+        )
+        .unwrap();
+
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        let feeds = feed_repo.find_by_account(&account.id).unwrap();
+        assert_eq!(
+            feeds.len(),
+            2,
+            "the reused url should create a separate feed, not merge into feed/a"
+        );
+
+        let feed_a = feed_repo
+            .find_by_remote_id(&account.id, "feed/a")
+            .unwrap()
+            .expect("feed/a should still exist");
+        assert_eq!(feed_a.id, existing_feed.id);
+        assert_eq!(feed_a.url, "http://new.example.com/a.rss");
+
+        let feed_b = feed_repo
+            .find_by_remote_id(&account.id, "feed/b")
+            .unwrap()
+            .expect("feed/b should have been created as a new feed");
+        assert_ne!(feed_b.id, existing_feed.id);
+        assert_eq!(feed_b.url, "http://old.example.com/a.rss");
+    }
 }

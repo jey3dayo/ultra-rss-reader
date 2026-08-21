@@ -1340,6 +1340,63 @@ fn v18_deduplicates_pending_mutations_before_adding_unique_index() {
     assert!(duplicate_result.is_err());
 }
 
+#[test]
+fn v26_sanitizer_version_index_is_used_for_backfill_query() {
+    let mut conn = open_in_memory();
+    run_migrations(&mut conn).unwrap();
+
+    conn.execute(
+        "INSERT INTO accounts (id, kind, name) VALUES ('acc-1', 'FreshRss', 'FreshRSS')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO feeds (id, account_id, remote_id, title, url)
+         VALUES ('feed-1', 'acc-1', 'feed/1', 'Feed', 'https://example.com/feed')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO articles (
+            id, account_id, feed_id, title, content_raw, content_sanitized,
+            sanitizer_version, published_at, fetched_at
+         ) VALUES (
+            'article-1', 'acc-1', 'feed-1', 'Article', '', '',
+            1, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'
+         )",
+        [],
+    )
+    .unwrap();
+
+    let mut stmt = conn
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT id, feed_id, remote_id, title, content_raw, content_sanitized,
+                    sanitizer_version, summary, url, author, thumbnail, published_at,
+                    is_read, is_starred, fetched_at
+             FROM articles
+             WHERE sanitizer_version < ?1
+             ORDER BY sanitizer_version ASC, fetched_at ASC, id ASC
+             LIMIT ?2",
+        )
+        .unwrap();
+    let plan = stmt
+        .query_map(params![2, 100], |row| row.get::<_, String>(3))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n");
+
+    assert!(
+        plan.contains("idx_articles_sanitizer_version_fetched_id"),
+        "backfill query should use the sanitizer_version composite index, plan was: {plan}"
+    );
+    assert!(
+        !plan.to_uppercase().contains("USE TEMP B-TREE"),
+        "index should satisfy the ORDER BY without a separate sort: {plan}"
+    );
+}
+
 fn normalize_sql(sql: &str) -> String {
     sql.split_whitespace().collect::<Vec<_>>().join(" ")
 }

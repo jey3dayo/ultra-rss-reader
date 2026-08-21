@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use tauri::{
     webview::{NewWindowResponse, PageLoadEvent, WebviewBuilder},
-    Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect,
-    Size, State, Url, WebviewUrl, Window,
+    LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect, Size,
+    State, Url, WebviewUrl, Window,
 };
 use tokio::time::{sleep, Duration};
 
@@ -18,7 +18,6 @@ use crate::browser_webview::{
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
-use crate::menu::MENU_ACTION_EVENT;
 use crate::platform::PlatformKind;
 
 const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
@@ -400,18 +399,14 @@ fn browser_webview_shortcut_navigation_action(target_url: &Url) -> Option<String
     is_supported_browser_preview_bridge_action(host).then(|| host.to_string())
 }
 
-fn handle_browser_webview_shortcut_navigation(window: &Window, target_url: &Url) -> bool {
-    let Some(action) = browser_webview_shortcut_navigation_action(target_url) else {
-        return false;
-    };
-
-    if action == "close-browser" {
-        if let Err(error) = focus_browser_host_window(window) {
-            tracing::warn!("{}", browser_host_focus_failure_warning("before", &error));
-        }
-    }
-    let _ = window.app_handle().emit(MENU_ACTION_EVENT, action);
-    true
+/// Cancels navigation to the `ultra-rss-browser-shortcut://` scheme without dispatching an
+/// app action. Origin page scripts can synthesize this URL themselves (it is injected as
+/// plain, readable JS), so it must never be treated as an authenticated action source. See
+/// `docs/feed-content-privacy.md`. Native key/mouse handling (macOS Escape monitor, Windows
+/// `AcceleratorKeyPressed`) is the only remaining channel that emits `MENU_ACTION_EVENT` for
+/// these actions.
+fn handle_browser_webview_shortcut_navigation(_window: &Window, target_url: &Url) -> bool {
+    browser_webview_shortcut_navigation_action(target_url).is_some()
 }
 
 fn schedule_browser_webview_timeout(
@@ -525,6 +520,25 @@ fn should_accept_page_load_finish(
 
 fn external_url(url: &str) -> Result<Url, AppError> {
     crate::commands::parse_browser_http_url(url)
+}
+
+/// Navigation allow-list for the embedded Web Preview webview.
+///
+/// Callers must run `handle_browser_webview_shortcut_navigation` first and treat that
+/// as fully handling shortcut-scheme (`ultra-rss-browser-shortcut://`) navigations; this
+/// function is never consulted for those. Everything else is either the Windows
+/// `about:blank` placeholder or a plain http(s) URL without embedded credentials.
+/// Web Preview intentionally does not reject private/loopback/link-local hosts here —
+/// see `docs/feed-content-privacy.md` (Web Preview navigation contract). That rejection is
+/// exclusive to the Article Link Opener (`open_in_browser`'s public-host-only URL check).
+fn allow_browser_webview_navigation(target_url: &Url, uses_placeholder_url: bool) -> bool {
+    if uses_placeholder_url && is_placeholder_browser_webview_url(target_url.as_str()) {
+        return true;
+    }
+
+    matches!(target_url.scheme(), "http" | "https")
+        && target_url.username().is_empty()
+        && target_url.password().is_none()
 }
 
 // The embedded browser preview webview has no Tauri window/tab of its own to host a
@@ -653,8 +667,23 @@ fn create_browser_webview(
             if handle_browser_webview_shortcut_navigation(&navigation_window, target_url) {
                 return false;
             }
+            // Restore the pre-refactor early return: the Windows `about:blank` placeholder
+            // must skip tracker_start entirely (no transient loading-state emit / timeout
+            // arm), so it is checked before the allow/deny gate below.
             if uses_placeholder_url && is_placeholder_browser_webview_url(target_url.as_str()) {
                 return true;
+            }
+            if !allow_browser_webview_navigation(target_url, uses_placeholder_url) {
+                // Silent cancel: the webview stays open on its current page. Do not emit
+                // `emit_browser_webview_navigation_failure` here — it closes the whole Web
+                // Preview overlay (via emit_browser_webview_closed) and its fallback event is
+                // dropped by the frontend's exact-match URL comparison anyway, so it would
+                // both surprise the user and never actually reach them.
+                tracing::warn!(
+                    "Blocked embedded browser navigation to disallowed URL: {}",
+                    crate::commands::redacted_browser_url_for_display(target_url.as_str())
+                );
+                return false;
             }
             let app_state = navigation_app_handle.state::<AppState>();
             if let Err(error) =
@@ -911,18 +940,18 @@ pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Resu
 #[cfg(test)]
 mod tests {
     use super::{
-        browser_host_focus_failure_warning, browser_webview_bounds_diagnostics_payload,
-        browser_webview_initial_url, browser_webview_log_url, browser_webview_not_open_error,
-        child_webview_add_child_bounds, child_webview_rect_from_browser_bounds,
-        empty_reload_source_error, external_url, finish_browser_webview_timeout,
-        is_placeholder_browser_webview_url, navigation_failure_emissions,
-        open_new_window_request_in_external_browser, should_accept_page_load_finish,
-        should_navigate_existing_browser_webview, should_use_placeholder_browser_webview_url,
-        timeout_fallback_emissions, tracker_navigation_availability,
-        validate_browser_webview_fallback_url, validated_bounds, BrowserNavigationAvailability,
-        BrowserWebviewBounds, BrowserWebviewBoundsUnit, BrowserWebviewTimeoutFallbackEmission,
-        BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
-        INVALID_BROWSER_BOUNDS_ERROR,
+        allow_browser_webview_navigation, browser_host_focus_failure_warning,
+        browser_webview_bounds_diagnostics_payload, browser_webview_initial_url,
+        browser_webview_log_url, browser_webview_not_open_error, child_webview_add_child_bounds,
+        child_webview_rect_from_browser_bounds, empty_reload_source_error, external_url,
+        finish_browser_webview_timeout, is_placeholder_browser_webview_url,
+        navigation_failure_emissions, open_new_window_request_in_external_browser,
+        should_accept_page_load_finish, should_navigate_existing_browser_webview,
+        should_use_placeholder_browser_webview_url, timeout_fallback_emissions,
+        tracker_navigation_availability, validate_browser_webview_fallback_url, validated_bounds,
+        BrowserNavigationAvailability, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
+        BrowserWebviewTimeoutFallbackEmission, BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR,
+        BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::browser_webview::{
         set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect, BrowserWebviewState,
@@ -951,6 +980,60 @@ mod tests {
         let result = external_url("file:///tmp/article.html");
 
         assert!(result.is_err(), "file:// URLs must be rejected");
+    }
+
+    #[test]
+    fn allow_browser_webview_navigation_allows_https() {
+        let target_url = Url::parse("https://example.com/a").expect("test URL should parse");
+
+        assert!(allow_browser_webview_navigation(&target_url, false));
+    }
+
+    #[test]
+    fn allow_browser_webview_navigation_allows_private_host_http() {
+        // Web Preview intentionally does not reject private/loopback hosts (unlike the
+        // Article Link Opener). LAN self-hosted publishers must remain previewable.
+        let target_url = Url::parse("http://127.0.0.1/").expect("test URL should parse");
+
+        assert!(allow_browser_webview_navigation(&target_url, false));
+    }
+
+    #[test]
+    fn allow_browser_webview_navigation_denies_javascript_scheme() {
+        let target_url = Url::parse("javascript:alert(1)").expect("test URL should parse");
+
+        assert!(!allow_browser_webview_navigation(&target_url, false));
+    }
+
+    #[test]
+    fn allow_browser_webview_navigation_denies_file_scheme() {
+        let target_url = Url::parse("file:///etc/passwd").expect("test URL should parse");
+
+        assert!(!allow_browser_webview_navigation(&target_url, false));
+    }
+
+    #[test]
+    fn allow_browser_webview_navigation_denies_data_scheme() {
+        let target_url =
+            Url::parse("data:text/html,<script>alert(1)</script>").expect("test URL should parse");
+
+        assert!(!allow_browser_webview_navigation(&target_url, false));
+    }
+
+    #[test]
+    fn allow_browser_webview_navigation_denies_credentials() {
+        let target_url =
+            Url::parse("https://user:pass@example.com/").expect("test URL should parse");
+
+        assert!(!allow_browser_webview_navigation(&target_url, false));
+    }
+
+    #[test]
+    fn allow_browser_webview_navigation_allows_placeholder_only_when_flagged() {
+        let placeholder_url = Url::parse("about:blank").expect("test URL should parse");
+
+        assert!(allow_browser_webview_navigation(&placeholder_url, true));
+        assert!(!allow_browser_webview_navigation(&placeholder_url, false));
     }
 
     #[test]

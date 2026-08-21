@@ -562,6 +562,20 @@ async fn run_sync_for_accounts_with_progress(
     }
     let _guard = SyncGuard(syncing);
 
+    run_sync_for_accounts_guarded(db, accounts, reporter).await
+}
+
+/// Runs the account-sync body assuming the `syncing` flag/[`SyncGuard`] is
+/// already held by the caller. Callers that need to hold the guard across
+/// additional work (e.g. a startup remote-state repair step that must not
+/// race with a concurrent sync) should acquire the CAS themselves and call
+/// this function directly instead of `run_sync_for_accounts_with_progress`,
+/// which would otherwise fail its own CAS against the caller's guard.
+async fn run_sync_for_accounts_guarded(
+    db: &Mutex<DbManager>,
+    accounts: Vec<Account>,
+    reporter: Option<SyncProgressReporter>,
+) -> Result<SyncResult, AppError> {
     let total = accounts.len();
     let mut succeeded = 0usize;
     let mut failed = Vec::new();
@@ -678,6 +692,104 @@ fn run_local_account_startup_import_supplement(
         .collect()
 }
 
+struct StartupSyncAndRepairOutcome {
+    sync_result: SyncResult,
+    repaired_account_ids: Vec<String>,
+}
+
+/// Runs the startup remote-state repair loop and (if any) the startup
+/// account sync under a single `syncing` guard acquired up front.
+///
+/// The repair loop awaits network I/O (authenticate / pull_state) and calls
+/// `apply_remote_state`, so it must not run concurrently with a manually or
+/// scheduler-triggered sync. Acquiring the guard here, before the repair
+/// loop starts, closes that race: a concurrent sync attempt now fails its
+/// own CAS and returns immediately instead of racing the repair's
+/// remote-state apply. See
+/// `.claude/rules/remote-state-reconciliation.md`.
+///
+/// `app_handle` is only required when `startup_sync_accounts` is non-empty
+/// (it feeds the `SyncProgressReporter`); callers driving a repair-only
+/// startup pass may omit it.
+async fn run_startup_sync_and_repair(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    app_handle: Option<AppHandle>,
+    startup_sync_accounts: Vec<Account>,
+    repair_only_accounts: Vec<Account>,
+    local_startup_import_warnings: Vec<AccountSyncWarning>,
+) -> Result<StartupSyncAndRepairOutcome, AppError> {
+    if syncing
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        tracing::info!("Sync already in progress, skipping startup sync");
+        return Ok(StartupSyncAndRepairOutcome {
+            sync_result: SyncResult {
+                synced: false,
+                total: 0,
+                succeeded: 0,
+                failed: Vec::new(),
+                warnings: local_startup_import_warnings,
+            },
+            repaired_account_ids: Vec::new(),
+        });
+    }
+    let _guard = SyncGuard(syncing);
+
+    let mut repaired_account_ids = Vec::new();
+    let mut repair_failures = Vec::new();
+    for account in &repair_only_accounts {
+        let server_url = account.server_url.as_deref().unwrap_or_default();
+        let provider = GReaderProvider::for_freshrss(server_url);
+        match repair_greader_remote_state(db, account, provider).await {
+            Ok(()) => repaired_account_ids.push(account.id.as_ref().to_string()),
+            Err(error) => repair_failures.push(AccountSyncError {
+                account_id: account.id.as_ref().to_string(),
+                account_name: account.name.clone(),
+                action_owner: Some(sync_issue_owner_for_app_error(&error)),
+                message: error.to_string(),
+            }),
+        }
+    }
+
+    let mut sync_result = if startup_sync_accounts.is_empty() {
+        SyncResult {
+            synced: !repaired_account_ids.is_empty(),
+            total: repair_only_accounts.len(),
+            succeeded: repaired_account_ids.len(),
+            failed: repair_failures.clone(),
+            warnings: Vec::new(),
+        }
+    } else {
+        let app_handle =
+            app_handle.expect("app_handle is required when startup_sync_accounts is non-empty");
+        let reporter = SyncProgressReporter::new(
+            app_handle,
+            SyncProgressKind::ManualAll,
+            startup_sync_accounts.len(),
+        );
+        // The syncing guard is already held above, so call the guarded body
+        // directly rather than `run_sync_for_accounts_with_progress`, which
+        // would fail its own CAS against our already-true `syncing` flag.
+        let mut result =
+            run_sync_for_accounts_guarded(db, startup_sync_accounts, Some(reporter)).await?;
+        result.total += repair_only_accounts.len();
+        result.succeeded += repaired_account_ids.len();
+        result.failed.extend(repair_failures.clone());
+        if !repair_failures.is_empty() {
+            result.synced = true;
+        }
+        result
+    };
+    sync_result.warnings.extend(local_startup_import_warnings);
+
+    Ok(StartupSyncAndRepairOutcome {
+        sync_result,
+        repaired_account_ids,
+    })
+}
+
 #[tauri::command]
 pub async fn trigger_startup_sync(
     app_handle: tauri::AppHandle,
@@ -724,52 +836,18 @@ pub async fn trigger_startup_sync(
         });
     }
 
-    let mut repaired_account_ids = Vec::new();
-    let mut repair_failures = Vec::new();
-    for account in &repair_only_accounts {
-        let server_url = account.server_url.as_deref().unwrap_or_default();
-        let provider = GReaderProvider::for_freshrss(server_url);
-        match repair_greader_remote_state(&state.db, account, provider).await {
-            Ok(()) => repaired_account_ids.push(account.id.as_ref().to_string()),
-            Err(error) => repair_failures.push(AccountSyncError {
-                account_id: account.id.as_ref().to_string(),
-                account_name: account.name.clone(),
-                action_owner: Some(sync_issue_owner_for_app_error(&error)),
-                message: error.to_string(),
-            }),
-        }
-    }
-
-    let mut sync_result = if startup_sync_accounts.is_empty() {
-        SyncResult {
-            synced: !repaired_account_ids.is_empty(),
-            total: repair_only_accounts.len(),
-            succeeded: repaired_account_ids.len(),
-            failed: repair_failures.clone(),
-            warnings: Vec::new(),
-        }
-    } else {
-        let reporter = SyncProgressReporter::new(
-            app_handle.clone(),
-            SyncProgressKind::ManualAll,
-            startup_sync_accounts.len(),
-        );
-        let mut result = run_sync_for_accounts_with_progress(
-            &state.db,
-            &state.syncing,
-            startup_sync_accounts.clone(),
-            Some(reporter),
-        )
-        .await?;
-        result.total += repair_only_accounts.len();
-        result.succeeded += repaired_account_ids.len();
-        result.failed.extend(repair_failures.clone());
-        if !repair_failures.is_empty() {
-            result.synced = true;
-        }
-        result
-    };
-    sync_result.warnings.extend(local_startup_import_warnings);
+    let StartupSyncAndRepairOutcome {
+        mut sync_result,
+        repaired_account_ids,
+    } = run_startup_sync_and_repair(
+        &state.db,
+        &state.syncing,
+        Some(app_handle.clone()),
+        startup_sync_accounts.clone(),
+        repair_only_accounts.clone(),
+        local_startup_import_warnings,
+    )
+    .await?;
 
     if repair_pending
         && startup_remote_state_repair_succeeded(
@@ -1232,6 +1310,103 @@ mod tests {
         assert!(result.is_ok());
         let sync_result = result.unwrap();
         assert!(!sync_result.synced, "should skip when sync in progress");
+    }
+
+    /// Regression test for the startup remote-state repair race: the repair
+    /// loop must be gated by the same `syncing` guard as manual/scheduler
+    /// syncs, checked *before* the repair loop starts (not only around the
+    /// later `run_sync_for_accounts_*` call). Before the fix,
+    /// `trigger_startup_sync` awaited `repair_greader_remote_state` for
+    /// `repair_only_accounts` without ever consulting `state.syncing`, so a
+    /// concurrent manual/scheduler sync could run its `apply_remote_state`
+    /// alongside the repair's. See
+    /// `.claude/rules/remote-state-reconciliation.md`.
+    #[tokio::test]
+    async fn run_startup_sync_and_repair_skips_repair_when_sync_already_in_progress() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        // Simulate a manual/scheduler sync already holding the guard.
+        let syncing = AtomicBool::new(true);
+        let repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        let warnings = vec![AccountSyncWarning {
+            account_id: "local-account".to_string(),
+            account_name: "Local".to_string(),
+            kind: AccountSyncWarningKind::Generic,
+            message: "warn".to_string(),
+            retry_at: None,
+            retry_in_seconds: None,
+        }];
+
+        let outcome = run_startup_sync_and_repair(
+            &db,
+            &syncing,
+            None,
+            Vec::new(),
+            vec![repair_only_account],
+            warnings.clone(),
+        )
+        .await
+        .expect("startup sync/repair helper should not error when guard is contended");
+
+        assert!(
+            !outcome.sync_result.synced,
+            "startup repair should not run while another sync holds the guard"
+        );
+        assert_eq!(outcome.sync_result.total, 0);
+        assert_eq!(outcome.sync_result.succeeded, 0);
+        assert!(
+            outcome.sync_result.failed.is_empty(),
+            "repair loop must not have executed at all: {:?}",
+            outcome.sync_result.failed
+        );
+        assert!(
+            outcome.repaired_account_ids.is_empty(),
+            "no account should be reported as repaired when the guard was contended"
+        );
+        assert_eq!(
+            outcome.sync_result.warnings.len(),
+            warnings.len(),
+            "local import warnings should still be surfaced on the skipped path"
+        );
+        assert!(
+            syncing.load(Ordering::SeqCst),
+            "the other sync's guard must remain held; the skipped startup path must not touch it"
+        );
+    }
+
+    #[tokio::test]
+    async fn run_startup_sync_and_repair_holds_guard_during_repair_and_releases_after() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
+        let mut repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        // No username: `repair_greader_remote_state` returns `Ok(())` without
+        // any network/keyring call, keeping this test hermetic while still
+        // exercising the guarded repair path end to end.
+        repair_only_account.username = None;
+
+        let outcome = run_startup_sync_and_repair(
+            &db,
+            &syncing,
+            None,
+            Vec::new(),
+            vec![repair_only_account.clone()],
+            Vec::new(),
+        )
+        .await
+        .expect("repair-only startup pass should succeed");
+
+        assert_eq!(
+            outcome.repaired_account_ids,
+            vec![repair_only_account.id.as_ref().to_string()]
+        );
+        assert!(outcome.sync_result.synced);
+        assert_eq!(outcome.sync_result.total, 1);
+        assert_eq!(outcome.sync_result.succeeded, 1);
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "guard must be released after the startup repair completes"
+        );
     }
 
     #[tokio::test]

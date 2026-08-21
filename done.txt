@@ -10,3 +10,10 @@ x 2026-08-17 2026-08-17 LP 自動デプロイ GitHub Actions + wrangler 導入 +
 x 2026-08-17 2026-08-17 検索中に記事を送るとリストが一瞬消える +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/63
 x 2026-08-17 2026-07-14 reader next-article has-next search mismatch (known edge) +reader-state note:https://github.com/jey3dayo/ultra-rss-reader/issues/54
 x 2026-08-17 2026-08-16 Linux ビルド対応 release workflow + 配布 +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/59
+x 2026-08-21 2026-08-21 FreshRSS rename/folder移動をsync guard内へ(監査#4、Phase3より先) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+x 2026-08-21 2026-08-21 startup remote-state repairをSyncGuard取得後に実行(監査#5) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+x 2026-08-21 2026-08-21 未読照合のfeed毎SELECT+COUNTを一括recalculateへ(監査#3) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+x 2026-08-21 2026-08-21 購読同期N+1のバッチ化(監査#9、#3の後) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+x 2026-08-21 2026-08-21 local sync走査に深さ/symlink/サイズ上限(監査#10) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+x 2026-08-21 2026-08-21 CONTRIBUTING service/表・dotenvx矛盾・hooks:install追記(監査#7+#8) +docs note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
+x 2026-08-21 2026-08-21 sanitizer_version検索に複合INDEX追加(監査#6) +perf-db note:https://github.com/jey3dayo/ultra-rss-reader/issues/65

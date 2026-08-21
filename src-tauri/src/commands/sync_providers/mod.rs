@@ -1845,6 +1845,94 @@ mod tests {
     }
 
     #[test]
+    fn save_greader_subscriptions_batch_reconciles_multiple_feeds_in_one_call() {
+        // Regression test for the subscriptions.rs N+1 fix: a single
+        // save_greader_subscriptions call carrying several remote
+        // subscriptions must correctly update an existing feed matched by
+        // remote_id, reconcile a local feed matched only by url (remote_id
+        // conflict), and insert a brand-new feed, all in one batch.
+        let db = test_db();
+        let (account, existing_by_remote_id) =
+            insert_account_and_feed(&db, "https://rss.example.com");
+        let url_conflict_feed = test_local_feed(&account.id, "https://example.com/url-conflict");
+        {
+            let db_guard = db.lock().unwrap();
+            SqliteFeedRepository::new(db_guard.writer())
+                .save(&url_conflict_feed)
+                .expect("local url-conflict feed should be saved");
+        }
+
+        const NEW_REMOTE_ID: &str = "feed/https://example.com/new";
+        const URL_CONFLICT_REMOTE_ID: &str = "feed/https://example.com/url-conflict";
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &[
+                RemoteSubscription {
+                    remote_id: FEED_REMOTE_ID.to_string(),
+                    title: "Updated Title".to_string(),
+                    url: "https://example.com/rss".to_string(),
+                    site_url: "https://example.com".to_string(),
+                    folder_remote_id: None,
+                    icon_url: None,
+                },
+                RemoteSubscription {
+                    remote_id: URL_CONFLICT_REMOTE_ID.to_string(),
+                    title: "URL Conflict Feed".to_string(),
+                    url: url_conflict_feed.url.clone(),
+                    site_url: "https://example.com".to_string(),
+                    folder_remote_id: None,
+                    icon_url: None,
+                },
+                RemoteSubscription {
+                    remote_id: NEW_REMOTE_ID.to_string(),
+                    title: "Brand New Feed".to_string(),
+                    url: "https://example.com/new".to_string(),
+                    site_url: "https://example.com".to_string(),
+                    folder_remote_id: None,
+                    icon_url: None,
+                },
+            ],
+            &HashSet::new(),
+        )
+        .expect("batch of remote subscriptions should persist in one call");
+
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+
+        let updated = feed_repo
+            .find_by_remote_id(&account.id, FEED_REMOTE_ID)
+            .expect("lookup should succeed")
+            .expect("feed matched by remote_id should still exist");
+        assert_eq!(updated.id, existing_by_remote_id.id);
+        assert_eq!(updated.title, "Updated Title");
+
+        let url_conflict_saved = feed_repo
+            .find_by_remote_id(&account.id, URL_CONFLICT_REMOTE_ID)
+            .expect("lookup should succeed")
+            .expect("feed matched by url should adopt the remote_id");
+        assert_eq!(url_conflict_saved.id, url_conflict_feed.id);
+        assert_eq!(url_conflict_saved.title, "URL Conflict Feed");
+
+        let new_feed = feed_repo
+            .find_by_remote_id(&account.id, NEW_REMOTE_ID)
+            .expect("lookup should succeed")
+            .expect("brand-new remote subscription should be inserted");
+        assert_eq!(new_feed.title, "Brand New Feed");
+
+        assert_eq!(
+            feed_repo
+                .find_by_account(&account.id)
+                .expect("find_by_account should succeed")
+                .len(),
+            3,
+            "batch should result in exactly the three reconciled feeds"
+        );
+    }
+
+    #[test]
     fn pending_mutation_retry_warning_keeps_remote_entry_id_out_of_public_copy() {
         let warning = pending_mutation_retry_warning(PendingMutationType::MarkRead);
 

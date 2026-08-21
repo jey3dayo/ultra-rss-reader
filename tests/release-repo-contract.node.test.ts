@@ -113,7 +113,7 @@ const MIGRATION_OWNER_BY_DESCRIPTION_PATTERN = [
   [/^sync_/, "sync"],
   [/^reset_empty_freshrss_feed_sync_state$/, "sync"],
   [/^mute_/, "mute-keywords"],
-  [/^article_/, "articles"],
+  [/^article_|^sanitizer_version_/, "articles"],
   [/^remove_inoreader$/, "accounts"],
 ] as const;
 const PACKAGED_WINDOW_ICON_PATHS = [
@@ -2177,6 +2177,7 @@ describe("release repository contract", () => {
       "V23__reset_empty_freshrss_feed_sync_state.sql",
       "V24__feed_icon_url.sql",
       "V25__folder_name_scope.sql",
+      "V26__sanitizer_version_backfill_index.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

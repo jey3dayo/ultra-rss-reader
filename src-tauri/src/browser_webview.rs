@@ -520,7 +520,12 @@ fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
-fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) -> Option<String> {
+fn normalize_browser_shortcut(
+    key: &str,
+    command_or_control: bool,
+    shift: bool,
+    alt: bool,
+) -> Option<String> {
     if key.is_empty() {
         return None;
     }
@@ -528,6 +533,9 @@ fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) 
     let mut parts = Vec::new();
     if command_or_control {
         parts.push("⌘".to_string());
+    }
+    if alt {
+        parts.push("Alt".to_string());
     }
     if shift {
         parts.push("Shift".to_string());
@@ -549,6 +557,7 @@ fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
     let mut command_or_control = false;
+    let mut alt = false;
     let mut shift = false;
     let mut key: Option<&str> = None;
 
@@ -558,8 +567,12 @@ fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
         .filter(|segment| !segment.is_empty())
     {
         match segment {
-            "⌘" | "Ctrl" | "ctrl" | "CmdOrCtrl" | "cmdorctrl" => {
+            "⌘" | "Ctrl" | "ctrl" | "CmdOrCtrl" | "cmdorctrl" | "Command" | "command" | "Cmd"
+            | "cmd" | "Control" | "control" => {
                 command_or_control = true;
+            }
+            "Alt" | "alt" | "Option" | "option" | "⌥" => {
+                alt = true;
             }
             "Shift" | "shift" => {
                 shift = true;
@@ -571,7 +584,7 @@ fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
         }
     }
 
-    normalize_browser_shortcut(key?, command_or_control, shift)
+    normalize_browser_shortcut(key?, command_or_control, shift, alt)
 }
 
 #[cfg(windows)]
@@ -609,8 +622,9 @@ pub fn browser_preview_action_for_shortcut(
     key: &str,
     command_or_control: bool,
     shift: bool,
+    alt: bool,
 ) -> Option<&'static str> {
-    let normalized = normalize_browser_shortcut(key, command_or_control, shift)?;
+    let normalized = normalize_browser_shortcut(key, command_or_control, shift, alt)?;
 
     BROWSER_PREVIEW_SHORTCUT_SPECS.iter().find_map(|shortcut| {
         let binding = prefs
@@ -620,24 +634,6 @@ pub fn browser_preview_action_for_shortcut(
         (normalize_saved_browser_shortcut(binding).as_deref() == Some(normalized.as_str()))
             .then_some(shortcut.app_action)
     })
-}
-
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
-fn browser_preview_script_bindings(
-    prefs: &HashMap<String, String>,
-) -> HashMap<String, &'static str> {
-    BROWSER_PREVIEW_SHORTCUT_SPECS
-        .iter()
-        .filter(|shortcut| shortcut.supports_script_bridge)
-        .filter_map(|shortcut| {
-            let binding = prefs
-                .get(shortcut.pref_key)
-                .map(String::as_str)
-                .unwrap_or(shortcut.default_binding);
-            normalize_saved_browser_shortcut(binding)
-                .map(|normalized| (normalized, shortcut.app_action))
-        })
-        .collect()
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -657,6 +653,68 @@ fn should_handle_macos_browser_escape_key(key_code: u16, browser_webview_open: b
     const MACOS_ESCAPE_KEY_CODE: u16 = 53;
 
     browser_webview_open && key_code == MACOS_ESCAPE_KEY_CODE
+}
+
+/// NSFunctionKey range (arrow keys, etc.) as documented on `NSEvent`: characters in
+/// U+F700-U+F8FF are "function key" characters, not printable text, and must be mapped
+/// to their symbolic name instead of used literally.
+const MACOS_NS_UP_ARROW_FUNCTION_KEY: char = '\u{F700}';
+const MACOS_NS_DOWN_ARROW_FUNCTION_KEY: char = '\u{F701}';
+const MACOS_NS_LEFT_ARROW_FUNCTION_KEY: char = '\u{F702}';
+const MACOS_NS_RIGHT_ARROW_FUNCTION_KEY: char = '\u{F703}';
+const MACOS_NS_FUNCTION_KEY_RANGE_START: char = '\u{F700}';
+const MACOS_NS_FUNCTION_KEY_RANGE_END: char = '\u{F8FF}';
+
+/// Resolves the logical shortcut key from `NSEvent.charactersIgnoringModifiers()` instead
+/// of a fixed US-keyboard `keyCode` table, so layout-dependent bindings (JIS symbols,
+/// QWERTZ/AZERTY letters) match the same logical key the frontend recorded from
+/// `KeyboardEvent.key`. See `.claude/rules` PR #67 review: a keyCode table silently
+/// mismatches on any non-US physical layout.
+#[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
+fn browser_shortcut_key_from_macos_event_characters(characters: &str) -> Option<String> {
+    let mut chars = characters.chars();
+    let first = chars.next()?;
+    if chars.next().is_some() {
+        // Dead keys / IME composition can yield multi-character strings; those are not a
+        // single logical shortcut key we can normalize against a saved binding.
+        return None;
+    }
+
+    Some(match first {
+        '\r' | '\u{3}' => "Enter".to_string(),
+        '\t' => "Tab".to_string(),
+        '\u{7f}' | '\u{8}' => "Backspace".to_string(),
+        '\u{1b}' => "Escape".to_string(),
+        ' ' => "Space".to_string(),
+        MACOS_NS_UP_ARROW_FUNCTION_KEY => "ArrowUp".to_string(),
+        MACOS_NS_DOWN_ARROW_FUNCTION_KEY => "ArrowDown".to_string(),
+        MACOS_NS_LEFT_ARROW_FUNCTION_KEY => "ArrowLeft".to_string(),
+        MACOS_NS_RIGHT_ARROW_FUNCTION_KEY => "ArrowRight".to_string(),
+        unmapped_function_key
+            if (MACOS_NS_FUNCTION_KEY_RANGE_START..=MACOS_NS_FUNCTION_KEY_RANGE_END)
+                .contains(&unmapped_function_key) =>
+        {
+            return None;
+        }
+        other => other.to_string(),
+    })
+}
+
+#[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
+fn browser_preview_action_for_macos_key_event(
+    prefs: &HashMap<String, String>,
+    characters: &str,
+    command_or_control: bool,
+    shift: bool,
+    alt: bool,
+    browser_webview_open: bool,
+) -> Option<&'static str> {
+    if !browser_webview_open || !(command_or_control || alt) {
+        return None;
+    }
+
+    let key = browser_shortcut_key_from_macos_event_characters(characters)?;
+    browser_preview_action_for_shortcut(prefs, &key, command_or_control, shift, alt)
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -746,326 +804,129 @@ fn browser_preview_bridge_message_action(
     should_accept_browser_preview_bridge_message(&message, snapshot).then_some(message.action)
 }
 
+// Bridge actions this script used to send (scheme navigation) are discarded at the native
+// layer (see `handle_browser_webview_shortcut_navigation` in
+// `commands/browser_webview_commands.rs`), and the native macOS Escape monitor / Windows
+// `AcceleratorKeyPressed` handler already intercepts modified shortcuts and close before the
+// WebView sees them. Capturing those keys/buttons here only swallowed them for both the app
+// and the page. The one behavior this script still owns is Space-key page scrolling, which is
+// not an app action.
 #[cfg(any(test, not(windows)))]
-pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
-    let close_binding = BROWSER_PREVIEW_SHORTCUT_SPECS
-        .iter()
-        .find(|shortcut| shortcut.app_action == "close-browser")
-        .and_then(|shortcut| {
-            let binding = prefs
-                .get(shortcut.pref_key)
-                .map(String::as_str)
-                .unwrap_or(shortcut.default_binding);
-            normalize_saved_browser_shortcut(binding)
-        })?;
-    let bindings = browser_preview_script_bindings(prefs);
-
-    let close_binding_json = serde_json::to_string(&close_binding).ok()?;
-    let bindings_json = serde_json::to_string(&bindings).ok()?;
-    Some(format!(
+pub fn browser_preview_close_bridge_source(_prefs: &HashMap<String, String>) -> Option<String> {
+    Some(
         r#"
-(() => {{
+(() => {
   if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;
-  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {{
+  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {
     configurable: false,
     value: true,
-  }});
+  });
 
-  const closeBinding = {close_binding_json};
-  const bindings = {bindings_json};
-  let closeInFlight = false;
-  let mouseNavigationInFlight = false;
-  const actionQueue = [];
-  let actionDrainInFlight = false;
-  const isEditableTarget = (target) => {{
+  const isEditableTarget = (target) => {
     if (!(target instanceof Element)) return false;
-    if (target.closest('[data-disable-global-shortcuts="true"]')) {{
+    if (target.closest('[data-disable-global-shortcuts="true"]')) {
       return true;
-    }}
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
+    }
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
       return true;
-    }}
-    if (target.isContentEditable) {{
+    }
+    if (target.isContentEditable) {
       return true;
-    }}
+    }
     return Boolean(target.closest(
       'input, textarea, select, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"], [role="searchbox"]'
     ));
-  }};
-  const normalize = (event) => {{
-    if (event.altKey) return null;
-    const parts = [];
-    if (event.metaKey || event.ctrlKey) parts.push('⌘');
-    if (event.shiftKey && event.key !== 'Shift') parts.push('Shift');
-    let key = event.key;
-    if (!key) return null;
-    if (key.length === 1) {{
-      key = event.shiftKey ? key.toUpperCase() : key.toLowerCase();
-    }}
-    parts.push(key);
-    return parts.join('+');
-  }};
-  const getInvoke = () => window.__TAURI_INTERNALS__?.invoke;
-  const requestCloseViaNavigation = () => {{
-    window.location.href = 'ultra-rss-browser-shortcut://close-browser';
-  }};
-  const requestMouseNavigationViaNavigation = (action) => {{
-    window.location.href = action === 'mouse-back'
-      ? 'ultra-rss-browser-shortcut://mouse-back'
-      : 'ultra-rss-browser-shortcut://mouse-forward';
-  }};
-  const requestActionViaNavigation = (action) => {{
-    window.location.href = 'ultra-rss-browser-shortcut://' + action;
-  }};
-  const drainActionQueue = () => {{
-    const next = actionQueue.shift();
-    if (next === undefined) {{
-      actionDrainInFlight = false;
-      return;
-    }}
-    requestActionViaNavigation(next);
-    window.setTimeout(drainActionQueue, 0);
-  }};
-  const queueBridgeAction = (action) => {{
-    actionQueue.push(action);
-    if (actionDrainInFlight) {{
-      return;
-    }}
-    actionDrainInFlight = true;
-    drainActionQueue();
-  }};
-  const getSpaceScrollDirection = (event) => {{
-    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
+  };
+  const getSpaceScrollDirection = (event) => {
+    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {
       return 0;
-    }}
+    }
     return event.shiftKey ? -1 : 1;
-  }};
-  const scrollByPageStep = (direction) => {{
+  };
+  const scrollByPageStep = (direction) => {
     const scrollTarget = document.scrollingElement || document.documentElement || document.body;
-    if (!scrollTarget) {{
+    if (!scrollTarget) {
       return;
-    }}
+    }
     const amount = Math.max(72, Math.round(window.innerHeight * 0.8)) * direction;
-    scrollTarget.scrollBy({{ top: amount, behavior: 'auto' }});
-  }};
-  const closeBrowserPreview = async () => {{
-    if (closeInFlight) {{
+    scrollTarget.scrollBy({ top: amount, behavior: 'auto' });
+  };
+  window.addEventListener('keydown', (event) => {
+    if (isEditableTarget(event.target)) {
       return;
-    }}
-
-    const invoke = getInvoke();
-    if (typeof invoke !== 'function') {{
-      closeInFlight = true;
-      requestCloseViaNavigation();
-      return;
-    }}
-
-    closeInFlight = true;
-    try {{
-      await invoke('close_browser_webview');
-    }} catch (error) {{
-      console.error('Failed to close embedded browser webview from bridge:', error);
-      requestCloseViaNavigation();
-    }}
-  }};
-  window.addEventListener('keydown', (event) => {{
-    if (isEditableTarget(event.target)) {{
-      return;
-    }}
+    }
     const spaceScrollDirection = getSpaceScrollDirection(event);
-    if (!event.defaultPrevented && spaceScrollDirection !== 0) {{
+    if (!event.defaultPrevented && spaceScrollDirection !== 0) {
       event.preventDefault();
       event.stopPropagation();
       scrollByPageStep(spaceScrollDirection);
-      return;
-    }}
-    const normalized = normalize(event);
-    if (!normalized) {{
-      return;
-    }}
-    if (normalized === closeBinding) {{
-      if (closeInFlight) {{
-        return;
-      }}
-      event.preventDefault();
-      event.stopPropagation();
-      void closeBrowserPreview();
-      return;
-    }}
-    const action = bindings[normalized];
-    if (!action) {{
-      return;
-    }}
-    event.preventDefault();
-    event.stopPropagation();
-    queueBridgeAction(action);
-  }}, true);
-  window.addEventListener('mousedown', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    event.preventDefault();
-    event.stopPropagation();
-  }}, true);
-  window.addEventListener('mouseup', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    event.preventDefault();
-    event.stopPropagation();
-    if (mouseNavigationInFlight) {{
-      return;
-    }}
-
-    const invoke = getInvoke();
-    if (typeof invoke !== 'function') {{
-      requestMouseNavigationViaNavigation(event.button === 3 ? 'mouse-back' : 'mouse-forward');
-      return;
-    }}
-
-    mouseNavigationInFlight = true;
-
-    if (event.button === 3) {{
-      void invoke('go_back_browser_webview')
-        .then((state) => {{
-          if (!state?.can_go_back) {{
-            return closeBrowserPreview();
-          }}
-          return null;
-        }})
-        .catch((error) => {{
-          console.error('Failed to navigate back from mouse bridge:', error);
-          requestMouseNavigationViaNavigation('mouse-back');
-        }})
-        .finally(() => {{
-          mouseNavigationInFlight = false;
-        }});
-      return;
-    }}
-
-    void invoke('go_forward_browser_webview')
-      .catch((error) => {{
-        console.error('Failed to navigate forward from mouse bridge:', error);
-        requestMouseNavigationViaNavigation('mouse-forward');
-      }})
-      .finally(() => {{
-        mouseNavigationInFlight = false;
-      }});
-  }}, true);
-}})();
+    }
+  }, true);
+})();
 "#
-    ))
+        .to_string(),
+    )
 }
 
+// See the comment above `browser_preview_close_bridge_source`: the bindings/close/mouse
+// capture this Windows variant used to `postMessage` to the native side is discarded there
+// (`install_escape_accelerator_bridge`'s WebMessageReceived handler intentionally never
+// dispatches `MENU_ACTION_EVENT`). Only Space-key page scrolling remains.
 #[cfg(any(test, windows))]
-fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
-    let bindings = browser_preview_script_bindings(prefs);
-    if bindings.is_empty() {
-        return None;
-    }
-
-    let bindings_json = serde_json::to_string(&bindings).ok()?;
-    Some(format!(
+fn browser_preview_script_bridge_source(_prefs: &HashMap<String, String>) -> Option<String> {
+    Some(
         r#"
-(() => {{
+(() => {
   if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;
-  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {{
+  Object.defineProperty(window, '__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__', {
     configurable: false,
     value: true,
-  }});
+  });
 
-  const bindings = {bindings_json};
-  const isEditableTarget = (target) => {{
+  const isEditableTarget = (target) => {
     if (!(target instanceof Element)) return false;
-    if (target.closest('[data-disable-global-shortcuts="true"]')) {{
+    if (target.closest('[data-disable-global-shortcuts="true"]')) {
       return true;
-    }}
-    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
+    }
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
       return true;
-    }}
-    if (target.isContentEditable) {{
+    }
+    if (target.isContentEditable) {
       return true;
-    }}
+    }
     return Boolean(target.closest(
       'input, textarea, select, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"], [role="searchbox"]'
     ));
-  }};
-  const normalize = (event) => {{
-    if (event.altKey || event.metaKey) return null;
-    const parts = [];
-    if (event.ctrlKey) parts.push('⌘');
-    if (event.shiftKey) parts.push('Shift');
-    let key = event.key;
-    if (!key) return null;
-    if (key.length === 1) {{
-      key = event.shiftKey ? key.toUpperCase() : key.toLowerCase();
-    }}
-    parts.push(key);
-    return parts.join('+');
-  }};
-  const getSpaceScrollDirection = (event) => {{
-    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
+  };
+  const getSpaceScrollDirection = (event) => {
+    if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {
       return 0;
-    }}
+    }
     return event.shiftKey ? -1 : 1;
-  }};
-  const scrollByPageStep = (direction) => {{
+  };
+  const scrollByPageStep = (direction) => {
     const scrollTarget = document.scrollingElement || document.documentElement || document.body;
-    if (!scrollTarget) {{
+    if (!scrollTarget) {
       return;
-    }}
+    }
     const amount = Math.max(72, Math.round(window.innerHeight * 0.8)) * direction;
-    scrollTarget.scrollBy({{ top: amount, behavior: 'auto' }});
-  }};
-  const postBridgeAction = (action) => {{
-    window.chrome?.webview?.postMessage(JSON.stringify({{ action, url: window.location.href }}));
-  }};
-  window.addEventListener('keydown', (event) => {{
-    if (isEditableTarget(event.target)) {{
+    scrollTarget.scrollBy({ top: amount, behavior: 'auto' });
+  };
+  window.addEventListener('keydown', (event) => {
+    if (isEditableTarget(event.target)) {
       return;
-    }}
+    }
     const spaceScrollDirection = getSpaceScrollDirection(event);
-    if (!event.defaultPrevented && spaceScrollDirection !== 0) {{
+    if (!event.defaultPrevented && spaceScrollDirection !== 0) {
       event.preventDefault();
       event.stopPropagation();
       scrollByPageStep(spaceScrollDirection);
-      return;
-    }}
-    const normalized = normalize(event);
-    if (!normalized) {{
-      return;
-    }}
-    const action = bindings[normalized];
-    if (!action) {{
-      return;
-    }}
-    event.preventDefault();
-    event.stopPropagation();
-    postBridgeAction(action);
-  }}, true);
-  window.addEventListener('mousedown', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    event.preventDefault();
-    event.stopPropagation();
-  }}, true);
-  window.addEventListener('mouseup', (event) => {{
-    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
-      return;
-    }}
-
-    const action = event.button === 3 ? 'mouse-back' : 'mouse-forward';
-    event.preventDefault();
-    event.stopPropagation();
-    postBridgeAction(action);
-  }}, true);
-}})();
+    }
+  }, true);
+})();
 "#
-    ))
+        .to_string(),
+    )
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -1074,6 +935,7 @@ fn browser_preview_action_for_virtual_key_from_prefs_result(
     virtual_key: u32,
     command_or_control: bool,
     shift: bool,
+    alt: bool,
 ) -> Option<&'static str> {
     let key = browser_shortcut_key_from_virtual_key(virtual_key)?;
     let prefs = match prefs_result {
@@ -1086,7 +948,7 @@ fn browser_preview_action_for_virtual_key_from_prefs_result(
             HashMap::new()
         }
     };
-    browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift)
+    browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift, alt)
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -1102,12 +964,14 @@ fn browser_preview_action_for_virtual_key<R: Runtime>(
     virtual_key: u32,
     command_or_control: bool,
     shift: bool,
+    alt: bool,
 ) -> Option<&'static str> {
     browser_preview_action_for_virtual_key_from_prefs_result(
         load_browser_preview_prefs(app_handle),
         virtual_key,
         command_or_control,
         shift,
+        alt,
     )
 }
 
@@ -1163,7 +1027,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
         WebMessageReceivedEventHandler,
     };
     use windows::core::{Interface, HSTRING, PWSTR};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_SHIFT};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_MENU, VK_SHIFT};
 
     let app_handle = app_handle.clone();
     let prefs = load_browser_preview_prefs(&app_handle)?;
@@ -1218,12 +1082,12 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                                 action.as_deref().unwrap_or("ignored")
                             ),
                         );
-                        if let Some(action) = action {
-                            if action == "close-browser" {
-                                focus_main_webview_window(&app_handle);
-                            }
-                            let _ = app_handle.emit(MENU_ACTION_EVENT, action);
-                        }
+                        // Page-origin postMessage cannot be trusted as an app-action source: the
+                        // injected bridge script is readable/forgeable by the hosted page (see
+                        // `docs/feed-content-privacy.md`), so this handler intentionally stops at
+                        // logging and never dispatches `MENU_ACTION_EVENT`. Native
+                        // `AcceleratorKeyPressed` below is the only page-independent channel that
+                        // still emits app actions for keyboard shortcuts.
                         Ok(())
                     },
                 ));
@@ -1252,28 +1116,32 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                     args.VirtualKey(&mut virtual_key)?;
                     let command_or_control = GetKeyState(VK_CONTROL.0 as i32) < 0;
                     let shift = GetKeyState(VK_SHIFT.0 as i32) < 0;
+                    let alt = GetKeyState(VK_MENU.0 as i32) < 0;
                     let Some(action) = browser_preview_action_for_virtual_key(
                         &app_handle,
                         virtual_key,
                         command_or_control,
                         shift,
+                        alt,
                     ) else {
                         emit_browser_webview_debug_input(
                             &app_handle,
                             format!(
-                                "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} action=none grace={}",
+                                "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} alt={alt} action=none grace={}",
                                 browser_close_grace_window_active()
                             ),
                         );
                         return Ok(());
                     };
 
+                    let native_modifier = command_or_control || alt;
                     let should_handle = action == "close-browser"
-                        || (is_browser_close_grace_action(action) && browser_close_grace_window_active());
+                        || (is_browser_close_grace_action(action) && browser_close_grace_window_active())
+                        || native_modifier;
                     emit_browser_webview_debug_input(
                         &app_handle,
                         format!(
-                            "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} action={action} grace={} handled={should_handle}",
+                            "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} alt={alt} action={action} grace={} handled={should_handle}",
                             browser_close_grace_window_active()
                         ),
                     );
@@ -1316,7 +1184,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
 ) -> tauri::Result<()> {
     use std::{ptr::null_mut, sync::atomic::Ordering};
 
-    use objc2_app_kit::{NSEvent, NSEventMask};
+    use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags};
 
     if BROWSER_MACOS_ESCAPE_MONITOR_INSTALLED
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -1327,7 +1195,13 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
 
     let app_handle = app_handle.clone();
     let handler = block2::RcBlock::new(move |event: std::ptr::NonNull<NSEvent>| -> *mut NSEvent {
-        let key_code = unsafe { event.as_ref().keyCode() };
+        let (key_code, modifier_flags, characters_ignoring_modifiers) = unsafe {
+            (
+                event.as_ref().keyCode(),
+                event.as_ref().modifierFlags(),
+                event.as_ref().charactersIgnoringModifiers(),
+            )
+        };
         let browser_webview_open = app_handle
             .try_state::<crate::commands::AppState>()
             .and_then(|app_state| {
@@ -1340,7 +1214,50 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
             .is_some();
 
         if !should_handle_macos_browser_escape_key(key_code, browser_webview_open) {
-            return event.as_ptr();
+            let command_or_control = modifier_flags
+                .intersects(NSEventModifierFlags::Command | NSEventModifierFlags::Control);
+            let shift = modifier_flags.contains(NSEventModifierFlags::Shift);
+            let alt = modifier_flags.contains(NSEventModifierFlags::Option);
+            // This local monitor sees every KeyDown in the app; gate on "browser open +
+            // modifier held" before touching the DB so plain typing never pays a prefs read.
+            if !browser_webview_open || !(command_or_control || alt) {
+                return event.as_ptr();
+            }
+            let prefs = match load_browser_preview_prefs(&app_handle) {
+                Ok(prefs) => prefs,
+                Err(error) => {
+                    tracing::warn!(
+                        "{}",
+                        browser_preview_shortcut_preferences_read_warning(&error)
+                    );
+                    HashMap::new()
+                }
+            };
+            let characters_ignoring_modifiers = characters_ignoring_modifiers
+                .map(|characters| characters.to_string())
+                .unwrap_or_default();
+            let Some(action) = browser_preview_action_for_macos_key_event(
+                &prefs,
+                &characters_ignoring_modifiers,
+                command_or_control,
+                shift,
+                alt,
+                browser_webview_open,
+            ) else {
+                return event.as_ptr();
+            };
+
+            emit_browser_webview_debug_input(
+                &app_handle,
+                format!(
+                    "native-macos-key key_code={key_code} cmd_or_control={command_or_control} shift={shift} alt={alt} action={action} handled=true"
+                ),
+            );
+            if action == "close-browser" {
+                focus_main_webview_window(&app_handle);
+            }
+            let _ = app_handle.emit(MENU_ACTION_EVENT, action);
+            return null_mut();
         }
 
         emit_browser_webview_debug_input(
@@ -1597,12 +1514,13 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        browser_preview_action_for_shortcut,
+        browser_preview_action_for_macos_key_event, browser_preview_action_for_shortcut,
         browser_preview_action_for_virtual_key_from_prefs_result,
         browser_preview_bridge_message_action, browser_preview_close_bridge_source,
         browser_preview_focus_override_source, browser_preview_initialization_script,
-        browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
-        browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
+        browser_preview_initialization_script_from_prefs_result,
+        browser_preview_shortcut_preferences_read_warning,
+        browser_shortcut_key_from_macos_event_characters, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
         should_handle_macos_browser_escape_key, should_trigger_timeout_fallback,
         supports_native_navigation, BrowserNavigationAvailability,
@@ -2078,35 +1996,35 @@ mod tests {
         let prefs = HashMap::new();
 
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "m", false, false),
+            browser_preview_action_for_shortcut(&prefs, "m", false, false, false),
             Some("toggle-read")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "s", false, false),
+            browser_preview_action_for_shortcut(&prefs, "s", false, false, false),
             Some("toggle-star")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "b", false, false),
+            browser_preview_action_for_shortcut(&prefs, "b", false, false, false),
             Some("open-in-default-browser")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "j", false, false),
+            browser_preview_action_for_shortcut(&prefs, "j", false, false, false),
             Some("next-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "k", false, false),
+            browser_preview_action_for_shortcut(&prefs, "k", false, false, false),
             Some("prev-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "l", false, false),
+            browser_preview_action_for_shortcut(&prefs, "l", false, false, false),
             Some("next-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "h", false, false),
+            browser_preview_action_for_shortcut(&prefs, "h", false, false, false),
             Some("prev-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "r", false, false),
+            browser_preview_action_for_shortcut(&prefs, "r", false, false, false),
             Some("reload-webview")
         );
     }
@@ -2128,40 +2046,161 @@ mod tests {
         ]);
 
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "x", false, false),
+            browser_preview_action_for_shortcut(&prefs, "x", false, false, false),
             Some("toggle-read")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "S", false, true),
+            browser_preview_action_for_shortcut(&prefs, "S", false, true, false),
             Some("toggle-star")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "b", true, false),
+            browser_preview_action_for_shortcut(&prefs, "b", true, false, false),
             Some("open-in-default-browser")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "n", false, false),
+            browser_preview_action_for_shortcut(&prefs, "n", false, false, false),
             Some("next-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "p", false, false),
+            browser_preview_action_for_shortcut(&prefs, "p", false, false, false),
             Some("prev-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "F", false, true),
+            browser_preview_action_for_shortcut(&prefs, "F", false, true, false),
             Some("next-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "h", true, false),
+            browser_preview_action_for_shortcut(&prefs, "h", true, false, false),
             Some("prev-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "R", false, true),
+            browser_preview_action_for_shortcut(&prefs, "R", false, true, false),
             Some("reload-webview")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "j", false, false),
+            browser_preview_action_for_shortcut(&prefs, "j", false, false, false),
             None
+        );
+    }
+
+    #[test]
+    fn browser_preview_shortcut_matching_supports_command_control_and_alt_bindings() {
+        let prefs = HashMap::from([
+            ("shortcut_toggle_read".to_string(), "⌘+M".to_string()),
+            ("shortcut_toggle_star".to_string(), "Alt+S".to_string()),
+            (
+                "shortcut_next_article".to_string(),
+                "Option+Shift+J".to_string(),
+            ),
+        ]);
+
+        assert_eq!(
+            browser_preview_action_for_shortcut(&prefs, "m", true, false, false),
+            Some("toggle-read")
+        );
+        assert_eq!(
+            browser_preview_action_for_shortcut(&prefs, "s", false, false, true),
+            Some("toggle-star")
+        );
+        assert_eq!(
+            browser_preview_action_for_shortcut(&prefs, "J", false, true, true),
+            Some("next-article")
+        );
+    }
+
+    #[test]
+    fn macos_native_shortcut_matching_requires_a_browser_and_non_shift_modifier() {
+        let prefs = HashMap::from([
+            ("shortcut_toggle_read".to_string(), "m".to_string()),
+            ("shortcut_toggle_star".to_string(), "⌘+S".to_string()),
+            (
+                "shortcut_open_external_browser".to_string(),
+                "Alt+B".to_string(),
+            ),
+        ]);
+
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, "m", false, false, false, true),
+            None,
+            "bare key bindings must stay in the hosted page"
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, "s", false, false, false, true),
+            None,
+            "an unmatched key must not be handled natively"
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, "s", true, false, false, true),
+            Some("toggle-star")
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, "b", false, false, true, true),
+            Some("open-in-default-browser")
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, "m", false, false, false, false),
+            None,
+            "native shortcuts must not run when the browser webview is closed"
+        );
+    }
+
+    #[test]
+    fn macos_shortcut_key_from_event_characters_normalizes_control_and_function_keys() {
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("m"),
+            Some("m".to_string()),
+            "plain printable characters pass through unchanged"
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F700}"),
+            Some("ArrowUp".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F701}"),
+            Some("ArrowDown".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F702}"),
+            Some("ArrowLeft".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F703}"),
+            Some("ArrowRight".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\r"),
+            Some("Enter".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters(" "),
+            Some("Space".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\t"),
+            Some("Tab".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{7f}"),
+            Some("Backspace".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{1b}"),
+            Some("Escape".to_string())
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters(""),
+            None,
+            "an empty characters string has no logical key"
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("ab"),
+            None,
+            "multi-character IME/dead-key output is not a single logical shortcut key"
+        );
+        assert_eq!(
+            browser_shortcut_key_from_macos_event_characters("\u{F729}"),
+            None,
+            "unmapped NSFunctionKey characters must not fall through as literal text"
         );
     }
 
@@ -2170,6 +2209,7 @@ mod tests {
         let action = browser_preview_action_for_virtual_key_from_prefs_result(
             Err(std::io::Error::other("preference read failed")),
             0x4D,
+            false,
             false,
             false,
         );
@@ -2192,39 +2232,15 @@ mod tests {
         let prefs = HashMap::from([("shortcut_toggle_read".to_string(), "x".to_string())]);
 
         assert_eq!(
-            browser_preview_action_for_virtual_key_from_prefs_result(Ok(prefs), 0x58, false, false),
+            browser_preview_action_for_virtual_key_from_prefs_result(
+                Ok(prefs),
+                0x58,
+                false,
+                false,
+                false,
+            ),
             Some("toggle-read")
         );
-    }
-
-    #[test]
-    fn browser_preview_script_bindings_include_supported_preview_shortcuts() {
-        let prefs = HashMap::from([
-            ("shortcut_toggle_read".to_string(), "x".to_string()),
-            ("shortcut_toggle_star".to_string(), "Shift+S".to_string()),
-            (
-                "shortcut_open_external_browser".to_string(),
-                "⌘+B".to_string(),
-            ),
-            ("shortcut_next_article".to_string(), "n".to_string()),
-            ("shortcut_prev_article".to_string(), "p".to_string()),
-            ("shortcut_next_feed".to_string(), "Shift+F".to_string()),
-            ("shortcut_prev_feed".to_string(), "⌘+H".to_string()),
-            ("shortcut_reload_webview".to_string(), "Shift+R".to_string()),
-            ("shortcut_close_or_clear".to_string(), "Escape".to_string()),
-        ]);
-
-        let bindings = browser_preview_script_bindings(&prefs);
-
-        assert_eq!(bindings.get("Escape"), Some(&"close-browser"));
-        assert_eq!(bindings.get("x"), Some(&"toggle-read"));
-        assert_eq!(bindings.get("Shift+S"), Some(&"toggle-star"));
-        assert_eq!(bindings.get("⌘+b"), Some(&"open-in-default-browser"));
-        assert_eq!(bindings.get("n"), Some(&"next-article"));
-        assert_eq!(bindings.get("p"), Some(&"prev-article"));
-        assert_eq!(bindings.get("Shift+F"), Some(&"next-feed"));
-        assert_eq!(bindings.get("⌘+h"), Some(&"prev-feed"));
-        assert_eq!(bindings.get("Shift+R"), Some(&"reload-webview"));
     }
 
     #[test]
@@ -2376,90 +2392,44 @@ mod tests {
     }
 
     #[test]
-    fn browser_preview_close_bridge_uses_default_escape_binding() {
+    fn browser_preview_close_bridge_only_captures_space_scroll() {
         let prefs = HashMap::new();
 
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("default close bridge script should exist");
+        let script =
+            browser_preview_close_bridge_source(&prefs).expect("close bridge script should exist");
 
-        assert!(script.contains("\"Escape\""));
-        assert!(script.contains("close_browser_webview"));
-        assert!(script.contains("ultra-rss-browser-shortcut://close-browser"));
-        assert!(script.contains("requestCloseViaNavigation();"));
-        assert!(script.contains("go_back_browser_webview"));
-        assert!(script.contains("go_forward_browser_webview"));
+        // Bridge actions this script used to send (bindings dispatch, close capture, and mouse
+        // button 3/4 capture) are discarded at the native layer, so the page must see those
+        // keys/buttons uninterrupted. Only Space-key scrolling remains captured.
         assert!(script.contains("getSpaceScrollDirection"));
         assert!(script.contains("window.innerHeight * 0.8"));
-        assert!(script.contains("event.button === 3"));
-        assert!(script.contains("event.button !== 4"));
         assert!(script.contains("data-disable-global-shortcuts=\"true\""));
-        assert!(script.contains("if (mouseNavigationInFlight)"));
         assert!(script.contains("if (isEditableTarget(event.target))"));
         assert!(script.contains("if (!event.defaultPrevented && spaceScrollDirection !== 0)"));
-        assert!(script.contains("requestMouseNavigationViaNavigation"));
-        assert!(script.contains("ultra-rss-browser-shortcut://mouse-back"));
-        assert!(script.contains("ultra-rss-browser-shortcut://mouse-forward"));
-        assert!(!script.contains(
-            "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
-        ));
-    }
-
-    #[test]
-    fn browser_preview_close_bridge_queues_full_shortcut_bindings_via_navigation() {
-        let prefs = HashMap::new();
-
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("default close bridge script should exist");
-
-        assert!(script.contains("\"m\":\"toggle-read\""));
-        assert!(script.contains("\"s\":\"toggle-star\""));
-        assert!(script.contains("\"j\":\"next-article\""));
-        assert!(script.contains("\"k\":\"prev-article\""));
-        assert!(script.contains("const actionQueue = [];"));
-        assert!(script.contains("let actionDrainInFlight = false;"));
-        assert!(script.contains("const requestActionViaNavigation = (action)"));
-        assert!(script.contains("window.location.href = 'ultra-rss-browser-shortcut://' + action;"));
-        assert!(script.contains("const drainActionQueue = ()"));
-        assert!(script.contains("const queueBridgeAction = (action)"));
-        assert!(script.contains("const action = bindings[normalized];"));
-        assert!(script.contains("queueBridgeAction(action);"));
-        assert!(script.contains("if (normalized === closeBinding) {"));
+        assert!(!script.contains("close_browser_webview"));
+        assert!(!script.contains("closeBrowserPreview"));
+        assert!(!script.contains("closeBinding"));
+        assert!(!script.contains("ultra-rss-browser-shortcut://"));
+        assert!(!script.contains("bindings["));
+        assert!(!script.contains("queueBridgeAction"));
+        assert!(!script.contains("requestActionViaNavigation"));
+        assert!(!script.contains("mousedown"));
+        assert!(!script.contains("mouseup"));
+        assert!(!script.contains("event.button"));
+        assert!(!script.contains("go_back_browser_webview"));
+        assert!(!script.contains("go_forward_browser_webview"));
     }
 
     #[test]
     fn browser_preview_close_bridge_guards_against_duplicate_listener_installation() {
         let prefs = HashMap::new();
 
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("default close bridge script should exist");
+        let script =
+            browser_preview_close_bridge_source(&prefs).expect("close bridge script should exist");
 
         assert!(script.contains("__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__"));
         assert!(script.contains("if (window.__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__) return;"));
         assert!(script.contains("configurable: false"));
-    }
-
-    #[test]
-    fn browser_preview_close_bridge_uses_saved_close_binding() {
-        let prefs = HashMap::from([("shortcut_close_or_clear".to_string(), "Shift+X".to_string())]);
-
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("saved close bridge script should exist");
-
-        assert!(script.contains("\"Shift+X\""));
-    }
-
-    #[test]
-    fn browser_preview_close_bridge_json_escapes_saved_shortcut_preferences() {
-        let prefs = HashMap::from([(
-            "shortcut_close_or_clear".to_string(),
-            "Escape\";window.__ultraRssInjected=true;//".to_string(),
-        )]);
-
-        let script = browser_preview_close_bridge_source(&prefs)
-            .expect("saved close bridge script should exist");
-
-        assert!(script.contains(r#""Escape\";window.__ultraRssInjected=true;//""#));
-        assert!(!script.contains(r#""Escape";window.__ultraRssInjected=true;//""#));
     }
 
     #[test]
@@ -2541,20 +2511,21 @@ mod tests {
         let prefs = HashMap::from([("shortcut_toggle_read".to_string(), "x".to_string())]);
 
         let script = super::browser_preview_script_bridge_source(&prefs)
-            .expect("script bridge should exist when supported shortcuts exist");
+            .expect("script bridge should exist");
 
+        // Bindings dispatch (postMessage) and mouse button 3/4 capture used to be sent to a
+        // native side that discards them; only Space-key scrolling remains captured here.
         assert!(script.contains("__ULTRA_RSS_BROWSER_BRIDGE_INSTALLED__"));
-        assert!(script.contains("\"x\":\"toggle-read\""));
-        assert!(script.contains("postBridgeAction(action);"));
-        assert!(script.contains("JSON.stringify({ action, url: window.location.href })"));
         assert!(script.contains("window.addEventListener('keydown'"));
-        assert!(script.contains("window.addEventListener('mouseup'"));
         assert!(script.contains("data-disable-global-shortcuts=\"true\""));
         assert!(script.contains("if (isEditableTarget(event.target))"));
         assert!(script.contains("if (!event.defaultPrevented && spaceScrollDirection !== 0)"));
-        assert!(!script.contains(
-            "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
-        ));
+        assert!(!script.contains("postBridgeAction"));
+        assert!(!script.contains("postMessage"));
+        assert!(!script.contains("bindings"));
+        assert!(!script.contains("mousedown"));
+        assert!(!script.contains("mouseup"));
+        assert!(!script.contains("event.button"));
     }
 
     #[test]
@@ -2579,8 +2550,8 @@ mod tests {
         assert!(enabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
         assert!(enabled_script.contains("Document.prototype, 'webkitVisibilityState', 'visible'"));
         assert!(enabled_script.contains("Document.prototype, 'hasFocus', () => true"));
-        assert!(disabled_script.contains("close_browser_webview"));
-        assert!(missing_script.contains("close_browser_webview"));
+        assert!(disabled_script.contains("getSpaceScrollDirection"));
+        assert!(missing_script.contains("getSpaceScrollDirection"));
         assert!(!disabled_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
         assert!(!disabled_script.contains("__MBU_FOCUS_OVERRIDE_APPLIED__"));
         assert!(!missing_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
@@ -2607,7 +2578,7 @@ mod tests {
 
         assert!(!script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
         assert!(!script.contains("window.__ultraRssInjected=true"));
-        assert!(script.contains("close_browser_webview"));
+        assert!(script.contains("getSpaceScrollDirection"));
     }
 
     #[test]

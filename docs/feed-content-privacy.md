@@ -391,6 +391,8 @@ The current same-origin assumptions are:
 - focus bridging between reader controls and the embedded browser must be command-based and explicit; remote page scripts must not call app actions or Tauri IPC
 - browser history tracking is browser-surface state only and must not mutate article read/star state without an app-controlled user action
 - app scripts stay limited to `'self'`; any future script injection surface for preview automation requires a separate security review and packaged-build verification
+- a channel is not an authentication mechanism for app actions merely because the app injected the script that uses it: custom-scheme navigation (`ultra-rss-browser-shortcut://`) and the Windows `WebMessageReceived` postMessage bridge are both readable and reproducible by the hosted page's own scripts, so neither may dispatch `MENU_ACTION_EVENT`; an injected-script nonce does not close this gap because the page can read and replay it. Only native, page-independent input handling (the macOS Escape `NSEvent` monitor and the Windows `AcceleratorKeyPressed` handler) may dispatch app actions from inside the embedded browser webview.
+- known Phase A trade-off (tracked in plan 019): with page-origin dispatch removed and no native replacement yet on Linux, in-webview keyboard shortcuts do not work on Linux, and page-driven mouse back/forward (buttons 3/4) does not trigger app navigation on any OS. Recovery is scoped to a later phase and must stay native/page-independent; it must not reintroduce scheme- or postMessage-based dispatch.
 
 Future changes that merge reader and browser state, add cross-origin messaging, or expose webview navigation data to app actions must update this contract before implementation.
 
@@ -685,6 +687,36 @@ Link opener contract:
 - Article URLs, feed URLs, server URLs, and link tooltips must use redacted display and redacted diagnostics. Query strings, fragments, userinfo, credentials, tokens, cookies, and private path segments must not appear in logs, support copy, `title` attributes, or error toasts.
 - Private, loopback, link-local, unspecified, credentialed, malformed, and unsupported-scheme article links must not be auto-opened from reader content. If a future UI allows the user to override a blocked article link, it must show a distinct warning state before navigation and must not store the raw blocked URL in diagnostics.
 - Link policy changes must be verified against sanitized article content and external opener behavior separately from embedded Web Preview navigation.
+
+### Web Preview Navigation Contract
+
+Decision: Web Preview (the embedded browser child webview) is a separate
+category from the Article Link Opener above — opening Web Preview is treated
+as visiting the publisher page in an embedded browser, not as auto-opening an
+untrusted link. Its navigation policy is deliberately narrower on scheme and
+deliberately does **not** copy the Article Link Opener's private-host
+rejection.
+
+Web Preview navigation contract:
+
+- The initial URL and every in-webview redirect must be `http` or `https` with
+  no userinfo. `javascript:`, `file:`, `data:`, and any other non-http(s)
+  scheme are rejected, as are credentialed http(s) URLs
+  (`user:password@host`).
+- The Windows-only `about:blank` placeholder used while the child webview is
+  being created is an explicit exception to the scheme check above.
+- Private, loopback, and link-local hosts are **not** rejected for Web
+  Preview. Publishers self-hosted on a LAN must remain previewable; this is
+  the opposite of the Article Link Opener contract and must stay that way
+  until a separate product decision retires LAN self-hosted Preview support.
+- The Article Link Opener (`open_in_browser`) keeps using
+  `validate_public_http_url`. Do not point Web Preview navigation at that
+  function, and do not treat a Web Preview regression as evidence against the
+  Article Link Opener's private-host rejection or vice versa.
+- Unifying `src-tauri/src/domain/url_policy.rs` into one function shared by
+  both call sites is out of scope until an operator decides to drop LAN
+  self-hosted Web Preview support; see the audit issue for that tracked
+  decision.
 
 ### Credential-Bearing URL Persistence Policy
 

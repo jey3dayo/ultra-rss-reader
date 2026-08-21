@@ -505,6 +505,20 @@ mod tests {
     }
 
     #[test]
+    fn parse_browser_http_url_accepts_private_and_loopback_hosts() {
+        // Web Preview intentionally does not reject private/loopback hosts (unlike
+        // `validate_public_http_url`, which this helper must not call). LAN self-hosted
+        // publishers must remain previewable; see docs/feed-content-privacy.md's
+        // "Web Preview Navigation Contract".
+        for url in ["http://127.0.0.1/", "http://localhost/"] {
+            let parsed = parse_browser_http_url(url)
+                .unwrap_or_else(|_| panic!("{url} should be accepted by parse_browser_http_url"));
+
+            assert_eq!(parsed.as_str(), url);
+        }
+    }
+
+    #[test]
     fn redacted_browser_display_url_hides_secret_bearing_parts() {
         let redacted = redacted_browser_url_for_display(
             "https://user:pass@example.com/private?token=raw&utm=1#secret",
