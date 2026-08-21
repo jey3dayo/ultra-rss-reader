@@ -25,12 +25,7 @@ const UNREAD_RS_REL_PATH = "commands/sync_providers/unread.rs";
 //   `.apply_remote_state(` matches in this file are its own `#[cfg(test)]`
 //   unit tests calling the method on a repo instance; the definition itself
 //   is `fn apply_remote_state(` (no leading dot) and doesn't match.
-// - service/sync_flow/mod.rs: explicitly out of scope for plan 021. This is a
-//   generic sync flow not reachable from the production FreshRSS/Local
-//   command paths (only integration tests exercise it) and has a different
-//   repository-DI lock-ownership shape. See plan 021 "設計判断". Resolving
-//   this decoy is deferred to the separate "候補2" architecture decision.
-const ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES = new Set(["infra/db/sqlite_article.rs", "service/sync_flow/mod.rs"]);
+const ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES = new Set(["infra/db/sqlite_article.rs"]);
 
 function collectRustFiles(dir: string): string[] {
   const entries = readdirSync(dir, { withFileTypes: true });

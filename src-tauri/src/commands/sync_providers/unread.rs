@@ -17,7 +17,7 @@ use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 
 use super::subscriptions::is_provider_managed_greader_feed;
-use crate::service::sync_flow::article_from_remote_entry;
+use crate::service::article_materializer::article_from_remote_entry;
 
 pub(super) async fn reconcile_greader_unread_counts(
     db: &Mutex<DbManager>,
