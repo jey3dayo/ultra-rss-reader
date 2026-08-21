@@ -18,7 +18,7 @@ use crate::repository::sync_state::{
     normalize_http_etag_validator, normalize_http_last_modified_validator, SyncState,
     SyncStateRepository, SyncStateScopeKey,
 };
-use crate::service::sync_flow::article_from_remote_entry;
+use crate::service::article_materializer::article_from_remote_entry;
 
 use crate::commands::feed_commands::lock_db;
 

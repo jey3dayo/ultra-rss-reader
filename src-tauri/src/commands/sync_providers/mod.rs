@@ -39,7 +39,7 @@ use crate::repository::pending_mutation::{
     PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
-use crate::service::sync_flow::article_from_remote_entry;
+use crate::service::article_materializer::article_from_remote_entry;
 
 use super::feed_commands::lock_db;
 
