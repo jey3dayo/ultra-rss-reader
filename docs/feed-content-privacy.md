@@ -686,6 +686,36 @@ Link opener contract:
 - Private, loopback, link-local, unspecified, credentialed, malformed, and unsupported-scheme article links must not be auto-opened from reader content. If a future UI allows the user to override a blocked article link, it must show a distinct warning state before navigation and must not store the raw blocked URL in diagnostics.
 - Link policy changes must be verified against sanitized article content and external opener behavior separately from embedded Web Preview navigation.
 
+### Web Preview Navigation Contract
+
+Decision: Web Preview (the embedded browser child webview) is a separate
+category from the Article Link Opener above — opening Web Preview is treated
+as visiting the publisher page in an embedded browser, not as auto-opening an
+untrusted link. Its navigation policy is deliberately narrower on scheme and
+deliberately does **not** copy the Article Link Opener's private-host
+rejection.
+
+Web Preview navigation contract:
+
+- The initial URL and every in-webview redirect must be `http` or `https` with
+  no userinfo. `javascript:`, `file:`, `data:`, and any other non-http(s)
+  scheme are rejected, as are credentialed http(s) URLs
+  (`user:password@host`).
+- The Windows-only `about:blank` placeholder used while the child webview is
+  being created is an explicit exception to the scheme check above.
+- Private, loopback, and link-local hosts are **not** rejected for Web
+  Preview. Publishers self-hosted on a LAN must remain previewable; this is
+  the opposite of the Article Link Opener contract and must stay that way
+  until a separate product decision retires LAN self-hosted Preview support.
+- The Article Link Opener (`open_in_browser`) keeps using
+  `validate_public_http_url`. Do not point Web Preview navigation at that
+  function, and do not treat a Web Preview regression as evidence against the
+  Article Link Opener's private-host rejection or vice versa.
+- Unifying `src-tauri/src/domain/url_policy.rs` into one function shared by
+  both call sites is out of scope until an operator decides to drop LAN
+  self-hosted Web Preview support; see the audit issue for that tracked
+  decision.
+
 ### Credential-Bearing URL Persistence Policy
 
 Decision: URLs containing userinfo or credential-like material are rejected at
