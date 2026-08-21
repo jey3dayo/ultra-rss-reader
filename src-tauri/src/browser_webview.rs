@@ -520,7 +520,12 @@ fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
-fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) -> Option<String> {
+fn normalize_browser_shortcut(
+    key: &str,
+    command_or_control: bool,
+    shift: bool,
+    alt: bool,
+) -> Option<String> {
     if key.is_empty() {
         return None;
     }
@@ -528,6 +533,9 @@ fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) 
     let mut parts = Vec::new();
     if command_or_control {
         parts.push("⌘".to_string());
+    }
+    if alt {
+        parts.push("Alt".to_string());
     }
     if shift {
         parts.push("Shift".to_string());
@@ -549,6 +557,7 @@ fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
     let mut command_or_control = false;
+    let mut alt = false;
     let mut shift = false;
     let mut key: Option<&str> = None;
 
@@ -558,8 +567,12 @@ fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
         .filter(|segment| !segment.is_empty())
     {
         match segment {
-            "⌘" | "Ctrl" | "ctrl" | "CmdOrCtrl" | "cmdorctrl" => {
+            "⌘" | "Ctrl" | "ctrl" | "CmdOrCtrl" | "cmdorctrl" | "Command" | "command" | "Cmd"
+            | "cmd" | "Control" | "control" => {
                 command_or_control = true;
+            }
+            "Alt" | "alt" | "Option" | "option" | "⌥" => {
+                alt = true;
             }
             "Shift" | "shift" => {
                 shift = true;
@@ -571,7 +584,7 @@ fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
         }
     }
 
-    normalize_browser_shortcut(key?, command_or_control, shift)
+    normalize_browser_shortcut(key?, command_or_control, shift, alt)
 }
 
 #[cfg(windows)]
@@ -609,8 +622,9 @@ pub fn browser_preview_action_for_shortcut(
     key: &str,
     command_or_control: bool,
     shift: bool,
+    alt: bool,
 ) -> Option<&'static str> {
-    let normalized = normalize_browser_shortcut(key, command_or_control, shift)?;
+    let normalized = normalize_browser_shortcut(key, command_or_control, shift, alt)?;
 
     BROWSER_PREVIEW_SHORTCUT_SPECS.iter().find_map(|shortcut| {
         let binding = prefs
@@ -657,6 +671,83 @@ fn should_handle_macos_browser_escape_key(key_code: u16, browser_webview_open: b
     const MACOS_ESCAPE_KEY_CODE: u16 = 53;
 
     browser_webview_open && key_code == MACOS_ESCAPE_KEY_CODE
+}
+
+#[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
+fn browser_shortcut_key_from_macos_key_code(key_code: u16) -> Option<&'static str> {
+    Some(match key_code {
+        0 => "a",
+        1 => "s",
+        2 => "d",
+        3 => "f",
+        4 => "h",
+        5 => "g",
+        6 => "z",
+        7 => "x",
+        8 => "c",
+        9 => "v",
+        11 => "b",
+        12 => "q",
+        13 => "w",
+        14 => "e",
+        15 => "r",
+        16 => "y",
+        17 => "t",
+        18 => "1",
+        19 => "2",
+        20 => "3",
+        21 => "4",
+        22 => "6",
+        23 => "5",
+        24 => "=",
+        25 => "9",
+        26 => "7",
+        27 => "-",
+        28 => "8",
+        29 => "0",
+        30 => "]",
+        31 => "o",
+        32 => "u",
+        33 => "[",
+        34 => "i",
+        35 => "p",
+        37 => "l",
+        38 => "j",
+        39 => "'",
+        40 => "k",
+        41 => ";",
+        42 => "\\",
+        43 => ",",
+        44 => "/",
+        45 => "n",
+        46 => "m",
+        47 => ".",
+        49 => "Space",
+        50 => "`",
+        53 => "Escape",
+        123 => "ArrowLeft",
+        124 => "ArrowRight",
+        125 => "ArrowDown",
+        126 => "ArrowUp",
+        _ => return None,
+    })
+}
+
+#[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
+fn browser_preview_action_for_macos_key_event(
+    prefs: &HashMap<String, String>,
+    key_code: u16,
+    command_or_control: bool,
+    shift: bool,
+    alt: bool,
+    browser_webview_open: bool,
+) -> Option<&'static str> {
+    if !browser_webview_open || !(command_or_control || alt) {
+        return None;
+    }
+
+    let key = browser_shortcut_key_from_macos_key_code(key_code)?;
+    browser_preview_action_for_shortcut(prefs, key, command_or_control, shift, alt)
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -1074,6 +1165,7 @@ fn browser_preview_action_for_virtual_key_from_prefs_result(
     virtual_key: u32,
     command_or_control: bool,
     shift: bool,
+    alt: bool,
 ) -> Option<&'static str> {
     let key = browser_shortcut_key_from_virtual_key(virtual_key)?;
     let prefs = match prefs_result {
@@ -1086,7 +1178,7 @@ fn browser_preview_action_for_virtual_key_from_prefs_result(
             HashMap::new()
         }
     };
-    browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift)
+    browser_preview_action_for_shortcut(&prefs, &key, command_or_control, shift, alt)
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -1102,12 +1194,14 @@ fn browser_preview_action_for_virtual_key<R: Runtime>(
     virtual_key: u32,
     command_or_control: bool,
     shift: bool,
+    alt: bool,
 ) -> Option<&'static str> {
     browser_preview_action_for_virtual_key_from_prefs_result(
         load_browser_preview_prefs(app_handle),
         virtual_key,
         command_or_control,
         shift,
+        alt,
     )
 }
 
@@ -1163,7 +1257,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
         WebMessageReceivedEventHandler,
     };
     use windows::core::{Interface, HSTRING, PWSTR};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_SHIFT};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_MENU, VK_SHIFT};
 
     let app_handle = app_handle.clone();
     let prefs = load_browser_preview_prefs(&app_handle)?;
@@ -1252,28 +1346,32 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                     args.VirtualKey(&mut virtual_key)?;
                     let command_or_control = GetKeyState(VK_CONTROL.0 as i32) < 0;
                     let shift = GetKeyState(VK_SHIFT.0 as i32) < 0;
+                    let alt = GetKeyState(VK_MENU.0 as i32) < 0;
                     let Some(action) = browser_preview_action_for_virtual_key(
                         &app_handle,
                         virtual_key,
                         command_or_control,
                         shift,
+                        alt,
                     ) else {
                         emit_browser_webview_debug_input(
                             &app_handle,
                             format!(
-                                "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} action=none grace={}",
+                                "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} alt={alt} action=none grace={}",
                                 browser_close_grace_window_active()
                             ),
                         );
                         return Ok(());
                     };
 
+                    let native_modifier = command_or_control || alt;
                     let should_handle = action == "close-browser"
-                        || (is_browser_close_grace_action(action) && browser_close_grace_window_active());
+                        || (is_browser_close_grace_action(action) && browser_close_grace_window_active())
+                        || native_modifier;
                     emit_browser_webview_debug_input(
                         &app_handle,
                         format!(
-                            "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} action={action} grace={} handled={should_handle}",
+                            "native-accelerator vk={virtual_key} ctrl={command_or_control} shift={shift} alt={alt} action={action} grace={} handled={should_handle}",
                             browser_close_grace_window_active()
                         ),
                     );
@@ -1316,7 +1414,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
 ) -> tauri::Result<()> {
     use std::{ptr::null_mut, sync::atomic::Ordering};
 
-    use objc2_app_kit::{NSEvent, NSEventMask};
+    use objc2_app_kit::{NSEvent, NSEventMask, NSEventModifierFlags};
 
     if BROWSER_MACOS_ESCAPE_MONITOR_INSTALLED
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -1327,7 +1425,8 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
 
     let app_handle = app_handle.clone();
     let handler = block2::RcBlock::new(move |event: std::ptr::NonNull<NSEvent>| -> *mut NSEvent {
-        let key_code = unsafe { event.as_ref().keyCode() };
+        let (key_code, modifier_flags) =
+            unsafe { (event.as_ref().keyCode(), event.as_ref().modifierFlags()) };
         let browser_webview_open = app_handle
             .try_state::<crate::commands::AppState>()
             .and_then(|app_state| {
@@ -1340,7 +1439,47 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
             .is_some();
 
         if !should_handle_macos_browser_escape_key(key_code, browser_webview_open) {
-            return event.as_ptr();
+            let command_or_control = modifier_flags
+                .intersects(NSEventModifierFlags::Command | NSEventModifierFlags::Control);
+            let shift = modifier_flags.contains(NSEventModifierFlags::Shift);
+            let alt = modifier_flags.contains(NSEventModifierFlags::Option);
+            // This local monitor sees every KeyDown in the app; gate on "browser open +
+            // modifier held" before touching the DB so plain typing never pays a prefs read.
+            if !browser_webview_open || !(command_or_control || alt) {
+                return event.as_ptr();
+            }
+            let prefs = match load_browser_preview_prefs(&app_handle) {
+                Ok(prefs) => prefs,
+                Err(error) => {
+                    tracing::warn!(
+                        "{}",
+                        browser_preview_shortcut_preferences_read_warning(&error)
+                    );
+                    HashMap::new()
+                }
+            };
+            let Some(action) = browser_preview_action_for_macos_key_event(
+                &prefs,
+                key_code,
+                command_or_control,
+                shift,
+                alt,
+                browser_webview_open,
+            ) else {
+                return event.as_ptr();
+            };
+
+            emit_browser_webview_debug_input(
+                &app_handle,
+                format!(
+                    "native-macos-key key_code={key_code} cmd_or_control={command_or_control} shift={shift} alt={alt} action={action} handled=true"
+                ),
+            );
+            if action == "close-browser" {
+                focus_main_webview_window(&app_handle);
+            }
+            let _ = app_handle.emit(MENU_ACTION_EVENT, action);
+            return null_mut();
         }
 
         emit_browser_webview_debug_input(
@@ -1597,7 +1736,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        browser_preview_action_for_shortcut,
+        browser_preview_action_for_macos_key_event, browser_preview_action_for_shortcut,
         browser_preview_action_for_virtual_key_from_prefs_result,
         browser_preview_bridge_message_action, browser_preview_close_bridge_source,
         browser_preview_focus_override_source, browser_preview_initialization_script,
@@ -2078,35 +2217,35 @@ mod tests {
         let prefs = HashMap::new();
 
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "m", false, false),
+            browser_preview_action_for_shortcut(&prefs, "m", false, false, false),
             Some("toggle-read")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "s", false, false),
+            browser_preview_action_for_shortcut(&prefs, "s", false, false, false),
             Some("toggle-star")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "b", false, false),
+            browser_preview_action_for_shortcut(&prefs, "b", false, false, false),
             Some("open-in-default-browser")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "j", false, false),
+            browser_preview_action_for_shortcut(&prefs, "j", false, false, false),
             Some("next-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "k", false, false),
+            browser_preview_action_for_shortcut(&prefs, "k", false, false, false),
             Some("prev-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "l", false, false),
+            browser_preview_action_for_shortcut(&prefs, "l", false, false, false),
             Some("next-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "h", false, false),
+            browser_preview_action_for_shortcut(&prefs, "h", false, false, false),
             Some("prev-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "r", false, false),
+            browser_preview_action_for_shortcut(&prefs, "r", false, false, false),
             Some("reload-webview")
         );
     }
@@ -2128,40 +2267,101 @@ mod tests {
         ]);
 
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "x", false, false),
+            browser_preview_action_for_shortcut(&prefs, "x", false, false, false),
             Some("toggle-read")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "S", false, true),
+            browser_preview_action_for_shortcut(&prefs, "S", false, true, false),
             Some("toggle-star")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "b", true, false),
+            browser_preview_action_for_shortcut(&prefs, "b", true, false, false),
             Some("open-in-default-browser")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "n", false, false),
+            browser_preview_action_for_shortcut(&prefs, "n", false, false, false),
             Some("next-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "p", false, false),
+            browser_preview_action_for_shortcut(&prefs, "p", false, false, false),
             Some("prev-article")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "F", false, true),
+            browser_preview_action_for_shortcut(&prefs, "F", false, true, false),
             Some("next-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "h", true, false),
+            browser_preview_action_for_shortcut(&prefs, "h", true, false, false),
             Some("prev-feed")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "R", false, true),
+            browser_preview_action_for_shortcut(&prefs, "R", false, true, false),
             Some("reload-webview")
         );
         assert_eq!(
-            browser_preview_action_for_shortcut(&prefs, "j", false, false),
+            browser_preview_action_for_shortcut(&prefs, "j", false, false, false),
             None
+        );
+    }
+
+    #[test]
+    fn browser_preview_shortcut_matching_supports_command_control_and_alt_bindings() {
+        let prefs = HashMap::from([
+            ("shortcut_toggle_read".to_string(), "⌘+M".to_string()),
+            ("shortcut_toggle_star".to_string(), "Alt+S".to_string()),
+            (
+                "shortcut_next_article".to_string(),
+                "Option+Shift+J".to_string(),
+            ),
+        ]);
+
+        assert_eq!(
+            browser_preview_action_for_shortcut(&prefs, "m", true, false, false),
+            Some("toggle-read")
+        );
+        assert_eq!(
+            browser_preview_action_for_shortcut(&prefs, "s", false, false, true),
+            Some("toggle-star")
+        );
+        assert_eq!(
+            browser_preview_action_for_shortcut(&prefs, "J", false, true, true),
+            Some("next-article")
+        );
+    }
+
+    #[test]
+    fn macos_native_shortcut_matching_requires_a_browser_and_non_shift_modifier() {
+        let prefs = HashMap::from([
+            ("shortcut_toggle_read".to_string(), "m".to_string()),
+            ("shortcut_toggle_star".to_string(), "⌘+S".to_string()),
+            (
+                "shortcut_open_external_browser".to_string(),
+                "Alt+B".to_string(),
+            ),
+        ]);
+
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, 46, false, false, false, true),
+            None,
+            "bare key bindings must stay in the hosted page"
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, 1, false, false, false, true),
+            None,
+            "an unmatched key must not be handled natively"
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, 1, true, false, false, true),
+            Some("toggle-star")
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, 11, false, false, true, true),
+            Some("open-in-default-browser")
+        );
+        assert_eq!(
+            browser_preview_action_for_macos_key_event(&prefs, 46, false, false, false, false),
+            None,
+            "native shortcuts must not run when the browser webview is closed"
         );
     }
 
@@ -2170,6 +2370,7 @@ mod tests {
         let action = browser_preview_action_for_virtual_key_from_prefs_result(
             Err(std::io::Error::other("preference read failed")),
             0x4D,
+            false,
             false,
             false,
         );
@@ -2192,7 +2393,13 @@ mod tests {
         let prefs = HashMap::from([("shortcut_toggle_read".to_string(), "x".to_string())]);
 
         assert_eq!(
-            browser_preview_action_for_virtual_key_from_prefs_result(Ok(prefs), 0x58, false, false),
+            browser_preview_action_for_virtual_key_from_prefs_result(
+                Ok(prefs),
+                0x58,
+                false,
+                false,
+                false,
+            ),
             Some("toggle-read")
         );
     }
