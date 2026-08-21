@@ -147,9 +147,10 @@ describe("browser preview shortcut bridge contract", () => {
     expect(commandsSource).not.toContain("use crate::menu::MENU_ACTION_EVENT");
 
     // The only remaining emitters must be hardware-input channels that a hosted page
-    // cannot synthesize: Windows AcceleratorKeyPressed and the macOS NSEvent monitor.
+    // cannot synthesize: Windows AcceleratorKeyPressed and the two macOS NSEvent monitor
+    // branches (Escape plus modifier-bound shortcuts).
     const emitCount = backendSource.split("emit(MENU_ACTION_EVENT").length - 1;
-    expect(emitCount).toBe(2);
+    expect(emitCount).toBe(3);
     const acceleratorHandlerBlock = extractBlock(
       backendSource,
       /native-accelerator vk=([\s\S]*?)add_AcceleratorKeyPressed/,
@@ -162,6 +163,16 @@ describe("browser preview shortcut bridge contract", () => {
       "macOS NSEvent key monitor handler",
     );
     expect(macosMonitorBlock).toContain('emit(MENU_ACTION_EVENT, "close-browser")');
+    const macosModifierHandlerBlock = extractBlock(
+      backendSource,
+      /(if !should_handle_macos_browser_escape_key\([\s\S]*?let _ = app_handle\.emit\(MENU_ACTION_EVENT, action\);\s*return null_mut\(\);)/,
+      "macOS NSEvent modifier shortcut handler",
+    );
+    expect(macosModifierHandlerBlock).toContain("browser_preview_action_for_macos_key_event");
+    expect(macosModifierHandlerBlock).toContain("browser_webview_open");
+    expect(macosModifierHandlerBlock).toContain("command_or_control");
+    expect(macosModifierHandlerBlock).toContain("alt");
+    expect(macosModifierHandlerBlock).toContain("emit(MENU_ACTION_EVENT, action)");
   });
 
   it("keeps non-Windows close/mouse bridge actions on denied-invoke recovery with direct commands", () => {
