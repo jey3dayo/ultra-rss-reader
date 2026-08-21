@@ -78,7 +78,7 @@ owner: project-maintainers
 - 記事一覧 pane (`useArticleListController` 系) は `showSearch` が true のとき、`ReaderQuery` による母集合ではなく検索結果 (`searchResults` + `trimmedDebouncedQuery`) を優先して navigable list を組み立てる。検索状態 (`showSearch` / debounce / フォーカス管理) は一覧 pane にローカルな UI state であり、グローバルには共有しない。
 - navigable list の構築は `buildArticleListData` (production hook: `useArticleListData`) に一本化されている。テスト専用の並行実装は持たない。一覧 pane が publish する `hasNextArticle` の prev/next 判定は `resolveArticleCursor` が担う。キーボード遷移そのもの (`useArticleListNavigation`) は境界到達時に現記事を再選択する挙動のため `getAdjacentArticleId` を直接使うが、境界の clamp 規則は `resolveArticleCursor` と同一である。
 - 本文 pane (`useArticleViewSelection`) は `showSearch: false` 固定で同じ `useArticleListData` を呼ぶため、検索結果は含まれない。これは本文 pane が記事本体解決の instant-render 用フォールバックにのみこの結果を使うためで、"次の記事があるか" の判定には使わない。
-- "次の記事があるか" (`hasNextArticle`) は、一覧 pane が `resolveArticleCursor` で計算した値を ui-store 経由で本文 pane に渡す。一覧 pane の unmount 時は cleanup が `false` を publish する。一覧 pane が一度もマウントされていない画面 (content-only レイアウトでの直接記事表示など) では、ui-store の現在値 (初期値、または直前の pane の cleanup 後の `false`) のままになる既知の制約として残る。
+- "次の記事があるか" (`hasNextArticle`) は、一覧 pane が `resolveArticleCursor` で計算した値を ui-store 経由で本文 pane に渡す。一覧 pane の unmount 時は cleanup が `false` を publish する。一覧 pane が一度もマウントされていない画面 (content-only レイアウトでの直接記事表示など) では、ui-store の現在値 (初期値、または直前の pane の cleanup 後の `false`) のままになる。これは**仕様として許容** (2026-08-21 判断): この状態では `navigateArticle` のリスナー自体が一覧 pane と共に不在でナビゲーションが機能しないため、`hasNextArticle` が `false` (ボタン非表示) であることはむしろ一貫している。値だけ補正すると「押しても反応しないボタン」を作る。
 
 ## Article Action Recovery Copy
 
