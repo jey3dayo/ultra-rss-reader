@@ -19,3 +19,4 @@ x 2026-08-21 2026-08-21 CONTRIBUTING service/表・dotenvx矛盾・hooks:install
 x 2026-08-21 2026-08-21 sanitizer_version検索に複合INDEX追加(監査#6) +perf-db note:https://github.com/jey3dayo/ultra-rss-reader/issues/65
 x 2026-08-21 2026-08-21 アーキ候補4: feed identity判定の重複解消+未使用domainポリシー削除(検証: code audit+focused test) +refactor-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
 x 2026-08-21 2026-08-21 アーキ候補5: navigable article list+cursorの単一所有、#54再発防止(検証: cursor一貫性のfocused test+ブラウザ実画面) +reader-ui note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
+x 2026-08-21 2026-08-21 アーキ候補1: Sync sessionのロック所有。plan作成→レビュー→実装の3段、Phase3より先、候補5の後(検証: remote-state-reconciliation回帰テスト維持+contract test) +refactor-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
