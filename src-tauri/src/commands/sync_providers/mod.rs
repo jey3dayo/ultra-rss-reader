@@ -2350,6 +2350,71 @@ mod tests {
     }
 
     #[test]
+    fn apply_remote_state_with_protection_reads_pending_mutations_saved_before_the_call() {
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, "http://localhost");
+        let remote_id = "protected-entry".to_string();
+        let article_id = ArticleId("protected-article".to_string());
+
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            article_repo
+                .upsert(&[Article {
+                    id: article_id.clone(),
+                    feed_id: feed.id.clone(),
+                    remote_id: Some(remote_id.clone()),
+                    title: "Protected".to_string(),
+                    content_raw: "body".to_string(),
+                    content_sanitized: "body".to_string(),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: None,
+                    url: None,
+                    author: None,
+                    published_at: chrono::Utc::now(),
+                    thumbnail: None,
+                    is_read: true,
+                    is_starred: false,
+                    fetched_at: chrono::Utc::now(),
+                }])
+                .unwrap();
+
+            // A pending MarkRead mutation, saved directly to the DB (not passed via
+            // `extra_protected_read_ids`), must still be picked up: the helper is
+            // responsible for re-reading pending mutations from the DB inside its
+            // own lock, not relying on a caller-supplied snapshot.
+            let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+            pending_repo
+                .save(&PendingMutation {
+                    id: None,
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::MarkRead,
+                    remote_entry_id: remote_id.clone(),
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                })
+                .unwrap();
+        }
+
+        // Remote reports the entry as unread; without protection this would
+        // revert the article to unread.
+        apply_remote_state_with_protection(&db, &account.id, &[], &[], &[], &[]).unwrap();
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let article = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap()
+            .into_iter()
+            .find(|article| article.id == article_id)
+            .unwrap();
+        assert!(
+            article.is_read,
+            "pending MarkRead mutation saved before the call should protect the article \
+             from being reverted to the remote's stale unread state"
+        );
+    }
+
+    #[test]
     fn upsert_articles_in_current_transaction_preserves_older_published_at_on_resync() {
         let db = test_db();
         let (_account, feed) = insert_account_and_feed(&db, "http://localhost");
