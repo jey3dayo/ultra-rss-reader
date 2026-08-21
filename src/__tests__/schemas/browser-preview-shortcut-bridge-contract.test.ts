@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { APP_ACTIONS } from "@/lib/app-actions";
 import { isShortcutPreferenceKey, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
 import backendSource from "../../../src-tauri/src/browser_webview.rs?raw";
+import commandsSource from "../../../src-tauri/src/commands/browser_webview_commands.rs?raw";
 
 type BrowserPreviewShortcutSpec = {
   prefKey: string;
@@ -136,6 +137,31 @@ describe("browser preview shortcut bridge contract", () => {
     expect(acceptMessageBlock).toContain("browser_preview_bridge_url_matches(&message.url, &state.url)");
     expect(supportedBridgeActionBlock).toContain("is_supported_browser_preview_script_action(action)");
     expect(supportedBridgeActionBlock).toContain('matches!(action, "mouse-back" | "mouse-forward")');
+  });
+
+  it("keeps MENU_ACTION_EVENT dispatch exclusive to native input channels", () => {
+    // Page-forgeable channels must never dispatch app actions (plan 019 Phase A):
+    // the shortcut-scheme navigation handler lives in browser_webview_commands.rs and
+    // must stay emit-free end to end (doc comments may still mention the event name).
+    expect(commandsSource).not.toContain("emit(MENU_ACTION_EVENT");
+    expect(commandsSource).not.toContain("use crate::menu::MENU_ACTION_EVENT");
+
+    // The only remaining emitters must be hardware-input channels that a hosted page
+    // cannot synthesize: Windows AcceleratorKeyPressed and the macOS NSEvent monitor.
+    const emitCount = backendSource.split("emit(MENU_ACTION_EVENT").length - 1;
+    expect(emitCount).toBe(2);
+    const acceleratorHandlerBlock = extractBlock(
+      backendSource,
+      /native-accelerator vk=([\s\S]*?)add_AcceleratorKeyPressed/,
+      "Windows AcceleratorKeyPressed handler",
+    );
+    expect(acceleratorHandlerBlock).toContain("emit(MENU_ACTION_EVENT, action)");
+    const macosMonitorBlock = extractBlock(
+      backendSource,
+      /native-macos-key key_code=([\s\S]*?)addLocalMonitorForEventsMatchingMask_handler/,
+      "macOS NSEvent key monitor handler",
+    );
+    expect(macosMonitorBlock).toContain('emit(MENU_ACTION_EVENT, "close-browser")');
   });
 
   it("keeps non-Windows close/mouse bridge actions on denied-invoke recovery with direct commands", () => {
