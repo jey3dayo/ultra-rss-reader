@@ -139,8 +139,8 @@ function findAttributeGatedInlineTestModuleBlocks(source: string): Array<{ start
 
 // Resolves whether `filePath` is declared entirely as a test module via
 // `#[cfg(test)] mod <name>;` (no body) in its directory's `mod.rs`, i.e. a
-// file-split test module such as `service/sync_flow/tests.rs` declared by
-// `service/sync_flow/mod.rs`. Returns false (never excludes) when the parent
+// file-split test module such as `infra/db/migration/tests.rs` declared by
+// `infra/db/migration/mod.rs`. Returns false (never excludes) when the parent
 // `mod.rs` is missing or does not contain a matching cfg-gated declaration,
 // so an unverifiable basename can never cause a false exclusion.
 function isDeclaredAsCfgTestOnlyModule(filePath: string): boolean {
