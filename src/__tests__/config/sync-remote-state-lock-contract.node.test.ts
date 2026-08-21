@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import applyRemoteStateWithProtectionSource from "../../../src-tauri/src/commands/sync_providers/mod.rs?raw";
+import modRsSource from "../../../src-tauri/src/commands/sync_providers/mod.rs?raw";
 import unreadReconcileSource from "../../../src-tauri/src/commands/sync_providers/unread.rs?raw";
 
 // Structural regression guard for .claude/rules/remote-state-reconciliation.md
@@ -15,22 +15,22 @@ import unreadReconcileSource from "../../../src-tauri/src/commands/sync_provider
 // invariant holds for all possible code shapes.
 
 const srcTauriSrcRoot = join(process.cwd(), "src-tauri/src");
+const MOD_RS_REL_PATH = "commands/sync_providers/mod.rs";
+const UNREAD_RS_REL_PATH = "commands/sync_providers/unread.rs";
 
-// The only files allowed to call `.apply_remote_state(` outside test code:
-// - commands/sync_providers/mod.rs: defines `apply_remote_state_with_protection`,
-//   the sole sanctioned caller of the trait method.
-// - infra/db/sqlite_article.rs: the trait implementation itself (plus its own
-//   unit tests).
+// Files allowed to call `.apply_remote_state(` outside test code, other than
+// mod.rs's `apply_remote_state_with_protection` (checked at the block level
+// below, since mod.rs also contains many unrelated functions):
+// - infra/db/sqlite_article.rs: the trait implementation itself. The only
+//   `.apply_remote_state(` matches in this file are its own `#[cfg(test)]`
+//   unit tests calling the method on a repo instance; the definition itself
+//   is `fn apply_remote_state(` (no leading dot) and doesn't match.
 // - service/sync_flow/mod.rs: explicitly out of scope for plan 021. This is a
 //   generic sync flow not reachable from the production FreshRSS/Local
 //   command paths (only integration tests exercise it) and has a different
 //   repository-DI lock-ownership shape. See plan 021 "設計判断". Resolving
 //   this decoy is deferred to the separate "候補2" architecture decision.
-const ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES = new Set([
-  "commands/sync_providers/mod.rs",
-  "infra/db/sqlite_article.rs",
-  "service/sync_flow/mod.rs",
-]);
+const ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES = new Set(["infra/db/sqlite_article.rs", "service/sync_flow/mod.rs"]);
 
 function collectRustFiles(dir: string): string[] {
   const entries = readdirSync(dir, { withFileTypes: true });
@@ -54,6 +54,21 @@ function extractBlock(source: string, pattern: RegExp, label: string): string {
   return matched;
 }
 
+// mod.rs's own `#[cfg(test)] mod tests { ... }` block starts here and runs to
+// end of file; excluding it (rather than scanning the whole file) keeps this
+// contract about production callers, matching how the other allowlisted
+// files are read (their own unit tests are expected to call the method).
+function productionSourceExcludingTestModule(source: string): string {
+  const testModuleStart = source.indexOf("\nmod tests {");
+  if (testModuleStart === -1) {
+    throw new Error("Could not find `mod tests {` in source");
+  }
+  return source.slice(0, testModuleStart);
+}
+
+const HELPER_FN_PATTERN =
+  /fn apply_remote_state_with_protection\([\s\S]*?\) -> Result<\(\), AppError> \{([\s\S]*?)\n\}/;
+
 describe("remote-state apply lock contract", () => {
   it("limits non-test `.apply_remote_state(` call sites to the sanctioned allowlist", () => {
     const files = collectRustFiles(srcTauriSrcRoot);
@@ -61,6 +76,12 @@ describe("remote-state apply lock contract", () => {
 
     for (const file of files) {
       const relPath = relative(srcTauriSrcRoot, file).split("\\").join("/");
+      if (relPath === MOD_RS_REL_PATH) {
+        // mod.rs is checked below at the block level: only the sanctioned
+        // helper may contain `.apply_remote_state(`, and nothing else in the
+        // file (outside its test module) may.
+        continue;
+      }
       if (ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES.has(relPath)) {
         continue;
       }
@@ -73,12 +94,31 @@ describe("remote-state apply lock contract", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps apply_remote_state_with_protection as mod.rs's only `.apply_remote_state(` caller", () => {
+    const helperBody = extractBlock(modRsSource, HELPER_FN_PATTERN, "apply_remote_state_with_protection body");
+
+    const helperCallCount = helperBody.split(".apply_remote_state(").length - 1;
+    expect(helperCallCount).toBe(1);
+
+    const productionSource = productionSourceExcludingTestModule(modRsSource);
+    const helperStart = productionSource.indexOf("fn apply_remote_state_with_protection");
+    if (helperStart === -1) {
+      throw new Error("Could not find apply_remote_state_with_protection in mod.rs production source");
+    }
+    const helperFullMatch = productionSource
+      .slice(helperStart)
+      .match(/fn apply_remote_state_with_protection\([\s\S]*?\) -> Result<\(\), AppError> \{[\s\S]*?\n\}/);
+    if (!helperFullMatch) {
+      throw new Error("Could not match the full apply_remote_state_with_protection function");
+    }
+    const helperEnd = helperStart + helperFullMatch[0].length;
+    const restOfProductionSource = productionSource.slice(0, helperStart) + productionSource.slice(helperEnd);
+
+    expect(restOfProductionSource).not.toContain(".apply_remote_state(");
+  });
+
   it("keeps apply_remote_state_with_protection re-reading pending protection inside the DB lock", () => {
-    const helperBody = extractBlock(
-      applyRemoteStateWithProtectionSource,
-      /fn apply_remote_state_with_protection\([\s\S]*?\) -> Result<\(\), AppError> \{([\s\S]*?)\n\}/,
-      "apply_remote_state_with_protection body",
-    );
+    const helperBody = extractBlock(modRsSource, HELPER_FN_PATTERN, "apply_remote_state_with_protection body");
 
     expect(helperBody).toContain("lock_db(db)?");
     expect(helperBody).toContain("pending_remote_ids_by_axis(db_guard.reader(), account_id)?");
@@ -100,20 +140,29 @@ describe("remote-state apply lock contract", () => {
     expect(reconcileBody).toContain("tx.commit()");
   });
 
-  it("limits pending_remote_ids_by_axis callers to the helper and the unread reconcile", () => {
+  it("limits pending_remote_ids_by_axis callers to exactly one in the helper and one in the unread reconcile", () => {
     const files = collectRustFiles(srcTauriSrcRoot);
-    const callerFiles: string[] = [];
+    const callCountsByFile = new Map<string, number>();
 
     for (const file of files) {
       const relPath = relative(srcTauriSrcRoot, file).split("\\").join("/");
       const source = readFileSync(file, "utf8");
       const callCount = [...source.matchAll(/pending_remote_ids_by_axis\(/g)].length;
       const definitionCount = source.includes("fn pending_remote_ids_by_axis(") ? 1 : 0;
-      if (callCount - definitionCount > 0) {
-        callerFiles.push(relPath);
+      const callerCount = callCount - definitionCount;
+      if (callerCount > 0) {
+        callCountsByFile.set(relPath, callerCount);
       }
     }
 
-    expect(callerFiles.sort()).toEqual(["commands/sync_providers/mod.rs", "commands/sync_providers/unread.rs"]);
+    // Both the file-level location AND the exact per-file count are pinned:
+    // a second caller added anywhere in mod.rs (not just outside the helper)
+    // would otherwise slip through a "file appears in the caller set" check.
+    expect(callCountsByFile).toEqual(
+      new Map([
+        [MOD_RS_REL_PATH, 1],
+        [UNREAD_RS_REL_PATH, 1],
+      ]),
+    );
   });
 });
