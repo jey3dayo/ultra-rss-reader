@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use tauri::{
     webview::{NewWindowResponse, PageLoadEvent, WebviewBuilder},
-    Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect,
-    Size, State, Url, WebviewUrl, Window,
+    LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect, Size,
+    State, Url, WebviewUrl, Window,
 };
 use tokio::time::{sleep, Duration};
 
@@ -18,7 +18,6 @@ use crate::browser_webview::{
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
-use crate::menu::MENU_ACTION_EVENT;
 use crate::platform::PlatformKind;
 
 const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
@@ -400,18 +399,14 @@ fn browser_webview_shortcut_navigation_action(target_url: &Url) -> Option<String
     is_supported_browser_preview_bridge_action(host).then(|| host.to_string())
 }
 
-fn handle_browser_webview_shortcut_navigation(window: &Window, target_url: &Url) -> bool {
-    let Some(action) = browser_webview_shortcut_navigation_action(target_url) else {
-        return false;
-    };
-
-    if action == "close-browser" {
-        if let Err(error) = focus_browser_host_window(window) {
-            tracing::warn!("{}", browser_host_focus_failure_warning("before", &error));
-        }
-    }
-    let _ = window.app_handle().emit(MENU_ACTION_EVENT, action);
-    true
+/// Cancels navigation to the `ultra-rss-browser-shortcut://` scheme without dispatching an
+/// app action. Origin page scripts can synthesize this URL themselves (it is injected as
+/// plain, readable JS), so it must never be treated as an authenticated action source. See
+/// `docs/feed-content-privacy.md`. Native key/mouse handling (macOS Escape monitor, Windows
+/// `AcceleratorKeyPressed`) is the only remaining channel that emits `MENU_ACTION_EVENT` for
+/// these actions.
+fn handle_browser_webview_shortcut_navigation(_window: &Window, target_url: &Url) -> bool {
+    browser_webview_shortcut_navigation_action(target_url).is_some()
 }
 
 fn schedule_browser_webview_timeout(

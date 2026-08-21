@@ -1218,12 +1218,12 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                                 action.as_deref().unwrap_or("ignored")
                             ),
                         );
-                        if let Some(action) = action {
-                            if action == "close-browser" {
-                                focus_main_webview_window(&app_handle);
-                            }
-                            let _ = app_handle.emit(MENU_ACTION_EVENT, action);
-                        }
+                        // Page-origin postMessage cannot be trusted as an app-action source: the
+                        // injected bridge script is readable/forgeable by the hosted page (see
+                        // `docs/feed-content-privacy.md`), so this handler intentionally stops at
+                        // logging and never dispatches `MENU_ACTION_EVENT`. Native
+                        // `AcceleratorKeyPressed` below is the only page-independent channel that
+                        // still emits app actions for keyboard shortcuts.
                         Ok(())
                     },
                 ));

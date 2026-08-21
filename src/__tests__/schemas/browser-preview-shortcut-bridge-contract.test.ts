@@ -126,10 +126,11 @@ describe("browser preview shortcut bridge contract", () => {
     expect(nativeMessageHandlerBlock).toContain(
       "browser_preview_bridge_message_action(&raw_message, snapshot.as_ref())",
     );
-    expect(nativeMessageHandlerBlock).toContain("if let Some(action) = action");
-    expect(nativeMessageHandlerBlock).toContain('if action == "close-browser"');
-    expect(nativeMessageHandlerBlock).toContain("focus_main_webview_window(&app_handle);");
-    expect(nativeMessageHandlerBlock).toContain("app_handle.emit(MENU_ACTION_EVENT, action)");
+    // Page-origin postMessage must never reach MENU_ACTION_EVENT: the injected bridge script is
+    // readable/forgeable by the hosted page, so this native handler stops at logging the parsed
+    // action and never dispatches it as an app action (see docs/feed-content-privacy.md).
+    expect(nativeMessageHandlerBlock).not.toContain("app_handle.emit(MENU_ACTION_EVENT, action)");
+    expect(nativeMessageHandlerBlock).not.toContain("focus_main_webview_window(&app_handle);");
     expect(bridgeMessageActionBlock).toContain("serde_json::from_str(raw_message).ok()?");
     expect(acceptMessageBlock).toContain("is_supported_browser_preview_bridge_action(&message.action)");
     expect(acceptMessageBlock).toContain("browser_preview_bridge_url_matches(&message.url, &state.url)");
