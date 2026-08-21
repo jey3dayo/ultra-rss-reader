@@ -391,6 +391,8 @@ The current same-origin assumptions are:
 - focus bridging between reader controls and the embedded browser must be command-based and explicit; remote page scripts must not call app actions or Tauri IPC
 - browser history tracking is browser-surface state only and must not mutate article read/star state without an app-controlled user action
 - app scripts stay limited to `'self'`; any future script injection surface for preview automation requires a separate security review and packaged-build verification
+- a channel is not an authentication mechanism for app actions merely because the app injected the script that uses it: custom-scheme navigation (`ultra-rss-browser-shortcut://`) and the Windows `WebMessageReceived` postMessage bridge are both readable and reproducible by the hosted page's own scripts, so neither may dispatch `MENU_ACTION_EVENT`; an injected-script nonce does not close this gap because the page can read and replay it. Only native, page-independent input handling (the macOS Escape `NSEvent` monitor and the Windows `AcceleratorKeyPressed` handler) may dispatch app actions from inside the embedded browser webview.
+- known Phase A trade-off (tracked in plan 019): with page-origin dispatch removed and no native replacement yet on Linux, in-webview keyboard shortcuts do not work on Linux, and page-driven mouse back/forward (buttons 3/4) does not trigger app navigation on any OS. Recovery is scoped to a later phase and must stay native/page-independent; it must not reintroduce scheme- or postMessage-based dispatch.
 
 Future changes that merge reader and browser state, add cross-origin messaging, or expose webview navigation data to app actions must update this contract before implementation.
 
