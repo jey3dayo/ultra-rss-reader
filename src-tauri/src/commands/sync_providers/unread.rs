@@ -222,14 +222,18 @@ async fn fetch_greader_unread_entries_for_feed(
 mod tests {
     use super::*;
     use crate::domain::account::ConnectionVerificationStatus;
-    use crate::domain::article::Article;
+    use crate::domain::article::{generate_entry_id, Article};
     use crate::domain::provider::ProviderKind;
     use crate::domain::types::{AccountId, ArticleId};
     use crate::infra::db::sqlite_account::SqliteAccountRepository;
+    use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
     use crate::infra::provider::traits::{Credentials, FeedProvider};
     use crate::infra::sanitizer;
     use crate::repository::account::AccountRepository;
     use crate::repository::article::ArticleRepository;
+    use crate::repository::pending_mutation::{
+        PendingMutation, PendingMutationRepository, PendingMutationType,
+    };
     use chrono::Utc;
 
     fn test_db() -> Mutex<DbManager> {
@@ -438,6 +442,127 @@ mod tests {
             2,
             "feed A should still be recalculated from its actual unread articles \
              even though feed B's reconciliation failed afterward"
+        );
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_state_keeps_article_marked_read_during_pull() {
+        let db = std::sync::Arc::new(test_db());
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let remote_entry_id = "entry-1".to_string();
+        let article_id = generate_entry_id(
+            account.id.as_ref(),
+            Some(&remote_entry_id),
+            &feed.url,
+            None,
+            None,
+        );
+
+        {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            account_repo.save(&account).unwrap();
+            feed_repo.save(&feed).unwrap();
+            article_repo
+                .upsert(&[Article {
+                    id: article_id.clone(),
+                    feed_id: feed.id.clone(),
+                    remote_id: Some(remote_entry_id.clone()),
+                    title: "Read During Pull".to_string(),
+                    content_raw: "body".to_string(),
+                    content_sanitized: "body".to_string(),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: None,
+                    url: None,
+                    author: None,
+                    published_at: Utc::now(),
+                    thumbnail: None,
+                    is_read: false,
+                    is_starred: false,
+                    fetched_at: Utc::now(),
+                }])
+                .unwrap();
+        }
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        // The remote stream still reports the entry as unread (it appears in the
+        // items list). While that response is being produced (mid-fetch), the
+        // user marks the article read locally, queueing a pending mutation. The
+        // is_read UPDATE below must not revert that local read mark back to
+        // unread when it later processes this feed's rows.
+        let mark_read_db = std::sync::Arc::clone(&db);
+        let mark_read_account_id = account.id.clone();
+        let mark_read_article_id = article_id.clone();
+        let mark_read_remote_entry_id = remote_entry_id.clone();
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body_from_request(move |_| {
+                let db_guard = mark_read_db.lock().unwrap();
+                db_guard
+                    .writer()
+                    .execute(
+                        "UPDATE articles SET is_read = 1 WHERE id = ?1",
+                        rusqlite::params![mark_read_article_id.0],
+                    )
+                    .unwrap();
+                let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+                pending_repo
+                    .save(&PendingMutation {
+                        id: None,
+                        account_id: mark_read_account_id.clone(),
+                        mutation_type: PendingMutationType::MarkRead,
+                        remote_entry_id: mark_read_remote_entry_id.clone(),
+                        created_at: chrono::Utc::now().to_rfc3339(),
+                    })
+                    .unwrap();
+                format!(r#"{{"items": [{{"id": "{mark_read_remote_entry_id}"}}]}}"#).into_bytes()
+            })
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("password".to_string()),
+                token: Some("user".to_string()),
+            })
+            .await
+            .unwrap();
+
+        reconcile_greader_unread_state_for_feed(&db, &provider, &account, &feed)
+            .await
+            .unwrap();
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let article = article_repo
+            .find_by_feed(&feed.id, &crate::repository::article::Pagination::default())
+            .unwrap()
+            .into_iter()
+            .find(|article| article.id == article_id)
+            .unwrap();
+        assert!(
+            article.is_read,
+            "a read marked during the unread-entries fetch should stay read after reconcile"
         );
     }
 }
