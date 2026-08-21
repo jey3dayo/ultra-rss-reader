@@ -1,5 +1,6 @@
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::feed::Feed;
 use crate::domain::provider::*;
 use crate::domain::types::{AccountId, FeedId};
 use crate::infra::provider::traits::FeedProvider;
@@ -11,6 +12,40 @@ use crate::repository::pending_mutation::{
     PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 use chrono::Utc;
+
+/// The single materialization of a provider `RemoteEntry` into an `Article`.
+/// Every sync path (FreshRSS bulk, FreshRSS single-feed, Local) must build
+/// articles through this function so field rules cannot drift.
+pub(crate) fn article_from_remote_entry(
+    account_id: &AccountId,
+    feed: &Feed,
+    entry: &RemoteEntry,
+) -> Article {
+    let id = generate_entry_id(
+        account_id.as_ref(),
+        entry.id.as_deref(),
+        &feed.url,
+        entry.url.as_deref(),
+        Some(&entry.title),
+    );
+    Article {
+        id,
+        feed_id: feed.id.clone(),
+        remote_id: entry.id.clone(),
+        title: entry.title.clone(),
+        content_raw: entry.content.clone(),
+        content_sanitized: sanitizer::sanitize_html(&entry.content),
+        sanitizer_version: sanitizer::SANITIZER_VERSION,
+        summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
+        url: entry.url.clone(),
+        author: entry.author.clone(),
+        published_at: entry.published_at.unwrap_or_else(Utc::now),
+        thumbnail: entry.thumbnail.clone(),
+        is_read: entry.is_read.unwrap_or(false),
+        is_starred: entry.is_starred.unwrap_or(false),
+        fetched_at: Utc::now(),
+    }
+}
 
 /// Generic repository-driven sync flow used by non-delta providers and lower-level tests.
 ///
@@ -157,32 +192,7 @@ pub async fn sync_account(
         let articles: Vec<Article> = result
             .entries
             .iter()
-            .map(|entry| {
-                let id = generate_entry_id(
-                    account_id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: Utc::now(),
-                }
-            })
+            .map(|entry| article_from_remote_entry(account_id, feed, entry))
             .collect();
 
         if !articles.is_empty() {

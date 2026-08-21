@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use crate::commands::dto::AppError;
-use crate::domain::article::{generate_entry_id, Article};
+use crate::domain::article::Article;
 use crate::domain::feed::Feed;
 use crate::domain::provider::{FeedIdentifier, PullResult, PullScope, SyncCursor};
 use crate::domain::types::{AccountId, ArticleId};
@@ -18,6 +18,7 @@ use crate::repository::sync_state::{
     normalize_http_etag_validator, normalize_http_last_modified_validator, SyncState,
     SyncStateRepository, SyncStateScopeKey,
 };
+use crate::service::sync_flow::article_from_remote_entry;
 
 use crate::commands::feed_commands::lock_db;
 
@@ -169,32 +170,7 @@ pub(in crate::commands) async fn sync_local_feed(
         result
             .entries
             .iter()
-            .map(|entry| {
-                let id = generate_entry_id(
-                    account_id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: chrono::Utc::now(),
-                }
-            })
+            .map(|entry| article_from_remote_entry(account_id, feed, entry))
             .collect()
     };
 

@@ -6,7 +6,9 @@ use tracing::{info, warn};
 
 use crate::commands::dto::{AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
-use crate::domain::article::{generate_entry_id, Article};
+#[cfg(test)]
+use crate::domain::article::generate_entry_id;
+use crate::domain::article::Article;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
@@ -28,6 +30,7 @@ use crate::infra::keyring_store;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
+#[cfg(test)]
 use crate::infra::sanitizer;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
@@ -36,6 +39,7 @@ use crate::repository::pending_mutation::{
     PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
+use crate::service::sync_flow::article_from_remote_entry;
 
 use super::feed_commands::lock_db;
 
@@ -242,37 +246,6 @@ fn apply_remote_state_with_protection(
             &pending_starred_remote_ids,
         )
         .map_err(AppError::from)
-}
-
-fn build_article_from_remote_entry(
-    account: &Account,
-    feed: &Feed,
-    entry: &crate::domain::provider::RemoteEntry,
-) -> Article {
-    let id = generate_entry_id(
-        account.id.as_ref(),
-        entry.id.as_deref(),
-        &feed.url,
-        entry.url.as_deref(),
-        Some(&entry.title),
-    );
-    Article {
-        id,
-        feed_id: feed.id.clone(),
-        remote_id: entry.id.clone(),
-        title: entry.title.clone(),
-        content_raw: entry.content.clone(),
-        content_sanitized: sanitizer::sanitize_html(&entry.content),
-        sanitizer_version: sanitizer::SANITIZER_VERSION,
-        summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
-        url: entry.url.clone(),
-        author: entry.author.clone(),
-        published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-        thumbnail: entry.thumbnail.clone(),
-        is_read: entry.is_read.unwrap_or(false),
-        is_starred: entry.is_starred.unwrap_or(false),
-        fetched_at: chrono::Utc::now(),
-    }
 }
 
 fn save_greader_folders_snapshot(
@@ -592,7 +565,7 @@ async fn sync_greader_account_entries(
             };
 
             seen_feed_ids.insert(feed.id.as_ref().to_string());
-            articles.push(build_article_from_remote_entry(account, feed, entry));
+            articles.push(article_from_remote_entry(&account.id, feed, entry));
         }
 
         if !articles.is_empty() {
@@ -961,32 +934,7 @@ async fn sync_greader_feed_entries(
         let articles: Vec<Article> = result
             .entries
             .iter()
-            .map(|entry| {
-                let id = generate_entry_id(
-                    account.id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: chrono::Utc::now(),
-                }
-            })
+            .map(|entry| article_from_remote_entry(&account.id, feed, entry))
             .collect();
 
         if !articles.is_empty() {
