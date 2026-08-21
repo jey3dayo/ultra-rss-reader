@@ -1,12 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import syncFlowModSource from "../../../src-tauri/src/service/sync_flow/mod.rs?raw";
+import articleMaterializerSource from "../../../src-tauri/src/service/article_materializer.rs?raw";
 
 // Structural regression guard for plans/022-remote-entry-materialization.md:
 // RemoteEntry -> Article field materialization must go through the single
-// `article_from_remote_entry` function in service/sync_flow/mod.rs, and the
-// `articles` table upsert SQL must live only in
+// `article_from_remote_entry` function in service/article_materializer.rs,
+// and the `articles` table upsert SQL must live only in
 // infra/db/sqlite_article.rs::upsert_articles_with_conn. Before this plan,
 // both were duplicated across 4-5 call sites that could silently drift.
 //
@@ -202,27 +202,27 @@ function collectProductionMatches(pattern: RegExp): Map<string, number> {
 }
 
 describe("remote-entry materialization contract", () => {
-  it("limits production `generate_entry_id(` calls to the single materializer in sync_flow", () => {
+  it("limits production `generate_entry_id(` calls to the single materializer in article_materializer", () => {
     const counts = collectProductionMatches(/generate_entry_id\(/g);
 
     // `fn generate_entry_id(` (the definition, in domain/article.rs) also
     // matches this substring pattern, so it is expected to show 1 alongside
-    // the single production call site inside sync_flow's
+    // the single production call site inside article_materializer's
     // `article_from_remote_entry`.
     expect(counts).toEqual(
       new Map([
         ["domain/article.rs", 1],
-        ["service/sync_flow/mod.rs", 1],
+        ["service/article_materializer.rs", 1],
       ]),
     );
   });
 
   it("keeps article_from_remote_entry as the only body calling generate_entry_id", () => {
-    const fnMatch = syncFlowModSource.match(
+    const fnMatch = articleMaterializerSource.match(
       /pub\(crate\) fn article_from_remote_entry\([\s\S]*?\) -> Article \{([\s\S]*?)\n\}/,
     );
     if (!fnMatch) {
-      throw new Error("Could not find article_from_remote_entry in service/sync_flow/mod.rs");
+      throw new Error("Could not find article_from_remote_entry in service/article_materializer.rs");
     }
     const body = fnMatch[1];
     expect(body).toContain("generate_entry_id(");
@@ -321,7 +321,7 @@ describe("remote-entry materialization contract", () => {
     });
 
     it("only excludes a whole file when the parent mod.rs declares it as a verified cfg(test)-only module", () => {
-      const parentDir = join(srcTauriSrcRoot, "service", "sync_flow");
+      const parentDir = join(srcTauriSrcRoot, "infra", "db", "migration");
       const declaredTestOnlyFile = join(parentDir, "tests.rs");
       const source = "fn helper() {\n    generate_entry_id(1);\n}\n";
 
