@@ -105,18 +105,23 @@ async fn reconcile_greader_unread_state_for_feed(
 ) -> Result<(), AppError> {
     let unread_remote_ids =
         fetch_greader_unread_entries_for_feed(db, provider, account, feed).await?;
-    let pending_remote_ids = {
-        let db_guard = lock_db(db)?;
+
+    // Pending-mutation protection is re-read inside the same lock as the
+    // is_read UPDATE below (see .claude/rules/remote-state-reconciliation.md):
+    // reading it in an earlier, separate lock acquisition would leave a
+    // window where a user's local read-mark, made between the two locks,
+    // gets reverted to the stale remote state.
+    let db_guard = lock_db(db)?;
+    let pending_remote_ids: HashSet<String> = {
         let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
         pending_repo
             .find_by_account(&account.id)?
             .into_iter()
             .filter(|mutation| mutation.mutation_type.axis() == PendingMutationAxis::ReadState)
             .map(|mutation| mutation.remote_entry_id)
-            .collect::<HashSet<_>>()
+            .collect()
     };
 
-    let db_guard = lock_db(db)?;
     let tx = db_guard
         .writer()
         .unchecked_transaction()
@@ -165,9 +170,7 @@ async fn reconcile_greader_unread_state_for_feed(
     tx.commit()
         .map_err(crate::domain::error::DomainError::from)
         .map_err(AppError::from)?;
-    drop(db_guard);
 
-    let db_guard = lock_db(db)?;
     mark_muted_unread_as_read_for_feed_with_conn(db_guard.writer(), &account.id, &feed.id)?;
 
     Ok(())
