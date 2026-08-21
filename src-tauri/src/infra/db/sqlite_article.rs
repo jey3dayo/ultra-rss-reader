@@ -332,6 +332,55 @@ pub(super) fn article_body_text(value: &str, summary: Option<&str>) -> String {
     }
 }
 
+/// The single upsert of materialized `Article` rows into `articles`.
+/// Does not open or commit a transaction: callers provide the transaction
+/// scope, either `SqliteArticleRepository::upsert`'s own `unchecked_transaction`
+/// or an existing transaction the caller already holds (e.g. local feed sync).
+pub(crate) fn upsert_articles_with_conn(
+    conn: &Connection,
+    articles: &[Article],
+) -> DomainResult<()> {
+    let mut stmt = conn.prepare(
+        "INSERT INTO articles (id, account_id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
+         VALUES (?1, (SELECT account_id FROM feeds WHERE id = ?2), ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+         ON CONFLICT(id) DO UPDATE SET
+           account_id = excluded.account_id,
+           feed_id = excluded.feed_id,
+           title = excluded.title,
+           content_raw = excluded.content_raw,
+           content_sanitized = excluded.content_sanitized,
+           content_text = excluded.content_text,
+           sanitizer_version = excluded.sanitizer_version,
+           summary = excluded.summary,
+           url = excluded.url,
+           author = excluded.author,
+           published_at = MIN(articles.published_at, excluded.published_at),
+           thumbnail = excluded.thumbnail,
+           fetched_at = excluded.fetched_at",
+    )?;
+    for article in articles {
+        stmt.execute(params![
+            article.id.0,
+            article.feed_id.0,
+            article.remote_id,
+            article.title,
+            article.content_raw,
+            article.content_sanitized,
+            article.sanitizer_version,
+            article.summary,
+            article.url,
+            article.author,
+            article.published_at.to_rfc3339(),
+            article.thumbnail,
+            article.is_read,
+            article.is_starred,
+            article.fetched_at.to_rfc3339(),
+            article_body_text(&article.content_sanitized, article.summary.as_deref()),
+        ])?;
+    }
+    Ok(())
+}
+
 fn build_fts_query(query: &str) -> Option<String> {
     // Search treats every whitespace-separated token as literal text. FTS5
     // operators, quotes, and prefix markers are intentionally not user syntax.
@@ -1086,46 +1135,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
 
     fn upsert(&self, articles: &[Article]) -> DomainResult<()> {
         let tx = self.conn.unchecked_transaction()?;
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO articles (id, account_id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
-                 VALUES (?1, (SELECT account_id FROM feeds WHERE id = ?2), ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
-                 ON CONFLICT(id) DO UPDATE SET
-                   account_id = excluded.account_id,
-                   feed_id = excluded.feed_id,
-                   title = excluded.title,
-                   content_raw = excluded.content_raw,
-                   content_sanitized = excluded.content_sanitized,
-                   content_text = excluded.content_text,
-                   sanitizer_version = excluded.sanitizer_version,
-                   summary = excluded.summary,
-                   url = excluded.url,
-                   author = excluded.author,
-                   published_at = MIN(articles.published_at, excluded.published_at),
-                   thumbnail = excluded.thumbnail,
-                   fetched_at = excluded.fetched_at",
-            )?;
-            for article in articles {
-                stmt.execute(params![
-                    article.id.0,
-                    article.feed_id.0,
-                    article.remote_id,
-                    article.title,
-                    article.content_raw,
-                    article.content_sanitized,
-                    article.sanitizer_version,
-                    article.summary,
-                    article.url,
-                    article.author,
-                    article.published_at.to_rfc3339(),
-                    article.thumbnail,
-                    article.is_read,
-                    article.is_starred,
-                    article.fetched_at.to_rfc3339(),
-                    article_body_text(&article.content_sanitized, article.summary.as_deref()),
-                ])?;
-            }
-        }
+        upsert_articles_with_conn(&tx, articles)?;
         tx.commit()?;
         Ok(())
     }
@@ -1673,6 +1683,51 @@ mod tests {
         assert_eq!(fetched_at, "2026-05-10T15:30:00+00:00");
         assert_utc_rfc3339(&published_at);
         assert_utc_rfc3339(&fetched_at);
+    }
+
+    #[test]
+    fn upsert_articles_with_conn_does_not_open_its_own_transaction() {
+        // upsert_articles_with_conn is shared by SqliteArticleRepository::upsert
+        // (own unchecked_transaction) and local sync (rides the caller's existing
+        // transaction). Proving it neither commits nor starts a nested
+        // transaction here is what makes both callers' transaction boundaries safe.
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+
+        // (a) committing the caller's transaction makes the upsert visible.
+        let committed_article = make_article(&feed_id, "Committed via caller tx");
+        {
+            let tx = db.writer().unchecked_transaction().unwrap();
+            upsert_articles_with_conn(&tx, std::slice::from_ref(&committed_article)).unwrap();
+            tx.commit().unwrap();
+        }
+        let committed_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE id = ?1",
+                params![committed_article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(committed_count, 1);
+
+        // (b) rolling back the caller's transaction discards the upsert.
+        let rolled_back_article = make_article(&feed_id, "Rolled back via caller tx");
+        {
+            let tx = db.writer().unchecked_transaction().unwrap();
+            upsert_articles_with_conn(&tx, std::slice::from_ref(&rolled_back_article)).unwrap();
+            tx.rollback().unwrap();
+        }
+        let rolled_back_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE id = ?1",
+                params![rolled_back_article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(rolled_back_count, 0);
     }
 
     #[test]
