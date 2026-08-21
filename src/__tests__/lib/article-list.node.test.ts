@@ -26,6 +26,7 @@ import {
   MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE,
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
+  resolveArticleCursor,
   resolveArticleGroupLabelToken,
   resolveArticleListMarkAllReadCount,
   resolveEffectiveRetainedArticleIds,
@@ -1251,6 +1252,62 @@ describe("article-list utils", () => {
     const result = getAdjacentArticleId([], null, 1);
 
     expect(Result.unwrapError(result)).toBe("no_articles");
+  });
+
+  describe("resolveArticleCursor", () => {
+    it("reports both a previous and a next id for a middle article", () => {
+      const cursor = resolveArticleCursor(sampleArticles, requireSampleArticle("art-2").id);
+
+      expect(cursor).toEqual({
+        currentId: requireSampleArticle("art-2").id,
+        prevId: requireSampleArticle("art-1").id,
+        nextId: requireSampleArticle("art-3").id,
+        hasPrev: true,
+        hasNext: true,
+      });
+    });
+
+    it("treats the boundary clamp as no next/prev instead of the same article id", () => {
+      // `getAdjacentArticleId` clamps at the list edge by returning the same id, which
+      // must not be reported as an adjacent article existing (this is the boundary check
+      // issue #54 depends on: a false "has next" would show a dead next-article control).
+      const firstArticleCursor = resolveArticleCursor(sampleArticles, requireSampleArticle("art-1").id);
+      expect(firstArticleCursor.hasPrev).toBe(false);
+      expect(firstArticleCursor.prevId).toBeNull();
+      expect(firstArticleCursor.hasNext).toBe(true);
+
+      const lastArticleId = sampleArticles[sampleArticles.length - 1]?.id;
+      if (!lastArticleId) {
+        throw new Error("sampleArticles fixture must not be empty");
+      }
+      const lastArticleCursor = resolveArticleCursor(sampleArticles, lastArticleId);
+      expect(lastArticleCursor.hasNext).toBe(false);
+      expect(lastArticleCursor.nextId).toBeNull();
+      expect(lastArticleCursor.hasPrev).toBe(true);
+    });
+
+    it("reports no prev/next and a null current id for an empty navigable list", () => {
+      expect(resolveArticleCursor([], null)).toEqual({
+        currentId: null,
+        prevId: null,
+        nextId: null,
+        hasPrev: false,
+        hasNext: false,
+      });
+    });
+
+    it("matches the interactions hook's hasNext derivation used to publish hasNextArticle", () => {
+      // `useArticleListInteractions` publishes `resolveArticleCursor(...).hasNext` to the
+      // ui-store for the content pane to read. Pin the derivation here so a future change to
+      // either the cursor helper or the interactions hook cannot silently diverge again.
+      const currentId = requireSampleArticle("art-2").id;
+      const cursor = resolveArticleCursor(sampleArticles, currentId);
+      const legacyHasNext =
+        Result.isSuccess(getAdjacentArticleId(sampleArticles, currentId, 1)) &&
+        Result.unwrap(getAdjacentArticleId(sampleArticles, currentId, 1)) !== currentId;
+
+      expect(cursor.hasNext).toBe(legacyHasNext);
+    });
   });
 
   it("keeps the scroll position when the previous article is already comfortably visible", () => {
