@@ -205,6 +205,45 @@ fn pending_remote_ids_by_axis(
     Ok((read_ids, starred_ids))
 }
 
+/// The only sanctioned way to overwrite local state with remote state.
+///
+/// Acquires the DB lock, re-reads the pending-mutation protection lists
+/// inside that same lock, merges `extra_protected_(read|starred)_ids` (e.g.
+/// mutations pushed earlier in this sync), then applies. See
+/// `.claude/rules/remote-state-reconciliation.md`: the protection snapshot
+/// must never be read before an `.await` (such as `pull_state()`) that
+/// precedes the apply, since a local mutation made in that window would be
+/// reverted to the stale remote state.
+fn apply_remote_state_with_protection(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    read_ids: &[String],
+    starred_ids: &[String],
+    extra_protected_read_ids: &[String],
+    extra_protected_starred_ids: &[String],
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let (mut pending_read_remote_ids, mut pending_starred_remote_ids) =
+        pending_remote_ids_by_axis(db_guard.reader(), account_id)?;
+    pending_read_remote_ids.extend(extra_protected_read_ids.iter().cloned());
+    pending_read_remote_ids.sort();
+    pending_read_remote_ids.dedup();
+    pending_starred_remote_ids.extend(extra_protected_starred_ids.iter().cloned());
+    pending_starred_remote_ids.sort();
+    pending_starred_remote_ids.dedup();
+
+    let article_repo = SqliteArticleRepository::new(db_guard.writer());
+    article_repo
+        .apply_remote_state(
+            account_id,
+            read_ids,
+            starred_ids,
+            &pending_read_remote_ids,
+            &pending_starred_remote_ids,
+        )
+        .map_err(AppError::from)
+}
+
 fn build_article_from_remote_entry(
     account: &Account,
     feed: &Feed,
@@ -396,19 +435,16 @@ pub(super) async fn repair_greader_remote_state(
         .await?;
 
     let remote_state = provider.pull_state().await?;
+    apply_remote_state_with_protection(
+        db,
+        &account.id,
+        &remote_state.read_ids,
+        &remote_state.starred_ids,
+        &[],
+        &[],
+    )?;
     let feeds = {
         let db_guard = lock_db(db)?;
-        let (pending_read_remote_ids, pending_starred_remote_ids) =
-            pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
-        let article_repo = SqliteArticleRepository::new(db_guard.writer());
-        article_repo.apply_remote_state(
-            &account.id,
-            &remote_state.read_ids,
-            &remote_state.starred_ids,
-            &pending_read_remote_ids,
-            &pending_starred_remote_ids,
-        )?;
-
         let feed_repo = SqliteFeedRepository::new(db_guard.reader());
         feed_repo.find_by_account(&account.id)?
     };
@@ -787,26 +823,14 @@ async fn sync_greader_feeds(
     let should_pull_remote_state = should_pull_remote_state(db, &account.id, now)?;
     if should_pull_remote_state {
         let remote_state = provider.pull_state().await?;
-        {
-            let db_guard = lock_db(db)?;
-            let (mut pending_read_remote_ids, mut pending_starred_remote_ids) =
-                pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
-            pending_read_remote_ids.extend(pushed_read_remote_ids);
-            pending_read_remote_ids.sort();
-            pending_read_remote_ids.dedup();
-            pending_starred_remote_ids.extend(pushed_starred_remote_ids);
-            pending_starred_remote_ids.sort();
-            pending_starred_remote_ids.dedup();
-
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            article_repo.apply_remote_state(
-                &account.id,
-                &remote_state.read_ids,
-                &remote_state.starred_ids,
-                &pending_read_remote_ids,
-                &pending_starred_remote_ids,
-            )?;
-        }
+        apply_remote_state_with_protection(
+            db,
+            &account.id,
+            &remote_state.read_ids,
+            &remote_state.starred_ids,
+            &pushed_read_remote_ids,
+            &pushed_starred_remote_ids,
+        )?;
         mark_remote_state_sync_completed(db, &account.id, now)?;
     }
     info!(

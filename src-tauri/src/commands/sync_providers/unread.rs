@@ -12,11 +12,9 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_conn;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::{unread_counts_for_feed_ids_with_conn, SqliteFeedRepository};
-use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
-use crate::repository::pending_mutation::{PendingMutationAxis, PendingMutationRepository};
 
 use super::build_article_from_remote_entry;
 use super::subscriptions::is_provider_managed_greader_feed;
@@ -110,17 +108,13 @@ async fn reconcile_greader_unread_state_for_feed(
     // is_read UPDATE below (see .claude/rules/remote-state-reconciliation.md):
     // reading it in an earlier, separate lock acquisition would leave a
     // window where a user's local read-mark, made between the two locks,
-    // gets reverted to the stale remote state.
+    // gets reverted to the stale remote state. Reuses the same blessed
+    // reader as `apply_remote_state_with_protection` (only the read axis is
+    // relevant here; unread reconcile does not touch star state).
     let db_guard = lock_db(db)?;
-    let pending_remote_ids: HashSet<String> = {
-        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-        pending_repo
-            .find_by_account(&account.id)?
-            .into_iter()
-            .filter(|mutation| mutation.mutation_type.axis() == PendingMutationAxis::ReadState)
-            .map(|mutation| mutation.remote_entry_id)
-            .collect()
-    };
+    let (pending_read_remote_ids, _pending_starred_remote_ids) =
+        super::pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
+    let pending_remote_ids: HashSet<String> = pending_read_remote_ids.into_iter().collect();
 
     let tx = db_guard
         .writer()
