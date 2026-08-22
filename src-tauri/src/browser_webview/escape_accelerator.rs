@@ -2,6 +2,7 @@
 //! modifier-bound shortcuts before the hosted page can see or forge them: the Windows
 //! WebView2 `AcceleratorKeyPressed` handler and the macOS `NSEvent` local key monitor.
 
+#[cfg(target_os = "macos")]
 use std::collections::HashMap;
 
 #[cfg(target_os = "macos")]
@@ -11,7 +12,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(windows)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tauri::{AppHandle, Emitter, Manager, Runtime, Webview};
+use tauri::{AppHandle, Runtime, Webview};
+#[cfg(any(windows, target_os = "macos"))]
+use tauri::{Emitter, Manager};
 
 #[cfg(any(windows, target_os = "macos"))]
 use crate::menu::MENU_ACTION_EVENT;
@@ -20,6 +23,7 @@ use crate::menu::MENU_ACTION_EVENT;
 use super::bridge::browser_preview_bridge_message_action;
 #[cfg(windows)]
 use super::bridge::browser_preview_script_bridge_source;
+#[cfg(any(windows, target_os = "macos"))]
 use super::emit_browser_webview_debug_input;
 #[cfg(windows)]
 use super::prefs::browser_preview_action_for_virtual_key;
