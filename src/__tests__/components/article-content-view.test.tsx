@@ -45,17 +45,21 @@ describe("ArticleContentView", () => {
     expect(screen.getByText("Only text")).toBeInTheDocument();
   });
 
-  it("omits article thumbnails that are outside the reader image policy", () => {
-    const { container, rerender } = render(
+  it("renders http article thumbnails to match the sanitizer contract (docs/feed-content-privacy.md)", () => {
+    const { container } = render(
       <ArticleContentView
         thumbnailUrl="http://example.com/thumbnail.png"
         contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
       />,
     );
 
-    expect(container.querySelector("img")).toBeNull();
+    const thumbnail = container.querySelector("img");
+    expect(thumbnail).not.toBeNull();
+    expect(thumbnail).toHaveAttribute("src", "http://example.com/thumbnail.png");
+  });
 
-    rerender(
+  it("omits article thumbnails that are outside the reader image policy", () => {
+    const { container, rerender } = render(
       <ArticleContentView
         thumbnailUrl="data:image/svg+xml,<svg></svg>"
         contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
@@ -75,7 +79,25 @@ describe("ArticleContentView", () => {
 
     rerender(
       <ArticleContentView
+        thumbnailUrl="http://user:pass@example.com/thumbnail.png"
+        contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
+      />,
+    );
+
+    expect(container.querySelector("img")).toBeNull();
+
+    rerender(
+      <ArticleContentView
         thumbnailUrl="https://127.0.0.1/thumbnail.png"
+        contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
+      />,
+    );
+
+    expect(container.querySelector("img")).toBeNull();
+
+    rerender(
+      <ArticleContentView
+        thumbnailUrl="http://127.0.0.1/thumbnail.png"
         contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
       />,
     );

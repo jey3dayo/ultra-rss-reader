@@ -230,10 +230,15 @@ describe("applyReaderContentPrivacyPolicy", () => {
         ],
       },
       {
-        label: "http article image allowed by CSP but blocked by reader policy",
-        html: '<img src="http://cdn.example.com/tracking.gif" alt="Tracking pixel">',
-        required: ['alt="Tracking pixel"', 'referrerpolicy="no-referrer"', 'loading="lazy"', 'decoding="async"'],
-        forbidden: ['src="http://cdn.example.com/tracking.gif"'],
+        label: "http article image allowed to match the sanitizer contract (docs/feed-content-privacy.md)",
+        html: '<img src="http://cdn.example.com/thumbnail.gif" alt="Thumbnail">',
+        required: [
+          'src="http://cdn.example.com/thumbnail.gif"',
+          'alt="Thumbnail"',
+          'referrerpolicy="no-referrer"',
+          'loading="lazy"',
+          'decoding="async"',
+        ],
       },
       {
         label: "sanitized credential-bearing link title",
@@ -304,10 +309,24 @@ describe("normalizeReaderContentImageUrl", () => {
   it("keeps reader thumbnail and body image policy aligned", () => {
     expect(normalizeReaderContentImageUrl("https://cdn.example.com/hero.jpg")).toBe("https://cdn.example.com/hero.jpg");
     expect(normalizeReaderContentImageUrl("/fixture/hero.jpg")).toBe("/fixture/hero.jpg");
-    expect(normalizeReaderContentImageUrl("http://cdn.example.com/hero.jpg")).toBeNull();
     expect(normalizeReaderContentImageUrl("https://user:pass@cdn.example.com/hero.jpg")).toBeNull();
     expect(normalizeReaderContentImageUrl("https://localhost/hero.jpg")).toBeNull();
     expect(normalizeReaderContentImageUrl("https://[::1]/hero.jpg")).toBeNull();
+  });
+
+  it("allows http article images to match the sanitizer contract (docs/feed-content-privacy.md)", () => {
+    expect(normalizeReaderContentImageUrl("http://cdn.example.com/hero.jpg")).toBe("http://cdn.example.com/hero.jpg");
+  });
+
+  it("still blocks userinfo and private-host reader image URLs over http", () => {
+    expect(normalizeReaderContentImageUrl("http://user:pass@cdn.example.com/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("http://127.0.0.1/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("http://localhost/hero.jpg")).toBeNull();
+  });
+
+  it("still rejects unsafe reader image protocols", () => {
+    expect(normalizeReaderContentImageUrl("javascript:alert(1)")).toBeNull();
+    expect(normalizeReaderContentImageUrl("data:image/png;base64,AAAA")).toBeNull();
   });
 
   it("blocks IPv4-mapped IPv6 reader image hosts (::ffff:127.0.0.1)", () => {

@@ -102,11 +102,37 @@ describe("ArticleListItem", () => {
     });
   });
 
-  it("rejects non-https and credentialed thumbnails at the row presentation boundary", () => {
+  it("allows http/https thumbnails but rejects other protocols, credentialed, and private-host thumbnails at the row presentation boundary", () => {
+    for (const thumbnail of ["http://example.com/image.jpg", "https://example.com/image.jpg"]) {
+      expect(
+        resolvePresentation({
+          title: "First Article",
+          summary: "A hello world article",
+          thumbnail,
+          feedName: "Tech Blog",
+          viewedAtLabel: null,
+          isRead: false,
+          isStarred: false,
+          isRecentlyRead: false,
+          textPreview: "true",
+          imagePreviews: "medium",
+          unreadSuffix: "(unread)",
+          starredSuffix: "(starred)",
+        }),
+      ).toMatchObject({
+        normalizedThumbnail: thumbnail,
+        showThumbnail: true,
+      });
+    }
+
+    // Rejected: non-http(s) protocols, credentialed URLs, private hosts, and malformed values.
     for (const thumbnail of [
-      "http://example.com/image.jpg",
       "data:image/svg+xml,<svg></svg>",
+      "javascript:alert(1)",
       "https://user:pass@example.com/image.jpg",
+      "http://user:pass@example.com/image.jpg",
+      "http://127.0.0.1/image.jpg",
+      "https://localhost/image.jpg",
       "not a url",
     ]) {
       expect(

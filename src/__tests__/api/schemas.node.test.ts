@@ -887,7 +887,7 @@ describe("DTO schemas", () => {
     expect(() => parse(ArticleDtoSchema, { ...data, url: "   " })).toThrow();
     expect(() => parse(ArticleDtoSchema, { ...data, thumbnail: "   " })).toThrow();
   });
-  it("rejects ArticleDto thumbnails outside the reader image privacy contract", () => {
+  it("enforces the ArticleDto reader image privacy contract (allows http/https, rejects other schemes/credentials/private hosts)", () => {
     const data = {
       id: "art-1",
       feed_id: "feed-1",
@@ -902,12 +902,17 @@ describe("DTO schemas", () => {
       is_starred: false,
     };
 
-    expect(() =>
+    // http: is allowed to match the documented compatibility contract
+    // (docs/feed-content-privacy.md) and the Rust sanitizer's url_schemes
+    // allowlist, which both permit http: article images/thumbnails.
+    expect(
       parse(ArticleDtoSchema, {
         ...data,
         thumbnail: "http://example.com/thumb.png",
       }),
-    ).toThrow();
+    ).toMatchObject({
+      thumbnail: "http://example.com/thumb.png",
+    });
     expect(() =>
       parse(ArticleDtoSchema, {
         ...data,
@@ -918,6 +923,18 @@ describe("DTO schemas", () => {
       parse(ArticleDtoSchema, {
         ...data,
         thumbnail: "https://user:pass@example.com/thumb.png",
+      }),
+    ).toThrow();
+    expect(() =>
+      parse(ArticleDtoSchema, {
+        ...data,
+        thumbnail: "http://user:pass@example.com/thumb.png",
+      }),
+    ).toThrow();
+    expect(() =>
+      parse(ArticleDtoSchema, {
+        ...data,
+        thumbnail: "http://127.0.0.1/thumb.png",
       }),
     ).toThrow();
   });

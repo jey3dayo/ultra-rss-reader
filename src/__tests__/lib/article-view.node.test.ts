@@ -40,14 +40,20 @@ describe("article-view utils", () => {
       "https://cdn.example.com/thumb.jpg?track=1",
     );
     expect(normalizeArticleRemoteImageUrl("/fixtures/article-thumbnail.png")).toBe("/fixtures/article-thumbnail.png");
-    expect(normalizeArticleRemoteImageUrl("http://cdn.example.com/thumb.jpg")).toBeNull();
-    expect(normalizeArticleRemoteImageUrl("HTTP://cdn.example.com/thumb.jpg")).toBeNull();
+    // http(s) is allowed to match the documented compatibility contract
+    // (docs/feed-content-privacy.md) and the Rust sanitizer's url_schemes
+    // allowlist, which both permit http: article images/thumbnails.
+    expect(normalizeArticleRemoteImageUrl("http://cdn.example.com/thumb.jpg")).toBe("http://cdn.example.com/thumb.jpg");
+    expect(normalizeArticleRemoteImageUrl("HTTP://cdn.example.com/thumb.jpg")).toBe("http://cdn.example.com/thumb.jpg");
     expect(normalizeArticleRemoteImageUrl("//cdn.example.com/thumb.jpg")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("data:image/svg+xml,<svg></svg>")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("javascript:alert(1)")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("https://user:pass@cdn.example.com/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("http://user:pass@cdn.example.com/thumb.jpg")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("https://localhost/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("http://localhost/thumb.jpg")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("https://127.0.0.1/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("http://127.0.0.1/thumb.jpg")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("not a url")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("   ")).toBeNull();
   });

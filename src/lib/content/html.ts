@@ -318,7 +318,13 @@ function isSafeReaderContentUrl(url: URL, allowedProtocols: ReadonlySet<string>)
 }
 
 const ARTICLE_LINK_PROTOCOLS = new Set(["http:", "https:"]);
-const ARTICLE_IMAGE_PROTOCOLS = new Set(["https:"]);
+// Kept as a separate set from ARTICLE_LINK_PROTOCOLS (even though the values
+// currently match) so images can be scoped independently of links later.
+// http: must stay allowed here to match the documented compatibility
+// contract (docs/feed-content-privacy.md:23,756) and the Rust sanitizer's
+// url_schemes allowlist (src-tauri/src/infra/sanitizer.rs:54), which both
+// permit http: article images/thumbnails.
+const ARTICLE_IMAGE_PROTOCOLS = new Set(["http:", "https:"]);
 
 export function normalizeReaderContentImageUrl(value: string | null | undefined): string | null {
   const normalizedValue = value?.trim();
