@@ -9,7 +9,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ArticleDto, FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { AccountPane } from "@/components/reader/account-pane";
 import { ArticleList } from "@/components/reader/article-list";
@@ -34,8 +34,6 @@ type SidebarSourceOverrides = {
   feedsData: FeedDto[] | undefined;
   foldersEnabled: boolean;
   foldersData: FolderDto[] | undefined;
-  starredArticlesEnabled: boolean;
-  starredArticlesData: ArticleDto[] | undefined;
   feedArticleSummariesEnabled: boolean;
   feedArticleSummariesData: FeedArticleSummaryDto[] | undefined;
   starredCountEnabled: boolean;
@@ -50,8 +48,6 @@ const { sidebarSourceOverrides } = vi.hoisted(() => {
     feedsData: undefined,
     foldersEnabled: false,
     foldersData: undefined,
-    starredArticlesEnabled: false,
-    starredArticlesData: undefined,
     feedArticleSummariesEnabled: false,
     feedArticleSummariesData: undefined,
     starredCountEnabled: false,
@@ -141,12 +137,6 @@ vi.mock("@/hooks/use-articles", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/use-articles")>("@/hooks/use-articles");
   return {
     ...actual,
-    useStarredArticles: (accountId: string | null) => {
-      const result = actual.useStarredArticles(accountId);
-      return sidebarSourceOverrides.starredArticlesEnabled
-        ? { ...result, data: sidebarSourceOverrides.starredArticlesData }
-        : result;
-    },
     useAccountStarredCount: (_accountId: string | null) => {
       const result = actual.useAccountStarredCount(_accountId);
       return sidebarSourceOverrides.starredCountEnabled
@@ -245,8 +235,6 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersEnabled = false;
     sidebarSourceOverrides.foldersData = undefined;
-    sidebarSourceOverrides.starredArticlesEnabled = false;
-    sidebarSourceOverrides.starredArticlesData = undefined;
     sidebarSourceOverrides.feedArticleSummariesEnabled = false;
     sidebarSourceOverrides.feedArticleSummariesData = undefined;
     sidebarSourceOverrides.starredCountEnabled = false;
@@ -805,22 +793,6 @@ describe("Sidebar", () => {
       { id: "folder-starred", account_id: "acc-1", name: "Starred Folder", sort_order: 0 },
       { id: "folder-plain", account_id: "acc-1", name: "Plain Folder", sort_order: 1 },
     ];
-    sidebarSourceOverrides.starredArticlesEnabled = true;
-    sidebarSourceOverrides.starredArticlesData = [
-      {
-        id: "star-1",
-        feed_id: "feed-starred",
-        title: "Starred article",
-        content_sanitized: "<p>starred</p>",
-        summary: null,
-        url: "https://example.com/starred",
-        author: null,
-        published_at: "2026-05-02T00:00:00Z",
-        thumbnail: null,
-        is_read: true,
-        is_starred: true,
-      },
-    ];
     sidebarSourceOverrides.feedArticleSummariesEnabled = true;
     sidebarSourceOverrides.feedArticleSummariesData = [
       { feed_id: "feed-starred", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
@@ -854,22 +826,6 @@ describe("Sidebar", () => {
 
   it("uses the starred article source for the starred subscription tree", async () => {
     const user = userEvent.setup();
-    sidebarSourceOverrides.starredArticlesEnabled = true;
-    sidebarSourceOverrides.starredArticlesData = [
-      {
-        id: "star-1",
-        feed_id: "feed-1",
-        title: "Starred article",
-        content_sanitized: "<p>starred</p>",
-        summary: null,
-        url: "https://example.com/starred",
-        author: null,
-        published_at: "2026-05-02T00:00:00Z",
-        thumbnail: null,
-        is_read: true,
-        is_starred: true,
-      },
-    ];
     sidebarSourceOverrides.feedArticleSummariesEnabled = true;
     sidebarSourceOverrides.feedArticleSummariesData = [
       { feed_id: "feed-1", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
@@ -894,22 +850,6 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.feedsData = [{ ...sampleFeeds[0], id: "feed-starred", title: "Snapshot Starred Feed" }];
     sidebarSourceOverrides.foldersEnabled = true;
     sidebarSourceOverrides.foldersData = [];
-    sidebarSourceOverrides.starredArticlesEnabled = true;
-    sidebarSourceOverrides.starredArticlesData = [
-      {
-        id: "star-1",
-        feed_id: "feed-starred",
-        title: "Starred article",
-        content_sanitized: "<p>starred</p>",
-        summary: null,
-        url: "https://example.com/starred",
-        author: null,
-        published_at: "2026-05-02T00:00:00Z",
-        thumbnail: null,
-        is_read: true,
-        is_starred: true,
-      },
-    ];
     sidebarSourceOverrides.feedArticleSummariesEnabled = true;
     sidebarSourceOverrides.feedArticleSummariesData = [
       { feed_id: "feed-starred", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
@@ -934,7 +874,6 @@ describe("Sidebar", () => {
 
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersData = undefined;
-    sidebarSourceOverrides.starredArticlesData = undefined;
     sidebarSourceOverrides.feedArticleSummariesData = undefined;
     queryClient.setQueryData(queryKeys.accounts.root, undefined);
     rerender(<Sidebar />);

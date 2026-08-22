@@ -1592,13 +1592,10 @@ describe("ArticleList", () => {
   });
 
   it("keeps an unstarred article in starred view until the user changes screens", async () => {
-    const starredArticlesSpy = vi.spyOn(articleHooks, "useStarredArticles");
     let articles = [
       { ...sampleArticles[0], is_read: false, is_starred: false },
       { ...sampleArticles[1], is_read: true, is_starred: true },
     ];
-    let starredArticles = articles.filter((article) => article.is_starred);
-
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
@@ -1630,19 +1627,11 @@ describe("ArticleList", () => {
           articles = articles.map((article) =>
             article.id === args.articleId ? { ...article, is_starred: Boolean(args.starred) } : article,
           );
-          starredArticles = articles.filter((article) => article.is_starred);
           return null;
         default:
           return undefined;
       }
     });
-    starredArticlesSpy.mockImplementation(
-      () =>
-        ({
-          data: starredArticles,
-          isLoading: false,
-        }) as ReturnType<typeof articleHooks.useStarredArticles>,
-    );
 
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectSmartView("starred");
@@ -1807,8 +1796,6 @@ describe("ArticleList", () => {
   });
 
   it("shows starred smart-view articles even when the general account query does not include them", async () => {
-    const starredArticlesSpy = vi.spyOn(articleHooks, "useStarredArticles");
-
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -1842,18 +1829,6 @@ describe("ArticleList", () => {
           return undefined;
       }
     });
-    starredArticlesSpy.mockReturnValue({
-      data: [
-        {
-          ...sampleArticles[1],
-          id: "older-starred",
-          title: "Older Starred Article",
-          is_read: true,
-          is_starred: true,
-        },
-      ],
-      isLoading: false,
-    } as ReturnType<typeof articleHooks.useStarredArticles>);
 
     render(<ArticleList />, { wrapper: createWrapper() });
 

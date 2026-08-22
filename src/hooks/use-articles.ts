@@ -28,7 +28,6 @@ import {
   unstarAccountArticles,
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
-import { createQuery } from "@/hooks/create-query";
 import { shouldKeepArticleInListQuery, shouldRetainBulkMarkedRead } from "@/lib/articles/article-read-projection";
 import {
   ARTICLE_CACHE_QUERY_ROOTS,
@@ -485,8 +484,6 @@ export function useFolderArticles(folderId: string | null, options?: { mode?: Re
     enabled: !!normalizedFolderId,
   });
 }
-
-export const useStarredArticles = createQuery(queryKeys.starredArticles.root, listStarredArticles);
 
 export function useRecentArticles(accountId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";

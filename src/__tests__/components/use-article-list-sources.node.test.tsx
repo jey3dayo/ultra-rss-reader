@@ -18,7 +18,6 @@ const {
   useAccountArticlesMock,
   useFeedStarredArticlesMock,
   useFolderArticlesMock,
-  useStarredArticlesMock,
   useRecentArticlesMock,
   useArticlesByTagMock,
   useTagsMock,
@@ -29,7 +28,6 @@ const {
   useAccountArticlesMock: vi.fn(),
   useFeedStarredArticlesMock: vi.fn(),
   useFolderArticlesMock: vi.fn(),
-  useStarredArticlesMock: vi.fn(),
   useRecentArticlesMock: vi.fn(),
   useArticlesByTagMock: vi.fn(),
   useTagsMock: vi.fn(),
@@ -48,7 +46,6 @@ vi.mock("@/hooks/use-articles", () => ({
   useAccountArticles: (...args: unknown[]) => useAccountArticlesMock(...args),
   useFeedStarredArticles: (...args: unknown[]) => useFeedStarredArticlesMock(...args),
   useFolderArticles: (...args: unknown[]) => useFolderArticlesMock(...args),
-  useStarredArticles: (...args: unknown[]) => useStarredArticlesMock(...args),
   useRecentArticles: (...args: unknown[]) => useRecentArticlesMock(...args),
 }));
 
@@ -310,10 +307,6 @@ describe("useArticleListSources", () => {
     });
     useFolderArticlesMock.mockReturnValue({
       data: undefined,
-      isLoading: false,
-    });
-    useStarredArticlesMock.mockReturnValue({
-      data: sampleArticles.filter((article) => article.is_starred),
       isLoading: false,
     });
     useRecentArticlesMock.mockReturnValue({
