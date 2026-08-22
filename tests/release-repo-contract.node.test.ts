@@ -209,10 +209,16 @@ const RELEASE_CSP_FORBIDDEN_SOURCES = [
 ] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
-const readMigrationModuleSource = (): string =>
-  ["mod.rs", "consts.rs", "repairs.rs", "tests.rs"]
-    .map((file) => readText(`src-tauri/src/infra/db/migration/${file}`))
+const readMigrationModuleSource = (): string => {
+  const migrationDir = "src-tauri/src/infra/db/migration";
+  const migrationTestFiles = readdirSync(`${migrationDir}/tests`)
+    .filter((file) => file.endsWith(".rs"))
+    .sort()
+    .map((file) => `tests/${file}`);
+  return ["mod.rs", "consts.rs", "repairs.rs", ...migrationTestFiles]
+    .map((file) => readText(`${migrationDir}/${file}`))
     .join("\n");
+};
 const readAccountCommandsModuleSource = (): string =>
   ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/commands/account_commands/${file}`)).join("\n");
 const readOpmlCommandsModuleSource = (): string =>
