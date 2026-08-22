@@ -128,7 +128,7 @@ function readRustCommandSources() {
   return [
     "account_commands/mod.rs",
     "article_commands.rs",
-    "browser_webview_commands.rs",
+    "browser_webview_commands/mod.rs",
     "database_commands.rs",
     "feed_commands.rs",
     "log_commands.rs",
