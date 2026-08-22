@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
 import articleMaterializerSource from "../../../src-tauri/src/service/article_materializer.rs?raw";
@@ -151,7 +151,8 @@ function isDeclaredAsCfgTestOnlyModule(filePath: string): boolean {
   }
 
   let ancestorDir = dir;
-  while (ancestorDir.startsWith(`${srcTauriSrcRoot}/`)) {
+  let ancestorRelativePath = relative(srcTauriSrcRoot, ancestorDir);
+  while (ancestorRelativePath && !ancestorRelativePath.startsWith("..") && !isAbsolute(ancestorRelativePath)) {
     if (hasCfgTestDeclaration(join(dirname(ancestorDir), "mod.rs"), basename(ancestorDir))) {
       return true;
     }
@@ -160,6 +161,7 @@ function isDeclaredAsCfgTestOnlyModule(filePath: string): boolean {
       break;
     }
     ancestorDir = nextAncestor;
+    ancestorRelativePath = relative(srcTauriSrcRoot, ancestorDir);
   }
   return false;
 }
