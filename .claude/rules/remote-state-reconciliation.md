@@ -46,7 +46,7 @@ apply(db, &remote_state, &pending_read, &pending_starred)?;
 
 ## unread reconcile 経路(plan 021 で解消)
 
-`commands/sync_providers/unread.rs` の `reconcile_greader_unread_state_for_feed` は
+`commands/sync_providers/unread/mod.rs` の `reconcile_greader_unread_state_for_feed` は
 かつて pending 読みと is_read 更新を別々の `lock_db` スコープで行っており、
 `.await` を跨がないものの別ロック取得という同型の TOCTOU 窓が残っていた
 (棚卸し: 2026-08-21, plan `plans/021-sync-session-lock.md`)。
