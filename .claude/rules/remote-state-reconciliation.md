@@ -61,8 +61,9 @@ per-feed の pending 保護と最終 recalculate が担うため、選定漏れ�
 ## 強制
 
 - [x] contract test(`src/__tests__/config/sync-remote-state-lock-contract.node.test.ts`)
-  - `.apply_remote_state(` の非テスト呼び出しを `apply_remote_state_with_protection`(helper)、
-    infra 実装(`sqlite_article.rs`)の2箇所に限定
+  - `.apply_remote_state(` の呼び出しを `apply_remote_state_with_protection`(helper)と
+    infra 実装のテストモジュール(`sqlite_article/tests.rs`、trait 実装自体への
+    テストコードからの呼び出しのみ許容)の2箇所に限定
   - `apply_remote_state_with_protection` の本体に `lock_db` と `pending_remote_ids_by_axis`
     が両方含まれることをピン
   - unread reconcile 本体で `lock_db` の取得が1回だけであることをピン

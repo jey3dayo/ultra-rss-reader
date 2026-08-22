@@ -22,11 +22,14 @@ const UNREAD_RS_REL_PATH = "commands/sync_providers/unread.rs";
 // Files allowed to call `.apply_remote_state(` outside test code, other than
 // account.rs's `apply_remote_state_with_protection` (checked at the block level
 // below, since account.rs also contains many unrelated functions):
-// - infra/db/sqlite_article.rs: the trait implementation itself. The only
-//   `.apply_remote_state(` matches in this file are its own `#[cfg(test)]`
-//   unit tests calling the method on a repo instance; the definition itself
-//   is `fn apply_remote_state(` (no leading dot) and doesn't match.
-const ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES = new Set(["infra/db/sqlite_article.rs"]);
+// - infra/db/sqlite_article/tests.rs: the only `.apply_remote_state(` matches
+//   here are its own `#[cfg(test)]` unit tests calling the method on a repo
+//   instance. The trait implementation itself lives in
+//   infra/db/sqlite_article/mod.rs as `fn apply_remote_state(` (no leading
+//   dot, so it doesn't match) and delegates to
+//   infra/db/sqlite_article/mutation.rs's `apply_remote_state_body`, which
+//   also has no leading-dot call to `apply_remote_state(`.
+const ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES = new Set(["infra/db/sqlite_article/tests.rs"]);
 
 function extractBlock(source: string, pattern: RegExp, label: string): string {
   const matched = source.match(pattern)?.[1];

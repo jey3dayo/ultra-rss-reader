@@ -297,6 +297,15 @@ mod tests {
         .join("\n")
     }
 
+    fn sqlite_article_module_source() -> String {
+        [
+            include_str!("sqlite_article/mod.rs"),
+            include_str!("sqlite_article/mutation.rs"),
+            include_str!("sqlite_article/tests.rs"),
+        ]
+        .join("\n")
+    }
+
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
     }
@@ -452,8 +461,9 @@ mod tests {
     #[test]
     fn sql_clause_builder_callers_are_limited_to_repository_sql_surfaces() {
         let sqlite_feed_source = sqlite_feed_module_source();
+        let sqlite_article_source = sqlite_article_module_source();
         let caller_inventory = [
-            ("sqlite_article.rs", include_str!("sqlite_article.rs"), 18),
+            ("sqlite_article.rs", sqlite_article_source.as_str(), 18),
             ("sqlite_tag.rs", include_str!("sqlite_tag.rs"), 3),
             ("sqlite_feed.rs", sqlite_feed_source.as_str(), 3),
         ];
@@ -469,7 +479,7 @@ mod tests {
         }
 
         assert_eq!(
-            include_str!("sqlite_article.rs")
+            sqlite_article_source
                 .matches("build_mute_keyword_match_clause(")
                 .count(),
             1,

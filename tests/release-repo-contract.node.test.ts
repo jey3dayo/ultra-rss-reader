@@ -1412,7 +1412,9 @@ describe("release repository contract", () => {
   });
 
   it("keeps reader search and feed discovery trust contracts synchronized", () => {
-    const sqliteArticleSource = readText("src-tauri/src/infra/db/sqlite_article.rs");
+    const sqliteArticleSource = ["mod.rs", "mutation.rs", "tests.rs"]
+      .map((file) => readText(`src-tauri/src/infra/db/sqlite_article/${file}`))
+      .join("\n");
     const readerLocaleEn = readText("src/locales/en/reader.json");
     const readerLocaleJa = readText("src/locales/ja/reader.json");
 

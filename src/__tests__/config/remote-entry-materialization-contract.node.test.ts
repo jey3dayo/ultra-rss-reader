@@ -8,8 +8,8 @@ import articleMaterializerSource from "../../../src-tauri/src/service/article_ma
 // RemoteEntry -> Article field materialization must go through the single
 // `article_from_remote_entry` function in service/article_materializer.rs,
 // and the `articles` table upsert SQL must live only in
-// infra/db/sqlite_article.rs::upsert_articles_with_conn. Before this plan,
-// both were duplicated across 4-5 call sites that could silently drift.
+// infra/db/sqlite_article/mutation.rs::upsert_articles_with_conn. Before this
+// plan, both were duplicated across 4-5 call sites that could silently drift.
 //
 // This is a name/string based scan, not full enforcement: a rename, a new
 // id-generation helper, a different SQL statement shape (e.g. dynamic SQL or
@@ -216,13 +216,13 @@ describe("remote-entry materialization contract", () => {
     expect(body.split("generate_entry_id(").length - 1).toBe(1);
   });
 
-  it("limits production `INSERT INTO articles` SQL to infra/db/sqlite_article.rs", () => {
+  it("limits production `INSERT INTO articles` SQL to infra/db/sqlite_article/mutation.rs", () => {
     // Matches `INSERT INTO articles (` / `INSERT INTO articles\n` but not
     // `INSERT INTO articles_fts(...)`, which is a separate FTS shadow table
     // with its own insert statements in infra/db/connection.rs.
     const counts = collectProductionMatches(/INSERT INTO articles[\s(]/g);
 
-    expect(counts).toEqual(new Map([["infra/db/sqlite_article.rs", 1]]));
+    expect(counts).toEqual(new Map([["infra/db/sqlite_article/mutation.rs", 1]]));
   });
 
   it("does not misclassify known test-fixture `INSERT INTO articles` call sites as production", () => {

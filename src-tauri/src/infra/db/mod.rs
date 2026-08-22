@@ -27,6 +27,15 @@ mod tests {
         .join("\n")
     }
 
+    fn sqlite_article_module_source() -> String {
+        [
+            include_str!("sqlite_article/mod.rs"),
+            include_str!("sqlite_article/mutation.rs"),
+            include_str!("sqlite_article/tests.rs"),
+        ]
+        .join("\n")
+    }
+
     fn assert_contains(haystack: &str, needle: &str, owner: &str) {
         assert!(
             haystack.contains(needle),
@@ -234,6 +243,7 @@ mod tests {
     #[test]
     fn fixture_domain_migration_inventory_keeps_reserved_domains_visible() {
         let sqlite_feed_source = sqlite_feed_module_source();
+        let sqlite_article_source = sqlite_article_module_source();
         let reserved_fixture_owners = [
             (
                 "tests/helpers/reader-fixtures.ts",
@@ -248,7 +258,7 @@ mod tests {
                 include_str!("../../../../tests/helpers/tauri-mocks.ts"),
             ),
             ("sqlite_account.rs", include_str!("sqlite_account.rs")),
-            ("sqlite_article.rs", include_str!("sqlite_article.rs")),
+            ("sqlite_article.rs", sqlite_article_source.as_str()),
             ("sqlite_feed.rs", sqlite_feed_source.as_str()),
             (
                 "sqlite_mute_keyword.rs",
@@ -275,7 +285,7 @@ mod tests {
         for (owner, candidate) in migration_candidates {
             let source = match owner {
                 "sqlite_feed.rs" => sqlite_feed_source.as_str(),
-                "sqlite_article.rs" => include_str!("sqlite_article.rs"),
+                "sqlite_article.rs" => sqlite_article_source.as_str(),
                 "sqlite_folder.rs" => include_str!("sqlite_folder.rs"),
                 "sqlite_tag.rs" => include_str!("sqlite_tag.rs"),
                 _ => unreachable!("fixture inventory owner should be covered"),
