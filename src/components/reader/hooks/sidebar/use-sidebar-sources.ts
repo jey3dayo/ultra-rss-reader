@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useAccountStarredCount, useStarredArticles } from "@/hooks/use-articles";
+import { useAccountStarredCount } from "@/hooks/use-articles";
+import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
@@ -15,7 +16,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
   const { data: tagArticleCounts } = useTagArticleCounts(selectedAccountId);
-  const { data: starredArticles } = useStarredArticles(selectedAccountId);
+  const { data: feedArticleSummaries } = useFeedArticleSummaries(selectedAccountId);
   const { data: accountStarredCount } = useAccountStarredCount(selectedAccountId);
 
   const accountStatusLabels = useSidebarAccountStatusLabels(accounts);
@@ -23,7 +24,10 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     () => accounts?.find((account) => account.id === selectedAccountId),
     [accounts, selectedAccountId],
   );
-  const latestStarredCountByFeedId = useMemo(() => buildStarredCountByFeedId(starredArticles), [starredArticles]);
+  const latestStarredCountByFeedId = useMemo(
+    () => buildStarredCountByFeedId(feedArticleSummaries),
+    [feedArticleSummaries],
+  );
   const sidebarSnapshotCandidate = useMemo(
     () =>
       selectedAccountId !== null && feeds !== undefined && folders !== undefined

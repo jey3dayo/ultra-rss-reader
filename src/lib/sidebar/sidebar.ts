@@ -1,4 +1,4 @@
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
 import type { SortSubscriptions } from "@/schemas/preference-values";
 
 export type { SortSubscriptions } from "@/schemas/preference-values";
@@ -57,19 +57,22 @@ export function sumUnreadCounts(feeds: FeedDto[] | undefined): number {
   return (feeds ?? []).reduce((sum, feed) => sum + feed.unread_count, 0);
 }
 
-export function buildStarredCountByFeedId(articles: ArticleDto[] | undefined): Map<string, number> {
+// Derived from feed article summaries (a COUNT-based query) rather than the capped
+// starred article list, so per-feed counts stay accurate past the starred list's
+// default page size. See list_feed_article_summaries / FeedArticleSummaryDto.
+export function buildStarredCountByFeedId(summaries: FeedArticleSummaryDto[] | undefined): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const article of articles ?? []) {
-    if (!article.is_starred) {
+  for (const summary of summaries ?? []) {
+    if (summary.starred_count <= 0) {
       continue;
     }
 
-    const feedId = normalizeFeedId(article.feed_id);
+    const feedId = normalizeFeedId(summary.feed_id);
     if (feedId === null) {
       continue;
     }
 
-    counts.set(feedId, (counts.get(feedId) ?? 0) + 1);
+    counts.set(feedId, summary.starred_count);
   }
 
   return counts;
