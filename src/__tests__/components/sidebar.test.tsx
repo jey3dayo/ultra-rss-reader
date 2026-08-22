@@ -34,8 +34,6 @@ type SidebarSourceOverrides = {
   feedsData: FeedDto[] | undefined;
   foldersEnabled: boolean;
   foldersData: FolderDto[] | undefined;
-  accountArticlesEnabled: boolean;
-  accountArticlesData: ArticleDto[] | undefined;
   starredArticlesEnabled: boolean;
   starredArticlesData: ArticleDto[] | undefined;
   starredCountEnabled: boolean;
@@ -50,8 +48,6 @@ const { sidebarSourceOverrides } = vi.hoisted(() => {
     feedsData: undefined,
     foldersEnabled: false,
     foldersData: undefined,
-    accountArticlesEnabled: false,
-    accountArticlesData: undefined,
     starredArticlesEnabled: false,
     starredArticlesData: undefined,
     starredCountEnabled: false,
@@ -141,12 +137,6 @@ vi.mock("@/hooks/use-articles", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/use-articles")>("@/hooks/use-articles");
   return {
     ...actual,
-    useAccountArticles: (accountId: string | null) => {
-      const result = actual.useAccountArticles(accountId);
-      return sidebarSourceOverrides.accountArticlesEnabled
-        ? { ...result, data: sidebarSourceOverrides.accountArticlesData }
-        : result;
-    },
     useStarredArticles: (accountId: string | null) => {
       const result = actual.useStarredArticles(accountId);
       return sidebarSourceOverrides.starredArticlesEnabled
@@ -236,8 +226,6 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersEnabled = false;
     sidebarSourceOverrides.foldersData = undefined;
-    sidebarSourceOverrides.accountArticlesEnabled = false;
-    sidebarSourceOverrides.accountArticlesData = undefined;
     sidebarSourceOverrides.starredArticlesEnabled = false;
     sidebarSourceOverrides.starredArticlesData = undefined;
     sidebarSourceOverrides.starredCountEnabled = false;
@@ -840,8 +828,6 @@ describe("Sidebar", () => {
 
   it("uses the starred article source for the starred subscription tree", async () => {
     const user = userEvent.setup();
-    sidebarSourceOverrides.accountArticlesEnabled = true;
-    sidebarSourceOverrides.accountArticlesData = [];
     sidebarSourceOverrides.starredArticlesEnabled = true;
     sidebarSourceOverrides.starredArticlesData = [
       {

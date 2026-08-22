@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useAccountArticles, useAccountStarredCount, useStarredArticles } from "@/hooks/use-articles";
+import { useAccountStarredCount, useStarredArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
@@ -15,7 +15,6 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
   const { data: tagArticleCounts } = useTagArticleCounts(selectedAccountId);
-  const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const { data: starredArticles } = useStarredArticles(selectedAccountId);
   const { data: accountStarredCount } = useAccountStarredCount(selectedAccountId);
 
@@ -75,7 +74,6 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     showFeedTreeSkeleton,
     tags,
     tagArticleCounts: resolvedTagArticleCounts,
-    accountArticles,
     starredCountByFeedId,
     feedList,
     folderList,

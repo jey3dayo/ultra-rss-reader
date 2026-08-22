@@ -161,7 +161,6 @@ function createRuntime(overrides: Partial<SidebarRuntimeResult> = {}): SidebarRu
       sync_on_wake: false,
       keep_read_items_days: 30,
     },
-    accountArticles: [],
     feeds: [],
     feedList: [],
     folders: [],
