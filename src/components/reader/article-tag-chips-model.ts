@@ -1,7 +1,8 @@
 import { normalizeTagColorForView } from "@/api/schemas/commands";
+import type { TagViewItem } from "@/lib/tags.types";
 import type { ArticleTagPickerTagView } from "./article-tag-picker-view";
 
-function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
+function toArticleTagPickerTagView(tag: TagViewItem): ArticleTagPickerTagView {
   return {
     id: tag.id,
     name: tag.name,
@@ -13,10 +14,7 @@ function normalizeArticleTagNameForMatch(name: string): string {
   return name.trim().toLocaleLowerCase();
 }
 
-export function findArticleTagByName(
-  tags: Array<{ id: string; name: string; color: string | null }> | undefined,
-  name: string,
-): { id: string; name: string; color: string | null } | null {
+export function findArticleTagByName(tags: Array<TagViewItem> | undefined, name: string): TagViewItem | null {
   const normalizedName = normalizeArticleTagNameForMatch(name);
   if (!normalizedName) {
     return null;
@@ -26,8 +24,8 @@ export function findArticleTagByName(
 }
 
 export function buildArticleTagPickerLists(params: {
-  articleTags: Array<{ id: string; name: string; color: string | null }> | undefined;
-  allTags: Array<{ id: string; name: string; color: string | null }> | undefined;
+  articleTags: Array<TagViewItem> | undefined;
+  allTags: Array<TagViewItem> | undefined;
 }): {
   assignedTags: ArticleTagPickerTagView[];
   availableTags: ArticleTagPickerTagView[];
