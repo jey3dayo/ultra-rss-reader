@@ -97,27 +97,17 @@ export function useArticleTagPickerPopover({
       return;
     }
 
-    const eventTypes = ["pointerdown", "touchstart"] as const;
-    const boundEventTypes: Array<(typeof eventTypes)[number]> = [];
-
     try {
-      for (const eventType of eventTypes) {
-        ownerDocument.addEventListener(eventType, handlePointerOrTouchDown);
-        boundEventTypes.push(eventType);
-      }
+      ownerDocument.addEventListener("pointerdown", handlePointerOrTouchDown);
+      ownerDocument.addEventListener("touchstart", handlePointerOrTouchDown);
     } catch (error) {
-      for (const eventType of boundEventTypes) {
-        ownerDocument.removeEventListener(eventType, handlePointerOrTouchDown);
-      }
       console.warn("Failed to bind article tag picker outside-click listener.", error);
-      return;
     }
 
     return () => {
       try {
-        for (const eventType of boundEventTypes) {
-          ownerDocument.removeEventListener(eventType, handlePointerOrTouchDown);
-        }
+        ownerDocument.removeEventListener("pointerdown", handlePointerOrTouchDown);
+        ownerDocument.removeEventListener("touchstart", handlePointerOrTouchDown);
       } catch (error) {
         console.warn("Failed to cleanup article tag picker outside-click listener.", error);
       }
