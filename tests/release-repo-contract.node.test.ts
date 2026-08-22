@@ -1830,7 +1830,13 @@ describe("release repository contract", () => {
       "release capability must not include debug-only MCP bridge permissions",
     );
     expect(releaseContaminationChecker).toContain(
-      "release build must keep the MCP bridge plugin behind cfg(debug_assertions)",
+      'release build must keep the MCP bridge plugin behind cfg(all(debug_assertions, feature = "mcp-bridge"))',
+    );
+    expect(releaseContaminationChecker).toContain(
+      "tauri-plugin-mcp-bridge dependency must be declared with optional = true",
+    );
+    expect(releaseContaminationChecker).toContain(
+      "release dependency graph (cargo tree without --features mcp-bridge) must not include tauri-plugin-mcp-bridge",
     );
     expect(releaseContaminationChecker).toContain("release build must keep dev browser mocks disabled inside Tauri");
     expect(releaseContaminationChecker).toContain(
@@ -1841,8 +1847,10 @@ describe("release repository contract", () => {
       "check:release-contamination": "node ./scripts/check-release-build-contamination.ts",
     });
     expect(tauriLib).toMatch(
-      /#\[cfg\(debug_assertions\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/,
+      /#\[cfg\(all\(debug_assertions, feature = "mcp-bridge"\)\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/,
     );
+    expect(cargoToml).toMatch(/tauri-plugin-mcp-bridge\s*=\s*\{[^}]*optional\s*=\s*true/);
+    expect(cargoToml).toMatch(/mcp-bridge\s*=\s*\[[^\]]*dep:tauri-plugin-mcp-bridge/);
     expect(devMocks).toContain(
       "if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;",
     );

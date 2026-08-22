@@ -27,7 +27,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["image-png", "unstable"] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-log = { version = "2", features = ["tracing"] }
-tauri-plugin-mcp-bridge = "0.11"
+tauri-plugin-mcp-bridge = { version = "0.11", optional = true }
 tauri-plugin-opener = "2"
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
@@ -58,6 +58,13 @@ futures = "0.3.32"
 sys-locale = "0.3"
 unicode-normalization = "0.1"
 tauri-plugin-dialog = "2"
+
+[features]
+# Debug-only MCP bridge plugin (see `run()` in src/lib.rs). Not part of the
+# default feature set so the release dependency graph and binary never link
+# `tauri-plugin-mcp-bridge`. Local dev entry points enable it explicitly via
+# `tauri dev -f mcp-bridge` (see mise.toml `app:dev*` tasks).
+mcp-bridge = ["dep:tauri-plugin-mcp-bridge"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 block2 = "0.6.2"

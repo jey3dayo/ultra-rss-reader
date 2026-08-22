@@ -806,7 +806,7 @@ pub fn run() {
             .build(),
     );
 
-    #[cfg(debug_assertions)]
+    #[cfg(all(debug_assertions, feature = "mcp-bridge"))]
     let builder = builder.plugin(
         tauri_plugin_mcp_bridge::Builder::new()
             .bind_address("127.0.0.1")

@@ -341,7 +341,7 @@ describe("package scripts", () => {
       const taskSection = extractMiseTaskSection(miseToml, taskName);
 
       expect(extractMiseTaskCommand(miseToml, taskName, "run")).toBe(
-        "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json",
+        "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json -f mcp-bridge",
       );
       expect(extractMiseTaskCommand(miseToml, taskName, "run_windows")).toBe("");
       expect(taskSection).not.toContain('shell = "powershell.exe');
