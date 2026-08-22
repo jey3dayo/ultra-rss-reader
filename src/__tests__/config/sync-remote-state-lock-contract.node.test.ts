@@ -243,14 +243,25 @@ describe("remote-state apply lock contract", () => {
     for (const file of files) {
       const relPath = relative(srcTauriSrcRoot, file).split("\\").join("/");
       const source = productionSourceExcludingTestModule(readFileSync(file, "utf8"));
+      let coveredLockDbCalls = 0;
       for (const { name, body } of extractFunctionBodies(source)) {
         const lockDbCount = body.split("lock_db(").length - 1;
         if (lockDbCount === 0) {
           continue;
         }
         expect(lockDbCount, `${relPath}::${name} should acquire lock_db exactly once`).toBe(1);
+        coveredLockDbCalls += lockDbCount;
         found.push([relPath, name]);
       }
+      // Extraction-coverage guard: every `lock_db(` in the file must sit inside
+      // an extracted function body. If extractFunctionBodies misses a function
+      // (e.g. a header shape its regex cannot parse, such as nested generics),
+      // this fails loudly instead of silently exempting that scope from the pin.
+      const totalLockDbCalls = source.split("lock_db(").length - 1;
+      expect(
+        coveredLockDbCalls,
+        `${relPath}: every lock_db( call must be inside a function extracted by extractFunctionBodies`,
+      ).toBe(totalLockDbCalls);
     }
 
     expect(sortLockDbPairs(found)).toEqual(sortLockDbPairs(SYNC_PROVIDERS_LOCK_DB_ALLOWLIST));
