@@ -72,9 +72,12 @@ export function getSyncWarningDetailTranslationKey(detail: AccountSyncWarningDet
     case "feed_skipped_entries":
       return { key: detail.type, params: { feedTitle: detail.feed_title, count: detail.count } };
     case "feed_articles_vanished":
+      // `count` (not `countBefore`) so i18next's plural rule selects
+      // `_one`/`_other` from this value; see `sync_warning_detail_more`'s
+      // convention below and the `{{count, count}}` locale placeholder.
       return {
         key: detail.type,
-        params: { feedTitle: detail.feed_title, countBefore: detail.count_before },
+        params: { feedTitle: detail.feed_title, count: detail.count_before },
       };
     case "account_skipped_entries":
       return { key: detail.type, params: { accountName: detail.account_name, count: detail.count } };

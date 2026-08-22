@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import type { AccountSyncWarning } from "@/api/schemas/sync-result";
+import { beforeAll, describe, expect, it } from "vitest";
+import type { AccountSyncWarning, AccountSyncWarningDetail } from "@/api/schemas/sync-result";
+import i18n from "@/lib/i18n";
+import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
   getSyncIssueDiagnosticsDetails,
   getSyncWarningAccountNames,
@@ -849,10 +851,7 @@ describe("getSyncWarningDetailTranslationKey", () => {
     [{ type: "dropped_pending_mutation", mutation: "star" } as const, { mutation: "star" }],
     [{ type: "deleted_greader_folders", count: 2 } as const, { count: 2 }],
     [{ type: "feed_skipped_entries", feed_title: "Foo", count: 1 } as const, { feedTitle: "Foo", count: 1 }],
-    [
-      { type: "feed_articles_vanished", feed_title: "Foo", count_before: 3 } as const,
-      { feedTitle: "Foo", countBefore: 3 },
-    ],
+    [{ type: "feed_articles_vanished", feed_title: "Foo", count_before: 3 } as const, { feedTitle: "Foo", count: 3 }],
     [
       { type: "account_skipped_entries", account_name: "FreshRSS", count: 1 } as const,
       { accountName: "FreshRSS", count: 1 },
@@ -882,4 +881,46 @@ describe("getSyncWarningDetailTranslationKey", () => {
     expect(result.key).toBe(detail.type);
     expect(result.params).toEqual(expectedParams);
   });
+});
+
+describe("sync_warning_detail locale rendering", () => {
+  // One fixture per AccountSyncWarningDetail variant. Distinct from the param-mapping
+  // table above: this renders each variant through the real i18n instance (sidebar and
+  // settings namespaces, en and ja) to prove the interpolation params
+  // `getSyncWarningDetailTranslationKey` supplies actually match the `{{placeholder}}`
+  // names in the locale JSON. Key existence alone (the locale contract test) does not
+  // prove that; a name mismatch would otherwise render a literal "{{name}}" in the UI.
+  const allDetailVariants: AccountSyncWarningDetail[] = [
+    { type: "pending_mutation_retry", mutation: "mark_read" },
+    { type: "dropped_pending_mutation", mutation: "star" },
+    { type: "deleted_greader_folders", count: 2 },
+    { type: "feed_skipped_entries", feed_title: "Foo", count: 1 },
+    { type: "feed_articles_vanished", feed_title: "Foo", count_before: 3 },
+    { type: "account_skipped_entries", account_name: "FreshRSS", count: 1 },
+    { type: "local_feed_sync_failed", feed_title: "Foo", message: "boom" },
+    { type: "local_account_sync_operation_failed", operation: "import", message: "boom" },
+    { type: "local_import_result", conflicted: 1, rejected_files: 2, rejected_operations: 3 },
+    { type: "startup_repair_marker_failed", message: "boom" },
+    { type: "scheduler_load_failed", message: "boom" },
+    { type: "backoff_persist_failed", account_name: "FreshRSS", message: "boom" },
+    { type: "background_sync_retry_scheduled", account_name: "FreshRSS" },
+  ];
+
+  beforeAll(async () => {
+    await loadI18nResourceNamespace(i18n, "settings");
+  });
+
+  it.each(allDetailVariants.flatMap((detail) => (["en", "ja"] as const).map((locale) => [detail, locale] as const)))(
+    "renders %o with no leftover {{placeholder}} in %s for both sidebar and settings",
+    async (detail, locale) => {
+      await i18n.changeLanguage(locale);
+      const { key, params } = getSyncWarningDetailTranslationKey(detail);
+
+      for (const namespace of ["sidebar", "settings"] as const) {
+        const rendered = i18n.t(`${namespace}:sync_warning_detail.${key}`, params);
+        expect(rendered).not.toContain("{{");
+        expect(rendered).not.toBe(`sync_warning_detail.${key}`);
+      }
+    },
+  );
 });
