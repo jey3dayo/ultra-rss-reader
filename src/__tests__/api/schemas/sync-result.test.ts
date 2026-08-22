@@ -1,6 +1,6 @@
 import { safeParse } from "valibot";
 import { describe, expect, it } from "vitest";
-import { AccountSyncWarningSchema, SyncResultSchema } from "@/api/schemas/sync-result";
+import { AccountSyncWarningDetailSchema, AccountSyncWarningSchema, SyncResultSchema } from "@/api/schemas/sync-result";
 
 const retryScheduledWarning = {
   account_id: "acc-1",
@@ -44,6 +44,81 @@ describe("AccountSyncWarningSchema", () => {
         retry_in_seconds: Number.POSITIVE_INFINITY,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("AccountSyncWarningDetailSchema", () => {
+  const validDetailsByType: Record<string, Record<string, unknown>> = {
+    pending_mutation_retry: { type: "pending_mutation_retry", mutation: "mark_read" },
+    dropped_pending_mutation: { type: "dropped_pending_mutation", mutation: "star" },
+    deleted_greader_folders: { type: "deleted_greader_folders", count: 2 },
+    feed_skipped_entries: { type: "feed_skipped_entries", feed_title: "Feed One", count: 1 },
+    feed_articles_vanished: { type: "feed_articles_vanished", feed_title: "Feed One", count_before: 3 },
+    account_skipped_entries: { type: "account_skipped_entries", account_name: "FreshRSS", count: 1 },
+    local_feed_sync_failed: { type: "local_feed_sync_failed", feed_title: "Broken", message: "boom" },
+    local_account_sync_operation_failed: {
+      type: "local_account_sync_operation_failed",
+      operation: "import",
+      message: "boom",
+    },
+    local_import_result: {
+      type: "local_import_result",
+      conflicted: 1,
+      rejected_files: 2,
+      rejected_operations: 3,
+    },
+    startup_repair_marker_failed: { type: "startup_repair_marker_failed", message: "boom" },
+    scheduler_load_failed: { type: "scheduler_load_failed", message: "boom" },
+    backoff_persist_failed: { type: "backoff_persist_failed", account_name: "FreshRSS", message: "boom" },
+    background_sync_retry_scheduled: { type: "background_sync_retry_scheduled", account_name: "FreshRSS" },
+  };
+
+  it.each(Object.entries(validDetailsByType))("accepts the %s variant shape", (_type, detail) => {
+    const result = safeParse(AccountSyncWarningDetailSchema, detail);
+    expect(result.success).toBe(true);
+  });
+
+  it("has exactly the 13 variants pinned by the Rust enum", () => {
+    expect(Object.keys(validDetailsByType)).toHaveLength(13);
+  });
+
+  it("normalizes an unrecognized detail type to null on the warning field", () => {
+    const result = safeParse(AccountSyncWarningSchema, {
+      ...retryScheduledWarning,
+      detail: { type: "some_future_variant_not_yet_known", extra: "value" },
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error("Expected unknown detail type to normalize instead of rejecting");
+    }
+    expect(result.output.detail).toBeNull();
+  });
+
+  it("normalizes a missing detail field (older backend) to null", () => {
+    const result = safeParse(AccountSyncWarningSchema, retryScheduledWarning);
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error("Expected missing detail to normalize instead of rejecting");
+    }
+    expect(result.output.detail).toBeNull();
+  });
+
+  it("parses a real detail value on the warning field", () => {
+    const result = safeParse(AccountSyncWarningSchema, {
+      ...retryScheduledWarning,
+      detail: { type: "background_sync_retry_scheduled", account_name: "FreshRSS" },
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error("Expected a valid detail to parse");
+    }
+    expect(result.output.detail).toEqual({
+      type: "background_sync_retry_scheduled",
+      account_name: "FreshRSS",
+    });
   });
 });
 
