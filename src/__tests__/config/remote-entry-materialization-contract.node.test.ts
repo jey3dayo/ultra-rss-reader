@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
+import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
 import articleMaterializerSource from "../../../src-tauri/src/service/article_materializer.rs?raw";
 
@@ -19,20 +20,6 @@ import articleMaterializerSource from "../../../src-tauri/src/service/article_ma
 // for all possible code shapes.
 
 const srcTauriSrcRoot = join(process.cwd(), "src-tauri/src");
-
-function collectRustFiles(dir: string): string[] {
-  const entries = readdirSync(dir, { withFileTypes: true });
-  return entries.flatMap((entry) => {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return collectRustFiles(fullPath);
-    }
-    if (entry.name.endsWith(".rs") && statSync(fullPath).isFile()) {
-      return [fullPath];
-    }
-    return [];
-  });
-}
 
 // Finds the index of the character that closes the brace opened at
 // `openBraceIndex`. This is a lightweight Rust lexer, not a full parser: it

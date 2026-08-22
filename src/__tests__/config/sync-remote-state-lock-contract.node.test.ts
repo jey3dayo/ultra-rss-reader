@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
 import accountRsSource from "../../../src-tauri/src/commands/sync_providers/account.rs?raw";
 import unreadReconcileSource from "../../../src-tauri/src/commands/sync_providers/unread.rs?raw";
@@ -26,20 +27,6 @@ const UNREAD_RS_REL_PATH = "commands/sync_providers/unread.rs";
 //   unit tests calling the method on a repo instance; the definition itself
 //   is `fn apply_remote_state(` (no leading dot) and doesn't match.
 const ALLOWLISTED_APPLY_REMOTE_STATE_CALL_FILES = new Set(["infra/db/sqlite_article.rs"]);
-
-function collectRustFiles(dir: string): string[] {
-  const entries = readdirSync(dir, { withFileTypes: true });
-  return entries.flatMap((entry) => {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return collectRustFiles(fullPath);
-    }
-    if (entry.name.endsWith(".rs") && statSync(fullPath).isFile()) {
-      return [fullPath];
-    }
-    return [];
-  });
-}
 
 function extractBlock(source: string, pattern: RegExp, label: string): string {
   const matched = source.match(pattern)?.[1];
