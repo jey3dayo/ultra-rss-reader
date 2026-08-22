@@ -324,12 +324,15 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
 
                 match result {
                     Ok(Ok(outcome)) => {
-                        tracing::info!("Background sync completed for account '{}'", account.name);
+                        tracing::info!(account_id = %account.id.as_ref(), "Background sync completed");
                         for warning in &outcome.warnings {
+                            // Log only the warning kind: `warning.message` is user-facing copy
+                            // that can embed feed titles and account names
+                            // (docs/feed-content-privacy.md).
                             tracing::warn!(
-                                "Background sync warning for account '{}': {}",
-                                account.name,
-                                warning.message
+                                account_id = %account.id.as_ref(),
+                                kind = ?warning.kind,
+                                "Background sync warning"
                             );
                             push_scheduler_warning(
                                 &mut warnings_to_emit,
@@ -348,8 +351,8 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             Ok(Some(latest_account)) => {
                                 if let Err(error) = reset_error_count(&state.db, &account.id) {
                                     tracing::warn!(
-                                        "Background sync could not reset backoff state for account '{}': {error}",
-                                        account.name
+                                        account_id = %account.id.as_ref(),
+                                        "Background sync could not reset backoff state: {error}"
                                     );
                                     all_succeeded = false;
                                 }
@@ -361,15 +364,15 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             }
                             Ok(None) => {
                                 tracing::info!(
-                                    "Background sync completed for deleted account '{}'; pruning schedule",
-                                    account.name
+                                    account_id = %account.id.as_ref(),
+                                    "Background sync completed for deleted account; pruning schedule"
                                 );
                                 schedules.remove(&account_id_str);
                             }
                             Err(error) => {
                                 tracing::warn!(
-                                    "Background sync could not refresh account '{}' before rescheduling: {error}",
-                                    account.name
+                                    account_id = %account.id.as_ref(),
+                                    "Background sync could not refresh account before rescheduling: {error}"
                                 );
                                 all_succeeded = false;
                             }
@@ -377,10 +380,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                         any_synced = true;
                     }
                     Ok(Err(e)) => {
-                        tracing::warn!(
-                            "Background sync failed for account '{}': {e}",
-                            account.name
-                        );
+                        tracing::warn!(account_id = %account.id.as_ref(), "Background sync failed: {e}");
                         reporter.emit_account_finished(account, false);
                         match load_scheduler_account(&state.db, &account.id) {
                             Ok(Some(latest_account)) => {
@@ -399,15 +399,15 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             }
                             Ok(None) => {
                                 tracing::info!(
-                                    "Background sync failed for deleted account '{}'; pruning schedule",
-                                    account.name
+                                    account_id = %account.id.as_ref(),
+                                    "Background sync failed for deleted account; pruning schedule"
                                 );
                                 schedules.remove(&account_id_str);
                             }
                             Err(error) => {
                                 tracing::warn!(
-                                    "Background sync could not refresh account '{}' before scheduling retry: {error}",
-                                    account.name
+                                    account_id = %account.id.as_ref(),
+                                    "Background sync could not refresh account before scheduling retry: {error}"
                                 );
                             }
                         }
@@ -730,8 +730,8 @@ fn complete_failed_account_sync(
         Ok(backoff_state) => backoff_state,
         Err(error) => {
             tracing::warn!(
-                "Background sync could not persist backoff state for account '{}': {error}",
-                account.name
+                account_id = %account.id.as_ref(),
+                "Background sync could not persist backoff state: {error}"
             );
             push_scheduler_warning(
                 warnings_to_emit,
@@ -764,10 +764,10 @@ fn complete_failed_account_sync(
         );
     }
     tracing::info!(
-        "Account '{}' backoff: {}s (error_count={})",
-        account.name,
-        backoff.as_secs(),
-        backoff_state.error_count
+        account_id = %account.id.as_ref(),
+        backoff_secs = backoff.as_secs(),
+        error_count = backoff_state.error_count,
+        "Background sync backoff scheduled"
     );
     backoff
 }

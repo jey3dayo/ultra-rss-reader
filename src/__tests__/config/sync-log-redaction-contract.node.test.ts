@@ -14,6 +14,13 @@ import { describe, expect, it } from "vitest";
 
 const SYNC_PROVIDERS_ROOT = join(process.cwd(), "src-tauri/src/commands/sync_providers");
 
+// The scheduler consumes ProviderSyncWarning values whose `message` is
+// user-facing copy that can embed feed titles and account names; logging it
+// verbatim (or `account.name`) would leak the same values the sync_providers
+// redaction removes.
+const SCHEDULER_SOURCE = join(process.cwd(), "src-tauri/src/service/sync_scheduler.rs");
+const SCHEDULER_FORBIDDEN_LOG_EXPRESSIONS = ["account.name", "warning.message", ".title"] as const;
+
 // Raw-value expressions that must never appear inside a tracing macro body.
 // `redacted_feed_host_class(...)` calls are stripped first, so the sanctioned
 // `host_class = redacted_feed_host_class(&feed.url)` usage stays allowed.
@@ -96,6 +103,23 @@ describe("sync provider log redaction contract", () => {
           if (scannable.includes(forbidden)) {
             offenders.push(`${relPath}: \`${forbidden}\` in tracing macro body`);
           }
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps account names and warning copy out of scheduler tracing macros", () => {
+    const source = productionSource(readFileSync(SCHEDULER_SOURCE, "utf8"), "sync_scheduler.rs");
+    const bodies = extractMacroBodies(source);
+    expect(bodies.length).toBeGreaterThan(5);
+
+    const offenders: string[] = [];
+    for (const body of bodies) {
+      for (const forbidden of SCHEDULER_FORBIDDEN_LOG_EXPRESSIONS) {
+        if (body.includes(forbidden)) {
+          offenders.push(`sync_scheduler.rs: \`${forbidden}\` in tracing macro body`);
         }
       }
     }

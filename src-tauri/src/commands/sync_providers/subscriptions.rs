@@ -268,7 +268,11 @@ pub(super) fn pending_mutation_log_contexts(
     let mut stmt = db_guard
         .reader()
         .prepare(
-            "SELECT pm.id, MIN(a.feed_id), MIN(f.url)
+            // With exactly one min()/max() aggregate, SQLite takes bare
+            // columns from the row that produced the minimum, so f.url stays
+            // consistent with the selected feed_id even when the same
+            // remote_entry_id exists under multiple feeds.
+            "SELECT pm.id, MIN(a.feed_id), f.url
              FROM pending_mutations pm
              JOIN articles a ON a.remote_id = pm.remote_entry_id
              JOIN feeds f ON f.id = a.feed_id AND f.account_id = pm.account_id
