@@ -16,6 +16,7 @@ use crate::infra::provider::greader::{GReaderProvider, UnreadPullTermination};
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 
+use super::redacted_feed_host_class;
 use super::subscriptions::is_provider_managed_greader_feed;
 use crate::service::article_materializer::article_from_remote_entry;
 
@@ -69,7 +70,8 @@ pub(super) async fn reconcile_greader_unread_counts(
         let Some(server_unread_count) = server_unread_counts.get(remote_id).copied() else {
             tracing::warn!(
                 account_id = %account.id.as_ref(),
-                feed_remote_id = remote_id,
+                feed_id = %feed.id.as_ref(),
+                host_class = redacted_feed_host_class(&feed.url),
                 reason = "missing_unread_count",
                 page = 0,
                 entries = 0,
@@ -249,14 +251,14 @@ async fn fetch_greader_unread_entries_for_feed(
     feed: &Feed,
     server_unread_count: i32,
 ) -> Result<UnreadSnapshot, AppError> {
-    let Some(remote_id) = feed.remote_id.as_deref() else {
+    if feed.remote_id.is_none() {
         return Ok(UnreadSnapshot::Complete(CompleteUnreadSnapshot {
             ids: HashSet::new(),
             articles: Vec::new(),
             pages: 0,
             entries: 0,
         }));
-    };
+    }
 
     let Some(first_snapshot) =
         fetch_greader_unread_snapshot_once(provider, account, feed, server_unread_count).await?
@@ -272,7 +274,7 @@ async fn fetch_greader_unread_entries_for_feed(
     if first_snapshot.ids != second_snapshot.ids {
         incomplete_unread_snapshot_warning(
             account,
-            remote_id,
+            feed,
             "snapshot_id_set_changed",
             second_snapshot.pages,
             second_snapshot.entries,
@@ -310,11 +312,11 @@ async fn fetch_greader_unread_snapshot_once(
             .map_err(|error| {
                 tracing::warn!(
                     account_id = %account.id.as_ref(),
-                    feed_remote_id = remote_id,
+                    feed_id = %feed.id.as_ref(),
+                    host_class = redacted_feed_host_class(&feed.url),
                     reason = "provider_error",
                     page,
                     entries = fetched_entry_count,
-                    error = %error,
                     "GReader unread stream failed before a complete snapshot was received"
                 );
                 AppError::from(error)
@@ -324,7 +326,7 @@ async fn fetch_greader_unread_snapshot_once(
         if fetched_entry_count > MAX_UNREAD_RECONCILE_ENTRIES {
             incomplete_unread_snapshot_warning(
                 account,
-                remote_id,
+                feed,
                 "entry_limit",
                 page,
                 fetched_entry_count,
@@ -343,13 +345,7 @@ async fn fetch_greader_unread_snapshot_once(
             }
         };
         if let Some(reason) = termination_reason {
-            incomplete_unread_snapshot_warning(
-                account,
-                remote_id,
-                reason,
-                page,
-                fetched_entry_count,
-            );
+            incomplete_unread_snapshot_warning(account, feed, reason, page, fetched_entry_count);
             return Ok(None);
         }
 
@@ -366,7 +362,7 @@ async fn fetch_greader_unread_snapshot_once(
         if duplicate_entry_id {
             incomplete_unread_snapshot_warning(
                 account,
-                remote_id,
+                feed,
                 "duplicate_entry_id",
                 page,
                 fetched_entry_count,
@@ -380,7 +376,7 @@ async fn fetch_greader_unread_snapshot_once(
             if expected_unread_count != Some(unread_remote_ids.len()) {
                 incomplete_unread_snapshot_warning(
                     account,
-                    remote_id,
+                    feed,
                     "unread_count_mismatch",
                     page,
                     fetched_entry_count,
@@ -398,7 +394,7 @@ async fn fetch_greader_unread_snapshot_once(
         if page == MAX_UNREAD_RECONCILE_PAGES {
             incomplete_unread_snapshot_warning(
                 account,
-                remote_id,
+                feed,
                 "page_limit",
                 page,
                 fetched_entry_count,
@@ -409,7 +405,7 @@ async fn fetch_greader_unread_snapshot_once(
         let Some(next_cursor) = result.next_cursor else {
             incomplete_unread_snapshot_warning(
                 account,
-                remote_id,
+                feed,
                 "missing_continuation",
                 page,
                 fetched_entry_count,
@@ -419,7 +415,7 @@ async fn fetch_greader_unread_snapshot_once(
         if next_cursor.continuation.is_none() {
             incomplete_unread_snapshot_warning(
                 account,
-                remote_id,
+                feed,
                 "missing_continuation",
                 page,
                 fetched_entry_count,
@@ -431,7 +427,7 @@ async fn fetch_greader_unread_snapshot_once(
 
     incomplete_unread_snapshot_warning(
         account,
-        remote_id,
+        feed,
         "page_loop_exhausted",
         MAX_UNREAD_RECONCILE_PAGES,
         fetched_entry_count,
@@ -441,14 +437,15 @@ async fn fetch_greader_unread_snapshot_once(
 
 fn incomplete_unread_snapshot_warning(
     account: &Account,
-    feed_remote_id: &str,
+    feed: &Feed,
     reason: &str,
     page: usize,
     entries: usize,
 ) {
     tracing::warn!(
         account_id = %account.id.as_ref(),
-        feed_remote_id,
+        feed_id = %feed.id.as_ref(),
+        host_class = redacted_feed_host_class(&feed.url),
         reason,
         page,
         entries,
