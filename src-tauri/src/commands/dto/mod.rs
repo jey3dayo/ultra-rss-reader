@@ -17,7 +17,7 @@ pub use platform::{
     PlatformPermissionDeniedRecoveryDto, PlatformPermissionDeniedSurfaceDto,
 };
 pub use sync::{
-    AccountSyncError, AccountSyncStatus, AccountSyncWarning, AccountSyncWarningKind,
-    FeedArticleSummaryDto, SyncProgressEvent, SyncProgressKind, SyncProgressStage, SyncResult,
-    COUNT_RESPONSE_MAX_VALUE,
+    AccountSyncError, AccountSyncStatus, AccountSyncWarning, AccountSyncWarningDetail,
+    AccountSyncWarningKind, FeedArticleSummaryDto, SyncProgressEvent, SyncProgressKind,
+    SyncProgressStage, SyncResult, COUNT_RESPONSE_MAX_VALUE,
 };

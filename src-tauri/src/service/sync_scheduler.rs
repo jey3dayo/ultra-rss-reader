@@ -9,7 +9,8 @@ use tauri::async_runtime::JoinHandle;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::commands::dto::{
-    AccountSyncWarning, AccountSyncWarningKind, AppError, SyncProgressKind,
+    AccountSyncWarning, AccountSyncWarningDetail, AccountSyncWarningKind, AppError,
+    SyncProgressKind,
 };
 use crate::commands::sync_commands::{
     purge_old_articles, should_purge_old_articles_after_sync, sync_account, SyncProgressReporter,
@@ -340,6 +341,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                                     message: warning.message.clone(),
                                     retry_at: warning.retry_at.clone(),
                                     retry_in_seconds: warning.retry_in_seconds,
+                                    detail: warning.detail.clone(),
                                 },
                             );
                         }
@@ -673,6 +675,9 @@ fn scheduler_load_failure_warning(error: &DomainError) -> AccountSyncWarning {
         message: format!("Scheduled sync skipped because accounts could not be loaded: {error}"),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::SchedulerLoadFailed {
+            message: error.to_string(),
+        },
     }
 }
 
@@ -690,6 +695,10 @@ fn backoff_persistence_failure_warning(
         ),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::BackoffPersistFailed {
+            account_name: account.name.clone(),
+            message: error.to_string(),
+        },
     }
 }
 
@@ -760,6 +769,9 @@ fn complete_failed_account_sync(
                 ),
                 retry_at: backoff_state.next_retry_at.clone(),
                 retry_in_seconds: Some(backoff_state.retry_in_seconds),
+                detail: AccountSyncWarningDetail::BackgroundSyncRetryScheduled {
+                    account_name: account.name.clone(),
+                },
             },
         );
     }
@@ -1906,6 +1918,12 @@ mod tests {
         );
         assert_eq!(warning.retry_at, None);
         assert_eq!(warning.retry_in_seconds, None);
+        assert_eq!(
+            warning.detail,
+            AccountSyncWarningDetail::SchedulerLoadFailed {
+                message: "Persistence error: Lock error: poisoned".to_string()
+            }
+        );
     }
 
     #[test]
@@ -1924,6 +1942,11 @@ mod tests {
             .starts_with("Scheduled sync skipped because accounts could not be loaded:"));
         assert!(value["retry_at"].is_null());
         assert!(value["retry_in_seconds"].is_null());
+        assert_eq!(value["detail"]["type"], "scheduler_load_failed");
+        assert_eq!(
+            value["detail"]["message"],
+            "Persistence error: Lock error: poisoned"
+        );
     }
 
     #[test]
@@ -1942,6 +1965,13 @@ mod tests {
         );
         assert_eq!(warning.retry_at, None);
         assert_eq!(warning.retry_in_seconds, None);
+        assert_eq!(
+            warning.detail,
+            AccountSyncWarningDetail::BackoffPersistFailed {
+                account_name: account.name.clone(),
+                message: "Persistence error: FOREIGN KEY constraint failed".to_string(),
+            }
+        );
     }
 
     #[test]
@@ -2095,6 +2125,12 @@ mod tests {
             Some(calculate_backoff_secs(&account, 1))
         );
         assert!(warnings[0].retry_at.is_some());
+        assert_eq!(
+            warnings[0].detail,
+            AccountSyncWarningDetail::BackgroundSyncRetryScheduled {
+                account_name: account.name.clone(),
+            }
+        );
         assert!(is_in_backoff(&db, &account.id));
     }
 
@@ -2258,6 +2294,9 @@ mod tests {
             message: "retry later".to_string(),
             retry_at: Some("2099-01-01T00:00:00Z".to_string()),
             retry_in_seconds: Some(60),
+            detail: AccountSyncWarningDetail::BackgroundSyncRetryScheduled {
+                account_name: "Account 1".to_string(),
+            },
         };
 
         push_scheduler_warning(&mut warnings, duplicate.clone());
@@ -2275,6 +2314,9 @@ mod tests {
                     message: format!("provider warning {index}"),
                     retry_at: None,
                     retry_in_seconds: None,
+                    detail: AccountSyncWarningDetail::SchedulerLoadFailed {
+                        message: format!("provider warning {index}"),
+                    },
                 },
             );
         }
@@ -2322,6 +2364,9 @@ mod tests {
                     message: format!("retry later for {}", account.name),
                     retry_at: Some("2099-01-01T00:00:00Z".to_string()),
                     retry_in_seconds: Some(MAX_BACKOFF.as_secs()),
+                    detail: AccountSyncWarningDetail::BackgroundSyncRetryScheduled {
+                        account_name: account.name.clone(),
+                    },
                 },
             );
         }

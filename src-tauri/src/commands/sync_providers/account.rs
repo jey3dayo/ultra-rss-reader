@@ -8,7 +8,7 @@ use std::time::Instant;
 
 use tracing::{info, warn};
 
-use crate::commands::dto::{AccountSyncWarningKind, AppError};
+use crate::commands::dto::{AccountSyncWarningDetail, AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
 use crate::domain::article::Article;
 use crate::domain::feed::Feed;
@@ -82,6 +82,9 @@ pub(crate) fn pending_mutation_retry_warning(
         ),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::PendingMutationRetry {
+            mutation: mutation_type.as_str().to_string(),
+        },
     }
 }
 
@@ -96,6 +99,9 @@ pub(crate) fn dropped_pending_mutation_warning(
         ),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::DroppedPendingMutation {
+            mutation: mutation_type.as_str().to_string(),
+        },
     }
 }
 
@@ -107,6 +113,7 @@ pub(crate) fn deleted_greader_folders_warning(count: usize) -> ProviderSyncWarni
         ),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::DeletedGreaderFolders { count },
     }
 }
 
@@ -416,6 +423,10 @@ pub(crate) async fn sync_greader_feed(
             ),
             retry_at: None,
             retry_in_seconds: None,
+            detail: AccountSyncWarningDetail::FeedSkippedEntries {
+                feed_title: feed.title.clone(),
+                count: feed_outcome.skipped_entries,
+            },
         });
     }
     if article_count_before > 0 && article_count_after == 0 {
@@ -427,6 +438,10 @@ pub(crate) async fn sync_greader_feed(
             ),
             retry_at: None,
             retry_in_seconds: None,
+            detail: AccountSyncWarningDetail::FeedArticlesVanished {
+                feed_title: feed.title.clone(),
+                count_before: article_count_before,
+            },
         });
     }
 
@@ -614,6 +629,10 @@ pub(crate) async fn sync_greader_feeds(
                 ),
                 retry_at: None,
                 retry_in_seconds: None,
+                detail: AccountSyncWarningDetail::AccountSkippedEntries {
+                    account_name: account.name.clone(),
+                    count: account_entries_outcome.skipped_entries,
+                },
             });
         }
     }
@@ -631,6 +650,10 @@ pub(crate) async fn sync_greader_feeds(
                 ),
                 retry_at: None,
                 retry_in_seconds: None,
+                detail: AccountSyncWarningDetail::LocalFeedSyncFailed {
+                    feed_title: feed.title.clone(),
+                    message: error.to_string(),
+                },
             });
         }
     }
@@ -791,6 +814,10 @@ pub(crate) async fn sync_greader_feeds(
                 ),
                 retry_at: None,
                 retry_in_seconds: None,
+                detail: AccountSyncWarningDetail::FeedArticlesVanished {
+                    feed_title: feed.title.clone(),
+                    count_before: before_count,
+                },
             });
         }
     }
