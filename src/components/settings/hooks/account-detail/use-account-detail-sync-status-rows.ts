@@ -2,11 +2,14 @@ import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import type { AccountSyncStatusRow } from "@/components/settings/account-detail/sync-section-view";
-import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
+import {
+  formatAccountSyncRetryDateTime,
+  getAccountSyncErrorTranslationKey,
+} from "@/lib/account/account-sync-status-format";
 
 type AccountDetailSyncStatusTranslator =
   | TFunction<"settings">
-  | ((key: string, options?: { count?: number }) => string);
+  | ((key: string, options?: { count?: number; message?: string }) => string);
 
 type AccountDetailSyncStatusRowsParams = {
   syncStatus: AccountSyncStatusDto | undefined;
@@ -41,7 +44,11 @@ export function useAccountDetailSyncStatusRows({
     }
 
     if (syncStatus.last_error) {
-      rows.push({ label: t("account.last_sync_error"), value: syncStatus.last_error });
+      const { key, params } = getAccountSyncErrorTranslationKey(syncStatus.last_error);
+      rows.push({
+        label: t("account.last_sync_error"),
+        value: key === null ? syncStatus.last_error : t(`account.sync_error_detail.${key}`, params),
+      });
     }
 
     return rows;

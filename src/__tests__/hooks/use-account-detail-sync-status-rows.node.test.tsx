@@ -29,9 +29,13 @@ describe("useAccountDetailSyncStatusRows", () => {
     });
   };
 
-  const t = (key: string, options?: { count?: number }) => {
+  const t = (key: string, options?: { count?: number; message?: string }) => {
     if (key === "account.consecutive_sync_failures_value") {
       return `${options?.count ?? 0} failures`;
+    }
+
+    if (key.startsWith("account.sync_error_detail.")) {
+      return `${key}:${options?.message ?? ""}`;
     }
 
     return `label:${key}`;
@@ -113,9 +117,9 @@ describe("useAccountDetailSyncStatusRows", () => {
     ]);
   });
 
-  it("adds the last error row with the backend error text", () => {
+  it("adds the last error row with a localized kind and the backend detail", () => {
     const syncStatus = createSyncStatus({
-      last_error: "Connection failed",
+      last_error: "Network error: Connection failed",
     });
 
     const { result } = renderHook(() =>
@@ -129,7 +133,7 @@ describe("useAccountDetailSyncStatusRows", () => {
     expect(result.current).toEqual([
       {
         label: "label:account.last_sync_error",
-        value: "Connection failed",
+        value: "account.sync_error_detail.network:Connection failed",
       },
     ]);
   });
@@ -138,7 +142,7 @@ describe("useAccountDetailSyncStatusRows", () => {
     const syncStatus = createSyncStatus({
       next_retry_at: "2026-04-13T10:00:00Z",
       error_count: 3,
-      last_error: "Connection failed",
+      last_error: "Network error: Connection failed",
     });
     const expectedRetryAt = formatExpectedRetryDateTime(syncStatus.next_retry_at, "en");
 
@@ -159,6 +163,23 @@ describe("useAccountDetailSyncStatusRows", () => {
         label: "label:account.consecutive_sync_failures",
         value: "3 failures",
       },
+      {
+        label: "label:account.last_sync_error",
+        value: "account.sync_error_detail.network:Connection failed",
+      },
+    ]);
+  });
+
+  it("keeps legacy unclassified errors as the existing raw detail", () => {
+    const { result } = renderHook(() =>
+      useAccountDetailSyncStatusRows({
+        syncStatus: createSyncStatus({ last_error: "Connection failed" }),
+        language: "en",
+        t,
+      }),
+    );
+
+    expect(result.current).toEqual([
       {
         label: "label:account.last_sync_error",
         value: "Connection failed",

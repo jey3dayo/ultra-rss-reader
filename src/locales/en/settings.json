@@ -327,6 +327,16 @@
     "consecutive_sync_failures": "Consecutive sync failures",
     "consecutive_sync_failures_value": "{{count}} failures",
     "last_sync_error": "Last sync error",
+    "sync_error_detail": {
+      "network": "Network error: {{message}}",
+      "rate_limit": "Rate limit reached: {{message}}",
+      "parse": "Response could not be read: {{message}}",
+      "persistence": "Data could not be saved: {{message}}",
+      "auth": "Authentication error: {{message}}",
+      "validation": "Invalid sync input: {{message}}",
+      "keychain": "Credential storage error: {{message}}",
+      "migration": "Database migration error: {{message}}"
+    },
     "sync_failed": "Sync failed: {{message}}",
     "dev_credentials_recovery_action": "Recover Dev credentials",
     "dev_credentials_recovery_loading": "Recovering…",
