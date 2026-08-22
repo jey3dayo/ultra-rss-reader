@@ -126,7 +126,7 @@ function readRustPlatformCommandSource() {
 
 function readRustCommandSources() {
   return [
-    "account_commands.rs",
+    "account_commands/mod.rs",
     "article_commands.rs",
     "browser_webview_commands.rs",
     "database_commands.rs",
@@ -134,7 +134,7 @@ function readRustCommandSources() {
     "log_commands.rs",
     "local_account_sync_commands.rs",
     "mute_keyword_commands.rs",
-    "opml_commands.rs",
+    "opml_commands/mod.rs",
     "platform_commands.rs",
     "preference_commands.rs",
     "settings_profile_commands.rs",

@@ -141,7 +141,7 @@ describe("command args validation parity", () => {
       }),
     ).toThrow(`Tag name must be ${TAG_NAME_MAX_CHARS} characters or less`);
 
-    expect(extractRustValidationLimit(readRustCommandSource("account_commands.rs"), "Account name")).toBe(
+    expect(extractRustValidationLimit(readRustCommandSource("account_commands/mod.rs"), "Account name")).toBe(
       ACCOUNT_NAME_MAX_CHARS,
     );
     expect(extractRustUsizeConst(readRustCommandSource("feed_commands.rs"), "FEED_TITLE_MAX_CHARS")).toBe(
@@ -168,7 +168,7 @@ describe("command args validation parity", () => {
     ).toBe(SHARE_COMMAND_TEXT_MAX_BYTES);
     expect(extractRustUsizeConst(shareCommands, "READING_LIST_URL_MAX_BYTES")).toBe(READING_LIST_URL_MAX_BYTES);
     expect(extractRustUsizeConst(preferenceDomain, "PREFERENCE_VALUE_MAX_BYTES")).toBe(PREFERENCE_VALUE_MAX_BYTES);
-    expect(extractRustUsizeConst(readRustCommandSource("opml_commands.rs"), "OPML_IMPORT_CONTENT_MAX_BYTES")).toBe(
+    expect(extractRustUsizeConst(readRustCommandSource("opml_commands/mod.rs"), "OPML_IMPORT_CONTENT_MAX_BYTES")).toBe(
       OPML_IMPORT_CONTENT_MAX_BYTES,
     );
 

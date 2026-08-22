@@ -1,0 +1,1709 @@
+use super::*;
+use rusqlite::params;
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+use std::sync::Mutex;
+use std::time::Duration;
+use std::time::Instant;
+
+use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
+use crate::infra::db::connection::DbManager;
+
+fn test_db() -> DbManager {
+    DbManager::new_in_memory().unwrap()
+}
+
+fn insert_test_account(db: &DbManager, name: &str) -> AccountId {
+    let id = AccountId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            params![id.0, "Local", name],
+        )
+        .unwrap();
+    id
+}
+
+fn insert_test_folder(db: &DbManager, account_id: &AccountId, name: &str) -> FolderId {
+    insert_test_folder_with_sort_order(db, account_id, name, 0)
+}
+
+fn insert_test_folder_with_sort_order(
+    db: &DbManager,
+    account_id: &AccountId,
+    name: &str,
+    sort_order: i32,
+) -> FolderId {
+    let id = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+            params![id.0, account_id.0, name, sort_order],
+        )
+        .unwrap();
+    id
+}
+
+fn insert_test_feed(
+    db: &DbManager,
+    account_id: &AccountId,
+    folder_id: Option<&FolderId>,
+    title: &str,
+    url: &str,
+) -> FeedId {
+    let id = FeedId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                id.0,
+                account_id.0,
+                folder_id.map(|id| id.0.as_str()),
+                title,
+                url,
+                ""
+            ],
+        )
+        .unwrap();
+    id
+}
+
+fn feed(id: &str, folder_id: Option<&FolderId>, title: &str) -> Feed {
+    Feed {
+        id: FeedId(id.to_string()),
+        account_id: AccountId("account-1".to_string()),
+        folder_id: folder_id.cloned(),
+        remote_id: None,
+        title: title.to_string(),
+        url: format!("https://example.com/{id}.xml"),
+        site_url: String::new(),
+        icon: None,
+        icon_url: None,
+        unread_count: 0,
+        reader_mode: "inherit".to_string(),
+        web_preview_mode: "inherit".to_string(),
+    }
+}
+
+fn folder(id: &str, name: &str, sort_order: i32) -> Folder {
+    Folder {
+        id: FolderId(id.to_string()),
+        account_id: AccountId("account-1".to_string()),
+        remote_id: None,
+        name: name.to_string(),
+        sort_order,
+    }
+}
+
+#[test]
+fn import_parser_errors_are_user_visible() {
+    let error = parse_import_opml("not xml at all").unwrap_err();
+
+    match error {
+        AppError::UserVisible { message } => {
+            assert_eq!(message, "OPML document must contain an <opml> root element");
+        }
+        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+            panic!("OPML parser errors should not be retryable: {message}");
+        }
+    }
+}
+
+#[test]
+fn import_parser_rejects_opml_content_over_large_file_limit() {
+    let error = parse_import_opml(&"a".repeat(OPML_IMPORT_CONTENT_MAX_BYTES + 1))
+        .expect_err("large OPML files should be rejected before parsing");
+
+    match error {
+        AppError::UserVisible { message } => {
+            assert_eq!(message, OPML_IMPORT_CONTENT_TOO_LARGE_MESSAGE);
+        }
+        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+            panic!("large OPML policy errors should not be retryable: {message}");
+        }
+    }
+}
+
+#[test]
+fn import_parser_smoke_parses_large_opml_under_file_limit() {
+    const FEED_COUNT: usize = 2_000;
+    let mut opml =
+        String::from(r#"<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>"#);
+    for index in 0..FEED_COUNT {
+        opml.push_str(&format!(
+            r#"<outline text="Feed {index}" type="rss" xmlUrl="https://example.com/feed-{index}.xml" htmlUrl="https://example.com/feed-{index}"/>"#
+        ));
+    }
+    opml.push_str("</body></opml>");
+    assert!(
+        opml.len() < OPML_IMPORT_CONTENT_MAX_BYTES,
+        "large OPML smoke fixture should stay below the import file cap"
+    );
+
+    let feeds = parse_import_opml(&opml).unwrap();
+
+    assert_eq!(feeds.len(), FEED_COUNT);
+    assert_eq!(feeds[0].title, "Feed 0");
+    assert_eq!(
+        feeds[FEED_COUNT - 1].xml_url,
+        format!("https://example.com/feed-{}.xml", FEED_COUNT - 1)
+    );
+}
+
+#[test]
+fn import_parser_malformed_xml_error_matches_toast_surface() {
+    let error =
+        parse_import_opml(r#"<?xml version="1.0"?><opml><body><outline text="Feed">"#).unwrap_err();
+
+    match error {
+        AppError::UserVisible { message } => {
+            assert_eq!(message, "OPML document is malformed XML");
+        }
+        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+            panic!("OPML malformed XML errors should not be retryable: {message}");
+        }
+    }
+}
+
+#[test]
+fn import_parser_preserves_feed_urls_and_folder_assignment() {
+    let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Engineering">
+  <outline text="Rust Blog" type="rss" xmlUrl="https://blog.rust-lang.org/feed.xml" htmlUrl="https://blog.rust-lang.org/"/>
+</outline>
+<outline text="Top Feed" type="rss" xmlUrl="https://example.com/top.xml"/>
+  </body>
+</opml>"#;
+
+    let feeds = parse_import_opml(opml).unwrap();
+
+    assert_eq!(
+        feeds
+            .iter()
+            .map(|feed| {
+                (
+                    feed.title.as_str(),
+                    feed.xml_url.as_str(),
+                    feed.html_url.as_deref(),
+                    feed.folder.as_deref(),
+                )
+            })
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                "Rust Blog",
+                "https://blog.rust-lang.org/feed.xml",
+                Some("https://blog.rust-lang.org/"),
+                Some("Engineering"),
+            ),
+            ("Top Feed", "https://example.com/top.xml", None, None),
+        ],
+    );
+}
+
+#[test]
+fn import_parser_normalizes_feed_title_and_folder_like_regular_validation() {
+    let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="  Engineering  ">
+  <outline text="  Rust Blog  " type="rss" xmlUrl="https://blog.rust-lang.org/feed.xml"/>
+</outline>
+  </body>
+</opml>"#;
+
+    let feeds = parse_import_opml(opml).unwrap();
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].title, "Rust Blog");
+    assert_eq!(feeds[0].folder, Some("Engineering".to_string()));
+}
+
+#[test]
+fn import_parser_rejects_invalid_feed_title_and_folder_like_regular_validation() {
+    let blank_title = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="   " type="rss" xmlUrl="https://example.com/blank.xml"/>
+  </body>
+</opml>"#;
+    let blank_folder = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="   ">
+  <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml"/>
+</outline>
+  </body>
+</opml>"#;
+
+    assert!(matches!(
+        parse_import_opml(blank_title),
+        Err(AppError::UserVisible { message }) if message == "Feed title cannot be empty"
+    ));
+    assert!(matches!(
+        parse_import_opml(blank_folder),
+        Err(AppError::UserVisible { message }) if message == "Folder name cannot be empty"
+    ));
+}
+
+#[test]
+fn import_parser_rejects_opml_feed_urls_with_regular_backend_scheme_policy() {
+    let unsupported_xml_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="file:///tmp/feed.xml"/>
+  </body>
+</opml>"#;
+    let unsupported_html_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="javascript:alert(1)"/>
+  </body>
+</opml>"#;
+
+    for opml in [unsupported_xml_url, unsupported_html_url] {
+        assert!(matches!(
+            parse_import_opml(opml),
+            Err(AppError::UserVisible { message }) if message == "Only http:// and https:// URLs are supported"
+        ));
+    }
+}
+
+#[test]
+fn import_parser_rejects_doctype_entity_and_credential_url_fixture_corpus() {
+    let doctype_entity = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE opml [
+  <!ENTITY private SYSTEM "file:///Users/alice/private.opml">
+]>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml"/>
+  </body>
+</opml>"#;
+    let credential_xml_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="https://alice:secret@example.com/feed.xml?token=raw"/>
+  </body>
+</opml>"#;
+    let credential_html_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="https://alice:secret@example.com/article?api_key=raw"/>
+  </body>
+</opml>"#;
+
+    assert!(matches!(
+        parse_import_opml(doctype_entity),
+        Err(AppError::UserVisible { message }) if message == "OPML document is malformed XML"
+    ));
+
+    for opml in [credential_xml_url, credential_html_url] {
+        assert!(matches!(
+            parse_import_opml(opml),
+            Err(AppError::UserVisible { message }) if message == "URLs with embedded credentials are not allowed"
+        ));
+    }
+}
+
+#[test]
+fn import_parser_rejects_opml_private_feed_urls_like_regular_backend_policy() {
+    let private_xml_url_loopback = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://127.0.0.1/feed.xml"/>
+  </body>
+</opml>"#;
+    let private_xml_url_rfc1918 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://10.0.0.2/feed.xml"/>
+  </body>
+</opml>"#;
+    let private_xml_url_link_local = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://169.254.10.20/feed.xml"/>
+  </body>
+</opml>"#;
+    let private_xml_url_ipv6 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://[fc00::1]/feed.xml"/>
+  </body>
+</opml>"#;
+    let private_xml_url_encoded_ipv4 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://%31%32%37.0.0.1/feed.xml"/>
+  </body>
+</opml>"#;
+    let private_xml_url_dns = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://private.test.invalid/feed.xml"/>
+  </body>
+</opml>"#;
+    let private_html_url_localhost = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="http://localhost/"/>
+  </body>
+</opml>"#;
+    let private_html_url_ipv6 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="http://[::1]/"/>
+  </body>
+</opml>"#;
+    let private_xml_url_mixed_case_localhost = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://LOCALHOST./feed.xml"/>
+  </body>
+</opml>"#;
+    let private_xml_url_ipv6_zone = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Feed" type="rss" xmlUrl="http://[fe80::1%25en0]/feed.xml"/>
+  </body>
+</opml>"#;
+
+    for opml in [
+        private_xml_url_loopback,
+        private_xml_url_rfc1918,
+        private_xml_url_link_local,
+        private_xml_url_ipv6,
+        private_xml_url_encoded_ipv4,
+        private_xml_url_dns,
+        private_html_url_localhost,
+        private_html_url_ipv6,
+        private_xml_url_mixed_case_localhost,
+    ] {
+        assert!(matches!(
+            parse_import_opml(opml),
+            Err(AppError::UserVisible { message }) if message == "Requests to private/loopback addresses are not allowed"
+        ));
+    }
+
+    assert!(matches!(
+        parse_import_opml(private_xml_url_ipv6_zone),
+        Err(AppError::UserVisible { message }) if message == "Only http:// and https:// URLs are supported"
+    ));
+}
+
+#[test]
+fn import_parser_allows_public_idna_and_punycode_feed_urls() {
+    let idna_opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="IDNA" type="rss" xmlUrl="https://例え.テスト/feed.xml" htmlUrl="https://xn--r8jz45g.xn--zckzah/"/>
+  </body>
+</opml>"#;
+
+    let feeds = parse_import_opml(idna_opml).expect("public IDNA OPML should parse");
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].xml_url, "https://例え.テスト/feed.xml");
+    assert_eq!(
+        feeds[0].html_url.as_deref(),
+        Some("https://xn--r8jz45g.xn--zckzah/")
+    );
+}
+
+#[test]
+fn import_rejects_missing_account_before_saving_folders_or_feeds() {
+    let db = test_db();
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Rust Blog".to_string(),
+        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+        html_url: None,
+        folder: Some("Engineering".to_string()),
+    }];
+
+    let error = import_opml_in_db(&db, &parsed_feeds, "missing".to_string())
+        .expect_err("missing account should be rejected before import writes");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message == "Account not found"
+    ));
+
+    let folder_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+        .unwrap();
+    let feed_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(folder_count, 0);
+    assert_eq!(feed_count, 0);
+}
+
+#[test]
+fn import_opml_command_uses_maintenance_guard_before_db_lock() {
+    let db = Mutex::new(test_db());
+    let account_id = {
+        let db_guard = db.lock().unwrap();
+        insert_test_account(&db_guard, "Primary")
+    };
+    let syncing = AtomicBool::new(true);
+    let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Rust Blog" type="rss" xmlUrl="https://blog.rust-lang.org/feed.xml"/>
+  </body>
+</opml>"#;
+
+    let error = import_opml_inner(&db, &syncing, opml, account_id.0)
+        .expect_err("syncing should block OPML import before writes");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message == DATABASE_MAINTENANCE_BUSY_ERROR
+    ));
+    assert!(
+        syncing.load(AtomicOrdering::SeqCst),
+        "failed maintenance start should not clear the active sync flag"
+    );
+}
+
+#[test]
+fn import_reuses_existing_folder_case_insensitively() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let existing_folder_id = insert_test_folder(&db, &account_id, "Engineering");
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Rust Blog".to_string(),
+        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+        html_url: None,
+        folder: Some("engineering".to_string()),
+    }];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 1);
+    let folder_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+        .unwrap();
+    let saved_folder_id: String = db
+        .reader()
+        .query_row(
+            "SELECT folder_id FROM feeds WHERE url = ?1",
+            params!["https://blog.rust-lang.org/feed.xml"],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(folder_count, 1);
+    assert_eq!(saved_folder_id, existing_folder_id.0);
+}
+
+#[test]
+fn import_folder_cache_uses_ascii_lowercase_and_trimmed_names() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let ascii_folder_id = insert_test_folder_with_sort_order(&db, &account_id, "Engineering", 0);
+    let accent_folder_id = insert_test_folder_with_sort_order(&db, &account_id, "Cafe", 1);
+    insert_test_folder_with_sort_order(&db, &account_id, "ＡＢＣ", 2);
+    insert_test_folder_with_sort_order(&db, &account_id, "İstanbul", 3);
+    let parsed_feeds = vec![
+        OpmlFeed {
+            title: "ASCII".to_string(),
+            xml_url: "https://example.com/ascii.xml".to_string(),
+            html_url: None,
+            folder: Some("  engineering  ".to_string()),
+        },
+        OpmlFeed {
+            title: "Accent".to_string(),
+            xml_url: "https://example.com/accent.xml".to_string(),
+            html_url: None,
+            folder: Some("cafe".to_string()),
+        },
+        OpmlFeed {
+            title: "Fullwidth".to_string(),
+            xml_url: "https://example.com/fullwidth.xml".to_string(),
+            html_url: None,
+            folder: Some("ａｂｃ".to_string()),
+        },
+        OpmlFeed {
+            title: "Turkish".to_string(),
+            xml_url: "https://example.com/turkish.xml".to_string(),
+            html_url: None,
+            folder: Some("istanbul".to_string()),
+        },
+    ];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 4);
+    let folder_names = db
+        .reader()
+        .prepare("SELECT name FROM folders ORDER BY name")
+        .unwrap()
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let feed_folders = db
+        .reader()
+        .prepare(
+            "SELECT feeds.title, folders.id, folders.name
+             FROM feeds
+             JOIN folders ON feeds.folder_id = folders.id
+             ORDER BY feeds.title",
+        )
+        .unwrap()
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let feed_folder_names = feed_folders
+        .iter()
+        .map(|(title, _, folder_name)| (title.as_str(), folder_name.as_str()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        folder_names,
+        vec!["Cafe", "Engineering", "istanbul", "İstanbul", "ＡＢＣ"]
+    );
+    assert_eq!(
+        feed_folder_names,
+        vec![
+            ("ASCII", "Engineering"),
+            ("Accent", "Cafe"),
+            ("Fullwidth", "ＡＢＣ"),
+            ("Turkish", "istanbul"),
+        ]
+    );
+    assert_eq!(feed_folders[0].1, ascii_folder_id.0);
+    assert_eq!(feed_folders[1].1, accent_folder_id.0);
+}
+
+#[test]
+fn import_refreshes_query_statistics_after_creating_feeds() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Rust Blog".to_string(),
+        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+        html_url: None,
+        folder: Some("Engineering".to_string()),
+    }];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 1);
+    let stats_rows: i64 = db
+        .reader()
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_stat1 WHERE tbl IN ('feeds', 'folders')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        stats_rows > 0,
+        "OPML import should refresh planner statistics after writing feeds"
+    );
+}
+
+#[test]
+fn import_keeps_committed_feeds_when_query_statistics_refresh_fails() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Rust Blog".to_string(),
+        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+        html_url: None,
+        folder: Some("Engineering".to_string()),
+    }];
+
+    FORCE_IMPORT_QUERY_STATISTICS_REFRESH_FAILURE.with(|force_failure| force_failure.set(true));
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone());
+    FORCE_IMPORT_QUERY_STATISTICS_REFRESH_FAILURE.with(|force_failure| force_failure.set(false));
+
+    let feeds = feeds.expect("post-commit refresh failure should not fail OPML import");
+    assert_eq!(feeds.len(), 1);
+    let persisted_feed_count: i64 = db
+        .reader()
+        .query_row(
+            "SELECT COUNT(*) FROM feeds WHERE account_id = ?1",
+            params![account_id.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(persisted_feed_count, 1);
+}
+
+#[test]
+fn import_reuses_new_folder_case_insensitively_within_same_file() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let parsed_feeds = vec![
+        OpmlFeed {
+            title: "Rust Blog".to_string(),
+            xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+            html_url: None,
+            folder: Some("Engineering".to_string()),
+        },
+        OpmlFeed {
+            title: "Cargo Blog".to_string(),
+            xml_url: "https://blog.rust-lang.org/cargo.xml".to_string(),
+            html_url: None,
+            folder: Some("engineering".to_string()),
+        },
+    ];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 2);
+    let folder_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+        .unwrap();
+    let feed_folder_count: i64 = db
+        .reader()
+        .query_row(
+            "SELECT COUNT(DISTINCT folder_id) FROM feeds WHERE folder_id IS NOT NULL",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(folder_count, 1);
+    assert_eq!(feed_folder_count, 1);
+}
+
+#[test]
+fn import_skips_duplicate_urls_within_same_file_and_keeps_first_feed() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let parsed_feeds = vec![
+        OpmlFeed {
+            title: "First Title".to_string(),
+            xml_url: "https://example.com/shared.xml".to_string(),
+            html_url: Some("https://example.com/first".to_string()),
+            folder: Some("First Folder".to_string()),
+        },
+        OpmlFeed {
+            title: "Second Title".to_string(),
+            xml_url: "https://example.com/shared.xml".to_string(),
+            html_url: Some("https://example.com/second".to_string()),
+            folder: Some("Second Folder".to_string()),
+        },
+    ];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].title, "First Title");
+    assert_eq!(feeds[0].url, "https://example.com/shared.xml");
+    let saved = db
+        .reader()
+        .query_row(
+            "SELECT feeds.title, feeds.site_url, folders.name
+             FROM feeds
+             LEFT JOIN folders ON feeds.folder_id = folders.id
+             WHERE feeds.url = ?1",
+            params!["https://example.com/shared.xml"],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .unwrap();
+    let folder_names = db
+        .reader()
+        .prepare("SELECT name FROM folders ORDER BY name")
+        .unwrap()
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    assert_eq!(
+        saved,
+        (
+            "First Title".to_string(),
+            "https://example.com/first".to_string(),
+            "First Folder".to_string()
+        )
+    );
+    assert_eq!(folder_names, vec!["First Folder"]);
+}
+
+#[test]
+fn import_skips_duplicate_urls_within_same_file_by_normalized_url_key() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let parsed_feeds = vec![
+        OpmlFeed {
+            title: "First Title".to_string(),
+            xml_url: "HTTPS://EXAMPLE.COM:443/%7Efeed/?b=2&a=1".to_string(),
+            html_url: Some("https://example.com/first".to_string()),
+            folder: Some("First Folder".to_string()),
+        },
+        OpmlFeed {
+            title: "Second Title".to_string(),
+            xml_url: "https://example.com/~feed?a=1&b=2".to_string(),
+            html_url: Some("https://example.com/second".to_string()),
+            folder: Some("Second Folder".to_string()),
+        },
+    ];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].title, "First Title");
+    assert_eq!(feeds[0].url, "HTTPS://EXAMPLE.COM:443/%7Efeed/?b=2&a=1");
+    let folder_names = db
+        .reader()
+        .prepare("SELECT name FROM folders ORDER BY name")
+        .unwrap()
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    assert_eq!(folder_names, vec!["First Folder"]);
+}
+
+#[test]
+fn import_skips_existing_url_without_overwriting_or_moving_folder() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let existing_folder_id = insert_test_folder(&db, &account_id, "Existing Folder");
+    insert_test_feed(
+        &db,
+        &account_id,
+        Some(&existing_folder_id),
+        "Existing Title",
+        "https://example.com/shared.xml",
+    );
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Imported Title".to_string(),
+        xml_url: "https://example.com/shared.xml".to_string(),
+        html_url: Some("https://example.com/imported".to_string()),
+        folder: Some("Imported Folder".to_string()),
+    }];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert!(feeds.is_empty());
+    let saved = db
+        .reader()
+        .query_row(
+            "SELECT feeds.title, feeds.site_url, folders.name
+             FROM feeds
+             LEFT JOIN folders ON feeds.folder_id = folders.id
+             WHERE feeds.url = ?1",
+            params!["https://example.com/shared.xml"],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .unwrap();
+    let folder_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+        .unwrap();
+
+    assert_eq!(
+        saved,
+        (
+            "Existing Title".to_string(),
+            String::new(),
+            "Existing Folder".to_string()
+        )
+    );
+    assert_eq!(folder_count, 1);
+}
+
+#[test]
+fn import_skips_existing_url_by_normalized_url_key_without_overwriting_or_moving_folder() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let existing_folder_id = insert_test_folder(&db, &account_id, "Existing Folder");
+    insert_test_feed(
+        &db,
+        &account_id,
+        Some(&existing_folder_id),
+        "Existing Title",
+        "https://example.com/~feed?a=1&b=2",
+    );
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Imported Title".to_string(),
+        xml_url: "HTTPS://EXAMPLE.COM:443/%7Efeed/?b=2&a=1".to_string(),
+        html_url: Some("https://example.com/imported".to_string()),
+        folder: Some("Imported Folder".to_string()),
+    }];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert!(feeds.is_empty());
+    let saved = db
+        .reader()
+        .query_row(
+            "SELECT feeds.title, feeds.site_url, folders.name
+             FROM feeds
+             LEFT JOIN folders ON feeds.folder_id = folders.id
+             WHERE feeds.url = ?1",
+            params!["https://example.com/~feed?a=1&b=2"],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .unwrap();
+    let folder_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+        .unwrap();
+
+    assert_eq!(
+        saved,
+        (
+            "Existing Title".to_string(),
+            String::new(),
+            "Existing Folder".to_string()
+        )
+    );
+    assert_eq!(folder_count, 1);
+}
+
+#[test]
+fn import_keeps_cross_account_duplicate_url_and_folder_ownership_scoped() {
+    let db = test_db();
+    let source_account_id = insert_test_account(&db, "Source");
+    let import_account_id = insert_test_account(&db, "Import Target");
+    let source_folder_id = insert_test_folder(&db, &source_account_id, "Shared Folder");
+    let source_feed_id = insert_test_feed(
+        &db,
+        &source_account_id,
+        Some(&source_folder_id),
+        "Source Feed",
+        "https://example.com/shared.xml",
+    );
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Imported Feed".to_string(),
+        xml_url: "https://example.com/shared.xml".to_string(),
+        html_url: Some("https://example.com/imported".to_string()),
+        folder: Some("Shared Folder".to_string()),
+    }];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, import_account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].account_id, import_account_id.0);
+    assert_ne!(feeds[0].id, source_feed_id.0);
+
+    let saved_feeds = db
+        .reader()
+        .prepare(
+            "SELECT feeds.id, feeds.account_id, feeds.title, folders.account_id, folders.name
+             FROM feeds
+             JOIN folders ON feeds.folder_id = folders.id
+             WHERE feeds.url = ?1
+             ORDER BY feeds.account_id",
+        )
+        .unwrap()
+        .query_map(params!["https://example.com/shared.xml"], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    assert_eq!(saved_feeds.len(), 2);
+    assert!(saved_feeds.contains(&(
+        source_feed_id.0,
+        source_account_id.0.clone(),
+        "Source Feed".to_string(),
+        source_account_id.0,
+        "Shared Folder".to_string()
+    )));
+    assert!(saved_feeds.contains(&(
+        feeds[0].id.clone(),
+        import_account_id.0.clone(),
+        "Imported Feed".to_string(),
+        import_account_id.0,
+        "Shared Folder".to_string()
+    )));
+}
+
+#[test]
+fn import_assigns_new_folder_sort_order_after_existing_max_order() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    insert_test_folder_with_sort_order(&db, &account_id, "Low", 2);
+    insert_test_folder_with_sort_order(&db, &account_id, "Middle", 5);
+    insert_test_folder_with_sort_order(&db, &account_id, "Gap High", 10);
+    let parsed_feeds = vec![
+        OpmlFeed {
+            title: "Alpha".to_string(),
+            xml_url: "https://example.com/alpha.xml".to_string(),
+            html_url: None,
+            folder: Some("Imported A".to_string()),
+        },
+        OpmlFeed {
+            title: "Beta".to_string(),
+            xml_url: "https://example.com/beta.xml".to_string(),
+            html_url: None,
+            folder: Some("Imported B".to_string()),
+        },
+    ];
+
+    let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+    assert_eq!(feeds.len(), 2);
+    let imported_orders = db
+        .reader()
+        .prepare(
+            "SELECT name, sort_order FROM folders
+             WHERE name LIKE 'Imported %'
+             ORDER BY sort_order, name",
+        )
+        .unwrap()
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    assert_eq!(
+        imported_orders,
+        vec![
+            ("Imported A".to_string(), 11),
+            ("Imported B".to_string(), 12)
+        ]
+    );
+}
+
+#[test]
+fn import_rolls_back_created_folders_when_feed_save_fails() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    db.writer()
+        .execute_batch(
+            "CREATE TEMP TRIGGER fail_opml_feed_insert
+             BEFORE INSERT ON feeds
+             BEGIN
+               SELECT RAISE(FAIL, 'feed save failed');
+             END;",
+        )
+        .unwrap();
+    let parsed_feeds = vec![OpmlFeed {
+        title: "Rust Blog".to_string(),
+        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+        html_url: None,
+        folder: Some("Engineering".to_string()),
+    }];
+
+    let error = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone())
+        .expect_err("feed save failure should reject OPML import");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message.contains("feed save failed")
+    ));
+    let folder_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+        .unwrap();
+    let feed_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(folder_count, 0);
+    assert_eq!(feed_count, 0);
+}
+
+#[test]
+fn import_rolls_back_new_folder_after_duplicate_skip_when_feed_save_fails() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let existing_folder_id = insert_test_folder(&db, &account_id, "Existing Folder");
+    insert_test_feed(
+        &db,
+        &account_id,
+        Some(&existing_folder_id),
+        "Existing Title",
+        "https://example.com/existing.xml",
+    );
+    db.writer()
+        .execute_batch(
+            "CREATE TEMP TRIGGER fail_opml_feed_insert
+             BEFORE INSERT ON feeds
+             WHEN NEW.url = 'https://example.com/new.xml'
+             BEGIN
+               SELECT RAISE(FAIL, 'feed save failed');
+             END;",
+        )
+        .unwrap();
+    let parsed_feeds = vec![
+        OpmlFeed {
+            title: "Duplicate".to_string(),
+            xml_url: "https://example.com/existing.xml".to_string(),
+            html_url: None,
+            folder: Some("Skipped Folder".to_string()),
+        },
+        OpmlFeed {
+            title: "New".to_string(),
+            xml_url: "https://example.com/new.xml".to_string(),
+            html_url: None,
+            folder: Some("New Folder".to_string()),
+        },
+    ];
+
+    let error = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone())
+        .expect_err("feed save failure should reject OPML import");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message.contains("feed save failed")
+    ));
+    let folders = db
+        .reader()
+        .prepare("SELECT name FROM folders ORDER BY name")
+        .unwrap()
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let feeds = db
+        .reader()
+        .prepare("SELECT title, url FROM feeds ORDER BY title")
+        .unwrap()
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+
+    assert_eq!(folders, vec!["Existing Folder"]);
+    assert_eq!(
+        feeds,
+        vec![(
+            "Existing Title".to_string(),
+            "https://example.com/existing.xml".to_string()
+        )]
+    );
+}
+
+#[test]
+fn import_rolls_back_when_folder_save_fails_before_any_feed_is_saved() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    db.writer()
+        .execute_batch(
+            "CREATE TEMP TRIGGER fail_opml_folder_insert
+             BEFORE INSERT ON folders
+             BEGIN
+               SELECT RAISE(FAIL, 'folder save failed');
+             END;",
+        )
+        .unwrap();
+    let parsed_feeds = vec![OpmlFeed {
+        title: "New".to_string(),
+        xml_url: "https://example.com/new.xml".to_string(),
+        html_url: None,
+        folder: Some("New Folder".to_string()),
+    }];
+
+    let error = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone())
+        .expect_err("folder save failure should reject OPML import");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message.contains("folder save failed")
+    ));
+    let folder_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+        .unwrap();
+    let feed_count: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(folder_count, 0);
+    assert_eq!(feed_count, 0);
+}
+
+#[test]
+fn export_groups_foldered_feeds_by_folder_sort_order_then_keeps_top_level_feeds() {
+    let folder_early = folder("folder-early", "Early", 0);
+    let folder_late = folder("folder-late", "Late", 1);
+    let feeds = vec![
+        feed("top", None, "Top level"),
+        feed("late", Some(&folder_late.id), "Late feed"),
+        feed("early", Some(&folder_early.id), "Early feed"),
+    ];
+
+    let opml_feeds = build_export_opml_feeds(feeds, vec![folder_late, folder_early]);
+
+    let order = opml_feeds
+        .iter()
+        .map(|feed| (feed.title.as_str(), feed.folder.as_deref()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        order,
+        vec![
+            ("Early feed", Some("Early")),
+            ("Late feed", Some("Late")),
+            ("Top level", None),
+        ],
+    );
+}
+
+#[test]
+fn export_orders_folder_and_top_level_feeds_by_title_then_id() {
+    let folder_news = folder("folder-news", "News", 0);
+    let feeds = vec![
+        feed("top-z", None, "Zulu"),
+        feed("folder-beta", Some(&folder_news.id), "Beta"),
+        feed("top-a2", None, "Alpha"),
+        feed("folder-alpha-2", Some(&folder_news.id), "Alpha"),
+        feed("folder-alpha-1", Some(&folder_news.id), "Alpha"),
+        feed("top-a1", None, "Alpha"),
+    ];
+
+    let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+
+    let order = opml_feeds
+        .iter()
+        .map(|feed| {
+            (
+                feed.title.as_str(),
+                feed.xml_url.as_str(),
+                feed.folder.as_deref(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        order,
+        vec![
+            (
+                "Alpha",
+                "https://example.com/folder-alpha-1.xml",
+                Some("News"),
+            ),
+            (
+                "Alpha",
+                "https://example.com/folder-alpha-2.xml",
+                Some("News"),
+            ),
+            ("Beta", "https://example.com/folder-beta.xml", Some("News"),),
+            ("Alpha", "https://example.com/top-a1.xml", None),
+            ("Alpha", "https://example.com/top-a2.xml", None),
+            ("Zulu", "https://example.com/top-z.xml", None),
+        ],
+    );
+}
+
+#[test]
+fn export_feed_order_is_locale_independent_utf8_order_with_id_tie_breaker() {
+    let folder_news = folder("folder-news", "News", 0);
+    let feeds = vec![
+        feed("folder-emoji", Some(&folder_news.id), "🍎"),
+        feed("folder-lower", Some(&folder_news.id), "alpha"),
+        feed("folder-japanese", Some(&folder_news.id), "あ"),
+        feed("folder-upper", Some(&folder_news.id), "Alpha"),
+        feed("folder-alpha-2", Some(&folder_news.id), "Alpha"),
+        feed("folder-alpha-1", Some(&folder_news.id), "Alpha"),
+        feed(
+            "top-orphan",
+            Some(&FolderId("missing-folder".to_string())),
+            "Orphan",
+        ),
+    ];
+
+    let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+
+    let order = opml_feeds
+        .iter()
+        .map(|feed| {
+            (
+                feed.title.as_str(),
+                feed.xml_url.as_str(),
+                feed.folder.as_deref(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        order,
+        vec![
+            (
+                "Alpha",
+                "https://example.com/folder-alpha-1.xml",
+                Some("News"),
+            ),
+            (
+                "Alpha",
+                "https://example.com/folder-alpha-2.xml",
+                Some("News"),
+            ),
+            (
+                "Alpha",
+                "https://example.com/folder-upper.xml",
+                Some("News"),
+            ),
+            (
+                "alpha",
+                "https://example.com/folder-lower.xml",
+                Some("News"),
+            ),
+            (
+                "あ",
+                "https://example.com/folder-japanese.xml",
+                Some("News")
+            ),
+            ("🍎", "https://example.com/folder-emoji.xml", Some("News")),
+            ("Orphan", "https://example.com/top-orphan.xml", None),
+        ],
+    );
+}
+
+#[test]
+fn export_folder_order_tie_breaks_by_id_without_locale_collation() {
+    let folder_beta = folder("folder-beta", "beta", 0);
+    let folder_alpha = folder("folder-alpha", "Alpha", 0);
+    let folder_japanese = folder("folder-japanese", "あ", 0);
+    let feeds = vec![
+        feed("japanese", Some(&folder_japanese.id), "Japanese feed"),
+        feed("beta", Some(&folder_beta.id), "Beta feed"),
+        feed("alpha", Some(&folder_alpha.id), "Alpha feed"),
+    ];
+
+    let opml_feeds = build_export_opml_feeds(
+        feeds,
+        vec![
+            folder_beta.clone(),
+            folder_japanese.clone(),
+            folder_alpha.clone(),
+        ],
+    );
+
+    let order = opml_feeds
+        .iter()
+        .map(|feed| feed.folder.as_deref())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        order,
+        vec![
+            Some(folder_alpha.name.as_str()),
+            Some(folder_beta.name.as_str()),
+            Some(folder_japanese.name.as_str()),
+        ],
+    );
+}
+
+#[test]
+fn export_large_account_order_snapshot_stays_within_build_time_budget() {
+    const FOLDER_COUNT: usize = 80;
+    const FEEDS_PER_FOLDER: usize = 60;
+    const TOP_LEVEL_FEEDS: usize = 200;
+    const BUILD_TIME_BUDGET: Duration = Duration::from_secs(2);
+
+    let folders = (0..FOLDER_COUNT)
+        .map(|index| {
+            folder(
+                &format!("folder-{index:03}"),
+                &format!("Folder {index:03}"),
+                index as i32,
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut feeds = Vec::with_capacity(FOLDER_COUNT * FEEDS_PER_FOLDER + TOP_LEVEL_FEEDS);
+
+    for folder in folders.iter().rev() {
+        for feed_index in (0..FEEDS_PER_FOLDER).rev() {
+            feeds.push(feed(
+                &format!("{}-feed-{feed_index:03}", folder.id.0),
+                Some(&folder.id),
+                &format!("Feed {feed_index:03}"),
+            ));
+        }
+    }
+
+    for feed_index in (0..TOP_LEVEL_FEEDS).rev() {
+        feeds.push(feed(
+            &format!("top-feed-{feed_index:03}"),
+            None,
+            &format!("Top {feed_index:03}"),
+        ));
+    }
+
+    let started_at = Instant::now();
+    let opml_feeds = build_export_opml_feeds(feeds, folders);
+    let elapsed = started_at.elapsed();
+
+    assert_eq!(
+        opml_feeds.len(),
+        FOLDER_COUNT * FEEDS_PER_FOLDER + TOP_LEVEL_FEEDS
+    );
+    assert!(
+        elapsed <= BUILD_TIME_BUDGET,
+        "large OPML export ordering exceeded build time budget: {elapsed:?}"
+    );
+
+    let snapshot_positions = [
+        0,
+        FEEDS_PER_FOLDER - 1,
+        FEEDS_PER_FOLDER,
+        FOLDER_COUNT * FEEDS_PER_FOLDER - 1,
+        FOLDER_COUNT * FEEDS_PER_FOLDER,
+        opml_feeds.len() - 1,
+    ];
+    let order_snapshot = snapshot_positions
+        .iter()
+        .map(|index| {
+            let feed = &opml_feeds[*index];
+            (
+                *index,
+                feed.title.as_str(),
+                feed.folder.as_deref(),
+                feed.xml_url.as_str(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        order_snapshot,
+        vec![
+            (
+                0,
+                "Feed 000",
+                Some("Folder 000"),
+                "https://example.com/folder-000-feed-000.xml",
+            ),
+            (
+                59,
+                "Feed 059",
+                Some("Folder 000"),
+                "https://example.com/folder-000-feed-059.xml",
+            ),
+            (
+                60,
+                "Feed 000",
+                Some("Folder 001"),
+                "https://example.com/folder-001-feed-000.xml",
+            ),
+            (
+                4799,
+                "Feed 059",
+                Some("Folder 079"),
+                "https://example.com/folder-079-feed-059.xml",
+            ),
+            (
+                4800,
+                "Top 000",
+                None,
+                "https://example.com/top-feed-000.xml",
+            ),
+            (
+                4999,
+                "Top 199",
+                None,
+                "https://example.com/top-feed-199.xml",
+            ),
+        ]
+    );
+}
+
+#[test]
+fn export_generate_error_log_uses_redacted_sentinel() {
+    assert_eq!(opml_generate_log_error_for_test(), "redacted");
+    assert_ne!(
+        opml_generate_log_error_for_test(),
+        "Primary Account With Token https://example.com/?token=secret"
+    );
+}
+
+#[test]
+fn export_build_output_round_trips_escaped_xml_in_stable_order() {
+    let folder_news = folder("folder-news", "News & Research", 0);
+    let folder_tools = folder("folder-tools", "Tools <Daily>", 1);
+    let feeds = vec![
+        Feed {
+            site_url: "https://example.com/zulu?x=1&y=2".to_string(),
+            ..feed("folder-zulu", Some(&folder_news.id), "Zulu & Friends")
+        },
+        Feed {
+            site_url: "https://example.com/alpha?x=1&y=2".to_string(),
+            ..feed("folder-alpha", Some(&folder_news.id), "Alpha & Friends")
+        },
+        feed("top-beta", None, "Beta <Top>"),
+        feed("folder-tools", Some(&folder_tools.id), "Tools \"Daily\""),
+    ];
+
+    let opml_feeds = build_export_opml_feeds(feeds, vec![folder_tools, folder_news]);
+    let xml = opml::generate_opml("Primary & Local", &opml_feeds).unwrap();
+    let parsed = opml::parse_opml(&xml).unwrap();
+
+    assert!(xml.contains("<title>Primary &amp; Local</title>"));
+    assert_eq!(parsed, opml_feeds);
+    assert_eq!(
+        parsed
+            .iter()
+            .map(|feed| (feed.title.as_str(), feed.folder.as_deref()))
+            .collect::<Vec<_>>(),
+        vec![
+            ("Alpha & Friends", Some("News & Research")),
+            ("Zulu & Friends", Some("News & Research")),
+            ("Tools \"Daily\"", Some("Tools <Daily>")),
+            ("Beta <Top>", None),
+        ],
+    );
+}
+
+#[test]
+fn export_sanitizes_invalid_xml_chars_in_account_feed_folder_and_urls() {
+    let replacement = char::REPLACEMENT_CHARACTER;
+    let folder_news = folder("folder-news", "News\u{0}Research", 0);
+    let feeds = vec![Feed {
+        url: "https://example.com/\u{B}feed.xml".to_string(),
+        site_url: "https://example.com/\u{1F}home".to_string(),
+        ..feed("folder-alpha", Some(&folder_news.id), "Alpha\u{8}Friends")
+    }];
+
+    let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+    let xml = opml::generate_opml("Primary\u{C}Local", &opml_feeds).unwrap();
+    let parsed = opml::parse_opml(&xml).unwrap();
+
+    assert!(!xml.contains('\u{0}'));
+    assert!(!xml.contains('\u{8}'));
+    assert!(!xml.contains('\u{B}'));
+    assert!(!xml.contains('\u{C}'));
+    assert!(!xml.contains('\u{1F}'));
+    assert!(xml.contains(&format!("<title>Primary{replacement}Local</title>")));
+    assert_eq!(parsed[0].title, format!("Alpha{replacement}Friends"));
+    assert_eq!(
+        parsed[0].xml_url,
+        format!("https://example.com/{replacement}feed.xml")
+    );
+    assert_eq!(
+        parsed[0].html_url,
+        Some(format!("https://example.com/{replacement}home"))
+    );
+    assert_eq!(parsed[0].folder, Some(format!("News{replacement}Research")));
+}
+
+#[test]
+fn export_keeps_remote_feed_content_out_of_filename_or_path_suggestions() {
+    let folder_news = folder("folder-news", "../Private Folder", 0);
+    let feeds = vec![
+        feed(
+            "folder-alpha",
+            Some(&folder_news.id),
+            "../../from-feed-title.opml",
+        ),
+        Feed {
+            site_url: "https://example.com/articles/download?filename=remote-title.opml"
+                .to_string(),
+            ..feed("top-beta", None, "C:\\Users\\alice\\feed-title.xml")
+        },
+    ];
+
+    let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+    let xml = opml::generate_opml("../Account Name.opml", &opml_feeds).unwrap();
+    let parsed = opml::parse_opml(&xml).unwrap();
+
+    assert_eq!(parsed, opml_feeds);
+    for forbidden in [
+        "suggestedFilename",
+        "suggestedPath",
+        "savePath",
+        "downloadPath",
+    ] {
+        assert!(
+            !xml.contains(forbidden),
+            "OPML export must not add filename/path suggestion metadata: {forbidden}"
+        );
+    }
+    assert!(
+        !xml.contains("<!--"),
+        "OPML export must not put path-like remote content in comments"
+    );
+}
+
+fn export_dir() -> tempfile::TempDir {
+    tempfile::tempdir().expect("temp OPML export directory should be created")
+}
+
+#[test]
+fn export_to_file_appends_opml_extension_only_when_missing() {
+    use std::path::PathBuf;
+
+    assert_eq!(
+        ensure_opml_extension(PathBuf::from("/tmp/feeds")),
+        PathBuf::from("/tmp/feeds.opml")
+    );
+    assert_eq!(
+        ensure_opml_extension(PathBuf::from("/tmp/feeds.opml")),
+        PathBuf::from("/tmp/feeds.opml")
+    );
+    assert_eq!(
+        ensure_opml_extension(PathBuf::from("/tmp/FEEDS.OPML")),
+        PathBuf::from("/tmp/FEEDS.OPML")
+    );
+    assert_eq!(
+        ensure_opml_extension(PathBuf::from("/tmp/feeds.xml")),
+        PathBuf::from("/tmp/feeds.xml.opml")
+    );
+}
+
+#[test]
+fn export_to_file_writes_opml_through_temp_file_without_leaving_temp_artifact() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_id = insert_test_folder(&db, &account_id, "Engineering");
+    insert_test_feed(
+        &db,
+        &account_id,
+        Some(&folder_id),
+        "Rust Blog",
+        "https://blog.rust-lang.org/feed.xml",
+    );
+    let dir = export_dir();
+    let dest = dir.path().join("Primary-feeds.opml");
+
+    export_opml_to_file_in_db(&db, account_id.0.clone(), &dest)
+        .expect("OPML export should write the destination file");
+
+    let written = std::fs::read_to_string(&dest).expect("exported OPML file should be readable");
+    assert!(written.contains("<opml"));
+    assert!(written.contains("https://blog.rust-lang.org/feed.xml"));
+    assert!(
+        !opml_export_temp_path(&dest).exists(),
+        "atomic OPML export should not leave a temp file behind"
+    );
+}
+
+#[test]
+fn export_to_file_replaces_stale_temp_artifacts_before_writing() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let dir = export_dir();
+    let dest = dir.path().join("feeds.opml");
+    std::fs::write(opml_export_temp_path(&dest), "stale partial artifact").unwrap();
+
+    export_opml_to_file_in_db(&db, account_id.0.clone(), &dest)
+        .expect("stale temp artifacts should not block a fresh export");
+
+    assert!(std::fs::read_to_string(&dest).unwrap().contains("<opml"));
+    assert!(
+        !opml_export_temp_path(&dest).exists(),
+        "stale temp artifact should be replaced and cleaned up"
+    );
+}
+
+#[test]
+fn export_to_file_cleans_up_temp_file_when_finalize_rename_fails() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let dir = export_dir();
+    let dest = dir.path().join("feeds.opml");
+    // A directory at the destination makes fs::rename(file -> dir) fail.
+    std::fs::create_dir(&dest).unwrap();
+
+    let error = export_opml_to_file_in_db(&db, account_id.0.clone(), &dest)
+        .expect_err("finalizing onto a directory should fail the export");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message.contains("Failed to write OPML export")
+    ));
+    assert!(
+        !opml_export_temp_path(&dest).exists(),
+        "failed OPML export should clean up its temp file"
+    );
+}
+
+#[test]
+fn export_to_file_rejects_blank_path_before_touching_the_database() {
+    let error = validate_opml_export_path("   ".to_string())
+        .expect_err("blank OPML export paths should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message == "OPML export path cannot be empty"
+    ));
+}
+
+#[test]
+fn export_to_file_reports_missing_account_without_creating_the_file() {
+    let db = test_db();
+    let dir = export_dir();
+    let dest = dir.path().join("feeds.opml");
+
+    let error = export_opml_to_file_in_db(&db, "missing".to_string(), &dest)
+        .expect_err("missing account should fail the export before writing");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message == "Account not found"
+    ));
+    assert!(!dest.exists());
+    assert!(!opml_export_temp_path(&dest).exists());
+}
+
+#[test]
+fn export_to_file_rejects_auto_appended_extension_when_target_already_exists() {
+    let dir = export_dir();
+    let existing = dir.path().join("feeds.opml");
+    std::fs::write(&existing, "<opml></opml>").unwrap();
+    let requested = dir.path().join("feeds").to_string_lossy().to_string();
+
+    let error = validate_opml_export_path(requested)
+        .expect_err("auto-appended extension must not silently overwrite an existing file");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message } if message.contains("already exists")
+    ));
+    assert_eq!(
+        std::fs::read_to_string(&existing).unwrap(),
+        "<opml></opml>",
+        "the pre-existing file must not be touched by the rejected export"
+    );
+}
+
+#[test]
+fn export_to_file_allows_overwrite_when_user_typed_the_opml_extension_explicitly() {
+    let dir = export_dir();
+    let existing = dir.path().join("feeds.opml");
+    std::fs::write(&existing, "<opml></opml>").unwrap();
+    let requested = existing.to_string_lossy().to_string();
+
+    let path = validate_opml_export_path(requested)
+        .expect("an explicit .opml path should be accepted even if it already exists, since the OS dialog already confirmed overwrite for that exact name");
+
+    assert_eq!(path, existing);
+}
