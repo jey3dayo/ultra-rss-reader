@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { FeedLandingFailure, FeedLandingResult } from "@/hooks/use-feed-landing";
 import { executeAction } from "@/lib/actions";
@@ -116,17 +116,29 @@ export function useCommandPaletteHandlers({
   const paletteSessionIdRef = useRef(paletteSessionId);
   const commandPaletteOpenRef = useRef(commandPaletteOpen);
   const submittedPaletteSelectionRef = useRef<string | null>(null);
-  if (selectedAccountIdRef.current !== selectedAccountId) {
+  // These refs are read-only inside handler closures invoked from user events
+  // (never during this hook's own render output), so syncing them outside
+  // render is safe. They use useLayoutEffect rather than useEffect because
+  // they are stale-async guards (feed-landing/dev-scenario request ids,
+  // submitted-selection claims): a passive effect is scheduled as a macrotask
+  // and would leave a window, after commit but before the effect runs, where
+  // an in-flight promise's microtask continuation (e.g. openFeedLanding().then())
+  // could read the pre-switch ref value and apply a stale completion. Layout
+  // effects run synchronously in the commit phase, before any microtask can
+  // observe the old ref value, matching the previous render-phase-write timing.
+  useLayoutEffect(() => {
     selectedAccountIdRef.current = selectedAccountId;
     feedLandingRequestIdRef.current += 1;
     devScenarioRequestIdRef.current += 1;
-  }
-  if (paletteSessionIdRef.current !== paletteSessionId) {
+  }, [selectedAccountId]);
+  useLayoutEffect(() => {
     paletteSessionIdRef.current = paletteSessionId;
     submittedPaletteSelectionRef.current = null;
     devScenarioRequestIdRef.current += 1;
-  }
-  commandPaletteOpenRef.current = commandPaletteOpen;
+  }, [paletteSessionId]);
+  useLayoutEffect(() => {
+    commandPaletteOpenRef.current = commandPaletteOpen;
+  }, [commandPaletteOpen]);
 
   function tryClaimPaletteSubmit(selectionKey: string) {
     const submitKey = `${paletteSessionIdRef.current}:${selectionKey}`;
