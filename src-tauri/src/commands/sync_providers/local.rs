@@ -63,6 +63,47 @@ pub(super) fn local_feed_scope_key(feed_url: &str) -> SyncStateScopeKey {
     SyncStateScopeKey::local_feed(feed_url)
 }
 
+/// Read the saved sync state for a single local feed, inside a single
+/// reader lock scope.
+fn load_local_feed_sync_state(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    scope_key: &SyncStateScopeKey,
+) -> Result<Option<SyncState>, AppError> {
+    let db_guard = lock_db(db)?;
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+    Ok(sync_state_repo.get(account_id, scope_key)?)
+}
+
+/// Commit the pulled articles and sync-state updates for a single local
+/// feed inside one writer lock and transaction. See
+/// `save_local_feed_sync_result_in_current_transaction` for what runs
+/// inside the transaction.
+fn commit_local_feed_sync_result(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    feed: &Feed,
+    articles: &[Article],
+    next_states: &[SyncState],
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let tx = db_guard
+        .writer()
+        .unchecked_transaction()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    save_local_feed_sync_result_in_current_transaction(
+        &tx,
+        account_id,
+        feed,
+        articles,
+        next_states,
+    )?;
+    tx.commit()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)
+}
+
 fn local_feed_effective_scope_key(
     requested_scope_key: &SyncStateScopeKey,
     result: &PullResult,
@@ -99,11 +140,7 @@ pub(in crate::commands) async fn sync_local_feed(
     feed: &Feed,
 ) -> Result<(), AppError> {
     let scope_key = local_feed_scope_key(&feed.url);
-    let saved_state = {
-        let db_guard = lock_db(db)?;
-        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
-        sync_state_repo.get(account_id, &scope_key)?
-    };
+    let saved_state = load_local_feed_sync_state(db, account_id, &scope_key)?;
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: feed.url.clone(),
     });
@@ -154,22 +191,7 @@ pub(in crate::commands) async fn sync_local_feed(
         next_retry_at: None,
     };
     let next_states = local_feed_validator_states_for_scope_keys(next_state, &scope_key);
-    let db_guard = lock_db(db)?;
-    let tx = db_guard
-        .writer()
-        .unchecked_transaction()
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
-    save_local_feed_sync_result_in_current_transaction(
-        &tx,
-        account_id,
-        feed,
-        &articles,
-        &next_states,
-    )?;
-    tx.commit()
-        .map_err(crate::domain::error::DomainError::from)
-        .map_err(AppError::from)?;
+    commit_local_feed_sync_result(db, account_id, feed, &articles, &next_states)?;
 
     Ok(())
 }
