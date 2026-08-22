@@ -262,6 +262,7 @@ describe("resolveSidebarLastSyncedLabel", () => {
         account_id: "acc-1",
         account_name: "Account 1",
         message: "Network timeout",
+        detail: null,
       },
     ];
 

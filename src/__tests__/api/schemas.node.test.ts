@@ -2554,6 +2554,7 @@ describe("command args schemas", () => {
           account_name: "FreshRSS",
           message: "Retry later",
           retry_in_seconds: 30,
+          detail: null,
         },
       ],
     };
