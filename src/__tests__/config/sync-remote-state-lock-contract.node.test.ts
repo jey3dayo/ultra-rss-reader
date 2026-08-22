@@ -3,7 +3,7 @@ import { join, relative } from "node:path";
 import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
 import accountRsSource from "../../../src-tauri/src/commands/sync_providers/account.rs?raw";
-import unreadReconcileSource from "../../../src-tauri/src/commands/sync_providers/unread.rs?raw";
+import unreadReconcileSource from "../../../src-tauri/src/commands/sync_providers/unread/mod.rs?raw";
 
 // Structural regression guard for .claude/rules/remote-state-reconciliation.md
 // (plan 021): the pending-mutation protection list must be re-read inside the
@@ -17,7 +17,7 @@ import unreadReconcileSource from "../../../src-tauri/src/commands/sync_provider
 
 const srcTauriSrcRoot = join(process.cwd(), "src-tauri/src");
 const ACCOUNT_RS_REL_PATH = "commands/sync_providers/account.rs";
-const UNREAD_RS_REL_PATH = "commands/sync_providers/unread.rs";
+const UNREAD_RS_REL_PATH = "commands/sync_providers/unread/mod.rs";
 
 // Files allowed to call `.apply_remote_state(` outside test code, other than
 // account.rs's `apply_remote_state_with_protection` (checked at the block level
