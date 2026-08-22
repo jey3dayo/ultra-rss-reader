@@ -124,7 +124,9 @@ describe("test isolation policy contract", () => {
     const rustSources = [
       readRepoFile("src-tauri/src/menu.rs"),
       readRepoFile("src-tauri/src/service/sync_scheduler.rs"),
-      readRepoFile("src-tauri/src/commands/article_commands.rs"),
+      ...["mod.rs", "browser.rs", "integrity.rs", "mutations.rs", "queries.rs", "tests.rs"].map((file) =>
+        readRepoFile(`src-tauri/src/commands/article_commands/${file}`),
+      ),
     ];
 
     for (const source of rustSources) {
