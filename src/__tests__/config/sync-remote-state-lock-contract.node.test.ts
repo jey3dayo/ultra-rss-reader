@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import modRsSource from "../../../src-tauri/src/commands/sync_providers/mod.rs?raw";
+import accountRsSource from "../../../src-tauri/src/commands/sync_providers/account.rs?raw";
 import unreadReconcileSource from "../../../src-tauri/src/commands/sync_providers/unread.rs?raw";
 
 // Structural regression guard for .claude/rules/remote-state-reconciliation.md
@@ -15,12 +15,12 @@ import unreadReconcileSource from "../../../src-tauri/src/commands/sync_provider
 // invariant holds for all possible code shapes.
 
 const srcTauriSrcRoot = join(process.cwd(), "src-tauri/src");
-const MOD_RS_REL_PATH = "commands/sync_providers/mod.rs";
+const ACCOUNT_RS_REL_PATH = "commands/sync_providers/account.rs";
 const UNREAD_RS_REL_PATH = "commands/sync_providers/unread.rs";
 
 // Files allowed to call `.apply_remote_state(` outside test code, other than
-// mod.rs's `apply_remote_state_with_protection` (checked at the block level
-// below, since mod.rs also contains many unrelated functions):
+// account.rs's `apply_remote_state_with_protection` (checked at the block level
+// below, since account.rs also contains many unrelated functions):
 // - infra/db/sqlite_article.rs: the trait implementation itself. The only
 //   `.apply_remote_state(` matches in this file are its own `#[cfg(test)]`
 //   unit tests calling the method on a repo instance; the definition itself
@@ -49,14 +49,12 @@ function extractBlock(source: string, pattern: RegExp, label: string): string {
   return matched;
 }
 
-// mod.rs's own `#[cfg(test)] mod tests { ... }` block starts here and runs to
-// end of file; excluding it (rather than scanning the whole file) keeps this
-// contract about production callers, matching how the other allowlisted
-// files are read (their own unit tests are expected to call the method).
 function productionSourceExcludingTestModule(source: string): string {
   const testModuleStart = source.indexOf("\nmod tests {");
   if (testModuleStart === -1) {
-    throw new Error("Could not find `mod tests {` in source");
+    // The inline test module has been extracted to its own file; the whole
+    // source is production code.
+    return source;
   }
   return source.slice(0, testModuleStart);
 }
@@ -71,8 +69,8 @@ describe("remote-state apply lock contract", () => {
 
     for (const file of files) {
       const relPath = relative(srcTauriSrcRoot, file).split("\\").join("/");
-      if (relPath === MOD_RS_REL_PATH) {
-        // mod.rs is checked below at the block level: only the sanctioned
+      if (relPath === ACCOUNT_RS_REL_PATH) {
+        // account.rs is checked below at the block level: only the sanctioned
         // helper may contain `.apply_remote_state(`, and nothing else in the
         // file (outside its test module) may.
         continue;
@@ -89,16 +87,16 @@ describe("remote-state apply lock contract", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps apply_remote_state_with_protection as mod.rs's only `.apply_remote_state(` caller", () => {
-    const helperBody = extractBlock(modRsSource, HELPER_FN_PATTERN, "apply_remote_state_with_protection body");
+  it("keeps apply_remote_state_with_protection as account.rs's only `.apply_remote_state(` caller", () => {
+    const helperBody = extractBlock(accountRsSource, HELPER_FN_PATTERN, "apply_remote_state_with_protection body");
 
     const helperCallCount = helperBody.split(".apply_remote_state(").length - 1;
     expect(helperCallCount).toBe(1);
 
-    const productionSource = productionSourceExcludingTestModule(modRsSource);
+    const productionSource = productionSourceExcludingTestModule(accountRsSource);
     const helperStart = productionSource.indexOf("fn apply_remote_state_with_protection");
     if (helperStart === -1) {
-      throw new Error("Could not find apply_remote_state_with_protection in mod.rs production source");
+      throw new Error("Could not find apply_remote_state_with_protection in account.rs production source");
     }
     const helperFullMatch = productionSource
       .slice(helperStart)
@@ -113,7 +111,7 @@ describe("remote-state apply lock contract", () => {
   });
 
   it("keeps apply_remote_state_with_protection re-reading pending protection inside the DB lock", () => {
-    const helperBody = extractBlock(modRsSource, HELPER_FN_PATTERN, "apply_remote_state_with_protection body");
+    const helperBody = extractBlock(accountRsSource, HELPER_FN_PATTERN, "apply_remote_state_with_protection body");
 
     expect(helperBody).toContain("lock_db(db)?");
     expect(helperBody).toContain("pending_remote_ids_by_axis(db_guard.reader(), account_id)?");
@@ -151,11 +149,11 @@ describe("remote-state apply lock contract", () => {
     }
 
     // Both the file-level location AND the exact per-file count are pinned:
-    // a second caller added anywhere in mod.rs (not just outside the helper)
+    // a second caller added anywhere in account.rs (not just outside the helper)
     // would otherwise slip through a "file appears in the caller set" check.
     expect(callCountsByFile).toEqual(
       new Map([
-        [MOD_RS_REL_PATH, 1],
+        [ACCOUNT_RS_REL_PATH, 1],
         [UNREAD_RS_REL_PATH, 1],
       ]),
     );
