@@ -1,20 +1,4 @@
-import { Result } from "@praha/byethrow";
-import { useQuery } from "@tanstack/react-query";
-import { listFeedArticleSummaries } from "@/api/tauri-commands";
-import { queryKeys } from "@/lib/query/query-invalidation";
-
-export function useFeedArticleSummaries(accountId: string | null) {
-  const trimmedAccountId = accountId?.trim() ?? null;
-  const enabled = !!trimmedAccountId;
-
-  return useQuery({
-    queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex(accountId),
-    queryFn: () => {
-      if (!trimmedAccountId) {
-        throw new Error("accountId is required when the query is enabled.");
-      }
-      return listFeedArticleSummaries(trimmedAccountId).then(Result.unwrap());
-    },
-    enabled,
-  });
-}
+// Compatibility re-export: the implementation moved to `src/hooks/use-feed-article-summaries.ts`
+// because it is now a cross-feature data hook (also used by the reader sidebar).
+// Kept here so existing subscriptions-index imports, tests, and mocks are not churned.
+export { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";

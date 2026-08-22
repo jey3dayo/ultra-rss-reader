@@ -156,10 +156,10 @@ vi.mock("@/hooks/use-articles", async () => {
   };
 });
 
-vi.mock("@/components/subscriptions-index/hooks/use-feed-article-summaries", async () => {
-  const actual = await vi.importActual<
-    typeof import("@/components/subscriptions-index/hooks/use-feed-article-summaries")
-  >("@/components/subscriptions-index/hooks/use-feed-article-summaries");
+vi.mock("@/hooks/use-feed-article-summaries", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/use-feed-article-summaries")>(
+    "@/hooks/use-feed-article-summaries",
+  );
   return {
     ...actual,
     useFeedArticleSummaries: (accountId: string | null) => {

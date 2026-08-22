@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
-import { useFeedArticleSummaries } from "@/components/subscriptions-index/hooks/use-feed-article-summaries";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountStarredCount } from "@/hooks/use-articles";
+import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";

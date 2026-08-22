@@ -48,7 +48,7 @@ vi.mock("@/hooks/use-articles", () => ({
   useAccountStarredCount: (...args: unknown[]) => useAccountStarredCountMock(...args),
 }));
 
-vi.mock("@/components/subscriptions-index/hooks/use-feed-article-summaries", () => ({
+vi.mock("@/hooks/use-feed-article-summaries", () => ({
   useFeedArticleSummaries: (...args: unknown[]) => useFeedArticleSummariesMock(...args),
 }));
 
