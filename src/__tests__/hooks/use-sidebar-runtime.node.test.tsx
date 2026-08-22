@@ -26,7 +26,6 @@ vi.mock("@/components/reader/hooks/sidebar/use-sidebar-sources", () => ({
     accounts: [],
     accountStatusLabels: {},
     selectedAccount: null,
-    accountArticles: [],
     feeds: [],
     feedList: [],
     folders: [],
