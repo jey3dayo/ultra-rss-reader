@@ -105,6 +105,14 @@ import { objectEntries } from "@/api/schemas/validation";
 import { APP_ACTIONS, isAppAction } from "@/lib/app-actions";
 
 const RUST_COMMAND_DTO_MODULE_FILES = ["mod.rs", "error.rs", "feed.rs", "platform.rs", "sync.rs"];
+const RUST_ARTICLE_COMMAND_MODULE_FILES = [
+  "mod.rs",
+  "browser.rs",
+  "integrity.rs",
+  "mutations.rs",
+  "queries.rs",
+  "tests.rs",
+];
 
 function readRustCommandDtoSource() {
   return RUST_COMMAND_DTO_MODULE_FILES.map((file) =>
@@ -113,7 +121,9 @@ function readRustCommandDtoSource() {
 }
 
 function readRustArticleCommandSource() {
-  return readFileSync(join(process.cwd(), "src-tauri/src/commands/article_commands.rs"), "utf8");
+  return RUST_ARTICLE_COMMAND_MODULE_FILES.map((file) =>
+    readFileSync(join(process.cwd(), "src-tauri/src/commands/article_commands", file), "utf8"),
+  ).join("\n");
 }
 
 function readRustTagCommandSource() {
@@ -127,7 +137,7 @@ function readRustPlatformCommandSource() {
 function readRustCommandSources() {
   return [
     "account_commands/mod.rs",
-    "article_commands.rs",
+    ...RUST_ARTICLE_COMMAND_MODULE_FILES.map((file) => `article_commands/${file}`),
     "browser_webview_commands/mod.rs",
     "database_commands.rs",
     "feed_commands.rs",

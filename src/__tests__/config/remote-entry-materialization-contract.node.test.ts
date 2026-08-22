@@ -251,7 +251,7 @@ describe("remote-entry materialization contract", () => {
     // fixtures (not through upsert_articles_with_conn) and previously would
     // have been false positives for a naive whole-file scan.
     const knownFixtureFiles = [
-      "commands/article_commands.rs",
+      "commands/article_commands/tests.rs",
       "infra/db/sqlite_feed/mod.rs",
       "infra/db/connection.rs",
       "infra/db/sqlite_account.rs",
