@@ -1,6 +1,6 @@
 import { CopyableTextField } from "@/components/shared/copyable-text-field";
 
-type CopyableReadonlyFieldProps = {
+export type CopyableReadonlyFieldProps = {
   label: string;
   name: string;
   value: string;
