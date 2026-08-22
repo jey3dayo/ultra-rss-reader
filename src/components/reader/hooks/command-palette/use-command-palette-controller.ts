@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCommandPaletteActions } from "@/components/reader/hooks/command-palette/use-command-palette-actions";
 import { useCommandPaletteData } from "@/components/reader/hooks/command-palette/use-command-palette-data";
 import { useCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
@@ -27,12 +27,21 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
   const t = useStableOpenTranslation("reader", open);
   const openFeedLanding = useFeedLanding();
   const selectedAccountIdRef = useRef(selectedAccountId);
-  const paletteSessionIdRef = useRef(0);
-  const wasOpenRef = useRef(open);
-  if (open && !wasOpenRef.current) {
-    paletteSessionIdRef.current += 1;
+  // paletteSessionId must be visible to useCommandPaletteHandlers within the
+  // same render that flips `open`, so it is derived with React's documented
+  // "adjust state during render" pattern (see
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders)
+  // rather than mirrored into a ref via useEffect (which would lag one paint
+  // behind and let the previous session's submitted-selection guard survive
+  // into the reopened palette).
+  const [paletteSessionId, setPaletteSessionId] = useState(0);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setPaletteSessionId((id) => id + 1);
+    }
   }
-  wasOpenRef.current = open;
   const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime({ open });
   const actions = useCommandPaletteActions({
     open,
@@ -107,7 +116,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     selectTagFromCurrentContext,
     selectArticle,
     openFeedLanding,
-    paletteSessionId: paletteSessionIdRef.current,
+    paletteSessionId,
     commandPaletteOpen: open,
     canSelectArticle: (feedId, articleId) =>
       selectableArticleFeedIds.has(feedId) && selectableArticleIds.has(articleId),

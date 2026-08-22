@@ -396,6 +396,36 @@ describe("CommandPalette", () => {
     expect(screen.getByRole("dialog", { name: "Open command palette" })).toHaveAttribute("data-closed");
   });
 
+  it("allows the same action to be selected again after the palette is closed and reopened", async () => {
+    const user = userEvent.setup();
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    let input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">settings");
+    await user.click(await screen.findByRole("option", { name: /Open settings/ }));
+
+    await waitFor(() => {
+      expect(executeAction).toHaveBeenCalledTimes(1);
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+
+    // Reopening starts a new palette session; a previously submitted
+    // selection key must not block the same action from being dispatched
+    // again (paletteSessionId invalidation, see use-command-palette-controller.ts).
+    useUiStore.getState().openCommandPalette();
+
+    input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">settings");
+    await user.click(await screen.findByRole("option", { name: /Open settings/ }));
+
+    await waitFor(() => {
+      expect(executeAction).toHaveBeenCalledTimes(2);
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+  });
+
   it("filters to action results for the action prefix", async () => {
     const user = userEvent.setup();
     const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
