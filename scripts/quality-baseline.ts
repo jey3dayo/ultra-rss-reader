@@ -112,10 +112,14 @@ const knipBaseline = {
 } as const;
 
 const lockfileDuplicateMajorBaseline = {
-  duplicatePackageCount: 43,
-  duplicateMajorCount: 88,
-  directDuplicatePackageCount: 1,
-  unreviewedDuplicatePackageCount: 39,
+  // Current direct duplicates are intentionally unreviewed until their
+  // compatibility lanes are retired: jest-dom keeps a transitive v6 beside
+  // the direct v7, while the TypeScript aliases expose v6 and v7 beside the
+  // transitive v5 used by the remaining toolchain.
+  duplicatePackageCount: 50,
+  duplicateMajorCount: 104,
+  directDuplicatePackageCount: 2,
+  unreviewedDuplicatePackageCount: 46,
 } as const;
 
 export const dependencyLicenseInventoryContract = {
