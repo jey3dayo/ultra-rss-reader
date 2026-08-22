@@ -18,6 +18,8 @@ use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
+use super::redacted_feed_host_class;
+
 /// Compatibility wrapper kept in this module because callers throughout
 /// `commands/sync_providers/` already reference this name; the identity
 /// check itself is owned by [`is_greader_managed_feed_remote_id`].
@@ -153,10 +155,8 @@ pub(super) fn delete_missing_greader_subscriptions(
 
         info!(
             account_id = %account.id.as_ref(),
-            account_name = %account.name,
             feed_id = %feed.id.as_ref(),
-            remote_id = %remote_id,
-            feed_title = %feed.title,
+            host_class = redacted_feed_host_class(&feed.url),
             "Deleting local FreshRSS feed missing from remote subscriptions"
         );
         feed_repo.delete(&feed.id)?;
@@ -258,6 +258,44 @@ pub(super) fn pending_mutation_ids_targeting_provider_managed_greader_feeds(
         ids.insert(id);
     }
     Ok(ids)
+}
+
+pub(super) fn pending_mutation_log_contexts(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<HashMap<i64, (FeedId, &'static str)>, AppError> {
+    let db_guard = lock_db(db)?;
+    let mut stmt = db_guard
+        .reader()
+        .prepare(
+            // With exactly one min()/max() aggregate, SQLite takes bare
+            // columns from the row that produced the minimum, so f.url stays
+            // consistent with the selected feed_id even when the same
+            // remote_entry_id exists under multiple feeds.
+            "SELECT pm.id, MIN(a.feed_id), f.url
+             FROM pending_mutations pm
+             JOIN articles a ON a.remote_id = pm.remote_entry_id
+             JOIN feeds f ON f.id = a.feed_id AND f.account_id = pm.account_id
+             WHERE pm.account_id = ?1
+             GROUP BY pm.id",
+        )
+        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
+    let rows = stmt
+        .query_map(rusqlite::params![account_id.as_ref()], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                FeedId(row.get::<_, String>(1)?),
+                row.get::<_, String>(2)?,
+            ))
+        })
+        .map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
+    let mut contexts = HashMap::new();
+    for row in rows {
+        let (mutation_id, feed_id, feed_url) =
+            row.map_err(|error| AppError::from(crate::domain::error::DomainError::from(error)))?;
+        contexts.insert(mutation_id, (feed_id, redacted_feed_host_class(&feed_url)));
+    }
+    Ok(contexts)
 }
 
 #[cfg(test)]

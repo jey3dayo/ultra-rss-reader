@@ -135,15 +135,10 @@ fn test_account(server_url: &str) -> Account {
 #[tokio::test]
 async fn greader_password_lookup_times_out_when_keychain_blocks() {
     let started_at = Instant::now();
-    let error = get_greader_password_with_timeout(
-        "acc-timeout",
-        "FreshRSS",
-        Duration::from_millis(10),
-        |_| {
-            std::thread::sleep(Duration::from_millis(250));
-            Ok("password".to_string())
-        },
-    )
+    let error = get_greader_password_with_timeout("acc-timeout", Duration::from_millis(10), |_| {
+        std::thread::sleep(Duration::from_millis(250));
+        Ok("password".to_string())
+    })
     .await
     .expect_err("blocking keychain lookup should time out");
 
@@ -926,6 +921,42 @@ fn dropped_pending_mutation_warning_is_user_visible_without_remote_entry_id() {
             mutation: "star".to_string()
         }
     );
+}
+
+#[test]
+fn sync_log_context_exposes_only_ids_and_redacted_host_class() {
+    let account = test_account("https://account-secret.example.test");
+    let feed = make_test_feed(
+        &account.id,
+        "feed/https://remote-secret.example.test/rss",
+        "Private Feed Name",
+        "https://feed-secret.example.test/private/rss",
+        "https://site-secret.example.test",
+    );
+    let remote_entry_id = "tag:remote-secret.example.test,2005:reader/item/private";
+    let log = format!(
+        "account_id={} feed_id={} host_class={}",
+        account.id.as_ref(),
+        feed.id.as_ref(),
+        redacted_feed_host_class(&feed.url)
+    );
+
+    assert!(log.contains(account.id.as_ref()));
+    assert!(log.contains(feed.id.as_ref()));
+    assert_eq!(redacted_feed_host_class(&feed.url), "public");
+    assert_eq!(
+        redacted_feed_host_class("feed/https://remote-secret.example.test/rss"),
+        "public"
+    );
+    assert_eq!(
+        redacted_feed_host_class("http://127.0.0.1/rss.xml"),
+        "private"
+    );
+    assert_eq!(redacted_feed_host_class("not-a-url"), "invalid");
+    assert!(!log.contains(&account.name));
+    assert!(!log.contains(&feed.url));
+    assert!(!log.contains(remote_entry_id));
+    assert!(!log.contains("https://"));
 }
 
 #[test]

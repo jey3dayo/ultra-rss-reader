@@ -45,12 +45,14 @@ use super::state::{
 use super::subscriptions::{
     delete_missing_greader_folders, delete_missing_greader_subscriptions, folder_name_case_key,
     is_provider_managed_greader_feed,
-    pending_mutation_ids_targeting_provider_managed_greader_feeds,
+    pending_mutation_ids_targeting_provider_managed_greader_feeds, pending_mutation_log_contexts,
     provider_managed_remote_feed_ids, resolve_greader_folder_sort_order,
     save_greader_subscriptions,
 };
 use super::unread::reconcile_greader_unread_counts;
-use super::{get_greader_password, ProviderSyncOutcome, ProviderSyncWarning};
+use super::{
+    get_greader_password, redacted_feed_host_class, ProviderSyncOutcome, ProviderSyncWarning,
+};
 use crate::commands::feed_commands::lock_db;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -265,7 +267,6 @@ pub(crate) async fn sync_greader_account(
         .await?;
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "auth",
         elapsed_ms = auth_started_at.elapsed().as_millis() as u64,
         "FreshRSS sync phase completed"
@@ -278,7 +279,6 @@ pub(crate) async fn sync_greader_account(
     let remote_folder_ids = save_greader_folders_snapshot(db, account, &remote_folders)?;
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "folders",
         remote_folder_count = remote_folder_ids.len(),
         elapsed_ms = folders_started_at.elapsed().as_millis() as u64,
@@ -296,7 +296,6 @@ pub(crate) async fn sync_greader_account(
     }
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "folder_cleanup",
         deleted_folder_count,
         elapsed_ms = folder_cleanup_started_at.elapsed().as_millis() as u64,
@@ -305,7 +304,6 @@ pub(crate) async fn sync_greader_account(
 
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "total",
         elapsed_ms = total_started_at.elapsed().as_millis() as u64,
         "FreshRSS sync phase completed"
@@ -497,8 +495,10 @@ pub(crate) async fn sync_greader_account_entries(
 
             let Some(feed) = feeds_by_remote_id.get(remote_id) else {
                 warn!(
-                    "Sync anomaly for account '{}' remote feed '{}': no local feed mapping",
-                    account.name, remote_id
+                    account_id = %account.id.as_ref(),
+                    feed_id = "unknown",
+                    host_class = redacted_feed_host_class(remote_id),
+                    "Sync anomaly: no local feed mapping"
                 );
                 skipped_entries += 1;
                 continue;
@@ -586,7 +586,6 @@ pub(crate) async fn sync_greader_feeds(
         delete_missing_greader_subscriptions(db, account, &remote_subscription_ids)?;
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "subscriptions",
         deleted_subscription_count = deleted_subscription_count,
         elapsed_ms = subscriptions_started_at.elapsed().as_millis() as u64,
@@ -641,7 +640,13 @@ pub(crate) async fn sync_greader_feeds(
             continue;
         }
         if let Err(error) = sync_local_feed(db, &local_provider, &account.id, feed).await {
-            warn!("Failed to pull entries for feed {}: {error}", feed.url);
+            warn!(
+                account_id = %account.id.as_ref(),
+                feed_id = %feed.id.as_ref(),
+                host_class = redacted_feed_host_class(&feed.url),
+                reason = "provider_error",
+                "Failed to pull entries for local feed"
+            );
             warnings.push(ProviderSyncWarning {
                 kind: AccountSyncWarningKind::Generic,
                 message: format!(
@@ -659,7 +664,6 @@ pub(crate) async fn sync_greader_feeds(
     }
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "account_delta_entries",
         elapsed_ms = account_entries_started_at.elapsed().as_millis() as u64,
         feeds_seen = account_entries_outcome.feeds_seen,
@@ -676,6 +680,7 @@ pub(crate) async fn sync_greader_feeds(
     };
     let provider_managed_pending_mutation_ids =
         pending_mutation_ids_targeting_provider_managed_greader_feeds(db, &account.id)?;
+    let pending_mutation_contexts = pending_mutation_log_contexts(db, &account.id)?;
 
     let mut pushed_read_remote_ids: Vec<String> = Vec::new();
     let mut pushed_starred_remote_ids: Vec<String> = Vec::new();
@@ -683,12 +688,19 @@ pub(crate) async fn sync_greader_feeds(
         let Some(pending_mutation_id) = pm.id else {
             continue;
         };
+        let (feed_id, host_class) = pending_mutation_contexts
+            .get(&pending_mutation_id)
+            .map(|(feed_id, host_class)| (feed_id.as_ref(), *host_class))
+            .unwrap_or(("unknown", "invalid"));
 
         if !provider_managed_pending_mutation_ids.contains(&pending_mutation_id) {
             warn!(
-                "Dropping pending mutation {} for non-GReader feed entry {}",
-                pm.mutation_type.as_str(),
-                pm.remote_entry_id
+                account_id = %account.id.as_ref(),
+                feed_id,
+                host_class,
+                mutation_type = pm.mutation_type.as_str(),
+                reason = "non_greader_feed",
+                "Dropping pending mutation"
             );
             warnings.push(dropped_pending_mutation_warning(pm.mutation_type));
             let db_guard = lock_db(db)?;
@@ -728,11 +740,14 @@ pub(crate) async fn sync_greader_feeds(
                 let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
                 pending_repo.delete(&[pending_mutation_id])?;
             }
-            Err(error) => {
+            Err(_) => {
                 warn!(
-                    "Failed to push mutation {} for entry {}: {error}. Will retry next sync.",
-                    pm.mutation_type.as_str(),
-                    pm.remote_entry_id
+                    account_id = %account.id.as_ref(),
+                    feed_id,
+                    host_class,
+                    mutation_type = pm.mutation_type.as_str(),
+                    reason = "provider_error",
+                    "Failed to push pending mutation; will retry next sync"
                 );
                 warnings.push(pending_mutation_retry_warning(pm.mutation_type));
             }
@@ -756,7 +771,6 @@ pub(crate) async fn sync_greader_feeds(
     }
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "pull_state",
         elapsed_ms = pull_state_started_at.elapsed().as_millis() as u64,
         skipped = !should_pull_remote_state,
@@ -777,7 +791,6 @@ pub(crate) async fn sync_greader_feeds(
             .await?;
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         phase = "unread_reconcile",
         elapsed_ms = unread_reconcile_started_at.elapsed().as_millis() as u64,
         backfilled_feeds,
@@ -801,10 +814,12 @@ pub(crate) async fn sync_greader_feeds(
 
         if before_count > 0 && after_count == 0 {
             warn!(
-                "Sync anomaly for account '{}' feed '{}': article count dropped from {} to 0 after sync",
-                account.name,
-                feed.title,
-                before_count
+                account_id = %account.id.as_ref(),
+                feed_id = %feed.id.as_ref(),
+                host_class = redacted_feed_host_class(&feed.url),
+                before_count,
+                after_count,
+                "Sync anomaly: article count dropped after sync"
             );
             warnings.push(ProviderSyncWarning {
                 kind: AccountSyncWarningKind::Generic,
@@ -824,7 +839,6 @@ pub(crate) async fn sync_greader_feeds(
 
     info!(
         account_id = %account.id.as_ref(),
-        account_name = %account.name,
         accounts = 1,
         feeds_seen = account_entries_outcome.feeds_seen,
         entries_upserted = account_entries_outcome.entries_upserted,

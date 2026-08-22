@@ -6,6 +6,7 @@ use std::time::Duration;
 #[cfg(test)]
 use std::time::Instant;
 
+use reqwest::Url;
 use tracing::warn;
 
 use crate::commands::dto::{AccountSyncWarningDetail, AccountSyncWarningKind, AppError};
@@ -21,12 +22,14 @@ use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
 #[cfg(test)]
 use crate::domain::provider::RemoteFolder;
+use crate::domain::provider::GREADER_FEED_ID_PREFIX;
 #[cfg(test)]
 use crate::domain::provider::{RemoteSubscription, SyncCursor};
 #[cfg(test)]
 use crate::domain::types::ArticleId;
 #[cfg(test)]
 use crate::domain::types::{AccountId, FeedId, FolderId};
+use crate::domain::url_policy::is_private_host;
 #[cfg(test)]
 use crate::infra::db::connection::DbManager;
 #[cfg(test)]
@@ -95,10 +98,30 @@ use unread::reconcile_greader_unread_counts;
 
 const G_READER_PASSWORD_LOOKUP_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Keep provider feed diagnostics to the host class allowed by the privacy policy.
+///
+/// The input may be a persisted feed URL or a GReader remote feed identifier
+/// (`feed/<url>`). Neither form is safe to include in a release log.
+pub(super) fn redacted_feed_host_class(value: &str) -> &'static str {
+    let candidate = value.strip_prefix(GREADER_FEED_ID_PREFIX).unwrap_or(value);
+    let Ok(url) = Url::parse(candidate) else {
+        return "invalid";
+    };
+
+    if !matches!(url.scheme(), "http" | "https") {
+        return "invalid";
+    }
+
+    match url.host_str() {
+        Some(host) if is_private_host(host) => "private",
+        Some(_) => "public",
+        None => "invalid",
+    }
+}
+
 pub(super) async fn get_greader_password(account: &Account) -> Result<String, AppError> {
     get_greader_password_with_timeout(
         account.id.as_ref(),
-        &account.name,
         G_READER_PASSWORD_LOOKUP_TIMEOUT,
         |account_id| keyring_store::get_password_for_sync(&account_id),
     )
@@ -107,7 +130,6 @@ pub(super) async fn get_greader_password(account: &Account) -> Result<String, Ap
 
 async fn get_greader_password_with_timeout<F>(
     account_id: &str,
-    account_name: &str,
     timeout_duration: Duration,
     read_password: F,
 ) -> Result<String, AppError>
@@ -115,7 +137,6 @@ where
     F: FnOnce(String) -> DomainResult<String> + Send + 'static,
 {
     let account_id = account_id.to_string();
-    let account_name = account_name.to_string();
     let account_id_for_log = account_id.clone();
     match tokio::time::timeout(
         timeout_duration,
@@ -131,7 +152,6 @@ where
         Err(_) => {
             warn!(
                 account_id = %account_id_for_log,
-                account_name = %account_name,
                 timeout_ms = timeout_duration.as_millis() as u64,
                 "Timed out reading FreshRSS password from macOS Keychain"
             );
