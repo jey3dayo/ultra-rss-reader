@@ -327,6 +327,16 @@
     "consecutive_sync_failures": "連続同期失敗回数",
     "consecutive_sync_failures_value": "{{count}} 回",
     "last_sync_error": "直近の同期エラー",
+    "sync_error_detail": {
+      "network": "ネットワークエラー: {{message}}",
+      "rate_limit": "アクセス制限に達しました: {{message}}",
+      "parse": "応答を読み取れませんでした: {{message}}",
+      "persistence": "データを保存できませんでした: {{message}}",
+      "auth": "認証エラー: {{message}}",
+      "validation": "同期の入力内容が無効です: {{message}}",
+      "keychain": "認証情報ストレージエラー: {{message}}",
+      "migration": "データベースの移行エラー: {{message}}"
+    },
     "sync_failed": "同期に失敗しました: {{message}}",
     "dev_credentials_recovery_action": "Dev 認証情報を復旧",
     "dev_credentials_recovery_loading": "復旧中…",

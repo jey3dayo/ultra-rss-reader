@@ -1,5 +1,6 @@
 import { createInstance } from "i18next";
 import { describe, expect, it } from "vitest";
+import { ACCOUNT_SYNC_ERROR_KINDS } from "@/lib/account/account-sync-status-format";
 import i18n, { supportedLanguages } from "@/lib/i18n";
 import i18nSource from "@/lib/i18n.ts?raw";
 import { formatDisplayCount, normalizeDisplayCount, resolveCountLocale } from "@/lib/i18n-count";
@@ -782,6 +783,18 @@ describe("i18next locale contract", () => {
         if (!hasLocaleKeyInBothLocales(namespace, `sync_warning_detail.${snakeCaseType}`)) {
           missing.push(`${namespace}:sync_warning_detail.${snakeCaseType}`);
         }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps a sync_error_detail.<kind> locale key in both en and ja for every persisted last_error kind", () => {
+    const missing: string[] = [];
+
+    for (const kind of ACCOUNT_SYNC_ERROR_KINDS) {
+      if (!hasLocaleKeyInBothLocales("settings", `account.sync_error_detail.${kind}`)) {
+        missing.push(`settings:account.sync_error_detail.${kind}`);
       }
     }
 

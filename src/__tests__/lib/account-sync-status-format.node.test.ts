@@ -3,6 +3,7 @@ import {
   formatAccountLastSuccessLabel,
   formatAccountSyncRetryDateTime,
   formatAccountSyncRetryTime,
+  getAccountSyncErrorTranslationKey,
 } from "@/lib/account/account-sync-status-format";
 
 describe("account-sync-status-format", () => {
@@ -72,5 +73,44 @@ describe("account-sync-status-format", () => {
     expect(formatAccountLastSuccessLabel(lastSuccessAt.toISOString(), "en", now)).toEqual(
       formatExpectedLastSuccessLabel(lastSuccessAt, false),
     );
+  });
+
+  describe("getAccountSyncErrorTranslationKey", () => {
+    it.each([
+      ["Network error: timeout", "network", "timeout"],
+      ["Rate limit error: HTTP 429", "rate_limit", "HTTP 429"],
+      ["Parse error: invalid feed", "parse", "invalid feed"],
+      ["Persistence error: database locked", "persistence", "database locked"],
+      ["Auth error: unauthorized", "auth", "unauthorized"],
+      ["Validation error: invalid URL", "validation", "invalid URL"],
+      ["Keychain error: access denied", "keychain", "access denied"],
+      ["Migration error: schema mismatch", "migration", "schema mismatch"],
+    ])("maps %s to the %s translation key", (lastError, key, message) => {
+      expect(getAccountSyncErrorTranslationKey(lastError)).toEqual({
+        key,
+        params: { message },
+      });
+    });
+
+    it("trims persisted error text before classifying it", () => {
+      expect(getAccountSyncErrorTranslationKey("  Auth error:  unauthorized  ")).toEqual({
+        key: "auth",
+        params: { message: "unauthorized" },
+      });
+    });
+
+    it("does not repeat a known error prefix when the persisted detail is empty", () => {
+      expect(getAccountSyncErrorTranslationKey("Network error:")).toEqual({
+        key: "network",
+        params: { message: "" },
+      });
+    });
+
+    it("returns no translation key for legacy errors without a known prefix", () => {
+      expect(getAccountSyncErrorTranslationKey("Connection failed")).toEqual({
+        key: null,
+        params: { message: "Connection failed" },
+      });
+    });
   });
 });
