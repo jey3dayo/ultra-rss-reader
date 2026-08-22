@@ -243,12 +243,12 @@ if (!/tauri-plugin-mcp-bridge\s*=\s*\{[^}]*optional\s*=\s*true/.test(cargoToml))
 }
 
 const mcpBridgeFeatureMatch = cargoToml.match(/mcp-bridge\s*=\s*\[([^\]]*)\]/);
-if (!mcpBridgeFeatureMatch || !mcpBridgeFeatureMatch[1].includes("dep:tauri-plugin-mcp-bridge")) {
+if (!mcpBridgeFeatureMatch?.[1].includes("dep:tauri-plugin-mcp-bridge")) {
   errors.push('Cargo.toml must define a "mcp-bridge" feature that enables dep:tauri-plugin-mcp-bridge');
 }
 
 const defaultFeatureMatch = cargoToml.match(/\[features\][^[]*?default\s*=\s*\[([^\]]*)\]/);
-if (defaultFeatureMatch && defaultFeatureMatch[1].includes("mcp-bridge")) {
+if (defaultFeatureMatch?.[1].includes("mcp-bridge")) {
   errors.push('Cargo.toml default features must not enable "mcp-bridge"');
 }
 
