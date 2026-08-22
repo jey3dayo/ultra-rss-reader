@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
 import articleMaterializerSource from "../../../src-tauri/src/service/article_materializer.rs?raw";
@@ -125,24 +125,45 @@ function findAttributeGatedInlineTestModuleBlocks(source: string): Array<{ start
 }
 
 // Resolves whether `filePath` is declared entirely as a test module via
-// `#[cfg(test)] mod <name>;` (no body) in its directory's `mod.rs`, i.e. a
-// file-split test module such as `infra/db/migration/tests.rs` declared by
-// `infra/db/migration/mod.rs`. Returns false (never excludes) when the parent
-// `mod.rs` is missing or does not contain a matching cfg-gated declaration,
-// so an unverifiable basename can never cause a false exclusion.
+// `#[cfg(test)] mod <name>;` (no body) in its directory's `mod.rs`, including
+// descendants of a cfg-gated test directory such as
+// `infra/db/migration/tests/data_cleanup.rs`. Returns false (never excludes)
+// when the relevant `mod.rs` is missing or does not contain a matching
+// cfg-gated declaration, so an unverifiable basename can never cause a false
+// exclusion.
 function isDeclaredAsCfgTestOnlyModule(filePath: string): boolean {
   const dir = dirname(filePath);
+  const hasCfgTestDeclaration = (parentModPath: string, moduleName: string): boolean => {
+    if (!existsSync(parentModPath)) {
+      return false;
+    }
+    const parentSource = readFileSync(parentModPath, "utf8");
+    const escapedName = moduleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const declarationPattern = new RegExp(
+      `#\\[cfg\\(test\\)\\]\\s*\\r?\\n\\s*(?:pub(?:\\([^)]*\\))?\\s+)?mod\\s+${escapedName}\\s*;`,
+    );
+    return declarationPattern.test(parentSource);
+  };
+
   const moduleName = basename(filePath, ".rs");
-  const parentModPath = join(dir, "mod.rs");
-  if (parentModPath === filePath || !existsSync(parentModPath)) {
-    return false;
+  if (hasCfgTestDeclaration(join(dir, "mod.rs"), moduleName)) {
+    return true;
   }
-  const parentSource = readFileSync(parentModPath, "utf8");
-  const escapedName = moduleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const declarationPattern = new RegExp(
-    `#\\[cfg\\(test\\)\\]\\s*\\r?\\n\\s*(?:pub(?:\\([^)]*\\))?\\s+)?mod\\s+${escapedName}\\s*;`,
-  );
-  return declarationPattern.test(parentSource);
+
+  let ancestorDir = dir;
+  let ancestorRelativePath = relative(srcTauriSrcRoot, ancestorDir);
+  while (ancestorRelativePath && !ancestorRelativePath.startsWith("..") && !isAbsolute(ancestorRelativePath)) {
+    if (hasCfgTestDeclaration(join(dirname(ancestorDir), "mod.rs"), basename(ancestorDir))) {
+      return true;
+    }
+    const nextAncestor = dirname(ancestorDir);
+    if (nextAncestor === ancestorDir) {
+      break;
+    }
+    ancestorDir = nextAncestor;
+    ancestorRelativePath = relative(srcTauriSrcRoot, ancestorDir);
+  }
+  return false;
 }
 
 // Excludes production-irrelevant test code from `source` so fixture-only
@@ -238,7 +259,10 @@ describe("remote-entry materialization contract", () => {
       "infra/db/backup.rs",
       "infra/db/sqlite_mute_keyword.rs",
       "infra/db/sqlite_feed/unread.rs",
-      "infra/db/migration/tests.rs",
+      "infra/db/migration/tests/data_cleanup.rs",
+      "infra/db/migration/tests/legacy_data_cleanup.rs",
+      "infra/db/migration/tests/migration_constraints.rs",
+      "infra/db/migration/tests/schema_progression.rs",
       "commands/tag_commands.rs",
       "commands/sync_commands.rs",
       "service/local_account_sync.rs",
