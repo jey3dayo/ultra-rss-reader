@@ -219,6 +219,8 @@ const readOpmlCommandsModuleSource = (): string =>
   ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/commands/opml_commands/${file}`)).join("\n");
 const readFeedDiscoveryModuleSource = (): string =>
   ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/infra/feed_discovery/${file}`)).join("\n");
+const readGReaderProviderModuleSource = (): string =>
+  ["mod.rs"].map((file) => readText(`src-tauri/src/infra/provider/greader/${file}`)).join("\n");
 const readMiseTaskCorpus = (): string =>
   ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"].map(readText).join("\n");
 const readReleaseSkillCorpus = (): string =>
@@ -677,7 +679,7 @@ describe("release repository contract", () => {
   const localProviderSource = readText("src-tauri/src/infra/provider/local.rs");
   const accountCommandsSource = readAccountCommandsModuleSource();
   const opmlCommandsSource = readOpmlCommandsModuleSource();
-  const greaderProviderSource = readText("src-tauri/src/infra/provider/greader.rs");
+  const greaderProviderSource = readGReaderProviderModuleSource();
   const testSetupSource = readText(testHelperRuntimeIsolationContract.sharedSetupPath);
   const testIsolationPolicySource = readText(testHelperRuntimeIsolationContract.policyTestPath);
   const articleContentViewTest = readText("src/__tests__/components/article-content-view.test.tsx");
