@@ -252,7 +252,7 @@ if (defaultFeatureMatch?.[1].includes("mcp-bridge")) {
   errors.push('Cargo.toml default features must not enable "mcp-bridge"');
 }
 
-const CARGO_OFFLINE_RESOLUTION_FAILURE_PATTERN = /no matching package|offline mode|--offline/;
+const CARGO_OFFLINE_RESOLUTION_FAILURE_PATTERN = /no matching package|offline mode/;
 
 try {
   const releaseDependencyTree = execFileSync(
@@ -267,9 +267,11 @@ try {
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
+  // execFileSync's thrown message embeds the full command line (e.g. "Command failed: cargo
+  // tree ... --offline"), so matching against it would misclassify any cargo tree failure as
+  // an offline-cache miss. Match the offline-resolution signature against stderr only.
   const stderr =
     error && typeof error === "object" && "stderr" in error && typeof error.stderr === "string" ? error.stderr : "";
-  const combined = `${message}\n${stderr}`;
   const isMissingCargoBinary = message.includes("ENOENT");
 
   // CI's Test job has no populated cargo registry cache, so `cargo tree --offline` cannot
@@ -277,7 +279,7 @@ try {
   // static Cargo.toml checks above still enforce the optional-dependency contract, and the
   // full dependency-graph verification runs locally during release preflight where the
   // registry cache is available.
-  if (isMissingCargoBinary || CARGO_OFFLINE_RESOLUTION_FAILURE_PATTERN.test(combined)) {
+  if (isMissingCargoBinary || CARGO_OFFLINE_RESOLUTION_FAILURE_PATTERN.test(stderr)) {
     console.warn(
       "cargo registry cache unavailable; skipping cargo tree verification (static Cargo.toml checks still enforced)",
     );
