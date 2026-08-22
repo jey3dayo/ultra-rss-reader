@@ -1,4 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
 import { commandArgsSchemas } from "../src/api/schemas/commands";
 import { commandArgsSchemaKeys } from "./helpers/command-args-schema-keys";
@@ -10,6 +12,15 @@ import {
 import { readTauriCommandsSource } from "./helpers/tauri-command-source";
 
 const readText = (path: string): string => readFileSync(path, "utf8");
+
+// `src-tauri/src/commands` mixes flat `*.rs` files with command modules that
+// were split into a directory (`mod.rs` plus sibling `tests.rs`), so this
+// recurses instead of a flat, single-level `readdirSync` filter that would
+// silently drop directory-based command modules from the scan.
+const readRustCommandSources = (): string =>
+  collectRustFiles(join(process.cwd(), "src-tauri/src/commands"))
+    .map((filePath) => readFileSync(filePath, "utf8"))
+    .join("\n");
 
 const RUST_FRAMEWORK_ARG_NAMES = new Set(["app", "app_handle", "state", "window"]);
 
@@ -134,10 +145,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps async Tauri commands out of the synchronous blocking DB policy", () => {
-    const rustCommandSources = readdirSync("src-tauri/src/commands")
-      .filter((fileName) => fileName.endsWith(".rs"))
-      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
-      .join("\n");
+    const rustCommandSources = readRustCommandSources();
     const lockPolicies = extractCommandDbLockPolicyCases(readText("src-tauri/src/commands/mod.rs"));
     const asyncCommands = extractRustTauriAsyncCommandNames(rustCommandSources);
 
@@ -170,7 +178,7 @@ describe("tauri command return contract", () => {
   it("keeps long-running operation progress contracts explicit where implementations exist", () => {
     const syncCommandsSource = readText("src-tauri/src/commands/sync_commands.rs");
     const updaterCommandsSource = readText("src-tauri/src/commands/updater_commands.rs");
-    const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands.rs");
+    const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands/mod.rs");
 
     expect(syncCommandsSource).toContain("SYNC_PROGRESS_SESSION_ID");
     expect(syncCommandsSource).toContain("next_sync_progress_completed");
@@ -184,10 +192,7 @@ describe("tauri command return contract", () => {
 
   it("keeps frontend null-response commands aligned with Rust unit-result commands", () => {
     const tauriCommands = readTauriCommandsSource();
-    const rustCommandSources = readdirSync("src-tauri/src/commands")
-      .filter((fileName) => fileName.endsWith(".rs"))
-      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
-      .join("\n");
+    const rustCommandSources = readRustCommandSources();
     const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(
@@ -201,10 +206,7 @@ describe("tauri command return contract", () => {
 
   it("keeps frontend string-response commands aligned with Rust string-result commands", () => {
     const tauriCommands = readTauriCommandsSource();
-    const rustCommandSources = readdirSync("src-tauri/src/commands")
-      .filter((fileName) => fileName.endsWith(".rs"))
-      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
-      .join("\n");
+    const rustCommandSources = readRustCommandSources();
     const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(extractResponseSchemaCommands(tauriCommands, ["StringResponseSchema"])).toEqual(
@@ -214,10 +216,7 @@ describe("tauri command return contract", () => {
 
   it("keeps frontend boolean-response commands aligned with Rust bool-result commands", () => {
     const tauriCommands = readTauriCommandsSource();
-    const rustCommandSources = readdirSync("src-tauri/src/commands")
-      .filter((fileName) => fileName.endsWith(".rs"))
-      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
-      .join("\n");
+    const rustCommandSources = readRustCommandSources();
     const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(extractResponseSchemaCommands(tauriCommands, ["BooleanResponseSchema"])).toEqual(
@@ -227,10 +226,7 @@ describe("tauri command return contract", () => {
 
   it("keeps frontend count-response commands aligned with Rust numeric count-result commands", () => {
     const tauriCommands = readTauriCommandsSource();
-    const rustCommandSources = readdirSync("src-tauri/src/commands")
-      .filter((fileName) => fileName.endsWith(".rs"))
-      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
-      .join("\n");
+    const rustCommandSources = readRustCommandSources();
     const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(extractResponseSchemaCommands(tauriCommands, COUNT_RESPONSE_SCHEMA_NAMES)).toEqual(
@@ -241,10 +237,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend command args registry aligned with Rust command argument names", () => {
-    const rustCommandSources = readdirSync("src-tauri/src/commands")
-      .filter((fileName) => fileName.endsWith(".rs"))
-      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
-      .join("\n");
+    const rustCommandSources = readRustCommandSources();
     const rustCommandArgs = extractRustCommandArgNames(rustCommandSources);
 
     expect(registryArgNames()).toEqual(

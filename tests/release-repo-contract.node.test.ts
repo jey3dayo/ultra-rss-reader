@@ -213,6 +213,12 @@ const readMigrationModuleSource = (): string =>
   ["mod.rs", "consts.rs", "repairs.rs", "tests.rs"]
     .map((file) => readText(`src-tauri/src/infra/db/migration/${file}`))
     .join("\n");
+const readAccountCommandsModuleSource = (): string =>
+  ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/commands/account_commands/${file}`)).join("\n");
+const readOpmlCommandsModuleSource = (): string =>
+  ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/commands/opml_commands/${file}`)).join("\n");
+const readFeedDiscoveryModuleSource = (): string =>
+  ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/infra/feed_discovery/${file}`)).join("\n");
 const readMiseTaskCorpus = (): string =>
   ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"].map(readText).join("\n");
 const readReleaseSkillCorpus = (): string =>
@@ -669,13 +675,13 @@ describe("release repository contract", () => {
   const platformConstantsSource = readText("src/constants/platform.ts");
   const providerHttpDefaultsSource = readText("src-tauri/src/infra/provider/http_defaults.rs");
   const localProviderSource = readText("src-tauri/src/infra/provider/local.rs");
-  const accountCommandsSource = readText("src-tauri/src/commands/account_commands.rs");
-  const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands.rs");
+  const accountCommandsSource = readAccountCommandsModuleSource();
+  const opmlCommandsSource = readOpmlCommandsModuleSource();
   const greaderProviderSource = readText("src-tauri/src/infra/provider/greader.rs");
   const testSetupSource = readText(testHelperRuntimeIsolationContract.sharedSetupPath);
   const testIsolationPolicySource = readText(testHelperRuntimeIsolationContract.policyTestPath);
   const articleContentViewTest = readText("src/__tests__/components/article-content-view.test.tsx");
-  const feedDiscoverySource = readText("src-tauri/src/infra/feed_discovery.rs");
+  const feedDiscoverySource = readFeedDiscoveryModuleSource();
   const addAccountFormSource = readText("src/lib/account/add-account-form.ts");
   const addAccountServicesSource = readText("src/components/settings/add-account/services.ts");
 
