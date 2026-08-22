@@ -68,6 +68,10 @@ per-feed の pending 保護と最終 recalculate が担うため、選定漏れ�
     が両方含まれることをピン
   - unread reconcile 本体で `lock_db` の取得が1回だけであることをピン
   - `pending_remote_ids_by_axis` の呼び出し元を helper と unread reconcile の2箇所に限定
+  - `commands/sync_providers/**` の非テストコードにおける `lock_db(` 取得点を、名前付き単一ロック
+    関数の allowlist で pin(plan 025)。async オーケストレータ本体(`sync_greader_feeds` 等)に
+    無名 inline ロックスコープを書き足すと fail する。新しいロックスコープを足すときはこの
+    allowlist を更新し、保護読みと apply の同居契約を確認すること
   - 名前ベースのスキャンであり、rename・trait 経由呼び出し・別の生 SQL 経路はすり抜けうる
     事故防止の回帰ガード(完全な強制ではない)
 - [x] 手動レビュー

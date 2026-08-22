@@ -30,7 +30,7 @@ use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::{
-    PendingMutationAxis, PendingMutationRepository, PendingMutationType,
+    PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 use crate::service::article_materializer::article_from_remote_entry;
@@ -346,22 +346,8 @@ pub(crate) async fn repair_greader_remote_state(
         &[],
         &[],
     )?;
-    let feeds = {
-        let db_guard = lock_db(db)?;
-        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
-        feed_repo.find_by_account(&account.id)?
-    };
-
-    {
-        let db_guard = lock_db(db)?;
-        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        let managed_feed_ids: Vec<FeedId> = feeds
-            .iter()
-            .filter(|feed| is_provider_managed_greader_feed(feed.remote_id.as_deref()))
-            .map(|feed| feed.id.clone())
-            .collect();
-        feed_repo.recalculate_unread_counts(&managed_feed_ids)?;
-    }
+    let feeds = load_account_feeds(db, &account.id)?;
+    recalculate_provider_managed_feed_unread_counts(db, &feeds)?;
 
     let server_unread_counts = provider.get_unread_count_map().await?;
     let _ = reconcile_greader_unread_counts(db, &provider, account, &feeds, &server_unread_counts)
@@ -404,11 +390,7 @@ pub(crate) async fn sync_greader_feed(
 
     let article_count_before = article_count_for_feed(db, &feed.id)?;
     let feed_outcome = sync_greader_feed_entries(db, &provider, account, feed).await?;
-    {
-        let db_guard = lock_db(db)?;
-        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        feed_repo.recalculate_unread_count(&feed.id)?;
-    }
+    recalculate_single_feed_unread_count(db, &feed.id)?;
     let article_count_after = article_count_for_feed(db, &feed.id)?;
 
     let mut warnings = Vec::new();
@@ -515,10 +497,7 @@ pub(crate) async fn sync_greader_account_entries(
                 .collect::<Vec<_>>();
             entries_upserted += articles.len();
 
-            let db_guard = lock_db(db)?;
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            article_repo.upsert(&articles)?;
-            article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
+            persist_pulled_account_articles(db, &account.id, &articles, &candidate_ids)?;
         }
 
         if !result.has_more {
@@ -559,15 +538,7 @@ pub(crate) async fn sync_greader_feeds(
     let article_counts_before = provider_managed_feed_snapshots(db, &account.id)?;
     let sync_started_remote_feed_ids = provider_managed_remote_feed_ids(db, &account.id)?;
 
-    let folder_remote_id_map: HashMap<String, FolderId> = {
-        let db_guard = lock_db(db)?;
-        let folder_repo = SqliteFolderRepository::new(db_guard.reader());
-        let folders = folder_repo.find_by_account(&account.id)?;
-        folders
-            .into_iter()
-            .filter_map(|folder| folder.remote_id.map(|remote_id| (remote_id, folder.id)))
-            .collect()
-    };
+    let folder_remote_id_map = load_folder_remote_id_map(db, &account.id)?;
 
     let subscriptions_started_at = Instant::now();
     let remote_subs = provider.get_subscriptions().await?;
@@ -592,11 +563,7 @@ pub(crate) async fn sync_greader_feeds(
         "FreshRSS sync phase completed"
     );
 
-    let feeds = {
-        let db_guard = lock_db(db)?;
-        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
-        feed_repo.find_by_account(&account.id)?
-    };
+    let feeds = load_account_feeds(db, &account.id)?;
 
     let local_provider = LocalProvider::new();
     let mut warnings = Vec::new();
@@ -673,11 +640,7 @@ pub(crate) async fn sync_greader_feeds(
         "FreshRSS sync phase completed"
     );
 
-    let pending_mutations = {
-        let db_guard = lock_db(db)?;
-        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-        pending_repo.find_by_account(&account.id)?
-    };
+    let pending_mutations = load_pending_mutations_for_account(db, &account.id)?;
     let provider_managed_pending_mutation_ids =
         pending_mutation_ids_targeting_provider_managed_greader_feeds(db, &account.id)?;
     let pending_mutation_contexts = pending_mutation_log_contexts(db, &account.id)?;
@@ -703,9 +666,7 @@ pub(crate) async fn sync_greader_feeds(
                 "Dropping pending mutation"
             );
             warnings.push(dropped_pending_mutation_warning(pm.mutation_type));
-            let db_guard = lock_db(db)?;
-            let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
-            pending_repo.delete(&[pending_mutation_id])?;
+            delete_pending_mutation(db, pending_mutation_id)?;
             continue;
         }
 
@@ -736,9 +697,7 @@ pub(crate) async fn sync_greader_feeds(
                         pushed_starred_remote_ids.push(pm.remote_entry_id.clone());
                     }
                 }
-                let db_guard = lock_db(db)?;
-                let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
-                pending_repo.delete(&[pending_mutation_id])?;
+                delete_pending_mutation(db, pending_mutation_id)?;
             }
             Err(_) => {
                 warn!(
@@ -777,12 +736,7 @@ pub(crate) async fn sync_greader_feeds(
         "FreshRSS sync phase completed"
     );
 
-    {
-        let db_guard = lock_db(db)?;
-        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        let feed_ids: Vec<FeedId> = feeds.iter().map(|feed| feed.id.clone()).collect();
-        feed_repo.recalculate_unread_counts(&feed_ids)?;
-    }
+    recalculate_feed_unread_counts(db, &feeds)?;
 
     let unread_reconcile_started_at = Instant::now();
     let server_unread_counts = provider.get_unread_count_map().await?;
@@ -863,11 +817,7 @@ pub(crate) async fn sync_greader_feed_entries(
     };
 
     let scope_key = feed_scope_key(remote_id);
-    let saved_state = {
-        let db_guard = lock_db(db)?;
-        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
-        sync_state_repo.get(&account.id, &scope_key)?
-    };
+    let saved_state = load_feed_sync_state(db, &account.id, &scope_key)?;
     let initial_cursor = cursor_from_state(saved_state.as_ref());
     let mut cursor = initial_cursor.clone();
     let mut latest_timestamp_usec = sync_state_timestamp_usec(saved_state.as_ref());
@@ -904,14 +854,7 @@ pub(crate) async fn sync_greader_feed_entries(
             .collect();
 
         if !articles.is_empty() {
-            let db_guard = lock_db(db)?;
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            article_repo.upsert(&articles)?;
-            let candidate_ids = articles
-                .iter()
-                .map(|article| article.id.clone())
-                .collect::<Vec<_>>();
-            article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
+            persist_pulled_feed_articles(db, &account.id, &articles)?;
         }
 
         if !result.has_more {
@@ -935,9 +878,7 @@ pub(crate) async fn sync_greader_feed_entries(
         error_count: 0,
         next_retry_at: None,
     };
-    let db_guard = lock_db(db)?;
-    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
-    sync_state_repo.save(&next_state)?;
+    save_feed_sync_state(db, &next_state)?;
 
     Ok(GReaderFeedSyncOutcome { skipped_entries })
 }
@@ -974,4 +915,142 @@ pub(crate) fn provider_managed_feed_snapshots(
     rows.collect::<Result<HashMap<_, _>, _>>()
         .map_err(crate::domain::error::DomainError::from)
         .map_err(AppError::from)
+}
+
+/// Read all feeds owned by `account_id` inside a single reader lock scope.
+fn load_account_feeds(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<Vec<Feed>, AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+    Ok(feed_repo.find_by_account(account_id)?)
+}
+
+/// Recalculate unread counts for the GReader provider-managed subset of
+/// `feeds`, inside a single writer lock scope.
+fn recalculate_provider_managed_feed_unread_counts(
+    db: &Mutex<DbManager>,
+    feeds: &[Feed],
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+    let managed_feed_ids: Vec<FeedId> = feeds
+        .iter()
+        .filter(|feed| is_provider_managed_greader_feed(feed.remote_id.as_deref()))
+        .map(|feed| feed.id.clone())
+        .collect();
+    feed_repo.recalculate_unread_counts(&managed_feed_ids)?;
+    Ok(())
+}
+
+/// Recalculate the unread count for a single feed, inside a single writer
+/// lock scope.
+fn recalculate_single_feed_unread_count(
+    db: &Mutex<DbManager>,
+    feed_id: &FeedId,
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+    feed_repo.recalculate_unread_count(feed_id)?;
+    Ok(())
+}
+
+/// Recalculate unread counts for every feed in `feeds`, inside a single
+/// writer lock scope.
+fn recalculate_feed_unread_counts(db: &Mutex<DbManager>, feeds: &[Feed]) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+    let feed_ids: Vec<FeedId> = feeds.iter().map(|feed| feed.id.clone()).collect();
+    feed_repo.recalculate_unread_counts(&feed_ids)?;
+    Ok(())
+}
+
+/// Persist articles pulled for a full-account delta sync and clear their
+/// muted-unread state, inside a single writer lock scope.
+fn persist_pulled_account_articles(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    articles: &[Article],
+    candidate_ids: &[crate::domain::types::ArticleId],
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let article_repo = SqliteArticleRepository::new(db_guard.writer());
+    article_repo.upsert(articles)?;
+    article_repo.mark_muted_unread_as_read(account_id, Some(candidate_ids))?;
+    Ok(())
+}
+
+/// Persist articles pulled for a single-feed sync and clear their
+/// muted-unread state, inside a single writer lock scope.
+fn persist_pulled_feed_articles(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    articles: &[Article],
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let article_repo = SqliteArticleRepository::new(db_guard.writer());
+    article_repo.upsert(articles)?;
+    let candidate_ids = articles
+        .iter()
+        .map(|article| article.id.clone())
+        .collect::<Vec<_>>();
+    article_repo.mark_muted_unread_as_read(account_id, Some(&candidate_ids))?;
+    Ok(())
+}
+
+/// Read the folder-id-by-remote-id map for `account_id`, inside a single
+/// reader lock scope.
+fn load_folder_remote_id_map(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<HashMap<String, FolderId>, AppError> {
+    let db_guard = lock_db(db)?;
+    let folder_repo = SqliteFolderRepository::new(db_guard.reader());
+    let folders = folder_repo.find_by_account(account_id)?;
+    Ok(folders
+        .into_iter()
+        .filter_map(|folder| folder.remote_id.map(|remote_id| (remote_id, folder.id)))
+        .collect())
+}
+
+/// Read all pending mutations for `account_id`, inside a single reader lock
+/// scope.
+fn load_pending_mutations_for_account(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<Vec<PendingMutation>, AppError> {
+    let db_guard = lock_db(db)?;
+    let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
+    Ok(pending_repo.find_by_account(account_id)?)
+}
+
+/// Delete a single pending mutation by id, inside a single writer lock
+/// scope. Shared by the dropped-mutation and successfully-pushed-mutation
+/// paths in `sync_greader_feeds`.
+fn delete_pending_mutation(db: &Mutex<DbManager>, mutation_id: i64) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+    pending_repo.delete(&[mutation_id])?;
+    Ok(())
+}
+
+/// Read the saved sync state for a single feed, inside a single reader lock
+/// scope.
+fn load_feed_sync_state(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    scope_key: &SyncStateScopeKey,
+) -> Result<Option<SyncState>, AppError> {
+    let db_guard = lock_db(db)?;
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+    Ok(sync_state_repo.get(account_id, scope_key)?)
+}
+
+/// Save the updated sync state for a single feed, inside a single writer
+/// lock scope.
+fn save_feed_sync_state(db: &Mutex<DbManager>, next_state: &SyncState) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+    Ok(sync_state_repo.save(next_state)?)
 }
