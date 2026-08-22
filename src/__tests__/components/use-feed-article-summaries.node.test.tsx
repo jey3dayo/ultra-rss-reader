@@ -4,7 +4,7 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
-import { useFeedArticleSummaries } from "@/components/subscriptions-index/hooks/use-feed-article-summaries";
+import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 
 setupBrowserTestDom();
 
