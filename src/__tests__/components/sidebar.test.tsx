@@ -9,7 +9,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { AccountPane } from "@/components/reader/account-pane";
 import { ArticleList } from "@/components/reader/article-list";
@@ -36,6 +36,8 @@ type SidebarSourceOverrides = {
   foldersData: FolderDto[] | undefined;
   starredArticlesEnabled: boolean;
   starredArticlesData: ArticleDto[] | undefined;
+  feedArticleSummariesEnabled: boolean;
+  feedArticleSummariesData: FeedArticleSummaryDto[] | undefined;
   starredCountEnabled: boolean;
   starredCountData: number | undefined;
   tagArticleCountsEnabled: boolean;
@@ -50,6 +52,8 @@ const { sidebarSourceOverrides } = vi.hoisted(() => {
     foldersData: undefined,
     starredArticlesEnabled: false,
     starredArticlesData: undefined,
+    feedArticleSummariesEnabled: false,
+    feedArticleSummariesData: undefined,
     starredCountEnabled: false,
     starredCountData: undefined,
     tagArticleCountsEnabled: false,
@@ -152,6 +156,21 @@ vi.mock("@/hooks/use-articles", async () => {
   };
 });
 
+vi.mock("@/components/subscriptions-index/hooks/use-feed-article-summaries", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/components/subscriptions-index/hooks/use-feed-article-summaries")
+  >("@/components/subscriptions-index/hooks/use-feed-article-summaries");
+  return {
+    ...actual,
+    useFeedArticleSummaries: (accountId: string | null) => {
+      const result = actual.useFeedArticleSummaries(accountId);
+      return sidebarSourceOverrides.feedArticleSummariesEnabled
+        ? { ...result, data: sidebarSourceOverrides.feedArticleSummariesData }
+        : result;
+    },
+  };
+});
+
 vi.mock("@/hooks/use-tags", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/use-tags")>("@/hooks/use-tags");
   return {
@@ -228,6 +247,8 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.foldersData = undefined;
     sidebarSourceOverrides.starredArticlesEnabled = false;
     sidebarSourceOverrides.starredArticlesData = undefined;
+    sidebarSourceOverrides.feedArticleSummariesEnabled = false;
+    sidebarSourceOverrides.feedArticleSummariesData = undefined;
     sidebarSourceOverrides.starredCountEnabled = false;
     sidebarSourceOverrides.starredCountData = undefined;
     sidebarSourceOverrides.tagArticleCountsEnabled = false;
@@ -800,6 +821,11 @@ describe("Sidebar", () => {
         is_starred: true,
       },
     ];
+    sidebarSourceOverrides.feedArticleSummariesEnabled = true;
+    sidebarSourceOverrides.feedArticleSummariesData = [
+      { feed_id: "feed-starred", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
+      { feed_id: "feed-plain", latest_article_at: null, starred_count: 0, recent_article_count: 0 },
+    ];
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -844,6 +870,10 @@ describe("Sidebar", () => {
         is_starred: true,
       },
     ];
+    sidebarSourceOverrides.feedArticleSummariesEnabled = true;
+    sidebarSourceOverrides.feedArticleSummariesData = [
+      { feed_id: "feed-1", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
+    ];
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -880,6 +910,10 @@ describe("Sidebar", () => {
         is_starred: true,
       },
     ];
+    sidebarSourceOverrides.feedArticleSummariesEnabled = true;
+    sidebarSourceOverrides.feedArticleSummariesData = [
+      { feed_id: "feed-starred", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
+    ];
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -901,6 +935,7 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersData = undefined;
     sidebarSourceOverrides.starredArticlesData = undefined;
+    sidebarSourceOverrides.feedArticleSummariesData = undefined;
     queryClient.setQueryData(queryKeys.accounts.root, undefined);
     rerender(<Sidebar />);
 

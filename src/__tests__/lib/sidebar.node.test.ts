@@ -1,6 +1,5 @@
-import { sampleArticles } from "@tests/helpers/fixtures";
 import { describe, expect, it } from "vitest";
-import type { FeedDto } from "@/api/tauri-commands";
+import type { FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
 import {
   buildStarredCountByFeedId,
   countFeedsInFolder,
@@ -25,7 +24,14 @@ const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   icon_url: overrides.icon_url ?? null,
 });
 
-const sampleArticle = sampleArticles[0];
+const makeFeedArticleSummary = (
+  overrides: Partial<FeedArticleSummaryDto> & { feed_id: string },
+): FeedArticleSummaryDto => ({
+  latest_article_at: null,
+  starred_count: 0,
+  recent_article_count: 0,
+  ...overrides,
+});
 
 describe("groupFeedsByFolder", () => {
   it("returns empty map and empty array for empty input", () => {
@@ -150,12 +156,11 @@ describe("folder feed counts", () => {
 });
 
 describe("buildStarredCountByFeedId", () => {
-  it("counts only starred articles by feed id", () => {
+  it("reads the per-feed starred count directly from feed article summaries", () => {
     const counts = buildStarredCountByFeedId([
-      { ...sampleArticle, id: "art-1", feed_id: "feed-a", is_starred: true },
-      { ...sampleArticle, id: "art-2", feed_id: "feed-a", is_starred: false },
-      { ...sampleArticle, id: "art-3", feed_id: "feed-a", is_starred: true },
-      { ...sampleArticle, id: "art-4", feed_id: "feed-b", is_starred: true },
+      makeFeedArticleSummary({ feed_id: "feed-a", starred_count: 2 }),
+      makeFeedArticleSummary({ feed_id: "feed-b", starred_count: 1 }),
+      makeFeedArticleSummary({ feed_id: "feed-c", starred_count: 0 }),
     ]);
 
     expect(counts).toEqual(
@@ -166,18 +171,29 @@ describe("buildStarredCountByFeedId", () => {
     );
   });
 
-  it("omits starred articles with blank feed ids", () => {
+  it("is not capped by the starred article list's default page size", () => {
+    // Regression: previously derived from list_starred_articles (default limit 50),
+    // which under-counted any feed once total starred articles exceeded the page size.
     const counts = buildStarredCountByFeedId([
-      { ...sampleArticle, id: "art-1", feed_id: "", is_starred: true },
-      { ...sampleArticle, id: "art-2", feed_id: "   ", is_starred: true },
-      { ...sampleArticle, id: "art-3", feed_id: "feed-a", is_starred: true },
-      { ...sampleArticle, id: "art-4", feed_id: "feed-a", is_starred: true },
+      makeFeedArticleSummary({ feed_id: "feed-a", starred_count: 30 }),
+      makeFeedArticleSummary({ feed_id: "feed-b", starred_count: 21 }),
+    ]);
+
+    expect(counts.get("feed-a")).toBe(30);
+    expect(counts.get("feed-b")).toBe(21);
+  });
+
+  it("omits summaries with blank feed ids", () => {
+    const counts = buildStarredCountByFeedId([
+      makeFeedArticleSummary({ feed_id: "", starred_count: 3 }),
+      makeFeedArticleSummary({ feed_id: "   ", starred_count: 3 }),
+      makeFeedArticleSummary({ feed_id: "feed-a", starred_count: 2 }),
     ]);
 
     expect(counts).toEqual(new Map([["feed-a", 2]]));
   });
 
-  it("returns an empty count map when articles are unavailable", () => {
+  it("returns an empty count map when summaries are unavailable", () => {
     expect(buildStarredCountByFeedId(undefined)).toEqual(new Map());
   });
 });
