@@ -99,6 +99,13 @@ describe("account-sync-status-format", () => {
       });
     });
 
+    it("does not repeat a known error prefix when the persisted detail is empty", () => {
+      expect(getAccountSyncErrorTranslationKey("Network error:")).toEqual({
+        key: "network",
+        params: { message: "" },
+      });
+    });
+
     it("returns no translation key for legacy errors without a known prefix", () => {
       expect(getAccountSyncErrorTranslationKey("Connection failed")).toEqual({
         key: null,

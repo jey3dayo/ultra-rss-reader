@@ -61,7 +61,7 @@ export function getAccountSyncErrorTranslationKey(lastError: string): AccountSyn
   const detail = normalizedError.slice(matchedPrefix.prefix.length).trim();
   return {
     key: matchedPrefix.kind,
-    params: { message: detail.length > 0 ? detail : normalizedError },
+    params: { message: detail },
   };
 }
 
