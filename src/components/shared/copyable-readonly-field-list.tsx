@@ -1,15 +1,9 @@
 import { Fragment } from "react";
 import { cn } from "@/lib/utils";
-import { CopyableReadonlyField } from "./copyable-readonly-field";
+import { CopyableReadonlyField, type CopyableReadonlyFieldProps } from "./copyable-readonly-field";
 
-export type CopyableReadonlyFieldItem = {
+export type CopyableReadonlyFieldItem = CopyableReadonlyFieldProps & {
   key: string;
-  label: string;
-  name: string;
-  value: string;
-  copyLabel?: string;
-  disabled?: boolean;
-  onCopy?: () => void;
 };
 
 type CopyableReadonlyFieldListProps = {
