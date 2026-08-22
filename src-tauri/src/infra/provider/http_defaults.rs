@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+use std::error::Error as StdError;
+use std::fmt;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
-use crate::domain::url_policy::{
-    PRIVATE_URL_VALIDATION_MESSAGE, UNSUPPORTED_URL_VALIDATION_MESSAGE,
-};
+use crate::domain::url_policy::{is_private_ip, PRIVATE_URL_VALIDATION_MESSAGE};
 use reqwest::header::{HeaderMap, HeaderValue, CACHE_CONTROL, PRAGMA};
 use serde::de::DeserializeOwned;
 
@@ -15,6 +18,113 @@ pub const PROVIDER_RESPONSE_BODY_CAP_BYTES: u64 = 5 * 1024 * 1024;
 pub const DISCOVERY_RESPONSE_BODY_CAP_BYTES: u64 = 2 * 1024 * 1024;
 pub const PROVIDER_CACHE_CONTROL: &str = "no-store";
 pub const PROVIDER_PRAGMA: &str = "no-cache";
+
+/// Keeps a redirect validation failure typed while reqwest wraps it in its own
+/// redirect error. The source chain is the stable boundary used by
+/// `map_provider_request_error`; the reqwest Display implementation is not.
+#[derive(Debug)]
+pub(crate) struct ProviderRedirectError(DomainError);
+
+impl ProviderRedirectError {
+    fn new(error: DomainError) -> Self {
+        Self(error)
+    }
+}
+
+impl fmt::Display for ProviderRedirectError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+impl StdError for ProviderRedirectError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(&self.0)
+    }
+}
+
+type HostResolver = Arc<dyn Fn(&str) -> DomainResult<Vec<SocketAddr>> + Send + Sync>;
+
+/// DNS resolver that validates every returned address and reuses the exact
+/// result for the subsequent connection. Seeded entries are used for the
+/// initial request; redirect hosts are resolved once and cached on demand.
+#[derive(Clone)]
+pub(crate) struct ValidatedPublicDnsResolver {
+    host_resolver: HostResolver,
+    resolved_hosts: Arc<Mutex<HashMap<String, DomainResult<Vec<SocketAddr>>>>>,
+}
+
+impl ValidatedPublicDnsResolver {
+    pub(crate) fn new(
+        host_resolver: impl Fn(&str) -> DomainResult<Vec<SocketAddr>> + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            host_resolver: Arc::new(host_resolver),
+            resolved_hosts: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub(crate) fn seed(&self, host: &str, addresses: Vec<SocketAddr>) -> DomainResult<()> {
+        validate_public_socket_addrs(&addresses)?;
+        let mut resolved_hosts = self
+            .resolved_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?;
+        resolved_hosts.insert(normalize_dns_host(host), Ok(addresses));
+        Ok(())
+    }
+
+    fn resolve_cached(&self, host: &str) -> DomainResult<Vec<SocketAddr>> {
+        let normalized_host = normalize_dns_host(host);
+        if let Some(result) = self
+            .resolved_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?
+            .get(&normalized_host)
+            .cloned()
+        {
+            return result;
+        }
+
+        let result = (self.host_resolver)(&normalized_host)
+            .and_then(|addresses| validate_public_socket_addrs(&addresses).map(|()| addresses));
+        let mut resolved_hosts = self
+            .resolved_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?;
+        resolved_hosts.insert(normalized_host, result.clone());
+        result
+    }
+}
+
+impl reqwest::dns::Resolve for ValidatedPublicDnsResolver {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        let resolver = self.clone();
+        let host = name.as_str().to_string();
+        Box::pin(async move {
+            let addresses = tokio::task::spawn_blocking(move || resolver.resolve_cached(&host))
+                .await
+                .map_err(|error| {
+                    Box::new(DomainError::Network(error.to_string()))
+                        as Box<dyn StdError + Send + Sync>
+                })??;
+            Ok(Box::new(addresses.into_iter()) as reqwest::dns::Addrs)
+        })
+    }
+}
+
+fn normalize_dns_host(host: &str) -> String {
+    host.trim_end_matches('.').to_ascii_lowercase()
+}
+
+fn validate_public_socket_addrs(addresses: &[SocketAddr]) -> DomainResult<()> {
+    if addresses.iter().any(|address| is_private_ip(address.ip())) {
+        return Err(DomainError::Validation(
+            PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+    Ok(())
+}
 
 pub fn http_client_builder() -> reqwest::ClientBuilder {
     reqwest::Client::builder()
@@ -42,7 +152,7 @@ pub(crate) fn provider_redirect_policy(
             validate_url,
         ) {
             Ok(()) => attempt.follow(),
-            Err(error) => attempt.error(error.to_string()),
+            Err(error) => attempt.error(ProviderRedirectError::new(error)),
         }
     })
 }
@@ -84,15 +194,15 @@ pub(crate) fn validate_provider_redirect(
 }
 
 pub(crate) fn map_provider_request_error(error: reqwest::Error) -> DomainError {
-    let message = error.to_string();
-    if message.contains(PRIVATE_URL_VALIDATION_MESSAGE) {
-        return DomainError::Validation(PRIVATE_URL_VALIDATION_MESSAGE.to_string());
-    }
-    if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
-        return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
-    }
-    if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
-        return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
+    let mut source = error.source();
+    while let Some(current) = source {
+        if let Some(redirect_error) = current.downcast_ref::<ProviderRedirectError>() {
+            return redirect_error.0.clone();
+        }
+        if let Some(domain_error) = current.downcast_ref::<DomainError>() {
+            return domain_error.clone();
+        }
+        source = current.source();
     }
 
     DomainError::from_provider_http_error(error)
@@ -150,13 +260,18 @@ where
 mod tests {
     use super::{
         build_http_client, http_client_builder, validate_provider_redirect,
-        validate_provider_redirect_attempt, DOWNGRADE_REDIRECT_VALIDATION_MESSAGE,
-        PROVIDER_CACHE_CONTROL, PROVIDER_PRAGMA, PROVIDER_USER_AGENT,
+        validate_provider_redirect_attempt, ValidatedPublicDnsResolver,
+        DOWNGRADE_REDIRECT_VALIDATION_MESSAGE, PROVIDER_CACHE_CONTROL, PROVIDER_PRAGMA,
+        PROVIDER_USER_AGENT,
     };
     use crate::domain::error::DomainError;
+    use reqwest::dns::Resolve;
     use reqwest::header::{CACHE_CONTROL, PRAGMA, REFERER, USER_AGENT};
     use std::io::{Read, Write};
-    use std::net::TcpListener;
+    use std::net::{SocketAddr, TcpListener};
+    use std::str::FromStr;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     static PROXY_ENV_LOCK: std::sync::LazyLock<std::sync::Mutex<()>> =
         std::sync::LazyLock::new(|| std::sync::Mutex::new(()));
@@ -169,6 +284,89 @@ mod tests {
             result,
             Err(DomainError::Network(message)) if !message.is_empty()
         ));
+    }
+
+    #[tokio::test]
+    async fn validated_dns_resolver_rejects_private_addresses_before_connecting() {
+        let resolver = ValidatedPublicDnsResolver::new(|host| {
+            if host == "rebinding.test.invalid" {
+                return Ok(vec![SocketAddr::from(([127, 0, 0, 1], 80))]);
+            }
+            Ok(vec![SocketAddr::from(([93, 184, 216, 34], 0))])
+        });
+        let name = reqwest::dns::Name::from_str("rebinding.test.invalid")
+            .expect("resolver fixture host should parse");
+
+        let error = match resolver.resolve(name).await {
+            Ok(_) => panic!("private resolver result must not reach the connector"),
+            Err(error) => error,
+        };
+
+        assert_eq!(
+            error
+                .downcast_ref::<DomainError>()
+                .expect("resolver should preserve the typed domain error")
+                .to_string(),
+            "Validation error: Requests to private/loopback addresses are not allowed"
+        );
+    }
+
+    #[tokio::test]
+    async fn validated_dns_resolver_reuses_seeded_result_for_initial_host() {
+        let resolver = ValidatedPublicDnsResolver::new(|_| {
+            Err(DomainError::Network(
+                "unexpected second DNS resolution".to_string(),
+            ))
+        });
+        resolver
+            .seed(
+                "public.example.test.",
+                vec![SocketAddr::from(([93, 184, 216, 34], 0))],
+            )
+            .expect("public fixture address should be accepted");
+        let name = reqwest::dns::Name::from_str("public.example.test")
+            .expect("resolver fixture host should parse");
+
+        let addresses = resolver
+            .resolve(name)
+            .await
+            .expect("seeded address should be reused")
+            .collect::<Vec<_>>();
+
+        assert_eq!(addresses, vec![SocketAddr::from(([93, 184, 216, 34], 0))]);
+    }
+
+    #[tokio::test]
+    async fn validated_dns_resolver_closes_public_to_private_rebinding_window() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let resolver_calls = Arc::clone(&calls);
+        let resolver = ValidatedPublicDnsResolver::new(move |_| {
+            if resolver_calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                return Ok(vec![SocketAddr::from(([93, 184, 216, 34], 0))]);
+            }
+            Ok(vec![SocketAddr::from(([127, 0, 0, 1], 0))])
+        });
+
+        let first_name = reqwest::dns::Name::from_str("rebind.example.test")
+            .expect("resolver fixture host should parse");
+        let first_addresses = resolver
+            .resolve(first_name)
+            .await
+            .expect("the first public DNS result should be accepted")
+            .collect::<Vec<_>>();
+        let second_name = reqwest::dns::Name::from_str("rebind.example.test")
+            .expect("resolver fixture host should parse");
+        let second_addresses = resolver
+            .resolve(second_name)
+            .await
+            .expect("the cached result should be used for the connection")
+            .collect::<Vec<_>>();
+
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert_eq!(first_addresses, second_addresses);
+        assert!(second_addresses
+            .iter()
+            .all(|address| !crate::domain::url_policy::is_private_ip(address.ip())));
     }
 
     #[test]

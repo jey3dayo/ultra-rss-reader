@@ -2,6 +2,7 @@ use std::collections::HashSet;
 #[cfg(not(test))]
 use std::net::ToSocketAddrs;
 use std::net::{IpAddr, SocketAddr};
+use std::sync::Arc;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{
@@ -79,12 +80,13 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
 }
 
 fn discovery_redirect_policy() -> reqwest::redirect::Policy {
-    http_defaults::provider_redirect_policy(false, validate_discovery_request_url)
+    http_defaults::provider_redirect_policy(false, validate_discovery_url)
 }
 
 fn discovery_http_client_builder() -> reqwest::ClientBuilder {
     http_defaults::http_client_builder()
         .user_agent(DISCOVERY_USER_AGENT_POLICY)
+        .dns_resolver(Arc::new(validated_public_dns_resolver()))
         .redirect(discovery_redirect_policy())
 }
 
@@ -95,11 +97,16 @@ fn discovery_http_client_builder_for_url(
     let Some(host) = url.host_str() else {
         return Ok(discovery_http_client_builder());
     };
+
+    let resolver = validated_public_dns_resolver();
+    resolver.seed(host, resolved_addresses.clone())?;
     if resolved_addresses.is_empty() {
-        return Ok(discovery_http_client_builder());
+        return Ok(discovery_http_client_builder().dns_resolver(Arc::new(resolver)));
     }
 
-    Ok(discovery_http_client_builder().resolve_to_addrs(host, &resolved_addresses))
+    Ok(discovery_http_client_builder()
+        .dns_resolver(Arc::new(resolver))
+        .resolve_to_addrs(host, &resolved_addresses))
 }
 
 #[cfg(test)]
@@ -130,6 +137,10 @@ pub(crate) fn validate_discovery_request_url(url: &reqwest::Url) -> DomainResult
 /// when validation fails or any resolved address is private.
 pub(crate) fn resolve_validated_public_addrs(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
     validate_and_resolve_discovery_request_url(url)
+}
+
+pub(crate) fn validated_public_dns_resolver() -> http_defaults::ValidatedPublicDnsResolver {
+    http_defaults::ValidatedPublicDnsResolver::new(|host| resolve_host_addresses(host, 0))
 }
 
 fn validate_and_resolve_discovery_request_url(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {

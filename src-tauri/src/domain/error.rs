@@ -5,7 +5,7 @@ use thiserror::Error;
 
 pub const PROVIDER_RETRY_AFTER_MAX_SECONDS: u64 = 3_600;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum DomainError {
     #[error("Network error: {0}")]
     Network(String),

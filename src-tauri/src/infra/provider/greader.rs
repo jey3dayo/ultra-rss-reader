@@ -5,10 +5,15 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::sync::Arc;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
-use crate::infra::feed_discovery::validate_discovery_request_url;
+use crate::domain::url_policy::validate_http_url_without_credentials;
+use crate::infra::feed_discovery::{
+    resolve_validated_public_addrs, validate_discovery_url, validated_public_dns_resolver,
+};
 
 use super::http_defaults::{self, http_client_builder};
 use super::normalizer::{normalize_provider_metadata_url, normalize_trusted_backend_article_url};
@@ -320,15 +325,44 @@ fn greader_json_body_too_large_error() -> DomainError {
     ))
 }
 
+fn resolve_greader_base_addrs(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
+    validate_http_url_without_credentials(url)?;
+
+    if let Some(address) = explicit_greader_base_addr(url) {
+        // A literal/private FreshRSS base is an explicit user-selected endpoint:
+        // it cannot be DNS-rebound, so account URL verification (url_policy / #65)
+        // owns the UX decision about whether private servers are acceptable.
+        return Ok(vec![address]);
+    }
+
+    resolve_validated_public_addrs(url)
+}
+
+fn explicit_greader_base_addr(url: &reqwest::Url) -> Option<SocketAddr> {
+    let host = url.host_str()?;
+    let port = url.port_or_known_default().unwrap_or(80);
+
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        return Some(SocketAddr::new(ip, port));
+    }
+
+    if host.trim_end_matches('.').eq_ignore_ascii_case("localhost") {
+        return Some(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), port));
+    }
+
+    None
+}
+
 impl GReaderProvider {
     /// Create a provider configured for FreshRSS.
     pub fn for_freshrss(server_url: &str) -> Self {
         let base = freshrss_api_base(server_url);
+        let http_client = Self::build_http_client(&base).map_err(|error| error.to_string());
         Self {
             kind: ProviderKind::FreshRss,
             api_base: base.clone(),
             auth_base: base,
-            http_client: Self::build_http_client().map_err(|error| error.to_string()),
+            http_client,
             auth_token: None,
         }
     }
@@ -338,15 +372,45 @@ impl GReaderProvider {
         Ok(Self {
             kind: ProviderKind::FreshRss,
             api_base: base.clone(),
-            auth_base: base,
-            http_client: Ok(Self::build_http_client()?),
+            auth_base: base.clone(),
+            http_client: Ok(Self::build_http_client(&base)?),
             auth_token: None,
         })
     }
 
-    fn build_http_client() -> DomainResult<reqwest::Client> {
+    fn build_http_client(base: &str) -> DomainResult<reqwest::Client> {
+        let base_url = reqwest::Url::parse(base).map_err(|_| {
+            DomainError::Validation(
+                crate::domain::url_policy::UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
+            )
+        })?;
+        let explicit_base_addr = explicit_greader_base_addr(&base_url);
+        let resolved_addresses = resolve_greader_base_addrs(&base_url)?;
+        let base_host = base_url.host_str();
+        let resolver = validated_public_dns_resolver();
+        if let Some(host) = base_host.filter(|_| explicit_base_addr.is_none()) {
+            resolver.seed(host, resolved_addresses.clone())?;
+        }
+
+        let mut builder = http_client_builder()
+            .dns_resolver(Arc::new(resolver))
+            .redirect(http_defaults::provider_redirect_policy(
+                false,
+                validate_discovery_url,
+            ));
+        if let Some(host) = base_host {
+            if !resolved_addresses.is_empty() {
+                builder = builder.resolve_to_addrs(host, &resolved_addresses);
+            }
+        }
+
+        http_defaults::build_http_client(builder)
+    }
+
+    #[cfg(test)]
+    fn build_test_http_client_allowing_private_urls() -> DomainResult<reqwest::Client> {
         http_defaults::build_http_client(http_client_builder().redirect(
-            http_defaults::provider_redirect_policy(false, validate_discovery_request_url),
+            http_defaults::provider_redirect_policy(true, validate_discovery_url),
         ))
     }
 
@@ -355,11 +419,7 @@ impl GReaderProvider {
         previous_urls: &[reqwest::Url],
         next_url: &reqwest::Url,
     ) -> DomainResult<()> {
-        http_defaults::validate_provider_redirect(
-            previous_urls,
-            next_url,
-            validate_discovery_request_url,
-        )
+        http_defaults::validate_provider_redirect(previous_urls, next_url, validate_discovery_url)
     }
 
     fn http_client(&self) -> DomainResult<&reqwest::Client> {
@@ -1352,13 +1412,218 @@ mod tests {
             &previous,
             &next,
             false,
-            validate_discovery_request_url,
+            validate_discovery_url,
         );
 
         assert!(matches!(
             result,
             Err(DomainError::Network(message)) if message == "too many redirects"
         ));
+    }
+
+    #[test]
+    fn try_for_freshrss_rejects_public_hostname_resolving_to_private_address() {
+        let error = GReaderProvider::try_for_freshrss("https://private.test.invalid")
+            .expect_err("private DNS result must fail provider construction");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn legacy_constructor_keeps_private_dns_setup_failure_for_first_operation() {
+        let provider = GReaderProvider::for_freshrss("https://private.test.invalid");
+
+        assert!(matches!(
+            provider.http_client,
+            Err(message) if message.contains(PRIVATE_URL_VALIDATION_MESSAGE)
+        ));
+    }
+
+    #[tokio::test]
+    async fn literal_private_base_provider_builds_and_sends() {
+        let mut server = mockito::Server::new_async().await;
+        let auth = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=literal-base-token\n")
+            .create_async()
+            .await;
+
+        let provider_result = GReaderProvider::try_for_freshrss(&server.url());
+        assert!(provider_result.is_ok(), "literal private base should build");
+        let mut provider = match provider_result {
+            Ok(provider) => provider,
+            Err(error) => panic!("literal private base should build: {error}"),
+        };
+
+        let authenticate_result = provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await;
+        assert!(
+            authenticate_result.is_ok(),
+            "literal private base should send: {:?}",
+            authenticate_result.err()
+        );
+        assert_eq!(provider.auth_token.as_deref(), Some("literal-base-token"));
+        auth.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn authenticate_maps_private_redirect_response_to_validation_error() {
+        let mut server = mockito::Server::new_async().await;
+        let redirect = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(302)
+            .with_header(
+                "location",
+                "http://127.0.0.1:1/api/greader.php/accounts/ClientLogin",
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        let error = provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .expect_err("private redirect must fail before the redirected request");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+        redirect.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn authenticate_rejects_private_dns_redirect_before_outbound_request() {
+        let mut server = mockito::Server::new_async().await;
+        let redirect = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(302)
+            .with_header(
+                "location",
+                "http://private.test.invalid/api/greader.php/accounts/ClientLogin",
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        let error = provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .expect_err("private DNS redirect must fail before the redirected request");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+        redirect.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn authenticate_follows_five_relative_http_redirects() {
+        let mut server = mockito::Server::new_async().await;
+        let initial = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(307)
+            .with_header("location", "/hop/0")
+            .create_async()
+            .await;
+        let mut redirects = Vec::new();
+        for hop in 0..4 {
+            let path = format!("/hop/{hop}");
+            redirects.push(
+                server
+                    .mock("POST", path.as_str())
+                    .with_status(307)
+                    .with_header("location", &format!("/hop/{}", hop + 1))
+                    .create_async()
+                    .await,
+            );
+        }
+        let final_response = server
+            .mock("POST", "/hop/4")
+            .with_status(200)
+            .with_body("Auth=redirected-token\n")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.http_client = Ok(
+            GReaderProvider::build_test_http_client_allowing_private_urls()
+                .expect("test redirect client should build"),
+        );
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .expect("five relative HTTP redirects should be accepted");
+
+        assert_eq!(provider.auth_token.as_deref(), Some("redirected-token"));
+        initial.assert_async().await;
+        for redirect in redirects {
+            redirect.assert_async().await;
+        }
+        final_response.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn authenticate_rejects_the_sixth_redirect_with_network_error() {
+        let mut server = mockito::Server::new_async().await;
+        let initial = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(307)
+            .with_header("location", "/hop/0")
+            .create_async()
+            .await;
+        let mut redirects = Vec::new();
+        for hop in 0..5 {
+            let path = format!("/hop/{hop}");
+            redirects.push(
+                server
+                    .mock("POST", path.as_str())
+                    .with_status(307)
+                    .with_header("location", &format!("/hop/{}", hop + 1))
+                    .create_async()
+                    .await,
+            );
+        }
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.http_client = Ok(
+            GReaderProvider::build_test_http_client_allowing_private_urls()
+                .expect("test redirect client should build"),
+        );
+        let error = provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .expect_err("the sixth redirect must be rejected");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == "too many redirects"
+        ));
+        initial.assert_async().await;
+        for redirect in redirects {
+            redirect.assert_async().await;
+        }
     }
 
     #[test]
