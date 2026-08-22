@@ -56,7 +56,9 @@ function extractBlock(source: string, pattern: RegExp, label: string): string {
 function productionSourceExcludingTestModule(source: string): string {
   const testModuleStart = source.indexOf("\nmod tests {");
   if (testModuleStart === -1) {
-    throw new Error("Could not find `mod tests {` in source");
+    // The inline test module has been extracted to its own file; the whole
+    // source is production code.
+    return source;
   }
   return source.slice(0, testModuleStart);
 }
