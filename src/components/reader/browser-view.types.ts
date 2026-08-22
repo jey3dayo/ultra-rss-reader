@@ -5,7 +5,11 @@ import type {
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser/browser-debug-geometry";
 import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
-import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser/browser-viewer-geometry";
+import type {
+  BrowserViewerGeometry,
+  BrowserViewerGeometryInput,
+  BrowserViewerScope,
+} from "@/lib/browser/browser-viewer-geometry";
 
 export type BrowserViewScope = BrowserViewerScope;
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
@@ -38,12 +42,10 @@ export type BrowserViewPresentation = BrowserViewSurfacePresentation & {
   geometry: BrowserViewGeometry;
 };
 
-export type ResolveBrowserViewPresentationParams = {
-  scope: BrowserViewerScope;
-  viewportWidth: number;
-  diagnosticsVisible: boolean;
-  overlayTitlebar?: boolean;
-};
+// Alias: the geometry input in src/lib/browser/browser-viewer-geometry.ts is
+// the source of truth for these fields; presentation resolution takes the
+// same input and only adds derived view state on top.
+export type ResolveBrowserViewPresentationParams = BrowserViewerGeometryInput;
 
 export type ResolveBrowserViewSurfacePresentationParams = {
   scope: BrowserViewScope;
