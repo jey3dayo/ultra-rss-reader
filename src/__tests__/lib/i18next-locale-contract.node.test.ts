@@ -27,7 +27,9 @@ import jaSidebar from "@/locales/ja/sidebar.json";
 import jaSubscriptions from "@/locales/ja/subscriptions.json";
 import i18nextTypesSource from "@/types/i18next.d.ts?raw";
 import dtoSyncSource from "../../../src-tauri/src/commands/dto/sync.rs?raw";
+import syncCommandsSource from "../../../src-tauri/src/commands/sync_commands.rs?raw";
 import menuI18nSource from "../../../src-tauri/src/menu_i18n.rs?raw";
+import pendingMutationSource from "../../../src-tauri/src/repository/pending_mutation.rs?raw";
 import testI18n from "../../../tests/helpers/i18n-setup";
 
 type LocaleLeaf = string | readonly string[];
@@ -408,6 +410,43 @@ function localeResourceBasenamesByLocale() {
   return Object.fromEntries([...basenamesByLocale].map(([locale, basenames]) => [locale, basenames.toSorted()]));
 }
 
+/**
+ * Extracts the string literals returned from `PendingMutationType::as_str()`
+ * (`repository/pending_mutation.rs`), the wire values interpolated into
+ * `sync_warning_detail.pending_mutation_retry` / `dropped_pending_mutation`
+ * and resolved to a label via `sync_warning_detail.mutation_labels.<value>`.
+ */
+function extractPendingMutationTypeValues(source: string): string[] {
+  const blockPattern = /fn as_str\(self\) -> &'static str \{\s*match self \{(?<body>[\s\S]*?)\n\s*\}\s*\n\s*\}/;
+  const block = blockPattern.exec(source)?.groups?.body;
+  expect(block, "PendingMutationType::as_str() match body not found").toBeDefined();
+
+  const values: string[] = [];
+  for (const match of block?.matchAll(/=>\s*"(?<value>[a-z_]+)"/g) ?? []) {
+    const value = match.groups?.value;
+    if (value !== undefined) {
+      values.push(value);
+    }
+  }
+  return values;
+}
+
+/**
+ * Extracts the distinct `operation` string literals passed to
+ * `local_account_sync_error_warning(...)` in `sync_commands.rs`, the wire
+ * values resolved to a label via `sync_warning_detail.operation_labels.<value>`.
+ */
+function extractLocalAccountSyncOperationValues(source: string): string[] {
+  const values = new Set<string>();
+  for (const match of source.matchAll(/local_account_sync_error_warning\(\s*"(?<value>[a-z_]+)"/g)) {
+    const value = match.groups?.value;
+    if (value !== undefined) {
+      values.add(value);
+    }
+  }
+  return [...values].toSorted();
+}
+
 describe("i18next locale contract", () => {
   it("keeps supported runtime languages aligned with locale resources and UI preferences", () => {
     const explicitUiLanguagePreferences = uiLanguagePreferences.filter((preference) => preference !== "system");
@@ -742,6 +781,38 @@ describe("i18next locale contract", () => {
       for (const namespace of ["sidebar", "settings"] as const) {
         if (!hasLocaleKeyInBothLocales(namespace, `sync_warning_detail.${snakeCaseType}`)) {
           missing.push(`${namespace}:sync_warning_detail.${snakeCaseType}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps a sync_warning_detail.mutation_labels.<value> locale key for every PendingMutationType::as_str() value", () => {
+    const mutationValues = extractPendingMutationTypeValues(pendingMutationSource);
+    expect(mutationValues).toEqual(["mark_read", "mark_unread", "star", "unstar"]);
+
+    const missing: string[] = [];
+    for (const value of mutationValues) {
+      for (const namespace of ["sidebar", "settings"] as const) {
+        if (!hasLocaleKeyInBothLocales(namespace, `sync_warning_detail.mutation_labels.${value}`)) {
+          missing.push(`${namespace}:sync_warning_detail.mutation_labels.${value}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps a sync_warning_detail.operation_labels.<value> locale key for every local_account_sync_error_warning operation literal", () => {
+    const operationValues = extractLocalAccountSyncOperationValues(syncCommandsSource);
+    expect(operationValues).toEqual(["export", "import"]);
+
+    const missing: string[] = [];
+    for (const value of operationValues) {
+      for (const namespace of ["sidebar", "settings"] as const) {
+        if (!hasLocaleKeyInBothLocales(namespace, `sync_warning_detail.operation_labels.${value}`)) {
+          missing.push(`${namespace}:sync_warning_detail.operation_labels.${value}`);
         }
       }
     }

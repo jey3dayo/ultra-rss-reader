@@ -458,7 +458,17 @@
     "startup_repair_marker_failed": "Startup repair marker could not be saved: {{message}}",
     "scheduler_load_failed": "Scheduled sync could not load accounts: {{message}}",
     "backoff_persist_failed": "Could not save retry state for '{{accountName}}': {{message}}",
-    "background_sync_retry_scheduled": "'{{accountName}}' will retry automatically"
+    "background_sync_retry_scheduled": "'{{accountName}}' will retry automatically",
+    "mutation_labels": {
+      "mark_read": "mark as read",
+      "mark_unread": "mark as unread",
+      "star": "star",
+      "unstar": "unstar"
+    },
+    "operation_labels": {
+      "import": "import",
+      "export": "export"
+    }
   },
   "sync_warning_detail_more_one": "+{{count}} more issue",
   "sync_warning_detail_more_other": "+{{count}} more issues"

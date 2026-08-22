@@ -60,7 +60,9 @@ type RunAccountSetupSyncParams = {
 
 function resolveAccountDetailSyncWarningDetailLine(t: TFunction<"settings">) {
   return (detail: Parameters<typeof getSyncWarningDetailTranslationKey>[0], remainingCount: number) => {
-    const { key, params } = getSyncWarningDetailTranslationKey(detail);
+    const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
+      t(`sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
+    );
     const detailText = t(`sync_warning_detail.${key}`, params);
     return remainingCount > 0
       ? `${detailText} ${t("sync_warning_detail_more", { count: remainingCount })}`

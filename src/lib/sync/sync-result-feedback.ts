@@ -49,24 +49,46 @@ export type SyncFeedbackMessages = {
 };
 
 /**
+ * Resolves a raw protocol/operation identifier (e.g. Rust
+ * `PendingMutationType::as_str()` values `mark_read`/`mark_unread`/`star`/
+ * `unstar`, or the `import`/`export` operation literals in
+ * `sync_commands.rs`) to a localized label via
+ * `sync_warning_detail.<labelType>_labels.<rawValue>`. Callers bind their own
+ * namespaced `t()`; an unknown value should fall back to the raw string
+ * (fail-open, same policy as the rest of this module) rather than throwing or
+ * showing a missing-key placeholder.
+ */
+export type SyncWarningDetailLabelResolver = (labelType: "mutation" | "operation", rawValue: string) => string;
+
+const identitySyncWarningDetailLabelResolver: SyncWarningDetailLabelResolver = (_labelType, rawValue) => rawValue;
+
+/**
  * Maps a structured sync-warning detail to the locale key suffix
  * (`sync_warning_detail.<type>`) and interpolation params a caller's `t()`
  * needs to render it. Pure and UI-copy-free: callers own the actual
  * translated text and namespace (`sidebar` vs `settings`).
+ *
+ * `resolveLabel` translates the raw `mutation`/`operation` protocol values
+ * embedded in some variants before they are interpolated, so the rendered
+ * sentence never leaks a wire identifier such as `mark_read` or `import`.
+ * Defaults to passing the raw value through unchanged.
  *
  * Kept in sync with `AccountSyncWarningDetailSchema`
  * (`src/api/schemas/sync-result.ts`) and the Rust
  * `AccountSyncWarningDetail` enum; `i18next-locale-contract.node.test.ts`
  * pins the per-variant locale keys.
  */
-export function getSyncWarningDetailTranslationKey(detail: AccountSyncWarningDetail): {
+export function getSyncWarningDetailTranslationKey(
+  detail: AccountSyncWarningDetail,
+  resolveLabel: SyncWarningDetailLabelResolver = identitySyncWarningDetailLabelResolver,
+): {
   key: AccountSyncWarningDetail["type"];
   params: Record<string, string | number>;
 } {
   switch (detail.type) {
     case "pending_mutation_retry":
     case "dropped_pending_mutation":
-      return { key: detail.type, params: { mutation: detail.mutation } };
+      return { key: detail.type, params: { mutation: resolveLabel("mutation", detail.mutation) } };
     case "deleted_greader_folders":
       return { key: detail.type, params: { count: detail.count } };
     case "feed_skipped_entries":
@@ -84,7 +106,10 @@ export function getSyncWarningDetailTranslationKey(detail: AccountSyncWarningDet
     case "local_feed_sync_failed":
       return { key: detail.type, params: { feedTitle: detail.feed_title, message: detail.message } };
     case "local_account_sync_operation_failed":
-      return { key: detail.type, params: { operation: detail.operation, message: detail.message } };
+      return {
+        key: detail.type,
+        params: { operation: resolveLabel("operation", detail.operation), message: detail.message },
+      };
     case "local_import_result":
       return {
         key: detail.type,

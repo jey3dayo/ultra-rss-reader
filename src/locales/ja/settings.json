@@ -458,7 +458,17 @@
     "startup_repair_marker_failed": "起動時の修復完了マーカーを保存できませんでした: {{message}}",
     "scheduler_load_failed": "スケジュール同期でアカウントを読み込めませんでした: {{message}}",
     "backoff_persist_failed": "「{{accountName}}」の再試行状態を保存できませんでした: {{message}}",
-    "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます"
+    "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます",
+    "mutation_labels": {
+      "mark_read": "記事の既読化",
+      "mark_unread": "記事の未読化",
+      "star": "スター付与",
+      "unstar": "スター解除"
+    },
+    "operation_labels": {
+      "import": "取り込み",
+      "export": "書き出し"
+    }
   },
   "sync_warning_detail_more_one": "ほか {{count}} 件",
   "sync_warning_detail_more_other": "ほか {{count}} 件"

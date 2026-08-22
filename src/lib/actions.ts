@@ -349,7 +349,9 @@ export function executeAction(action: AppAction): void {
                 warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
                 success: i18n.t("sidebar:sync_completed"),
                 detailLine: (detail, remainingCount) => {
-                  const { key, params } = getSyncWarningDetailTranslationKey(detail);
+                  const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
+                    i18n.t(`sidebar:sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
+                  );
                   const detailText = i18n.t(`sidebar:sync_warning_detail.${key}`, params);
                   return remainingCount > 0
                     ? `${detailText} ${i18n.t("sidebar:sync_warning_detail_more", { count: remainingCount })}`
