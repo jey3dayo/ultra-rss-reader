@@ -13,7 +13,7 @@ type ActionsSettingsServiceEntry = {
   labelKey: "actions.copy_link";
 };
 
-type ActionsSettingsServiceViewModel = {
+export type ActionsSettingsServiceViewModel = {
   id: ActionsSettingsServiceId;
   label: string;
   toggleAriaLabel: string;
