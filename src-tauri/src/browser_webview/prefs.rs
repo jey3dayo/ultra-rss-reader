@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use tauri::{AppHandle, Manager, Runtime};
 
+#[cfg(any(test, not(windows)))]
 use super::bridge::browser_preview_close_bridge_source;
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
