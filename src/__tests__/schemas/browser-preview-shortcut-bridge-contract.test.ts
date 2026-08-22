@@ -1,8 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { APP_ACTIONS } from "@/lib/app-actions";
 import { isShortcutPreferenceKey, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
-import backendSource from "../../../src-tauri/src/browser_webview.rs?raw";
-import commandsSource from "../../../src-tauri/src/commands/browser_webview_commands.rs?raw";
+import browserWebviewBridgeSource from "../../../src-tauri/src/browser_webview/bridge.rs?raw";
+import browserWebviewEscapeAcceleratorSource from "../../../src-tauri/src/browser_webview/escape_accelerator.rs?raw";
+// The Rust runtime and command modules were split by responsibility into directories; these
+// contracts scan Rust source text for specific blocks, so concatenate every submodule back
+// into one string per crate module (order does not matter for the regexes below).
+import browserWebviewModSource from "../../../src-tauri/src/browser_webview/mod.rs?raw";
+import browserWebviewNavigationSource from "../../../src-tauri/src/browser_webview/navigation.rs?raw";
+import browserWebviewPrefsSource from "../../../src-tauri/src/browser_webview/prefs.rs?raw";
+import browserWebviewCommandsBoundsSource from "../../../src-tauri/src/commands/browser_webview_commands/bounds.rs?raw";
+import browserWebviewCommandsLifecycleSource from "../../../src-tauri/src/commands/browser_webview_commands/lifecycle.rs?raw";
+import browserWebviewCommandsModSource from "../../../src-tauri/src/commands/browser_webview_commands/mod.rs?raw";
+import browserWebviewCommandsPrivacySource from "../../../src-tauri/src/commands/browser_webview_commands/privacy.rs?raw";
+
+const backendSource = [
+  browserWebviewModSource,
+  browserWebviewPrefsSource,
+  browserWebviewBridgeSource,
+  browserWebviewEscapeAcceleratorSource,
+  browserWebviewNavigationSource,
+].join("\n");
+const commandsSource = [
+  browserWebviewCommandsModSource,
+  browserWebviewCommandsBoundsSource,
+  browserWebviewCommandsPrivacySource,
+  browserWebviewCommandsLifecycleSource,
+].join("\n");
 
 type BrowserPreviewShortcutSpec = {
   prefKey: string;

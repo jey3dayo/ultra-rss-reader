@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import backendSource from "../../../src-tauri/src/browser_webview.rs?raw";
+import browserWebviewBridgeSource from "../../../src-tauri/src/browser_webview/bridge.rs?raw";
 
 /**
  * Extracts the raw `r#"..."#` script body embedded in
@@ -15,7 +15,7 @@ import backendSource from "../../../src-tauri/src/browser_webview.rs?raw";
  * app action and is not affected by that native discard.
  */
 function renderCloseBridgeScript(): string {
-  const raw = backendSource.match(
+  const raw = browserWebviewBridgeSource.match(
     /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(\s*r#"\n([\s\S]*?)"#\s*\n\s*\.to_string\(\),\s*\)/,
   )?.[1];
   if (!raw) {
