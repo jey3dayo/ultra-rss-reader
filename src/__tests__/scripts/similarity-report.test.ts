@@ -108,9 +108,9 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
     expect(summary).toContain("scan excludes: node_modules / dist / src-tauri/target");
     expect(summary).toContain("unparsed similarity blocks: 0");
-    expect(summary).toContain("scan baseline function pairs: 42");
+    expect(summary).toContain("scan baseline function pairs: 35");
     expect(summary).toContain("allowlisted false positives present: 2");
-    expect(summary).toContain("allowlisted false positives absent: 11");
+    expect(summary).toContain("allowlisted false positives absent: 5");
     expect(summary).not.toContain("TODO baseline");
     expect(summary).toContain("absent article-auto-mark-vs-browser-webview-sync");
   });
@@ -187,21 +187,12 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(similarityFalsePositiveBaseline).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "browser-overlay-close-vs-sidebar-smart-view-builder",
-          classification: "domain-boundary",
+          id: "article-auto-mark-vs-browser-webview-sync",
+          classification: "hook-lifecycle-baseline",
         }),
         expect.objectContaining({
           id: "account-cache-patcher-vs-browser-bounds-lifecycle",
           reviewUnit: "Treat cache helpers as standalone data updates; investigate only large hook lifecycle pairs.",
-        }),
-        expect.objectContaining({
-          id: "article-auto-mark-vs-article-list-view-state",
-          decision: "Do not share article read mutation lifecycle with pure article-list view-state derivation.",
-        }),
-        expect.objectContaining({
-          id: "subscription-review-candidates-vs-subscription-list-groups",
-          decision:
-            "Keep subscription review scoring separate from subscription list grouping; only count normalization is shared.",
         }),
       ]),
     );
