@@ -51,14 +51,14 @@
   "sync_warning_detail": {
     "pending_mutation_retry": "「{{mutation}}」は次回の同期で再試行されます",
     "dropped_pending_mutation": "「{{mutation}}」は送信できず破棄されました",
-    "deleted_greader_folders_one": "リモートに存在しないフォルダを {{count, count}} 件削除しました",
-    "deleted_greader_folders_other": "リモートに存在しないフォルダを {{count, count}} 件削除しました",
-    "feed_skipped_entries_one": "「{{feedTitle}}」で同期中に {{count, count}} 件のエントリをスキップしました",
-    "feed_skipped_entries_other": "「{{feedTitle}}」で同期中に {{count, count}} 件のエントリをスキップしました",
-    "feed_articles_vanished_one": "「{{feedTitle}}」の保存済み記事 {{count, count}} 件が同期後に消失しました",
-    "feed_articles_vanished_other": "「{{feedTitle}}」の保存済み記事 {{count, count}} 件が同期後に消失しました",
-    "account_skipped_entries_one": "「{{accountName}}」で同期中に {{count, count}} 件のエントリをスキップしました",
-    "account_skipped_entries_other": "「{{accountName}}」で同期中に {{count, count}} 件のエントリをスキップしました",
+    "deleted_greader_folders_one": "リモートに存在しないフォルダを {{count}} 件削除しました",
+    "deleted_greader_folders_other": "リモートに存在しないフォルダを {{count}} 件削除しました",
+    "feed_skipped_entries_one": "「{{feedTitle}}」で同期中に {{count}} 件のエントリをスキップしました",
+    "feed_skipped_entries_other": "「{{feedTitle}}」で同期中に {{count}} 件のエントリをスキップしました",
+    "feed_articles_vanished_one": "「{{feedTitle}}」の保存済み記事 {{count}} 件が同期後に消失しました",
+    "feed_articles_vanished_other": "「{{feedTitle}}」の保存済み記事 {{count}} 件が同期後に消失しました",
+    "account_skipped_entries_one": "「{{accountName}}」で同期中に {{count}} 件のエントリをスキップしました",
+    "account_skipped_entries_other": "「{{accountName}}」で同期中に {{count}} 件のエントリをスキップしました",
     "local_feed_sync_failed": "「{{feedTitle}}」の同期に失敗しました: {{message}}",
     "local_account_sync_operation_failed": "ローカル同期の{{operation}}に失敗しました: {{message}}",
     "local_import_result": "ローカル同期の取り込みで競合 {{conflicted}} 件、却下ファイル {{rejectedFiles}} 件、却下操作 {{rejectedOperations}} 件が見つかりました",
@@ -67,6 +67,6 @@
     "backoff_persist_failed": "「{{accountName}}」の再試行状態を保存できませんでした: {{message}}",
     "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます"
   },
-  "sync_warning_detail_more_one": "ほか {{count, count}} 件",
-  "sync_warning_detail_more_other": "ほか {{count, count}} 件"
+  "sync_warning_detail_more_one": "ほか {{count}} 件",
+  "sync_warning_detail_more_other": "ほか {{count}} 件"
 }

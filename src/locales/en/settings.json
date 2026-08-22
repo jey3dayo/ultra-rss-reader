@@ -444,14 +444,14 @@
   "sync_warning_detail": {
     "pending_mutation_retry": "'{{mutation}}' will retry on the next sync",
     "dropped_pending_mutation": "'{{mutation}}' could not be sent and was dropped",
-    "deleted_greader_folders_one": "Removed {{count, count}} folder that no longer exists remotely",
-    "deleted_greader_folders_other": "Removed {{count, count}} folders that no longer exist remotely",
-    "feed_skipped_entries_one": "'{{feedTitle}}' skipped {{count, count}} entry during sync",
-    "feed_skipped_entries_other": "'{{feedTitle}}' skipped {{count, count}} entries during sync",
-    "feed_articles_vanished_one": "'{{feedTitle}}' lost its {{count, count}} saved article after sync",
-    "feed_articles_vanished_other": "'{{feedTitle}}' lost its {{count, count}} saved articles after sync",
-    "account_skipped_entries_one": "'{{accountName}}' skipped {{count, count}} entry during sync",
-    "account_skipped_entries_other": "'{{accountName}}' skipped {{count, count}} entries during sync",
+    "deleted_greader_folders_one": "Removed {{count}} folder that no longer exists remotely",
+    "deleted_greader_folders_other": "Removed {{count}} folders that no longer exist remotely",
+    "feed_skipped_entries_one": "'{{feedTitle}}' skipped {{count}} entry during sync",
+    "feed_skipped_entries_other": "'{{feedTitle}}' skipped {{count}} entries during sync",
+    "feed_articles_vanished_one": "'{{feedTitle}}' lost its {{count}} saved article after sync",
+    "feed_articles_vanished_other": "'{{feedTitle}}' lost its {{count}} saved articles after sync",
+    "account_skipped_entries_one": "'{{accountName}}' skipped {{count}} entry during sync",
+    "account_skipped_entries_other": "'{{accountName}}' skipped {{count}} entries during sync",
     "local_feed_sync_failed": "'{{feedTitle}}' failed to sync: {{message}}",
     "local_account_sync_operation_failed": "Local sync {{operation}} failed: {{message}}",
     "local_import_result": "Local sync import found {{conflicted}} conflicted, {{rejectedFiles}} rejected file(s), and {{rejectedOperations}} rejected operation(s)",
@@ -460,6 +460,6 @@
     "backoff_persist_failed": "Could not save retry state for '{{accountName}}': {{message}}",
     "background_sync_retry_scheduled": "'{{accountName}}' will retry automatically"
   },
-  "sync_warning_detail_more_one": "+{{count, count}} more issue",
-  "sync_warning_detail_more_other": "+{{count, count}} more issues"
+  "sync_warning_detail_more_one": "+{{count}} more issue",
+  "sync_warning_detail_more_other": "+{{count}} more issues"
 }
