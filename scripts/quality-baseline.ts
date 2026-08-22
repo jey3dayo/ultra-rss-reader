@@ -100,8 +100,8 @@ const reactDoctorBaselines = {
   },
   full: {
     score: null,
-    errorCount: 26,
-    warningCount: 74,
+    errorCount: 16,
+    warningCount: 75,
     affectedFileCount: 46,
   },
 } as const;
