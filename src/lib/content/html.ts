@@ -281,7 +281,16 @@ function extractIpv4MappedAddress(hostname: string): string | null {
 }
 
 function isPrivateHostname(hostname: string): boolean {
-  const normalizedHostname = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  // Strip a trailing dot (or dots) before the private-host checks below so a
+  // DNS root label like "localhost." or "127.0.0.1." cannot bypass the
+  // "localhost" / ".localhost" / IPv4 checks. This mirrors the Rust
+  // sanitizer's trim_end_matches('.') normalization
+  // (src-tauri/src/domain/url_policy.rs). The URL href returned to callers is
+  // left untouched; only this private-host comparison is normalized.
+  const normalizedHostname = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.+$/, "");
   if (
     normalizedHostname === "localhost" ||
     normalizedHostname.endsWith(".localhost") ||
@@ -318,7 +327,13 @@ function isSafeReaderContentUrl(url: URL, allowedProtocols: ReadonlySet<string>)
 }
 
 const ARTICLE_LINK_PROTOCOLS = new Set(["http:", "https:"]);
-const ARTICLE_IMAGE_PROTOCOLS = new Set(["https:"]);
+// Kept as a separate set from ARTICLE_LINK_PROTOCOLS (even though the values
+// currently match) so images can be scoped independently of links later.
+// http: must stay allowed here to match the documented compatibility
+// contract (docs/feed-content-privacy.md:23,756) and the Rust sanitizer's
+// url_schemes allowlist (src-tauri/src/infra/sanitizer.rs:54), which both
+// permit http: article images/thumbnails.
+const ARTICLE_IMAGE_PROTOCOLS = new Set(["http:", "https:"]);
 
 export function normalizeReaderContentImageUrl(value: string | null | undefined): string | null {
   const normalizedValue = value?.trim();
