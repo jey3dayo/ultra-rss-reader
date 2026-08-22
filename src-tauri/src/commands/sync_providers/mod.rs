@@ -58,16 +58,14 @@ use crate::repository::pending_mutation::{PendingMutationRepository, PendingMuta
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 mod account;
+use account::pending_remote_ids_by_axis;
 #[cfg(test)]
 use account::{
     apply_remote_state_with_protection, deleted_greader_folders_warning,
     dropped_pending_mutation_warning, pending_mutation_retry_warning,
     save_greader_folders_snapshot, sync_greader_account_entries, sync_greader_feed_entries,
 };
-pub(super) use account::{
-    pending_remote_ids_by_axis, repair_greader_remote_state, sync_greader_account,
-    sync_greader_feed,
-};
+pub(super) use account::{repair_greader_remote_state, sync_greader_account, sync_greader_feed};
 
 mod local;
 

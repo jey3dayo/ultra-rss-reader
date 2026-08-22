@@ -115,7 +115,7 @@ pub(crate) fn deleted_greader_folders_warning(count: usize) -> ProviderSyncWarni
 /// Must be called inside the same DB lock as `apply_remote_state`: reading the
 /// snapshot before the network `pull_state()` call leaves a window where an
 /// article marked read during the pull gets reverted to the stale remote state.
-pub(crate) fn pending_remote_ids_by_axis(
+pub(super) fn pending_remote_ids_by_axis(
     conn: &rusqlite::Connection,
     account_id: &AccountId,
 ) -> Result<(Vec<String>, Vec<String>), AppError> {
