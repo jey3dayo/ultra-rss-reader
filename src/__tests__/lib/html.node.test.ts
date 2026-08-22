@@ -329,6 +329,17 @@ describe("normalizeReaderContentImageUrl", () => {
     expect(normalizeReaderContentImageUrl("data:image/png;base64,AAAA")).toBeNull();
   });
 
+  it("blocks trailing-dot private hosts (localhost., 127.0.0.1., LOCALHOST., a.localhost.)", () => {
+    expect(normalizeReaderContentImageUrl("http://localhost./hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("http://127.0.0.1./hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("http://LOCALHOST./hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("http://a.localhost./hero.jpg")).toBeNull();
+  });
+
+  it("allows a trailing-dot public FQDN, matching the Rust url_policy trim_end_matches('.') contract", () => {
+    expect(normalizeReaderContentImageUrl("http://example.com./hero.jpg")).toBe("http://example.com./hero.jpg");
+  });
+
   it("blocks IPv4-mapped IPv6 reader image hosts (::ffff:127.0.0.1)", () => {
     expect(normalizeReaderContentImageUrl("https://[::ffff:127.0.0.1]/hero.jpg")).toBeNull();
     expect(normalizeReaderContentImageUrl("https://[::ffff:192.168.1.1]/hero.jpg")).toBeNull();

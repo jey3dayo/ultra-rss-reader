@@ -281,7 +281,16 @@ function extractIpv4MappedAddress(hostname: string): string | null {
 }
 
 function isPrivateHostname(hostname: string): boolean {
-  const normalizedHostname = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  // Strip a trailing dot (or dots) before the private-host checks below so a
+  // DNS root label like "localhost." or "127.0.0.1." cannot bypass the
+  // "localhost" / ".localhost" / IPv4 checks. This mirrors the Rust
+  // sanitizer's trim_end_matches('.') normalization
+  // (src-tauri/src/domain/url_policy.rs). The URL href returned to callers is
+  // left untouched; only this private-host comparison is normalized.
+  const normalizedHostname = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.+$/, "");
   if (
     normalizedHostname === "localhost" ||
     normalizedHostname.endsWith(".localhost") ||
