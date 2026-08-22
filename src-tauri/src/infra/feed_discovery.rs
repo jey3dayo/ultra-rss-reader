@@ -152,11 +152,13 @@ fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<Vec<Sock
     let Some(host) = url.host_str() else {
         return Ok(Vec::new());
     };
-    let port = url.port_or_known_default().unwrap_or(80);
     if host.parse::<IpAddr>().is_ok() {
         return Ok(Vec::new());
     }
-    let addresses = resolve_host_addresses(host, port)?;
+    let addresses = resolve_host_addresses(host, 0)?
+        .into_iter()
+        .map(|address| SocketAddr::new(address.ip(), 0))
+        .collect::<Vec<_>>();
 
     for address in &addresses {
         if is_private_ip(address.ip()) {
@@ -1049,7 +1051,7 @@ mod tests {
 
         let addresses = validate_and_resolve_discovery_request_url(&url).unwrap();
 
-        assert_eq!(addresses, vec![SocketAddr::from(([93, 184, 216, 34], 443))]);
+        assert_eq!(addresses, vec![SocketAddr::from(([93, 184, 216, 34], 0))]);
     }
 
     #[test]

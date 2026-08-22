@@ -154,7 +154,7 @@ pub struct GReaderProvider {
     auth_base: String,
     // Keep setup failures for legacy infallible constructors so the first
     // provider operation returns the error instead of silently using a default client.
-    http_client: Result<reqwest::Client, String>,
+    http_client: Result<reqwest::Client, DomainError>,
     auth_token: Option<String>,
 }
 
@@ -357,7 +357,7 @@ impl GReaderProvider {
     /// Create a provider configured for FreshRSS.
     pub fn for_freshrss(server_url: &str) -> Self {
         let base = freshrss_api_base(server_url);
-        let http_client = Self::build_http_client(&base).map_err(|error| error.to_string());
+        let http_client = Self::build_http_client(&base);
         Self {
             kind: ProviderKind::FreshRss,
             api_base: base.clone(),
@@ -423,9 +423,7 @@ impl GReaderProvider {
     }
 
     fn http_client(&self) -> DomainResult<&reqwest::Client> {
-        self.http_client
-            .as_ref()
-            .map_err(|error| DomainError::Network(error.clone()))
+        self.http_client.as_ref().map_err(|error| error.clone())
     }
 
     fn api_url(&self, path: &str) -> String {
@@ -1362,7 +1360,9 @@ mod tests {
     #[tokio::test]
     async fn greader_client_build_failure_is_returned_to_provider_operation() {
         let mut provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
-        provider.http_client = Err("provider client build failed".to_string());
+        provider.http_client = Err(DomainError::Network(
+            "provider client build failed".to_string(),
+        ));
         provider.auth_token = Some("token".to_string());
 
         let error = provider
@@ -1432,13 +1432,23 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn legacy_constructor_keeps_private_dns_setup_failure_for_first_operation() {
-        let provider = GReaderProvider::for_freshrss("https://private.test.invalid");
+    #[tokio::test]
+    async fn legacy_constructor_returns_private_dns_setup_failure_from_authenticate() {
+        let mut provider = GReaderProvider::for_freshrss("https://private.test.invalid");
+        let error = provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await;
+        let error = match error {
+            Ok(()) => panic!("private DNS setup failure should reach authenticate"),
+            Err(error) => error,
+        };
 
         assert!(matches!(
-            provider.http_client,
-            Err(message) if message.contains(PRIVATE_URL_VALIDATION_MESSAGE)
+            error,
+            DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE
         ));
     }
 

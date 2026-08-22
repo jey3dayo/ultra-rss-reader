@@ -65,7 +65,18 @@ impl ValidatedPublicDnsResolver {
     }
 
     pub(crate) fn seed(&self, host: &str, addresses: Vec<SocketAddr>) -> DomainResult<()> {
+        let addresses = normalize_dns_socket_addrs(addresses);
         validate_public_socket_addrs(&addresses)?;
+        let mut resolved_hosts = self
+            .resolved_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?;
+        resolved_hosts.insert(normalize_dns_host(host), Ok(addresses));
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn seed_for_test(&self, host: &str, addresses: Vec<SocketAddr>) -> DomainResult<()> {
         let mut resolved_hosts = self
             .resolved_hosts
             .lock()
@@ -86,8 +97,10 @@ impl ValidatedPublicDnsResolver {
             return result;
         }
 
-        let result = (self.host_resolver)(&normalized_host)
-            .and_then(|addresses| validate_public_socket_addrs(&addresses).map(|()| addresses));
+        let result = (self.host_resolver)(&normalized_host).and_then(|addresses| {
+            let addresses = normalize_dns_socket_addrs(addresses);
+            validate_public_socket_addrs(&addresses).map(|()| addresses)
+        });
         let mut resolved_hosts = self
             .resolved_hosts
             .lock()
@@ -115,6 +128,13 @@ impl reqwest::dns::Resolve for ValidatedPublicDnsResolver {
 
 fn normalize_dns_host(host: &str) -> String {
     host.trim_end_matches('.').to_ascii_lowercase()
+}
+
+fn normalize_dns_socket_addrs(addresses: Vec<SocketAddr>) -> Vec<SocketAddr> {
+    addresses
+        .into_iter()
+        .map(|address| SocketAddr::new(address.ip(), 0))
+        .collect()
 }
 
 fn validate_public_socket_addrs(addresses: &[SocketAddr]) -> DomainResult<()> {
@@ -321,7 +341,7 @@ mod tests {
         resolver
             .seed(
                 "public.example.test.",
-                vec![SocketAddr::from(([93, 184, 216, 34], 0))],
+                vec![SocketAddr::from(([93, 184, 216, 34], 8080))],
             )
             .expect("public fixture address should be accepted");
         let name = reqwest::dns::Name::from_str("public.example.test")
