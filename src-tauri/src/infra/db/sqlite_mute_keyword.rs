@@ -291,6 +291,7 @@ mod tests {
         [
             include_str!("sqlite_feed/mod.rs"),
             include_str!("sqlite_feed/mapping.rs"),
+            include_str!("sqlite_feed/tests.rs"),
             include_str!("sqlite_feed/unread.rs"),
         ]
         .join("\n")
