@@ -8,8 +8,6 @@ use tracing::warn;
 use crate::commands::dto::{SyncProgressEvent, SyncProgressKind, SyncProgressStage, SyncResult};
 use crate::domain::account::Account;
 
-pub(crate) const STARTUP_REMOTE_STATE_REPAIR_KEY: &str = "startup_remote_state_repair_v1";
-pub(crate) const STARTUP_REMOTE_STATE_REPAIR_VALUE: &str = "done";
 pub(crate) const SYNC_COMPLETED_EVENT: &str = "sync-completed";
 pub(crate) const SYNC_SUCCEEDED_EVENT: &str = "sync-succeeded";
 pub(crate) const SYNC_WARNING_EVENT: &str = "sync-warning";

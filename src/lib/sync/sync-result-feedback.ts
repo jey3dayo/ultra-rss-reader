@@ -52,7 +52,7 @@ export type SyncFeedbackMessages = {
  * Resolves a raw protocol/operation identifier (e.g. Rust
  * `PendingMutationType::as_str()` values `mark_read`/`mark_unread`/`star`/
  * `unstar`, or the `import`/`export` operation literals in
- * `sync_commands.rs`) to a localized label via
+ * `sync_commands/local_import_export.rs`) to a localized label via
  * `sync_warning_detail.<labelType>_labels.<rawValue>`. Callers bind their own
  * namespaced `t()`; an unknown value should fall back to the raw string
  * (fail-open, same policy as the rest of this module) rather than throwing or

@@ -32,10 +32,12 @@ use super::account_sync::{
 };
 use super::progress::{
     emit_sync_event_log_only, emit_sync_warning_event, should_emit_manual_single_sync_completion,
-    should_purge_old_articles_after_sync, SyncGuard, SyncProgressReporter,
-    STARTUP_REMOTE_STATE_REPAIR_KEY, STARTUP_REMOTE_STATE_REPAIR_VALUE, SYNC_COMPLETED_EVENT,
+    should_purge_old_articles_after_sync, SyncGuard, SyncProgressReporter, SYNC_COMPLETED_EVENT,
     SYNC_SUCCEEDED_EVENT,
 };
+
+pub(crate) const STARTUP_REMOTE_STATE_REPAIR_KEY: &str = "startup_remote_state_repair_v1";
+pub(crate) const STARTUP_REMOTE_STATE_REPAIR_VALUE: &str = "done";
 use super::{should_emit_sync_succeeded, sync_feed};
 
 pub(crate) fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> bool {
