@@ -13,6 +13,11 @@ import { readTauriCommandsSource } from "./helpers/tauri-command-source";
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
+const readSyncCommandsModuleSource = (): string =>
+  ["mod.rs", "progress.rs", "local_import_export.rs", "account_sync.rs", "scheduler.rs", "tests.rs"]
+    .map((file) => readText(`src-tauri/src/commands/sync_commands/${file}`))
+    .join("\n");
+
 // `src-tauri/src/commands` mixes flat `*.rs` files with command modules that
 // were split into a directory (`mod.rs` plus sibling `tests.rs`), so this
 // recurses instead of a flat, single-level `readdirSync` filter that would
@@ -176,7 +181,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps long-running operation progress contracts explicit where implementations exist", () => {
-    const syncCommandsSource = readText("src-tauri/src/commands/sync_commands.rs");
+    const syncCommandsSource = readSyncCommandsModuleSource();
     const updaterCommandsSource = readText("src-tauri/src/commands/updater_commands.rs");
     const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands/mod.rs");
 

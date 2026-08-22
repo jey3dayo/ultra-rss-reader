@@ -264,7 +264,7 @@ describe("remote-entry materialization contract", () => {
       "infra/db/migration/tests/migration_constraints.rs",
       "infra/db/migration/tests/schema_progression.rs",
       "commands/tag_commands.rs",
-      "commands/sync_commands.rs",
+      "commands/sync_commands/tests.rs",
       "service/local_account_sync.rs",
       "service/local_account_sync_apply.rs",
     ];

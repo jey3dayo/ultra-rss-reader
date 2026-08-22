@@ -149,7 +149,12 @@ function readRustCommandSources() {
     "preference_commands.rs",
     "settings_profile_commands.rs",
     "share_commands.rs",
-    "sync_commands.rs",
+    "sync_commands/mod.rs",
+    "sync_commands/progress.rs",
+    "sync_commands/local_import_export.rs",
+    "sync_commands/account_sync.rs",
+    "sync_commands/scheduler.rs",
+    "sync_commands/tests.rs",
     "tag_commands.rs",
     "updater_commands.rs",
   ]

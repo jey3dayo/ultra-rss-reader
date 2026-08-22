@@ -28,7 +28,7 @@ import jaSidebar from "@/locales/ja/sidebar.json";
 import jaSubscriptions from "@/locales/ja/subscriptions.json";
 import i18nextTypesSource from "@/types/i18next.d.ts?raw";
 import dtoSyncSource from "../../../src-tauri/src/commands/dto/sync.rs?raw";
-import syncCommandsSource from "../../../src-tauri/src/commands/sync_commands.rs?raw";
+import syncLocalImportExportSource from "../../../src-tauri/src/commands/sync_commands/local_import_export.rs?raw";
 import menuI18nSource from "../../../src-tauri/src/menu_i18n.rs?raw";
 import pendingMutationSource from "../../../src-tauri/src/repository/pending_mutation.rs?raw";
 import testI18n from "../../../tests/helpers/i18n-setup";
@@ -434,7 +434,7 @@ function extractPendingMutationTypeValues(source: string): string[] {
 
 /**
  * Extracts the distinct `operation` string literals passed to
- * `local_account_sync_error_warning(...)` in `sync_commands.rs`, the wire
+ * `local_account_sync_error_warning(...)` in `sync_commands/local_import_export.rs`, the wire
  * values resolved to a label via `sync_warning_detail.operation_labels.<value>`.
  */
 function extractLocalAccountSyncOperationValues(source: string): string[] {
@@ -818,7 +818,7 @@ describe("i18next locale contract", () => {
   });
 
   it("keeps a sync_warning_detail.operation_labels.<value> locale key for every local_account_sync_error_warning operation literal", () => {
-    const operationValues = extractLocalAccountSyncOperationValues(syncCommandsSource);
+    const operationValues = extractLocalAccountSyncOperationValues(syncLocalImportExportSource);
     expect(operationValues).toEqual(["export", "import"]);
 
     const missing: string[] = [];
