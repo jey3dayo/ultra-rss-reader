@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -39,6 +40,7 @@ const RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.release.conf.json";
 const DEV_TAURI_CONFIG_PATH = "src-tauri/tauri.dev.conf.json";
 const DEFAULT_CAPABILITY_PATH = "src-tauri/capabilities/default.json";
 const TAURI_LIB_PATH = "src-tauri/src/lib.rs";
+const CARGO_TOML_PATH = "src-tauri/Cargo.toml";
 const DEV_MOCKS_PATH = "src/dev/mocks.ts";
 const VITE_CONFIG_PATH = "vite.config.ts";
 const DEV_CREDENTIAL_ENV_PATTERN = /\b(?:DEV_CREDENTIALS|ULTRA_RSS_DEV_CREDENTIALS)\s*:/;
@@ -219,16 +221,70 @@ if (bridgePermissions.length > 0) {
 }
 
 if (
-  !/#\[cfg\(debug_assertions\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/.test(
+  !/#\[cfg\(all\(debug_assertions, feature = "mcp-bridge"\)\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/.test(
     tauriLib,
   )
 ) {
-  errors.push("release build must keep the MCP bridge plugin behind cfg(debug_assertions)");
+  errors.push(
+    'release build must keep the MCP bridge plugin behind cfg(all(debug_assertions, feature = "mcp-bridge"))',
+  );
 }
 
 for (const requiredPlugin of REQUIRED_RELEASE_PLUGINS) {
   if (!tauriLib.includes(requiredPlugin)) {
     errors.push(`release runtime must initialize ${requiredPlugin}`);
+  }
+}
+
+const cargoToml = readText(CARGO_TOML_PATH);
+
+if (!/tauri-plugin-mcp-bridge\s*=\s*\{[^}]*optional\s*=\s*true/.test(cargoToml)) {
+  errors.push("tauri-plugin-mcp-bridge dependency must be declared with optional = true");
+}
+
+const mcpBridgeFeatureMatch = cargoToml.match(/mcp-bridge\s*=\s*\[([^\]]*)\]/);
+if (!mcpBridgeFeatureMatch?.[1].includes("dep:tauri-plugin-mcp-bridge")) {
+  errors.push('Cargo.toml must define a "mcp-bridge" feature that enables dep:tauri-plugin-mcp-bridge');
+}
+
+const defaultFeatureMatch = cargoToml.match(/\[features\][^[]*?default\s*=\s*\[([^\]]*)\]/);
+if (defaultFeatureMatch?.[1].includes("mcp-bridge")) {
+  errors.push('Cargo.toml default features must not enable "mcp-bridge"');
+}
+
+const CARGO_OFFLINE_RESOLUTION_FAILURE_PATTERN = /no matching package|offline mode/;
+
+try {
+  const releaseDependencyTree = execFileSync(
+    "cargo",
+    ["tree", "--manifest-path", "src-tauri/Cargo.toml", "-e", "normal", "--offline"],
+    { encoding: "utf8" },
+  );
+  if (releaseDependencyTree.includes("tauri-plugin-mcp-bridge")) {
+    errors.push(
+      "release dependency graph (cargo tree without --features mcp-bridge) must not include tauri-plugin-mcp-bridge",
+    );
+  }
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  // execFileSync's thrown message embeds the full command line (e.g. "Command failed: cargo
+  // tree ... --offline"), so matching against it would misclassify any cargo tree failure as
+  // an offline-cache miss. Match the offline-resolution signature against stderr only.
+  const stderr =
+    error && typeof error === "object" && "stderr" in error && typeof error.stderr === "string" ? error.stderr : "";
+  const isMissingCargoBinary = message.includes("ENOENT");
+
+  // CI's Test job has no populated cargo registry cache, so `cargo tree --offline` cannot
+  // resolve the dependency graph there. Skip the dynamic check in that environment; the
+  // static Cargo.toml checks above still enforce the optional-dependency contract, and the
+  // full dependency-graph verification runs locally during release preflight where the
+  // registry cache is available.
+  if (isMissingCargoBinary || CARGO_OFFLINE_RESOLUTION_FAILURE_PATTERN.test(stderr)) {
+    console.warn(
+      "cargo registry cache unavailable; skipping cargo tree verification (static Cargo.toml checks still enforced)",
+    );
+  } else {
+    errors.push(`unable to verify the release dependency graph with cargo tree: ${message}`);
   }
 }
 

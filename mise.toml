@@ -106,21 +106,21 @@ run = "storybook build"
 [tasks."app:dev"]
 description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
-run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json -f mcp-bridge"
 
 [tasks."app:dev:native-keyring"]
 description = "Run native app in dev mode with the OS keyring backend"
-run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json -f mcp-bridge"
 
 [tasks."app:dev:subscriptions-index"]
 description = "Run native app in dev mode and jump into the subscriptions index workspace"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-subscriptions-index" }
-run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json -f mcp-bridge"
 
 [tasks."app:dev:web-preview"]
 description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview (optionally sized by VITE_DEV_WINDOW_WIDTH/HEIGHT)"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }
-run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json -f mcp-bridge"
 
 [tasks."app:dev:seed-from-prod"]
 description = "Seed the Dev app database from the packaged app data database"
@@ -131,7 +131,7 @@ description = "Build, codesign, and run native app on macOS (no Keychain dialog)
 run = """
 vite &
 DEV_PID=$!
-cargo build --manifest-path src-tauri/Cargo.toml
+cargo build --manifest-path src-tauri/Cargo.toml --features mcp-bridge
 codesign -s "UltraRSSReader-Dev" -f src-tauri/target/debug/ultra-rss-reader
 src-tauri/target/debug/ultra-rss-reader
 kill $DEV_PID 2>/dev/null || true
