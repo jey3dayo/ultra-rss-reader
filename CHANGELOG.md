@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- http 配信の記事画像・サムネイルが表示されない問題を修正した(文書化済みの互換契約どおり http/https を許可)。あわせて `localhost.` のような末尾ドット付きホスト名が私設ホスト判定をすり抜ける穴を塞いだ。
+- FreshRSS のサーバー URL 検証で、IPv4-mapped IPv6(`::ffff:127.0.0.1` 等)による私設ホスト拒否の回避を防いだ。
+
 ## [0.58.0] - 2026-08-22
 
 ### Features
