@@ -126,6 +126,28 @@ struct ItemRef {
     id: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UnreadPullTermination {
+    Normal,
+    EmptyPageWithContinuation,
+    RepeatedContinuation,
+    FullPageWithoutContinuation,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct UnreadPullResult {
+    pub(crate) entries: Vec<RemoteEntry>,
+    pub(crate) next_cursor: Option<SyncCursor>,
+    pub(crate) has_more: bool,
+    pub(crate) termination: UnreadPullTermination,
+}
+
+struct PullEntriesPage {
+    result: PullResult,
+    raw_item_count: usize,
+    repeated_continuation: bool,
+}
+
 // --- Constants ---
 
 const STATE_READ: &str = "user/-/state/com.google/read";
@@ -397,7 +419,7 @@ impl GReaderProvider {
         exclude_target: Option<&str>,
         cursor: Option<SyncCursor>,
         fallback_stream_id: Option<&str>,
-    ) -> DomainResult<PullResult> {
+    ) -> DomainResult<PullEntriesPage> {
         let mut url = format!(
             "{}?output=json&n={STREAM_CONTENTS_LIMIT}",
             self.api_url(&format!(
@@ -470,12 +492,16 @@ impl GReaderProvider {
             .collect::<Vec<_>>();
         let skipped_entries = raw_item_count.saturating_sub(entries.len());
 
-        Ok(PullResult {
-            entries,
-            next_cursor,
-            has_more,
-            not_modified: false,
-            skipped_entries,
+        Ok(PullEntriesPage {
+            result: PullResult {
+                entries,
+                next_cursor,
+                has_more,
+                not_modified: false,
+                skipped_entries,
+            },
+            raw_item_count,
+            repeated_continuation,
         })
     }
 
@@ -487,9 +513,26 @@ impl GReaderProvider {
         &self,
         remote_id: &str,
         cursor: Option<SyncCursor>,
-    ) -> DomainResult<PullResult> {
-        self.pull_entries_for_stream(remote_id, Some(STATE_READ), cursor, Some(remote_id))
-            .await
+    ) -> DomainResult<UnreadPullResult> {
+        let page = self
+            .pull_entries_for_stream(remote_id, Some(STATE_READ), cursor, Some(remote_id))
+            .await?;
+        let termination = if page.repeated_continuation {
+            UnreadPullTermination::RepeatedContinuation
+        } else if page.result.entries.is_empty() && page.result.has_more {
+            UnreadPullTermination::EmptyPageWithContinuation
+        } else if page.raw_item_count >= STREAM_CONTENTS_LIMIT as usize && !page.result.has_more {
+            UnreadPullTermination::FullPageWithoutContinuation
+        } else {
+            UnreadPullTermination::Normal
+        };
+
+        Ok(UnreadPullResult {
+            entries: page.result.entries,
+            next_cursor: page.result.next_cursor,
+            has_more: page.result.has_more,
+            termination,
+        })
     }
 
     fn item_cursor_timestamp_usec(item: &GReaderItem) -> Option<i64> {
@@ -803,6 +846,7 @@ impl FeedProvider for GReaderProvider {
             fallback_stream_id,
         )
         .await
+        .map(|page| page.result)
     }
 
     async fn pull_state(&self) -> DomainResult<RemoteState> {

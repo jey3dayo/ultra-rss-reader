@@ -1900,7 +1900,7 @@ async fn reconcile_greader_unread_counts_keeps_local_count_when_backfill_returns
     let feed_repo = SqliteFeedRepository::new(db_guard.reader());
     let reconciled_feed = feed_repo.find_by_id(&feed.id).unwrap().unwrap();
 
-    assert_eq!(backfilled, 1);
+    assert_eq!(backfilled, 0);
     assert_eq!(reconciled_feed.unread_count, 0);
 }
 
@@ -1939,6 +1939,7 @@ async fn reconcile_greader_unread_counts_marks_local_surplus_unread_as_read() {
                     ]
                 }"#,
         )
+        .expect(2)
         .create_async()
         .await;
 
@@ -2132,6 +2133,7 @@ async fn reconcile_greader_unread_counts_does_not_treat_star_pending_as_read_pen
         .match_header("Authorization", "GoogleLogin auth=tok")
         .with_status(200)
         .with_body(r#"{ "items": [] }"#)
+        .expect(2)
         .create_async()
         .await;
 
