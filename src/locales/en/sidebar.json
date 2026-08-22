@@ -61,7 +61,7 @@
     "account_skipped_entries_other": "'{{accountName}}' skipped {{count}} entries during sync",
     "local_feed_sync_failed": "'{{feedTitle}}' failed to sync: {{message}}",
     "local_account_sync_operation_failed": "Local sync {{operation}} failed: {{message}}",
-    "local_import_result": "Local sync import found {{conflicted}} conflicted, {{rejectedFiles}} rejected file(s), and {{rejectedOperations}} rejected operation(s)",
+    "local_import_result": "Local sync import result: conflicts {{conflicted}}, rejected files {{rejectedFiles}}, rejected operations {{rejectedOperations}}",
     "startup_repair_marker_failed": "Startup repair marker could not be saved: {{message}}",
     "scheduler_load_failed": "Scheduled sync could not load accounts: {{message}}",
     "backoff_persist_failed": "Could not save retry state for '{{accountName}}': {{message}}",
