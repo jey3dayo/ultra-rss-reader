@@ -22,7 +22,9 @@ use super::http_defaults::{self, http_client_builder};
 use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
 
-const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
+#[cfg(test)]
+const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str =
+    http_defaults::DOWNGRADE_REDIRECT_VALIDATION_MESSAGE;
 const FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE: &str =
     "Feed response body ended before the declared response length";
 const JSON_FEED_SUPPORT_DECISION: &str =
@@ -32,7 +34,9 @@ const LOCAL_PROVIDER_DISCOVERY_REQUEST_CONCURRENCY_LIMIT: usize = 1;
 const XML_DOCTYPE_DECLARATION: &[u8] = b"<!DOCTYPE";
 
 pub struct LocalProvider {
-    http_client: reqwest::Client,
+    // Keep setup failures for legacy infallible constructors so the first
+    // provider operation returns the error instead of silently using a default client.
+    http_client: Result<reqwest::Client, String>,
     allow_private_feed_urls: bool,
     sync_request_permits: Arc<Semaphore>,
     discovery_request_permits: Arc<Semaphore>,
@@ -59,7 +63,8 @@ impl LocalProvider {
 
     fn with_private_feed_url_policy(allow_private_feed_urls: bool) -> Self {
         Self {
-            http_client: Self::build_http_client(allow_private_feed_urls),
+            http_client: Self::build_http_client(allow_private_feed_urls)
+                .map_err(|error| error.to_string()),
             allow_private_feed_urls,
             sync_request_permits: Arc::new(Semaphore::new(
                 LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT,
@@ -75,28 +80,40 @@ impl LocalProvider {
         Self::with_private_feed_url_policy(true)
     }
 
-    fn build_http_client(allow_private_feed_urls: bool) -> reqwest::Client {
-        http_client_builder()
-            .redirect(Self::redirect_policy(allow_private_feed_urls))
-            .build()
-            .unwrap_or_default()
+    pub fn try_new() -> DomainResult<Self> {
+        Self::try_with_private_feed_url_policy(false)
+    }
+
+    fn try_with_private_feed_url_policy(allow_private_feed_urls: bool) -> DomainResult<Self> {
+        Ok(Self {
+            http_client: Ok(Self::build_http_client(allow_private_feed_urls)?),
+            allow_private_feed_urls,
+            sync_request_permits: Arc::new(Semaphore::new(
+                LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT,
+            )),
+            discovery_request_permits: Arc::new(Semaphore::new(
+                LOCAL_PROVIDER_DISCOVERY_REQUEST_CONCURRENCY_LIMIT,
+            )),
+        })
+    }
+
+    fn build_http_client(allow_private_feed_urls: bool) -> DomainResult<reqwest::Client> {
+        http_defaults::build_http_client(
+            http_client_builder().redirect(Self::redirect_policy(allow_private_feed_urls)),
+        )
     }
 
     fn redirect_policy(allow_private_feed_urls: bool) -> reqwest::redirect::Policy {
-        reqwest::redirect::Policy::custom(move |attempt| {
-            if attempt.previous().len() > 5 {
-                return attempt.error("too many redirects");
-            }
+        http_defaults::provider_redirect_policy(
+            allow_private_feed_urls,
+            validate_discovery_request_url,
+        )
+    }
 
-            if allow_private_feed_urls {
-                return attempt.follow();
-            }
-
-            match validate_external_feed_redirect(attempt.previous(), attempt.url()) {
-                Ok(()) => attempt.follow(),
-                Err(error) => attempt.error(error.to_string()),
-            }
-        })
+    fn http_client(&self) -> DomainResult<&reqwest::Client> {
+        self.http_client
+            .as_ref()
+            .map_err(|error| DomainError::Network(error.clone()))
     }
 
     fn validate_feed_url(&self, feed_url: &str) -> DomainResult<(reqwest::Url, Vec<SocketAddr>)> {
@@ -129,17 +146,21 @@ impl LocalProvider {
         url: &reqwest::Url,
         resolved_addrs: &[SocketAddr],
     ) -> DomainResult<reqwest::Client> {
+        let shared_client = self.http_client()?;
         if resolved_addrs.is_empty() {
-            return Ok(self.http_client.clone());
+            return Ok(shared_client.clone());
         }
         let Some(host) = url.host_str() else {
-            return Ok(self.http_client.clone());
+            return Ok(shared_client.clone());
         };
-        http_client_builder()
-            .redirect(Self::redirect_policy(self.allow_private_feed_urls))
-            .resolve_to_addrs(host, resolved_addrs)
-            .build()
-            .map_err(DomainError::from_provider_http_error)
+        http_defaults::build_http_client(
+            http_client_builder()
+                .redirect(http_defaults::provider_redirect_policy(
+                    self.allow_private_feed_urls,
+                    validate_discovery_request_url,
+                ))
+                .resolve_to_addrs(host, resolved_addrs),
+        )
     }
 
     fn header_value_to_string(
@@ -326,26 +347,21 @@ fn feed_response_body_read_error(error: reqwest::Error) -> DomainError {
     DomainError::Network(FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE.to_string())
 }
 
+#[cfg(test)]
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
     validate_discovery_request_url(url).map(|_| ())
 }
 
+#[cfg(test)]
 fn validate_external_feed_redirect(
     previous_urls: &[reqwest::Url],
     next_url: &reqwest::Url,
 ) -> DomainResult<()> {
-    validate_external_feed_url(next_url)?;
-
-    if previous_urls
-        .last()
-        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
-    {
-        return Err(DomainError::Validation(
-            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
-        ));
-    }
-
-    Ok(())
+    http_defaults::validate_provider_redirect(
+        previous_urls,
+        next_url,
+        validate_discovery_request_url,
+    )
 }
 
 fn feed_response_content_type(
@@ -402,11 +418,7 @@ fn map_local_provider_request_error(error: reqwest::Error) -> DomainError {
     if message.contains(CREDENTIAL_URL_VALIDATION_MESSAGE) {
         return DomainError::Validation(CREDENTIAL_URL_VALIDATION_MESSAGE.to_string());
     }
-    if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
-        return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
-    }
-
-    DomainError::from(error)
+    http_defaults::map_provider_request_error(error)
 }
 
 #[async_trait]
@@ -610,6 +622,22 @@ mod tests {
 
     fn local_provider_allowing_private_feed_urls() -> LocalProvider {
         LocalProvider::new_allowing_private_feed_urls_for_tests()
+    }
+
+    #[tokio::test]
+    async fn local_client_build_failure_is_returned_to_provider_operation() {
+        let mut provider = local_provider_allowing_private_feed_urls();
+        provider.http_client = Err("provider client build failed".to_string());
+
+        let error = provider
+            .create_subscription("http://example.com/feed.xml", None)
+            .await
+            .expect_err("client construction failure should reach the provider boundary");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == "provider client build failed"
+        ));
     }
 
     struct OneShotHttpServer {

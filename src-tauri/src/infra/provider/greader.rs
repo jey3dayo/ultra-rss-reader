@@ -8,6 +8,7 @@ use std::fmt;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
+use crate::infra::feed_discovery::validate_discovery_request_url;
 
 use super::http_defaults::{self, http_client_builder};
 use super::normalizer::{normalize_provider_metadata_url, normalize_trusted_backend_article_url};
@@ -146,7 +147,9 @@ pub struct GReaderProvider {
     api_base: String,
     /// Base URL for authentication (e.g., "http://server/api/greader.php")
     auth_base: String,
-    http_client: reqwest::Client,
+    // Keep setup failures for legacy infallible constructors so the first
+    // provider operation returns the error instead of silently using a default client.
+    http_client: Result<reqwest::Client, String>,
     auth_token: Option<String>,
 }
 
@@ -325,9 +328,44 @@ impl GReaderProvider {
             kind: ProviderKind::FreshRss,
             api_base: base.clone(),
             auth_base: base,
-            http_client: http_client_builder().build().unwrap_or_default(),
+            http_client: Self::build_http_client().map_err(|error| error.to_string()),
             auth_token: None,
         }
+    }
+
+    pub fn try_for_freshrss(server_url: &str) -> DomainResult<Self> {
+        let base = freshrss_api_base(server_url);
+        Ok(Self {
+            kind: ProviderKind::FreshRss,
+            api_base: base.clone(),
+            auth_base: base,
+            http_client: Ok(Self::build_http_client()?),
+            auth_token: None,
+        })
+    }
+
+    fn build_http_client() -> DomainResult<reqwest::Client> {
+        http_defaults::build_http_client(http_client_builder().redirect(
+            http_defaults::provider_redirect_policy(false, validate_discovery_request_url),
+        ))
+    }
+
+    #[cfg(test)]
+    fn validate_redirect(
+        previous_urls: &[reqwest::Url],
+        next_url: &reqwest::Url,
+    ) -> DomainResult<()> {
+        http_defaults::validate_provider_redirect(
+            previous_urls,
+            next_url,
+            validate_discovery_request_url,
+        )
+    }
+
+    fn http_client(&self) -> DomainResult<&reqwest::Client> {
+        self.http_client
+            .as_ref()
+            .map_err(|error| DomainError::Network(error.clone()))
     }
 
     fn api_url(&self, path: &str) -> String {
@@ -375,12 +413,12 @@ impl GReaderProvider {
     async fn fetch_unread_count_map(&self) -> DomainResult<HashMap<String, i32>> {
         let url = self.api_url("/reader/api/0/unread-count?output=json&all=true");
         let response = self
-            .http_client
+            .http_client()?
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
         let response: UnreadCountsResponse = Self::read_json_response(response).await?;
 
@@ -420,12 +458,12 @@ impl GReaderProvider {
         }
 
         let resp = self
-            .http_client
+            .http_client()?
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
         let resp: StreamContentsResponse = Self::read_json_response(resp).await?;
 
@@ -534,12 +572,12 @@ impl GReaderProvider {
         }
 
         let response = self
-            .http_client
+            .http_client()?
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
         Self::read_json_response(response).await
     }
@@ -679,12 +717,13 @@ impl FeedProvider for GReaderProvider {
         );
 
         let response = self
-            .http_client
+            .http_client()?
             .post(&url)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
-            .await?;
+            .await
+            .map_err(http_defaults::map_provider_request_error)?;
 
         let status = response.status();
         if !status.is_success() {
@@ -708,12 +747,12 @@ impl FeedProvider for GReaderProvider {
     async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
         let url = self.api_url("/reader/api/0/subscription/list?output=json");
         let resp = self
-            .http_client
+            .http_client()?
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
         let resp: SubscriptionListResponse = Self::read_json_response(resp).await?;
 
@@ -744,12 +783,12 @@ impl FeedProvider for GReaderProvider {
     async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
         let url = self.api_url("/reader/api/0/tag/list?output=json");
         let resp = self
-            .http_client
+            .http_client()?
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
         let resp: TagListResponse = Self::read_json_response(resp).await?;
 
@@ -851,14 +890,14 @@ impl FeedProvider for GReaderProvider {
                 }
             };
 
-            self.http_client
+            self.http_client()?
                 .post(&url)
                 .header("Authorization", auth.clone())
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .body(body)
                 .send()
                 .await
-                .map_err(DomainError::from_provider_http_error)
+                .map_err(http_defaults::map_provider_request_error)
                 .and_then(Self::ensure_success_response)?;
         }
 
@@ -883,14 +922,14 @@ impl FeedProvider for GReaderProvider {
         }
 
         let resp = self
-            .http_client
+            .http_client()?
             .post(&api_url)
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
 
         let response_body = resp.text().await?;
@@ -941,14 +980,14 @@ impl FeedProvider for GReaderProvider {
         let auth = self.auth_header()?;
         let body = format!("ac=unsubscribe&s={}", urlencoded(remote_id));
 
-        self.http_client
+        self.http_client()?
             .post(&url)
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
 
         Ok(())
@@ -986,14 +1025,14 @@ impl FeedProvider for GReaderProvider {
             ));
         }
 
-        self.http_client
+        self.http_client()?
             .post(&url)
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
-            .map_err(DomainError::from_provider_http_error)
+            .map_err(http_defaults::map_provider_request_error)
             .and_then(Self::ensure_success_response)?;
 
         Ok(())
@@ -1057,6 +1096,7 @@ fn normalize_item_id(id: &str) -> String {
 mod tests {
     use super::*;
     use crate::commands::dto::AppError;
+    use crate::domain::url_policy::PRIVATE_URL_VALIDATION_MESSAGE;
     use flate2::write::GzEncoder;
     use flate2::Compression;
     use std::borrow::Cow;
@@ -1257,6 +1297,68 @@ mod tests {
             provider.auth_base,
             "https://freshrss.example.com/api/greader.php"
         );
+    }
+
+    #[tokio::test]
+    async fn greader_client_build_failure_is_returned_to_provider_operation() {
+        let mut provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
+        provider.http_client = Err("provider client build failed".to_string());
+        provider.auth_token = Some("token".to_string());
+
+        let error = provider
+            .get_folders()
+            .await
+            .expect_err("client construction failure should reach the provider boundary");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == "provider client build failed"
+        ));
+    }
+
+    #[test]
+    fn greader_redirect_policy_rejects_https_downgrade_and_private_targets() {
+        let previous =
+            [reqwest::Url::parse("https://example.com/feed.xml")
+                .expect("fixture URL should parse")];
+        let downgrade =
+            reqwest::Url::parse("http://example.com/feed.xml").expect("fixture URL should parse");
+        let private =
+            reqwest::Url::parse("https://127.0.0.1/feed.xml").expect("fixture URL should parse");
+
+        assert!(matches!(
+            GReaderProvider::validate_redirect(&previous, &downgrade),
+            Err(DomainError::Validation(message))
+                if message == http_defaults::DOWNGRADE_REDIRECT_VALIDATION_MESSAGE
+        ));
+        assert!(matches!(
+            GReaderProvider::validate_redirect(&previous, &private),
+            Err(DomainError::Validation(message))
+                if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn greader_redirect_policy_rejects_the_sixth_hop() {
+        let previous = vec![
+            reqwest::Url::parse("https://example.com/feed.xml")
+                .expect("fixture URL should parse");
+            http_defaults::PROVIDER_MAX_REDIRECT_HOPS + 1
+        ];
+        let next =
+            reqwest::Url::parse("https://example.com/feed.xml").expect("fixture URL should parse");
+
+        let result = http_defaults::validate_provider_redirect_attempt(
+            &previous,
+            &next,
+            false,
+            validate_discovery_request_url,
+        );
+
+        assert!(matches!(
+            result,
+            Err(DomainError::Network(message)) if message == "too many redirects"
+        ));
     }
 
     #[test]

@@ -10,7 +10,9 @@ use crate::domain::url_policy::{
 };
 use crate::infra::provider::http_defaults;
 
-const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
+#[cfg(test)]
+const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str =
+    http_defaults::DOWNGRADE_REDIRECT_VALIDATION_MESSAGE;
 /// Feed discovery identifies itself with the shared provider HTTP user agent.
 const DISCOVERY_USER_AGENT_POLICY: &str = http_defaults::PROVIDER_USER_AGENT;
 
@@ -33,9 +35,8 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
     let initial_url = reqwest::Url::parse(url)
         .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
 
-    let client = discovery_http_client_builder_for_url(&initial_url)?
-        .build()
-        .map_err(DomainError::from_provider_http_error)?;
+    let client =
+        http_defaults::build_http_client(discovery_http_client_builder_for_url(&initial_url)?)?;
 
     let response = client
         .get(initial_url)
@@ -78,16 +79,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
 }
 
 fn discovery_redirect_policy() -> reqwest::redirect::Policy {
-    reqwest::redirect::Policy::custom(|attempt| {
-        if attempt.previous().len() > 5 {
-            return attempt.error("too many redirects");
-        }
-
-        match validate_discovery_redirect(attempt.previous(), attempt.url()) {
-            Ok(()) => attempt.follow(),
-            Err(error) => attempt.error(error.to_string()),
-        }
-    })
+    http_defaults::provider_redirect_policy(false, validate_discovery_request_url)
 }
 
 fn discovery_http_client_builder() -> reqwest::ClientBuilder {
@@ -110,22 +102,16 @@ fn discovery_http_client_builder_for_url(
     Ok(discovery_http_client_builder().resolve_to_addrs(host, &resolved_addresses))
 }
 
+#[cfg(test)]
 fn validate_discovery_redirect(
     previous_urls: &[reqwest::Url],
     next_url: &reqwest::Url,
 ) -> DomainResult<()> {
-    validate_discovery_request_url(next_url)?;
-
-    if previous_urls
-        .last()
-        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
-    {
-        return Err(DomainError::Validation(
-            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
-        ));
-    }
-
-    Ok(())
+    http_defaults::validate_provider_redirect(
+        previous_urls,
+        next_url,
+        validate_discovery_request_url,
+    )
 }
 
 pub(crate) fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
@@ -196,18 +182,7 @@ fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<SocketAddr>
 }
 
 fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {
-    let message = error.to_string();
-    if message.contains(PRIVATE_URL_VALIDATION_MESSAGE) {
-        return DomainError::Validation(PRIVATE_URL_VALIDATION_MESSAGE.to_string());
-    }
-    if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
-        return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
-    }
-    if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
-        return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
-    }
-
-    DomainError::from_provider_http_error(error)
+    http_defaults::map_provider_request_error(error)
 }
 
 async fn response_text_with_limit(response: reqwest::Response) -> DomainResult<String> {

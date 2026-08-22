@@ -1,11 +1,16 @@
 use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::url_policy::{
+    PRIVATE_URL_VALIDATION_MESSAGE, UNSUPPORTED_URL_VALIDATION_MESSAGE,
+};
 use reqwest::header::{HeaderMap, HeaderValue, CACHE_CONTROL, PRAGMA};
 use serde::de::DeserializeOwned;
 
 pub const PROVIDER_HTTP_TIMEOUT: Duration = Duration::from_secs(15);
 pub const PROVIDER_USER_AGENT: &str = "UltraRSSReader/0.1";
+pub const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
+pub const PROVIDER_MAX_REDIRECT_HOPS: usize = 5;
 pub const PROVIDER_RESPONSE_BODY_CAP_BYTES: u64 = 5 * 1024 * 1024;
 pub const DISCOVERY_RESPONSE_BODY_CAP_BYTES: u64 = 2 * 1024 * 1024;
 pub const PROVIDER_CACHE_CONTROL: &str = "no-store";
@@ -17,6 +22,80 @@ pub fn http_client_builder() -> reqwest::ClientBuilder {
         .user_agent(PROVIDER_USER_AGENT)
         .default_headers(provider_no_store_headers())
         .no_proxy()
+}
+
+pub(crate) fn build_http_client(builder: reqwest::ClientBuilder) -> DomainResult<reqwest::Client> {
+    builder
+        .build()
+        .map_err(DomainError::from_provider_http_error)
+}
+
+pub(crate) fn provider_redirect_policy(
+    allow_private_urls: bool,
+    validate_url: fn(&reqwest::Url) -> DomainResult<()>,
+) -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(move |attempt| {
+        match validate_provider_redirect_attempt(
+            attempt.previous(),
+            attempt.url(),
+            allow_private_urls,
+            validate_url,
+        ) {
+            Ok(()) => attempt.follow(),
+            Err(error) => attempt.error(error.to_string()),
+        }
+    })
+}
+
+pub(crate) fn validate_provider_redirect_attempt(
+    previous_urls: &[reqwest::Url],
+    next_url: &reqwest::Url,
+    allow_private_urls: bool,
+    validate_url: fn(&reqwest::Url) -> DomainResult<()>,
+) -> DomainResult<()> {
+    if previous_urls.len() > PROVIDER_MAX_REDIRECT_HOPS {
+        return Err(DomainError::Network("too many redirects".to_string()));
+    }
+
+    if allow_private_urls {
+        return Ok(());
+    }
+
+    validate_provider_redirect(previous_urls, next_url, validate_url)
+}
+
+pub(crate) fn validate_provider_redirect(
+    previous_urls: &[reqwest::Url],
+    next_url: &reqwest::Url,
+    validate_url: fn(&reqwest::Url) -> DomainResult<()>,
+) -> DomainResult<()> {
+    validate_url(next_url)?;
+
+    if previous_urls
+        .last()
+        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
+    {
+        return Err(DomainError::Validation(
+            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+pub(crate) fn map_provider_request_error(error: reqwest::Error) -> DomainError {
+    let message = error.to_string();
+    if message.contains(PRIVATE_URL_VALIDATION_MESSAGE) {
+        return DomainError::Validation(PRIVATE_URL_VALIDATION_MESSAGE.to_string());
+    }
+    if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
+        return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
+    }
+    if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
+        return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
+    }
+
+    DomainError::from_provider_http_error(error)
 }
 
 fn provider_no_store_headers() -> HeaderMap {
@@ -70,14 +149,62 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        http_client_builder, PROVIDER_CACHE_CONTROL, PROVIDER_PRAGMA, PROVIDER_USER_AGENT,
+        build_http_client, http_client_builder, validate_provider_redirect,
+        validate_provider_redirect_attempt, DOWNGRADE_REDIRECT_VALIDATION_MESSAGE,
+        PROVIDER_CACHE_CONTROL, PROVIDER_PRAGMA, PROVIDER_USER_AGENT,
     };
+    use crate::domain::error::DomainError;
     use reqwest::header::{CACHE_CONTROL, PRAGMA, REFERER, USER_AGENT};
     use std::io::{Read, Write};
     use std::net::TcpListener;
 
     static PROXY_ENV_LOCK: std::sync::LazyLock<std::sync::Mutex<()>> =
         std::sync::LazyLock::new(|| std::sync::Mutex::new(()));
+
+    #[test]
+    fn provider_http_client_build_failure_is_returned_as_domain_error() {
+        let result = build_http_client(reqwest::Client::builder().user_agent("\n"));
+
+        assert!(matches!(
+            result,
+            Err(DomainError::Network(message)) if !message.is_empty()
+        ));
+    }
+
+    #[test]
+    fn shared_redirect_validation_rejects_https_to_http_downgrade() {
+        let previous =
+            [reqwest::Url::parse("https://example.com/feed.xml")
+                .expect("fixture URL should parse")];
+        let next =
+            reqwest::Url::parse("http://example.com/feed.xml").expect("fixture URL should parse");
+
+        let result = validate_provider_redirect(&previous, &next, |_| Ok(()));
+
+        assert!(matches!(
+            result,
+            Err(DomainError::Validation(message))
+                if message == DOWNGRADE_REDIRECT_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn shared_redirect_policy_rejects_the_sixth_redirect_hop() {
+        let previous = vec![
+            reqwest::Url::parse("https://example.com/feed.xml")
+                .expect("fixture URL should parse");
+            6
+        ];
+        let next =
+            reqwest::Url::parse("https://example.com/feed.xml").expect("fixture URL should parse");
+
+        let result = validate_provider_redirect_attempt(&previous, &next, false, |_| Ok(()));
+
+        assert!(matches!(
+            result,
+            Err(DomainError::Network(message)) if message == "too many redirects"
+        ));
+    }
 
     #[tokio::test]
     async fn provider_http_client_ignores_proxy_environment_variables() {
