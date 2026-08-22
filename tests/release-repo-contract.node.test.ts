@@ -220,7 +220,9 @@ const readOpmlCommandsModuleSource = (): string =>
 const readFeedDiscoveryModuleSource = (): string =>
   ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/infra/feed_discovery/${file}`)).join("\n");
 const readGReaderProviderModuleSource = (): string =>
-  ["mod.rs", "http.rs", "stream.rs"].map((file) => readText(`src-tauri/src/infra/provider/greader/${file}`)).join("\n");
+  ["mod.rs", "http.rs", "stream.rs", "tests.rs"]
+    .map((file) => readText(`src-tauri/src/infra/provider/greader/${file}`))
+    .join("\n");
 const readMiseTaskCorpus = (): string =>
   ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"].map(readText).join("\n");
 const readReleaseSkillCorpus = (): string =>
