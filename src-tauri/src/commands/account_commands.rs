@@ -131,17 +131,27 @@ fn provider_credential_verification_request_contract(
     }
 }
 
+fn is_private_freshrss_ipv4(ip: std::net::Ipv4Addr) -> bool {
+    ip.is_private()
+        || ip.is_loopback()
+        || ip.is_link_local()
+        || ip.is_broadcast()
+        || ip.is_documentation()
+        || ip.is_unspecified()
+}
+
 fn is_private_freshrss_ip(ip: IpAddr) -> bool {
     match ip {
-        IpAddr::V4(ip) => {
-            ip.is_private()
-                || ip.is_loopback()
-                || ip.is_link_local()
-                || ip.is_broadcast()
-                || ip.is_documentation()
-                || ip.is_unspecified()
-        }
+        IpAddr::V4(ip) => is_private_freshrss_ipv4(ip),
         IpAddr::V6(ip) => {
+            // IPv4-mapped IPv6 (::ffff:a.b.c.d) must be evaluated against the
+            // same V4 policy as a bare IPv4 host, otherwise addresses like
+            // ::ffff:127.0.0.1 or ::ffff:169.254.169.254 bypass the private-host
+            // check that a plain IPv4 literal would fail.
+            if let Some(v4) = ip.to_ipv4_mapped() {
+                return is_private_freshrss_ipv4(v4);
+            }
+
             ip.is_loopback()
                 || ip.is_unspecified()
                 || ip.is_unique_local()
@@ -560,6 +570,28 @@ mod tests {
             assert!(
                 normalize_new_freshrss_server_url(server_url).is_err(),
                 "{server_url} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_ipv4_mapped_ipv6_private_hosts() {
+        for server_url in [
+            "http://[::ffff:127.0.0.1]/",
+            "http://[::ffff:169.254.169.254]/",
+            "http://[::ffff:10.0.0.1]/",
+            "http://[::ffff:192.168.0.1]/",
+        ] {
+            assert!(
+                normalize_new_freshrss_server_url(server_url).is_err(),
+                "{server_url} should be rejected"
+            );
+        }
+
+        for server_url in ["http://[::ffff:8.8.8.8]/", "https://[2001:db8::1]/"] {
+            assert!(
+                normalize_new_freshrss_server_url(server_url).is_ok(),
+                "{server_url} should be accepted"
             );
         }
     }
