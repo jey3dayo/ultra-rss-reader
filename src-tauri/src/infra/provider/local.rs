@@ -11,8 +11,10 @@ use crate::domain::url_policy::{
     validate_http_url_without_credentials, CREDENTIAL_URL_VALIDATION_MESSAGE,
     PRIVATE_URL_VALIDATION_MESSAGE, UNSUPPORTED_URL_VALIDATION_MESSAGE,
 };
+#[cfg(test)]
+use crate::infra::feed_discovery::validate_discovery_request_url;
 use crate::infra::feed_discovery::{
-    resolve_validated_public_addrs, validate_discovery_request_url,
+    resolve_validated_public_addrs, validate_discovery_url, validated_public_dns_resolver,
 };
 use crate::repository::sync_state::{
     normalize_http_etag_validator, normalize_http_last_modified_validator,
@@ -22,7 +24,9 @@ use super::http_defaults::{self, http_client_builder};
 use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
 
-const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
+#[cfg(test)]
+const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str =
+    http_defaults::DOWNGRADE_REDIRECT_VALIDATION_MESSAGE;
 const FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE: &str =
     "Feed response body ended before the declared response length";
 const JSON_FEED_SUPPORT_DECISION: &str =
@@ -32,7 +36,9 @@ const LOCAL_PROVIDER_DISCOVERY_REQUEST_CONCURRENCY_LIMIT: usize = 1;
 const XML_DOCTYPE_DECLARATION: &[u8] = b"<!DOCTYPE";
 
 pub struct LocalProvider {
-    http_client: reqwest::Client,
+    // Keep setup failures for legacy infallible constructors so the first
+    // provider operation returns the error instead of silently using a default client.
+    http_client: Result<reqwest::Client, DomainError>,
     allow_private_feed_urls: bool,
     sync_request_permits: Arc<Semaphore>,
     discovery_request_permits: Arc<Semaphore>,
@@ -75,28 +81,35 @@ impl LocalProvider {
         Self::with_private_feed_url_policy(true)
     }
 
-    fn build_http_client(allow_private_feed_urls: bool) -> reqwest::Client {
-        http_client_builder()
-            .redirect(Self::redirect_policy(allow_private_feed_urls))
-            .build()
-            .unwrap_or_default()
+    pub fn try_new() -> DomainResult<Self> {
+        Self::try_with_private_feed_url_policy(false)
+    }
+
+    fn try_with_private_feed_url_policy(allow_private_feed_urls: bool) -> DomainResult<Self> {
+        Ok(Self {
+            http_client: Ok(Self::build_http_client(allow_private_feed_urls)?),
+            allow_private_feed_urls,
+            sync_request_permits: Arc::new(Semaphore::new(
+                LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT,
+            )),
+            discovery_request_permits: Arc::new(Semaphore::new(
+                LOCAL_PROVIDER_DISCOVERY_REQUEST_CONCURRENCY_LIMIT,
+            )),
+        })
+    }
+
+    fn build_http_client(allow_private_feed_urls: bool) -> DomainResult<reqwest::Client> {
+        http_defaults::build_http_client(
+            http_client_builder().redirect(Self::redirect_policy(allow_private_feed_urls)),
+        )
     }
 
     fn redirect_policy(allow_private_feed_urls: bool) -> reqwest::redirect::Policy {
-        reqwest::redirect::Policy::custom(move |attempt| {
-            if attempt.previous().len() > 5 {
-                return attempt.error("too many redirects");
-            }
+        http_defaults::provider_redirect_policy(allow_private_feed_urls, validate_discovery_url)
+    }
 
-            if allow_private_feed_urls {
-                return attempt.follow();
-            }
-
-            match validate_external_feed_redirect(attempt.previous(), attempt.url()) {
-                Ok(()) => attempt.follow(),
-                Err(error) => attempt.error(error.to_string()),
-            }
-        })
+    fn http_client(&self) -> DomainResult<&reqwest::Client> {
+        self.http_client.as_ref().map_err(|error| error.clone())
     }
 
     fn validate_feed_url(&self, feed_url: &str) -> DomainResult<(reqwest::Url, Vec<SocketAddr>)> {
@@ -122,24 +135,68 @@ impl LocalProvider {
     /// When `resolved_addrs` is non-empty (production mode with a resolvable
     /// hostname), the connection is pinned to the validated addresses so reqwest
     /// cannot independently re-resolve the host to a different (private) address
-    /// at connect time. When empty (literal-IP hosts or the test bypass), the
-    /// shared client is reused unchanged.
+    /// at connect time. Literal-IP hosts still get a per-feed resolver so that
+    /// cross-host redirects are validated at connection time. The shared client
+    /// is reused only by the private-URL test bypass.
     fn feed_http_client(
         &self,
         url: &reqwest::Url,
         resolved_addrs: &[SocketAddr],
     ) -> DomainResult<reqwest::Client> {
-        if resolved_addrs.is_empty() {
-            return Ok(self.http_client.clone());
+        self.build_feed_http_client(
+            url,
+            resolved_addrs,
+            validated_public_dns_resolver(),
+            |resolver, host, addresses| resolver.seed(host, addresses.to_vec()),
+        )
+    }
+
+    #[cfg(test)]
+    fn feed_http_client_with_test_resolver(
+        &self,
+        url: &reqwest::Url,
+        resolved_addrs: &[SocketAddr],
+        resolver: http_defaults::ValidatedPublicDnsResolver,
+    ) -> DomainResult<reqwest::Client> {
+        self.build_feed_http_client(
+            url,
+            resolved_addrs,
+            resolver,
+            |resolver, host, addresses| resolver.seed_for_test(host, addresses.to_vec()),
+        )
+    }
+
+    fn build_feed_http_client(
+        &self,
+        url: &reqwest::Url,
+        resolved_addrs: &[SocketAddr],
+        resolver: http_defaults::ValidatedPublicDnsResolver,
+        seed_resolver: impl FnOnce(
+            &http_defaults::ValidatedPublicDnsResolver,
+            &str,
+            &[SocketAddr],
+        ) -> DomainResult<()>,
+    ) -> DomainResult<reqwest::Client> {
+        let shared_client = self.http_client()?;
+        if self.allow_private_feed_urls {
+            return Ok(shared_client.clone());
         }
         let Some(host) = url.host_str() else {
-            return Ok(self.http_client.clone());
+            return Ok(shared_client.clone());
         };
-        http_client_builder()
-            .redirect(Self::redirect_policy(self.allow_private_feed_urls))
-            .resolve_to_addrs(host, resolved_addrs)
-            .build()
-            .map_err(DomainError::from_provider_http_error)
+        if !resolved_addrs.is_empty() {
+            seed_resolver(&resolver, host, resolved_addrs)?;
+        }
+        let mut builder = http_client_builder()
+            .dns_resolver(Arc::new(resolver))
+            .redirect(http_defaults::provider_redirect_policy(
+                false,
+                validate_discovery_url,
+            ));
+        if !resolved_addrs.is_empty() {
+            builder = builder.resolve_to_addrs(host, resolved_addrs);
+        }
+        http_defaults::build_http_client(builder)
     }
 
     fn header_value_to_string(
@@ -326,26 +383,17 @@ fn feed_response_body_read_error(error: reqwest::Error) -> DomainError {
     DomainError::Network(FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE.to_string())
 }
 
+#[cfg(test)]
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
     validate_discovery_request_url(url).map(|_| ())
 }
 
+#[cfg(test)]
 fn validate_external_feed_redirect(
     previous_urls: &[reqwest::Url],
     next_url: &reqwest::Url,
 ) -> DomainResult<()> {
-    validate_external_feed_url(next_url)?;
-
-    if previous_urls
-        .last()
-        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
-    {
-        return Err(DomainError::Validation(
-            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
-        ));
-    }
-
-    Ok(())
+    http_defaults::validate_provider_redirect(previous_urls, next_url, validate_discovery_url)
 }
 
 fn feed_response_content_type(
@@ -402,11 +450,7 @@ fn map_local_provider_request_error(error: reqwest::Error) -> DomainError {
     if message.contains(CREDENTIAL_URL_VALIDATION_MESSAGE) {
         return DomainError::Validation(CREDENTIAL_URL_VALIDATION_MESSAGE.to_string());
     }
-    if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
-        return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
-    }
-
-    DomainError::from(error)
+    http_defaults::map_provider_request_error(error)
 }
 
 #[async_trait]
@@ -612,6 +656,24 @@ mod tests {
         LocalProvider::new_allowing_private_feed_urls_for_tests()
     }
 
+    #[tokio::test]
+    async fn local_client_build_failure_is_returned_to_provider_operation() {
+        let mut provider = local_provider_allowing_private_feed_urls();
+        provider.http_client = Err(DomainError::Network(
+            "provider client build failed".to_string(),
+        ));
+
+        let error = provider
+            .create_subscription("http://example.com/feed.xml", None)
+            .await
+            .expect_err("client construction failure should reach the provider boundary");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == "provider client build failed"
+        ));
+    }
+
     struct OneShotHttpServer {
         address: std::net::SocketAddr,
         task: Option<JoinHandle<()>>,
@@ -730,6 +792,66 @@ mod tests {
         }
         redirect.assert_async().await;
         final_feed.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn feed_http_client_rejects_public_to_private_dns_rebinding_redirect() {
+        let listener = match TcpListener::bind("127.0.0.1:0").await {
+            Ok(listener) => listener,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return,
+            Err(error) => panic!("test server should bind: {error}"),
+        };
+        let address = match listener.local_addr() {
+            Ok(address) => address,
+            Err(error) => panic!("test server should expose its address: {error}"),
+        };
+        let private_redirect = format!(
+            "http://private.test.invalid:{}/private-feed.xml",
+            address.port()
+        );
+        let server_task = tokio::spawn(async move {
+            let Ok((mut stream, _)) = listener.accept().await else {
+                return;
+            };
+            let response = format!(
+                "HTTP/1.1 302 Found\r\nLocation: {private_redirect}\r\nContent-Length: 0\r\n\r\n"
+            );
+            let _ = stream.write_all(response.as_bytes()).await;
+        });
+
+        let resolver_address = address;
+        let resolver = http_defaults::ValidatedPublicDnsResolver::new(move |host| {
+            if host == "private.test.invalid" {
+                return Ok(vec![SocketAddr::new(resolver_address.ip(), 0)]);
+            }
+            Err(DomainError::Network(format!(
+                "unexpected test DNS lookup: {host}"
+            )))
+        });
+        let url = match reqwest::Url::parse(&format!(
+            "http://public.test.invalid:{}/feed.xml",
+            address.port()
+        )) {
+            Ok(url) => url,
+            Err(error) => panic!("test feed URL should parse: {error}"),
+        };
+        let resolved_address = SocketAddr::new(address.ip(), 0);
+        let provider = LocalProvider::new();
+        let client =
+            match provider.feed_http_client_with_test_resolver(&url, &[resolved_address], resolver)
+            {
+                Ok(client) => client,
+                Err(error) => panic!("feed client should build: {error}"),
+            };
+
+        let error = match client.get(url).send().await {
+            Ok(_) => panic!("private DNS redirect should be rejected"),
+            Err(error) => map_local_provider_request_error(error),
+        };
+        assert!(
+            matches!(error, DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE)
+        );
+        let _ = timeout(Duration::from_secs(2), server_task).await;
     }
 
     #[tokio::test]
@@ -1343,6 +1465,10 @@ mod tests {
         assert!(
             !resolved_addrs.is_empty(),
             "production mode should return validated addresses to pin the connection"
+        );
+        assert!(
+            resolved_addrs.iter().all(|address| address.port() == 0),
+            "DNS-derived addresses must leave the request port to the URL"
         );
     }
 
