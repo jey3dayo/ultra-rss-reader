@@ -12,12 +12,34 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_conn;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::{unread_counts_for_feed_ids_with_conn, SqliteFeedRepository};
-use crate::infra::provider::greader::GReaderProvider;
+use crate::infra::provider::greader::{GReaderProvider, UnreadPullTermination};
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 
 use super::subscriptions::is_provider_managed_greader_feed;
 use crate::service::article_materializer::article_from_remote_entry;
+
+const MAX_UNREAD_RECONCILE_PAGES: usize = 100;
+// GReader returns at most 200 stream entries per page and this path accepts at
+// most 100 pages, so 20,000 entries is the effective upper bound.
+const MAX_UNREAD_RECONCILE_ENTRIES: usize = 20_000;
+
+enum ReconcileOutcome {
+    Applied,
+    SkippedIncomplete,
+}
+
+struct CompleteUnreadSnapshot {
+    ids: HashSet<String>,
+    articles: Vec<Article>,
+    pages: usize,
+    entries: usize,
+}
+
+enum UnreadSnapshot {
+    Complete(CompleteUnreadSnapshot),
+    Incomplete,
+}
 
 pub(super) async fn reconcile_greader_unread_counts(
     db: &Mutex<DbManager>,
@@ -41,21 +63,42 @@ pub(super) async fn reconcile_greader_unread_counts(
     let mut backfilled_feeds = 0usize;
     let mut first_error: Option<AppError> = None;
     for feed in &target_feeds {
-        // Safe: target_feeds is filtered to feeds with a provider-managed remote_id above.
-        let remote_id = feed
-            .remote_id
-            .as_deref()
-            .expect("target_feeds only contains feeds with a remote_id");
-        let server_unread_count = server_unread_counts.get(remote_id).copied().unwrap_or(0);
+        let Some(remote_id) = feed.remote_id.as_deref() else {
+            continue;
+        };
+        let Some(server_unread_count) = server_unread_counts.get(remote_id).copied() else {
+            tracing::warn!(
+                account_id = %account.id.as_ref(),
+                feed_remote_id = remote_id,
+                reason = "missing_unread_count",
+                page = 0,
+                entries = 0,
+                "GReader unread count was missing; skipping unread reconciliation"
+            );
+            continue;
+        };
         let local_unread_count = local_unread_counts.get(&feed.id).copied().unwrap_or(0);
 
         if server_unread_count != local_unread_count {
-            match reconcile_greader_unread_state_for_feed(db, provider, account, feed).await {
-                Ok(()) => {
-                    if server_unread_count > local_unread_count {
-                        backfilled_feeds += 1;
+            let mut reconcile_outcome = ReconcileOutcome::SkippedIncomplete;
+            match reconcile_greader_unread_state_for_feed(
+                db,
+                provider,
+                account,
+                feed,
+                server_unread_count,
+                &mut reconcile_outcome,
+            )
+            .await
+            {
+                Ok(()) => match reconcile_outcome {
+                    ReconcileOutcome::Applied => {
+                        if server_unread_count > local_unread_count {
+                            backfilled_feeds += 1;
+                        }
                     }
-                }
+                    ReconcileOutcome::SkippedIncomplete => {}
+                },
                 Err(error) => {
                     // Stop reconciling further feeds, but still recalculate below so
                     // feeds already mutated before this failure don't keep a stale
@@ -100,9 +143,43 @@ async fn reconcile_greader_unread_state_for_feed(
     provider: &GReaderProvider,
     account: &Account,
     feed: &Feed,
+    server_unread_count: i32,
+    outcome: &mut ReconcileOutcome,
 ) -> Result<(), AppError> {
-    let unread_remote_ids =
-        fetch_greader_unread_entries_for_feed(db, provider, account, feed).await?;
+    let unread_snapshot =
+        match fetch_greader_unread_entries_for_feed(provider, account, feed, server_unread_count)
+            .await?
+        {
+            UnreadSnapshot::Complete(snapshot) => snapshot,
+            // A partial unread snapshot is intentionally a successful no-op. The
+            // structured warning emitted at the failure boundary makes this
+            // skipped outcome observable without overwriting local read state from
+            // an incomplete remote snapshot.
+            UnreadSnapshot::Incomplete => {
+                *outcome = ReconcileOutcome::SkippedIncomplete;
+                return Ok(());
+            }
+        };
+
+    // Keep article materialization and pending-mutation protection under the
+    // same lock as the read-state transaction. This preserves the lock
+    // contract while avoiding a stale window between snapshot confirmation
+    // and apply.
+    let db_guard = lock_db(db)?;
+    if !unread_snapshot.articles.is_empty() {
+        let article_repo = SqliteArticleRepository::new(db_guard.writer());
+        article_repo.upsert(&unread_snapshot.articles)?;
+        let candidate_ids = unread_snapshot
+            .articles
+            .iter()
+            .map(|article| article.id.clone())
+            .collect::<Vec<_>>();
+        article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
+    }
+
+    let (pending_read_remote_ids, _pending_starred_remote_ids) =
+        super::pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
+    let pending_remote_ids: HashSet<String> = pending_read_remote_ids.into_iter().collect();
 
     // Pending-mutation protection is re-read inside the same lock as the
     // is_read UPDATE below (see .claude/rules/remote-state-reconciliation.md):
@@ -111,11 +188,6 @@ async fn reconcile_greader_unread_state_for_feed(
     // gets reverted to the stale remote state. Reuses the same blessed
     // reader as `apply_remote_state_with_protection` (only the read axis is
     // relevant here; unread reconcile does not touch star state).
-    let db_guard = lock_db(db)?;
-    let (pending_read_remote_ids, _pending_starred_remote_ids) =
-        super::pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
-    let pending_remote_ids: HashSet<String> = pending_read_remote_ids.into_iter().collect();
-
     let tx = db_guard
         .writer()
         .unchecked_transaction()
@@ -153,7 +225,7 @@ async fn reconcile_greader_unread_state_for_feed(
             }
             update_stmt
                 .execute(rusqlite::params![
-                    !unread_remote_ids.contains(&remote_id),
+                    !unread_snapshot.ids.contains(&remote_id),
                     article_id
                 ])
                 .map_err(crate::domain::error::DomainError::from)
@@ -167,55 +239,222 @@ async fn reconcile_greader_unread_state_for_feed(
 
     mark_muted_unread_as_read_for_feed_with_conn(db_guard.writer(), &account.id, &feed.id)?;
 
+    *outcome = ReconcileOutcome::Applied;
     Ok(())
 }
 
 async fn fetch_greader_unread_entries_for_feed(
-    db: &Mutex<DbManager>,
     provider: &GReaderProvider,
     account: &Account,
     feed: &Feed,
-) -> Result<HashSet<String>, AppError> {
+    server_unread_count: i32,
+) -> Result<UnreadSnapshot, AppError> {
     let Some(remote_id) = feed.remote_id.as_deref() else {
-        return Ok(HashSet::new());
+        return Ok(UnreadSnapshot::Complete(CompleteUnreadSnapshot {
+            ids: HashSet::new(),
+            articles: Vec::new(),
+            pages: 0,
+            entries: 0,
+        }));
+    };
+
+    let Some(first_snapshot) =
+        fetch_greader_unread_snapshot_once(provider, account, feed, server_unread_count).await?
+    else {
+        return Ok(UnreadSnapshot::Incomplete);
+    };
+    let Some(second_snapshot) =
+        fetch_greader_unread_snapshot_once(provider, account, feed, server_unread_count).await?
+    else {
+        return Ok(UnreadSnapshot::Incomplete);
+    };
+
+    if first_snapshot.ids != second_snapshot.ids {
+        incomplete_unread_snapshot_warning(
+            account,
+            remote_id,
+            "snapshot_id_set_changed",
+            second_snapshot.pages,
+            second_snapshot.entries,
+        );
+        return Ok(UnreadSnapshot::Incomplete);
+    }
+
+    Ok(UnreadSnapshot::Complete(second_snapshot))
+}
+
+async fn fetch_greader_unread_snapshot_once(
+    provider: &GReaderProvider,
+    account: &Account,
+    feed: &Feed,
+    server_unread_count: i32,
+) -> Result<Option<CompleteUnreadSnapshot>, AppError> {
+    let Some(remote_id) = feed.remote_id.as_deref() else {
+        return Ok(Some(CompleteUnreadSnapshot {
+            ids: HashSet::new(),
+            articles: Vec::new(),
+            pages: 0,
+            entries: 0,
+        }));
     };
 
     let mut unread_remote_ids = HashSet::new();
+    let mut articles = Vec::new();
+    let mut fetched_entry_count = 0usize;
     let mut cursor: Option<SyncCursor> = None;
-    loop {
+    for page_number in 0..MAX_UNREAD_RECONCILE_PAGES {
+        let page = page_number + 1;
         let result = provider
             .pull_unread_entries_for_feed(remote_id, cursor.clone())
-            .await?;
+            .await
+            .map_err(|error| {
+                tracing::warn!(
+                    account_id = %account.id.as_ref(),
+                    feed_remote_id = remote_id,
+                    reason = "provider_error",
+                    page,
+                    entries = fetched_entry_count,
+                    error = %error,
+                    "GReader unread stream failed before a complete snapshot was received"
+                );
+                AppError::from(error)
+            })?;
 
-        let articles: Vec<Article> = result
-            .entries
-            .iter()
-            .map(|entry| {
-                if let Some(remote_id) = entry.id.as_ref() {
-                    unread_remote_ids.insert(remote_id.clone());
-                }
-                article_from_remote_entry(&account.id, feed, entry)
-            })
-            .collect();
-
-        if !articles.is_empty() {
-            let db_guard = lock_db(db)?;
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            article_repo.upsert(&articles)?;
-            let candidate_ids = articles
-                .iter()
-                .map(|article| article.id.clone())
-                .collect::<Vec<_>>();
-            article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
+        fetched_entry_count = fetched_entry_count.saturating_add(result.entries.len());
+        if fetched_entry_count > MAX_UNREAD_RECONCILE_ENTRIES {
+            incomplete_unread_snapshot_warning(
+                account,
+                remote_id,
+                "entry_limit",
+                page,
+                fetched_entry_count,
+            );
+            return Ok(None);
         }
+
+        let termination_reason = match result.termination {
+            UnreadPullTermination::Normal => None,
+            UnreadPullTermination::EmptyPageWithContinuation => {
+                Some("empty_page_with_continuation")
+            }
+            UnreadPullTermination::RepeatedContinuation => Some("repeated_continuation"),
+            UnreadPullTermination::FullPageWithoutContinuation => {
+                Some("full_page_without_continuation")
+            }
+        };
+        if let Some(reason) = termination_reason {
+            incomplete_unread_snapshot_warning(
+                account,
+                remote_id,
+                reason,
+                page,
+                fetched_entry_count,
+            );
+            return Ok(None);
+        }
+
+        let mut duplicate_entry_id = false;
+        let mut page_articles = Vec::with_capacity(result.entries.len());
+        for entry in &result.entries {
+            if let Some(remote_id) = entry.id.as_ref() {
+                if !unread_remote_ids.insert(remote_id.clone()) {
+                    duplicate_entry_id = true;
+                }
+            }
+            page_articles.push(article_from_remote_entry(&account.id, feed, entry));
+        }
+        if duplicate_entry_id {
+            incomplete_unread_snapshot_warning(
+                account,
+                remote_id,
+                "duplicate_entry_id",
+                page,
+                fetched_entry_count,
+            );
+            return Ok(None);
+        }
+        articles.extend(page_articles);
 
         if !result.has_more {
-            break;
+            let expected_unread_count = usize::try_from(server_unread_count).ok();
+            if expected_unread_count != Some(unread_remote_ids.len()) {
+                incomplete_unread_snapshot_warning(
+                    account,
+                    remote_id,
+                    "unread_count_mismatch",
+                    page,
+                    fetched_entry_count,
+                );
+                return Ok(None);
+            }
+            return Ok(Some(CompleteUnreadSnapshot {
+                ids: unread_remote_ids,
+                articles,
+                pages: page,
+                entries: fetched_entry_count,
+            }));
         }
-        cursor = result.next_cursor;
+
+        if page == MAX_UNREAD_RECONCILE_PAGES {
+            incomplete_unread_snapshot_warning(
+                account,
+                remote_id,
+                "page_limit",
+                page,
+                fetched_entry_count,
+            );
+            return Ok(None);
+        }
+
+        let Some(next_cursor) = result.next_cursor else {
+            incomplete_unread_snapshot_warning(
+                account,
+                remote_id,
+                "missing_continuation",
+                page,
+                fetched_entry_count,
+            );
+            return Ok(None);
+        };
+        if next_cursor.continuation.is_none() {
+            incomplete_unread_snapshot_warning(
+                account,
+                remote_id,
+                "missing_continuation",
+                page,
+                fetched_entry_count,
+            );
+            return Ok(None);
+        }
+        cursor = Some(next_cursor);
     }
 
-    Ok(unread_remote_ids)
+    incomplete_unread_snapshot_warning(
+        account,
+        remote_id,
+        "page_loop_exhausted",
+        MAX_UNREAD_RECONCILE_PAGES,
+        fetched_entry_count,
+    );
+    Ok(None)
+}
+
+fn incomplete_unread_snapshot_warning(
+    account: &Account,
+    feed_remote_id: &str,
+    reason: &str,
+    page: usize,
+    entries: usize,
+) {
+    tracing::warn!(
+        account_id = %account.id.as_ref(),
+        feed_remote_id,
+        reason,
+        page,
+        entries,
+        outcome = "skipped_incomplete",
+        "Incomplete GReader unread snapshot"
+    );
 }
 
 #[cfg(test)]
@@ -235,6 +474,8 @@ mod tests {
         PendingMutation, PendingMutationRepository, PendingMutationType,
     };
     use chrono::Utc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     fn test_db() -> Mutex<DbManager> {
         Mutex::new(DbManager::new_in_memory().unwrap())
@@ -274,6 +515,41 @@ mod tests {
         }
     }
 
+    fn stream_items_response<I, S>(ids: I, continuation: Option<&str>) -> String
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let items = ids
+            .into_iter()
+            .map(|id| format!(r#"{{"id":"{}"}}"#, id.as_ref()))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let continuation = continuation
+            .map(|value| format!(r#", "continuation": "{value}""#))
+            .unwrap_or_default();
+        format!(r#"{{"items":[{items}]{continuation}}}"#)
+    }
+
+    async fn authenticated_provider(server: &mut mockito::Server) -> GReaderProvider {
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("password".to_string()),
+                token: Some("user".to_string()),
+            })
+            .await
+            .unwrap();
+        provider
+    }
+
     fn test_article(feed_id: &FeedId, remote_id: &str, is_read: bool) -> Article {
         let now = Utc::now();
         Article {
@@ -293,6 +569,33 @@ mod tests {
             is_starred: false,
             fetched_at: now,
         }
+    }
+
+    fn save_unread_fixture(db: &Mutex<DbManager>, account: &Account, feed: &Feed) -> Article {
+        let article = test_article(&feed.id, "local-unread", false);
+        let db_guard = db.lock().unwrap();
+        let account_repo = SqliteAccountRepository::new(db_guard.writer());
+        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+        let article_repo = SqliteArticleRepository::new(db_guard.writer());
+        account_repo.save(account).unwrap();
+        feed_repo.save(feed).unwrap();
+        article_repo.upsert(std::slice::from_ref(&article)).unwrap();
+        article
+    }
+
+    fn assert_article_is_unread(db: &Mutex<DbManager>, feed: &Feed, article_id: &ArticleId) {
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let article = article_repo
+            .find_by_feed(&feed.id, &crate::repository::article::Pagination::default())
+            .unwrap()
+            .into_iter()
+            .find(|article| article.id == *article_id)
+            .expect("fixture article should be present");
+        assert!(
+            !article.is_read,
+            "incomplete unread snapshots must not mark local articles read"
+        );
     }
 
     #[tokio::test]
@@ -446,6 +749,188 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn reconcile_greader_unread_state_does_not_mark_read_when_stream_fails_midway() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "200".into()),
+                mockito::Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+            ]))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"items": [{"id": "remote-page-1"}], "continuation": "page-2"}"#)
+            .expect(1)
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "200".into()),
+                mockito::Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+                mockito::Matcher::UrlEncoded("c".into(), "page-2".into()),
+            ]))
+            .with_status(503)
+            .with_body("temporarily unavailable")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("password".to_string()),
+                token: Some("user".to_string()),
+            })
+            .await
+            .unwrap();
+
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        let result = reconcile_greader_unread_state_for_feed(
+            &db,
+            &provider,
+            &account,
+            &feed,
+            2,
+            &mut outcome,
+        )
+        .await;
+        assert!(
+            result.is_err(),
+            "a mid-stream provider error must be observable"
+        );
+        assert_article_is_unread(&db, &feed, &local_article.id);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_state_does_not_mark_read_for_empty_stream() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"items": []}"#)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("password".to_string()),
+                token: Some("user".to_string()),
+            })
+            .await
+            .unwrap();
+
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        let result = reconcile_greader_unread_state_for_feed(
+            &db,
+            &provider,
+            &account,
+            &feed,
+            1,
+            &mut outcome,
+        )
+        .await;
+        assert!(
+            result.is_ok(),
+            "an empty snapshot should be a warning-only no-op when its count is inconsistent"
+        );
+        assert_article_is_unread(&db, &feed, &local_article.id);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_state_does_not_mark_read_when_count_mismatches() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"items": [{"id": "remote-only"}]}"#)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("password".to_string()),
+                token: Some("user".to_string()),
+            })
+            .await
+            .unwrap();
+
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        let result = reconcile_greader_unread_state_for_feed(
+            &db,
+            &provider,
+            &account,
+            &feed,
+            2,
+            &mut outcome,
+        )
+        .await;
+        assert!(
+            result.is_ok(),
+            "a remote count mismatch should be a warning-only no-op"
+        );
+        assert_article_is_unread(&db, &feed, &local_article.id);
+    }
+
+    #[tokio::test]
     async fn reconcile_greader_unread_state_keeps_article_marked_read_during_pull() {
         let db = std::sync::Arc::new(test_db());
         let account = test_account();
@@ -548,7 +1033,8 @@ mod tests {
             .await
             .unwrap();
 
-        reconcile_greader_unread_state_for_feed(&db, &provider, &account, &feed)
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        reconcile_greader_unread_state_for_feed(&db, &provider, &account, &feed, 1, &mut outcome)
             .await
             .unwrap();
 
@@ -564,5 +1050,245 @@ mod tests {
             article.is_read,
             "a read marked during the unread-entries fetch should stay read after reconcile"
         );
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_counts_skips_empty_page_with_continuation() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+
+        let mut server = mockito::Server::new_async().await;
+        let unread_stream_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"items": [], "continuation": "page-2"}"#)
+            .create_async()
+            .await;
+        let provider = authenticated_provider(&mut server).await;
+
+        let backfilled = reconcile_greader_unread_counts(
+            &db,
+            &provider,
+            &account,
+            std::slice::from_ref(&feed),
+            &HashMap::from([("feed/a".to_string(), 1)]),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(backfilled, 0);
+        unread_stream_mock.assert_async().await;
+        assert_article_is_unread(&db, &feed, &local_article.id);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_state_skips_repeated_continuation() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+            ]))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(stream_items_response(["remote-page-1"], Some("same-page")))
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+                mockito::Matcher::UrlEncoded("c".into(), "same-page".into()),
+            ]))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(stream_items_response(["remote-page-2"], Some("same-page")))
+            .create_async()
+            .await;
+        let provider = authenticated_provider(&mut server).await;
+
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        let result = reconcile_greader_unread_state_for_feed(
+            &db,
+            &provider,
+            &account,
+            &feed,
+            2,
+            &mut outcome,
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert!(matches!(outcome, ReconcileOutcome::SkippedIncomplete));
+        assert_article_is_unread(&db, &feed, &local_article.id);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_state_skips_full_page_without_continuation() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+        let ids = (0..200)
+            .map(|index| format!("full-page-{index}"))
+            .collect::<Vec<_>>();
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(stream_items_response(&ids, None))
+            .create_async()
+            .await;
+        let provider = authenticated_provider(&mut server).await;
+
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        let result = reconcile_greader_unread_state_for_feed(
+            &db,
+            &provider,
+            &account,
+            &feed,
+            200,
+            &mut outcome,
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert!(matches!(outcome, ReconcileOutcome::SkippedIncomplete));
+        assert_article_is_unread(&db, &feed, &local_article.id);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_state_skips_when_snapshot_id_set_changes() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+        let response_count = Arc::new(AtomicUsize::new(0));
+
+        let mut server = mockito::Server::new_async().await;
+        let response_count_for_mock = Arc::clone(&response_count);
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body_from_request(move |_| {
+                if response_count_for_mock.fetch_add(1, Ordering::SeqCst) == 0 {
+                    stream_items_response(["remote-stable", "remote-old"], None)
+                } else {
+                    stream_items_response(["remote-stable", "remote-new"], None)
+                }
+                .into_bytes()
+            })
+            .create_async()
+            .await;
+        let provider = authenticated_provider(&mut server).await;
+
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        let result = reconcile_greader_unread_state_for_feed(
+            &db,
+            &provider,
+            &account,
+            &feed,
+            2,
+            &mut outcome,
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert!(matches!(outcome, ReconcileOutcome::SkippedIncomplete));
+        assert_eq!(response_count.load(Ordering::SeqCst), 2);
+        assert_article_is_unread(&db, &feed, &local_article.id);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_state_skips_duplicate_ids_across_pages() {
+        let db = test_db();
+        let account = test_account();
+        let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+        let local_article = save_unread_fixture(&db, &account, &feed);
+
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(stream_items_response(["duplicate-id"], Some("page-2")))
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+                mockito::Matcher::UrlEncoded("c".into(), "page-2".into()),
+            ]))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(stream_items_response(["duplicate-id"], None))
+            .create_async()
+            .await;
+        let provider = authenticated_provider(&mut server).await;
+
+        let mut outcome = ReconcileOutcome::SkippedIncomplete;
+        let result = reconcile_greader_unread_state_for_feed(
+            &db,
+            &provider,
+            &account,
+            &feed,
+            1,
+            &mut outcome,
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert!(matches!(outcome, ReconcileOutcome::SkippedIncomplete));
+        assert_article_is_unread(&db, &feed, &local_article.id);
     }
 }
