@@ -129,23 +129,30 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     [resetListScrollState],
   );
 
+  // react-doctor/no-self-updating-effect (accepted-risk): this effect reads
+  // listScrollState to keep the reset condition pure and out of the
+  // setListScrollState updater (see no-impure-state-updater fix history).
+  // The effect re-runs after its own setListScrollState call, but the
+  // second run's condition is then true (generation/height match), so it
+  // returns without a further update. Stable, does not loop.
   useEffect(() => {
-    setListScrollState((current) => {
-      if (!listLayoutReady) {
-        return current;
-      }
-      if (current.layoutGeneration === listLayoutGeneration && current.viewportHeight === viewportHeight) {
-        return current;
-      }
+    if (!listLayoutReady) {
+      return;
+    }
+    if (
+      listScrollState.layoutGeneration === listLayoutGeneration &&
+      listScrollState.viewportHeight === viewportHeight
+    ) {
+      return;
+    }
 
-      setListScrollResetKey((currentResetKey) => currentResetKey + 1);
-      return {
-        scrollTop: 0,
-        layoutGeneration: listLayoutGeneration,
-        viewportHeight,
-      };
+    setListScrollState({
+      scrollTop: 0,
+      layoutGeneration: listLayoutGeneration,
+      viewportHeight,
     });
-  }, [listLayoutGeneration, listLayoutReady, viewportHeight]);
+    setListScrollResetKey((currentResetKey) => currentResetKey + 1);
+  }, [listLayoutGeneration, listLayoutReady, listScrollState, viewportHeight]);
 
   const selectedRow = findSelectedSubscriptionRow(visibleRows, selectedFeedId);
 
