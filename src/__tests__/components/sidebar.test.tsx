@@ -2707,7 +2707,7 @@ describe("Sidebar", () => {
     });
   });
 
-  it("keeps the sync button idle for manual account sync progress", async () => {
+  it("spins the sync button for manual account sync progress", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const syncButton = await screen.findByRole("button", { name: "Sync feeds" });
@@ -2728,7 +2728,7 @@ describe("Sidebar", () => {
     });
 
     await waitFor(() => {
-      expect(icon).not.toHaveClass("animate-spin");
+      expect(icon).toHaveClass("animate-spin");
     });
   });
 

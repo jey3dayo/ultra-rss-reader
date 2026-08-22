@@ -44,7 +44,7 @@ describe("useSidebarHeaderProps", () => {
     });
   });
 
-  it("does not treat manual account sync as global syncing", () => {
+  it("treats manual account sync as active syncing", () => {
     const props = buildSidebarHeaderProps({
       t,
       syncProgress: { active: true, kind: "manual_account" },
@@ -59,7 +59,7 @@ describe("useSidebarHeaderProps", () => {
       shouldUseDesktopOverlayTitlebar: () => false,
     });
 
-    expect(props.syncState.status).toBe("idle");
+    expect(props.syncState.status).toBe("syncing");
     expect(props.syncTooltipLabel).toBeUndefined();
   });
 

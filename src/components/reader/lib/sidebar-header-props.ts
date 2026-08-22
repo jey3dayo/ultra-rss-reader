@@ -27,9 +27,7 @@ export function buildSidebarHeaderProps({
     hasTauriRuntime,
   });
   const syncStatus = syncProgress.active
-    ? syncProgress.kind === "manual_account"
-      ? "idle"
-      : "syncing"
+    ? "syncing"
     : isSyncDisabled
       ? "disabled"
       : isSyncCoolingDown
