@@ -8,8 +8,8 @@ use tracing::warn;
 
 use crate::commands::dto::{
     sync_issue_owner_for_app_error, AccountSyncError, AccountSyncStatus, AccountSyncWarning,
-    AccountSyncWarningKind, AppError, SyncProgressEvent, SyncProgressKind, SyncProgressStage,
-    SyncResult,
+    AccountSyncWarningDetail, AccountSyncWarningKind, AppError, SyncProgressEvent,
+    SyncProgressKind, SyncProgressStage, SyncResult,
 };
 use crate::commands::AppState;
 use crate::domain::account::Account;
@@ -272,6 +272,9 @@ fn startup_remote_state_repair_marker_warning(error: &AppError) -> AccountSyncWa
         ),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::StartupRepairMarkerFailed {
+            message: error.to_string(),
+        },
     }
 }
 
@@ -342,6 +345,10 @@ fn local_feed_sync_warning(feed: &Feed, error: &AppError) -> ProviderSyncWarning
         message: format!("Local feed '{}' failed during sync: {error}", feed.title),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::LocalFeedSyncFailed {
+            feed_title: feed.title.clone(),
+            message: error.to_string(),
+        },
     }
 }
 
@@ -351,6 +358,10 @@ fn local_account_sync_error_warning(operation: &str, error: &AppError) -> Provid
         message: format!("Local sync folder {operation} failed: {error}"),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::LocalAccountSyncOperationFailed {
+            operation: operation.to_string(),
+            message: error.to_string(),
+        },
     }
 }
 
@@ -372,6 +383,11 @@ fn local_account_import_result_warning(
         ),
         retry_at: None,
         retry_in_seconds: None,
+        detail: AccountSyncWarningDetail::LocalImportResult {
+            conflicted: report.conflicted_candidates,
+            rejected_files: report.rejected_files,
+            rejected_operations: report.rejected_operations,
+        },
     })
 }
 
@@ -625,6 +641,7 @@ async fn run_sync_for_accounts_guarded(
                             message: warning.message,
                             retry_at: warning.retry_at,
                             retry_in_seconds: warning.retry_in_seconds,
+                            detail: warning.detail,
                         }),
                 );
             }
@@ -687,6 +704,7 @@ fn run_local_account_startup_import_supplement(
                 message: warning.message,
                 retry_at: warning.retry_at,
                 retry_in_seconds: warning.retry_in_seconds,
+                detail: warning.detail,
             })
         })
         .collect()
@@ -1138,6 +1156,7 @@ pub async fn trigger_sync_account(
                             message: warning.message,
                             retry_at: warning.retry_at,
                             retry_in_seconds: warning.retry_in_seconds,
+                            detail: warning.detail,
                         }),
                 );
             reporter.emit_account_finished(&account, true);
@@ -1237,6 +1256,7 @@ pub async fn trigger_sync_feed(
                             message: warning.message,
                             retry_at: warning.retry_at,
                             retry_in_seconds: warning.retry_in_seconds,
+                            detail: warning.detail,
                         }),
                 );
             reporter.emit_account_finished(&account, true);
@@ -1335,6 +1355,10 @@ mod tests {
             message: "warn".to_string(),
             retry_at: None,
             retry_in_seconds: None,
+            detail: AccountSyncWarningDetail::LocalAccountSyncOperationFailed {
+                operation: "import".to_string(),
+                message: "warn".to_string(),
+            },
         }];
 
         let outcome = run_startup_sync_and_repair(
@@ -1524,6 +1548,10 @@ mod tests {
                 message: "Skipped entries.".to_string(),
                 retry_at: None,
                 retry_in_seconds: None,
+                detail: AccountSyncWarningDetail::AccountSkippedEntries {
+                    account_name: "FreshRSS".to_string(),
+                    count: 1,
+                },
             }],
         };
 
@@ -1544,6 +1572,10 @@ mod tests {
                 message: "Skipped entries.".to_string(),
                 retry_at: None,
                 retry_in_seconds: None,
+                detail: AccountSyncWarningDetail::AccountSkippedEntries {
+                    account_name: "FreshRSS".to_string(),
+                    count: 1,
+                },
             }],
         };
 
@@ -1819,6 +1851,11 @@ mod tests {
         assert!(result.warnings[0]
             .message
             .contains("completion marker could not be saved"));
+        assert!(matches!(
+            &result.warnings[0].detail,
+            AccountSyncWarningDetail::StartupRepairMarkerFailed { message }
+                if result.warnings[0].message.contains(message.as_str())
+        ));
     }
 
     #[test]
@@ -2295,6 +2332,15 @@ mod tests {
             "unexpected warnings: {:?}",
             outcome.warnings
         );
+        assert!(
+            outcome.warnings.iter().any(|warning| matches!(
+                &warning.detail,
+                AccountSyncWarningDetail::LocalAccountSyncOperationFailed { operation, .. }
+                    if operation == "export"
+            )),
+            "unexpected warnings: {:?}",
+            outcome.warnings
+        );
     }
 
     /// Pins current behavior for the auto-import error branch: when reading
@@ -2326,6 +2372,15 @@ mod tests {
                 .warnings
                 .iter()
                 .any(|warning| warning.message.contains("Local sync folder import failed")),
+            "unexpected warnings: {:?}",
+            outcome.warnings
+        );
+        assert!(
+            outcome.warnings.iter().any(|warning| matches!(
+                &warning.detail,
+                AccountSyncWarningDetail::LocalAccountSyncOperationFailed { operation, .. }
+                    if operation == "import"
+            )),
             "unexpected warnings: {:?}",
             outcome.warnings
         );
@@ -2388,6 +2443,14 @@ mod tests {
         assert!(outcome.warnings[0]
             .message
             .contains("1 rejected operation(s)"));
+        assert_eq!(
+            outcome.warnings[0].detail,
+            AccountSyncWarningDetail::LocalImportResult {
+                conflicted: 0,
+                rejected_files: 0,
+                rejected_operations: 1,
+            }
+        );
 
         let folder_count: i64 = db
             .lock()

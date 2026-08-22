@@ -8,7 +8,7 @@ use std::time::Instant;
 
 use tracing::warn;
 
-use crate::commands::dto::{AccountSyncWarningKind, AppError};
+use crate::commands::dto::{AccountSyncWarningDetail, AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
 #[cfg(test)]
 use crate::domain::article::generate_entry_id;
@@ -153,6 +153,7 @@ pub(crate) struct ProviderSyncWarning {
     pub message: String,
     pub retry_at: Option<String>,
     pub retry_in_seconds: Option<u64>,
+    pub detail: AccountSyncWarningDetail,
 }
 
 #[cfg(test)]

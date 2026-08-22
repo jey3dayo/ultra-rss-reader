@@ -1,4 +1,10 @@
-import type { AccountSyncError, AccountSyncWarning, SyncIssueOwner, SyncResultDto } from "@/api/schemas/sync-result";
+import type {
+  AccountSyncError,
+  AccountSyncWarning,
+  AccountSyncWarningDetail,
+  SyncIssueOwner,
+  SyncResultDto,
+} from "@/api/schemas/sync-result";
 
 export type SyncFeedback =
   | { kind: "already-in-progress" }
@@ -8,9 +14,21 @@ export type SyncFeedback =
       accounts: string;
       retryAt?: string;
       retryInSeconds?: number;
+      detail: AccountSyncWarningDetail | null;
+      remainingWarningCount: number;
     }
-  | { kind: "retry-pending"; accounts: string }
-  | { kind: "warnings"; accounts: string }
+  | {
+      kind: "retry-pending";
+      accounts: string;
+      detail: AccountSyncWarningDetail | null;
+      remainingWarningCount: number;
+    }
+  | {
+      kind: "warnings";
+      accounts: string;
+      detail: AccountSyncWarningDetail | null;
+      remainingWarningCount: number;
+    }
   | { kind: "success" };
 
 export type SyncFeedbackMessages = {
@@ -20,7 +38,96 @@ export type SyncFeedbackMessages = {
   retryPending: (accounts: string) => string;
   warnings: (accounts: string) => string;
   success: string;
+  /**
+   * Renders one representative, localized warning-detail line appended after
+   * the base message (see `resolveSyncFeedbackMessage`). Callers resolve the
+   * `detail.type` to a `sync_warning_detail.<type>` locale key and append a
+   * "+N more" suffix when `remainingCount > 0`. Optional so callers that do
+   * not surface warning detail (or tests) are unaffected.
+   */
+  detailLine?: (detail: AccountSyncWarningDetail, remainingCount: number) => string;
 };
+
+/**
+ * Resolves a raw protocol/operation identifier (e.g. Rust
+ * `PendingMutationType::as_str()` values `mark_read`/`mark_unread`/`star`/
+ * `unstar`, or the `import`/`export` operation literals in
+ * `sync_commands.rs`) to a localized label via
+ * `sync_warning_detail.<labelType>_labels.<rawValue>`. Callers bind their own
+ * namespaced `t()`; an unknown value should fall back to the raw string
+ * (fail-open, same policy as the rest of this module) rather than throwing or
+ * showing a missing-key placeholder.
+ */
+export type SyncWarningDetailLabelResolver = (labelType: "mutation" | "operation", rawValue: string) => string;
+
+const identitySyncWarningDetailLabelResolver: SyncWarningDetailLabelResolver = (_labelType, rawValue) => rawValue;
+
+/**
+ * Maps a structured sync-warning detail to the locale key suffix
+ * (`sync_warning_detail.<type>`) and interpolation params a caller's `t()`
+ * needs to render it. Pure and UI-copy-free: callers own the actual
+ * translated text and namespace (`sidebar` vs `settings`).
+ *
+ * `resolveLabel` translates the raw `mutation`/`operation` protocol values
+ * embedded in some variants before they are interpolated, so the rendered
+ * sentence never leaks a wire identifier such as `mark_read` or `import`.
+ * Defaults to passing the raw value through unchanged.
+ *
+ * Kept in sync with `AccountSyncWarningDetailSchema`
+ * (`src/api/schemas/sync-result.ts`) and the Rust
+ * `AccountSyncWarningDetail` enum; `i18next-locale-contract.node.test.ts`
+ * pins the per-variant locale keys.
+ */
+export function getSyncWarningDetailTranslationKey(
+  detail: AccountSyncWarningDetail,
+  resolveLabel: SyncWarningDetailLabelResolver = identitySyncWarningDetailLabelResolver,
+): {
+  key: AccountSyncWarningDetail["type"];
+  params: Record<string, string | number>;
+} {
+  switch (detail.type) {
+    case "pending_mutation_retry":
+    case "dropped_pending_mutation":
+      return { key: detail.type, params: { mutation: resolveLabel("mutation", detail.mutation) } };
+    case "deleted_greader_folders":
+      return { key: detail.type, params: { count: detail.count } };
+    case "feed_skipped_entries":
+      return { key: detail.type, params: { feedTitle: detail.feed_title, count: detail.count } };
+    case "feed_articles_vanished":
+      // `count` (not `countBefore`) so i18next's plural rule selects
+      // `_one`/`_other` from this value; see `sync_warning_detail_more`'s
+      // convention below and the `{{count, count}}` locale placeholder.
+      return {
+        key: detail.type,
+        params: { feedTitle: detail.feed_title, count: detail.count_before },
+      };
+    case "account_skipped_entries":
+      return { key: detail.type, params: { accountName: detail.account_name, count: detail.count } };
+    case "local_feed_sync_failed":
+      return { key: detail.type, params: { feedTitle: detail.feed_title, message: detail.message } };
+    case "local_account_sync_operation_failed":
+      return {
+        key: detail.type,
+        params: { operation: resolveLabel("operation", detail.operation), message: detail.message },
+      };
+    case "local_import_result":
+      return {
+        key: detail.type,
+        params: {
+          conflicted: detail.conflicted,
+          rejectedFiles: detail.rejected_files,
+          rejectedOperations: detail.rejected_operations,
+        },
+      };
+    case "startup_repair_marker_failed":
+    case "scheduler_load_failed":
+      return { key: detail.type, params: { message: detail.message } };
+    case "backoff_persist_failed":
+      return { key: detail.type, params: { accountName: detail.account_name, message: detail.message } };
+    case "background_sync_retry_scheduled":
+      return { key: detail.type, params: { accountName: detail.account_name } };
+  }
+}
 
 export type SyncFeedbackPublicCopy = {
   unknownAccountLabel: string;
@@ -114,6 +221,31 @@ function getEarliestRetryWarning(warnings: AccountSyncWarning[]): AccountSyncWar
   return scheduledWarnings.find((warning) => getRetryWarningSeconds(warning) === earliestRetrySeconds);
 }
 
+/**
+ * Picks one representative warning detail to surface alongside the
+ * kind/message summary, regardless of which sub-kind (warnings-only,
+ * retry-pending, or retry-scheduled) was selected. A single warning shows
+ * its own detail sentence; multiple warnings show the first available
+ * detail plus a "+N more" count, so detail is never silently dropped by a
+ * retry-only or retry+generic mix. Warnings whose `detail` normalized to
+ * `null` (missing or unrecognized backend variant) are skipped when picking
+ * the representative one; if none carry a usable detail, this returns null
+ * and callers fall back to the existing summary-only text.
+ */
+function getRepresentativeWarningDetail(warnings: AccountSyncWarning[]): {
+  detail: AccountSyncWarningDetail | null;
+  remainingWarningCount: number;
+} {
+  const withDetail = warnings.find((warning) => warning.detail !== null);
+  if (!withDetail || withDetail.detail === null) {
+    return { detail: null, remainingWarningCount: 0 };
+  }
+  return {
+    detail: withDetail.detail,
+    remainingWarningCount: Math.max(warnings.length - 1, 0),
+  };
+}
+
 export function summarizeSyncResult(
   result: SyncResultDto,
   copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
@@ -147,6 +279,7 @@ export function summarizeSyncWarnings(
   warnings: AccountSyncWarning[],
   copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
 ): Extract<SyncFeedback, { kind: "retry-scheduled" | "retry-pending" | "warnings" }> {
+  const { detail, remainingWarningCount } = getRepresentativeWarningDetail(warnings);
   const scheduledRetry = getEarliestRetryWarning(warnings);
   if (scheduledRetry) {
     return {
@@ -154,13 +287,29 @@ export function summarizeSyncWarnings(
       accounts: getDistinctAccountNames(warnings, copy),
       retryAt: scheduledRetry.retry_at ?? undefined,
       retryInSeconds: scheduledRetry.retry_in_seconds ?? undefined,
+      detail,
+      remainingWarningCount,
     };
   }
 
   return {
     kind: hasRetryPendingWarnings(warnings) ? "retry-pending" : "warnings",
     accounts: getDistinctAccountNames(warnings, copy),
+    detail,
+    remainingWarningCount,
   };
+}
+
+function appendDetailLine(
+  base: string,
+  detail: AccountSyncWarningDetail | null,
+  remainingWarningCount: number,
+  detailLine: SyncFeedbackMessages["detailLine"],
+): string {
+  if (!detail || !detailLine) {
+    return base;
+  }
+  return `${base} ${detailLine(detail, remainingWarningCount)}`;
 }
 
 export function resolveSyncFeedbackMessage(feedback: SyncFeedback, messages: SyncFeedbackMessages): string {
@@ -170,11 +319,26 @@ export function resolveSyncFeedbackMessage(feedback: SyncFeedback, messages: Syn
     case "partial-failure":
       return messages.partialFailure(feedback.accounts);
     case "retry-scheduled":
-      return messages.retryScheduled(feedback.accounts, feedback.retryAt, feedback.retryInSeconds);
+      return appendDetailLine(
+        messages.retryScheduled(feedback.accounts, feedback.retryAt, feedback.retryInSeconds),
+        feedback.detail,
+        feedback.remainingWarningCount,
+        messages.detailLine,
+      );
     case "retry-pending":
-      return messages.retryPending(feedback.accounts);
+      return appendDetailLine(
+        messages.retryPending(feedback.accounts),
+        feedback.detail,
+        feedback.remainingWarningCount,
+        messages.detailLine,
+      );
     case "warnings":
-      return messages.warnings(feedback.accounts);
+      return appendDetailLine(
+        messages.warnings(feedback.accounts),
+        feedback.detail,
+        feedback.remainingWarningCount,
+        messages.detailLine,
+      );
     case "success":
       return messages.success;
   }

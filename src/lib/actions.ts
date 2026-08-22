@@ -17,7 +17,11 @@ import { queryKeys } from "@/lib/query/query-invalidation";
 import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { logRuntimeDiagnostic, type RuntimeDiagnosticPolicyId } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
-import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
+import {
+  getSyncWarningDetailTranslationKey,
+  resolveSyncFeedbackMessage,
+  summarizeSyncResult,
+} from "@/lib/sync/sync-result-feedback";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/tauri-window";
@@ -344,6 +348,15 @@ export function executeAction(action: AppAction): void {
                 retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
                 warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
                 success: i18n.t("sidebar:sync_completed"),
+                detailLine: (detail, remainingCount) => {
+                  const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
+                    i18n.t(`sidebar:sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
+                  );
+                  const detailText = i18n.t(`sidebar:sync_warning_detail.${key}`, params);
+                  return remainingCount > 0
+                    ? `${detailText} ${i18n.t("sidebar:sync_warning_detail_more", { count: remainingCount })}`
+                    : detailText;
+                },
               }),
             );
           },

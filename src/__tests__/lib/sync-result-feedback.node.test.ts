@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import type { AccountSyncWarning, AccountSyncWarningDetail } from "@/api/schemas/sync-result";
+import i18n from "@/lib/i18n";
+import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
   getSyncIssueDiagnosticsDetails,
   getSyncWarningAccountNames,
+  getSyncWarningDetailTranslationKey,
   resolveSyncFeedbackMessage,
   type SyncFeedbackPublicCopy,
   summarizeSyncResult,
@@ -44,7 +48,7 @@ describe("sync-result-feedback", () => {
             message: "boom again",
           },
         ],
-        warnings: [{ account_id: "acc-3", account_name: "Local", message: "warn" }],
+        warnings: [{ account_id: "acc-3", detail: null, account_name: "Local", message: "warn" }],
       }),
     ).toEqual({ kind: "partial-failure", accounts: "FreshRSS" });
   });
@@ -134,11 +138,11 @@ describe("sync-result-feedback", () => {
         succeeded: 2,
         failed: [],
         warnings: [
-          { account_id: "acc-1", account_name: "FreshRSS", message: "warn 1" },
-          { account_id: "acc-2", account_name: "Local", message: "warn 2" },
+          { account_id: "acc-1", detail: null, account_name: "FreshRSS", message: "warn 1" },
+          { account_id: "acc-2", detail: null, account_name: "Local", message: "warn 2" },
         ],
       }),
-    ).toEqual({ kind: "warnings", accounts: "FreshRSS, Local" });
+    ).toEqual({ kind: "warnings", accounts: "FreshRSS, Local", detail: null, remainingWarningCount: 0 });
   });
 
   it("deduplicates account names for warning-only sync results", () => {
@@ -149,11 +153,11 @@ describe("sync-result-feedback", () => {
         succeeded: 2,
         failed: [],
         warnings: [
-          { account_id: "acc-1", account_name: "FreshRSS", message: "warn 1" },
-          { account_id: "acc-2", account_name: "FreshRSS", message: "warn 2" },
+          { account_id: "acc-1", detail: null, account_name: "FreshRSS", message: "warn 1" },
+          { account_id: "acc-2", detail: null, account_name: "FreshRSS", message: "warn 2" },
         ],
       }),
-    ).toEqual({ kind: "warnings", accounts: "FreshRSS" });
+    ).toEqual({ kind: "warnings", accounts: "FreshRSS", detail: null, remainingWarningCount: 0 });
   });
 
   it("keeps warning aggregation distinct by account and action owner", () => {
@@ -166,24 +170,28 @@ describe("sync-result-feedback", () => {
         warnings: [
           {
             account_id: "acc-1",
+            detail: null,
             account_name: "FreshRSS",
             action_owner: "feed",
             message: "Feed skipped",
           },
           {
             account_id: "acc-1",
+            detail: null,
             account_name: "FreshRSS",
             action_owner: "feed",
             message: "Feed skipped",
           },
           {
             account_id: "acc-1",
+            detail: null,
             account_name: "FreshRSS",
             action_owner: "credential",
             message: "Credential refresh failed",
           },
           {
             account_id: "scheduler",
+            detail: null,
             account_name: "Scheduler",
             action_owner: "scheduler",
             message: "Background scheduler skipped",
@@ -193,6 +201,8 @@ describe("sync-result-feedback", () => {
     ).toEqual({
       kind: "warnings",
       accounts: "FreshRSS (feed), FreshRSS (credentials), Scheduler (scheduler)",
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -233,25 +243,29 @@ describe("sync-result-feedback", () => {
   it("truncates long warning account lists after grouping by action owner", () => {
     expect(
       summarizeSyncWarnings([
-        { account_id: "acc-1", account_name: "Account 1", message: "warn 1" },
+        { account_id: "acc-1", detail: null, account_name: "Account 1", message: "warn 1" },
         {
           account_id: "acc-2",
+          detail: null,
           account_name: "Account 2",
           action_owner: "feed",
           message: "warn 2",
         },
-        { account_id: "acc-3", account_name: "Account 3", message: "warn 3" },
+        { account_id: "acc-3", detail: null, account_name: "Account 3", message: "warn 3" },
         {
           account_id: "acc-4",
+          detail: null,
           account_name: "Account 4",
           action_owner: "credential",
           message: "warn 4",
         },
-        { account_id: "acc-5", account_name: "Account 5", message: "warn 5" },
+        { account_id: "acc-5", detail: null, account_name: "Account 5", message: "warn 5" },
       ]),
     ).toEqual({
       kind: "warnings",
       accounts: "Account 1, Account 2 (feed), Account 3, Account 4 (credentials) +1 more",
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -299,6 +313,7 @@ describe("sync-result-feedback", () => {
         warnings: [
           {
             account_id: "acc-warning",
+            detail: null,
             account_name: "Warning",
             message: "warn",
           },
@@ -320,21 +335,22 @@ describe("sync-result-feedback", () => {
         warnings: [
           {
             account_id: "acc-1",
+            detail: null,
             account_name: "FreshRSS",
             message: "Retry later",
             kind: "retry_pending",
           },
         ],
       }),
-    ).toEqual({ kind: "retry-pending", accounts: "FreshRSS" });
+    ).toEqual({ kind: "retry-pending", accounts: "FreshRSS", detail: null, remainingWarningCount: 0 });
   });
 
   it("extracts distinct warning account names", () => {
     expect(
       getSyncWarningAccountNames([
-        { account_id: "acc-1", account_name: "FreshRSS", message: "warn 1" },
-        { account_id: "acc-2", account_name: "FreshRSS", message: "warn 2" },
-        { account_id: "acc-3", account_name: "Local", message: "warn 3" },
+        { account_id: "acc-1", detail: null, account_name: "FreshRSS", message: "warn 1" },
+        { account_id: "acc-2", detail: null, account_name: "FreshRSS", message: "warn 2" },
+        { account_id: "acc-3", detail: null, account_name: "Local", message: "warn 3" },
       ]),
     ).toBe("FreshRSS, Local");
   });
@@ -342,9 +358,9 @@ describe("sync-result-feedback", () => {
   it("uses public fallback copy for blank warning account names", () => {
     expect(
       getSyncWarningAccountNames([
-        { account_id: "acc-1", account_name: "", message: "warn 1" },
-        { account_id: "acc-2", account_name: "  ", message: "warn 2" },
-        { account_id: "acc-3", account_name: "Local", message: "warn 3" },
+        { account_id: "acc-1", detail: null, account_name: "", message: "warn 1" },
+        { account_id: "acc-2", detail: null, account_name: "  ", message: "warn 2" },
+        { account_id: "acc-3", detail: null, account_name: "Local", message: "warn 3" },
       ]),
     ).toBe("Unknown account, Local");
   });
@@ -353,11 +369,13 @@ describe("sync-result-feedback", () => {
     const warnings = [
       {
         account_id: "acc-deleted-1",
+        detail: null,
         account_name: "",
         message: "Deleted account cannot be synced",
       },
       {
         account_id: "scheduler",
+        detail: null,
         account_name: "   ",
         action_owner: "scheduler",
         message: "Scheduler skipped",
@@ -384,6 +402,7 @@ describe("sync-result-feedback", () => {
       summarizeSyncWarnings([
         {
           account_id: "acc-1",
+          detail: null,
           account_name: "FreshRSS",
           action_owner: "feed",
           kind: "retry_pending",
@@ -393,6 +412,8 @@ describe("sync-result-feedback", () => {
     ).toEqual({
       kind: "retry-pending",
       accounts: "FreshRSS (feed)",
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -402,18 +423,21 @@ describe("sync-result-feedback", () => {
         [
           {
             account_id: "acc-1",
+            detail: null,
             account_name: "",
             action_owner: "credential",
             message: "Credential refresh failed",
           },
           {
             account_id: "acc-2",
+            detail: null,
             account_name: "FreshRSS",
             action_owner: "feed",
             message: "Feed skipped",
           },
           {
             account_id: "scheduler",
+            detail: null,
             account_name: "Scheduler",
             action_owner: "scheduler",
             message: "Background scheduler skipped",
@@ -424,6 +448,8 @@ describe("sync-result-feedback", () => {
     ).toEqual({
       kind: "warnings",
       accounts: "不明なアカウント (認証情報), FreshRSS (フィード), Scheduler (スケジューラー)",
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -432,19 +458,22 @@ describe("sync-result-feedback", () => {
       summarizeSyncWarnings([
         {
           account_id: "acc-1",
+          detail: null,
           account_name: "FreshRSS",
           message: "Retry later",
           kind: "retry_pending",
         },
-        { account_id: "acc-2", account_name: "Local", message: "warn 2" },
+        { account_id: "acc-2", detail: null, account_name: "Local", message: "warn 2" },
       ]),
-    ).toEqual({ kind: "retry-pending", accounts: "FreshRSS, Local" });
+    ).toEqual({ kind: "retry-pending", accounts: "FreshRSS, Local", detail: null, remainingWarningCount: 0 });
   });
 
   it("keeps empty warning output copy unchanged", () => {
     expect(summarizeSyncWarnings([])).toEqual({
       kind: "warnings",
       accounts: "",
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -453,6 +482,7 @@ describe("sync-result-feedback", () => {
       summarizeSyncWarnings([
         {
           account_id: "acc-1",
+          detail: null,
           account_name: "FreshRSS",
           message: "Retry scheduled",
           kind: "retry_scheduled",
@@ -461,6 +491,7 @@ describe("sync-result-feedback", () => {
         },
         {
           account_id: "acc-2",
+          detail: null,
           account_name: "Local",
           message: "Retry later",
           kind: "retry_pending",
@@ -471,6 +502,8 @@ describe("sync-result-feedback", () => {
       accounts: "FreshRSS, Local",
       retryAt: "2026-04-13T03:15:00Z",
       retryInSeconds: 120,
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -479,6 +512,7 @@ describe("sync-result-feedback", () => {
       summarizeSyncWarnings([
         {
           account_id: "acc-1",
+          detail: null,
           account_name: "FreshRSS",
           message: "Retry later",
           kind: "retry_scheduled",
@@ -487,6 +521,7 @@ describe("sync-result-feedback", () => {
         },
         {
           account_id: "acc-2",
+          detail: null,
           account_name: "Local",
           message: "Retry sooner",
           kind: "retry_scheduled",
@@ -499,6 +534,8 @@ describe("sync-result-feedback", () => {
       accounts: "FreshRSS, Local",
       retryAt: "2026-04-13T03:16:00Z",
       retryInSeconds: 60,
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -506,6 +543,7 @@ describe("sync-result-feedback", () => {
     const feedback = summarizeSyncWarnings([
       {
         account_id: "acc-1",
+        detail: null,
         account_name: "FreshRSS",
         message: "Retry later",
         kind: "retry_scheduled",
@@ -514,6 +552,7 @@ describe("sync-result-feedback", () => {
       },
       {
         account_id: "acc-2",
+        detail: null,
         account_name: "Local",
         message: "Retry sooner",
         kind: "retry_scheduled",
@@ -538,6 +577,7 @@ describe("sync-result-feedback", () => {
     const feedback = summarizeSyncWarnings([
       {
         account_id: "acc-1",
+        detail: null,
         account_name: "FreshRSS",
         message: "Retry first",
         kind: "retry_scheduled",
@@ -546,6 +586,7 @@ describe("sync-result-feedback", () => {
       },
       {
         account_id: "acc-2",
+        detail: null,
         account_name: "Local",
         message: "Retry same time",
         kind: "retry_scheduled",
@@ -571,6 +612,7 @@ describe("sync-result-feedback", () => {
       summarizeSyncWarnings([
         {
           account_id: "acc-1",
+          detail: null,
           account_name: "FreshRSS",
           message: "Retry scheduled",
           kind: "retry_scheduled",
@@ -578,6 +620,7 @@ describe("sync-result-feedback", () => {
         },
         {
           account_id: "acc-2",
+          detail: null,
           account_name: "Local",
           message: "Retry sooner",
           kind: "retry_scheduled",
@@ -590,6 +633,8 @@ describe("sync-result-feedback", () => {
       accounts: "FreshRSS, Local",
       retryAt: "2026-04-13T03:17:00Z",
       retryInSeconds: 90,
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -598,6 +643,7 @@ describe("sync-result-feedback", () => {
       summarizeSyncWarnings([
         {
           account_id: "acc-1",
+          detail: null,
           account_name: "FreshRSS",
           message: "Retry sooner",
           kind: "retry_scheduled",
@@ -606,6 +652,7 @@ describe("sync-result-feedback", () => {
         },
         {
           account_id: "acc-2",
+          detail: null,
           account_name: "Local",
           message: "Retry scheduled",
           kind: "retry_scheduled",
@@ -613,6 +660,7 @@ describe("sync-result-feedback", () => {
         },
         {
           account_id: "acc-3",
+          detail: null,
           account_name: "Other",
           message: "Retry earliest",
           kind: "retry_scheduled",
@@ -625,6 +673,8 @@ describe("sync-result-feedback", () => {
       accounts: "FreshRSS, Local, Other",
       retryAt: "2026-04-13T03:16:00Z",
       retryInSeconds: 60,
+      detail: null,
+      remainingWarningCount: 0,
     });
   });
 
@@ -636,6 +686,8 @@ describe("sync-result-feedback", () => {
           accounts: "FreshRSS, Local",
           retryAt: "2026-04-13T03:15:00Z",
           retryInSeconds: 120,
+          detail: null,
+          remainingWarningCount: 0,
         },
         {
           alreadyInProgress: "already running",
@@ -680,4 +732,195 @@ describe("sync-result-feedback", () => {
       ),
     ).toBe("partial:FreshRSS, Local");
   });
+});
+
+describe("sync warning detail representative selection", () => {
+  const feedSkippedWarning: AccountSyncWarning = {
+    account_id: "acc-1",
+    account_name: "FreshRSS",
+    message: "Feed 'Foo' skipped 3 entry item(s) during sync.",
+    detail: { type: "feed_skipped_entries", feed_title: "Foo", count: 3 },
+  };
+  const genericNoDetailWarning: AccountSyncWarning = {
+    account_id: "acc-2",
+    account_name: "FreshRSS",
+    message: "Generic warning without a mapped detail",
+    detail: null,
+  };
+  const retryPendingWarning: AccountSyncWarning = {
+    account_id: "acc-3",
+    account_name: "FreshRSS",
+    message: "Local change 'mark_read' will retry next sync.",
+    kind: "retry_pending",
+    detail: { type: "pending_mutation_retry", mutation: "mark_read" },
+  };
+  const retryScheduledWithDetail: AccountSyncWarning = {
+    account_id: "acc-4",
+    account_name: "FreshRSS",
+    message: "Background sync failed and will retry automatically for 'FreshRSS'.",
+    kind: "retry_scheduled",
+    retry_at: "2026-04-13T03:15:00Z",
+    retry_in_seconds: 120,
+    detail: { type: "background_sync_retry_scheduled", account_name: "FreshRSS" },
+  };
+
+  it("carries the sole warning's detail with no remaining count (generic-only, single warning)", () => {
+    const feedback = summarizeSyncWarnings([feedSkippedWarning]);
+
+    expect(feedback.detail).toEqual({ type: "feed_skipped_entries", feed_title: "Foo", count: 3 });
+    expect(feedback.remainingWarningCount).toBe(0);
+  });
+
+  it("carries the retry-pending warning's own detail (retry-only)", () => {
+    const feedback = summarizeSyncWarnings([retryPendingWarning]);
+
+    expect(feedback.kind).toBe("retry-pending");
+    expect(feedback.detail).toEqual({ type: "pending_mutation_retry", mutation: "mark_read" });
+    expect(feedback.remainingWarningCount).toBe(0);
+  });
+
+  it("keeps the earliest scheduled retry's own detail (retry-scheduled-only)", () => {
+    const feedback = summarizeSyncWarnings([retryScheduledWithDetail]);
+
+    expect(feedback.kind).toBe("retry-scheduled");
+    expect(feedback.detail).toEqual({ type: "background_sync_retry_scheduled", account_name: "FreshRSS" });
+    expect(feedback.remainingWarningCount).toBe(0);
+  });
+
+  it("does not drop detail when retry and generic warnings are mixed", () => {
+    const feedback = summarizeSyncWarnings([retryPendingWarning, feedSkippedWarning]);
+
+    expect(feedback.kind).toBe("retry-pending");
+    // First warning in list order (the retry-pending one) supplies the detail.
+    expect(feedback.detail).toEqual({ type: "pending_mutation_retry", mutation: "mark_read" });
+    expect(feedback.remainingWarningCount).toBe(1);
+  });
+
+  it("skips a null detail and surfaces the next warning's detail when mixed", () => {
+    const feedback = summarizeSyncWarnings([genericNoDetailWarning, feedSkippedWarning]);
+
+    expect(feedback.detail).toEqual({ type: "feed_skipped_entries", feed_title: "Foo", count: 3 });
+    expect(feedback.remainingWarningCount).toBe(1);
+  });
+
+  it("falls back to no detail line when every warning's detail is null", () => {
+    const feedback = summarizeSyncWarnings([genericNoDetailWarning]);
+
+    expect(feedback.detail).toBeNull();
+    expect(feedback.remainingWarningCount).toBe(0);
+  });
+
+  it("appends the resolved detail line to the base message via resolveSyncFeedbackMessage", () => {
+    const feedback = summarizeSyncWarnings([feedSkippedWarning]);
+
+    const message = resolveSyncFeedbackMessage(feedback, {
+      alreadyInProgress: "already running",
+      partialFailure: (accounts) => `partial:${accounts}`,
+      retryScheduled: (accounts) => `scheduled:${accounts}`,
+      retryPending: (accounts) => `pending:${accounts}`,
+      warnings: (accounts) => `warnings:${accounts}`,
+      success: "done",
+      detailLine: (detail, remainingCount) => {
+        const { key, params } = getSyncWarningDetailTranslationKey(detail);
+        return `[${key}:${JSON.stringify(params)}]${remainingCount > 0 ? ` +${remainingCount}` : ""}`;
+      },
+    });
+
+    expect(message).toBe('warnings:FreshRSS [feed_skipped_entries:{"feedTitle":"Foo","count":3}]');
+  });
+
+  it("omits the detail line entirely when no detailLine resolver is supplied", () => {
+    const feedback = summarizeSyncWarnings([feedSkippedWarning]);
+
+    const message = resolveSyncFeedbackMessage(feedback, {
+      alreadyInProgress: "already running",
+      partialFailure: (accounts) => `partial:${accounts}`,
+      retryScheduled: (accounts) => `scheduled:${accounts}`,
+      retryPending: (accounts) => `pending:${accounts}`,
+      warnings: (accounts) => `warnings:${accounts}`,
+      success: "done",
+    });
+
+    expect(message).toBe("warnings:FreshRSS");
+  });
+});
+
+describe("getSyncWarningDetailTranslationKey", () => {
+  it.each([
+    [{ type: "pending_mutation_retry", mutation: "mark_read" } as const, { mutation: "mark_read" }],
+    [{ type: "dropped_pending_mutation", mutation: "star" } as const, { mutation: "star" }],
+    [{ type: "deleted_greader_folders", count: 2 } as const, { count: 2 }],
+    [{ type: "feed_skipped_entries", feed_title: "Foo", count: 1 } as const, { feedTitle: "Foo", count: 1 }],
+    [{ type: "feed_articles_vanished", feed_title: "Foo", count_before: 3 } as const, { feedTitle: "Foo", count: 3 }],
+    [
+      { type: "account_skipped_entries", account_name: "FreshRSS", count: 1 } as const,
+      { accountName: "FreshRSS", count: 1 },
+    ],
+    [
+      { type: "local_feed_sync_failed", feed_title: "Foo", message: "boom" } as const,
+      { feedTitle: "Foo", message: "boom" },
+    ],
+    [
+      { type: "local_account_sync_operation_failed", operation: "import", message: "boom" } as const,
+      { operation: "import", message: "boom" },
+    ],
+    [
+      { type: "local_import_result", conflicted: 1, rejected_files: 2, rejected_operations: 3 } as const,
+      { conflicted: 1, rejectedFiles: 2, rejectedOperations: 3 },
+    ],
+    [{ type: "startup_repair_marker_failed", message: "boom" } as const, { message: "boom" }],
+    [{ type: "scheduler_load_failed", message: "boom" } as const, { message: "boom" }],
+    [
+      { type: "backoff_persist_failed", account_name: "FreshRSS", message: "boom" } as const,
+      { accountName: "FreshRSS", message: "boom" },
+    ],
+    [{ type: "background_sync_retry_scheduled", account_name: "FreshRSS" } as const, { accountName: "FreshRSS" }],
+  ])("maps %o to the %o locale key params", (detail, expectedParams) => {
+    const result = getSyncWarningDetailTranslationKey(detail);
+
+    expect(result.key).toBe(detail.type);
+    expect(result.params).toEqual(expectedParams);
+  });
+});
+
+describe("sync_warning_detail locale rendering", () => {
+  // One fixture per AccountSyncWarningDetail variant. Distinct from the param-mapping
+  // table above: this renders each variant through the real i18n instance (sidebar and
+  // settings namespaces, en and ja) to prove the interpolation params
+  // `getSyncWarningDetailTranslationKey` supplies actually match the `{{placeholder}}`
+  // names in the locale JSON. Key existence alone (the locale contract test) does not
+  // prove that; a name mismatch would otherwise render a literal "{{name}}" in the UI.
+  const allDetailVariants: AccountSyncWarningDetail[] = [
+    { type: "pending_mutation_retry", mutation: "mark_read" },
+    { type: "dropped_pending_mutation", mutation: "star" },
+    { type: "deleted_greader_folders", count: 2 },
+    { type: "feed_skipped_entries", feed_title: "Foo", count: 1 },
+    { type: "feed_articles_vanished", feed_title: "Foo", count_before: 3 },
+    { type: "account_skipped_entries", account_name: "FreshRSS", count: 1 },
+    { type: "local_feed_sync_failed", feed_title: "Foo", message: "boom" },
+    { type: "local_account_sync_operation_failed", operation: "import", message: "boom" },
+    { type: "local_import_result", conflicted: 1, rejected_files: 2, rejected_operations: 3 },
+    { type: "startup_repair_marker_failed", message: "boom" },
+    { type: "scheduler_load_failed", message: "boom" },
+    { type: "backoff_persist_failed", account_name: "FreshRSS", message: "boom" },
+    { type: "background_sync_retry_scheduled", account_name: "FreshRSS" },
+  ];
+
+  beforeAll(async () => {
+    await loadI18nResourceNamespace(i18n, "settings");
+  });
+
+  it.each(allDetailVariants.flatMap((detail) => (["en", "ja"] as const).map((locale) => [detail, locale] as const)))(
+    "renders %o with no leftover {{placeholder}} in %s for both sidebar and settings",
+    async (detail, locale) => {
+      await i18n.changeLanguage(locale);
+      const { key, params } = getSyncWarningDetailTranslationKey(detail);
+
+      for (const namespace of ["sidebar", "settings"] as const) {
+        const rendered = i18n.t(`${namespace}:sync_warning_detail.${key}`, params);
+        expect(rendered).not.toContain("{{");
+        expect(rendered).not.toBe(`sync_warning_detail.${key}`);
+      }
+    },
+  );
 });

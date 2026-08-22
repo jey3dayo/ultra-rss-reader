@@ -45,6 +45,7 @@ pub struct AccountSyncWarning {
     pub message: String,
     pub retry_at: Option<String>,
     pub retry_in_seconds: Option<u64>,
+    pub detail: AccountSyncWarningDetail,
 }
 
 #[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
@@ -53,6 +54,68 @@ pub enum AccountSyncWarningKind {
     Generic,
     RetryPending,
     RetryScheduled,
+}
+
+/// Structured detail for [`AccountSyncWarning`], resolved into a localized
+/// message on the frontend (see `sync-result-feedback.ts`). Additive to
+/// `kind`/`message`/retry fields: every generation site must attach a variant
+/// here, but `kind` and retry semantics are unchanged. `message` remains the
+/// English `AppError` Display fallback for logs and older clients.
+///
+/// Kept in sync with `src/api/schemas/sync-result.ts` and
+/// `src/locales/{en,ja}/{sidebar,settings}.json` (`sync_warning_detail.<type>`
+/// keys); `i18next-locale-contract.node.test.ts` pins the mapping by
+/// extracting this enum's variants via `?raw` import.
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum AccountSyncWarningDetail {
+    PendingMutationRetry {
+        mutation: String,
+    },
+    DroppedPendingMutation {
+        mutation: String,
+    },
+    DeletedGreaderFolders {
+        count: usize,
+    },
+    FeedSkippedEntries {
+        feed_title: String,
+        count: usize,
+    },
+    FeedArticlesVanished {
+        feed_title: String,
+        count_before: usize,
+    },
+    AccountSkippedEntries {
+        account_name: String,
+        count: usize,
+    },
+    LocalFeedSyncFailed {
+        feed_title: String,
+        message: String,
+    },
+    LocalAccountSyncOperationFailed {
+        operation: String,
+        message: String,
+    },
+    LocalImportResult {
+        conflicted: usize,
+        rejected_files: usize,
+        rejected_operations: usize,
+    },
+    StartupRepairMarkerFailed {
+        message: String,
+    },
+    SchedulerLoadFailed {
+        message: String,
+    },
+    BackoffPersistFailed {
+        account_name: String,
+        message: String,
+    },
+    BackgroundSyncRetryScheduled {
+        account_name: String,
+    },
 }
 
 #[derive(Debug, Serialize, Clone, Copy)]

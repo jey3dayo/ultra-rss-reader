@@ -26,7 +26,10 @@ import jaSettings from "@/locales/ja/settings.json";
 import jaSidebar from "@/locales/ja/sidebar.json";
 import jaSubscriptions from "@/locales/ja/subscriptions.json";
 import i18nextTypesSource from "@/types/i18next.d.ts?raw";
+import dtoSyncSource from "../../../src-tauri/src/commands/dto/sync.rs?raw";
+import syncCommandsSource from "../../../src-tauri/src/commands/sync_commands.rs?raw";
 import menuI18nSource from "../../../src-tauri/src/menu_i18n.rs?raw";
+import pendingMutationSource from "../../../src-tauri/src/repository/pending_mutation.rs?raw";
 import testI18n from "../../../tests/helpers/i18n-setup";
 
 type LocaleLeaf = string | readonly string[];
@@ -113,6 +116,96 @@ function hasLocaleKey(namespace: (typeof i18nResourceNamespaces)[number], key: s
     getLocaleValue(contractLocaleResources.en[namespace], `${key}_one`) !== undefined ||
     getLocaleValue(contractLocaleResources.en[namespace], `${key}_other`) !== undefined
   );
+}
+
+function hasLocaleKeyInBothLocales(namespace: (typeof i18nResourceNamespaces)[number], key: string): boolean {
+  return (["en", "ja"] as const).every(
+    (locale) =>
+      getLocaleValue(contractLocaleResources[locale][namespace], key) !== undefined ||
+      (getLocaleValue(contractLocaleResources[locale][namespace], `${key}_one`) !== undefined &&
+        getLocaleValue(contractLocaleResources[locale][namespace], `${key}_other`) !== undefined),
+  );
+}
+
+/**
+ * `AccountSyncWarningDetail`'s serde `rename_all = "snake_case"` converts a
+ * PascalCase Rust variant name to snake_case: `PendingMutationRetry` ->
+ * `pending_mutation_retry`. Kept in lockstep with the Rust enum by the
+ * extraction test below rather than hand-maintained.
+ */
+function pascalToSnakeCase(name: string): string {
+  return name.replaceAll(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+}
+
+/**
+ * Extracts the `AccountSyncWarningDetail` enum body from `dto/sync.rs` via a
+ * brace-balanced scan (not a single-line regex), so a multi-line struct
+ * variant such as `LocalImportResult { ... }` is handled the same as a
+ * one-line variant, and no field name or comment can be mistaken for a
+ * variant declaration. Only identifiers found at the enum's own brace depth
+ * (depth 0 relative to the body) are treated as variant names; deeper braces
+ * (a variant's field list) are skipped as opaque spans.
+ */
+function extractAccountSyncWarningDetailVariants(source: string): {
+  hasSerdeTagAttributeDirectlyAbove: boolean;
+  variantNames: string[];
+} {
+  const enumMarker = "pub enum AccountSyncWarningDetail";
+  const enumIndex = source.indexOf(enumMarker);
+  expect(enumIndex, "AccountSyncWarningDetail enum not found in dto/sync.rs").toBeGreaterThanOrEqual(0);
+
+  const linesBeforeEnum = source.slice(0, enumIndex).split("\n");
+  let cursor = linesBeforeEnum.length - 1;
+  while (cursor >= 0 && linesBeforeEnum[cursor]?.trim() === "") {
+    cursor -= 1;
+  }
+  const attributeLine = linesBeforeEnum[cursor]?.trim() ?? "";
+  const hasSerdeTagAttributeDirectlyAbove = attributeLine === '#[serde(tag = "type", rename_all = "snake_case")]';
+
+  const braceOpenIndex = source.indexOf("{", enumIndex);
+  expect(braceOpenIndex, "AccountSyncWarningDetail enum body opening brace not found").toBeGreaterThanOrEqual(0);
+
+  let depth = 0;
+  let braceCloseIndex = -1;
+  for (let index = braceOpenIndex; index < source.length; index += 1) {
+    if (source[index] === "{") {
+      depth += 1;
+    } else if (source[index] === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        braceCloseIndex = index;
+        break;
+      }
+    }
+  }
+  expect(braceCloseIndex, "AccountSyncWarningDetail enum body closing brace not found").toBeGreaterThan(braceOpenIndex);
+
+  const body = source.slice(braceOpenIndex + 1, braceCloseIndex);
+  const variantNames: string[] = [];
+  const identifierPattern = /[A-Za-z_][A-Za-z0-9_]*/y;
+  let localDepth = 0;
+
+  for (let index = 0; index < body.length; index += 1) {
+    const character = body[index];
+    if (character === "{") {
+      localDepth += 1;
+      continue;
+    }
+    if (character === "}") {
+      localDepth -= 1;
+      continue;
+    }
+    if (localDepth === 0 && /[A-Z]/.test(character ?? "")) {
+      identifierPattern.lastIndex = index;
+      const match = identifierPattern.exec(body);
+      if (match) {
+        variantNames.push(match[0]);
+        index += match[0].length - 1;
+      }
+    }
+  }
+
+  return { hasSerdeTagAttributeDirectlyAbove, variantNames };
 }
 
 const namespaceAliasPattern =
@@ -315,6 +408,43 @@ function localeResourceBasenamesByLocale() {
   }
 
   return Object.fromEntries([...basenamesByLocale].map(([locale, basenames]) => [locale, basenames.toSorted()]));
+}
+
+/**
+ * Extracts the string literals returned from `PendingMutationType::as_str()`
+ * (`repository/pending_mutation.rs`), the wire values interpolated into
+ * `sync_warning_detail.pending_mutation_retry` / `dropped_pending_mutation`
+ * and resolved to a label via `sync_warning_detail.mutation_labels.<value>`.
+ */
+function extractPendingMutationTypeValues(source: string): string[] {
+  const blockPattern = /fn as_str\(self\) -> &'static str \{\s*match self \{(?<body>[\s\S]*?)\n\s*\}\s*\n\s*\}/;
+  const block = blockPattern.exec(source)?.groups?.body;
+  expect(block, "PendingMutationType::as_str() match body not found").toBeDefined();
+
+  const values: string[] = [];
+  for (const match of block?.matchAll(/=>\s*"(?<value>[a-z_]+)"/g) ?? []) {
+    const value = match.groups?.value;
+    if (value !== undefined) {
+      values.push(value);
+    }
+  }
+  return values;
+}
+
+/**
+ * Extracts the distinct `operation` string literals passed to
+ * `local_account_sync_error_warning(...)` in `sync_commands.rs`, the wire
+ * values resolved to a label via `sync_warning_detail.operation_labels.<value>`.
+ */
+function extractLocalAccountSyncOperationValues(source: string): string[] {
+  const values = new Set<string>();
+  for (const match of source.matchAll(/local_account_sync_error_warning\(\s*"(?<value>[a-z_]+)"/g)) {
+    const value = match.groups?.value;
+    if (value !== undefined) {
+      values.add(value);
+    }
+  }
+  return [...values].toSorted();
 }
 
 describe("i18next locale contract", () => {
@@ -617,5 +747,76 @@ describe("i18next locale contract", () => {
         expect(i18n.t(countCase.key, { count: countCase.count })).toBe(countCase[locale]);
       }
     }
+  });
+
+  it("pins the AccountSyncWarningDetail Rust enum to exactly 13 variants under the serde tag attribute", () => {
+    const { hasSerdeTagAttributeDirectlyAbove, variantNames } = extractAccountSyncWarningDetailVariants(dtoSyncSource);
+
+    expect(hasSerdeTagAttributeDirectlyAbove).toBe(true);
+    // Hardcoded so an extractor bug (missing/extra names) fails visibly
+    // instead of silently passing on a partial variant list.
+    expect(variantNames).toEqual([
+      "PendingMutationRetry",
+      "DroppedPendingMutation",
+      "DeletedGreaderFolders",
+      "FeedSkippedEntries",
+      "FeedArticlesVanished",
+      "AccountSkippedEntries",
+      "LocalFeedSyncFailed",
+      "LocalAccountSyncOperationFailed",
+      "LocalImportResult",
+      "StartupRepairMarkerFailed",
+      "SchedulerLoadFailed",
+      "BackoffPersistFailed",
+      "BackgroundSyncRetryScheduled",
+    ]);
+  });
+
+  it("keeps a sync_warning_detail.<type> locale key in both en and ja for every AccountSyncWarningDetail variant", () => {
+    const { variantNames } = extractAccountSyncWarningDetailVariants(dtoSyncSource);
+    const missing: string[] = [];
+
+    for (const variantName of variantNames) {
+      const snakeCaseType = pascalToSnakeCase(variantName);
+      for (const namespace of ["sidebar", "settings"] as const) {
+        if (!hasLocaleKeyInBothLocales(namespace, `sync_warning_detail.${snakeCaseType}`)) {
+          missing.push(`${namespace}:sync_warning_detail.${snakeCaseType}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps a sync_warning_detail.mutation_labels.<value> locale key for every PendingMutationType::as_str() value", () => {
+    const mutationValues = extractPendingMutationTypeValues(pendingMutationSource);
+    expect(mutationValues).toEqual(["mark_read", "mark_unread", "star", "unstar"]);
+
+    const missing: string[] = [];
+    for (const value of mutationValues) {
+      for (const namespace of ["sidebar", "settings"] as const) {
+        if (!hasLocaleKeyInBothLocales(namespace, `sync_warning_detail.mutation_labels.${value}`)) {
+          missing.push(`${namespace}:sync_warning_detail.mutation_labels.${value}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps a sync_warning_detail.operation_labels.<value> locale key for every local_account_sync_error_warning operation literal", () => {
+    const operationValues = extractLocalAccountSyncOperationValues(syncCommandsSource);
+    expect(operationValues).toEqual(["export", "import"]);
+
+    const missing: string[] = [];
+    for (const value of operationValues) {
+      for (const namespace of ["sidebar", "settings"] as const) {
+        if (!hasLocaleKeyInBothLocales(namespace, `sync_warning_detail.operation_labels.${value}`)) {
+          missing.push(`${namespace}:sync_warning_detail.operation_labels.${value}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
   });
 });

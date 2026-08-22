@@ -449,6 +449,10 @@ fn deleted_greader_folders_warning_reports_cleanup_count_and_recovery_message() 
             warning.message,
             "FreshRSS removed 2 folder(s) that no longer exist remotely; their feeds were moved to Uncategorized."
         );
+    assert_eq!(
+        warning.detail,
+        AccountSyncWarningDetail::DeletedGreaderFolders { count: 2 }
+    );
 }
 
 #[tokio::test]
@@ -897,6 +901,12 @@ fn pending_mutation_retry_warning_keeps_remote_entry_id_out_of_public_copy() {
     );
     assert!(!warning.message.contains("remote_entry_id"));
     assert!(!warning.message.contains("https://"));
+    assert_eq!(
+        warning.detail,
+        AccountSyncWarningDetail::PendingMutationRetry {
+            mutation: "mark_read".to_string()
+        }
+    );
 }
 
 #[test]
@@ -910,6 +920,12 @@ fn dropped_pending_mutation_warning_is_user_visible_without_remote_entry_id() {
         );
     assert!(!warning.message.contains("remote_entry_id"));
     assert!(!warning.message.contains("https://"));
+    assert_eq!(
+        warning.detail,
+        AccountSyncWarningDetail::DroppedPendingMutation {
+            mutation: "star".to_string()
+        }
+    );
 }
 
 #[test]
@@ -2635,6 +2651,16 @@ async fn sync_greader_account_turns_account_level_skips_into_warnings() {
     assert!(outcome.warnings.iter().any(|warning| warning
         .message
         .contains("Local feed 'Broken Local' failed during provider sync")));
+    assert!(outcome.warnings.iter().any(|warning| matches!(
+        &warning.detail,
+        AccountSyncWarningDetail::AccountSkippedEntries { account_name, count }
+            if account_name == "FreshRSS" && *count == 1
+    )));
+    assert!(outcome.warnings.iter().any(|warning| matches!(
+        &warning.detail,
+        AccountSyncWarningDetail::LocalFeedSyncFailed { feed_title, .. }
+            if feed_title == "Broken Local"
+    )));
 }
 
 #[tokio::test]
@@ -3333,6 +3359,90 @@ async fn sync_greader_feed_entries_records_failure_state_when_later_page_fails()
         .is_some_and(|message| message.contains("500")));
     assert_eq!(state.error_count, 2);
     assert_eq!(state.next_retry_at, None);
+}
+
+/// The pull response deletes the feed's only saved article mid-flight (via
+/// `with_body_from_request`), simulating a concurrent deletion race between
+/// the "before" and "after" article counts in `sync_greader_feed`. This is
+/// the FeedArticlesVanished anomaly detector's real trigger condition.
+#[tokio::test]
+async fn sync_greader_feed_reports_feed_articles_vanished_when_articles_disappear_mid_sync() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=tok\n")
+        .create_async()
+        .await;
+
+    let db = std::sync::Arc::new(test_db());
+    let (account, feed) = insert_account_and_feed(&db, &server.url());
+    {
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.writer());
+        let article = Article {
+            id: generate_entry_id(
+                account.id.as_ref(),
+                Some("remote-1"),
+                &feed.url,
+                Some("https://example.com/1"),
+                Some("Vanishing Article"),
+            ),
+            feed_id: feed.id.clone(),
+            remote_id: Some("remote-1".to_string()),
+            title: "Vanishing Article".to_string(),
+            content_raw: "body".to_string(),
+            content_sanitized: "body".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION,
+            summary: None,
+            url: Some("https://example.com/1".to_string()),
+            author: None,
+            published_at: chrono::Utc::now(),
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: chrono::Utc::now(),
+        };
+        article_repo.upsert(&[article]).unwrap();
+    }
+
+    let feed_id_for_deletion = feed.id.clone();
+    let db_for_pull = std::sync::Arc::clone(&db);
+    server
+        .mock(
+            "GET",
+            Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+        )
+        .match_header("Authorization", "GoogleLogin auth=tok")
+        .with_status(200)
+        .with_body_from_request(move |_| {
+            let db_guard = db_for_pull.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "DELETE FROM articles WHERE feed_id = ?1",
+                    rusqlite::params![feed_id_for_deletion.0],
+                )
+                .unwrap();
+            br#"{ "items": [] }"#.to_vec()
+        })
+        .create_async()
+        .await;
+
+    let _credentials = configure_dev_credentials(&account.id).await;
+    let provider = GReaderProvider::for_freshrss(&server.url());
+    let outcome = sync_greader_feed(&db, &account, &feed, provider)
+        .await
+        .unwrap();
+
+    assert_eq!(outcome.warnings.len(), 1);
+    assert_eq!(
+        outcome.warnings[0].detail,
+        AccountSyncWarningDetail::FeedArticlesVanished {
+            feed_title: feed.title.clone(),
+            count_before: 1,
+        }
+    );
 }
 
 #[tokio::test]

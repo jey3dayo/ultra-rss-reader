@@ -11,7 +11,11 @@ import {
   invalidateQueryKeysLogOnly,
   queryKeys,
 } from "@/lib/query/query-invalidation";
-import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
+import {
+  getSyncWarningDetailTranslationKey,
+  resolveSyncFeedbackMessage,
+  summarizeSyncResult,
+} from "@/lib/sync/sync-result-feedback";
 import { getErrorMessage } from "@/lib/ui/errors";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { useUiStore } from "@/stores/ui-store";
@@ -54,6 +58,18 @@ type RunAccountSetupSyncParams = {
   shouldApplyFinalUiAction?: () => boolean;
 };
 
+function resolveAccountDetailSyncWarningDetailLine(t: TFunction<"settings">) {
+  return (detail: Parameters<typeof getSyncWarningDetailTranslationKey>[0], remainingCount: number) => {
+    const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
+      t(`sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
+    );
+    const detailText = t(`sync_warning_detail.${key}`, params);
+    return remainingCount > 0
+      ? `${detailText} ${t("sync_warning_detail_more", { count: remainingCount })}`
+      : detailText;
+  };
+}
+
 function resolveSetupFailureMessage(t: TFunction<"settings">, syncResult: Awaited<ReturnType<typeof syncAccount>>) {
   if (Result.isFailure(syncResult)) {
     return t("account.sync_failed", {
@@ -68,6 +84,7 @@ function resolveSetupFailureMessage(t: TFunction<"settings">, syncResult: Awaite
     retryPending: () => t("account.sync_completed_with_retry_pending"),
     warnings: () => t("account.sync_completed_with_warnings"),
     success: t("account.sync_complete"),
+    detailLine: resolveAccountDetailSyncWarningDetailLine(t),
   });
 }
 
@@ -229,6 +246,7 @@ export function useAccountDetailSyncControls({
               retryPending: () => t("account.sync_completed_with_retry_pending"),
               warnings: () => t("account.sync_completed_with_warnings"),
               success: t("account.sync_complete"),
+              detailLine: resolveAccountDetailSyncWarningDetailLine(t),
             }),
           );
         }),

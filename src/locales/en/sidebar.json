@@ -47,5 +47,36 @@
   "move_to_folder": "Move to {{name}}",
   "drag_feed": "Drag {{name}}",
   "move_to_no_folder": "Move to no folder",
-  "drop_to_remove_from_folder": "Drop here to remove from folder"
+  "drop_to_remove_from_folder": "Drop here to remove from folder",
+  "sync_warning_detail": {
+    "pending_mutation_retry": "'{{mutation}}' will retry on the next sync",
+    "dropped_pending_mutation": "'{{mutation}}' could not be sent and was dropped",
+    "deleted_greader_folders_one": "Removed {{count}} folder that no longer exists remotely",
+    "deleted_greader_folders_other": "Removed {{count}} folders that no longer exist remotely",
+    "feed_skipped_entries_one": "'{{feedTitle}}' skipped {{count}} entry during sync",
+    "feed_skipped_entries_other": "'{{feedTitle}}' skipped {{count}} entries during sync",
+    "feed_articles_vanished_one": "'{{feedTitle}}' lost its {{count}} saved article after sync",
+    "feed_articles_vanished_other": "'{{feedTitle}}' lost its {{count}} saved articles after sync",
+    "account_skipped_entries_one": "'{{accountName}}' skipped {{count}} entry during sync",
+    "account_skipped_entries_other": "'{{accountName}}' skipped {{count}} entries during sync",
+    "local_feed_sync_failed": "'{{feedTitle}}' failed to sync: {{message}}",
+    "local_account_sync_operation_failed": "Local sync {{operation}} failed: {{message}}",
+    "local_import_result": "Local sync import result: conflicts {{conflicted}}, rejected files {{rejectedFiles}}, rejected operations {{rejectedOperations}}",
+    "startup_repair_marker_failed": "Startup repair marker could not be saved: {{message}}",
+    "scheduler_load_failed": "Scheduled sync could not load accounts: {{message}}",
+    "backoff_persist_failed": "Could not save retry state for '{{accountName}}': {{message}}",
+    "background_sync_retry_scheduled": "'{{accountName}}' will retry automatically",
+    "mutation_labels": {
+      "mark_read": "mark as read",
+      "mark_unread": "mark as unread",
+      "star": "star",
+      "unstar": "unstar"
+    },
+    "operation_labels": {
+      "import": "import",
+      "export": "export"
+    }
+  },
+  "sync_warning_detail_more_one": "+{{count}} more issue",
+  "sync_warning_detail_more_other": "+{{count}} more issues"
 }
