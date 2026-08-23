@@ -1,6 +1,7 @@
+import type { Query, QueryKey } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { queryKeys } from "@/lib/query/query-invalidation";
+import { normalizeQueryAccountId, queryKeys } from "@/lib/query/query-invalidation";
 
 export const ACCOUNT_SWITCH_RENDER_BUDGET_MS = 120;
 export const ACCOUNT_SWITCH_MEMORY_BUDGET_BYTES = 8 * 1024 * 1024;
@@ -119,6 +120,53 @@ function scheduleAccountSwitchBudgetSmoke(
   return () => window.clearTimeout(timeout);
 }
 
+function queryKeyHasRootPrefix(queryKey: QueryKey, root: QueryKey): boolean {
+  if (queryKey.length < root.length) {
+    return false;
+  }
+
+  return root.every((rootSegment, index) => queryKey[index] === rootSegment);
+}
+
+// Position-independent on purpose: each root embeds its accountId at a different
+// index (e.g. accountArticles is [...root, accountId], articlesByTag is
+// [...root, tagId, accountId, mode]). A positional lookup silently breaks the
+// invariant below if a key shape changes; scanning the whole key cannot, because
+// a false "not found" only makes this function fail closed (skip cancelling),
+// never fail open (cancel the incoming account's query).
+function queryKeyIncludesAccountId(queryKey: QueryKey, normalizedAccountId: string | null): boolean {
+  return queryKey.includes(normalizedAccountId);
+}
+
+// Invariant: an account switch must never cancel a query that belongs to the
+// account being switched TO. Cancelling by root alone (the previous
+// implementation) cannot honor this: Sidebar and ArticleList both call this
+// hook, Sidebar's effect runs first, and by the time ArticleList's effect runs
+// Sidebar may have already started fetching the new account's data under the
+// same root. A root-only cancelQueries call then cancels that fresh fetch,
+// leaving the incoming account's query stuck at fetchStatus "idle" with no
+// automatic retry (React Query does not retry a cancelled fetch).
+//
+// NOTE: feeds/folders currently escape this failure mode in practice only
+// because ArticleList independently subscribes to them too (see
+// use-article-list-sources.ts), so a second fetch happens to be kicked off
+// after the cancellation. That is an accidental side effect of duplicate
+// subscription, not a guarantee this hook can rely on: if that duplicate
+// subscription is ever removed, feeds/folders would silently regress into the
+// same stuck-query bug as the sidebar-only roots (accountStarredCount,
+// tagArticleCounts, feedArticleSummaries). The predicate below removes the
+// dependency on that accident by protecting the incoming account's query for
+// every root, regardless of who else happens to be subscribed.
+function isAccountSwitchCancelTarget(query: Query, normalizedSelectedAccountId: string | null): boolean {
+  const matchesRoot = ACCOUNT_SWITCH_QUERY_ROOTS.some((root) => queryKeyHasRootPrefix(query.queryKey, root));
+
+  if (!matchesRoot) {
+    return false;
+  }
+
+  return !queryKeyIncludesAccountId(query.queryKey, normalizedSelectedAccountId);
+}
+
 export function useCancelReaderQueriesOnAccountSwitch(selectedAccountId: string | null): void {
   const queryClient = useQueryClient();
   const previousAccountIdRef = useRef(selectedAccountId);
@@ -131,9 +179,10 @@ export function useCancelReaderQueriesOnAccountSwitch(selectedAccountId: string 
       return;
     }
 
-    for (const queryKey of ACCOUNT_SWITCH_QUERY_ROOTS) {
-      void queryClient.cancelQueries({ queryKey });
-    }
+    const normalizedSelectedAccountId = normalizeQueryAccountId(selectedAccountId);
+    void queryClient.cancelQueries({
+      predicate: (query) => isAccountSwitchCancelTarget(query, normalizedSelectedAccountId),
+    });
 
     return scheduleAccountSwitchBudgetSmoke(previousAccountId, selectedAccountId);
   }, [queryClient, selectedAccountId]);
