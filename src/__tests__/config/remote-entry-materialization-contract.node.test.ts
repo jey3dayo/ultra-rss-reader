@@ -125,8 +125,8 @@ function findAttributeGatedInlineTestModuleBlocks(source: string): Array<{ start
 }
 
 // Resolves whether `filePath` is declared entirely as a test module via
-// `#[cfg(test)] mod <name>;` (no body) in its directory's `mod.rs`, including
-// descendants of a cfg-gated test directory such as
+// `#[cfg(test)] mod <name>;` (no body) in its directory's `mod.rs`, a sibling
+// source module such as `sqlite_tag.rs`, or descendants of a cfg-gated test directory such as
 // `infra/db/migration/tests/data_cleanup.rs`. Returns false (never excludes)
 // when the relevant `mod.rs` is missing or does not contain a matching
 // cfg-gated declaration, so an unverifiable basename can never cause a false
@@ -150,6 +150,11 @@ function isDeclaredAsCfgTestOnlyModule(filePath: string): boolean {
     return true;
   }
 
+  const siblingSourceModule = join(dirname(dir), `${basename(dir)}.rs`);
+  if (hasCfgTestDeclaration(siblingSourceModule, moduleName)) {
+    return true;
+  }
+
   let ancestorDir = dir;
   let ancestorRelativePath = relative(srcTauriSrcRoot, ancestorDir);
   while (ancestorRelativePath && !ancestorRelativePath.startsWith("..") && !isAbsolute(ancestorRelativePath)) {
@@ -169,8 +174,8 @@ function isDeclaredAsCfgTestOnlyModule(filePath: string): boolean {
 // Excludes production-irrelevant test code from `source` so fixture-only
 // `INSERT INTO articles` and `generate_entry_id(` calls used to build
 // expected test values don't count as production duplicates:
-// - a file declared entirely as a test module by its parent `mod.rs`
-//   (verified via `isDeclaredAsCfgTestOnlyModule`, not by basename alone)
+// - a file declared entirely as a test module by its parent `mod.rs` or
+//   sibling source module (verified via `isDeclaredAsCfgTestOnlyModule`, not by basename alone)
 //   contributes nothing;
 // - otherwise, every `#[cfg(test)]`-gated inline `mod <name> { ... }` block
 //   is removed by its verified brace-balanced extent.
@@ -255,7 +260,9 @@ describe("remote-entry materialization contract", () => {
       "infra/db/sqlite_feed/mod.rs",
       "infra/db/connection.rs",
       "infra/db/sqlite_account.rs",
+      "infra/db/sqlite_account/tests.rs",
       "infra/db/sqlite_tag.rs",
+      "infra/db/sqlite_tag/tests.rs",
       "infra/db/backup.rs",
       "infra/db/sqlite_mute_keyword.rs",
       "infra/db/sqlite_feed/unread.rs",
@@ -338,6 +345,10 @@ describe("remote-entry materialization contract", () => {
 
       expect(isDeclaredAsCfgTestOnlyModule(declaredTestOnlyFile)).toBe(true);
       expect(productionSource(declaredTestOnlyFile, source)).toBe("");
+
+      const siblingDeclaredTestOnlyFile = join(srcTauriSrcRoot, "infra", "db", "sqlite_tag", "tests.rs");
+      expect(isDeclaredAsCfgTestOnlyModule(siblingDeclaredTestOnlyFile)).toBe(true);
+      expect(productionSource(siblingDeclaredTestOnlyFile, source)).toBe("");
 
       // A same-named file in a directory whose mod.rs never declares it
       // (or has no mod.rs at all) is not excluded merely by basename.

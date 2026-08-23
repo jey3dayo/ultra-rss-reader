@@ -36,6 +36,22 @@ mod tests {
         .join("\n")
     }
 
+    fn sqlite_account_module_source() -> String {
+        [
+            include_str!("sqlite_account.rs"),
+            include_str!("sqlite_account/tests.rs"),
+        ]
+        .join("\n")
+    }
+
+    fn sqlite_tag_module_source() -> String {
+        [
+            include_str!("sqlite_tag.rs"),
+            include_str!("sqlite_tag/tests.rs"),
+        ]
+        .join("\n")
+    }
+
     fn assert_contains(haystack: &str, needle: &str, owner: &str) {
         assert!(
             haystack.contains(needle),
@@ -244,6 +260,8 @@ mod tests {
     fn fixture_domain_migration_inventory_keeps_reserved_domains_visible() {
         let sqlite_feed_source = sqlite_feed_module_source();
         let sqlite_article_source = sqlite_article_module_source();
+        let sqlite_account_source = sqlite_account_module_source();
+        let sqlite_tag_source = sqlite_tag_module_source();
         let reserved_fixture_owners = [
             (
                 "tests/helpers/reader-fixtures.ts",
@@ -257,7 +275,7 @@ mod tests {
                 "tests/helpers/tauri-mocks.ts",
                 include_str!("../../../../tests/helpers/tauri-mocks.ts"),
             ),
-            ("sqlite_account.rs", include_str!("sqlite_account.rs")),
+            ("sqlite_account.rs", sqlite_account_source.as_str()),
             ("sqlite_article.rs", sqlite_article_source.as_str()),
             ("sqlite_feed.rs", sqlite_feed_source.as_str()),
             (
@@ -287,7 +305,7 @@ mod tests {
                 "sqlite_feed.rs" => sqlite_feed_source.as_str(),
                 "sqlite_article.rs" => sqlite_article_source.as_str(),
                 "sqlite_folder.rs" => include_str!("sqlite_folder.rs"),
-                "sqlite_tag.rs" => include_str!("sqlite_tag.rs"),
+                "sqlite_tag.rs" => sqlite_tag_source.as_str(),
                 _ => unreachable!("fixture inventory owner should be covered"),
             };
             assert_contains(source, candidate, owner);
