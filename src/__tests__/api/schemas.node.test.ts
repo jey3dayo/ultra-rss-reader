@@ -148,7 +148,7 @@ function readRustCommandSources() {
     "opml_commands/mod.rs",
     "platform_commands.rs",
     "preference_commands.rs",
-    "settings_profile_commands.rs",
+    "settings_profile_commands/mod.rs",
     "share_commands.rs",
     "sync_commands/mod.rs",
     "sync_commands/progress.rs",
