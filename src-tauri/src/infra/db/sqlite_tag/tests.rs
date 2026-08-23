@@ -1,112 +1,21 @@
 use super::*;
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::test_fixtures::{AccountFixture, ArticleFixture, FeedFixture, TagFixture};
 use crate::repository::article::ArticleListMode;
 
 fn test_db() -> DbManager {
     DbManager::new_in_memory().unwrap()
 }
 
-struct AccountFixture {
-    id: AccountId,
-}
-
-impl AccountFixture {
-    fn new(id: impl Into<String>) -> Self {
-        Self {
-            id: AccountId(id.into()),
-        }
-    }
-
-    fn insert(&self, db: &DbManager) {
-        db.writer()
-            .execute(
-                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
-                params![self.id.0, "Local", "Test"],
-            )
-            .unwrap();
-    }
-}
-
-struct FeedFixture {
-    id: FeedId,
-    account_id: AccountId,
-}
-
-impl FeedFixture {
-    fn new(account_id: &AccountId, id: impl Into<String>) -> Self {
-        Self {
-            id: FeedId(id.into()),
-            account_id: account_id.clone(),
-        }
-    }
-
-    fn insert(&self, db: &DbManager) {
-        db.writer()
-            .execute(
-                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
-                params![self.id.0, self.account_id.0, "Feed", "http://f.com"],
-            )
-            .unwrap();
-    }
-}
-
-struct ArticleFixture {
-    id: ArticleId,
-    feed_id: FeedId,
-}
-
-impl ArticleFixture {
-    fn new(feed_id: &FeedId, id: impl Into<String>) -> Self {
-        Self {
-            id: ArticleId(id.into()),
-            feed_id: feed_id.clone(),
-        }
-    }
-
-    fn insert(&self, db: &DbManager) {
-        let now = chrono::Utc::now().to_rfc3339();
-        db.writer()
-            .execute(
-                "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, is_read, is_starred, fetched_at) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-                params![self.id.0, self.feed_id.0, "Test Article", "", "", 1, now, false, false, now],
-            )
-            .unwrap();
-    }
-}
-
-struct TagFixture {
-    id: TagId,
-    name: String,
-}
-
-impl TagFixture {
-    fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
-        Self {
-            id: TagId(id.into()),
-            name: name.into(),
-        }
-    }
-
-    fn insert(&self, db: &DbManager) {
-        db.writer()
-            .execute(
-                "INSERT INTO tags (id, name) VALUES (?1, ?2)",
-                params![self.id.0, self.name],
-            )
-            .unwrap();
-    }
-}
-
 fn insert_test_data(db: &DbManager) -> (AccountId, FeedId, ArticleId) {
-    let account = AccountFixture::new(AccountId::new().0);
+    let account = AccountFixture::local(AccountId::new().0);
     let feed = FeedFixture::new(&account.id, FeedId::new().0);
     let article = ArticleFixture::new(&feed.id, "art-1");
 
-    account.insert(db);
-    feed.insert(db);
-    article.insert(db);
+    account.insert(db.writer());
+    feed.insert(db.writer());
+    article.insert(db.writer());
 
     (account.id, feed.id, article.id)
 }
@@ -528,7 +437,7 @@ fn tag_article_uses_insert_or_ignore_for_duplicate_link() {
     let repo = SqliteTagRepository::new(db.writer());
 
     let tag = TagFixture::new(TagId::new().0, "test");
-    tag.insert(&db);
+    tag.insert(db.writer());
 
     repo.tag_article(&article_id, &tag.id).unwrap();
     assert_eq!(count_article_tag_links(&db, &article_id, &tag.id), 1);
@@ -543,7 +452,7 @@ fn article_tags_table_rejects_duplicate_article_tag_pairs() {
     let db = test_db();
     let (_, _, article_id) = insert_test_data(&db);
     let tag = TagFixture::new("tag-duplicate", "duplicate");
-    tag.insert(&db);
+    tag.insert(db.writer());
 
     db.writer()
         .execute(

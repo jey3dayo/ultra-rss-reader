@@ -44,14 +44,6 @@ mod tests {
         .join("\n")
     }
 
-    fn sqlite_tag_module_source() -> String {
-        [
-            include_str!("sqlite_tag.rs"),
-            include_str!("sqlite_tag/tests.rs"),
-        ]
-        .join("\n")
-    }
-
     fn sqlite_folder_module_source() -> String {
         [
             include_str!("sqlite_folder.rs"),
@@ -277,9 +269,9 @@ mod tests {
         let sqlite_feed_source = sqlite_feed_module_source();
         let sqlite_article_source = sqlite_article_module_source();
         let sqlite_account_source = sqlite_account_module_source();
-        let sqlite_tag_source = sqlite_tag_module_source();
         let sqlite_folder_source = sqlite_folder_module_source();
         let sqlite_sync_state_source = sqlite_sync_state_module_source();
+        let test_fixtures_source = include_str!("test_fixtures.rs");
         let reserved_fixture_owners = [
             (
                 "tests/helpers/reader-fixtures.ts",
@@ -301,11 +293,14 @@ mod tests {
                 include_str!("sqlite_mute_keyword/tests.rs"),
             ),
             ("sqlite_sync_state.rs", sqlite_sync_state_source.as_str()),
+            ("test_fixtures.rs", test_fixtures_source),
         ];
 
         for (owner, source) in reserved_fixture_owners {
             assert!(
-                source.contains("example.com") || source.contains(".example"),
+                source.contains("example.com")
+                    || source.contains(".example")
+                    || source.contains("example.test"),
                 "{owner} should keep RFC reserved fixture domains visible before broad rename"
             );
         }
@@ -315,7 +310,7 @@ mod tests {
             ("sqlite_feed.rs", "f.com"),
             ("sqlite_article.rs", "test.com"),
             ("sqlite_folder.rs", "f.com"),
-            ("sqlite_tag.rs", "f.com"),
+            ("test_fixtures.rs", "example.test"),
         ];
 
         for (owner, candidate) in migration_candidates {
@@ -323,7 +318,7 @@ mod tests {
                 "sqlite_feed.rs" => sqlite_feed_source.as_str(),
                 "sqlite_article.rs" => sqlite_article_source.as_str(),
                 "sqlite_folder.rs" => sqlite_folder_source.as_str(),
-                "sqlite_tag.rs" => sqlite_tag_source.as_str(),
+                "test_fixtures.rs" => test_fixtures_source,
                 _ => unreachable!("fixture inventory owner should be covered"),
             };
             assert_contains(source, candidate, owner);
