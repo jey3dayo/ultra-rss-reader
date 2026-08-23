@@ -1,3 +1,5 @@
+import { useIsFetching } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import {
   hasTauriRuntime,
   shouldUseDesktopOverlayTitlebar as shouldUseWindowDesktopOverlayTitlebar,
@@ -19,6 +21,10 @@ export function useSidebarHeaderProps({
 }: SidebarHeaderPropsParams): SidebarHeaderProps {
   const isMobile = useUiStore((state) => state.layoutMode === "mobile");
   const platformKind = usePlatformStore((state) => state.platform.kind);
+  // Sync invalidation refetches the feed list; keep the sync button spinning
+  // until that refetch settles so the user is not shown stale unread counts
+  // with an idle button. See buildSidebarHeaderProps for the contract.
+  const isFeedListRefetching = useIsFetching({ queryKey: queryKeys.feeds.root }) > 0;
 
   return buildSidebarHeaderProps({
     t,
@@ -30,6 +36,7 @@ export function useSidebarHeaderProps({
     handleAddFeed,
     hasTauriRuntime: hasTauriRuntime(),
     isMobile,
+    isFeedListRefetching,
     platformKind,
     shouldUseDesktopOverlayTitlebar: ({ hasTauriRuntime, platformKind }) =>
       shouldUseWindowDesktopOverlayTitlebar({

@@ -14,7 +14,7 @@ import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-acc
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
-import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
+import { invalidateQueryKeysLogOnly, invalidateSyncCompletedQueries } from "@/lib/query/query-invalidation";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import {
   getManualSyncCooldownUntil,
@@ -339,6 +339,21 @@ export function useSidebarSync({
       },
       onSuccess: (syncResult) => {
         invalidateAccountSyncStatuses("manual-sync-completed");
+        // Defense in depth, not the fix for the visible refetch lag (that is
+        // the sync button staying in its syncing state until the feed list
+        // refetch settles; see buildSidebarHeaderProps).
+        //
+        // The native contract is: `finished` means the sync finished, while
+        // `sync-completed` — the event that invalidates the feed list — is
+        // emitted only when at least one item succeeded
+        // (`should_emit_manual_single_sync_completion`, intentional so a
+        // zero-success sync does not invalidate caches that cannot have
+        // changed). List updates are therefore asynchronous to `finished`.
+        // Invalidating here covers the abnormal cases where the event is
+        // never delivered at all (native emit failure or a listener that
+        // failed to register, both of which only log), and is safe when the
+        // event does arrive because invalidation is idempotent.
+        invalidateSyncCompletedQueries(queryClient, { actionOwner: "manual-sync-completed" });
         showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
       },
       onError: (error) => {
@@ -347,7 +362,7 @@ export function useSidebarSync({
         showToast(t("sync_failed"));
       },
     });
-  }, [invalidateAccountSyncStatuses, selectedAccountId, showToast, syncProgress.active, t]);
+  }, [invalidateAccountSyncStatuses, queryClient, selectedAccountId, showToast, syncProgress.active, t]);
 
   return {
     handleSync,

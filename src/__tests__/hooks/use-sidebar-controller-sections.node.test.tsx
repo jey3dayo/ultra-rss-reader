@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleFeeds, sampleFolders } from "@tests/helpers/fixtures";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -104,34 +105,38 @@ describe("useSidebarControllerSections", () => {
       account_id: "acc-1",
     };
 
-    const { result } = renderHook(() =>
-      useSidebarControllerSections(
-        createSectionsParams({
-          feeds: [
-            {
-              ...sampleFeeds[0],
-              id: "feed-unread",
-              folder_id: "folder-unread",
-              unread_count: 3,
-            },
-            {
-              ...sampleFeeds[1],
-              id: "feed-read",
-              folder_id: "folder-read",
-              unread_count: 0,
-            },
-            {
-              ...sampleFeeds[2],
-              id: "feed-unfoldered",
-              folder_id: null,
-              unread_count: 5,
-            },
-          ],
-          folders: [unreadFolder, readFolder],
-          setExpandedFolders,
-          selectSmartView,
-        }),
-      ),
+    const { result } = renderHook(
+      () =>
+        useSidebarControllerSections(
+          createSectionsParams({
+            feeds: [
+              {
+                ...sampleFeeds[0],
+                id: "feed-unread",
+                folder_id: "folder-unread",
+                unread_count: 3,
+              },
+              {
+                ...sampleFeeds[1],
+                id: "feed-read",
+                folder_id: "folder-read",
+                unread_count: 0,
+              },
+              {
+                ...sampleFeeds[2],
+                id: "feed-unfoldered",
+                folder_id: null,
+                unread_count: 5,
+              },
+            ],
+            folders: [unreadFolder, readFolder],
+            setExpandedFolders,
+            selectSmartView,
+          }),
+        ),
+      // The sidebar header reads the feed-list fetching state from React Query
+      // (see useSidebarHeaderProps), so this hook needs a query client.
+      { wrapper: createQueryWrapper().wrapper },
     );
 
     result.current.smartViewsProps.onSelectSmartView("unread");
