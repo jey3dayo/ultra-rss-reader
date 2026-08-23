@@ -154,6 +154,7 @@ function readRustCommandSources() {
     "sync_commands/progress.rs",
     "sync_commands/local_import_export.rs",
     "sync_commands/account_sync.rs",
+    "sync_commands/manual.rs",
     "sync_commands/scheduler.rs",
     "sync_commands/tests.rs",
     "tag_commands.rs",
