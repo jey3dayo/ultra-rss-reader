@@ -170,8 +170,8 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 | Mechanism                  | Location                     | Purpose                                                           |
 | -------------------------- | ---------------------------- | ----------------------------------------------------------------- |
 | `AtomicBool` + `SyncGuard` | `commands/feed_commands.rs`  | Prevents overlapping sync runs (scheduler vs manual trigger)      |
-| WAL journal mode           | `infra/db/connection.rs`     | Allows concurrent reads during writes                             |
-| `busy_timeout = 5000`      | `infra/db/connection.rs`     | Retries on lock contention for up to 5 seconds                    |
+| WAL journal mode           | `infra/db/connection/mod.rs` | Allows concurrent reads during writes                             |
+| `busy_timeout = 5000`      | `infra/db/connection/mod.rs` | Retries on lock contention for up to 5 seconds                    |
 | Reader/writer split        | `DbManager`                  | Dedicated connections for reads and writes                        |
 | Scoped `Mutex` locks       | All command handlers         | Locks released before `.await` points (see `rust-async-mutex.md`) |
 | Pending mutations dedup    | `sqlite_pending_mutation.rs` | Latest mutation wins per `(account_id, remote_entry_id)`          |
