@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.58.0",
   "type": "module",
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@11.23.0",
   "engines": {
     "node": "26.4.0",
-    "pnpm": "11.22.0"
+    "pnpm": "11.23.0"
   },
   "scripts": {
     "dev": "pnpm exec vite",
@@ -60,7 +60,7 @@
     "@base-ui/react": "^1.7.0",
     "@praha/byethrow": "^0.12.0",
     "@sentry/react": "^10.70.0",
-    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-query": "^5.102.1",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "class-variance-authority": "^0.7.1",
@@ -79,7 +79,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.9",
+    "@biomejs/biome": "^2.5.10",
     "@playwright/test": "^1.62.1",
     "@sentry/vite-plugin": "^5.4.0",
     "@storybook/addon-a11y": "^10.5.10",
@@ -89,7 +89,7 @@
     "@tauri-apps/cli": "^2.11.4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.5",
+    "@testing-library/user-event": "^14.6.6",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
@@ -101,13 +101,13 @@
     "markdownlint-cli2": "^0.23.2",
     "portless": "^0.15.5",
     "react-doctor": "0.9.12",
-    "shadcn": "^4.18.0",
+    "shadcn": "^4.19.0",
     "storybook": "^10.5.10",
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@rc",
     "vite": "^8.2.2",
     "vitest": "^4.1.11",
-    "wrangler": "4.124.0"
+    "wrangler": "4.125.0"
   }
 }
