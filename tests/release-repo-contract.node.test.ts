@@ -234,7 +234,7 @@ const readOpmlCommandsModuleSource = (): string =>
 const readFeedDiscoveryModuleSource = (): string =>
   ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/infra/feed_discovery/${file}`)).join("\n");
 const readGReaderProviderModuleSource = (): string =>
-  ["mod.rs", "http.rs", "stream.rs", "tests.rs"]
+  ["mod.rs", "http.rs", "stream.rs", "stream_subscriptions.rs", "stream_types.rs", "tests.rs"]
     .map((file) => readText(`src-tauri/src/infra/provider/greader/${file}`))
     .join("\n");
 const readMiseTaskCorpus = (): string =>
