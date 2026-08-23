@@ -46,11 +46,21 @@ $ARGUMENTS (patch / minor / major。省略時は patch。ただしコミット�
 
 ### 2a. バージョン更新
 
-新バージョンで3ファイルを更新し、`cd src-tauri && cargo check` で `Cargo.lock` も更新する:
+手編集による取りこぼしを防ぐため、次のコマンドで5箇所を一括更新する。既存の5箇所が一致していない場合は、書き込み前にエラー終了する。
+
+```bash
+node scripts/release/bump-version.ts <new_version>
+```
+
+更新対象は次のとおり:
 
 - `package.json`
 - `src-tauri/Cargo.toml`（`[package]` の `version`）
+- `src-tauri/Cargo.lock`（`ultra-rss-reader` package entry）
 - `src-tauri/tauri.conf.json`
+- `msix/Package.appxmanifest`（`Identity Version`、形式は `X.Y.Z.0`）
+
+必要なら `node scripts/release/bump-version.ts <new_version> --check` で書き込み前の差分を確認する。更新後は `cd src-tauri && cargo check` で Cargo metadata も確認する。
 
 ### 2b. リリースノート生成
 

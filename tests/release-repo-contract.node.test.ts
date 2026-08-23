@@ -659,9 +659,15 @@ describe("release repository contract", () => {
   const tauriDevConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.dev.conf.json"));
   const defaultCapability: TauriCapabilityFile = JSON.parse(readText("src-tauri/capabilities/default.json"));
   const cargoToml = readText("src-tauri/Cargo.toml");
+  const cargoLock = readText("src-tauri/Cargo.lock");
   const releaseWorkflow = readText(".github/workflows/release.yml");
   const releaseSourceValidator = readText("scripts/release/validate-source.ts");
   const releaseVersionValidator = readText("scripts/release/validate-version-parity.ts");
+  const releaseVersionBumpScript = readText("scripts/release/bump-version.ts");
+  const releaseCommand = readText(".claude/commands/release.md");
+  const codexReleaseSkill = readText(".codex/skills/release/SKILL.md");
+  const codexPhase2Reference = readText(".codex/skills/release/references/phase-2-generate.md");
+  const codexReleaseChecks = readText(".codex/skills/release/scripts/release_checks.py");
   const releaseArtifactsScript = readText("scripts/release/artifacts.ts");
   const releaseContaminationChecker = readText("scripts/check-release-build-contamination.ts");
   const tauriLib = readText("src-tauri/src/lib.rs");
@@ -724,12 +730,24 @@ describe("release repository contract", () => {
   it("keeps release tag, package, Tauri, and Cargo versions in one parity contract", () => {
     expect(packageJson.version).toBe(tauriConfig.version);
     expect(packageJson.version).toBe(extractTomlString(cargoToml, "version"));
+    expect([...cargoLock.matchAll(/\[\[package\]\]\nname = "ultra-rss-reader"\nversion = "([^"]+)"/g)]).toHaveLength(1);
+    expect(cargoLock).toContain(`name = "ultra-rss-reader"\nversion = "${packageJson.version}"`);
     expect(releaseWorkflow).not.toContain("node <<'NODE'");
     expect(releaseWorkflow).toContain("Validate release version parity");
     expect(releaseWorkflow).toContain("node ./scripts/release/validate-version-parity.ts");
     expect(releaseVersionValidator).toContain("release tag $" + "{releaseTag}");
     expect(releaseVersionValidator).toContain("src-tauri/tauri.conf.json version");
     expect(releaseVersionValidator).toContain("src-tauri/Cargo.toml version");
+    expect(releaseVersionValidator).toContain("src-tauri/Cargo.lock");
+    expect(releaseVersionValidator).toContain("MSIX_VERSION_COMPONENT_MAX");
+    expect(releaseVersionBumpScript).toContain("src-tauri/Cargo.lock");
+    expect(releaseVersionBumpScript).toContain("msix/Package.appxmanifest");
+    expect(releaseVersionBumpScript).toContain("MSIX_VERSION_COMPONENT_MAX");
+    expect(releaseCommand).toContain("node scripts/release/bump-version.ts <new_version>");
+    expect(codexReleaseSkill).toContain("scripts/release/bump-version.ts <new_version>");
+    expect(codexPhase2Reference).toContain("scripts/release/bump-version.ts <new_version>");
+    expect(codexReleaseChecks).toContain("src-tauri/Cargo.lock");
+    expect(codexReleaseChecks).toContain("msix/Package.appxmanifest");
   });
 
   it("serializes tag push and manual release runs by release tag", () => {
