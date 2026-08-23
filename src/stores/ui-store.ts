@@ -11,7 +11,6 @@ import {
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
-import type { ToastData } from "@/lib/ui/toast.types";
 import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
 import type {
   NativeLifecycleBlockerEntry,
@@ -23,6 +22,7 @@ import type {
   UiStoreReaderSelection,
   UiStoreState,
 } from "@/stores/ui-store.types";
+import { createUiStoreDialogActions, type UiStoreDialogToastRuntime } from "@/stores/ui-store-dialog-actions";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 export type {
@@ -276,17 +276,31 @@ function getAccountSelectionResetState({
   };
 }
 
-function normalizeAccountSetupAccountId(accountId: string) {
-  const normalizedAccountId = accountId.trim();
-  return normalizedAccountId.length > 0 ? normalizedAccountId : null;
-}
-
 function clearToastDismissTimer(): void {
   if (toastTimer !== null) {
     clearTimeout(toastTimer);
     toastTimer = null;
   }
 }
+
+function nextToastAnnouncementId(): number {
+  toastAnnouncementId += 1;
+  return toastAnnouncementId;
+}
+
+const scheduleToastDismiss: UiStoreDialogToastRuntime["scheduleToastDismiss"] = (data, set) => {
+  if (data.persistent) {
+    return;
+  }
+
+  const dismissTimer = setTimeout(() => {
+    set((state) => (state.toastMessage === data ? { toastMessage: null } : state));
+    if (toastTimer === dismissTimer) {
+      toastTimer = null;
+    }
+  }, TOAST_AUTO_DISMISS_TIMEOUT_MS);
+  toastTimer = dismissTimer;
+};
 
 function normalizeSyncProgressCounts(event: Pick<SyncProgressEventDto, "total" | "completed">) {
   const total = Math.max(0, event.total);
@@ -381,6 +395,11 @@ const initialState: UiState = {
 
 export const useUiStore = create<UiState & UiActions>()((set, get) => ({
   ...initialState,
+  ...createUiStoreDialogActions(set, {
+    clearToastDismissTimer,
+    nextToastAnnouncementId,
+    scheduleToastDismiss,
+  }),
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   setFocusedPane: (pane) => set({ focusedPane: pane }),
   openSidebar: () => set({ sidebarOpen: true, focusedPane: "sidebar" }),
@@ -614,8 +633,6 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       settingsOpen: true,
       settingsCategory: isSettingsSetupLocked(s) ? s.settingsCategory : (tab ?? s.settingsCategory),
     })),
-  openAddFeedDialog: () => set({ isAddFeedDialogOpen: true }),
-  closeAddFeedDialog: () => set({ isAddFeedDialogOpen: false }),
   closeSettings: () =>
     set((state) =>
       isSettingsSetupLocked(state)
@@ -736,60 +753,6 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       };
     }),
   clearSyncProgress: () => set({ syncProgress: getIdleSyncProgress() }),
-  startAccountSetupVerification: () =>
-    set({
-      accountSetupSession: {
-        owner: "add-account",
-        state: "verifying",
-      },
-    }),
-  startAccountSetup: (accountId, options) =>
-    set((state) => {
-      const normalizedAccountId = normalizeAccountSetupAccountId(accountId);
-      if (!normalizedAccountId) {
-        return state;
-      }
-
-      return {
-        accountSetupSession: {
-          accountId: normalizedAccountId,
-          owner: options?.owner ?? state.accountSetupSession?.owner ?? "account-detail",
-          state: "syncing",
-        },
-      };
-    }),
-  markAccountSetupFailed: (accountId, errorMessage) =>
-    set((state) => {
-      const normalizedAccountId = normalizeAccountSetupAccountId(accountId);
-      return !normalizedAccountId ||
-        state.accountSetupSession?.state === "verifying" ||
-        state.accountSetupSession?.accountId !== normalizedAccountId
-        ? state
-        : {
-            accountSetupSession: {
-              accountId: normalizedAccountId,
-              owner: state.accountSetupSession.owner,
-              state: "failed",
-              ...(errorMessage ? { errorMessage } : {}),
-            },
-          };
-    }),
-  markAccountSetupSucceeded: (accountId) =>
-    set((state) => {
-      const normalizedAccountId = normalizeAccountSetupAccountId(accountId);
-      return !normalizedAccountId ||
-        state.accountSetupSession?.state === "verifying" ||
-        state.accountSetupSession?.accountId !== normalizedAccountId
-        ? state
-        : {
-            accountSetupSession: {
-              accountId: normalizedAccountId,
-              owner: state.accountSetupSession.owner,
-              state: "succeeded",
-            },
-          };
-    }),
-  clearAccountSetup: () => set({ accountSetupSession: null }),
   openCommandPalette: () => set({ commandPaletteOpen: true, shortcutsHelpOpen: false }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   toggleCommandPalette: () =>
@@ -799,34 +762,6 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
     })),
   openShortcutsHelp: () => set({ shortcutsHelpOpen: true, commandPaletteOpen: false }),
   closeShortcutsHelp: () => set({ shortcutsHelpOpen: false }),
-  showToast: (message) => {
-    clearToastDismissTimer();
-    const data: ToastData = typeof message === "string" ? { message } : message;
-    set((state) => ({
-      toastMessage: data,
-      toastAnnouncements:
-        state.toastAnnouncements.at(-1)?.message === data.message
-          ? state.toastAnnouncements
-          : [...state.toastAnnouncements, { id: ++toastAnnouncementId, message: data.message }],
-    }));
-    if (!data.persistent) {
-      const dismissTimer = setTimeout(() => {
-        set((state) => (state.toastMessage === data ? { toastMessage: null } : state));
-        if (toastTimer === dismissTimer) {
-          toastTimer = null;
-        }
-      }, TOAST_AUTO_DISMISS_TIMEOUT_MS);
-      toastTimer = dismissTimer;
-    }
-  },
-  clearToast: () => {
-    clearToastDismissTimer();
-    set({ toastMessage: null });
-  },
-  clearToastAnnouncement: (id) =>
-    set((state) => ({
-      toastAnnouncements: state.toastAnnouncements.filter((announcement) => announcement.id !== id),
-    })),
   addRecentlyRead: (id) =>
     set((s) => {
       const next = new Set(s.recentlyReadIds);
@@ -863,30 +798,6 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       const articleReaderScrollPositions = new Map(state.articleReaderScrollPositions);
       articleReaderScrollPositions.set(articleId, normalizedScrollTop);
       return { articleReaderScrollPositions };
-    }),
-  showConfirm: (message, onConfirm, options) =>
-    set({
-      confirmDialog: {
-        open: true,
-        message,
-        actionLabel: options?.actionLabel ?? null,
-        actionAccessibleLabel: options?.actionAccessibleLabel ?? null,
-        variant: options?.variant ?? "default",
-        icon: options?.icon ?? null,
-        onConfirm,
-      },
-    }),
-  closeConfirm: () =>
-    set({
-      confirmDialog: {
-        open: false,
-        message: "",
-        actionLabel: null,
-        actionAccessibleLabel: null,
-        variant: "default",
-        icon: null,
-        onConfirm: null,
-      },
     }),
   setNativeLifecycleBlocker: (entry) =>
     set((state) => {
