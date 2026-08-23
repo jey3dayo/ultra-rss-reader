@@ -3,6 +3,8 @@
 // encryption policy is documented in docs/incident-runbook.md and
 // docs/feed-content-privacy.md. These values are not a production API or
 // source of truth, and must not be used to imply a shipped restore-preview UI.
+// The metadata reader and preview fixtures below are the test-only starting
+// point for a future restore-preview feature; they do not drive production.
 use super::*;
 use crate::domain::error::{DomainError, DomainResult};
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
