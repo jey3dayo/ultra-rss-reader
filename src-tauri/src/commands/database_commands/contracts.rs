@@ -2,47 +2,6 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum DatabaseRuntimeFailureKind {
-    ReadCorruption,
-    WriteCorruption,
-    MigrationFailed,
-    DowngradeBlocked,
-    Locked,
-    PermissionDenied,
-    DiskFull,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DatabaseRuntimeRecoveryMode {
-    ReadOnlyDegraded,
-    StartupBlocked,
-    RetryWhenIdle,
-    UserPermissionFix,
-    FreeDiskSpace,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DatabaseRuntimeRecoveryAction {
-    RunIntegrityCheck,
-    RestoreBackup,
-    PreserveBackupAndRestart,
-    Retry,
-    CheckOsPermissions,
-    FreeDiskSpace,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DatabaseRecoveryActionSafety {
-    ReadOnly,
-    RequiresDryRun,
-    RequiresExplicitConfirmation,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
 pub enum FilesystemRecoverySurface {
     LogDirectory,
     DatabaseBackup,
@@ -128,15 +87,6 @@ pub enum SleepResumeStance {
     Supported,
     Guarded,
     Unsupported,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct DatabaseRuntimeRecoveryContract {
-    pub failure_kind: DatabaseRuntimeFailureKind,
-    pub mode: DatabaseRuntimeRecoveryMode,
-    pub actions: Vec<DatabaseRuntimeRecoveryAction>,
-    pub action_safety: Vec<DatabaseRecoveryActionSafety>,
-    pub diagnostics_id_required: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -316,69 +266,5 @@ pub(crate) fn private_data_reset_contract() -> PrivateDataResetContract {
         keyring_failure_blocks_database_delete: true,
         database_failure_blocks_frontend_cleanup: true,
         local_storage_failure_blocks_query_cache_clear: false,
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn database_runtime_recovery_contract(
-    failure_kind: DatabaseRuntimeFailureKind,
-) -> DatabaseRuntimeRecoveryContract {
-    let (mode, actions) = match failure_kind {
-        DatabaseRuntimeFailureKind::ReadCorruption => (
-            DatabaseRuntimeRecoveryMode::ReadOnlyDegraded,
-            vec![
-                DatabaseRuntimeRecoveryAction::RunIntegrityCheck,
-                DatabaseRuntimeRecoveryAction::RestoreBackup,
-            ],
-        ),
-        DatabaseRuntimeFailureKind::WriteCorruption => (
-            DatabaseRuntimeRecoveryMode::ReadOnlyDegraded,
-            vec![
-                DatabaseRuntimeRecoveryAction::RunIntegrityCheck,
-                DatabaseRuntimeRecoveryAction::RestoreBackup,
-            ],
-        ),
-        DatabaseRuntimeFailureKind::MigrationFailed
-        | DatabaseRuntimeFailureKind::DowngradeBlocked => (
-            DatabaseRuntimeRecoveryMode::StartupBlocked,
-            vec![
-                DatabaseRuntimeRecoveryAction::PreserveBackupAndRestart,
-                DatabaseRuntimeRecoveryAction::RestoreBackup,
-            ],
-        ),
-        DatabaseRuntimeFailureKind::Locked => (
-            DatabaseRuntimeRecoveryMode::RetryWhenIdle,
-            vec![DatabaseRuntimeRecoveryAction::Retry],
-        ),
-        DatabaseRuntimeFailureKind::PermissionDenied => (
-            DatabaseRuntimeRecoveryMode::UserPermissionFix,
-            vec![DatabaseRuntimeRecoveryAction::CheckOsPermissions],
-        ),
-        DatabaseRuntimeFailureKind::DiskFull => (
-            DatabaseRuntimeRecoveryMode::FreeDiskSpace,
-            vec![DatabaseRuntimeRecoveryAction::FreeDiskSpace],
-        ),
-    };
-
-    DatabaseRuntimeRecoveryContract {
-        failure_kind,
-        mode,
-        action_safety: actions
-            .iter()
-            .map(|action| match action {
-                DatabaseRuntimeRecoveryAction::RunIntegrityCheck
-                | DatabaseRuntimeRecoveryAction::PreserveBackupAndRestart
-                | DatabaseRuntimeRecoveryAction::Retry
-                | DatabaseRuntimeRecoveryAction::CheckOsPermissions
-                | DatabaseRuntimeRecoveryAction::FreeDiskSpace => {
-                    DatabaseRecoveryActionSafety::ReadOnly
-                }
-                DatabaseRuntimeRecoveryAction::RestoreBackup => {
-                    DatabaseRecoveryActionSafety::RequiresExplicitConfirmation
-                }
-            })
-            .collect(),
-        actions,
-        diagnostics_id_required: true,
     }
 }
