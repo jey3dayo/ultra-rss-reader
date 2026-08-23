@@ -12,6 +12,7 @@ import type { SidebarHeaderProps } from "../../sidebar-header-view";
 
 export function useSidebarHeaderProps({
   t,
+  selectedAccountId,
   syncProgress,
   handleSync,
   syncTooltipLabel,
@@ -24,10 +25,12 @@ export function useSidebarHeaderProps({
   // Sync invalidation refetches the feed list; keep the sync button spinning
   // until that refetch settles so the user is not shown stale unread counts
   // with an idle button. See buildSidebarHeaderProps for the contract.
-  const isFeedListRefetching = useIsFetching({ queryKey: queryKeys.feeds.root }) > 0;
+  const isFeedListRefetching =
+    useIsFetching({ queryKey: queryKeys.feeds.byAccount(selectedAccountId), exact: true }) > 0;
 
   return buildSidebarHeaderProps({
     t,
+    selectedAccountId,
     syncProgress,
     handleSync,
     syncTooltipLabel,

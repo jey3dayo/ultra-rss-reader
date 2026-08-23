@@ -12,6 +12,7 @@ import {
   useSidebarSync,
 } from "@/components/reader/hooks/sidebar/use-sidebar-sync";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import {
   getManualSyncCooldownUntil,
   setManualSyncCooldownListenerErrorReporterForDiagnostics,
@@ -86,10 +87,25 @@ function createSyncHookParams(
   };
 }
 
+type QueryInvalidationSpy = {
+  mock: {
+    calls: ReadonlyArray<ReadonlyArray<unknown>>;
+  };
+};
+
+function countQueryInvalidations(invalidateQueriesSpy: QueryInvalidationSpy, queryKey: readonly unknown[]): number {
+  return invalidateQueriesSpy.mock.calls.filter(([filters]) => {
+    const actualQueryKey =
+      typeof filters === "object" && filters !== null && "queryKey" in filters ? filters.queryKey : undefined;
+    return JSON.stringify(actualQueryKey) === JSON.stringify(queryKey);
+  }).length;
+}
+
 describe("resolveSidebarLastSyncedLabel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     listenMock.mockReset().mockResolvedValue(() => {});
+    vi.mocked(triggerManualSyncWithCooldown).mockReset();
     vi.mocked(getManualSyncCooldownUntil).mockReturnValue(0);
     vi.mocked(setManualSyncCooldownListenerErrorReporterForDiagnostics).mockReturnValue(() => {});
     vi.mocked(subscribeManualSyncCooldown).mockReturnValue(() => {});
@@ -217,6 +233,189 @@ describe("resolveSidebarLastSyncedLabel", () => {
     });
 
     expect(triggerManualSyncWithCooldown).toHaveBeenCalledWith(expect.objectContaining({ selectedAccountId: "acc-1" }));
+  });
+
+  it("does not run the fallback when sync-completed is observed", async () => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onRequestStart?.();
+      params.onSuccess({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [],
+      });
+    });
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+    act(() => {
+      getRegisteredListener("sync-completed")({ payload: null });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
+  });
+
+  it("runs the fallback once when a successful sync-completed event is not observed", async () => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onRequestStart?.();
+      params.onSuccess({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [],
+      });
+    });
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(1);
+  });
+
+  it.each([
+    {
+      name: "zero-success",
+      result: { synced: true, total: 1, succeeded: 0, failed: [], warnings: [] },
+    },
+    {
+      name: "unsynced",
+      result: { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] },
+    },
+  ])("does not run the fallback for $name results", async ({ result: syncResult }) => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onRequestStart?.();
+      params.onSuccess(syncResult);
+    });
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
+  });
+
+  it("clears a pending fallback when the selected account changes", async () => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onRequestStart?.();
+      params.onSuccess({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [],
+      });
+    });
+
+    const { result, rerender } = renderHook(
+      ({ selectedAccountId }) => useSidebarSync(createSyncHookParams({ selectedAccountId })),
+      { initialProps: { selectedAccountId: "acc-1" }, wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+    rerender({ selectedAccountId: "acc-2" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
+  });
+
+  it("clears the previous fallback when a newer manual sync starts", async () => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onRequestStart?.();
+      params.onSuccess({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [],
+      });
+    });
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+      await result.current.handleSync();
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(1);
+  });
+
+  it("clears a pending fallback when the sidebar unmounts", async () => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onRequestStart?.();
+      params.onSuccess({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [],
+      });
+    });
+
+    const { result, unmount } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
   });
 
   it("accepts wrapped and raw sync progress payloads but ignores unknown payloads", () => {

@@ -53,6 +53,7 @@ export function useSidebarSectionProps({
 }: SidebarSectionPropsParams): SidebarSectionPropsResult {
   const headerProps = useSidebarHeaderProps({
     t,
+    selectedAccountId,
     syncProgress,
     handleSync,
     syncTooltipLabel,

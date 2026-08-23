@@ -125,6 +125,7 @@ export type SidebarControllerSectionsParams = {
 
 export type SidebarHeaderPropsParams = {
   t: TFunction<"sidebar">;
+  selectedAccountId: string | null;
   syncProgress: SidebarSyncProgress;
   handleSync: SidebarSyncHandler;
   syncTooltipLabel: string | null;

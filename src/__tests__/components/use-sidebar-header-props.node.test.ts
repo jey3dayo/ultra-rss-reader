@@ -11,6 +11,7 @@ describe("useSidebarHeaderProps", () => {
 
     const props = buildSidebarHeaderProps({
       t,
+      selectedAccountId: "acc-1",
       syncProgress: { active: true, kind: "manual" },
       handleSync,
       syncTooltipLabel: "Cooling down",
@@ -48,6 +49,7 @@ describe("useSidebarHeaderProps", () => {
   it("treats manual account sync as active syncing", () => {
     const props = buildSidebarHeaderProps({
       t,
+      selectedAccountId: "acc-1",
       syncProgress: { active: true, kind: "manual_account" },
       handleSync: vi.fn(),
       syncTooltipLabel: null,
@@ -68,6 +70,7 @@ describe("useSidebarHeaderProps", () => {
   it("derives mobile and desktop overlay runtime props", () => {
     const props = buildSidebarHeaderProps({
       t,
+      selectedAccountId: "acc-1",
       syncProgress: { active: false, kind: null },
       handleSync: vi.fn(),
       syncTooltipLabel: null,
@@ -90,6 +93,7 @@ describe("useSidebarHeaderProps", () => {
   it("prioritizes disabled before cooldown when sync is inactive", () => {
     const props = buildSidebarHeaderProps({
       t,
+      selectedAccountId: "acc-1",
       syncProgress: { active: false, kind: null },
       handleSync: vi.fn(),
       syncTooltipLabel: "Cooling down",
@@ -113,6 +117,7 @@ describe("useSidebarHeaderProps", () => {
   it("keeps reporting syncing while the feed list refetch after sync is still in flight", () => {
     const props = buildSidebarHeaderProps({
       t,
+      selectedAccountId: "acc-1",
       syncProgress: { active: false, kind: null },
       handleSync: vi.fn(),
       syncTooltipLabel: null,
@@ -132,6 +137,7 @@ describe("useSidebarHeaderProps", () => {
   it("reports syncing during the feed list refetch even when a cooldown already started", () => {
     const props = buildSidebarHeaderProps({
       t,
+      selectedAccountId: "acc-1",
       syncProgress: { active: false, kind: null },
       handleSync: vi.fn(),
       syncTooltipLabel: "Cooling down",
@@ -151,6 +157,7 @@ describe("useSidebarHeaderProps", () => {
   it("returns to idle once the feed list refetch settles", () => {
     const props = buildSidebarHeaderProps({
       t,
+      selectedAccountId: "acc-1",
       syncProgress: { active: false, kind: null },
       handleSync: vi.fn(),
       syncTooltipLabel: null,

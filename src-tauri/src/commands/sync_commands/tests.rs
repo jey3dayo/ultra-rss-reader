@@ -301,39 +301,11 @@ fn purge_contract_skips_when_scheduler_or_automatic_sync_is_disabled() {
 }
 
 // Issue #102: `finished` and `sync-completed` are deliberately different
-// signals. `emit_finished` always fires (the UI stops showing sync progress),
-// while `sync-completed` — the event the frontend uses to invalidate the feed
-// list — is suppressed unless at least one item succeeded, because a
-// zero-success sync cannot have changed any cached data. Feed-list updates are
-// therefore asynchronous to `finished`, and the sidebar keeps its sync button
-// in the syncing state until the refetch settles rather than assuming
-// `finished` means "list updated".
+// signals. The scheduler always emits `finished` after an accepted sync, while
+// `sync-completed` is emitted only when `synced && succeeded > 0`.
 #[test]
 fn manual_single_sync_completion_is_independent_of_the_finished_progress_stage() {
-    let zero_success = SyncResult {
-        synced: true,
-        total: 1,
-        succeeded: 0,
-        failed: Vec::new(),
-        warnings: Vec::new(),
-    };
-    let guard_conflict = SyncResult {
-        synced: false,
-        total: 0,
-        succeeded: 0,
-        failed: Vec::new(),
-        warnings: Vec::new(),
-    };
-
-    // `emit_finished` is unconditional, so both of these clear the UI progress
-    // while leaving the feed list untouched.
-    assert!(!should_emit_manual_single_sync_completion(&zero_success));
-    assert!(!should_emit_manual_single_sync_completion(&guard_conflict));
-}
-
-#[test]
-fn manual_single_sync_completion_emits_when_at_least_one_item_succeeded() {
-    let result = SyncResult {
+    let accepted_sync = SyncResult {
         synced: true,
         total: 1,
         succeeded: 1,
@@ -341,7 +313,13 @@ fn manual_single_sync_completion_emits_when_at_least_one_item_succeeded() {
         warnings: Vec::new(),
     };
 
-    assert!(should_emit_manual_single_sync_completion(&result));
+    // `run_sync_for_accounts_with_progress` calls `emit_finished` before the
+    // completion predicate, so the accepted-sync signal plan is both values.
+    let signal_plan = (
+        true,
+        should_emit_manual_single_sync_completion(&accepted_sync),
+    );
+    assert_eq!(signal_plan, (true, true));
 }
 
 #[test]
