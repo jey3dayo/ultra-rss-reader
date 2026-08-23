@@ -32,6 +32,9 @@ pub enum DomainError {
 
 pub type DomainResult<T> = Result<T, DomainError>;
 
+// ProviderBlockResponseContract uses this type for provider-only user-action
+// labels. It is not the application-wide recovery classifier; the runtime UI
+// recovery surface is owned by src/lib/ui-errors.ts and related TS owners.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppRecoveryAction {
     Retry,
@@ -45,6 +48,10 @@ pub enum AppRecoveryAction {
     PreserveBackupAndRestart,
 }
 
+// Test-only provider response policy. Runtime HTTP classification is owned by
+// DomainError's provider mapping and sync warning DTOs; the durable recovery
+// guidance is documented in docs/incident-runbook.md and
+// docs/feed-content-privacy.md.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProviderBlockResponseContract {
     pub status: StatusCode,
@@ -105,6 +112,9 @@ pub enum FrontendNetworkSignal {
     Online,
 }
 
+// Test-only network-signal policy. Frontend online/offline state is only a
+// trigger hint; native provider classification remains authoritative. The
+// durable policy is documented in docs/incident-runbook.md.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NetworkSignalContract {
     pub frontend_signal: FrontendNetworkSignal,
