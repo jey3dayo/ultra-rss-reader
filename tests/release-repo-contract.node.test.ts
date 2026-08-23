@@ -209,6 +209,10 @@ const RELEASE_CSP_FORBIDDEN_SOURCES = [
 ] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
+const readRustModuleSource = (path: string): string => {
+  const siblingTestsPath = path.replace(/\.rs$/, "/tests.rs");
+  return existsSync(siblingTestsPath) ? `${readText(path)}\n${readText(siblingTestsPath)}` : readText(path);
+};
 const readMigrationModuleSource = (): string => {
   const migrationDir = "src-tauri/src/infra/db/migration";
   const migrationTestFiles = readdirSync(`${migrationDir}/tests`)
@@ -680,10 +684,10 @@ describe("release repository contract", () => {
   const keyboardShortcutsSource = readText("src/lib/keyboard/keyboard-shortcuts.ts");
   const preferenceValuesSource = readText("src/schemas/preference-values.ts");
   const preferencesStoreSource = readText("src/stores/preferences-store.ts");
-  const providerSource = readText("src-tauri/src/domain/provider.rs");
+  const providerSource = readRustModuleSource("src-tauri/src/domain/provider.rs");
   const sqliteAccountSource = readText("src-tauri/src/infra/db/sqlite_account.rs");
   const platformConstantsSource = readText("src/constants/platform.ts");
-  const providerHttpDefaultsSource = readText("src-tauri/src/infra/provider/http_defaults.rs");
+  const providerHttpDefaultsSource = readRustModuleSource("src-tauri/src/infra/provider/http_defaults.rs");
   const localProviderSource = readText("src-tauri/src/infra/provider/local.rs");
   const accountCommandsSource = readAccountCommandsModuleSource();
   const opmlCommandsSource = readOpmlCommandsModuleSource();
