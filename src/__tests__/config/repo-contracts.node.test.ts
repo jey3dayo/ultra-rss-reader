@@ -2269,7 +2269,7 @@ describe("repository static contracts", () => {
   });
 
   it("keeps updater release readiness checks split between local contracts and packaged verification", () => {
-    const updaterCommands = readRepoFile("src-tauri/src/commands/updater_commands.rs");
+    const updaterCommands = readRepoFile("src-tauri/src/commands/updater_commands/mod.rs");
 
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(false);
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);

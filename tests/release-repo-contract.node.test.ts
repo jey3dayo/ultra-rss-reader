@@ -213,6 +213,10 @@ const readRustModuleSource = (path: string): string => {
   const siblingTestsPath = path.replace(/\.rs$/, "/tests.rs");
   return existsSync(siblingTestsPath) ? `${readText(path)}\n${readText(siblingTestsPath)}` : readText(path);
 };
+const readUpdaterModuleSource = (): string =>
+  ["mod.rs", "state.rs", "policy.rs", "tests.rs"]
+    .map((file) => readText(`src-tauri/src/commands/updater_commands/${file}`))
+    .join("\n");
 const readMigrationModuleSource = (): string => {
   const migrationDir = "src-tauri/src/infra/db/migration";
   const migrationTestFiles = readdirSync(`${migrationDir}/tests`)
@@ -659,7 +663,7 @@ describe("release repository contract", () => {
   const releaseArtifactsScript = readText("scripts/release/artifacts.ts");
   const releaseContaminationChecker = readText("scripts/check-release-build-contamination.ts");
   const tauriLib = readText("src-tauri/src/lib.rs");
-  const updaterCommandsSource = readText("src-tauri/src/commands/updater_commands.rs");
+  const updaterCommandsSource = readUpdaterModuleSource();
   const migrationSource = readMigrationModuleSource();
   const devMocks = readText("src/dev/mocks.ts");
   const feedContentPrivacy = readText("docs/feed-content-privacy.md");
