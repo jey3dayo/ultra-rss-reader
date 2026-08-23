@@ -25,10 +25,10 @@ paths:
 
 ## バージョン管理
 
-- バージョンは `tauri.conf.json` の `version`、`Cargo.toml` の `version`、`package.json` の `version` の 3 箇所で管理される
-- タグ作成前に 3 箇所のバージョンが一致していることを確認する
+- バージョンは `tauri.conf.json` の `version`、`Cargo.toml` の `version`、`package.json` の `version`、`msix/Package.appxmanifest` の `Identity Version`(形式は `X.Y.Z.0`)の 4 箇所で管理される。`Cargo.lock` も bump に追随する
+- タグ作成前に 4 箇所のバージョンが一致していることを確認する
 - release タグは version bump commit を作成した後、その `HEAD` commit に対して作成する
-- push 前に `git rev-list -n 1 vX.Y.Z` が release commit hash と一致し、tag 先の 3 ファイルが同じ `X.Y.Z` を返すことを確認する
+- push 前に `git rev-list -n 1 vX.Y.Z` が release commit hash と一致し、tag 先の 4 ファイルが同じ `X.Y.Z`(MSIX は `X.Y.Z.0`)を返すことを確認する
 - push 前に `RELEASE_TAG=vX.Y.Z mise run release:preflight:local` を実行し、GitHub Actions の artifact build 前 preflight に近い軽量ゲートをローカルで先取りする
 - セマンティックバージョニング (semver) に従う
 
