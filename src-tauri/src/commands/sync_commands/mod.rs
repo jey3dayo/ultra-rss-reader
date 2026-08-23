@@ -1,5 +1,6 @@
 mod account_sync;
 mod local_import_export;
+mod manual;
 mod progress;
 mod scheduler;
 
@@ -9,15 +10,21 @@ pub(crate) use progress::{
 };
 
 pub use account_sync::run_full_sync;
-pub(crate) use account_sync::{sync_account, sync_feed};
+pub(crate) use account_sync::sync_account;
+#[cfg(test)]
+pub(crate) use account_sync::sync_feed;
 
 #[cfg(not(test))]
+pub(crate) use manual::{
+    __cmd__get_account_sync_status, __cmd__trigger_sync, __cmd__trigger_sync_account,
+    __cmd__trigger_sync_feed, __tauri_command_name_get_account_sync_status,
+    __tauri_command_name_trigger_sync, __tauri_command_name_trigger_sync_account,
+    __tauri_command_name_trigger_sync_feed,
+};
+#[cfg(not(test))]
 pub(crate) use scheduler::{
-    __cmd__get_account_sync_status, __cmd__trigger_automatic_sync, __cmd__trigger_startup_sync,
-    __cmd__trigger_sync, __cmd__trigger_sync_account, __cmd__trigger_sync_feed,
-    __tauri_command_name_get_account_sync_status, __tauri_command_name_trigger_automatic_sync,
-    __tauri_command_name_trigger_startup_sync, __tauri_command_name_trigger_sync,
-    __tauri_command_name_trigger_sync_account, __tauri_command_name_trigger_sync_feed,
+    __cmd__trigger_automatic_sync, __cmd__trigger_startup_sync,
+    __tauri_command_name_trigger_automatic_sync, __tauri_command_name_trigger_startup_sync,
 };
 
 #[cfg(test)]
@@ -48,6 +55,7 @@ use account_sync::{
     run_local_account_startup_import_supplement, run_startup_sync_and_repair,
     run_sync_for_accounts_with_progress,
 };
+pub use manual::{get_account_sync_status, trigger_sync, trigger_sync_account, trigger_sync_feed};
 #[cfg(test)]
 use progress::{
     next_sync_progress_completed, next_sync_progress_session_id,
@@ -61,8 +69,7 @@ use scheduler::{
     should_enable_automatic_sync_after_startup, startup_remote_state_repair_succeeded,
 };
 pub use scheduler::{
-    get_account_sync_status, purge_old_articles, run_automatic_sync, trigger_automatic_sync,
-    trigger_startup_sync, trigger_sync, trigger_sync_account, trigger_sync_feed,
+    purge_old_articles, run_automatic_sync, trigger_automatic_sync, trigger_startup_sync,
 };
 #[cfg(test)]
 mod tests;
