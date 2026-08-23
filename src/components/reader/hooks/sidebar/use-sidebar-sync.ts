@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import type { IssuePathItem } from "valibot";
 import { safeParse } from "valibot";
@@ -14,7 +14,7 @@ import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-acc
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
-import { invalidateQueryKeysLogOnly, invalidateSyncCompletedQueries } from "@/lib/query/query-invalidation";
+import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import {
   getManualSyncCooldownUntil,
@@ -54,7 +54,6 @@ type SidebarSyncState = {
 type SidebarSyncAction = { type: "set-cooldown-tick"; value: number };
 
 const SYNC_PROGRESS_STUCK_RECOVERY_MS = 10 * 60_000;
-const MANUAL_SYNC_COMPLETION_FALLBACK_MS = 3_000;
 const malformedSyncEventWarnings = new Set<string>();
 
 function createInitialSidebarSyncState() {
@@ -238,58 +237,6 @@ export function useSidebarSync({
     },
     [queryClient],
   );
-  const manualSyncCompletionObservedRef = useRef(false);
-  const manualSyncCompletionFallbackTimerRef = useRef<number | null>(null);
-  const manualSyncRunAccountIdRef = useRef<string | null>(null);
-  const manualSyncRunActiveRef = useRef(false);
-  const clearManualSyncCompletionFallbackTimer = useCallback(() => {
-    const timer = manualSyncCompletionFallbackTimerRef.current;
-    if (timer === null) {
-      return;
-    }
-
-    clearTimeout(timer);
-    manualSyncCompletionFallbackTimerRef.current = null;
-  }, []);
-  const startManualSyncRun = useCallback(() => {
-    clearManualSyncCompletionFallbackTimer();
-    manualSyncCompletionObservedRef.current = false;
-    manualSyncRunAccountIdRef.current = selectedAccountId;
-    manualSyncRunActiveRef.current = true;
-  }, [clearManualSyncCompletionFallbackTimer, selectedAccountId]);
-  const markManualSyncCompletionObserved = useCallback(() => {
-    manualSyncCompletionObservedRef.current = true;
-    clearManualSyncCompletionFallbackTimer();
-  }, [clearManualSyncCompletionFallbackTimer]);
-  const scheduleManualSyncCompletionFallback = useCallback(
-    (accountId: string | null) => {
-      if (
-        !manualSyncRunActiveRef.current ||
-        manualSyncRunAccountIdRef.current !== accountId ||
-        manualSyncCompletionObservedRef.current ||
-        manualSyncCompletionFallbackTimerRef.current !== null ||
-        typeof window === "undefined"
-      ) {
-        return;
-      }
-
-      const timer = window.setTimeout(() => {
-        if (manualSyncCompletionFallbackTimerRef.current !== timer) {
-          return;
-        }
-
-        manualSyncCompletionFallbackTimerRef.current = null;
-        if (manualSyncCompletionObservedRef.current) {
-          return;
-        }
-
-        invalidateSyncCompletedQueries(queryClient, { actionOwner: "manual-sync-completed" });
-      }, MANUAL_SYNC_COMPLETION_FALLBACK_MS);
-      manualSyncCompletionFallbackTimerRef.current = timer;
-    },
-    [queryClient],
-  );
-
   useEffect(() => {
     if (manualSyncCooldownUntil <= getCurrentTimeMs()) {
       return;
@@ -351,18 +298,6 @@ export function useSidebarSync({
   }, [clearSyncProgress, invalidateAccountSyncStatuses, syncProgress]);
 
   useEffect(() => {
-    const accountIdAtEffect = selectedAccountId;
-    return () => {
-      if (manualSyncRunAccountIdRef.current === accountIdAtEffect) {
-        clearManualSyncCompletionFallbackTimer();
-        manualSyncCompletionObservedRef.current = false;
-        manualSyncRunAccountIdRef.current = null;
-        manualSyncRunActiveRef.current = false;
-      }
-    };
-  }, [clearManualSyncCompletionFallbackTimer, selectedAccountId]);
-
-  useEffect(() => {
     return attachTauriListeners([
       listenTauriEvent<SidebarSyncProgressPayload>("sync-progress", (event) => {
         const payload = resolveSidebarSyncProgressPayload(event);
@@ -375,7 +310,6 @@ export function useSidebarSync({
         if (!isSidebarSyncCompletedPayload(event)) {
           return;
         }
-        markManualSyncCompletionObserved();
         clearSyncProgress();
         invalidateAccountSyncStatuses("background-sync-completed");
       }),
@@ -390,14 +324,7 @@ export function useSidebarSync({
         }
       }),
     ]);
-  }, [
-    applySyncProgress,
-    clearSyncProgress,
-    invalidateAccountSyncStatuses,
-    markManualSyncCompletionObserved,
-    showToast,
-    t,
-  ]);
+  }, [applySyncProgress, clearSyncProgress, invalidateAccountSyncStatuses, showToast, t]);
 
   const handleSync = useCallback(async () => {
     if (syncProgress.active) {
@@ -406,20 +333,31 @@ export function useSidebarSync({
 
     await triggerManualSyncWithCooldown({
       selectedAccountId,
-      onRequestStart: startManualSyncRun,
       onCooldown: () => {
         showToast(t("sync_cooldown_active"));
       },
       onSuccess: (syncResult) => {
         invalidateAccountSyncStatuses("manual-sync-completed");
-        // This fallback is defense in depth for abnormal native emit or listener
-        // registration failures, not the primary fix for the visible refetch
-        // lag (the sync button stays syncing until feeds refetch settles).
-        // Native intentionally suppresses sync-completed for zero-success or
-        // unsynced results, so those results must not trigger this fallback.
-        if (syncResult.synced && syncResult.succeeded > 0) {
-          scheduleManualSyncCompletionFallback(selectedAccountId);
-        }
+        // Deliberately no feed-list invalidation here: the native
+        // `sync-completed` event (handled in App.tsx) is the single owner.
+        //
+        // Do not re-add a fallback invalidation on this path. It was tried and
+        // removed (Issue #102): because `sync-completed` is intentionally
+        // suppressed for zero-success or unsynced results
+        // (`should_emit_manual_single_sync_completion`), a fallback here has to
+        // decide when the event "should have arrived", and every version of
+        // that raced with the listener — a late onSuccess from an earlier run
+        // re-armed the timer and double-invalidated, and query-core cancels the
+        // in-flight refetch on the second invalidate, so `listFeeds` (a Tauri
+        // invoke that ignores AbortSignal) ran twice. Making it safe needs
+        // per-run tokens plus serialization, which is more machinery than the
+        // abnormal case is worth: a dropped event is recovered by the
+        // stuck-progress timer above and by the next sync.
+        //
+        // The user-visible symptom this issue was about — the list looking
+        // stale right after the spinner stops — is handled by keeping the sync
+        // button spinning until the feed list refetch settles, not here. See
+        // buildSidebarHeaderProps.
         showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
       },
       onError: (error) => {
@@ -428,15 +366,7 @@ export function useSidebarSync({
         showToast(t("sync_failed"));
       },
     });
-  }, [
-    invalidateAccountSyncStatuses,
-    scheduleManualSyncCompletionFallback,
-    selectedAccountId,
-    showToast,
-    startManualSyncRun,
-    syncProgress.active,
-    t,
-  ]);
+  }, [invalidateAccountSyncStatuses, selectedAccountId, showToast, syncProgress.active, t]);
 
   return {
     handleSync,

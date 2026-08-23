@@ -162,11 +162,17 @@ describe("useSidebarHeaderProps", () => {
       });
     });
 
+    // Assert the negative only after the unrelated fetch is actually in
+    // flight; waiting for "idle" alone would pass on the initial render even
+    // if the hook watched every feeds query.
     await waitFor(() => {
-      expect(result.current.syncState.status).toBe("idle");
+      expect(queryClient.getQueryState(queryKeys.accounts.root)?.fetchStatus).toBe("fetching");
     });
-    deferred.resolve([]);
-    await fetchPromise;
+    expect(result.current.syncState.status).toBe("idle");
+    await act(async () => {
+      deferred.resolve([]);
+      await fetchPromise;
+    });
   });
 
   it("does not spin while another account's feeds are fetching", async () => {
@@ -182,10 +188,15 @@ describe("useSidebarHeaderProps", () => {
       });
     });
 
+    // Same reasoning as the unrelated-query case: the exact-account scope is
+    // only pinned if the other account's fetch is confirmed in flight first.
     await waitFor(() => {
-      expect(result.current.syncState.status).toBe("idle");
+      expect(queryClient.getQueryState(queryKeys.feeds.byAccount("acc-2"))?.fetchStatus).toBe("fetching");
     });
-    deferred.resolve([]);
-    await fetchPromise;
+    expect(result.current.syncState.status).toBe("idle");
+    await act(async () => {
+      deferred.resolve([]);
+      await fetchPromise;
+    });
   });
 });

@@ -235,12 +235,14 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(triggerManualSyncWithCooldown).toHaveBeenCalledWith(expect.objectContaining({ selectedAccountId: "acc-1" }));
   });
 
-  it("does not run the fallback when sync-completed is observed", async () => {
-    vi.useFakeTimers();
+  // Issue #102: the feed-list invalidation has exactly one owner, the native
+  // `sync-completed` listener in App.tsx. A second owner on this path raced
+  // with that listener (a late onSuccess from an earlier run could re-arm it),
+  // so manual sync only refreshes the account sync status here.
+  it("leaves feed-list invalidation to the sync-completed listener after a successful manual sync", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
     vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onRequestStart?.();
       params.onSuccess({
         synced: true,
         total: 1,
@@ -250,172 +252,22 @@ describe("resolveSidebarLastSyncedLabel", () => {
       });
     });
 
-    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
-      wrapper,
-    });
-
-    await act(async () => {
-      await result.current.handleSync();
-    });
-    act(() => {
-      getRegisteredListener("sync-completed")({ payload: null });
-    });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-
-    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
-  });
-
-  it("runs the fallback once when a successful sync-completed event is not observed", async () => {
-    vi.useFakeTimers();
-    const { queryClient, wrapper } = createQueryWrapper();
-    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
-    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onRequestStart?.();
-      params.onSuccess({
-        synced: true,
-        total: 1,
-        succeeded: 1,
-        failed: [],
-        warnings: [],
-      });
-    });
-
-    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
-      wrapper,
-    });
-
-    await act(async () => {
-      await result.current.handleSync();
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-
-    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(1);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(1);
-  });
-
-  it.each([
-    {
-      name: "zero-success",
-      result: { synced: true, total: 1, succeeded: 0, failed: [], warnings: [] },
-    },
-    {
-      name: "unsynced",
-      result: { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] },
-    },
-  ])("does not run the fallback for $name results", async ({ result: syncResult }) => {
-    vi.useFakeTimers();
-    const { queryClient, wrapper } = createQueryWrapper();
-    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
-    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onRequestStart?.();
-      params.onSuccess(syncResult);
-    });
-
-    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
-      wrapper,
-    });
-
-    await act(async () => {
-      await result.current.handleSync();
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-
-    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
-  });
-
-  it("clears a pending fallback when the selected account changes", async () => {
-    vi.useFakeTimers();
-    const { queryClient, wrapper } = createQueryWrapper();
-    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
-    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onRequestStart?.();
-      params.onSuccess({
-        synced: true,
-        total: 1,
-        succeeded: 1,
-        failed: [],
-        warnings: [],
-      });
-    });
-
-    const { result, rerender } = renderHook(
-      ({ selectedAccountId }) => useSidebarSync(createSyncHookParams({ selectedAccountId })),
-      { initialProps: { selectedAccountId: "acc-1" }, wrapper },
+    const { result } = renderHook(
+      () =>
+        useSidebarSync({
+          ...createSyncHookParams({ selectedAccountId: "acc-1" }),
+        }),
+      { wrapper },
     );
 
     await act(async () => {
       await result.current.handleSync();
     });
-    rerender({ selectedAccountId: "acc-2" });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
 
     expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
-  });
-
-  it("clears the previous fallback when a newer manual sync starts", async () => {
-    vi.useFakeTimers();
-    const { queryClient, wrapper } = createQueryWrapper();
-    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
-    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onRequestStart?.();
-      params.onSuccess({
-        synced: true,
-        total: 1,
-        succeeded: 1,
-        failed: [],
-        warnings: [],
-      });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accountSyncStatusQueryKey(),
     });
-
-    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
-      wrapper,
-    });
-
-    await act(async () => {
-      await result.current.handleSync();
-      await result.current.handleSync();
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-
-    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(1);
-  });
-
-  it("clears a pending fallback when the sidebar unmounts", async () => {
-    vi.useFakeTimers();
-    const { queryClient, wrapper } = createQueryWrapper();
-    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
-    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
-      params.onRequestStart?.();
-      params.onSuccess({
-        synced: true,
-        total: 1,
-        succeeded: 1,
-        failed: [],
-        warnings: [],
-      });
-    });
-
-    const { result, unmount } = renderHook(() => useSidebarSync(createSyncHookParams({ selectedAccountId: "acc-1" })), {
-      wrapper,
-    });
-
-    await act(async () => {
-      await result.current.handleSync();
-    });
-    unmount();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3_000);
-    });
-
-    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
   });
 
   it("accepts wrapped and raw sync progress payloads but ignores unknown payloads", () => {
