@@ -17,10 +17,13 @@ pub(crate) use policy::{
 };
 #[cfg(not(test))]
 pub(crate) use state::is_update_download_in_flight;
+pub(crate) use state::next_download_session_id;
 pub use state::PendingUpdate;
-pub(crate) use state::{next_download_session_id, resolve_post_download_install};
 
-pub(crate) use state::{DownloadGuard, PendingUpdateHandle, PostDownloadInstall, SyncInstallGuard};
+#[cfg(any(target_os = "macos", test))]
+pub(crate) use state::{resolve_post_download_install, PostDownloadInstall};
+
+pub(crate) use state::{DownloadGuard, PendingUpdateHandle, SyncInstallGuard};
 
 #[tauri::command]
 pub async fn restart_app(app: AppHandle) -> Result<(), AppError> {
