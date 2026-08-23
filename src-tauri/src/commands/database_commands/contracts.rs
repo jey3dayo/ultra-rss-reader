@@ -2,35 +2,6 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum DatabaseMaintenanceAction {
-    Vacuum,
-    SearchIndexRebuild,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DatabaseMaintenanceTrigger {
-    UserInitiated,
-    Automatic,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AppActivityState {
-    Foreground,
-    Background,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DatabaseMaintenanceScheduleDecision {
-    StartNow,
-    DeferUntilBackground,
-    RejectWhileSyncing,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
 pub enum DatabaseRuntimeFailureKind {
     ReadCorruption,
     WriteCorruption,
@@ -201,14 +172,6 @@ pub struct PrivateDataResetContract {
     pub local_storage_failure_blocks_query_cache_clear: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub struct SearchIndexRebuildMaintenanceContract {
-    pub action: DatabaseMaintenanceAction,
-    pub reports_progress: bool,
-    pub supports_cancellation: bool,
-    pub retries_after_cancellation: bool,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LongRunningNativeOperationContract {
     pub operation: LongRunningNativeOperation,
@@ -216,34 +179,6 @@ pub struct LongRunningNativeOperationContract {
     pub interruption_policies: Vec<LongRunningOperationInterruptionPolicy>,
     pub accepts_partial_artifact_after_resume: bool,
     pub sleep_resume_stance: SleepResumeStance,
-}
-
-#[cfg(test)]
-pub(crate) fn schedule_database_maintenance_action(
-    action: DatabaseMaintenanceAction,
-    trigger: DatabaseMaintenanceTrigger,
-    app_activity: AppActivityState,
-    sync_in_flight: bool,
-) -> DatabaseMaintenanceScheduleDecision {
-    match action {
-        DatabaseMaintenanceAction::Vacuum | DatabaseMaintenanceAction::SearchIndexRebuild => {}
-    }
-
-    if sync_in_flight {
-        return DatabaseMaintenanceScheduleDecision::RejectWhileSyncing;
-    }
-
-    match (trigger, app_activity) {
-        (DatabaseMaintenanceTrigger::UserInitiated, _) => {
-            DatabaseMaintenanceScheduleDecision::StartNow
-        }
-        (DatabaseMaintenanceTrigger::Automatic, AppActivityState::Background) => {
-            DatabaseMaintenanceScheduleDecision::StartNow
-        }
-        (DatabaseMaintenanceTrigger::Automatic, AppActivityState::Foreground) => {
-            DatabaseMaintenanceScheduleDecision::DeferUntilBackground
-        }
-    }
 }
 
 #[cfg(test)]
@@ -340,16 +275,6 @@ pub(crate) fn filesystem_recovery_contract(
         auto_appends_extension,
         filename_suggestion,
         exposes_raw_path_to_webview,
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildMaintenanceContract {
-    SearchIndexRebuildMaintenanceContract {
-        action: DatabaseMaintenanceAction::SearchIndexRebuild,
-        reports_progress: true,
-        supports_cancellation: true,
-        retries_after_cancellation: true,
     }
 }
 

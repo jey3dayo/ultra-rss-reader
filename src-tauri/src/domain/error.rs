@@ -32,40 +32,6 @@ pub enum DomainError {
 
 pub type DomainResult<T> = Result<T, DomainError>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DestructiveActionFallback {
-    pub visible: bool,
-    pub enabled: bool,
-    pub disabled_reason: String,
-}
-
-impl DestructiveActionFallback {
-    pub fn disabled(reason: impl Into<String>) -> Self {
-        let reason = reason.into();
-        Self {
-            visible: true,
-            enabled: false,
-            disabled_reason: if reason.trim().is_empty() {
-                "Action unavailable while recovery state is unknown".to_string()
-            } else {
-                reason
-            },
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ErrorRecoveryCategory {
-    Network,
-    RateLimit,
-    Auth,
-    Validation,
-    Parse,
-    Keychain,
-    Migration,
-    Persistence,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppRecoveryAction {
     Retry,
@@ -77,41 +43,6 @@ pub enum AppRecoveryAction {
     RestoreBackup,
     CheckOsPermissions,
     PreserveBackupAndRestart,
-}
-
-pub fn error_recovery_category(error: &DomainError) -> ErrorRecoveryCategory {
-    match error {
-        DomainError::Network(_) => ErrorRecoveryCategory::Network,
-        DomainError::RateLimit(_) | DomainError::RateLimitWithRetryAfter { .. } => {
-            ErrorRecoveryCategory::RateLimit
-        }
-        DomainError::Auth(_) => ErrorRecoveryCategory::Auth,
-        DomainError::Validation(_) => ErrorRecoveryCategory::Validation,
-        DomainError::Parse(_) => ErrorRecoveryCategory::Parse,
-        DomainError::Persistence(_) => ErrorRecoveryCategory::Persistence,
-        DomainError::Keychain(_) => ErrorRecoveryCategory::Keychain,
-        DomainError::Migration(_) => ErrorRecoveryCategory::Migration,
-    }
-}
-
-pub fn app_recovery_actions_for_error(error: &DomainError) -> &'static [AppRecoveryAction] {
-    match error_recovery_category(error) {
-        ErrorRecoveryCategory::Network => &[AppRecoveryAction::Retry],
-        ErrorRecoveryCategory::RateLimit => &[AppRecoveryAction::WaitForRetryWindow],
-        ErrorRecoveryCategory::Auth => &[AppRecoveryAction::EditAccountSettings],
-        ErrorRecoveryCategory::Validation => &[AppRecoveryAction::FixInput],
-        ErrorRecoveryCategory::Parse => &[AppRecoveryAction::CheckLogs],
-        ErrorRecoveryCategory::Keychain => &[AppRecoveryAction::CheckOsPermissions],
-        ErrorRecoveryCategory::Migration => &[
-            AppRecoveryAction::PreserveBackupAndRestart,
-            AppRecoveryAction::RestoreBackup,
-        ],
-        ErrorRecoveryCategory::Persistence => &[
-            AppRecoveryAction::RunIntegrityCheck,
-            AppRecoveryAction::RestoreBackup,
-            AppRecoveryAction::CheckOsPermissions,
-        ],
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -191,31 +122,6 @@ pub fn network_signal_contract(frontend_signal: FrontendNetworkSignal) -> Networ
             FrontendNetworkSignal::Offline
         ),
         allows_manual_retry: true,
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StorageBoundaryOwner {
-    Preferences,
-    Sidebar,
-    History,
-    Debug,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StorageQuotaFailureContract {
-    pub owner: StorageBoundaryOwner,
-    pub persist_after_quota_failure: bool,
-    pub emits_warning_once: bool,
-    pub blocks_recovery_ui: bool,
-}
-
-pub fn storage_quota_failure_contract(owner: StorageBoundaryOwner) -> StorageQuotaFailureContract {
-    StorageQuotaFailureContract {
-        owner,
-        persist_after_quota_failure: false,
-        emits_warning_once: matches!(owner, StorageBoundaryOwner::Debug),
-        blocks_recovery_ui: false,
     }
 }
 
@@ -547,11 +453,10 @@ mod tests {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener};
 
     use super::{
-        any_loopback_socket_accepts_connection, app_recovery_actions_for_error,
-        classify_network_error, error_recovery_category, provider_block_response_contract,
-        redact_sensitive_network_error_message, AppRecoveryAction, DestructiveActionFallback,
-        DomainError, ErrorRecoveryCategory, FrontendNetworkSignal, NetworkErrorClassificationInput,
-        PlatformPermissionDeniedSurface, StorageBoundaryOwner, PROVIDER_RETRY_AFTER_MAX_SECONDS,
+        any_loopback_socket_accepts_connection, classify_network_error,
+        provider_block_response_contract, redact_sensitive_network_error_message,
+        AppRecoveryAction, DomainError, FrontendNetworkSignal, NetworkErrorClassificationInput,
+        PlatformPermissionDeniedSurface, PROVIDER_RETRY_AFTER_MAX_SECONDS,
     };
     use crate::commands::dto::AppError;
     use reqwest::{
@@ -723,65 +628,6 @@ mod tests {
                 panic!("sqlite persistence errors must not become retryable: {message}");
             }
         }
-    }
-
-    #[test]
-    fn destructive_action_fallback_stays_visible_but_disabled_with_reason() {
-        let fallback = DestructiveActionFallback::disabled("Preferences failed to load");
-
-        assert!(fallback.visible);
-        assert!(!fallback.enabled);
-        assert_eq!(fallback.disabled_reason, "Preferences failed to load");
-    }
-
-    #[test]
-    fn destructive_action_fallback_uses_default_reason_for_blank_input() {
-        let fallback = DestructiveActionFallback::disabled("   ");
-
-        assert!(fallback.visible);
-        assert!(!fallback.enabled);
-        assert_eq!(
-            fallback.disabled_reason,
-            "Action unavailable while recovery state is unknown"
-        );
-    }
-
-    #[test]
-    fn diagnostics_storage_boundary_contract_prevents_quota_cascade() {
-        for owner in [
-            StorageBoundaryOwner::Preferences,
-            StorageBoundaryOwner::Sidebar,
-            StorageBoundaryOwner::History,
-            StorageBoundaryOwner::Debug,
-        ] {
-            let contract = super::storage_quota_failure_contract(owner);
-
-            assert_eq!(contract.owner, owner);
-            assert!(
-                !contract.persist_after_quota_failure,
-                "quota failure must not trigger a secondary storage write for {owner:?}"
-            );
-            assert!(
-                !contract.blocks_recovery_ui,
-                "quota failure must not hide recovery UI for {owner:?}"
-            );
-        }
-
-        assert!(
-            !super::storage_quota_failure_contract(StorageBoundaryOwner::Preferences)
-                .emits_warning_once
-        );
-        assert!(
-            !super::storage_quota_failure_contract(StorageBoundaryOwner::Sidebar)
-                .emits_warning_once
-        );
-        assert!(
-            !super::storage_quota_failure_contract(StorageBoundaryOwner::History)
-                .emits_warning_once
-        );
-        assert!(
-            super::storage_quota_failure_contract(StorageBoundaryOwner::Debug).emits_warning_once
-        );
     }
 
     #[test]
@@ -1103,64 +949,6 @@ mod tests {
             assert_eq!(contract.uses_sync_backoff, uses_sync_backoff);
             assert_eq!(contract.primary_user_action, primary_user_action);
             assert_eq!(contract.manual_retry_allowed, manual_retry_allowed);
-        }
-    }
-
-    #[test]
-    fn domain_errors_have_stable_recovery_categories_and_actions() {
-        let cases = [
-            (
-                DomainError::Network("offline".to_string()),
-                ErrorRecoveryCategory::Network,
-                &[AppRecoveryAction::Retry][..],
-            ),
-            (
-                DomainError::RateLimit("wait".to_string()),
-                ErrorRecoveryCategory::RateLimit,
-                &[AppRecoveryAction::WaitForRetryWindow][..],
-            ),
-            (
-                DomainError::Auth("expired".to_string()),
-                ErrorRecoveryCategory::Auth,
-                &[AppRecoveryAction::EditAccountSettings][..],
-            ),
-            (
-                DomainError::Validation("missing URL".to_string()),
-                ErrorRecoveryCategory::Validation,
-                &[AppRecoveryAction::FixInput][..],
-            ),
-            (
-                DomainError::Parse("bad feed".to_string()),
-                ErrorRecoveryCategory::Parse,
-                &[AppRecoveryAction::CheckLogs][..],
-            ),
-            (
-                DomainError::Keychain("denied".to_string()),
-                ErrorRecoveryCategory::Keychain,
-                &[AppRecoveryAction::CheckOsPermissions][..],
-            ),
-            (
-                DomainError::Migration("failed".to_string()),
-                ErrorRecoveryCategory::Migration,
-                &[
-                    AppRecoveryAction::PreserveBackupAndRestart,
-                    AppRecoveryAction::RestoreBackup,
-                ][..],
-            ),
-            (
-                DomainError::Persistence("database disk image is malformed".to_string()),
-                ErrorRecoveryCategory::Persistence,
-                &[
-                    AppRecoveryAction::RunIntegrityCheck,
-                    AppRecoveryAction::RestoreBackup,
-                    AppRecoveryAction::CheckOsPermissions,
-                ][..],
-            ),
-        ];
-
-        for (error, expected_category, expected_actions) in cases {
-            assert_eq!(error_recovery_category(&error), expected_category);
-            assert_eq!(app_recovery_actions_for_error(&error), expected_actions);
         }
     }
 

@@ -4,12 +4,10 @@ use std::sync::Mutex;
 use crate::commands::database_commands::{
     backup_database_inner, database_runtime_recovery_contract, filesystem_recovery_contract,
     get_database_info_inner, long_running_native_operation_contract, private_data_reset_contract,
-    schedule_database_maintenance_action, search_index_rebuild_maintenance_contract,
-    vacuum_database_inner, AppActivityState, AtomicFileWritePolicy, DatabaseInfoDto,
-    DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
-    DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
-    DatabaseRuntimeRecoveryMode, FilenameSuggestionPolicy, FilesystemPathNormalizationPolicy,
-    FilesystemRecoverySurface, LongRunningNativeOperation, LongRunningOperationInterruptionPolicy,
+    vacuum_database_inner, AtomicFileWritePolicy, DatabaseInfoDto, DatabaseRecoveryActionSafety,
+    DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction, DatabaseRuntimeRecoveryMode,
+    FilenameSuggestionPolicy, FilesystemPathNormalizationPolicy, FilesystemRecoverySurface,
+    LongRunningNativeOperation, LongRunningOperationInterruptionPolicy,
     NativeFileDialogCancelPolicy, NativeFileDialogDirectoryPolicy, NativeFileDialogExtensionPolicy,
     NativeFileDialogOverwritePolicy, PrivateDataResetStep, SleepResumeStance,
 };
@@ -145,72 +143,6 @@ fn database_maintenance_guard_returns_syncing_error_when_flag_is_reserved() {
     assert!(
         syncing.load(Ordering::SeqCst),
         "failed maintenance start should not clear another operation's flag"
-    );
-}
-
-#[test]
-fn automatic_large_maintenance_runs_only_in_background_without_sync() {
-    assert_eq!(
-        schedule_database_maintenance_action(
-            DatabaseMaintenanceAction::Vacuum,
-            DatabaseMaintenanceTrigger::Automatic,
-            AppActivityState::Foreground,
-            false,
-        ),
-        DatabaseMaintenanceScheduleDecision::DeferUntilBackground
-    );
-    assert_eq!(
-        schedule_database_maintenance_action(
-            DatabaseMaintenanceAction::Vacuum,
-            DatabaseMaintenanceTrigger::Automatic,
-            AppActivityState::Background,
-            false,
-        ),
-        DatabaseMaintenanceScheduleDecision::StartNow
-    );
-    assert_eq!(
-        schedule_database_maintenance_action(
-            DatabaseMaintenanceAction::Vacuum,
-            DatabaseMaintenanceTrigger::Automatic,
-            AppActivityState::Background,
-            true,
-        ),
-        DatabaseMaintenanceScheduleDecision::RejectWhileSyncing
-    );
-}
-
-#[test]
-fn user_initiated_large_maintenance_can_run_in_foreground_when_idle() {
-    assert_eq!(
-        schedule_database_maintenance_action(
-            DatabaseMaintenanceAction::Vacuum,
-            DatabaseMaintenanceTrigger::UserInitiated,
-            AppActivityState::Foreground,
-            false,
-        ),
-        DatabaseMaintenanceScheduleDecision::StartNow
-    );
-}
-
-#[test]
-fn search_index_rebuild_is_large_maintenance_with_progress_and_cancel_contract() {
-    let contract = search_index_rebuild_maintenance_contract();
-
-    assert_eq!(
-        contract.action,
-        DatabaseMaintenanceAction::SearchIndexRebuild
-    );
-    assert!(contract.reports_progress);
-    assert!(contract.supports_cancellation);
-    assert!(contract.retries_after_cancellation);
-    assert_eq!(
-        schedule_database_maintenance_action(
-            contract.action,
-            DatabaseMaintenanceTrigger::Automatic,
-            AppActivityState::Foreground,
-            false,
-        ),
-        DatabaseMaintenanceScheduleDecision::DeferUntilBackground
     );
 }
 
