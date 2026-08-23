@@ -144,6 +144,22 @@ describe("release version bump contract", () => {
     });
   });
 
+  it("updates a Cargo.lock owner while preserving optional whitespace", () => {
+    withFixture((fixtureRoot) => {
+      const lockPath = join(fixtureRoot, "src-tauri/Cargo.lock");
+      const source = readFileSync(lockPath, "utf8");
+      const whitespaceOwner = source.replace(
+        /(\[\[package\]\]\nname = "ultra-rss-reader"\n)version = "([^"]+)"/,
+        '$1version  =  "$2"',
+      );
+      writeFileSync(lockPath, whitespaceOwner, "utf8");
+
+      runBump(fixtureRoot, "0.59.1");
+      expect(readFileSync(lockPath, "utf8")).toContain('name = "ultra-rss-reader"\nversion  =  "0.59.1"');
+      expect(() => runParity(fixtureRoot, "0.59.1")).not.toThrow();
+    });
+  });
+
   it("rejects duplicate MSIX Identity owners before writing", () => {
     withFixture((fixtureRoot) => {
       const manifestPath = join(fixtureRoot, "msix/Package.appxmanifest");

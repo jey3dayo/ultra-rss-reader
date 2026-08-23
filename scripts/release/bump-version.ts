@@ -172,7 +172,7 @@ const cargoLockVersionFile: VersionFile = {
   readVersion: (source) => readCargoLockOwner(source).version,
   update: (source, targetVersion) => {
     const owner = readCargoLockOwner(source);
-    const updatedElement = owner.element.replace(/version = "[^"]+"/, `version = "${targetVersion}"`);
+    const updatedElement = owner.element.replace(/(version\s*=\s*")[^"]+("\s*)$/, `$1${targetVersion}$2`);
     return `${source.slice(0, owner.start)}${updatedElement}${source.slice(owner.start + owner.element.length)}`;
   },
   formatTarget: (targetVersion) => targetVersion,
