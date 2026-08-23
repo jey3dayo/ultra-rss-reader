@@ -1,5 +1,7 @@
 mod http;
 mod stream;
+mod stream_subscriptions;
+mod stream_types;
 
 use async_trait::async_trait;
 use std::fmt;
@@ -14,12 +16,12 @@ use crate::domain::provider::*;
 use crate::infra::feed_discovery::validate_discovery_url;
 #[cfg(test)]
 use chrono::{DateTime, Utc};
+pub(crate) use stream::{UnreadPullResult, UnreadPullTermination};
 #[cfg(test)]
-use stream::{
+use stream_types::{
     normalize_item_id, normalize_label_remote_id, valid_item_cursor_timestamp_usec, GReaderItem,
     GReaderLink, GReaderOrigin,
 };
-pub(crate) use stream::{UnreadPullResult, UnreadPullTermination};
 
 // --- Constants ---
 
