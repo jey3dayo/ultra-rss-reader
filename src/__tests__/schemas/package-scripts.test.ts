@@ -18,7 +18,7 @@ function readWorkspaceFile(path: string): string {
 }
 
 function readMiseTaskCorpus(): string {
-  return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
+  return ["mise.toml", "mise/deploy.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
     .map(readWorkspaceFile)
     .join("\n");
 }
@@ -185,12 +185,16 @@ describe("package scripts", () => {
     }
   });
 
-  it("keeps markdownlint-cli2 routed through mise tasks for the knip dependency contract", () => {
+  it("keeps mise-routed tool dependencies explicit in the knip contract", () => {
     const packageJson = readPackageJson();
     const miseToml = readMiseTaskCorpus();
 
     expect(packageJson.devDependencies?.["markdownlint-cli2"]).toBeDefined();
-    expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2"]);
+    expect(packageJson.devDependencies?.wrangler).toBeDefined();
+    expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2", "wrangler"]);
+    expect(extractMiseTaskCommand(miseToml, "deploy:site", "run")).toBe(
+      "wrangler pages deploy site --project-name=ultra-rss-reader --branch=main",
+    );
 
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run"))).toEqual([
       "markdownlint-cli2",

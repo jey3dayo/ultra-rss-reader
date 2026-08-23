@@ -52,7 +52,8 @@
       ]
     },
     "ignoreDependencies": [
-      "markdownlint-cli2"
+      "markdownlint-cli2",
+      "wrangler"
     ]
   },
   "dependencies": {
