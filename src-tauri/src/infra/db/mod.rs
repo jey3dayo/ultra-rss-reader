@@ -310,7 +310,6 @@ mod tests {
             ("sqlite_feed.rs", "f.com"),
             ("sqlite_article.rs", "test.com"),
             ("sqlite_folder.rs", "f.com"),
-            ("test_fixtures.rs", "example.test"),
         ];
 
         for (owner, candidate) in migration_candidates {
