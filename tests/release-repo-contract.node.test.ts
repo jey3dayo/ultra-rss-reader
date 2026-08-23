@@ -232,7 +232,9 @@ const readAccountCommandsModuleSource = (): string =>
 const readOpmlCommandsModuleSource = (): string =>
   ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/commands/opml_commands/${file}`)).join("\n");
 const readFeedDiscoveryModuleSource = (): string =>
-  ["mod.rs", "tests.rs"].map((file) => readText(`src-tauri/src/infra/feed_discovery/${file}`)).join("\n");
+  ["mod.rs", "http.rs", "html.rs", "tests.rs"]
+    .map((file) => readText(`src-tauri/src/infra/feed_discovery/${file}`))
+    .join("\n");
 const readGReaderProviderModuleSource = (): string =>
   ["mod.rs", "http.rs", "stream.rs", "stream_subscriptions.rs", "stream_types.rs", "tests.rs"]
     .map((file) => readText(`src-tauri/src/infra/provider/greader/${file}`))
@@ -1378,6 +1380,8 @@ describe("release repository contract", () => {
     expect(localProviderSource).toContain("create_subscription_preserves_retry_after_for_rate_limit_status");
 
     expect(feedDiscoverySource).toContain("Discovery is a user-initiated single URL probe, not a crawler.");
+    expect(feedDiscoverySource).toContain("pub(crate) fn discovery_http_client_builder");
+    expect(feedDiscoverySource).toContain("pub(crate) fn extract_feed_links");
     expect(feedDiscoverySource).toContain("validate_discovery_redirect_rejects_dns_rebinding_private_hostname_targets");
     expect(feedDiscoverySource).toContain("discovery_http_client_sends_shared_user_agent_and_does_not_prefetch_robots");
 
