@@ -1,0 +1,413 @@
+import { Clock3, Folder, Hash, Inbox, Star } from "lucide-react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+  MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+} from "@/constants";
+import { FeedFavicon, MotionNumber } from "@/design-system";
+import {
+  type ArticleViewSummaryFeed,
+  type ArticleViewSummaryState,
+  resolveArticleDateLocale,
+  resolveArticleSummaryWebsiteHref,
+  resolveArticleSummaryWebsiteLabel,
+} from "@/lib/articles/article-view";
+import { focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
+import { cn } from "@/lib/utils";
+import { useUiStore } from "@/stores/ui-store";
+import { ArticleToolbar } from "./article-pane-view";
+import { ArticleEmptyStateShell } from "./article-view-state";
+import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
+
+const SUMMARY_CONTAINER_CLASS_NAME = "w-full max-w-[39rem]";
+
+type SummaryMotionStyle = CSSProperties &
+  Record<"--motion-content-swap-offset" | "--motion-duration-content-swap", string>;
+const SUMMARY_MOTION_STYLE: SummaryMotionStyle = {
+  "--motion-content-swap-offset": MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+  "--motion-duration-content-swap": MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+};
+
+type SummaryIdentityProps = {
+  label: string;
+  value: ReactNode;
+};
+
+type SummaryScopeProps = {
+  motionKey: string;
+  title: string;
+  titleHref?: string | null;
+  subtitle: ReactNode;
+  visual: ReactNode;
+  metrics: SummaryIdentityProps[];
+  latestUpdateLabel: string;
+  latestUpdateValue: string;
+  recentFeeds: ArticleViewSummaryFeed[];
+  accentTone?: "unread" | "starred";
+};
+
+function renderSummaryCount(value: number, locale: string) {
+  const label = value.toLocaleString(locale);
+
+  return <MotionNumber key={label} value={label} />;
+}
+
+function SummaryMetric({ label, value }: SummaryIdentityProps) {
+  return (
+    <div className="min-w-0">
+      <p className="font-sans text-[1.55rem] font-medium leading-tight tracking-tight text-foreground tabular-nums">
+        {value}
+      </p>
+      <p className="mt-1 text-[0.7rem] leading-tight tracking-wide text-foreground/85">{label}</p>
+    </div>
+  );
+}
+
+function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSelect: (feedId: string) => void }) {
+  const hasUnread = feed.unread_count > 0;
+
+  return (
+    <li className="min-w-0">
+      <FeedContextMenuTrigger
+        feed={feed}
+        onSelect={() => onSelect(feed.id)}
+        render={
+          <button
+            type="button"
+            aria-haspopup="menu"
+            className={cn(
+              "flex h-11 w-full min-w-0 select-none items-center gap-2.5 rounded-md border border-border-strong bg-surface-1 px-3 text-left shadow-elevation-1",
+              "transition-[background-color,box-shadow,transform] duration-150 ease-standard motion-reduce:transition-none",
+              "hover:-translate-y-px hover:bg-surface-2 hover:shadow-elevation-2",
+              "active:scale-[0.98] active:duration-100 active:ease-out",
+              "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
+              !hasUnread && "opacity-60",
+            )}
+          >
+            <FeedFavicon
+              title={feed.title}
+              url={feed.url}
+              siteUrl={feed.site_url}
+              iconUrl={feed.icon_url}
+              size="md"
+              grayscale={!hasUnread}
+            />
+            <span className={cn("min-w-0 flex-1 truncate", !hasUnread && "text-foreground-soft")} dir="auto">
+              {feed.title}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-1.5 py-0.5 text-xs tabular-nums",
+                hasUnread
+                  ? "bg-[var(--semantic-tone-unread-surface)] font-medium text-[var(--semantic-tone-unread-content-foreground)]"
+                  : "text-foreground-soft",
+              )}
+            >
+              {feed.unread_count.toLocaleString()}
+            </span>
+          </button>
+        }
+      />
+    </li>
+  );
+}
+
+function SummaryEmptyState({
+  motionKey,
+  title,
+  titleHref,
+  subtitle,
+  visual,
+  metrics,
+  latestUpdateLabel,
+  latestUpdateValue,
+  recentFeeds,
+  accentTone,
+}: SummaryScopeProps) {
+  const { t } = useTranslation("reader");
+  const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
+  const openBrowser = useUiStore((s) => s.openBrowser);
+
+  function handleSelectRecentFeed(feedId: string) {
+    selectFeedFromCurrentContext(feedId);
+    focusSelectedSidebarTarget();
+    scheduleReaderFocusFrame(() => {
+      focusSelectedSidebarTarget();
+    });
+  }
+
+  function handleWebsiteLinkClick(event: ReactMouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    openBrowser(event.currentTarget.href);
+  }
+
+  return (
+    <ArticleEmptyStateShell
+      toolbar={
+        <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
+      }
+      body={
+        <div className="flex flex-1 items-start justify-start overflow-y-auto px-10 pt-10 pb-12">
+          <section
+            key={motionKey}
+            data-testid="article-selection-summary"
+            data-selection-identity=""
+            data-selection-identity-accent={accentTone}
+            aria-label={title}
+            data-motion-phase="entering"
+            className={cn(SUMMARY_CONTAINER_CLASS_NAME, MOTION_CONTENT_SWAP_CLASS_NAME)}
+            style={SUMMARY_MOTION_STYLE}
+          >
+            <div className="w-full px-1">
+              <div className="mb-7 flex min-w-0 items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-md text-foreground-soft"
+                  >
+                    {visual}
+                  </span>
+                  <div className="min-w-0">
+                    {titleHref ? (
+                      <a
+                        href={titleHref}
+                        onClick={handleWebsiteLinkClick}
+                        className="block truncate font-sans text-xl font-semibold leading-tight text-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+                        dir="auto"
+                      >
+                        {title}
+                      </a>
+                    ) : (
+                      <p className="truncate font-sans text-xl font-semibold leading-tight text-foreground" dir="auto">
+                        {title}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs leading-tight text-foreground-soft">{subtitle}</p>
+                  </div>
+                </div>
+                <div className="shrink-0 pl-3 text-right">
+                  <p className="text-[0.7rem] leading-tight tracking-wide text-foreground/85">{latestUpdateLabel}</p>
+                  <p className="mt-0.5 font-sans text-[0.95rem] font-medium leading-tight tracking-tight text-foreground tabular-nums">
+                    {latestUpdateValue}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-x-6 gap-y-5" data-testid="article-selection-summary-metrics">
+                {metrics.map((metric) => (
+                  <SummaryMetric key={metric.label} {...metric} />
+                ))}
+              </div>
+              {recentFeeds.length > 0 ? (
+                <div className="mt-8">
+                  <h3 className="text-sm font-medium text-foreground">{t("recent_feeds")}</h3>
+                  <ul className="mt-3 grid grid-cols-2 gap-2.5">
+                    {recentFeeds.map((feed) => (
+                      <RecentFeedRow key={feed.id} feed={feed} onSelect={handleSelectRecentFeed} />
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      }
+    />
+  );
+}
+
+const relativeTimeFormatCache = new Map<string, Intl.RelativeTimeFormat>();
+
+function getRelativeTimeFormat(locale: string): Intl.RelativeTimeFormat {
+  const cached = relativeTimeFormatCache.get(locale);
+  if (cached) {
+    return cached;
+  }
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  relativeTimeFormatCache.set(locale, formatter);
+  return formatter;
+}
+
+function formatRelativeSummaryTime(value: string | null | undefined, locale: string): string {
+  if (!value) {
+    return "—";
+  }
+
+  const publishedTime = new Date(value).getTime();
+  if (Number.isNaN(publishedTime)) {
+    return "—";
+  }
+
+  const diffMs = Date.now() - publishedTime;
+  if (diffMs < 0) {
+    return getRelativeTimeFormat(locale).format(0, "minute");
+  }
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const formatter = getRelativeTimeFormat(locale);
+
+  if (diffMs < hour) {
+    return formatter.format(-Math.max(1, Math.round(diffMs / minute)), "minute");
+  }
+
+  if (diffMs < day) {
+    return formatter.format(-Math.round(diffMs / hour), "hour");
+  }
+
+  return formatter.format(-Math.round(diffMs / day), "day");
+}
+
+function buildSummaryIdentityProps(
+  summary: ArticleViewSummaryState,
+  locale: string,
+  readerT: ReturnType<typeof useTranslation<"reader">>["t"],
+  sidebarT: ReturnType<typeof useTranslation<"sidebar">>["t"],
+): SummaryScopeProps {
+  const latestUpdate = formatRelativeSummaryTime(summary.latestArticlePublishedAt, locale);
+  const buildMetrics = (params: {
+    unreadCount: number;
+    todayArticleCount: number;
+    weekArticleCount: number;
+  }): SummaryIdentityProps[] => [
+    {
+      label: readerT("unread"),
+      value: renderSummaryCount(params.unreadCount, locale),
+    },
+    {
+      label: readerT("today_published"),
+      value: renderSummaryCount(params.todayArticleCount, locale),
+    },
+    {
+      label: readerT("week_new"),
+      value: renderSummaryCount(params.weekArticleCount, locale),
+    },
+  ];
+  const latestUpdateLabel = readerT("latest_update");
+
+  if (summary.kind === "feed") {
+    const websiteHref = resolveArticleSummaryWebsiteHref(summary.feed);
+    const websiteLabel = resolveArticleSummaryWebsiteLabel(summary.feed);
+
+    return {
+      motionKey: `feed:${summary.feed.id}`,
+      title: summary.feed.title,
+      titleHref: websiteHref,
+      subtitle:
+        websiteHref && websiteLabel ? (
+          // react-doctor-disable-next-line react-doctor/no-prevent-default -- Intentional in-app browser navigation for the sanitized feed website URL; re-evaluate if routing becomes declarative.
+          <a
+            href={websiteHref}
+            onClick={(event) => {
+              event.preventDefault();
+              useUiStore.getState().openBrowser(event.currentTarget.href);
+            }}
+            className="underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+          >
+            {websiteLabel}
+          </a>
+        ) : (
+          readerT("feed_or_site_url")
+        ),
+      visual: (
+        <FeedFavicon
+          title={summary.feed.title}
+          url={summary.feed.url}
+          siteUrl={summary.feed.site_url}
+          iconUrl={summary.feed.icon_url}
+          size="md"
+        />
+      ),
+      metrics: buildMetrics({
+        unreadCount: summary.feed.unread_count,
+        todayArticleCount: summary.todayArticleCount,
+        weekArticleCount: summary.weekArticleCount,
+      }),
+      latestUpdateLabel,
+      latestUpdateValue: latestUpdate,
+      recentFeeds: [],
+      accentTone: "unread",
+    };
+  }
+
+  if (summary.kind === "folder") {
+    return {
+      motionKey: `folder:${summary.folder.id}`,
+      title: summary.folder.name,
+      subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
+      visual: <Folder className="size-6" />,
+      metrics: buildMetrics({
+        unreadCount: summary.unreadCount,
+        todayArticleCount: summary.todayArticleCount,
+        weekArticleCount: summary.weekArticleCount,
+      }),
+      latestUpdateLabel,
+      latestUpdateValue: latestUpdate,
+      recentFeeds: summary.recentFeeds,
+      accentTone: "unread",
+    };
+  }
+
+  if (summary.kind === "tag") {
+    return {
+      motionKey: `tag:${summary.tag.id}`,
+      title: summary.tag.name,
+      subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
+      visual: <Hash className="size-6" />,
+      metrics: buildMetrics({
+        unreadCount: summary.unreadCount,
+        todayArticleCount: summary.todayArticleCount,
+        weekArticleCount: summary.weekArticleCount,
+      }),
+      latestUpdateLabel,
+      latestUpdateValue: latestUpdate,
+      recentFeeds: summary.recentFeeds,
+    };
+  }
+
+  const smartSummaryView = {
+    unread: {
+      title: sidebarT("unread"),
+      visual: <Inbox className="size-6" />,
+      accentTone: "unread" as const,
+    },
+    starred: {
+      title: sidebarT("starred"),
+      visual: <Star className="size-6" />,
+      accentTone: "starred" as const,
+    },
+    recent: {
+      title: sidebarT("recent_articles"),
+      visual: <Clock3 className="size-6" />,
+      accentTone: undefined,
+    },
+  }[summary.smartKind];
+
+  return {
+    motionKey: `smart:${summary.smartKind}`,
+    title: smartSummaryView.title,
+    subtitle: readerT("summary_article_count", { count: summary.articleCount }),
+    visual: smartSummaryView.visual,
+    accentTone: smartSummaryView.accentTone,
+    metrics: buildMetrics({
+      unreadCount: summary.unreadCount,
+      todayArticleCount: summary.todayArticleCount,
+      weekArticleCount: summary.weekArticleCount,
+    }),
+    latestUpdateLabel,
+    latestUpdateValue: latestUpdate,
+    recentFeeds: summary.recentFeeds,
+  };
+}
+
+export function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummaryState }) {
+  const { t } = useTranslation("reader");
+  const { t: sidebarT } = useTranslation("sidebar");
+  const { i18n } = useTranslation("reader");
+  const locale = resolveArticleDateLocale(i18n.language);
+  const identityProps = buildSummaryIdentityProps(summary, locale, t, sidebarT);
+
+  return <SummaryEmptyState {...identityProps} />;
+}
