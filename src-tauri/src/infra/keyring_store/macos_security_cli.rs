@@ -1,7 +1,10 @@
+#[cfg(target_os = "macos")]
 use super::dev_store_file::validate_dev_credential_account_id;
+#[cfg(any(target_os = "macos", test))]
 use super::redaction::redact_diagnostic_text;
 #[cfg(any(target_os = "macos", test))]
 use super::redaction::redact_stderr_text;
+#[cfg(target_os = "macos")]
 use crate::domain::error::{DomainError, DomainResult};
 #[cfg(target_os = "macos")]
 use std::time::{Duration, Instant};
