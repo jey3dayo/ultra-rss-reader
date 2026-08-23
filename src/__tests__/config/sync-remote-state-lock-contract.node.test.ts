@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
-import accountRsSource from "../../../src-tauri/src/commands/sync_providers/account.rs?raw";
+import accountRsSource from "../../../src-tauri/src/commands/sync_providers/account/remote_state.rs?raw";
 import unreadReconcileSource from "../../../src-tauri/src/commands/sync_providers/unread/mod.rs?raw";
 
 // Structural regression guard for .claude/rules/remote-state-reconciliation.md
@@ -16,7 +16,12 @@ import unreadReconcileSource from "../../../src-tauri/src/commands/sync_provider
 // invariant holds for all possible code shapes.
 
 const srcTauriSrcRoot = join(process.cwd(), "src-tauri/src");
-const ACCOUNT_RS_REL_PATH = "commands/sync_providers/account.rs";
+// account.rs was split by responsibility (plan: refactor/account-rs-split);
+// apply_remote_state_with_protection and pending_remote_ids_by_axis now live
+// in account/remote_state.rs, paired per
+// .claude/rules/remote-state-reconciliation.md. The other former account.rs
+// functions moved to account/{mod,warnings,feeds,entries,db}.rs.
+const ACCOUNT_RS_REL_PATH = "commands/sync_providers/account/remote_state.rs";
 const UNREAD_RS_REL_PATH = "commands/sync_providers/unread/mod.rs";
 
 // Files allowed to call `.apply_remote_state(` outside test code, other than
@@ -64,20 +69,20 @@ const SYNC_PROVIDERS_REL_DIR = "commands/sync_providers";
 // [relative file path, function name] pairs allowed to call `lock_db(` in
 // commands/sync_providers/** production code. Keep sorted by file, then by name.
 const SYNC_PROVIDERS_LOCK_DB_ALLOWLIST: ReadonlyArray<readonly [string, string]> = [
-  ["commands/sync_providers/account.rs", "apply_remote_state_with_protection"],
-  ["commands/sync_providers/account.rs", "delete_pending_mutation"],
-  ["commands/sync_providers/account.rs", "load_account_feeds"],
-  ["commands/sync_providers/account.rs", "load_feed_sync_state"],
-  ["commands/sync_providers/account.rs", "load_folder_remote_id_map"],
-  ["commands/sync_providers/account.rs", "load_pending_mutations_for_account"],
-  ["commands/sync_providers/account.rs", "persist_pulled_account_articles"],
-  ["commands/sync_providers/account.rs", "persist_pulled_feed_articles"],
-  ["commands/sync_providers/account.rs", "provider_managed_feed_snapshots"],
-  ["commands/sync_providers/account.rs", "recalculate_feed_unread_counts"],
-  ["commands/sync_providers/account.rs", "recalculate_provider_managed_feed_unread_counts"],
-  ["commands/sync_providers/account.rs", "recalculate_single_feed_unread_count"],
-  ["commands/sync_providers/account.rs", "save_feed_sync_state"],
-  ["commands/sync_providers/account.rs", "save_greader_folders_snapshot"],
+  ["commands/sync_providers/account/db.rs", "delete_pending_mutation"],
+  ["commands/sync_providers/account/db.rs", "load_account_feeds"],
+  ["commands/sync_providers/account/db.rs", "load_feed_sync_state"],
+  ["commands/sync_providers/account/db.rs", "load_folder_remote_id_map"],
+  ["commands/sync_providers/account/db.rs", "load_pending_mutations_for_account"],
+  ["commands/sync_providers/account/db.rs", "persist_pulled_account_articles"],
+  ["commands/sync_providers/account/db.rs", "persist_pulled_feed_articles"],
+  ["commands/sync_providers/account/db.rs", "provider_managed_feed_snapshots"],
+  ["commands/sync_providers/account/db.rs", "recalculate_feed_unread_counts"],
+  ["commands/sync_providers/account/db.rs", "recalculate_provider_managed_feed_unread_counts"],
+  ["commands/sync_providers/account/db.rs", "recalculate_single_feed_unread_count"],
+  ["commands/sync_providers/account/db.rs", "save_feed_sync_state"],
+  ["commands/sync_providers/account/db.rs", "save_greader_folders_snapshot"],
+  ["commands/sync_providers/account/remote_state.rs", "apply_remote_state_with_protection"],
   ["commands/sync_providers/local.rs", "commit_local_feed_sync_result"],
   ["commands/sync_providers/local.rs", "load_local_feed_sync_state"],
   ["commands/sync_providers/state.rs", "article_count_for_feed"],
