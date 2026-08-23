@@ -32,6 +32,9 @@ import type {
 } from "../../stores/ui-store";
 import { useUiStore } from "../../stores/ui-store";
 
+type ExpectedUiStoreReaderActions = UiStoreReaderSelectionActions &
+  Pick<UiStoreState, "openSubscriptionsIndex" | "closeSubscriptionsWorkspace">;
+
 function getReaderStateSnapshot(state: UiStoreReaderState) {
   return {
     selectedAccountId: state.selectedAccountId,
@@ -80,6 +83,71 @@ function expectBrowserStateReset() {
   );
 }
 
+function expectInitialUiStateDefaults() {
+  const state = useUiStore.getState();
+
+  expect(state).toMatchObject({
+    layoutMode: "wide",
+    focusedPane: "sidebar",
+    sidebarOpen: true,
+    accountPaneOpen: false,
+    contentMode: "empty",
+    selectedAccountId: null,
+    selection: { type: "all" },
+    selectedArticleId: null,
+    articleEngagement: "reading",
+    viewMode: "unread",
+    searchQuery: "",
+    browserUrl: null,
+    webPreviewSessionMode: "auto",
+    browserNavigationState: null,
+    browserCloseInFlight: false,
+    pendingBrowserCloseAction: null,
+    pendingBrowserCloseActionQueue: [],
+    articleNavigationDirection: null,
+    hasNextArticle: false,
+    expandedFolderIds: new Set(),
+    isFeedsSectionOpen: true,
+    isTagsSectionOpen: true,
+    settingsOpen: false,
+    settingsCategory: "general",
+    settingsAccountId: null,
+    settingsAddAccount: false,
+    settingsAddAccountInitialKind: null,
+    settingsLoading: false,
+    subscriptionsWorkspace: null,
+    accountSetupSession: null,
+    commandPaletteOpen: false,
+    shortcutsHelpOpen: false,
+    isAddFeedDialogOpen: false,
+    toastMessage: null,
+    toastAnnouncements: [],
+    recentlyReadIds: new Set(),
+    retainedArticleIds: new Set(),
+    articleReaderScrollPositions: new Map(),
+    nativeLifecycleBlockers: new Map(),
+  });
+  expect(state.syncProgress).toEqual({
+    active: false,
+    sessionId: null,
+    kind: null,
+    stage: null,
+    total: 0,
+    completed: 0,
+    currentAccountName: null,
+    activeAccountIds: new Set(),
+  });
+  expect(state.confirmDialog).toEqual({
+    open: false,
+    message: "",
+    actionLabel: null,
+    actionAccessibleLabel: null,
+    variant: "default",
+    icon: null,
+    onConfirm: null,
+  });
+}
+
 describe("useUiStore", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
@@ -90,13 +158,80 @@ describe("useUiStore", () => {
   });
 
   it("initial state defaults", () => {
-    const s = useUiStore.getState();
-    expect(s.layoutMode).toBe("wide");
-    expect(s.contentMode).toBe("empty");
-    expect(s.selection).toEqual({ type: "all" });
-    expect(s.commandPaletteOpen).toBe(false);
-    expect(s.sidebarOpen).toBe(true);
-    expect(s.accountPaneOpen).toBe(false);
+    expectInitialUiStateDefaults();
+  });
+
+  it("restores the complete UI state shape through the public reset contract", () => {
+    useUiStore.setState({
+      layoutMode: "compact",
+      focusedPane: "content",
+      sidebarOpen: false,
+      accountPaneOpen: true,
+      contentMode: "browser",
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "article-1",
+      articleEngagement: "preview",
+      viewMode: "all",
+      searchQuery: "query",
+      browserUrl: "https://example.com",
+      webPreviewSessionMode: "forced-off",
+      browserNavigationState: { canGoBack: true, canGoForward: true },
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article", "prev-feed"],
+      articleNavigationDirection: 1,
+      hasNextArticle: true,
+      expandedFolderIds: new Set(["folder-1"]),
+      isFeedsSectionOpen: false,
+      isTagsSectionOpen: false,
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-1",
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: "FreshRss",
+      settingsLoading: true,
+      subscriptionsWorkspace: { kind: "index" },
+      syncProgress: {
+        active: true,
+        sessionId: 1,
+        kind: "manual_account",
+        stage: "account_started",
+        total: 1,
+        completed: 0,
+        currentAccountName: "FreshRSS",
+        activeAccountIds: new Set(["acc-1"]),
+      },
+      accountSetupSession: {
+        accountId: "acc-1",
+        owner: "account-detail",
+        state: "syncing",
+      },
+      commandPaletteOpen: true,
+      shortcutsHelpOpen: true,
+      isAddFeedDialogOpen: true,
+      toastMessage: { message: "Toast" },
+      toastAnnouncements: [{ id: 1, message: "Toast" }],
+      recentlyReadIds: new Set(["article-1"]),
+      retainedArticleIds: new Set(["article-1"]),
+      articleReaderScrollPositions: new Map([["article-1", 240]]),
+      confirmDialog: {
+        open: true,
+        message: "Confirm",
+        actionLabel: "Continue",
+        actionAccessibleLabel: "Continue action",
+        variant: "default",
+        icon: null,
+        onConfirm: () => undefined,
+      },
+      nativeLifecycleBlockers: new Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>([
+        ["sync", { owner: "sync", dirty: true, pending: true }],
+      ]),
+    });
+
+    useUiStore.setState(useUiStore.getInitialState());
+
+    expectInitialUiStateDefaults();
   });
 
   it("keeps typed slice inventories assignable from the current store", () => {
@@ -189,6 +324,7 @@ describe("useUiStore", () => {
         | "setArticleReaderScrollPosition"
       >
     >();
+    expectTypeOf<UiStoreReaderActions>().branded.toEqualTypeOf<ExpectedUiStoreReaderActions>();
     expectTypeOf<UiStoreSettingsModalState>().toEqualTypeOf<UiStoreSettingsState>();
     expectTypeOf<UiStoreSettingsModalActions>().toEqualTypeOf<UiStoreSettingsActions>();
     expectTypeOf<UiStoreReaderState>().toHaveProperty("selection").toEqualTypeOf<UiStoreReaderSelection>();
@@ -556,6 +692,31 @@ describe("useUiStore", () => {
       }),
     );
     expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set());
+  });
+
+  it("clears every sync progress field through the explicit reset action", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 7,
+      kind: "automatic",
+      total: 3,
+      completed: 1,
+      account_id: "acc-1",
+      account_name: "FreshRSS",
+    });
+
+    useUiStore.getState().clearSyncProgress();
+
+    expect(useUiStore.getState().syncProgress).toEqual({
+      active: false,
+      sessionId: null,
+      kind: null,
+      stage: null,
+      total: 0,
+      completed: 0,
+      currentAccountName: null,
+      activeAccountIds: new Set(),
+    });
   });
 
   it("openCommandPalette sets true", () => {
@@ -1207,6 +1368,33 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("content");
   });
 
+  it("keeps browser navigation and buffered close actions as a store contract", () => {
+    useUiStore.getState().setBrowserNavigationState({ canGoBack: true, canGoForward: false });
+    useUiStore.getState().setBrowserCloseInFlight(true);
+    useUiStore.getState().setPendingBrowserCloseAction("next-article");
+    useUiStore.getState().setPendingBrowserCloseAction("prev-feed");
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        browserNavigationState: { canGoBack: true, canGoForward: false },
+        browserCloseInFlight: true,
+        pendingBrowserCloseAction: "prev-feed",
+        pendingBrowserCloseActionQueue: ["next-article", "prev-feed"],
+      }),
+    );
+
+    useUiStore.getState().setPendingBrowserCloseAction(null);
+    useUiStore.getState().setBrowserCloseInFlight(false);
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        browserCloseInFlight: false,
+        pendingBrowserCloseAction: null,
+        pendingBrowserCloseActionQueue: [],
+      }),
+    );
+  });
+
   it("closeBrowser returns to reader and list focus if article selected", () => {
     useUiStore.getState().selectArticle("a1");
     useUiStore.getState().closeSidebar();
@@ -1612,6 +1800,21 @@ describe("useUiStore", () => {
       "Saved",
       "Copied",
     ]);
+  });
+
+  it("removes one toast announcement without changing the visible toast", () => {
+    useUiStore.getState().showToast({ message: "First", persistent: true });
+    useUiStore.getState().showToast({ message: "Second", persistent: true });
+
+    const firstAnnouncement = useUiStore.getState().toastAnnouncements[0];
+    if (firstAnnouncement === undefined) {
+      throw new Error("Expected the first toast announcement to exist.");
+    }
+
+    useUiStore.getState().clearToastAnnouncement(firstAnnouncement.id);
+
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Second", persistent: true });
+    expect(useUiStore.getState().toastAnnouncements.map((announcement) => announcement.message)).toEqual(["Second"]);
   });
 
   it("does not schedule dismiss timers for persistent toasts", () => {
