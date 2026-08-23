@@ -26,7 +26,6 @@ import {
   toggleArticleStar,
   unstarAccountArticles,
 } from "@/api/tauri-commands";
-import { createMutation } from "@/hooks/create-mutation";
 import {
   getRecentArticleQueryKeysForAccount,
   isAccountKnownDeleted,
@@ -34,7 +33,8 @@ import {
   patchCachedArticleStarState,
   patchCachedArticlesMarkedRead,
   shouldInvalidateAfterRecordArticleView,
-} from "@/lib/articles/article-cache-projection";
+} from "@/hooks/article-cache-projection";
+import { createMutation } from "@/hooks/create-mutation";
 import { shouldRetainBulkMarkedRead } from "@/lib/articles/article-read-projection";
 import {
   invalidateArticleMutationQueries,

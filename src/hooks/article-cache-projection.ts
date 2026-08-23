@@ -1,3 +1,12 @@
+/**
+ * Cache projection lifecycle owned by the article hook layer.
+ *
+ * Keep this co-located with use-articles while it has one production consumer
+ * and mutates QueryClient state directly. Promote it to src/lib/articles only
+ * after a second production owner needs the same cache contract and the
+ * lifecycle boundary can remain unambiguous.
+ */
+
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { ArticleDto } from "@/api/schemas/article";
 import { shouldKeepArticleInListQuery } from "@/lib/articles/article-read-projection";
