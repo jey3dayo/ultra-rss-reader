@@ -1635,7 +1635,10 @@ describe("release repository contract", () => {
     for (const contract of RELEASE_UPDATER_ASSET_CONTRACT) {
       const matrixEntry = releaseMatrix.include.find(
         (entry: unknown): entry is Record<string, unknown> =>
-          typeof entry === "object" && entry !== null && entry.platform === contract.matrixPlatform,
+          typeof entry === "object" &&
+          entry !== null &&
+          "platform" in entry &&
+          entry.platform === contract.matrixPlatform,
       );
       expect(matrixEntry).toEqual(
         expect.objectContaining({
