@@ -10,8 +10,8 @@ use crate::commands::dto::{
 };
 use crate::commands::feed_commands::lock_db;
 use crate::commands::sync_providers::{
-    repair_greader_remote_state, sync_greader_account, sync_greader_feed, sync_local_feed,
-    ProviderSyncOutcome,
+    redacted_feed_host_class, repair_greader_remote_state, sync_greader_account, sync_greader_feed,
+    sync_local_feed, ProviderSyncOutcome,
 };
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
@@ -48,8 +48,10 @@ pub(crate) async fn sync_account(
             for feed in &feeds {
                 if let Err(error) = sync_local_feed(db, &provider, &account.id, feed).await {
                     warn!(
-                        "Failed to pull entries for local feed {}: {error}",
-                        feed.url
+                        account_id = %account.id.as_ref(),
+                        feed_id = %feed.id.as_ref(),
+                        host_class = redacted_feed_host_class(&feed.url),
+                        "Failed to pull entries for local feed: {error}"
                     );
                     warnings.push(local_feed_sync_warning(feed, &error));
                 }
@@ -182,8 +184,8 @@ pub(crate) async fn run_sync_for_accounts_guarded(
                 succeeded += 1;
                 if let Err(error) = clear_scheduler_sync_status(db, &account.id) {
                     warn!(
-                        "Failed to clear scheduler sync status for account '{}' after manual sync: {error}",
-                        account.name
+                        account_id = %account.id.as_ref(),
+                        "Failed to clear scheduler sync status after manual sync: {error}"
                     );
                 }
                 warnings.extend(
@@ -202,11 +204,7 @@ pub(crate) async fn run_sync_for_accounts_guarded(
                 );
             }
             Err(e) => {
-                warn!(
-                    "Sync failed for account {} ({}): {e}",
-                    account.name,
-                    account.id.as_ref()
-                );
+                warn!(account_id = %account.id.as_ref(), "Sync failed for account: {e}");
                 failed.push(AccountSyncError {
                     account_id: account.id.as_ref().to_string(),
                     account_name: account.name.clone(),

@@ -105,7 +105,6 @@ pub async fn trigger_sync_account(
         SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAccount, 1);
     reporter.emit_started(Some(&account));
     reporter.emit_account_started(&account);
-    let name = account.name.clone();
     let mut result = SyncResult {
         synced: true,
         total: 1,
@@ -118,8 +117,8 @@ pub async fn trigger_sync_account(
             result.succeeded = 1;
             if let Err(error) = clear_scheduler_sync_status(&state.db, &account.id) {
                 warn!(
-                    "Failed to clear scheduler sync status for account '{}' after manual sync: {error}",
-                    account.name
+                    account_id = %account.id.as_ref(),
+                    "Failed to clear scheduler sync status after manual sync: {error}"
                 );
             }
             result
@@ -130,7 +129,7 @@ pub async fn trigger_sync_account(
                         .into_iter()
                         .map(|warning| AccountSyncWarning {
                             account_id: account.id.as_ref().to_string(),
-                            account_name: name.clone(),
+                            account_name: account.name.clone(),
                             kind: warning.kind,
                             message: warning.message,
                             retry_at: warning.retry_at,
@@ -141,10 +140,10 @@ pub async fn trigger_sync_account(
             reporter.emit_account_finished(&account, true);
         }
         Err(e) => {
-            warn!("Sync failed for account '{}': {e}", name);
+            warn!(account_id = %account.id.as_ref(), "Sync failed for account: {e}");
             result.failed.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
-                account_name: name,
+                account_name: account.name.clone(),
                 action_owner: Some(sync_issue_owner_for_app_error(&e)),
                 message: e.to_string(),
             });
@@ -242,9 +241,9 @@ pub async fn trigger_sync_feed(
         }
         Err(e) => {
             warn!(
-                "Sync failed for feed '{}' ({}): {e}",
-                feed.title,
-                feed.id.as_ref()
+                account_id = %account.id.as_ref(),
+                feed_id = %feed.id.as_ref(),
+                "Sync failed for feed: {e}"
             );
             result.failed.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
