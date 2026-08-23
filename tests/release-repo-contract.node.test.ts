@@ -241,6 +241,10 @@ const readGReaderProviderModuleSource = (): string =>
   ["mod.rs", "http.rs", "stream.rs", "stream_subscriptions.rs", "stream_types.rs", "tests.rs"]
     .map((file) => readText(`src-tauri/src/infra/provider/greader/${file}`))
     .join("\n");
+const readLocalProviderModuleSource = (): string =>
+  ["mod.rs", "http.rs", "metadata.rs", "tests.rs"]
+    .map((file) => readText(`src-tauri/src/infra/provider/local/${file}`))
+    .join("\n");
 const readMiseTaskCorpus = (): string =>
   ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"].map(readText).join("\n");
 const readReleaseSkillCorpus = (): string =>
@@ -703,7 +707,7 @@ describe("release repository contract", () => {
   const sqliteAccountSource = readText("src-tauri/src/infra/db/sqlite_account.rs");
   const platformConstantsSource = readText("src/constants/platform.ts");
   const providerHttpDefaultsSource = readRustModuleSource("src-tauri/src/infra/provider/http_defaults.rs");
-  const localProviderSource = readText("src-tauri/src/infra/provider/local.rs");
+  const localProviderSource = readLocalProviderModuleSource();
   const accountCommandsSource = readAccountCommandsModuleSource();
   const opmlCommandsSource = readOpmlCommandsModuleSource();
   const greaderProviderSource = readGReaderProviderModuleSource();

@@ -1,0 +1,1851 @@
+use super::super::http_defaults::{self, http_client_builder, PROVIDER_USER_AGENT};
+use super::http::{
+    feed_response_content_type, map_local_provider_request_error, validate_external_feed_redirect,
+    validate_external_feed_url, validate_feed_response_body_against_content_type,
+    FeedResponseContentType, FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE, JSON_FEED_SUPPORT_DECISION,
+};
+use super::*;
+use crate::domain::url_policy::{
+    CREDENTIAL_URL_VALIDATION_MESSAGE, PRIVATE_URL_VALIDATION_MESSAGE,
+};
+use chrono::Utc;
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use std::io::Write;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpListener;
+use tokio::task::JoinHandle;
+use tokio::time::{timeout, Duration};
+
+const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+    <channel>
+        <title>Mock Feed</title>
+        <item>
+            <title>Article 1</title>
+            <link>https://example.com/1</link>
+            <guid>guid-1</guid>
+        </item>
+    </channel>
+    </rss>"#;
+
+fn local_provider_allowing_private_feed_urls() -> LocalProvider {
+    LocalProvider::new_allowing_private_feed_urls_for_tests()
+}
+
+#[tokio::test]
+async fn local_client_build_failure_is_returned_to_provider_operation() {
+    let mut provider = local_provider_allowing_private_feed_urls();
+    provider.http_client = Err(DomainError::Network(
+        "provider client build failed".to_string(),
+    ));
+
+    let error = provider
+        .create_subscription("http://example.com/feed.xml", None)
+        .await
+        .expect_err("client construction failure should reach the provider boundary");
+
+    assert!(matches!(
+        error,
+        DomainError::Network(message) if message == "provider client build failed"
+    ));
+}
+
+struct OneShotHttpServer {
+    address: std::net::SocketAddr,
+    task: Option<JoinHandle<()>>,
+}
+
+impl OneShotHttpServer {
+    async fn bind(response: &'static str) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("test server should bind an isolated ephemeral port");
+        let address = listener
+            .local_addr()
+            .expect("test server should expose local address");
+        let task = tokio::spawn(async move {
+            let (mut stream, _) = listener
+                .accept()
+                .await
+                .expect("test server should accept one request");
+            stream
+                .write_all(response.as_bytes())
+                .await
+                .expect("test response should be written");
+            stream.shutdown().await.expect("test stream should close");
+        });
+
+        Self {
+            address,
+            task: Some(task),
+        }
+    }
+
+    fn url(&self, path: &str) -> String {
+        format!("http://{}{}", self.address, path)
+    }
+
+    async fn shutdown(mut self) {
+        let task = self
+            .task
+            .take()
+            .expect("test server shutdown should only be called once");
+        timeout(Duration::from_secs(2), task)
+            .await
+            .expect("test server should shut down after serving one request")
+            .expect("test server task should finish");
+    }
+}
+
+impl Drop for OneShotHttpServer {
+    fn drop(&mut self) {
+        if let Some(task) = self.task.take() {
+            task.abort();
+        }
+    }
+}
+
+#[tokio::test]
+async fn pull_entries_fetches_and_parses() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .match_header("user-agent", PROVIDER_USER_AGENT)
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/feed.xml", server.url()),
+    });
+
+    let result = provider.pull_entries(scope, None).await.unwrap();
+    assert_eq!(result.entries.len(), 1);
+    assert_eq!(result.entries[0].title, "Article 1");
+    assert!(!result.not_modified);
+    assert!(!result.has_more);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_uses_redirect_final_url_as_entry_source() {
+    let mut server = mockito::Server::new_async().await;
+    let redirect = server
+        .mock("GET", "/old-feed.xml")
+        .with_status(308)
+        .with_header("location", "/feed.xml?b=2&a=1")
+        .create_async()
+        .await;
+    let final_feed = server
+        .mock("GET", "/feed.xml")
+        .match_query(mockito::Matcher::AllOf(vec![
+            mockito::Matcher::UrlEncoded("b".to_string(), "2".to_string()),
+            mockito::Matcher::UrlEncoded("a".to_string(), "1".to_string()),
+        ]))
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let result = provider
+        .pull_entries(
+            PullScope::Feed(FeedIdentifier::Local {
+                feed_url: format!("{}/old-feed.xml", server.url()),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    match &result.entries[0].source_feed_id {
+        FeedIdentifier::Local { feed_url } => {
+            assert_eq!(feed_url, &format!("{}/feed.xml?b=2&a=1", server.url()));
+        }
+        FeedIdentifier::Remote { .. } => panic!("local feed should stay local-scoped"),
+    }
+    redirect.assert_async().await;
+    final_feed.assert_async().await;
+}
+
+#[tokio::test]
+async fn feed_http_client_rejects_public_to_private_dns_rebinding_redirect() {
+    let listener = match TcpListener::bind("127.0.0.1:0").await {
+        Ok(listener) => listener,
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => return,
+        Err(error) => panic!("test server should bind: {error}"),
+    };
+    let address = match listener.local_addr() {
+        Ok(address) => address,
+        Err(error) => panic!("test server should expose its address: {error}"),
+    };
+    let private_redirect = format!(
+        "http://private.test.invalid:{}/private-feed.xml",
+        address.port()
+    );
+    let server_task = tokio::spawn(async move {
+        let Ok((mut stream, _)) = listener.accept().await else {
+            return;
+        };
+        let response = format!(
+            "HTTP/1.1 302 Found\r\nLocation: {private_redirect}\r\nContent-Length: 0\r\n\r\n"
+        );
+        let _ = stream.write_all(response.as_bytes()).await;
+    });
+
+    let resolver_address = address;
+    let resolver = http_defaults::ValidatedPublicDnsResolver::new(move |host| {
+        if host == "private.test.invalid" {
+            return Ok(vec![SocketAddr::new(resolver_address.ip(), 0)]);
+        }
+        Err(DomainError::Network(format!(
+            "unexpected test DNS lookup: {host}"
+        )))
+    });
+    let url = match reqwest::Url::parse(&format!(
+        "http://public.test.invalid:{}/feed.xml",
+        address.port()
+    )) {
+        Ok(url) => url,
+        Err(error) => panic!("test feed URL should parse: {error}"),
+    };
+    let resolved_address = SocketAddr::new(address.ip(), 0);
+    let provider = LocalProvider::new();
+    let client =
+        match provider.feed_http_client_with_test_resolver(&url, &[resolved_address], resolver) {
+            Ok(client) => client,
+            Err(error) => panic!("feed client should build: {error}"),
+        };
+
+    let error = match client.get(url).send().await {
+        Ok(_) => panic!("private DNS redirect should be rejected"),
+        Err(error) => map_local_provider_request_error(error),
+    };
+    assert!(
+        matches!(error, DomainError::Validation(message) if message == PRIVATE_URL_VALIDATION_MESSAGE)
+    );
+    let _ = timeout(Duration::from_secs(2), server_task).await;
+}
+
+#[tokio::test]
+async fn local_provider_limits_concurrent_feed_requests_per_instance() {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("test server should bind an isolated ephemeral port");
+    let address = listener
+        .local_addr()
+        .expect("test server should expose local address");
+    let active_requests = Arc::new(AtomicUsize::new(0));
+    let max_active_requests = Arc::new(AtomicUsize::new(0));
+    let server_active_requests = Arc::clone(&active_requests);
+    let server_max_active_requests = Arc::clone(&max_active_requests);
+    let server = tokio::spawn(async move {
+        for _ in 0..2 {
+            let (mut stream, _) = listener
+                .accept()
+                .await
+                .expect("test server should accept a request");
+            let active = Arc::clone(&server_active_requests);
+            let max_active = Arc::clone(&server_max_active_requests);
+            tokio::spawn(async move {
+                let current = active.fetch_add(1, Ordering::SeqCst) + 1;
+                max_active.fetch_max(current, Ordering::SeqCst);
+                tokio::time::sleep(Duration::from_millis(75)).await;
+                stream
+                        .write_all(
+                            format!(
+                                "HTTP/1.1 200 OK\r\nContent-Type: application/rss+xml\r\nContent-Length: {}\r\n\r\n{}",
+                                SAMPLE_RSS.len(),
+                                SAMPLE_RSS
+                            )
+                            .as_bytes(),
+                        )
+                        .await
+                        .expect("test response should be written");
+                stream.shutdown().await.expect("test stream should close");
+                active.fetch_sub(1, Ordering::SeqCst);
+            });
+        }
+    });
+
+    let provider = Arc::new(local_provider_allowing_private_feed_urls());
+    let feed_url = format!("http://{address}/feed.xml");
+    let first_provider = Arc::clone(&provider);
+    let second_provider = Arc::clone(&provider);
+    let first_url = feed_url.clone();
+    let second_url = feed_url.clone();
+
+    let (first_result, second_result) = tokio::join!(
+        async move {
+            first_provider
+                .pull_entries(
+                    PullScope::Feed(FeedIdentifier::Local {
+                        feed_url: first_url,
+                    }),
+                    None,
+                )
+                .await
+        },
+        async move {
+            second_provider
+                .pull_entries(
+                    PullScope::Feed(FeedIdentifier::Local {
+                        feed_url: second_url,
+                    }),
+                    None,
+                )
+                .await
+        }
+    );
+
+    first_result.expect("first local feed request should succeed");
+    second_result.expect("second local feed request should succeed");
+    timeout(Duration::from_secs(2), server)
+        .await
+        .expect("test server should finish")
+        .expect("test server task should finish");
+    assert_eq!(
+        max_active_requests.load(Ordering::SeqCst),
+        LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT
+    );
+}
+
+#[tokio::test]
+async fn local_provider_keeps_sync_and_discovery_request_limits_separate() {
+    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let _sync_permit = provider
+        .acquire_sync_request_permit()
+        .await
+        .expect("sync limiter should allow the first request");
+
+    let _discovery_permit = tokio::time::timeout(
+        Duration::from_millis(50),
+        provider.acquire_discovery_request_permit(),
+    )
+    .await
+    .expect("discovery limiter should not be blocked by an in-flight sync request")
+    .expect("discovery limiter should allow the first request");
+}
+
+#[tokio::test]
+async fn pull_entries_parses_json_feed_body() {
+    let json_feed = r#"{
+            "version": "https://jsonfeed.org/version/1.1",
+            "title": "JSON Feed",
+            "home_page_url": "https://example.com",
+            "feed_url": "https://example.com/feed.json",
+            "items": [
+                {
+                    "id": "json-1",
+                    "url": "https://example.com/json-1",
+                    "title": "JSON Article",
+                    "content_html": "<p>JSON body</p>",
+                    "date_published": "2026-03-27T12:00:00Z"
+                }
+            ]
+        }"#;
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/feed.json")
+        .with_body(json_feed)
+        .with_header("content-type", "application/feed+json")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let feed_url = format!("{}/feed.json", server.url());
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: feed_url.clone(),
+    });
+
+    let result = provider.pull_entries(scope, None).await.unwrap();
+
+    assert_eq!(result.entries.len(), 1);
+    assert_eq!(result.entries[0].id.as_deref(), Some("json-1"));
+    assert_eq!(result.entries[0].title, "JSON Article");
+    assert_eq!(result.entries[0].content, "<p>JSON body</p>");
+    match &result.entries[0].source_feed_id {
+        FeedIdentifier::Local {
+            feed_url: source_feed_url,
+        } => assert_eq!(source_feed_url, &feed_url),
+        FeedIdentifier::Remote { .. } => panic!("JSON feed entry should stay local-scoped"),
+    }
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_sends_conditional_headers_and_returns_response_validators() {
+    let mut server = mockito::Server::new_async().await;
+    let request_etag = "\"etag-old\"";
+    let request_last_modified = "Wed, 01 Jan 2025 00:00:00 GMT";
+    let response_etag = "\"etag-new\"";
+    let response_last_modified = "Thu, 02 Jan 2025 00:00:00 GMT";
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .match_header("if-none-match", request_etag)
+        .match_header("if-modified-since", request_last_modified)
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .with_header("etag", response_etag)
+        .with_header("last-modified", response_last_modified)
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/feed.xml", server.url()),
+    });
+
+    let result = provider
+        .pull_entries(
+            scope,
+            Some(SyncCursor {
+                continuation: None,
+                since: Some(Utc::now()),
+                etag: Some(request_etag.to_string()),
+                last_modified: Some(request_last_modified.to_string()),
+            }),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result.entries.len(), 1);
+    let cursor = result
+        .next_cursor
+        .expect("local feeds should return validators");
+    assert_eq!(cursor.etag.as_deref(), Some(response_etag));
+    assert_eq!(
+        cursor.last_modified.as_deref(),
+        Some(response_last_modified)
+    );
+    assert!(!result.not_modified);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_persists_bounded_validators_and_ignores_vary() {
+    let mut server = mockito::Server::new_async().await;
+    let oversized_etag = format!("\"{}\"", "a".repeat(1024));
+    let response_last_modified = "Thu, 02 Jan 2025 00:00:00 GMT";
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .with_header("etag", &oversized_etag)
+        .with_header("last-modified", response_last_modified)
+        .with_header("vary", "Accept-Encoding, User-Agent")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/feed.xml", server.url()),
+    });
+
+    let result = provider.pull_entries(scope, None).await.unwrap();
+    let cursor = result
+        .next_cursor
+        .expect("local feeds should return cache cursor state");
+
+    assert_eq!(cursor.etag, None);
+    assert_eq!(
+        cursor.last_modified.as_deref(),
+        Some(response_last_modified)
+    );
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_handles_not_modified_without_reparsing_feed() {
+    let mut server = mockito::Server::new_async().await;
+    let request_etag = "\"etag-old\"";
+    let request_last_modified = "Wed, 01 Jan 2025 00:00:00 GMT";
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .match_header("if-none-match", request_etag)
+        .match_header("if-modified-since", request_last_modified)
+        .with_status(304)
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/feed.xml", server.url()),
+    });
+
+    let result = provider
+        .pull_entries(
+            scope,
+            Some(SyncCursor {
+                continuation: None,
+                since: None,
+                etag: Some(request_etag.to_string()),
+                last_modified: Some(request_last_modified.to_string()),
+            }),
+        )
+        .await
+        .unwrap();
+
+    assert!(result.entries.is_empty());
+    let cursor = result.next_cursor.expect("304 should keep validators");
+    assert_eq!(cursor.etag.as_deref(), Some(request_etag));
+    assert_eq!(cursor.last_modified.as_deref(), Some(request_last_modified));
+    assert!(result.not_modified);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_returns_auth_error_for_unauthorized_status() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/private.xml")
+        .with_status(401)
+        .with_body("unauthorized")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/private.xml", server.url()),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("401 should be classified as auth failure");
+
+    assert!(matches!(error, DomainError::Auth(_)));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_returns_rate_limit_error_for_too_many_requests_status() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/rate-limited.xml")
+        .with_status(429)
+        .with_body("too many requests")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/rate-limited.xml", server.url()),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("429 should be classified as rate limit failure");
+
+    assert!(matches!(error, DomainError::RateLimit(_)));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_preserves_retry_after_for_rate_limit_status() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/rate-limited.xml")
+        .with_status(429)
+        .with_header("retry-after", "120")
+        .with_body("too many requests")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/rate-limited.xml", server.url()),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("429 retry-after should be preserved for scheduler backoff");
+
+    assert!(matches!(
+        error,
+        DomainError::RateLimitWithRetryAfter {
+            retry_after_seconds: 120,
+            ..
+        }
+    ));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_rejects_oversized_feed_body_before_parse() {
+    let oversized_body = "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize + 1);
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/oversized.xml")
+        .with_status(200)
+        .with_body(oversized_body)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/oversized.xml", server.url()),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("oversized feed bodies should be rejected before parsing");
+
+    assert!(matches!(
+        error,
+        DomainError::Network(message) if message.contains("Feed response body exceeds")
+    ));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_applies_body_limit_when_content_encoding_is_present() {
+    let oversized_body = "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize + 1);
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/oversized-encoded.xml")
+        .with_status(200)
+        .with_body(oversized_body)
+        .with_header("content-type", "application/rss+xml")
+        .with_header("content-encoding", "identity")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/oversized-encoded.xml", server.url()),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("encoded feed bodies should be limited before parsing");
+
+    assert!(matches!(
+        error,
+        DomainError::Network(message) if message.contains("Feed response body exceeds")
+    ));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_applies_body_limit_after_gzip_decoding() {
+    let oversized_body = "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize + 1);
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder
+        .write_all(oversized_body.as_bytes())
+        .expect("gzip fixture should encode");
+    let compressed_body = encoder.finish().expect("gzip fixture should finish");
+    assert!(
+        compressed_body.len() < http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize,
+        "fixture must be compressed below the cap to prove decoded size is enforced"
+    );
+
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/oversized-gzip.xml")
+        .with_status(200)
+        .with_body(compressed_body)
+        .with_header("content-type", "application/rss+xml")
+        .with_header("content-encoding", "gzip")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/oversized-gzip.xml", server.url()),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("gzip-decoded feed bodies should be limited before parsing");
+
+    assert!(matches!(
+        error,
+        DomainError::Network(message) if message == format!(
+            "Feed response body exceeds {} bytes",
+            http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
+        )
+    ));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_classifies_short_content_length_body_as_network_error() {
+    let server = OneShotHttpServer::bind(concat!(
+        "HTTP/1.1 200 OK\r\n",
+        "Content-Type: application/rss+xml\r\n",
+        "Content-Length: 1024\r\n",
+        "\r\n",
+        "<?xml version=\"1.0\"?><rss version=\"2.0\"><channel>"
+    ))
+    .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: server.url("/feed.xml"),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("short response body should not become a parse error");
+    server.shutdown().await;
+
+    assert!(matches!(
+        error,
+        DomainError::Network(message) if message == FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE
+    ));
+}
+
+#[tokio::test]
+async fn pull_entries_classifies_premature_chunked_body_eof_as_network_error() {
+    let server = OneShotHttpServer::bind(concat!(
+        "HTTP/1.1 200 OK\r\n",
+        "Content-Type: application/rss+xml\r\n",
+        "Transfer-Encoding: chunked\r\n",
+        "\r\n",
+        "400\r\n",
+        "<?xml version=\"1.0\"?><rss version=\"2.0\"><channel>"
+    ))
+    .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: server.url("/feed.xml"),
+    });
+
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("premature EOF should not become a parse error");
+    server.shutdown().await;
+
+    assert!(matches!(
+        error,
+        DomainError::Network(message) if message == FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE
+    ));
+}
+
+#[tokio::test]
+async fn provider_test_http_server_uses_ephemeral_ports_and_explicit_shutdown() {
+    let server_a =
+        OneShotHttpServer::bind("HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n").await;
+    let server_b =
+        OneShotHttpServer::bind("HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n").await;
+
+    assert_ne!(
+        server_a.address.port(),
+        server_b.address.port(),
+        "provider test HTTP servers should not share a fixed port"
+    );
+
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .expect("test HTTP client should build without proxy configuration");
+    let status_a = client
+        .get(server_a.url("/probe-a"))
+        .send()
+        .await
+        .expect("server A should respond")
+        .status();
+    let status_b = client
+        .get(server_b.url("/probe-b"))
+        .send()
+        .await
+        .expect("server B should respond")
+        .status();
+
+    assert_eq!(status_a, reqwest::StatusCode::NO_CONTENT);
+    assert_eq!(status_b, reqwest::StatusCode::NO_CONTENT);
+    server_a.shutdown().await;
+    server_b.shutdown().await;
+}
+
+#[tokio::test]
+async fn pull_entries_uses_304_response_validators_when_present() {
+    let mut server = mockito::Server::new_async().await;
+    let request_etag = "\"etag-old\"";
+    let response_etag = "W/\"etag-new\"";
+    let response_last_modified = "Thu, 02 Jan 2025 00:00:00 GMT";
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .match_header("if-none-match", request_etag)
+        .with_status(304)
+        .with_header("etag", response_etag)
+        .with_header("last-modified", response_last_modified)
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/feed.xml", server.url()),
+    });
+
+    let result = provider
+        .pull_entries(
+            scope,
+            Some(SyncCursor {
+                continuation: None,
+                since: None,
+                etag: Some(request_etag.to_string()),
+                last_modified: None,
+            }),
+        )
+        .await
+        .unwrap();
+
+    let cursor = result.next_cursor.expect("304 should return validators");
+    assert_eq!(cursor.etag.as_deref(), Some(response_etag));
+    assert_eq!(
+        cursor.last_modified.as_deref(),
+        Some(response_last_modified)
+    );
+    assert!(result.not_modified);
+    mock.assert_async().await;
+}
+
+#[test]
+fn validate_external_feed_url_rechecks_repeated_private_host_resolution() {
+    let url = reqwest::Url::parse("http://localhost/feed.xml").unwrap();
+
+    for _ in 0..2 {
+        assert!(matches!(
+            validate_external_feed_url(&url),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+}
+
+#[test]
+fn validate_feed_url_returns_resolved_addresses_to_pin_in_production_mode() {
+    let provider = LocalProvider::new();
+
+    let (url, resolved_addrs) = provider
+        .validate_feed_url("http://example.com/feed.xml")
+        .expect("public feed URL should validate and resolve in production mode");
+
+    assert_eq!(url.as_str(), "http://example.com/feed.xml");
+    assert!(
+        !resolved_addrs.is_empty(),
+        "production mode should return validated addresses to pin the connection"
+    );
+    assert!(
+        resolved_addrs.iter().all(|address| address.port() == 0),
+        "DNS-derived addresses must leave the request port to the URL"
+    );
+}
+
+#[test]
+fn validate_feed_url_skips_pinning_addresses_in_private_allowed_mode() {
+    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+
+    let (_url, resolved_addrs) = provider
+        .validate_feed_url("http://localhost/feed.xml")
+        .expect("private feed URL should be allowed in the test bypass mode");
+
+    assert!(
+        resolved_addrs.is_empty(),
+        "test bypass mode should not resolve or pin addresses"
+    );
+}
+
+#[tokio::test]
+async fn pull_entries_rejects_non_local_scope() {
+    let provider = LocalProvider::new();
+    let scope = PullScope::All;
+    let result = provider.pull_entries(scope, None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn pull_entries_rejects_loopback_feed_url_before_http_request() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = LocalProvider::new();
+    let scope = PullScope::Feed(FeedIdentifier::Local {
+        feed_url: format!("{}/feed.xml", server.url()),
+    });
+    let error = provider
+        .pull_entries(scope, None)
+        .await
+        .expect_err("loopback feed URL should be rejected before request");
+
+    assert!(matches!(error, DomainError::Validation(_)));
+    assert!(!mock.matched_async().await);
+}
+
+#[test]
+fn validate_external_feed_redirect_rejects_https_to_http_downgrade() {
+    let previous = vec![reqwest::Url::parse("https://example.com/feed.xml").unwrap()];
+    let next = reqwest::Url::parse("http://example.com/feed.xml").unwrap();
+
+    assert!(matches!(
+        validate_external_feed_redirect(&previous, &next),
+        Err(DomainError::Validation(message)) if message == DOWNGRADE_REDIRECT_VALIDATION_MESSAGE
+    ));
+}
+
+#[test]
+fn validate_external_feed_redirect_allows_http_to_https_upgrade() {
+    let previous = vec![reqwest::Url::parse("http://example.com/feed.xml").unwrap()];
+    let next = reqwest::Url::parse("https://example.com/feed.xml").unwrap();
+
+    assert!(validate_external_feed_redirect(&previous, &next).is_ok());
+}
+
+#[test]
+fn validate_external_feed_redirect_rejects_private_redirect_targets() {
+    let previous = vec![reqwest::Url::parse("https://example.com/feed.xml").unwrap()];
+
+    for next in [
+        reqwest::Url::parse("https://localhost/feed.xml").unwrap(),
+        reqwest::Url::parse("https://127.0.0.1/feed.xml").unwrap(),
+        reqwest::Url::parse("https://10.0.0.2/feed.xml").unwrap(),
+    ] {
+        assert!(matches!(
+            validate_external_feed_redirect(&previous, &next),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+}
+
+#[tokio::test]
+async fn redirect_policy_preserves_authorization_on_same_origin_redirects() {
+    let mut server = mockito::Server::new_async().await;
+    let redirect = server
+        .mock("GET", "/old-feed.xml")
+        .match_header("Authorization", "Bearer same-origin-token")
+        .with_status(308)
+        .with_header("location", "/feed.xml")
+        .create_async()
+        .await;
+    let final_feed = server
+        .mock("GET", "/feed.xml")
+        .match_header("Authorization", "Bearer same-origin-token")
+        .with_status(204)
+        .create_async()
+        .await;
+
+    let client = http_client_builder()
+        .redirect(LocalProvider::redirect_policy(true))
+        .build()
+        .expect("provider client should build");
+    let response = client
+        .get(format!("{}/old-feed.xml", server.url()))
+        .header(reqwest::header::AUTHORIZATION, "Bearer same-origin-token")
+        .send()
+        .await
+        .expect("same-origin redirect should complete");
+
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    redirect.assert_async().await;
+    final_feed.assert_async().await;
+}
+
+#[tokio::test]
+async fn redirect_policy_strips_authorization_on_cross_origin_redirects() {
+    let mut origin = mockito::Server::new_async().await;
+    let mut target = mockito::Server::new_async().await;
+    let redirect = origin
+        .mock("GET", "/old-feed.xml")
+        .match_header("Authorization", "Bearer cross-origin-token")
+        .with_status(308)
+        .with_header("location", &format!("{}/feed.xml", target.url()))
+        .create_async()
+        .await;
+    let final_feed = target
+        .mock("GET", "/feed.xml")
+        .match_header("Authorization", mockito::Matcher::Missing)
+        .with_status(204)
+        .create_async()
+        .await;
+
+    let client = http_client_builder()
+        .redirect(LocalProvider::redirect_policy(true))
+        .build()
+        .expect("provider client should build");
+    let response = client
+        .get(format!("{}/old-feed.xml", origin.url()))
+        .header(reqwest::header::AUTHORIZATION, "Bearer cross-origin-token")
+        .send()
+        .await
+        .expect("cross-origin redirect should complete");
+
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    redirect.assert_async().await;
+    final_feed.assert_async().await;
+}
+
+#[test]
+fn redirect_policy_limits_looping_feed_redirect_chains() {
+    let previous = vec![
+        reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+        reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+        reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+        reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+        reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+        reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+    ];
+    let next = reqwest::Url::parse("http://example.com/feed.xml").unwrap();
+
+    assert!(validate_external_feed_redirect(&previous, &next).is_ok());
+    assert!(previous.len() > 5, "redirect policy rejects this hop count");
+}
+
+#[test]
+fn feed_response_content_type_policy_allows_feed_html_and_missing_types() {
+    for content_type in [
+        "application/rss+xml; charset=utf-8",
+        "application/atom+xml",
+        "application/feed+json",
+        "application/xml",
+        "text/xml",
+        "text/html; charset=utf-8",
+    ] {
+        assert!(
+            feed_response_content_type(&headers_with_content_type(content_type)).is_ok(),
+            "content type should be allowed: {content_type:?}"
+        );
+    }
+    assert!(feed_response_content_type(&reqwest::header::HeaderMap::new()).is_ok());
+}
+
+#[test]
+fn feed_response_content_type_policy_rejects_binary_types() {
+    assert!(
+        feed_response_content_type(&headers_with_content_type("application/octet-stream")).is_err()
+    );
+}
+
+#[test]
+fn json_feed_support_decision_is_explicit_content_type_only() {
+    assert_eq!(
+        JSON_FEED_SUPPORT_DECISION,
+        "JSON Feed is supported only at explicit application/feed+json parser boundaries"
+    );
+    assert_eq!(
+        feed_response_content_type(&headers_with_content_type("application/feed+json")).unwrap(),
+        FeedResponseContentType::JsonFeed
+    );
+    assert!(validate_feed_response_body_against_content_type(
+        br#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
+        FeedResponseContentType::JsonFeed,
+    )
+    .is_ok());
+    assert!(matches!(
+        validate_feed_response_body_against_content_type(
+            br#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
+            FeedResponseContentType::HtmlFallback,
+        ),
+        Err(DomainError::Parse(message))
+            if message == JSON_FEED_SUPPORT_DECISION
+    ));
+}
+
+fn headers_with_content_type(content_type: &str) -> reqwest::header::HeaderMap {
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert(
+        reqwest::header::CONTENT_TYPE,
+        reqwest::header::HeaderValue::from_str(content_type).unwrap(),
+    );
+    headers
+}
+
+#[tokio::test]
+async fn create_subscription_uses_feed_url_when_feed_title_and_site_link_are_missing() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Article 1</title>
+      <link>https://example.com/1</link>
+    </item>
+  </channel>
+</rss>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .match_header("user-agent", PROVIDER_USER_AGENT)
+        .with_body(feed)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.remote_id, feed_url);
+    assert_eq!(subscription.title, subscription.url);
+    assert_eq!(subscription.site_url, subscription.url);
+    assert_eq!(subscription.site_url, feed_url);
+    assert_eq!(subscription.folder_remote_id, None);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_uses_feed_url_when_site_link_is_blank() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Blank Site Link Feed</title>
+    <link>   </link>
+    <item>
+      <title>Article 1</title>
+      <link>https://example.com/1</link>
+    </item>
+  </channel>
+</rss>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.title, "Blank Site Link Feed");
+    assert_eq!(subscription.site_url, feed_url);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_sends_local_provider_user_agent() {
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .match_header("user-agent", PROVIDER_USER_AGENT)
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    provider.create_subscription(&feed_url, None).await.unwrap();
+
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_retains_feed_metadata_when_items_are_incomplete() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Metadata Feed</title>
+    <link>https://example.com/home</link>
+    <item>
+      <guid>missing-title-and-link</guid>
+    </item>
+    <item>
+      <title></title>
+      <link></link>
+    </item>
+  </channel>
+</rss>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.remote_id, feed_url);
+    assert_eq!(subscription.title, "Metadata Feed");
+    assert_eq!(subscription.site_url, "https://example.com/home");
+    assert_eq!(subscription.url, subscription.remote_id);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_prefers_atom_alternate_html_link_over_self_feed_link() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed.xml</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="self" type="application/atom+xml" href="https://example.com/feed.xml"/>
+  <link rel="alternate" type="text/html" href="https://example.com/"/>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/atom+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.site_url, "https://example.com/");
+    mock.assert_async().await;
+}
+
+#[test]
+fn resolve_feed_site_url_resolves_relative_site_links_against_feed_url() {
+    assert_eq!(
+        LocalProvider::resolve_feed_site_url("https://example.com/blog/feed.xml", "../").as_deref(),
+        Some("https://example.com/")
+    );
+}
+
+#[test]
+fn select_raw_feed_site_url_resolves_relative_rss_channel_link_against_feed_url() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Relative Site Feed</title>
+    <link>../</link>
+    <item>
+      <title>Article 1</title>
+      <link>https://example.com/articles/1</link>
+    </item>
+  </channel>
+</rss>"#;
+
+    assert_eq!(
+        LocalProvider::select_raw_feed_site_url(
+            feed.as_bytes(),
+            "https://example.com/blog/feed.xml"
+        )
+        .as_deref(),
+        Some("https://example.com/")
+    );
+}
+
+#[tokio::test]
+async fn create_subscription_resolves_scheme_relative_site_links_against_feed_url() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Scheme Relative Site Feed</title>
+  <id>https://example.com/feed.xml</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="alternate" type="text/html" href="//example.com/home#fragment"/>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/atom+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.site_url, "http://example.com/home");
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_falls_back_to_feed_url_when_site_link_is_invalid_after_resolution() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Invalid Site Feed</title>
+  <id>https://example.com/feed.xml</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="alternate" type="text/html" href="http://localhost/home"/>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/atom+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.site_url, feed_url);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_returns_network_error_for_http_status_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/missing.xml", server.url());
+    let mock = server
+        .mock("GET", "/missing.xml")
+        .with_status(404)
+        .with_body("not found")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("HTTP status errors should not be parsed as feeds");
+
+    assert!(matches!(error, DomainError::Network(_)));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_rejects_loopback_feed_url_before_http_request() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+    let feed_url = format!("{}/feed.xml", server.url());
+
+    let provider = LocalProvider::new();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("loopback feed URL should be rejected before request");
+
+    assert!(matches!(error, DomainError::Validation(_)));
+    assert!(!mock.matched_async().await);
+}
+
+#[tokio::test]
+async fn create_subscription_rejects_credential_feed_url_before_http_request() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/rss+xml")
+        .create_async()
+        .await;
+    let feed_url = server.url().replacen("http://", "http://alice:secret@", 1) + "/feed.xml";
+
+    let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("credential-bearing feed URL should be rejected before request");
+
+    assert!(matches!(
+        error,
+        DomainError::Validation(message) if message == CREDENTIAL_URL_VALIDATION_MESSAGE
+    ));
+    assert!(!mock.matched_async().await);
+}
+
+#[tokio::test]
+async fn create_subscription_returns_auth_error_for_unauthorized_status() {
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/private.xml", server.url());
+    let mock = server
+        .mock("GET", "/private.xml")
+        .with_status(401)
+        .with_body("unauthorized")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("401 should be classified as auth failure");
+
+    assert!(matches!(error, DomainError::Auth(_)));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_returns_rate_limit_error_for_too_many_requests_status() {
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/rate-limited.xml", server.url());
+    let mock = server
+        .mock("GET", "/rate-limited.xml")
+        .with_status(429)
+        .with_body("too many requests")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("429 should be classified as rate limit failure");
+
+    assert!(matches!(error, DomainError::RateLimit(_)));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_preserves_retry_after_for_rate_limit_status() {
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/rate-limited.xml", server.url());
+    let mock = server
+        .mock("GET", "/rate-limited.xml")
+        .with_status(429)
+        .with_header("retry-after", "180")
+        .with_body("too many requests")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("discovery 429 retry-after should stay structured");
+
+    assert!(matches!(
+        error,
+        DomainError::RateLimitWithRetryAfter {
+            retry_after_seconds: 180,
+            ..
+        }
+    ));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_returns_parse_error_for_html_success_response() {
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/page", server.url());
+    let mock = server
+        .mock("GET", "/page")
+        .with_status(200)
+        .with_body("<html><body>not a feed</body></html>")
+        .with_header("content-type", "text/html")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("successful non-feed responses should be parser errors");
+
+    assert!(matches!(error, DomainError::Parse(_)));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn feed_parser_boundary_sniffs_supported_content_type_fallbacks() {
+    let json_feed = r#"{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "JSON Feed",
+  "home_page_url": "https://example.com/",
+  "feed_url": "https://example.com/feed.json",
+  "items": [
+    {
+      "id": "json-1",
+      "url": "https://example.com/json-1",
+      "title": "JSON Article",
+      "content_text": "Hello"
+    }
+  ]
+}"#;
+    let mut server = mockito::Server::new_async().await;
+    let application_xml_url = format!("{}/application.xml", server.url());
+    let json_feed_url = format!("{}/feed.json", server.url());
+    let html_fallback_url = format!("{}/html", server.url());
+    let missing_type_url = format!("{}/missing-type", server.url());
+    let xml_mock = server
+        .mock("GET", "/application.xml")
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "application/xml; charset=utf-8")
+        .create_async()
+        .await;
+    let json_mock = server
+        .mock("GET", "/feed.json")
+        .with_body(json_feed)
+        .with_header("content-type", "application/feed+json")
+        .create_async()
+        .await;
+    let html_mock = server
+        .mock("GET", "/html")
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "text/html; charset=utf-8")
+        .create_async()
+        .await;
+    let missing_type_mock = server
+        .mock("GET", "/missing-type")
+        .with_body(SAMPLE_RSS)
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+
+    for url in [
+        application_xml_url,
+        json_feed_url,
+        html_fallback_url,
+        missing_type_url,
+    ] {
+        provider.create_subscription(&url, None).await.unwrap();
+    }
+
+    xml_mock.assert_async().await;
+    json_mock.assert_async().await;
+    html_mock.assert_async().await;
+    missing_type_mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn feed_parser_boundary_rejects_text_plain_and_json_feed_without_explicit_type() {
+    let json_feed = r#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#;
+    let mut server = mockito::Server::new_async().await;
+    let text_plain_url = format!("{}/plain", server.url());
+    let html_json_url = format!("{}/html-json", server.url());
+    let missing_json_url = format!("{}/missing-json", server.url());
+    let text_plain_mock = server
+        .mock("GET", "/plain")
+        .with_body(SAMPLE_RSS)
+        .with_header("content-type", "text/plain")
+        .create_async()
+        .await;
+    let html_json_mock = server
+        .mock("GET", "/html-json")
+        .with_body(json_feed)
+        .with_header("content-type", "text/html; charset=utf-8")
+        .create_async()
+        .await;
+    let missing_json_mock = server
+        .mock("GET", "/missing-json")
+        .with_body(json_feed)
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+
+    let text_plain_error = provider
+        .create_subscription(&text_plain_url, None)
+        .await
+        .expect_err("text/plain must not be sniffed as XML feed");
+    assert!(
+        matches!(text_plain_error, DomainError::Network(message) if message.contains("Unsupported feed response content type"))
+    );
+
+    for url in [html_json_url, missing_json_url] {
+        let error = provider
+            .create_subscription(&url, None)
+            .await
+            .expect_err("JSON Feed must require explicit application/feed+json");
+        assert!(matches!(
+            error,
+            DomainError::Parse(message)
+                if message == JSON_FEED_SUPPORT_DECISION
+        ));
+    }
+
+    text_plain_mock.assert_async().await;
+    html_json_mock.assert_async().await;
+    missing_json_mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn feed_parser_boundary_handles_charset_bom_and_xml_declaration_corpus() {
+    let corpus: Vec<(&str, Vec<u8>, &str)> = vec![
+            (
+                "/utf8-bom.xml",
+                [
+                    b"\xEF\xBB\xBF".as_slice(),
+                    br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>UTF8 BOM Feed</title><link>https://example.com/</link><item><title>BOM Article</title><link>https://example.com/bom</link><guid>bom</guid></item></channel></rss>"#.as_slice(),
+                ]
+                .concat(),
+                "UTF8 BOM Feed",
+            ),
+            (
+                "/xml-declaration.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Declared UTF8 Feed</title><link>https://example.com/</link><item><title>Declared Article</title><link>https://example.com/declared</link><guid>declared</guid></item></channel></rss>"#.to_vec(),
+                "Declared UTF8 Feed",
+            ),
+            (
+                "/shift-jis-declaration.xml",
+                br#"<?xml version="1.0" encoding="Shift_JIS"?><rss version="2.0"><channel><title>Shift_JIS Feed</title><link>https://example.com/</link><item><title>Shift_JIS Article</title><link>https://example.com/shift-jis</link><guid>shift-jis</guid></item></channel></rss>"#.to_vec(),
+                "Shift_JIS Feed",
+            ),
+            (
+                "/html-entity.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Tom &amp; Jerry Feed</title><link>https://example.com/</link><item><title>Entity Article</title><link>https://example.com/entity</link><guid>entity</guid></item></channel></rss>"#.to_vec(),
+                "Tom & Jerry Feed",
+            ),
+            (
+                "/cdata.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title><![CDATA[CDATA Feed]]></title><link>https://example.com/</link><item><title><![CDATA[CDATA Article]]></title><link>https://example.com/cdata</link><guid>cdata</guid></item></channel></rss>"#.to_vec(),
+                "CDATA Feed",
+            ),
+            (
+                "/empty-title.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title></title><link>https://example.com/</link><item><title>Empty Title Article</title><link>https://example.com/empty-title</link><guid>empty-title</guid></item></channel></rss>"#.to_vec(),
+                "",
+            ),
+        ];
+
+    let mut server = mockito::Server::new_async().await;
+    let mut feed_urls = Vec::new();
+    let mut mocks = Vec::new();
+    for (path, body, _) in &corpus {
+        feed_urls.push(format!("{}{}", server.url(), path));
+        mocks.push(
+            server
+                .mock("GET", *path)
+                .with_body(body.clone())
+                .with_header("content-type", "application/rss+xml; charset=utf-8")
+                .create_async()
+                .await,
+        );
+    }
+
+    let provider = local_provider_allowing_private_feed_urls();
+    for ((_, _, expected_title), feed_url) in corpus.iter().zip(feed_urls.iter()) {
+        let subscription = provider.create_subscription(feed_url, None).await.unwrap();
+        assert_eq!(subscription.title, *expected_title);
+    }
+
+    for mock in mocks {
+        mock.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn feed_parser_boundary_falls_back_to_feed_url_when_invalid_bytes_drop_title() {
+    let invalid_feed = [
+        br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>"#.as_slice(),
+        b"\xFF\xFE",
+        br#"</title><link>https://example.com/</link></channel></rss>"#.as_slice(),
+    ]
+    .concat();
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/invalid.xml", server.url());
+    let mock = server
+        .mock("GET", "/invalid.xml")
+        .with_body(invalid_feed)
+        .with_header("content-type", "application/rss+xml; charset=utf-8")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    // feed-rs >=2.4 drops the invalid-byte title entirely (None instead of
+    // empty text), so the missing-title fallback applies: the subscription
+    // title falls back to the feed URL, matching
+    // create_subscription_uses_feed_url_when_feed_title_and_site_link_are_missing.
+    assert_eq!(subscription.title, feed_url);
+    assert_eq!(subscription.site_url, "https://example.com/");
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn feed_parser_boundary_rejects_nested_entity_doctype() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss [
+  <!ENTITY a "aaaaaaaaaa">
+  <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+  <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+]>
+<rss version="2.0">
+  <channel>
+    <title>&c;</title>
+    <link>https://example.com/</link>
+  </channel>
+</rss>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/entity-expansion.xml", server.url());
+    let mock = server
+        .mock("GET", "/entity-expansion.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/rss+xml; charset=utf-8")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("DOCTYPE entity declarations should be rejected before parser expansion");
+
+    assert!(error
+        .to_string()
+        .contains("DOCTYPE declarations are not supported"));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn feed_parser_boundary_rejects_external_entity_doctype() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss [
+  <!ENTITY remote SYSTEM "http://127.0.0.1:9/xxe.txt">
+]>
+<rss version="2.0">
+  <channel>
+    <title>&remote;</title>
+    <link>https://example.com/</link>
+  </channel>
+</rss>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/external-entity.xml", server.url());
+    let mock = server
+        .mock("GET", "/external-entity.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/rss+xml; charset=utf-8")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let error = provider
+        .create_subscription(&feed_url, None)
+        .await
+        .expect_err("external entity declarations should be rejected before parser expansion");
+
+    assert!(error
+        .to_string()
+        .contains("DOCTYPE declarations are not supported"));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn feed_parser_boundary_accepts_large_text_node_with_response_size_cap() {
+    let large_title = "a".repeat(128 * 1024);
+    let feed = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>{large_title}</title><link>https://example.com/</link><item><title>Large Text Article</title><link>https://example.com/large-text</link><guid>large-text</guid></item></channel></rss>"#
+    );
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/large-text.xml", server.url());
+    let mock = server
+        .mock("GET", "/large-text.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/rss+xml; charset=utf-8")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.title.len(), large_title.len());
+    assert!(subscription.title.bytes().all(|byte| byte == b'a'));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn pull_entries_smoke_parses_many_large_entries_under_body_cap() {
+    const ENTRY_COUNT: usize = 600;
+    let large_body = format!(
+        "<p>{}</p><img src=\"https://cdn.example.com/body.jpg\" alt=\"body\" />",
+        "large imported article body ".repeat(24)
+    );
+    let mut feed = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Large Feed</title><link>https://example.com/</link>"#,
+    );
+    for index in 0..ENTRY_COUNT {
+        feed.push_str(&format!(
+                "<item><title>Large Article {index}</title><link>https://example.com/articles/{index}</link><guid>large-{index}</guid><description><![CDATA[{large_body}]]></description></item>"
+            ));
+    }
+    feed.push_str("</channel></rss>");
+    assert!(
+        feed.len() < http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize,
+        "smoke fixture should stay below the provider response body cap"
+    );
+
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/large-feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/large-feed.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/rss+xml; charset=utf-8")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let result = provider
+        .pull_entries(
+            PullScope::Feed(FeedIdentifier::Local {
+                feed_url: feed_url.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result.entries.len(), ENTRY_COUNT);
+    assert_eq!(result.entries[0].title, "Large Article 0");
+    assert!(result.entries[0]
+        .content
+        .contains("large imported article body"));
+    assert_eq!(
+        result.entries[ENTRY_COUNT - 1].url.as_deref(),
+        Some(format!("https://example.com/articles/{}", ENTRY_COUNT - 1).as_str())
+    );
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn create_subscription_copies_feed_icon_url() {
+    let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <icon>https://example.com/icon.png</icon>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+    let mut server = mockito::Server::new_async().await;
+    let feed_url = format!("{}/feed.xml", server.url());
+    let mock = server
+        .mock("GET", "/feed.xml")
+        .with_body(feed)
+        .with_header("content-type", "application/atom+xml")
+        .create_async()
+        .await;
+
+    let provider = local_provider_allowing_private_feed_urls();
+    let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+    assert_eq!(subscription.title, "Atom Feed");
+    assert_eq!(
+        subscription.icon_url.as_deref(),
+        Some("https://example.com/icon.png")
+    );
+    mock.assert_async().await;
+}
