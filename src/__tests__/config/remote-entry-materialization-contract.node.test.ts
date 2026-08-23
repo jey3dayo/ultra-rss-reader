@@ -245,7 +245,7 @@ describe("remote-entry materialization contract", () => {
   it("limits production `INSERT INTO articles` SQL to infra/db/sqlite_article/mutation.rs", () => {
     // Matches `INSERT INTO articles (` / `INSERT INTO articles\n` but not
     // `INSERT INTO articles_fts(...)`, which is a separate FTS shadow table
-    // with its own insert statements in infra/db/connection/mod.rs.
+    // with its own insert statements in infra/db/connection/reconcile.rs.
     const counts = collectProductionMatches(/INSERT INTO articles[\s(]/g);
 
     expect(counts).toEqual(new Map([["infra/db/sqlite_article/mutation.rs", 1]]));
