@@ -437,7 +437,7 @@ fn opml_export_temp_path(path: &Path) -> PathBuf {
 }
 
 /// Contract: TempFileThenRename with temp cleanup on failure
-/// (same shape as infra/db/backup.rs::copy_backup_file_atomic).
+/// (same shape as infra/db/backup/mod.rs::copy_backup_file_atomic).
 fn write_opml_export_atomic(path: &Path, contents: &str) -> Result<(), AppError> {
     let temp_path = opml_export_temp_path(path);
     if temp_path.exists() {

@@ -263,7 +263,7 @@ describe("remote-entry materialization contract", () => {
       "infra/db/sqlite_account/tests.rs",
       "infra/db/sqlite_tag.rs",
       "infra/db/sqlite_tag/tests.rs",
-      "infra/db/backup.rs",
+      "infra/db/backup/tests.rs",
       "infra/db/sqlite_mute_keyword/tests.rs",
       "infra/db/sqlite_feed/unread.rs",
       "infra/db/migration/tests/data_cleanup.rs",
