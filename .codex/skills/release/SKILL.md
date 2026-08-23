@@ -1,6 +1,6 @@
 ---
 name: release
-description: Use when cutting an Ultra RSS Reader release from `main`, choosing a semver bump, syncing versions across `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`, generating `CHANGELOG.md` and GitHub Release notes from commit history, tagging `v*`, pushing safely, and verifying the draft GitHub Release workflow.
+description: Use when cutting an Ultra RSS Reader release from `main`, choosing a semver bump, synchronizing the five version owners with `scripts/release/bump-version.ts`, generating `CHANGELOG.md` and GitHub Release notes from commit history, tagging `v*`, pushing safely, and verifying the draft GitHub Release workflow.
 ---
 
 # Release
@@ -97,9 +97,8 @@ Read `references/phase-2-generate.md`, then complete the whole phase before aski
 Required outputs:
 
 - `new_version` calculated from the approved bump;
-- `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json` updated to `new_version`;
+- `node scripts/release/bump-version.ts <new_version>` run successfully, updating `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, and `msix/Package.appxmanifest` (`Identity Version` as `X.Y.Z.0`);
 - Cargo metadata refreshed with `cd src-tauri && cargo check`;
-- `src-tauri/Cargo.lock` included only if Cargo updates it;
 - previous `v*` tag and non-merge release commit range identified before the release commit exists;
 - Japanese GitHub Release notes and `CHANGELOG.md` entry generated from the filtered commit history;
 - `todo.txt` changed only when matching release tasks are clear.

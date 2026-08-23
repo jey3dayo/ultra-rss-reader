@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
 VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+MSIX_VERSION_COMPONENT_MAX = 65_535
 
 
 def run_git(args: list[str]) -> str:
@@ -28,14 +29,28 @@ def run_git(args: list[str]) -> str:
 
 
 def load_json(path: Path) -> object:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_json_keys)
+
+
+def reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
 
 
 def parse_version(version: str) -> tuple[int, int, int]:
     match = VERSION_RE.match(version)
     if not match:
         raise ValueError(f"unsupported semver version: {version}")
-    return tuple(int(part) for part in match.groups())
+    components = tuple(int(part) for part in match.groups())
+    if any(component > MSIX_VERSION_COMPONENT_MAX for component in components):
+        raise ValueError(
+            f"version components must not exceed {MSIX_VERSION_COMPONENT_MAX} for MSIX: {version}"
+        )
+    return components
 
 
 def command_bump(args: argparse.Namespace) -> int:
@@ -49,28 +64,63 @@ def command_bump(args: argparse.Namespace) -> int:
         major += 1
         minor = 0
         patch = 0
-    print(f"{major}.{minor}.{patch}")
+    next_version = f"{major}.{minor}.{patch}"
+    parse_version(next_version)
+    print(next_version)
     return 0
 
 
 def command_verify_version(args: argparse.Namespace) -> int:
     expected = args.version
+    parse_version(expected)
     failures: list[str] = []
 
+    package_json_source = (ROOT / "package.json").read_text(encoding="utf-8")
     package_json = load_json(ROOT / "package.json")
+    package_versions = json_version_owners(package_json_source)
+    if len(package_versions) != 1:
+        failures.append(f"package.json must contain exactly one version owner, found {len(package_versions)}")
     if not isinstance(package_json, dict) or package_json.get("version") != expected:
         actual = package_json.get("version") if isinstance(package_json, dict) else None
         failures.append(f"package.json version is {actual!r}")
 
     cargo_toml = (ROOT / "src-tauri" / "Cargo.toml").read_text(encoding="utf-8")
-    cargo_version = cargo_package_version(cargo_toml)
-    if cargo_version != expected:
-        failures.append(f"src-tauri/Cargo.toml package version is {cargo_version!r}")
+    cargo_sections = cargo_package_sections(cargo_toml)
+    cargo_versions = cargo_package_versions(cargo_toml)
+    if len(cargo_sections) != 1 or len(cargo_versions) != 1:
+        failures.append(
+            "src-tauri/Cargo.toml must contain exactly one [package] section and version owner, "
+            f"found {len(cargo_sections)} sections and {len(cargo_versions)} versions"
+        )
+    elif cargo_versions[0] != expected:
+        failures.append(f"src-tauri/Cargo.toml package version is {cargo_versions[0]!r}")
 
+    cargo_lock = (ROOT / "src-tauri" / "Cargo.lock").read_text(encoding="utf-8")
+    cargo_lock_versions = cargo_lock_package_versions(cargo_lock)
+    if len(cargo_lock_versions) != 1:
+        failures.append(
+            "src-tauri/Cargo.lock must contain exactly one ultra-rss-reader package entry, "
+            f"found {len(cargo_lock_versions)}"
+        )
+    elif cargo_lock_versions[0] != expected:
+        failures.append(f"src-tauri/Cargo.lock ultra-rss-reader version is {cargo_lock_versions[0]!r}")
+
+    tauri_conf_source = (ROOT / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8")
     tauri_conf = load_json(ROOT / "src-tauri" / "tauri.conf.json")
+    tauri_versions = json_version_owners(tauri_conf_source)
+    if len(tauri_versions) != 1:
+        failures.append(
+            "src-tauri/tauri.conf.json must contain exactly one version owner, "
+            f"found {len(tauri_versions)}"
+        )
     if not isinstance(tauri_conf, dict) or tauri_conf.get("version") != expected:
         actual = tauri_conf.get("version") if isinstance(tauri_conf, dict) else None
         failures.append(f"src-tauri/tauri.conf.json version is {actual!r}")
+
+    msix_manifest = (ROOT / "msix" / "Package.appxmanifest").read_text(encoding="utf-8")
+    msix_version = msix_identity_version(msix_manifest)
+    if msix_version != f"{expected}.0":
+        failures.append(f"msix/Package.appxmanifest Identity version is {msix_version!r}")
 
     if failures:
         for failure in failures:
@@ -81,20 +131,53 @@ def command_verify_version(args: argparse.Namespace) -> int:
     return 0
 
 
-def cargo_package_version(cargo_toml: str) -> str | None:
-    in_package = False
-    for line in cargo_toml.splitlines():
-        stripped = line.strip()
-        if stripped == "[package]":
-            in_package = True
-            continue
-        if in_package and stripped.startswith("["):
-            return None
-        if in_package:
-            match = re.match(r'^version\s*=\s*"([^"]+)"\s*$', stripped)
+def json_version_owners(source: str) -> list[str]:
+    parsed = json.loads(source, object_pairs_hook=reject_duplicate_json_keys)
+    if isinstance(parsed, dict) and isinstance(parsed.get("version"), str):
+        return [parsed["version"]]
+    return []
+
+
+def cargo_package_sections(cargo_toml: str) -> list[str]:
+    section_matches = list(re.finditer(r"^\[package\]\s*$", cargo_toml, re.MULTILINE))
+    sections: list[str] = []
+    for match in section_matches:
+        section_start = match.end()
+        next_section = re.search(r"^\[", cargo_toml[section_start:], re.MULTILINE)
+        section_end = section_start + next_section.start() if next_section else len(cargo_toml)
+        sections.append(cargo_toml[section_start:section_end])
+    return sections
+
+
+def cargo_package_versions(cargo_toml: str) -> list[str]:
+    versions: list[str] = []
+    for section in cargo_package_sections(cargo_toml):
+        for line in section.splitlines():
+            stripped = line.strip()
+            match = re.fullmatch(r'version\s*=\s*"([^"]+)"', stripped)
             if match:
-                return match.group(1)
-    return None
+                versions.append(match.group(1))
+    return versions
+
+
+def cargo_lock_package_versions(cargo_lock: str) -> list[str]:
+    package_sections = re.split(r"(?m)^\[\[package\]\]\s*$", cargo_lock)[1:]
+    owners: list[str] = []
+    for package_section in package_sections:
+        names = re.findall(r'^name\s*=\s*"([^"]+)"\s*$', package_section, re.MULTILINE)
+        if "ultra-rss-reader" not in names:
+            continue
+        versions = re.findall(r'^version\s*=\s*"([^"]+)"\s*$', package_section, re.MULTILINE)
+        owners.append(versions[0] if len(names) == 1 and len(versions) == 1 else "")
+    return owners
+
+
+def msix_identity_version(manifest: str) -> str | None:
+    identities = re.findall(r"<Identity\b[^>]*\/>", manifest)
+    if len(identities) != 1:
+        return None
+    versions = re.findall(r'\bVersion="([^"]+)"', identities[0])
+    return versions[0] if len(versions) == 1 else None
 
 
 def classify_subject(subject: str) -> str:
@@ -140,6 +223,7 @@ def command_classify_commits(args: argparse.Namespace) -> int:
 
 
 def command_verify_tag(args: argparse.Namespace) -> int:
+    parse_version(args.version)
     tag_type = run_git(["cat-file", "-t", args.tag])
     if tag_type != "tag":
         print(f"{args.tag} is {tag_type}, expected annotated tag object", file=sys.stderr)
@@ -150,16 +234,38 @@ def command_verify_tag(args: argparse.Namespace) -> int:
         print(f"{args.tag} points to {tag_commit}, expected {args.commit}", file=sys.stderr)
         return 1
 
-    checks = {
-        "package.json": f'"version": "{args.version}"',
-        "src-tauri/Cargo.toml": f'version = "{args.version}"',
-        "src-tauri/tauri.conf.json": f'"version": "{args.version}"',
-    }
-    for path, expected in checks.items():
-        content = run_git(["show", f"{args.tag}:{path}"])
-        if expected not in content:
-            print(f"{args.tag}:{path} does not contain {expected}", file=sys.stderr)
-            return 1
+    package_content = run_git(["show", f"{args.tag}:package.json"])
+    if json_version_owners(package_content) != [args.version]:
+        print(f"{args.tag}:package.json version owners are invalid", file=sys.stderr)
+        return 1
+
+    cargo_content = run_git(["show", f"{args.tag}:src-tauri/Cargo.toml"])
+    if len(cargo_package_sections(cargo_content)) != 1 or cargo_package_versions(cargo_content) != [args.version]:
+        print(f"{args.tag}:src-tauri/Cargo.toml package version owners are invalid", file=sys.stderr)
+        return 1
+
+    tauri_content = run_git(["show", f"{args.tag}:src-tauri/tauri.conf.json"])
+    if json_version_owners(tauri_content) != [args.version]:
+        print(f"{args.tag}:src-tauri/tauri.conf.json version owners are invalid", file=sys.stderr)
+        return 1
+
+    cargo_lock_versions = cargo_lock_package_versions(run_git(["show", f"{args.tag}:src-tauri/Cargo.lock"]))
+    if cargo_lock_versions != [args.version]:
+        print(
+            f"{args.tag}:src-tauri/Cargo.lock ultra-rss-reader versions are {cargo_lock_versions!r}, "
+            f"expected [{args.version!r}]",
+            file=sys.stderr,
+        )
+        return 1
+
+    msix_version = msix_identity_version(run_git(["show", f"{args.tag}:msix/Package.appxmanifest"]))
+    if msix_version != f"{args.version}.0":
+        print(
+            f"{args.tag}:msix/Package.appxmanifest Identity version is {msix_version!r}, "
+            f"expected {args.version}.0",
+            file=sys.stderr,
+        )
+        return 1
 
     print(f"{args.tag} matches {args.commit} and version {args.version}")
     return 0

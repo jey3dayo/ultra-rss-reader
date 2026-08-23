@@ -14,11 +14,21 @@ python3 .codex/skills/release/scripts/release_checks.py bump <current_version> <
 
 ## Update Versioned Files
 
-Update these files to `new_version`:
+Run the repository-owned bump script. It validates that the existing version owners are already aligned, then updates all five owners in one operation:
+
+```bash
+node scripts/release/bump-version.ts <new_version>
+```
+
+The updated files are:
 
 - `package.json`;
 - `src-tauri/Cargo.toml` in the `[package]` section;
-- `src-tauri/tauri.conf.json`.
+- `src-tauri/Cargo.lock` for the `ultra-rss-reader` package entry;
+- `src-tauri/tauri.conf.json`;
+- `msix/Package.appxmanifest` with `Identity Version` in `X.Y.Z.0` form.
+
+Use `node scripts/release/bump-version.ts <new_version> --check` to preview the five changes without writing them.
 
 Refresh Cargo metadata after the bump:
 
@@ -26,9 +36,9 @@ Refresh Cargo metadata after the bump:
 cd src-tauri && cargo check
 ```
 
-Include `src-tauri/Cargo.lock` in the release changes if `cargo check` updates the package version there.
+Confirm that `cargo check` leaves the `ultra-rss-reader` Cargo metadata consistent with the version written by the bump script.
 
-Verify the three version files:
+Verify all version owners:
 
 ```bash
 python3 .codex/skills/release/scripts/release_checks.py verify-version <new_version>

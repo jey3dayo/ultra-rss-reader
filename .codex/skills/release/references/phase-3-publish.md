@@ -29,7 +29,9 @@ The verification requires:
 - `git rev-list -n 1 v{new_version}` exactly matches the release commit hash from `git rev-parse HEAD`;
 - `git show v{new_version}:package.json` contains `"version": "{new_version}"`;
 - `git show v{new_version}:src-tauri/Cargo.toml` contains `version = "{new_version}"`;
-- `git show v{new_version}:src-tauri/tauri.conf.json` contains `"version": "{new_version}"`.
+- `git show v{new_version}:src-tauri/Cargo.lock` contains exactly one `ultra-rss-reader` package entry at `{new_version}`;
+- `git show v{new_version}:src-tauri/tauri.conf.json` contains `"version": "{new_version}"`;
+- `git show v{new_version}:msix/Package.appxmanifest` contains `Identity Version="{new_version}.0"`.
 - the local release preflight mirror succeeds before the tag is pushed, including version parity, release build contamination, format, TypeScript, and CI unit tests.
 
 Abort if the tag points at any earlier commit, any tagged file still shows the previous version, or the local release preflight mirror fails.
