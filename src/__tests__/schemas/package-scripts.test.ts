@@ -185,12 +185,13 @@ describe("package scripts", () => {
     }
   });
 
-  it("keeps markdownlint-cli2 routed through mise tasks for the knip dependency contract", () => {
+  it("keeps mise-routed tool dependencies explicit in the knip contract", () => {
     const packageJson = readPackageJson();
     const miseToml = readMiseTaskCorpus();
 
     expect(packageJson.devDependencies?.["markdownlint-cli2"]).toBeDefined();
-    expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2"]);
+    expect(packageJson.devDependencies?.wrangler).toBeDefined();
+    expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2", "wrangler"]);
 
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run"))).toEqual([
       "markdownlint-cli2",

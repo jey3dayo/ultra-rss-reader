@@ -9,7 +9,7 @@
 
 export type DevMockLocale = "ja" | "en";
 
-export const DEV_MOCK_LOCALE_ENV_KEYS = ["VITE_DEV_MOCK_LOCALE"] as const;
+const DEV_MOCK_LOCALE_ENV_KEYS = ["VITE_DEV_MOCK_LOCALE"] as const;
 
 function readFirstNonEmptyEnv(keys: readonly string[]): string | undefined {
   for (const key of keys) {
@@ -22,7 +22,7 @@ function readFirstNonEmptyEnv(keys: readonly string[]): string | undefined {
   return undefined;
 }
 
-export function parseDevMockLocale(value: string | undefined): DevMockLocale {
+function parseDevMockLocale(value: string | undefined): DevMockLocale {
   return value === "en" ? "en" : "ja";
 }
 
