@@ -34,11 +34,12 @@ const run = (command: string, args: readonly string[], stdoutFile?: string): voi
 
 mkdirSync(outputDir, { recursive: true });
 run("pnpm", ["licenses", "list", "--json"], `${outputDir}/pnpm-licenses.json`);
-run(
-  "cargo",
-  ["metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version=1", "--locked"],
-  `${outputDir}/cargo-metadata.json`,
-);
+const cargoLicenseTarget = process.env.CARGO_LICENSE_TARGET?.trim();
+const cargoMetadataArgs = ["metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version=1", "--locked"];
+if (cargoLicenseTarget) {
+  cargoMetadataArgs.push("--filter-platform", cargoLicenseTarget);
+}
+run("cargo", cargoMetadataArgs, `${outputDir}/cargo-metadata.json`);
 
 const metadata = JSON.parse(readFileSync(`${outputDir}/cargo-metadata.json`, "utf8")) as CargoMetadata;
 const packages = metadata.packages.map((pkg) => ({

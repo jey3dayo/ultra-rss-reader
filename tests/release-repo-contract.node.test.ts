@@ -668,6 +668,7 @@ describe("release repository contract", () => {
   const codexReleaseSkill = readText(".codex/skills/release/SKILL.md");
   const codexPhase2Reference = readText(".codex/skills/release/references/phase-2-generate.md");
   const codexReleaseChecks = readText(".codex/skills/release/scripts/release_checks.py");
+  const dependencyLicenseReportScript = readText("scripts/report-dependency-licenses.ts");
   const releaseArtifactsScript = readText("scripts/release/artifacts.ts");
   const releaseContaminationChecker = readText("scripts/check-release-build-contamination.ts");
   const tauriLib = readText("src-tauri/src/lib.rs");
@@ -1614,6 +1615,9 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("default: false");
     expect(releaseWorkflow).toContain('"platform":"ubuntu-24.04"');
     expect(releaseWorkflow).toContain('"updater_enabled":false');
+    expect(releaseWorkflow).toContain('"cargo_target":"aarch64-apple-darwin"');
+    expect(releaseWorkflow).toContain('"cargo_target":"x86_64-pc-windows-msvc"');
+    expect(releaseWorkflow).toContain("CARGO_LICENSE_TARGET: $" + "{{ matrix.cargo_target }}");
     expect(releaseWorkflow).toContain("matrix.updater_enabled == true");
 
     for (const unsupportedPlatformKey of UNSUPPORTED_UPDATER_PLATFORM_KEYS) {
@@ -1633,6 +1637,8 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("Generate release provenance record");
     expect(releaseWorkflow).toContain("Upload release provenance assets");
     expect(releaseWorkflow).toContain("mise run report:licenses");
+    expect(dependencyLicenseReportScript).toContain("CARGO_LICENSE_TARGET");
+    expect(dependencyLicenseReportScript).toContain('"--filter-platform"');
     expect(releaseArtifactsScript).toContain("pnpm-licenses-$" + "{assetPlatform}.json");
     expect(releaseArtifactsScript).toContain("cargo-licenses-$" + "{assetPlatform}.json");
     expect(releaseArtifactsScript).toContain("release-provenance-$" + "{assetPlatform}.json");
