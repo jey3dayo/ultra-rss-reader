@@ -7,6 +7,7 @@ mod bridge;
 mod escape_accelerator;
 mod navigation;
 mod prefs;
+mod shortcuts;
 #[cfg(test)]
 mod tests;
 
