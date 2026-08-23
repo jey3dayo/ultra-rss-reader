@@ -2,7 +2,6 @@ import { parse } from "valibot";
 import { create } from "zustand";
 import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
-import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import {
   addRetainedArticle,
   addRetainedArticles,
@@ -10,7 +9,6 @@ import {
 } from "@/lib/articles/article-retention";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
 import type {
   NativeLifecycleBlockerEntry,
@@ -23,6 +21,7 @@ import type {
   UiStoreState,
 } from "@/stores/ui-store.types";
 import { createUiStoreDialogActions, type UiStoreDialogToastRuntime } from "@/stores/ui-store-dialog-actions";
+import { createUiStoreSettingsActions, getSettingsAccountsViewState } from "@/stores/ui-store-settings-actions";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 export type {
@@ -74,69 +73,6 @@ function getSmartViewMode(kind: Extract<UiStoreReaderSelection, { type: "smart" 
   }
 
   return kind === "recent" ? "all" : "unread";
-}
-
-function getSettingsAccountsViewState(
-  accountId: string | null,
-  addAccount: boolean,
-  initialKind: AddAccountProviderKind | null = null,
-) {
-  if (addAccount) {
-    return {
-      settingsAccountId: null,
-      settingsAddAccount: true,
-      settingsAddAccountInitialKind: initialKind,
-    };
-  }
-
-  return {
-    settingsAccountId: accountId,
-    settingsAddAccount: false,
-    settingsAddAccountInitialKind: null,
-  };
-}
-
-function isSettingsSetupLocked(
-  state: Pick<
-    UiState,
-    "accountSetupSession" | "settingsOpen" | "settingsCategory" | "settingsAccountId" | "settingsAddAccount"
-  >,
-): boolean {
-  const { accountSetupSession } = state;
-  if (!state.settingsOpen || accountSetupSession === null) {
-    return false;
-  }
-
-  if (accountSetupSession.state === "verifying") {
-    return state.settingsCategory === "accounts" && state.settingsAddAccount;
-  }
-
-  return (
-    (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed") &&
-    state.settingsCategory === "accounts" &&
-    state.settingsAccountId === accountSetupSession.accountId
-  );
-}
-
-function canApplySettingsAccountTransition(
-  state: Pick<
-    UiState,
-    "accountSetupSession" | "settingsOpen" | "settingsCategory" | "settingsAccountId" | "settingsAddAccount"
-  >,
-  accountId: string | null,
-  addAccount: boolean,
-): boolean {
-  if (!isSettingsSetupLocked(state)) {
-    return true;
-  }
-
-  const { accountSetupSession } = state;
-  return (
-    accountSetupSession !== null &&
-    !addAccount &&
-    accountSetupSession.state !== "verifying" &&
-    accountSetupSession.accountId === accountId
-  );
 }
 
 function getResetBrowserState() {
@@ -400,6 +336,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
     nextToastAnnouncementId,
     scheduleToastDismiss,
   }),
+  ...createUiStoreSettingsActions(set),
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   setFocusedPane: (pane) => set({ focusedPane: pane }),
   openSidebar: () => set({ sidebarOpen: true, focusedPane: "sidebar" }),
@@ -628,72 +565,6 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
     set((state) => ({
       isTagsSectionOpen: typeof open === "function" ? open(state.isTagsSectionOpen) : open,
     })),
-  openSettings: (tab?: SettingsCategory) =>
-    set((s) => ({
-      settingsOpen: true,
-      settingsCategory: isSettingsSetupLocked(s) ? s.settingsCategory : (tab ?? s.settingsCategory),
-    })),
-  closeSettings: () =>
-    set((state) =>
-      isSettingsSetupLocked(state)
-        ? state
-        : {
-            settingsOpen: false,
-            settingsCategory: "general",
-            settingsAccountId: null,
-            settingsAddAccount: false,
-            settingsAddAccountInitialKind: null,
-            settingsLoading: false,
-          },
-    ),
-  setSettingsCategory: (cat) =>
-    set((state) =>
-      isSettingsSetupLocked(state)
-        ? state
-        : {
-            settingsCategory: cat,
-            settingsAccountId: null,
-            settingsAddAccount: false,
-            settingsAddAccountInitialKind: null,
-          },
-    ),
-  openSettingsAccount: (id) =>
-    set((state) =>
-      !canApplySettingsAccountTransition(state, id, false)
-        ? state
-        : {
-            settingsOpen: true,
-            settingsCategory: "accounts",
-            ...getSettingsAccountsViewState(id, false),
-          },
-    ),
-  openSettingsAddAccount: (initialKind) =>
-    set((state) =>
-      isSettingsSetupLocked(state)
-        ? state
-        : {
-            settingsOpen: true,
-            settingsCategory: "accounts",
-            ...getSettingsAccountsViewState(null, true, initialKind ?? null),
-          },
-    ),
-  setSettingsAccountId: (id) =>
-    set((state) =>
-      canApplySettingsAccountTransition(state, id, false) ? getSettingsAccountsViewState(id, false) : state,
-    ),
-  setSettingsAddAccount: (show, initialKind) =>
-    set((state) =>
-      canApplySettingsAccountTransition(state, null, show)
-        ? getSettingsAccountsViewState(null, show, initialKind ?? null)
-        : state,
-    ),
-  setSettingsAccountsView: (accountId, addAccount, initialKind) =>
-    set((state) =>
-      canApplySettingsAccountTransition(state, accountId, addAccount)
-        ? getSettingsAccountsViewState(accountId, addAccount, initialKind ?? null)
-        : state,
-    ),
-  setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   openSubscriptionsIndex: (returnState) =>
     set({
       accountPaneOpen: false,
