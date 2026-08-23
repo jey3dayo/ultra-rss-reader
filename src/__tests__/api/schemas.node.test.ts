@@ -146,6 +146,8 @@ function readRustCommandSources() {
     "local_account_sync_commands.rs",
     "mute_keyword_commands.rs",
     "opml_commands/mod.rs",
+    "opml_commands/import.rs",
+    "opml_commands/export.rs",
     "platform_commands.rs",
     "preference_commands.rs",
     "settings_profile_commands/mod.rs",
