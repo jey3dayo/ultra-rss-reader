@@ -36,7 +36,12 @@ import {
 import { createTag, renameAccount, renameFeed, renameTag } from "@/api/tauri-commands";
 
 function readRustCommandSource(fileName: string) {
-  return readFileSync(join(process.cwd(), "src-tauri/src/commands", fileName), "utf8");
+  const sourcePath = join(process.cwd(), "src-tauri/src/commands", fileName);
+  const source = readFileSync(sourcePath, "utf8");
+  if (fileName === "account_commands/mod.rs") {
+    return `${source}\n${readFileSync(join(process.cwd(), "src-tauri/src/commands/account_commands/validation.rs"), "utf8")}`;
+  }
+  return source;
 }
 
 function readRustDomainSource(fileName: string) {

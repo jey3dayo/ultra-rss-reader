@@ -1,12 +1,10 @@
 use super::{
-    account_credential_cleanup_contract, delete_account_then_password,
-    delete_account_with_sync_boundary, invalid_account_row_recovery_contract,
+    delete_account_then_password, delete_account_with_sync_boundary_with_keyring,
     normalize_new_freshrss_server_url, normalize_updated_account_server_url,
-    provider_account_scale_guidance_contract, provider_credential_verification_request_contract,
-    save_account_after_optional_password, update_account_credentials_after_optional_password,
-    validate_account_name, validate_account_name_with_excluded_id, validate_account_sync_settings,
-    validate_add_account_args, validate_freshrss_server_url, AccountCredentialCleanupFailurePolicy,
-    AccountCredentialCleanupStep, AccountRecoveryAction, ProviderScaleGuidanceSurface,
+    save_account_after_optional_password_with_keyring,
+    update_account_credentials_after_optional_password_with_keyring, validate_account_name,
+    validate_account_name_with_excluded_id, validate_account_sync_settings,
+    validate_add_account_args, validate_freshrss_server_url,
 };
 use crate::commands::dto::AppError;
 use crate::domain::account::{Account, ConnectionVerificationStatus};
@@ -31,6 +29,121 @@ fn fresh_rss_account() -> Account {
         connection_verification_status: ConnectionVerificationStatus::Unverified,
         connection_verified_at: None,
         connection_verification_error: None,
+    }
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountCredentialCleanupStep {
+    DeleteDatabaseAccount,
+    DeleteKeyringCredential,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountCredentialCleanupFailurePolicy {
+    WarnAfterDatabaseDelete,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AccountCredentialCleanupContract {
+    steps: Vec<AccountCredentialCleanupStep>,
+    keyring_delete_failure_policy: AccountCredentialCleanupFailurePolicy,
+    rename_deletes_keyring_credential: bool,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountRecoveryAction {
+    DeleteAccount,
+    RecreateAccount,
+    ContactSupport,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct InvalidAccountRowRecoveryContract {
+    diagnostics_event: &'static str,
+    recovery_actions: Vec<AccountRecoveryAction>,
+    preserves_account_id: bool,
+    exposes_displayable_row: bool,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProviderScaleGuidanceSurface {
+    AccountSettingsAdvisory,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProviderAccountScaleGuidanceContract {
+    surface: ProviderScaleGuidanceSurface,
+    max_feeds_guidance: &'static str,
+    max_articles_guidance: &'static str,
+    warning_threshold_guidance: &'static str,
+    performance_diagnostics: &'static str,
+    no_hard_limit_copy: bool,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProviderCredentialVerificationRequestContract {
+    create_requests_connection_test: bool,
+    update_requests_connection_test: bool,
+    explicit_verification_command: &'static str,
+    mutation_status_after_create_or_update: ConnectionVerificationStatus,
+}
+
+#[cfg(test)]
+fn account_credential_cleanup_contract() -> AccountCredentialCleanupContract {
+    AccountCredentialCleanupContract {
+        steps: vec![
+            AccountCredentialCleanupStep::DeleteDatabaseAccount,
+            AccountCredentialCleanupStep::DeleteKeyringCredential,
+        ],
+        keyring_delete_failure_policy:
+            AccountCredentialCleanupFailurePolicy::WarnAfterDatabaseDelete,
+        rename_deletes_keyring_credential: false,
+    }
+}
+
+#[cfg(test)]
+fn invalid_account_row_recovery_contract() -> InvalidAccountRowRecoveryContract {
+    InvalidAccountRowRecoveryContract {
+        diagnostics_event: "account.row.quarantined",
+        recovery_actions: vec![
+            AccountRecoveryAction::DeleteAccount,
+            AccountRecoveryAction::RecreateAccount,
+            AccountRecoveryAction::ContactSupport,
+        ],
+        preserves_account_id: true,
+        exposes_displayable_row: true,
+    }
+}
+
+#[cfg(test)]
+fn provider_account_scale_guidance_contract() -> ProviderAccountScaleGuidanceContract {
+    ProviderAccountScaleGuidanceContract {
+        surface: ProviderScaleGuidanceSurface::AccountSettingsAdvisory,
+        max_feeds_guidance: "provider_specific_advisory_not_enforced",
+        max_articles_guidance: "provider_specific_advisory_not_enforced",
+        warning_threshold_guidance: "warn_from_observed_performance_not_fixed_protocol_limit",
+        performance_diagnostics:
+            "record_account_kind_feed_count_article_count_and_sync_duration_class",
+        no_hard_limit_copy: true,
+    }
+}
+
+#[cfg(test)]
+fn provider_credential_verification_request_contract(
+) -> ProviderCredentialVerificationRequestContract {
+    ProviderCredentialVerificationRequestContract {
+        create_requests_connection_test: false,
+        update_requests_connection_test: false,
+        explicit_verification_command: "test_account_connection",
+        mutation_status_after_create_or_update: ConnectionVerificationStatus::Unverified,
     }
 }
 
@@ -235,7 +348,7 @@ fn add_account_rolls_back_keyring_entry_when_db_save_fails() {
     let saved_passwords = RefCell::new(Vec::new());
     let deleted_passwords = RefCell::new(Vec::new());
 
-    let result = save_account_after_optional_password(
+    let result = save_account_after_optional_password_with_keyring(
         &account,
         Some("secret"),
         |account_id, password| {
@@ -272,7 +385,7 @@ fn add_account_does_not_create_db_account_when_keyring_save_fails() {
     let saved_accounts = RefCell::new(Vec::new());
     let deleted_passwords = RefCell::new(Vec::new());
 
-    let error = save_account_after_optional_password(
+    let error = save_account_after_optional_password_with_keyring(
         &account,
         Some("secret"),
         |_, _| {
@@ -305,7 +418,7 @@ fn add_account_does_not_create_db_account_when_keyring_save_fails() {
 fn add_account_keeps_original_db_error_when_keyring_rollback_fails() {
     let account = fresh_rss_account();
 
-    let error = save_account_after_optional_password(
+    let error = save_account_after_optional_password_with_keyring(
         &account,
         Some("secret"),
         |_, _| Ok(()),
@@ -335,7 +448,7 @@ fn update_account_credentials_does_not_save_password_before_account_exists() {
     let read_passwords = RefCell::new(Vec::new());
     let saved_passwords = RefCell::new(Vec::new());
 
-    let error = update_account_credentials_after_optional_password(
+    let error = update_account_credentials_after_optional_password_with_keyring(
         &AccountId("missing-account".to_string()),
         Some("secret"),
         |_| Ok(None),
@@ -368,7 +481,7 @@ fn update_account_credentials_restores_previous_password_when_db_update_fails() 
     let read_passwords = RefCell::new(Vec::new());
     let saved_passwords = RefCell::new(Vec::new());
 
-    let error = update_account_credentials_after_optional_password(
+    let error = update_account_credentials_after_optional_password_with_keyring(
         &account.id,
         Some("new-secret"),
         |_| Ok(Some(account.clone())),
@@ -415,7 +528,7 @@ fn update_account_credentials_keeps_new_password_when_db_update_succeeds() {
     let saved_passwords = RefCell::new(Vec::new());
     let updated_accounts = RefCell::new(Vec::new());
 
-    let updated = update_account_credentials_after_optional_password(
+    let updated = update_account_credentials_after_optional_password_with_keyring(
         &account.id,
         Some("new-secret"),
         |_| Ok(Some(account.clone())),
@@ -462,7 +575,7 @@ fn update_account_credentials_saves_password_when_previous_password_is_missing()
     let updated_accounts = RefCell::new(Vec::new());
     let deleted_passwords = RefCell::new(Vec::new());
 
-    let updated = update_account_credentials_after_optional_password(
+    let updated = update_account_credentials_after_optional_password_with_keyring(
         &account.id,
         Some("new-secret"),
         |_| Ok(Some(account.clone())),
@@ -514,7 +627,7 @@ fn update_account_credentials_deletes_new_password_when_db_update_fails_without_
     let saved_passwords = RefCell::new(Vec::new());
     let deleted_passwords = RefCell::new(Vec::new());
 
-    let error = update_account_credentials_after_optional_password(
+    let error = update_account_credentials_after_optional_password_with_keyring(
         &account.id,
         Some("new-secret"),
         |_| Ok(Some(account.clone())),
@@ -562,7 +675,7 @@ fn update_account_credentials_keeps_existing_keyring_entry_for_empty_password() 
     let saved_passwords = RefCell::new(Vec::new());
     let updated_accounts = RefCell::new(Vec::new());
 
-    let updated = update_account_credentials_after_optional_password(
+    let updated = update_account_credentials_after_optional_password_with_keyring(
         &account.id,
         Some(""),
         |_| Ok(Some(account.clone())),
@@ -601,7 +714,7 @@ fn update_account_credentials_does_not_mutate_db_or_password_when_old_password_r
     let updated_accounts = RefCell::new(Vec::new());
     let saved_passwords = RefCell::new(Vec::new());
 
-    let error = update_account_credentials_after_optional_password(
+    let error = update_account_credentials_after_optional_password_with_keyring(
         &account.id,
         Some("new-secret"),
         |_| Ok(Some(account.clone())),
@@ -639,7 +752,7 @@ fn update_account_credentials_keeps_db_error_when_previous_password_restore_fail
     let account = fresh_rss_account();
     let saved_passwords = RefCell::new(Vec::new());
 
-    let error = update_account_credentials_after_optional_password(
+    let error = update_account_credentials_after_optional_password_with_keyring(
         &account.id,
         Some("new-secret"),
         |_| Ok(Some(account.clone())),
@@ -781,7 +894,7 @@ fn delete_account_command_rejects_while_sync_boundary_is_busy() {
     let db = Mutex::new(DbManager::new_in_memory().unwrap());
     let syncing = AtomicBool::new(true);
 
-    let error = delete_account_with_sync_boundary(
+    let error = delete_account_with_sync_boundary_with_keyring(
         &db,
         &syncing,
         AccountId("missing-account".to_string()),
@@ -809,7 +922,7 @@ fn delete_account_command_releases_sync_boundary_after_delete() {
     }
     let syncing = AtomicBool::new(false);
 
-    delete_account_with_sync_boundary(&db, &syncing, account_id, |_| Ok(()))
+    delete_account_with_sync_boundary_with_keyring(&db, &syncing, account_id, |_| Ok(()))
         .expect("account delete should succeed");
 
     assert!(!syncing.load(Ordering::SeqCst));
