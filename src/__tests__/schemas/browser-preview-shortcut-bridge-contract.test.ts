@@ -9,6 +9,7 @@ import browserWebviewEscapeAcceleratorSource from "../../../src-tauri/src/browse
 import browserWebviewModSource from "../../../src-tauri/src/browser_webview/mod.rs?raw";
 import browserWebviewNavigationSource from "../../../src-tauri/src/browser_webview/navigation.rs?raw";
 import browserWebviewPrefsSource from "../../../src-tauri/src/browser_webview/prefs.rs?raw";
+import browserWebviewShortcutsSource from "../../../src-tauri/src/browser_webview/shortcuts.rs?raw";
 import browserWebviewCommandsBoundsSource from "../../../src-tauri/src/commands/browser_webview_commands/bounds.rs?raw";
 import browserWebviewCommandsLifecycleSource from "../../../src-tauri/src/commands/browser_webview_commands/lifecycle.rs?raw";
 import browserWebviewCommandsModSource from "../../../src-tauri/src/commands/browser_webview_commands/mod.rs?raw";
@@ -20,6 +21,7 @@ const backendSource = [
   browserWebviewBridgeSource,
   browserWebviewEscapeAcceleratorSource,
   browserWebviewNavigationSource,
+  browserWebviewShortcutsSource,
 ].join("\n");
 const commandsSource = [
   browserWebviewCommandsModSource,
