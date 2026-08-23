@@ -52,6 +52,14 @@ mod tests {
         .join("\n")
     }
 
+    fn sqlite_folder_module_source() -> String {
+        [
+            include_str!("sqlite_folder.rs"),
+            include_str!("sqlite_folder/tests.rs"),
+        ]
+        .join("\n")
+    }
+
     fn assert_contains(haystack: &str, needle: &str, owner: &str) {
         assert!(
             haystack.contains(needle),
@@ -262,6 +270,7 @@ mod tests {
         let sqlite_article_source = sqlite_article_module_source();
         let sqlite_account_source = sqlite_account_module_source();
         let sqlite_tag_source = sqlite_tag_module_source();
+        let sqlite_folder_source = sqlite_folder_module_source();
         let reserved_fixture_owners = [
             (
                 "tests/helpers/reader-fixtures.ts",
@@ -280,7 +289,7 @@ mod tests {
             ("sqlite_feed.rs", sqlite_feed_source.as_str()),
             (
                 "sqlite_mute_keyword.rs",
-                include_str!("sqlite_mute_keyword.rs"),
+                include_str!("sqlite_mute_keyword/tests.rs"),
             ),
             ("sqlite_sync_state.rs", include_str!("sqlite_sync_state.rs")),
         ];
@@ -304,7 +313,7 @@ mod tests {
             let source = match owner {
                 "sqlite_feed.rs" => sqlite_feed_source.as_str(),
                 "sqlite_article.rs" => sqlite_article_source.as_str(),
-                "sqlite_folder.rs" => include_str!("sqlite_folder.rs"),
+                "sqlite_folder.rs" => sqlite_folder_source.as_str(),
                 "sqlite_tag.rs" => sqlite_tag_source.as_str(),
                 _ => unreachable!("fixture inventory owner should be covered"),
             };

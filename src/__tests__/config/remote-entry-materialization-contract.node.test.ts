@@ -264,7 +264,7 @@ describe("remote-entry materialization contract", () => {
       "infra/db/sqlite_tag.rs",
       "infra/db/sqlite_tag/tests.rs",
       "infra/db/backup.rs",
-      "infra/db/sqlite_mute_keyword.rs",
+      "infra/db/sqlite_mute_keyword/tests.rs",
       "infra/db/sqlite_feed/unread.rs",
       "infra/db/migration/tests/data_cleanup.rs",
       "infra/db/migration/tests/legacy_data_cleanup.rs",
@@ -275,7 +275,7 @@ describe("remote-entry materialization contract", () => {
       "commands/sync_commands/tests.rs",
       "service/local_account_sync.rs",
       "service/local_account_sync/tests.rs",
-      "service/local_account_sync_apply.rs",
+      "service/local_account_sync_apply/tests.rs",
     ];
     const counts = collectProductionMatches(/INSERT INTO articles[\s(]/g);
 
