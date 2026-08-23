@@ -317,7 +317,6 @@ mod tests {
                 "sqlite_feed.rs" => sqlite_feed_source.as_str(),
                 "sqlite_article.rs" => sqlite_article_source.as_str(),
                 "sqlite_folder.rs" => sqlite_folder_source.as_str(),
-                "test_fixtures.rs" => test_fixtures_source,
                 _ => unreachable!("fixture inventory owner should be covered"),
             };
             assert_contains(source, candidate, owner);
