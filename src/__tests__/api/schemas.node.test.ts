@@ -109,7 +109,10 @@ const RUST_ARTICLE_COMMAND_MODULE_FILES = [
   "mod.rs",
   "browser.rs",
   "integrity.rs",
-  "mutations.rs",
+  "mutations/mod.rs",
+  "mutations/pending.rs",
+  "mutations/bulk.rs",
+  "mutations/single.rs",
   "queries.rs",
   "tests.rs",
 ];
