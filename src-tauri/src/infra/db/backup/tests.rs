@@ -1,3 +1,8 @@
+// Test-only backup policy and schema fixtures.
+// The production backup writer is the runtime owner; the durable privacy and
+// encryption policy is documented in docs/incident-runbook.md and
+// docs/feed-content-privacy.md. These values are not a production API or
+// source of truth, and must not be used to imply a shipped restore-preview UI.
 use super::*;
 use crate::domain::error::{DomainError, DomainResult};
 use rusqlite::{Connection, OpenFlags, OptionalExtension};

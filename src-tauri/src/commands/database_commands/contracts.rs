@@ -1,3 +1,8 @@
+// Test-only executable policy inventory.
+// Runtime behavior is owned by the native command modules, TypeScript UI
+// contracts, and linked docs. These values are not an IPC/API contract or a
+// production source of truth; keep them aligned with those owners when tests
+// evolve.
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
