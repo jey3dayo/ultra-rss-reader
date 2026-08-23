@@ -106,6 +106,7 @@ function expectInitialUiStateDefaults() {
     pendingBrowserCloseActionQueue: [],
     articleNavigationDirection: null,
     hasNextArticle: false,
+    expandedFolderIds: new Set(),
     isFeedsSectionOpen: true,
     isTagsSectionOpen: true,
     settingsOpen: false,
