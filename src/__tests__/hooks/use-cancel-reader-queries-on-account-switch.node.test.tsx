@@ -206,4 +206,52 @@ describe("useCancelReaderQueriesOnAccountSwitch account switch ordering (regress
       expect(state?.data).toBeDefined();
     });
   });
+
+  // Complements the two tests above: those only prove the incoming account
+  // survives. This one proves the hook still does its actual job -- a
+  // predicate of `() => false` (i.e. this hook doing nothing) would make the
+  // two tests above pass too, since an account switch that cancels nothing
+  // trivially "keeps the incoming account's query fetching". Pin both halves
+  // of the invariant (outgoing account cancelled, incoming account alive) in
+  // one assertion so a no-op predicate cannot slip through.
+  it("cancels the outgoing account's in-flight query while keeping the incoming account's query alive", async () => {
+    const releaseAccountAFetchRef: { current: (() => void) | null } = { current: null };
+    const accountAFetchGate = new Promise<void>((resolve) => {
+      releaseAccountAFetchRef.current = resolve;
+    });
+
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "count_account_starred_articles" && args.accountId === "acc-1") {
+        // Hangs until the test explicitly releases it, so account A's fetch is
+        // still in flight at the moment the account switch happens below.
+        return accountAFetchGate.then(() => 3);
+      }
+      return undefined;
+    });
+
+    const { queryClient, wrapper: Wrapper } = createQueryWrapper();
+
+    const { rerender } = render(<Harness accountId="acc-1" />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(queryKeys.accountStarredCount.byAccount("acc-1"))?.fetchStatus).toBe("fetching");
+    });
+
+    rerender(<Harness accountId="acc-2" />);
+
+    await waitFor(() => {
+      const outgoing = queryClient.getQueryState(queryKeys.accountStarredCount.byAccount("acc-1"));
+      const incoming = queryClient.getQueryState(queryKeys.accountStarredCount.byAccount("acc-2"));
+
+      // Outgoing account (A): cancelQueries must actually stop the in-flight
+      // fetch, not merely leave the incoming account's query alone.
+      expect(outgoing?.fetchStatus).toBe("idle");
+      // Incoming account (B): unaffected by the cancellation targeting A.
+      expect(incoming?.status).toBe("success");
+      expect(incoming?.fetchStatus).toBe("idle");
+      expect(incoming?.data).toBeDefined();
+    });
+
+    releaseAccountAFetchRef.current?.();
+  });
 });
