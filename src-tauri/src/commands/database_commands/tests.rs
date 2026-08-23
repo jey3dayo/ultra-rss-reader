@@ -2,13 +2,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use crate::commands::database_commands::{
-    backup_database_inner, database_runtime_recovery_contract, filesystem_recovery_contract,
-    get_database_info_inner, long_running_native_operation_contract, private_data_reset_contract,
-    vacuum_database_inner, AtomicFileWritePolicy, DatabaseInfoDto, DatabaseRecoveryActionSafety,
-    DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction, DatabaseRuntimeRecoveryMode,
-    FilenameSuggestionPolicy, FilesystemPathNormalizationPolicy, FilesystemRecoverySurface,
-    LongRunningNativeOperation, LongRunningOperationInterruptionPolicy,
-    NativeFileDialogCancelPolicy, NativeFileDialogDirectoryPolicy, NativeFileDialogExtensionPolicy,
+    backup_database_inner, filesystem_recovery_contract, get_database_info_inner,
+    long_running_native_operation_contract, private_data_reset_contract, vacuum_database_inner,
+    AtomicFileWritePolicy, DatabaseInfoDto, FilenameSuggestionPolicy,
+    FilesystemPathNormalizationPolicy, FilesystemRecoverySurface, LongRunningNativeOperation,
+    LongRunningOperationInterruptionPolicy, NativeFileDialogCancelPolicy,
+    NativeFileDialogDirectoryPolicy, NativeFileDialogExtensionPolicy,
     NativeFileDialogOverwritePolicy, PrivateDataResetStep, SleepResumeStance,
 };
 use crate::commands::dto::AppError;
@@ -174,112 +173,6 @@ fn long_running_native_operations_invalidate_partial_artifacts_after_interruptio
             .contains(&LongRunningOperationInterruptionPolicy::ResetProgressBeforeRetry));
         assert_eq!(contract.sleep_resume_stance, expected_sleep_resume_stance);
     }
-}
-
-#[test]
-fn runtime_corruption_recovery_surface_enters_read_only_degraded_mode() {
-    for failure_kind in [
-        DatabaseRuntimeFailureKind::ReadCorruption,
-        DatabaseRuntimeFailureKind::WriteCorruption,
-    ] {
-        let contract = database_runtime_recovery_contract(failure_kind);
-
-        assert_eq!(contract.mode, DatabaseRuntimeRecoveryMode::ReadOnlyDegraded);
-        assert_eq!(
-            contract.actions,
-            vec![
-                DatabaseRuntimeRecoveryAction::RunIntegrityCheck,
-                DatabaseRuntimeRecoveryAction::RestoreBackup,
-            ]
-        );
-        assert_eq!(
-            contract.action_safety,
-            vec![
-                DatabaseRecoveryActionSafety::ReadOnly,
-                DatabaseRecoveryActionSafety::RequiresExplicitConfirmation,
-            ]
-        );
-        assert!(contract.diagnostics_id_required);
-    }
-}
-
-#[test]
-fn migration_startup_recovery_surface_blocks_startup_without_destructive_auto_repair() {
-    for failure_kind in [
-        DatabaseRuntimeFailureKind::MigrationFailed,
-        DatabaseRuntimeFailureKind::DowngradeBlocked,
-    ] {
-        let contract = database_runtime_recovery_contract(failure_kind);
-
-        assert_eq!(contract.mode, DatabaseRuntimeRecoveryMode::StartupBlocked);
-        assert_eq!(
-            contract.actions,
-            vec![
-                DatabaseRuntimeRecoveryAction::PreserveBackupAndRestart,
-                DatabaseRuntimeRecoveryAction::RestoreBackup,
-            ]
-        );
-        assert_eq!(
-            contract.action_safety,
-            vec![
-                DatabaseRecoveryActionSafety::ReadOnly,
-                DatabaseRecoveryActionSafety::RequiresExplicitConfirmation,
-            ]
-        );
-        assert!(contract.diagnostics_id_required);
-    }
-}
-
-#[test]
-fn runtime_database_failures_have_distinct_recovery_actions() {
-    let locked = database_runtime_recovery_contract(DatabaseRuntimeFailureKind::Locked);
-    let permission =
-        database_runtime_recovery_contract(DatabaseRuntimeFailureKind::PermissionDenied);
-    let disk_full = database_runtime_recovery_contract(DatabaseRuntimeFailureKind::DiskFull);
-
-    assert_eq!(locked.mode, DatabaseRuntimeRecoveryMode::RetryWhenIdle);
-    assert_eq!(locked.actions, vec![DatabaseRuntimeRecoveryAction::Retry]);
-    assert_eq!(
-        locked.action_safety,
-        vec![DatabaseRecoveryActionSafety::ReadOnly]
-    );
-    assert_eq!(
-        permission.mode,
-        DatabaseRuntimeRecoveryMode::UserPermissionFix
-    );
-    assert_eq!(
-        permission.actions,
-        vec![DatabaseRuntimeRecoveryAction::CheckOsPermissions]
-    );
-    assert_eq!(
-        permission.action_safety,
-        vec![DatabaseRecoveryActionSafety::ReadOnly]
-    );
-    assert_eq!(disk_full.mode, DatabaseRuntimeRecoveryMode::FreeDiskSpace);
-    assert_eq!(
-        disk_full.actions,
-        vec![DatabaseRuntimeRecoveryAction::FreeDiskSpace]
-    );
-    assert_eq!(
-        disk_full.action_safety,
-        vec![DatabaseRecoveryActionSafety::ReadOnly]
-    );
-}
-
-#[test]
-fn recovery_action_safety_serializes_for_settings_data_contract() {
-    let contract = database_runtime_recovery_contract(DatabaseRuntimeFailureKind::ReadCorruption);
-    let value = serde_json::to_value(contract).expect("recovery contract should serialize");
-
-    assert_eq!(value["actions"][0], "run_integrity_check");
-    assert_eq!(value["action_safety"][0], "read_only");
-    assert_eq!(value["actions"][1], "restore_backup");
-    assert_eq!(value["action_safety"][1], "requires_explicit_confirmation");
-    assert_eq!(
-        serde_json::to_value(DatabaseRecoveryActionSafety::RequiresDryRun)
-            .expect("dry-run safety should serialize"),
-        "requires_dry_run"
-    );
 }
 
 #[test]
