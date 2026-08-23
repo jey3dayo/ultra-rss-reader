@@ -373,15 +373,16 @@ pub fn purge_old_articles(db: &Mutex<DbManager>) {
                 match repo.purge_old_read(&account.id, cutoff) {
                     Ok(n) if n > 0 => {
                         tracing::info!(
-                            "Purged {n} old read articles for account '{}'",
-                            account.name
+                            account_id = %account.id.as_ref(),
+                            count = n,
+                            "Purged old read articles for account"
                         );
                     }
                     Ok(_) => {}
                     Err(e) => {
                         warn!(
-                            "Failed to purge articles for account '{}': {e}",
-                            account.name
+                            account_id = %account.id.as_ref(),
+                            "Failed to purge articles for account: {e}"
                         );
                     }
                 }

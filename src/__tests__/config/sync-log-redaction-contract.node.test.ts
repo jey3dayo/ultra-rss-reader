@@ -13,6 +13,12 @@ import { describe, expect, it } from "vitest";
 // log line interpolating the raw value directly) before it reaches review.
 
 const SYNC_PROVIDERS_ROOT = join(process.cwd(), "src-tauri/src/commands/sync_providers");
+const SYNC_COMMANDS_ROOT = join(process.cwd(), "src-tauri/src/commands/sync_commands");
+const SYNC_LOG_ROOTS = [SYNC_PROVIDERS_ROOT, SYNC_COMMANDS_ROOT] as const;
+
+// Name-based tracing scans cannot follow arbitrary data flow. Keep the known
+// account-name-to-warning pattern pinned so this specific regression fails.
+const SYNC_COMMANDS_KNOWN_INDIRECT_LOG_EXPRESSIONS = ["let name = account.name.clone();"] as const;
 
 // The scheduler consumes ProviderSyncWarning values whose `message` is
 // user-facing copy that can embed feed titles and account names; logging it
@@ -53,7 +59,7 @@ function collectRustFiles(dir: string): string[] {
 // Test modules are expected to build strings containing raw fixture values;
 // only production log statements are in scope for the privacy policy.
 function productionSource(source: string, fileName: string): string {
-  if (fileName === "tests.rs") {
+  if (fileName === "tests.rs" || fileName.startsWith("tests/") || fileName.includes("/tests/")) {
     return "";
   }
   const testModuleStart = source.indexOf("\nmod tests {");
@@ -88,24 +94,39 @@ function stripSanctionedRedactionCalls(body: string): string {
   return body.replace(/redacted_feed_host_class\([^)]*\)/g, "<redacted-host-class>");
 }
 
-describe("sync provider log redaction contract", () => {
+function countProductionTracingMacros(root: string): number {
+  return collectRustFiles(root).reduce((count, file) => {
+    const relPath = relative(root, file).split("\\").join("/");
+    return count + extractMacroBodies(productionSource(readFileSync(file, "utf8"), relPath)).length;
+  }, 0);
+}
+
+describe("sync log redaction contract", () => {
   it("keeps raw account names, feed URLs, titles, and remote ids out of tracing macros", () => {
-    const files = collectRustFiles(SYNC_PROVIDERS_ROOT);
+    const files = SYNC_LOG_ROOTS.flatMap((root) => collectRustFiles(root).map((file) => ({ file, root })));
     expect(files.length).toBeGreaterThan(0);
 
     const offenders: string[] = [];
-    for (const file of files) {
-      const relPath = relative(SYNC_PROVIDERS_ROOT, file).split("\\").join("/");
+    for (const { file, root } of files) {
+      const relPath = relative(root, file).split("\\").join("/");
+      const displayPath = relative(process.cwd(), file).split("\\").join("/");
       const source = productionSource(readFileSync(file, "utf8"), relPath);
       for (const body of extractMacroBodies(source)) {
         const scannable = stripSanctionedRedactionCalls(body);
         for (const forbidden of FORBIDDEN_LOG_EXPRESSIONS) {
           if (scannable.includes(forbidden)) {
-            offenders.push(`${relPath}: \`${forbidden}\` in tracing macro body`);
+            offenders.push(`${displayPath}: \`${forbidden}\` in tracing macro body`);
           }
         }
       }
     }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the known indirect account-name logging pattern out of sync commands", () => {
+    const source = readFileSync(join(SYNC_COMMANDS_ROOT, "manual.rs"), "utf8");
+    const offenders = SYNC_COMMANDS_KNOWN_INDIRECT_LOG_EXPRESSIONS.filter((expression) => source.includes(expression));
 
     expect(offenders).toEqual([]);
   });
@@ -128,15 +149,9 @@ describe("sync provider log redaction contract", () => {
   });
 
   it("still finds tracing macros to scan (guards against silent scope loss)", () => {
-    const files = collectRustFiles(SYNC_PROVIDERS_ROOT);
-    const totalMacroBodies = files.reduce((count, file) => {
-      const relPath = relative(SYNC_PROVIDERS_ROOT, file).split("\\").join("/");
-      const source = productionSource(readFileSync(file, "utf8"), relPath);
-      return count + extractMacroBodies(source).length;
-    }, 0);
-
     // The sync_providers module logs sync phases and reconcile warnings; if
-    // this ever drops to zero the scan above is vacuous and must be re-wired.
-    expect(totalMacroBodies).toBeGreaterThan(5);
+    // either root ever drops to zero the corresponding scan is vacuous.
+    expect(countProductionTracingMacros(SYNC_PROVIDERS_ROOT)).toBeGreaterThan(5);
+    expect(countProductionTracingMacros(SYNC_COMMANDS_ROOT)).toBeGreaterThan(5);
   });
 });
