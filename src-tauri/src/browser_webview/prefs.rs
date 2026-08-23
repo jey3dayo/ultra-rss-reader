@@ -12,7 +12,7 @@ use super::bridge::browser_preview_close_bridge_source;
 pub(super) use super::shortcuts::browser_preview_action_for_macos_key_event;
 #[cfg(windows)]
 pub(super) use super::shortcuts::browser_preview_action_for_virtual_key;
-#[cfg(any(test, windows, target_os = "macos"))]
+#[cfg(any(test, target_os = "macos"))]
 pub(super) use super::shortcuts::browser_preview_shortcut_preferences_read_warning;
 pub use super::shortcuts::is_supported_browser_preview_bridge_action;
 #[cfg(test)]
