@@ -16,6 +16,13 @@ Ignore entries:
 
 Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.
 
+## Knip `ignoreDependencies` Policy
+
+`package.json#knip.ignoreDependencies` entries must document why Knip cannot see a real consumer:
+
+- `markdownlint-cli2` — invoked by the `mise` `format:md` and `lint:md` tasks rather than imported by source modules; reviewed 2026-08-23.
+- `wrangler` — invoked by the `mise` `deploy:site` task from `.github/workflows/deploy-site.yml`; Knip does not trace `mise` or workflow command consumers; reviewed 2026-08-23.
+
 ## Task Priority Taxonomy
 
 Tasks live in `todo.txt` (tuxedo format) with rich context in linked GitHub Issues. Priority mapping: `(A)`=P0, `(B)`=P1, `(C)`=P2, `(D)`=P3.
