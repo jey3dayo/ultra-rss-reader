@@ -17,6 +17,10 @@ const readSyncCommandsModuleSource = (): string =>
   ["mod.rs", "progress.rs", "local_import_export.rs", "account_sync.rs", "scheduler.rs", "tests.rs"]
     .map((file) => readText(`src-tauri/src/commands/sync_commands/${file}`))
     .join("\n");
+const readUpdaterModuleSource = (): string =>
+  ["mod.rs", "state.rs", "policy.rs", "tests.rs"]
+    .map((file) => readText(`src-tauri/src/commands/updater_commands/${file}`))
+    .join("\n");
 
 // `src-tauri/src/commands` mixes flat `*.rs` files with command modules that
 // were split into a directory (`mod.rs` plus sibling `tests.rs`), so this
@@ -182,7 +186,7 @@ describe("tauri command return contract", () => {
 
   it("keeps long-running operation progress contracts explicit where implementations exist", () => {
     const syncCommandsSource = readSyncCommandsModuleSource();
-    const updaterCommandsSource = readText("src-tauri/src/commands/updater_commands.rs");
+    const updaterCommandsSource = readUpdaterModuleSource();
     const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands/mod.rs");
 
     expect(syncCommandsSource).toContain("SYNC_PROGRESS_SESSION_ID");

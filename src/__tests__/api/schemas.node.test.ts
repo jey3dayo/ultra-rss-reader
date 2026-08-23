@@ -156,7 +156,7 @@ function readRustCommandSources() {
     "sync_commands/scheduler.rs",
     "sync_commands/tests.rs",
     "tag_commands.rs",
-    "updater_commands.rs",
+    "updater_commands/mod.rs",
   ]
     .map((fileName) => readFileSync(join(process.cwd(), "src-tauri/src/commands", fileName), "utf8"))
     .join("\n");

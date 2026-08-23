@@ -39,7 +39,7 @@
 
 - [`src-tauri/tauri.conf.json`](../../../src-tauri/tauri.conf.json) に updater endpoint と `pubkey` が設定されている
 - [`.github/workflows/release.yml`](../../../.github/workflows/release.yml) で `TAURI_SIGNING_PRIVATE_KEY` と `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` を `tauri-action` に渡している
-- [`src-tauri/src/commands/updater_commands.rs`](../../../src-tauri/src/commands/updater_commands.rs) に `check_for_update` と `download_and_install_update` がある
+- [`src-tauri/src/commands/updater_commands/mod.rs`](../../../src-tauri/src/commands/updater_commands/mod.rs) に `check_for_update` と `download_and_install_update` がある
 - [`src/hooks/use-updater.ts`](../../../src/hooks/use-updater.ts) で起動時確認、進捗表示、完了通知を行っている
 
 今回の設計は、この既存実装を置き換えるのではなく、失敗時の扱いを固定して堅牢化するものとする。
@@ -61,7 +61,7 @@
 
 ### 2. ダウンロード失敗時の制御
 
-[`src-tauri/src/commands/updater_commands.rs`](../../../src-tauri/src/commands/updater_commands.rs) の責務は次の通りとする。
+[`src-tauri/src/commands/updater_commands/mod.rs`](../../../src-tauri/src/commands/updater_commands/mod.rs) の責務は次の通りとする。
 
 - `DOWNLOADING` フラグは成功・失敗を問わず必ず解除する
 - 失敗時は `AppError::UserVisible` を返し、フロントエンド側で説明可能な形にする
@@ -150,7 +150,7 @@
 
 今回の実装で変更対象になる想定ファイル:
 
-- `src-tauri/src/commands/updater_commands.rs`
+- `src-tauri/src/commands/updater_commands/mod.rs`
 - `src/hooks/use-updater.ts`
 - `src/__tests__/hooks/use-updater.test.ts`
 - `src/__tests__/api/tauri-commands.test.ts` または設定検証用テスト
