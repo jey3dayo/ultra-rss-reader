@@ -7,7 +7,7 @@ paths:
 
 ## 制約
 
-- パスワード・トークンなどの認証情報は SQLite に保存せず、OS keyring (`infra/keyring_store.rs`) を使う
+- パスワード・トークンなどの認証情報は SQLite に保存せず、OS keyring (`infra/keyring_store/`) を使う
 - keyring 操作は `keyring_store::set_password` / `get_password` / `delete_password` を経由する
 - keyring 保存は DB 保存より先に行う（fail fast: keyring が使えない環境で不整合を防ぐ）
 - アカウント削除時は keyring エントリも削除する（`delete_password` は NotFound を無視する）
