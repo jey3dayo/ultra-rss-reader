@@ -113,6 +113,7 @@ const RUST_ARTICLE_COMMAND_MODULE_FILES = [
   "queries.rs",
   "tests.rs",
 ];
+const RUST_FEED_COMMAND_MODULE_FILES = ["mod.rs", "folders.rs", "feed_mutations.rs", "feed_add.rs", "tests.rs"];
 
 function readRustCommandDtoSource() {
   return RUST_COMMAND_DTO_MODULE_FILES.map((file) =>
@@ -140,7 +141,7 @@ function readRustCommandSources() {
     ...RUST_ARTICLE_COMMAND_MODULE_FILES.map((file) => `article_commands/${file}`),
     "browser_webview_commands/mod.rs",
     "database_commands/mod.rs",
-    "feed_commands.rs",
+    ...RUST_FEED_COMMAND_MODULE_FILES.map((file) => `feed_commands/${file}`),
     "log_commands.rs",
     "local_account_sync_commands.rs",
     "mute_keyword_commands.rs",

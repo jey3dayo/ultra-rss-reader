@@ -144,7 +144,7 @@ describe("command args validation parity", () => {
     expect(extractRustValidationLimit(readRustCommandSource("account_commands/mod.rs"), "Account name")).toBe(
       ACCOUNT_NAME_MAX_CHARS,
     );
-    expect(extractRustUsizeConst(readRustCommandSource("feed_commands.rs"), "FEED_TITLE_MAX_CHARS")).toBe(
+    expect(extractRustUsizeConst(readRustCommandSource("feed_commands/mod.rs"), "FEED_TITLE_MAX_CHARS")).toBe(
       FEED_TITLE_MAX_CHARS,
     );
     expect(extractRustUsizeConst(readRustDomainSource("folder.rs"), "FOLDER_NAME_MAX_CHARS")).toBe(
