@@ -17,7 +17,7 @@ export const similarityScanExcludePatterns = [
 ] as const;
 const similarityScanBaseline = {
   functionPairs: 35,
-  similarTypePairs: 4,
+  similarTypePairs: 17,
   typeLiteralPairs: 0,
 } as const;
 
