@@ -157,6 +157,20 @@ function queryKeyIncludesAccountId(queryKey: QueryKey, normalizedAccountId: stri
 // tagArticleCounts, feedArticleSummaries). The predicate below removes the
 // dependency on that accident by protecting the incoming account's query for
 // every root, regardless of who else happens to be subscribed.
+//
+// Known limitation: the whole-key scan can also false-positive-match a query
+// that doesn't actually belong to the incoming account. Example:
+// queryKeys.search.byAccountAndQuery(accountId, query) embeds the search
+// text as a bare array element, so a search query for account A whose query
+// text happens to equal the incoming account B's id (e.g. searching for the
+// literal string "acc-2") looks like it "contains" B and is skipped. The only
+// consequence is that A's now-stale search fetch is left in flight (wasted
+// network work) -- it does not touch B's query, so the invariant above still
+// holds. We deliberately don't fix this by reading accountId from a
+// per-root position map: that reintroduces the exact fail-open risk this
+// design avoids (a key-shape change silently making the position wrong would
+// cancel the incoming account's query again), to prevent an extremely rare
+// and harmless wasted request.
 function isAccountSwitchCancelTarget(query: Query, normalizedSelectedAccountId: string | null): boolean {
   const matchesRoot = ACCOUNT_SWITCH_QUERY_ROOTS.some((root) => queryKeyHasRootPrefix(query.queryKey, root));
 
