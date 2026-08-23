@@ -1,6 +1,5 @@
 import { parse } from "valibot";
 import { create } from "zustand";
-import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
 import {
   addRetainedArticle,
@@ -14,7 +13,6 @@ import type {
   NativeLifecycleBlockerEntry,
   NativeLifecycleBlockerOwner,
   NativeLifecycleBlockerSnapshot,
-  SyncProgressUiState,
   UiActions,
   UiState,
   UiStoreReaderSelection,
@@ -22,6 +20,7 @@ import type {
 } from "@/stores/ui-store.types";
 import { createUiStoreDialogActions, type UiStoreDialogToastRuntime } from "@/stores/ui-store-dialog-actions";
 import { createUiStoreSettingsActions, getSettingsAccountsViewState } from "@/stores/ui-store-settings-actions";
+import { createUiStoreSyncActions, getIdleSyncProgress } from "@/stores/ui-store-sync-actions";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 export type {
@@ -238,34 +237,6 @@ const scheduleToastDismiss: UiStoreDialogToastRuntime["scheduleToastDismiss"] = 
   toastTimer = dismissTimer;
 };
 
-function normalizeSyncProgressCounts(event: Pick<SyncProgressEventDto, "total" | "completed">) {
-  const total = Math.max(0, event.total);
-  return {
-    total,
-    completed: Math.min(Math.max(0, event.completed), total),
-  };
-}
-
-function shouldIgnoreSyncProgressEvent(
-  current: SyncProgressUiState,
-  event: Pick<SyncProgressEventDto, "session_id">,
-): boolean {
-  return current.sessionId !== null && event.session_id < current.sessionId;
-}
-
-function getIdleSyncProgress(): SyncProgressUiState {
-  return {
-    active: false,
-    sessionId: null,
-    kind: null,
-    stage: null,
-    total: 0,
-    completed: 0,
-    currentAccountName: null,
-    activeAccountIds: new Set(),
-  };
-}
-
 function createNativeLifecycleBlockerSnapshot(
   entries: ReadonlyMap<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>,
 ): NativeLifecycleBlockerSnapshot {
@@ -337,6 +308,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
     scheduleToastDismiss,
   }),
   ...createUiStoreSettingsActions(set),
+  ...createUiStoreSyncActions(set),
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   setFocusedPane: (pane) => set({ focusedPane: pane }),
   openSidebar: () => set({ sidebarOpen: true, focusedPane: "sidebar" }),
@@ -582,48 +554,6 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       subscriptionsWorkspace: null,
       focusedPane: state.selectedArticleId ? "content" : "list",
     })),
-  applySyncProgress: (event) =>
-    set((state) => {
-      if (shouldIgnoreSyncProgressEvent(state.syncProgress, event)) {
-        return {};
-      }
-
-      const counts = normalizeSyncProgressCounts(event);
-      const isCurrentSession = state.syncProgress.sessionId === event.session_id;
-      const total = isCurrentSession ? Math.max(state.syncProgress.total, counts.total) : counts.total;
-      const completed = Math.min(
-        isCurrentSession ? Math.max(state.syncProgress.completed, counts.completed) : counts.completed,
-        total,
-      );
-      const activeAccountIds = isCurrentSession ? new Set(state.syncProgress.activeAccountIds) : new Set<string>();
-      if (event.account_id) {
-        if (event.stage === "account_finished" || event.stage === "finished") {
-          activeAccountIds.delete(event.account_id);
-        } else {
-          activeAccountIds.add(event.account_id);
-        }
-      }
-
-      if (event.stage === "finished") {
-        return {
-          syncProgress: getIdleSyncProgress(),
-        };
-      }
-
-      return {
-        syncProgress: {
-          active: true,
-          sessionId: event.session_id,
-          kind: event.kind,
-          stage: event.stage,
-          total,
-          completed,
-          currentAccountName: event.account_name ?? (isCurrentSession ? state.syncProgress.currentAccountName : null),
-          activeAccountIds,
-        },
-      };
-    }),
-  clearSyncProgress: () => set({ syncProgress: getIdleSyncProgress() }),
   openCommandPalette: () => set({ commandPaletteOpen: true, shortcutsHelpOpen: false }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   toggleCommandPalette: () =>
