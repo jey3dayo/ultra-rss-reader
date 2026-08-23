@@ -237,7 +237,6 @@ export function useSidebarSync({
     },
     [queryClient],
   );
-
   useEffect(() => {
     if (manualSyncCooldownUntil <= getCurrentTimeMs()) {
       return;
@@ -339,6 +338,26 @@ export function useSidebarSync({
       },
       onSuccess: (syncResult) => {
         invalidateAccountSyncStatuses("manual-sync-completed");
+        // Deliberately no feed-list invalidation here: the native
+        // `sync-completed` event (handled in App.tsx) is the single owner.
+        //
+        // Do not re-add a fallback invalidation on this path. It was tried and
+        // removed (Issue #102): because `sync-completed` is intentionally
+        // suppressed for zero-success or unsynced results
+        // (`should_emit_manual_single_sync_completion`), a fallback here has to
+        // decide when the event "should have arrived", and every version of
+        // that raced with the listener — a late onSuccess from an earlier run
+        // re-armed the timer and double-invalidated, and query-core cancels the
+        // in-flight refetch on the second invalidate, so `listFeeds` (a Tauri
+        // invoke that ignores AbortSignal) ran twice. Making it safe needs
+        // per-run tokens plus serialization, which is more machinery than the
+        // abnormal case is worth: a dropped event is recovered by the
+        // stuck-progress timer above and by the next sync.
+        //
+        // The user-visible symptom this issue was about — the list looking
+        // stale right after the spinner stops — is handled by keeping the sync
+        // button spinning until the feed list refetch settles, not here. See
+        // buildSidebarHeaderProps.
         showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
       },
       onError: (error) => {

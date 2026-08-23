@@ -5,6 +5,14 @@ import type { SidebarHeaderProps } from "../sidebar-header-view";
 export type BuildSidebarHeaderPropsParams = SidebarHeaderPropsParams & {
   hasTauriRuntime: boolean;
   isMobile: boolean;
+  /**
+   * True while the feed list is refetching after sync invalidation. The native
+   * `finished` progress stage means "sync finished", not "list updated": the
+   * list is refetched after invalidation and keeps the previous snapshot until
+   * new data lands. Keeping the sync button spinning through the refetch is
+   * what tells the user their new unread counts are still on the way.
+   */
+  isFeedListRefetching: boolean;
   platformKind: PlatformKind | null;
   shouldUseDesktopOverlayTitlebar: (params: { platformKind: PlatformKind | null; hasTauriRuntime: boolean }) => boolean;
 };
@@ -19,6 +27,7 @@ export function buildSidebarHeaderProps({
   handleAddFeed,
   hasTauriRuntime,
   isMobile,
+  isFeedListRefetching,
   platformKind,
   shouldUseDesktopOverlayTitlebar,
 }: BuildSidebarHeaderPropsParams): SidebarHeaderProps {
@@ -26,13 +35,14 @@ export function buildSidebarHeaderProps({
     platformKind,
     hasTauriRuntime,
   });
-  const syncStatus = syncProgress.active
-    ? "syncing"
-    : isSyncDisabled
-      ? "disabled"
-      : isSyncCoolingDown
-        ? "cooldown"
-        : "idle";
+  const syncStatus =
+    syncProgress.active || isFeedListRefetching
+      ? "syncing"
+      : isSyncDisabled
+        ? "disabled"
+        : isSyncCoolingDown
+          ? "cooldown"
+          : "idle";
 
   return {
     onSync: handleSync,

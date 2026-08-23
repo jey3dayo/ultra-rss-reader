@@ -12,6 +12,7 @@ import {
   useSidebarSync,
 } from "@/components/reader/hooks/sidebar/use-sidebar-sync";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import {
   getManualSyncCooldownUntil,
   setManualSyncCooldownListenerErrorReporterForDiagnostics,
@@ -86,10 +87,25 @@ function createSyncHookParams(
   };
 }
 
+type QueryInvalidationSpy = {
+  mock: {
+    calls: ReadonlyArray<ReadonlyArray<unknown>>;
+  };
+};
+
+function countQueryInvalidations(invalidateQueriesSpy: QueryInvalidationSpy, queryKey: readonly unknown[]): number {
+  return invalidateQueriesSpy.mock.calls.filter(([filters]) => {
+    const actualQueryKey =
+      typeof filters === "object" && filters !== null && "queryKey" in filters ? filters.queryKey : undefined;
+    return JSON.stringify(actualQueryKey) === JSON.stringify(queryKey);
+  }).length;
+}
+
 describe("resolveSidebarLastSyncedLabel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     listenMock.mockReset().mockResolvedValue(() => {});
+    vi.mocked(triggerManualSyncWithCooldown).mockReset();
     vi.mocked(getManualSyncCooldownUntil).mockReturnValue(0);
     vi.mocked(setManualSyncCooldownListenerErrorReporterForDiagnostics).mockReturnValue(() => {});
     vi.mocked(subscribeManualSyncCooldown).mockReturnValue(() => {});
@@ -217,6 +233,41 @@ describe("resolveSidebarLastSyncedLabel", () => {
     });
 
     expect(triggerManualSyncWithCooldown).toHaveBeenCalledWith(expect.objectContaining({ selectedAccountId: "acc-1" }));
+  });
+
+  // Issue #102: the feed-list invalidation has exactly one owner, the native
+  // `sync-completed` listener in App.tsx. A second owner on this path raced
+  // with that listener (a late onSuccess from an earlier run could re-arm it),
+  // so manual sync only refreshes the account sync status here.
+  it("leaves feed-list invalidation to the sync-completed listener after a successful manual sync", async () => {
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onSuccess({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [],
+      });
+    });
+
+    const { result } = renderHook(
+      () =>
+        useSidebarSync({
+          ...createSyncHookParams({ selectedAccountId: "acc-1" }),
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+
+    expect(countQueryInvalidations(invalidateQueriesSpy, queryKeys.feeds.root)).toBe(0);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: accountSyncStatusQueryKey(),
+    });
   });
 
   it("accepts wrapped and raw sync progress payloads but ignores unknown payloads", () => {
