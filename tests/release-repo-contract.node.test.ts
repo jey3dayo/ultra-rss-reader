@@ -178,6 +178,7 @@ const RELEASE_UPDATER_ASSET_CONTRACT = [
     checksumPattern: ".app.tar.gz.sha256",
     matrixArgs: "--target aarch64-apple-darwin",
     matrixPlatform: "macos-latest",
+    cargoTarget: "aarch64-apple-darwin",
     platformKey: "darwin-aarch64",
     signaturePattern: ".app.tar.gz.sig",
   },
@@ -188,6 +189,7 @@ const RELEASE_UPDATER_ASSET_CONTRACT = [
     checksumPattern: "-setup.exe.sha256",
     matrixArgs: '""',
     matrixPlatform: "windows-latest",
+    cargoTarget: "x86_64-pc-windows-msvc",
     platformKey: "windows-x86_64",
     signaturePattern: "-setup.exe.sig",
   },
@@ -668,6 +670,7 @@ describe("release repository contract", () => {
   const codexReleaseSkill = readText(".codex/skills/release/SKILL.md");
   const codexPhase2Reference = readText(".codex/skills/release/references/phase-2-generate.md");
   const codexReleaseChecks = readText(".codex/skills/release/scripts/release_checks.py");
+  const dependencyLicenseReportScript = readText("scripts/report-dependency-licenses.ts");
   const releaseArtifactsScript = readText("scripts/release/artifacts.ts");
   const releaseContaminationChecker = readText("scripts/check-release-build-contamination.ts");
   const tauriLib = readText("src-tauri/src/lib.rs");
@@ -1616,6 +1619,40 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain('"updater_enabled":false');
     expect(releaseWorkflow).toContain("matrix.updater_enabled == true");
 
+    const matrixDefinition = /matrix='([^']+)'/.exec(releaseWorkflow);
+    if (!matrixDefinition) {
+      throw new Error("release matrix definition is missing");
+    }
+    const releaseMatrix = JSON.parse(`${matrixDefinition[1].replaceAll('\\"', '"')}]}`);
+    if (
+      typeof releaseMatrix !== "object" ||
+      releaseMatrix === null ||
+      !("include" in releaseMatrix) ||
+      !Array.isArray(releaseMatrix.include)
+    ) {
+      throw new Error("release matrix definition is not an include array");
+    }
+    for (const contract of RELEASE_UPDATER_ASSET_CONTRACT) {
+      const matrixEntry = releaseMatrix.include.find(
+        (entry: unknown): entry is Record<string, unknown> =>
+          typeof entry === "object" &&
+          entry !== null &&
+          "platform" in entry &&
+          entry.platform === contract.matrixPlatform,
+      );
+      expect(matrixEntry).toEqual(
+        expect.objectContaining({
+          artifact_arch: contract.artifactArch,
+          artifact_platform: contract.artifactPlatform,
+          cargo_target: contract.cargoTarget,
+          updater_platform: contract.platformKey,
+        }),
+      );
+    }
+
+    const dependencyProvenanceStep = extractReleaseStepBlock(releaseWorkflow, "Generate release dependency provenance");
+    expect(dependencyProvenanceStep).toContain("CARGO_LICENSE_TARGET: $" + "{{ matrix.cargo_target }}");
+
     for (const unsupportedPlatformKey of UNSUPPORTED_UPDATER_PLATFORM_KEYS) {
       expect(releaseArtifactsScript).toContain('UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"]');
       expect(releaseArtifactsScript).not.toContain(`platformKey: "${unsupportedPlatformKey}"`);
@@ -1633,6 +1670,8 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("Generate release provenance record");
     expect(releaseWorkflow).toContain("Upload release provenance assets");
     expect(releaseWorkflow).toContain("mise run report:licenses");
+    expect(dependencyLicenseReportScript).toContain("CARGO_LICENSE_TARGET");
+    expect(dependencyLicenseReportScript).toContain('"--filter-platform"');
     expect(releaseArtifactsScript).toContain("pnpm-licenses-$" + "{assetPlatform}.json");
     expect(releaseArtifactsScript).toContain("cargo-licenses-$" + "{assetPlatform}.json");
     expect(releaseArtifactsScript).toContain("release-provenance-$" + "{assetPlatform}.json");

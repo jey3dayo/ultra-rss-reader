@@ -135,9 +135,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          matrix='{"include":[{"platform":"macos-latest","artifact_platform":"darwin","artifact_arch":"aarch64","updater_platform":"darwin-aarch64","updater_asset_pattern":".app.tar.gz","updater_signature_pattern":".app.tar.gz.sig","updater_enabled":true,"args":"--target aarch64-apple-darwin"},{"platform":"windows-latest","artifact_platform":"windows","artifact_arch":"x86_64","updater_platform":"windows-x86_64","updater_asset_pattern":"-setup.exe","updater_signature_pattern":"-setup.exe.sig","updater_enabled":true,"args":""}'
+          matrix='{"include":[{"platform":"macos-latest","artifact_platform":"darwin","artifact_arch":"aarch64","updater_platform":"darwin-aarch64","updater_asset_pattern":".app.tar.gz","updater_signature_pattern":".app.tar.gz.sig","updater_enabled":true,"cargo_target":"aarch64-apple-darwin","args":"--target aarch64-apple-darwin"},{"platform":"windows-latest","artifact_platform":"windows","artifact_arch":"x86_64","updater_platform":"windows-x86_64","updater_asset_pattern":"-setup.exe","updater_signature_pattern":"-setup.exe.sig","updater_enabled":true,"cargo_target":"x86_64-pc-windows-msvc","args":""}'
           if [[ "$BUILD_LINUX" == "true" ]]; then
-            matrix+=',{"platform":"ubuntu-24.04","artifact_platform":"linux","artifact_arch":"x86_64","updater_platform":"linux-x86_64","updater_asset_pattern":".AppImage","updater_signature_pattern":".AppImage.sig","updater_enabled":false,"args":"--bundles deb,appimage --config src-tauri/tauri.linux.release.conf.json"}'
+            matrix+=',{"platform":"ubuntu-24.04","artifact_platform":"linux","artifact_arch":"x86_64","updater_platform":"linux-x86_64","updater_asset_pattern":".AppImage","updater_signature_pattern":".AppImage.sig","updater_enabled":false,"cargo_target":"x86_64-unknown-linux-gnu","args":"--bundles deb,appimage --config src-tauri/tauri.linux.release.conf.json"}'
           fi
           matrix+=']}'
           printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
@@ -391,6 +391,8 @@ jobs:
       - name: Generate release dependency provenance
         if: steps.signing-preflight.outputs.should_build == 'true' && matrix.updater_enabled == true
         shell: bash
+        env:
+          CARGO_LICENSE_TARGET: ${{ matrix.cargo_target }}
         run: |
           mise run report:licenses
           node ./scripts/release/artifacts.ts generate-dependency-provenance
