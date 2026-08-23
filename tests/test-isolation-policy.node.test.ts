@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -6,6 +6,13 @@ const repoRoot = process.cwd();
 
 function readRepoFile(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
+}
+
+function readRustModuleSource(path: string): string {
+  const siblingTestsPath = path.replace(/\.rs$/, "/tests.rs");
+  return existsSync(join(repoRoot, siblingTestsPath))
+    ? `${readRepoFile(path)}\n${readRepoFile(siblingTestsPath)}`
+    : readRepoFile(path);
 }
 
 function expectAll(source: string, terms: readonly string[]): void {
@@ -113,7 +120,7 @@ describe("test isolation policy contract", () => {
   it("keeps Rust env-mutating tests behind named guards", () => {
     const platformCommands = readRepoFile("src-tauri/src/commands/platform_commands.rs");
     const syncProviders = readRepoFile("src-tauri/src/commands/sync_providers/tests/mod.rs");
-    const httpDefaults = readRepoFile("src-tauri/src/infra/provider/http_defaults.rs");
+    const httpDefaults = readRustModuleSource("src-tauri/src/infra/provider/http_defaults.rs");
 
     expect(platformCommands).toContain("static ENV_LOCK: Mutex<()> = Mutex::new(())");
     expect(syncProviders).toContain("static DEV_CREDENTIALS_ENV_LOCK");
