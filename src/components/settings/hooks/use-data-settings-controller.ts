@@ -14,12 +14,20 @@ import {
 import { showSaveDialog } from "@/lib/platform/save-dialog";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import {
+  type DataSettingsActionOwnerId,
+  getDataSettingsActionLifecycle,
+  isDataSettingsActionInFlight,
+  setDataSettingsActionLifecycle,
+  subscribeToDataSettingsActionLifecycle,
+} from "./lifecycle";
+import {
   classifyDatabaseRuntimeRecoverySurface,
   type DatabaseRuntimeRecoverySurface,
   type DatabaseSizeStatus,
   formatBytes,
   logDatabaseRuntimeRecoverySurface,
 } from "./recovery";
+import { dataSettingsControllerReducer, initialDataSettingsControllerState } from "./reducer";
 
 export type {
   DatabaseRecoveryActionSafety,
@@ -54,137 +62,6 @@ type UseDataSettingsControllerResult = {
   handleExportSettingsProfile: () => Promise<void>;
   handleImportSettingsProfileFile: (file: File) => Promise<void>;
 };
-
-type DataSettingsActionKey = "vacuuming" | "openingLogDir";
-
-type DataSettingsControllerState = {
-  databaseSizeStatus: DatabaseSizeStatus;
-  totalSize: number | null;
-  databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
-  vacuuming: boolean;
-  backingUp: boolean;
-  openingLogDir: boolean;
-  exportingSettingsProfile: boolean;
-  importingSettingsProfile: boolean;
-};
-
-type DataSettingsControllerAction =
-  | { type: "set-database-size-ready"; value: number }
-  | {
-      type: "set-database-size-error";
-      recoverySurface: DatabaseRuntimeRecoverySurface | null;
-    }
-  | {
-      type: "set-database-runtime-recovery-surface";
-      recoverySurface: DatabaseRuntimeRecoverySurface | null;
-    }
-  | { type: "set-vacuuming"; value: boolean }
-  | { type: "set-backing-up"; value: boolean }
-  | { type: "set-opening-log-dir"; value: boolean }
-  | { type: "set-exporting-settings-profile"; value: boolean }
-  | { type: "set-importing-settings-profile"; value: boolean };
-
-const initialDataSettingsControllerState: DataSettingsControllerState = {
-  databaseSizeStatus: "loading",
-  totalSize: null,
-  databaseRuntimeRecoverySurface: null,
-  vacuuming: false,
-  backingUp: false,
-  openingLogDir: false,
-  exportingSettingsProfile: false,
-  importingSettingsProfile: false,
-};
-
-type DataSettingsActionOwnerId = symbol;
-
-type DataSettingsActionLifecycle = Pick<DataSettingsControllerState, DataSettingsActionKey> & {
-  vacuumingOwnerId: DataSettingsActionOwnerId | null;
-  lastCompletedVacuumOwnerId: DataSettingsActionOwnerId | null;
-};
-
-const dataSettingsActionLifecycle: DataSettingsActionLifecycle = {
-  vacuuming: false,
-  openingLogDir: false,
-  vacuumingOwnerId: null,
-  lastCompletedVacuumOwnerId: null,
-};
-
-const dataSettingsActionLifecycleListeners = new Set<(lifecycle: DataSettingsActionLifecycle) => void>();
-
-function getDataSettingsActionLifecycle(): DataSettingsActionLifecycle {
-  return { ...dataSettingsActionLifecycle };
-}
-
-function isDataSettingsActionInFlight(): boolean {
-  return dataSettingsActionLifecycle.vacuuming || dataSettingsActionLifecycle.openingLogDir;
-}
-
-function subscribeToDataSettingsActionLifecycle(
-  listener: (lifecycle: DataSettingsActionLifecycle) => void,
-): () => void {
-  dataSettingsActionLifecycleListeners.add(listener);
-  return () => {
-    dataSettingsActionLifecycleListeners.delete(listener);
-  };
-}
-
-function setDataSettingsActionLifecycle(
-  actionKey: DataSettingsActionKey,
-  value: boolean,
-  ownerId?: DataSettingsActionOwnerId,
-): void {
-  if (dataSettingsActionLifecycle[actionKey] === value) {
-    return;
-  }
-  dataSettingsActionLifecycle[actionKey] = value;
-  if (actionKey === "vacuuming") {
-    dataSettingsActionLifecycle.vacuumingOwnerId = value ? (ownerId ?? null) : null;
-    dataSettingsActionLifecycle.lastCompletedVacuumOwnerId = value ? null : (ownerId ?? null);
-  }
-  const lifecycle = getDataSettingsActionLifecycle();
-  for (const listener of dataSettingsActionLifecycleListeners) {
-    listener(lifecycle);
-  }
-}
-
-function dataSettingsControllerReducer(
-  state: DataSettingsControllerState,
-  action: DataSettingsControllerAction,
-): DataSettingsControllerState {
-  switch (action.type) {
-    case "set-database-size-ready":
-      return {
-        ...state,
-        databaseSizeStatus: "ready",
-        totalSize: action.value,
-        databaseRuntimeRecoverySurface: null,
-      };
-    case "set-database-size-error":
-      return {
-        ...state,
-        databaseSizeStatus: "error",
-        totalSize: null,
-        databaseRuntimeRecoverySurface: action.recoverySurface,
-      };
-    case "set-database-runtime-recovery-surface":
-      return {
-        ...state,
-        databaseRuntimeRecoverySurface: action.recoverySurface,
-      };
-    case "set-vacuuming":
-      return { ...state, vacuuming: action.value };
-    case "set-backing-up":
-      return { ...state, backingUp: action.value };
-    case "set-opening-log-dir":
-      return { ...state, openingLogDir: action.value };
-    case "set-exporting-settings-profile":
-      return { ...state, exportingSettingsProfile: action.value };
-    case "set-importing-settings-profile":
-      return { ...state, importingSettingsProfile: action.value };
-    default:
-      return state;
-  }
-}
 
 const SETTINGS_PROFILE_EXPORT_FILENAME = "ultra-rss-reader-settings-profile.json";
 
