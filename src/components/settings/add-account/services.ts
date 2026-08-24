@@ -1,4 +1,4 @@
-import { Monitor, Rss, Thermometer } from "lucide-react";
+import { Monitor } from "lucide-react";
 import type { ComponentType } from "react";
 import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
 import { PROVIDER_ICON_BG_CLASS } from "@/design-system";
@@ -56,6 +56,10 @@ export type ServiceCategory = {
   services: ServiceDefinition[];
 };
 
+// Ships only the kinds the backend can actually create (ProviderKind is Local | FreshRss |
+// Quarantined). Hosted "coming soon" rows advertised providers with no implementation, and
+// Feedly is explicitly not planned. The disabled service types below stay in the union so the
+// picker keeps its ability to render an unavailable row if a future provider needs one.
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
   {
     labelKey: "account.category_local",
@@ -78,43 +82,6 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
         iconBg: PROVIDER_ICON_BG_CLASS.FreshRss,
         nameKey: "account.freshrss",
         descKey: "account.freshrss_desc",
-      },
-      {
-        kind: "Fever",
-        icon: Thermometer,
-        iconBg: PROVIDER_ICON_BG_CLASS.Fever,
-        nameKey: "account.fever",
-        descKey: "account.fever_desc",
-        disabled: true,
-      },
-    ],
-  },
-  {
-    labelKey: "account.category_services",
-    services: [
-      {
-        kind: "Feedly",
-        icon: Rss,
-        iconBg: PROVIDER_ICON_BG_CLASS.Feedly,
-        nameKey: "account.feedly",
-        descKey: "account.feedly_hold_desc",
-        disabled: true,
-      },
-      {
-        kind: "NewsBlur",
-        icon: Rss,
-        iconBg: "bg-[#E9A33A]",
-        nameKey: "account.newsblur",
-        descKey: "account.feedly_hold_desc",
-        disabled: true,
-      },
-      {
-        kind: "Feedbin",
-        icon: Rss,
-        iconBg: "bg-[#F04E23]",
-        nameKey: "account.feedbin",
-        descKey: "account.feedbin_hold_desc",
-        disabled: true,
       },
     ],
   },
