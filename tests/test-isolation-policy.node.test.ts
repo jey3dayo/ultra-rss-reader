@@ -128,9 +128,14 @@ describe("test isolation policy contract", () => {
   });
 
   it("keeps reset-resistant Rust OnceLock state wrapped in mutex-owned contracts", () => {
+    const syncSchedulerSources = [
+      "src-tauri/src/service/sync_scheduler/mod.rs",
+      "src-tauri/src/service/sync_scheduler/scheduling.rs",
+      "src-tauri/src/service/sync_scheduler/backoff.rs",
+    ].map(readRepoFile);
     const rustSources = [
       readRepoFile("src-tauri/src/menu.rs"),
-      readRepoFile("src-tauri/src/service/sync_scheduler.rs"),
+      ...syncSchedulerSources,
       ...[
         "mod.rs",
         "browser.rs",

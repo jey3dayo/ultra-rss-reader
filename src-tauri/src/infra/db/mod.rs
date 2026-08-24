@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn production_only_startup_paths_have_contract_inventory() {
         let lib_rs = include_str!("../../lib.rs");
-        let sync_scheduler_rs = include_str!("../../service/sync_scheduler.rs");
+        let sync_scheduler_rs = include_str!("../../service/sync_scheduler/mod.rs");
 
         let production_only_startup_paths = [
             (
