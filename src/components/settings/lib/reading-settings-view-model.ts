@@ -19,7 +19,6 @@ type ClearArticleViewHistoryMutation = {
   mutate: (
     accountId: string,
     options: {
-      onError: (error: Error) => void;
       onSuccess: () => void;
     },
   ) => void;
@@ -77,12 +76,6 @@ export function buildReadingSettingsViewProps({
       () => {
         clearHistory.mutate(accountId, {
           onSuccess: () => showToast(t("reading.clear_recent_articles_success")),
-          onError: (error) =>
-            showToast(
-              t("reading.clear_recent_articles_failed", {
-                message: error.message,
-              }),
-            ),
         });
       },
       {

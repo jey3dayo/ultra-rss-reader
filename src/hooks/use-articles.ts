@@ -83,6 +83,7 @@ type ClearArticleViewHistoryContext = {
   previousRecentArticleQueries: Array<{
     queryKey: QueryKey;
     previousData: unknown;
+    optimisticData: unknown;
   }>;
 };
 
@@ -302,7 +303,7 @@ export function useRecordArticleView() {
 }
 
 export function useClearArticleViewHistory() {
-  const { t } = useTranslation("settings");
+  const { t } = useTranslation("reader");
   const qc = useQueryClient();
   const showToast = useUiStore((state) => state.showToast);
 
@@ -323,13 +324,16 @@ export function useClearArticleViewHistory() {
       }
 
       const recentArticleQueryKeys = getRecentArticleQueryKeysForAccount(normalizedAccountId);
+      await Promise.all(recentArticleQueryKeys.map((queryKey) => qc.cancelQueries({ queryKey })));
       const previousRecentArticleQueries = recentArticleQueryKeys.map((queryKey) => ({
         queryKey,
         previousData: qc.getQueryData(queryKey),
+        optimisticData: undefined,
       }));
-      await Promise.all(recentArticleQueryKeys.map((queryKey) => qc.cancelQueries({ queryKey })));
-      for (const queryKey of recentArticleQueryKeys) {
-        qc.setQueryData(queryKey, []);
+      for (const recentArticleQuery of previousRecentArticleQueries) {
+        const optimisticData: unknown[] = [];
+        qc.setQueryData(recentArticleQuery.queryKey, optimisticData);
+        recentArticleQuery.optimisticData = qc.getQueryData(recentArticleQuery.queryKey);
       }
 
       return { previousRecentArticleQueries };
@@ -345,10 +349,12 @@ export function useClearArticleViewHistory() {
       });
     },
     onError: (error, _accountId, context) => {
-      for (const { queryKey, previousData } of context?.previousRecentArticleQueries ?? []) {
-        qc.setQueryData(queryKey, previousData);
+      for (const { queryKey, previousData, optimisticData } of context?.previousRecentArticleQueries ?? []) {
+        if (qc.getQueryData(queryKey) === optimisticData) {
+          qc.setQueryData(queryKey, previousData);
+        }
       }
-      showToast(t("reading.clear_recent_articles_failed", { message: error.message }));
+      showToast(t("clear_recent_history_failed", { message: error.message }));
     },
   });
 }
