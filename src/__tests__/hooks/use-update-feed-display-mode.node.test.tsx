@@ -271,4 +271,66 @@ describe("useUpdateFeedDisplaySettings", () => {
     ]);
     expect(showToastMock).not.toHaveBeenCalledWith("failed_to_update_display_settings:stale boom");
   });
+
+  it("does not let an older successful update invalidate feeds or restore the earlier preset", async () => {
+    seedFeeds();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const firstUpdate = createDeferred<Awaited<ReturnType<typeof tauriCommands.updateFeedDisplaySettings>>>();
+    const secondUpdate = createDeferred<Awaited<ReturnType<typeof tauriCommands.updateFeedDisplaySettings>>>();
+    vi.spyOn(tauriCommands, "updateFeedDisplaySettings")
+      .mockReturnValueOnce(firstUpdate.promise)
+      .mockReturnValueOnce(secondUpdate.promise);
+    const { result } = createHook();
+
+    const firstPromise = result.current("feed-1", "on", "on");
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          reader_mode: "on",
+          web_preview_mode: "on",
+        }),
+      ]);
+    });
+
+    const secondPromise = result.current("feed-1", "off", "off");
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          reader_mode: "off",
+          web_preview_mode: "off",
+        }),
+      ]);
+    });
+
+    const countFeedRootInvalidations = () =>
+      invalidateQueriesSpy.mock.calls.filter(
+        ([filters]) => JSON.stringify(filters?.queryKey) === JSON.stringify(queryKeys.feeds.root),
+      ).length;
+
+    secondUpdate.resolve(Result.succeed(null));
+    await expect(secondPromise).resolves.toBe(true);
+    await waitFor(() => {
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    });
+    const invalidationsAfterLatest = countFeedRootInvalidations();
+
+    // The older persist succeeds late. It must not invalidate on behalf of superseded intent,
+    // and it must report false so its caller does not treat the older selection as saved.
+    // The invalidation count is asserted first so it is not masked by the return-value check.
+    firstUpdate.resolve(Result.succeed(null));
+    const staleResult = await firstPromise;
+
+    expect(countFeedRootInvalidations()).toBe(invalidationsAfterLatest);
+    expect(staleResult).toBe(false);
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+      expect.objectContaining({
+        id: "feed-1",
+        reader_mode: "off",
+        web_preview_mode: "off",
+      }),
+    ]);
+    expect(showToastMock).not.toHaveBeenCalled();
+  });
 });
