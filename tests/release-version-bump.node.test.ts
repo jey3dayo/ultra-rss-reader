@@ -144,18 +144,25 @@ describe("release version bump contract", () => {
     });
   });
 
-  it("updates a Cargo.lock owner while preserving optional whitespace", () => {
+  it.each([
+    { name: "without whitespace around equals", owner: 'version="0.59.0"', updatedOwner: 'version="0.59.1"' },
+    {
+      name: "with multiple spaces around equals",
+      owner: 'version  =  "0.59.0"',
+      updatedOwner: 'version  =  "0.59.1"',
+    },
+  ])("updates a Cargo.lock owner $name", ({ owner, updatedOwner }) => {
     withFixture((fixtureRoot) => {
       const lockPath = join(fixtureRoot, "src-tauri/Cargo.lock");
       const source = readFileSync(lockPath, "utf8");
-      const whitespaceOwner = source.replace(
+      const mutatedSource = source.replace(
         /(\[\[package\]\]\nname = "ultra-rss-reader"\n)version = "([^"]+)"/,
-        '$1version  =  "$2"',
+        `$1${owner}`,
       );
-      writeFileSync(lockPath, whitespaceOwner, "utf8");
+      writeFileSync(lockPath, mutatedSource, "utf8");
 
       runBump(fixtureRoot, "0.59.1");
-      expect(readFileSync(lockPath, "utf8")).toContain('name = "ultra-rss-reader"\nversion  =  "0.59.1"');
+      expect(readFileSync(lockPath, "utf8")).toContain(`name = "ultra-rss-reader"\n${updatedOwner}`);
       expect(() => runParity(fixtureRoot, "0.59.1")).not.toThrow();
     });
   });

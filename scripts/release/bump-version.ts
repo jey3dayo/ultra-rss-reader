@@ -135,9 +135,9 @@ const jsonVersionFile = (path: string): VersionFile => ({
   formatTarget: (targetVersion) => targetVersion,
 });
 
-const readCargoLockOwner = (source: string): { element: string; start: number; version: string } => {
+const readCargoLockOwner = (source: string): { versionStart: number; versionEnd: number; version: string } => {
   const sectionMatches = [...source.matchAll(CARGO_LOCK_PACKAGE_SECTION_PATTERN)];
-  const owners: Array<{ element: string; start: number; version: string }> = [];
+  const owners: Array<{ versionStart: number; versionEnd: number; version: string }> = [];
 
   for (const [sectionIndex, sectionMatch] of sectionMatches.entries()) {
     const sectionStart = (sectionMatch.index ?? 0) + sectionMatch[0].length;
@@ -154,11 +154,13 @@ const readCargoLockOwner = (source: string): { element: string; start: number; v
         `expected exactly one name and version in the ultra-rss-reader Cargo.lock package entry, found ${names.length} names and ${versions.length} versions`,
       );
     }
-    owners.push({
-      element: versions[0][0],
-      start: sectionStart + (versions[0].index ?? 0),
-      version: versions[0][1],
-    });
+    const versionElement = versions[0][0];
+    const versionValueStart = versionElement.indexOf('"') + 1;
+    if (versionValueStart === 0) {
+      throw new Error("ultra-rss-reader Cargo.lock package version owner is malformed");
+    }
+    const versionStart = sectionStart + (versions[0].index ?? 0) + versionValueStart;
+    owners.push({ versionStart, versionEnd: versionStart + versions[0][1].length, version: versions[0][1] });
   }
 
   if (owners.length !== 1) {
@@ -172,8 +174,7 @@ const cargoLockVersionFile: VersionFile = {
   readVersion: (source) => readCargoLockOwner(source).version,
   update: (source, targetVersion) => {
     const owner = readCargoLockOwner(source);
-    const updatedElement = owner.element.replace(/(version\s*=\s*")[^"]+("\s*)$/, `$1${targetVersion}$2`);
-    return `${source.slice(0, owner.start)}${updatedElement}${source.slice(owner.start + owner.element.length)}`;
+    return `${source.slice(0, owner.versionStart)}${targetVersion}${source.slice(owner.versionEnd)}`;
   },
   formatTarget: (targetVersion) => targetVersion,
 };
@@ -271,6 +272,13 @@ const readVersionChanges = (targetVersion: string): VersionChange[] => {
     const original = readFileSync(versionFile.path, "utf8");
     const currentVersion = versionFile.readVersion(original);
     const updated = versionFile.update(original, targetVersion);
+    const updatedVersion = versionFile.readVersion(updated);
+    const expectedVersion = versionFile.formatTarget(targetVersion);
+    if (updatedVersion !== expectedVersion) {
+      throw new Error(
+        `version update did not reach ${expectedVersion} in ${versionFile.path}; found ${updatedVersion}`,
+      );
+    }
     return { ...versionFile, currentVersion, original, updated };
   });
 
