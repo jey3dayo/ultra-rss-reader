@@ -93,10 +93,10 @@ Tauri 2 (Rust) · React 19 · TypeScript · SQLite (rusqlite + FTS5) · Tailwind
 
 現時点で予定しているもの(おおよその順序):
 
-- Linux ビルド — release workflow から `.deb` / `.AppImage` を配布([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
-- インストールの摩擦解消 — macOS の署名・notarization に加えて Homebrew cask と winget 対応。初回起動で Gatekeeper の回避操作が不要になる
+- インストールの摩擦解消 — macOS の署名・notarization に加えて Homebrew cask と winget 対応。初回起動で Gatekeeper の回避操作が不要になる。これはパッケージング側ではなく Developer ID 署名証明書の取得が前提になっている
 - Microsoft Store 配布([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
-- 同期プロバイダの追加 — Feedly は別 issue で追跡中([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
+
+Linux パッケージングは release workflow の opt-in 入力 `build_linux`(既定 off)として利用でき、必要なときに `.deb` / `.AppImage` を生成します。配布済みの Linux インストール経路はまだないため、上記のインストール表は macOS と Windows のままです。Feedly 同期は予定していません。
 
 ## コントリビュート
 
