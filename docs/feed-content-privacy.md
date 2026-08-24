@@ -171,6 +171,7 @@ What the shipped v1 profile does not do:
 - account entries still carry `server_url` and `username`. These are not secrets, but they are private identifiers: the artifact reveals which servers a user syncs with and under which account name. Treat an exported profile as private user data and store it in a private location.
 - the export is plaintext JSON. It is not app-encrypted, and no reviewed key-management design exists for it.
 - there is no conflict preview before an import overwrites local settings.
+- export and import each run as a single command. There is no progress surface, no cancel point, and no partial-artifact cleanup step to confirm.
 - it is not a backup and cannot restore an article library. Library recovery is still a database backup plus re-entering credentials in the OS keyring.
 
 The unmet items remain governing constraints for any future profile version:
@@ -189,7 +190,7 @@ Progress cancellation contract:
 - OPML import: confirmation is required after parsing or preview has started and before canceling a running import that may have written feeds or folders.
 - OPML export: confirmation is required after the destination path has been chosen and before canceling a running write that may leave a partial artifact.
 - Database backup/restore: confirmation is required before canceling any running copy or restore step that may leave a partial backup set or restore target.
-- App settings export/import: confirmation timing must follow the same before-cancel rule and must state whether no changes, partial changes, or cleanup will result.
+- App settings export/import: the shipped v1 profile runs as a single command with no progress surface and no cancel point, so this rule has nothing to apply to yet. Do not describe cancel confirmation as existing behavior. A future cancellable settings profile flow must follow the same before-cancel rule and must state whether no changes, partial changes, or cleanup will result.
 - A cancel request made before a file is selected or before an operation starts must close without a confirmation prompt.
 - If cancellation cannot guarantee cleanup of a partial artifact, the UI must say the artifact may remain and direct the user to delete or retry it manually.
 
