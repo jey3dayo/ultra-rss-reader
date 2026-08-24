@@ -382,6 +382,34 @@ async fn literal_private_base_provider_builds_and_sends() {
 }
 
 #[tokio::test]
+async fn private_hostname_provider_resolves_initial_host_on_demand() {
+    let mut server = mockito::Server::new_async().await;
+    let auth = server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=private-host-token\n")
+        .create_async()
+        .await;
+    let port = reqwest::Url::parse(&server.url())
+        .expect("mock server URL should parse")
+        .port()
+        .expect("mock server URL should include a port");
+
+    let mut provider = GReaderProvider::try_for_freshrss(&format!("http://nas.local:{port}"))
+        .expect("private hostname should not require synchronous DNS at construction");
+    provider
+        .authenticate(&Credentials {
+            password: Some("p".into()),
+            token: Some("u".into()),
+        })
+        .await
+        .expect("selected private hostname should resolve during the request");
+
+    assert_eq!(provider.auth_token.as_deref(), Some("private-host-token"));
+    auth.assert_async().await;
+}
+
+#[tokio::test]
 async fn authenticate_maps_private_redirect_response_to_validation_error() {
     let mut server = mockito::Server::new_async().await;
     let redirect = server

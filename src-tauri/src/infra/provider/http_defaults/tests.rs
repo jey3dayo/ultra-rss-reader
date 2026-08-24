@@ -102,6 +102,30 @@ async fn validated_dns_resolver_reuses_user_selected_private_initial_host() {
 }
 
 #[tokio::test]
+async fn validated_dns_resolver_lazily_resolves_user_selected_private_host() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let resolver_calls = Arc::clone(&calls);
+    let resolver = ValidatedPublicDnsResolver::new(move |_| {
+        resolver_calls.fetch_add(1, Ordering::SeqCst);
+        Ok(vec![SocketAddr::from(([192, 168, 1, 20], 0))])
+    });
+    resolver
+        .seed_user_selected_host("nas.local")
+        .expect("explicit private hostname should be seedable");
+    let name =
+        reqwest::dns::Name::from_str("nas.local").expect("resolver fixture host should parse");
+
+    let addresses = resolver
+        .resolve(name)
+        .await
+        .expect("selected private hostname should resolve on demand")
+        .collect::<Vec<_>>();
+
+    assert_eq!(addresses, vec![SocketAddr::from(([192, 168, 1, 20], 0))]);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
 async fn validated_dns_resolver_closes_public_to_private_rebinding_window() {
     let calls = Arc::new(AtomicUsize::new(0));
     let resolver_calls = Arc::clone(&calls);

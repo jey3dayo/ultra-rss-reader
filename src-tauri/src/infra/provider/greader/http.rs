@@ -1,6 +1,6 @@
 use reqwest::header::HeaderValue;
 use serde::de::DeserializeOwned;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
 use crate::domain::error::{DomainError, DomainResult};
@@ -49,29 +49,13 @@ pub(super) fn resolve_greader_base_addrs(url: &reqwest::Url) -> DomainResult<Vec
     }
 
     if url.host_str().is_some_and(is_private_host) {
-        return resolve_user_selected_host_addrs(url);
+        // Private hostnames are explicitly user-selected endpoints. Defer
+        // their OS DNS lookup to the custom async resolver so constructing a
+        // provider never blocks the Tokio executor on local-name resolution.
+        return Ok(Vec::new());
     }
 
     resolve_validated_public_addrs(url)
-}
-
-fn resolve_user_selected_host_addrs(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
-    let Some(host) = url.host_str() else {
-        return Err(DomainError::Validation(
-            crate::domain::url_policy::MISSING_HOST_URL_VALIDATION_MESSAGE.to_string(),
-        ));
-    };
-    let port = url.port_or_known_default().unwrap_or(80);
-    let addresses = (host, port)
-        .to_socket_addrs()
-        .map_err(|_| DomainError::Network("Could not resolve the server name".to_string()))?
-        .collect::<Vec<_>>();
-    if addresses.is_empty() {
-        return Err(DomainError::Network(
-            "Could not resolve the server name".to_string(),
-        ));
-    }
-    Ok(addresses)
 }
 
 pub(super) fn explicit_greader_base_addr(url: &reqwest::Url) -> Option<SocketAddr> {
@@ -131,7 +115,11 @@ impl GReaderProvider {
         let resolver = validated_public_dns_resolver();
         if let Some(host) = base_host.filter(|_| explicit_base_addr.is_none()) {
             if base_host_is_private {
-                resolver.seed_user_selected(host, resolved_addresses.clone())?;
+                if resolved_addresses.is_empty() {
+                    resolver.seed_user_selected_host(host)?;
+                } else {
+                    resolver.seed_user_selected(host, resolved_addresses.clone())?;
+                }
             } else {
                 resolver.seed(host, resolved_addresses.clone())?;
             }

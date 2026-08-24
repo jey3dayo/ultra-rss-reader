@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error as StdError;
 use std::fmt;
 use std::net::SocketAddr;
@@ -54,6 +54,7 @@ type HostResolver = Arc<dyn Fn(&str) -> DomainResult<Vec<SocketAddr>> + Send + S
 pub(crate) struct ValidatedPublicDnsResolver {
     host_resolver: HostResolver,
     resolved_hosts: Arc<Mutex<HashMap<String, DomainResult<Vec<SocketAddr>>>>>,
+    user_selected_hosts: Arc<Mutex<HashSet<String>>>,
 }
 
 impl ValidatedPublicDnsResolver {
@@ -63,17 +64,23 @@ impl ValidatedPublicDnsResolver {
         Self {
             host_resolver: Arc::new(host_resolver),
             resolved_hosts: Arc::new(Mutex::new(HashMap::new())),
+            user_selected_hosts: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
     pub(crate) fn seed(&self, host: &str, addresses: Vec<SocketAddr>) -> DomainResult<()> {
         let addresses = normalize_dns_socket_addrs(addresses);
         validate_public_socket_addrs(&addresses)?;
+        let normalized_host = normalize_dns_host(host);
+        self.user_selected_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?
+            .remove(&normalized_host);
         let mut resolved_hosts = self
             .resolved_hosts
             .lock()
             .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?;
-        resolved_hosts.insert(normalize_dns_host(host), Ok(addresses));
+        resolved_hosts.insert(normalized_host, Ok(addresses));
         Ok(())
     }
 
@@ -87,11 +94,35 @@ impl ValidatedPublicDnsResolver {
         addresses: Vec<SocketAddr>,
     ) -> DomainResult<()> {
         let addresses = normalize_dns_socket_addrs(addresses);
+        let normalized_host = normalize_dns_host(host);
+        self.user_selected_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?
+            .insert(normalized_host.clone());
         let mut resolved_hosts = self
             .resolved_hosts
             .lock()
             .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?;
-        resolved_hosts.insert(normalize_dns_host(host), Ok(addresses));
+        resolved_hosts.insert(normalized_host, Ok(addresses));
+        Ok(())
+    }
+
+    /// Marks a user-selected private hostname for lazy initial resolution.
+    ///
+    /// FreshRSS construction is synchronous for compatibility with existing
+    /// provider callers. Deferring hostname lookup to `Resolve::resolve` keeps
+    /// that construction path from blocking a Tokio executor while retaining
+    /// the private-host exception only for this selected initial host.
+    pub(crate) fn seed_user_selected_host(&self, host: &str) -> DomainResult<()> {
+        let normalized_host = normalize_dns_host(host);
+        self.user_selected_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?
+            .insert(normalized_host.clone());
+        self.resolved_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?
+            .remove(&normalized_host);
         Ok(())
     }
 
@@ -117,9 +148,18 @@ impl ValidatedPublicDnsResolver {
             return result;
         }
 
+        let user_selected = self
+            .user_selected_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?
+            .contains(&normalized_host);
         let result = (self.host_resolver)(&normalized_host).and_then(|addresses| {
             let addresses = normalize_dns_socket_addrs(addresses);
-            validate_public_socket_addrs(&addresses).map(|()| addresses)
+            if user_selected {
+                Ok(addresses)
+            } else {
+                validate_public_socket_addrs(&addresses).map(|()| addresses)
+            }
         });
         let mut resolved_hosts = self
             .resolved_hosts
