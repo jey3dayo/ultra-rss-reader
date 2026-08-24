@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { SettingsProfileImportResult } from "@/api/schemas";
@@ -12,20 +11,27 @@ import {
   openLogDir,
   vacuumDatabase,
 } from "@/api/tauri-commands";
-import {
-  BYTES_PER_KIBIBYTE,
-  BYTES_PER_MEBIBYTE,
-  DATA_SIZE_FRACTION_DIGITS,
-  DATA_SIZE_UNIT_LABELS,
-} from "@/constants/data-size";
-import { resolveRestoredAccountSelection } from "@/lib/account/account-selection";
 import { showSaveDialog } from "@/lib/platform/save-dialog";
-import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import {
-  DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
-  type DatabaseRestoreStorageReconciliationPolicy,
-} from "@/schemas/storage";
+  classifyDatabaseRuntimeRecoverySurface,
+  type DatabaseRuntimeRecoverySurface,
+  type DatabaseSizeStatus,
+  formatBytes,
+  logDatabaseRuntimeRecoverySurface,
+} from "./recovery";
+
+export type {
+  DatabaseRecoveryActionSafety,
+  DatabaseRuntimeFailureKind,
+  DatabaseRuntimeRecoveryAction,
+  DatabaseRuntimeRecoveryMode,
+  DatabaseRuntimeRecoverySurface,
+  DatabaseSizeStatus,
+} from "./recovery";
+export { classifyDatabaseRuntimeRecoverySurface, formatBytes } from "./recovery";
+export type { DatabaseRestoreFrontendCacheResetReason } from "./restore-reconciliation";
+export { reconcileDatabaseRestoreFrontendState } from "./restore-reconciliation";
 
 type UseDataSettingsControllerParams = {
   t: TFunction<"settings">;
@@ -49,74 +55,7 @@ type UseDataSettingsControllerResult = {
   handleImportSettingsProfileFile: (file: File) => Promise<void>;
 };
 
-export type DatabaseSizeStatus = "loading" | "ready" | "error";
-
 type DataSettingsActionKey = "vacuuming" | "openingLogDir";
-
-export type DatabaseRuntimeFailureKind =
-  | "read_corruption"
-  | "write_corruption"
-  | "migration_failed"
-  | "downgrade_blocked"
-  | "locked"
-  | "permission_denied"
-  | "disk_full";
-
-export type DatabaseRuntimeRecoveryMode =
-  | "read_only_degraded"
-  | "startup_blocked"
-  | "retry_when_idle"
-  | "user_permission_fix"
-  | "free_disk_space";
-
-export type DatabaseRuntimeRecoveryAction =
-  | "run_integrity_check"
-  | "restore_backup"
-  | "preserve_backup_and_restart"
-  | "retry"
-  | "check_os_permissions"
-  | "free_disk_space";
-
-export type DatabaseRecoveryActionSafety = "read_only" | "requires_dry_run" | "requires_explicit_confirmation";
-
-export type DatabaseRuntimeRecoverySurface = {
-  failureKind: DatabaseRuntimeFailureKind;
-  mode: DatabaseRuntimeRecoveryMode;
-  actions: readonly DatabaseRuntimeRecoveryAction[];
-  actionSafety: readonly DatabaseRecoveryActionSafety[];
-  diagnosticsIdRequired: true;
-};
-
-type DatabaseRuntimeOperation = "read" | "write";
-
-type DatabaseRestoreAccount = {
-  id: string;
-};
-
-type DatabaseRestoreFrontendStateReconciliationParams<T extends DatabaseRestoreAccount> = {
-  accounts: readonly T[];
-  selectedAccountId: string | null | undefined;
-  savedAccountId: string | null | undefined;
-  resetReason?: DatabaseRestoreFrontendCacheResetReason;
-  queryClient: Pick<QueryClient, "clear">;
-  storage: Pick<Storage, "removeItem">;
-  restoreAccountSelection: (accountId: string, options: { focusedPane: "list" }) => void;
-  clearSelectedAccount: () => void;
-  setSelectedAccountPreference: (accountId: string) => void;
-  clearSettingsDirtyState?: () => void;
-  storagePolicy?: DatabaseRestoreStorageReconciliationPolicy;
-};
-
-export type DatabaseRestoreFrontendCacheResetReason = "database-restore" | "private-data-reset";
-
-type DatabaseRestoreFrontendStateReconciliationResult = {
-  queryCacheCleared: boolean;
-  resetReason: DatabaseRestoreFrontendCacheResetReason;
-  removedStorageKeys: readonly string[];
-  selectedAccountId: string | null;
-  preferenceAccountId: string;
-  restartRequired: true;
-};
 
 type DataSettingsControllerState = {
   databaseSizeStatus: DatabaseSizeStatus;
@@ -269,180 +208,8 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function getAppErrorMessage(error: AppError): string {
-  return error.message;
-}
-
 function getUserFacingAppErrorMessage(error: AppError): string {
   return localizeUserVisibleAppErrorMessage(error.message);
-}
-
-function isDatabaseLockedMessage(message: string): boolean {
-  return /\b(database is )?(busy|locked)\b/i.test(message);
-}
-
-function isPermissionDeniedMessage(message: string): boolean {
-  return /permission denied|access denied|readonly database|read-only database/i.test(message);
-}
-
-function isDiskFullMessage(message: string): boolean {
-  return /disk full|database or disk is full|no space left/i.test(message);
-}
-
-function isDatabaseCorruptionMessage(message: string): boolean {
-  return /corrupt|malformed|not a database|file is not a database|database disk image is malformed/i.test(message);
-}
-
-function isDatabaseDowngradeMessage(message: string): boolean {
-  return /newer than this application supports|downgrade startup is blocked/i.test(message);
-}
-
-function isDatabaseMigrationMessage(message: string): boolean {
-  return /migration error|migration failed|failed migration|schema_version/i.test(message);
-}
-
-export function classifyDatabaseRuntimeRecoverySurface(
-  error: AppError,
-  operation: DatabaseRuntimeOperation,
-): DatabaseRuntimeRecoverySurface | null {
-  const message = getAppErrorMessage(error);
-  if (isDatabaseDowngradeMessage(message)) {
-    return {
-      failureKind: "downgrade_blocked",
-      mode: "startup_blocked",
-      actions: ["preserve_backup_and_restart", "restore_backup"],
-      actionSafety: ["read_only", "requires_explicit_confirmation"],
-      diagnosticsIdRequired: true,
-    };
-  }
-  if (isDatabaseMigrationMessage(message)) {
-    return {
-      failureKind: "migration_failed",
-      mode: "startup_blocked",
-      actions: ["preserve_backup_and_restart", "restore_backup"],
-      actionSafety: ["read_only", "requires_explicit_confirmation"],
-      diagnosticsIdRequired: true,
-    };
-  }
-  if (isDatabaseLockedMessage(message)) {
-    return {
-      failureKind: "locked",
-      mode: "retry_when_idle",
-      actions: ["retry"],
-      actionSafety: ["read_only"],
-      diagnosticsIdRequired: true,
-    };
-  }
-  if (isPermissionDeniedMessage(message)) {
-    return {
-      failureKind: "permission_denied",
-      mode: "user_permission_fix",
-      actions: ["check_os_permissions"],
-      actionSafety: ["read_only"],
-      diagnosticsIdRequired: true,
-    };
-  }
-  if (isDiskFullMessage(message)) {
-    return {
-      failureKind: "disk_full",
-      mode: "free_disk_space",
-      actions: ["free_disk_space"],
-      actionSafety: ["read_only"],
-      diagnosticsIdRequired: true,
-    };
-  }
-  if (isDatabaseCorruptionMessage(message)) {
-    return {
-      failureKind: operation === "read" ? "read_corruption" : "write_corruption",
-      mode: "read_only_degraded",
-      actions: ["run_integrity_check", "restore_backup"],
-      actionSafety: ["read_only", "requires_explicit_confirmation"],
-      diagnosticsIdRequired: true,
-    };
-  }
-  return null;
-}
-
-function logDatabaseRuntimeRecoverySurface(
-  recoverySurface: DatabaseRuntimeRecoverySurface | null,
-  operation: DatabaseRuntimeOperation,
-  error: AppError,
-): void {
-  if (recoverySurface === null) {
-    return;
-  }
-  logRuntimeDiagnostic("database-runtime-recovery", "Database runtime recovery surface detected", {
-    operation,
-    failureKind: recoverySurface.failureKind,
-    mode: recoverySurface.mode,
-    actions: recoverySurface.actions,
-    diagnosticsIdRequired: recoverySurface.diagnosticsIdRequired,
-    message: error.message,
-  });
-}
-
-export function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) {
-    return `0 ${DATA_SIZE_UNIT_LABELS.byte}`;
-  }
-  if (bytes < BYTES_PER_KIBIBYTE) {
-    return `${bytes} ${DATA_SIZE_UNIT_LABELS.byte}`;
-  }
-  if (bytes < BYTES_PER_MEBIBYTE) {
-    return `${(bytes / BYTES_PER_KIBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} ${DATA_SIZE_UNIT_LABELS.kibibyte}`;
-  }
-  return `${(bytes / BYTES_PER_MEBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} ${DATA_SIZE_UNIT_LABELS.mebibyte}`;
-}
-
-export function reconcileDatabaseRestoreFrontendState<T extends DatabaseRestoreAccount>({
-  accounts,
-  selectedAccountId,
-  savedAccountId,
-  resetReason = "database-restore",
-  queryClient,
-  storage,
-  restoreAccountSelection,
-  clearSelectedAccount,
-  setSelectedAccountPreference,
-  clearSettingsDirtyState,
-  storagePolicy = DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
-}: DatabaseRestoreFrontendStateReconciliationParams<T>): DatabaseRestoreFrontendStateReconciliationResult {
-  queryClient.clear();
-  clearSettingsDirtyState?.();
-
-  const removedStorageKeys: string[] = [];
-  for (const storageKey of storagePolicy.removeKeys) {
-    try {
-      storage.removeItem(storageKey);
-      removedStorageKeys.push(storageKey);
-    } catch {
-      // Restore reconciliation must still repair selection even when localStorage is unavailable.
-    }
-  }
-
-  const accountSelection = resolveRestoredAccountSelection({
-    accounts,
-    selectedAccountId,
-    savedAccountId,
-  });
-
-  if (accountSelection.accountId === null) {
-    clearSelectedAccount();
-  } else {
-    restoreAccountSelection(accountSelection.accountId, {
-      focusedPane: "list",
-    });
-  }
-  setSelectedAccountPreference(accountSelection.preferenceAccountId);
-
-  return {
-    queryCacheCleared: true,
-    resetReason,
-    removedStorageKeys,
-    selectedAccountId: accountSelection.accountId,
-    preferenceAccountId: accountSelection.preferenceAccountId,
-    restartRequired: true,
-  };
 }
 
 export function useDataSettingsController({
