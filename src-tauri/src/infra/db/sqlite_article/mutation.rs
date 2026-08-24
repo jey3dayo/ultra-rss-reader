@@ -6,7 +6,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use super::SqliteArticleRepository;
 use crate::domain::article::Article;
 use crate::domain::constants::RECENT_ARTICLE_HISTORY_LIMIT;
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::{is_greader_managed_feed_remote_id, GREADER_FEED_ID_PREFIX};
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_feed::recalculate_unread_count_with_conn;
@@ -287,11 +287,11 @@ impl SqliteArticleRepository<'_> {
     }
 
     pub(crate) fn mark_as_read_body(&self, id: &ArticleId, read: bool) -> DomainResult<()> {
-        self.conn.execute(
+        let affected_rows = self.conn.execute(
             "UPDATE articles SET is_read = ?1 WHERE id = ?2",
             params![read, id.0],
         )?;
-        Ok(())
+        require_article_row_affected(affected_rows, id)
     }
 
     pub(crate) fn mark_many_as_read_body(&self, ids: &[ArticleId]) -> DomainResult<()> {
@@ -337,11 +337,11 @@ impl SqliteArticleRepository<'_> {
     }
 
     pub(crate) fn mark_as_starred_body(&self, id: &ArticleId, starred: bool) -> DomainResult<()> {
-        self.conn.execute(
+        let affected_rows = self.conn.execute(
             "UPDATE articles SET is_starred = ?1 WHERE id = ?2",
             params![starred, id.0],
         )?;
-        Ok(())
+        require_article_row_affected(affected_rows, id)
     }
 
     pub(crate) fn purge_old_read_body(
@@ -483,4 +483,14 @@ impl SqliteArticleRepository<'_> {
         tx.commit()?;
         Ok(())
     }
+}
+
+fn require_article_row_affected(rows_affected: usize, id: &ArticleId) -> DomainResult<()> {
+    if rows_affected == 0 {
+        return Err(DomainError::Validation(format!(
+            "Article not found: {}",
+            id.as_ref()
+        )));
+    }
+    Ok(())
 }

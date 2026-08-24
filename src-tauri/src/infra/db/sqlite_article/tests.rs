@@ -2,6 +2,7 @@ use super::*;
 use crate::domain::constants::{
     ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE, RECENT_ARTICLE_HISTORY_LIMIT,
 };
+use crate::domain::error::DomainError;
 use crate::infra::db::connection::DbManager;
 use crate::repository::article::ArticleListMode;
 use crate::repository::feed::FeedRepository;
@@ -2171,17 +2172,29 @@ fn mark_as_read_and_starred() {
 }
 
 #[test]
-fn article_mutation_missing_id_contract_is_repository_noop() {
+fn article_mutation_missing_id_contract_is_repository_error() {
     let db = test_db();
     let repo = SqliteArticleRepository::new(db.writer());
     let missing_id = ArticleId("missing-article".to_string());
 
-    repo.mark_as_read(&missing_id, true)
-        .expect("missing article read mutation should be a no-op");
+    let read_error = repo
+        .mark_as_read(&missing_id, true)
+        .expect_err("missing article read mutation should be rejected");
+    assert!(matches!(
+        read_error,
+        DomainError::Validation(message) if message == "Article not found: missing-article"
+    ));
+
     repo.mark_many_as_read(&[missing_id.clone()])
         .expect("missing bulk article read mutation should be a no-op");
-    repo.mark_as_starred(&missing_id, true)
-        .expect("missing article star mutation should be a no-op");
+
+    let star_error = repo
+        .mark_as_starred(&missing_id, true)
+        .expect_err("missing article star mutation should be rejected");
+    assert!(matches!(
+        star_error,
+        DomainError::Validation(message) if message == "Article not found: missing-article"
+    ));
 
     let article_count: i64 = db
         .reader()
