@@ -202,23 +202,31 @@ fn validates_new_freshrss_server_url_policy() {
     for server_url in [
         "ftp://rss.example.com",
         "https://alice:secret@rss.example.com",
-        "https://localhost",
-        "http://127.0.0.1:8080",
-        "https://10.0.0.1",
-        "https://172.16.0.1",
-        "https://192.168.0.1",
-        "https://[::1]",
-        "https://[fd00::1]",
     ] {
         assert!(
             normalize_new_freshrss_server_url(server_url).is_err(),
             "{server_url} should be rejected"
         );
     }
+
+    for server_url in [
+        "https://localhost",
+        "http://127.0.0.1:8080",
+        "https://10.0.0.1",
+        "https://nas.local",
+        "https://freshrss:8080",
+        "https://[::1]",
+        "https://[fd00::1]",
+    ] {
+        assert!(
+            normalize_new_freshrss_server_url(server_url).is_ok(),
+            "{server_url} should be accepted as an explicit server endpoint"
+        );
+    }
 }
 
 #[test]
-fn rejects_ipv4_mapped_ipv6_private_hosts() {
+fn accepts_ipv4_mapped_ipv6_private_hosts_as_explicit_endpoints() {
     for server_url in [
         "http://[::ffff:127.0.0.1]/",
         "http://[::ffff:169.254.169.254]/",
@@ -226,8 +234,8 @@ fn rejects_ipv4_mapped_ipv6_private_hosts() {
         "http://[::ffff:192.168.0.1]/",
     ] {
         assert!(
-            normalize_new_freshrss_server_url(server_url).is_err(),
-            "{server_url} should be rejected"
+            normalize_new_freshrss_server_url(server_url).is_ok(),
+            "{server_url} should be accepted as an explicit server endpoint"
         );
     }
 
@@ -313,14 +321,25 @@ fn normalizes_updated_freshrss_server_url_with_new_account_policy() {
         Some("   "),
         Some("ftp://rss.example.com"),
         Some("https://alice:secret@rss.example.com"),
-        Some("http://localhost:8080"),
-        Some("http://127.0.0.1"),
-        Some("http://[::1]"),
         Some("not a url"),
     ] {
         assert!(
             normalize_updated_account_server_url(&account, server_url).is_err(),
             "{server_url:?} should be rejected"
+        );
+    }
+
+    for (server_url, expected) in [
+        (Some("http://localhost:8080"), "http://localhost:8080/"),
+        (Some("http://127.0.0.1"), "http://127.0.0.1/"),
+        (Some("https://nas.local"), "https://nas.local/"),
+        (Some("http://freshrss"), "http://freshrss/"),
+        (Some("http://[::1]"), "http://[::1]/"),
+    ] {
+        assert_eq!(
+            normalize_updated_account_server_url(&account, server_url).unwrap(),
+            Some(expected.to_string()),
+            "{server_url:?} should be accepted as an explicit server endpoint"
         );
     }
 }

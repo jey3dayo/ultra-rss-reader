@@ -7,6 +7,7 @@ pub const PRIVATE_URL_VALIDATION_MESSAGE: &str =
 pub const CREDENTIAL_URL_VALIDATION_MESSAGE: &str =
     "URLs with embedded credentials are not allowed";
 pub const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
+pub const MISSING_HOST_URL_VALIDATION_MESSAGE: &str = "URLs must include a host";
 
 pub fn validate_public_http_url(url: &reqwest::Url) -> DomainResult<()> {
     validate_http_url_without_credentials(url)?;
@@ -36,6 +37,22 @@ pub fn validate_http_url_without_credentials(url: &reqwest::Url) -> DomainResult
     Ok(())
 }
 
+/// Validates a server URL explicitly selected by the user.
+///
+/// Private and local-network hosts are intentionally allowed here because a
+/// self-hosted FreshRSS server is a supported user-selected endpoint. Callers
+/// that process untrusted or content-derived URLs must use
+/// [`validate_public_http_url`] instead.
+pub fn validate_user_provided_server_url(url: &reqwest::Url) -> DomainResult<()> {
+    validate_http_url_without_credentials(url)?;
+    if url.host_str().is_none() {
+        return Err(DomainError::Validation(
+            MISSING_HOST_URL_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+    Ok(())
+}
+
 pub fn has_url_credentials(url: &reqwest::Url) -> bool {
     !url.username().is_empty() || url.password().is_some()
 }
@@ -44,15 +61,17 @@ pub fn is_private_host(host: &str) -> bool {
     let host_lower = host.to_lowercase();
     let host_without_trailing_dot = host_lower.trim_end_matches('.');
 
-    if host_without_trailing_dot == "localhost" {
-        return true;
-    }
-
     let ip_str = host_without_trailing_dot
         .trim_start_matches('[')
         .trim_end_matches(']');
     let ip_str = ip_str.split_once('%').map_or(ip_str, |(addr, _zone)| addr);
-    ip_str.parse::<IpAddr>().is_ok_and(is_private_ip)
+    if let Ok(ip) = ip_str.parse::<IpAddr>() {
+        return is_private_ip(ip);
+    }
+
+    host_without_trailing_dot == "localhost"
+        || host_without_trailing_dot.ends_with(".local")
+        || !host_without_trailing_dot.contains('.')
 }
 
 pub fn is_private_ip(ip: IpAddr) -> bool {
@@ -86,6 +105,8 @@ mod tests {
             "http://[::ffff:7f00:1]/feed.xml",
             "http://0.0.0.0/feed.xml",
             "http://169.254.1.1/feed.xml",
+            "http://nas.local/feed.xml",
+            "http://freshrss/feed.xml",
         ] {
             let url = reqwest::Url::parse(raw_url).unwrap();
             assert!(matches!(
@@ -106,7 +127,23 @@ mod tests {
         assert!(is_private_host("fe80::1%en0"));
         assert!(is_private_host("[fe80::1%en0]"));
         assert!(is_private_host("LOCALHOST."));
+        assert!(is_private_host("NAS.LOCAL."));
+        assert!(is_private_host("freshrss"));
         assert!(!is_private_host("xn--r8jz45g.xn--zckzah"));
+    }
+
+    #[test]
+    fn user_provided_server_url_policy_allows_explicit_private_endpoints() {
+        for raw_url in [
+            "http://localhost:8080/feed.xml",
+            "http://127.0.0.1/feed.xml",
+            "https://nas.local/feed.xml",
+            "https://freshrss:8080/feed.xml",
+            "https://[fd00::1]/feed.xml",
+        ] {
+            let url = reqwest::Url::parse(raw_url).unwrap();
+            assert!(validate_user_provided_server_url(&url).is_ok(), "{raw_url}");
+        }
     }
 
     #[test]

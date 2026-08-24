@@ -1,38 +1,13 @@
-use std::net::IpAddr;
+use crate::domain::error::DomainError;
 
 use crate::commands::dto::AppError;
 use crate::domain::account::Account;
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
-
-pub(crate) fn is_private_freshrss_ipv4(ip: std::net::Ipv4Addr) -> bool {
-    ip.is_private()
-        || ip.is_loopback()
-        || ip.is_link_local()
-        || ip.is_broadcast()
-        || ip.is_documentation()
-        || ip.is_unspecified()
-}
-
-pub(crate) fn is_private_freshrss_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(ip) => is_private_freshrss_ipv4(ip),
-        IpAddr::V6(ip) => {
-            // IPv4-mapped IPv6 (::ffff:a.b.c.d) must be evaluated against the
-            // same V4 policy as a bare IPv4 host, otherwise addresses like
-            // ::ffff:127.0.0.1 or ::ffff:169.254.169.254 bypass the private-host
-            // check that a plain IPv4 literal would fail.
-            if let Some(v4) = ip.to_ipv4_mapped() {
-                return is_private_freshrss_ipv4(v4);
-            }
-
-            ip.is_loopback()
-                || ip.is_unspecified()
-                || ip.is_unique_local()
-                || ip.is_unicast_link_local()
-        }
-    }
-}
+use crate::domain::url_policy::{
+    validate_user_provided_server_url, CREDENTIAL_URL_VALIDATION_MESSAGE,
+    MISSING_HOST_URL_VALIDATION_MESSAGE, UNSUPPORTED_URL_VALIDATION_MESSAGE,
+};
 
 pub(crate) fn normalize_new_freshrss_server_url(server_url: &str) -> Result<String, AppError> {
     let trimmed = server_url.trim();
@@ -40,30 +15,31 @@ pub(crate) fn normalize_new_freshrss_server_url(server_url: &str) -> Result<Stri
         message: "FreshRSS server URL must be a valid URL".into(),
     })?;
 
-    if url.scheme() != "http" && url.scheme() != "https" {
-        return Err(AppError::UserVisible {
-            message: "FreshRSS server URL must use http or https".into(),
-        });
-    }
-    if !url.username().is_empty() || url.password().is_some() {
-        return Err(AppError::UserVisible {
-            message: "FreshRSS server URL must not include userinfo".into(),
-        });
-    }
-
-    let host = url.host_str().ok_or_else(|| AppError::UserVisible {
-        message: "FreshRSS server URL must include a host".into(),
-    })?;
-    let ip_host = host.trim_start_matches('[').trim_end_matches(']');
-    if host.eq_ignore_ascii_case("localhost")
-        || ip_host.parse::<IpAddr>().is_ok_and(is_private_freshrss_ip)
-    {
-        return Err(AppError::UserVisible {
-            message: "FreshRSS server URL must not use a private host".into(),
-        });
-    }
+    validate_user_provided_server_url(&url).map_err(map_freshrss_url_validation_error)?;
 
     Ok(url.to_string())
+}
+
+fn map_freshrss_url_validation_error(error: DomainError) -> AppError {
+    let message = match &error {
+        DomainError::Validation(message) if message == UNSUPPORTED_URL_VALIDATION_MESSAGE => {
+            Some("FreshRSS server URL must use http or https")
+        }
+        DomainError::Validation(message) if message == CREDENTIAL_URL_VALIDATION_MESSAGE => {
+            Some("FreshRSS server URL must not include userinfo")
+        }
+        DomainError::Validation(message) if message == MISSING_HOST_URL_VALIDATION_MESSAGE => {
+            Some("FreshRSS server URL must include a host")
+        }
+        _ => None,
+    };
+
+    message.map_or_else(
+        || AppError::from(error),
+        |message| AppError::UserVisible {
+            message: message.to_string(),
+        },
+    )
 }
 
 pub(crate) fn validate_add_account_args(

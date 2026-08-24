@@ -188,6 +188,20 @@ fn for_freshrss_preserves_loopback_http_base_url() {
 }
 
 #[test]
+fn try_for_freshrss_accepts_ipv6_literal_endpoints() {
+    for server_url in [
+        "http://[::1]:8080",
+        "http://[::ffff:127.0.0.1]:8080",
+        "https://[fd00::1]:8443",
+    ] {
+        assert!(
+            GReaderProvider::try_for_freshrss(server_url).is_ok(),
+            "{server_url} should use the explicit endpoint path"
+        );
+    }
+}
+
+#[test]
 fn for_freshrss_strips_url_credentials_before_building_auth_base() {
     let provider = GReaderProvider::for_freshrss("https://alice:secret@freshrss.example.com/");
 
@@ -226,18 +240,58 @@ fn greader_redirect_policy_rejects_https_downgrade_and_private_targets() {
         [reqwest::Url::parse("https://example.com/feed.xml").expect("fixture URL should parse")];
     let downgrade =
         reqwest::Url::parse("http://example.com/feed.xml").expect("fixture URL should parse");
-    let private =
-        reqwest::Url::parse("https://127.0.0.1/feed.xml").expect("fixture URL should parse");
 
     assert!(matches!(
         GReaderProvider::validate_redirect(&previous, &downgrade),
         Err(DomainError::Validation(message))
             if message == http_defaults::DOWNGRADE_REDIRECT_VALIDATION_MESSAGE
     ));
+    for private_url in [
+        "https://127.0.0.1/feed.xml",
+        "https://nas.local/feed.xml",
+        "https://freshrss/feed.xml",
+    ] {
+        let private = reqwest::Url::parse(private_url).expect("fixture URL should parse");
+        assert!(matches!(
+            GReaderProvider::validate_redirect(&previous, &private),
+            Err(DomainError::Validation(message))
+                if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+}
+
+#[test]
+fn greader_redirect_policy_allows_same_selected_private_host_only() {
+    let previous =
+        [reqwest::Url::parse("http://nas.local/feed.xml").expect("fixture URL should parse")];
+    let same_host_https =
+        reqwest::Url::parse("https://nas.local/feed.xml").expect("fixture URL should parse");
+    let different_private_host =
+        reqwest::Url::parse("https://other.local/feed.xml").expect("fixture URL should parse");
+    let public_to_private =
+        [reqwest::Url::parse("https://example.com/feed.xml").expect("fixture URL should parse")];
+
+    assert!(GReaderProvider::validate_redirect_for_initial_private_host(
+        &previous,
+        &same_host_https,
+        "nas.local",
+    )
+    .is_ok());
     assert!(matches!(
-        GReaderProvider::validate_redirect(&previous, &private),
-        Err(DomainError::Validation(message))
-            if message == PRIVATE_URL_VALIDATION_MESSAGE
+        GReaderProvider::validate_redirect_for_initial_private_host(
+            &previous,
+            &different_private_host,
+            "nas.local",
+        ),
+        Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+    ));
+    assert!(matches!(
+        GReaderProvider::validate_redirect_for_initial_private_host(
+            &public_to_private,
+            &same_host_https,
+            "nas.local",
+        ),
+        Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
     ));
 }
 
@@ -328,6 +382,34 @@ async fn literal_private_base_provider_builds_and_sends() {
 }
 
 #[tokio::test]
+async fn private_hostname_provider_resolves_initial_host_on_demand() {
+    let mut server = mockito::Server::new_async().await;
+    let auth = server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=private-host-token\n")
+        .create_async()
+        .await;
+    let port = reqwest::Url::parse(&server.url())
+        .expect("mock server URL should parse")
+        .port()
+        .expect("mock server URL should include a port");
+
+    let mut provider = GReaderProvider::try_for_freshrss(&format!("http://nas.local:{port}"))
+        .expect("private hostname should not require synchronous DNS at construction");
+    provider
+        .authenticate(&Credentials {
+            password: Some("p".into()),
+            token: Some("u".into()),
+        })
+        .await
+        .expect("selected private hostname should resolve during the request");
+
+    assert_eq!(provider.auth_token.as_deref(), Some("private-host-token"));
+    auth.assert_async().await;
+}
+
+#[tokio::test]
 async fn authenticate_maps_private_redirect_response_to_validation_error() {
     let mut server = mockito::Server::new_async().await;
     let redirect = server
@@ -335,7 +417,7 @@ async fn authenticate_maps_private_redirect_response_to_validation_error() {
         .with_status(302)
         .with_header(
             "location",
-            "http://127.0.0.1:1/api/greader.php/accounts/ClientLogin",
+            "http://127.0.0.2:1/api/greader.php/accounts/ClientLogin",
         )
         .create_async()
         .await;

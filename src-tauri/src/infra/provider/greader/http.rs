@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::{FeedIdentifier, Mutation, ProviderKind};
-use crate::domain::url_policy::validate_http_url_without_credentials;
+use crate::domain::url_policy::{is_private_host, validate_user_provided_server_url};
 use crate::infra::feed_discovery::{
     resolve_validated_public_addrs, validate_discovery_url, validated_public_dns_resolver,
 };
@@ -39,13 +39,20 @@ pub(super) fn greader_json_body_too_large_error() -> DomainError {
 }
 
 pub(super) fn resolve_greader_base_addrs(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
-    validate_http_url_without_credentials(url)?;
+    validate_user_provided_server_url(url)?;
 
     if let Some(address) = explicit_greader_base_addr(url) {
         // A literal/private FreshRSS base is an explicit user-selected endpoint:
         // it cannot be DNS-rebound, so account URL verification (url_policy / #65)
         // owns the UX decision about whether private servers are acceptable.
         return Ok(vec![address]);
+    }
+
+    if url.host_str().is_some_and(is_private_host) {
+        // Private hostnames are explicitly user-selected endpoints. Defer
+        // their OS DNS lookup to the custom async resolver so constructing a
+        // provider never blocks the Tokio executor on local-name resolution.
+        return Ok(Vec::new());
     }
 
     resolve_validated_public_addrs(url)
@@ -55,7 +62,8 @@ pub(super) fn explicit_greader_base_addr(url: &reqwest::Url) -> Option<SocketAdd
     let host = url.host_str()?;
     let port = url.port_or_known_default().unwrap_or(80);
 
-    if let Ok(ip) = host.parse::<IpAddr>() {
+    let ip_host = host.trim_start_matches('[').trim_end_matches(']');
+    if let Ok(ip) = ip_host.parse::<IpAddr>() {
         return Some(SocketAddr::new(ip, port));
     }
 
@@ -100,17 +108,31 @@ impl GReaderProvider {
         let explicit_base_addr = explicit_greader_base_addr(&base_url);
         let resolved_addresses = resolve_greader_base_addrs(&base_url)?;
         let base_host = base_url.host_str();
+        let base_host_is_private = base_host.is_some_and(is_private_host);
+        let initial_private_host = base_host
+            .filter(|_| base_host_is_private)
+            .map(ToOwned::to_owned);
         let resolver = validated_public_dns_resolver();
         if let Some(host) = base_host.filter(|_| explicit_base_addr.is_none()) {
-            resolver.seed(host, resolved_addresses.clone())?;
+            if base_host_is_private {
+                if resolved_addresses.is_empty() {
+                    resolver.seed_user_selected_host(host)?;
+                } else {
+                    resolver.seed_user_selected(host, resolved_addresses.clone())?;
+                }
+            } else {
+                resolver.seed(host, resolved_addresses.clone())?;
+            }
         }
 
         let mut builder = http_client_builder()
             .dns_resolver(Arc::new(resolver))
-            .redirect(http_defaults::provider_redirect_policy(
-                false,
-                validate_discovery_url,
-            ));
+            .redirect(
+                http_defaults::provider_redirect_policy_for_initial_private_host(
+                    initial_private_host,
+                    validate_discovery_url,
+                ),
+            );
         if let Some(host) = base_host {
             if !resolved_addresses.is_empty() {
                 builder = builder.resolve_to_addrs(host, &resolved_addresses);
@@ -133,6 +155,20 @@ impl GReaderProvider {
         next_url: &reqwest::Url,
     ) -> DomainResult<()> {
         http_defaults::validate_provider_redirect(previous_urls, next_url, validate_discovery_url)
+    }
+
+    #[cfg(test)]
+    pub(super) fn validate_redirect_for_initial_private_host(
+        previous_urls: &[reqwest::Url],
+        next_url: &reqwest::Url,
+        initial_private_host: &str,
+    ) -> DomainResult<()> {
+        http_defaults::validate_provider_redirect_attempt_for_initial_private_host(
+            previous_urls,
+            next_url,
+            Some(initial_private_host),
+            validate_discovery_url,
+        )
     }
 
     pub(super) fn http_client(&self) -> DomainResult<&reqwest::Client> {

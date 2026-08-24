@@ -161,6 +161,7 @@ fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<SocketAddr>
 fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<SocketAddr>> {
     match host {
         "localhost" | "localhost." => Ok(vec![SocketAddr::from(([127, 0, 0, 1], port))]),
+        "nas.local" | "freshrss" => Ok(vec![SocketAddr::from(([127, 0, 0, 1], port))]),
         "blog.rust-lang.org" | "example.com" | "example.org" | "xn--r8jz45g.xn--zckzah" => {
             Ok(vec![SocketAddr::from(([93, 184, 216, 34], port))])
         }
