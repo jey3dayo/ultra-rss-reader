@@ -38,6 +38,13 @@ export function useUpdateFeedDisplaySettings() {
         return false;
       }
 
+      // Latest-only: a newer persist already owns the optimistic state. Invalidating here
+      // would refetch on behalf of superseded intent, and returning true would let the older
+      // call report success to its caller and close the dialog over the newer selection.
+      if (requestId !== latestRequestIdRef.current) {
+        return false;
+      }
+
       invalidateFeedQueries(qc, { includeFolders: false });
       return true;
     },
