@@ -32,6 +32,17 @@ const SUPPORT_FILES = [
   ".codex/skills/release/scripts/release_checks.py",
 ] as const;
 
+const baseVersionMatch = readFileSync(resolve("package.json"), "utf8").match(/"version": "([^"]+)"/);
+if (!baseVersionMatch) {
+  throw new Error("repository package.json version is missing");
+}
+const BASE_VERSION = baseVersionMatch[1];
+const stableVersionMatch = BASE_VERSION.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+if (!stableVersionMatch) {
+  throw new Error(`repository package.json version is not stable: ${BASE_VERSION}`);
+}
+const TARGET_VERSION = `${stableVersionMatch[1]}.${stableVersionMatch[2]}.${Number(stableVersionMatch[3]) + 1}`;
+
 const createFixture = (): string => {
   const fixtureRoot = mkdtempSync(join(tmpdir(), "ultra-rss-version-bump-"));
   for (const relativePath of [...VERSION_FILES, ...SUPPORT_FILES]) {
@@ -96,15 +107,17 @@ const withFixture = (callback: (fixtureRoot: string) => void): void => {
 describe("release version bump contract", () => {
   it("updates all five owners, passes parity, and is byte-idempotent", () => {
     withFixture((fixtureRoot) => {
-      runBump(fixtureRoot, "0.59.1");
-      runParity(fixtureRoot, "0.59.1");
+      runBump(fixtureRoot, TARGET_VERSION);
+      runParity(fixtureRoot, TARGET_VERSION);
 
       const afterFirstRun = readVersionFiles(fixtureRoot);
-      expect(afterFirstRun["package.json"]).toContain('"version": "0.59.1"');
-      expect(afterFirstRun["src-tauri/Cargo.lock"]).toContain('name = "ultra-rss-reader"\nversion = "0.59.1"');
-      expect(afterFirstRun["msix/Package.appxmanifest"]).toContain('Version="0.59.1.0"');
+      expect(afterFirstRun["package.json"]).toContain(`"version": "${TARGET_VERSION}"`);
+      expect(afterFirstRun["src-tauri/Cargo.lock"]).toContain(
+        `name = "ultra-rss-reader"\nversion = "${TARGET_VERSION}"`,
+      );
+      expect(afterFirstRun["msix/Package.appxmanifest"]).toContain(`Version="${TARGET_VERSION}.0"`);
 
-      runBump(fixtureRoot, "0.59.1");
+      runBump(fixtureRoot, TARGET_VERSION);
       expect(readVersionFiles(fixtureRoot)).toEqual(afterFirstRun);
     });
   });
@@ -112,7 +125,7 @@ describe("release version bump contract", () => {
   it("previews all five owners without writing", () => {
     withFixture((fixtureRoot) => {
       const before = readVersionFiles(fixtureRoot);
-      const output = runScript(fixtureRoot, "scripts/release/bump-version.ts", ["0.59.1", "--check"]);
+      const output = runScript(fixtureRoot, "scripts/release/bump-version.ts", [TARGET_VERSION, "--check"]);
 
       expect(output).toContain("Would update 5 version files");
       for (const relativePath of VERSION_FILES) {
@@ -137,7 +150,7 @@ describe("release version bump contract", () => {
       writeFileSync(lockPath, `${cargoLock}\n[[package]]\nversion = "${version}"\nname = "ultra-rss-reader"\n`, "utf8");
       const before = readVersionFiles(fixtureRoot);
 
-      expect(() => runBump(fixtureRoot, "0.59.1")).toThrow();
+      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
       expect(readVersionFiles(fixtureRoot)).toEqual(before);
       expect(() => runParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
       expect(() => runPythonParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
@@ -145,11 +158,15 @@ describe("release version bump contract", () => {
   });
 
   it.each([
-    { name: "without whitespace around equals", owner: 'version="0.59.0"', updatedOwner: 'version="0.59.1"' },
+    {
+      name: "without whitespace around equals",
+      owner: `version="${BASE_VERSION}"`,
+      updatedOwner: `version="${TARGET_VERSION}"`,
+    },
     {
       name: "with multiple spaces around equals",
-      owner: 'version  =  "0.59.0"',
-      updatedOwner: 'version  =  "0.59.1"',
+      owner: `version  =  "${BASE_VERSION}"`,
+      updatedOwner: `version  =  "${TARGET_VERSION}"`,
     },
   ])("updates a Cargo.lock owner $name", ({ owner, updatedOwner }) => {
     withFixture((fixtureRoot) => {
@@ -161,9 +178,9 @@ describe("release version bump contract", () => {
       );
       writeFileSync(lockPath, mutatedSource, "utf8");
 
-      runBump(fixtureRoot, "0.59.1");
+      runBump(fixtureRoot, TARGET_VERSION);
       expect(readFileSync(lockPath, "utf8")).toContain(`name = "ultra-rss-reader"\n${updatedOwner}`);
-      expect(() => runParity(fixtureRoot, "0.59.1")).not.toThrow();
+      expect(() => runParity(fixtureRoot, TARGET_VERSION)).not.toThrow();
     });
   });
 
@@ -178,7 +195,7 @@ describe("release version bump contract", () => {
       writeFileSync(manifestPath, manifest.replace("</Package>", `${owner}\n</Package>`), "utf8");
       const before = readVersionFiles(fixtureRoot);
 
-      expect(() => runBump(fixtureRoot, "0.59.1")).toThrow();
+      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
       expect(readVersionFiles(fixtureRoot)).toEqual(before);
     });
   });
@@ -223,8 +240,8 @@ describe("release version bump contract", () => {
       name: "stale",
       mutate: (cargoLock: string) =>
         cargoLock.replace(
-          'name = "ultra-rss-reader"\nversion = "0.59.1"',
-          'name = "ultra-rss-reader"\nversion = "0.59.0"',
+          `name = "ultra-rss-reader"\nversion = "${TARGET_VERSION}"`,
+          `name = "ultra-rss-reader"\nversion = "${BASE_VERSION}"`,
         ),
     },
     {
@@ -234,15 +251,16 @@ describe("release version bump contract", () => {
     },
     {
       name: "duplicate",
-      mutate: (cargoLock: string) => `${cargoLock}\n[[package]]\nname = "ultra-rss-reader"\nversion = "0.59.1"\n`,
+      mutate: (cargoLock: string) =>
+        `${cargoLock}\n[[package]]\nname = "ultra-rss-reader"\nversion = "${TARGET_VERSION}"\n`,
     },
   ])("parity rejects a $name Cargo.lock owner", ({ mutate }) => {
     withFixture((fixtureRoot) => {
-      runBump(fixtureRoot, "0.59.1");
+      runBump(fixtureRoot, TARGET_VERSION);
       const lockPath = join(fixtureRoot, "src-tauri/Cargo.lock");
       writeFileSync(lockPath, mutate(readFileSync(lockPath, "utf8")), "utf8");
 
-      expect(() => runParity(fixtureRoot, "0.59.1")).toThrow();
+      expect(() => runParity(fixtureRoot, TARGET_VERSION)).toThrow();
     });
   });
 
@@ -260,10 +278,10 @@ describe("release version bump contract", () => {
       const manifestPath = join(fixtureRoot, "msix/Package.appxmanifest");
       const brokenManifest = readFileSync(manifestPath, "utf8")
         .replace(/(\s+)Version="\d+\.\d+\.\d+\.0"/, "$1")
-        .concat('\n<OtherMetadata Version="0.59.0.0" />\n');
+        .concat(`\n<OtherMetadata Version="${BASE_VERSION}.0" />\n`);
       writeFileSync(manifestPath, brokenManifest, "utf8");
 
-      expect(() => runBump(fixtureRoot, "0.59.1")).toThrow();
+      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
       expect(readFileSync(manifestPath, "utf8")).toBe(brokenManifest);
     });
   });
@@ -320,7 +338,7 @@ describe("release version bump contract", () => {
       writeFileSync(ownerPath, source.replace(owner, `${owner}\n${owner}`), "utf8");
       const before = readVersionFiles(fixtureRoot);
 
-      expect(() => runBump(fixtureRoot, "0.59.1")).toThrow();
+      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
       expect(readVersionFiles(fixtureRoot)).toEqual(before);
       expect(() => runParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
       expect(() => runPythonParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
@@ -345,7 +363,7 @@ describe("release version bump contract", () => {
         );
         const before = readVersionFiles(fixtureRoot);
 
-        expect(() => runBump(fixtureRoot, "0.59.1")).toThrow();
+        expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
         expect(readVersionFiles(fixtureRoot)).toEqual(before);
         expect(() => runParity(fixtureRoot, version)).toThrow();
         expect(() => runPythonParity(fixtureRoot, version)).toThrow();
@@ -366,7 +384,7 @@ describe("release version bump contract", () => {
       );
       const before = readVersionFiles(fixtureRoot);
 
-      expect(() => runBump(fixtureRoot, "0.59.1")).toThrow();
+      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
       expect(readVersionFiles(fixtureRoot)).toEqual(before);
       expect(() => runParity(fixtureRoot, version)).toThrow();
       expect(() => runPythonParity(fixtureRoot, version)).toThrow();
@@ -384,11 +402,11 @@ describe("release version bump contract", () => {
       writeFileSync(
         cargoPath,
         source.replace(packageVersion, "# package version owner removed") +
-          '\n[package.metadata.release]\nversion = "0.59.0"\n',
+          `\n[package.metadata.release]\nversion = "${BASE_VERSION}"\n`,
         "utf8",
       );
 
-      expect(() => runBump(fixtureRoot, "0.59.1")).toThrow();
+      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
       expect(() => runParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
       expect(() => runPythonParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
     });
