@@ -1,7 +1,8 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   clearArticleViewHistory,
   countAccountStarredArticles,
@@ -76,6 +77,14 @@ export type ArticleSearchQueryOwner = {
   accountId: string;
   query: string;
   key: string;
+};
+
+type ClearArticleViewHistoryContext = {
+  previousRecentArticleQueries: Array<{
+    queryKey: QueryKey;
+    previousData: unknown;
+    optimisticData: unknown;
+  }>;
 };
 
 const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
@@ -294,9 +303,11 @@ export function useRecordArticleView() {
 }
 
 export function useClearArticleViewHistory() {
+  const { t } = useTranslation("reader");
   const qc = useQueryClient();
+  const showToast = useUiStore((state) => state.showToast);
 
-  return useMutation({
+  return useMutation<number, Error, string, ClearArticleViewHistoryContext>({
     mutationFn: (accountId: string) => {
       const normalizedAccountId = normalizeManualArticleQueryId(accountId);
 
@@ -309,14 +320,23 @@ export function useClearArticleViewHistory() {
     onMutate: async (accountId) => {
       const normalizedAccountId = normalizeManualArticleQueryId(accountId);
       if (!normalizedAccountId) {
-        return;
+        return { previousRecentArticleQueries: [] };
       }
 
       const recentArticleQueryKeys = getRecentArticleQueryKeysForAccount(normalizedAccountId);
       await Promise.all(recentArticleQueryKeys.map((queryKey) => qc.cancelQueries({ queryKey })));
-      for (const queryKey of recentArticleQueryKeys) {
-        qc.setQueryData(queryKey, []);
+      const previousRecentArticleQueries = recentArticleQueryKeys.map((queryKey) => ({
+        queryKey,
+        previousData: qc.getQueryData(queryKey),
+        optimisticData: undefined,
+      }));
+      for (const recentArticleQuery of previousRecentArticleQueries) {
+        const optimisticData: unknown[] = [];
+        qc.setQueryData(recentArticleQuery.queryKey, optimisticData);
+        recentArticleQuery.optimisticData = qc.getQueryData(recentArticleQuery.queryKey);
       }
+
+      return { previousRecentArticleQueries };
     },
     onSuccess: (_data, accountId) => {
       const normalizedAccountId = normalizeManualArticleQueryId(accountId);
@@ -327,6 +347,14 @@ export function useClearArticleViewHistory() {
       invalidateQueryKeysLogOnly(qc, getRecentArticleQueryKeysForAccount(normalizedAccountId), {
         actionOwner: "article-mutation",
       });
+    },
+    onError: (error, _accountId, context) => {
+      for (const { queryKey, previousData, optimisticData } of context?.previousRecentArticleQueries ?? []) {
+        if (qc.getQueryData(queryKey) === optimisticData) {
+          qc.setQueryData(queryKey, previousData);
+        }
+      }
+      showToast(t("clear_recent_history_failed", { message: error.message }));
     },
   });
 }

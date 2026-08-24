@@ -64,6 +64,7 @@
   "confirm_unstar_all_other": "Unstar {{count, count}} articles?",
   "clear_recent_history": "Clear history",
   "confirm_clear_recent_history": "Clear recently viewed history? This cannot be undone.",
+  "clear_recent_history_failed": "Failed to clear recently viewed history: {{message}}",
   "mark_all_read_short": "Read",
   "filter_starred": "STARRED",
   "filter_unread": "UNREAD",

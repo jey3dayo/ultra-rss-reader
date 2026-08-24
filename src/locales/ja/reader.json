@@ -64,6 +64,7 @@
   "confirm_unstar_all_other": "{{count, count}}件のスターを外しますか？",
   "clear_recent_history": "履歴を削除",
   "confirm_clear_recent_history": "最近表示した履歴を削除しますか？元に戻せません。",
+  "clear_recent_history_failed": "閲覧履歴の削除に失敗しました: {{message}}",
   "mark_all_read_short": "既読",
   "filter_starred": "スター",
   "filter_unread": "未読",

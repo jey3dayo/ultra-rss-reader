@@ -8,6 +8,7 @@ import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
+import type { AppError } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
   normalizeArticleSearchQuery,
@@ -988,6 +989,10 @@ describe("recent article history mutations", () => {
     setupTauriMocks();
   });
 
+  afterEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
   it("invalidates recent articles only after recording an article view", async () => {
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -1108,6 +1113,131 @@ describe("recent article history mutations", () => {
 
     expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"))).toEqual([]);
     expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-2", "all"))).toEqual(otherAccountArticles);
+  });
+
+  it("restores cached recent articles and shows a toast when clearing history fails", async () => {
+    const showToastMock = vi.fn();
+    useUiStore.setState({ showToast: showToastMock });
+
+    const previousRecentArticles = {
+      all: [sampleArticles[0]],
+      unread: [sampleArticles[1]],
+      starred: [sampleArticles[2]],
+    };
+    queryClient.setQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"), previousRecentArticles.all);
+    queryClient.setQueryData(queryKeys.recentArticles.byAccount("acc-1", "unread"), previousRecentArticles.unread);
+    queryClient.setQueryData(queryKeys.recentArticles.byAccount("acc-1", "starred"), previousRecentArticles.starred);
+
+    const clearHistoryDeferred = createDeferred<Awaited<ReturnType<typeof tauriCommands.clearArticleViewHistory>>>();
+    vi.spyOn(tauriCommands, "clearArticleViewHistory").mockReturnValue(clearHistoryDeferred.promise);
+    const clearHistoryError: AppError = { type: "UserVisible", message: "clear failed" };
+
+    const { result } = renderHook(() => useClearArticleViewHistory(), {
+      wrapper,
+    });
+    let mutationPromise: Promise<unknown> | undefined;
+
+    act(() => {
+      mutationPromise = result.current.mutateAsync("acc-1").catch(() => undefined);
+    });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"))).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "unread"))).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "starred"))).toEqual([]);
+    });
+
+    await act(async () => {
+      clearHistoryDeferred.resolve(Result.fail(clearHistoryError));
+      await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"))).toEqual(
+        previousRecentArticles.all,
+      );
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "unread"))).toEqual(
+        previousRecentArticles.unread,
+      );
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "starred"))).toEqual(
+        previousRecentArticles.starred,
+      );
+      expect(showToastMock).toHaveBeenCalledWith("Failed to clear recently viewed history: clear failed");
+    });
+  });
+
+  it("does not restore an older snapshot over a newer recent article cache update", async () => {
+    const queryKey = queryKeys.recentArticles.byAccount("acc-1", "all");
+    const previousRecentArticles = [sampleArticles[0]];
+    const newerRecentArticles = [sampleArticles[1]];
+    queryClient.setQueryData(queryKey, previousRecentArticles);
+
+    const clearHistoryDeferred = createDeferred<Awaited<ReturnType<typeof tauriCommands.clearArticleViewHistory>>>();
+    vi.spyOn(tauriCommands, "clearArticleViewHistory").mockReturnValue(clearHistoryDeferred.promise);
+
+    const { result } = renderHook(() => useClearArticleViewHistory(), {
+      wrapper,
+    });
+    let mutationPromise: Promise<unknown> | undefined;
+
+    act(() => {
+      mutationPromise = result.current.mutateAsync("acc-1").catch(() => undefined);
+    });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKey)).toEqual([]);
+    });
+    queryClient.setQueryData(queryKey, newerRecentArticles);
+
+    await act(async () => {
+      clearHistoryDeferred.resolve(Result.fail({ type: "UserVisible", message: "clear failed" }));
+      await mutationPromise;
+    });
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(newerRecentArticles);
+  });
+
+  it("does not let an overlapping clear rollback erase a newer failed-clear rollback", async () => {
+    const queryKey = queryKeys.recentArticles.byAccount("acc-1", "all");
+    const previousRecentArticles = [sampleArticles[0]];
+    queryClient.setQueryData(queryKey, previousRecentArticles);
+
+    const firstClearHistoryDeferred =
+      createDeferred<Awaited<ReturnType<typeof tauriCommands.clearArticleViewHistory>>>();
+    const secondClearHistoryDeferred =
+      createDeferred<Awaited<ReturnType<typeof tauriCommands.clearArticleViewHistory>>>();
+    vi.spyOn(tauriCommands, "clearArticleViewHistory")
+      .mockReturnValueOnce(firstClearHistoryDeferred.promise)
+      .mockReturnValueOnce(secondClearHistoryDeferred.promise);
+
+    const { result } = renderHook(() => useClearArticleViewHistory(), {
+      wrapper,
+    });
+    let firstMutationPromise: Promise<unknown> | undefined;
+    let secondMutationPromise: Promise<unknown> | undefined;
+
+    act(() => {
+      firstMutationPromise = result.current.mutateAsync("acc-1").catch(() => undefined);
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKey)).toEqual([]);
+    });
+
+    act(() => {
+      secondMutationPromise = result.current.mutateAsync("acc-1").catch(() => undefined);
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKey)).toEqual([]);
+    });
+
+    await act(async () => {
+      firstClearHistoryDeferred.resolve(Result.fail({ type: "UserVisible", message: "first clear failed" }));
+      await firstMutationPromise;
+      secondClearHistoryDeferred.resolve(Result.fail({ type: "UserVisible", message: "second clear failed" }));
+      await secondMutationPromise;
+    });
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(previousRecentArticles);
   });
 
   it("keeps clear history successful when recent article invalidation rejects", async () => {
