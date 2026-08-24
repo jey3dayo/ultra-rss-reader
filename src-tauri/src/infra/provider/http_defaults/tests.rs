@@ -77,6 +77,31 @@ async fn validated_dns_resolver_reuses_seeded_result_for_initial_host() {
 }
 
 #[tokio::test]
+async fn validated_dns_resolver_reuses_user_selected_private_initial_host() {
+    let resolver = ValidatedPublicDnsResolver::new(|_| {
+        Err(DomainError::Network(
+            "unexpected second DNS resolution".to_string(),
+        ))
+    });
+    resolver
+        .seed_user_selected(
+            "nas.local",
+            vec![SocketAddr::from(([192, 168, 1, 20], 8080))],
+        )
+        .expect("explicit private endpoint should be seedable");
+    let name =
+        reqwest::dns::Name::from_str("nas.local").expect("resolver fixture host should parse");
+
+    let addresses = resolver
+        .resolve(name)
+        .await
+        .expect("seeded private address should be reused")
+        .collect::<Vec<_>>();
+
+    assert_eq!(addresses, vec![SocketAddr::from(([192, 168, 1, 20], 0))]);
+}
+
+#[tokio::test]
 async fn validated_dns_resolver_closes_public_to_private_rebinding_window() {
     let calls = Arc::new(AtomicUsize::new(0));
     let resolver_calls = Arc::clone(&calls);

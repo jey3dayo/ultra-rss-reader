@@ -188,6 +188,34 @@ fn import_matches_existing_freshrss_account_by_normalized_server_url() {
 }
 
 #[test]
+fn import_allows_explicit_private_freshrss_server_url() {
+    let db = test_db();
+    let mut profile = empty_profile();
+    profile.accounts.push(SettingsProfileAccount {
+        source_id: "source".to_string(),
+        kind: ProviderKind::FreshRss,
+        name: "NAS FreshRSS".to_string(),
+        server_url: Some("https://nas.local:8080".to_string()),
+        username: Some("alice".to_string()),
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+    });
+
+    let (result, _) = import_settings_profile_into_db(&db, &profile_json(profile)).unwrap();
+    let accounts = SqliteAccountRepository::new(db.reader())
+        .find_all()
+        .unwrap();
+
+    assert_eq!(result.accounts_created, 1);
+    assert_eq!(
+        accounts[0].server_url.as_deref(),
+        Some("https://nas.local:8080")
+    );
+}
+
+#[test]
 fn import_local_accounts_match_by_name_without_collapsing_different_local_accounts() {
     let db = test_db();
     insert_account(&db, &local_account("local-1", "Personal"));

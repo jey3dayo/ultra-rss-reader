@@ -16,7 +16,7 @@ use crate::domain::preference::preference_row_quarantine_reason;
 use crate::domain::provider::ProviderKind;
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, TagId};
-use crate::domain::url_policy::validate_http_url_without_credentials;
+use crate::domain::url_policy::validate_user_provided_server_url;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_mute_keyword::SqliteMuteKeywordRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;

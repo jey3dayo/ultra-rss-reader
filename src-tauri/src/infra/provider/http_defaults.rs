@@ -6,7 +6,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
-use crate::domain::url_policy::{is_private_ip, PRIVATE_URL_VALIDATION_MESSAGE};
+use crate::domain::url_policy::{
+    is_private_ip, validate_http_url_without_credentials, PRIVATE_URL_VALIDATION_MESSAGE,
+};
 use reqwest::header::{HeaderMap, HeaderValue, CACHE_CONTROL, PRAGMA};
 use serde::de::DeserializeOwned;
 
@@ -67,6 +69,24 @@ impl ValidatedPublicDnsResolver {
     pub(crate) fn seed(&self, host: &str, addresses: Vec<SocketAddr>) -> DomainResult<()> {
         let addresses = normalize_dns_socket_addrs(addresses);
         validate_public_socket_addrs(&addresses)?;
+        let mut resolved_hosts = self
+            .resolved_hosts
+            .lock()
+            .map_err(|_| DomainError::Network("DNS resolver cache is poisoned".to_string()))?;
+        resolved_hosts.insert(normalize_dns_host(host), Ok(addresses));
+        Ok(())
+    }
+
+    /// Seeds an explicitly user-selected private host without applying the
+    /// public-host address filter. Redirect hosts still use the normal public
+    /// resolver validation, so this exception remains scoped to the initial
+    /// FreshRSS endpoint.
+    pub(crate) fn seed_user_selected(
+        &self,
+        host: &str,
+        addresses: Vec<SocketAddr>,
+    ) -> DomainResult<()> {
+        let addresses = normalize_dns_socket_addrs(addresses);
         let mut resolved_hosts = self
             .resolved_hosts
             .lock()
@@ -177,6 +197,23 @@ pub(crate) fn provider_redirect_policy(
     })
 }
 
+pub(crate) fn provider_redirect_policy_for_initial_private_host(
+    initial_private_host: Option<String>,
+    validate_url: fn(&reqwest::Url) -> DomainResult<()>,
+) -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(move |attempt| {
+        match validate_provider_redirect_attempt_for_initial_private_host(
+            attempt.previous(),
+            attempt.url(),
+            initial_private_host.as_deref(),
+            validate_url,
+        ) {
+            Ok(()) => attempt.follow(),
+            Err(error) => attempt.error(ProviderRedirectError::new(error)),
+        }
+    })
+}
+
 pub(crate) fn validate_provider_redirect_attempt(
     previous_urls: &[reqwest::Url],
     next_url: &reqwest::Url,
@@ -192,6 +229,54 @@ pub(crate) fn validate_provider_redirect_attempt(
     }
 
     validate_provider_redirect(previous_urls, next_url, validate_url)
+}
+
+pub(crate) fn validate_provider_redirect_attempt_for_initial_private_host(
+    previous_urls: &[reqwest::Url],
+    next_url: &reqwest::Url,
+    initial_private_host: Option<&str>,
+    validate_url: fn(&reqwest::Url) -> DomainResult<()>,
+) -> DomainResult<()> {
+    if previous_urls.len() > PROVIDER_MAX_REDIRECT_HOPS {
+        return Err(DomainError::Network("too many redirects".to_string()));
+    }
+
+    let same_selected_private_host = initial_private_host.is_some_and(|initial_host| {
+        previous_urls
+            .last()
+            .and_then(reqwest::Url::host_str)
+            .is_some_and(|previous_host| same_redirect_host(previous_host, initial_host))
+            && next_url
+                .host_str()
+                .is_some_and(|next_host| same_redirect_host(next_host, initial_host))
+    });
+
+    if !same_selected_private_host {
+        return validate_provider_redirect(previous_urls, next_url, validate_url);
+    }
+
+    validate_http_url_without_credentials(next_url)?;
+    if previous_urls
+        .last()
+        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
+    {
+        return Err(DomainError::Validation(
+            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn same_redirect_host(left: &str, right: &str) -> bool {
+    normalize_redirect_host(left) == normalize_redirect_host(right)
+}
+
+fn normalize_redirect_host(host: &str) -> String {
+    host.trim_start_matches('[')
+        .trim_end_matches(']')
+        .trim_end_matches('.')
+        .to_ascii_lowercase()
 }
 
 pub(crate) fn validate_provider_redirect(

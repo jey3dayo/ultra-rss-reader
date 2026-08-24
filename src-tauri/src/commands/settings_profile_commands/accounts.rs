@@ -220,7 +220,7 @@ fn normalize_freshrss_profile_server_url(server_url: Option<&str>) -> Result<Str
     let mut url = reqwest::Url::parse(server_url.trim()).map_err(|_| AppError::UserVisible {
         message: "FreshRSS server URL must be a valid http:// or https:// URL".to_string(),
     })?;
-    validate_http_url_without_credentials(&url).map_err(AppError::from)?;
+    validate_user_provided_server_url(&url).map_err(AppError::from)?;
     url.set_fragment(None);
     url.set_query(None);
     let mut normalized = url.to_string();
