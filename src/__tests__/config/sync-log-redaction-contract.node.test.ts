@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -24,7 +24,9 @@ const SYNC_COMMANDS_KNOWN_INDIRECT_LOG_EXPRESSIONS = ["let name = account.name.c
 // user-facing copy that can embed feed titles and account names; logging it
 // verbatim (or `account.name`) would leak the same values the sync_providers
 // redaction removes.
-const SCHEDULER_SOURCE = join(process.cwd(), "src-tauri/src/service/sync_scheduler.rs");
+const SCHEDULER_SERVICE_ROOT = join(process.cwd(), "src-tauri/src/service");
+const SCHEDULER_SOURCE = join(SCHEDULER_SERVICE_ROOT, "sync_scheduler.rs");
+const SCHEDULER_MODULE_ROOT = join(SCHEDULER_SERVICE_ROOT, "sync_scheduler");
 const SCHEDULER_FORBIDDEN_LOG_EXPRESSIONS = ["account.name", "warning.message", ".title"] as const;
 
 // Raw-value expressions that must never appear inside a tracing macro body.
@@ -54,6 +56,22 @@ function collectRustFiles(dir: string): string[] {
     }
     return [];
   });
+}
+
+function readSchedulerModuleSource(): string {
+  const files = [
+    ...(existsSync(SCHEDULER_SOURCE) ? [{ file: SCHEDULER_SOURCE, root: SCHEDULER_SERVICE_ROOT }] : []),
+    ...(existsSync(SCHEDULER_MODULE_ROOT)
+      ? collectRustFiles(SCHEDULER_MODULE_ROOT).map((file) => ({ file, root: SCHEDULER_MODULE_ROOT }))
+      : []),
+  ];
+
+  return files
+    .map(({ file, root }) => {
+      const relPath = relative(root, file).split("\\").join("/");
+      return productionSource(readFileSync(file, "utf8"), relPath);
+    })
+    .join("\n");
 }
 
 // Test modules are expected to build strings containing raw fixture values;
@@ -132,7 +150,7 @@ describe("sync log redaction contract", () => {
   });
 
   it("keeps account names and warning copy out of scheduler tracing macros", () => {
-    const source = productionSource(readFileSync(SCHEDULER_SOURCE, "utf8"), "sync_scheduler.rs");
+    const source = readSchedulerModuleSource();
     const bodies = extractMacroBodies(source);
     expect(bodies.length).toBeGreaterThan(5);
 
@@ -149,9 +167,10 @@ describe("sync log redaction contract", () => {
   });
 
   it("still finds tracing macros to scan (guards against silent scope loss)", () => {
-    // The sync_providers module logs sync phases and reconcile warnings; if
-    // either root ever drops to zero the corresponding scan is vacuous.
+    // These modules log sync phases and reconcile warnings; if a root ever
+    // drops to zero the corresponding scan is vacuous.
     expect(countProductionTracingMacros(SYNC_PROVIDERS_ROOT)).toBeGreaterThan(5);
     expect(countProductionTracingMacros(SYNC_COMMANDS_ROOT)).toBeGreaterThan(5);
+    expect(extractMacroBodies(readSchedulerModuleSource()).length).toBeGreaterThan(5);
   });
 });
