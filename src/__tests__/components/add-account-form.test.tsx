@@ -192,8 +192,9 @@ describe("AddAccountForm", () => {
     expect(container.firstElementChild).toHaveClass("min-h-0", "flex-1", "overflow-y-auto", "p-6");
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
-    expect(screen.getByText("Feedly")).toBeInTheDocument();
-    expect(screen.getByText("Fever")).toBeInTheDocument();
+    for (const unavailableService of ["Feedly", "Fever", "NewsBlur", "Feedbin"]) {
+      expect(screen.queryByText(unavailableService)).not.toBeInTheDocument();
+    }
   });
 
   it("renders the service picker from service and description props", async () => {
@@ -249,19 +250,10 @@ describe("AddAccountForm", () => {
     const translations: Record<string, string> = {
       "account.category_local": jaSettings.account.category_local,
       "account.category_self_hosted": jaSettings.account.category_self_hosted,
-      "account.category_services": jaSettings.account.category_services,
       "account.local_feeds": jaSettings.account.local_feeds,
       "account.local_desc": jaSettings.account.local_desc,
       "account.freshrss": jaSettings.account.freshrss,
       "account.freshrss_desc": jaSettings.account.freshrss_desc,
-      "account.fever": jaSettings.account.fever,
-      "account.fever_desc": jaSettings.account.fever_desc,
-      "account.feedly": jaSettings.account.feedly,
-      "account.newsblur": jaSettings.account.newsblur,
-      "account.feedbin": jaSettings.account.feedbin,
-      "account.feedbin_hold_desc": jaSettings.account.feedbin_hold_desc,
-      "account.feedly_hold_desc": jaSettings.account.feedly_hold_desc,
-      "account.coming_soon": jaSettings.account.coming_soon,
     };
     const categories = buildServicePickerCategories((key) => {
       return translations[key] ?? key;
@@ -273,22 +265,19 @@ describe("AddAccountForm", () => {
         label: jaSettings.account.category_local,
       }),
     );
-    expect(categories.flatMap((category) => category.services)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          kind: "Feedly",
-          name: jaSettings.account.feedly,
-          description: jaSettings.account.feedly_hold_desc,
-          disabledLabel: jaSettings.account.coming_soon,
-        }),
-        expect.objectContaining({
-          kind: "Feedbin",
-          name: jaSettings.account.feedbin,
-          description: jaSettings.account.feedbin_hold_desc,
-          disabledLabel: jaSettings.account.coming_soon,
-        }),
-      ]),
-    );
+    expect(categories.flatMap((category) => category.services)).toEqual([
+      expect.objectContaining({
+        kind: "Local",
+        name: jaSettings.account.local_feeds,
+        description: jaSettings.account.local_desc,
+      }),
+      expect.objectContaining({
+        kind: "FreshRss",
+        name: jaSettings.account.freshrss,
+        description: jaSettings.account.freshrss_desc,
+      }),
+    ]);
+    expect(categories.flatMap((category) => category.services).some((service) => service.disabled)).toBe(false);
   });
 
   it("can start directly on the provider config screen for debugging", async () => {
@@ -367,35 +356,21 @@ describe("AddAccountForm", () => {
   it.each([
     ["en", "Coming soon"],
     ["ja", "準備中"],
-  ] as const)("shows planned services as disabled with the %s coming-soon label", async (language, comingSoonLabel) => {
+  ] as const)("advertises no coming-soon services in the %s picker", async (language, comingSoonLabel) => {
     localeMockState.language = language;
     await i18n.changeLanguage(language);
 
     render(<AddAccountForm />, { wrapper: createI18nWrapper() });
 
-    const feverButton = screen.getByRole("button", {
-      name: /Fever|account\.fever/,
-    });
-    const feedlyButton = screen.getByRole("button", {
-      name: /Feedly|account\.feedly/,
-    });
-    const newsBlurButton = screen.getByRole("button", {
-      name: /NewsBlur|account\.newsblur/,
-    });
-    const feedbinButton = screen.getByRole("button", {
-      name: /Feedbin|account\.feedbin/,
-    });
-    const comingSoonLabels = screen.getAllByText(comingSoonLabel);
-
-    expect(feverButton).toBeDisabled();
-    expect(feedlyButton).toBeDisabled();
-    expect(newsBlurButton).toBeDisabled();
-    expect(feedbinButton).toBeDisabled();
+    // The label copy still exists for a future unavailable provider, but the shipped picker
+    // must not render it: every advertised service has to be one the backend can create.
     expect(enSettings.account.coming_soon).toBe("Coming soon");
     expect(jaSettings.account.coming_soon).toBe("準備中");
-    expect(comingSoonLabels).toHaveLength(4);
-    expect(screen.queryByText("工事中")).not.toBeInTheDocument();
-    expect(screen.queryByText("account.coming_soon")).not.toBeInTheDocument();
+    expect(screen.queryByText(comingSoonLabel)).not.toBeInTheDocument();
+    for (const unavailableService of [/Fever/, /Feedly/, /NewsBlur/, /Feedbin/]) {
+      expect(screen.queryByRole("button", { name: unavailableService })).not.toBeInTheDocument();
+    }
+    expect(screen.getAllByRole("button").every((button) => !button.hasAttribute("disabled"))).toBe(true);
   });
 
   it("keeps service picker free of translation and service catalog dependencies", () => {
@@ -473,16 +448,6 @@ describe("AddAccountForm", () => {
     expect(screen.getByTestId("service-picker-surface").closest("[data-motion-phase='entering']")).toHaveClass(
       "motion-content-swap",
     );
-  });
-
-  it("does not navigate to the config form when a planned service is clicked", async () => {
-    const user = userEvent.setup();
-    render(<AddAccountForm />, { wrapper: createWrapper() });
-
-    await user.click(screen.getByRole("button", { name: /Feedly/ }));
-
-    expect(screen.getByText("Local Feeds")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
   it("keeps FreshRSS submit disabled until required connection fields are valid", async () => {

@@ -25,10 +25,10 @@ describe("add-account-services", () => {
     );
   });
 
-  it("keeps disabled services listed but not discoverable as enabled providers", () => {
-    const disabledKinds = getDisabledServiceDefinitions().map((service) => service.kind);
-
-    expect(disabledKinds).toEqual(["Fever", "Feedly", "NewsBlur", "Feedbin"]);
+  it("ships no unavailable services in the production catalog", () => {
+    // The picker can still render a disabled row (see the ServicePicker fixture test), but the
+    // shipped catalog must not advertise providers the backend cannot create.
+    expect(getDisabledServiceDefinitions()).toEqual([]);
   });
 
   it("keeps enabled service picker options aligned with credential field requirements", () => {
