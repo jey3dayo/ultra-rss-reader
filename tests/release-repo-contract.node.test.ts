@@ -1228,18 +1228,36 @@ describe("release repository contract", () => {
       "Support dumps are not generated before explicit user consent and a redaction preview",
     );
 
+    // The settings profile shipped as v1, so these pins moved from "do not introduce until"
+    // to "what v1 guarantees, and which preconditions are still unmet". The unmet items stay
+    // pinned so a future version cannot quietly drop them, and the private-identifier fact
+    // stays pinned so support copy cannot start treating an exported profile as non-sensitive.
     expect(feedContentPrivacy).toContain(
-      "do not introduce app settings export/import until the export contract is versioned and excludes secrets by design.",
+      "app settings export/import ships as a versioned settings profile that excludes secrets by design. It is a settings transfer artifact, not a backup.",
     );
     expect(feedContentPrivacy).toContain("a top-level schema version and source app identifier");
     expect(feedContentPrivacy).toContain(
       "exclusion of credentials, tokens, cookies, OS keyring references, local filesystem paths, account passwords, and provider session material",
     );
+    expect(feedContentPrivacy).toContain(
+      "account entries still carry `server_url` and `username`. These are not secrets, but they are private identifiers",
+    );
+    expect(feedContentPrivacy).toContain("there is no conflict preview before an import overwrites local settings");
+    expect(feedContentPrivacy).toContain("The unmet items remain governing constraints for any future profile version");
+    expect(feedContentPrivacy).toContain(
+      "must not claim the conflict-preview and encryption preconditions are satisfied.",
+    );
     expect(incidentRunbook).toContain(
-      "App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.",
+      "App settings export/import ships as a versioned settings profile, but it is not a supported recovery promise",
+    );
+    expect(incidentRunbook).toContain(
+      "Do not recommend exporting settings as an uninstall/reinstall backup. Point the user at a database backup plus re-entering credentials in the OS keyring",
     );
     expect(releaseManualVerification).toContain(
-      "App settings export/import is not presented as supported unless the build includes a schema version, source app identifier, strict future-version import behavior, secret exclusion policy, conflict preview, and encryption decision.",
+      "App settings export/import is presented as a settings transfer, not as a backup or recovery path.",
+    );
+    expect(releaseManualVerification).toContain(
+      "the profile has no conflict preview and is plaintext JSON, so copy must not imply either",
     );
   });
 

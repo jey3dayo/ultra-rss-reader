@@ -643,7 +643,8 @@ Confirm and record:
 - Reinstalling the same or a newer version does not silently depend on stale support/debug logs or support dumps.
 - Private data reset guidance covers the local database, `-wal` / `-shm` sidecars, OS keyring credentials, preferences/local app state, release logs, stale support/debug logs, support dumps, and migration backups.
 - Database backup/export copy says backups are private and not app-encrypted, and OPML export copy says subscription titles and URLs may be private even when secrets are excluded.
-- App settings export/import is not presented as supported unless the build includes a schema version, source app identifier, strict future-version import behavior, secret exclusion policy, conflict preview, and encryption decision.
+- App settings export/import is presented as a settings transfer, not as a backup or recovery path. Confirm the build still has a schema version, a source app identifier, strict future-version import behavior, and the secret exclusion policy; the profile has no conflict preview and is plaintext JSON, so copy must not imply either.
+- Settings profile export copy says the file carries account `server_url` and `username` as private identifiers even though passwords, tokens, and OS keyring references are excluded, and says it restores neither the article library nor secrets.
 - Manual log deletion and support dump deletion are documented as separate cleanup steps after an incident is resolved.
 - Support dumps are not generated before explicit user consent and a redaction preview; if the preview cannot be produced, generation fails closed.
 - If any artifact cannot be removed because of OS permissions, file locks, or an unknown path, the user-facing result says the reset is incomplete.

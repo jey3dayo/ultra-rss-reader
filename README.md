@@ -93,10 +93,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full architecture, development mo
 
 Currently planned, roughly in order:
 
-- Linux builds — `.deb` / `.AppImage` from the release workflow ([#59](https://github.com/jey3dayo/ultra-rss-reader/issues/59))
-- Smoother installs — signed and notarized macOS builds, plus Homebrew cask and winget, so first launch stops needing a Gatekeeper workaround
+- Smoother installs — signed and notarized macOS builds, plus Homebrew cask and winget, so first launch stops needing a Gatekeeper workaround. This is gated on obtaining a Developer ID signing identity, not on packaging work.
 - Microsoft Store distribution ([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
-- More sync providers — Feedly is being tracked separately ([#24](https://github.com/jey3dayo/ultra-rss-reader/issues/24))
+
+Linux packaging is available as an opt-in `build_linux` input on the release workflow (off by default), which produces `.deb` / `.AppImage` on demand. There is no published Linux install path yet, so the install table above stays macOS and Windows. Feedly sync is not planned.
 
 ## Contributing
 

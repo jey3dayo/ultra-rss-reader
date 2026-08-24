@@ -121,7 +121,7 @@ Encryption decision:
 
 - Ultra RSS Reader does not encrypt database backups or OPML exports with an app-managed key in this release.
 - Users who need encrypted storage or transfer must use OS disk encryption, an encrypted archive, or another external secure channel.
-- Any future app settings export/import or backup export feature must define its schema version, secret exclusion policy, encryption behavior, restore compatibility, and redaction preview before shipping.
+- The shipped settings profile records those decisions in "App Settings Export/Import Contract" below: its encryption behavior is plaintext, and it has no redaction preview. Any further export/import or backup export feature must define its schema version, secret exclusion policy, encryption behavior, restore compatibility, and redaction preview before shipping.
 
 Native file selection policy:
 
@@ -154,21 +154,31 @@ OPML export privacy comment decision:
 - Privacy guidance belongs in the UI before export and in support docs, not as a generated XML comment inside the OPML file.
 - A future opt-in annotated export mode must be versioned separately and must keep comments free of account names, local paths, support codes, environment details, credentials, tokens, cookies, and raw private URLs.
 
-### App Settings Export/Import Preconditions
+### App Settings Export/Import Contract
 
-Decision: do not introduce app settings export/import until the export contract is versioned and excludes secrets by design.
+Decision: app settings export/import ships as a versioned settings profile that excludes secrets by design. It is a settings transfer artifact, not a backup.
 
-Before app settings export/import is implemented, the contract must define:
+What the shipped v1 profile guarantees (`src-tauri/src/commands/settings_profile_commands/`):
 
-- a top-level schema version and source app identifier
-- strict import behavior for unknown future schema versions
-- a clear list of included preference keys and excluded runtime-only state
+- a top-level schema version and source app identifier: `SETTINGS_PROFILE_VERSION` is `1`, and the source app identifier travels as the content type `application/vnd.ultra-rss-reader.settings-profile+json`
+- strict import behavior for unknown future schema versions and foreign content types: a profile whose version or content type does not match is rejected instead of partially applied
+- a bounded included set: preferences, account skeletons, tags, and mute keywords. Articles, feeds, folders, and read/star/sync history are not exported
 - exclusion of credentials, tokens, cookies, OS keyring references, local filesystem paths, account passwords, and provider session material
-- whether account identifiers, feed URLs, folder names, tags, and mute keywords are included, redacted, or mapped during import
+- exclusion of quarantined accounts
+
+What the shipped v1 profile does not do:
+
+- account entries still carry `server_url` and `username`. These are not secrets, but they are private identifiers: the artifact reveals which servers a user syncs with and under which account name. Treat an exported profile as private user data and store it in a private location.
+- the export is plaintext JSON. It is not app-encrypted, and no reviewed key-management design exists for it.
+- there is no conflict preview before an import overwrites local settings.
+- it is not a backup and cannot restore an article library. Library recovery is still a database backup plus re-entering credentials in the OS keyring.
+
+The unmet items remain governing constraints for any future profile version:
+
 - how conflicts are previewed before overwriting local settings
 - whether the export is plaintext, externally encrypted by the user, or app-encrypted by a reviewed key-management design
 
-Until that contract exists, support and release docs must not promise portable app settings export/import.
+Support and release docs must describe the profile as a settings transfer, must not present it as a backup or recovery path, and must not claim the conflict-preview and encryption preconditions are satisfied.
 
 ### Import/Export Progress Cancellation
 
@@ -179,7 +189,7 @@ Progress cancellation contract:
 - OPML import: confirmation is required after parsing or preview has started and before canceling a running import that may have written feeds or folders.
 - OPML export: confirmation is required after the destination path has been chosen and before canceling a running write that may leave a partial artifact.
 - Database backup/restore: confirmation is required before canceling any running copy or restore step that may leave a partial backup set or restore target.
-- Future app settings export/import: confirmation timing must follow the same before-cancel rule and must state whether no changes, partial changes, or cleanup will result.
+- App settings export/import: confirmation timing must follow the same before-cancel rule and must state whether no changes, partial changes, or cleanup will result.
 - A cancel request made before a file is selected or before an operation starts must close without a confirmation prompt.
 - If cancellation cannot guarantee cleanup of a partial artifact, the UI must say the artifact may remain and direct the user to delete or retry it manually.
 
