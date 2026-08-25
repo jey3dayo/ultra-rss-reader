@@ -266,7 +266,7 @@ export function buildSimilarityCssSummary(output: string): string {
 
   return [
     "CSS similarity scan baseline",
-    `current command: similarity-css --threshold ${defaultThreshold} --min-size ${cssSimilarityMinSize} ${defaultCssPath}`,
+    `current command: mise exec -- similarity-css --threshold ${defaultThreshold} --min-size ${cssSimilarityMinSize} ${defaultCssPath}`,
     `rules: ${summary.totalRules}`,
     `exact duplicates: ${summary.exactDuplicates}`,
     `similar styles: ${summary.similarStyles}`,
@@ -385,12 +385,16 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   process.stdout.write(summary);
   process.stdout.write("\n");
 
-  const cssResult = spawnSync("similarity-css", buildSimilarityCssCommandArgs(defaultThreshold), {
-    encoding: "utf8",
-  });
+  const cssResult = spawnSync(
+    "mise",
+    ["exec", "--", "similarity-css", ...buildSimilarityCssCommandArgs(defaultThreshold)],
+    {
+      encoding: "utf8",
+    },
+  );
 
   if (cssResult.error !== undefined) {
-    process.stderr.write(`Failed to run similarity-css: ${cssResult.error.message}\n`);
+    process.stderr.write(`Failed to run similarity-css through mise: ${cssResult.error.message}\n`);
     process.exit(1);
   }
 

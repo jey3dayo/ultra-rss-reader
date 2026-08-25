@@ -137,7 +137,7 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     });
 
     const summary = buildSimilarityCssSummary(sampleCssReport);
-    expect(summary).toContain("current command: similarity-css --threshold 0.9 --min-size 3 src/");
+    expect(summary).toContain("current command: mise exec -- similarity-css --threshold 0.9 --min-size 3 src/");
     expect(summary).toContain("scan baseline rules: 92");
     expect(summary).toContain("scan baseline similar styles: 5");
   });
@@ -284,6 +284,7 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
 
     expect(miseToml).toContain('["report:similarity"]');
     expect(miseToml).toContain('run = "node ./scripts/similarity-report.ts"');
+    expect(miseToml).toContain('"cargo:similarity-css" = "0.5.0"');
     expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
   });
 });
