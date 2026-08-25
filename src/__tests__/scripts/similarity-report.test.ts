@@ -3,12 +3,18 @@ import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildSimilarityCommandArgs,
+  buildSimilarityCssCommandArgs,
+  buildSimilarityCssSummary,
   buildSimilaritySummary,
+  cssSimilarityMinSize,
+  defaultCssPath,
   defaultPath,
   defaultThreshold,
   evaluateSimilarityReportGate,
   findFalsePositiveMatch,
+  isSimilarityCssSupported,
   isSimilarityReportEntrypoint,
+  parseSimilarityCssSummary,
   parseSimilarityOutput,
   parseSimilarityPairs,
   readThreshold,
@@ -26,6 +32,14 @@ Similarity: 92.07%, Score: 56.6 points (lines 61~62, avg: 61.5)
 Similarity: 90.39%, Score: 33.9 points (lines 14~61, avg: 37.5)
   src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts:65-125 useBrowserWebviewBoundsSync
   src/components/settings/account-detail/query-cache.ts:10-23 patchCachedAccount
+`;
+
+const sampleCssReport = `
+## Summary
+Total rules analyzed: 92
+Exact duplicates: 1
+Similar styles: 5
+BEM components: 9
 `;
 
 describe("similarity-report", () => {
@@ -113,6 +127,20 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("allowlisted false positives absent: 5");
     expect(summary).not.toContain("TODO baseline");
     expect(summary).toContain("absent article-auto-mark-vs-browser-webview-sync");
+  });
+
+  it("parses and summarizes similarity-css output", () => {
+    expect(parseSimilarityCssSummary(sampleCssReport)).toEqual({
+      totalRules: 92,
+      exactDuplicates: 1,
+      similarStyles: 5,
+      bemVariations: 9,
+    });
+
+    const summary = buildSimilarityCssSummary(sampleCssReport);
+    expect(summary).toContain("current command: mise exec -- similarity-css --threshold 0.9 --min-size 3 src/");
+    expect(summary).toContain("scan baseline rules: 92");
+    expect(summary).toContain("scan baseline similar styles: 5");
   });
 
   it("ignores type similarity blocks when parsing function pairs", () => {
@@ -230,6 +258,12 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
       "src-tauri/gen/schemas",
       "src/lib",
     ]);
+    expect(cssSimilarityMinSize).toBe(3);
+    expect(defaultCssPath).toBe("src/");
+    expect(buildSimilarityCssCommandArgs(0.9)).toEqual(["--threshold", "0.9", "--min-size", "3", "src/"]);
+    expect(isSimilarityCssSupported("darwin")).toBe(true);
+    expect(isSimilarityCssSupported("linux")).toBe(true);
+    expect(isSimilarityCssSupported("win32")).toBe(false);
   });
 
   it("keeps generated schemas and target artifacts outside similarity scans", () => {
@@ -254,6 +288,7 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
 
     expect(miseToml).toContain('["report:similarity"]');
     expect(miseToml).toContain('run = "node ./scripts/similarity-report.ts"');
+    expect(miseToml).toContain('"cargo:similarity-css" = { version = "0.5.0", os = ["linux", "macos"] }');
     expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
   });
 });

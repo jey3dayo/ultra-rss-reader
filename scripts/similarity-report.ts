@@ -4,6 +4,9 @@ import { pathToFileURL } from "node:url";
 export const similarityThresholds = [0.95, 0.9, 0.87] as const;
 export const defaultThreshold = 0.9;
 export const defaultPath = "src/";
+export const defaultCssPath = "src/";
+export const cssSimilarityMinSize = 3;
+export const similarityCssSupportedPlatforms = ["darwin", "linux"] as const;
 export const similarityUsage = `Usage: node scripts/similarity-report.ts [${similarityThresholds.join("|")}] [path]`;
 export const similarityScanExcludePatterns = [
   "node_modules",
@@ -19,6 +22,12 @@ const similarityScanBaseline = {
   functionPairs: 35,
   similarTypePairs: 17,
   typeLiteralPairs: 0,
+} as const;
+const similarityCssScanBaseline = {
+  totalRules: 92,
+  exactDuplicates: 1,
+  similarStyles: 5,
+  bemVariations: 9,
 } as const;
 
 type SimilarityThreshold = (typeof similarityThresholds)[number];
@@ -38,6 +47,13 @@ export type SimilarityTypeSummary = {
   typeLiteralPairs: number;
   totalTypePairs: number;
   reportedTypePairDrift: number;
+};
+
+export type SimilarityCssSummary = {
+  totalRules: number;
+  exactDuplicates: number;
+  similarStyles: number;
+  bemVariations: number;
 };
 
 export type SimilarityParseDiagnostics = {
@@ -237,6 +253,32 @@ export function buildSimilaritySummary(output: string): string {
   ].join("\n");
 }
 
+export function parseSimilarityCssSummary(output: string): SimilarityCssSummary {
+  return {
+    totalRules: readOptionalCount(output, /^Total rules analyzed: (\d+)$/m),
+    exactDuplicates: readOptionalCount(output, /^Exact duplicates: (\d+)$/m),
+    similarStyles: readOptionalCount(output, /^Similar styles: (\d+)$/m),
+    bemVariations: readOptionalCount(output, /^BEM components: (\d+)$/m),
+  };
+}
+
+export function buildSimilarityCssSummary(output: string): string {
+  const summary = parseSimilarityCssSummary(output);
+
+  return [
+    "CSS similarity scan baseline",
+    `current command: mise exec -- similarity-css --threshold ${defaultThreshold} --min-size ${cssSimilarityMinSize} ${defaultCssPath}`,
+    `rules: ${summary.totalRules}`,
+    `exact duplicates: ${summary.exactDuplicates}`,
+    `similar styles: ${summary.similarStyles}`,
+    `BEM components: ${summary.bemVariations}`,
+    `scan baseline rules: ${similarityCssScanBaseline.totalRules}`,
+    `scan baseline exact duplicates: ${similarityCssScanBaseline.exactDuplicates}`,
+    `scan baseline similar styles: ${similarityCssScanBaseline.similarStyles}`,
+    `scan baseline BEM components: ${similarityCssScanBaseline.bemVariations}`,
+  ].join("\n");
+}
+
 export function evaluateSimilarityReportGate(output: string): SimilarityReportGateDiagnostic | null {
   const parseDiagnostics = parseSimilarityOutput(output);
   const typeSummary = parseSimilarityTypeSummary(output);
@@ -309,6 +351,14 @@ export function buildSimilarityCommandArgs(threshold: SimilarityThreshold, targe
   ];
 }
 
+export function buildSimilarityCssCommandArgs(threshold: SimilarityThreshold, targetPath = defaultCssPath): string[] {
+  return ["--threshold", String(threshold), "--min-size", String(cssSimilarityMinSize), targetPath];
+}
+
+export function isSimilarityCssSupported(platform: NodeJS.Platform = process.platform): boolean {
+  return similarityCssSupportedPlatforms.some((supportedPlatform) => supportedPlatform === platform);
+}
+
 export function runSimilarityReport(args: readonly string[] = process.argv.slice(2)): void {
   if (args[0] === "--help" || args[0] === "-h") {
     console.log(similarityUsage);
@@ -338,6 +388,37 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   process.stdout.write("\n");
   const summary = buildSimilaritySummary(result.stdout);
   process.stdout.write(summary);
+  process.stdout.write("\n");
+
+  if (!isSimilarityCssSupported()) {
+    process.stdout.write("\nCSS similarity scan skipped: similarity-css is pinned for Linux/macOS only.\n");
+    return;
+  }
+
+  const cssResult = spawnSync(
+    "mise",
+    ["exec", "--", "similarity-css", ...buildSimilarityCssCommandArgs(defaultThreshold)],
+    {
+      encoding: "utf8",
+    },
+  );
+
+  if (cssResult.error !== undefined) {
+    process.stderr.write(`Failed to run similarity-css through mise: ${cssResult.error.message}\n`);
+    process.exit(1);
+  }
+
+  if (cssResult.status !== 0) {
+    process.stderr.write(`similarity-css exited with status ${cssResult.status ?? "unknown"}.\n`);
+    process.stderr.write(cssResult.stderr);
+    process.stderr.write(cssResult.stdout);
+    process.exit(cssResult.status ?? 1);
+  }
+
+  process.stdout.write("\n");
+  process.stdout.write(cssResult.stdout);
+  process.stdout.write("\n");
+  process.stdout.write(buildSimilarityCssSummary(cssResult.stdout));
   process.stdout.write("\n");
 
   const gateDiagnostic = evaluateSimilarityReportGate(result.stdout);
