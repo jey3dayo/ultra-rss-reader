@@ -1,5 +1,6 @@
 import { createInstance } from "i18next";
 import { describe, expect, it } from "vitest";
+import dataSettingsViewMeta from "@/components/settings/data-settings-view.stories";
 import { ACCOUNT_SYNC_ERROR_KINDS } from "@/lib/account/account-sync-status-format";
 import i18n, { supportedLanguages } from "@/lib/i18n";
 import i18nSource from "@/lib/i18n.ts?raw";
@@ -680,6 +681,22 @@ describe("i18next locale contract", () => {
     expect(enDescription).toMatch(/restores neither your library nor your sign-ins/);
     expect(jaDescription).toContain("サーバー URL とユーザー名");
     expect(jaDescription).toMatch(/記事ライブラリ.*ログイン.*復元できません/);
+  });
+
+  it("keeps the data settings story profile copy aligned with the shipped English tokens", () => {
+    const localeDescription = enSettings.data.settings_profile_description;
+    const storyDescription = dataSettingsViewMeta.args?.settingsProfileDescription ?? "";
+    const substantiveDisclosurePhrases = [
+      "server URL and username",
+      "keep the file private",
+      /restores neither your library nor your sign-ins/,
+    ] as const;
+
+    expect(storyDescription).not.toBe("");
+    for (const phrase of substantiveDisclosurePhrases) {
+      expect(localeDescription).toEqual(expect.stringMatching(phrase));
+      expect(storyDescription).toEqual(expect.stringMatching(phrase));
+    }
   });
 
   it("keeps plural count display keys resolving instead of falling back to locale keys", async () => {
