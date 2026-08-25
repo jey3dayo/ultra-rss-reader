@@ -107,11 +107,11 @@ where
     EnvSnapshot::capture(&["DEV_CREDENTIALS", "ULTRA_RSS_DEV_CREDENTIALS"], get_env).first_truthy()
 }
 
-fn uses_dev_file_credentials_for_build<F>(is_packaged: bool, get_env: F) -> bool
+fn uses_dev_file_credentials_for_build<F>(is_dev_build: bool, get_env: F) -> bool
 where
     F: Fn(&str) -> Option<String>,
 {
-    !is_packaged && uses_dev_file_credentials_from_env(get_env)
+    is_dev_build && uses_dev_file_credentials_from_env(get_env)
 }
 
 impl PlatformInfo {
@@ -128,9 +128,7 @@ impl PlatformInfo {
 
         let mut info = platform_info_for_kind(kind);
         info.capabilities.uses_dev_file_credentials =
-            uses_dev_file_credentials_for_build(!cfg!(debug_assertions), |key| {
-                std::env::var(key).ok()
-            });
+            uses_dev_file_credentials_for_build(tauri::is_dev(), |key| std::env::var(key).ok());
         info
     }
 }
@@ -254,14 +252,15 @@ mod tests {
 
     #[test]
     fn packaged_builds_ignore_dev_file_credentials_environment() {
-        assert!(!super::uses_dev_file_credentials_for_build(true, |_| Some(
-            "1".to_string()
-        )));
+        assert!(!super::uses_dev_file_credentials_for_build(
+            false,
+            |_| Some("1".to_string())
+        ));
     }
 
     #[test]
     fn development_builds_honor_dev_file_credentials_environment() {
-        assert!(super::uses_dev_file_credentials_for_build(false, |_| Some(
+        assert!(super::uses_dev_file_credentials_for_build(true, |_| Some(
             "1".to_string()
         )));
     }
