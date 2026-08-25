@@ -673,10 +673,13 @@ describe("i18next locale contract", () => {
     const enDescription = enSettings.data.settings_profile_description;
     const jaDescription = jaSettings.data.settings_profile_description;
 
+    // Both restore limits have to survive independently: a reword that keeps only the library
+    // limit would still be a privacy regression for credentials, so each locale asserts the
+    // library token and the sign-in token, not just the "cannot restore" verb.
     expect(enDescription).toContain("server URL and username");
     expect(enDescription).toMatch(/restores neither your library nor your sign-ins/);
     expect(jaDescription).toContain("サーバー URL とユーザー名");
-    expect(jaDescription).toMatch(/復元できません/);
+    expect(jaDescription).toMatch(/記事ライブラリ.*ログイン.*復元できません/);
   });
 
   it("keeps plural count display keys resolving instead of falling back to locale keys", async () => {

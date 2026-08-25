@@ -375,7 +375,7 @@
     "backup_success": "Database backed up",
     "backup_failed": "Backup failed: {{message}}",
     "settings_profile": "Settings Profile",
-    "settings_profile_description": "Export preferences, account skeletons, tags, and mute keywords. Account entries include each server URL and username, so keep the file private. Passwords and article data are not included, and this file restores neither your library nor your sign-ins.",
+    "settings_profile_description": "Export preferences, account skeletons, tags, and mute keywords. FreshRSS accounts include their server URL and username, so keep the file private. Passwords and article data are not included, and this file restores neither your library nor your sign-ins.",
     "settings_profile_export": "Export",
     "settings_profile_exporting": "Exporting…",
     "settings_profile_import": "Import",

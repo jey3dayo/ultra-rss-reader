@@ -375,7 +375,7 @@
     "backup_success": "データベースをバックアップしました",
     "backup_failed": "バックアップに失敗しました: {{message}}",
     "settings_profile": "設定プロファイル",
-    "settings_profile_description": "設定、アカウント情報、タグ、ミュートキーワードを書き出します。アカウントにはサーバー URL とユーザー名が含まれるため、ファイルは非公開の場所で管理してください。パスワードや記事データは書き出さないので、このファイルから記事ライブラリやログインは復元できません。",
+    "settings_profile_description": "設定、アカウント情報、タグ、ミュートキーワードを書き出します。FreshRSS アカウントにはサーバー URL とユーザー名が含まれるため、ファイルは非公開の場所で管理してください。パスワードや記事データは書き出さないので、このファイルから記事ライブラリやログインは復元できません。",
     "settings_profile_export": "書き出す",
     "settings_profile_exporting": "書き出し中…",
     "settings_profile_import": "読み込む",
