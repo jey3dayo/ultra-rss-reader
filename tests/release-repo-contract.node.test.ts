@@ -1239,9 +1239,13 @@ describe("release repository contract", () => {
     expect(feedContentPrivacy).toContain(
       "exclusion of credentials, tokens, cookies, OS keyring references, local filesystem paths, account passwords, and provider session material",
     );
+    // Scoped to FreshRSS on purpose: Account.server_url and Account.username are Option, and
+    // Local accounts leave both unset, so an unscoped claim overstates what the artifact holds.
+    // Pin the scope word and the Local carve-out, not just the identifier sentence.
     expect(feedContentPrivacy).toContain(
-      "account entries still carry `server_url` and `username`. These are not secrets, but they are private identifiers",
+      "FreshRSS account entries still carry `server_url` and `username`. These are not secrets, but they are private identifiers",
     );
+    expect(feedContentPrivacy).toContain("Local accounts leave both fields unset");
     expect(feedContentPrivacy).toContain("there is no conflict preview before an import overwrites local settings");
     expect(feedContentPrivacy).toContain("The unmet items remain governing constraints for any future profile version");
     expect(feedContentPrivacy).toContain(

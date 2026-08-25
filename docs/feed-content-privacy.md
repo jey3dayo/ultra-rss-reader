@@ -168,7 +168,7 @@ What the shipped v1 profile guarantees (`src-tauri/src/commands/settings_profile
 
 What the shipped v1 profile does not do:
 
-- account entries still carry `server_url` and `username`. These are not secrets, but they are private identifiers: the artifact reveals which servers a user syncs with and under which account name. Treat an exported profile as private user data and store it in a private location.
+- FreshRSS account entries still carry `server_url` and `username`. These are not secrets, but they are private identifiers: the artifact reveals which servers a user syncs with and under which account name. Local accounts leave both fields unset, so the disclosure is scoped to synced accounts. Treat an exported profile as private user data and store it in a private location.
 - the export is plaintext JSON. It is not app-encrypted, and no reviewed key-management design exists for it.
 - there is no conflict preview before an import overwrites local settings.
 - export and import each run as a single command. There is no progress surface, no cancel point, and no partial-artifact cleanup step to confirm.

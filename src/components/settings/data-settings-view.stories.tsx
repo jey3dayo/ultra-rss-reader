@@ -22,7 +22,8 @@ const meta = {
     backingUp: false,
     onBackupDatabase: fn(),
     settingsProfileHeading: "Settings profile",
-    settingsProfileDescription: "Export preferences, account skeletons, tags, and mute keywords.",
+    settingsProfileDescription:
+      "Export preferences, account skeletons, tags, and mute keywords. FreshRSS accounts include their server URL and username, so keep the file private. Passwords and article data are not included, and this file restores neither your library nor your sign-ins.",
     settingsProfileImportLabel: "Import profile",
     settingsProfileExportLabel: "Export profile",
     settingsProfileFileInputLabel: "Choose settings profile JSON",
