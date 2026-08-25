@@ -12,6 +12,7 @@ import {
   defaultThreshold,
   evaluateSimilarityReportGate,
   findFalsePositiveMatch,
+  isSimilarityCssSupported,
   isSimilarityReportEntrypoint,
   parseSimilarityCssSummary,
   parseSimilarityOutput,
@@ -260,6 +261,9 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(cssSimilarityMinSize).toBe(3);
     expect(defaultCssPath).toBe("src/");
     expect(buildSimilarityCssCommandArgs(0.9)).toEqual(["--threshold", "0.9", "--min-size", "3", "src/"]);
+    expect(isSimilarityCssSupported("darwin")).toBe(true);
+    expect(isSimilarityCssSupported("linux")).toBe(true);
+    expect(isSimilarityCssSupported("win32")).toBe(false);
   });
 
   it("keeps generated schemas and target artifacts outside similarity scans", () => {
@@ -284,7 +288,7 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
 
     expect(miseToml).toContain('["report:similarity"]');
     expect(miseToml).toContain('run = "node ./scripts/similarity-report.ts"');
-    expect(miseToml).toContain('"cargo:similarity-css" = "0.5.0"');
+    expect(miseToml).toContain('"cargo:similarity-css" = { version = "0.5.0", os = ["linux", "macos"] }');
     expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
   });
 });

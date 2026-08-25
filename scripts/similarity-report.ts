@@ -6,6 +6,7 @@ export const defaultThreshold = 0.9;
 export const defaultPath = "src/";
 export const defaultCssPath = "src/";
 export const cssSimilarityMinSize = 3;
+export const similarityCssSupportedPlatforms = ["darwin", "linux"] as const;
 export const similarityUsage = `Usage: node scripts/similarity-report.ts [${similarityThresholds.join("|")}] [path]`;
 export const similarityScanExcludePatterns = [
   "node_modules",
@@ -354,6 +355,10 @@ export function buildSimilarityCssCommandArgs(threshold: SimilarityThreshold, ta
   return ["--threshold", String(threshold), "--min-size", String(cssSimilarityMinSize), targetPath];
 }
 
+export function isSimilarityCssSupported(platform: NodeJS.Platform = process.platform): boolean {
+  return similarityCssSupportedPlatforms.some((supportedPlatform) => supportedPlatform === platform);
+}
+
 export function runSimilarityReport(args: readonly string[] = process.argv.slice(2)): void {
   if (args[0] === "--help" || args[0] === "-h") {
     console.log(similarityUsage);
@@ -384,6 +389,11 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   const summary = buildSimilaritySummary(result.stdout);
   process.stdout.write(summary);
   process.stdout.write("\n");
+
+  if (!isSimilarityCssSupported()) {
+    process.stdout.write("\nCSS similarity scan skipped: similarity-css is pinned for Linux/macOS only.\n");
+    return;
+  }
 
   const cssResult = spawnSync(
     "mise",
