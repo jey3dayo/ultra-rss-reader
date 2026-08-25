@@ -106,6 +106,36 @@ function sortLockDbPairs(pairs: ReadonlyArray<readonly [string, string]>): Array
 }
 
 /**
+ * Skips whitespace from `start` and returns the next index to inspect.
+ */
+function skipWhitespace(source: string, start: number): number {
+  let i = start;
+  while (i < source.length && /\s/.test(source[i])) i++;
+  return i;
+}
+
+/**
+ * Skips a generic parameter list by counting `<` and `>`, returning the index
+ * just past the closing `>`. Returns `start` unchanged when no list is present.
+ *
+ * Counting rather than matching is what makes nested generics work. A regex
+ * like `<[^>]*>` stops at the first `>`, so `fn f<T: Into<Vec<u8>>>()` never
+ * reaches its `(` and the whole function drops out of the scan — the guard
+ * then passes because it sees no body, not because the body is clean.
+ */
+function skipGenericParams(source: string, start: number): number {
+  if (source[start] !== "<") return start;
+  let i = start + 1;
+  let angleDepth = 1;
+  while (angleDepth > 0 && i < source.length) {
+    if (source[i] === "<") angleDepth++;
+    else if (source[i] === ">") angleDepth--;
+    i++;
+  }
+  return i;
+}
+
+/**
  * Extracts top-level `fn`/`async fn` definitions from Rust source by
  * brace-matching from the first `{` after the parameter list. Sufficient for
  * commands/sync_providers/** production code, which has no nested `fn`
@@ -113,11 +143,18 @@ function sortLockDbPairs(pairs: ReadonlyArray<readonly [string, string]>): Array
  */
 function extractFunctionBodies(source: string): Array<{ name: string; body: string }> {
   const results: Array<{ name: string; body: string }> = [];
-  const fnHeaderPattern = /(?:^|\n)[^\n]*?\bfn\s+([A-Za-z0-9_]+)\s*(?:<[^>]*>)?\s*\(/g;
+  const fnHeaderPattern = /(?:^|\n)[^\n]*?\bfn\s+([A-Za-z0-9_]+)/g;
   let match: RegExpExecArray | null = fnHeaderPattern.exec(source);
   while (match !== null) {
     const name = match[1];
-    let i = match.index + match[0].length;
+    const afterGenerics = skipGenericParams(source, skipWhitespace(source, match.index + match[0].length));
+    const parenIndex = skipWhitespace(source, afterGenerics);
+    if (source[parenIndex] !== "(") {
+      // Not a definition we can bound: no parameter list follows the name.
+      match = fnHeaderPattern.exec(source);
+      continue;
+    }
+    let i = parenIndex + 1;
     let parenDepth = 1;
     while (parenDepth > 0 && i < source.length) {
       if (source[i] === "(") parenDepth++;
@@ -270,5 +307,53 @@ describe("remote-state apply lock contract", () => {
     }
 
     expect(sortLockDbPairs(found)).toEqual(sortLockDbPairs(SYNC_PROVIDERS_LOCK_DB_ALLOWLIST));
+  });
+
+  it("extracts fn bodies whose generic parameter lists are nested", () => {
+    // The scan used to skip generics with `<[^>]*>`, which stops at the first
+    // `>`. A header like `fn f<T: Into<Vec<u8>>>()` never reached its `(`, so
+    // the function dropped out of extraction entirely — and a function that is
+    // never extracted reads as "no lock_db here" rather than failing. The
+    // coverage assertion in the test above is what turns that into a failure,
+    // and this case pins the extraction itself at each nesting depth.
+    const source = [
+      "fn plain() {",
+      '    lock_db("plain")?;',
+      "}",
+      "",
+      "pub async fn one_level<T: Into<String>>(value: T) -> DomainResult<()> {",
+      '    lock_db("one_level")?;',
+      "    Ok(())",
+      "}",
+      "",
+      "pub fn two_levels<T: Into<Vec<u8>>>(value: T) -> DomainResult<()> {",
+      '    lock_db("two_levels")?;',
+      "    Ok(())",
+      "}",
+      "",
+      "fn four_levels<T: Into<Vec<Option<Box<u8>>>>>(value: T) -> usize {",
+      '    lock_db("four_levels")?;',
+      "    0",
+      "}",
+    ].join("\n");
+
+    const extracted = extractFunctionBodies(source);
+
+    expect(extracted.map((fn) => fn.name)).toEqual(["plain", "one_level", "two_levels", "four_levels"]);
+    for (const name of ["plain", "one_level", "two_levels", "four_levels"]) {
+      expect(extracted.find((fn) => fn.name === name)?.body, `${name} body must be captured`).toContain(
+        `lock_db("${name}")`,
+      );
+    }
+  });
+
+  it("skips a bare `fn` mention that is not followed by a parameter list", () => {
+    // Guards the other direction: dropping the `(` requirement from the header
+    // pattern would let prose or a type-position `fn` start a bogus extraction.
+    const source = ["// see fn documented_elsewhere for details", "fn real(value: u8) -> u8 {", "    value", "}"].join(
+      "\n",
+    );
+
+    expect(extractFunctionBodies(source).map((fn) => fn.name)).toEqual(["real"]);
   });
 });
