@@ -658,7 +658,10 @@ const generateMigrationChangelog = (): MigrationChangelogEntry[] =>
     })
     .sort((a, b) => a.version - b.version);
 
-describe("release repository contract", () => {
+// Same reason as release-version-bump: this file reads a large set of repository files per case,
+// which runs past the suite-wide 15s testTimeout on Windows CI and on a loaded local machine.
+// Widened for this file only; the global budget stays 15s.
+describe("release repository contract", { timeout: 30_000 }, () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
   const tauriReleaseConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.release.conf.json"));

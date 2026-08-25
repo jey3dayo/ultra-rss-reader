@@ -104,7 +104,10 @@ const withFixture = (callback: (fixtureRoot: string) => void): void => {
   }
 };
 
-describe("release version bump contract", () => {
+// Widened past the suite-wide 15s testTimeout for this file only: each case builds a tmp fixture
+// and shells out to child node/python processes, and Windows CI runners hit 15s under load
+// (release-version-bump timed out there on a green rerun). Keep the global budget at 15s.
+describe("release version bump contract", { timeout: 30_000 }, () => {
   it("updates all five owners, passes parity, and is byte-idempotent", () => {
     withFixture((fixtureRoot) => {
       runBump(fixtureRoot, TARGET_VERSION);
