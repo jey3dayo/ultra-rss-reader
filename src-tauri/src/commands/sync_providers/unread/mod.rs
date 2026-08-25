@@ -48,6 +48,7 @@ pub(super) async fn reconcile_greader_unread_counts(
     account: &Account,
     feeds: &[Feed],
     server_unread_counts: &HashMap<String, i32>,
+    extra_protected_read_ids: &[String],
 ) -> Result<usize, AppError> {
     let target_feeds: Vec<&Feed> = feeds
         .iter()
@@ -89,6 +90,7 @@ pub(super) async fn reconcile_greader_unread_counts(
                 account,
                 feed,
                 server_unread_count,
+                extra_protected_read_ids,
                 &mut reconcile_outcome,
             )
             .await
@@ -146,6 +148,7 @@ async fn reconcile_greader_unread_state_for_feed(
     account: &Account,
     feed: &Feed,
     server_unread_count: i32,
+    extra_protected_read_ids: &[String],
     outcome: &mut ReconcileOutcome,
 ) -> Result<(), AppError> {
     let unread_snapshot =
@@ -179,8 +182,11 @@ async fn reconcile_greader_unread_state_for_feed(
         article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids))?;
     }
 
-    let (pending_read_remote_ids, _pending_starred_remote_ids) =
+    let (mut pending_read_remote_ids, _pending_starred_remote_ids) =
         super::pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
+    pending_read_remote_ids.extend(extra_protected_read_ids.iter().cloned());
+    pending_read_remote_ids.sort();
+    pending_read_remote_ids.dedup();
     let pending_remote_ids: HashSet<String> = pending_read_remote_ids.into_iter().collect();
 
     // Pending-mutation protection is re-read inside the same lock as the

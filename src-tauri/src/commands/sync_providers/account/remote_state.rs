@@ -126,8 +126,9 @@ pub(crate) async fn repair_greader_remote_state(
     recalculate_provider_managed_feed_unread_counts(db, &feeds)?;
 
     let server_unread_counts = provider.get_unread_count_map().await?;
-    let _ = reconcile_greader_unread_counts(db, &provider, account, &feeds, &server_unread_counts)
-        .await?;
+    let _ =
+        reconcile_greader_unread_counts(db, &provider, account, &feeds, &server_unread_counts, &[])
+            .await?;
     mark_remote_state_sync_completed(db, &account.id, now)?;
 
     Ok(())

@@ -281,6 +281,7 @@ async fn reconcile_greader_unread_counts_keeps_local_count_when_backfill_returns
         &account,
         std::slice::from_ref(&feed),
         &server_unread_counts,
+        &[],
     )
     .await
     .unwrap();
@@ -460,6 +461,7 @@ async fn reconcile_greader_unread_counts_marks_local_surplus_unread_as_read() {
         &account,
         std::slice::from_ref(&feed),
         &server_unread_counts,
+        &[],
     )
     .await
     .unwrap();
@@ -585,6 +587,7 @@ async fn reconcile_greader_unread_counts_does_not_treat_star_pending_as_read_pen
         &account,
         std::slice::from_ref(&feed),
         &server_unread_counts,
+        &[],
     )
     .await
     .unwrap();

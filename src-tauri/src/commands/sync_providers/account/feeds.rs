@@ -323,9 +323,15 @@ pub(crate) async fn sync_greader_feeds(
 
     let unread_reconcile_started_at = Instant::now();
     let server_unread_counts = provider.get_unread_count_map().await?;
-    let backfilled_feeds =
-        reconcile_greader_unread_counts(db, provider, account, &feeds, &server_unread_counts)
-            .await?;
+    let backfilled_feeds = reconcile_greader_unread_counts(
+        db,
+        provider,
+        account,
+        &feeds,
+        &server_unread_counts,
+        &pushed_read_remote_ids,
+    )
+    .await?;
     info!(
         account_id = %account.id.as_ref(),
         phase = "unread_reconcile",
