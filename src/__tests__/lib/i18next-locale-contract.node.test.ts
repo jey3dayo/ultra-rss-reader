@@ -665,6 +665,23 @@ describe("i18next locale contract", () => {
     expect(jaSettings.account.coming_soon).toBe("準備中");
   });
 
+  it("keeps the settings profile export disclosing private identifiers and its restore limits", () => {
+    // The exported profile is plaintext and carries each account's server URL and username.
+    // Those are not secrets, but they are private identifiers, and the file restores neither
+    // the article library nor credentials. Pin the substantive tokens rather than whole
+    // sentences so the copy can be reworded without churning this contract.
+    const enDescription = enSettings.data.settings_profile_description;
+    const jaDescription = jaSettings.data.settings_profile_description;
+
+    // Both restore limits have to survive independently: a reword that keeps only the library
+    // limit would still be a privacy regression for credentials, so each locale asserts the
+    // library token and the sign-in token, not just the "cannot restore" verb.
+    expect(enDescription).toContain("server URL and username");
+    expect(enDescription).toMatch(/restores neither your library nor your sign-ins/);
+    expect(jaDescription).toContain("サーバー URL とユーザー名");
+    expect(jaDescription).toMatch(/記事ライブラリ.*ログイン.*復元できません/);
+  });
+
   it("keeps plural count display keys resolving instead of falling back to locale keys", async () => {
     const pluralCountCases = [
       {
