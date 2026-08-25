@@ -996,11 +996,18 @@ fn local_like_feeds_under_freshrss_accounts_do_not_queue_pending_mutations() {
 }
 
 #[test]
-fn article_mutation_missing_id_contract_is_command_noop() {
+fn article_mutation_missing_id_contract_is_command_error() {
     let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
 
-    mark_article_read_with_conn(db.writer(), ArticleId("missing-read".to_string()), true)
-        .expect("missing article read mutation should be a no-op");
+    let read_error =
+        mark_article_read_with_conn(db.writer(), ArticleId("missing-read".to_string()), true)
+            .expect_err("missing article read mutation should be returned as a command error");
+    assert!(matches!(
+        read_error,
+        AppError::UserVisible { message }
+            if message == "Validation error: Article not found: missing-read"
+    ));
+
     mark_articles_read_with_conn(
         db.writer(),
         &[
@@ -1009,8 +1016,15 @@ fn article_mutation_missing_id_contract_is_command_noop() {
         ],
     )
     .expect("missing bulk article read mutation should be a no-op");
-    toggle_article_star_with_conn(db.writer(), ArticleId("missing-star".to_string()), true)
-        .expect("missing article star mutation should be a no-op");
+
+    let star_error =
+        toggle_article_star_with_conn(db.writer(), ArticleId("missing-star".to_string()), true)
+            .expect_err("missing article star mutation should be returned as a command error");
+    assert!(matches!(
+        star_error,
+        AppError::UserVisible { message }
+            if message == "Validation error: Article not found: missing-star"
+    ));
 
     let pending_count: i64 = db
         .reader()
