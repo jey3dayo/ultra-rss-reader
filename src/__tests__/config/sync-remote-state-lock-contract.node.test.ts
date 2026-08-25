@@ -116,23 +116,39 @@ function skipWhitespace(source: string, start: number): number {
 
 /**
  * Skips a generic parameter list by counting `<` and `>`, returning the index
- * just past the closing `>`. Returns `start` unchanged when no list is present.
+ * just past the closing `>`. Returns `start` unchanged when no list is present
+ * or when the brackets never balance.
  *
  * Counting rather than matching is what makes nested generics work. A regex
  * like `<[^>]*>` stops at the first `>`, so `fn f<T: Into<Vec<u8>>>()` never
  * reaches its `(` and the whole function drops out of the scan — the guard
  * then passes because it sees no body, not because the body is clean.
+ *
+ * Brackets inside `{ ... }` are skipped: within a const-generic default such as
+ * `fn f<const LESS: bool = { 0 < 1 }>()` the `<` is a comparison operator, not
+ * a nested type delimiter, and counting it would unbalance the list. Falling
+ * back to `start` on an unbalanced list keeps an unparsable header from
+ * scanning to EOF; the caller's `(` check then rejects that header.
  */
 function skipGenericParams(source: string, start: number): number {
   if (source[start] !== "<") return start;
   let i = start + 1;
   let angleDepth = 1;
-  while (angleDepth > 0 && i < source.length) {
-    if (source[i] === "<") angleDepth++;
-    else if (source[i] === ">") angleDepth--;
+  let braceDepth = 0;
+  while (i < source.length) {
+    const char = source[i];
+    if (char === "{") braceDepth++;
+    else if (char === "}") braceDepth--;
+    else if (braceDepth === 0) {
+      if (char === "<") angleDepth++;
+      else if (char === ">") {
+        angleDepth--;
+        if (angleDepth === 0) return i + 1;
+      }
+    }
     i++;
   }
-  return i;
+  return start;
 }
 
 /**
@@ -345,6 +361,45 @@ describe("remote-state apply lock contract", () => {
         `lock_db("${name}")`,
       );
     }
+  });
+
+  it("treats `<` inside a const-generic default as an operator, not a nested list", () => {
+    // Counting every `<` would unbalance the list here and swallow the rest of
+    // the file, dropping this function and everything the scan needed after it.
+    // That direction is loud rather than silent — the coverage assertion turns
+    // it into a failed build — but it would block a valid change, so pin it.
+    const source = [
+      "fn before() {",
+      '    lock_db("before")?;',
+      "}",
+      "",
+      "fn const_expr<const LESS: bool = { 0 < 1 }>() {",
+      '    lock_db("const_expr")?;',
+      "}",
+      "",
+      "fn after() {",
+      '    lock_db("after")?;',
+      "}",
+    ].join("\n");
+
+    expect(extractFunctionBodies(source).map((fn) => fn.name)).toEqual(["before", "const_expr", "after"]);
+  });
+
+  it("stops an unbalanced generic list instead of scanning to the end of the file", () => {
+    // A header the scanner cannot bound must not consume the functions after
+    // it. Falling back to the name position lets the `(` check reject just that
+    // header, so `sane` is still extracted and still checked.
+    const source = [
+      "fn weird<T(value: u8) {",
+      '    lock_db("weird")?;',
+      "}",
+      "",
+      "fn sane() {",
+      '    lock_db("sane")?;',
+      "}",
+    ].join("\n");
+
+    expect(extractFunctionBodies(source).map((fn) => fn.name)).toEqual(["sane"]);
   });
 
   it("skips a bare `fn` mention that is not followed by a parameter list", () => {
