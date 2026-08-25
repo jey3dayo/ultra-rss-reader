@@ -686,12 +686,16 @@ describe("i18next locale contract", () => {
   it("keeps the data settings story profile copy aligned with the shipped English tokens", () => {
     const localeDescription = enSettings.data.settings_profile_description;
     const storyDescription = dataSettingsViewMeta.args?.settingsProfileDescription ?? "";
-    const substantiveTokens = ["server URL", "username", "keep the file private", "library", "sign-ins"] as const;
+    const substantiveDisclosurePhrases = [
+      "server URL and username",
+      "keep the file private",
+      /restores neither your library nor your sign-ins/,
+    ] as const;
 
     expect(storyDescription).not.toBe("");
-    for (const token of substantiveTokens) {
-      expect(localeDescription).toContain(token);
-      expect(storyDescription).toContain(token);
+    for (const phrase of substantiveDisclosurePhrases) {
+      expect(localeDescription).toEqual(expect.stringMatching(phrase));
+      expect(storyDescription).toEqual(expect.stringMatching(phrase));
     }
   });
 
