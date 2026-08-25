@@ -6,23 +6,9 @@ import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 
 type DisabledServiceKind = "Feedbin" | "Feedly" | "Fever" | "NewsBlur";
 
-export type ServiceCategoryLabelKey =
-  | "account.category_local"
-  | "account.category_self_hosted"
-  | "account.category_services";
-export type ServiceNameKey =
-  | "account.local_feeds"
-  | "account.freshrss"
-  | "account.fever"
-  | "account.feedbin"
-  | "account.feedly"
-  | "account.newsblur";
-export type ServiceDescriptionKey =
-  | "account.local_desc"
-  | "account.freshrss_desc"
-  | "account.fever_desc"
-  | "account.feedbin_hold_desc"
-  | "account.feedly_hold_desc";
+export type ServiceCategoryLabelKey = "account.category_local" | "account.category_self_hosted";
+export type ServiceNameKey = "account.local_feeds" | "account.freshrss";
+export type ServiceDescriptionKey = "account.local_desc" | "account.freshrss_desc";
 
 export type ServicePresentation = {
   icon: ComponentType<{ className?: string }>;
