@@ -259,6 +259,15 @@ mod tests {
     }
 
     #[test]
+    fn debug_packaged_builds_ignore_dev_file_credentials_environment() {
+        assert!(cfg!(debug_assertions));
+        assert!(!super::uses_dev_file_credentials_for_build(
+            false,
+            |_| Some("1".to_string())
+        ));
+    }
+
+    #[test]
     fn development_builds_honor_dev_file_credentials_environment() {
         assert!(super::uses_dev_file_credentials_for_build(true, |_| Some(
             "1".to_string()
