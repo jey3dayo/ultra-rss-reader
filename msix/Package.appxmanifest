@@ -14,7 +14,7 @@
   <Identity
     Name="jey3dayo.UltraRSSReader"
     Publisher="CN=DAA3319B-2C32-4E76-B4B9-FE90DB472915"
-    Version="0.59.1.0" />
+    Version="0.60.0.0" />
 
   <Properties>
     <DisplayName>Ultra RSS Reader</DisplayName>
