@@ -87,6 +87,85 @@ type ClearArticleViewHistoryContext = {
   }>;
 };
 
+type ArticleMutationRequestToken = {
+  instanceId: symbol;
+  requestId: number;
+  order: number;
+};
+
+type ArticleMutationRequestRecord<TVariables> = {
+  token: ArticleMutationRequestToken;
+  variables: TVariables;
+  status: "pending" | "success" | "failure";
+  applied: boolean;
+};
+
+type ArticleMutationRequestState<TVariables> = {
+  nextOrder: number;
+  requests: Array<ArticleMutationRequestRecord<TVariables>>;
+};
+
+// The reader and settings surfaces can mount separate mutation hooks for the same article.
+// Share request state by article while keeping request counters local to each hook instance.
+const readRequestStatesByArticleId = new Map<string, ArticleMutationRequestState<SetReadMutationInput>>();
+const starRequestStatesByArticleId = new Map<string, ArticleMutationRequestState<ToggleStarMutationInput>>();
+
+function registerArticleMutationRequest<TVariables>(
+  statesByArticleId: Map<string, ArticleMutationRequestState<TVariables>>,
+  articleId: string,
+  instanceId: symbol,
+  requestId: number,
+  variables: TVariables,
+): ArticleMutationRequestToken {
+  const state = statesByArticleId.get(articleId) ?? { nextOrder: 0, requests: [] };
+  const requestToken = { instanceId, requestId, order: state.nextOrder };
+  state.nextOrder += 1;
+  state.requests.push({ token: requestToken, variables, status: "pending", applied: false });
+  statesByArticleId.set(articleId, state);
+  return requestToken;
+}
+
+function settleArticleMutationRequest<TVariables>(
+  statesByArticleId: Map<string, ArticleMutationRequestState<TVariables>>,
+  articleId: string,
+  requestToken: ArticleMutationRequestToken,
+  status: "success" | "failure",
+): TVariables | null {
+  const state = statesByArticleId.get(articleId);
+  const settledRequest = state?.requests.find((request) => request.token === requestToken);
+  if (!state || !settledRequest || settledRequest.status !== "pending") {
+    return null;
+  }
+
+  settledRequest.status = status;
+
+  let effectiveSuccess: ArticleMutationRequestRecord<TVariables> | null = null;
+  for (const request of state.requests) {
+    if (request.status !== "success") {
+      continue;
+    }
+
+    const hasPendingNewerRequest = state.requests.some(
+      (candidate) => candidate.status === "pending" && candidate.token.order > request.token.order,
+    );
+    if (!hasPendingNewerRequest && (effectiveSuccess === null || request.token.order > effectiveSuccess.token.order)) {
+      effectiveSuccess = request;
+    }
+  }
+
+  let variablesToApply: TVariables | null = null;
+  if (effectiveSuccess !== null && !effectiveSuccess.applied) {
+    effectiveSuccess.applied = true;
+    variablesToApply = effectiveSuccess.variables;
+  }
+
+  if (state.requests.every((request) => request.status !== "pending")) {
+    statesByArticleId.delete(articleId);
+  }
+
+  return variablesToApply;
+}
+
 const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
 const ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN = /\s+/gu;
 
@@ -217,7 +296,7 @@ export function useAccountStarredCount(accountId: string | null) {
 
 export function useSetRead() {
   const qc = useQueryClient();
-  const latestRequestIdsRef = useRef(new Map<string, number>());
+  const instanceIdRef = useRef(Symbol("useSetRead"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -225,13 +304,45 @@ export function useSetRead() {
     onMutate: (variables) => {
       const requestId = nextRequestIdRef.current + 1;
       nextRequestIdRef.current = requestId;
-      latestRequestIdsRef.current.set(variables.id, requestId);
-      return { requestId };
+      const requestToken = registerArticleMutationRequest(
+        readRequestStatesByArticleId,
+        variables.id,
+        instanceIdRef.current,
+        requestId,
+        variables,
+      );
+      return { requestToken };
     },
     onSuccess: (_data, variables, context) => {
-      if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
-        patchCachedArticleReadState(qc, variables.id, variables.read);
+      const variablesToApply = settleArticleMutationRequest(
+        readRequestStatesByArticleId,
+        variables.id,
+        context.requestToken,
+        "success",
+      );
+      if (variablesToApply === null) {
+        return;
       }
+
+      patchCachedArticleReadState(qc, variables.id, variablesToApply.read);
+      invalidateArticleMutationQueries(qc, "article-read");
+    },
+    onError: (_error, variables, context) => {
+      if (!context) {
+        return;
+      }
+
+      const variablesToApply = settleArticleMutationRequest(
+        readRequestStatesByArticleId,
+        variables.id,
+        context.requestToken,
+        "failure",
+      );
+      if (variablesToApply === null) {
+        return;
+      }
+
+      patchCachedArticleReadState(qc, variables.id, variablesToApply.read);
       invalidateArticleMutationQueries(qc, "article-read");
     },
   });
@@ -404,7 +515,7 @@ export function useSearchArticles(accountId: string | null, query: string) {
 
 export function useToggleStar() {
   const qc = useQueryClient();
-  const latestRequestIdsRef = useRef(new Map<string, number>());
+  const instanceIdRef = useRef(Symbol("useToggleStar"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -412,13 +523,45 @@ export function useToggleStar() {
     onMutate: (variables) => {
       const requestId = nextRequestIdRef.current + 1;
       nextRequestIdRef.current = requestId;
-      latestRequestIdsRef.current.set(variables.id, requestId);
-      return { requestId };
+      const requestToken = registerArticleMutationRequest(
+        starRequestStatesByArticleId,
+        variables.id,
+        instanceIdRef.current,
+        requestId,
+        variables,
+      );
+      return { requestToken };
     },
     onSuccess: (_data, variables, context) => {
-      if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
-        patchCachedArticleStarState(qc, variables.id, variables.starred);
+      const variablesToApply = settleArticleMutationRequest(
+        starRequestStatesByArticleId,
+        variables.id,
+        context.requestToken,
+        "success",
+      );
+      if (variablesToApply === null) {
+        return;
       }
+
+      patchCachedArticleStarState(qc, variables.id, variablesToApply.starred);
+      invalidateArticleMutationQueries(qc, "article-star");
+    },
+    onError: (_error, variables, context) => {
+      if (!context) {
+        return;
+      }
+
+      const variablesToApply = settleArticleMutationRequest(
+        starRequestStatesByArticleId,
+        variables.id,
+        context.requestToken,
+        "failure",
+      );
+      if (variablesToApply === null) {
+        return;
+      }
+
+      patchCachedArticleStarState(qc, variables.id, variablesToApply.starred);
       invalidateArticleMutationQueries(qc, "article-star");
     },
   });

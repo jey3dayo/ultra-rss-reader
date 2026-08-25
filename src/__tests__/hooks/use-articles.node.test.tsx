@@ -697,6 +697,78 @@ describe("useToggleStar", () => {
     );
     expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
   });
+
+  it("keeps the latest star intent across hook instances and skips stale invalidation", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const firstToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    const secondToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    vi.spyOn(tauriCommands, "toggleArticleStar")
+      .mockReturnValueOnce(firstToggle.promise)
+      .mockReturnValueOnce(secondToggle.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.starredArticles.byAccount("acc-1"), []);
+
+    const firstHook = renderHook(() => useToggleStar(), { wrapper });
+    const secondHook = renderHook(() => useToggleStar(), { wrapper });
+    const firstPromise = firstHook.result.current.mutateAsync({ id: "art-1", starred: true });
+    const secondPromise = secondHook.result.current.mutateAsync({ id: "art-1", starred: false });
+
+    await act(async () => {
+      secondToggle.resolve(Result.succeed(null));
+      await secondPromise;
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: false })]),
+      );
+    });
+    const invalidationsAfterLatest = invalidateQueriesSpy.mock.calls.length;
+    expect(invalidationsAfterLatest).toBeGreaterThan(0);
+
+    await act(async () => {
+      firstToggle.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(invalidateQueriesSpy.mock.calls.length).toBe(invalidationsAfterLatest);
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: false })]),
+    );
+  });
+
+  it("applies an older star success when the newer same-id mutation fails", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const firstToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    const secondToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    vi.spyOn(tauriCommands, "toggleArticleStar")
+      .mockReturnValueOnce(firstToggle.promise)
+      .mockReturnValueOnce(secondToggle.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.starredArticles.byAccount("acc-1"), []);
+
+    const firstHook = renderHook(() => useToggleStar(), { wrapper });
+    const secondHook = renderHook(() => useToggleStar(), { wrapper });
+    const firstPromise = firstHook.result.current.mutateAsync({ id: "art-1", starred: true });
+    const secondPromise = secondHook.result.current.mutateAsync({ id: "art-1", starred: false }).catch(() => undefined);
+
+    await act(async () => {
+      secondToggle.resolve(Result.fail({ type: "UserVisible", message: "latest star failed" }));
+      await secondPromise;
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      firstToggle.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(invalidateQueriesSpy.mock.calls.length).toBeGreaterThan(0);
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: true })]),
+    );
+  });
 });
 
 describe("useSetRead", () => {
@@ -877,6 +949,76 @@ describe("useSetRead", () => {
 
     expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
+    );
+  });
+
+  it("keeps the latest read intent across hook instances and skips stale invalidation", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const firstRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    const secondRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    vi.spyOn(tauriCommands, "markArticleRead")
+      .mockReturnValueOnce(firstRead.promise)
+      .mockReturnValueOnce(secondRead.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+
+    const firstHook = renderHook(() => useSetRead(), { wrapper });
+    const secondHook = renderHook(() => useSetRead(), { wrapper });
+    const firstPromise = firstHook.result.current.mutateAsync({ id: "art-1", read: true });
+    const secondPromise = secondHook.result.current.mutateAsync({ id: "art-1", read: false });
+
+    await act(async () => {
+      secondRead.resolve(Result.succeed(null));
+      await secondPromise;
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
+      );
+    });
+    const invalidationsAfterLatest = invalidateQueriesSpy.mock.calls.length;
+    expect(invalidationsAfterLatest).toBeGreaterThan(0);
+
+    await act(async () => {
+      firstRead.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(invalidateQueriesSpy.mock.calls.length).toBe(invalidationsAfterLatest);
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
+    );
+  });
+
+  it("applies an older read success when the newer same-id mutation fails", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const firstRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    const secondRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    vi.spyOn(tauriCommands, "markArticleRead")
+      .mockReturnValueOnce(firstRead.promise)
+      .mockReturnValueOnce(secondRead.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+
+    const firstHook = renderHook(() => useSetRead(), { wrapper });
+    const secondHook = renderHook(() => useSetRead(), { wrapper });
+    const firstPromise = firstHook.result.current.mutateAsync({ id: "art-1", read: true });
+    const secondPromise = secondHook.result.current.mutateAsync({ id: "art-1", read: false }).catch(() => undefined);
+
+    await act(async () => {
+      secondRead.resolve(Result.fail({ type: "UserVisible", message: "latest read failed" }));
+      await secondPromise;
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      firstRead.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(invalidateQueriesSpy.mock.calls.length).toBeGreaterThan(0);
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: true })]),
     );
   });
 });
