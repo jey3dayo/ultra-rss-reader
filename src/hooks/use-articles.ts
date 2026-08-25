@@ -87,6 +87,16 @@ type ClearArticleViewHistoryContext = {
   }>;
 };
 
+type ArticleMutationRequestToken = {
+  instanceId: symbol;
+  requestId: number;
+};
+
+// The reader and settings surfaces can mount separate mutation hooks for the same article.
+// Share the latest token by article id while keeping request counters local to each hook instance.
+const latestReadRequestTokensByArticleId = new Map<string, ArticleMutationRequestToken>();
+const latestStarRequestTokensByArticleId = new Map<string, ArticleMutationRequestToken>();
+
 const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
 const ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN = /\s+/gu;
 
@@ -217,7 +227,7 @@ export function useAccountStarredCount(accountId: string | null) {
 
 export function useSetRead() {
   const qc = useQueryClient();
-  const latestRequestIdsRef = useRef(new Map<string, number>());
+  const instanceIdRef = useRef(Symbol("useSetRead"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -225,13 +235,16 @@ export function useSetRead() {
     onMutate: (variables) => {
       const requestId = nextRequestIdRef.current + 1;
       nextRequestIdRef.current = requestId;
-      latestRequestIdsRef.current.set(variables.id, requestId);
-      return { requestId };
+      const requestToken = { instanceId: instanceIdRef.current, requestId };
+      latestReadRequestTokensByArticleId.set(variables.id, requestToken);
+      return { requestToken };
     },
     onSuccess: (_data, variables, context) => {
-      if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
-        patchCachedArticleReadState(qc, variables.id, variables.read);
+      if (latestReadRequestTokensByArticleId.get(variables.id) !== context.requestToken) {
+        return;
       }
+
+      patchCachedArticleReadState(qc, variables.id, variables.read);
       invalidateArticleMutationQueries(qc, "article-read");
     },
   });
@@ -404,7 +417,7 @@ export function useSearchArticles(accountId: string | null, query: string) {
 
 export function useToggleStar() {
   const qc = useQueryClient();
-  const latestRequestIdsRef = useRef(new Map<string, number>());
+  const instanceIdRef = useRef(Symbol("useToggleStar"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -412,13 +425,16 @@ export function useToggleStar() {
     onMutate: (variables) => {
       const requestId = nextRequestIdRef.current + 1;
       nextRequestIdRef.current = requestId;
-      latestRequestIdsRef.current.set(variables.id, requestId);
-      return { requestId };
+      const requestToken = { instanceId: instanceIdRef.current, requestId };
+      latestStarRequestTokensByArticleId.set(variables.id, requestToken);
+      return { requestToken };
     },
     onSuccess: (_data, variables, context) => {
-      if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
-        patchCachedArticleStarState(qc, variables.id, variables.starred);
+      if (latestStarRequestTokensByArticleId.get(variables.id) !== context.requestToken) {
+        return;
       }
+
+      patchCachedArticleStarState(qc, variables.id, variables.starred);
       invalidateArticleMutationQueries(qc, "article-star");
     },
   });

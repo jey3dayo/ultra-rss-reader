@@ -697,6 +697,45 @@ describe("useToggleStar", () => {
     );
     expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
   });
+
+  it("keeps the latest star intent across hook instances and skips stale invalidation", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const firstToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    const secondToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
+    vi.spyOn(tauriCommands, "toggleArticleStar")
+      .mockReturnValueOnce(firstToggle.promise)
+      .mockReturnValueOnce(secondToggle.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.starredArticles.byAccount("acc-1"), []);
+
+    const firstHook = renderHook(() => useToggleStar(), { wrapper });
+    const secondHook = renderHook(() => useToggleStar(), { wrapper });
+    const firstPromise = firstHook.result.current.mutateAsync({ id: "art-1", starred: true });
+    const secondPromise = secondHook.result.current.mutateAsync({ id: "art-1", starred: false });
+
+    await act(async () => {
+      secondToggle.resolve(Result.succeed(null));
+      await secondPromise;
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: false })]),
+      );
+    });
+    const invalidationsAfterLatest = invalidateQueriesSpy.mock.calls.length;
+    expect(invalidationsAfterLatest).toBeGreaterThan(0);
+
+    await act(async () => {
+      firstToggle.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(invalidateQueriesSpy.mock.calls.length).toBe(invalidationsAfterLatest);
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: false })]),
+    );
+  });
 });
 
 describe("useSetRead", () => {
@@ -875,6 +914,44 @@ describe("useSetRead", () => {
       await firstPromise;
     });
 
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
+    );
+  });
+
+  it("keeps the latest read intent across hook instances and skips stale invalidation", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const firstRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    const secondRead = createDeferred<Awaited<ReturnType<typeof tauriCommands.markArticleRead>>>();
+    vi.spyOn(tauriCommands, "markArticleRead")
+      .mockReturnValueOnce(firstRead.promise)
+      .mockReturnValueOnce(secondRead.promise);
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+
+    const firstHook = renderHook(() => useSetRead(), { wrapper });
+    const secondHook = renderHook(() => useSetRead(), { wrapper });
+    const firstPromise = firstHook.result.current.mutateAsync({ id: "art-1", read: true });
+    const secondPromise = secondHook.result.current.mutateAsync({ id: "art-1", read: false });
+
+    await act(async () => {
+      secondRead.resolve(Result.succeed(null));
+      await secondPromise;
+    });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
+      );
+    });
+    const invalidationsAfterLatest = invalidateQueriesSpy.mock.calls.length;
+    expect(invalidationsAfterLatest).toBeGreaterThan(0);
+
+    await act(async () => {
+      firstRead.resolve(Result.succeed(null));
+      await firstPromise;
+    });
+
+    expect(invalidateQueriesSpy.mock.calls.length).toBe(invalidationsAfterLatest);
     expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
     );
