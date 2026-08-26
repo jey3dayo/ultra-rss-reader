@@ -158,6 +158,34 @@ describe("CommandPalette", () => {
     expect(results).not.toHaveClass("motion-content-swap");
   });
 
+  it("executes the first keyboard-selected action after the query changes", async () => {
+    const user = userEvent.setup();
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">sett");
+
+    const openSettings = screen.getByRole("option", { name: /Open settings/ });
+    await user.keyboard("{Home}");
+    expect(openSettings).toHaveAttribute("aria-selected", "true");
+
+    // cmdk resets the active item to the first visible option when its search
+    // value changes; keep Open settings visible and first while narrowing.
+    await user.type(input, "i");
+    await waitFor(() => {
+      expect(openSettings).toHaveAttribute("aria-selected", "true");
+    });
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(executeAction).toHaveBeenCalledWith("open-settings");
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+  });
+
   it("uses the command palette top-layer stack contract", async () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
