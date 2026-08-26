@@ -17,12 +17,15 @@ use crate::infra::db::sqlite_mute_keyword::{
     build_mute_keyword_exclusion_clause, build_mute_keyword_match_clause,
     SqliteMuteKeywordRepository,
 };
+use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{
     ArticleHistoryRepository, ArticleListMode, ArticleMaintenanceRepository,
     ArticleMutationRepository, ArticleRemoteStateRepository, Pagination,
 };
 use crate::repository::mute_keyword::MuteKeywordRepository;
-use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
+use crate::repository::pending_mutation::{
+    PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
+};
 
 /// The single upsert of materialized `Article` rows into `articles`.
 /// Does not open or commit a transaction: callers provide the transaction
@@ -191,9 +194,7 @@ fn mark_muted_unread_as_read_with_scope(
     }
 
     {
-        let mut delete_pending_stmt = conn.prepare(
-            "DELETE FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
-        )?;
+        let pending_repo = SqlitePendingMutationRepository::new(conn);
         let mut insert_pending_stmt = conn.prepare(
             "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
              VALUES (?1, ?2, ?3, ?4)",
@@ -213,8 +214,11 @@ fn mark_muted_unread_as_read_with_scope(
                         remote_entry_id: remote_entry_id.clone(),
                         created_at: now.clone(),
                     };
-                    delete_pending_stmt
-                        .execute(params![mutation.account_id.0, mutation.remote_entry_id])?;
+                    pending_repo.delete_by_account_remote_entry_ids_and_axis(
+                        &mutation.account_id,
+                        std::slice::from_ref(&mutation.remote_entry_id),
+                        PendingMutationAxis::ReadState,
+                    )?;
                     insert_pending_stmt.execute(params![
                         mutation.account_id.0,
                         mutation.mutation_type.as_str(),
