@@ -286,11 +286,28 @@ async fn sync_greader_feed_entries_stops_at_page_cap_after_persisting_entries() 
 
     let db = test_db();
     let (account, feed) = insert_account_and_feed(&db, &server.url());
+    let saved_state = SyncState {
+        account_id: account.id.clone(),
+        scope_key: feed_scope_key(FEED_REMOTE_ID).as_string(),
+        timestamp_usec: Some(1_600_000_000_000_000),
+        continuation: None,
+        etag: None,
+        last_modified: None,
+        last_success_at: Some("2026-08-26T00:00:00Z".to_string()),
+        last_error: None,
+        error_count: 2,
+        next_retry_at: Some("2026-08-26T00:10:00Z".to_string()),
+    };
+    {
+        let db_guard = db.lock().unwrap();
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+        sync_state_repo.save(&saved_state).unwrap();
+    }
     let provider = authenticated_provider(&server.url()).await;
 
     sync_greader_feed_entries(&db, &provider, &account, &feed)
         .await
-        .expect("reaching the page cap should terminate as a successful partial sync");
+        .expect("reaching the page cap should return a partial outcome with failure state");
 
     stream_mock.assert_async().await;
     assert_eq!(
@@ -316,13 +333,15 @@ async fn sync_greader_feed_entries_stops_at_page_cap_after_persisting_entries() 
         .unwrap();
 
     assert_eq!(articles.len(), G_READER_MAX_PAGES);
-    assert_eq!(
-        state.timestamp_usec,
-        Some(1_700_000_000_000_000 + (G_READER_MAX_PAGES as i64 - 1) * 1_000_000)
-    );
+    assert_eq!(state.timestamp_usec, saved_state.timestamp_usec);
     assert_eq!(state.continuation, None);
-    assert_eq!(state.last_error, None);
-    assert!(state.last_success_at.is_some());
+    assert!(state
+        .last_error
+        .as_deref()
+        .is_some_and(|message| message == "GReader entry pagination incomplete (reason=page_cap)"));
+    assert_eq!(state.error_count, saved_state.error_count + 1);
+    assert_eq!(state.last_success_at, saved_state.last_success_at);
+    assert_eq!(state.next_retry_at, None);
 }
 
 #[tokio::test]

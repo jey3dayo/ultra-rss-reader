@@ -791,7 +791,7 @@ async fn sync_greader_account_entries_stops_on_continuation_cycle_after_persisti
 
     sync_greader_account_entries(&db, &provider, &account, &feeds_by_remote_id)
         .await
-        .expect("a continuation cycle should terminate as a successful partial sync");
+        .expect("a continuation cycle should return a partial outcome with failure state");
 
     stream_mock.assert_async().await;
 
@@ -807,10 +807,13 @@ async fn sync_greader_account_entries_stops_on_continuation_cycle_after_persisti
         .unwrap();
 
     assert_eq!(articles.len(), 3);
-    assert_eq!(state.timestamp_usec, Some(1_700_000_003_000_000));
+    assert_eq!(state.timestamp_usec, None);
     assert_eq!(state.continuation, None);
-    assert_eq!(state.last_error, None);
-    assert!(state.last_success_at.is_some());
+    assert!(state.last_error.as_deref().is_some_and(
+        |message| message == "GReader entry pagination incomplete (reason=continuation_cycle)"
+    ));
+    assert_eq!(state.error_count, 1);
+    assert_eq!(state.last_success_at, None);
 }
 
 #[tokio::test]

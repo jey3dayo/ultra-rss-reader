@@ -44,6 +44,7 @@ pub(crate) async fn sync_greader_account_entries(
     let mut delta_pages = 0usize;
     let mut seen_feed_ids = std::collections::HashSet::new();
     let mut seen_continuations = HashSet::new();
+    let mut incomplete_reason = None;
 
     loop {
         let result = match provider.pull_entries(PullScope::All, cursor.clone()).await {
@@ -113,6 +114,7 @@ pub(crate) async fn sync_greader_account_entries(
                 reason = "page_cap",
                 "GReader account entry sync stopped at the page cap"
             );
+            incomplete_reason = Some("page_cap");
             break;
         }
 
@@ -130,24 +132,39 @@ pub(crate) async fn sync_greader_account_entries(
                 reason = "continuation_cycle",
                 "GReader account entry sync stopped at a continuation cycle"
             );
+            incomplete_reason = Some("continuation_cycle");
             break;
         }
         cursor = result.next_cursor.clone();
     }
 
-    let next_state = SyncState {
-        account_id: account.id.clone(),
-        scope_key: account_scope_key.as_string(),
-        timestamp_usec: latest_timestamp_usec,
-        continuation: None,
-        etag: None,
-        last_modified: None,
-        last_success_at: Some(chrono::Utc::now().to_rfc3339()),
-        last_error: None,
-        error_count: 0,
-        next_retry_at: None,
-    };
-    save_sync_state(db, &next_state)?;
+    if let Some(reason) = incomplete_reason {
+        let error = AppError::UserVisible {
+            message: format!("GReader entry pagination incomplete (reason={reason})"),
+        };
+        save_greader_sync_failure_state(
+            db,
+            &account.id,
+            &account_scope_key,
+            saved_state.as_ref(),
+            None,
+            &error,
+        )?;
+    } else {
+        let next_state = SyncState {
+            account_id: account.id.clone(),
+            scope_key: account_scope_key.as_string(),
+            timestamp_usec: latest_timestamp_usec,
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: Some(chrono::Utc::now().to_rfc3339()),
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        };
+        save_sync_state(db, &next_state)?;
+    }
 
     Ok(GReaderAccountEntriesSyncOutcome {
         skipped_entries,
@@ -175,6 +192,7 @@ pub(crate) async fn sync_greader_feed_entries(
     let mut skipped_entries = 0usize;
     let mut delta_pages = 0usize;
     let mut seen_continuations = HashSet::new();
+    let mut incomplete_reason = None;
 
     loop {
         let scope = PullScope::Feed(FeedIdentifier::Remote {
@@ -223,6 +241,7 @@ pub(crate) async fn sync_greader_feed_entries(
                 reason = "page_cap",
                 "GReader feed entry sync stopped at the page cap"
             );
+            incomplete_reason = Some("page_cap");
             break;
         }
 
@@ -240,27 +259,42 @@ pub(crate) async fn sync_greader_feed_entries(
                 reason = "continuation_cycle",
                 "GReader feed entry sync stopped at a continuation cycle"
             );
+            incomplete_reason = Some("continuation_cycle");
             break;
         }
 
         cursor = result.next_cursor.clone();
     }
 
-    let next_state = SyncState {
-        account_id: account.id.clone(),
-        scope_key: scope_key.as_string(),
-        timestamp_usec: latest_timestamp_usec,
-        continuation: None,
-        // GReader delta sync is driven by continuation + `ot`; HTTP validators
-        // are reserved for non-GReader providers and should not linger here.
-        etag: None,
-        last_modified: None,
-        last_success_at: Some(chrono::Utc::now().to_rfc3339()),
-        last_error: None,
-        error_count: 0,
-        next_retry_at: None,
-    };
-    save_feed_sync_state(db, &next_state)?;
+    if let Some(reason) = incomplete_reason {
+        let error = AppError::UserVisible {
+            message: format!("GReader entry pagination incomplete (reason={reason})"),
+        };
+        save_greader_sync_failure_state(
+            db,
+            &account.id,
+            &scope_key,
+            saved_state.as_ref(),
+            None,
+            &error,
+        )?;
+    } else {
+        let next_state = SyncState {
+            account_id: account.id.clone(),
+            scope_key: scope_key.as_string(),
+            timestamp_usec: latest_timestamp_usec,
+            continuation: None,
+            // GReader delta sync is driven by continuation + `ot`; HTTP validators
+            // are reserved for non-GReader providers and should not linger here.
+            etag: None,
+            last_modified: None,
+            last_success_at: Some(chrono::Utc::now().to_rfc3339()),
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        };
+        save_feed_sync_state(db, &next_state)?;
+    }
 
     Ok(GReaderFeedSyncOutcome { skipped_entries })
 }
