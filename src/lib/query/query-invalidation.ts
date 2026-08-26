@@ -63,6 +63,7 @@ type FeedMutationInvalidationOwnerMatrixEntry = {
 type ArticleMutationInvalidationKind =
   | "article-read"
   | "article-star"
+  | "article-view-recorded"
   | "mute-keyword"
   | "tag-article-assignment"
   | "tag-metadata";
@@ -70,6 +71,22 @@ type ArticleMutationInvalidationKind =
 type ArticleMutationInvalidationMatrixEntry = {
   actionOwner: Extract<QueryInvalidationActionOwner, "article-mutation" | "mute-keyword-mutation" | "tag-mutation">;
   articleOptions: InvalidateArticleQueriesOptions;
+};
+
+type QueryInvalidationIntent =
+  | "account-deleted-articles"
+  | "account-setup-articles"
+  | "account-sync-now-articles"
+  | "feed-edit-changed"
+  | "feed-edit-no-change"
+  | "feed-root-updated"
+  | "local-account-sync-imported";
+
+type QueryInvalidationIntentMatrixEntry = {
+  actionOwner: QueryInvalidationActionOwner;
+  feedOptions?: InvalidateFeedQueriesOptions;
+  articleOptions?: InvalidateArticleQueriesOptions;
+  additionalQueryKeys?: ReadonlyArray<QueryKey>;
 };
 
 let queryInvalidationFailureReporter: (failures: readonly QueryInvalidationFailure[]) => void =
@@ -365,6 +382,23 @@ const ARTICLE_MUTATION_INVALIDATION_MATRIX = {
       includeFeeds: false,
     },
   },
+  "article-view-recorded": {
+    actionOwner: "article-mutation",
+    articleOptions: {
+      includeArticles: false,
+      includeAccountArticles: false,
+      includeStarredArticles: false,
+      includeAccountUnreadCount: false,
+      includeAccountStarredCount: false,
+      includeFeeds: false,
+      includeArticlesByTag: false,
+      includeTagArticleCounts: false,
+      includeSearch: false,
+      includeFeedIntegrityReport: false,
+      includeRecentArticles: true,
+      includeFeedArticleSummaries: true,
+    },
+  },
   "mute-keyword": {
     actionOwner: "mute-keyword-mutation",
     articleOptions: {
@@ -396,6 +430,48 @@ const ARTICLE_MUTATION_INVALIDATION_MATRIX = {
   },
 } as const satisfies Record<ArticleMutationInvalidationKind, ArticleMutationInvalidationMatrixEntry>;
 
+const QUERY_INVALIDATION_INTENT_MATRIX: Record<QueryInvalidationIntent, QueryInvalidationIntentMatrixEntry> = {
+  "account-deleted-articles": {
+    actionOwner: "unknown",
+    articleOptions: {
+      includeTagArticleCounts: true,
+    },
+  },
+  "account-setup-articles": {
+    actionOwner: "unknown",
+    articleOptions: {
+      includeFeedIntegrityReport: false,
+    },
+  },
+  "account-sync-now-articles": {
+    actionOwner: "unknown",
+    additionalQueryKeys: [queryKeys.articles.root],
+  },
+  "feed-edit-changed": {
+    actionOwner: "unknown",
+    feedOptions: {},
+  },
+  "feed-edit-no-change": {
+    actionOwner: "unknown",
+    feedOptions: {
+      includeFeeds: false,
+    },
+  },
+  "feed-root-updated": {
+    actionOwner: "unknown",
+    feedOptions: {
+      includeFolders: false,
+    },
+  },
+  "local-account-sync-imported": {
+    actionOwner: "unknown",
+    articleOptions: {
+      includeFeeds: false,
+      includeTagArticleCounts: true,
+    },
+  },
+};
+
 function resolveInvalidationQueryKeys<TOption extends string>(
   targets: ReadonlyArray<InvalidationTarget<TOption>>,
   options: Partial<Record<TOption, boolean>>,
@@ -425,6 +501,16 @@ export function resolveArticleInvalidationQueryKeys(
 
 export function resolveArticleMutationInvalidationQueryKeys(kind: ArticleMutationInvalidationKind) {
   return resolveArticleInvalidationQueryKeys(ARTICLE_MUTATION_INVALIDATION_MATRIX[kind].articleOptions);
+}
+
+function resolveQueryInvalidationIntentQueryKeys(intent: QueryInvalidationIntent): ReadonlyArray<QueryKey> {
+  const matrixEntry = QUERY_INVALIDATION_INTENT_MATRIX[intent];
+
+  return [
+    ...(matrixEntry.feedOptions ? resolveFeedInvalidationQueryKeys(matrixEntry.feedOptions) : []),
+    ...(matrixEntry.articleOptions ? resolveArticleInvalidationQueryKeys(matrixEntry.articleOptions) : []),
+    ...(matrixEntry.additionalQueryKeys ?? []),
+  ];
 }
 
 function resolveFeedMutationInvalidationQueryKeys(
@@ -500,6 +586,41 @@ export function invalidateArticleQueries(
   options: InvalidateArticleQueriesOptions & InvalidateQueryKeysLogOnlyOptions = {},
 ) {
   invalidateQueryKeysLogOnly(queryClient, resolveArticleInvalidationQueryKeys(options), options);
+}
+
+function invalidateQueryIntent(queryClient: QueryClient, intent: QueryInvalidationIntent) {
+  const matrixEntry = QUERY_INVALIDATION_INTENT_MATRIX[intent];
+
+  invalidateQueryKeysLogOnly(queryClient, resolveQueryInvalidationIntentQueryKeys(intent), {
+    actionOwner: matrixEntry.actionOwner,
+  });
+}
+
+export function invalidateFeedRootQueries(queryClient: QueryClient) {
+  invalidateQueryIntent(queryClient, "feed-root-updated");
+}
+
+export function invalidateFeedEditQueries(queryClient: QueryClient, feedsChanged: boolean) {
+  invalidateQueryIntent(queryClient, feedsChanged ? "feed-edit-changed" : "feed-edit-no-change");
+}
+
+export function invalidateAccountSetupQueries(queryClient: QueryClient) {
+  invalidateFeedRootQueries(queryClient);
+  invalidateQueryIntent(queryClient, "account-setup-articles");
+}
+
+export function invalidateAccountSyncNowQueries(queryClient: QueryClient) {
+  invalidateFeedRootQueries(queryClient);
+  invalidateQueryIntent(queryClient, "account-sync-now-articles");
+}
+
+export function invalidateLocalAccountSyncImportArticleQueries(queryClient: QueryClient) {
+  invalidateQueryIntent(queryClient, "local-account-sync-imported");
+}
+
+export function invalidateAccountDeletionQueries(queryClient: QueryClient) {
+  invalidateFeedRootQueries(queryClient);
+  invalidateQueryIntent(queryClient, "account-deleted-articles");
 }
 
 function invalidateFeedMutationQueries(

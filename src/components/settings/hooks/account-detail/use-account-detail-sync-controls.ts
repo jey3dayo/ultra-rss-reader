@@ -6,8 +6,8 @@ import { resetOversizedDevCredentialsStore, syncAccount, updateAccountSync } fro
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import {
-  invalidateArticleQueries,
-  invalidateFeedQueries,
+  invalidateAccountSetupQueries,
+  invalidateAccountSyncNowQueries,
   invalidateQueryKeysLogOnly,
   queryKeys,
 } from "@/lib/query/query-invalidation";
@@ -126,8 +126,7 @@ export async function runAccountSetupSync({
     return;
   }
 
-  invalidateFeedQueries(queryClient, { includeFolders: false });
-  invalidateArticleQueries(queryClient, { includeFeedIntegrityReport: false });
+  invalidateAccountSetupQueries(queryClient);
 
   const feedback = summarizeSyncResult(Result.unwrap(syncResult));
   if (feedback.kind !== "success") {
@@ -235,8 +234,7 @@ export function useAccountDetailSyncControls({
       Result.pipe(
         result,
         Result.inspect((syncResult) => {
-          invalidateFeedQueries(queryClient, { includeFolders: false });
-          invalidateQueryKeysLogOnly(queryClient, [queryKeys.articles.root]);
+          invalidateAccountSyncNowQueries(queryClient);
           onSyncStatusChanged?.();
           useUiStore.getState().showToast(
             resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {

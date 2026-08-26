@@ -2,9 +2,9 @@ import { Result } from "@praha/byethrow";
 import { renameFeed } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
+import { invalidateFeedEditQueries } from "@/lib/query/query-invalidation";
 import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./feed-edit-dialog.types";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
-import { invalidateFeedQueries } from "./feed-query-cache";
 
 export type {
   FeedEditDisplayPreset,
@@ -78,12 +78,12 @@ export async function submitFeedEdits({
     displaySettingsSucceeded = await updateDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
   }
 
-  invalidateFeedQueries(queryClient, {
-    includeFeeds:
-      (didMoveFolder && folderMoveSucceeded) ||
+  invalidateFeedEditQueries(
+    queryClient,
+    (didMoveFolder && folderMoveSucceeded) ||
       (didRename && renameSucceeded) ||
       (didUpdateDisplayMode && displaySettingsSucceeded),
-  });
+  );
 
   return renameSucceeded && folderMoveSucceeded && displaySettingsSucceeded;
 }
