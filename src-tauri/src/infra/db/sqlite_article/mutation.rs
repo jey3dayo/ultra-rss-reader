@@ -17,12 +17,15 @@ use crate::infra::db::sqlite_mute_keyword::{
     build_mute_keyword_exclusion_clause, build_mute_keyword_match_clause,
     SqliteMuteKeywordRepository,
 };
+use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{
     ArticleHistoryRepository, ArticleListMode, ArticleMaintenanceRepository,
     ArticleMutationRepository, ArticleRemoteStateRepository, Pagination,
 };
 use crate::repository::mute_keyword::MuteKeywordRepository;
-use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
+use crate::repository::pending_mutation::{
+    PendingMutationAxis, PendingMutationRepository, PendingMutationType,
+};
 
 /// The single upsert of materialized `Article` rows into `articles`.
 /// Does not open or commit a transaction: callers provide the transaction
@@ -191,38 +194,41 @@ fn mark_muted_unread_as_read_with_scope(
     }
 
     {
-        let mut delete_pending_stmt = conn.prepare(
-            "DELETE FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
+        let mut pending_remote_entry_ids = Vec::new();
+        let mut seen_pending_remote_entry_ids = HashSet::new();
+        for (_, _, remote_entry_id, account_kind, _, feed_remote_id) in &rows {
+            let Some(remote_entry_id) = remote_entry_id else {
+                continue;
+            };
+            let supports_remote_mutations = matches!(account_kind.as_str(), "FreshRss")
+                && is_greader_managed_feed_remote_id(feed_remote_id.as_deref());
+            if supports_remote_mutations
+                && seen_pending_remote_entry_ids.insert(remote_entry_id.clone())
+            {
+                pending_remote_entry_ids.push(remote_entry_id.clone());
+            }
+        }
+
+        let pending_repo = SqlitePendingMutationRepository::new(conn);
+        pending_repo.delete_by_account_remote_entry_ids_and_axis(
+            account_id,
+            &pending_remote_entry_ids,
+            PendingMutationAxis::ReadState,
         )?;
+
         let mut insert_pending_stmt = conn.prepare(
             "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
              VALUES (?1, ?2, ?3, ?4)",
         )?;
         let now = Utc::now().to_rfc3339();
 
-        for (_, _, remote_entry_id, account_kind, row_account_id, feed_remote_id) in &rows {
-            if let Some(remote_entry_id) = remote_entry_id {
-                let supports_remote_mutations = matches!(account_kind.as_str(), "FreshRss")
-                    && is_greader_managed_feed_remote_id(feed_remote_id.as_deref());
-
-                if supports_remote_mutations {
-                    let mutation = PendingMutation {
-                        id: None,
-                        account_id: AccountId(row_account_id.clone()),
-                        mutation_type: PendingMutationType::MarkRead,
-                        remote_entry_id: remote_entry_id.clone(),
-                        created_at: now.clone(),
-                    };
-                    delete_pending_stmt
-                        .execute(params![mutation.account_id.0, mutation.remote_entry_id])?;
-                    insert_pending_stmt.execute(params![
-                        mutation.account_id.0,
-                        mutation.mutation_type.as_str(),
-                        mutation.remote_entry_id,
-                        mutation.created_at,
-                    ])?;
-                }
-            }
+        for remote_entry_id in pending_remote_entry_ids {
+            insert_pending_stmt.execute(params![
+                account_id.0,
+                PendingMutationType::MarkRead.as_str(),
+                remote_entry_id,
+                now.clone(),
+            ])?;
         }
     }
 

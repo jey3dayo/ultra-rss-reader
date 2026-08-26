@@ -4,11 +4,15 @@ use crate::domain::constants::{
 };
 use crate::domain::error::DomainError;
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{
     ArticleHistoryRepository, ArticleListMode, ArticleListRepository, ArticleMaintenanceRepository,
     ArticleMutationRepository, ArticleReadRepository, ArticleRemoteStateRepository,
 };
 use crate::repository::feed::FeedRepository;
+use crate::repository::pending_mutation::{
+    PendingMutation, PendingMutationRepository, PendingMutationType,
+};
 use std::collections::HashSet;
 
 fn test_db() -> DbManager {
@@ -16,11 +20,15 @@ fn test_db() -> DbManager {
 }
 
 fn insert_test_account(db: &DbManager) -> AccountId {
+    insert_test_account_with_kind(db, "Local")
+}
+
+fn insert_test_account_with_kind(db: &DbManager, kind: &str) -> AccountId {
     let id = AccountId::new();
     db.writer()
         .execute(
             "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
-            params![id.0, "Local", "Test"],
+            params![id.0, kind, "Test"],
         )
         .unwrap();
     id
@@ -1519,6 +1527,88 @@ fn mark_muted_unread_as_read_marks_existing_matches_and_updates_unread_count() {
     assert!(muted_is_read);
     assert!(!visible_is_read);
     assert_eq!(feed_repo.recalculate_unread_count(&feed_id).unwrap(), 1);
+}
+
+#[test]
+fn mark_muted_unread_as_read_preserves_star_pending_and_queues_mark_read() {
+    let db = test_db();
+    let account_id = insert_test_account_with_kind(&db, "FreshRss");
+    let feed_id = insert_test_feed(&db, &account_id);
+    db.writer()
+        .execute(
+            "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+            [],
+        )
+        .unwrap();
+    insert_mute_keyword(&db, "kindle unlimited", "title");
+
+    let repo = SqliteArticleRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+    let remote_entry_id = "entry-star-preserved".to_string();
+    let mut article = make_article(&feed_id, "Kindle Unlimited offer");
+    article.remote_id = Some(remote_entry_id.clone());
+    repo.upsert(&[article]).unwrap();
+    pending_repo
+        .save(&PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::Star,
+            remote_entry_id: remote_entry_id.clone(),
+            created_at: "2026-08-27T00:00:00Z".to_string(),
+        })
+        .unwrap();
+
+    let changed = repo.mark_muted_unread_as_read(&account_id, None).unwrap();
+
+    assert_eq!(changed, 1);
+    let pending = pending_repo.find_by_account(&account_id).unwrap();
+    assert_eq!(pending.len(), 2);
+    assert!(pending.iter().any(|mutation| {
+        mutation.mutation_type == PendingMutationType::Star
+            && mutation.remote_entry_id == remote_entry_id
+    }));
+    assert!(pending.iter().any(|mutation| {
+        mutation.mutation_type == PendingMutationType::MarkRead
+            && mutation.remote_entry_id == "entry-star-preserved"
+    }));
+}
+
+#[test]
+fn mark_muted_unread_as_read_replaces_pending_mark_unread() {
+    let db = test_db();
+    let account_id = insert_test_account_with_kind(&db, "FreshRss");
+    let feed_id = insert_test_feed(&db, &account_id);
+    db.writer()
+        .execute(
+            "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+            [],
+        )
+        .unwrap();
+    insert_mute_keyword(&db, "kindle unlimited", "title");
+
+    let repo = SqliteArticleRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+    let remote_entry_id = "entry-read-replaced".to_string();
+    let mut article = make_article(&feed_id, "Kindle Unlimited offer");
+    article.remote_id = Some(remote_entry_id.clone());
+    repo.upsert(&[article]).unwrap();
+    pending_repo
+        .save(&PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::MarkUnread,
+            remote_entry_id: remote_entry_id.clone(),
+            created_at: "2026-08-27T00:00:00Z".to_string(),
+        })
+        .unwrap();
+
+    let changed = repo.mark_muted_unread_as_read(&account_id, None).unwrap();
+
+    assert_eq!(changed, 1);
+    let pending = pending_repo.find_by_account(&account_id).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].mutation_type, PendingMutationType::MarkRead);
+    assert_eq!(pending[0].remote_entry_id, remote_entry_id);
 }
 
 #[test]
