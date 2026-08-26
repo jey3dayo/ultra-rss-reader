@@ -174,7 +174,7 @@ jobs:
           mise run test:unit:ci
 
   release:
-    needs: preflight
+    needs: [preflight, quality]
     if: >-
       needs.preflight.outputs.should_publish == 'true' &&
       ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
