@@ -32,7 +32,7 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::sanitizer;
 use crate::platform::{platform_info_for_kind, PlatformKind};
-use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
+use crate::repository::article::{ArticleListMode, ArticleReadRepository, Pagination};
 use crate::repository::feed::FeedRepository;
 use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
 use mockito::Server;

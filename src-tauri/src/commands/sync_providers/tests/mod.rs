@@ -11,7 +11,9 @@ pub(super) use crate::infra::db::sqlite_account::SqliteAccountRepository;
 
 pub(super) use crate::repository::account::AccountRepository;
 
-pub(super) use crate::repository::article::{ArticleRepository, Pagination};
+pub(super) use crate::repository::article::{
+    ArticleMutationRepository, ArticleReadRepository, Pagination,
+};
 
 pub(super) use crate::repository::pending_mutation::PendingMutation;
 

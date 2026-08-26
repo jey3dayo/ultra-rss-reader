@@ -13,7 +13,7 @@ use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_co
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::{unread_counts_for_feed_ids_with_conn, SqliteFeedRepository};
 use crate::infra::provider::greader::{GReaderProvider, UnreadPullTermination};
-use crate::repository::article::ArticleRepository;
+use crate::repository::article::ArticleMutationRepository;
 use crate::repository::feed::FeedRepository;
 
 use super::redacted_feed_host_class;

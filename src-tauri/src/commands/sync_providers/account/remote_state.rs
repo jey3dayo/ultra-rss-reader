@@ -17,7 +17,7 @@ use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
-use crate::repository::article::ArticleRepository;
+use crate::repository::article::ArticleRemoteStateRepository;
 use crate::repository::pending_mutation::{PendingMutationAxis, PendingMutationRepository};
 
 use super::super::get_greader_password;

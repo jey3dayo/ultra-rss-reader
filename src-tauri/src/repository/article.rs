@@ -46,7 +46,7 @@ impl Default for Pagination {
     }
 }
 
-pub trait ArticleRepository {
+pub trait ArticleReadRepository {
     fn find_by_id(&self, id: &ArticleId) -> DomainResult<Option<Article>>;
     fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination)
         -> DomainResult<Vec<Article>>;
@@ -90,48 +90,15 @@ pub trait ArticleRepository {
         account_id: &AccountId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
-    fn find_recently_viewed_by_account(
-        &self,
-        account_id: &AccountId,
-        pagination: &Pagination,
-        mode: ArticleListMode,
-    ) -> DomainResult<Vec<ArticleViewHistoryItem>>;
-    fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
-    fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
-    fn record_view(&self, account_id: &AccountId, article_id: &ArticleId) -> DomainResult<()>;
-    fn clear_view_history(&self, account_id: &AccountId) -> DomainResult<u64>;
-    fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
-    fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
-    fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;
-    fn mark_muted_unread_as_read(
-        &self,
-        account_id: &AccountId,
-        candidate_ids: Option<&[ArticleId]>,
-    ) -> DomainResult<usize>;
-    fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64>;
-    fn mark_folder_as_read(&self, folder_id: &FolderId) -> DomainResult<u64>;
-    fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()>;
-    fn purge_old_read(&self, account_id: &AccountId, before: DateTime<Utc>) -> DomainResult<u64>;
-    fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()>;
-    fn find_by_sanitizer_version_below(
-        &self,
-        version: u32,
-        limit: usize,
-    ) -> DomainResult<Vec<Article>>;
-    fn apply_remote_state(
-        &self,
-        account_id: &AccountId,
-        read_remote_ids: &[String],
-        starred_remote_ids: &[String],
-        pending_read_remote_ids: &[String],
-        pending_starred_remote_ids: &[String],
-    ) -> DomainResult<()>;
     fn search(
         &self,
         account_id: &AccountId,
         query: &str,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
+}
+
+pub trait ArticleListRepository {
     fn list_by_feed(
         &self,
         feed_id: &FeedId,
@@ -150,16 +117,84 @@ pub trait ArticleRepository {
         pagination: &Pagination,
         mode: ArticleListMode,
     ) -> DomainResult<Vec<ArticleListItem>>;
-    fn list_recently_viewed_by_account(
-        &self,
-        account_id: &AccountId,
-        pagination: &Pagination,
-        mode: ArticleListMode,
-    ) -> DomainResult<Vec<ArticleListHistoryItem>>;
     fn search_list(
         &self,
         account_id: &AccountId,
         query: &str,
         pagination: &Pagination,
     ) -> DomainResult<Vec<ArticleListItem>>;
+    fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
+    fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
+}
+
+pub trait ArticleHistoryRepository {
+    fn find_recently_viewed_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleViewHistoryItem>>;
+    fn list_recently_viewed_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListHistoryItem>>;
+    fn record_view(&self, account_id: &AccountId, article_id: &ArticleId) -> DomainResult<()>;
+    fn clear_view_history(&self, account_id: &AccountId) -> DomainResult<u64>;
+}
+
+pub trait ArticleMutationRepository {
+    fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
+    fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
+    fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;
+    fn mark_muted_unread_as_read(
+        &self,
+        account_id: &AccountId,
+        candidate_ids: Option<&[ArticleId]>,
+    ) -> DomainResult<usize>;
+    fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64>;
+    fn mark_folder_as_read(&self, folder_id: &FolderId) -> DomainResult<u64>;
+    fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()>;
+}
+
+pub trait ArticleMaintenanceRepository {
+    fn purge_old_read(&self, account_id: &AccountId, before: DateTime<Utc>) -> DomainResult<u64>;
+    fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()>;
+    fn find_by_sanitizer_version_below(
+        &self,
+        version: u32,
+        limit: usize,
+    ) -> DomainResult<Vec<Article>>;
+}
+
+pub trait ArticleRemoteStateRepository {
+    fn apply_remote_state(
+        &self,
+        account_id: &AccountId,
+        read_remote_ids: &[String],
+        starred_remote_ids: &[String],
+        pending_read_remote_ids: &[String],
+        pending_starred_remote_ids: &[String],
+    ) -> DomainResult<()>;
+}
+
+pub trait ArticleRepository:
+    ArticleReadRepository
+    + ArticleListRepository
+    + ArticleHistoryRepository
+    + ArticleMutationRepository
+    + ArticleMaintenanceRepository
+    + ArticleRemoteStateRepository
+{
+}
+
+impl<T> ArticleRepository for T where
+    T: ArticleReadRepository
+        + ArticleListRepository
+        + ArticleHistoryRepository
+        + ArticleMutationRepository
+        + ArticleMaintenanceRepository
+        + ArticleRemoteStateRepository
+{
 }

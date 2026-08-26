@@ -7,7 +7,10 @@ use crate::domain::article::Article;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::sanitizer;
-use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
+use crate::repository::article::{
+    ArticleHistoryRepository, ArticleListMode, ArticleListRepository, ArticleMaintenanceRepository,
+    ArticleReadRepository, Pagination,
+};
 
 pub(crate) const DEFAULT_ARTICLE_LIST_LIMIT: usize = 50;
 pub(crate) const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;

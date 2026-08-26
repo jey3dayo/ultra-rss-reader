@@ -21,7 +21,9 @@ use ultra_rss_reader_lib::infra::db::sqlite_feed::SqliteFeedRepository;
 use ultra_rss_reader_lib::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use ultra_rss_reader_lib::infra::keyring_store;
 use ultra_rss_reader_lib::repository::account::AccountRepository;
-use ultra_rss_reader_lib::repository::article::{ArticleRepository, Pagination};
+use ultra_rss_reader_lib::repository::article::{
+    ArticleListRepository, ArticleMutationRepository, ArticleReadRepository, Pagination,
+};
 use ultra_rss_reader_lib::repository::feed::FeedRepository;
 use ultra_rss_reader_lib::repository::pending_mutation::{
     PendingMutation, PendingMutationRepository, PendingMutationType,

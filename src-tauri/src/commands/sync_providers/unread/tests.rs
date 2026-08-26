@@ -8,7 +8,7 @@ use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::infra::sanitizer;
 use crate::repository::account::AccountRepository;
-use crate::repository::article::ArticleRepository;
+use crate::repository::article::{ArticleMutationRepository, ArticleReadRepository};
 use crate::repository::pending_mutation::{
     PendingMutation, PendingMutationRepository, PendingMutationType,
 };
