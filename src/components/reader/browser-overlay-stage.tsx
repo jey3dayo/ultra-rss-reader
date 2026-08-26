@@ -20,7 +20,10 @@ function BrowserOverlayLoadingState({ label, hint }: { label: string; hint: stri
       >
         <div className="relative flex items-center justify-center">
           <div aria-hidden="true" className="absolute h-12 w-20 rounded-lg bg-browser-overlay-loading-halo blur-2xl" />
-          <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-foreground" />
+          <LoaderCircle
+            aria-hidden="true"
+            className="relative size-12 animate-spin motion-reduce:animate-none text-foreground"
+          />
         </div>
         <div className="space-y-1.5">
           <p className="text-sm font-medium tracking-[0.02em] text-foreground">{label}</p>

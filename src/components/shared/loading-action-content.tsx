@@ -17,7 +17,7 @@ export function LoadingActionContent({ loading = false, loadingLabel, spinner, c
     <LoaderCircle
       data-slot="loading-spinner"
       aria-hidden="true"
-      className="size-3 shrink-0 animate-spin text-current"
+      className="size-3 shrink-0 animate-spin motion-reduce:animate-none text-current"
     />
   );
 
