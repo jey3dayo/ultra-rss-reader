@@ -1798,6 +1798,14 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseManualVerification).toContain("workflow_dispatch` used `dry_run=true`");
   });
 
+  it("gates release artifact publication on the release quality preflight", () => {
+    const releaseJobBlock = releaseWorkflow.slice(releaseWorkflow.indexOf("\n  release:"));
+
+    expect(releaseJobBlock).toContain("needs: [preflight, quality]");
+    expect(releaseJobBlock).toContain("!cancelled()");
+    expect(releaseJobBlock).toContain("needs.quality.result == 'success' || needs.quality.result == 'skipped'");
+  });
+
   it("keeps Release Drafter config separate from release workflow publishing responsibilities", () => {
     expect(releaseConfig).toContain("Release Drafter only owns PR-label changelog grouping");
     expect(releaseConfig).toContain(".github/workflows/release.yml owns tag validation");
