@@ -390,6 +390,12 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   process.stdout.write(summary);
   process.stdout.write("\n");
 
+  const gateDiagnostic = evaluateSimilarityReportGate(result.stdout);
+  if (gateDiagnostic !== null) {
+    process.stderr.write(`${gateDiagnostic.message}\n`);
+    process.exit(gateDiagnostic.exitCode);
+  }
+
   if (!isSimilarityCssSupported()) {
     process.stdout.write("\nCSS similarity scan skipped: similarity-css is pinned for Linux/macOS only.\n");
     return;
@@ -397,7 +403,7 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
 
   const cssResult = spawnSync(
     "mise",
-    ["exec", "--", "similarity-css", ...buildSimilarityCssCommandArgs(defaultThreshold)],
+    ["exec", "--", "similarity-css", ...buildSimilarityCssCommandArgs(threshold, targetPath)],
     {
       encoding: "utf8",
     },
@@ -420,12 +426,6 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   process.stdout.write("\n");
   process.stdout.write(buildSimilarityCssSummary(cssResult.stdout));
   process.stdout.write("\n");
-
-  const gateDiagnostic = evaluateSimilarityReportGate(result.stdout);
-  if (gateDiagnostic !== null) {
-    process.stderr.write(`${gateDiagnostic.message}\n`);
-    process.exit(gateDiagnostic.exitCode);
-  }
 }
 
 export function isSimilarityReportEntrypoint(importMetaUrl: string, argvPath: string | undefined): boolean {
