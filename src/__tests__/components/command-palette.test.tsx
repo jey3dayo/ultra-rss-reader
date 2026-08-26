@@ -138,11 +138,52 @@ describe("CommandPalette", () => {
       }),
     ).toBeInTheDocument();
     expect(dialog.querySelector('[data-slot="command"]')).toHaveClass("[&_[cmdk-group-heading]]:text-foreground-soft");
-    expect(screen.getByTestId("command-palette-results")).toHaveAttribute("data-motion-phase", "entering");
-    expect(screen.getByTestId("command-palette-results")).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps results mounted while filtering to avoid per-keystroke motion", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    const results = screen.getByTestId("command-palette-results");
+
+    await user.type(input, ">settings");
+
+    expect(screen.getByTestId("command-palette-results")).toBe(results);
+    expect(results).not.toHaveAttribute("data-motion-phase");
+    expect(results).not.toHaveClass("motion-content-swap");
+  });
+
+  it("executes the first keyboard-selected action after the query changes", async () => {
+    const user = userEvent.setup();
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, ">sett");
+
+    const openSettings = screen.getByRole("option", { name: /Open settings/ });
+    await user.keyboard("{Home}");
+    expect(openSettings).toHaveAttribute("aria-selected", "true");
+
+    // cmdk resets the active item to the first visible option when its search
+    // value changes; keep Open settings visible and first while narrowing.
+    await user.type(input, "i");
+    await waitFor(() => {
+      expect(openSettings).toHaveAttribute("aria-selected", "true");
+    });
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(executeAction).toHaveBeenCalledWith("open-settings");
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
   });
 
   it("uses the command palette top-layer stack contract", async () => {

@@ -1,6 +1,14 @@
 import { useCommandPaletteController } from "@/components/reader/hooks/command-palette/use-command-palette-controller";
-import { Command, CommandInput, CommandSeparator } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/design-system";
+import {
+  Command,
+  CommandInput,
+  CommandSeparator,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/design-system";
 import { CommandPaletteResults } from "./command-palette-results";
 
 function getCommandItemValue(kind: "action" | "feed" | "folder" | "tag" | "article" | "scenario", id: string): string {
@@ -35,7 +43,7 @@ export function CommandPalette() {
           className="[&_[cmdk-group-heading]]:text-foreground-soft **:data-[slot=command-input-wrapper]:h-14 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-3 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-1 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
         >
           <CommandInput placeholder={placeholder} value={input} onValueChange={setInput} />
-          <CommandPaletteResults resultsMotionKey={input} getCommandItemValue={getCommandItemValue} {...resultsProps} />
+          <CommandPaletteResults getCommandItemValue={getCommandItemValue} {...resultsProps} />
           <CommandSeparator />
           <div
             data-testid="command-palette-prefix-hints"
