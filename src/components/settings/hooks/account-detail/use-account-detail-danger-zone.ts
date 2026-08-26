@@ -16,8 +16,8 @@ import { showSaveDialog } from "@/lib/platform/save-dialog";
 import {
   getQueryKeyRootName,
   getQueryKeyScopeValue,
-  invalidateArticleQueries,
-  invalidateFeedQueries,
+  invalidateAccountDeletionQueries,
+  invalidateLocalAccountSyncImportArticleQueries,
   invalidateOpmlImportQueries,
   invalidateQueryKeysLogOnly,
   queryKeys,
@@ -129,10 +129,7 @@ function removeDeletedAccountArticleCaches(queryClient: QueryClient, deletedAcco
 
 function invalidateLocalAccountSyncImportQueries(queryClient: QueryClient): void {
   invalidateOpmlImportQueries(queryClient);
-  invalidateArticleQueries(queryClient, {
-    includeFeeds: false,
-    includeTagArticleCounts: true,
-  });
+  invalidateLocalAccountSyncImportArticleQueries(queryClient);
   invalidateQueryKeysLogOnly(queryClient, [TAGS_QUERY_KEY, ARTICLE_TAGS_QUERY_KEY, MUTE_KEYWORD_QUERY_KEY]);
 }
 
@@ -406,10 +403,7 @@ export function useAccountDetailDangerZone({
         }
 
         invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
-        invalidateFeedQueries(queryClient, { includeFolders: false });
-        invalidateArticleQueries(queryClient, {
-          includeTagArticleCounts: true,
-        });
+        invalidateAccountDeletionQueries(queryClient);
         onAccountDeleted();
       }),
     );

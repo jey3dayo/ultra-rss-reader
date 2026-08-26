@@ -4,7 +4,7 @@ import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { type FeedDto, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import type { TriStateDisplayMode } from "@/lib/articles/article-display";
-import { invalidateFeedQueries, queryKeys } from "@/lib/query/query-invalidation";
+import { invalidateFeedRootQueries, queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useUpdateFeedDisplaySettings() {
@@ -45,7 +45,7 @@ export function useUpdateFeedDisplaySettings() {
         return false;
       }
 
-      invalidateFeedQueries(qc, { includeFolders: false });
+      invalidateFeedRootQueries(qc);
       return true;
     },
     [qc, showToast, t],

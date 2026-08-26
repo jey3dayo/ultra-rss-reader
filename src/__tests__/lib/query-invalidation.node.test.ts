@@ -6,11 +6,17 @@ import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import {
   ARTICLE_CACHE_QUERY_ROOTS,
   getReaderArticleQueryMode,
+  invalidateAccountDeletionQueries,
+  invalidateAccountSetupQueries,
+  invalidateAccountSyncNowQueries,
   invalidateAddFeedQueries,
   invalidateArticleMutationQueries,
   invalidateArticleQueries,
   invalidateDeleteFeedQueries,
+  invalidateFeedEditQueries,
   invalidateFeedQueries,
+  invalidateFeedRootQueries,
+  invalidateLocalAccountSyncImportArticleQueries,
   invalidateSyncCompletedQueries,
   normalizeQueryAccountId,
   QUERY_KEY_ROOTS,
@@ -382,6 +388,10 @@ describe("query-invalidation", () => {
       queryKeys.accountUnreadCount.root,
     );
     expect(resolveArticleMutationInvalidationQueryKeys("article-star")).not.toContainEqual(queryKeys.feeds.root);
+    expect(resolveArticleMutationInvalidationQueryKeys("article-view-recorded")).toEqual([
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+    ]);
     expect(resolveArticleMutationInvalidationQueryKeys("mute-keyword")).toEqual(articleVisibleListMatrix);
     expect(resolveArticleMutationInvalidationQueryKeys("tag-article-assignment")).toEqual([
       queryKeys.articles.root,
@@ -399,6 +409,76 @@ describe("query-invalidation", () => {
       queryKeys.articlesByTag.root,
       queryKeys.tagArticleCounts.root,
     ]);
+  });
+
+  it("pins named non-article invalidation intent query key sets", () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const expectQueryKeys = (run: () => void, expected: ReadonlyArray<ReadonlyArray<unknown>>) => {
+      invalidateQueries.mockClear();
+      run();
+      expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual(
+        expected.map((queryKey) => ({ queryKey })),
+      );
+    };
+
+    expectQueryKeys(() => invalidateFeedRootQueries(queryClient), [queryKeys.feeds.root]);
+    expectQueryKeys(() => invalidateFeedEditQueries(queryClient, true), [queryKeys.feeds.root, queryKeys.folders.root]);
+    expectQueryKeys(() => invalidateFeedEditQueries(queryClient, false), [queryKeys.folders.root]);
+    expectQueryKeys(
+      () => invalidateAccountSetupQueries(queryClient),
+      [
+        queryKeys.feeds.root,
+        queryKeys.articles.root,
+        queryKeys.accountArticles.root,
+        queryKeys.folderArticles.root,
+        queryKeys.starredArticles.root,
+        queryKeys.accountUnreadCount.root,
+        queryKeys.accountStarredCount.root,
+        queryKeys.feeds.root,
+        queryKeys.articlesByTag.root,
+        queryKeys.search.root,
+        queryKeys.recentArticles.root,
+        queryKeys.feedArticleSummaries.root,
+      ],
+    );
+    expectQueryKeys(
+      () => invalidateAccountSyncNowQueries(queryClient),
+      [queryKeys.feeds.root, queryKeys.articles.root],
+    );
+    expectQueryKeys(
+      () => invalidateLocalAccountSyncImportArticleQueries(queryClient),
+      [
+        queryKeys.articles.root,
+        queryKeys.accountArticles.root,
+        queryKeys.folderArticles.root,
+        queryKeys.starredArticles.root,
+        queryKeys.accountUnreadCount.root,
+        queryKeys.accountStarredCount.root,
+        queryKeys.articlesByTag.root,
+        queryKeys.tagArticleCounts.root,
+        queryKeys.search.root,
+        queryKeys.recentArticles.root,
+        queryKeys.feedArticleSummaries.root,
+      ],
+    );
+    expectQueryKeys(
+      () => invalidateAccountDeletionQueries(queryClient),
+      [
+        queryKeys.feeds.root,
+        queryKeys.articles.root,
+        queryKeys.accountArticles.root,
+        queryKeys.folderArticles.root,
+        queryKeys.starredArticles.root,
+        queryKeys.accountUnreadCount.root,
+        queryKeys.accountStarredCount.root,
+        queryKeys.feeds.root,
+        queryKeys.articlesByTag.root,
+        queryKeys.tagArticleCounts.root,
+        queryKeys.search.root,
+        queryKeys.recentArticles.root,
+        queryKeys.feedArticleSummaries.root,
+      ],
+    );
   });
 
   it("tags article mutation invalidation failures by matrix owner", async () => {

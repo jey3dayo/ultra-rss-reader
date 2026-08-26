@@ -39,7 +39,6 @@ import { createMutation } from "@/hooks/create-mutation";
 import { shouldRetainBulkMarkedRead } from "@/lib/articles/article-read-projection";
 import {
   invalidateArticleMutationQueries,
-  invalidateArticleQueries,
   invalidateQueryKeysLogOnly,
   normalizeQueryAccountId,
   queryKeys,
@@ -397,18 +396,7 @@ export function useRecordArticleView() {
         return;
       }
 
-      invalidateArticleQueries(qc, {
-        actionOwner: "article-mutation",
-        includeAccountArticles: false,
-        includeStarredArticles: false,
-        includeAccountUnreadCount: false,
-        includeAccountStarredCount: false,
-        includeFeeds: false,
-        includeArticles: false,
-        includeArticlesByTag: false,
-        includeSearch: false,
-        includeRecentArticles: true,
-      });
+      invalidateArticleMutationQueries(qc, "article-view-recorded");
     },
   });
 }
