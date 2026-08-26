@@ -1,8 +1,9 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::time::Instant;
 
 use tauri::AppHandle;
-use tracing::warn;
+use tracing::{info, warn};
 
 use crate::commands::dto::{
     sync_issue_owner_for_app_error, AccountSyncError, AccountSyncWarning, AppError,
@@ -11,14 +12,13 @@ use crate::commands::dto::{
 use crate::commands::feed_commands::lock_db;
 use crate::commands::sync_providers::{
     redacted_feed_host_class, repair_greader_remote_state, sync_greader_account, sync_greader_feed,
-    sync_local_feed, ProviderSyncOutcome,
+    sync_local_feed, GReaderSession, ProviderSyncOutcome, SessionError,
 };
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
 use crate::domain::provider::ProviderKind;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
-use crate::infra::provider::greader::GReaderProvider;
 use crate::repository::feed::FeedRepository;
 
 use super::local_import_export::{
@@ -62,9 +62,25 @@ pub(crate) async fn sync_account(
             Ok(ProviderSyncOutcome { warnings })
         }
         ProviderKind::FreshRss => {
-            let server_url = account.server_url.as_deref().unwrap_or_default();
-            let provider = GReaderProvider::for_freshrss(server_url);
-            sync_greader_account(db, account, provider).await
+            let auth_started_at = Instant::now();
+            let session = match GReaderSession::establish(account).await {
+                Ok(session) => session,
+                Err(error @ SessionError::MissingUsername) => {
+                    error.log_skip(account);
+                    return Ok(ProviderSyncOutcome::default());
+                }
+                Err(error @ SessionError::MissingServerUrl) => {
+                    return Err(error.into_user_visible());
+                }
+                Err(SessionError::Auth(error)) => return Err(error),
+            };
+            info!(
+                account_id = %account.id.as_ref(),
+                phase = "auth",
+                elapsed_ms = auth_started_at.elapsed().as_millis() as u64,
+                "FreshRSS sync phase completed"
+            );
+            sync_greader_account(db, account, &session).await
         }
         ProviderKind::Quarantined => Err(AppError::UserVisible {
             message: "Account configuration is quarantined".into(),
@@ -84,9 +100,18 @@ pub(crate) async fn sync_feed(
             Ok(ProviderSyncOutcome::default())
         }
         ProviderKind::FreshRss => {
-            let server_url = account.server_url.as_deref().unwrap_or_default();
-            let provider = GReaderProvider::for_freshrss(server_url);
-            sync_greader_feed(db, account, feed, provider).await
+            let session = match GReaderSession::establish(account).await {
+                Ok(session) => session,
+                Err(error @ SessionError::MissingUsername) => {
+                    error.log_skip_with_context(account, "single-feed sync");
+                    return Ok(ProviderSyncOutcome::default());
+                }
+                Err(error @ SessionError::MissingServerUrl) => {
+                    return Err(error.into_user_visible());
+                }
+                Err(SessionError::Auth(error)) => return Err(error),
+            };
+            sync_greader_feed(db, account, feed, &session).await
         }
         ProviderKind::Quarantined => Err(AppError::UserVisible {
             message: "Account configuration is quarantined".into(),
@@ -312,11 +337,30 @@ pub(crate) async fn run_startup_sync_and_repair(
     let mut repaired_account_ids = Vec::new();
     let mut repair_failures = Vec::new();
     for account in &repair_only_accounts {
-        let server_url = account.server_url.as_deref().unwrap_or_default();
-        let provider = GReaderProvider::for_freshrss(server_url);
-        match repair_greader_remote_state(db, account, provider).await {
-            Ok(()) => repaired_account_ids.push(account.id.as_ref().to_string()),
-            Err(error) => repair_failures.push(AccountSyncError {
+        match GReaderSession::establish(account).await {
+            Ok(session) => match repair_greader_remote_state(db, account, &session).await {
+                Ok(()) => repaired_account_ids.push(account.id.as_ref().to_string()),
+                Err(error) => repair_failures.push(AccountSyncError {
+                    account_id: account.id.as_ref().to_string(),
+                    account_name: account.name.clone(),
+                    action_owner: Some(sync_issue_owner_for_app_error(&error)),
+                    message: error.to_string(),
+                }),
+            },
+            Err(error @ SessionError::MissingUsername) => {
+                error.log_skip_with_context(account, "remote-state repair");
+                repaired_account_ids.push(account.id.as_ref().to_string());
+            }
+            Err(error @ SessionError::MissingServerUrl) => {
+                let error = error.into_user_visible();
+                repair_failures.push(AccountSyncError {
+                    account_id: account.id.as_ref().to_string(),
+                    account_name: account.name.clone(),
+                    action_owner: Some(sync_issue_owner_for_app_error(&error)),
+                    message: error.to_string(),
+                });
+            }
+            Err(SessionError::Auth(error)) => repair_failures.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
                 account_name: account.name.clone(),
                 action_owner: Some(sync_issue_owner_for_app_error(&error)),

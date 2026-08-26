@@ -6,8 +6,6 @@
 //! `.claude/rules/remote-state-reconciliation.md`.
 use std::sync::Mutex;
 
-use tracing::warn;
-
 use crate::commands::dto::AppError;
 use crate::commands::feed_commands::lock_db;
 use crate::domain::account::Account;
@@ -15,14 +13,13 @@ use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
-use crate::infra::provider::greader::GReaderProvider;
-use crate::infra::provider::traits::{Credentials, FeedProvider};
+use crate::infra::provider::traits::FeedProvider;
 use crate::repository::article::ArticleRemoteStateRepository;
 use crate::repository::pending_mutation::{PendingMutationAxis, PendingMutationRepository};
 
-use super::super::get_greader_password;
 use super::super::state::mark_remote_state_sync_completed;
 use super::super::unread::reconcile_greader_unread_counts;
+use super::super::GReaderSession;
 use super::db::{load_account_feeds, recalculate_provider_managed_feed_unread_counts};
 
 /// Read the current pending-mutation protection lists (read axis, star axis).
@@ -91,29 +88,10 @@ pub(crate) fn apply_remote_state_with_protection(
 pub(crate) async fn repair_greader_remote_state(
     db: &Mutex<DbManager>,
     account: &Account,
-    mut provider: GReaderProvider,
+    session: &GReaderSession,
 ) -> Result<(), AppError> {
     let now = chrono::Utc::now();
-    let username = match &account.username {
-        Some(u) => u.clone(),
-        None => {
-            warn!(
-                "GReader account {} has no username, skipping remote-state repair",
-                account.id.as_ref()
-            );
-            return Ok(());
-        }
-    };
-
-    let password = get_greader_password(account).await?;
-    provider
-        .authenticate(&Credentials {
-            token: Some(username),
-            password: Some(password),
-        })
-        .await?;
-
-    let remote_state = provider.pull_state().await?;
+    let remote_state = session.provider().pull_state().await?;
     apply_remote_state_with_protection(
         db,
         &account.id,
@@ -125,10 +103,16 @@ pub(crate) async fn repair_greader_remote_state(
     let feeds = load_account_feeds(db, &account.id)?;
     recalculate_provider_managed_feed_unread_counts(db, &feeds)?;
 
-    let server_unread_counts = provider.get_unread_count_map().await?;
-    let _ =
-        reconcile_greader_unread_counts(db, &provider, account, &feeds, &server_unread_counts, &[])
-            .await?;
+    let server_unread_counts = session.provider().get_unread_count_map().await?;
+    let _ = reconcile_greader_unread_counts(
+        db,
+        session.provider(),
+        account,
+        &feeds,
+        &server_unread_counts,
+        &[],
+    )
+    .await?;
     mark_remote_state_sync_completed(db, &account.id, now)?;
 
     Ok(())

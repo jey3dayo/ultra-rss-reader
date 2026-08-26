@@ -423,8 +423,8 @@ async fn sync_greader_feed_reports_feed_articles_vanished_when_articles_disappea
         .await;
 
     let _credentials = configure_dev_credentials(&account.id).await;
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    let outcome = sync_greader_feed(&db, &account, &feed, provider)
+    let session = authenticated_session(&server.url()).await;
+    let outcome = sync_greader_feed(&db, &account, &feed, &session)
         .await
         .unwrap();
 
@@ -523,8 +523,8 @@ async fn repair_greader_remote_state_applies_read_flags_and_recalculates_counts(
 
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    repair_greader_remote_state(&db, &account, provider)
+    let session = authenticated_session(&server.url()).await;
+    repair_greader_remote_state(&db, &account, &session)
         .await
         .unwrap();
 
@@ -648,8 +648,8 @@ async fn repair_greader_remote_state_keeps_article_marked_read_during_pull_state
 
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    repair_greader_remote_state(&db, &account, provider)
+    let session = authenticated_session(&server.url()).await;
+    repair_greader_remote_state(&db, &account, &session)
         .await
         .unwrap();
 
