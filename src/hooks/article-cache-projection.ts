@@ -168,34 +168,8 @@ export function isAccountKnownDeleted(qc: QueryClient, accountId: string): boole
   );
 }
 
-function isArticleKnownDeletedFromScopedCache(qc: QueryClient, accountId: string, articleId: string): boolean {
-  const scopedArticleQueries = [
-    ...qc.getQueriesData<unknown>({ queryKey: queryKeys.accountArticles.byAccountPrefix(accountId) }),
-    ...qc.getQueriesData<unknown>({ queryKey: queryKeys.recentArticles.byAccount(accountId, "all").slice(0, 3) }),
-    ...qc.getQueriesData<unknown>({ queryKey: queryKeys.starredArticles.byAccount(accountId) }),
-  ];
-
-  let sawScopedArticleList = false;
-  for (const [, data] of scopedArticleQueries) {
-    const articles = indexArticleDtosById(data);
-    if (articles.size === 0) {
-      continue;
-    }
-    sawScopedArticleList = true;
-    if (articles.has(articleId)) {
-      return false;
-    }
-  }
-
-  return sawScopedArticleList;
-}
-
-export function shouldInvalidateAfterRecordArticleView(qc: QueryClient, accountId: string, articleId: string): boolean {
-  if (isAccountKnownDeleted(qc, accountId)) {
-    return false;
-  }
-
-  return !isArticleKnownDeletedFromScopedCache(qc, accountId, articleId);
+export function shouldInvalidateAfterRecordArticleView(qc: QueryClient, accountId: string): boolean {
+  return !isAccountKnownDeleted(qc, accountId);
 }
 
 export function getRecentArticleQueryKeysForAccount(accountId: string) {

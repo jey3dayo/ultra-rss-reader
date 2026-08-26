@@ -391,7 +391,7 @@ export function useRecordArticleView() {
       if (
         !normalizedAccountId ||
         !normalizedArticleId ||
-        !shouldInvalidateAfterRecordArticleView(qc, normalizedAccountId, normalizedArticleId)
+        !shouldInvalidateAfterRecordArticleView(qc, normalizedAccountId)
       ) {
         return;
       }

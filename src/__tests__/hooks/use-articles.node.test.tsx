@@ -1159,6 +1159,24 @@ describe("recent article history mutations", () => {
     });
   });
 
+  it("invalidates recent articles when the recorded article is absent from a partial account cache", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    queryClient.setQueryData(queryKeys.accounts.root, [{ id: "acc-1" }]);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), [sampleArticles[1]]);
+
+    const { result } = renderHook(() => useRecordArticleView(), { wrapper });
+
+    await result.current.mutateAsync({
+      accountId: "acc-1",
+      articleId: sampleArticles[0].id,
+    });
+
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.root,
+    });
+  });
+
   it("treats blank article view ids as no-op success without invalidating recent articles", async () => {
     const recordArticleViewSpy = vi.spyOn(tauriCommands, "recordArticleView");
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
