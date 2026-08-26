@@ -84,7 +84,10 @@ const httpUrlSchema = v.pipe(
   v.check((url) => !url.includes("\n") && !url.includes("\r"), "HTTP URLs must not contain newlines"),
 );
 
-export const webPreviewUrlSchema = httpUrlSchema;
+export const webPreviewUrlSchema = v.pipe(
+  httpUrlSchema,
+  v.check((url) => !hasHttpUrlCredentials(url), "Web Preview URLs must not contain credentials"),
+);
 
 export const httpCommandUrlSchema = v.pipe(
   httpUrlSchema,

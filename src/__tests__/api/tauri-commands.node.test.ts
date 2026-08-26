@@ -663,14 +663,8 @@ describe("tauri-commands with mockIPC", () => {
       Result.unwrap(await createOrUpdateBrowserWebview(" https://example.com/article ", browserBounds));
     });
 
-    it("allows private Web Preview URLs for support checks and browser webview creation", async () => {
+    it("allows private Web Preview URLs for browser webview creation", async () => {
       setupTauriMocks((cmd, args) => {
-        if (cmd === "check_browser_embed_support") {
-          expect(args).toEqual({
-            url: "http://127.0.0.1:1420/dev-web-preview-geometry.html",
-          });
-          return true;
-        }
         if (cmd === "create_or_update_browser_webview") {
           expect(args).toEqual({
             url: "http://127.0.0.1:1420/dev-web-preview-geometry.html",
@@ -692,9 +686,9 @@ describe("tauri-commands with mockIPC", () => {
       );
 
       expect(value.url).toBe("http://127.0.0.1:1420/dev-web-preview-geometry.html");
-      expect(Result.unwrap(await checkBrowserEmbedSupport("http://127.0.0.1:1420/dev-web-preview-geometry.html"))).toBe(
-        true,
-      );
+      expect(
+        Result.isFailure(await checkBrowserEmbedSupport("http://127.0.0.1:1420/dev-web-preview-geometry.html")),
+      ).toBe(true);
     });
 
     it.each([

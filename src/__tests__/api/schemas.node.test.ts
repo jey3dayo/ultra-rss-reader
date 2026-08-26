@@ -2383,7 +2383,7 @@ describe("command args schemas", () => {
       "http://localhost:1420/preview",
     ]) {
       expect(parse(webPreviewUrlSchema, url)).toBe(url);
-      expect(parse(checkBrowserEmbedSupportArgs, { url })).toEqual({ url });
+      expect(() => parse(checkBrowserEmbedSupportArgs, { url })).toThrow();
       expect(parse(createOrUpdateBrowserWebviewArgs, { url, bounds })).toEqual({ url, bounds });
       expect(() => parse(openInBrowserArgs, { url })).toThrow();
     }
@@ -2394,6 +2394,7 @@ describe("command args schemas", () => {
       "ftp://example.com/preview",
       "mailto:preview@example.com",
       "not-a-url",
+      "http://user:pass@192.168.1.10/",
       "http://example.com/preview\nnext",
       "http://example.com/preview\rnext",
     ]) {
