@@ -23,12 +23,14 @@ import {
   COUNT_RESPONSE_MAX_VALUE,
   type CommandWithArgs,
   CountResponseSchema,
+  checkBrowserEmbedSupportArgs,
   clearArticleViewHistoryArgs,
   commandArgsSchemas,
   copyToClipboardArgs,
   countAccountStarredArticlesArgs,
   createFolderArgs,
   createMuteKeywordArgs,
+  createOrUpdateBrowserWebviewArgs,
   createSchemaVersionedQueryKey,
   DevRuntimeOptionsSchema,
   DiscoveredFeedDtoSchema,
@@ -67,6 +69,7 @@ import {
   NullResponseSchema,
   oldUnreadArticlesArgs,
   openExternalUrlArgs,
+  openInBrowserArgs,
   PlatformInfoSchema,
   PreferencesDtoSchema,
   QUERY_CACHE_KEY_VERSION,
@@ -99,6 +102,7 @@ import {
   MAX_IPC_PAGINATION_OFFSET,
   SHARE_COMMAND_TEXT_MAX_CHARS,
 } from "@/api/schemas/commands";
+import { webPreviewUrlSchema } from "@/api/schemas/commands/url";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
 import { objectEntries } from "@/api/schemas/validation";
@@ -2370,6 +2374,34 @@ describe("command args schemas", () => {
     ).toThrow();
     expect(() => parse(browserWebviewBoundsArgs, { x: 0, y: 0, width: 0, height: 240 })).toThrow();
     expect(() => parse(browserWebviewBoundsArgs, { x: 0, y: 0, width: 320, height: -1 })).toThrow();
+  });
+  it("allows private Web Preview hosts while keeping the reading-list URL boundary strict", () => {
+    const bounds = { x: 0, y: 0, width: 320, height: 240 };
+    for (const url of [
+      "http://192.168.1.10/preview",
+      "http://127.0.0.1:8080/preview",
+      "http://localhost:1420/preview",
+    ]) {
+      expect(parse(webPreviewUrlSchema, url)).toBe(url);
+      expect(() => parse(checkBrowserEmbedSupportArgs, { url })).toThrow();
+      expect(parse(createOrUpdateBrowserWebviewArgs, { url, bounds })).toEqual({ url, bounds });
+      expect(() => parse(openInBrowserArgs, { url })).toThrow();
+    }
+  });
+  it("keeps Web Preview URL validation limited to valid http(s) URLs without CR/LF", () => {
+    const bounds = { x: 0, y: 0, width: 320, height: 240 };
+    for (const url of [
+      "ftp://example.com/preview",
+      "mailto:preview@example.com",
+      "not-a-url",
+      "http://user:pass@192.168.1.10/",
+      "http://example.com/preview\nnext",
+      "http://example.com/preview\rnext",
+    ]) {
+      expect(() => parse(webPreviewUrlSchema, url)).toThrow();
+      expect(() => parse(checkBrowserEmbedSupportArgs, { url })).toThrow();
+      expect(() => parse(createOrUpdateBrowserWebviewArgs, { url, bounds })).toThrow();
+    }
   });
   it("accepts only http or https Reading List URLs without CR/LF", () => {
     expect(parse(addToReadingListArgs, { url: "http://example.com/article" })).toEqual({

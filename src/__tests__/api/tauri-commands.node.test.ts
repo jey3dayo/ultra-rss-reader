@@ -663,7 +663,7 @@ describe("tauri-commands with mockIPC", () => {
       Result.unwrap(await createOrUpdateBrowserWebview(" https://example.com/article ", browserBounds));
     });
 
-    it("allows the exact dev geometry fixture URL for browser webview creation only", async () => {
+    it("allows private Web Preview URLs for browser webview creation", async () => {
       setupTauriMocks((cmd, args) => {
         if (cmd === "create_or_update_browser_webview") {
           expect(args).toEqual({
@@ -698,7 +698,6 @@ describe("tauri-commands with mockIPC", () => {
       "file:///tmp/article.html",
       "https://example.com/article\nnext",
       "https://example.com/article\rnext",
-      "http://127.0.0.1:1420/other.html",
     ])("rejects invalid browser command URL %j before invoking Tauri", async (url) => {
       const consoleError = suppressConsoleError();
       const invokedCommands: string[] = [];

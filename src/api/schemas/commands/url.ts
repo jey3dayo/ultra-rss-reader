@@ -73,7 +73,7 @@ export function hasPrivateHttpHost(value: string): boolean {
   return host === "localhost" || isPrivateIpv4Host(host) || isPrivateIpv6Host(host);
 }
 
-export const httpCommandUrlSchema = v.pipe(
+const httpUrlSchema = v.pipe(
   v.string(),
   v.trim(),
   v.check(
@@ -82,6 +82,15 @@ export const httpCommandUrlSchema = v.pipe(
   ),
   v.check(isValidHttpUrl, "Only http:// and https:// URLs are supported"),
   v.check((url) => !url.includes("\n") && !url.includes("\r"), "HTTP URLs must not contain newlines"),
+);
+
+export const webPreviewUrlSchema = v.pipe(
+  httpUrlSchema,
+  v.check((url) => !hasHttpUrlCredentials(url), "Web Preview URLs must not contain credentials"),
+);
+
+export const httpCommandUrlSchema = v.pipe(
+  httpUrlSchema,
   v.check((url) => !hasPrivateHttpHost(url), "Requests to private/loopback addresses are not allowed"),
 );
 
