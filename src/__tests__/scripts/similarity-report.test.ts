@@ -141,6 +141,10 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("current command: mise exec -- similarity-css --threshold 0.9 --min-size 3 src/");
     expect(summary).toContain("scan baseline rules: 92");
     expect(summary).toContain("scan baseline similar styles: 5");
+
+    expect(buildSimilarityCssSummary(sampleCssReport, 0.87, "src/lib")).toContain(
+      "current command: mise exec -- similarity-css --threshold 0.87 --min-size 3 src/lib",
+    );
   });
 
   it("ignores type similarity blocks when parsing function pairs", () => {
@@ -261,6 +265,13 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(cssSimilarityMinSize).toBe(3);
     expect(defaultCssPath).toBe("src/");
     expect(buildSimilarityCssCommandArgs(0.9)).toEqual(["--threshold", "0.9", "--min-size", "3", "src/"]);
+    expect(buildSimilarityCssCommandArgs(0.87, "src/lib")).toEqual([
+      "--threshold",
+      "0.87",
+      "--min-size",
+      "3",
+      "src/lib",
+    ]);
     expect(isSimilarityCssSupported("darwin")).toBe(true);
     expect(isSimilarityCssSupported("linux")).toBe(true);
     expect(isSimilarityCssSupported("win32")).toBe(false);
@@ -290,5 +301,19 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(miseToml).toContain('run = "node ./scripts/similarity-report.ts"');
     expect(miseToml).toContain('"cargo:similarity-css" = { version = "0.5.0", os = ["linux", "macos"] }');
     expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
+  });
+
+  it("evaluates the TypeScript gate before the CSS skip and forwards parsed CSS scan arguments", () => {
+    const similarityReportSource = readFileSync("scripts/similarity-report.ts", "utf8");
+    const gatePosition = similarityReportSource.indexOf(
+      "const gateDiagnostic = evaluateSimilarityReportGate(result.stdout);",
+    );
+    const cssSkipPosition = similarityReportSource.indexOf("if (!isSimilarityCssSupported())");
+
+    expect(gatePosition).toBeGreaterThanOrEqual(0);
+    expect(cssSkipPosition).toBeGreaterThanOrEqual(0);
+    expect(gatePosition).toBeLessThan(cssSkipPosition);
+    expect(similarityReportSource).toContain("...buildSimilarityCssCommandArgs(threshold, targetPath)");
+    expect(similarityReportSource).toContain("buildSimilarityCssSummary(cssResult.stdout, threshold, targetPath)");
   });
 });

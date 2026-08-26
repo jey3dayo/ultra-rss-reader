@@ -32,7 +32,7 @@
     "test": "pnpm run test:node && pnpm run test:jsdom",
     "test:node": "pnpm exec vitest run --project node",
     "test:jsdom": "pnpm exec vitest run --project jsdom",
-    "test:release-repo-contract": "pnpm exec vitest run tests/release-repo-contract.test.ts",
+    "test:release-repo-contract": "pnpm exec vitest run tests/release-repo-contract.node.test.ts",
     "test:storybook:e2e": "pnpm exec playwright test --config playwright.storybook.config.ts",
     "test:watch": "pnpm exec vitest",
     "dev:portless": "portless ultra-rss-reader pnpm exec vite",
