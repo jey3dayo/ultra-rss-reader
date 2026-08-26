@@ -27,16 +27,32 @@ pub(super) fn keyring_force_delete_fallback_warning(status: &str, stderr: &str) 
 /// that prevent the keyring crate from deleting entries created by a differently-signed binary.
 #[cfg(target_os = "macos")]
 pub(super) fn force_delete_keychain_entry(account_id: &str) {
-    match std::process::Command::new("security")
-        .args([
-            "delete-generic-password",
-            "-s",
-            super::SERVICE,
-            "-a",
-            account_id,
-        ])
-        .output()
+    let mut command = std::process::Command::new("security");
+    command.args([
+        "delete-generic-password",
+        "-s",
+        super::SERVICE,
+        "-a",
+        account_id,
+    ]);
+    run_force_delete_keychain_entry(command, KEYRING_SECURITY_CLI_TIMEOUT);
+}
+
+#[cfg(target_os = "macos")]
+fn run_force_delete_keychain_entry(mut command: std::process::Command, timeout: Duration) {
+    let child = match command
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
     {
+        Ok(child) => child,
+        Err(error) => {
+            tracing::warn!("keyring force-delete fallback failed to run: {error}");
+            return;
+        }
+    };
+
+    match wait_for_security_cli_output(child, timeout) {
         Ok(output) if output.status.success() => {}
         Ok(output) => tracing::warn!(
             "{}",
@@ -45,7 +61,7 @@ pub(super) fn force_delete_keychain_entry(account_id: &str) {
                 &String::from_utf8_lossy(&output.stderr)
             )
         ),
-        Err(error) => tracing::warn!("keyring force-delete fallback failed to run: {error}"),
+        Err(error) => tracing::warn!("keyring force-delete fallback failed: {error}"),
     }
 }
 
@@ -126,4 +142,17 @@ pub(super) fn get_password_from_security_cli(account_id: &str) -> DomainResult<S
         redact_diagnostic_text(&output.status.to_string()),
         redact_stderr_text(&String::from_utf8_lossy(&output.stderr))
     )))
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::run_force_delete_keychain_entry;
+
+    #[test]
+    fn force_delete_keychain_entry_ignores_cli_timeout() {
+        let mut command = std::process::Command::new("sh");
+        command.args(["-c", "sleep 1"]);
+
+        run_force_delete_keychain_entry(command, std::time::Duration::from_millis(10));
+    }
 }
