@@ -117,58 +117,86 @@ export type UseArticleListViewPropsParams = {
     "footerModes" | "footerDisabledModes" | "isSearchLoading" | "isSearchEmptyState" | "setupEmptyState"
   >;
 
-export type UseArticleListPresentationParams = {
+export type ArticleListPresentationTranslators = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
+};
+
+export type ArticleListPresentationSource = {
   selection: ArticleListSelection;
-  focusedPane: FocusedPane;
   selectedAccountId: string | null;
   accountCount?: number;
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   tagId: string | null;
   accountListScopeId: string | null;
+  filteredArticles: ArticleDto[];
+  groupedArticles: Record<string, ArticleDto[]>;
+  groupBy: string;
+  feedNameMap: Map<string, string>;
+  selectedFeed: UseArticleListHeaderControllerParams["selectedFeed"];
+  effectiveViewMode: ViewMode;
+};
+
+export type ArticleListPresentationLoading = {
   isLoadingFeedArticles: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
   isLoadingTagArticles: boolean;
+};
+
+export type ArticleListPresentationSearch = {
   showSearch: boolean;
+  searchQuery: string;
+  searchInputRef: RefObject<HTMLInputElement | null>;
   trimmedDebouncedQuery: string;
   searchResults: unknown[] | undefined;
   isSearching: boolean;
-  filteredArticles: ArticleDto[];
-  groupedArticles: Record<string, ArticleDto[]>;
-  groupBy: string;
-  feedNameMap: Map<string, string>;
+  openSearch: () => void;
+  handleToggleSearch: () => void;
+  handleCloseSearch: () => void;
+  setSearchQuery: (value: string) => void;
+};
+
+export type ArticleListPresentationSelectionState = {
   selectedArticleId: string | null;
   recentlyReadIds: Set<string>;
-  selectedFeed: UseArticleListHeaderControllerParams["selectedFeed"];
-  onManageSelectedFeed?: (() => void) | null;
-  layoutMode: UseArticleListHeaderControllerParams["layoutMode"];
+  focusedPane: FocusedPane;
   contentMode: ContentMode;
+  layoutMode: UseArticleListHeaderControllerParams["layoutMode"];
   sidebarOpen: boolean;
-  openSidebar: () => void;
-  toggleSidebar: () => void;
-  setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
+};
+
+export type ArticleListPresentationPaneActions = {
   selectArticle: (articleId: string) => void;
   clearArticle: () => void;
   closeBrowser: () => void;
-  openSearch: () => void;
+  openSidebar: () => void;
+  toggleSidebar: () => void;
+  setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
+  setViewMode: (viewMode: ViewMode) => void;
+  onManageSelectedFeed?: (() => void) | null;
+};
+
+export type ArticleListPresentationViewPrefs = {
   keyboardPrefs: KeyboardShortcutPrefs;
   scrollToTopOnChange: string;
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;
   selectionStyle: string;
-  effectiveViewMode: ViewMode;
-  setViewMode: (viewMode: ViewMode) => void;
-  searchQuery: string;
-  searchInputRef: RefObject<HTMLInputElement | null>;
-  handleToggleSearch: () => void;
-  handleCloseSearch: () => void;
-  setSearchQuery: (value: string) => void;
+};
+
+export type UseArticleListPresentationParams = {
+  translators: ArticleListPresentationTranslators;
+  source: ArticleListPresentationSource;
+  loading: ArticleListPresentationLoading;
+  search: ArticleListPresentationSearch;
+  selectionState: ArticleListPresentationSelectionState;
+  paneActions: ArticleListPresentationPaneActions;
+  viewPrefs: ArticleListPresentationViewPrefs;
 };
 
 export type UseArticleListHeaderActionsParams = {

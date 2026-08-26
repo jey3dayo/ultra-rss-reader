@@ -953,6 +953,13 @@ const typeSurfaceInventory = [
     consumerScope: "reader article-list controller hooks, view-prop builder, presentation helpers, and focused tests",
     auditedExports: [
       "ArticleListSelection",
+      "ArticleListPresentationLoading",
+      "ArticleListPresentationPaneActions",
+      "ArticleListPresentationSearch",
+      "ArticleListPresentationSelectionState",
+      "ArticleListPresentationSource",
+      "ArticleListPresentationTranslators",
+      "ArticleListPresentationViewPrefs",
       "UseArticleListDataParams",
       "UseArticleListDataResult",
       "UseArticleListHeaderActionsParams",
