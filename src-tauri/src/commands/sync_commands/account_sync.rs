@@ -65,9 +65,12 @@ pub(crate) async fn sync_account(
             let auth_started_at = Instant::now();
             let session = match GReaderSession::establish(account).await {
                 Ok(session) => session,
-                Err(error @ (SessionError::MissingUsername | SessionError::MissingServerUrl)) => {
+                Err(error @ SessionError::MissingUsername) => {
                     error.log_skip(account);
                     return Ok(ProviderSyncOutcome::default());
+                }
+                Err(error @ SessionError::MissingServerUrl) => {
+                    return Err(error.into_user_visible());
                 }
                 Err(SessionError::Auth(error)) => return Err(error),
             };
@@ -99,9 +102,12 @@ pub(crate) async fn sync_feed(
         ProviderKind::FreshRss => {
             let session = match GReaderSession::establish(account).await {
                 Ok(session) => session,
-                Err(error @ (SessionError::MissingUsername | SessionError::MissingServerUrl)) => {
+                Err(error @ SessionError::MissingUsername) => {
                     error.log_skip_with_context(account, "single-feed sync");
                     return Ok(ProviderSyncOutcome::default());
+                }
+                Err(error @ SessionError::MissingServerUrl) => {
+                    return Err(error.into_user_visible());
                 }
                 Err(SessionError::Auth(error)) => return Err(error),
             };
@@ -341,9 +347,18 @@ pub(crate) async fn run_startup_sync_and_repair(
                     message: error.to_string(),
                 }),
             },
-            Err(error @ (SessionError::MissingUsername | SessionError::MissingServerUrl)) => {
+            Err(error @ SessionError::MissingUsername) => {
                 error.log_skip_with_context(account, "remote-state repair");
                 repaired_account_ids.push(account.id.as_ref().to_string());
+            }
+            Err(error @ SessionError::MissingServerUrl) => {
+                let error = error.into_user_visible();
+                repair_failures.push(AccountSyncError {
+                    account_id: account.id.as_ref().to_string(),
+                    account_name: account.name.clone(),
+                    action_owner: Some(sync_issue_owner_for_app_error(&error)),
+                    message: error.to_string(),
+                });
             }
             Err(SessionError::Auth(error)) => repair_failures.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),

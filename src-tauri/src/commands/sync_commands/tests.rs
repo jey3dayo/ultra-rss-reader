@@ -142,6 +142,46 @@ async fn run_startup_sync_and_repair_holds_guard_during_repair_and_releases_afte
 }
 
 #[tokio::test]
+async fn sync_account_returns_error_when_freshrss_server_url_is_missing() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let mut account =
+        test_sync_command_account("missing-server-url", ProviderKind::FreshRss, false);
+    account.server_url = None;
+
+    let error = sync_account(&db, &account)
+        .await
+        .expect_err("missing FreshRSS server URL should fail sync");
+
+    assert!(matches!(
+        error,
+        crate::commands::dto::AppError::UserVisible { message }
+            if message == "FreshRSS server URL is required"
+    ));
+}
+
+#[tokio::test]
+async fn startup_repair_reports_missing_freshrss_server_url_as_failure() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let syncing = AtomicBool::new(false);
+    let mut account =
+        test_sync_command_account("missing-server-url-repair", ProviderKind::FreshRss, false);
+    account.server_url = None;
+
+    let outcome =
+        run_startup_sync_and_repair(&db, &syncing, None, Vec::new(), vec![account], Vec::new())
+            .await
+            .expect("missing server URL should be reported in the repair result");
+
+    assert!(outcome.repaired_account_ids.is_empty());
+    assert_eq!(outcome.sync_result.failed.len(), 1);
+    assert_eq!(
+        outcome.sync_result.failed[0].message,
+        "FreshRSS server URL is required"
+    );
+    assert!(!syncing.load(Ordering::SeqCst));
+}
+
+#[tokio::test]
 async fn run_full_sync_skips_while_database_maintenance_is_reserved() {
     let db = Mutex::new(DbManager::new_in_memory().unwrap());
     let syncing = AtomicBool::new(false);
