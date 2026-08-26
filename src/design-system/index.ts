@@ -61,6 +61,17 @@ export * from "@/components/ui/button";
 export * from "@/components/ui/button-variants";
 export * from "@/components/ui/checkbox";
 export * from "@/components/ui/collapsible";
+export {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command";
 export * from "@/components/ui/dialog";
 export * from "@/components/ui/headless-button";
 export * from "@/components/ui/input";
