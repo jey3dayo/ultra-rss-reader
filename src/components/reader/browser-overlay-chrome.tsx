@@ -63,7 +63,11 @@ function BrowserOverlayIconAction({
 }) {
   const content = isValidElement<{ className?: string }>(children)
     ? cloneElement(children, {
-        className: cn(children.props.className, BROWSER_CHROME_ICON_CLASS_NAME, spinning && "animate-spin"),
+        className: cn(
+          children.props.className,
+          BROWSER_CHROME_ICON_CLASS_NAME,
+          spinning && "animate-spin motion-reduce:animate-none",
+        ),
       })
     : children;
 

@@ -131,7 +131,9 @@ export function SidebarHeaderView({
             isSyncCoolingDown && "opacity-70",
           )}
         >
-          <RefreshCw className={cn("size-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
+          <RefreshCw
+            className={cn("size-4", (isSyncing || isFeedbackSpinning) && "animate-spin motion-reduce:animate-none")}
+          />
           {isMobile && <span>{syncButtonText}</span>}
         </IconToolbarButton>
         <IconToolbarButton
