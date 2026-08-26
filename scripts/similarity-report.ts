@@ -262,12 +262,16 @@ export function parseSimilarityCssSummary(output: string): SimilarityCssSummary 
   };
 }
 
-export function buildSimilarityCssSummary(output: string): string {
+export function buildSimilarityCssSummary(
+  output: string,
+  threshold: SimilarityThreshold = defaultThreshold,
+  targetPath = defaultCssPath,
+): string {
   const summary = parseSimilarityCssSummary(output);
 
   return [
     "CSS similarity scan baseline",
-    `current command: mise exec -- similarity-css --threshold ${defaultThreshold} --min-size ${cssSimilarityMinSize} ${defaultCssPath}`,
+    `current command: mise exec -- similarity-css --threshold ${threshold} --min-size ${cssSimilarityMinSize} ${targetPath}`,
     `rules: ${summary.totalRules}`,
     `exact duplicates: ${summary.exactDuplicates}`,
     `similar styles: ${summary.similarStyles}`,
@@ -424,7 +428,7 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   process.stdout.write("\n");
   process.stdout.write(cssResult.stdout);
   process.stdout.write("\n");
-  process.stdout.write(buildSimilarityCssSummary(cssResult.stdout));
+  process.stdout.write(buildSimilarityCssSummary(cssResult.stdout, threshold, targetPath));
   process.stdout.write("\n");
 }
 

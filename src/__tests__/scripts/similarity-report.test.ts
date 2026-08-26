@@ -141,6 +141,10 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("current command: mise exec -- similarity-css --threshold 0.9 --min-size 3 src/");
     expect(summary).toContain("scan baseline rules: 92");
     expect(summary).toContain("scan baseline similar styles: 5");
+
+    expect(buildSimilarityCssSummary(sampleCssReport, 0.87, "src/lib")).toContain(
+      "current command: mise exec -- similarity-css --threshold 0.87 --min-size 3 src/lib",
+    );
   });
 
   it("ignores type similarity blocks when parsing function pairs", () => {
@@ -310,5 +314,6 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(cssSkipPosition).toBeGreaterThanOrEqual(0);
     expect(gatePosition).toBeLessThan(cssSkipPosition);
     expect(similarityReportSource).toContain("...buildSimilarityCssCommandArgs(threshold, targetPath)");
+    expect(similarityReportSource).toContain("buildSimilarityCssSummary(cssResult.stdout, threshold, targetPath)");
   });
 });
