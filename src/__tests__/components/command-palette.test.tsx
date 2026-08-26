@@ -138,11 +138,24 @@ describe("CommandPalette", () => {
       }),
     ).toBeInTheDocument();
     expect(dialog.querySelector('[data-slot="command"]')).toHaveClass("[&_[cmdk-group-heading]]:text-foreground-soft");
-    expect(screen.getByTestId("command-palette-results")).toHaveAttribute("data-motion-phase", "entering");
-    expect(screen.getByTestId("command-palette-results")).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps results mounted while filtering to avoid per-keystroke motion", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    const results = screen.getByTestId("command-palette-results");
+
+    await user.type(input, ">settings");
+
+    expect(screen.getByTestId("command-palette-results")).toBe(results);
+    expect(results).not.toHaveAttribute("data-motion-phase");
+    expect(results).not.toHaveClass("motion-content-swap");
   });
 
   it("uses the command palette top-layer stack contract", async () => {

@@ -74,7 +74,6 @@ type CommandPaletteResultsHandlers = {
 };
 
 export type CommandPaletteResultsProps = {
-  resultsMotionKey?: string;
   items: CommandPaletteResultsItems;
   visibility: CommandPaletteResultsVisibility;
   headings: CommandPaletteResultsHeadings;
