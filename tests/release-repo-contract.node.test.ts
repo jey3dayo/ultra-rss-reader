@@ -1802,6 +1802,8 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const releaseJobBlock = releaseWorkflow.slice(releaseWorkflow.indexOf("\n  release:"));
 
     expect(releaseJobBlock).toContain("needs: [preflight, quality]");
+    expect(releaseJobBlock).toContain("!cancelled()");
+    expect(releaseJobBlock).toContain("needs.quality.result == 'success' || needs.quality.result == 'skipped'");
   });
 
   it("keeps Release Drafter config separate from release workflow publishing responsibilities", () => {
