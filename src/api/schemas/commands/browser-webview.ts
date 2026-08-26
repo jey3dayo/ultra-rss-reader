@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
 import { BROWSER_WEBVIEW_BOUNDS_MAX_VALUE } from "./shared";
-import { parseHttpUrl, readingListUrlSchema } from "./url";
+import { parseHttpUrl, webPreviewUrlSchema } from "./url";
 
 function isDevWebPreviewGeometryFixtureUrl(value: string): boolean {
   const url = parseHttpUrl(value);
@@ -25,9 +25,9 @@ const devWebPreviewGeometryFixtureUrlSchema = v.pipe(
   v.trim(),
   v.check(isDevWebPreviewGeometryFixtureUrl, "Only the dev web preview geometry fixture may target localhost"),
 );
-const browserWebviewUrlSchema = v.union([readingListUrlSchema, devWebPreviewGeometryFixtureUrlSchema]);
+const browserWebviewUrlSchema = v.union([webPreviewUrlSchema, devWebPreviewGeometryFixtureUrlSchema]);
 
-export const checkBrowserEmbedSupportArgs = s.object({ url: readingListUrlSchema });
+export const checkBrowserEmbedSupportArgs = s.object({ url: webPreviewUrlSchema });
 
 const geometryIntegerSchema = v.pipe(
   v.number(),
