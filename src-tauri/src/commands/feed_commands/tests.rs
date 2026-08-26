@@ -311,10 +311,11 @@ fn add_freshrss_feed_rejects_returned_remote_id_duplicate_before_local_save() {
 #[tokio::test]
 async fn add_freshrss_feed_keeps_local_feed_when_initial_sync_fails() {
     let mut server = mockito::Server::new_async().await;
-    server
+    let auth_mock = server
         .mock("POST", "/api/greader.php/accounts/ClientLogin")
         .with_status(200)
         .with_body("Auth=tok\n")
+        .expect(1)
         .create_async()
         .await;
     server
@@ -392,6 +393,7 @@ async fn add_freshrss_feed_keeps_local_feed_when_initial_sync_fails() {
         added_feed.icon_url.as_deref(),
         Some("https://example.com/icon.png")
     );
+    auth_mock.assert_async().await;
     let guard = db.lock().unwrap();
     let feed_repo = SqliteFeedRepository::new(guard.reader());
     let persisted_feed = feed_repo

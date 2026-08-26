@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto};
+use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
 use crate::domain::feed::Feed;
 use crate::domain::provider::ProviderKind;
@@ -10,9 +11,8 @@ use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
-use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
-use crate::infra::provider::traits::{Credentials, FeedProvider};
+use crate::infra::provider::traits::FeedProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 
@@ -206,29 +206,11 @@ async fn add_freshrss_feed_with_account(
         validate_add_freshrss_feed_preflight_in_db(&db, &account.id, &url)?;
     }
 
-    let username = account
-        .username
-        .clone()
-        .ok_or_else(|| AppError::UserVisible {
-            message: "FreshRSS username is required".into(),
-        })?;
-    let server_url = account
-        .server_url
-        .as_deref()
-        .ok_or_else(|| AppError::UserVisible {
-            message: "FreshRSS server URL is required".into(),
-        })?;
+    let session = GReaderSession::establish(&account)
+        .await
+        .map_err(SessionError::into_user_visible)?;
 
-    let mut provider = GReaderProvider::for_freshrss(server_url);
-    let password = crate::commands::sync_providers::get_greader_password(&account).await?;
-    provider
-        .authenticate(&Credentials {
-            token: Some(username),
-            password: Some(password),
-        })
-        .await?;
-
-    let sub = provider.create_subscription(&url, None).await?;
+    let sub = session.provider().create_subscription(&url, None).await?;
     let feed = Feed {
         id: FeedId::new(),
         account_id: account.id.clone(),
@@ -276,7 +258,7 @@ async fn add_freshrss_feed_with_account(
     };
 
     if let Err(error) =
-        crate::commands::sync_providers::sync_greader_feed(db, &account, &persisted_feed, provider)
+        crate::commands::sync_providers::sync_greader_feed(db, &account, &persisted_feed, &session)
             .await
     {
         tracing::warn!("FreshRSS feed was added but initial article sync failed: {error}");

@@ -206,8 +206,8 @@ async fn sync_greader_account_uses_account_stream_for_full_sync_and_maps_entries
     }
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    let outcome = sync_greader_account(&db, &account, provider).await.unwrap();
+    let session = authenticated_session(&server.url()).await;
+    let outcome = sync_greader_account(&db, &account, &session).await.unwrap();
 
     account_stream_mock.assert_async().await;
     per_feed_one_mock.assert_async().await;
@@ -727,8 +727,8 @@ async fn sync_greader_account_uses_account_sync_state_for_incremental_sync() {
     }
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    sync_greader_account(&db, &account, provider).await.unwrap();
+    let session = authenticated_session(&server.url()).await;
+    sync_greader_account(&db, &account, &session).await.unwrap();
 
     account_stream_mock.assert_async().await;
 
@@ -1008,8 +1008,8 @@ async fn sync_greader_account_turns_account_level_skips_into_warnings() {
     );
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    let outcome = sync_greader_account(&db, &account, provider).await.unwrap();
+    let session = authenticated_session(&server.url()).await;
+    let outcome = sync_greader_account(&db, &account, &session).await.unwrap();
 
     account_stream_mock.assert_async().await;
     per_feed_one_mock.assert_async().await;
@@ -1162,8 +1162,8 @@ async fn sync_greader_account_skips_pull_state_when_recent_remote_state_sync_exi
     }
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    sync_greader_account(&db, &account, provider).await.unwrap();
+    let session = authenticated_session(&server.url()).await;
+    sync_greader_account(&db, &account, &session).await.unwrap();
 
     pull_state_read_mock.assert_async().await;
     pull_state_starred_mock.assert_async().await;
@@ -1347,8 +1347,8 @@ async fn sync_greader_account_guards_pushed_and_retrying_pending_state() {
     }
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let provider = GReaderProvider::for_freshrss(&server.url());
-    let outcome = sync_greader_account(&db, &account, provider).await.unwrap();
+    let session = authenticated_session(&server.url()).await;
+    let outcome = sync_greader_account(&db, &account, &session).await.unwrap();
 
     pushed_mutation_mock.assert_async().await;
     retry_mutation_mock.assert_async().await;

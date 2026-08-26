@@ -291,6 +291,10 @@ pub(super) async fn authenticated_provider(server_url: &str) -> GReaderProvider 
     provider
 }
 
+pub(super) async fn authenticated_session(server_url: &str) -> GReaderSession {
+    GReaderSession::from_provider_for_tests(authenticated_provider(server_url).await)
+}
+
 pub(super) async fn configure_dev_credentials(account_id: &AccountId) -> DevCredentialsContext {
     let guard = DEV_CREDENTIALS_ENV_LOCK.lock().await;
     let previous_home = std::env::var("HOME").ok();

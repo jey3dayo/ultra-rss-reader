@@ -71,10 +71,12 @@ use account::{
 pub(super) use account::{repair_greader_remote_state, sync_greader_account, sync_greader_feed};
 
 mod local;
+mod session;
 
 pub(super) use local::sync_local_feed;
 #[cfg(test)]
 use local::{local_feed_scope_key, upsert_articles_in_current_transaction};
+pub(crate) use session::{GReaderSession, SessionError};
 
 mod state;
 mod subscriptions;

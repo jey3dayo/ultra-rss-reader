@@ -14,7 +14,7 @@ use crate::domain::provider::Mutation;
 use crate::infra::db::connection::DbManager;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
-use crate::infra::provider::traits::{Credentials, FeedProvider};
+use crate::infra::provider::traits::FeedProvider;
 use crate::repository::pending_mutation::{PendingMutationAxis, PendingMutationType};
 
 use super::super::local::sync_local_feed;
@@ -28,7 +28,7 @@ use super::super::subscriptions::{
 };
 use super::super::unread::reconcile_greader_unread_counts;
 use super::super::{
-    get_greader_password, redacted_feed_host_class, ProviderSyncOutcome, ProviderSyncWarning,
+    redacted_feed_host_class, GReaderSession, ProviderSyncOutcome, ProviderSyncWarning,
 };
 use super::db::{
     delete_pending_mutation, load_account_feeds, load_folder_remote_id_map,
@@ -44,27 +44,8 @@ pub(crate) async fn sync_greader_feed(
     db: &Mutex<DbManager>,
     account: &Account,
     feed: &Feed,
-    mut provider: GReaderProvider,
+    session: &GReaderSession,
 ) -> Result<ProviderSyncOutcome, AppError> {
-    let username = match &account.username {
-        Some(u) => u.clone(),
-        None => {
-            warn!(
-                "GReader account {} has no username, skipping single-feed sync",
-                account.id.as_ref()
-            );
-            return Ok(ProviderSyncOutcome::default());
-        }
-    };
-
-    let password = get_greader_password(account).await?;
-    provider
-        .authenticate(&Credentials {
-            token: Some(username),
-            password: Some(password),
-        })
-        .await?;
-
     if !is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
         let local_provider = LocalProvider::new();
         sync_local_feed(db, &local_provider, &account.id, feed).await?;
@@ -72,7 +53,7 @@ pub(crate) async fn sync_greader_feed(
     }
 
     let article_count_before = article_count_for_feed(db, &feed.id)?;
-    let feed_outcome = sync_greader_feed_entries(db, &provider, account, feed).await?;
+    let feed_outcome = sync_greader_feed_entries(db, session.provider(), account, feed).await?;
     recalculate_single_feed_unread_count(db, &feed.id)?;
     let article_count_after = article_count_for_feed(db, &feed.id)?;
 

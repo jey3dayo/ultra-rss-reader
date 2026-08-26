@@ -20,16 +20,15 @@
 use std::sync::Mutex;
 use std::time::Instant;
 
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::commands::dto::AppError;
 use crate::domain::account::Account;
 use crate::infra::db::connection::DbManager;
-use crate::infra::provider::greader::GReaderProvider;
-use crate::infra::provider::traits::{Credentials, FeedProvider};
+use crate::infra::provider::traits::FeedProvider;
 
 use super::subscriptions::delete_missing_greader_folders;
-use super::{get_greader_password, ProviderSyncOutcome};
+use super::{GReaderSession, ProviderSyncOutcome};
 
 mod db;
 mod entries;
@@ -75,45 +74,18 @@ pub(crate) struct GReaderAccountEntriesSyncOutcome {
     feeds_seen: usize,
 }
 
-/// Sync a GReader-compatible account: authenticate, sync folders, subscriptions, entries, state, unread counts.
+/// Sync a GReader-compatible account: sync folders, subscriptions, entries, state, unread counts.
 pub(crate) async fn sync_greader_account(
     db: &Mutex<DbManager>,
     account: &Account,
-    mut provider: GReaderProvider,
+    session: &GReaderSession,
 ) -> Result<ProviderSyncOutcome, AppError> {
     let total_started_at = Instant::now();
 
-    let username = match &account.username {
-        Some(u) => u.clone(),
-        None => {
-            warn!(
-                "GReader account {} has no username, skipping",
-                account.id.as_ref()
-            );
-            return Ok(ProviderSyncOutcome::default());
-        }
-    };
-
-    // Step 1: Authenticate (no DB lock)
-    let auth_started_at = Instant::now();
-    let password = get_greader_password(account).await?;
-    provider
-        .authenticate(&Credentials {
-            token: Some(username),
-            password: Some(password),
-        })
-        .await?;
-    info!(
-        account_id = %account.id.as_ref(),
-        phase = "auth",
-        elapsed_ms = auth_started_at.elapsed().as_millis() as u64,
-        "FreshRSS sync phase completed"
-    );
-
-    // Step 2: Sync folders. A successful get_folders response is a complete
+    // Step 1: Sync folders. A successful get_folders response is a complete
     // snapshot; stale folders are reconciled after the account sync succeeds.
     let folders_started_at = Instant::now();
-    let remote_folders = provider.get_folders().await?;
+    let remote_folders = session.provider().get_folders().await?;
     let remote_folder_ids = save_greader_folders_snapshot(db, account, &remote_folders)?;
     info!(
         account_id = %account.id.as_ref(),
@@ -123,8 +95,8 @@ pub(crate) async fn sync_greader_account(
         "FreshRSS sync phase completed"
     );
 
-    // Steps 3-7
-    let mut outcome = sync_greader_feeds(db, &provider, account).await?;
+    // Steps 2-6
+    let mut outcome = sync_greader_feeds(db, session.provider(), account).await?;
     let folder_cleanup_started_at = Instant::now();
     let deleted_folder_count = delete_missing_greader_folders(db, account, &remote_folder_ids)?;
     if deleted_folder_count > 0 {

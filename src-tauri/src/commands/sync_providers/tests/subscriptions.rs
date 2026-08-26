@@ -337,7 +337,8 @@ async fn sync_greader_account_keeps_stale_folder_when_folder_snapshot_fails() {
     }
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let error = sync_greader_account(&db, &account, GReaderProvider::for_freshrss(&server.url()))
+    let session = authenticated_session(&server.url()).await;
+    let error = sync_greader_account(&db, &account, &session)
         .await
         .expect_err("folder snapshot failure should fail sync before cleanup");
 
@@ -388,7 +389,8 @@ async fn sync_greader_account_keeps_stale_folder_when_folder_snapshot_is_malform
     }
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let error = sync_greader_account(&db, &account, GReaderProvider::for_freshrss(&server.url()))
+    let session = authenticated_session(&server.url()).await;
+    let error = sync_greader_account(&db, &account, &session)
         .await
         .expect_err("malformed folder snapshot should fail before cleanup");
 
@@ -444,7 +446,8 @@ async fn sync_greader_account_keeps_stale_folder_when_later_subscription_sync_fa
     }
     let _credentials = configure_dev_credentials(&account.id).await;
 
-    let error = sync_greader_account(&db, &account, GReaderProvider::for_freshrss(&server.url()))
+    let session = authenticated_session(&server.url()).await;
+    let error = sync_greader_account(&db, &account, &session)
         .await
         .expect_err("later subscription failure should leave stale folder untouched");
 
