@@ -1,6 +1,6 @@
 //! GReader entry pull and persist for account-wide and single-feed sync
 //! scopes.
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
 use tracing::warn;
@@ -11,7 +11,7 @@ use crate::domain::article::Article;
 use crate::domain::feed::Feed;
 use crate::domain::provider::{FeedIdentifier, PullScope};
 use crate::infra::db::connection::DbManager;
-use crate::infra::provider::greader::GReaderProvider;
+use crate::infra::provider::greader::{GReaderProvider, G_READER_MAX_PAGES};
 use crate::infra::provider::traits::FeedProvider;
 use crate::repository::sync_state::{SyncState, SyncStateScopeKey};
 use crate::service::article_materializer::article_from_remote_entry;
@@ -43,6 +43,7 @@ pub(crate) async fn sync_greader_account_entries(
     let mut entries_upserted = 0usize;
     let mut delta_pages = 0usize;
     let mut seen_feed_ids = std::collections::HashSet::new();
+    let mut seen_continuations = HashSet::new();
 
     loop {
         let result = match provider.pull_entries(PullScope::All, cursor.clone()).await {
@@ -103,6 +104,34 @@ pub(crate) async fn sync_greader_account_entries(
         if !result.has_more {
             break;
         }
+
+        if delta_pages >= G_READER_MAX_PAGES {
+            warn!(
+                account_id = %account.id.as_ref(),
+                page_count = delta_pages,
+                max_pages = G_READER_MAX_PAGES,
+                reason = "page_cap",
+                "GReader account entry sync stopped at the page cap"
+            );
+            break;
+        }
+
+        let Some(next_continuation) = result
+            .next_cursor
+            .as_ref()
+            .and_then(|next_cursor| next_cursor.continuation.as_ref())
+        else {
+            break;
+        };
+        if !seen_continuations.insert(next_continuation.clone()) {
+            warn!(
+                account_id = %account.id.as_ref(),
+                page_count = delta_pages,
+                reason = "continuation_cycle",
+                "GReader account entry sync stopped at a continuation cycle"
+            );
+            break;
+        }
         cursor = result.next_cursor.clone();
     }
 
@@ -144,6 +173,8 @@ pub(crate) async fn sync_greader_feed_entries(
     let mut cursor = initial_cursor.clone();
     let mut latest_timestamp_usec = sync_state_timestamp_usec(saved_state.as_ref());
     let mut skipped_entries = 0usize;
+    let mut delta_pages = 0usize;
+    let mut seen_continuations = HashSet::new();
 
     loop {
         let scope = PullScope::Feed(FeedIdentifier::Remote {
@@ -164,6 +195,7 @@ pub(crate) async fn sync_greader_feed_entries(
                 return Err(app_error);
             }
         };
+        delta_pages += 1;
         skipped_entries += result.skipped_entries;
 
         update_latest_timestamp_usec(&mut latest_timestamp_usec, result.next_cursor.as_ref());
@@ -180,6 +212,34 @@ pub(crate) async fn sync_greader_feed_entries(
         }
 
         if !result.has_more {
+            break;
+        }
+
+        if delta_pages >= G_READER_MAX_PAGES {
+            warn!(
+                account_id = %account.id.as_ref(),
+                page_count = delta_pages,
+                max_pages = G_READER_MAX_PAGES,
+                reason = "page_cap",
+                "GReader feed entry sync stopped at the page cap"
+            );
+            break;
+        }
+
+        let Some(next_continuation) = result
+            .next_cursor
+            .as_ref()
+            .and_then(|next_cursor| next_cursor.continuation.as_ref())
+        else {
+            break;
+        };
+        if !seen_continuations.insert(next_continuation.clone()) {
+            warn!(
+                account_id = %account.id.as_ref(),
+                page_count = delta_pages,
+                reason = "continuation_cycle",
+                "GReader feed entry sync stopped at a continuation cycle"
+            );
             break;
         }
 

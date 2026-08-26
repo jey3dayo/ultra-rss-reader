@@ -1,6 +1,7 @@
 //! GReader per-feed sync, remote-state repair, and local (non-GReader) feed sync tests.
 
 use super::*;
+use crate::infra::provider::greader::G_READER_MAX_PAGES;
 
 #[tokio::test]
 async fn sync_greader_feed_entries_uses_saved_timestamp_for_incremental_sync() {
@@ -246,6 +247,82 @@ async fn sync_greader_feed_entries_advances_timestamp_after_all_pages_finish() {
     assert_eq!(articles.len(), 2);
     assert_eq!(state.timestamp_usec, Some(1_700_000_200_000_000));
     assert_eq!(state.continuation, None);
+}
+
+#[tokio::test]
+async fn sync_greader_feed_entries_stops_at_page_cap_after_persisting_entries() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=tok\n")
+        .create_async()
+        .await;
+
+    let page_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let response_calls = std::sync::Arc::clone(&page_calls);
+    let stream_mock = server
+        .mock(
+            "GET",
+            Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+        )
+        .match_query(Matcher::Any)
+        .match_header("Authorization", "GoogleLogin auth=tok")
+        .expect(G_READER_MAX_PAGES)
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body_from_request(move |_| {
+            let page = response_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) as i64;
+            let timestamp_usec = 1_700_000_000_000_000_i64 + page * 1_000_000;
+            let published = 1_700_000_000_i64 + page;
+            format!(
+                r#"{{"items":[{{"id":"entry-{page}","title":"Page {page}","alternate":[{{"href":"https://example.com/{page}"}}],"timestampUsec":"{timestamp_usec}","published":{published},"origin":{{"streamId":"{FEED_REMOTE_ID}","title":"Example"}},"categories":[]}}],"continuation":"page-{}"}}"#,
+                page + 1
+            )
+            .into_bytes()
+        })
+        .create_async()
+        .await;
+
+    let db = test_db();
+    let (account, feed) = insert_account_and_feed(&db, &server.url());
+    let provider = authenticated_provider(&server.url()).await;
+
+    sync_greader_feed_entries(&db, &provider, &account, &feed)
+        .await
+        .expect("reaching the page cap should terminate as a successful partial sync");
+
+    stream_mock.assert_async().await;
+    assert_eq!(
+        page_calls.load(std::sync::atomic::Ordering::SeqCst),
+        G_READER_MAX_PAGES
+    );
+
+    let db_guard = db.lock().unwrap();
+    let article_repo = SqliteArticleRepository::new(db_guard.reader());
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+    let articles = article_repo
+        .find_by_feed(
+            &feed.id,
+            &Pagination {
+                offset: 0,
+                limit: G_READER_MAX_PAGES,
+            },
+        )
+        .unwrap();
+    let state = sync_state_repo
+        .get(&account.id, &feed_scope_key(FEED_REMOTE_ID))
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(articles.len(), G_READER_MAX_PAGES);
+    assert_eq!(
+        state.timestamp_usec,
+        Some(1_700_000_000_000_000 + (G_READER_MAX_PAGES as i64 - 1) * 1_000_000)
+    );
+    assert_eq!(state.continuation, None);
+    assert_eq!(state.last_error, None);
+    assert!(state.last_success_at.is_some());
 }
 
 #[tokio::test]
