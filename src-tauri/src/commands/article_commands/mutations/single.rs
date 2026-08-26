@@ -7,7 +7,7 @@ use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
-use crate::repository::article::ArticleRepository;
+use crate::repository::article::{ArticleHistoryRepository, ArticleMutationRepository};
 use crate::repository::feed::FeedRepository;
 use crate::repository::pending_mutation::PendingMutationType;
 

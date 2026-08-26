@@ -25,7 +25,7 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
-use crate::repository::article::ArticleRepository;
+use crate::repository::article::ArticleMutationRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::{PendingMutation, PendingMutationRepository};

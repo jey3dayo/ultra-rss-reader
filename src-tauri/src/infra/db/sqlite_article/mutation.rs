@@ -3,15 +3,23 @@ use std::collections::HashSet;
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 
-use super::SqliteArticleRepository;
-use crate::domain::article::Article;
+use super::{
+    row_to_article, row_to_article_list_history_item, row_to_article_view_history_item,
+    SqliteArticleRepository, ARTICLE_LIST_SELECT_COLS, SELECT_COLS,
+};
+use crate::domain::article::{Article, ArticleListHistoryItem, ArticleViewHistoryItem};
 use crate::domain::constants::RECENT_ARTICLE_HISTORY_LIMIT;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::{is_greader_managed_feed_remote_id, GREADER_FEED_ID_PREFIX};
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_feed::recalculate_unread_count_with_conn;
 use crate::infra::db::sqlite_mute_keyword::{
-    build_mute_keyword_match_clause, SqliteMuteKeywordRepository,
+    build_mute_keyword_exclusion_clause, build_mute_keyword_match_clause,
+    SqliteMuteKeywordRepository,
+};
+use crate::repository::article::{
+    ArticleHistoryRepository, ArticleListMode, ArticleMaintenanceRepository,
+    ArticleMutationRepository, ArticleRemoteStateRepository, Pagination,
 };
 use crate::repository::mute_keyword::MuteKeywordRepository;
 use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
@@ -233,12 +241,101 @@ fn mark_muted_unread_as_read_with_scope(
     Ok(rows.len())
 }
 
-impl SqliteArticleRepository<'_> {
-    pub(crate) fn record_view_body(
+impl ArticleHistoryRepository for SqliteArticleRepository<'_> {
+    fn find_recently_viewed_by_account(
         &self,
         account_id: &AccountId,
-        article_id: &ArticleId,
-    ) -> DomainResult<()> {
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleViewHistoryItem>> {
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let mut filters = vec![
+            "h.account_id = ?1".to_string(),
+            "f.account_id = ?1".to_string(),
+        ];
+        if let Some(mode_filter) = mode.sql_filter("a") {
+            filters.push(mode_filter);
+        }
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed}, h.account_id, h.viewed_at
+             FROM article_view_history h
+             JOIN articles a ON h.article_id = a.id
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE {where_clause}
+             ORDER BY h.viewed_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let items = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_view_history_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(items)
+    }
+
+    fn list_recently_viewed_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListHistoryItem>> {
+        let select_cols_prefixed =
+            super::SqliteArticleRepository::select_cols_prefixed(ARTICLE_LIST_SELECT_COLS, "a");
+        let mut filters = vec![
+            "h.account_id = ?1".to_string(),
+            "f.account_id = ?1".to_string(),
+        ];
+        if let Some(mode_filter) = mode.sql_filter("a") {
+            filters.push(mode_filter);
+        }
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed}, h.account_id, h.viewed_at
+             FROM article_view_history h
+             JOIN articles a ON h.article_id = a.id
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE {where_clause}
+             ORDER BY h.viewed_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let items = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_list_history_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(items)
+    }
+
+    fn record_view(&self, account_id: &AccountId, article_id: &ArticleId) -> DomainResult<()> {
         let viewed_at = Utc::now().to_rfc3339();
         let tx = self.conn.unchecked_transaction()?;
         tx.execute(
@@ -271,22 +368,24 @@ impl SqliteArticleRepository<'_> {
         Ok(())
     }
 
-    pub(crate) fn clear_view_history_body(&self, account_id: &AccountId) -> DomainResult<u64> {
+    fn clear_view_history(&self, account_id: &AccountId) -> DomainResult<u64> {
         let removed = self.conn.execute(
             "DELETE FROM article_view_history WHERE account_id = ?1",
             params![account_id.0],
         )?;
         Ok(removed as u64)
     }
+}
 
-    pub(crate) fn upsert_body(&self, articles: &[Article]) -> DomainResult<()> {
+impl ArticleMutationRepository for SqliteArticleRepository<'_> {
+    fn upsert(&self, articles: &[Article]) -> DomainResult<()> {
         let tx = self.conn.unchecked_transaction()?;
         upsert_articles_with_conn(&tx, articles)?;
         tx.commit()?;
         Ok(())
     }
 
-    pub(crate) fn mark_as_read_body(&self, id: &ArticleId, read: bool) -> DomainResult<()> {
+    fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()> {
         let affected_rows = self.conn.execute(
             "UPDATE articles SET is_read = ?1 WHERE id = ?2",
             params![read, id.0],
@@ -294,7 +393,7 @@ impl SqliteArticleRepository<'_> {
         require_article_row_affected(affected_rows, id)
     }
 
-    pub(crate) fn mark_many_as_read_body(&self, ids: &[ArticleId]) -> DomainResult<()> {
+    fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()> {
         if ids.is_empty() {
             return Ok(());
         }
@@ -309,7 +408,7 @@ impl SqliteArticleRepository<'_> {
         Ok(())
     }
 
-    pub(crate) fn mark_muted_unread_as_read_body(
+    fn mark_muted_unread_as_read(
         &self,
         account_id: &AccountId,
         candidate_ids: Option<&[ArticleId]>,
@@ -320,7 +419,7 @@ impl SqliteArticleRepository<'_> {
         Ok(changed)
     }
 
-    pub(crate) fn mark_feed_as_read_body(&self, feed_id: &FeedId) -> DomainResult<u64> {
+    fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64> {
         let updated = self.conn.execute(
             "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_read = 0",
             params![feed_id.0],
@@ -328,7 +427,7 @@ impl SqliteArticleRepository<'_> {
         Ok(updated as u64)
     }
 
-    pub(crate) fn mark_folder_as_read_body(&self, folder_id: &FolderId) -> DomainResult<u64> {
+    fn mark_folder_as_read(&self, folder_id: &FolderId) -> DomainResult<u64> {
         let updated = self.conn.execute(
             "UPDATE articles SET is_read = 1 WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_read = 0",
             params![folder_id.0],
@@ -336,19 +435,17 @@ impl SqliteArticleRepository<'_> {
         Ok(updated as u64)
     }
 
-    pub(crate) fn mark_as_starred_body(&self, id: &ArticleId, starred: bool) -> DomainResult<()> {
+    fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()> {
         let affected_rows = self.conn.execute(
             "UPDATE articles SET is_starred = ?1 WHERE id = ?2",
             params![starred, id.0],
         )?;
         require_article_row_affected(affected_rows, id)
     }
+}
 
-    pub(crate) fn purge_old_read_body(
-        &self,
-        account_id: &AccountId,
-        before: DateTime<Utc>,
-    ) -> DomainResult<u64> {
+impl ArticleMaintenanceRepository for SqliteArticleRepository<'_> {
+    fn purge_old_read(&self, account_id: &AccountId, before: DateTime<Utc>) -> DomainResult<u64> {
         let deleted = self.conn.execute(
             "DELETE FROM articles
              WHERE is_read = 1
@@ -386,12 +483,7 @@ impl SqliteArticleRepository<'_> {
         Ok(deleted as u64)
     }
 
-    pub(crate) fn update_sanitized_body(
-        &self,
-        id: &ArticleId,
-        sanitized: &str,
-        version: u32,
-    ) -> DomainResult<()> {
+    fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()> {
         let summary = self
             .conn
             .query_row(
@@ -417,7 +509,27 @@ impl SqliteArticleRepository<'_> {
         Ok(())
     }
 
-    pub(crate) fn apply_remote_state_body(
+    fn find_by_sanitizer_version_below(
+        &self,
+        version: u32,
+        limit: usize,
+    ) -> DomainResult<Vec<Article>> {
+        let sql = format!(
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE sanitizer_version < ?1
+             ORDER BY sanitizer_version ASC, fetched_at ASC, id ASC
+             LIMIT ?2"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(params![version, limit as i64], row_to_article)?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+}
+
+impl ArticleRemoteStateRepository for SqliteArticleRepository<'_> {
+    fn apply_remote_state(
         &self,
         account_id: &AccountId,
         read_remote_ids: &[String],

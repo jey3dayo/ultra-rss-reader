@@ -4,7 +4,10 @@ use crate::domain::constants::{
 };
 use crate::domain::error::DomainError;
 use crate::infra::db::connection::DbManager;
-use crate::repository::article::ArticleListMode;
+use crate::repository::article::{
+    ArticleHistoryRepository, ArticleListMode, ArticleListRepository, ArticleMaintenanceRepository,
+    ArticleMutationRepository, ArticleReadRepository, ArticleRemoteStateRepository,
+};
 use crate::repository::feed::FeedRepository;
 use std::collections::HashSet;
 

@@ -3,7 +3,7 @@ use crate::domain::types::FeedId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
-use crate::repository::article::ArticleRepository;
+use crate::repository::article::ArticleMutationRepository;
 use crate::repository::feed::FeedRepository;
 use rusqlite::params;
 

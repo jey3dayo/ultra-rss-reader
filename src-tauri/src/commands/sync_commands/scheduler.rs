@@ -19,7 +19,7 @@ use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::repository::account::AccountRepository;
-use crate::repository::article::ArticleRepository;
+use crate::repository::article::ArticleMaintenanceRepository;
 use crate::repository::preference::PreferenceRepository;
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
