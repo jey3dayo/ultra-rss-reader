@@ -348,7 +348,7 @@ describe("useUpdateFeedFolder", () => {
       expect(consoleWarn).toHaveBeenCalledWith("Query invalidation failed:", {
         failures: expect.arrayContaining([
           expect.objectContaining({
-            actionOwner: "unknown",
+            actionOwner: "feed-display-update",
             queryKey: queryKeys.feeds.root,
             error: expect.any(Error),
           }),

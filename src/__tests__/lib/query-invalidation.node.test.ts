@@ -411,7 +411,7 @@ describe("query-invalidation", () => {
     ]);
   });
 
-  it("pins named non-article invalidation intent query key sets", () => {
+  it("pins named invalidation intent query key sets without aggregate duplicates", () => {
     const { invalidateQueries, queryClient } = createInvalidateSpy();
     const expectQueryKeys = (run: () => void, expected: ReadonlyArray<ReadonlyArray<unknown>>) => {
       invalidateQueries.mockClear();
@@ -434,7 +434,6 @@ describe("query-invalidation", () => {
         queryKeys.starredArticles.root,
         queryKeys.accountUnreadCount.root,
         queryKeys.accountStarredCount.root,
-        queryKeys.feeds.root,
         queryKeys.articlesByTag.root,
         queryKeys.search.root,
         queryKeys.recentArticles.root,
@@ -471,7 +470,6 @@ describe("query-invalidation", () => {
         queryKeys.starredArticles.root,
         queryKeys.accountUnreadCount.root,
         queryKeys.accountStarredCount.root,
-        queryKeys.feeds.root,
         queryKeys.articlesByTag.root,
         queryKeys.tagArticleCounts.root,
         queryKeys.search.root,
@@ -479,6 +477,63 @@ describe("query-invalidation", () => {
         queryKeys.feedArticleSummaries.root,
       ],
     );
+  });
+
+  it("tags named invalidation intent failures by operation owner", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+    const cases = [
+      {
+        actionOwner: "feed-display-update",
+        queryKey: queryKeys.feeds.root,
+        invalidate: () => invalidateFeedRootQueries(queryClient),
+      },
+      {
+        actionOwner: "feed-edit",
+        queryKey: queryKeys.feeds.root,
+        invalidate: () => invalidateFeedEditQueries(queryClient, true),
+      },
+      {
+        actionOwner: "feed-edit",
+        queryKey: queryKeys.folders.root,
+        invalidate: () => invalidateFeedEditQueries(queryClient, false),
+      },
+      {
+        actionOwner: "account-setup",
+        queryKey: queryKeys.feeds.root,
+        invalidate: () => invalidateAccountSetupQueries(queryClient),
+      },
+      {
+        actionOwner: "account-sync-now",
+        queryKey: queryKeys.feeds.root,
+        invalidate: () => invalidateAccountSyncNowQueries(queryClient),
+      },
+      {
+        actionOwner: "local-account-sync-import",
+        queryKey: queryKeys.articles.root,
+        invalidate: () => invalidateLocalAccountSyncImportArticleQueries(queryClient),
+      },
+      {
+        actionOwner: "account-deletion",
+        queryKey: queryKeys.feeds.root,
+        invalidate: () => invalidateAccountDeletionQueries(queryClient),
+      },
+    ] as const;
+
+    for (const { actionOwner, queryKey, invalidate } of cases) {
+      const rejection = new Error(`${actionOwner} invalidation failed`);
+      invalidateQueries.mockReset();
+      invalidateQueries.mockRejectedValueOnce(rejection);
+      invalidate();
+
+      await vi.waitFor(() => {
+        expect(diagnosticsReporter).toHaveBeenCalledWith([{ actionOwner, queryKey, error: rejection }]);
+      });
+      diagnosticsReporter.mockClear();
+    }
+
+    restoreDiagnosticsReporter();
   });
 
   it("tags article mutation invalidation failures by matrix owner", async () => {
