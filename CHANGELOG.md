@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.60.2] - 2026-08-28
+
+### Bug Fixes
+
+- GReader同期が途中ページの失敗や打ち切りで古い記事を取りこぼす問題を修正した(#202の残り経路、#208)。
+- reduced-motion設定でテーマ切替ワイプと不確定プログレスのアニメーションが止まらない問題を修正した(#212)。
+
 ## [0.60.1] - 2026-08-27
 
 ### Bug Fixes
