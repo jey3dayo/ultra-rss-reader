@@ -45,7 +45,7 @@ export function useUpdateFeedDisplaySettings() {
         return false;
       }
 
-      invalidateFeedRootQueries(qc);
+      invalidateFeedRootQueries(qc, "feed-display-update");
       return true;
     },
     [qc, showToast, t],

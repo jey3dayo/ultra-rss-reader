@@ -34,6 +34,7 @@ type QueryInvalidationActionOwner =
   | "delete-feed"
   | "feed-display-update"
   | "feed-edit"
+  | "feed-folder-move"
   | "local-account-sync-import"
   | "manual-sync-completed"
   | "mute-keyword-mutation"
@@ -630,8 +631,13 @@ function invalidateQueryIntent(queryClient: QueryClient, intent: QueryInvalidati
   });
 }
 
-export function invalidateFeedRootQueries(queryClient: QueryClient) {
-  invalidateQueryIntent(queryClient, "feed-root-updated");
+export function invalidateFeedRootQueries(
+  queryClient: QueryClient,
+  actionOwner: Extract<QueryInvalidationActionOwner, "feed-display-update" | "feed-folder-move">,
+) {
+  const matrixEntry = QUERY_INVALIDATION_INTENT_MATRIX["feed-root-updated"];
+
+  invalidateQueryKeysLogOnly(queryClient, matrixEntry.queryKeys, { actionOwner });
 }
 
 export function invalidateFeedEditQueries(queryClient: QueryClient, feedsChanged: boolean) {
