@@ -1,6 +1,6 @@
 # Contributing / Development Guide
 
-This document is the source of truth for development setup, development modes, verification commands, architecture, and coding conventions.
+This document is the source of truth for development setup, development modes, verification commands, architecture, provider support (Local feeds and FreshRSS via the GReader API), and coding conventions.
 For the product overview, see [README.md](README.md). For agent workflow and rule routing, see [CLAUDE.md](CLAUDE.md).
 
 ## Start Here
