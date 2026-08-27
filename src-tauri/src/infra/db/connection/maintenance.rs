@@ -115,7 +115,7 @@ impl DbManager {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0,
             Err(error) => {
                 tracing::warn!(
-                    path = %path.display(),
+                    path = %super::super::backup::redacted_path_label(path),
                     error = %error,
                     "Failed to read {label} file size for database info"
                 );

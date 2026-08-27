@@ -1,3 +1,4 @@
+use super::redaction::redacted_dev_store_path;
 use super::DEV_CREDENTIALS_RECOVERY_HINT;
 use crate::domain::error::{DomainError, DomainResult};
 use std::collections::HashMap;
@@ -124,7 +125,7 @@ fn cleanup_failed_dev_store_temp_file(path: &Path) {
     if let Err(error) = std::fs::remove_file(path) {
         tracing::warn!(
             "Failed to clean up dev credentials temp file {}: {error}",
-            path.display()
+            redacted_dev_store_path(path)
         );
     }
 }

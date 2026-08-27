@@ -162,6 +162,11 @@ describe("browser preview shortcut bridge contract", () => {
     expect(nativeMessageHandlerBlock).toContain(
       "browser_preview_bridge_message_action(&raw_message, snapshot.as_ref())",
     );
+    expect(nativeMessageHandlerBlock).toContain("let message_bytes = raw_message.len()");
+    expect(nativeMessageHandlerBlock).toContain("let message_chars = raw_message.chars().count()");
+    expect(nativeMessageHandlerBlock).toContain("message_bytes={message_bytes}");
+    expect(nativeMessageHandlerBlock).toContain("message_chars={message_chars}");
+    expect(nativeMessageHandlerBlock).not.toContain("raw_message={raw_message}");
     expect(nativeMessageHandlerBlock).not.toContain("app_handle.emit(MENU_ACTION_EVENT, action)");
     expect(nativeMessageHandlerBlock).not.toContain("focus_main_webview_window(&app_handle);");
     expect(bridgeMessageActionBlock).toContain("serde_json::from_str(raw_message).ok()?");
