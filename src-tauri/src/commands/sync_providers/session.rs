@@ -28,6 +28,8 @@ impl GReaderSession {
         let server_url = account
             .server_url
             .as_deref()
+            .map(str::trim)
+            .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
         let provider = GReaderProvider::for_freshrss(server_url);
         let password = super::get_greader_password(account)
@@ -117,6 +119,8 @@ impl GReaderSession {
         let server_url = account
             .server_url
             .as_deref()
+            .map(str::trim)
+            .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
         Self::authenticate(
             GReaderProvider::for_freshrss(server_url),
@@ -170,6 +174,17 @@ mod tests {
         let error = GReaderSession::establish(&account)
             .await
             .expect_err("missing server URL should be typed before authentication");
+
+        assert!(matches!(error, SessionError::MissingServerUrl));
+    }
+
+    #[tokio::test]
+    async fn establish_returns_missing_server_url_for_blank_value_before_network_access() {
+        let account = test_account(Some(" \t "), Some("user"));
+
+        let error = GReaderSession::establish(&account)
+            .await
+            .expect_err("blank server URL should be typed before authentication");
 
         assert!(matches!(error, SessionError::MissingServerUrl));
     }

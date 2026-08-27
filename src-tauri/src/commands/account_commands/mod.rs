@@ -22,8 +22,6 @@ pub(crate) use credentials::{
     delete_account_with_sync_boundary, save_account_after_optional_password,
     update_account_credentials_after_optional_password,
 };
-#[cfg(test)]
-pub(crate) use validation::validate_freshrss_server_url;
 pub(crate) use validation::{
     normalize_new_freshrss_server_url, normalize_updated_account_server_url, validate_account_name,
     validate_account_name_with_excluded_id, validate_account_sync_settings,
