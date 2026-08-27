@@ -1448,8 +1448,15 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(feedContentPrivacy).toContain(
       "Authorization headers must be stripped by the HTTP client on cross-origin redirects.",
     );
-    expect(feedContentPrivacy).toContain("Redirect targets are revalidated and re-resolved at every redirect hop");
-    expect(feedContentPrivacy).toContain("DNS results are not cached by the app-level policy today.");
+    expect(feedContentPrivacy).toContain(
+      "Redirect targets are revalidated at every redirect hop. Public hostname lookups go through the current HTTP client's validated DNS resolver",
+    );
+    expect(feedContentPrivacy).toContain(
+      "When hostname validation returns public addresses, those socket addresses are pinned with `resolve_to_addrs`",
+    );
+    expect(feedContentPrivacy).toContain(
+      "The resolver cache is scoped to one `reqwest::Client` and lives only for that client's lifetime.",
+    );
     expect(incidentRunbook).toContain("Manual sync can bypass automatic-scheduler suppression");
     expect(incidentRunbook).toContain("Feed discovery is a user-initiated single URL probe, not a crawler");
 
