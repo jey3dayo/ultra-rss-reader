@@ -421,7 +421,7 @@ describe("query-invalidation", () => {
       );
     };
 
-    expectQueryKeys(() => invalidateFeedRootQueries(queryClient), [queryKeys.feeds.root]);
+    expectQueryKeys(() => invalidateFeedRootQueries(queryClient, "feed-display-update"), [queryKeys.feeds.root]);
     expectQueryKeys(() => invalidateFeedEditQueries(queryClient, true), [queryKeys.feeds.root, queryKeys.folders.root]);
     expectQueryKeys(() => invalidateFeedEditQueries(queryClient, false), [queryKeys.folders.root]);
     expectQueryKeys(
@@ -487,7 +487,12 @@ describe("query-invalidation", () => {
       {
         actionOwner: "feed-display-update",
         queryKey: queryKeys.feeds.root,
-        invalidate: () => invalidateFeedRootQueries(queryClient),
+        invalidate: () => invalidateFeedRootQueries(queryClient, "feed-display-update"),
+      },
+      {
+        actionOwner: "feed-folder-move",
+        queryKey: queryKeys.feeds.root,
+        invalidate: () => invalidateFeedRootQueries(queryClient, "feed-folder-move"),
       },
       {
         actionOwner: "feed-edit",

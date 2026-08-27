@@ -36,7 +36,7 @@ export function useUpdateFeedFolder() {
       return { previousFeedsQueries };
     },
     onSuccess: () => {
-      invalidateFeedRootQueries(qc);
+      invalidateFeedRootQueries(qc, "feed-folder-move");
     },
     onError: (error, variables, context) => {
       for (const [queryKey, previousFeeds] of context?.previousFeedsQueries ?? []) {
