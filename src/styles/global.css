@@ -1450,13 +1450,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
 }
 
 .motion-resize-surface {
-  transition-property:
-    width, height, min-height, max-width, max-height, padding,
-    grid-template-columns, grid-template-rows, opacity, transform, border-color,
-    background-color, color;
+  transition-property: width, opacity, transform, border-color, background-color, color;
   transition-duration: var(--motion-duration-resize);
   transition-timing-function: var(--motion-ease-emphasized);
-  will-change: width, height, min-height, max-width, max-height;
 }
 
 .motion-popup-overlay {
