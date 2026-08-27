@@ -515,8 +515,10 @@ Provider request contract:
   request each. This cap is the current per-domain politeness baseline until a
   host-keyed scheduler exists.
 - Private-host DNS validation is checked for each validated local feed URL and
-  redirect target. Do not cache a previous public DNS answer as authorization
-  for a later provider request.
+  redirect target. Reuse of a validated public DNS result is allowed only
+  within one `reqwest::Client`'s validated resolver for the same normalized
+  host, as described in the DNS contract above; it is never authorization for
+  a different target or a different client.
 - Credential verification is a separate account action. Creating or updating
   account credentials may save database/keyring state, but verification network
   requests must run only through the explicit connection-test flow and update
