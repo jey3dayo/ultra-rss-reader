@@ -1045,6 +1045,7 @@ html.vertical-wipe-transition::view-transition-new(root) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html.vertical-wipe-transition::view-transition-new(root),
   .motion-browser-theme-wipe-overlay {
     animation: none;
   }
@@ -1628,6 +1629,10 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-loading-dot {
     animation: none;
     opacity: 0.7;
+  }
+
+  .animate-indeterminate {
+    animation: none;
   }
 
   /* Keep the same hold duration; only soften the fill into an opacity ramp. */
