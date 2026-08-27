@@ -73,7 +73,7 @@ pub(crate) async fn sync_greader_account_entries_with_max_pages(
                     &account.id,
                     &account_scope_key,
                     saved_state.as_ref(),
-                    latest_timestamp_usec,
+                    None,
                     &app_error,
                 )?;
                 return Err(app_error);
@@ -235,7 +235,7 @@ pub(crate) async fn sync_greader_feed_entries_with_max_pages(
                     &account.id,
                     &scope_key,
                     saved_state.as_ref(),
-                    latest_timestamp_usec,
+                    None,
                     &app_error,
                 )?;
                 return Err(app_error);
