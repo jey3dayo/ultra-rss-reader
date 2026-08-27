@@ -1450,7 +1450,8 @@ html.vertical-wipe-transition::view-transition-new(root) {
 }
 
 .motion-resize-surface {
-  transition-property: width, opacity, transform, border-color, background-color, color;
+  transition-property:
+    width, height, min-height, max-width, padding, opacity, transform, border-color, background-color, color;
   transition-duration: var(--motion-duration-resize);
   transition-timing-function: var(--motion-ease-emphasized);
 }
