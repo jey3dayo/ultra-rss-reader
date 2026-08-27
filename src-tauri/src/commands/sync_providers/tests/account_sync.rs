@@ -817,7 +817,7 @@ async fn sync_greader_account_entries_stops_on_continuation_cycle_after_persisti
 }
 
 #[tokio::test]
-async fn sync_greader_account_entries_records_failure_state_when_later_page_fails() {
+async fn sync_greader_account_entries_preserves_saved_timestamp_when_later_page_fails() {
     let mut server = mockito::Server::new_async().await;
     server
         .mock("POST", "/api/greader.php/accounts/ClientLogin")
@@ -920,7 +920,7 @@ async fn sync_greader_account_entries_records_failure_state_when_later_page_fail
         .unwrap();
 
     assert_eq!(articles.len(), 1);
-    assert_eq!(state.timestamp_usec, Some(1_700_000_100_000_000));
+    assert_eq!(state.timestamp_usec, saved_state.timestamp_usec);
     assert_eq!(state.continuation, None);
     assert_eq!(state.etag, None);
     assert_eq!(state.last_modified, None);
