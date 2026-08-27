@@ -202,6 +202,7 @@ mod tests {
             "list_by_account",
             "list_by_feed",
             "list_by_folder",
+            "list_feed_article_summaries_by_account",
             "list_recently_viewed_by_account",
             "count_unread_by_account",
             "count_starred_by_account",

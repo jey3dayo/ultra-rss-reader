@@ -11,6 +11,7 @@ use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_mute_keyword::{
     build_mute_keyword_exclusion_clause, SqliteMuteKeywordRepository,
 };
+pub use crate::repository::article::FeedArticleSummary;
 use crate::repository::article::{
     ArticleListMode, ArticleListRepository, ArticleReadRepository, Pagination,
 };
@@ -36,18 +37,6 @@ pub struct OrphanedFeedGroup {
     pub article_count: i64,
     pub latest_article_title: Option<String>,
     pub latest_article_published_at: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FeedArticleSummary {
-    pub feed_id: FeedId,
-    pub latest_article_at: Option<String>,
-    pub starred_count: i32,
-    /// Number of visible articles published within the recent activity window
-    /// (last `RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS` days, future-dated rows excluded).
-    /// Raw count only; frequency-tier classification lives in the frontend
-    /// (`src/lib/subscriptions/subscription-update-frequency.ts`).
-    pub recent_article_count: i32,
 }
 
 impl<'a> SqliteArticleRepository<'a> {
@@ -154,55 +143,6 @@ impl<'a> SqliteArticleRepository<'a> {
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(groups)
-    }
-
-    pub fn list_feed_article_summaries_by_account(
-        &self,
-        account_id: &AccountId,
-    ) -> DomainResult<Vec<FeedArticleSummary>> {
-        let article_visible_clause = if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
-            let mute_clause = build_mute_keyword_exclusion_clause(
-                "a.title",
-                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
-            );
-            format!("a.id IS NOT NULL AND {mute_clause}")
-        } else {
-            "a.id IS NOT NULL".to_string()
-        };
-
-        // Recent activity window is bounded on both sides so future-dated rows
-        // (feeds that publish with pubDates ahead of "now") never inflate the
-        // count. `julianday` parses RFC3339 offsets; NULL/malformed published_at
-        // yields NULL and is excluded by the comparison.
-        let recent_window_clause = format!(
-            "julianday(a.published_at) >= julianday('now', '-{RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS} days') \
-             AND julianday(a.published_at) <= julianday('now')"
-        );
-
-        let sql = format!(
-            "SELECT
-                f.id,
-                MAX(CASE WHEN {article_visible_clause} THEN a.published_at ELSE NULL END) AS latest_article_at,
-                COALESCE(SUM(CASE WHEN {article_visible_clause} AND a.is_starred = 1 THEN 1 ELSE 0 END), 0) AS starred_count,
-                COALESCE(SUM(CASE WHEN {article_visible_clause} AND {recent_window_clause} THEN 1 ELSE 0 END), 0) AS recent_article_count
-             FROM feeds f
-             LEFT JOIN articles a ON a.feed_id = f.id
-             WHERE f.account_id = ?1
-             GROUP BY f.id
-             ORDER BY f.title ASC, f.id ASC"
-        );
-        let mut stmt = self.conn.prepare(&sql)?;
-        let summaries = stmt
-            .query_map(params![account_id.0], |row| {
-                Ok(FeedArticleSummary {
-                    feed_id: FeedId(row.get(0)?),
-                    latest_article_at: row.get(1)?,
-                    starred_count: row.get(2)?,
-                    recent_article_count: row.get(3)?,
-                })
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(summaries)
     }
 
     fn find_by_folder_with_filter(
@@ -840,6 +780,55 @@ impl ArticleReadRepository for SqliteArticleRepository<'_> {
 }
 
 impl ArticleListRepository for SqliteArticleRepository<'_> {
+    fn list_feed_article_summaries_by_account(
+        &self,
+        account_id: &AccountId,
+    ) -> DomainResult<Vec<FeedArticleSummary>> {
+        let article_visible_clause = if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let mute_clause = build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            );
+            format!("a.id IS NOT NULL AND {mute_clause}")
+        } else {
+            "a.id IS NOT NULL".to_string()
+        };
+
+        // Recent activity window is bounded on both sides so future-dated rows
+        // (feeds that publish with pubDates ahead of "now") never inflate the
+        // count. `julianday` parses RFC3339 offsets; NULL/malformed published_at
+        // yields NULL and is excluded by the comparison.
+        let recent_window_clause = format!(
+            "julianday(a.published_at) >= julianday('now', '-{RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS} days') \
+             AND julianday(a.published_at) <= julianday('now')"
+        );
+
+        let sql = format!(
+            "SELECT
+                f.id,
+                MAX(CASE WHEN {article_visible_clause} THEN a.published_at ELSE NULL END) AS latest_article_at,
+                COALESCE(SUM(CASE WHEN {article_visible_clause} AND a.is_starred = 1 THEN 1 ELSE 0 END), 0) AS starred_count,
+                COALESCE(SUM(CASE WHEN {article_visible_clause} AND {recent_window_clause} THEN 1 ELSE 0 END), 0) AS recent_article_count
+             FROM feeds f
+             LEFT JOIN articles a ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+             GROUP BY f.id
+             ORDER BY f.title ASC, f.id ASC"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let summaries = stmt
+            .query_map(params![account_id.0], |row| {
+                Ok(FeedArticleSummary {
+                    feed_id: FeedId(row.get(0)?),
+                    latest_article_at: row.get(1)?,
+                    starred_count: row.get(2)?,
+                    recent_article_count: row.get(3)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(summaries)
+    }
+
     fn list_by_feed(
         &self,
         feed_id: &FeedId,
