@@ -4,7 +4,7 @@ use super::{
     save_account_after_optional_password_with_keyring,
     update_account_credentials_after_optional_password_with_keyring, validate_account_name,
     validate_account_name_with_excluded_id, validate_account_sync_settings,
-    validate_add_account_args, validate_freshrss_server_url,
+    validate_add_account_args,
 };
 use crate::commands::dto::AppError;
 use crate::domain::account::{Account, ConnectionVerificationStatus};
@@ -288,22 +288,6 @@ fn validate_account_name_rejects_case_insensitive_duplicates_except_current_acco
         validate_account_name_with_excluded_id(" work ", &accounts, Some(&AccountId::new()))
             .is_err()
     );
-}
-
-#[test]
-fn validate_freshrss_server_url_rejects_missing_or_blank_urls() {
-    let mut account = fresh_rss_account();
-
-    assert_eq!(
-        validate_freshrss_server_url(&account).unwrap(),
-        "https://rss.example.com"
-    );
-
-    account.server_url = None;
-    assert!(validate_freshrss_server_url(&account).is_err());
-
-    account.server_url = Some("   ".to_string());
-    assert!(validate_freshrss_server_url(&account).is_err());
 }
 
 #[test]

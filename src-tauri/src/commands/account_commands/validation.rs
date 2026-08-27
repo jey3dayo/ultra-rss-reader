@@ -131,17 +131,6 @@ pub(crate) fn validate_account_name(name: &str, accounts: &[Account]) -> Result<
     validate_account_name_with_excluded_id(name, accounts, None)
 }
 
-pub(crate) fn validate_freshrss_server_url(account: &Account) -> Result<&str, AppError> {
-    account
-        .server_url
-        .as_deref()
-        .map(str::trim)
-        .filter(|server_url| !server_url.is_empty())
-        .ok_or_else(|| AppError::UserVisible {
-            message: "FreshRSS server URL is not configured".into(),
-        })
-}
-
 pub(crate) fn normalize_updated_account_server_url(
     account: &Account,
     server_url: Option<&str>,

@@ -1,14 +1,12 @@
 use tauri::State;
 
 use crate::commands::dto::{AccountDto, AppError};
+use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
 use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
-use crate::infra::keyring_store;
-use crate::infra::provider::greader::GReaderProvider;
-use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
 
 mod credentials;
@@ -27,7 +25,7 @@ pub(crate) use credentials::{
 pub(crate) use validation::{
     normalize_new_freshrss_server_url, normalize_updated_account_server_url, validate_account_name,
     validate_account_name_with_excluded_id, validate_account_sync_settings,
-    validate_add_account_args, validate_freshrss_server_url,
+    validate_add_account_args,
 };
 
 #[cfg(test)]
@@ -187,36 +185,21 @@ pub async fn test_account_connection(
         return Ok(AccountDto::from(account));
     }
 
-    let server_url = validate_freshrss_server_url(&account)?;
-
-    let username = account
-        .username
-        .as_deref()
-        .ok_or_else(|| AppError::UserVisible {
-            message: "Username is not configured".into(),
-        })?;
-
-    let password = keyring_store::get_password(id.as_ref())?;
-
-    let mut provider = GReaderProvider::for_freshrss(server_url);
-
-    if let Err(error) = provider
-        .authenticate(&Credentials {
-            token: Some(username.to_string()),
-            password: Some(password),
-        })
-        .await
-    {
-        let error_message = error.to_string();
-        let db = crate::commands::lock_db(&state.db)?;
-        let repo = SqliteAccountRepository::new(db.writer());
-        repo.update_connection_verification(
-            &id,
-            ConnectionVerificationStatus::Error,
-            None,
-            Some(&error_message),
-        )?;
-        return Err(error.into());
+    match GReaderSession::establish(&account).await {
+        Ok(_) => {}
+        Err(SessionError::Auth(error)) => {
+            let error_message = error.to_string();
+            let db = crate::commands::lock_db(&state.db)?;
+            let repo = SqliteAccountRepository::new(db.writer());
+            repo.update_connection_verification(
+                &id,
+                ConnectionVerificationStatus::Error,
+                None,
+                Some(&error_message),
+            )?;
+            return Err(error);
+        }
+        Err(error) => return Err(error.into_user_visible()),
     }
 
     let verified_at = chrono::Utc::now().to_rfc3339();
