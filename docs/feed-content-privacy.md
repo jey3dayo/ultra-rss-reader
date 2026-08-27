@@ -69,10 +69,11 @@ DNS and private-host time-of-check/time-of-use contract:
 
 - URL validation rejects private IP literals and private host forms before fetch.
 - Hostname discovery validation resolves the hostname at request validation time and rejects any private IP answer.
-- Redirect targets are revalidated and re-resolved at every redirect hop; redirect validation must not reuse a previous public DNS result for a different target.
-- DNS results are not cached by the app-level policy today. Repeated validation must re-run the private-host check instead of treating an earlier public result as authority.
+- Redirect targets are revalidated at every redirect hop. Public hostname lookups go through the current HTTP client's validated DNS resolver, whose per-host result is reused for that client; a result for one target is never reused for another target.
+- When hostname validation returns public addresses, those socket addresses are pinned with `resolve_to_addrs`, so the initial request connects to the addresses checked before fetch. Explicit private FreshRSS endpoints keep their user-selected exception only for the initial host.
+- The resolver cache is scoped to one `reqwest::Client` and lives only for that client's lifetime. GReader API clients retain it for the provider lifetime; URL-specific Local feed and discovery clients are created for one request. It is not shared across clients or persisted.
 - DNS lookup failures are network failures, not permission to skip the private-host guard.
-- Local provider sync and subscription creation both run the same external feed URL validation before request construction. If DNS rebinding-resistant socket pinning is added later, it must be a focused provider-network change with fixtures for validation-result drift between check and connect.
+- Local provider sync and subscription creation both run the same external feed URL validation before request construction.
 
 ### Large Feed And Article Memory Pressure Smoke Policy
 
