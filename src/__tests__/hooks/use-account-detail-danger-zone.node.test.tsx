@@ -87,6 +87,7 @@ describe("useAccountDetailDangerZone", () => {
     importLocalAccountSyncOperationsMock.mockResolvedValue(
       Result.succeed({
         loaded_operations: 0,
+        foreign_operations_skipped: 0,
         applied_operations: 0,
         rejected_operations: 0,
         rejected_files: 0,
@@ -473,6 +474,7 @@ describe("useAccountDetailDangerZone", () => {
     importLocalAccountSyncOperationsMock.mockResolvedValue(
       Result.succeed({
         loaded_operations: 4,
+        foreign_operations_skipped: 0,
         applied_operations: 4,
         rejected_operations: 0,
         rejected_files: 0,

@@ -28,6 +28,7 @@ use crate::service::local_account_sync_apply::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalAccountSyncImportReport {
     pub loaded_operations: usize,
+    pub foreign_operations_skipped: usize,
     pub applied_operations: usize,
     pub rejected_operations: usize,
     pub rejected_files: usize,
@@ -48,7 +49,14 @@ pub fn import_local_account_sync_folder(
     account_root: &Path,
 ) -> DomainResult<LocalAccountSyncImportReport> {
     let load_report = load_local_sync_operation_dir(account_root)?;
-    let merge_result = merge_local_account_sync_operations(load_report.operations);
+    let loaded_operations = load_report.operations.len();
+    let operations = load_report
+        .operations
+        .into_iter()
+        .filter(|operation| operation.sync_account_id == *sync_account_id)
+        .collect::<Vec<_>>();
+    let foreign_operations_skipped = loaded_operations - operations.len();
+    let merge_result = merge_local_account_sync_operations(operations);
     let should_apply =
         load_report.rejected_files.is_empty() && load_report.conflicted_candidates.is_empty();
     let apply_report = if should_apply {
@@ -63,7 +71,8 @@ pub fn import_local_account_sync_folder(
     };
 
     Ok(LocalAccountSyncImportReport {
-        loaded_operations: merge_result.applied_operations + merge_result.rejected_operations.len(),
+        loaded_operations,
+        foreign_operations_skipped,
         applied_operations: merge_result.applied_operations,
         rejected_operations: merge_result.rejected_operations.len(),
         rejected_files: load_report.rejected_files.len(),

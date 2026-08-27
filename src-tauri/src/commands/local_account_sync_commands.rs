@@ -31,6 +31,7 @@ pub struct LocalAccountSyncSettingsDto {
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 pub struct LocalAccountSyncImportReportDto {
     pub loaded_operations: usize,
+    pub foreign_operations_skipped: usize,
     pub applied_operations: usize,
     pub rejected_operations: usize,
     pub rejected_files: usize,
@@ -204,6 +205,7 @@ pub fn import_local_account_sync_operations(
     )?;
     Ok(LocalAccountSyncImportReportDto {
         loaded_operations: report.loaded_operations,
+        foreign_operations_skipped: report.foreign_operations_skipped,
         applied_operations: report.applied_operations,
         rejected_operations: report.rejected_operations,
         rejected_files: report.rejected_files,
