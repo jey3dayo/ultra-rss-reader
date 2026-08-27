@@ -4,6 +4,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use tauri::State;
 
 use crate::commands::dto::{AppError, FolderDto};
+use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
@@ -19,9 +20,9 @@ use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
 use super::{
-    authenticated_freshrss_provider, load_delete_feed_account, load_feed_for_delete, lock_db,
-    normalize_folder_name, FOLDER_LOCAL_NAME_UNIQUE_INDEX, FOLDER_NAME_UNIQUE_INDEX,
-    FOLDER_SORT_ORDER_UNIQUE_INDEX, UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
+    load_delete_feed_account, load_feed_for_delete, lock_db, normalize_folder_name,
+    FOLDER_LOCAL_NAME_UNIQUE_INDEX, FOLDER_NAME_UNIQUE_INDEX, FOLDER_SORT_ORDER_UNIQUE_INDEX,
+    UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
 };
 
 pub(crate) fn validate_folder_name(
@@ -172,8 +173,11 @@ pub(crate) async fn update_feed_folder_with_remote_sync_boundary(
                 resolve_folder_edit_labels(&db, &feed, folder_id.as_deref())?
             };
             if add_label.is_some() || remove_label.is_some() {
-                let provider = authenticated_freshrss_provider(&account).await?;
-                provider
+                let session = GReaderSession::establish(&account)
+                    .await
+                    .map_err(SessionError::into_user_visible)?;
+                session
+                    .provider()
                     .edit_subscription(
                         &remote_id,
                         None,

@@ -131,6 +131,7 @@ pub(crate) fn validate_account_name(name: &str, accounts: &[Account]) -> Result<
     validate_account_name_with_excluded_id(name, accounts, None)
 }
 
+#[cfg(test)]
 pub(crate) fn validate_freshrss_server_url(account: &Account) -> Result<&str, AppError> {
     account
         .server_url

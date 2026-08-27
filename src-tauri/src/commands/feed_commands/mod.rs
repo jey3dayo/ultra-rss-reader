@@ -165,15 +165,13 @@ pub(super) use feed_add::{
     validate_add_freshrss_feed_preflight_in_db, validate_add_freshrss_subscription_unique_in_db,
     validate_add_local_feed_account_in_db, validate_add_local_feed_duplicate_url_in_db,
 };
-pub(super) use feed_mutations::{
-    authenticated_freshrss_provider, load_delete_feed_account, load_feed_for_delete,
-};
 #[cfg(test)]
 pub(super) use feed_mutations::{
     delete_feed_in_db, delete_feed_with_provider_sync_boundary,
     delete_feed_with_remote_sync_boundary, delete_feed_with_sync_boundary, rename_feed_in_db,
     rename_feed_with_remote_sync_boundary,
 };
+pub(super) use feed_mutations::{load_delete_feed_account, load_feed_for_delete};
 #[cfg(test)]
 pub(super) use folders::{
     classify_update_feed_folder_error, create_folder_in_db, update_feed_folder_in_db,

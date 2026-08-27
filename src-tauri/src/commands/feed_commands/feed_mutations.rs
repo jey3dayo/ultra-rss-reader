@@ -3,6 +3,7 @@ use std::sync::{atomic::AtomicBool, Mutex};
 use tauri::State;
 
 use crate::commands::dto::AppError;
+use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
@@ -11,8 +12,7 @@ use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
-use crate::infra::provider::greader::GReaderProvider;
-use crate::infra::provider::traits::{Credentials, FeedProvider};
+use crate::infra::provider::traits::FeedProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 
@@ -126,39 +126,14 @@ pub(crate) async fn delete_feed_with_remote_sync_boundary(
         load_delete_feed_account(&db, &feed.account_id)?
     };
     if matches!(account.kind, ProviderKind::FreshRss) {
-        let provider = authenticated_freshrss_provider(&account).await?;
-        return delete_feed_after_provider_unsubscribe(db, feed_id.0, &provider).await;
+        let session = GReaderSession::establish(&account)
+            .await
+            .map_err(SessionError::into_user_visible)?;
+        return delete_feed_after_provider_unsubscribe(db, feed_id.0, session.provider()).await;
     }
 
     let db = lock_db(db)?;
     delete_feed_in_db(&db, feed_id.0)
-}
-
-pub(crate) async fn authenticated_freshrss_provider(
-    account: &Account,
-) -> Result<GReaderProvider, AppError> {
-    let username = account
-        .username
-        .clone()
-        .ok_or_else(|| AppError::UserVisible {
-            message: "FreshRSS username is required".into(),
-        })?;
-    let server_url = account
-        .server_url
-        .as_deref()
-        .ok_or_else(|| AppError::UserVisible {
-            message: "FreshRSS server URL is required".into(),
-        })?;
-
-    let mut provider = GReaderProvider::for_freshrss(server_url);
-    let password = crate::commands::sync_providers::get_greader_password(account).await?;
-    provider
-        .authenticate(&Credentials {
-            token: Some(username),
-            password: Some(password),
-        })
-        .await?;
-    Ok(provider)
 }
 
 #[tauri::command]
@@ -190,8 +165,11 @@ pub(crate) async fn rename_feed_with_remote_sync_boundary(
 
     if matches!(account.kind, ProviderKind::FreshRss) {
         if let Some(remote_id) = feed.remote_id.clone() {
-            let provider = authenticated_freshrss_provider(&account).await?;
-            provider
+            let session = GReaderSession::establish(&account)
+                .await
+                .map_err(SessionError::into_user_visible)?;
+            session
+                .provider()
                 .edit_subscription(&remote_id, Some(&title), None, None)
                 .await?;
         }
