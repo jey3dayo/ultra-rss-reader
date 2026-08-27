@@ -112,7 +112,7 @@
   --motion-duration-theme: 180ms;
   --motion-duration-contextual: 180ms;
   --motion-duration-content-swap: 180ms;
-  --motion-duration-article-slide: 380ms;
+  --motion-duration-article-slide: 200ms;
   --motion-duration-hold-confirm: 2000ms;
   --motion-duration-hold-confirm-release: 200ms;
   --motion-duration-popup-enter: 200ms;
@@ -144,7 +144,7 @@
   --motion-popup-offset: 4px;
   --motion-popup-scale-closed: 0.96;
   --motion-content-swap-offset: 4px;
-  --motion-article-slide-offset: 48px;
+  --motion-article-slide-offset: 24px;
   --motion-settings-modal-offset: 10px;
   --motion-settings-modal-scale-closed: 0.985;
   --motion-state-toggle-scale-active: 1.08;
@@ -1451,12 +1451,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
 
 .motion-resize-surface {
   transition-property:
-    width, height, min-height, max-width, max-height, padding,
-    grid-template-columns, grid-template-rows, opacity, transform, border-color,
-    background-color, color;
+    width, height, min-height, max-width, padding, opacity, transform, border-color, background-color, color;
   transition-duration: var(--motion-duration-resize);
   transition-timing-function: var(--motion-ease-emphasized);
-  will-change: width, height, min-height, max-width, max-height;
 }
 
 .motion-popup-overlay {
