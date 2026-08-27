@@ -33,11 +33,7 @@ use crate::commands::dto::{
     SyncResult,
 };
 #[cfg(test)]
-use crate::domain::account::Account;
-#[cfg(test)]
 use crate::domain::types::FeedId;
-#[cfg(test)]
-use crate::infra::db::connection::DbManager;
 #[cfg(test)]
 use crate::infra::db::sqlite_local_account_sync_settings::SqliteLocalAccountSyncSettingsRepository;
 #[cfg(test)]

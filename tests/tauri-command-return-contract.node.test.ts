@@ -14,7 +14,18 @@ import { readTauriCommandsSource } from "./helpers/tauri-command-source";
 const readText = (path: string): string => readFileSync(path, "utf8");
 
 const readSyncCommandsModuleSource = (): string =>
-  ["mod.rs", "progress.rs", "local_import_export.rs", "account_sync.rs", "scheduler.rs", "tests.rs"]
+  [
+    "mod.rs",
+    "progress.rs",
+    "local_import_export.rs",
+    "account_sync.rs",
+    "scheduler.rs",
+    "tests/mod.rs",
+    "tests/progress.rs",
+    "tests/startup_repair.rs",
+    "tests/local_sync.rs",
+    "tests/scheduler_purge.rs",
+  ]
     .map((file) => readText(`src-tauri/src/commands/sync_commands/${file}`))
     .join("\n");
 const readUpdaterModuleSource = (): string =>
