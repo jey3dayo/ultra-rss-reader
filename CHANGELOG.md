@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.60.1] - 2026-08-27
+
 ### Bug Fixes
 
 - 部分キャッシュの状況によって閲覧履歴が更新されない問題を修正した(#200)。
