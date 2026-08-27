@@ -12,11 +12,11 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 
 ## Source Of Truth
 
-- Product, architecture, development modes, commands, verification matrix: [README.md](README.md)
+- Product overview: [README.md](README.md); architecture, development modes, commands, verification matrix: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Agent workflow and rule routing: [CLAUDE.md](CLAUDE.md)
 - External agent router: [AGENTS.md](AGENTS.md)
 - Documentation index: [docs/README.md](docs/README.md)
-- RTK command policy: [RTK.md](RTK.md)
+- Completed user-visible changes: [CHANGELOG.md](CHANGELOG.md)
 - UI design rules: [DESIGN.md](DESIGN.md)
 - UI review routing: [DESIGN_REVIEW.md](DESIGN_REVIEW.md)
 - Refactor owner routing: [.claude/rules/boundary-ownership.md](.claude/rules/boundary-ownership.md)
