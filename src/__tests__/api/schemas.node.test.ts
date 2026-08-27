@@ -120,7 +120,17 @@ const RUST_ARTICLE_COMMAND_MODULE_FILES = [
   "queries.rs",
   "tests.rs",
 ];
-const RUST_FEED_COMMAND_MODULE_FILES = ["mod.rs", "folders.rs", "feed_mutations.rs", "feed_add.rs", "tests.rs"];
+const RUST_FEED_COMMAND_MODULE_FILES = [
+  "mod.rs",
+  "folders.rs",
+  "feed_mutations.rs",
+  "feed_add.rs",
+  "tests/mod.rs",
+  "tests/fixtures.rs",
+  "tests/feed_add.rs",
+  "tests/feed_mutations.rs",
+  "tests/folders.rs",
+];
 
 function readRustCommandDtoSource() {
   return RUST_COMMAND_DTO_MODULE_FILES.map((file) =>
@@ -165,7 +175,11 @@ function readRustCommandSources() {
     "sync_commands/account_sync.rs",
     "sync_commands/manual.rs",
     "sync_commands/scheduler.rs",
-    "sync_commands/tests.rs",
+    "sync_commands/tests/mod.rs",
+    "sync_commands/tests/progress.rs",
+    "sync_commands/tests/startup_repair.rs",
+    "sync_commands/tests/local_sync.rs",
+    "sync_commands/tests/scheduler_purge.rs",
     "tag_commands.rs",
     "updater_commands/mod.rs",
   ]
