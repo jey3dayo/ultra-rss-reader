@@ -31,7 +31,8 @@ const STATE_READING_LIST: &str = "user/-/state/com.google/reading-list";
 const LABEL_PREFIX: &str = "user/-/label/";
 const STREAM_CONTENTS_LIMIT: u32 = 200;
 const STREAM_IDS_LIMIT: u32 = 10000;
-const G_READER_MAX_PAGES: usize = 100;
+pub(crate) const G_READER_MAX_PAGES: usize = 100;
+pub(crate) const G_READER_MAX_ENTRY_PAGES: usize = 1_000;
 const G_READER_MAX_STREAM_IDS: usize = 50_000;
 
 // --- Provider ---
