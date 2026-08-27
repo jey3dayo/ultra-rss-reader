@@ -271,14 +271,15 @@ impl GReaderProvider {
         }
 
         if let Some(remaining_continuation) = continuation {
+            let continuation_bytes = remaining_continuation.len();
             tracing::warn!(
-                stream_id,
-                remaining_continuation,
+                continuation_bytes,
                 max_pages = G_READER_MAX_PAGES,
+                reason = "page_limit",
                 "Incomplete GReader item id sync reached page limit"
             );
             return Err(DomainError::Network(format!(
-                "Incomplete GReader item id sync: reached {G_READER_MAX_PAGES} pages with continuation remaining for stream {stream_id}: {remaining_continuation}"
+                "Incomplete GReader item id sync: reached {G_READER_MAX_PAGES} pages with continuation remaining (reason=page_limit, continuation_bytes={continuation_bytes})"
             )));
         }
 

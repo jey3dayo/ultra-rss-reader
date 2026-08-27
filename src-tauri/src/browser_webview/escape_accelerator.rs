@@ -195,6 +195,8 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                         let mut message = PWSTR::null();
                         args.TryGetWebMessageAsString(&mut message)?;
                         let raw_message = take_windows_pwstr(message);
+                        let message_bytes = raw_message.len();
+                        let message_chars = raw_message.chars().count();
                         let snapshot = app_handle
                             .try_state::<crate::commands::AppState>()
                             .and_then(|app_state| {
@@ -209,7 +211,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                         emit_browser_webview_debug_input(
                             &app_handle,
                             format!(
-                                "native-script raw_message={raw_message} action={}",
+                                "native-script action={} message_bytes={message_bytes} message_chars={message_chars}",
                                 action.as_deref().unwrap_or("ignored")
                             ),
                         );

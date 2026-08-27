@@ -2598,7 +2598,7 @@ async fn pull_all_item_ids_errors_when_max_pages_leave_continuation() {
     assert!(matches!(error, DomainError::Network(_)));
     assert_eq!(
         error.to_string(),
-        "Network error: Incomplete GReader item id sync: reached 100 pages with continuation remaining for stream user/-/state/com.google/read: page-100"
+        "Network error: Incomplete GReader item id sync: reached 100 pages with continuation remaining (reason=page_limit, continuation_bytes=8)"
     );
     for page_mock in page_mocks {
         page_mock.assert_async().await;
