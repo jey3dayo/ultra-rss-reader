@@ -13,6 +13,7 @@ export type LocalAccountSyncSettingsDto = v.InferOutput<typeof LocalAccountSyncS
 
 export const LocalAccountSyncImportReportDtoSchema = s.object({
   loaded_operations: CountResponseSchema,
+  foreign_operations_skipped: CountResponseSchema,
   applied_operations: CountResponseSchema,
   rejected_operations: CountResponseSchema,
   rejected_files: CountResponseSchema,

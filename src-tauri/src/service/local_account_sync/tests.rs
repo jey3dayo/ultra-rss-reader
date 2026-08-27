@@ -21,17 +21,31 @@ fn ts(seconds: i64) -> DateTime<Utc> {
     DateTime::from_timestamp(seconds, 0).expect("test timestamp should be valid")
 }
 
-fn operation(id: &str) -> LocalAccountSyncOperation {
+fn operation_with(
+    sync_account_id: &str,
+    id: &str,
+    entity_key: LocalSyncEntityKey,
+    action: LocalSyncAction,
+) -> LocalAccountSyncOperation {
     LocalAccountSyncOperation {
-        sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+        sync_account_id: LocalSyncAccountId(sync_account_id.to_string()),
         operation_id: LocalSyncOperationId(id.to_string()),
         device_id: LocalSyncDeviceId("device-a".to_string()),
         occurred_at: ts(10),
-        entity_key: LocalSyncEntityKey::Article {
+        entity_key,
+        action,
+    }
+}
+
+fn operation(id: &str) -> LocalAccountSyncOperation {
+    operation_with(
+        "sync-account-a",
+        id,
+        LocalSyncEntityKey::Article {
             article_key: LocalSyncArticleKey("missing".to_string()),
         },
-        action: LocalSyncAction::SetRead { is_read: true },
-    }
+        LocalSyncAction::SetRead { is_read: true },
+    )
 }
 
 /// Seeds one folder, one feed, and one article (read + starred) for
@@ -92,10 +106,207 @@ fn import_reports_rejected_files_without_applying_operations() {
     .unwrap();
 
     assert_eq!(report.loaded_operations, 1);
+    assert_eq!(report.foreign_operations_skipped, 0);
     assert_eq!(report.rejected_files, 1);
     assert_eq!(report.apply_report.article_states_applied, 0);
     assert_eq!(report.apply_report.unmatched_article_keys, 0);
     assert!(!report.applied);
+}
+
+#[test]
+fn import_applies_only_operations_for_requested_sync_account() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId("account-1".to_string());
+    db.writer()
+        .execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+            [&account_id.0],
+        )
+        .unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let operations = [
+        operation_with(
+            "sync-account-a",
+            "own-folder",
+            LocalSyncEntityKey::Folder {
+                normalized_name: "own-folder".to_string(),
+            },
+            LocalSyncAction::UpsertFolder {
+                display_name: "Own Folder".to_string(),
+                sort_order: 1,
+            },
+        ),
+        operation_with(
+            "sync-account-a",
+            "own-feed",
+            LocalSyncEntityKey::Feed {
+                normalized_feed_url: "https://example.com/own.xml".to_string(),
+            },
+            LocalSyncAction::UpsertFeed {
+                title: "Own Feed".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon_url: None,
+                folder_name: Some("Own Folder".to_string()),
+            },
+        ),
+        operation_with(
+            "sync-account-a",
+            "own-tag",
+            LocalSyncEntityKey::Tag {
+                normalized_name: "own-tag".to_string(),
+            },
+            LocalSyncAction::AddTag {
+                display_name: "Own Tag".to_string(),
+            },
+        ),
+        operation_with(
+            "sync-account-a",
+            "own-mute",
+            LocalSyncEntityKey::MuteKeyword {
+                normalized_keyword: "own-keyword".to_string(),
+                scope: "title".to_string(),
+            },
+            LocalSyncAction::UpsertMuteKeyword,
+        ),
+        operation_with(
+            "sync-account-b",
+            "foreign-folder",
+            LocalSyncEntityKey::Folder {
+                normalized_name: "foreign-folder".to_string(),
+            },
+            LocalSyncAction::UpsertFolder {
+                display_name: "Foreign Folder".to_string(),
+                sort_order: 2,
+            },
+        ),
+        operation_with(
+            "sync-account-b",
+            "foreign-feed",
+            LocalSyncEntityKey::Feed {
+                normalized_feed_url: "https://example.com/foreign.xml".to_string(),
+            },
+            LocalSyncAction::UpsertFeed {
+                title: "Foreign Feed".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon_url: None,
+                folder_name: Some("Foreign Folder".to_string()),
+            },
+        ),
+        operation_with(
+            "sync-account-b",
+            "foreign-tag",
+            LocalSyncEntityKey::Tag {
+                normalized_name: "foreign-tag".to_string(),
+            },
+            LocalSyncAction::AddTag {
+                display_name: "Foreign Tag".to_string(),
+            },
+        ),
+        operation_with(
+            "sync-account-b",
+            "foreign-mute",
+            LocalSyncEntityKey::MuteKeyword {
+                normalized_keyword: "foreign-keyword".to_string(),
+                scope: "title".to_string(),
+            },
+            LocalSyncAction::UpsertMuteKeyword,
+        ),
+    ];
+    for (sequence, operation) in operations.iter().enumerate() {
+        write_local_sync_operation_file(dir.path(), operation, (sequence + 1) as u64).unwrap();
+    }
+
+    let report = import_local_account_sync_folder(
+        &db,
+        &account_id,
+        &LocalSyncAccountId("sync-account-a".to_string()),
+        dir.path(),
+    )
+    .unwrap();
+
+    assert_eq!(report.loaded_operations, 8);
+    assert_eq!(report.foreign_operations_skipped, 4);
+    assert_eq!(report.applied_operations, 4);
+    assert_eq!(report.rejected_operations, 0);
+    assert!(report.applied);
+    assert_eq!(report.apply_report.folders_upserted, 1);
+    assert_eq!(report.apply_report.feeds_upserted, 1);
+    assert_eq!(report.apply_report.tags_upserted, 1);
+    assert_eq!(report.apply_report.mute_keywords_upserted, 1);
+
+    let conn = db.reader();
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM folders WHERE account_id = ?1 AND name = ?2",
+            [account_id.0.as_str(), "Own Folder"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM folders WHERE account_id = ?1 AND name = ?2",
+            [account_id.0.as_str(), "Foreign Folder"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM feeds WHERE account_id = ?1 AND url = ?2",
+            [account_id.0.as_str(), "https://example.com/own.xml"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM feeds WHERE account_id = ?1 AND url = ?2",
+            [account_id.0.as_str(), "https://example.com/foreign.xml"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM tags WHERE name = ?1",
+            ["Own Tag"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM tags WHERE name = ?1",
+            ["Foreign Tag"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM mute_keywords WHERE keyword = ?1 AND scope = ?2",
+            ["own-keyword", "title"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT COUNT(*) FROM mute_keywords WHERE keyword = ?1 AND scope = ?2",
+            ["foreign-keyword", "title"],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap(),
+        0
+    );
 }
 
 #[test]

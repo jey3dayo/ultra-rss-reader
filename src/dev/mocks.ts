@@ -840,6 +840,7 @@ export function setupDevMocks(): RestoreDevMocks {
         parseBrowserMockArgs("import_local_account_sync_operations", rawIpcPayload);
         return {
           loaded_operations: 0,
+          foreign_operations_skipped: 0,
           applied_operations: 0,
           rejected_operations: 0,
           rejected_files: 0,

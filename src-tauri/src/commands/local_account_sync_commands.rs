@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use tauri::State;
@@ -6,10 +7,12 @@ use tauri::State;
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
 use crate::domain::account::Account;
+use crate::domain::local_account_sync::LocalSyncAccountId;
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_local_account_sync_settings::SqliteLocalAccountSyncSettingsRepository;
+use crate::infra::local_account_sync_files::load_local_sync_operation_dir;
 use crate::repository::account::AccountRepository;
 use crate::repository::local_account_sync_settings::{
     LocalAccountSyncSettings, LocalAccountSyncSettingsRepository,
@@ -31,6 +34,7 @@ pub struct LocalAccountSyncSettingsDto {
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 pub struct LocalAccountSyncImportReportDto {
     pub loaded_operations: usize,
+    pub foreign_operations_skipped: usize,
     pub applied_operations: usize,
     pub rejected_operations: usize,
     pub rejected_files: usize,
@@ -108,6 +112,60 @@ fn merge_local_account_sync_settings_update(
     }
 }
 
+/// Reuses the folder's identity for a first-time connection only when every
+/// readable operation agrees on one sync account. Multiple identities are
+/// intentionally kept isolated because they can represent a shared folder.
+fn adopt_sync_account_id_from_folder(
+    sync_folder_path: &Path,
+    generated_sync_account_id: LocalSyncAccountId,
+) -> Result<LocalSyncAccountId, AppError> {
+    let load_report = load_local_sync_operation_dir(sync_folder_path)?;
+    let distinct_sync_account_ids = load_report
+        .operations
+        .into_iter()
+        .map(|operation| operation.sync_account_id)
+        .collect::<BTreeSet<_>>();
+
+    match distinct_sync_account_ids.len() {
+        1 => {
+            let adopted_sync_account_id = distinct_sync_account_ids
+                .into_iter()
+                .next()
+                .expect("one distinct sync account ID should be present");
+            tracing::info!(
+                sync_account_id_length = adopted_sync_account_id.0.len(),
+                "Adopted the existing local sync account ID from the sync folder"
+            );
+            Ok(adopted_sync_account_id)
+        }
+        0 => Ok(generated_sync_account_id),
+        distinct_count => {
+            tracing::warn!(
+                distinct_sync_account_ids = distinct_count,
+                "Found multiple local sync account IDs; keeping the newly generated ID"
+            );
+            Ok(generated_sync_account_id)
+        }
+    }
+}
+
+fn prepare_local_account_sync_settings_update(
+    account_id: AccountId,
+    sync_folder_path: String,
+    enabled: bool,
+    existing: Option<&LocalAccountSyncSettings>,
+) -> Result<LocalAccountSyncSettings, AppError> {
+    let mut settings =
+        merge_local_account_sync_settings_update(account_id, sync_folder_path, enabled, existing);
+    if existing.is_none() {
+        settings.sync_account_id = adopt_sync_account_id_from_folder(
+            Path::new(&settings.sync_folder_path),
+            settings.sync_account_id,
+        )?;
+    }
+    Ok(settings)
+}
+
 fn settings_to_dto(settings: LocalAccountSyncSettings) -> LocalAccountSyncSettingsDto {
     LocalAccountSyncSettingsDto {
         account_id: settings.account_id.0,
@@ -159,12 +217,12 @@ pub fn set_local_account_sync_settings(
 
     let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
     let existing = settings_repo.find_by_account_id(&account_id)?;
-    let settings = merge_local_account_sync_settings_update(
+    let settings = prepare_local_account_sync_settings_update(
         account_id,
         sync_folder_path,
         enabled,
         existing.as_ref(),
-    );
+    )?;
     settings_repo.save(&settings)?;
     Ok(settings_to_dto(settings))
 }
@@ -204,6 +262,7 @@ pub fn import_local_account_sync_operations(
     )?;
     Ok(LocalAccountSyncImportReportDto {
         loaded_operations: report.loaded_operations,
+        foreign_operations_skipped: report.foreign_operations_skipped,
         applied_operations: report.applied_operations,
         rejected_operations: report.rejected_operations,
         rejected_files: report.rejected_files,
@@ -269,21 +328,31 @@ pub fn export_local_account_sync_operations(
 
 #[cfg(test)]
 mod tests {
+    use chrono::{DateTime, Utc};
+
     use crate::commands::dto::AppError;
     use crate::commands::local_account_sync_commands::{
         ensure_local_account, merge_local_account_sync_settings_update,
+        prepare_local_account_sync_settings_update,
     };
     use crate::domain::account::{Account, ConnectionVerificationStatus};
-    use crate::domain::local_account_sync::{LocalSyncAccountId, LocalSyncDeviceId};
+    use crate::domain::local_account_sync::{
+        LocalAccountSyncOperation, LocalSyncAccountId, LocalSyncAction, LocalSyncDeviceId,
+        LocalSyncEntityKey, LocalSyncOperationId,
+    };
     use crate::domain::provider::ProviderKind;
     use crate::domain::types::AccountId;
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_local_account_sync_settings::SqliteLocalAccountSyncSettingsRepository;
-    use crate::infra::local_account_sync_files::load_local_sync_operation_dir;
+    use crate::infra::local_account_sync_files::{
+        load_local_sync_operation_dir, write_local_sync_operation_file,
+    };
     use crate::repository::local_account_sync_settings::{
         LocalAccountSyncSettings, LocalAccountSyncSettingsRepository,
     };
-    use crate::service::local_account_sync::export_local_account_sync_folder_if_changed;
+    use crate::service::local_account_sync::{
+        export_local_account_sync_folder_if_changed, import_local_account_sync_folder,
+    };
 
     fn account(kind: ProviderKind) -> Account {
         Account {
@@ -325,6 +394,153 @@ mod tests {
             enabled: true,
             last_export_digest: None,
         }
+    }
+
+    fn folder_operation(
+        sync_account_id: &str,
+        operation_id: &str,
+        folder_name: &str,
+    ) -> LocalAccountSyncOperation {
+        LocalAccountSyncOperation {
+            sync_account_id: LocalSyncAccountId(sync_account_id.to_string()),
+            device_id: LocalSyncDeviceId("device-a".to_string()),
+            operation_id: LocalSyncOperationId(operation_id.to_string()),
+            occurred_at: DateTime::<Utc>::from_timestamp(1, 0)
+                .expect("test timestamp should be valid"),
+            entity_key: LocalSyncEntityKey::Folder {
+                normalized_name: folder_name.to_string(),
+            },
+            action: LocalSyncAction::UpsertFolder {
+                display_name: folder_name.to_string(),
+                sort_order: 1,
+            },
+        }
+    }
+
+    #[test]
+    fn new_settings_adopt_single_sync_account_id_and_import_existing_operations() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+                [&account_id.0],
+            )
+            .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let operation = folder_operation("existing-sync-account", "existing-folder", "Existing");
+        write_local_sync_operation_file(dir.path(), &operation, 1).unwrap();
+
+        let settings = prepare_local_account_sync_settings_update(
+            account_id.clone(),
+            dir.path().to_string_lossy().to_string(),
+            true,
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(settings.sync_account_id, operation.sync_account_id);
+        let report = import_local_account_sync_folder(
+            &db,
+            &account_id,
+            &settings.sync_account_id,
+            dir.path(),
+        )
+        .unwrap();
+        assert_eq!(report.loaded_operations, 1);
+        assert_eq!(report.foreign_operations_skipped, 0);
+        assert_eq!(report.applied_operations, 1);
+
+        assert_eq!(
+            db.reader()
+                .query_row(
+                    "SELECT COUNT(*) FROM folders WHERE account_id = ?1 AND name = ?2",
+                    [account_id.0.as_str(), "Existing"],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            1
+        );
+    }
+
+    #[test]
+    fn new_settings_keep_generated_id_for_multiple_sync_accounts() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+                [&account_id.0],
+            )
+            .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        write_local_sync_operation_file(
+            dir.path(),
+            &folder_operation("sync-account-a", "folder-a", "Folder A"),
+            1,
+        )
+        .unwrap();
+        write_local_sync_operation_file(
+            dir.path(),
+            &folder_operation("sync-account-b", "folder-b", "Folder B"),
+            2,
+        )
+        .unwrap();
+
+        let settings = prepare_local_account_sync_settings_update(
+            account_id.clone(),
+            dir.path().to_string_lossy().to_string(),
+            true,
+            None,
+        )
+        .unwrap();
+
+        assert_ne!(settings.sync_account_id.0, "sync-account-a");
+        assert_ne!(settings.sync_account_id.0, "sync-account-b");
+        let report = import_local_account_sync_folder(
+            &db,
+            &account_id,
+            &settings.sync_account_id,
+            dir.path(),
+        )
+        .unwrap();
+        assert_eq!(report.loaded_operations, 2);
+        assert_eq!(report.foreign_operations_skipped, 2);
+        assert_eq!(report.applied_operations, 0);
+        assert_eq!(
+            db.reader()
+                .query_row(
+                    "SELECT COUNT(*) FROM folders WHERE account_id = ?1",
+                    [account_id.0.as_str()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            0
+        );
+    }
+
+    #[test]
+    fn resaving_existing_settings_keeps_sync_account_id_without_adoption() {
+        let account_id = AccountId("account-1".to_string());
+        let existing = seeded_settings("/sync/folder", &account_id);
+        let dir = tempfile::tempdir().unwrap();
+        write_local_sync_operation_file(
+            dir.path(),
+            &folder_operation("different-sync-account", "folder", "Folder"),
+            1,
+        )
+        .unwrap();
+
+        let updated = prepare_local_account_sync_settings_update(
+            account_id,
+            dir.path().to_string_lossy().to_string(),
+            true,
+            Some(&existing),
+        )
+        .unwrap();
+
+        assert_eq!(updated.sync_account_id, existing.sync_account_id);
+        assert_eq!(updated.device_id, existing.device_id);
     }
 
     #[test]
