@@ -46,6 +46,18 @@ impl Default for Pagination {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeedArticleSummary {
+    pub feed_id: FeedId,
+    pub latest_article_at: Option<String>,
+    pub starred_count: i32,
+    /// Number of visible articles published within the recent activity window
+    /// (last `RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS` days, future-dated rows excluded).
+    /// Raw count only; frequency-tier classification lives in the frontend
+    /// (`src/lib/subscriptions/subscription-update-frequency.ts`).
+    pub recent_article_count: i32,
+}
+
 pub trait ArticleReadRepository {
     fn find_by_id(&self, id: &ArticleId) -> DomainResult<Option<Article>>;
     fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination)
@@ -123,6 +135,10 @@ pub trait ArticleListRepository {
         query: &str,
         pagination: &Pagination,
     ) -> DomainResult<Vec<ArticleListItem>>;
+    fn list_feed_article_summaries_by_account(
+        &self,
+        account_id: &AccountId,
+    ) -> DomainResult<Vec<FeedArticleSummary>>;
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
     fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
 }
@@ -177,24 +193,4 @@ pub trait ArticleRemoteStateRepository {
         pending_read_remote_ids: &[String],
         pending_starred_remote_ids: &[String],
     ) -> DomainResult<()>;
-}
-
-pub trait ArticleRepository:
-    ArticleReadRepository
-    + ArticleListRepository
-    + ArticleHistoryRepository
-    + ArticleMutationRepository
-    + ArticleMaintenanceRepository
-    + ArticleRemoteStateRepository
-{
-}
-
-impl<T> ArticleRepository for T where
-    T: ArticleReadRepository
-        + ArticleListRepository
-        + ArticleHistoryRepository
-        + ArticleMutationRepository
-        + ArticleMaintenanceRepository
-        + ArticleRemoteStateRepository
-{
 }
