@@ -67,6 +67,7 @@ use account::{
     apply_remote_state_with_protection, deleted_greader_folders_warning,
     dropped_pending_mutation_warning, pending_mutation_retry_warning,
     save_greader_folders_snapshot, sync_greader_account_entries, sync_greader_feed_entries,
+    sync_greader_feed_entries_with_max_pages,
 };
 pub(super) use account::{repair_greader_remote_state, sync_greader_account, sync_greader_feed};
 

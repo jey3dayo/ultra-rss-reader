@@ -1,7 +1,8 @@
 //! GReader per-feed sync, remote-state repair, and local (non-GReader) feed sync tests.
 
 use super::*;
-use crate::infra::provider::greader::G_READER_MAX_PAGES;
+
+const TEST_G_READER_MAX_ENTRY_PAGES: usize = 3;
 
 #[tokio::test]
 async fn sync_greader_feed_entries_uses_saved_timestamp_for_incremental_sync() {
@@ -268,7 +269,7 @@ async fn sync_greader_feed_entries_stops_at_page_cap_after_persisting_entries() 
         )
         .match_query(Matcher::Any)
         .match_header("Authorization", "GoogleLogin auth=tok")
-        .expect(G_READER_MAX_PAGES)
+        .expect(TEST_G_READER_MAX_ENTRY_PAGES)
         .with_status(200)
         .with_header("content-type", "application/json")
         .with_body_from_request(move |_| {
@@ -305,14 +306,20 @@ async fn sync_greader_feed_entries_stops_at_page_cap_after_persisting_entries() 
     }
     let provider = authenticated_provider(&server.url()).await;
 
-    sync_greader_feed_entries(&db, &provider, &account, &feed)
-        .await
-        .expect("reaching the page cap should return a partial outcome with failure state");
+    sync_greader_feed_entries_with_max_pages(
+        &db,
+        &provider,
+        &account,
+        &feed,
+        TEST_G_READER_MAX_ENTRY_PAGES,
+    )
+    .await
+    .expect("reaching the page cap should return a partial outcome with failure state");
 
     stream_mock.assert_async().await;
     assert_eq!(
         page_calls.load(std::sync::atomic::Ordering::SeqCst),
-        G_READER_MAX_PAGES
+        TEST_G_READER_MAX_ENTRY_PAGES
     );
 
     let db_guard = db.lock().unwrap();
@@ -323,7 +330,7 @@ async fn sync_greader_feed_entries_stops_at_page_cap_after_persisting_entries() 
             &feed.id,
             &Pagination {
                 offset: 0,
-                limit: G_READER_MAX_PAGES,
+                limit: TEST_G_READER_MAX_ENTRY_PAGES,
             },
         )
         .unwrap();
@@ -332,7 +339,7 @@ async fn sync_greader_feed_entries_stops_at_page_cap_after_persisting_entries() 
         .unwrap()
         .unwrap();
 
-    assert_eq!(articles.len(), G_READER_MAX_PAGES);
+    assert_eq!(articles.len(), TEST_G_READER_MAX_ENTRY_PAGES);
     assert_eq!(state.timestamp_usec, saved_state.timestamp_usec);
     assert_eq!(state.continuation, None);
     assert!(state

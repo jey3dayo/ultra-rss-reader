@@ -75,6 +75,12 @@ impl ProviderMockResponseExt for mockito::Mock {
     }
 }
 
+#[test]
+fn greader_entry_and_item_id_page_caps_are_distinct() {
+    assert_eq!(G_READER_MAX_ENTRY_PAGES, 1_000);
+    assert_eq!(G_READER_MAX_PAGES, 100);
+}
+
 fn apply_provider_response(
     mock: mockito::Mock,
     response: ProviderHttpResponseFixture<'_>,

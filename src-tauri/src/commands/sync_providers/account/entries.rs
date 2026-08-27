@@ -11,7 +11,7 @@ use crate::domain::article::Article;
 use crate::domain::feed::Feed;
 use crate::domain::provider::{FeedIdentifier, PullScope};
 use crate::infra::db::connection::DbManager;
-use crate::infra::provider::greader::{GReaderProvider, G_READER_MAX_PAGES};
+use crate::infra::provider::greader::{GReaderProvider, G_READER_MAX_ENTRY_PAGES};
 use crate::infra::provider::traits::FeedProvider;
 use crate::repository::sync_state::{SyncState, SyncStateScopeKey};
 use crate::service::article_materializer::article_from_remote_entry;
@@ -33,6 +33,23 @@ pub(crate) async fn sync_greader_account_entries(
     provider: &GReaderProvider,
     account: &Account,
     feeds_by_remote_id: &HashMap<String, Feed>,
+) -> Result<GReaderAccountEntriesSyncOutcome, AppError> {
+    sync_greader_account_entries_with_max_pages(
+        db,
+        provider,
+        account,
+        feeds_by_remote_id,
+        G_READER_MAX_ENTRY_PAGES,
+    )
+    .await
+}
+
+pub(crate) async fn sync_greader_account_entries_with_max_pages(
+    db: &Mutex<DbManager>,
+    provider: &GReaderProvider,
+    account: &Account,
+    feeds_by_remote_id: &HashMap<String, Feed>,
+    max_pages: usize,
 ) -> Result<GReaderAccountEntriesSyncOutcome, AppError> {
     let account_scope_key = SyncStateScopeKey::greader_account_all();
     let saved_state = load_sync_state(db, &account.id, &account_scope_key)?;
@@ -106,11 +123,11 @@ pub(crate) async fn sync_greader_account_entries(
             break;
         }
 
-        if delta_pages >= G_READER_MAX_PAGES {
+        if delta_pages >= max_pages {
             warn!(
                 account_id = %account.id.as_ref(),
                 page_count = delta_pages,
-                max_pages = G_READER_MAX_PAGES,
+                max_pages,
                 reason = "page_cap",
                 "GReader account entry sync stopped at the page cap"
             );
@@ -180,6 +197,17 @@ pub(crate) async fn sync_greader_feed_entries(
     account: &Account,
     feed: &Feed,
 ) -> Result<GReaderFeedSyncOutcome, AppError> {
+    sync_greader_feed_entries_with_max_pages(db, provider, account, feed, G_READER_MAX_ENTRY_PAGES)
+        .await
+}
+
+pub(crate) async fn sync_greader_feed_entries_with_max_pages(
+    db: &Mutex<DbManager>,
+    provider: &GReaderProvider,
+    account: &Account,
+    feed: &Feed,
+    max_pages: usize,
+) -> Result<GReaderFeedSyncOutcome, AppError> {
     let Some(remote_id) = feed.remote_id.as_ref() else {
         return Ok(GReaderFeedSyncOutcome::default());
     };
@@ -233,11 +261,11 @@ pub(crate) async fn sync_greader_feed_entries(
             break;
         }
 
-        if delta_pages >= G_READER_MAX_PAGES {
+        if delta_pages >= max_pages {
             warn!(
                 account_id = %account.id.as_ref(),
                 page_count = delta_pages,
-                max_pages = G_READER_MAX_PAGES,
+                max_pages,
                 reason = "page_cap",
                 "GReader feed entry sync stopped at the page cap"
             );
