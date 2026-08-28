@@ -320,10 +320,18 @@ pub(super) async fn configure_dev_credentials(account_id: &AccountId) -> DevCred
 }
 
 #[cfg(test)]
-mod account_sync;
+mod account_stream;
 #[cfg(test)]
-mod feed_sync;
+mod greader_entries;
+#[cfg(test)]
+mod local_feed_http;
+#[cfg(test)]
+mod pending_state;
 #[cfg(test)]
 mod remote_state;
 #[cfg(test)]
+mod remote_state_repair;
+#[cfg(test)]
 mod subscriptions;
+#[cfg(test)]
+mod unread_reconciliation;

@@ -1494,7 +1494,23 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("keeps reader search and feed discovery trust contracts synchronized", () => {
-    const sqliteArticleSource = ["mod.rs", "history.rs", "maintenance.rs", "mutation.rs", "remote_state.rs", "tests.rs"]
+    const sqliteArticleSource = [
+      "mod.rs",
+      "history.rs",
+      "maintenance.rs",
+      "mutation.rs",
+      "remote_state.rs",
+      "tests/mod.rs",
+      "tests/list.rs",
+      "tests/read.rs",
+      "tests/unread.rs",
+      "tests/history.rs",
+      "tests/mutation.rs",
+      "tests/maintenance.rs",
+      "tests/remote_state.rs",
+      "tests/search.rs",
+      "tests/orphaned.rs",
+    ]
       .map((file) => readText(`src-tauri/src/infra/db/sqlite_article/${file}`))
       .join("\n");
     const readerLocaleEn = readText("src/locales/en/reader.json");
