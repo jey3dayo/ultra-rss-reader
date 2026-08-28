@@ -42,7 +42,7 @@ describe("FeedTreeRow", () => {
     expect(row).not.toBeNull();
     expect(feedButton).not.toHaveClass("pl-7");
     expect(feedButton).not.toHaveClass("pl-8");
-    expect(feedButton).toHaveClass("rounded-lg");
+    expect(feedButton).toHaveClass("motion-list-item-enter", "rounded-lg");
     expect(selectedIndicator).toHaveClass("left-[var(--feed-tree-rail-offset)]");
     expect(handleAnchor).toHaveClass("left-[var(--feed-tree-rail-offset)]");
     expect(selectedIndicator).toHaveClass("group-hover/feed-row:opacity-0");
