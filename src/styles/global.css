@@ -139,7 +139,7 @@
   --panel-close-dur: 350ms;
   --panel-translate-y: 18px;
   --panel-blur: 2px;
-  --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel-ease: var(--motion-ease-standard);
   --motion-disclosure-offset: 8px;
   --motion-popup-offset: 4px;
   --motion-popup-scale-closed: 0.96;
@@ -1399,9 +1399,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
 }
 .t-digit {
   display: inline-block;
-  will-change: transform, opacity, filter;
 }
 .t-digit-group.is-animating .t-digit {
+  will-change: transform, opacity, filter;
   animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
 }
 .t-digit-group.is-animating .t-digit[data-stagger="1"] {
@@ -1670,11 +1670,6 @@ html.vertical-wipe-transition::view-transition-new(root) {
     animation: none;
     opacity: 1;
     transform: translateY(0);
-  }
-
-  .motion-list-item-enter {
-    animation: none;
-    opacity: 1;
   }
 
   .motion-article-slide[data-motion-direction="next"],
