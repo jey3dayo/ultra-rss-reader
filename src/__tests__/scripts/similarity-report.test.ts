@@ -18,6 +18,7 @@ import {
   isSimilarityCssSupported,
   isSimilarityReportEntrypoint,
   isSimilarityRustSupported,
+  normalizeSimilarityTargetPath,
   parseSimilarityCssSummary,
   parseSimilarityOutput,
   parseSimilarityPairs,
@@ -258,7 +259,14 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(defaultPath).toBe("src/");
     expect(isSimilarityRustSupported("darwin")).toBe(true);
     expect(isSimilarityRustSupported("win32")).toBe(false);
+    expect(normalizeSimilarityTargetPath("src")).toBe("src");
+    expect(normalizeSimilarityTargetPath("src/")).toBe("src");
+    expect(normalizeSimilarityTargetPath("./src/")).toBe("src");
+    expect(normalizeSimilarityTargetPath(".\\src\\")).toBe("src");
     expect(shouldRunRustSimilarityScan()).toBe(true);
+    expect(shouldRunRustSimilarityScan("src")).toBe(true);
+    expect(shouldRunRustSimilarityScan("src/")).toBe(true);
+    expect(shouldRunRustSimilarityScan("./src/")).toBe(true);
     expect(shouldRunRustSimilarityScan("src/lib")).toBe(false);
     expect(similarityUsage).toBe("Usage: node scripts/similarity-report.ts [0.95|0.9|0.87] [path]");
     expect(readThreshold(undefined)).toBe(defaultThreshold);

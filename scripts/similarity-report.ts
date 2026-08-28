@@ -398,8 +398,14 @@ export function isSimilarityRustSupported(platform: NodeJS.Platform = process.pl
   return similarityRustSupportedPlatforms.some((supportedPlatform) => supportedPlatform === platform);
 }
 
+export function normalizeSimilarityTargetPath(targetPath: string): string {
+  const slashNormalized = targetPath.replaceAll("\\", "/");
+  const withoutLeadingCurrentDirectory = slashNormalized.replace(/^(?:\.\/)+/, "");
+  return withoutLeadingCurrentDirectory.replace(/\/+$/, "") || ".";
+}
+
 export function shouldRunRustSimilarityScan(targetPath = defaultPath): boolean {
-  return targetPath === defaultPath;
+  return normalizeSimilarityTargetPath(targetPath) === normalizeSimilarityTargetPath(defaultPath);
 }
 
 export function runSimilarityReport(args: readonly string[] = process.argv.slice(2)): void {
