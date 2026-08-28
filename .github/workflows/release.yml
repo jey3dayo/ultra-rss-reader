@@ -72,11 +72,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Validate release version parity
+      - name: Validate release configuration
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: node ./scripts/release/validate-version-parity.ts
+        run: node ./scripts/release/validate-release-config.ts
 
       - name: Validate release signing preflight
         id: signing-preflight
@@ -246,11 +246,11 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Validate release version parity
+      - name: Validate release configuration
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: node ./scripts/release/validate-version-parity.ts
+        run: node ./scripts/release/validate-release-config.ts
 
       - name: Validate release signing preflight
         id: signing-preflight

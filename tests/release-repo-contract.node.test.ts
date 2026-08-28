@@ -671,7 +671,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const cargoLock = readText("src-tauri/Cargo.lock");
   const releaseWorkflow = readText(".github/workflows/release.yml");
   const releaseSourceValidator = readText("scripts/release/validate-source.ts");
-  const releaseVersionValidator = readText("scripts/release/validate-version-parity.ts");
+  const releaseConfigValidator = readText("scripts/release/validate-release-config.ts");
   const releaseVersionBumpScript = readText("scripts/release/bump-version.ts");
   const releaseCommand = readText(".claude/commands/release.md");
   const codexReleaseSkill = readText(".codex/skills/release/SKILL.md");
@@ -743,13 +743,13 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect([...cargoLock.matchAll(/\[\[package\]\]\nname = "ultra-rss-reader"\nversion = "([^"]+)"/g)]).toHaveLength(1);
     expect(cargoLock).toContain(`name = "ultra-rss-reader"\nversion = "${packageJson.version}"`);
     expect(releaseWorkflow).not.toContain("node <<'NODE'");
-    expect(releaseWorkflow).toContain("Validate release version parity");
-    expect(releaseWorkflow).toContain("node ./scripts/release/validate-version-parity.ts");
-    expect(releaseVersionValidator).toContain("release tag $" + "{releaseTag}");
-    expect(releaseVersionValidator).toContain("src-tauri/tauri.conf.json version");
-    expect(releaseVersionValidator).toContain("src-tauri/Cargo.toml version");
-    expect(releaseVersionValidator).toContain("src-tauri/Cargo.lock");
-    expect(releaseVersionValidator).toContain("MSIX_VERSION_COMPONENT_MAX");
+    expect(releaseWorkflow).toContain("Validate release configuration");
+    expect(releaseWorkflow).toContain("node ./scripts/release/validate-release-config.ts");
+    expect(releaseConfigValidator).toContain("release tag $" + "{releaseTag}");
+    expect(releaseConfigValidator).toContain("src-tauri/tauri.conf.json version");
+    expect(releaseConfigValidator).toContain("src-tauri/Cargo.toml version");
+    expect(releaseConfigValidator).toContain("src-tauri/Cargo.lock");
+    expect(releaseConfigValidator).toContain("MSIX_VERSION_COMPONENT_MAX");
     expect(releaseVersionBumpScript).toContain("src-tauri/Cargo.lock");
     expect(releaseVersionBumpScript).toContain("msix/Package.appxmanifest");
     expect(releaseVersionBumpScript).toContain("MSIX_VERSION_COMPONENT_MAX");
@@ -808,7 +808,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
       releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
     );
-    expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
+    expect(releaseWorkflow.indexOf("Validate release configuration")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
     expect(releaseWorkflow.indexOf("Run release quality preflight")).toBeLessThan(
@@ -826,7 +826,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const releaseRule = readText(".claude/rules/release-workflow.md");
 
     expect(localPreflightTask).toContain("RELEASE_TAG:?set RELEASE_TAG=vX.Y.Z");
-    expect(localPreflightTask).toContain("mise exec -- node ./scripts/release/validate-version-parity.ts");
+    expect(localPreflightTask).toContain("mise exec -- node ./scripts/release/validate-release-config.ts");
     expect(localPreflightTask).toContain("mise exec -- pnpm run check:release-contamination");
     expect(localPreflightTask).toContain("mise exec -- mise run format:check");
     expect(localPreflightTask).toContain("mise exec -- mise run lint:types");
@@ -1063,13 +1063,13 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriActionBlock).toContain(`--config ${RELEASE_TAURI_CONFIG_PATH}`);
     expect(tauriActionBlock).not.toContain(`--config ${DEV_TAURI_CONFIG_PATH}`);
     expect(tauriActionBlock).not.toContain('--config \'{"identifier"');
-    expect(releaseVersionValidator).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${RELEASE_TAURI_CONFIG_PATH}";`);
-    expect(releaseVersionValidator).toContain(`const DEV_TAURI_CONFIG_PATH = "${DEV_TAURI_CONFIG_PATH}";`);
-    expect(releaseVersionValidator).toContain("src-tauri/tauri.release.conf.json must enable updater artifacts");
-    expect(releaseVersionValidator).toContain(
+    expect(releaseConfigValidator).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${RELEASE_TAURI_CONFIG_PATH}";`);
+    expect(releaseConfigValidator).toContain(`const DEV_TAURI_CONFIG_PATH = "${DEV_TAURI_CONFIG_PATH}";`);
+    expect(releaseConfigValidator).toContain("src-tauri/tauri.release.conf.json must enable updater artifacts");
+    expect(releaseConfigValidator).toContain(
       "release workflow must pass src-tauri/tauri.release.conf.json to tauri-action",
     );
-    expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
+    expect(releaseWorkflow.indexOf("Validate release configuration")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
   });
@@ -1142,8 +1142,8 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriConfig.plugins?.updater?.endpoints).toEqual([RELEASE_UPDATER_ENDPOINT]);
     expect(tauriConfig.plugins?.updater?.pubkey).toBeTruthy();
     expect(tauriConfig.plugins?.updater?.pubkey).not.toMatch(UPDATER_PUBKEY_PLACEHOLDER_PATTERN);
-    expect(releaseVersionValidator).toContain(RELEASE_UPDATER_ENDPOINT);
-    expect(releaseVersionValidator).toContain("src-tauri/tauri.conf.json updater pubkey must be configured");
+    expect(releaseConfigValidator).toContain(RELEASE_UPDATER_ENDPOINT);
+    expect(releaseConfigValidator).toContain("src-tauri/tauri.conf.json updater pubkey must be configured");
   });
 
   it("documents the production app data namespace migration path before any bundle identifier change", () => {
@@ -1968,10 +1968,8 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriDevConfig.identifier).not.toBe(tauriReleaseConfig.identifier);
     expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
     expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
-    expect(releaseVersionValidator).toContain(
-      "src-tauri/tauri.release.conf.json must not use the dev Tauri identifier",
-    );
-    expect(releaseVersionValidator).toContain(
+    expect(releaseConfigValidator).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
+    expect(releaseConfigValidator).toContain(
       "src-tauri/tauri.release.conf.json must not use the dev Tauri product name",
     );
     expect(releaseWorkflow).toContain("Validate release build contamination contract");
