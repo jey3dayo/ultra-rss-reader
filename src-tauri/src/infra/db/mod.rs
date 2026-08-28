@@ -34,7 +34,16 @@ mod tests {
             include_str!("sqlite_article/maintenance.rs"),
             include_str!("sqlite_article/mutation.rs"),
             include_str!("sqlite_article/remote_state.rs"),
-            include_str!("sqlite_article/tests.rs"),
+            include_str!("sqlite_article/tests/mod.rs"),
+            include_str!("sqlite_article/tests/list.rs"),
+            include_str!("sqlite_article/tests/read.rs"),
+            include_str!("sqlite_article/tests/unread.rs"),
+            include_str!("sqlite_article/tests/history.rs"),
+            include_str!("sqlite_article/tests/mutation.rs"),
+            include_str!("sqlite_article/tests/maintenance.rs"),
+            include_str!("sqlite_article/tests/remote_state.rs"),
+            include_str!("sqlite_article/tests/search.rs"),
+            include_str!("sqlite_article/tests/orphaned.rs"),
         ]
         .join("\n")
     }
