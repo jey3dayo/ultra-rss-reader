@@ -251,7 +251,7 @@ run_windows = "pwsh -NoProfile -File scripts/run-wsl-mise-task.ps1 check:wsl"
 description = "Pre-push release preflight mirror; set RELEASE_TAG=vX.Y.Z after creating the local annotated tag"
 run = """
 : "${RELEASE_TAG:?set RELEASE_TAG=vX.Y.Z}"
-mise exec -- node ./scripts/release/validate-version-parity.ts
+mise exec -- node ./scripts/release/validate-release-config.ts
 mise exec -- pnpm run check:release-contamination
 mise exec -- mise run format:check
 mise exec -- mise run lint:types
@@ -260,7 +260,7 @@ mise exec -- mise run test:unit:ci
 run_windows = """
 $ErrorActionPreference = 'Stop'
 if (-not $env:RELEASE_TAG) { throw 'set RELEASE_TAG=vX.Y.Z' }
-mise exec -- node ./scripts/release/validate-version-parity.ts
+mise exec -- node ./scripts/release/validate-release-config.ts
 mise exec -- pnpm run check:release-contamination
 mise exec -- mise run format:check
 mise exec -- mise run lint:types

@@ -28,7 +28,7 @@ const SUPPORT_FILES = [
   "src-tauri/tauri.dev.conf.json",
   "src-tauri/capabilities/default.json",
   "scripts/release/bump-version.ts",
-  "scripts/release/validate-version-parity.ts",
+  "scripts/release/validate-release-config.ts",
   ".codex/skills/release/scripts/release_checks.py",
 ] as const;
 
@@ -68,7 +68,7 @@ const runBump = (fixtureRoot: string, version: string): string =>
   runScript(fixtureRoot, "scripts/release/bump-version.ts", [version]);
 
 const runParity = (fixtureRoot: string, version: string): string =>
-  execFileSync(process.execPath, ["scripts/release/validate-version-parity.ts"], {
+  execFileSync(process.execPath, ["scripts/release/validate-release-config.ts"], {
     cwd: fixtureRoot,
     encoding: "utf8",
     env: { ...process.env, RELEASE_TAG: `v${version}` },

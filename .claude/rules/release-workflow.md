@@ -9,7 +9,7 @@ paths:
   - "msix/Package.appxmanifest"
   - "package.json"
   - "scripts/release/bump-version.ts"
-  - "scripts/release/validate-version-parity.ts"
+  - "scripts/release/validate-release-config.ts"
   - ".codex/skills/release/scripts/release_checks.py"
 ---
 

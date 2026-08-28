@@ -9,8 +9,8 @@ import { parseJsonWithSchema } from "@/schemas/parse";
 import releaseWorkflowSource from "../../../.github/workflows/release.yml?raw";
 import releaseContaminationCheckerSource from "../../../scripts/check-release-build-contamination.ts?raw";
 import releaseArtifactsSource from "../../../scripts/release/artifacts.ts?raw";
+import releaseConfigValidatorSource from "../../../scripts/release/validate-release-config.ts?raw";
 import releaseSourceValidatorSource from "../../../scripts/release/validate-source.ts?raw";
-import releaseVersionValidatorSource from "../../../scripts/release/validate-version-parity.ts?raw";
 import tauriConfigSource from "../../../src-tauri/tauri.conf.json?raw";
 import tauriReleaseConfigSource from "../../../src-tauri/tauri.release.conf.json?raw";
 
@@ -112,8 +112,8 @@ test("release workflow exports updater signing secrets", async () => {
   expect(releaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   expect(tauriActionBlock).toContain(`--config ${releaseTauriConfigPath}`);
   expect(tauriActionBlock).not.toContain(`--config ${devTauriConfigPath}`);
-  expect(releaseVersionValidatorSource).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${releaseTauriConfigPath}";`);
-  expect(releaseVersionValidatorSource).toContain(`const DEV_TAURI_CONFIG_PATH = "${devTauriConfigPath}";`);
+  expect(releaseConfigValidatorSource).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${releaseTauriConfigPath}";`);
+  expect(releaseConfigValidatorSource).toContain(`const DEV_TAURI_CONFIG_PATH = "${devTauriConfigPath}";`);
 });
 
 test("release workflow keeps the supported artifact matrix", async () => {
