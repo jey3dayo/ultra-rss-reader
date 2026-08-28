@@ -84,6 +84,11 @@ pub fn next_local_sync_operation_sequence(
             DomainError::Persistence("Cannot determine local sync operation directory".to_string())
         })?
         .to_path_buf();
+    let ops_dir = operation_dir.parent().ok_or_else(|| {
+        DomainError::Persistence("Cannot determine local sync operations directory".to_string())
+    })?;
+    ensure_local_sync_directory_is_not_symlink(ops_dir)?;
+    ensure_local_sync_directory_is_not_symlink(&operation_dir)?;
     if !operation_dir.exists() {
         return Ok(1);
     }
@@ -121,17 +126,22 @@ pub fn write_local_sync_operation_file_at(
     path: &Path,
     operation: &LocalAccountSyncOperation,
 ) -> DomainResult<()> {
+    let Some(parent) = path.parent() else {
+        return Err(DomainError::Persistence(
+            "Cannot determine local sync operation parent directory".to_string(),
+        ));
+    };
+    let ops_dir = parent.parent().ok_or_else(|| {
+        DomainError::Persistence("Cannot determine local sync operations directory".to_string())
+    })?;
+    ensure_local_sync_directory_is_not_symlink(ops_dir)?;
+    ensure_local_sync_directory_is_not_symlink(parent)?;
     if path.exists() {
         return Err(DomainError::Persistence(format!(
             "Local sync operation file already exists: {}",
             redacted_sync_path_label(path)
         )));
     }
-    let Some(parent) = path.parent() else {
-        return Err(DomainError::Persistence(
-            "Cannot determine local sync operation parent directory".to_string(),
-        ));
-    };
     fs::create_dir_all(parent).map_err(|error| {
         DomainError::Persistence(format!(
             "Failed to create local sync operation directory {}: {error}",
@@ -181,6 +191,7 @@ pub fn load_local_sync_operation_dir(dir: &Path) -> DomainResult<LocalSyncLoadRe
         rejected_files: Vec::new(),
         conflicted_candidates: Vec::new(),
     };
+    ensure_local_sync_directory_is_not_symlink(dir)?;
     if !dir.exists() {
         return Ok(report);
     }
@@ -343,6 +354,23 @@ fn validated_device_dir_name(device_id: &LocalSyncDeviceId) -> DomainResult<&str
         ));
     }
     Ok(value)
+}
+
+/// Rejects a configured local-sync directory when its path entry is a symlink.
+///
+/// Export and import must inspect the path itself without following links so a
+/// sync folder cannot redirect operation files outside its configured root.
+fn ensure_local_sync_directory_is_not_symlink(path: &Path) -> DomainResult<()> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(DomainError::Persistence(
+            "Refusing local sync operation directory symlink; choose a real directory".to_string(),
+        )),
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(DomainError::Persistence(format!(
+            "Failed to inspect local sync operation directory: {error}"
+        ))),
+    }
 }
 
 fn temp_operation_path(path: &Path) -> PathBuf {

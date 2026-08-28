@@ -211,6 +211,48 @@ fn scan_skips_symlinked_entries_without_following_them() {
         && file.path.file_name().and_then(|name| name.to_str()) == Some("loop-link")));
 }
 
+#[cfg(unix)]
+#[test]
+fn export_rejects_symlinked_ops_directory_without_writing_outside_account_root() {
+    use std::os::unix::fs::symlink;
+
+    let dir = tempfile::tempdir().unwrap();
+    let account_root = dir.path().join("account");
+    let external_dir = dir.path().join("external");
+    fs::create_dir_all(&account_root).unwrap();
+    fs::create_dir_all(&external_dir).unwrap();
+    symlink(&external_dir, account_root.join("ops")).unwrap();
+
+    let error = write_local_sync_operation_file(&account_root, &operation("op-ops-link"), 1)
+        .expect_err("export should reject an ops directory symlink");
+
+    assert!(error
+        .to_string()
+        .contains("Refusing local sync operation directory symlink"));
+    assert!(external_dir.read_dir().unwrap().next().is_none());
+}
+
+#[cfg(unix)]
+#[test]
+fn export_rejects_symlinked_device_directory_without_writing_outside_account_root() {
+    use std::os::unix::fs::symlink;
+
+    let dir = tempfile::tempdir().unwrap();
+    let account_root = dir.path().join("account");
+    let external_dir = dir.path().join("external");
+    fs::create_dir_all(account_root.join("ops")).unwrap();
+    fs::create_dir_all(&external_dir).unwrap();
+    symlink(&external_dir, account_root.join("ops").join("device-a")).unwrap();
+
+    let error = write_local_sync_operation_file(&account_root, &operation("op-device-link"), 1)
+        .expect_err("export should reject a device directory symlink");
+
+    assert!(error
+        .to_string()
+        .contains("Refusing local sync operation directory symlink"));
+    assert!(external_dir.read_dir().unwrap().next().is_none());
+}
+
 #[test]
 fn scan_skips_oversized_operation_files() {
     let dir = tempfile::tempdir().unwrap();
