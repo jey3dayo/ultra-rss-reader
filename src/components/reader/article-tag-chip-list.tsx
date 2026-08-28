@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import { TagChip } from "@/design-system";
+import { cn } from "@/lib/utils";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker-view";
 
 type ArticleTagChipListProps = {
@@ -8,6 +10,8 @@ type ArticleTagChipListProps = {
 };
 
 export function ArticleTagChipList({ assignedTags, labels, onRemoveTag }: ArticleTagChipListProps) {
+  const initialAssignedTagIds = useRef(new Set(assignedTags.map((tag) => tag.id))).current;
+
   return assignedTags.map((tag) => (
     <TagChip
       key={tag.id}
@@ -15,7 +19,7 @@ export function ArticleTagChipList({ assignedTags, labels, onRemoveTag }: Articl
       color={tag.color}
       onRemove={() => onRemoveTag(tag.id)}
       removeLabel={labels.removeTag(tag.name)}
-      className="motion-list-item-enter bg-background/10"
+      className={cn(!initialAssignedTagIds.has(tag.id) && "motion-list-item-enter", "bg-background/10")}
     />
   ));
 }

@@ -39,7 +39,7 @@ describe("ArticleTagPickerView", () => {
     const removeButton = screen.getByRole("button", {
       name: "Remove tag Later",
     });
-    expect(screen.getByText("Later").parentElement).toHaveClass("motion-list-item-enter");
+    expect(screen.getByText("Later").parentElement).not.toHaveClass("motion-list-item-enter");
     const addTagButton = screen.getByRole("button", { name: "Add tag" });
     expect(removeButton).toHaveClass("size-4");
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();
@@ -79,6 +79,53 @@ describe("ArticleTagPickerView", () => {
     expect(onExpandedChange).not.toHaveBeenCalled();
     expect(onNewTagNameChange).not.toHaveBeenCalled();
     expect(onCreateTag).not.toHaveBeenCalled();
+  });
+
+  it("animates only tags assigned after the initial render", () => {
+    const labels = {
+      addTag: "Add tag",
+      availableTags: "Available tags",
+      newTagPlaceholder: "Create tag",
+      createTag: "Create tag",
+      removeTag: (name: string) => `Remove tag ${name}`,
+    };
+    const { rerender } = render(
+      <ArticleTagPickerView
+        assignedTags={[{ id: "tag-1", name: "Later", color: null }]}
+        availableTags={[]}
+        newTagName=""
+        isExpanded={false}
+        labels={labels}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Later").parentElement).not.toHaveClass("motion-list-item-enter");
+
+    rerender(
+      <ArticleTagPickerView
+        assignedTags={[
+          { id: "tag-1", name: "Later", color: null },
+          { id: "tag-2", name: "Important", color: "#ff0000" },
+        ]}
+        availableTags={[]}
+        newTagName=""
+        isExpanded={false}
+        labels={labels}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Later").parentElement).not.toHaveClass("motion-list-item-enter");
+    expect(screen.getByText("Important").parentElement).toHaveClass("motion-list-item-enter");
   });
 
   it("keeps the picker popover inside a narrow viewport", async () => {
