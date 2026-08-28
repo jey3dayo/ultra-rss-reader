@@ -121,7 +121,7 @@ export function FeedTreeRow({
               }
               {...(feed.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
               data-feed-id={feed.id}
-              className="rounded-lg"
+              className="motion-list-item-enter rounded-lg"
             />
           }
           onContextMenu={captureTarget}
