@@ -80,8 +80,8 @@ function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSel
             className={cn(
               "flex h-11 w-full min-w-0 select-none items-center gap-2.5 rounded-md border border-border-strong bg-surface-1 px-3 text-left shadow-elevation-1",
               "transition-[background-color,box-shadow,transform] duration-150 ease-standard motion-reduce:transition-none",
-              "hover:-translate-y-px hover:bg-surface-2 hover:shadow-elevation-2",
-              "active:scale-[0.98] active:duration-100 active:ease-out",
+              "hover:-translate-y-px hover:bg-surface-2 hover:shadow-elevation-2 motion-reduce:hover:translate-y-0",
+              "active:scale-[0.98] active:duration-100 active:ease-out motion-reduce:active:scale-100",
               "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
               !hasUnread && "opacity-60",
             )}

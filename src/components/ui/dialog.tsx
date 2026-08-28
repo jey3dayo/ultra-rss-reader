@@ -42,6 +42,10 @@ type DialogTopLayerContextValue = {
   open: DialogProps["open"];
 };
 
+type DialogOverlayMotionProps = DialogOverlayProps & {
+  disableMotion?: boolean;
+};
+
 const DialogTopLayerContext = React.createContext<DialogTopLayerContextValue>({ modal: true, open: undefined });
 
 function Dialog({ modal = true, open, ...props }: DialogProps) {
@@ -83,7 +87,11 @@ function getDialogStackClass(layer: DialogStackLayer) {
 }
 
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
-  const overlayClassName = [MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate", className]
+  return <DialogOverlayInternal className={className} {...props} />;
+}
+
+function DialogOverlayInternal({ className, disableMotion = false, ...props }: DialogOverlayMotionProps) {
+  const overlayClassName = [!disableMotion && MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate", className]
     .filter(Boolean)
     .join(" ");
 
@@ -109,6 +117,7 @@ function DialogContent({
     .join(" ");
   const resolvedCloseLabel = resolveDialogCloseLabel(closeLabel, t(["dialog_close", "close"]));
   const stackClassName = getDialogStackClass(stackLayer);
+  const disableMotion = stackLayer === "commandPalette";
 
   React.useEffect(() => {
     if (modal !== true || open === false) {
@@ -129,13 +138,18 @@ function DialogContent({
 
   const content = (
     <>
-      <DialogOverlay className={[stackClassName, resolvedOverlayClassName].join(" ")} data-dialog-stack-id={dialogId} />
+      <DialogOverlayInternal
+        className={[stackClassName, resolvedOverlayClassName].join(" ")}
+        data-dialog-stack-id={dialogId}
+        disableMotion={disableMotion}
+      />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         data-dialog-stack-id={dialogId}
         data-stack-layer={stackLayer}
         className={cn(
-          MOTION_POPUP_DIALOG_CLASS_NAME,
+          "popup-dialog-centered",
+          !disableMotion && MOTION_POPUP_DIALOG_CLASS_NAME,
           "fixed top-1/2 left-1/2 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
           stackClassName,
           className,

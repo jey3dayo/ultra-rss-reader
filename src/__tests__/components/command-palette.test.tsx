@@ -696,8 +696,8 @@ describe("CommandPalette", () => {
 
     expect(overlay).toHaveClass("bg-dialog-overlay-readable");
     expect(overlay).toHaveClass("supports-backdrop-filter:backdrop-blur-none");
-    expect(overlay).toHaveClass("motion-popup-overlay");
-    expect(dialog).toHaveClass("motion-popup-dialog");
+    expect(overlay).not.toHaveClass("motion-popup-overlay");
+    expect(dialog).not.toHaveClass("motion-popup-dialog");
   });
 
   it("shows dev scenarios only in dev builds", async () => {

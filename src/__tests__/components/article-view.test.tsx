@@ -2288,7 +2288,9 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    await user.click(within(summary).getByRole("button", { name: /Quiet Feed/ }));
+    const quietFeedButton = within(summary).getByRole("button", { name: /Quiet Feed/ });
+    expect(quietFeedButton).toHaveClass("motion-reduce:hover:translate-y-0", "motion-reduce:active:scale-100");
+    await user.click(quietFeedButton);
 
     await waitFor(() => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-folder-empty" });

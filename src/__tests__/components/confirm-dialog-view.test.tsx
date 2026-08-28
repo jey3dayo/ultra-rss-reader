@@ -29,7 +29,7 @@ describe("ConfirmDialogView", () => {
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
     expect(dialog).toHaveAccessibleDescription("Mark all selected articles as read?");
-    expect(dialog).toHaveClass("motion-popup-dialog");
+    expect(dialog).toHaveClass("popup-dialog-centered", "motion-popup-dialog");
     expect(overlay).toHaveClass("motion-popup-overlay");
     expect(screen.getByTestId("confirm-dialog-icon")).toHaveClass("bg-surface-1/72");
     expect(screen.getByRole("button", { name: "Mark all read" })).toHaveClass("min-h-11");
