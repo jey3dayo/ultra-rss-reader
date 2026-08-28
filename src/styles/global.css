@@ -1499,7 +1499,7 @@ html.vertical-wipe-transition::view-transition-new(root) {
   --motion-popup-translate-y: calc(var(--motion-popup-offset) * -1);
 
   transform: translate(0, 0) scale(1);
-  transform-origin: top center;
+  transform-origin: var(--transform-origin, top center);
   transition:
     opacity var(--motion-duration-popup-enter) var(--motion-ease-standard),
     transform var(--motion-duration-popup-enter) var(--motion-ease-emphasized);
@@ -1624,12 +1624,12 @@ html.vertical-wipe-transition::view-transition-new(root) {
   }
 
   .motion-loading-dot {
-    animation: none;
+    animation: motion-loading-pulse 1.2s var(--motion-ease-standard) infinite;
     opacity: 0.7;
   }
 
   .animate-indeterminate {
-    animation: none;
+    animation: motion-loading-pulse 1.5s var(--motion-ease-standard) infinite;
   }
 
   /* Keep the same hold duration; only soften the fill into an opacity ramp. */
