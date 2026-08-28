@@ -1507,23 +1507,23 @@ html.vertical-wipe-transition::view-transition-new(root) {
 
 .motion-popup-surface[data-side="top"] {
   --motion-popup-translate-y: var(--motion-popup-offset);
-  transform-origin: bottom center;
+  transform-origin: var(--transform-origin, bottom center);
 }
 
 .motion-popup-surface[data-side="right"] {
   --motion-popup-translate-x: calc(var(--motion-popup-offset) * -1);
   --motion-popup-translate-y: 0px;
-  transform-origin: left center;
+  transform-origin: var(--transform-origin, left center);
 }
 
 .motion-popup-surface[data-side="bottom"] {
-  transform-origin: top center;
+  transform-origin: var(--transform-origin, top center);
 }
 
 .motion-popup-surface[data-side="left"] {
   --motion-popup-translate-x: var(--motion-popup-offset);
   --motion-popup-translate-y: 0px;
-  transform-origin: right center;
+  transform-origin: var(--transform-origin, right center);
 }
 
 .motion-popup-surface[data-open] {
