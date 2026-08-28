@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const similarityThresholds = [0.95, 0.9, 0.87] as const;
@@ -399,9 +400,9 @@ export function isSimilarityRustSupported(platform: NodeJS.Platform = process.pl
 }
 
 export function normalizeSimilarityTargetPath(targetPath: string): string {
-  const slashNormalized = targetPath.replaceAll("\\", "/");
-  const withoutLeadingCurrentDirectory = slashNormalized.replace(/^(?:\.\/)+/, "");
-  return withoutLeadingCurrentDirectory.replace(/\/+$/, "") || ".";
+  // path.resolve collapses ./, ../, duplicate and platform separators, so
+  // every spelling of the default scan root compares equal.
+  return path.resolve(targetPath.replaceAll("\\", "/"));
 }
 
 export function shouldRunRustSimilarityScan(targetPath = defaultPath): boolean {
