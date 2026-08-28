@@ -360,6 +360,9 @@ fn validated_device_dir_name(device_id: &LocalSyncDeviceId) -> DomainResult<&str
 ///
 /// Export and import must inspect the path itself without following links so a
 /// sync folder cannot redirect operation files outside its configured root.
+/// The user-selected `account_root` itself is intentionally allowed to be a
+/// symlink; only internal operation-directory components are no-follow
+/// boundaries.
 fn ensure_local_sync_directory_is_not_symlink(path: &Path) -> DomainResult<()> {
     match fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => Err(DomainError::Persistence(
