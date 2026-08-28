@@ -30,7 +30,10 @@ mod tests {
     fn sqlite_article_module_source() -> String {
         [
             include_str!("sqlite_article/mod.rs"),
+            include_str!("sqlite_article/history.rs"),
+            include_str!("sqlite_article/maintenance.rs"),
             include_str!("sqlite_article/mutation.rs"),
+            include_str!("sqlite_article/remote_state.rs"),
             include_str!("sqlite_article/tests.rs"),
         ]
         .join("\n")

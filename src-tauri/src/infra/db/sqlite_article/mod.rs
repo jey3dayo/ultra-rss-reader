@@ -17,7 +17,10 @@ use crate::repository::article::{
 };
 use crate::repository::mute_keyword::MuteKeywordRepository;
 
+mod history;
+mod maintenance;
 mod mutation;
+mod remote_state;
 #[cfg(test)]
 mod tests;
 
