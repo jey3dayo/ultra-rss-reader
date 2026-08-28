@@ -39,6 +39,7 @@ describe("ArticleTagPickerView", () => {
     const removeButton = screen.getByRole("button", {
       name: "Remove tag Later",
     });
+    expect(screen.getByText("Later").parentElement).toHaveClass("motion-list-item-enter");
     const addTagButton = screen.getByRole("button", { name: "Add tag" });
     expect(removeButton).toHaveClass("size-4");
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();

@@ -15,7 +15,7 @@ export function ArticleTagChipList({ assignedTags, labels, onRemoveTag }: Articl
       color={tag.color}
       onRemove={() => onRemoveTag(tag.id)}
       removeLabel={labels.removeTag(tag.name)}
-      className="bg-background/10"
+      className="motion-list-item-enter bg-background/10"
     />
   ));
 }
