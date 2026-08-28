@@ -398,6 +398,10 @@ export function isSimilarityRustSupported(platform: NodeJS.Platform = process.pl
   return similarityRustSupportedPlatforms.some((supportedPlatform) => supportedPlatform === platform);
 }
 
+export function shouldRunRustSimilarityScan(targetPath = defaultPath): boolean {
+  return targetPath === defaultPath;
+}
+
 export function runSimilarityReport(args: readonly string[] = process.argv.slice(2)): void {
   if (args[0] === "--help" || args[0] === "-h") {
     console.log(similarityUsage);
@@ -463,6 +467,11 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
     process.stdout.write("\n");
     process.stdout.write(buildSimilarityCssSummary(cssResult.stdout, threshold, targetPath));
     process.stdout.write("\n");
+  }
+
+  if (!shouldRunRustSimilarityScan(targetPath)) {
+    process.stdout.write("\nRust similarity scan skipped: custom target path scopes the TypeScript/CSS scan.\n");
+    return;
   }
 
   if (!isSimilarityRustSupported()) {
