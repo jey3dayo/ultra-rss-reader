@@ -447,7 +447,7 @@ export function MotionTransitionsSpecimen() {
             <div
               role="dialog"
               aria-label="Motion specimen dialog"
-              className="motion-popup-dialog absolute top-1/2 left-1/2 grid w-[230px] gap-3 rounded-xl border border-border bg-surface-2 p-4 text-sm text-popover-foreground shadow-elevation-3"
+              className="popup-dialog-centered motion-popup-dialog absolute top-1/2 left-1/2 grid w-[230px] gap-3 rounded-xl border border-border bg-surface-2 p-4 text-sm text-popover-foreground shadow-elevation-3"
               {...(dialogOpen ? { "data-open": "" } : { "data-closed": "" })}
             >
               <div className="flex items-center gap-2">

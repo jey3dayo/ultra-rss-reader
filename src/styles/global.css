@@ -1468,8 +1468,15 @@ html.vertical-wipe-transition::view-transition-new(root) {
   opacity: 0;
 }
 
+.popup-dialog-centered {
+  --motion-popup-dialog-translate-y: -50%;
+  --motion-popup-dialog-scale: scale(1);
+
+  transform: translate(-50%, var(--motion-popup-dialog-translate-y)) var(--motion-popup-dialog-scale);
+  transform-origin: center;
+}
+
 .motion-popup-dialog {
-  transform: translate(-50%, -50%) scale(1);
   transform-origin: center;
   transition:
     opacity var(--motion-duration-popup-enter) var(--motion-ease-standard),
@@ -1484,14 +1491,16 @@ html.vertical-wipe-transition::view-transition-new(root) {
 
 .motion-popup-dialog[data-open] {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  --motion-popup-dialog-translate-y: -50%;
+  --motion-popup-dialog-scale: scale(1);
 }
 
 .motion-popup-dialog[data-closed],
 .motion-popup-dialog[data-starting-style],
 .motion-popup-dialog[data-ending-style] {
   opacity: 0;
-  transform: translate(-50%, calc(-50% - var(--motion-popup-offset))) scale(var(--motion-popup-scale-closed));
+  --motion-popup-dialog-translate-y: calc(-50% - var(--motion-popup-offset));
+  --motion-popup-dialog-scale: scale(var(--motion-popup-scale-closed));
 }
 
 .motion-popup-surface {

@@ -102,7 +102,15 @@ describe("DialogContent", () => {
     renderDialogContent({ stackLayer: "commandPalette" });
 
     expect(document.querySelector('[data-slot="dialog-overlay"]')).not.toHaveClass("motion-popup-overlay");
+    expect(screen.getByRole("dialog", { name: "Test dialog" })).toHaveClass("popup-dialog-centered");
     expect(screen.getByRole("dialog", { name: "Test dialog" })).not.toHaveClass("motion-popup-dialog");
+  });
+
+  it("keeps centering independent from popup motion", () => {
+    renderDialogContent();
+
+    const dialog = screen.getByRole("dialog", { name: "Test dialog" });
+    expect(dialog).toHaveClass("popup-dialog-centered", "motion-popup-dialog");
   });
 
   it("keeps background content hidden and inert while the modal dialog owns the top layer", async () => {

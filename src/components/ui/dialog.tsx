@@ -42,7 +42,7 @@ type DialogTopLayerContextValue = {
   open: DialogProps["open"];
 };
 
-type DialogOverlayInternalProps = DialogOverlayProps & {
+type DialogOverlayMotionProps = DialogOverlayProps & {
   disableMotion?: boolean;
 };
 
@@ -86,7 +86,11 @@ function getDialogStackClass(layer: DialogStackLayer) {
   return layer === "commandPalette" ? APP_STACKING_CLASS_NAMES.commandPalette : APP_STACKING_CLASS_NAMES.dialog;
 }
 
-function DialogOverlay({ className, disableMotion = false, ...props }: DialogOverlayInternalProps) {
+function DialogOverlay({ className, ...props }: DialogOverlayProps) {
+  return <DialogOverlayInternal className={className} {...props} />;
+}
+
+function DialogOverlayInternal({ className, disableMotion = false, ...props }: DialogOverlayMotionProps) {
   const overlayClassName = [!disableMotion && MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate", className]
     .filter(Boolean)
     .join(" ");
@@ -134,7 +138,7 @@ function DialogContent({
 
   const content = (
     <>
-      <DialogOverlay
+      <DialogOverlayInternal
         className={[stackClassName, resolvedOverlayClassName].join(" ")}
         data-dialog-stack-id={dialogId}
         disableMotion={disableMotion}
@@ -144,6 +148,7 @@ function DialogContent({
         data-dialog-stack-id={dialogId}
         data-stack-layer={stackLayer}
         className={cn(
+          "popup-dialog-centered",
           !disableMotion && MOTION_POPUP_DIALOG_CLASS_NAME,
           "fixed top-1/2 left-1/2 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
           stackClassName,
