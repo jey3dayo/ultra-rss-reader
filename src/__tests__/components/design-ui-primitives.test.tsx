@@ -33,6 +33,7 @@ import {
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
 const motionCss = globalCss.slice(globalCss.indexOf("@keyframes vertical-wipe"), globalCss.indexOf("\n\nhtml,\nbody"));
+const reducedMotionCss = globalCss.slice(globalCss.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
 
 const expectGlobalCssToContain = (...snippets: readonly string[]) => {
   for (const snippet of snippets) {
@@ -123,6 +124,11 @@ describe("Design-themed UI primitives", () => {
       "html.vertical-wipe-transition::view-transition-new(root)",
       "@media (prefers-reduced-motion: reduce)",
     );
+    expect(reducedMotionCss).toContain(".motion-loading-dot");
+    expect(reducedMotionCss).toContain("animation: motion-loading-pulse");
+    expect(reducedMotionCss).toContain(".animate-indeterminate");
+    expect(reducedMotionCss).toContain(".motion-popup-surface");
+    expect(reducedMotionCss).not.toContain(".motion-list-item-enter");
     expect(globalCss).toContain(".motion-filter-toggle[data-pressed]");
     expect(globalCss).toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(

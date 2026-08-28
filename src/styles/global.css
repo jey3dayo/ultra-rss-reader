@@ -139,7 +139,7 @@
   --panel-close-dur: 350ms;
   --panel-translate-y: 18px;
   --panel-blur: 2px;
-  --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --panel-ease: var(--motion-ease-standard);
   --motion-disclosure-offset: 8px;
   --motion-popup-offset: 4px;
   --motion-popup-scale-closed: 0.96;
@@ -1399,9 +1399,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
 }
 .t-digit {
   display: inline-block;
-  will-change: transform, opacity, filter;
 }
 .t-digit-group.is-animating .t-digit {
+  will-change: transform, opacity, filter;
   animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
 }
 .t-digit-group.is-animating .t-digit[data-stagger="1"] {
@@ -1499,7 +1499,7 @@ html.vertical-wipe-transition::view-transition-new(root) {
   --motion-popup-translate-y: calc(var(--motion-popup-offset) * -1);
 
   transform: translate(0, 0) scale(1);
-  transform-origin: top center;
+  transform-origin: var(--transform-origin, top center);
   transition:
     opacity var(--motion-duration-popup-enter) var(--motion-ease-standard),
     transform var(--motion-duration-popup-enter) var(--motion-ease-emphasized);
@@ -1507,23 +1507,23 @@ html.vertical-wipe-transition::view-transition-new(root) {
 
 .motion-popup-surface[data-side="top"] {
   --motion-popup-translate-y: var(--motion-popup-offset);
-  transform-origin: bottom center;
+  transform-origin: var(--transform-origin, bottom center);
 }
 
 .motion-popup-surface[data-side="right"] {
   --motion-popup-translate-x: calc(var(--motion-popup-offset) * -1);
   --motion-popup-translate-y: 0px;
-  transform-origin: left center;
+  transform-origin: var(--transform-origin, left center);
 }
 
 .motion-popup-surface[data-side="bottom"] {
-  transform-origin: top center;
+  transform-origin: var(--transform-origin, top center);
 }
 
 .motion-popup-surface[data-side="left"] {
   --motion-popup-translate-x: var(--motion-popup-offset);
   --motion-popup-translate-y: 0px;
-  transform-origin: right center;
+  transform-origin: var(--transform-origin, right center);
 }
 
 .motion-popup-surface[data-open] {
@@ -1624,12 +1624,12 @@ html.vertical-wipe-transition::view-transition-new(root) {
   }
 
   .motion-loading-dot {
-    animation: none;
+    animation: motion-loading-pulse 1.2s var(--motion-ease-standard) infinite;
     opacity: 0.7;
   }
 
   .animate-indeterminate {
-    animation: none;
+    animation: motion-loading-pulse 1.5s var(--motion-ease-standard) infinite;
   }
 
   /* Keep the same hold duration; only soften the fill into an opacity ramp. */
@@ -1670,11 +1670,6 @@ html.vertical-wipe-transition::view-transition-new(root) {
     animation: none;
     opacity: 1;
     transform: translateY(0);
-  }
-
-  .motion-list-item-enter {
-    animation: none;
-    opacity: 1;
   }
 
   .motion-article-slide[data-motion-direction="next"],
