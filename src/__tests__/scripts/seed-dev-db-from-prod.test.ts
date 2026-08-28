@@ -675,68 +675,72 @@ describe("seedDevDatabaseFromProdPlan", () => {
   });
 
   it("backs up existing Dev artifacts concurrently before destination cleanup", async () => {
-    const plan = buildSeedPlan({
-      prodAppDataDir: "/prod",
-      devAppDataDir: "/dev",
-      timestamp: "20260501T123456",
-    });
-    const copyRequests: string[] = [];
-    const rmRequests: string[] = [];
-    const releaseBackupCopies = new Map<string, () => void>();
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-concurrency-test-"));
+    try {
+      const prodAppDataDir = path.join(tempDir, "prod");
+      const devAppDataDir = path.join(tempDir, "dev");
+      const plan = buildSeedPlan({ prodAppDataDir, devAppDataDir, timestamp: "20260501T123456" });
+      const portableProdDir = toPortablePath(prodAppDataDir);
+      const portableDevDir = toPortablePath(devAppDataDir);
+      const portableBackupDir = toPortablePath(plan.backupDir);
+      const copyRequests: string[] = [];
+      const rmRequests: string[] = [];
+      const releaseBackupCopies = new Map<string, () => void>();
 
-    const resultPromise = seedDevDatabaseFromProdPlan(plan, {
-      accessImpl: async (targetPath) => {
-        if (toPortablePath(String(targetPath)) === "/dev/backups/seed-from-prod-20260501T123456") {
-          const error = new Error("not found") as NodeJS.ErrnoException;
-          error.code = "ENOENT";
-          throw error;
-        }
-      },
-      copyFileImpl: async (source, destination) => {
-        const sourcePath = toPortablePath(String(source));
-        const destinationPath = toPortablePath(String(destination));
-        copyRequests.push(`${sourcePath}->${destinationPath}`);
-        if (sourcePath.startsWith("/dev/") && destinationPath.includes("/backups/seed-from-prod-20260501T123456/")) {
-          await new Promise<void>((resolve) => {
-            releaseBackupCopies.set(destinationPath, resolve);
-          });
-        }
-      },
-      mkdirImpl: async () => undefined,
-      rmImpl: async (targetPath) => {
-        rmRequests.push(toPortablePath(String(targetPath)));
-      },
-    });
+      const resultPromise = seedDevDatabaseFromProdPlan(plan, {
+        accessImpl: async (targetPath) => {
+          if (toPortablePath(String(targetPath)) === portableBackupDir) {
+            const error = new Error("not found") as NodeJS.ErrnoException;
+            error.code = "ENOENT";
+            throw error;
+          }
+        },
+        copyFileImpl: async (source, destination) => {
+          const sourcePath = toPortablePath(String(source));
+          const destinationPath = toPortablePath(String(destination));
+          copyRequests.push(`${sourcePath}->${destinationPath}`);
+          if (sourcePath.startsWith(`${portableDevDir}/`) && destinationPath.startsWith(`${portableBackupDir}/`)) {
+            await new Promise<void>((resolve) => {
+              releaseBackupCopies.set(destinationPath, resolve);
+            });
+          }
+        },
+        mkdirImpl: async () => undefined,
+        rmImpl: async (targetPath) => {
+          rmRequests.push(toPortablePath(String(targetPath)));
+        },
+      });
 
-    // Polling is intentionally sequential: each tick gives the in-flight copy hooks a chance to register.
-    for (let index = 0; index < 10 && releaseBackupCopies.size < 3; index += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // Polling is intentionally sequential: each tick gives the in-flight copy hooks a chance to register.
+      for (let index = 0; index < 10 && releaseBackupCopies.size < 3; index += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      expect(releaseBackupCopies.size).toBe(3);
+      expect(rmRequests).toEqual([`${portableBackupDir}.staging`]);
+
+      for (const releaseBackupCopy of releaseBackupCopies.values()) {
+        releaseBackupCopy();
+      }
+
+      const result = await resultPromise;
+      expect({ backedUp: result.backedUp.map(toPortablePath) }).toMatchObject({
+        backedUp: buildDatabaseArtifactPaths(portableDevDir),
+      });
+      expect(copyRequests).toEqual(
+        expect.arrayContaining([
+          `${portableProdDir}/ultra-rss-reader.db->${portableBackupDir}.staging/ultra-rss-reader.db`,
+          `${portableDevDir}/ultra-rss-reader.db->${portableBackupDir}/ultra-rss-reader.db`,
+          `${portableBackupDir}.staging/ultra-rss-reader.db->${portableDevDir}/ultra-rss-reader.db`,
+        ]),
+      );
+      expect(rmRequests).toEqual([
+        `${portableBackupDir}.staging`,
+        ...buildDatabaseArtifactPaths(portableDevDir),
+        `${portableBackupDir}.staging`,
+      ]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
     }
-    expect(releaseBackupCopies.size).toBe(3);
-    expect(rmRequests).toEqual(["/dev/backups/seed-from-prod-20260501T123456.staging"]);
-
-    for (const releaseBackupCopy of releaseBackupCopies.values()) {
-      releaseBackupCopy();
-    }
-
-    const result = await resultPromise;
-    expect({ backedUp: result.backedUp.map(toPortablePath) }).toMatchObject({
-      backedUp: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
-    });
-    expect(copyRequests).toEqual(
-      expect.arrayContaining([
-        "/prod/ultra-rss-reader.db->/dev/backups/seed-from-prod-20260501T123456.staging/ultra-rss-reader.db",
-        "/dev/ultra-rss-reader.db->/dev/backups/seed-from-prod-20260501T123456/ultra-rss-reader.db",
-        "/dev/backups/seed-from-prod-20260501T123456.staging/ultra-rss-reader.db->/dev/ultra-rss-reader.db",
-      ]),
-    );
-    expect(rmRequests).toEqual([
-      "/dev/backups/seed-from-prod-20260501T123456.staging",
-      "/dev/ultra-rss-reader.db",
-      "/dev/ultra-rss-reader.db-wal",
-      "/dev/ultra-rss-reader.db-shm",
-      "/dev/backups/seed-from-prod-20260501T123456.staging",
-    ]);
   });
 });
 
