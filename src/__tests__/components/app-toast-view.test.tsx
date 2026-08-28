@@ -4,17 +4,20 @@ import { describe, expect, it, vi } from "vitest";
 import { AppToastView } from "@/design-system";
 
 describe("AppToastView", () => {
-  it("clamps numeric progress width and keeps null progress indeterminate", () => {
+  it("clamps numeric progress scale and keeps null progress indeterminate", () => {
     const onClose = vi.fn();
     const { rerender } = render(
       <AppToastView toastMessage={{ message: "Downloading", progress: -10 }} onClose={onClose} />,
     );
 
-    expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveStyle({ width: "0%" });
+    const progressBar = screen.getByTestId("app-toast").querySelector(".bg-primary");
+    expect(progressBar).toHaveStyle({ transform: "scaleX(0)" });
+    expect(progressBar).not.toHaveClass("rounded-full");
+    expect(progressBar?.parentElement).toHaveClass("rounded-full", "overflow-hidden");
 
     rerender(<AppToastView toastMessage={{ message: "Downloading", progress: 120 }} onClose={onClose} />);
 
-    expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveStyle({ width: "100%" });
+    expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveStyle({ transform: "scaleX(1)" });
 
     rerender(<AppToastView toastMessage={{ message: "Downloading", progress: null }} onClose={onClose} />);
 
