@@ -724,7 +724,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
 
       const result = await resultPromise;
       expect({ backedUp: result.backedUp.map(toPortablePath) }).toMatchObject({
-        backedUp: buildDatabaseArtifactPaths(portableDevDir),
+        backedUp: buildDatabaseArtifactPaths(portableDevDir).map(toPortablePath),
       });
       expect(copyRequests).toEqual(
         expect.arrayContaining([
@@ -735,7 +735,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
       );
       expect(rmRequests).toEqual([
         `${portableBackupDir}.staging`,
-        ...buildDatabaseArtifactPaths(portableDevDir),
+        ...buildDatabaseArtifactPaths(portableDevDir).map(toPortablePath),
         `${portableBackupDir}.staging`,
       ]);
     } finally {
