@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const similarityThresholds = [0.95, 0.9, 0.87] as const;
@@ -7,6 +8,8 @@ export const defaultPath = "src/";
 export const defaultCssPath = "src/";
 export const cssSimilarityMinSize = 3;
 export const similarityCssSupportedPlatforms = ["darwin", "linux"] as const;
+export const defaultRustPath = "src-tauri/src/";
+export const similarityRustSupportedPlatforms = ["darwin", "linux"] as const;
 export const similarityUsage = `Usage: node scripts/similarity-report.ts [${similarityThresholds.join("|")}] [path]`;
 export const similarityScanExcludePatterns = [
   "node_modules",
@@ -54,6 +57,10 @@ export type SimilarityCssSummary = {
   exactDuplicates: number;
   similarStyles: number;
   bemVariations: number;
+};
+
+export type SimilarityRustSummary = {
+  duplicatePairs: number;
 };
 
 export type SimilarityParseDiagnostics = {
@@ -283,6 +290,27 @@ export function buildSimilarityCssSummary(
   ].join("\n");
 }
 
+export function parseSimilarityRustSummary(output: string): SimilarityRustSummary {
+  return {
+    duplicatePairs: readOptionalCount(output, /^Total duplicate pairs found: (\d+)$/m),
+  };
+}
+
+export function buildSimilarityRustSummary(
+  output: string,
+  threshold: SimilarityThreshold = defaultThreshold,
+  targetPath = defaultRustPath,
+): string {
+  const summary = parseSimilarityRustSummary(output);
+
+  return [
+    "Rust similarity scan (report-only)",
+    `current command: mise exec -- similarity-rs --threshold ${threshold} ${targetPath}`,
+    `duplicate pairs: ${summary.duplicatePairs}`,
+    "gate: disabled; review candidates manually before any refactor.",
+  ].join("\n");
+}
+
 export function evaluateSimilarityReportGate(output: string): SimilarityReportGateDiagnostic | null {
   const parseDiagnostics = parseSimilarityOutput(output);
   const typeSummary = parseSimilarityTypeSummary(output);
@@ -359,8 +387,26 @@ export function buildSimilarityCssCommandArgs(threshold: SimilarityThreshold, ta
   return ["--threshold", String(threshold), "--min-size", String(cssSimilarityMinSize), targetPath];
 }
 
+export function buildSimilarityRustCommandArgs(threshold: SimilarityThreshold, targetPath = defaultRustPath): string[] {
+  return ["similarity-rs", "--threshold", String(threshold), targetPath];
+}
+
 export function isSimilarityCssSupported(platform: NodeJS.Platform = process.platform): boolean {
   return similarityCssSupportedPlatforms.some((supportedPlatform) => supportedPlatform === platform);
+}
+
+export function isSimilarityRustSupported(platform: NodeJS.Platform = process.platform): boolean {
+  return similarityRustSupportedPlatforms.some((supportedPlatform) => supportedPlatform === platform);
+}
+
+export function normalizeSimilarityTargetPath(targetPath: string): string {
+  // path.resolve collapses ./, ../, duplicate and platform separators, so
+  // every spelling of the default scan root compares equal.
+  return path.resolve(targetPath.replaceAll("\\", "/"));
+}
+
+export function shouldRunRustSimilarityScan(targetPath = defaultPath): boolean {
+  return normalizeSimilarityTargetPath(targetPath) === normalizeSimilarityTargetPath(defaultPath);
 }
 
 export function runSimilarityReport(args: readonly string[] = process.argv.slice(2)): void {
@@ -402,33 +448,64 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
 
   if (!isSimilarityCssSupported()) {
     process.stdout.write("\nCSS similarity scan skipped: similarity-css is pinned for Linux/macOS only.\n");
+  } else {
+    const cssResult = spawnSync(
+      "mise",
+      ["exec", "--", "similarity-css", ...buildSimilarityCssCommandArgs(threshold, targetPath)],
+      {
+        encoding: "utf8",
+      },
+    );
+
+    if (cssResult.error !== undefined) {
+      process.stderr.write(`Failed to run similarity-css through mise: ${cssResult.error.message}\n`);
+      process.exit(1);
+    }
+
+    if (cssResult.status !== 0) {
+      process.stderr.write(`similarity-css exited with status ${cssResult.status ?? "unknown"}.\n`);
+      process.stderr.write(cssResult.stderr);
+      process.stderr.write(cssResult.stdout);
+      process.exit(cssResult.status ?? 1);
+    }
+
+    process.stdout.write("\n");
+    process.stdout.write(cssResult.stdout);
+    process.stdout.write("\n");
+    process.stdout.write(buildSimilarityCssSummary(cssResult.stdout, threshold, targetPath));
+    process.stdout.write("\n");
+  }
+
+  if (!shouldRunRustSimilarityScan(targetPath)) {
+    process.stdout.write("\nRust similarity scan skipped: custom target path scopes the TypeScript/CSS scan.\n");
     return;
   }
 
-  const cssResult = spawnSync(
-    "mise",
-    ["exec", "--", "similarity-css", ...buildSimilarityCssCommandArgs(threshold, targetPath)],
-    {
-      encoding: "utf8",
-    },
-  );
+  if (!isSimilarityRustSupported()) {
+    process.stdout.write("\nRust similarity scan skipped: similarity-rs is pinned for Linux/macOS only.\n");
+    return;
+  }
 
-  if (cssResult.error !== undefined) {
-    process.stderr.write(`Failed to run similarity-css through mise: ${cssResult.error.message}\n`);
+  const rustResult = spawnSync("mise", ["exec", "--", ...buildSimilarityRustCommandArgs(threshold)], {
+    encoding: "utf8",
+  });
+
+  if (rustResult.error !== undefined) {
+    process.stderr.write(`Failed to run similarity-rs through mise: ${rustResult.error.message}\n`);
     process.exit(1);
   }
 
-  if (cssResult.status !== 0) {
-    process.stderr.write(`similarity-css exited with status ${cssResult.status ?? "unknown"}.\n`);
-    process.stderr.write(cssResult.stderr);
-    process.stderr.write(cssResult.stdout);
-    process.exit(cssResult.status ?? 1);
+  if (rustResult.status !== 0) {
+    process.stderr.write(`similarity-rs exited with status ${rustResult.status ?? "unknown"}.\n`);
+    process.stderr.write(rustResult.stderr);
+    process.stderr.write(rustResult.stdout);
+    process.exit(rustResult.status ?? 1);
   }
 
   process.stdout.write("\n");
-  process.stdout.write(cssResult.stdout);
+  process.stdout.write(rustResult.stdout);
   process.stdout.write("\n");
-  process.stdout.write(buildSimilarityCssSummary(cssResult.stdout, threshold, targetPath));
+  process.stdout.write(buildSimilarityRustSummary(rustResult.stdout, threshold));
   process.stdout.write("\n");
 }
 

@@ -5,19 +5,26 @@ import {
   buildSimilarityCommandArgs,
   buildSimilarityCssCommandArgs,
   buildSimilarityCssSummary,
+  buildSimilarityRustCommandArgs,
+  buildSimilarityRustSummary,
   buildSimilaritySummary,
   cssSimilarityMinSize,
   defaultCssPath,
   defaultPath,
+  defaultRustPath,
   defaultThreshold,
   evaluateSimilarityReportGate,
   findFalsePositiveMatch,
   isSimilarityCssSupported,
   isSimilarityReportEntrypoint,
+  isSimilarityRustSupported,
+  normalizeSimilarityTargetPath,
   parseSimilarityCssSummary,
   parseSimilarityOutput,
   parseSimilarityPairs,
+  parseSimilarityRustSummary,
   readThreshold,
+  shouldRunRustSimilarityScan,
   similarityFalsePositiveBaseline,
   similarityScanExcludePatterns,
   similarityThresholds,
@@ -147,6 +154,22 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     );
   });
 
+  it("parses and summarizes similarity-rs output as report-only", () => {
+    const sampleRustReport = `
+Analyzing Rust code similarity...
+Total duplicate pairs found: 256
+`;
+
+    expect(parseSimilarityRustSummary(sampleRustReport)).toEqual({ duplicatePairs: 256 });
+    expect(buildSimilarityRustSummary(sampleRustReport)).toContain(
+      "current command: mise exec -- similarity-rs --threshold 0.9 src-tauri/src/",
+    );
+    expect(buildSimilarityRustSummary(sampleRustReport)).toContain("duplicate pairs: 256");
+    expect(buildSimilarityRustSummary(sampleRustReport)).toContain("gate: disabled");
+    expect(defaultRustPath).toBe("src-tauri/src/");
+    expect(buildSimilarityRustCommandArgs(0.9)).toEqual(["similarity-rs", "--threshold", "0.9", "src-tauri/src/"]);
+  });
+
   it("ignores type similarity blocks when parsing function pairs", () => {
     const report = `
 === Function Similarity ===
@@ -234,6 +257,20 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(similarityThresholds).toEqual([0.95, 0.9, 0.87]);
     expect(defaultThreshold).toBe(0.9);
     expect(defaultPath).toBe("src/");
+    expect(isSimilarityRustSupported("darwin")).toBe(true);
+    expect(isSimilarityRustSupported("win32")).toBe(false);
+    expect(normalizeSimilarityTargetPath("src/")).toBe(normalizeSimilarityTargetPath("src"));
+    expect(normalizeSimilarityTargetPath("./src/")).toBe(normalizeSimilarityTargetPath("src"));
+    expect(normalizeSimilarityTargetPath(".\\src\\")).toBe(normalizeSimilarityTargetPath("src"));
+    expect(normalizeSimilarityTargetPath("src/.")).toBe(normalizeSimilarityTargetPath("src"));
+    expect(normalizeSimilarityTargetPath("src/../src")).toBe(normalizeSimilarityTargetPath("src"));
+    expect(shouldRunRustSimilarityScan()).toBe(true);
+    expect(shouldRunRustSimilarityScan("src")).toBe(true);
+    expect(shouldRunRustSimilarityScan("src/")).toBe(true);
+    expect(shouldRunRustSimilarityScan("./src/")).toBe(true);
+    expect(shouldRunRustSimilarityScan("src/.")).toBe(true);
+    expect(shouldRunRustSimilarityScan("src/../src")).toBe(true);
+    expect(shouldRunRustSimilarityScan("src/lib")).toBe(false);
     expect(similarityUsage).toBe("Usage: node scripts/similarity-report.ts [0.95|0.9|0.87] [path]");
     expect(readThreshold(undefined)).toBe(defaultThreshold);
     expect(readThreshold("0.95")).toBe(0.95);
