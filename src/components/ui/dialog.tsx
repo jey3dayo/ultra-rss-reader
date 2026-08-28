@@ -18,9 +18,7 @@ export type DialogProps = DialogPrimitive.Root.Props;
 export type DialogTriggerProps = DialogPrimitive.Trigger.Props;
 export type DialogPortalProps = DialogPrimitive.Portal.Props;
 export type DialogCloseProps = DialogPrimitive.Close.Props;
-export type DialogOverlayProps = DialogPrimitive.Backdrop.Props & {
-  disableMotion?: boolean;
-};
+export type DialogOverlayProps = DialogPrimitive.Backdrop.Props;
 export type DialogOverlayPreset = "modal" | "readable";
 export type DialogStackLayer = "dialog" | "commandPalette";
 export type DialogContentProps = DialogPrimitive.Popup.Props & {
@@ -42,6 +40,10 @@ export type DialogDescriptionProps = DialogPrimitive.Description.Props;
 type DialogTopLayerContextValue = {
   modal: DialogProps["modal"];
   open: DialogProps["open"];
+};
+
+type DialogOverlayInternalProps = DialogOverlayProps & {
+  disableMotion?: boolean;
 };
 
 const DialogTopLayerContext = React.createContext<DialogTopLayerContextValue>({ modal: true, open: undefined });
@@ -84,7 +86,7 @@ function getDialogStackClass(layer: DialogStackLayer) {
   return layer === "commandPalette" ? APP_STACKING_CLASS_NAMES.commandPalette : APP_STACKING_CLASS_NAMES.dialog;
 }
 
-function DialogOverlay({ className, disableMotion = false, ...props }: DialogOverlayProps) {
+function DialogOverlay({ className, disableMotion = false, ...props }: DialogOverlayInternalProps) {
   const overlayClassName = [!disableMotion && MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate", className]
     .filter(Boolean)
     .join(" ");
