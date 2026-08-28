@@ -10,7 +10,10 @@ describe("AppToastView", () => {
       <AppToastView toastMessage={{ message: "Downloading", progress: -10 }} onClose={onClose} />,
     );
 
-    expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveStyle({ transform: "scaleX(0)" });
+    const progressBar = screen.getByTestId("app-toast").querySelector(".bg-primary");
+    expect(progressBar).toHaveStyle({ transform: "scaleX(0)" });
+    expect(progressBar).not.toHaveClass("rounded-full");
+    expect(progressBar?.parentElement).toHaveClass("rounded-full", "overflow-hidden");
 
     rerender(<AppToastView toastMessage={{ message: "Downloading", progress: 120 }} onClose={onClose} />);
 

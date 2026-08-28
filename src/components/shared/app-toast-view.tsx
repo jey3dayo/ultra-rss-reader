@@ -78,7 +78,7 @@ export function AppToastView({
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-1/72">
           {progress != null ? (
             <div
-              className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-200 motion-reduce:transition-none"
+              className="h-full w-full origin-left bg-primary transition-transform duration-200 motion-reduce:transition-none"
               style={{ transform: `scaleX(${clampProgressWidth(progress) / 100})` }}
             />
           ) : (
