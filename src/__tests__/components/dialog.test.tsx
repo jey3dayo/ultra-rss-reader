@@ -98,6 +98,13 @@ describe("DialogContent", () => {
     expect(screen.getByRole("dialog", { name: "Test dialog" })).toHaveAttribute("data-stack-layer", "dialog");
   });
 
+  it("renders the command palette without popup motion", () => {
+    renderDialogContent({ stackLayer: "commandPalette" });
+
+    expect(document.querySelector('[data-slot="dialog-overlay"]')).not.toHaveClass("motion-popup-overlay");
+    expect(screen.getByRole("dialog", { name: "Test dialog" })).not.toHaveClass("motion-popup-dialog");
+  });
+
   it("keeps background content hidden and inert while the modal dialog owns the top layer", async () => {
     render(
       <>

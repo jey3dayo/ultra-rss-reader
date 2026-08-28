@@ -18,7 +18,9 @@ export type DialogProps = DialogPrimitive.Root.Props;
 export type DialogTriggerProps = DialogPrimitive.Trigger.Props;
 export type DialogPortalProps = DialogPrimitive.Portal.Props;
 export type DialogCloseProps = DialogPrimitive.Close.Props;
-export type DialogOverlayProps = DialogPrimitive.Backdrop.Props;
+export type DialogOverlayProps = DialogPrimitive.Backdrop.Props & {
+  disableMotion?: boolean;
+};
 export type DialogOverlayPreset = "modal" | "readable";
 export type DialogStackLayer = "dialog" | "commandPalette";
 export type DialogContentProps = DialogPrimitive.Popup.Props & {
@@ -82,8 +84,8 @@ function getDialogStackClass(layer: DialogStackLayer) {
   return layer === "commandPalette" ? APP_STACKING_CLASS_NAMES.commandPalette : APP_STACKING_CLASS_NAMES.dialog;
 }
 
-function DialogOverlay({ className, ...props }: DialogOverlayProps) {
-  const overlayClassName = [MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate", className]
+function DialogOverlay({ className, disableMotion = false, ...props }: DialogOverlayProps) {
+  const overlayClassName = [!disableMotion && MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate", className]
     .filter(Boolean)
     .join(" ");
 
@@ -109,6 +111,7 @@ function DialogContent({
     .join(" ");
   const resolvedCloseLabel = resolveDialogCloseLabel(closeLabel, t(["dialog_close", "close"]));
   const stackClassName = getDialogStackClass(stackLayer);
+  const disableMotion = stackLayer === "commandPalette";
 
   React.useEffect(() => {
     if (modal !== true || open === false) {
@@ -129,13 +132,17 @@ function DialogContent({
 
   const content = (
     <>
-      <DialogOverlay className={[stackClassName, resolvedOverlayClassName].join(" ")} data-dialog-stack-id={dialogId} />
+      <DialogOverlay
+        className={[stackClassName, resolvedOverlayClassName].join(" ")}
+        data-dialog-stack-id={dialogId}
+        disableMotion={disableMotion}
+      />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         data-dialog-stack-id={dialogId}
         data-stack-layer={stackLayer}
         className={cn(
-          MOTION_POPUP_DIALOG_CLASS_NAME,
+          !disableMotion && MOTION_POPUP_DIALOG_CLASS_NAME,
           "fixed top-1/2 left-1/2 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
           stackClassName,
           className,
