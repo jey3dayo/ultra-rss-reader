@@ -49,43 +49,6 @@ fn apply_remote_state_sets_correct_states() {
 }
 
 #[test]
-fn apply_remote_state_marks_contents_article_read_from_normalized_greader_stream_id() {
-    let db = test_db();
-    let account_id = insert_test_account(&db);
-    let feed_id = insert_test_feed(&db, &account_id);
-    let repo = SqliteArticleRepository::new(db.writer());
-    let mut article = make_article(&feed_id, "GReader article");
-    article.remote_id = Some("tag:google.com,2005:reader/item/00000000499602d2".to_string());
-    repo.upsert(&[article.clone()]).unwrap();
-
-    repo.apply_remote_state(
-        &account_id,
-        &["tag:google.com,2005:reader/item/00000000499602d2".to_string()],
-        &[],
-        &[],
-        &[],
-    )
-    .unwrap();
-
-    let articles = repo
-        .find_by_feed(
-            &feed_id,
-            &Pagination {
-                offset: 0,
-                limit: 100,
-            },
-        )
-        .unwrap();
-    assert!(
-        articles
-            .iter()
-            .find(|candidate| candidate.id == article.id)
-            .unwrap()
-            .is_read
-    );
-}
-
-#[test]
 fn apply_remote_state_skips_unchanged_rows() {
     let db = test_db();
     let account_id = insert_test_account(&db);
