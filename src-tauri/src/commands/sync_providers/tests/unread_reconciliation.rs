@@ -78,6 +78,55 @@ async fn reconcile_greader_unread_counts_checks_equal_count_feeds_on_first_rotat
 }
 
 #[tokio::test]
+async fn reconcile_greader_unread_counts_continues_after_drift_check_failure_and_records_attempt() {
+    let mut server = mockito::Server::new_async().await;
+    auth_mock(&mut server).await;
+    let failed_stream_mock = server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+        )
+        .match_query(Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(500)
+        .with_body("temporary failure")
+        .expect(1)
+        .create_async()
+        .await;
+    let db = test_db();
+    let (account, feed) = insert_account_and_feed(&db, &server.url());
+    let provider = authenticated_provider(&server.url()).await;
+
+    let result = reconcile_greader_unread_counts(
+        &db,
+        &provider,
+        &account,
+        std::slice::from_ref(&feed),
+        &HashMap::from([(FEED_REMOTE_ID.to_string(), 0)]),
+        &[],
+    )
+    .await;
+
+    assert!(
+        result.is_ok(),
+        "a drift audit failure must not fail account sync"
+    );
+    failed_stream_mock.assert_async().await;
+    let db_guard = db.lock().unwrap();
+    let state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+    assert!(state_repo
+        .get(
+            &account.id,
+            SyncStateScopeKey::greader_unread_drift(FEED_REMOTE_ID)
+        )
+        .unwrap()
+        .and_then(|state| state.last_success_at)
+        .is_some());
+}
+
+#[tokio::test]
 async fn equal_count_drift_rotation_preserves_a_read_mark_during_reconcile() {
     let db = std::sync::Arc::new(test_db());
     let (account, feed) = insert_account_and_feed(&db, "http://localhost");

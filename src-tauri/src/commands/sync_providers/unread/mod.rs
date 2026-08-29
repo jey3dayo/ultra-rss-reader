@@ -133,7 +133,7 @@ pub(super) async fn reconcile_greader_unread_counts(
     let mut first_error: Option<AppError> = None;
     for target in targets {
         let mut reconcile_outcome = ReconcileOutcome::SkippedIncomplete;
-        match reconcile_greader_unread_state_for_feed(
+        let reconcile_result = reconcile_greader_unread_state_for_feed(
             db,
             provider,
             account,
@@ -142,8 +142,8 @@ pub(super) async fn reconcile_greader_unread_counts(
             extra_protected_read_ids,
             &mut reconcile_outcome,
         )
-        .await
-        {
+        .await;
+        match reconcile_result {
             Ok(()) => match reconcile_outcome {
                 ReconcileOutcome::Applied => {
                     if !target.drift_check
@@ -159,17 +159,32 @@ pub(super) async fn reconcile_greader_unread_counts(
                 ReconcileOutcome::SkippedIncomplete => {}
             },
             Err(error) => {
-                // Recalculate feeds already processed before returning the first error.
-                first_error = Some(error);
-                break;
+                if target.drift_check {
+                    tracing::warn!(
+                        account_id = %account.id.as_ref(),
+                        feed_id = %target.feed.id.as_ref(),
+                        host_class = redacted_feed_host_class(&target.feed.url),
+                        reason = "unread_drift_check_failed",
+                        "GReader unread drift check failed; continuing account sync"
+                    );
+                } else {
+                    // Recalculate feeds already processed before returning the first error.
+                    first_error = Some(error);
+                    break;
+                }
             }
         }
         if target.drift_check && first_error.is_none() {
             if let Some(remote_id) = target.feed.remote_id.as_deref() {
-                // Advance the rotation even when the snapshot was incomplete: structural
-                // incompleteness will not be fixed by an immediate retry, and leaving the
-                // timestamp unset would let one feed consume all three slots on every sync.
-                mark_unread_drift_check_completed(db, &account.id, remote_id, now)?;
+                // Always advance the rotation, including incomplete snapshots and failed
+                // checks: neither is fixed by an immediate retry, and leaving the timestamp
+                // unset would let one feed consume all three slots on every sync.
+                if let Err(error) =
+                    mark_unread_drift_check_completed(db, &account.id, remote_id, now)
+                {
+                    first_error = Some(error);
+                    break;
+                }
             }
         }
     }
