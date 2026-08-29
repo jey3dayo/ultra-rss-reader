@@ -52,7 +52,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
 - `mise run quality:react-doctor:diff` is the changed-file React Doctor regression gate.
 - `mise run quality:react-doctor:full` is informational for known full-scan baseline debt.
-- `mise run quality:knip` checks Knip baseline drift.
+- `mise run report:knip` produces the Knip baseline drift report; humans triage the findings instead of treating them as a gate.
 - `mise run report:similarity` reports the similarity-ts TODO baseline. Treat 0.95 as near-copy, 0.9 as TODO triage, and 0.87 as broad discovery; increase size thresholds before extracting helpers from tiny callback-shape matches.
 - Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 

@@ -9,6 +9,7 @@ import {
   createReportDiagnostic,
   dependencyLicenseInventoryContract,
   dependencyUpdateSmokeContract,
+  formatKnipIssue,
   isQualityBaselineRepoScanIgnoredPath,
   isTailwindArbitraryValueInventorySourcePath,
   parseKnipReport,
@@ -20,6 +21,22 @@ import {
 } from "../../../scripts/quality-baseline";
 
 describe("quality-baseline", () => {
+  it("formats Knip issues with safe category and symbol summaries", () => {
+    expect(
+      formatKnipIssue({
+        file: "src/example.ts",
+        files: [{ name: "example.ts" }],
+        exports: [{ name: "useThing" }, { name: "useOtherThing" }],
+        duplicates: [[{ name: "one" }, { name: "two" }]],
+        futureShape: { ignored: true },
+      }),
+    ).toBe("src/example.ts files: example.ts exports: useThing, useOtherThing duplicates");
+    expect(formatKnipIssue({ file: "src/empty.ts", binaries: [null] })).toBe("src/empty.ts binaries");
+    // An unused file reports its own path as the entry name; keep the line to one copy.
+    expect(formatKnipIssue({ file: "src/unused.ts", files: [{ name: "src/unused.ts" }] })).toBe("src/unused.ts files");
+    expect(formatKnipIssue({ file: 42, exports: "not-an-array" })).toBe("<unknown file>");
+  });
+
   it("extracts JSON after tool version and log prefixes", () => {
     const output = [
       "react-doctor 0.5.8",
