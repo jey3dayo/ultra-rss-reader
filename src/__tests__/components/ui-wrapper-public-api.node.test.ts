@@ -37,6 +37,16 @@ import type {
   SelectTriggerProps,
   SelectValueProps,
 } from "@/design-system";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/design-system";
 import packageJson from "../../../package.json";
 
 describe("UI wrapper public API", () => {
@@ -102,6 +112,28 @@ describe("UI wrapper public API", () => {
     expect(packageJson.knip?.ignoreIssues).toEqual({
       "src/components/ui/{button,collapsible,dialog,input,scroll-area,select}.tsx": ["exports", "types"],
     });
+  });
+
+  it("keeps the complete Command family available from the design-system barrel", () => {
+    expect([
+      Command,
+      CommandDialog,
+      CommandEmpty,
+      CommandGroup,
+      CommandInput,
+      CommandItem,
+      CommandList,
+      CommandSeparator,
+    ]).toEqual([
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    ]);
   });
 
   it("keeps confirm dialog variants as a shared store/view contract", () => {

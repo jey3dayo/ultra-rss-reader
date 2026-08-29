@@ -52,8 +52,10 @@
       ]
     },
     "ignoreDependencies": [
-      "markdownlint-cli2",
       "wrangler"
+    ],
+    "ignoreBinaries": [
+      "mise"
     ]
   },
   "dependencies": {
