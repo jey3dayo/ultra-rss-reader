@@ -1559,6 +1559,65 @@ fn map_item_to_entry_uses_exact_read_and_starred_state_ids() {
     assert_eq!(entry.is_starred, Some(false));
 }
 
+fn item_with_id(id: &str) -> GReaderItem {
+    GReaderItem {
+        id: id.to_string(),
+        title: Some("Round-trip item".to_string()),
+        canonical: None,
+        alternate: None,
+        summary: None,
+        content: None,
+        author: None,
+        published: None,
+        updated: None,
+        timestamp_usec: None,
+        origin: Some(GReaderOrigin {
+            stream_id: "feed/https://example.com/rss".to_string(),
+        }),
+        categories: Vec::new(),
+    }
+}
+
+#[test]
+fn greader_contents_and_stream_ids_round_trip_for_decimal_item_ids() {
+    let contents_id = "tag:google.com,2005:reader/item/00000000499602d2";
+    let entry = GReaderProvider::map_item_to_entry(item_with_id(contents_id), None).unwrap();
+
+    assert_eq!(entry.id.as_deref(), Some(contents_id));
+    assert_eq!(normalize_item_id("1234567890"), contents_id);
+}
+
+#[test]
+fn greader_contents_and_stream_ids_round_trip_for_canonical_tag_ids() {
+    let tag_id = "tag:google.com,2005:reader/item/00000000499602d2";
+
+    assert_eq!(
+        GReaderProvider::map_item_to_entry(item_with_id(tag_id), None)
+            .unwrap()
+            .id
+            .as_deref(),
+        Some(tag_id)
+    );
+    assert_eq!(normalize_item_id(tag_id), tag_id);
+}
+
+#[test]
+fn greader_short_hex_contents_ids_do_not_match_decimal_stream_id_normalization() {
+    let short_hex_tag = "tag:google.com,2005:reader/item/499602d2";
+
+    assert_eq!(
+        GReaderProvider::map_item_to_entry(item_with_id(short_hex_tag), None)
+            .unwrap()
+            .id
+            .as_deref(),
+        Some(short_hex_tag)
+    );
+    assert_ne!(
+        normalize_item_id(short_hex_tag),
+        normalize_item_id("1234567890")
+    );
+}
+
 #[test]
 fn map_item_to_entry_uses_updated_as_published_fallback() {
     let item = GReaderItem {
