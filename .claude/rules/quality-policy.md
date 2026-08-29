@@ -26,9 +26,7 @@ Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→
 
 - `mise` — launched via `spawnSync` by `scripts/similarity-report.ts` to run the Rust scan; `mise` is a toolchain runner rather than a package.json dependency and therefore cannot be declared as an npm dependency; reviewed 2026-08-29.
 
-`package.json#knip.ignoreIssues` entries may document intentional public barrel exports:
-
-- `src/design-system/index.ts` `exports` — the design-system barrel re-exports each primitive in a component family as a complete public surface. An application may not use `CommandDialog` while using the other command primitives, but removing that member would make the family incomplete; follow the existing `src/components/ui/*` export ignores; reviewed 2026-08-29.
+Intentional public barrel completeness is pinned by public API tests rather than a file-level Knip ignore. The design-system barrel re-exports each primitive in a component family as a complete public surface, and `src/__tests__/components/ui-wrapper-public-api.node.test.ts` consumes the full Command family so an unused member such as `CommandDialog` is not removed while the other primitives remain available. The existing `src/components/ui/*` export ignores remain limited to their small wrapper files; reviewed 2026-08-29.
 
 ## Provider Policy Family
 
