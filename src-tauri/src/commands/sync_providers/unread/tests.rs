@@ -5,6 +5,7 @@ use crate::domain::provider::ProviderKind;
 use crate::domain::types::{AccountId, ArticleId};
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
+use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::infra::sanitizer;
 use crate::repository::account::AccountRepository;
@@ -12,6 +13,7 @@ use crate::repository::article::{ArticleMutationRepository, ArticleReadRepositor
 use crate::repository::pending_mutation::{
     PendingMutation, PendingMutationRepository, PendingMutationType,
 };
+use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 use chrono::Utc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -162,6 +164,26 @@ async fn reconcile_greader_unread_counts_batch_recalculates_multiple_feeds_in_on
                 test_article(&feed_b.id, "b2", false),
             ])
             .unwrap();
+        let state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+        for feed in [&feed_a, &feed_b] {
+            state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: SyncStateScopeKey::greader_unread_drift(
+                        feed.remote_id.as_deref().unwrap(),
+                    )
+                    .as_string(),
+                    timestamp_usec: None,
+                    continuation: None,
+                    etag: None,
+                    last_modified: None,
+                    last_success_at: Some(Utc::now().to_rfc3339()),
+                    last_error: None,
+                    error_count: 0,
+                    next_retry_at: None,
+                })
+                .unwrap();
+        }
     }
 
     // Server counts match the (stale) local column value of 0, so no per-feed

@@ -9,6 +9,7 @@ pub enum SyncStateScopeKey {
     Scheduler,
     GReaderAccountAll,
     GReaderRemoteStateFull,
+    GReaderUnreadDrift(String),
     Feed(String),
     LocalFeed(String),
     Raw(String),
@@ -28,6 +29,10 @@ impl SyncStateScopeKey {
         Self::GReaderRemoteStateFull
     }
 
+    pub fn greader_unread_drift(remote_id: impl Into<String>) -> Self {
+        Self::GReaderUnreadDrift(remote_id.into())
+    }
+
     pub fn feed(remote_id: impl Into<String>) -> Self {
         Self::Feed(remote_id.into())
     }
@@ -45,6 +50,9 @@ impl SyncStateScopeKey {
             Self::Scheduler => "scheduler".to_string(),
             Self::GReaderAccountAll => "account:greader:all".to_string(),
             Self::GReaderRemoteStateFull => "account:greader:remote-state-full".to_string(),
+            Self::GReaderUnreadDrift(remote_id) => {
+                format!("account:greader:unread-drift:{remote_id}")
+            }
             Self::Feed(remote_id) => format!("feed:{remote_id}"),
             Self::LocalFeed(feed_url) => format!("local_feed:{feed_url}"),
             Self::Raw(scope_key) => format!("raw:{scope_key}"),
@@ -139,6 +147,17 @@ mod tests {
     }
 
     #[test]
+    fn greader_unread_drift_scope_key_round_trips_without_feed_collision() {
+        let key = SyncStateScopeKey::greader_unread_drift("feed/remote");
+        assert_eq!(key.as_string(), "account:greader:unread-drift:feed/remote");
+        assert_eq!(
+            SyncStateScopeKey::from(key.as_string()),
+            SyncStateScopeKey::greader_unread_drift("feed/remote")
+        );
+        assert_ne!(key, SyncStateScopeKey::feed("feed/remote"));
+    }
+
+    #[test]
     fn http_etag_validator_accepts_quoted_strong_and_weak_values() {
         assert_eq!(
             normalize_http_etag_validator(Some(" \"strong\" ".to_string())).as_deref(),
@@ -202,8 +221,13 @@ impl From<&str> for SyncStateScopeKey {
             "account:greader:all" => Self::GReaderAccountAll,
             "account:greader:remote-state-full" => Self::GReaderRemoteStateFull,
             value => value
-                .strip_prefix("feed:")
-                .map(|remote_id| Self::Feed(remote_id.to_string()))
+                .strip_prefix("account:greader:unread-drift:")
+                .map(|remote_id| Self::GReaderUnreadDrift(remote_id.to_string()))
+                .or_else(|| {
+                    value
+                        .strip_prefix("feed:")
+                        .map(|remote_id| Self::Feed(remote_id.to_string()))
+                })
                 .or_else(|| value.strip_prefix("local_feed:").map(Self::local_feed))
                 .or_else(|| {
                     value

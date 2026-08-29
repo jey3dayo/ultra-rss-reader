@@ -230,6 +230,20 @@ async fn sync_greader_account_guards_pushed_and_retrying_pending_state() {
         ))
         .create_async()
         .await;
+    server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Ffeed-1.xml",
+        )
+        .match_query(Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(200)
+        .with_body(r#"{ "items": [] }"#)
+        .expect(2)
+        .create_async()
+        .await;
 
     let db = test_db();
     let (account, feeds) = insert_account_and_feeds(
