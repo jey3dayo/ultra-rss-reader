@@ -16,12 +16,19 @@ Ignore entries:
 
 Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.
 
-## Knip `ignoreDependencies` Policy
+## Knip Ignore Policy
 
 `package.json#knip.ignoreDependencies` entries must document why Knip cannot see a real consumer:
 
-- `markdownlint-cli2` — invoked by the `mise` `format:md` and `lint:md` tasks rather than imported by source modules; reviewed 2026-08-23.
 - `wrangler` — invoked by the `mise` `deploy:site` task from `.github/workflows/deploy-site.yml`; Knip does not trace `mise` or workflow command consumers; reviewed 2026-08-23.
+
+`package.json#knip.ignoreBinaries` entries must document why Knip cannot trace a binary consumer:
+
+- `mise` — invokes the `similarity-rs` scan from the `mise` `report:similarity` task, but Knip does not trace binaries launched by `mise` task definitions; reviewed 2026-08-29.
+
+`package.json#knip.ignoreIssues` entries may document intentional public barrel exports:
+
+- `src/design-system/index.ts` `exports` — the design-system barrel re-exports each primitive in a component family as a complete public surface. An application may not use `CommandDialog` while using the other command primitives, but removing that member would make the family incomplete; follow the existing `src/components/ui/*` export ignores; reviewed 2026-08-29.
 
 ## Task Priority Taxonomy
 

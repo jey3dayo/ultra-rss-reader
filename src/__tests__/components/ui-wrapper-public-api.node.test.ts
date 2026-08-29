@@ -101,6 +101,7 @@ describe("UI wrapper public API", () => {
   it("keeps UI primitive wrappers allowlisted as intentional public exports", () => {
     expect(packageJson.knip?.ignoreIssues).toEqual({
       "src/components/ui/{button,collapsible,dialog,input,scroll-area,select}.tsx": ["exports", "types"],
+      "src/design-system/index.ts": ["exports"],
     });
   });
 

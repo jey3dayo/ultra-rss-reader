@@ -49,11 +49,16 @@
       "src/components/ui/{button,collapsible,dialog,input,scroll-area,select}.tsx": [
         "exports",
         "types"
+      ],
+      "src/design-system/index.ts": [
+        "exports"
       ]
     },
     "ignoreDependencies": [
-      "markdownlint-cli2",
       "wrangler"
+    ],
+    "ignoreBinaries": [
+      "mise"
     ]
   },
   "dependencies": {

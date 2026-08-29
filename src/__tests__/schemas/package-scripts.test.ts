@@ -191,7 +191,7 @@ describe("package scripts", () => {
 
     expect(packageJson.devDependencies?.["markdownlint-cli2"]).toBeDefined();
     expect(packageJson.devDependencies?.wrangler).toBeDefined();
-    expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2", "wrangler"]);
+    expect(packageJson.knip?.ignoreDependencies).toEqual(["wrangler"]);
     expect(extractMiseTaskCommand(miseToml, "deploy:site", "run")).toBe(
       "wrangler pages deploy site --project-name=ultra-rss-reader --branch=main",
     );
