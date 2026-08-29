@@ -6,4 +6,4 @@
 (D) 2026-08-22 Claude Bash権限判定の拒否事象: vitest|tail&&git add&&commit の複合コマンドが denied。fewer-permission-prompts で allowlist 整備を検討(検証: 同型コマンドの再実行) +dev-tooling @blocked @ops
 (C) 2026-08-22 unread membership drift: count一致フィードは reconcile 対象外。選定戦略の再設計が先(検証: 設計スパイク後の contract test) +provider-sync @blocked @decision
 (D) 2026-08-22 Knip baseline drift: 32/78 期待に対し実測 33/77。011 由来ではなく base 時点で同値(検証: mise run quality:knip と stash 再現) +quality-tooling @blocked @waiting
-(D) 2026-08-25 codex worker を herdr pane で対話起動するレシピを agmsg-delegation へ追記: worktree を作る worker には --yolo が必要で、作らない worker は workspace-write で足りる。判別条件は .git への書き込み要否。承認待ちなしで起動する場合も、sandbox の要否はこの条件で決める +dev-tooling
+(D) 2026-08-25 codex worker を herdr pane で対話起動するレシピを agmsg-delegation へ追記: worktree を作る worker には --yolo が必要で、作らない worker は workspace-write で足りる。判別条件は .git への書き込み要否。承認待ちなしで起動する場合も、sandbox の要否はこの条件で決める。原本は ~/.apm/catalog/skills/ で mise run deploy が必要(検証: worktree を作る worker を --yolo で pane 起動して git worktree add が成功し、作らない worker を workspace-write で起動して承認プロンプトが出ないこと) +dev-tooling
