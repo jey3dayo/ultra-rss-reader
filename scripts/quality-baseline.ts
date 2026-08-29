@@ -419,7 +419,10 @@ export function formatKnipIssue(issue: KnipIssueBucket): string {
           }
           return undefined;
         })
-        .filter((name): name is string => name !== undefined);
+        .filter((name): name is string => name !== undefined)
+        // Knip reports an unused file with its own path as the entry name, which
+        // would repeat the line prefix. Drop names that add nothing to the line.
+        .filter((name) => name !== file);
       return names.length > 0 ? `${key}: ${names.join(", ")}` : key;
     });
 

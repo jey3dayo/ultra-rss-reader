@@ -32,6 +32,8 @@ describe("quality-baseline", () => {
       }),
     ).toBe("src/example.ts files: example.ts exports: useThing, useOtherThing duplicates");
     expect(formatKnipIssue({ file: "src/empty.ts", binaries: [null] })).toBe("src/empty.ts binaries");
+    // An unused file reports its own path as the entry name; keep the line to one copy.
+    expect(formatKnipIssue({ file: "src/unused.ts", files: [{ name: "src/unused.ts" }] })).toBe("src/unused.ts files");
     expect(formatKnipIssue({ file: 42, exports: "not-an-array" })).toBe("<unknown file>");
   });
 
