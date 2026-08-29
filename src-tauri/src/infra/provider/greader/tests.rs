@@ -1532,26 +1532,14 @@ async fn pull_entries_defaults_missing_item_categories_to_unread_and_unstarred()
 
 #[test]
 fn map_item_to_entry_uses_exact_read_and_starred_state_ids() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Exact state ids only".to_string()),
-        canonical: None,
-        alternate: None,
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: None,
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![
+    let item = greader_item("entry-1")
+        .title("Exact state ids only")
+        .categories(vec![
             format!("{STATE_READ}/archive"),
             format!("label/{STATE_STARRED}"),
             STATE_READING_LIST.to_string(),
-        ],
-    };
+        ])
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
@@ -1559,24 +1547,115 @@ fn map_item_to_entry_uses_exact_read_and_starred_state_ids() {
     assert_eq!(entry.is_starred, Some(false));
 }
 
+struct GReaderItemBuilder {
+    item: GReaderItem,
+}
+
+fn greader_item(id: &str) -> GReaderItemBuilder {
+    GReaderItemBuilder {
+        item: GReaderItem {
+            id: id.to_string(),
+            title: Some("Round-trip item".to_string()),
+            canonical: None,
+            alternate: None,
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+            }),
+            categories: Vec::new(),
+        },
+    }
+}
+
+impl GReaderItemBuilder {
+    fn title(mut self, title: &str) -> Self {
+        self.item.title = Some(title.to_string());
+        self
+    }
+
+    fn canonical(mut self, links: Vec<GReaderLink>) -> Self {
+        self.item.canonical = Some(links);
+        self
+    }
+
+    fn alternate(mut self, links: Vec<GReaderLink>) -> Self {
+        self.item.alternate = Some(links);
+        self
+    }
+
+    fn updated(mut self, updated: i64) -> Self {
+        self.item.updated = Some(updated);
+        self
+    }
+
+    fn categories(mut self, categories: Vec<String>) -> Self {
+        self.item.categories = categories;
+        self
+    }
+
+    fn build(self) -> GReaderItem {
+        self.item
+    }
+}
+
+#[test]
+fn remote_item_id_round_trips_from_decimal_stream_ids() {
+    let contents_id = "tag:google.com,2005:reader/item/00000000499602d2";
+    let entry =
+        GReaderProvider::map_item_to_entry(greader_item(contents_id).build(), None).unwrap();
+
+    assert_eq!(entry.id.as_deref(), Some(contents_id));
+    assert_eq!(normalize_item_id("1234567890"), contents_id);
+}
+
+#[test]
+fn remote_item_id_round_trips_from_canonical_tag_ids() {
+    let tag_id = "tag:google.com,2005:reader/item/00000000499602d2";
+
+    assert_eq!(
+        GReaderProvider::map_item_to_entry(greader_item(tag_id).build(), None)
+            .unwrap()
+            .id
+            .as_deref(),
+        Some(tag_id)
+    );
+    assert_eq!(normalize_item_id(tag_id), tag_id);
+}
+
+#[test]
+fn short_hex_remote_item_ids_do_not_match_decimal_normalization() {
+    // This records current behavior, not a desired contract. FreshRSS returns the canonical
+    // 16-digit zero-padded form, so existing fixtures and working production read sync show no
+    // exposure as of 2026-08-29. If another provider returns short hex, contents stays raw while
+    // items/ids pads it to 16 digits, so apply_remote_state can roll every article back to unread.
+    // The end-to-end contents/items/ids integration is covered by
+    // commands/sync_providers/tests/remote_state_repair.rs through mockito.
+    let short_hex_tag = "tag:google.com,2005:reader/item/499602d2";
+
+    assert_eq!(
+        GReaderProvider::map_item_to_entry(greader_item(short_hex_tag).build(), None)
+            .unwrap()
+            .id
+            .as_deref(),
+        Some(short_hex_tag)
+    );
+    assert_ne!(
+        normalize_item_id(short_hex_tag),
+        normalize_item_id("1234567890")
+    );
+}
+
 #[test]
 fn map_item_to_entry_uses_updated_as_published_fallback() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Updated fallback".to_string()),
-        canonical: None,
-        alternate: None,
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: Some(1_700_000_100),
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![],
-    };
+    let item = greader_item("entry-1")
+        .title("Updated fallback")
+        .updated(1_700_000_100)
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
@@ -1587,36 +1666,25 @@ fn map_item_to_entry_uses_updated_as_published_fallback() {
 
 #[test]
 fn map_item_to_entry_uses_alternate_before_canonical_url_fallback() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Canonical fallback".to_string()),
-        canonical: Some(vec![
+    let item = greader_item("entry-1")
+        .title("Canonical fallback")
+        .canonical(vec![
             GReaderLink {
                 href: String::new(),
             },
             GReaderLink {
                 href: "https://example.com/canonical".to_string(),
             },
-        ]),
-        alternate: Some(vec![
+        ])
+        .alternate(vec![
             GReaderLink {
                 href: String::new(),
             },
             GReaderLink {
                 href: "https://example.com/alternate".to_string(),
             },
-        ]),
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: None,
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![],
-    };
+        ])
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
@@ -1625,29 +1693,17 @@ fn map_item_to_entry_uses_alternate_before_canonical_url_fallback() {
 
 #[test]
 fn map_item_to_entry_uses_canonical_url_when_alternate_is_missing() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Canonical fallback".to_string()),
-        canonical: Some(vec![
+    let item = greader_item("entry-1")
+        .title("Canonical fallback")
+        .canonical(vec![
             GReaderLink {
                 href: String::new(),
             },
             GReaderLink {
                 href: "https://example.com/canonical".to_string(),
             },
-        ]),
-        alternate: None,
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: None,
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![],
-    };
+        ])
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
@@ -1656,24 +1712,12 @@ fn map_item_to_entry_uses_canonical_url_when_alternate_is_missing() {
 
 #[test]
 fn map_item_to_entry_normalizes_canonical_url_with_article_link_policy() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Canonical fallback".to_string()),
-        canonical: Some(vec![GReaderLink {
+    let item = greader_item("entry-1")
+        .title("Canonical fallback")
+        .canonical(vec![GReaderLink {
             href: " HTTPS://Example.COM:443/Article?utm_source=reader#tracking ".to_string(),
-        }]),
-        alternate: None,
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: None,
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![],
-    };
+        }])
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
@@ -1685,26 +1729,15 @@ fn map_item_to_entry_normalizes_canonical_url_with_article_link_policy() {
 
 #[test]
 fn map_item_to_entry_uses_canonical_url_when_alternate_href_is_blank() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Canonical fallback".to_string()),
-        canonical: Some(vec![GReaderLink {
+    let item = greader_item("entry-1")
+        .title("Canonical fallback")
+        .canonical(vec![GReaderLink {
             href: "https://example.com/canonical".to_string(),
-        }]),
-        alternate: Some(vec![GReaderLink {
+        }])
+        .alternate(vec![GReaderLink {
             href: " \n\t ".to_string(),
-        }]),
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: None,
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![],
-    };
+        }])
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
@@ -1713,24 +1746,12 @@ fn map_item_to_entry_uses_canonical_url_when_alternate_href_is_blank() {
 
 #[test]
 fn map_item_to_entry_strips_url_credentials_and_fragment() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Private URL".to_string()),
-        canonical: None,
-        alternate: Some(vec![GReaderLink {
+    let item = greader_item("entry-1")
+        .title("Private URL")
+        .alternate(vec![GReaderLink {
             href: "https://alice:secret@example.com/article#token".to_string(),
-        }]),
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: None,
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![],
-    };
+        }])
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
@@ -1739,31 +1760,20 @@ fn map_item_to_entry_strips_url_credentials_and_fragment() {
 
 #[test]
 fn map_item_to_entry_skips_invalid_article_urls() {
-    let item = GReaderItem {
-        id: "entry-1".to_string(),
-        title: Some("Invalid URL".to_string()),
-        canonical: Some(vec![GReaderLink {
+    let item = greader_item("entry-1")
+        .title("Invalid URL")
+        .canonical(vec![GReaderLink {
             href: "https://example.com/canonical".to_string(),
-        }]),
-        alternate: Some(vec![
+        }])
+        .alternate(vec![
             GReaderLink {
                 href: "javascript:alert(1)".to_string(),
             },
             GReaderLink {
                 href: "https://example.com/alternate\u{8}".to_string(),
             },
-        ]),
-        summary: None,
-        content: None,
-        author: None,
-        published: None,
-        updated: None,
-        timestamp_usec: None,
-        origin: Some(GReaderOrigin {
-            stream_id: "feed/https://example.com/rss".to_string(),
-        }),
-        categories: vec![],
-    };
+        ])
+        .build();
 
     let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
 
