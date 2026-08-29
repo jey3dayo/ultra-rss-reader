@@ -386,6 +386,9 @@ function runKnip(): void {
   const findingsCount = report.issues.reduce((total, issue) => total + countIssueFindings(issue), 0);
 
   console.log(`Knip: issues=${report.issues.length} findings=${findingsCount} version=${actualVersion}`);
+  for (const issue of report.issues) {
+    console.log(`Knip issue: ${formatKnipIssue(issue)}`);
+  }
 
   const drift = [
     checkEqual("issueCount", report.issues.length, knipBaseline.issueCount),
@@ -395,6 +398,32 @@ function runKnip(): void {
   if (drift.length > 0) {
     console.log(["Knip baseline delta (informational):", ...drift].join("\n"));
   }
+}
+
+export function formatKnipIssue(issue: KnipIssueBucket): string {
+  const file = typeof issue.file === "string" ? issue.file : "<unknown file>";
+  const categories = Object.entries(issue)
+    .filter(([key, value]) => key !== "file" && Array.isArray(value) && value.length > 0)
+    .map(([key, value]) => {
+      if (!Array.isArray(value)) {
+        return key;
+      }
+      const entries: unknown[] = value;
+      const names = entries
+        .map((entry) => {
+          if (typeof entry === "string") {
+            return entry;
+          }
+          if (entry && typeof entry === "object" && "name" in entry && typeof entry.name === "string") {
+            return entry.name;
+          }
+          return undefined;
+        })
+        .filter((name): name is string => name !== undefined);
+      return names.length > 0 ? `${key}: ${names.join(", ")}` : key;
+    });
+
+  return categories.length > 0 ? `${file} ${categories.join(" ")}` : file;
 }
 
 function runLockfileDuplicateMajorReport(): void {
