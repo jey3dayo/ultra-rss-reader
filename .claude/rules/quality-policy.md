@@ -24,11 +24,15 @@ Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→
 
 `package.json#knip.ignoreBinaries` entries must document why Knip cannot trace a binary consumer:
 
-- `mise` — invokes the `similarity-rs` scan from the `mise` `report:similarity` task, but Knip does not trace binaries launched by `mise` task definitions; reviewed 2026-08-29.
+- `mise` — launched via `spawnSync` by `scripts/similarity-report.ts` to run the Rust scan; `mise` is a toolchain runner rather than a package.json dependency and therefore cannot be declared as an npm dependency; reviewed 2026-08-29.
 
 `package.json#knip.ignoreIssues` entries may document intentional public barrel exports:
 
 - `src/design-system/index.ts` `exports` — the design-system barrel re-exports each primitive in a component family as a complete public surface. An application may not use `CommandDialog` while using the other command primitives, but removing that member would make the family incomplete; follow the existing `src/components/ui/*` export ignores; reviewed 2026-08-29.
+
+## Provider Policy Family
+
+The `clock_policy`, `deletion_retention_policy`, and `optimistic_mutation_conflict_policy` methods in `src-tauri/src/domain/provider.rs` have zero production callers; tests alone pin their contracts. They are not dead code: together they form an executable specification of provider-specific behavior. Do not remove one merely because it has no production caller, since removing a single member would break the consistency of the policy family. If a future audit flags these methods as dead code, reject that finding using this documented contract.
 
 ## Task Priority Taxonomy
 
