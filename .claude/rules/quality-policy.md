@@ -18,6 +18,8 @@ Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→
 
 ## Knip Ignore Policy
 
+Knip is a report-only review tool in this repository, not a continuously enforced gate. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases. As of 2026-08-29, all six reported unused files were manually verified as false positives: `scripts/check-toolchain-contract.ts` and `scripts/report-dependency-licenses.ts` are invoked from `mise/quality.toml`, `scripts/install-windows-app.ts` is invoked by `mise.toml` `run_windows`, and the three `src/dev/prod-stubs/` files are Vite production-build alias targets covered by `production-dev-aliases.node.test.ts`. Keeping a hard count gate in that situation encourages number-matching instead of triage and degrades the signal. Reconsider this policy if Knip can trace these `mise` and Vite alias consumers.
+
 `package.json#knip.ignoreDependencies` entries must document why Knip cannot see a real consumer:
 
 - `wrangler` — invoked by the `mise` `deploy:site` task from `.github/workflows/deploy-site.yml`; Knip does not trace `mise` or workflow command consumers; reviewed 2026-08-23.

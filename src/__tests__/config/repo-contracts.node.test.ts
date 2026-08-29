@@ -1656,7 +1656,7 @@ describe("repository static contracts", () => {
 
     expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
     expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
-    expect(packageScripts["quality:knip"]).toBe("node ./scripts/quality-baseline.ts knip");
+    expect(packageScripts["report:knip"]).toBe("node ./scripts/quality-baseline.ts knip");
     expect(packageScripts["quality:lockfile-duplicate-majors"]).toBe(
       "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
     );
@@ -1666,7 +1666,7 @@ describe("repository static contracts", () => {
     expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:full")).toBe(
       "node ./scripts/quality-baseline.ts react-doctor:full",
     );
-    expect(extractMiseTaskCommand(miseSource, "quality:knip")).toBe("node ./scripts/quality-baseline.ts knip");
+    expect(extractMiseTaskCommand(miseSource, "report:knip")).toBe("node ./scripts/quality-baseline.ts knip");
   });
 
   it("classifies knip file-level cleanup candidates by their runtime owner", () => {
