@@ -1,5 +1,143 @@
 use super::*;
 
+fn unread_stream_path(remote_id: &str) -> String {
+    format!(
+        "/api/greader.php/reader/api/0/stream/contents/{}",
+        remote_id
+            .replace('/', "%2F")
+            .replace(':', "%3A")
+            .replace('/', "%2F")
+    )
+}
+
+async fn empty_unread_stream_mock(
+    server: &mut mockito::Server,
+    remote_id: &str,
+    expected: usize,
+) -> mockito::Mock {
+    server
+        .mock("GET", Matcher::Exact(unread_stream_path(remote_id)))
+        .match_query(Matcher::AllOf(vec![
+            Matcher::UrlEncoded("output".into(), "json".into()),
+            Matcher::UrlEncoded("n".into(), "200".into()),
+            Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+        ]))
+        .match_header("Authorization", "GoogleLogin auth=tok")
+        .with_status(200)
+        .with_body(r#"{ "items": [] }"#)
+        .expect(expected)
+        .create_async()
+        .await
+}
+
+async fn auth_mock(server: &mut mockito::Server) {
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=tok\n")
+        .create_async()
+        .await;
+}
+
+#[tokio::test]
+async fn reconcile_greader_unread_counts_checks_equal_count_feeds_on_first_rotation() {
+    let mut server = mockito::Server::new_async().await;
+    let unread_stream_mock = empty_unread_stream_mock(&mut server, FEED_REMOTE_ID, 2).await;
+    auth_mock(&mut server).await;
+    let db = test_db();
+    let (account, feed) = insert_account_and_feed(&db, &server.url());
+    let provider = authenticated_provider(&server.url()).await;
+
+    reconcile_greader_unread_counts(
+        &db,
+        &provider,
+        &account,
+        std::slice::from_ref(&feed),
+        &HashMap::from([(FEED_REMOTE_ID.to_string(), 0)]),
+        &[],
+    )
+    .await
+    .unwrap();
+
+    unread_stream_mock.assert_async().await;
+    let db_guard = db.lock().unwrap();
+    let state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+    assert!(state_repo
+        .get(
+            &account.id,
+            SyncStateScopeKey::greader_unread_drift(FEED_REMOTE_ID)
+        )
+        .unwrap()
+        .and_then(|state| state.last_success_at)
+        .is_some());
+}
+
+#[tokio::test]
+async fn reconcile_greader_unread_counts_limits_equal_count_rotation_to_three_feeds() {
+    let mut server = mockito::Server::new_async().await;
+    let remote_ids = [
+        "feed/https://example.com/rss-1",
+        "feed/https://example.com/rss-2",
+        "feed/https://example.com/rss-3",
+        "feed/https://example.com/rss-4",
+    ];
+    let unread_stream_mocks = [
+        empty_unread_stream_mock(&mut server, remote_ids[0], 2).await,
+        empty_unread_stream_mock(&mut server, remote_ids[1], 2).await,
+        empty_unread_stream_mock(&mut server, remote_ids[2], 2).await,
+    ];
+    auth_mock(&mut server).await;
+    let db = test_db();
+    let feed_specs = remote_ids.map(|remote_id| {
+        (
+            remote_id,
+            "Example Feed",
+            "https://example.com/rss",
+            "https://example.com",
+        )
+    });
+    let (account, feeds) = insert_account_and_feeds(&db, &server.url(), &feed_specs);
+    let provider = authenticated_provider(&server.url()).await;
+    let server_unread_counts = remote_ids
+        .iter()
+        .map(|remote_id| (remote_id.to_string(), 0))
+        .collect::<HashMap<_, _>>();
+
+    reconcile_greader_unread_counts(&db, &provider, &account, &feeds, &server_unread_counts, &[])
+        .await
+        .unwrap();
+
+    for unread_stream_mock in unread_stream_mocks {
+        unread_stream_mock.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn reconcile_greader_unread_counts_skips_equal_count_feed_during_cooldown() {
+    let mut server = mockito::Server::new_async().await;
+    let unread_stream_mock = empty_unread_stream_mock(&mut server, FEED_REMOTE_ID, 2).await;
+    auth_mock(&mut server).await;
+    let db = test_db();
+    let (account, feed) = insert_account_and_feed(&db, &server.url());
+    let provider = authenticated_provider(&server.url()).await;
+    let server_unread_counts = HashMap::from([(FEED_REMOTE_ID.to_string(), 0)]);
+
+    for _ in 0..2 {
+        reconcile_greader_unread_counts(
+            &db,
+            &provider,
+            &account,
+            std::slice::from_ref(&feed),
+            &server_unread_counts,
+            &[],
+        )
+        .await
+        .unwrap();
+    }
+
+    unread_stream_mock.assert_async().await;
+}
+
 #[tokio::test]
 async fn reconcile_greader_unread_counts_keeps_local_count_when_backfill_returns_no_articles() {
     let mut server = mockito::Server::new_async().await;

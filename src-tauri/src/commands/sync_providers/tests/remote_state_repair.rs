@@ -49,6 +49,20 @@ async fn repair_greader_remote_state_applies_read_flags_and_recalculates_counts(
         ))
         .create_async()
         .await;
+    server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+        )
+        .match_query(Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(200)
+        .with_body(r#"{ "items": [] }"#)
+        .expect(2)
+        .create_async()
+        .await;
 
     let db = test_db();
     let (account, feed) = insert_account_and_feed(&db, &server.url());
@@ -205,6 +219,20 @@ async fn repair_greader_remote_state_keeps_article_marked_read_during_pull_state
         .with_body(format!(
             r#"{{ "unreadcounts": [{{ "id": "{FEED_REMOTE_ID}", "count": 0 }}] }}"#
         ))
+        .create_async()
+        .await;
+    server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+        )
+        .match_query(Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(200)
+        .with_body(r#"{ "items": [] }"#)
+        .expect(2)
         .create_async()
         .await;
 

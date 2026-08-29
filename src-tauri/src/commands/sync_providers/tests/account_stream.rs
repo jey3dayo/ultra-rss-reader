@@ -63,6 +63,22 @@ async fn sync_greader_account_uses_account_stream_for_full_sync_and_maps_entries
         ))
         .create_async()
         .await;
+    for stream_path in [
+        "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Ffeed-1.xml",
+        "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Ffeed-2.xml",
+    ] {
+        server
+            .mock("GET", stream_path)
+            .match_query(Matcher::UrlEncoded(
+                "xt".into(),
+                "user/-/state/com.google/read".into(),
+            ))
+            .with_status(200)
+            .with_body(r#"{ "items": [] }"#)
+            .expect(2)
+            .create_async()
+            .await;
+    }
 
     let account_stream_mock = server
             .mock(
@@ -110,9 +126,8 @@ async fn sync_greader_account_uses_account_stream_for_full_sync_and_maps_entries
                     ]
                 }"#,
             ))
-            .create_async()
-            .await;
-
+                .create_async()
+                .await;
     let per_feed_one_mock = server
             .mock(
                 "GET",
@@ -684,6 +699,20 @@ async fn sync_greader_account_turns_account_level_skips_into_warnings() {
                     ]
                 }"#,
         )
+        .create_async()
+        .await;
+    server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Ffeed-1.xml",
+        )
+        .match_query(Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(200)
+        .with_body(r#"{ "items": [] }"#)
+        .expect(2)
         .create_async()
         .await;
     let local_failure_mock = server

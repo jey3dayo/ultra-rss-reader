@@ -54,9 +54,12 @@ apply(db, &remote_state, &pending_read, &pending_starred)?;
 is_read UPDATE と commit まで行う。
 
 付随事項として、`reconcile_greader_unread_counts`(unread.rs)のループ前カウント
-snapshot は「どの feed を reconcile するか」の選定にのみ使われ、巻き戻り保護そのものは
-per-feed の pending 保護と最終 recalculate が担うため、選定漏れは次回 sync で回収される
-(許容、ドキュメント化のみ)。
+snapshot は「どの feed を reconcile するか」の選定に使われる。カウント不一致は従来どおり
+無条件に reconcile し、カウント一致の feed も24時間クールダウンのローテーションで
+定期的に reconcile する(1 sync 最大3 feed)。従来の「選定漏れは次回 sync で回収される」
+という記述は、ループ前 snapshot が古くなった同一 sync 内の選定漏れについての許容であり、
+カウント一致を理由に永久に未修正となる状態には適用しない。巻き戻り保護そのものは
+per-feed の pending 保護と最終 recalculate が担う。
 
 ## 強制
 

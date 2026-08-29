@@ -15,6 +15,7 @@ use crate::infra::db::sqlite_feed::{unread_counts_for_feed_ids_with_conn, Sqlite
 use crate::infra::provider::greader::{GReaderProvider, UnreadPullTermination};
 use crate::repository::article::ArticleMutationRepository;
 use crate::repository::feed::FeedRepository;
+use crate::repository::sync_state::{SyncState, SyncStateScopeKey};
 
 use super::redacted_feed_host_class;
 use super::subscriptions::is_provider_managed_greader_feed;
@@ -24,6 +25,10 @@ const MAX_UNREAD_RECONCILE_PAGES: usize = 100;
 // GReader returns at most 200 stream entries per page and this path accepts at
 // most 100 pages, so 20,000 entries is the effective upper bound.
 const MAX_UNREAD_RECONCILE_ENTRIES: usize = 20_000;
+// Each drift check costs at least two requests. With the default one-hour sync
+// interval, a 24-hour cooldown and three-feed cap bound the extra work.
+const GREADER_UNREAD_DRIFT_CHECK_COOLDOWN_MINUTES: i64 = 24 * 60;
+const MAX_UNREAD_DRIFT_CHECKS_PER_SYNC: usize = 3;
 
 enum ReconcileOutcome {
     Applied,
@@ -40,6 +45,12 @@ struct CompleteUnreadSnapshot {
 enum UnreadSnapshot {
     Complete(CompleteUnreadSnapshot),
     Incomplete,
+}
+
+struct ReconcileTarget<'a> {
+    feed: &'a Feed,
+    server_unread_count: i32,
+    drift_check: bool,
 }
 
 pub(super) async fn reconcile_greader_unread_counts(
@@ -62,8 +73,9 @@ pub(super) async fn reconcile_greader_unread_counts(
     let target_feed_ids: Vec<FeedId> = target_feeds.iter().map(|feed| feed.id.clone()).collect();
     let local_unread_counts = fetch_local_unread_counts(db, &target_feed_ids)?;
 
-    let mut backfilled_feeds = 0usize;
-    let mut first_error: Option<AppError> = None;
+    let now = chrono::Utc::now();
+    let mut mismatch_targets = Vec::new();
+    let mut drift_candidates = Vec::new();
     for feed in &target_feeds {
         let Some(remote_id) = feed.remote_id.as_deref() else {
             continue;
@@ -81,36 +93,80 @@ pub(super) async fn reconcile_greader_unread_counts(
             continue;
         };
         let local_unread_count = local_unread_counts.get(&feed.id).copied().unwrap_or(0);
-
         if server_unread_count != local_unread_count {
-            let mut reconcile_outcome = ReconcileOutcome::SkippedIncomplete;
-            match reconcile_greader_unread_state_for_feed(
-                db,
-                provider,
-                account,
+            mismatch_targets.push(ReconcileTarget {
                 feed,
                 server_unread_count,
-                extra_protected_read_ids,
-                &mut reconcile_outcome,
-            )
-            .await
+                drift_check: false,
+            });
+        } else if let Some(last_checked_at) =
+            load_unread_drift_check_at(db, &account.id, remote_id)?
+        {
+            if now.signed_duration_since(last_checked_at)
+                >= chrono::Duration::minutes(GREADER_UNREAD_DRIFT_CHECK_COOLDOWN_MINUTES)
             {
-                Ok(()) => match reconcile_outcome {
-                    ReconcileOutcome::Applied => {
-                        if server_unread_count > local_unread_count {
-                            backfilled_feeds += 1;
-                        }
+                drift_candidates.push((last_checked_at, feed, server_unread_count));
+            }
+        } else {
+            drift_candidates.push((
+                chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
+                feed,
+                server_unread_count,
+            ));
+        }
+    }
+
+    drift_candidates.sort_by_key(|(last_checked_at, _, _)| *last_checked_at);
+    let mut targets = mismatch_targets;
+    targets.extend(
+        drift_candidates
+            .into_iter()
+            .take(MAX_UNREAD_DRIFT_CHECKS_PER_SYNC)
+            .map(|(_, feed, server_unread_count)| ReconcileTarget {
+                feed,
+                server_unread_count,
+                drift_check: true,
+            }),
+    );
+
+    let mut backfilled_feeds = 0usize;
+    let mut first_error: Option<AppError> = None;
+    for target in targets {
+        let mut reconcile_outcome = ReconcileOutcome::SkippedIncomplete;
+        match reconcile_greader_unread_state_for_feed(
+            db,
+            provider,
+            account,
+            target.feed,
+            target.server_unread_count,
+            extra_protected_read_ids,
+            &mut reconcile_outcome,
+        )
+        .await
+        {
+            Ok(()) => match reconcile_outcome {
+                ReconcileOutcome::Applied => {
+                    if !target.drift_check
+                        && target.server_unread_count
+                            > local_unread_counts
+                                .get(&target.feed.id)
+                                .copied()
+                                .unwrap_or(0)
+                    {
+                        backfilled_feeds += 1;
                     }
-                    ReconcileOutcome::SkippedIncomplete => {}
-                },
-                Err(error) => {
-                    // Stop reconciling further feeds, but still recalculate below so
-                    // feeds already mutated before this failure don't keep a stale
-                    // unread_count (see PR review: recalculate from `articles` is
-                    // safe/idempotent for all target feeds, not only the successful ones).
-                    first_error = Some(error);
-                    break;
                 }
+                ReconcileOutcome::SkippedIncomplete => {}
+            },
+            Err(error) => {
+                // Recalculate feeds already processed before returning the first error.
+                first_error = Some(error);
+                break;
+            }
+        }
+        if target.drift_check && first_error.is_none() {
+            if let Some(remote_id) = target.feed.remote_id.as_deref() {
+                mark_unread_drift_check_completed(db, &account.id, remote_id, now)?;
             }
         }
     }
@@ -128,6 +184,42 @@ pub(super) async fn reconcile_greader_unread_counts(
     }
 
     Ok(backfilled_feeds)
+}
+
+fn load_unread_drift_check_at(
+    db: &Mutex<DbManager>,
+    account_id: &crate::domain::types::AccountId,
+    remote_id: &str,
+) -> Result<Option<chrono::DateTime<chrono::Utc>>, AppError> {
+    let scope_key = SyncStateScopeKey::greader_unread_drift(remote_id);
+    let state = super::state::load_sync_state(db, account_id, &scope_key)?;
+    Ok(state
+        .and_then(|state| state.last_success_at)
+        .and_then(|value| chrono::DateTime::parse_from_rfc3339(&value).ok())
+        .map(|value| value.with_timezone(&chrono::Utc)))
+}
+
+fn mark_unread_drift_check_completed(
+    db: &Mutex<DbManager>,
+    account_id: &crate::domain::types::AccountId,
+    remote_id: &str,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Result<(), AppError> {
+    super::state::save_sync_state(
+        db,
+        &SyncState {
+            account_id: account_id.clone(),
+            scope_key: SyncStateScopeKey::greader_unread_drift(remote_id).as_string(),
+            timestamp_usec: Some(now.timestamp_micros()),
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: Some(now.to_rfc3339()),
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        },
+    )
 }
 
 fn fetch_local_unread_counts(
