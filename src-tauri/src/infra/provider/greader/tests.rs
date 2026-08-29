@@ -1603,6 +1603,10 @@ fn greader_contents_and_stream_ids_round_trip_for_canonical_tag_ids() {
 
 #[test]
 fn greader_short_hex_contents_ids_do_not_match_decimal_stream_id_normalization() {
+    // This records current behavior, not a desired contract. FreshRSS returns the canonical
+    // 16-digit zero-padded form, so existing fixtures and working production read sync show no
+    // exposure as of 2026-08-29. If another provider returns short hex, contents stays raw while
+    // items/ids pads it to 16 digits, so apply_remote_state can roll every article back to unread.
     let short_hex_tag = "tag:google.com,2005:reader/item/499602d2";
 
     assert_eq!(
