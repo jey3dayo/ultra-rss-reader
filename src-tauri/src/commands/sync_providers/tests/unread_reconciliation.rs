@@ -1,4 +1,9 @@
 use super::*;
+use crate::domain::article::{generate_entry_id, Article};
+use crate::infra::sanitizer;
+use crate::repository::pending_mutation::{
+    PendingMutation, PendingMutationRepository, PendingMutationType,
+};
 
 fn unread_stream_path(remote_id: &str) -> String {
     format!(
@@ -70,6 +75,107 @@ async fn reconcile_greader_unread_counts_checks_equal_count_feeds_on_first_rotat
         .unwrap()
         .and_then(|state| state.last_success_at)
         .is_some());
+}
+
+#[tokio::test]
+async fn equal_count_drift_rotation_preserves_a_read_mark_during_reconcile() {
+    let db = std::sync::Arc::new(test_db());
+    let (account, feed) = insert_account_and_feed(&db, "http://localhost");
+    let remote_entry_id = "entry-1";
+    let article_id = generate_entry_id(
+        account.id.as_ref(),
+        Some(remote_entry_id),
+        &feed.url,
+        Some("https://example.com/1"),
+        Some("Article"),
+    );
+    {
+        let db_guard = db.lock().unwrap();
+        SqliteArticleRepository::new(db_guard.writer())
+            .upsert(&[Article {
+                id: article_id.clone(),
+                feed_id: feed.id.clone(),
+                remote_id: Some(remote_entry_id.to_string()),
+                title: "Article".to_string(),
+                content_raw: "body".to_string(),
+                content_sanitized: "body".to_string(),
+                sanitizer_version: sanitizer::SANITIZER_VERSION,
+                summary: None,
+                url: Some("https://example.com/1".to_string()),
+                author: None,
+                published_at: chrono::Utc::now(),
+                thumbnail: None,
+                is_read: false,
+                is_starred: false,
+                fetched_at: chrono::Utc::now(),
+            }])
+            .unwrap();
+    }
+
+    let mut server = mockito::Server::new_async().await;
+    auth_mock(&mut server).await;
+    let mark_read_db = std::sync::Arc::clone(&db);
+    let mark_read_account_id = account.id.clone();
+    let mark_read_article_id = article_id.clone();
+    let mark_read_remote_entry_id = remote_entry_id.to_string();
+    let unread_stream_mock = server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+        )
+        .match_query(Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(200)
+        .with_body_from_request(move |_| {
+            let db_guard = mark_read_db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "UPDATE articles SET is_read = 1 WHERE id = ?1",
+                    rusqlite::params![&mark_read_article_id.0],
+                )
+                .unwrap();
+            SqlitePendingMutationRepository::new(db_guard.writer())
+                .save(&PendingMutation {
+                    id: None,
+                    account_id: mark_read_account_id.clone(),
+                    mutation_type: PendingMutationType::MarkRead,
+                    remote_entry_id: mark_read_remote_entry_id.clone(),
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                })
+                .unwrap();
+            format!(r#"{{"items":[{{"id":"{remote_entry_id}","title":"Article","alternate":[{{"href":"https://example.com/1"}}],"categories":[]}}]}}"#).into_bytes()
+        })
+        .expect(2)
+        .create_async()
+        .await;
+    let provider = authenticated_provider(&server.url()).await;
+
+    reconcile_greader_unread_counts(
+        &db,
+        &provider,
+        &account,
+        std::slice::from_ref(&feed),
+        &HashMap::from([(FEED_REMOTE_ID.to_string(), 1)]),
+        &[],
+    )
+    .await
+    .unwrap();
+
+    unread_stream_mock.assert_async().await;
+    let db_guard = db.lock().unwrap();
+    let article = SqliteArticleRepository::new(db_guard.reader())
+        .find_by_feed(&feed.id, &Pagination::default())
+        .unwrap()
+        .into_iter()
+        .find(|article| article.id == article_id)
+        .unwrap();
+    assert!(
+        article.is_read,
+        "pending read must survive the equal-count drift reconcile"
+    );
 }
 
 #[tokio::test]

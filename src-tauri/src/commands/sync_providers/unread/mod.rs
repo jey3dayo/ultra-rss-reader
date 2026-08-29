@@ -166,6 +166,9 @@ pub(super) async fn reconcile_greader_unread_counts(
         }
         if target.drift_check && first_error.is_none() {
             if let Some(remote_id) = target.feed.remote_id.as_deref() {
+                // Advance the rotation even when the snapshot was incomplete: structural
+                // incompleteness will not be fixed by an immediate retry, and leaving the
+                // timestamp unset would let one feed consume all three slots on every sync.
                 mark_unread_drift_check_completed(db, &account.id, remote_id, now)?;
             }
         }
