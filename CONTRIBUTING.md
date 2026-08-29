@@ -137,6 +137,7 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 | FreshRSS real-server integration          | Not part of default CI                         | `mise run test:live` with real credentials                 |
 | Native keyring integration                | Unit / integration tests around app logic only | Manual verification on each target OS                      |
 | Updater download / install                | Config and command-level checks only           | Manual verification on packaged builds per target OS       |
+| Code quality baseline reports             | Not part of default CI                         | report:knip/similarity as needed; human triage, no gate    |
 
 `mise run ci` intentionally covers format, lint, repository tests, and frontend build. It runs the quiet Vitest unit gate before lint, Rust tests, and build so unit failures surface before heavier checks. It does not run Playwright, Storybook static build, live-service tests, or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
 

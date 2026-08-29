@@ -238,6 +238,7 @@ Use the provider sync contract in [feed-content-privacy.md](./feed-content-priva
 - Many-account freshness issues should be triaged per account. One slow or retry-delayed account should not block another ready account; collect the account that is retry-pending separately from the account that is stale.
 - Partial sync success must stay visible. Account detail, sidebar/feed list, and article list evidence should agree on whether the state is all-success, partial-success, all-failed, or stale cached content.
 - Manual sync can bypass automatic-scheduler suppression, but it must still report the provider result and must not clear stale or partial indicators for unrelated accounts or feeds.
+- A feed whose unread count matches the server was previously excluded from reconciliation, so a read/unread membership drift could remain indefinitely while the count stayed correct. It is now periodically reconciled by a 24-hour cooldown rotation, with at most three matching-count feeds checked per sync. A report that the unread badge count is correct but an article marked read remains unread may therefore be waiting for rotation and can lag by several cycles; feeds that return chronically incomplete snapshots are a known limitation and may effectively receive no drift check. See [remote-state-reconciliation.md](../.claude/rules/remote-state-reconciliation.md) for details.
 
 ### Release / Update Safety Contract
 
