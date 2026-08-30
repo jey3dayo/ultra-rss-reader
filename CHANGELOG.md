@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.61.1] - 2026-08-31
+
 ### Fixed
 
 - 未読件数が一致しているフィードで、既読・未読の中身のズレが修正されないまま残る問題を修正した(#236)。
