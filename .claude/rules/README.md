@@ -19,7 +19,7 @@
 - [schema-boundary.md](./schema-boundary.md): DTO / preferences / localStorage schema の strictness と fallback 所有者
 - [boundary-ownership.md](./boundary-ownership.md): refactor 時の owner 判定表と移動先ルール
 - [contract-test-policy.md](./contract-test-policy.md): contract test の置き場所、TODO 化する境界値、ルール昇格の判断基準
-- [quality-policy.md](./quality-policy.md): TODO priority taxonomy、TypeScript 6/7 併存 alias の根拠と撤去条件、React Compiler opt-in、ES2023 array copy methods、React Doctor warning suppression policy
+- [quality-policy.md](./quality-policy.md): TODO priority taxonomy、TypeScript 単一バージョン方針と alias 復活の条件、React Compiler opt-in、ES2023 array copy methods、React Doctor warning suppression policy
 - [tauri-window-chrome.md](./tauri-window-chrome.md): OS ごとに異なる titlebar / header の扱いと現在の実装方針
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン
 - [dev-scenarios-command-palette.md](./dev-scenarios-command-palette.md): dev intent と command palette の共通 runner / 責務分離ルール

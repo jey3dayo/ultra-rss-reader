@@ -92,7 +92,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - Refactor-time owner selection, helper extraction destinations, generated artifacts, UI copy, stable keys, and runtime capability ownership: [.claude/rules/boundary-ownership.md](.claude/rules/boundary-ownership.md).
 - Boundary tests or TODO findings that should become durable coverage: [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
 - Preference schema/defaults, backend allowlist, settings copy, and shortcut preference parity: [.claude/rules/preferences-pattern.md](.claude/rules/preferences-pattern.md).
-- TODO priority taxonomy, similarity false positives, the TypeScript 6/7 side-by-side aliases, React Compiler, ES2023 copy methods, or React Doctor suppression decisions: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
+- TODO priority taxonomy, similarity false positives, the single-TypeScript version policy, React Compiler, ES2023 copy methods, or React Doctor suppression decisions: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
 - Rust test `unwrap` / `expect` usage: [.claude/rules/rust-test-unwrap-policy.md](.claude/rules/rust-test-unwrap-policy.md).
 
 ## Task Tracking

@@ -54,20 +54,26 @@ Aging is review pressure, not automatic priority mutation. The todo.txt creation
 - Treat a `(D)` with no review for 90 days as an archive candidate unless it still prevents concrete drift through tooling, policy, or contract-test planning.
 - Move completed user-visible work to `CHANGELOG.md` only after the implementation lands; archive the todo.txt line with `tuxedo done` + `archive` and close the linked issue.
 
-## TypeScript 6 / 7 Side-By-Side Setup
+## TypeScript Version Policy
 
-The two TypeScript aliases in `package.json` are Microsoft's documented 6.0/7.0 transition pattern, not leftover debt. Do not "clean up" either one.
+`package.json` carries a single `"typescript": "^7.0.2"`. Do not add back the `@typescript/typescript6` alias or a second `typescript-7` entry unless one of the guard conditions below is tripped.
 
-- `"typescript": "npm:@typescript/typescript6@^6.0.2"` — a compatibility package published by the TypeScript team. It supplies the `tsc6` binary and re-exports the TypeScript 6 compiler API.
-- `"typescript-7": "npm:typescript@^7.0.2"` — the real TypeScript 7 package, which owns the `tsc` binary. Type checking and the build's pre-Vite check both run on it.
+Microsoft's documented 6.0/7.0 transition pattern aliases the root `typescript` to `@typescript/typescript6` so that tools importing the compiler API keep working, because **TypeScript 7.0 ships no programmatic API** — under 7.x, `require("typescript")` exposes only `version` and `versionMajorMinor`. That guidance assumes the project has such a tool. This one does not: an audit on 2026-09-05 found no compiler-API consumer active in any gate, and dropping the alias left `mise run ci` and `mise run build:storybook` green with no peer warnings.
 
-The alias exists because **TypeScript 7.0 ships no programmatic compiler API at all**; under 7.x, `require("typescript")` exposes only `version` and `versionMajorMinor`. Any dependency that reads the compiler API — Storybook's `react-docgen-typescript` path here, and `@typescript-eslint/typescript-estree` in projects that use it — resolves `typescript` and would break without the 6.0 alias. The TypeScript team states 7.1 will ship a new and different API; there is no published date.
+The audit found exactly three packages that require `typescript` at runtime, none of which execute here:
 
-Removal condition: drop the `@typescript/typescript6` alias, and rename `typescript-7` back to `typescript`, only after TypeScript 7.1 ships the replacement API **and** every dependency that resolves `typescript` accepts 7.x. Verify the second half against real registry data (`pnpm why typescript`, then each consumer's `typescript` peer range) rather than assuming.
+- `react-docgen-typescript` and `@joshwooding/vite-plugin-react-docgen-typescript` — loaded only when Storybook's `typescript.reactDocgen` equals `"react-docgen-typescript"`. Storybook 8.0 flipped that default to the Babel-based `react-docgen`, and `.storybook/main.ts` does not override it.
+- `cosmiconfig` (via `shadcn`) — calls `typescript.transpileModule` only when loading a `.ts` config file. `shadcn` reads `components.json` and runs in no gate.
 
-Watch item: `@joshwooding/vite-plugin-react-docgen-typescript` reaches this repo through `@storybook/react-vite`. The installed 0.7.0 declares an open `typescript: ">= 4.3.x"`, but 0.8.0 narrowed it to `">=4.3.0 <7"`. A Storybook upgrade that pulls 0.8.0 introduces a TypeScript 7 exclusion that is not present today; check that peer range before accepting such an upgrade.
+Reinstate the alias, as a paired `"typescript": "npm:@typescript/typescript6@^6.0.2"` plus a separately named TypeScript 7 entry, if any of these becomes true:
 
-Do not point `typescript-7` at a floating `rc` or `latest` tag. It was pinned to `7.0.1-rc` until 2026-09-05 and silently stayed on a pre-release after 7.0.2 went GA on 2026-07-08.
+- Storybook's `typescript.reactDocgen` is set to `"react-docgen-typescript"`. The installed plugin 0.7.0 declares an open `typescript: ">= 4.3.x"`, but that range is merely stale: 0.8.0 narrowed it to `">=4.3.0 <7"` after confirming TypeScript 7 crashes it on `ts.sys`. Its TypeScript 7 backend targets 7.1 APIs and is unmerged.
+- Storybook's `experimentalDocgenServer` feature is enabled. It drives the TypeScript Language Service directly and crashes under TypeScript 7 (storybookjs/storybook#35792, open).
+- A `shadcn` config moves from `components.json` to a `.ts` file, or any new dependency reads the compiler API.
+
+Before reinstating, re-check the real resolution rather than assuming: `pnpm why typescript`, then each consumer's `typescript` peer range.
+
+The Babel-based `react-docgen` is less complete than the TypeScript-based one — Storybook documents gaps for types from external packages, enums, and `forwardRef`. Current stories do not depend on those, so the tradeoff is accepted; a props table that turns up empty is the signal to revisit it, and that revisit is what trips the first guard condition above.
 
 ## React Compiler Adoption
 

@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Maintenance
+
+- TypeScript を 7 系の単一バージョンへ統一し、TypeScript 6 互換 alias を廃止した。
+  型チェックとビルド前チェックの両方が TypeScript 7 で動作する。
+
 ## [0.61.2] - 2026-09-05
 
 ### Bug Fixes
