@@ -2589,7 +2589,7 @@ describe("repository static contracts", () => {
       expect.arrayContaining(["manual-verification が必要", "release-readiness に入る"]),
     );
     expect(prInsightsLabelerWorkflow).toContain(
-      "uses: jey3dayo/pr-insights-labeler@e9bccb2e8c9ed048d6022d6ae2e5c85eeed80f16",
+      "uses: jey3dayo/pr-insights-labeler@3934dcb1a60e4d79e4acd7ffa7daf4e2097ad184",
     );
     expect(prInsightsLabelerWorkflow).toContain('file_size_limit: "100KB"');
     expect(prInsightsLabelerWorkflow).toContain('pr_files_limit: "50"');
