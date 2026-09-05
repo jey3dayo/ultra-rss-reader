@@ -54,6 +54,21 @@ Aging is review pressure, not automatic priority mutation. The todo.txt creation
 - Treat a `(D)` with no review for 90 days as an archive candidate unless it still prevents concrete drift through tooling, policy, or contract-test planning.
 - Move completed user-visible work to `CHANGELOG.md` only after the implementation lands; archive the todo.txt line with `tuxedo done` + `archive` and close the linked issue.
 
+## TypeScript 6 / 7 Side-By-Side Setup
+
+The two TypeScript aliases in `package.json` are Microsoft's documented 6.0/7.0 transition pattern, not leftover debt. Do not "clean up" either one.
+
+- `"typescript": "npm:@typescript/typescript6@^6.0.2"` — a compatibility package published by the TypeScript team. It supplies the `tsc6` binary and re-exports the TypeScript 6 compiler API.
+- `"typescript-7": "npm:typescript@^7.0.2"` — the real TypeScript 7 package, which owns the `tsc` binary. Type checking and the build's pre-Vite check both run on it.
+
+The alias exists because **TypeScript 7.0 ships no programmatic compiler API at all**; under 7.x, `require("typescript")` exposes only `version` and `versionMajorMinor`. Any dependency that reads the compiler API — Storybook's `react-docgen-typescript` path here, and `@typescript-eslint/typescript-estree` in projects that use it — resolves `typescript` and would break without the 6.0 alias. The TypeScript team states 7.1 will ship a new and different API; there is no published date.
+
+Removal condition: drop the `@typescript/typescript6` alias, and rename `typescript-7` back to `typescript`, only after TypeScript 7.1 ships the replacement API **and** every dependency that resolves `typescript` accepts 7.x. Verify the second half against real registry data (`pnpm why typescript`, then each consumer's `typescript` peer range) rather than assuming.
+
+Watch item: `@joshwooding/vite-plugin-react-docgen-typescript` reaches this repo through `@storybook/react-vite`. The installed 0.7.0 declares an open `typescript: ">= 4.3.x"`, but 0.8.0 narrowed it to `">=4.3.0 <7"`. A Storybook upgrade that pulls 0.8.0 introduces a TypeScript 7 exclusion that is not present today; check that peer range before accepting such an upgrade.
+
+Do not point `typescript-7` at a floating `rc` or `latest` tag. It was pinned to `7.0.1-rc` until 2026-09-05 and silently stayed on a pre-release after 7.0.2 went GA on 2026-07-08.
+
 ## React Compiler Adoption
 
 React Compiler is not enabled in this repository. Do not add `babel-plugin-react-compiler`, Vite compiler wiring, or compiler-driven memoization changes as incidental cleanup.
