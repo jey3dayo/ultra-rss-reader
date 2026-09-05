@@ -28,8 +28,7 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      # actions/checkout@v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ inputs.ref || github.ref }}
 
@@ -42,11 +41,9 @@ jobs:
             exit 1
           fi
 
-      # jdx/mise-action@v4.0.1
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -57,8 +54,7 @@ jobs:
         with:
           toolchain: stable
 
-      # Swatinem/rust-cache@v2.9.1
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
           shared-key: store-msix-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
@@ -98,8 +94,7 @@ jobs:
           $msix | Copy-Item -Destination msix-out\
           Get-ChildItem msix-out
 
-      # actions/upload-artifact@v7.0.1
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: store-msix
           path: msix-out/

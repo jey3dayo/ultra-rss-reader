@@ -21,14 +21,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      # actions/checkout@v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      # jdx/mise-action@v4.0.1
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true

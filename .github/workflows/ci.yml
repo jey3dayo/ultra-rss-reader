@@ -28,12 +28,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -86,12 +85,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -115,7 +113,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Install Tauri system dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -136,10 +134,9 @@ jobs:
           fi
           timeout 300s sudo apt-get install -y --no-install-recommends "${apt_options[@]}" ${{ env.TAURI_SYSTEM_DEPS }}
 
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -165,7 +162,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: frontend-${{ matrix.os }}-lint-log
           path: tmp/ci-artifacts/frontend/lint.log
@@ -174,7 +171,7 @@ jobs:
 
       - name: Upload Rust failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rust-${{ matrix.os }}-lint-log
           path: tmp/ci-artifacts/rust/lint.log
@@ -191,7 +188,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Install Tauri system dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -212,10 +209,9 @@ jobs:
           fi
           timeout 300s sudo apt-get install -y --no-install-recommends "${apt_options[@]}" ${{ env.TAURI_SYSTEM_DEPS }}
 
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -239,7 +235,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: frontend-${{ matrix.os }}-test-log
           path: tmp/ci-artifacts/frontend/test.log
@@ -248,7 +244,7 @@ jobs:
 
       - name: Upload Rust failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rust-${{ matrix.os }}-test-log
           path: tmp/ci-artifacts/rust/test.log
@@ -265,12 +261,11 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -287,7 +282,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: frontend-${{ matrix.os }}-build-log
           path: tmp/ci-artifacts/frontend/build.log
@@ -304,12 +299,11 @@ jobs:
         os: [macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -346,7 +340,7 @@ jobs:
 
       - name: Upload native smoke failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: native-smoke-${{ matrix.os }}-debug-log
           path: tmp/ci-artifacts/native-smoke/debug-build.log
@@ -355,7 +349,7 @@ jobs:
 
       - name: Upload native smoke debug build artifacts
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: native-smoke-${{ matrix.os }}-debug-build-artifacts
           path: |
@@ -371,12 +365,11 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -391,8 +384,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Install cargo-audit
-        # taiki-e/install-action@v2.85.10 (cargo-audit 0.22.2 pinned)
-        uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad
+        # cargo-audit 0.22.2 pinned
+        uses: taiki-e/install-action@e67fa11c4b9316fa714ddf0abed07a0c3143b95b # v2.87.4
         with:
           tool: cargo-audit@0.22.2
 

@@ -45,13 +45,11 @@ jobs:
       release_matrix: ${{ steps.resolve-release-matrix.outputs.matrix }}
 
     steps:
-      # actions/checkout@v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.ref }}
 
-      # jdx/mise-action@v4.0.1
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - name: Validate release source
         shell: bash
@@ -63,8 +61,7 @@ jobs:
           REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
         run: node ./scripts/release/validate-source.ts
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -149,16 +146,13 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # actions/checkout@v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.ref }}
 
-      # jdx/mise-action@v4.0.1
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -189,13 +183,11 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      # actions/checkout@v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.ref }}
 
-      # jdx/mise-action@v4.0.1
-      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - name: Validate release source
         shell: bash
@@ -207,8 +199,7 @@ jobs:
           REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
         run: node ./scripts/release/validate-source.ts
 
-      # pnpm/setup@v1
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
           runtime: node@26.4.0
           cache: true
@@ -220,8 +211,7 @@ jobs:
           toolchain: stable
           targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin' || '' }}
 
-      # Swatinem/rust-cache@v2.9.1
-      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
           shared-key: release-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
@@ -347,8 +337,7 @@ jobs:
           security default-keychain -d user -s "$keychain_path"
           security find-identity -v -p codesigning "$keychain_path"
 
-      # tauri-apps/tauri-action@v0.6.2
-      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         if: steps.signing-preflight.outputs.should_build == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

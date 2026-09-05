@@ -376,8 +376,9 @@ const parseCspDirectives = (csp: string): Map<string, string[]> => {
 };
 
 const extractPnpmSetupBlock = (source: string): string => {
-  const value = source.match(/- uses: pnpm\/setup@5d160c5bc68a09337ad0d5654e237e03253b5879\n(?<block>(?: {8}.+\n?)*)/)
-    ?.groups?.block;
+  const value = source.match(
+    /- uses: pnpm\/setup@5d160c5bc68a09337ad0d5654e237e03253b5879[^\n]*\n(?<block>(?: {8}.+\n?)*)/,
+  )?.groups?.block;
   if (!value) {
     throw new Error("Missing pnpm setup block");
   }
@@ -398,7 +399,7 @@ const extractTaskBlock = (source: string, taskName: string): string => {
 };
 
 const extractWorkflowUses = (source: string): string[] => {
-  const usesPattern = /^\s*(?:-\s+)?uses:\s+([^\s#]+)\s*$/gm;
+  const usesPattern = /^\s*(?:-\s+)?uses:\s+(\S+)(?:\s+#.*)?\s*$/gm;
   return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
 };
 
@@ -556,7 +557,7 @@ const extractYamlScalarBlockEntries = (block: string): Record<string, string> =>
 
 const extractTauriActionBlock = (source: string): string => {
   const value = source.match(
-    /- uses: tauri-apps\/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5\n(?<block>(?: {8}.+\n?)*)/,
+    /- uses: tauri-apps\/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5[^\n]*\n(?<block>(?: {8}.+\n?)*)/,
   )?.groups?.block;
   if (!value) {
     throw new Error("Missing release tauri-action block");
@@ -949,19 +950,19 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const releaseUsesValues = extractWorkflowUses(releaseWorkflow);
     const expectedReleaseActions = [
       // preflight job: source/version/signing preflight
-      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
+      "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+      "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
       "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
       // quality job: parallel format/lint/test preflight (gated by should_build)
-      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
+      "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+      "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
       "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
       // release job: matrix artifact build + draft upload
-      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
+      "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+      "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
       "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
       "dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9",
-      "Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4",
+      "Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
       "tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
     ];
 
