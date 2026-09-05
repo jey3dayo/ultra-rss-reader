@@ -4,6 +4,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.61.2] - 2026-09-05
+
+### Bug Fixes
+
+- GitHub Actions の pin にコミットではなく annotated tag オブジェクトが使われ、依存更新から取り残されていた問題を修正した。ci.yml のビルドキャッシュだけが古い版に残っていた。
+
+### Maintenance
+
+- Sentry、i18next、lucide-react、Storybook、Biome などのランタイムおよび開発依存関係を更新した。
+- GitHub Actions の pin をバージョンコメント付きの形式へ移行し、陳腐化していた版数コメントを整理した。
+- 依存と Actions の pin をまとめて更新し、pin の妥当性を検証する `deps:update` タスクを追加した。
+- クラス名ユーティリティを cn パッケージへ置き換えた。
+
 ## [0.61.1] - 2026-08-31
 
 ### Fixed
