@@ -32,6 +32,8 @@ const SETTINGS_PROFILE_VERSION: u32 = 1;
 const SETTINGS_PROFILE_CONTENT_TYPE: &str =
     "application/vnd.ultra-rss-reader.settings-profile+json";
 const SELECTED_ACCOUNT_ID_KEY: &str = "selected_account_id";
+// Must stay aligned with SETTINGS_PROFILE_IMPORT_MAX_BYTES in src/api/schemas/commands/settings-profile.ts.
+pub(crate) const SETTINGS_PROFILE_IMPORT_MAX_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 struct SettingsProfile {
@@ -175,6 +177,14 @@ fn import_settings_profile_into_db(
     db: &crate::infra::db::connection::DbManager,
     profile_json: &str,
 ) -> Result<(SettingsProfileImportResult, ImportedPreferenceSideEffects), AppError> {
+    if profile_json.len() > SETTINGS_PROFILE_IMPORT_MAX_BYTES {
+        return Err(AppError::UserVisible {
+            message: format!(
+                "Settings profile import file must be {SETTINGS_PROFILE_IMPORT_MAX_BYTES} UTF-8 bytes or less"
+            ),
+        });
+    }
+
     let profile: SettingsProfile =
         serde_json::from_str(profile_json).map_err(|error| AppError::UserVisible {
             message: format!("Failed to parse settings profile: {error}"),

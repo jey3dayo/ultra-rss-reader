@@ -2,6 +2,10 @@ import { Result } from "@praha/byethrow";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { SettingsProfileImportResult } from "@/api/schemas";
+import {
+  SETTINGS_PROFILE_IMPORT_MAX_BYTES,
+  SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE,
+} from "@/api/schemas/commands/settings-profile";
 import type { AppError } from "@/api/tauri-commands";
 import {
   backupDatabase,
@@ -371,6 +375,9 @@ export function useDataSettingsController({
     dispatch({ type: "set-importing-settings-profile", value: true });
     setSettingsLoading?.(true);
     try {
+      if (file.size > SETTINGS_PROFILE_IMPORT_MAX_BYTES) {
+        throw new Error(SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE);
+      }
       const profileJson = await file.text();
       Result.pipe(
         await importSettingsProfile(profileJson),

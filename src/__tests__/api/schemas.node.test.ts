@@ -47,6 +47,7 @@ import {
   getArticleTagsArgs,
   getCommandArgsSchema,
   IntResponseSchema,
+  importSettingsProfileArgs,
   isCommandWithArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
@@ -102,6 +103,7 @@ import {
   MAX_IPC_PAGINATION_OFFSET,
   SHARE_COMMAND_TEXT_MAX_CHARS,
 } from "@/api/schemas/commands";
+import { SETTINGS_PROFILE_IMPORT_MAX_BYTES } from "@/api/schemas/commands/settings-profile";
 import { webPreviewUrlSchema } from "@/api/schemas/commands/url";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
@@ -1616,6 +1618,23 @@ describe("SettingsProfileSchema", () => {
         mute_keywords_skipped: 0,
       }),
     ).toThrow();
+  });
+});
+
+describe("importSettingsProfileArgs", () => {
+  it("keeps the frontend profile payload cap aligned with Rust and counts UTF-8 bytes", () => {
+    expect(readRustCommandSources()).toContain(
+      "pub(crate) const SETTINGS_PROFILE_IMPORT_MAX_BYTES: usize = 1024 * 1024;",
+    );
+
+    expect(parse(importSettingsProfileArgs, { profileJson: '{"version":1}' })).toEqual({
+      profileJson: '{"version":1}',
+    });
+    expect(() => parse(importSettingsProfileArgs, { profileJson: "" })).toThrow();
+
+    const oversizedProfile = "a".repeat(SETTINGS_PROFILE_IMPORT_MAX_BYTES + 1);
+    expect(new TextEncoder().encode(oversizedProfile).length).toBe(SETTINGS_PROFILE_IMPORT_MAX_BYTES + 1);
+    expect(() => parse(importSettingsProfileArgs, { profileJson: oversizedProfile })).toThrow();
   });
 });
 
