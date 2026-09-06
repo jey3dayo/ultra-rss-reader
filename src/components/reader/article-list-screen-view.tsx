@@ -69,7 +69,7 @@ export function ArticleListScreenView({
   if (isLoading) {
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
-        <div className="p-2">
+        <div>
           <ArticleListSkeleton label={loadingMessage} />
         </div>
       </ScrollArea>

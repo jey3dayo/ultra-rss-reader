@@ -20,7 +20,7 @@ export function ArticleListSkeleton({ label }: { label: string }) {
       role="status"
       aria-live="polite"
       data-testid="article-list-skeleton"
-      className="rounded-md border border-border/70 bg-surface-1/72 px-2 py-2 text-foreground-soft"
+      className="rounded-md bg-surface-1/72 text-foreground-soft"
     >
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="space-y-1">

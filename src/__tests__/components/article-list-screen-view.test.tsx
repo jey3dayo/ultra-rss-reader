@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { sampleArticles } from "@tests/helpers/fixtures";
+import type { RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
 import { readerPassiveCardPaddingClassName } from "@/components/reader/reader-passive-card";
@@ -27,13 +28,70 @@ describe("ArticleListScreenView", () => {
 
     expect(loadingStatus).toHaveAttribute("aria-live", "polite");
     expect(loadingStatus).toHaveTextContent("Loading articles");
-    expect(loadingStatus).toHaveClass(
-      "rounded-md",
-      "border",
-      "border-border/70",
-      "bg-surface-1/72",
-      "text-foreground-soft",
+    expect(loadingStatus).toHaveClass("rounded-md", "bg-surface-1/72", "text-foreground-soft");
+    expect(loadingStatus).not.toHaveClass("px-2", "py-2", "border", "border-border/70");
+  });
+
+  it("keeps modern skeleton rows on the same content rail as loaded rows", () => {
+    const viewportRef: RefObject<HTMLDivElement | null> = { current: null };
+    const { rerender } = render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        viewportRef={viewportRef}
+        isLoading
+        emptyMessage="No articles"
+        loadingMessage="Loading articles"
+        groups={[]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
     );
+
+    const skeleton = screen.getByTestId("article-list-skeleton");
+    const skeletonRow = skeleton.querySelector(".space-y-1 > div");
+
+    expect(skeletonRow).toHaveClass("px-4", "py-3");
+    expect(skeleton.parentElement).not.toHaveClass("p-2");
+    expect(skeleton).not.toHaveClass("px-2", "py-2", "border", "border-border/70");
+
+    rerender(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        viewportRef={viewportRef}
+        isLoading={false}
+        emptyMessage="No articles"
+        loadingMessage="Loading articles"
+        groups={[
+          {
+            id: "today",
+            label: "Today",
+            showLabel: true,
+            items: [
+              {
+                article: sampleArticles[0],
+                feedName: "Tech Blog",
+                isSelected: false,
+                isRecentlyRead: false,
+              },
+            ],
+          },
+        ]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    expect(screen.getByRole("option", { name: /First Article/i })).toHaveClass("px-4", "py-3");
   });
 
   it("renders empty and populated article bodies", () => {
