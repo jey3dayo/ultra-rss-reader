@@ -16,6 +16,7 @@ import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { clearManualUnreadAutoMarkSuppressionsForTests } from "@/components/reader/hooks/article/use-article-auto-mark";
+import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "@/components/reader/reader-passive-card";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS, MOTION_ARTICLE_SLIDE_CLASS_NAME } from "@/constants/motion";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -2083,6 +2084,8 @@ describe("ArticleView", () => {
 
     const emptyStateCard = screen.getByText("Select an article").parentElement;
     expect(emptyStateCard).toBeInTheDocument();
+    expect(emptyStateCard).toHaveClass(...readerPassiveCardClassName.split(" "));
+    expect(emptyStateCard).toHaveClass(...readerPassiveCardPaddingClassName.split(" "));
     expect(emptyStateCard).not.toHaveClass("motion-content-swap");
     expect(emptyStateCard).not.toHaveAttribute("data-motion-phase");
     expect(screen.queryByRole("button", { name: "Toggle read" })).not.toBeInTheDocument();
@@ -2158,6 +2161,8 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
+    expect(summary).toHaveClass("rounded-md", "border", "border-border/80", "bg-card/38", "shadow-none");
+    expect(summary).toHaveClass(...readerPassiveCardPaddingClassName.split(" "));
     expectSummaryScopeLabel(summary, "Tech Blog");
     expectSummaryMetricMotionValue(summary, "Unread", "5");
     expectSummaryMetricMotionValue(summary, "Published today", "0");

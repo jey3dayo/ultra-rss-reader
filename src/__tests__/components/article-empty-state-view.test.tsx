@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleEmptyStateView } from "@/components/reader/article-empty-state-view";
+import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "@/components/reader/reader-passive-card";
 
 describe("ArticleEmptyStateView", () => {
   it("renders the placeholder message with follow-up guidance", () => {
@@ -68,6 +69,21 @@ describe("ArticleEmptyStateView", () => {
     expect(container).not.toHaveClass("shadow-[var(--shadow-elevation-1)]");
     expect(layout).toHaveClass("-translate-y-[14%]");
     expect(screen.getByText("Reader ready")).toHaveClass("uppercase");
+  });
+
+  it("applies passive card chrome when the default detail state provides it", () => {
+    render(
+      <ArticleEmptyStateView
+        message="Select an article to read"
+        hints={["Pick one from the list"]}
+        cardClassName={`${readerPassiveCardClassName} ${readerPassiveCardPaddingClassName}`}
+      />,
+    );
+
+    const card = screen.getByText("Select an article to read").parentElement;
+
+    expect(card).toHaveClass("rounded-md", "border", "border-border/80", "bg-card/38", "shadow-none");
+    expect(card).toHaveClass(...readerPassiveCardPaddingClassName.split(" "));
   });
 
   it("uses semantic list markers so wrapped hints stay aligned", () => {

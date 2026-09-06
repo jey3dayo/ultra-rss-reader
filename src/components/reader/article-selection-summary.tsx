@@ -20,6 +20,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell } from "./article-view-state";
 import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
+import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "./reader-passive-card";
 
 const SUMMARY_CONTAINER_CLASS_NAME = "w-full max-w-[39rem]";
 
@@ -157,10 +158,15 @@ function SummaryEmptyState({
             data-selection-identity-accent={accentTone}
             aria-label={title}
             data-motion-phase="entering"
-            className={cn(SUMMARY_CONTAINER_CLASS_NAME, MOTION_CONTENT_SWAP_CLASS_NAME)}
+            className={cn(
+              SUMMARY_CONTAINER_CLASS_NAME,
+              readerPassiveCardClassName,
+              readerPassiveCardPaddingClassName,
+              MOTION_CONTENT_SWAP_CLASS_NAME,
+            )}
             style={SUMMARY_MOTION_STYLE}
           >
-            <div className="w-full px-1">
+            <div className="w-full">
               <div className="mb-7 flex min-w-0 items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span

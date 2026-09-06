@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 export const readerPassiveCardClassName =
   "rounded-md border border-border/80 bg-card/38 shadow-none dark:border-border/90 dark:bg-card/38 dark:shadow-none";
+export const readerPassiveCardPaddingClassName = "px-6 py-6";
 
 export const readerPassiveCardOffsetClassName = "-translate-y-[8%]";
 export const readerListPassiveCardOffsetClassName = "-translate-y-[5%]";

@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Changed
+
+- 未選択・検索ヒットなし・選択サマリーのパッシブカードを、同じ枠線と内側余白に揃えた。
+
 ### Maintenance
 
 - TypeScript を 7 系の単一バージョンへ統一し、TypeScript 6 互換 alias を廃止した。

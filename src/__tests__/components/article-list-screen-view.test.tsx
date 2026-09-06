@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
+import { readerPassiveCardPaddingClassName } from "@/components/reader/reader-passive-card";
 
 describe("ArticleListScreenView", () => {
   it("renders the loading state inside the article list body", () => {
@@ -59,6 +60,14 @@ describe("ArticleListScreenView", () => {
       "flex-col",
       "items-center",
       "text-center",
+      "rounded-md",
+      "border",
+      "border-border/80",
+      "bg-card/38",
+      "shadow-none",
+    );
+    expect(screen.getByText("No articles").closest('[data-testid="article-list-empty-state"]')).toHaveClass(
+      ...readerPassiveCardPaddingClassName.split(" "),
     );
 
     rerender(
@@ -300,6 +309,14 @@ describe("ArticleListScreenView", () => {
     expect(screen.queryByText("Queue")).not.toBeInTheDocument();
     expect(screen.getByText('No matches for "Nope"').closest('[data-testid="article-list-empty-state"]')).toHaveClass(
       "-translate-y-[5%]",
+      "rounded-md",
+      "border",
+      "border-border/80",
+      "bg-card/38",
+      "shadow-none",
+    );
+    expect(screen.getByText('No matches for "Nope"').closest('[data-testid="article-list-empty-state"]')).toHaveClass(
+      ...readerPassiveCardPaddingClassName.split(" "),
     );
     expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass(
       "mt-1.5",
