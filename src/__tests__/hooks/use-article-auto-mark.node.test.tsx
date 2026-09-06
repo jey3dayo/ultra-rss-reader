@@ -1,7 +1,9 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useMutation } from "@tanstack/react-query";
 import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import type { ReactNode } from "react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearManualUnreadAutoMarkSuppression,
@@ -59,6 +61,167 @@ describe("useArticleAutoMark", () => {
       setImmediate(resolve);
     });
     vi.unstubAllGlobals();
+  });
+
+  it("keeps a delayed mark scheduled while the mutation result wrapper changes", () => {
+    const mutate = vi.fn();
+    const retainArticle = vi.fn();
+    const addRecentlyRead = vi.fn();
+    const showToast = vi.fn();
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          afterReading: "after_0_3s",
+          retainArticle,
+          addRecentlyRead,
+          setRead: { mutate },
+          showToast,
+        }),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    rerender(
+      createParams({
+        afterReading: "after_0_3s",
+        retainArticle,
+        addRecentlyRead,
+        setRead: { mutate },
+        showToast,
+      }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    rerender(
+      createParams({
+        afterReading: "after_0_3s",
+        retainArticle,
+        addRecentlyRead,
+        setRead: { mutate },
+        showToast,
+      }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledWith(
+      { id: "art-1", read: true },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+  });
+
+  it("keeps a delayed mark scheduled with a real React Query mutation", async () => {
+    const mutationFn = vi.fn(async (_variables: { id: string; read: boolean }) => undefined);
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        mutations: {
+          gcTime: Infinity,
+          retry: false,
+        },
+      },
+    });
+    const params = createParams({ afterReading: "after_0_3s" });
+    const { rerender } = renderHook(
+      () => {
+        const setRead = useMutation<unknown, Error, { id: string; read: boolean }>({ mutationFn });
+        useArticleAutoMark({ ...params, setRead });
+      },
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    rerender();
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    rerender();
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    queryClient.clear();
+  });
+
+  it.each([
+    ["after_0_3s", 300],
+    ["after_0_5s", 500],
+    ["after_1s", 1000],
+  ] as const)("fires a delayed mark after %s", (afterReading, delayMs) => {
+    const mutate = vi.fn();
+    const retainArticle = vi.fn();
+    const addRecentlyRead = vi.fn();
+    const showToast = vi.fn();
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          afterReading,
+          retainArticle,
+          addRecentlyRead,
+          setRead: { mutate },
+          showToast,
+        }),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(delayMs - 1);
+    });
+    expect(mutate).not.toHaveBeenCalled();
+
+    rerender(
+      createParams({
+        afterReading,
+        retainArticle,
+        addRecentlyRead,
+        setRead: { mutate },
+        showToast,
+      }),
+    );
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not duplicate an immediate mark under StrictMode", () => {
+    const mutate = vi.fn();
+    const params = createParams({
+      afterReading: "immediately",
+      setRead: { mutate },
+    });
+
+    renderHook(() => useArticleAutoMark(params), {
+      wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
+    });
+
+    expect(mutate).toHaveBeenCalledTimes(1);
   });
 
   it("cancels a delayed mark when the article changes", () => {
@@ -344,6 +507,60 @@ describe("useArticleAutoMark", () => {
 
     expect(firstSetRead.mutate).toHaveBeenCalledTimes(1);
     expect(secondSetRead.mutate).not.toHaveBeenCalled();
+  });
+
+  it("does not re-mark after a successful auto mark and a stale unread projection", () => {
+    let onSuccess: NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onSuccess"]> | null = null;
+    const retainArticle = vi.fn();
+    const addRecentlyRead = vi.fn();
+    const showToast = vi.fn();
+    const mutate: AutoMarkMutate = (_variables, options) => {
+      onSuccess = options?.onSuccess ?? null;
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          afterReading: "immediately",
+          retainArticle,
+          addRecentlyRead,
+          setRead,
+          showToast,
+        }),
+      },
+    );
+
+    act(() => {
+      onSuccess?.(undefined, { id: "art-1", read: true }, undefined, createMutationContext());
+    });
+    rerender(
+      createParams({
+        afterReading: "immediately",
+        isRead: true,
+        retainArticle,
+        addRecentlyRead,
+        setRead,
+        showToast,
+      }),
+    );
+    rerender(
+      createParams({
+        afterReading: "immediately",
+        isRead: false,
+        retainArticle,
+        addRecentlyRead,
+        setRead,
+        showToast,
+      }),
+    );
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(1);
   });
 
   it("allows the same article to auto-mark again after it was read and returned to unread", () => {
