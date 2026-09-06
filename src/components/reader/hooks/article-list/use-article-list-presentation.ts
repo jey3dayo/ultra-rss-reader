@@ -41,6 +41,9 @@ export function useArticleListPresentation({
     feedNameMap,
     selectedFeed,
     effectiveViewMode,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   },
   loading: {
     isLoadingFeedArticles,
@@ -137,6 +140,10 @@ export function useArticleListPresentation({
     openSearch,
     handleMarkAllRead,
     keyboardPrefs,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isSearchVisible: showSearch,
   });
 
   useArticleListEffects({

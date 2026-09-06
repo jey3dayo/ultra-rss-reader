@@ -1,8 +1,9 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import type { ArticleDto } from "@/api/tauri-commands";
 import {
   clearArticleViewHistory,
   countAccountStarredArticles,
@@ -28,6 +29,8 @@ import {
   unstarAccountArticles,
 } from "@/api/tauri-commands";
 import {
+  clearArticleQueryData,
+  flattenArticleQueryData,
   getRecentArticleQueryKeysForAccount,
   isAccountKnownDeleted,
   patchCachedArticleReadState,
@@ -72,11 +75,18 @@ type ArticleQueryOptions = {
   unreadOnly?: boolean;
 };
 
+// Keep these values aligned with DEFAULT_ARTICLE_LIST_LIMIT and
+// DEFAULT_RECENT_ARTICLE_LIST_LIMIT in src-tauri/src/commands/article_commands/queries.rs.
+export const READER_ARTICLE_PAGE_SIZE = 50;
+export const READER_RECENT_PAGE_SIZE = 20;
+
 export type ArticleSearchQueryOwner = {
   accountId: string;
   query: string;
   key: string;
 };
+
+export { flattenArticleQueryData };
 
 type ClearArticleViewHistoryContext = {
   previousRecentArticleQueries: Array<{
@@ -184,6 +194,18 @@ function requireEnabledQueryValue(value: string | null, label: string): string {
   return value;
 }
 
+function getNextArticlePageParam(
+  lastPage: ArticleDto[],
+  allPages: ArticleDto[][],
+  pageSize: number,
+): number | undefined {
+  if (lastPage.length < pageSize) {
+    return undefined;
+  }
+
+  return allPages.reduce((articleCount, page) => articleCount + page.length, 0);
+}
+
 function normalizeManualArticleQueryId(value: string | null): string | null {
   return normalizeQueryAccountId(value);
 }
@@ -216,16 +238,26 @@ export function useArticles(feedId: string | null, options?: ArticleQueryOptions
   const mode = resolveArticleQueryMode(options);
   const normalizedFeedId = normalizeManualArticleQueryId(feedId);
 
-  return useQuery({
+  const queryResult = useInfiniteQuery({
     queryKey: queryKeys.articles.byFeed(normalizedFeedId, mode),
-    queryFn: () => {
+    queryFn: ({ pageParam }) => {
       const resolvedFeedId = requireEnabledQueryValue(normalizedFeedId, "feedId");
       return (
-        mode === "starred" ? listFeedStarredArticles(resolvedFeedId) : listArticles(resolvedFeedId, mode === "unread")
+        mode === "starred"
+          ? listFeedStarredArticles(resolvedFeedId, pageParam, READER_ARTICLE_PAGE_SIZE)
+          : listArticles(resolvedFeedId, mode === "unread", pageParam, READER_ARTICLE_PAGE_SIZE)
       ).then(Result.unwrap());
     },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => getNextArticlePageParam(lastPage, allPages, READER_ARTICLE_PAGE_SIZE),
     enabled: !!normalizedFeedId,
   });
+
+  const data = useMemo(
+    () => (queryResult.data ? flattenArticleQueryData(queryResult.data) : undefined),
+    [queryResult.data],
+  );
+  return { ...queryResult, data };
 }
 
 export function useArticle(articleId: string | null) {
@@ -242,44 +274,76 @@ export function useAccountArticles(accountId: string | null, options?: ArticleQu
   const mode = resolveArticleQueryMode(options);
   const normalizedAccountId = normalizeManualArticleQueryId(accountId);
 
-  return useQuery({
+  const queryResult = useInfiniteQuery({
     queryKey: queryKeys.accountArticles.byAccount(normalizedAccountId, mode),
-    queryFn: () => {
+    queryFn: ({ pageParam }) => {
       const resolvedAccountId = requireEnabledQueryValue(normalizedAccountId, "accountId");
       return (
         mode === "starred"
-          ? listStarredArticles(resolvedAccountId)
-          : listAccountArticles(resolvedAccountId, mode === "unread")
+          ? listStarredArticles(resolvedAccountId, pageParam, READER_ARTICLE_PAGE_SIZE)
+          : listAccountArticles(resolvedAccountId, mode === "unread", pageParam, READER_ARTICLE_PAGE_SIZE)
       ).then(Result.unwrap());
     },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => getNextArticlePageParam(lastPage, allPages, READER_ARTICLE_PAGE_SIZE),
     enabled: !!normalizedAccountId,
   });
+
+  const data = useMemo(
+    () => (queryResult.data ? flattenArticleQueryData(queryResult.data) : undefined),
+    [queryResult.data],
+  );
+  return { ...queryResult, data };
 }
 
 export function useFolderArticles(folderId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
   const normalizedFolderId = normalizeManualArticleQueryId(folderId);
 
-  return useQuery({
+  const queryResult = useInfiniteQuery({
     queryKey: queryKeys.folderArticles.byFolder(normalizedFolderId, mode),
-    queryFn: () =>
-      listFolderArticles(requireEnabledQueryValue(normalizedFolderId, "folderId"), mode).then(Result.unwrap()),
+    queryFn: ({ pageParam }) =>
+      listFolderArticles(
+        requireEnabledQueryValue(normalizedFolderId, "folderId"),
+        mode,
+        pageParam,
+        READER_ARTICLE_PAGE_SIZE,
+      ).then(Result.unwrap()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => getNextArticlePageParam(lastPage, allPages, READER_ARTICLE_PAGE_SIZE),
     enabled: !!normalizedFolderId,
   });
+
+  const data = useMemo(
+    () => (queryResult.data ? flattenArticleQueryData(queryResult.data) : undefined),
+    [queryResult.data],
+  );
+  return { ...queryResult, data };
 }
 
 export function useRecentArticles(accountId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
   const normalizedAccountId = normalizeManualArticleQueryId(accountId);
 
-  return useQuery({
+  const queryResult = useInfiniteQuery({
     queryKey: queryKeys.recentArticles.byAccount(normalizedAccountId, mode),
-    queryFn: () =>
-      listRecentArticles(requireEnabledQueryValue(normalizedAccountId, "accountId"), undefined, undefined, mode).then(
-        Result.unwrap(),
-      ),
+    queryFn: ({ pageParam }) =>
+      listRecentArticles(
+        requireEnabledQueryValue(normalizedAccountId, "accountId"),
+        pageParam,
+        READER_RECENT_PAGE_SIZE,
+        mode,
+      ).then(Result.unwrap()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => getNextArticlePageParam(lastPage, allPages, READER_RECENT_PAGE_SIZE),
     enabled: !!normalizedAccountId,
   });
+
+  const data = useMemo(
+    () => (queryResult.data ? flattenArticleQueryData(queryResult.data) : undefined),
+    [queryResult.data],
+  );
+  return { ...queryResult, data };
 }
 
 export function useAccountStarredCount(accountId: string | null) {
@@ -430,7 +494,7 @@ export function useClearArticleViewHistory() {
         optimisticData: undefined,
       }));
       for (const recentArticleQuery of previousRecentArticleQueries) {
-        const optimisticData: unknown[] = [];
+        const optimisticData = clearArticleQueryData(recentArticleQuery.previousData) ?? [];
         qc.setQueryData(recentArticleQuery.queryKey, optimisticData);
         recentArticleQuery.optimisticData = qc.getQueryData(recentArticleQuery.queryKey);
       }

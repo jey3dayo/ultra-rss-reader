@@ -58,15 +58,43 @@ function isArticleDto(candidate: unknown): candidate is ArticleDto {
   );
 }
 
-function indexArticleDtosById(data: unknown): Map<string, ArticleDto> {
-  const articlesById = new Map<string, ArticleDto>();
-  if (!Array.isArray(data)) {
-    return articlesById;
+function isRecord(candidate: unknown): candidate is Record<string, unknown> {
+  return typeof candidate === "object" && candidate !== null;
+}
+
+function isInfiniteArticleQueryData(candidate: unknown): candidate is { pages: unknown[] } {
+  return isRecord(candidate) && Array.isArray(candidate.pages);
+}
+
+export function flattenArticleQueryData(data: unknown): ArticleDto[] {
+  if (Array.isArray(data)) {
+    return data.filter(isArticleDto);
   }
 
-  for (const candidate of data) {
-    if (isArticleDto(candidate) && !articlesById.has(candidate.id)) {
-      articlesById.set(candidate.id, candidate);
+  if (!isInfiniteArticleQueryData(data)) {
+    return [];
+  }
+
+  return data.pages.flatMap((page) => (Array.isArray(page) ? page.filter(isArticleDto) : []));
+}
+
+export function clearArticleQueryData(data: unknown): unknown {
+  if (isInfiniteArticleQueryData(data)) {
+    return {
+      ...data,
+      pages: data.pages.map((page) => (Array.isArray(page) ? [] : page)),
+    };
+  }
+
+  return Array.isArray(data) ? [] : data;
+}
+
+function indexArticleDtosById(data: unknown): Map<string, ArticleDto> {
+  const articlesById = new Map<string, ArticleDto>();
+
+  for (const article of flattenArticleQueryData(data)) {
+    if (!articlesById.has(article.id)) {
+      articlesById.set(article.id, article);
     }
   }
 
@@ -180,16 +208,41 @@ function shouldKeepArticleInQuery(queryKey: QueryKey, nextArticle: ArticleDto): 
   return shouldKeepArticleInListQuery(getReaderArticleQueryMode(queryKey), nextArticle);
 }
 
-function updateCachedArticleArray(
-  current: unknown,
+function updateCachedArticlePages(current: unknown, updatePage: (page: unknown[]) => unknown[]): unknown {
+  if (Array.isArray(current)) {
+    return updatePage(current);
+  }
+
+  if (!isInfiniteArticleQueryData(current)) {
+    return current;
+  }
+
+  return {
+    ...current,
+    pages: current.pages.map((page) => (Array.isArray(page) ? updatePage(page) : page)),
+  };
+}
+
+function prependArticleToFirstCachedPage(current: { pages: unknown[] }, article: ArticleDto) {
+  let inserted = false;
+  const pages = current.pages.map((page) => {
+    if (inserted || !Array.isArray(page)) {
+      return page;
+    }
+
+    inserted = true;
+    return [article, ...page];
+  });
+
+  return inserted ? { ...current, pages } : { ...current, pages: [[article], ...current.pages] };
+}
+
+function updateCachedArticleArrayPage(
+  current: unknown[],
   nextArticle: ArticleDto,
   options?: { insertIfMissing?: boolean; queryKey?: QueryKey },
-) {
+): unknown[] {
   const shouldKeepArticle = options?.queryKey ? shouldKeepArticleInQuery(options.queryKey, nextArticle) : true;
-
-  if (!Array.isArray(current)) {
-    return options?.insertIfMissing && shouldKeepArticle ? [nextArticle] : current;
-  }
 
   let found = false;
   const nextArray = current.flatMap((candidate) => {
@@ -208,23 +261,44 @@ function updateCachedArticleArray(
   return nextArray;
 }
 
+function updateCachedArticleArray(
+  current: unknown,
+  nextArticle: ArticleDto,
+  options?: { insertIfMissing?: boolean; queryKey?: QueryKey },
+): unknown {
+  if (isInfiniteArticleQueryData(current)) {
+    const shouldKeepArticle = options?.queryKey ? shouldKeepArticleInQuery(options.queryKey, nextArticle) : true;
+    const nextData = updateCachedArticlePages(current, (page) =>
+      updateCachedArticleArrayPage(page, nextArticle, { ...options, insertIfMissing: false }),
+    );
+    if (
+      options?.insertIfMissing &&
+      shouldKeepArticle &&
+      !flattenArticleQueryData(nextData).some((article) => article.id === nextArticle.id)
+    ) {
+      return prependArticleToFirstCachedPage(current, nextArticle);
+    }
+
+    return nextData;
+  }
+
+  if (!Array.isArray(current)) {
+    const shouldKeepArticle = options?.queryKey ? shouldKeepArticleInQuery(options.queryKey, nextArticle) : true;
+    return options?.insertIfMissing && shouldKeepArticle ? [nextArticle] : current;
+  }
+
+  return updateCachedArticleArrayPage(current, nextArticle, options);
+}
+
 function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
   return shouldKeepArticleInQuery(queryKey, nextArticle);
 }
 
-function updateCachedStarredArticleArray(
-  current: unknown,
+function updateCachedStarredArticleArrayPage(
+  current: unknown[],
   nextArticle: ArticleDto,
   options: CachedArticleInsertOptions,
-) {
-  if (!Array.isArray(current)) {
-    if (nextArticle.is_starred) {
-      return options.insertIfMissing ? [nextArticle] : current;
-    }
-
-    return options.insertIfMissing ? [] : current;
-  }
-
+): unknown[] {
   const starredArticles = current.filter(isArticleDto);
   const hasArticle = starredArticles.some((article) => article.id === nextArticle.id);
 
@@ -237,6 +311,37 @@ function updateCachedStarredArticleArray(
   }
 
   return options.insertIfMissing ? [nextArticle, ...starredArticles] : starredArticles;
+}
+
+function updateCachedStarredArticleArray(
+  current: unknown,
+  nextArticle: ArticleDto,
+  options: CachedArticleInsertOptions,
+): unknown {
+  if (isInfiniteArticleQueryData(current)) {
+    const nextData = updateCachedArticlePages(current, (page) =>
+      updateCachedStarredArticleArrayPage(page, nextArticle, { ...options, insertIfMissing: false }),
+    );
+    if (
+      nextArticle.is_starred &&
+      options.insertIfMissing &&
+      !flattenArticleQueryData(nextData).some((article) => article.id === nextArticle.id)
+    ) {
+      return prependArticleToFirstCachedPage(current, nextArticle);
+    }
+
+    return nextData;
+  }
+
+  if (!Array.isArray(current)) {
+    if (nextArticle.is_starred) {
+      return options.insertIfMissing ? [nextArticle] : current;
+    }
+
+    return options.insertIfMissing ? [] : current;
+  }
+
+  return updateCachedStarredArticleArrayPage(current, nextArticle, options);
 }
 
 function patchKnownAccountArticleCaches(qc: QueryClient, accountId: string, nextArticle: ArticleDto) {
@@ -302,20 +407,18 @@ export function patchCachedArticleStarState(qc: QueryClient, articleId: string, 
 export function patchCachedArticlesMarkedRead(qc: QueryClient, markedArticleIds: ReadonlySet<string>) {
   for (const queryRoot of ARTICLE_CACHE_QUERY_ROOTS) {
     for (const [queryKey, data] of qc.getQueriesData<unknown>({ queryKey: queryRoot })) {
-      if (!Array.isArray(data)) {
-        continue;
-      }
-
       let changed = false;
-      const nextData = data.flatMap((candidate) => {
-        if (!isArticleDto(candidate) || !markedArticleIds.has(candidate.id) || candidate.is_read) {
-          return [candidate];
-        }
+      const nextData = updateCachedArticlePages(data, (page) =>
+        page.flatMap((candidate) => {
+          if (!isArticleDto(candidate) || !markedArticleIds.has(candidate.id) || candidate.is_read) {
+            return [candidate];
+          }
 
-        changed = true;
-        const nextArticle = { ...candidate, is_read: true };
-        return shouldKeepArticleInQuery(queryKey, nextArticle) ? [nextArticle] : [];
-      });
+          changed = true;
+          const nextArticle = { ...candidate, is_read: true };
+          return shouldKeepArticleInQuery(queryKey, nextArticle) ? [nextArticle] : [];
+        }),
+      );
 
       if (changed) {
         qc.setQueryData(queryKey, nextData);

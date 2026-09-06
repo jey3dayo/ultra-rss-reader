@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useArticleListGlobalEvents } from "@/components/reader/hooks/article-list/use-article-list-global-events";
 import { useArticleListKeydownHandler } from "@/components/reader/hooks/article-list/use-article-list-keydown-handler";
 import { useArticleListNavigation } from "@/components/reader/hooks/article-list/use-article-list-navigation";
@@ -10,6 +10,13 @@ import type {
   UseArticleListInteractionsResult,
 } from "./article-list-controller.types";
 
+export function isArticleListNearBottom(
+  viewport: Pick<HTMLElement, "scrollHeight" | "scrollTop" | "clientHeight">,
+  threshold = 200,
+): boolean {
+  return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= threshold;
+}
+
 export function useArticleListInteractions({
   filteredArticles,
   selectedArticleId,
@@ -20,6 +27,10 @@ export function useArticleListInteractions({
   openSearch,
   handleMarkAllRead,
   keyboardPrefs,
+  fetchNextPage,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  isSearchVisible = false,
 }: UseArticleListInteractionsParams): UseArticleListInteractionsResult {
   const keyToAction = useMemo(() => buildKeyToActionMap(keyboardPrefs), [keyboardPrefs]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -34,6 +45,42 @@ export function useArticleListInteractions({
   });
 
   const setHasNextArticle = useUiStore((state) => state.setHasNextArticle);
+  const isLoadingNextPageRef = useRef(false);
+
+  const loadNextPageIfNearBottom = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (
+      !viewport ||
+      isSearchVisible ||
+      !fetchNextPage ||
+      !hasNextPage ||
+      isFetchingNextPage ||
+      isLoadingNextPageRef.current ||
+      !isArticleListNearBottom(viewport)
+    ) {
+      return;
+    }
+
+    isLoadingNextPageRef.current = true;
+    void fetchNextPage().then(
+      () => {
+        isLoadingNextPageRef.current = false;
+      },
+      () => {
+        isLoadingNextPageRef.current = false;
+      },
+    );
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isSearchVisible]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    viewport.addEventListener("scroll", loadNextPageIfNearBottom);
+    return () => viewport.removeEventListener("scroll", loadNextPageIfNearBottom);
+  }, [loadNextPageIfNearBottom]);
 
   // This pane owns the list that `navigateArticle` actually walks (search results included), so it
   // publishes whether a next article exists via `resolveArticleCursor`, which applies the same

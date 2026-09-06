@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   createTag,
   deleteTag,
@@ -13,6 +14,7 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery, unwrapReadQueryResult } from "@/hooks/create-query";
+import { flattenArticleQueryData, READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
 import {
   invalidateArticleMutationQueries,
   invalidateQueryKeysLogOnly,
@@ -133,18 +135,32 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
   const normalizedTagId = normalizeTagId(tagId);
   const normalizedAccountId = normalizeQueryAccountId(accountId);
 
-  return useQuery({
+  const queryResult = useInfiniteQuery({
     queryKey: tagQueryKeys.articlesByTag.byTagAndAccount(normalizedTagId, normalizedAccountId, mode),
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       listArticlesByTag(
         requireTagId(normalizedTagId),
-        undefined,
-        undefined,
+        pageParam,
+        READER_ARTICLE_PAGE_SIZE,
         normalizedAccountId ?? undefined,
         mode,
       ).then(unwrapReadQueryResult),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < READER_ARTICLE_PAGE_SIZE) {
+        return undefined;
+      }
+
+      return allPages.reduce((articleCount, page) => articleCount + page.length, 0);
+    },
     enabled: normalizedTagId !== null,
   });
+
+  const data = useMemo(
+    () => (queryResult.data ? flattenArticleQueryData(queryResult.data) : undefined),
+    [queryResult.data],
+  );
+  return { ...queryResult, data };
 }
 
 export const useCreateTag = createMutation(

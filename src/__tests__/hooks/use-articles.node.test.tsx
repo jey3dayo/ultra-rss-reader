@@ -11,7 +11,10 @@ import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import type { AppError } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
+  flattenArticleQueryData,
   normalizeArticleSearchQuery,
+  READER_ARTICLE_PAGE_SIZE,
+  READER_RECENT_PAGE_SIZE,
   resolveArticleSearchQueryOwner,
   useAccountArticles,
   useAccountStarredCount,
@@ -68,6 +71,85 @@ describe("article mutation cache contract", () => {
       queryKeys.recentArticles.root,
       queryKeys.feedArticleSummaries.root,
     ]);
+  });
+});
+
+describe("reader article pagination", () => {
+  let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
+
+  beforeEach(() => {
+    wrapper = createQueryWrapper().wrapper;
+    vi.restoreAllMocks();
+  });
+
+  it("requests the first feed and recent pages with their Rust-matched limits", async () => {
+    const listArticlesSpy = vi.spyOn(tauriCommands, "listArticles").mockResolvedValue(Result.succeed([]));
+    const listRecentArticlesSpy = vi.spyOn(tauriCommands, "listRecentArticles").mockResolvedValue(Result.succeed([]));
+
+    renderHook(() => useArticles("feed-1"), { wrapper });
+    renderHook(() => useRecentArticles("acc-1"), { wrapper });
+
+    await waitFor(() => {
+      expect(listArticlesSpy).toHaveBeenCalledWith("feed-1", false, 0, READER_ARTICLE_PAGE_SIZE);
+      expect(listRecentArticlesSpy).toHaveBeenCalledWith("acc-1", 0, READER_RECENT_PAGE_SIZE, "all");
+    });
+  });
+
+  it("uses the accumulated page length as the next offset", async () => {
+    const firstPage = Array.from({ length: READER_ARTICLE_PAGE_SIZE }, (_, index) => ({
+      ...sampleArticles[0],
+      id: `page-one-${index}`,
+    }));
+    const listArticlesSpy = vi
+      .spyOn(tauriCommands, "listArticles")
+      .mockResolvedValueOnce(Result.succeed(firstPage))
+      .mockResolvedValueOnce(Result.succeed([sampleArticles[1]]));
+
+    const { result } = renderHook(() => useArticles("feed-1"), { wrapper });
+    await waitFor(() => expect(result.current.data).toHaveLength(READER_ARTICLE_PAGE_SIZE));
+
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+
+    await waitFor(() => {
+      expect(listArticlesSpy).toHaveBeenNthCalledWith(
+        2,
+        "feed-1",
+        false,
+        READER_ARTICLE_PAGE_SIZE,
+        READER_ARTICLE_PAGE_SIZE,
+      );
+      expect(result.current.data).toHaveLength(READER_ARTICLE_PAGE_SIZE + 1);
+    });
+  });
+
+  it("does not expose another page after a short page", async () => {
+    const listArticlesSpy = vi
+      .spyOn(tauriCommands, "listArticles")
+      .mockResolvedValue(Result.succeed([sampleArticles[0]]));
+
+    const { result } = renderHook(() => useArticles("feed-1"), { wrapper });
+    await waitFor(() => expect(result.current.data).toEqual([sampleArticles[0]]));
+
+    expect(result.current.hasNextPage).toBe(false);
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    expect(listArticlesSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("flattens array and infinite-query article data while rejecting unknown shapes", () => {
+    expect(flattenArticleQueryData(sampleArticles)).toEqual(sampleArticles);
+    expect(
+      flattenArticleQueryData({
+        pages: [[sampleArticles[0]], [sampleArticles[1]]],
+        pageParams: [0, READER_ARTICLE_PAGE_SIZE],
+      }),
+    ).toEqual([sampleArticles[0], sampleArticles[1]]);
+    expect(flattenArticleQueryData({ pages: "not-pages" })).toEqual([]);
+    expect(flattenArticleQueryData({ pageParams: [0] })).toEqual([]);
+    expect(flattenArticleQueryData(null)).toEqual([]);
   });
 });
 
@@ -142,10 +224,26 @@ describe("useToggleStar", () => {
     search.rerender({ accountId: "acc-1", query: "fresh" });
 
     await waitFor(() => {
-      expect(listArticlesSpy).toHaveBeenCalledWith("feed-1", false);
-      expect(listAccountArticlesSpy).toHaveBeenCalledWith("acc-1", false);
+      expect(listArticlesSpy).toHaveBeenCalledWith("feed-1", false, 0, READER_ARTICLE_PAGE_SIZE);
+      expect(listAccountArticlesSpy).toHaveBeenCalledWith("acc-1", false, 0, READER_ARTICLE_PAGE_SIZE);
       expect(countAccountStarredArticlesSpy).toHaveBeenCalledWith("acc-1");
       expect(searchArticlesSpy).toHaveBeenCalledWith("acc-1", "fresh");
+    });
+  });
+
+  it("patches a starred article stored on a later infinite-query page", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), {
+      pages: [[sampleArticles[1]], [sampleArticles[0]]],
+      pageParams: [0, READER_ARTICLE_PAGE_SIZE],
+    });
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+    await result.current.mutateAsync({ id: "art-1", starred: true });
+
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual({
+      pages: [[sampleArticles[1]], [{ ...sampleArticles[0], is_starred: true }]],
+      pageParams: [0, READER_ARTICLE_PAGE_SIZE],
     });
   });
 
@@ -825,6 +923,22 @@ describe("useSetRead", () => {
         expect.objectContaining({ id: "art-1", is_read: true }),
         expect.objectContaining({ id: "art-2", is_read: true }),
       ]);
+    });
+  });
+
+  it("patches a read-state change stored on a later infinite-query page", async () => {
+    vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), {
+      pages: [[sampleArticles[1]], [sampleArticles[0]]],
+      pageParams: [0, READER_ARTICLE_PAGE_SIZE],
+    });
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+    await result.current.mutateAsync({ id: "art-1", read: true });
+
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual({
+      pages: [[sampleArticles[1]], [{ ...sampleArticles[0], is_read: true }]],
+      pageParams: [0, READER_ARTICLE_PAGE_SIZE],
     });
   });
 

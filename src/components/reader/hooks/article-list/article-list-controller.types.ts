@@ -38,6 +38,10 @@ export type UseArticleListInteractionsParams = {
   openSearch: () => void;
   handleMarkAllRead: () => void;
   keyboardPrefs: KeyboardShortcutPrefs;
+  fetchNextPage?: () => Promise<unknown>;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  isSearchVisible?: boolean;
 };
 
 export type UseArticleListInteractionsResult = {
@@ -137,6 +141,9 @@ export type ArticleListPresentationSource = {
   feedNameMap: Map<string, string>;
   selectedFeed: UseArticleListHeaderControllerParams["selectedFeed"];
   effectiveViewMode: ViewMode;
+  fetchNextPage?: () => Promise<unknown>;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 };
 
 export type ArticleListPresentationLoading = {
@@ -296,6 +303,9 @@ export type UseArticleListSourcesResult = {
   isLoadingFolderArticles: boolean;
   isLoadingRecentArticles: boolean;
   isLoadingTagArticles: boolean;
+  fetchNextPage?: () => Promise<unknown>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
 };
 
 export type UseArticleListDataParams = {

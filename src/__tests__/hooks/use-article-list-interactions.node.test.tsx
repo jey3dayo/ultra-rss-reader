@@ -3,7 +3,10 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { requireSampleArticle } from "@tests/helpers/reader-fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useArticleListInteractions } from "@/components/reader/hooks/article-list/use-article-list-interactions";
+import {
+  isArticleListNearBottom,
+  useArticleListInteractions,
+} from "@/components/reader/hooks/article-list/use-article-list-interactions";
 import { resolveArticleCursor } from "@/lib/articles/article-list";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -21,6 +24,11 @@ describe("useArticleListInteractions", () => {
 
   afterEach(() => {
     useUiStore.setState({ hasNextArticle: false });
+  });
+
+  it("recognizes the list viewport near its bottom without consulting window scroll", () => {
+    expect(isArticleListNearBottom({ scrollHeight: 1_000, scrollTop: 700, clientHeight: 200 })).toBe(true);
+    expect(isArticleListNearBottom({ scrollHeight: 1_000, scrollTop: 599, clientHeight: 200 })).toBe(false);
   });
 
   function renderInteractions(filteredArticles: typeof sampleArticles, selectedArticleId: string | null) {
