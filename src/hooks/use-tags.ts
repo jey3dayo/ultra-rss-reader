@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
   createTag,
@@ -12,9 +12,14 @@ import {
   tagArticle,
   untagArticle,
 } from "@/api/tauri-commands";
+import {
+  createInfiniteArticleQueryData,
+  flattenArticleQueryData,
+  shareInfiniteArticleQueryData,
+} from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery, unwrapReadQueryResult } from "@/hooks/create-query";
-import { flattenArticleQueryData, READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
+import { READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
 import {
   invalidateArticleMutationQueries,
   invalidateQueryKeysLogOnly,
@@ -134,9 +139,15 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
   const mode = options?.mode ?? "all";
   const normalizedTagId = normalizeTagId(tagId);
   const normalizedAccountId = normalizeQueryAccountId(accountId);
+  const queryClient = useQueryClient();
+  const queryKey = tagQueryKeys.articlesByTag.byTagAndAccount(normalizedTagId, normalizedAccountId, mode);
+  const cachedData = queryClient.getQueryData(queryKey);
+  if (Array.isArray(cachedData)) {
+    queryClient.setQueryData(queryKey, createInfiniteArticleQueryData(cachedData));
+  }
 
   const queryResult = useInfiniteQuery({
-    queryKey: tagQueryKeys.articlesByTag.byTagAndAccount(normalizedTagId, normalizedAccountId, mode),
+    queryKey,
     queryFn: ({ pageParam }) =>
       listArticlesByTag(
         requireTagId(normalizedTagId),
@@ -147,12 +158,13 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
       ).then(unwrapReadQueryResult),
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < READER_ARTICLE_PAGE_SIZE) {
+      if (!Array.isArray(lastPage) || lastPage.length < READER_ARTICLE_PAGE_SIZE) {
         return undefined;
       }
 
-      return allPages.reduce((articleCount, page) => articleCount + page.length, 0);
+      return allPages.reduce((articleCount, page) => articleCount + (Array.isArray(page) ? page.length : 0), 0);
     },
+    structuralSharing: shareInfiniteArticleQueryData,
     enabled: normalizedTagId !== null,
   });
 

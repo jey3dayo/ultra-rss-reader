@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import type { AppError } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
+import { createInfiniteArticleQueryData } from "@/hooks/article-cache-projection";
 import {
   flattenArticleQueryData,
   normalizeArticleSearchQuery,
@@ -528,9 +529,9 @@ describe("useToggleStar", () => {
     await result.current.mutateAsync({ id: "art-2", starred: false });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual([
-        expect.objectContaining({ id: "art-2", is_starred: false }),
-      ]);
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
+        createInfiniteArticleQueryData([expect.objectContaining({ id: "art-2", is_starred: false })]),
+      );
       expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([]);
     });
   });
@@ -548,9 +549,9 @@ describe("useToggleStar", () => {
       expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: "art-1", is_starred: true })]),
       );
-      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([
-        expect.objectContaining({ id: "art-1", is_starred: true }),
-      ]);
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual(
+        createInfiniteArticleQueryData([expect.objectContaining({ id: "art-1", is_starred: true })]),
+      );
     });
   });
 
@@ -577,9 +578,9 @@ describe("useToggleStar", () => {
       );
     });
     expect(queryClient.getQueryData(queryKeys.accountArticles.byAccountPrefix("acc-1"))).toBeUndefined();
-    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([
-      expect.objectContaining({ id: "art-1", is_starred: true }),
-    ]);
+    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual(
+      createInfiniteArticleQueryData([expect.objectContaining({ id: "art-1", is_starred: true })]),
+    );
   });
 
   it("patches tag article caches without changing their article order", async () => {
@@ -635,9 +636,9 @@ describe("useToggleStar", () => {
       expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"))).toEqual([
         expect.objectContaining({ id: "art-feed-2", is_starred: true }),
       ]);
-      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-2"))).toEqual([
-        expect.objectContaining({ id: "art-feed-2", is_starred: true }),
-      ]);
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-2"))).toEqual(
+        createInfiniteArticleQueryData([expect.objectContaining({ id: "art-feed-2", is_starred: true })]),
+      );
     });
     expect(
       queryClient.getQueryState(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-2", "all"))?.isInvalidated,
@@ -666,9 +667,9 @@ describe("useToggleStar", () => {
       expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual([
         expect.objectContaining({ id: "art-1", is_starred: true }),
       ]);
-      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual([
-        expect.objectContaining({ id: "art-1", is_starred: true }),
-      ]);
+      expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual(
+        createInfiniteArticleQueryData([expect.objectContaining({ id: "art-1", is_starred: true })]),
+      );
     });
     expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"))).toEqual([
       expect.objectContaining({ id: "acc-2-article" }),

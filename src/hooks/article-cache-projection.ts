@@ -62,8 +62,38 @@ function isRecord(candidate: unknown): candidate is Record<string, unknown> {
   return typeof candidate === "object" && candidate !== null;
 }
 
-function isInfiniteArticleQueryData(candidate: unknown): candidate is { pages: unknown[] } {
+function isInfiniteArticleQueryData(candidate: unknown): candidate is { pages: unknown[]; pageParams?: unknown } {
   return isRecord(candidate) && Array.isArray(candidate.pages);
+}
+
+export function createInfiniteArticleQueryData(articles: readonly unknown[] = []): {
+  pages: unknown[][];
+  pageParams: number[];
+} {
+  return {
+    pages: [Array.from(articles)],
+    pageParams: [0],
+  };
+}
+
+export function coerceInfiniteArticleQueryData(data: unknown): unknown {
+  if (Array.isArray(data)) {
+    return createInfiniteArticleQueryData(data);
+  }
+
+  return data;
+}
+
+export function shareInfiniteArticleQueryData(_oldData: unknown, newData: unknown): unknown {
+  if (newData == null || isInfiniteArticleQueryData(newData)) {
+    return newData;
+  }
+
+  if (Array.isArray(newData)) {
+    return createInfiniteArticleQueryData(newData);
+  }
+
+  return newData;
 }
 
 export function flattenArticleQueryData(data: unknown): ArticleDto[] {
@@ -284,7 +314,7 @@ function updateCachedArticleArray(
 
   if (!Array.isArray(current)) {
     const shouldKeepArticle = options?.queryKey ? shouldKeepArticleInQuery(options.queryKey, nextArticle) : true;
-    return options?.insertIfMissing && shouldKeepArticle ? [nextArticle] : current;
+    return options?.insertIfMissing && shouldKeepArticle ? createInfiniteArticleQueryData([nextArticle]) : current;
   }
 
   return updateCachedArticleArrayPage(current, nextArticle, options);
@@ -335,10 +365,10 @@ function updateCachedStarredArticleArray(
 
   if (!Array.isArray(current)) {
     if (nextArticle.is_starred) {
-      return options.insertIfMissing ? [nextArticle] : current;
+      return options.insertIfMissing ? createInfiniteArticleQueryData([nextArticle]) : current;
     }
 
-    return options.insertIfMissing ? [] : current;
+    return options.insertIfMissing ? createInfiniteArticleQueryData() : current;
   }
 
   return updateCachedStarredArticleArrayPage(current, nextArticle, options);
@@ -350,7 +380,10 @@ function patchKnownAccountArticleCaches(qc: QueryClient, accountId: string, next
   });
 
   if (accountArticleQueries.length === 0) {
-    qc.setQueryData(queryKeys.accountArticles.byAccount(accountId, "all"), [nextArticle]);
+    qc.setQueryData(
+      queryKeys.accountArticles.byAccount(accountId, "all"),
+      createInfiniteArticleQueryData([nextArticle]),
+    );
   } else {
     for (const [queryKey] of accountArticleQueries) {
       qc.setQueryData(queryKey, (current: unknown) =>
