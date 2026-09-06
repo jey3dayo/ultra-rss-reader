@@ -1,8 +1,1 @@
-(D) 2026-07-28 Windows実機検証: window-state + windows-schema再生成 + Web Preview修飾キーショートカット(PR#71/#73のToUnicode経路) +release-native note:docs/release-manual-verification.md @blocked @hardware
-(D) 2026-08-10 hold-to-confirm pointerId / forced-colors hover +a11y-keyboard note:https://github.com/jey3dayo/ultra-rss-reader/issues/52 @blocked @wontfix
 (B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
-(D) 2026-08-17 LP の Web Analytics 有効化(Pages ダッシュボード) +release-distribution note:https://github.com/jey3dayo/ultra-rss-reader/issues/61 @blocked @ops
-(D) 2026-08-22 Claude Bash権限判定の拒否事象: vitest|tail&&git add&&commit の複合コマンドが denied。fewer-permission-prompts で allowlist 整備を検討(検証: 同型コマンドの再実行) +dev-tooling @blocked @ops
-(C) 2026-08-22 unread membership drift: count一致フィードは reconcile 対象外。選定戦略の再設計が先(検証: 設計スパイク後の contract test) +provider-sync @blocked @decision
-(C) 2026-08-29 sync ロック所有権: Account Sync Session が Mutex を所有し protection 読みと apply_remote_state を分割不能な1操作にする。現状は contract test の allowlist で取得点を固定しているだけで所有権は未整理(検証: ロックスコープの contract test 維持 + remote-state-reconciliation.md の回帰テスト全緑) +provider-sync note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
-(D) 2026-08-29 migration/mod.rs の26段はしご(276行)を ordered registry 化するか判断する。現行はテストが厚く正しいため、段追加時の手合わせコストが実際に問題化するまで据え置き可(検証: 追加1段を試作して手合わせ箇所を数える) +db-migration note:https://github.com/jey3dayo/ultra-rss-reader/issues/66
