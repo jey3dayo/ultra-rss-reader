@@ -1,7 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ArticleFilterToggleButton, articleFilterInsetSelectionClassName, ToggleGroup } from "@/design-system";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import { useReaderPassiveLayoutNotify } from "./reader-passive-layout";
 
 export type ArticleListFooterProps = {
   viewMode: ViewMode;
@@ -47,8 +48,17 @@ export function ArticleListFooter({
   );
 
   const visibleModes = VIEW_MODES.filter((mode) => resolvedModes.includes(mode.value));
+  const isFooterMounted = !hidden && visibleModes.length > 0;
+  const notifyPassiveLayoutChange = useReaderPassiveLayoutNotify();
 
-  if (hidden || visibleModes.length === 0) {
+  // Mounting/unmounting the footer changes the list body's available height without necessarily
+  // resizing the body element mid-transition; treat it as a known layout change explicitly.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isFooterMounted (not read in the body) is the intended trigger.
+  useEffect(() => {
+    notifyPassiveLayoutChange();
+  }, [isFooterMounted, notifyPassiveLayoutChange]);
+
+  if (!isFooterMounted) {
     return null;
   }
 

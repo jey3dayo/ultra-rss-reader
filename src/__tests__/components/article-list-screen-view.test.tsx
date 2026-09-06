@@ -127,6 +127,13 @@ describe("ArticleListScreenView", () => {
     expect(screen.getByText("No articles").closest('[data-testid="article-list-empty-state"]')).toHaveClass(
       ...readerPassiveCardPaddingClassName.split(" "),
     );
+    // Without a ReaderPassiveLayoutProvider ancestor (e.g. mobile layoutMode, or a bare unit
+    // render like this one), the passive layout hooks must resolve to a safe no-op: no crash,
+    // no computed offset, and the pre-existing centered/translate presentation stays intact.
+    const defaultEmptyCard = screen.getByText("No articles").closest('[data-testid="article-list-empty-state"]');
+    expect(defaultEmptyCard).toHaveClass("-translate-y-[5%]");
+    expect(defaultEmptyCard).not.toHaveAttribute("data-passive-layout-mode");
+    expect(defaultEmptyCard).not.toHaveAttribute("style");
 
     rerender(
       <ArticleListScreenView

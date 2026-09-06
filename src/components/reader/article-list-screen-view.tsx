@@ -1,5 +1,11 @@
 import { Inbox } from "lucide-react";
-import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  useMemo,
+} from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_SLOW_DURATION_MS, MOTION_CONTENT_SWAP_SLOW_OFFSET_PX } from "@/constants";
 import { ScrollArea } from "@/design-system";
@@ -13,6 +19,11 @@ import {
   readerPassiveCardClassName,
   readerPassiveCardPaddingClassName,
 } from "./reader-passive-card";
+import {
+  mergeReaderPassiveLayoutRefs,
+  useReaderPassiveLayoutBodyRef,
+  useReaderPassiveLayoutCard,
+} from "./reader-passive-layout";
 
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 
@@ -66,9 +77,13 @@ export function ArticleListScreenView({
   onSelectArticle,
   renderRow,
 }: ArticleListScreenViewProps) {
+  const bodyRef = useReaderPassiveLayoutBodyRef("list");
+  const mergedViewportRef = useMemo(() => mergeReaderPassiveLayoutRefs(viewportRef, bodyRef), [viewportRef, bodyRef]);
+  const passiveCard = useReaderPassiveLayoutCard("list", contentMotionKey);
+
   if (isLoading) {
     return (
-      <ScrollArea className="h-full" viewportRef={viewportRef}>
+      <ScrollArea className="h-full" viewportRef={mergedViewportRef}>
         <div>
           <ArticleListSkeleton label={loadingMessage} />
         </div>
@@ -79,10 +94,19 @@ export function ArticleListScreenView({
   if (groups.length === 0) {
     const isSetupEmptyState = emptyStateVariant === "setup";
     const isHiddenEmptyState = emptyStateVariant === "hidden";
+    const isDefaultEmptyState = !isSetupEmptyState && !isHiddenEmptyState;
 
     return (
-      <ScrollArea className="h-full" viewportRef={viewportRef}>
-        <div className={cn("h-full", isHiddenEmptyState ? "" : "flex items-center justify-center p-6")}>
+      <ScrollArea className="h-full" viewportRef={mergedViewportRef}>
+        <div
+          className={cn(
+            isHiddenEmptyState
+              ? "h-full"
+              : isDefaultEmptyState && passiveCard.enabled
+                ? "flex justify-center px-6 pb-6"
+                : "flex h-full items-center justify-center p-6",
+          )}
+        >
           {isHiddenEmptyState ? null : isSetupEmptyState ? (
             <ReaderPassiveCard className="w-full max-w-sm rounded-md border border-border/65 bg-surface-1/48 px-7 py-6 text-left shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none">
               <p className="text-base font-medium leading-6 tracking-[-0.01em] text-foreground">{emptyMessage}</p>
@@ -97,13 +121,16 @@ export function ArticleListScreenView({
             </ReaderPassiveCard>
           ) : (
             <div
+              ref={passiveCard.cardRef}
               className={cn(
                 "flex w-full max-w-[17rem] flex-col items-center text-center",
                 readerPassiveCardClassName,
                 readerPassiveCardPaddingClassName,
-                readerListPassiveCardOffsetClassName,
+                !passiveCard.enabled && readerListPassiveCardOffsetClassName,
               )}
+              style={passiveCard.enabled ? { marginTop: passiveCard.offsetPx } : undefined}
               data-testid="article-list-empty-state"
+              data-passive-layout-mode={passiveCard.enabled ? passiveCard.mode : undefined}
             >
               <Inbox aria-hidden="true" className="size-9 text-foreground-soft/60" strokeWidth={1.5} />
               <p className="mt-3 text-base font-semibold leading-tight tracking-[-0.01em] text-foreground">
@@ -126,7 +153,7 @@ export function ArticleListScreenView({
 
   return (
     <div className="relative h-full overflow-hidden">
-      <ScrollArea className="relative z-10 h-full" contentClassName="pb-4" viewportRef={viewportRef}>
+      <ScrollArea className="relative z-10 h-full" contentClassName="pb-4" viewportRef={mergedViewportRef}>
         <div
           key={contentMotionKey}
           data-testid="article-list-scroll-content"

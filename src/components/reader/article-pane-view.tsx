@@ -15,6 +15,7 @@ import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserOverlaySurface } from "./article-view-state";
+import { useReaderPassiveLayoutBodyRef } from "./reader-passive-layout";
 
 export type ArticlePaneProps = {
   article: ArticleDto;
@@ -79,6 +80,7 @@ export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: 
     readerBodyProps,
   } = useArticlePaneController({ article, feed, feedName });
   const { onOpenArticleTitleInWebPreview, ...readerBodyStateProps } = readerBodyProps;
+  const bodyRef = useReaderPassiveLayoutBodyRef("content");
 
   return (
     <section
@@ -107,6 +109,7 @@ export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: 
             triggerClassName="h-full min-h-0 flex-1 overflow-hidden"
           >
             <div
+              ref={bodyRef}
               {...readerBodyStateProps}
               {...{ [MOTION_DATA_DIRECTION_ATTRIBUTE]: motionDirection }}
               className={cn("h-full min-h-0 flex-1 overflow-hidden", MOTION_ARTICLE_SLIDE_CLASS_NAME)}
