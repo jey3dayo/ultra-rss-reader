@@ -79,7 +79,15 @@ export function useArticleListInteractions({
   // this ref instead of depending on the callback itself, so they only re-invoke it on their own
   // real triggers (mount, article list content change, viewport/window resize).
   const loadNextPageIfNearBottomRef = useRef(loadNextPageIfNearBottom);
-  loadNextPageIfNearBottomRef.current = loadNextPageIfNearBottom;
+
+  // Ref mutation must happen in an effect, not during render: React's concurrent rendering can
+  // discard and re-run a render pass, and mutating a ref mid-render is unsound under that model.
+  // This effect must be declared before the effects below that read `loadNextPageIfNearBottomRef`
+  // (mount/content-change, ResizeObserver, window resize), since same-component effects run in
+  // declaration order and a reversed order would read a stale callback.
+  useEffect(() => {
+    loadNextPageIfNearBottomRef.current = loadNextPageIfNearBottom;
+  }, [loadNextPageIfNearBottom]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
