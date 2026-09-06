@@ -1,6 +1,7 @@
-import { type RefObject, useCallback, useRef } from "react";
+import { type RefObject, useCallback, useEffect, useRef } from "react";
 import { ArticleListHeaderActions } from "./article-list-header-actions";
 import { ArticleListHeaderSearch } from "./article-list-header-search";
+import { useReaderPassiveLayoutNotify } from "./hooks/use-reader-passive-layout-context";
 
 type ArticleListHeaderLabels = {
   markAllReadLabel: string;
@@ -50,6 +51,15 @@ export function ArticleListHeader({
   const restoreSearchToggleFocus = useCallback(() => {
     searchToggleContainerRef.current?.querySelector("button")?.focus({ preventScroll: true });
   }, []);
+  const notifyPassiveLayoutChange = useReaderPassiveLayoutNotify();
+
+  // The search band changes the list body's available height/top; ResizeObserver on the body
+  // viewport itself should catch this, but this is the known-change trigger the layout contract
+  // requires so a delayed/blocked observer callback cannot leave a stale anchor.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: showSearch (not read in the body) is the intended trigger.
+  useEffect(() => {
+    notifyPassiveLayoutChange();
+  }, [showSearch, notifyPassiveLayoutChange]);
 
   return (
     <>

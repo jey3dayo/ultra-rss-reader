@@ -20,6 +20,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell } from "./article-view-state";
 import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
+import { useReaderPassiveLayoutBodyRef, useReaderPassiveLayoutCard } from "./hooks/use-reader-passive-layout-context";
 import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "./reader-passive-card";
 
 const SUMMARY_CONTAINER_CLASS_NAME = "w-full max-w-[39rem]";
@@ -130,6 +131,8 @@ function SummaryEmptyState({
   const { t } = useTranslation("reader");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
   const openBrowser = useUiStore((s) => s.openBrowser);
+  const bodyRef = useReaderPassiveLayoutBodyRef("content");
+  const passiveCard = useReaderPassiveLayoutCard("content", motionKey);
 
   function handleSelectRecentFeed(feedId: string) {
     selectFeedFromCurrentContext(feedId);
@@ -146,16 +149,25 @@ function SummaryEmptyState({
 
   return (
     <ArticleEmptyStateShell
+      registerBody={false}
       toolbar={
         <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       }
       body={
-        <div className="flex flex-1 items-start justify-start overflow-y-auto px-10 pt-10 pb-12">
+        <div
+          ref={bodyRef}
+          className={cn(
+            "flex flex-1 items-start justify-start overflow-y-auto px-10",
+            passiveCard.enabled ? "pb-6" : "pt-10 pb-12",
+          )}
+        >
           <section
             key={motionKey}
+            ref={passiveCard.cardRef}
             data-testid="article-selection-summary"
             data-selection-identity=""
             data-selection-identity-accent={accentTone}
+            data-passive-layout-mode={passiveCard.enabled ? passiveCard.mode : undefined}
             aria-label={title}
             data-motion-phase="entering"
             className={cn(
@@ -164,7 +176,10 @@ function SummaryEmptyState({
               readerPassiveCardPaddingClassName,
               MOTION_CONTENT_SWAP_CLASS_NAME,
             )}
-            style={SUMMARY_MOTION_STYLE}
+            style={{
+              ...SUMMARY_MOTION_STYLE,
+              ...(passiveCard.enabled ? { marginTop: passiveCard.offsetPx } : undefined),
+            }}
           >
             <div className="w-full @container">
               <div className="mb-7 flex min-w-0 items-start justify-between gap-3">

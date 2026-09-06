@@ -3,9 +3,43 @@ import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { disableHiddenPaneFocus, restoreHiddenPaneFocus } from "@/lib/dom/hidden-pane-focus";
 import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } from "../hooks/use-layout";
-import type { ContentMode } from "../lib/layout/layout-state.types";
+import type { ContentMode, LayoutMode } from "../lib/layout/layout-state.types";
 import { cn } from "../lib/utils";
 import { useUiStore } from "../stores/ui-store";
+import type { ReaderPassiveLayoutPaneId } from "./reader/hooks/use-reader-passive-layout";
+import { ReaderPassiveLayoutProvider } from "./reader/reader-passive-layout";
+
+const READER_PASSIVE_LAYOUT_PANE_IDS = ["list", "content"] as const satisfies readonly ReaderPassiveLayoutPaneId[];
+
+/**
+ * Mirrors each layout variant's own pane-visibility resolution so the passive layout provider
+ * can exclude hidden/unmounted panes from the shared common region without owning layout state.
+ */
+function resolveVisibleReaderPassivePanes({
+  layoutMode,
+  focusedPane,
+  contentMode,
+  selectedAccountId,
+  subscriptionsWorkspaceOpen,
+}: {
+  layoutMode: LayoutMode;
+  focusedPane: "sidebar" | "list" | "content";
+  contentMode: ContentMode;
+  selectedAccountId: string | null;
+  subscriptionsWorkspaceOpen: boolean;
+}): ReaderPassiveLayoutPaneId[] {
+  if (subscriptionsWorkspaceOpen) {
+    return ["content"];
+  }
+
+  if (layoutMode === "wide") {
+    const panes = resolveLayout("wide", focusedPane, contentMode);
+    return READER_PASSIVE_LAYOUT_PANE_IDS.filter((paneId) => panes.includes(paneId));
+  }
+
+  const activePane = resolveVisiblePane(layoutMode, focusedPane, selectedAccountId);
+  return READER_PASSIVE_LAYOUT_PANE_IDS.filter((paneId) => isPaneVisible(layoutMode, activePane, paneId));
+}
 
 const AccountPane = lazy(async () => {
   const mod = await import("./reader/account-pane");
@@ -225,28 +259,37 @@ export function AppLayout() {
   const sidebarOpen = useUiStore((state) => state.sidebarOpen);
   const accountPaneOpen = useUiStore((state) => state.accountPaneOpen);
   const subscriptionsWorkspaceOpen = subscriptionsWorkspace !== null;
+  const visibleReaderPassivePanes = resolveVisibleReaderPassivePanes({
+    layoutMode,
+    focusedPane,
+    contentMode,
+    selectedAccountId,
+    subscriptionsWorkspaceOpen,
+  });
 
   return (
     // Keep layout flush to the top edge. macOS titlebar spacing lives in AppShell,
     // otherwise the visible header and the draggable titlebar band diverge again.
     <div className="relative h-full overflow-hidden bg-background text-foreground">
-      {layoutMode === "wide" ? (
-        <WideLayout
-          focusedPane={focusedPane}
-          contentMode={contentMode}
-          subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
-          sidebarOpen={sidebarOpen}
-          accountPaneOpen={accountPaneOpen}
-        />
-      ) : (
-        <SlidingPaneLayout
-          layoutMode={layoutMode}
-          focusedPane={focusedPane}
-          selectedAccountId={selectedAccountId}
-          accountPaneOpen={accountPaneOpen}
-          subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
-        />
-      )}
+      <ReaderPassiveLayoutProvider layoutMode={layoutMode} visiblePanes={visibleReaderPassivePanes}>
+        {layoutMode === "wide" ? (
+          <WideLayout
+            focusedPane={focusedPane}
+            contentMode={contentMode}
+            subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
+            sidebarOpen={sidebarOpen}
+            accountPaneOpen={accountPaneOpen}
+          />
+        ) : (
+          <SlidingPaneLayout
+            layoutMode={layoutMode}
+            focusedPane={focusedPane}
+            selectedAccountId={selectedAccountId}
+            accountPaneOpen={accountPaneOpen}
+            subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
+          />
+        )}
+      </ReaderPassiveLayoutProvider>
     </div>
   );
 }

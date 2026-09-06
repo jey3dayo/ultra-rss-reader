@@ -98,6 +98,24 @@ describe("ArticleEmptyStateShell", () => {
     expect(screen.getByText("Toolbar slot")).toBeInTheDocument();
     expect(screen.getByText("Body slot")).toBeInTheDocument();
   });
+
+  it("wraps body in a registering flex-1 container by default, without a passive layout provider", () => {
+    render(<ArticleEmptyStateShell toolbar={<div>Toolbar slot</div>} body={<div>Body slot</div>} />);
+
+    const bodyWrapper = screen.getByText("Body slot").parentElement;
+
+    expect(bodyWrapper).toHaveClass("flex", "min-h-0", "flex-1", "flex-col");
+  });
+
+  it("renders body without an extra wrapper when registerBody is false (caller registers its own body)", () => {
+    render(
+      <ArticleEmptyStateShell toolbar={<div>Toolbar slot</div>} body={<div>Body slot</div>} registerBody={false} />,
+    );
+
+    const body = screen.getByText("Body slot");
+    // Directly under the shell's flex-column root, not the flex-1 wrapper div used above.
+    expect(body.parentElement).not.toHaveClass("min-h-0", "flex-1");
+  });
 });
 
 describe("ArticleNotFoundStateView", () => {

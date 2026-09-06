@@ -2,6 +2,7 @@ import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import type { UiDisplayState } from "@/lib/ui/display-state.types";
 import type { BrowserOverlayCloseHandler, BrowserOverlayToolbarAction, BrowserViewScope } from "./browser-view.types";
+import { useReaderPassiveLayoutBodyRef } from "./hooks/use-reader-passive-layout-context";
 
 const LazyBrowserView = lazy(async () => {
   const mod = await import("./browser-view");
@@ -20,6 +21,12 @@ type BrowserOverlaySurfaceProps = {
 type ArticleEmptyStateShellProps = {
   toolbar: ReactNode;
   body: ReactNode;
+  /**
+   * Registers `body`'s wrapper as the content pane's visible body viewport for the desktop
+   * passive layout anchor. Set to false when the caller already registers its own scrollable
+   * body element (e.g. the summary empty state) to avoid double-registering the same body.
+   */
+  registerBody?: boolean;
 };
 
 type BrowserOnlyStateViewProps = BrowserOverlayCloseHandler;
@@ -56,11 +63,19 @@ export function BrowserOverlaySurface({
   );
 }
 
-export function ArticleEmptyStateShell({ toolbar, body }: ArticleEmptyStateShellProps) {
+export function ArticleEmptyStateShell({ toolbar, body, registerBody = true }: ArticleEmptyStateShellProps) {
+  const bodyRef = useReaderPassiveLayoutBodyRef("content");
+
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       {toolbar}
-      {body}
+      {registerBody ? (
+        <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col">
+          {body}
+        </div>
+      ) : (
+        body
+      )}
     </div>
   );
 }
