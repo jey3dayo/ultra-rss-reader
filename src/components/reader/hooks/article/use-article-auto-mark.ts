@@ -64,12 +64,16 @@ export function useArticleAutoMark({
 }: UseArticleAutoMarkParams) {
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const autoMarkedOwnerKeyRef = useRef<string | null>(null);
+  const autoMarkMutationSucceededOwnerKeyRef = useRef<string | null>(null);
   const latestArticleStateRef = useRef({ articleId, selectedAccountId, viewMode });
   const pendingAutoMarkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoMarkGenerationRef = useRef(0);
   const autoMarkOwnerKey = getAutoMarkOwnerKey(selectedAccountId, articleId);
+  const { mutate } = setRead;
 
-  latestArticleStateRef.current = { articleId, selectedAccountId, viewMode };
+  useEffect(() => {
+    latestArticleStateRef.current = { articleId, selectedAccountId, viewMode };
+  }, [articleId, selectedAccountId, viewMode]);
 
   useEffect(() => {
     autoMarkGenerationRef.current += 1;
@@ -87,13 +91,20 @@ export function useArticleAutoMark({
 
     clearPendingAutoMarkTimeout();
 
-    if (manualUnreadAutoMarkSuppressionKey !== null && manualUnreadAutoMarkSuppressionKey !== autoMarkOwnerKey) {
-      manualUnreadAutoMarkSuppressionKey = null;
+    if (manualUnreadAutoMarkSuppressionKey !== null) {
+      if (manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey) {
+        autoMarkedOwnerKeyRef.current = null;
+        autoMarkMutationSucceededOwnerKeyRef.current = null;
+      } else {
+        manualUnreadAutoMarkSuppressionKey = null;
+      }
     }
 
     if (isRead) {
       if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
-        autoMarkedOwnerKeyRef.current = null;
+        if (autoMarkMutationSucceededOwnerKeyRef.current !== autoMarkOwnerKey) {
+          autoMarkedOwnerKeyRef.current = null;
+        }
       }
     } else if (
       articleEngagement === "reading" &&
@@ -123,7 +134,7 @@ export function useArticleAutoMark({
           retainArticle(articleId);
         }
 
-        setRead.mutate(
+        mutate(
           {
             id: articleId,
             read: true,
@@ -133,6 +144,7 @@ export function useArticleAutoMark({
               if (!isLatestAutoMark()) {
                 return;
               }
+              autoMarkMutationSucceededOwnerKeyRef.current = autoMarkOwnerKey;
               addRecentlyRead(articleId);
             },
             onError: (error) => {
@@ -141,6 +153,9 @@ export function useArticleAutoMark({
               }
               if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
                 autoMarkedOwnerKeyRef.current = null;
+              }
+              if (autoMarkMutationSucceededOwnerKeyRef.current === autoMarkOwnerKey) {
+                autoMarkMutationSucceededOwnerKeyRef.current = null;
               }
               if (retainPlan.shouldRollbackOnError) {
                 removeRetainedArticle(articleId);
@@ -188,7 +203,7 @@ export function useArticleAutoMark({
     isRead,
     retainArticle,
     selectedAccountId,
-    setRead,
+    mutate,
     showToast,
     viewMode,
   ]);
