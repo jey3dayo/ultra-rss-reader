@@ -3,6 +3,7 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands/shared";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
   clearArticleViewHistory,
@@ -196,7 +197,7 @@ function requireEnabledQueryValue(value: string | null, label: string): string {
   return value;
 }
 
-function getNextArticlePageParam(
+export function getNextArticlePageParam(
   lastPage: ArticleDto[] | undefined,
   allPages: Array<ArticleDto[] | undefined>,
   pageSize: number,
@@ -205,7 +206,12 @@ function getNextArticlePageParam(
     return undefined;
   }
 
-  return allPages.reduce((articleCount, page) => articleCount + (Array.isArray(page) ? page.length : 0), 0);
+  const nextOffset = allPages.reduce((articleCount, page) => articleCount + (Array.isArray(page) ? page.length : 0), 0);
+  if (nextOffset > MAX_IPC_PAGINATION_OFFSET) {
+    return undefined;
+  }
+
+  return nextOffset;
 }
 
 function normalizeManualArticleQueryId(value: string | null): string | null {

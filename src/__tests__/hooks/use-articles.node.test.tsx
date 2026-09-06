@@ -7,12 +7,14 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands/shared";
 import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import type { AppError } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { createInfiniteArticleQueryData } from "@/hooks/article-cache-projection";
 import {
   flattenArticleQueryData,
+  getNextArticlePageParam,
   normalizeArticleSearchQuery,
   READER_ARTICLE_PAGE_SIZE,
   READER_RECENT_PAGE_SIZE,
@@ -72,6 +74,44 @@ describe("article mutation cache contract", () => {
       queryKeys.recentArticles.root,
       queryKeys.feedArticleSummaries.root,
     ]);
+  });
+});
+
+// The IPC pagination request schema (`src/api/schemas/commands/shared.ts`) rejects any offset
+// beyond `MAX_IPC_PAGINATION_OFFSET`. A source with more matching articles than that limit must
+// stop paginating rather than send an offset the backend schema will refuse.
+describe("getNextArticlePageParam", () => {
+  const pageSize = READER_ARTICLE_PAGE_SIZE;
+  const fullPage = Array.from({ length: pageSize }, () => sampleArticles[0]);
+
+  it("stops paginating instead of exceeding the IPC pagination offset limit", () => {
+    const pagesAtLimit = Math.ceil(MAX_IPC_PAGINATION_OFFSET / pageSize);
+    const allPages = Array.from({ length: pagesAtLimit + 1 }, () => fullPage);
+
+    const nextOffset = getNextArticlePageParam(fullPage, allPages, pageSize);
+
+    expect(nextOffset).toBeUndefined();
+  });
+
+  it("does not clamp the next offset to the limit when it is exceeded", () => {
+    const pagesAtLimit = Math.ceil(MAX_IPC_PAGINATION_OFFSET / pageSize);
+    const allPages = Array.from({ length: pagesAtLimit + 1 }, () => fullPage);
+
+    const nextOffset = getNextArticlePageParam(fullPage, allPages, pageSize);
+
+    expect(nextOffset).not.toBe(MAX_IPC_PAGINATION_OFFSET);
+  });
+
+  it("still returns the next offset while it remains within the limit", () => {
+    const allPages = [fullPage, fullPage];
+
+    expect(getNextArticlePageParam(fullPage, allPages, pageSize)).toBe(allPages.length * pageSize);
+  });
+
+  it("stops paginating when the last page is a partial page", () => {
+    const partialPage = fullPage.slice(0, pageSize - 1);
+
+    expect(getNextArticlePageParam(partialPage, [fullPage, partialPage], pageSize)).toBeUndefined();
   });
 });
 

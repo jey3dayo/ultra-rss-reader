@@ -19,7 +19,7 @@ import {
 } from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery, unwrapReadQueryResult } from "@/hooks/create-query";
-import { READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
+import { getNextArticlePageParam, READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
 import {
   invalidateArticleMutationQueries,
   invalidateQueryKeysLogOnly,
@@ -157,13 +157,7 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
         mode,
       ).then(unwrapReadQueryResult),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (!Array.isArray(lastPage) || lastPage.length < READER_ARTICLE_PAGE_SIZE) {
-        return undefined;
-      }
-
-      return allPages.reduce((articleCount, page) => articleCount + (Array.isArray(page) ? page.length : 0), 0);
-    },
+    getNextPageParam: (lastPage, allPages) => getNextArticlePageParam(lastPage, allPages, READER_ARTICLE_PAGE_SIZE),
     structuralSharing: shareInfiniteArticleQueryData,
     enabled: normalizedTagId !== null,
   });
