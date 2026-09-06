@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands/shared";
 import type { ArticleDto } from "@/api/tauri-commands";
@@ -367,7 +367,7 @@ export function useAccountStarredCount(accountId: string | null) {
 
 export function useSetRead() {
   const qc = useQueryClient();
-  const instanceIdRef = useRef(Symbol("useSetRead"));
+  const [instanceId] = useState(() => Symbol("useSetRead"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -378,7 +378,7 @@ export function useSetRead() {
       const requestToken = registerArticleMutationRequest(
         readRequestStatesByArticleId,
         variables.id,
-        instanceIdRef.current,
+        instanceId,
         requestId,
         variables,
       );
@@ -576,7 +576,7 @@ export function useSearchArticles(accountId: string | null, query: string) {
 
 export function useToggleStar() {
   const qc = useQueryClient();
-  const instanceIdRef = useRef(Symbol("useToggleStar"));
+  const [instanceId] = useState(() => Symbol("useToggleStar"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -587,7 +587,7 @@ export function useToggleStar() {
       const requestToken = registerArticleMutationRequest(
         starRequestStatesByArticleId,
         variables.id,
-        instanceIdRef.current,
+        instanceId,
         requestId,
         variables,
       );
