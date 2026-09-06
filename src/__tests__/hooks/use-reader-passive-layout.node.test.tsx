@@ -255,10 +255,10 @@ describe("useReaderPassiveLayout", () => {
     expect(result.current.getCardState("list").mode).toBe("fallback");
 
     // Shrink the card so F sits just under the hysteresis: F = 1000-24-(250+723) = 3 (< 4).
-    // Re-registering the (unchanged) body is just this test's way of triggering scheduleMeasure.
+    // notifyLayoutChange() is the public API for "re-measure on the next frame".
     setBounds(card, 0, 723);
     act(() => {
-      result.current.registerBody("list", body);
+      result.current.notifyLayoutChange();
     });
     act(() => {
       rafCallback?.(0);
@@ -268,7 +268,7 @@ describe("useReaderPassiveLayout", () => {
     // Shrink further so F clears the hysteresis: F = 1000-24-(250+722) = 4
     setBounds(card, 0, 722);
     act(() => {
-      result.current.registerBody("list", body);
+      result.current.notifyLayoutChange();
     });
     act(() => {
       rafCallback?.(0);
@@ -290,12 +290,16 @@ describe("useReaderPassiveLayout", () => {
       result.current.registerBody("list", body);
     });
 
-    expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(body);
+    // registerBody bumps registryVersion, which re-runs the observer effect: the observer active
+    // after this registration is the newest one, not necessarily resizeObservers[0] (that one may
+    // already belong to the initial mount, before anything was registered).
+    const activeObserver = resizeObservers[resizeObservers.length - 1];
+    expect(activeObserver?.observe).toHaveBeenCalledWith(body);
 
     unmount();
 
     expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
-    expect(resizeObservers[0]?.disconnect).toHaveBeenCalled();
+    expect(activeObserver?.disconnect).toHaveBeenCalled();
   });
 
   it("ignores a late frame callback that fires after unmount (stale owner generation)", () => {

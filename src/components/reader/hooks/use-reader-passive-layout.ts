@@ -44,6 +44,11 @@ function resizeObserverSupported(): boolean {
  * normal/fallback fit lifecycle for the desktop reader passive layout. Feature-local: closes
  * over reader-specific pane ids and DOM lifecycles, per boundary-ownership's feature-local
  * controller pattern. Consumed by `ReaderPassiveLayoutProvider` in `reader-passive-layout.tsx`.
+ *
+ * The single `ResizeObserver` instance is created, observed, and disconnected entirely inside
+ * one `useEffect` (below) so a static effect-cleanup analysis can trace the pairing. `registerBody`
+ * / `registerCard` only mutate the registration maps and bump `registryVersion`, which re-runs
+ * that effect; they never call `.observe()`/`.disconnect()` themselves.
  */
 export function useReaderPassiveLayout({
   enabled,
@@ -55,17 +60,26 @@ export function useReaderPassiveLayout({
   const bodiesRef = useRef(new Map<ReaderPassiveLayoutPaneId, BodyEntry>());
   const cardsRef = useRef(new Map<ReaderPassiveLayoutPaneId, CardEntry>());
   const modesRef = useRef(new Map<ReaderPassiveLayoutPaneId, ReaderPassiveLayoutMode>());
-  const observedElementsRef = useRef(new Map<HTMLElement, ResizeObserver>());
   const framePendingRef = useRef<(() => void) | null>(null);
   const generationRef = useRef(0);
   const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
   const visiblePanesRef = useRef<readonly ReaderPassiveLayoutPaneId[]>(visiblePanes);
-  visiblePanesRef.current = visiblePanes;
 
   const [cardStates, setCardStates] = useState<
     Partial<Record<ReaderPassiveLayoutPaneId, ReaderPassiveLayoutCardState>>
   >({});
+  // Bumped whenever a body/card registers or unregisters, so the observer effect below re-runs
+  // and re-attaches to the current registration set (registerBody/registerCard never touch the
+  // observer directly).
+  const [registryVersion, setRegistryVersion] = useState(0);
+
+  // Keeps enabledRef/visiblePanesRef in sync without writing to a ref during render. Declared
+  // before the mount/measurement effect below so it always runs first within the same commit and
+  // the other effect never reads a stale value from a previous render.
+  useEffect(() => {
+    enabledRef.current = enabled;
+    visiblePanesRef.current = visiblePanes;
+  });
 
   const measureNow = useCallback((ownerGeneration: number) => {
     if (ownerGeneration !== generationRef.current) {
@@ -154,48 +168,29 @@ export function useReaderPassiveLayout({
     });
   }, [measureNow]);
 
-  const observeElement = useCallback(
-    (element: HTMLElement) => {
-      if (!enabledRef.current || !resizeObserverSupported() || observedElementsRef.current.has(element)) {
-        return;
-      }
-      const observer = new ResizeObserver(() => scheduleMeasure());
-      observer.observe(element);
-      observedElementsRef.current.set(element, observer);
-    },
-    [scheduleMeasure],
-  );
-
-  const unobserveElement = useCallback((element: HTMLElement) => {
-    const observer = observedElementsRef.current.get(element);
-    if (observer) {
-      observer.disconnect();
-      observedElementsRef.current.delete(element);
+  const registerBody = useCallback((paneId: ReaderPassiveLayoutPaneId, element: HTMLElement | null) => {
+    const existing = bodiesRef.current.get(paneId);
+    if (existing?.element === element) {
+      return;
     }
+    if (existing) {
+      bodiesRef.current.delete(paneId);
+    }
+    if (element) {
+      bodiesRef.current.set(paneId, { element });
+    }
+    setRegistryVersion((version) => version + 1);
   }, []);
-
-  const registerBody = useCallback(
-    (paneId: ReaderPassiveLayoutPaneId, element: HTMLElement | null) => {
-      const existing = bodiesRef.current.get(paneId);
-      if (existing) {
-        unobserveElement(existing.element);
-        bodiesRef.current.delete(paneId);
-      }
-      if (element) {
-        bodiesRef.current.set(paneId, { element });
-        observeElement(element);
-      }
-      scheduleMeasure();
-    },
-    [observeElement, unobserveElement, scheduleMeasure],
-  );
 
   const registerCard = useCallback(
     (paneId: ReaderPassiveLayoutPaneId, identityKey: string, element: HTMLElement | null) => {
       const existing = cardsRef.current.get(paneId);
+      if (existing?.element === element && existing.identityKey === identityKey) {
+        return;
+      }
+
       const identityChanged = existing?.identityKey !== identityKey;
       if (existing) {
-        unobserveElement(existing.element);
         cardsRef.current.delete(paneId);
       }
       if (identityChanged) {
@@ -205,7 +200,6 @@ export function useReaderPassiveLayout({
 
       if (element) {
         cardsRef.current.set(paneId, { element, identityKey });
-        observeElement(element);
       } else {
         modesRef.current.delete(paneId);
         setCardStates((previous) => {
@@ -218,9 +212,9 @@ export function useReaderPassiveLayout({
         });
       }
 
-      scheduleMeasure();
+      setRegistryVersion((version) => version + 1);
     },
-    [observeElement, unobserveElement, scheduleMeasure],
+    [],
   );
 
   const notifyLayoutChange = useCallback(() => {
@@ -241,13 +235,14 @@ export function useReaderPassiveLayout({
       };
     }
 
-    // Re-attach observers for elements registered before this effect (re)ran, e.g. a StrictMode
-    // setup->cleanup->setup cycle or a desktop layoutMode toggle that keeps the same DOM.
-    for (const entry of bodiesRef.current.values()) {
-      observeElement(entry.element);
-    }
-    for (const entry of cardsRef.current.values()) {
-      observeElement(entry.element);
+    const observer = resizeObserverSupported() ? new ResizeObserver(() => scheduleMeasure()) : null;
+    if (observer) {
+      for (const entry of bodiesRef.current.values()) {
+        observer.observe(entry.element);
+      }
+      for (const entry of cardsRef.current.values()) {
+        observer.observe(entry.element);
+      }
     }
 
     scheduleMeasure();
@@ -260,12 +255,13 @@ export function useReaderPassiveLayout({
       window.removeEventListener("resize", handleResize);
       framePendingRef.current?.();
       framePendingRef.current = null;
-      for (const observer of observedElementsRef.current.values()) {
-        observer.disconnect();
-      }
-      observedElementsRef.current.clear();
+      observer?.disconnect();
     };
-  }, [enabled, visiblePanesKey, observeElement, scheduleMeasure]);
+    // registryVersion (not read in the body) re-runs this effect whenever registerBody/registerCard
+    // add or remove an element, so the single observer instance stays attached to exactly the
+    // currently-registered elements without registerBody/registerCard ever touching it directly.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: registryVersion is the intended dep.
+  }, [enabled, visiblePanesKey, registryVersion, scheduleMeasure]);
 
   const getCardState = useCallback(
     (paneId: ReaderPassiveLayoutPaneId): ReaderPassiveLayoutCardState =>
