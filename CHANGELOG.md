@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-09-07
+
 ### Changed
 
 - 未選択・検索ヒットなし・選択サマリーのパッシブカードを、同じ枠線と内側余白に揃えた。
