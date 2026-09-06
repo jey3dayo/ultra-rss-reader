@@ -1,8 +1,10 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands/shared";
+import type { ArticleDto } from "@/api/tauri-commands";
 import {
   clearArticleViewHistory,
   countAccountStarredArticles,
@@ -28,11 +30,15 @@ import {
   unstarAccountArticles,
 } from "@/api/tauri-commands";
 import {
+  clearArticleQueryData,
+  createInfiniteArticleQueryData,
+  flattenArticleQueryData,
   getRecentArticleQueryKeysForAccount,
   isAccountKnownDeleted,
   patchCachedArticleReadState,
   patchCachedArticleStarState,
   patchCachedArticlesMarkedRead,
+  shareInfiniteArticleQueryData,
   shouldInvalidateAfterRecordArticleView,
 } from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
@@ -72,11 +78,18 @@ type ArticleQueryOptions = {
   unreadOnly?: boolean;
 };
 
+// Keep these values aligned with DEFAULT_ARTICLE_LIST_LIMIT and
+// DEFAULT_RECENT_ARTICLE_LIST_LIMIT in src-tauri/src/commands/article_commands/queries.rs.
+export const READER_ARTICLE_PAGE_SIZE = 50;
+export const READER_RECENT_PAGE_SIZE = 20;
+
 export type ArticleSearchQueryOwner = {
   accountId: string;
   query: string;
   key: string;
 };
+
+export { flattenArticleQueryData };
 
 type ClearArticleViewHistoryContext = {
   previousRecentArticleQueries: Array<{
@@ -184,6 +197,23 @@ function requireEnabledQueryValue(value: string | null, label: string): string {
   return value;
 }
 
+export function getNextArticlePageParam(
+  lastPage: ArticleDto[] | undefined,
+  allPages: Array<ArticleDto[] | undefined>,
+  pageSize: number,
+): number | undefined {
+  if (!Array.isArray(lastPage) || lastPage.length < pageSize) {
+    return undefined;
+  }
+
+  const nextOffset = allPages.reduce((articleCount, page) => articleCount + (Array.isArray(page) ? page.length : 0), 0);
+  if (nextOffset > MAX_IPC_PAGINATION_OFFSET) {
+    return undefined;
+  }
+
+  return nextOffset;
+}
+
 function normalizeManualArticleQueryId(value: string | null): string | null {
   return normalizeQueryAccountId(value);
 }
@@ -212,20 +242,51 @@ export function resolveArticleSearchQueryOwner(
   };
 }
 
+function useInfiniteArticleQuery(
+  queryKey: QueryKey,
+  queryFn: (pageParam: number) => Promise<ArticleDto[]>,
+  pageSize: number,
+  enabled: boolean,
+) {
+  const queryClient = useQueryClient();
+  const cachedData = queryClient.getQueryData(queryKey);
+  if (Array.isArray(cachedData)) {
+    queryClient.setQueryData(queryKey, createInfiniteArticleQueryData(cachedData));
+  }
+
+  const queryResult = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam }) => queryFn(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => getNextArticlePageParam(lastPage, allPages, pageSize),
+    structuralSharing: shareInfiniteArticleQueryData,
+    enabled,
+  });
+
+  const data = useMemo(
+    () => (queryResult.data ? flattenArticleQueryData(queryResult.data) : undefined),
+    [queryResult.data],
+  );
+  return { ...queryResult, data };
+}
+
 export function useArticles(feedId: string | null, options?: ArticleQueryOptions) {
   const mode = resolveArticleQueryMode(options);
   const normalizedFeedId = normalizeManualArticleQueryId(feedId);
 
-  return useQuery({
-    queryKey: queryKeys.articles.byFeed(normalizedFeedId, mode),
-    queryFn: () => {
+  return useInfiniteArticleQuery(
+    queryKeys.articles.byFeed(normalizedFeedId, mode),
+    (pageParam) => {
       const resolvedFeedId = requireEnabledQueryValue(normalizedFeedId, "feedId");
       return (
-        mode === "starred" ? listFeedStarredArticles(resolvedFeedId) : listArticles(resolvedFeedId, mode === "unread")
+        mode === "starred"
+          ? listFeedStarredArticles(resolvedFeedId, pageParam, READER_ARTICLE_PAGE_SIZE)
+          : listArticles(resolvedFeedId, mode === "unread", pageParam, READER_ARTICLE_PAGE_SIZE)
       ).then(Result.unwrap());
     },
-    enabled: !!normalizedFeedId,
-  });
+    READER_ARTICLE_PAGE_SIZE,
+    !!normalizedFeedId,
+  );
 }
 
 export function useArticle(articleId: string | null) {
@@ -242,44 +303,55 @@ export function useAccountArticles(accountId: string | null, options?: ArticleQu
   const mode = resolveArticleQueryMode(options);
   const normalizedAccountId = normalizeManualArticleQueryId(accountId);
 
-  return useQuery({
-    queryKey: queryKeys.accountArticles.byAccount(normalizedAccountId, mode),
-    queryFn: () => {
+  return useInfiniteArticleQuery(
+    queryKeys.accountArticles.byAccount(normalizedAccountId, mode),
+    (pageParam) => {
       const resolvedAccountId = requireEnabledQueryValue(normalizedAccountId, "accountId");
       return (
         mode === "starred"
-          ? listStarredArticles(resolvedAccountId)
-          : listAccountArticles(resolvedAccountId, mode === "unread")
+          ? listStarredArticles(resolvedAccountId, pageParam, READER_ARTICLE_PAGE_SIZE)
+          : listAccountArticles(resolvedAccountId, mode === "unread", pageParam, READER_ARTICLE_PAGE_SIZE)
       ).then(Result.unwrap());
     },
-    enabled: !!normalizedAccountId,
-  });
+    READER_ARTICLE_PAGE_SIZE,
+    !!normalizedAccountId,
+  );
 }
 
 export function useFolderArticles(folderId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
   const normalizedFolderId = normalizeManualArticleQueryId(folderId);
 
-  return useQuery({
-    queryKey: queryKeys.folderArticles.byFolder(normalizedFolderId, mode),
-    queryFn: () =>
-      listFolderArticles(requireEnabledQueryValue(normalizedFolderId, "folderId"), mode).then(Result.unwrap()),
-    enabled: !!normalizedFolderId,
-  });
+  return useInfiniteArticleQuery(
+    queryKeys.folderArticles.byFolder(normalizedFolderId, mode),
+    (pageParam) =>
+      listFolderArticles(
+        requireEnabledQueryValue(normalizedFolderId, "folderId"),
+        mode,
+        pageParam,
+        READER_ARTICLE_PAGE_SIZE,
+      ).then(Result.unwrap()),
+    READER_ARTICLE_PAGE_SIZE,
+    !!normalizedFolderId,
+  );
 }
 
 export function useRecentArticles(accountId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
   const normalizedAccountId = normalizeManualArticleQueryId(accountId);
 
-  return useQuery({
-    queryKey: queryKeys.recentArticles.byAccount(normalizedAccountId, mode),
-    queryFn: () =>
-      listRecentArticles(requireEnabledQueryValue(normalizedAccountId, "accountId"), undefined, undefined, mode).then(
-        Result.unwrap(),
-      ),
-    enabled: !!normalizedAccountId,
-  });
+  return useInfiniteArticleQuery(
+    queryKeys.recentArticles.byAccount(normalizedAccountId, mode),
+    (pageParam) =>
+      listRecentArticles(
+        requireEnabledQueryValue(normalizedAccountId, "accountId"),
+        pageParam,
+        READER_RECENT_PAGE_SIZE,
+        mode,
+      ).then(Result.unwrap()),
+    READER_RECENT_PAGE_SIZE,
+    !!normalizedAccountId,
+  );
 }
 
 export function useAccountStarredCount(accountId: string | null) {
@@ -295,7 +367,7 @@ export function useAccountStarredCount(accountId: string | null) {
 
 export function useSetRead() {
   const qc = useQueryClient();
-  const instanceIdRef = useRef(Symbol("useSetRead"));
+  const [instanceId] = useState(() => Symbol("useSetRead"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -306,7 +378,7 @@ export function useSetRead() {
       const requestToken = registerArticleMutationRequest(
         readRequestStatesByArticleId,
         variables.id,
-        instanceIdRef.current,
+        instanceId,
         requestId,
         variables,
       );
@@ -430,7 +502,8 @@ export function useClearArticleViewHistory() {
         optimisticData: undefined,
       }));
       for (const recentArticleQuery of previousRecentArticleQueries) {
-        const optimisticData: unknown[] = [];
+        const optimisticData =
+          clearArticleQueryData(recentArticleQuery.previousData) ?? createInfiniteArticleQueryData();
         qc.setQueryData(recentArticleQuery.queryKey, optimisticData);
         recentArticleQuery.optimisticData = qc.getQueryData(recentArticleQuery.queryKey);
       }
@@ -503,7 +576,7 @@ export function useSearchArticles(accountId: string | null, query: string) {
 
 export function useToggleStar() {
   const qc = useQueryClient();
-  const instanceIdRef = useRef(Symbol("useToggleStar"));
+  const [instanceId] = useState(() => Symbol("useToggleStar"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
@@ -514,7 +587,7 @@ export function useToggleStar() {
       const requestToken = registerArticleMutationRequest(
         starRequestStatesByArticleId,
         variables.id,
-        instanceIdRef.current,
+        instanceId,
         requestId,
         variables,
       );

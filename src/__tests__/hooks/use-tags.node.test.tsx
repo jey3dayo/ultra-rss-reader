@@ -1,12 +1,13 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleTags } from "@tests/helpers/fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import * as tauriCommands from "@/api/tauri-commands";
+import { READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
 import {
   resolveTagMutationInvalidationQueryKeys,
   tagQueryKeys,
@@ -118,7 +119,7 @@ describe("useArticlesByTag", () => {
     rerender({ tagId: "tag-1", accountId: "acc-1" });
 
     await waitFor(() => {
-      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", undefined, undefined, "acc-1", "all");
+      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", 0, READER_ARTICLE_PAGE_SIZE, "acc-1", "all");
     });
   });
 
@@ -145,11 +146,12 @@ describe("useArticlesByTag", () => {
     });
 
     await waitFor(() => {
-      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", undefined, undefined, "acc-1", "unread");
+      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", 0, READER_ARTICLE_PAGE_SIZE, "acc-1", "unread");
     });
-    expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))).toEqual(
-      sampleArticles,
-    );
+    expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))).toEqual({
+      pages: [sampleArticles],
+      pageParams: [0],
+    });
   });
 
   it("normalizes blank and whitespace account ids to the all-account article tag key", async () => {
@@ -169,19 +171,50 @@ describe("useArticlesByTag", () => {
     );
 
     await waitFor(() => {
-      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", undefined, undefined, undefined, "all");
+      expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", 0, READER_ARTICLE_PAGE_SIZE, undefined, "all");
     });
 
     rerender({ accountId: null });
     rerender({ accountId: " \n\t " });
 
-    expect(queryClient.getQueryData(tagQueryKeys.articlesByTag.byTagAndAccount("tag-1", null, "all"))).toEqual(
-      sampleArticles,
-    );
+    expect(queryClient.getQueryData(tagQueryKeys.articlesByTag.byTagAndAccount("tag-1", null, "all"))).toEqual({
+      pages: [sampleArticles],
+      pageParams: [0],
+    });
     expect(
       queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "articlesByTag", "tag-1", " \n\t ", { mode: "all" }]),
     ).toBeUndefined();
     expect(listArticlesByTagSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads a second tag page from the accumulated article offset", async () => {
+    const firstPage = Array.from({ length: READER_ARTICLE_PAGE_SIZE }, (_, index) => ({
+      ...sampleArticles[0],
+      id: `tag-page-one-${index}`,
+    }));
+    const listArticlesByTagSpy = vi
+      .spyOn(tauriCommands, "listArticlesByTag")
+      .mockResolvedValueOnce(Result.succeed(firstPage))
+      .mockResolvedValueOnce(Result.succeed([sampleArticles[1]]));
+
+    const { result } = renderHook(() => useArticlesByTag("tag-1", "acc-1"), { wrapper });
+    await waitFor(() => expect(result.current.data).toHaveLength(READER_ARTICLE_PAGE_SIZE));
+
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+
+    await waitFor(() => {
+      expect(listArticlesByTagSpy).toHaveBeenNthCalledWith(
+        2,
+        "tag-1",
+        READER_ARTICLE_PAGE_SIZE,
+        READER_ARTICLE_PAGE_SIZE,
+        "acc-1",
+        "all",
+      );
+      expect(result.current.data).toHaveLength(READER_ARTICLE_PAGE_SIZE + 1);
+    });
   });
 });
 

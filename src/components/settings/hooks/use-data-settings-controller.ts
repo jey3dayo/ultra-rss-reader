@@ -1,7 +1,11 @@
 import { Result } from "@praha/byethrow";
 import type { TFunction } from "i18next";
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { SettingsProfileImportResult } from "@/api/schemas";
+import {
+  SETTINGS_PROFILE_IMPORT_MAX_BYTES,
+  SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE,
+} from "@/api/schemas/commands/settings-profile";
 import type { AppError } from "@/api/tauri-commands";
 import {
   backupDatabase,
@@ -100,7 +104,7 @@ export function useDataSettingsController({
   });
   const { databaseSizeStatus, totalSize, databaseRuntimeRecoverySurface, vacuuming, openingLogDir } = state;
   const { exportingSettingsProfile, importingSettingsProfile, backingUp } = state;
-  const controllerIdRef = useRef<DataSettingsActionOwnerId>(Symbol("data-settings-controller"));
+  const [controllerId] = useState<DataSettingsActionOwnerId>(() => Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
 
@@ -154,7 +158,7 @@ export function useDataSettingsController({
       if (
         previousLifecycle.vacuuming &&
         !lifecycle.vacuuming &&
-        lifecycle.lastCompletedVacuumOwnerId !== controllerIdRef.current
+        lifecycle.lastCompletedVacuumOwnerId !== controllerId
       ) {
         void fetchDbInfo();
       }
@@ -166,14 +170,14 @@ export function useDataSettingsController({
       databaseSizeRequestRevisionRef.current += 1;
       unsubscribeFromActionLifecycle();
     };
-  }, [fetchDbInfo]);
+  }, [controllerId, fetchDbInfo]);
 
   const handleVacuum = async () => {
     if (!mountedRef.current || databaseSizeStatus !== "ready" || backingUp || isDataSettingsActionInFlight()) {
       return;
     }
 
-    setDataSettingsActionLifecycle("vacuuming", true, controllerIdRef.current);
+    setDataSettingsActionLifecycle("vacuuming", true, controllerId);
     const sizeBefore = totalSize;
     databaseSizeRequestRevisionRef.current += 1;
     const requestRevision = databaseSizeRequestRevisionRef.current;
@@ -217,7 +221,7 @@ export function useDataSettingsController({
         showToast(t("data.vacuum_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }));
       }
     } finally {
-      setDataSettingsActionLifecycle("vacuuming", false, controllerIdRef.current);
+      setDataSettingsActionLifecycle("vacuuming", false, controllerId);
       setSettingsLoading?.(false);
     }
   };
@@ -371,6 +375,9 @@ export function useDataSettingsController({
     dispatch({ type: "set-importing-settings-profile", value: true });
     setSettingsLoading?.(true);
     try {
+      if (file.size > SETTINGS_PROFILE_IMPORT_MAX_BYTES) {
+        throw new Error(SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE);
+      }
       const profileJson = await file.text();
       Result.pipe(
         await importSettingsProfile(profileJson),

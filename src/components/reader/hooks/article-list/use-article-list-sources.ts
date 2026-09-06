@@ -96,29 +96,45 @@ export function useArticleListSources({
   const { data: feeds, isLoading: isLoadingFeeds } = useFeeds(selectedAccountId);
   const { data: folders, isLoading: isLoadingFolders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
-  const { data: allFeedArticles } = useArticles(sourcePlan.feedId, {
+  const allFeedArticlesQuery = useArticles(sourcePlan.feedId, {
     mode: "all",
   });
-  const { data: articles, isLoading: isLoadingFeedArticles } = useArticles(sourcePlan.feedId, {
+  const feedArticlesQuery = useArticles(sourcePlan.feedId, {
     mode: sourcePlan.feedMode,
   });
-  const { data: allAccountArticles } = useAccountArticles(sourcePlan.accountId, { mode: "all" });
-  const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(sourcePlan.accountId, {
+  const allAccountArticlesQuery = useAccountArticles(sourcePlan.accountId, { mode: "all" });
+  const accountArticlesQuery = useAccountArticles(sourcePlan.accountId, {
     mode: sourcePlan.accountMode,
   });
-  const { data: folderArticles, isLoading: isLoadingFolderArticles } = useFolderArticles(sourcePlan.folderId, {
+  const folderArticlesQuery = useFolderArticles(sourcePlan.folderId, {
     mode: sourcePlan.folderMode,
   });
-  const { data: allFolderArticles } = useFolderArticles(sourcePlan.folderId, { mode: "all" });
-  const { data: recentArticles, isLoading: isLoadingRecentArticles } = useRecentArticles(
-    sourcePlan.sourceKind === "recent" ? sourcePlan.accountId : null,
-    {
-      mode: sourcePlan.recentMode,
-    },
-  );
-  const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(sourcePlan.tagId, selectedAccountId, {
+  const allFolderArticlesQuery = useFolderArticles(sourcePlan.folderId, { mode: "all" });
+  const recentArticlesQuery = useRecentArticles(sourcePlan.sourceKind === "recent" ? sourcePlan.accountId : null, {
+    mode: sourcePlan.recentMode,
+  });
+  const tagArticlesQuery = useArticlesByTag(sourcePlan.tagId, selectedAccountId, {
     mode: sourcePlan.tagMode,
   });
+  const { data: allFeedArticles } = allFeedArticlesQuery;
+  const { data: articles, isLoading: isLoadingFeedArticles } = feedArticlesQuery;
+  const { data: allAccountArticles } = allAccountArticlesQuery;
+  const { data: accountArticles, isLoading: isLoadingAccountArticles } = accountArticlesQuery;
+  const { data: folderArticles, isLoading: isLoadingFolderArticles } = folderArticlesQuery;
+  const { data: allFolderArticles } = allFolderArticlesQuery;
+  const { data: recentArticles, isLoading: isLoadingRecentArticles } = recentArticlesQuery;
+  const { data: tagArticles, isLoading: isLoadingTagArticles } = tagArticlesQuery;
+  const primaryArticleQuery =
+    sourcePlan.sourceKind === "feed"
+      ? feedArticlesQuery
+      : sourcePlan.sourceKind === "folder"
+        ? folderArticlesQuery
+        : sourcePlan.sourceKind === "tag"
+          ? tagArticlesQuery
+          : sourcePlan.sourceKind === "recent"
+            ? recentArticlesQuery
+            : accountArticlesQuery;
+  const primaryFetchNextPage = primaryArticleQuery.fetchNextPage;
   const latestFeeds = useMemo(() => resolveLatestFeedsForAccount(feeds, selectedAccountId), [feeds, selectedAccountId]);
   const latestFeedArticles = useMemo(
     () => resolveLatestFeedArticles(articles, sourcePlan.feedId),
@@ -336,5 +352,8 @@ export function useArticleListSources({
     isLoadingFolderArticles: sourcePlan.sourceKind === "folder" ? isPrimarySourceLoading : isLoadingFolderArticles,
     isLoadingRecentArticles: sourcePlan.sourceKind === "recent" ? isPrimarySourceLoading : isLoadingRecentArticles,
     isLoadingTagArticles: sourcePlan.sourceKind === "tag" ? isPrimarySourceLoading : isLoadingTagArticles,
+    fetchNextPage: primaryFetchNextPage ? () => primaryFetchNextPage() : undefined,
+    hasNextPage: primaryArticleQuery.hasNextPage ?? false,
+    isFetchingNextPage: primaryArticleQuery.isFetchingNextPage ?? false,
   };
 }

@@ -63,7 +63,6 @@ To build from source instead, see [CONTRIBUTING.md](CONTRIBUTING.md).
 - 🌐 **Web Preview** — Embedded publisher pages with dedicated browser controls
 - 🧹 **Subscription review** — A subscriptions index workspace that flags stale feeds and helps you decide Keep / Later / Unsubscribe
 - 📥 **OPML** — Import and export feed lists
-- ⚡ **Bionic reading** — Bold-emphasis rendering for faster reading
 - 🎨 **Theming** — Light/dark with system detection, OKLch color tokens
 - 🇯🇵 **Japanese localization** — In-app copy carefully tuned, not machine-translated
 - 🔐 **Secure by default** — HTML sanitized in Rust before rendering; credentials never touch SQLite

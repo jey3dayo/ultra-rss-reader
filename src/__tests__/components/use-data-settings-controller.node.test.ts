@@ -3,6 +3,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { parse } from "valibot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SETTINGS_PROFILE_IMPORT_MAX_BYTES } from "@/api/schemas/commands/settings-profile";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import {
   backupDatabase,
@@ -600,6 +601,26 @@ describe("useDataSettingsController", () => {
 
     expect(importSettingsProfile).toHaveBeenCalledWith('{"version":1}');
     expect(showToast).toHaveBeenCalledWith("Imported 1/3/8");
+  });
+
+  it("rejects oversized settings profile files before reading them", async () => {
+    const file = new File(["a".repeat(SETTINGS_PROFILE_IMPORT_MAX_BYTES + 1)], "profile.json");
+    const readFile = vi.spyOn(file, "text");
+    const showToast = vi.fn();
+    const { result } = renderDataSettingsController({ showToast });
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleImportSettingsProfileFile(file);
+    });
+
+    expect(readFile).not.toHaveBeenCalled();
+    expect(importSettingsProfile).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("data.settings_profile_import_failed");
+    expect(result.current.importingSettingsProfile).toBe(false);
   });
 
   it("exposes write corruption from vacuum as runtime recovery surface", async () => {

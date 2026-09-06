@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   createTag,
   deleteTag,
@@ -11,8 +12,14 @@ import {
   tagArticle,
   untagArticle,
 } from "@/api/tauri-commands";
+import {
+  createInfiniteArticleQueryData,
+  flattenArticleQueryData,
+  shareInfiniteArticleQueryData,
+} from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery, unwrapReadQueryResult } from "@/hooks/create-query";
+import { getNextArticlePageParam, READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
 import {
   invalidateArticleMutationQueries,
   invalidateQueryKeysLogOnly,
@@ -132,19 +139,34 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
   const mode = options?.mode ?? "all";
   const normalizedTagId = normalizeTagId(tagId);
   const normalizedAccountId = normalizeQueryAccountId(accountId);
+  const queryClient = useQueryClient();
+  const queryKey = tagQueryKeys.articlesByTag.byTagAndAccount(normalizedTagId, normalizedAccountId, mode);
+  const cachedData = queryClient.getQueryData(queryKey);
+  if (Array.isArray(cachedData)) {
+    queryClient.setQueryData(queryKey, createInfiniteArticleQueryData(cachedData));
+  }
 
-  return useQuery({
-    queryKey: tagQueryKeys.articlesByTag.byTagAndAccount(normalizedTagId, normalizedAccountId, mode),
-    queryFn: () =>
+  const queryResult = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam }) =>
       listArticlesByTag(
         requireTagId(normalizedTagId),
-        undefined,
-        undefined,
+        pageParam,
+        READER_ARTICLE_PAGE_SIZE,
         normalizedAccountId ?? undefined,
         mode,
       ).then(unwrapReadQueryResult),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => getNextArticlePageParam(lastPage, allPages, READER_ARTICLE_PAGE_SIZE),
+    structuralSharing: shareInfiniteArticleQueryData,
     enabled: normalizedTagId !== null,
   });
+
+  const data = useMemo(
+    () => (queryResult.data ? flattenArticleQueryData(queryResult.data) : undefined),
+    [queryResult.data],
+  );
+  return { ...queryResult, data };
 }
 
 export const useCreateTag = createMutation(

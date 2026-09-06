@@ -715,6 +715,54 @@ describe("useArticleListSources", () => {
     expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1"]);
   });
 
+  it("resolves a retained feed article from the paginated all-mode source", () => {
+    const emptyArticles: ArticleDto[] = [];
+    const allArticles = [sampleArticles[0]];
+    useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({
+      data: options?.mode === "unread" ? emptyArticles : allArticles,
+      isLoading: false,
+    }));
+    const props: Parameters<typeof useArticleListSources>[0] = {
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedAccountId: "acc-1",
+      selectedArticleId: "art-1",
+      retainedArticleIds: new Set(["art-1"]),
+      viewMode: "unread",
+    };
+
+    const { result } = renderHook(() => useArticleListSources(props), { wrapper: createWrapper() });
+
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1"]);
+  });
+
+  it("exposes paging controls from the filtered primary source", async () => {
+    const fetchNextPage = vi.fn().mockResolvedValue(undefined);
+    useArticlesMock.mockImplementation((_feedId: string | null, _options?: { mode?: ViewMode }) => ({
+      data: sampleArticles,
+      isLoading: false,
+      fetchNextPage,
+      hasNextPage: true,
+      isFetchingNextPage: false,
+    }));
+
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "feed", feedId: "feed-1" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "unread",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.hasNextPage).toBe(true);
+    expect(result.current.isFetchingNextPage).toBe(false);
+    await result.current.fetchNextPage?.();
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the previous feed source while a refetch reports an empty loading result", () => {
     let currentArticles = [sampleArticles[0], sampleArticles[1]];
     let isLoading = false;

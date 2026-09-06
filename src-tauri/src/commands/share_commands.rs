@@ -1,4 +1,9 @@
+#[cfg(any(target_os = "macos", test))]
+use std::net::IpAddr;
+
 use crate::commands::dto::AppError;
+#[cfg(any(target_os = "macos", test))]
+use crate::domain::url_policy::is_private_ip;
 
 #[cfg(any(target_os = "macos", test))]
 const READING_LIST_URL_ERROR: &str =
@@ -12,19 +17,42 @@ pub(crate) const CLIPBOARD_TEXT_MAX_BYTES: usize = CLIPBOARD_TEXT_MAX_CHARS * 4;
 #[cfg(any(target_os = "macos", test))]
 pub(crate) const READING_LIST_URL_MAX_BYTES: usize = 16 * 1024;
 
+/// Matches frontend `hasPrivateHttpHost`: localhost (trailing-dot stripped) and
+/// private/loopback IPs via [`is_private_ip`]. Does not use `is_private_host`,
+/// which also rejects `.local` and single-label hosts.
+#[cfg(any(target_os = "macos", test))]
+fn reading_list_host_is_private(url: &reqwest::Url) -> bool {
+    let Some(host) = url.host_str() else {
+        return true;
+    };
+    let host = host.to_lowercase();
+    let host = host.trim_end_matches('.');
+    if host == "localhost" {
+        return true;
+    }
+
+    let ip_str = host.trim_start_matches('[').trim_end_matches(']');
+    let ip_str = ip_str.split_once('%').map_or(ip_str, |(addr, _zone)| addr);
+    ip_str.parse::<IpAddr>().is_ok_and(is_private_ip)
+}
+
 #[cfg(any(target_os = "macos", test))]
 fn normalize_reading_list_url(url: &str) -> Option<&str> {
     let trimmed = url.trim();
     let lower = trimmed.to_lowercase();
-    let has_credentials = reqwest::Url::parse(trimmed)
-        .map(|url| !url.username().is_empty() || url.password().is_some())
-        .unwrap_or(false);
     if trimmed.len() > READING_LIST_URL_MAX_BYTES
         || trimmed.chars().any(char::is_control)
         || trimmed.chars().any(char::is_whitespace)
         || !(lower.starts_with("http://") || lower.starts_with("https://"))
-        || has_credentials
     {
+        return None;
+    }
+
+    let parsed = reqwest::Url::parse(trimmed).ok()?;
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return None;
+    }
+    if reading_list_host_is_private(&parsed) {
         return None;
     }
 
@@ -329,6 +357,38 @@ mod tests {
             let error = reading_list_script(url).unwrap_err();
 
             assert_eq!(error.to_string(), READING_LIST_URL_ERROR);
+        }
+    }
+
+    #[test]
+    fn rejects_loopback_and_rfc1918_reading_list_hosts() {
+        for url in [
+            "http://127.0.0.1/",
+            "http://localhost/article",
+            "http://10.0.0.1/x",
+        ] {
+            assert!(
+                normalize_reading_list_url(url).is_none(),
+                "{url} should be rejected as a private Reading List host"
+            );
+            let error = reading_list_script(url).unwrap_err();
+            assert_eq!(error.to_string(), READING_LIST_URL_ERROR);
+        }
+    }
+
+    #[test]
+    fn allows_public_mdns_and_single_label_reading_list_hosts() {
+        for url in [
+            "https://example.com/article",
+            "http://nas.local/article",
+            "http://freshrss/article",
+        ] {
+            assert!(
+                normalize_reading_list_url(url).is_some(),
+                "{url} should stay allowed to match frontend hasPrivateHttpHost"
+            );
+            reading_list_script(url)
+                .expect("public, .local, and single-label hosts should build a script");
         }
     }
 

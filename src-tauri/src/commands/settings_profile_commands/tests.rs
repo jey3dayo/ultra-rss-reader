@@ -62,6 +62,40 @@ fn empty_profile() -> SettingsProfile {
 }
 
 #[test]
+fn import_rejects_oversized_profile_before_parsing_without_mutating_db() {
+    let db = test_db();
+    insert_account(&db, &local_account("existing", "Existing"));
+    SqlitePreferenceRepository::new(db.writer())
+        .set("theme", "dark")
+        .unwrap();
+
+    let oversized_profile = "x".repeat(SETTINGS_PROFILE_IMPORT_MAX_BYTES + 1);
+    let error = import_settings_profile_into_db(&db, &oversized_profile).unwrap_err();
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message }
+            if message == format!(
+                "Settings profile import file must be {SETTINGS_PROFILE_IMPORT_MAX_BYTES} UTF-8 bytes or less"
+            )
+    ));
+    assert_eq!(
+        SqlitePreferenceRepository::new(db.reader())
+            .get_all()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        SqliteAccountRepository::new(db.reader())
+            .find_all()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
+#[test]
 fn export_profile_omits_credentials_and_article_dependent_data() {
     let db = test_db();
     insert_account(
