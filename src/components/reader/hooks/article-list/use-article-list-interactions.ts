@@ -72,6 +72,15 @@ export function useArticleListInteractions({
     );
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, isSearchVisible]);
 
+  // `loadNextPageIfNearBottom` is recreated whenever `isFetchingNextPage` flips, including the
+  // false->false-with-no-new-data transition after a failed fetch. The mount/content-change and
+  // resize-driven effects below must not re-run merely because that identity changed (that would
+  // fire an immediate auto-retry loop right after a failure); they read the latest callback through
+  // this ref instead of depending on the callback itself, so they only re-invoke it on their own
+  // real triggers (mount, article list content change, viewport/window resize).
+  const loadNextPageIfNearBottomRef = useRef(loadNextPageIfNearBottom);
+  loadNextPageIfNearBottomRef.current = loadNextPageIfNearBottom;
+
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) {
@@ -81,6 +90,40 @@ export function useArticleListInteractions({
     viewport.addEventListener("scroll", loadNextPageIfNearBottom);
     return () => viewport.removeEventListener("scroll", loadNextPageIfNearBottom);
   }, [loadNextPageIfNearBottom]);
+
+  // Scroll events alone miss the case where a page of results already fills (or under-fills) a
+  // tall viewport: the list never becomes scrollable, so no "scroll" event ever fires and
+  // `hasNextPage` stays stuck true forever. Re-run the same bottom check after initial mount and
+  // after the article list content changes (a page finished loading, or the source switched).
+  // Deliberately depends on `filteredArticles` only, not on `loadNextPageIfNearBottom` itself, so a
+  // failed fetch (which changes `isFetchingNextPage` but not `filteredArticles`) does not retrigger
+  // this effect and cause an immediate auto-retry loop.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run the bottom check when the article list content changes
+  useEffect(() => {
+    loadNextPageIfNearBottomRef.current();
+  }, [filteredArticles]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      loadNextPageIfNearBottomRef.current();
+    });
+    resizeObserver.observe(viewport);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const handleWindowResize = () => {
+      loadNextPageIfNearBottomRef.current();
+    };
+
+    window.addEventListener("resize", handleWindowResize);
+    return () => window.removeEventListener("resize", handleWindowResize);
+  }, []);
 
   // This pane owns the list that `navigateArticle` actually walks (search results included), so it
   // publishes whether a next article exists via `resolveArticleCursor`, which applies the same
