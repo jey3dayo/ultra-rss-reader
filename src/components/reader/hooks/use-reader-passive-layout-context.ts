@@ -28,16 +28,25 @@ function useOptionalReaderPassiveLayoutContext(): ReaderPassiveLayoutContextValu
  * Registers a pane's visible body viewport (the region below its chrome) for the shared common
  * region calculation. Safe to use outside a provider or while disabled -- resolves to a no-op
  * ref callback so non-desktop callers do not need to branch.
+ *
+ * Depends on `enabled` and `registerBody` individually (not the whole context object): the
+ * context value is a new object every time `cardStates` updates (i.e. after every measurement),
+ * while `registerBody` itself stays referentially stable. Depending on the whole context would
+ * give this ref callback a new identity on every measurement, which makes React detach and
+ * re-attach the DOM ref (unregister then re-register) forever -- the registration never settles
+ * and no measurement's result ever reaches the DOM.
  */
 export function useReaderPassiveLayoutBodyRef(paneId: ReaderPassiveLayoutPaneId) {
   const context = useOptionalReaderPassiveLayoutContext();
+  const enabled = context?.enabled ?? false;
+  const registerBody = context?.registerBody;
   return useCallback(
     (element: HTMLElement | null) => {
-      if (context?.enabled) {
-        context.registerBody(paneId, element);
+      if (enabled && registerBody) {
+        registerBody(paneId, element);
       }
     },
-    [context, paneId],
+    [enabled, registerBody, paneId],
   );
 }
 
@@ -45,22 +54,26 @@ export function useReaderPassiveLayoutBodyRef(paneId: ReaderPassiveLayoutPaneId)
  * Registers a pane's passive card under the given content identity and returns its computed
  * mode/offset. Outside a provider, while disabled, or before the first measurement, resolves to
  * a safe top-anchored fallback state instead of hiding the card.
+ *
+ * See `useReaderPassiveLayoutBodyRef` above for why `cardRef` depends on `enabled`/`registerCard`
+ * individually rather than the whole context object.
  */
 export function useReaderPassiveLayoutCard(
   paneId: ReaderPassiveLayoutPaneId,
   identityKey: string,
 ): { cardRef: (element: HTMLElement | null) => void; enabled: boolean } & ReaderPassiveLayoutCardState {
   const context = useOptionalReaderPassiveLayoutContext();
+  const enabled = context?.enabled ?? false;
+  const registerCard = context?.registerCard;
   const cardRef = useCallback(
     (element: HTMLElement | null) => {
-      if (context?.enabled) {
-        context.registerCard(paneId, identityKey, element);
+      if (enabled && registerCard) {
+        registerCard(paneId, identityKey, element);
       }
     },
-    [context, paneId, identityKey],
+    [enabled, registerCard, paneId, identityKey],
   );
 
-  const enabled = context?.enabled ?? false;
   const state = enabled ? (context?.cardStates[paneId] ?? READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE) : undefined;
 
   return {
@@ -91,13 +104,14 @@ export function mergeReaderPassiveLayoutRefs<T>(
 ): (element: T | null) => void {
   return (element: T | null) => {
     registerRef(element);
-    if (!existingRef) {
-      return;
-    }
     if (typeof existingRef === "function") {
       existingRef(element);
       return;
     }
-    (existingRef as { current: T | null }).current = element;
+    // A non-function Ref from `useRef`/`createRef` is always a mutable object with a writable
+    // `current` property; RefObject's type only marks `current` readonly for the consumer side.
+    if (existingRef) {
+      existingRef.current = element;
+    }
   };
 }
