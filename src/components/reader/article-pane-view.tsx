@@ -15,7 +15,7 @@ import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserOverlaySurface } from "./article-view-state";
-import { useReaderPassiveLayoutBodyRef } from "./reader-passive-layout";
+import { useReaderPassiveLayoutBodyRef } from "./hooks/use-reader-passive-layout-context";
 
 export type ArticlePaneProps = {
   article: ArticleDto;

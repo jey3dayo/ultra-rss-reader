@@ -2,7 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ArticleFilterToggleButton, articleFilterInsetSelectionClassName, ToggleGroup } from "@/design-system";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import { useReaderPassiveLayoutNotify } from "./reader-passive-layout";
+import { useReaderPassiveLayoutNotify } from "./hooks/use-reader-passive-layout-context";
 
 export type ArticleListFooterProps = {
   viewMode: ViewMode;

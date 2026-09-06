@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import { ArticleListHeaderActions } from "./article-list-header-actions";
 import { ArticleListHeaderSearch } from "./article-list-header-search";
-import { useReaderPassiveLayoutNotify } from "./reader-passive-layout";
+import { useReaderPassiveLayoutNotify } from "./hooks/use-reader-passive-layout-context";
 
 type ArticleListHeaderLabels = {
   markAllReadLabel: string;

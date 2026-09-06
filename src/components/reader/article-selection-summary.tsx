@@ -20,8 +20,8 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell } from "./article-view-state";
 import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
+import { useReaderPassiveLayoutBodyRef, useReaderPassiveLayoutCard } from "./hooks/use-reader-passive-layout-context";
 import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "./reader-passive-card";
-import { useReaderPassiveLayoutBodyRef, useReaderPassiveLayoutCard } from "./reader-passive-layout";
 
 const SUMMARY_CONTAINER_CLASS_NAME = "w-full max-w-[39rem]";
 

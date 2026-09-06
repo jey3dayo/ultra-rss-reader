@@ -6,7 +6,7 @@ import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } f
 import type { ContentMode, LayoutMode } from "../lib/layout/layout-state.types";
 import { cn } from "../lib/utils";
 import { useUiStore } from "../stores/ui-store";
-import type { ReaderPassiveLayoutPaneId } from "./reader/reader-passive-layout";
+import type { ReaderPassiveLayoutPaneId } from "./reader/hooks/use-reader-passive-layout";
 import { ReaderPassiveLayoutProvider } from "./reader/reader-passive-layout";
 
 const READER_PASSIVE_LAYOUT_PANE_IDS = ["list", "content"] as const satisfies readonly ReaderPassiveLayoutPaneId[];

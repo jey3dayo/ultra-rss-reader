@@ -2,7 +2,7 @@ import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import type { UiDisplayState } from "@/lib/ui/display-state.types";
 import type { BrowserOverlayCloseHandler, BrowserOverlayToolbarAction, BrowserViewScope } from "./browser-view.types";
-import { useReaderPassiveLayoutBodyRef } from "./reader-passive-layout";
+import { useReaderPassiveLayoutBodyRef } from "./hooks/use-reader-passive-layout-context";
 
 const LazyBrowserView = lazy(async () => {
   const mod = await import("./browser-view");

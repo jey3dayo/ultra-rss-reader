@@ -12,6 +12,11 @@ import { ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListSkeleton } from "./article-list-skeleton";
+import {
+  mergeReaderPassiveLayoutRefs,
+  useReaderPassiveLayoutBodyRef,
+  useReaderPassiveLayoutCard,
+} from "./hooks/use-reader-passive-layout-context";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 import {
   ReaderPassiveCard,
@@ -19,11 +24,6 @@ import {
   readerPassiveCardClassName,
   readerPassiveCardPaddingClassName,
 } from "./reader-passive-card";
-import {
-  mergeReaderPassiveLayoutRefs,
-  useReaderPassiveLayoutBodyRef,
-  useReaderPassiveLayoutCard,
-} from "./reader-passive-layout";
 
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 
