@@ -1701,6 +1701,11 @@ describe("ArticleList", () => {
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
 
+    // This test only covers focus restoration after the web preview closes. Disable the
+    // delayed auto-mark so the row keeps its unread accessible name for the role query;
+    // the timer now survives re-renders and would otherwise fire during the full run.
+    usePreferencesStore.setState({ prefs: { after_reading: "never" }, loaded: true });
+
     const user = userEvent.setup();
     render(
       <>
