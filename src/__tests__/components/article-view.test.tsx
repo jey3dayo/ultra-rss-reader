@@ -2163,6 +2163,10 @@ describe("ArticleView", () => {
     const summary = await screen.findByTestId("article-selection-summary");
     expect(summary).toHaveClass("rounded-md", "border", "border-border/80", "bg-card/38", "shadow-none");
     expect(summary).toHaveClass(...readerPassiveCardPaddingClassName.split(" "));
+    expect(within(summary).getByTestId("article-selection-summary-metrics")).toHaveClass(
+      "grid-cols-1",
+      "@[16rem]:grid-cols-3",
+    );
     expectSummaryScopeLabel(summary, "Tech Blog");
     expectSummaryMetricMotionValue(summary, "Unread", "5");
     expectSummaryMetricMotionValue(summary, "Published today", "0");

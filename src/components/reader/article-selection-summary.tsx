@@ -166,7 +166,7 @@ function SummaryEmptyState({
             )}
             style={SUMMARY_MOTION_STYLE}
           >
-            <div className="w-full">
+            <div className="w-full @container">
               <div className="mb-7 flex min-w-0 items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
@@ -200,7 +200,10 @@ function SummaryEmptyState({
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-x-6 gap-y-5" data-testid="article-selection-summary-metrics">
+              <div
+                className="grid grid-cols-1 gap-x-6 gap-y-5 @[16rem]:grid-cols-3"
+                data-testid="article-selection-summary-metrics"
+              >
                 {metrics.map((metric) => (
                   <SummaryMetric key={metric.label} {...metric} />
                 ))}
