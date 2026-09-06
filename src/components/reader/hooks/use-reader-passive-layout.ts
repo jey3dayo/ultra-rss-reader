@@ -225,7 +225,11 @@ export function useReaderPassiveLayout({
 
   // visiblePanesKey (not read in the body) stands in for visiblePanes: the array's identity is
   // unstable across renders, so re-running on the array itself would re-observe every render.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: visiblePanesKey is the intended dep.
+  // registryVersion (also not read in the body) re-runs this effect whenever registerBody/
+  // registerCard add or remove an element, so the single ResizeObserver instance created below
+  // stays attached to exactly the currently-registered elements without registerBody/registerCard
+  // ever touching the observer directly.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: visiblePanesKey and registryVersion are the intended deps.
   useEffect(() => {
     generationRef.current += 1;
 
@@ -257,10 +261,6 @@ export function useReaderPassiveLayout({
       framePendingRef.current = null;
       observer?.disconnect();
     };
-    // registryVersion (not read in the body) re-runs this effect whenever registerBody/registerCard
-    // add or remove an element, so the single observer instance stays attached to exactly the
-    // currently-registered elements without registerBody/registerCard ever touching it directly.
-    // biome-ignore lint/correctness/useExhaustiveDependencies: registryVersion is the intended dep.
   }, [enabled, visiblePanesKey, registryVersion, scheduleMeasure]);
 
   const getCardState = useCallback(
