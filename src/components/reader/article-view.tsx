@@ -6,6 +6,7 @@ import type { ArticleViewSummaryState } from "@/lib/articles/article-view";
 import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
+import { cn } from "@/lib/utils";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -13,7 +14,11 @@ import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { SelectionSummaryEmptyState } from "./article-selection-summary";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
-import { readerPassiveCardOffsetClassName } from "./reader-passive-card";
+import {
+  readerPassiveCardClassName,
+  readerPassiveCardOffsetClassName,
+  readerPassiveCardPaddingClassName,
+} from "./reader-passive-card";
 
 const LazySubscriptionsIndexPage = lazy(async () => {
   await loadI18nResourceNamespace(i18n, "subscriptions");
@@ -96,7 +101,7 @@ function EmptyState({
             hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
             // Align passive cards with the adjacent search-empty surface while avoiding header overlap.
             containerClassName: readerPassiveCardOffsetClassName,
-            cardClassName: undefined,
+            cardClassName: cn(readerPassiveCardClassName, readerPassiveCardPaddingClassName),
             actions: [],
           };
 

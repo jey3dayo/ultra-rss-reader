@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListSkeleton } from "./article-list-skeleton";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";
-import { ReaderPassiveCard, readerListPassiveCardOffsetClassName } from "./reader-passive-card";
+import {
+  ReaderPassiveCard,
+  readerListPassiveCardOffsetClassName,
+  readerPassiveCardClassName,
+  readerPassiveCardPaddingClassName,
+} from "./reader-passive-card";
 
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
 
@@ -64,7 +69,7 @@ export function ArticleListScreenView({
   if (isLoading) {
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
-        <div className="p-2">
+        <div>
           <ArticleListSkeleton label={loadingMessage} />
         </div>
       </ScrollArea>
@@ -94,6 +99,8 @@ export function ArticleListScreenView({
             <div
               className={cn(
                 "flex w-full max-w-[17rem] flex-col items-center text-center",
+                readerPassiveCardClassName,
+                readerPassiveCardPaddingClassName,
                 readerListPassiveCardOffsetClassName,
               )}
               data-testid="article-list-empty-state"
