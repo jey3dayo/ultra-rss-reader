@@ -27,10 +27,18 @@ run = "vitest run --project jsdom"
 ["test:unit:ci"]
 description = "Run Vitest unit tests with quieter CI output"
 run = """
-vitest run --project node --reporter=dot --silent=passed-only
-vitest run --project jsdom --reporter=dot --silent=passed-only
+mise run test:unit:ci:node
+mise run test:unit:ci:dom
 """
-run_windows = "vitest run --project node --reporter=dot --silent=passed-only && vitest run --project jsdom --reporter=dot --silent=passed-only"
+run_windows = "mise run test:unit:ci:node && mise run test:unit:ci:dom"
+
+["test:unit:ci:node"]
+description = "Run the Vitest node project with quieter CI output; split from test:unit:ci so CI can report its own step duration"
+run = "vitest run --project node --reporter=dot --silent=passed-only"
+
+["test:unit:ci:dom"]
+description = "Run the Vitest jsdom project with quieter CI output; split from test:unit:ci so CI can report its own step duration"
+run = "vitest run --project jsdom --reporter=dot --silent=passed-only"
 
 ["test:unit:profile"]
 description = "Run Vitest unit tests with verbose output for slow test profiling"

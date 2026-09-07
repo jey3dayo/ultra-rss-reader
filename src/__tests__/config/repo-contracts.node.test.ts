@@ -1452,7 +1452,9 @@ describe("repository static contracts", () => {
       "format:check",
       "lint",
       "quality:toolchain",
-      "test:ci",
+      "test:rust",
+      "test:unit:ci:dom",
+      "test:unit:ci:node",
     ]);
     expect(ciTasks.filter((task) => !miseTasks.has(task))).toEqual([]);
   });

@@ -385,6 +385,34 @@ const extractPnpmSetupBlock = (source: string): string => {
   return value;
 };
 
+/**
+ * Splits a workflow into its individual `- name:`/`- uses:`/`- run:` step blocks so a contract can
+ * assert that two commands live in *different* steps. Substring checks against the whole file
+ * cannot tell a per-stage step layout apart from one step running everything, which is the
+ * distinction the CI timing breakdown depends on.
+ */
+const extractWorkflowStepBlocks = (workflow: string): string[] => {
+  const stepStart = /^\s{6}- (?:name|uses|run):/;
+  const lines = workflow.split("\n");
+  const blocks: string[] = [];
+  let current: string[] | null = null;
+
+  for (const line of lines) {
+    if (stepStart.test(line)) {
+      if (current) {
+        blocks.push(current.join("\n"));
+      }
+      current = [line];
+      continue;
+    }
+    current?.push(line);
+  }
+  if (current) {
+    blocks.push(current.join("\n"));
+  }
+  return blocks;
+};
+
 const extractTaskBlock = (source: string, taskName: string): string => {
   const escapedTaskName = escapeRegExp(taskName);
   const value = source.match(
@@ -1025,7 +1053,37 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const ciTestTask = extractTaskBlock(miseToml, "test:ci");
     expect(ciTestTask).toContain("mise run test:unit:ci\nmise run test:rust");
     expect(ciTestTask).toContain('run_windows = "mise run test:unit:ci && mise run test:rust"');
-    expect(ciWorkflow).toContain("mise run test:ci");
+    // ci.yml runs the node/jsdom/Rust stages as separate steps (not the combined
+    // test:ci/test:unit:ci tasks) so GitHub Actions reports a per-stage duration
+    // breakdown for the previously opaque "Run tests" step. Asserting only that the
+    // three task names appear somewhere would still pass if they were folded back
+    // into one step, which is exactly the regression this pins against, so split the
+    // workflow into steps and require each stage to own one.
+    const testJobSteps = extractWorkflowStepBlocks(ciWorkflow);
+    const stepOwning = (task: string) =>
+      testJobSteps.filter((step) => step.includes(`mise run ${task}`) && !step.includes(`mise run ${task}:`));
+
+    for (const task of ["test:unit:ci:node", "test:unit:ci:dom", "test:rust"]) {
+      const owners = stepOwning(task);
+      expect(owners, `${task} must run in exactly one workflow step`).toHaveLength(1);
+      // Without pipefail a failing stage is masked by the tee that follows it.
+      expect(owners[0], `${task} must keep set -o pipefail`).toContain("set -o pipefail");
+    }
+
+    // Each stage must be its own step; two stages sharing a step would report one
+    // combined duration and defeat the breakdown.
+    const nodeStep = stepOwning("test:unit:ci:node")[0];
+    const domStep = stepOwning("test:unit:ci:dom")[0];
+    const rustStep = stepOwning("test:rust")[0];
+    expect(new Set([nodeStep, domStep, rustStep]).size).toBe(3);
+
+    // The jsdom stage appends to the same frontend log the node stage created, so the
+    // existing failure artifact still carries both Vitest projects.
+    expect(nodeStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
+    expect(domStep).toContain("tee -a tmp/ci-artifacts/frontend/test.log");
+    expect(rustStep).toContain("tee tmp/ci-artifacts/rust/test.log");
+
+    expect(ciWorkflow).not.toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
   });
 
