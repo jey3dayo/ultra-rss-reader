@@ -1025,7 +1025,13 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const ciTestTask = extractTaskBlock(miseToml, "test:ci");
     expect(ciTestTask).toContain("mise run test:unit:ci\nmise run test:rust");
     expect(ciTestTask).toContain('run_windows = "mise run test:unit:ci && mise run test:rust"');
-    expect(ciWorkflow).toContain("mise run test:ci");
+    // ci.yml runs the node/jsdom/Rust stages as separate steps (not the combined
+    // test:ci/test:unit:ci tasks) so GitHub Actions reports a per-stage duration
+    // breakdown for the previously opaque "Run tests" step.
+    expect(ciWorkflow).toContain("mise run test:unit:ci:node");
+    expect(ciWorkflow).toContain("mise run test:unit:ci:dom");
+    expect(ciWorkflow).toContain("mise run test:rust");
+    expect(ciWorkflow).not.toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
   });
 
