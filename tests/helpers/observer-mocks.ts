@@ -1,16 +1,8 @@
 import { vi } from "vitest";
 
-const RESIZE_OBSERVER_MOCK_MARKER = Symbol.for("ultra-rss-reader.test.ResizeObserverMock");
-const MUTATION_OBSERVER_MOCK_MARKER = Symbol.for("ultra-rss-reader.test.MutationObserverMock");
-
 type ObserverMock = {
   observe: () => void;
   disconnect: () => void;
-};
-
-type ObserverMockConstructor = {
-  readonly [RESIZE_OBSERVER_MOCK_MARKER]?: true;
-  readonly [MUTATION_OBSERVER_MOCK_MARKER]?: true;
 };
 
 export type TestResizeObserverMock = ObserverMock & {
@@ -31,8 +23,6 @@ const resizeObservers: TestResizeObserverMock[] = [];
 const mutationObservers: TestMutationObserverMock[] = [];
 
 class TestResizeObserver implements ResizeObserver {
-  static readonly [RESIZE_OBSERVER_MOCK_MARKER] = true;
-
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn(() => {
@@ -62,8 +52,6 @@ class TestResizeObserver implements ResizeObserver {
 }
 
 class TestMutationObserver implements MutationObserver {
-  static readonly [MUTATION_OBSERVER_MOCK_MARKER] = true;
-
   observe = vi.fn();
   disconnect = vi.fn(() => {
     this.disconnected = true;
@@ -90,14 +78,6 @@ class TestMutationObserver implements MutationObserver {
   private set disconnected(value: boolean) {
     this.#disconnected = value;
   }
-}
-
-function isTestResizeObserver(value: unknown): value is ObserverMockConstructor {
-  return typeof value === "function" && Reflect.get(value, RESIZE_OBSERVER_MOCK_MARKER) === true;
-}
-
-function isTestMutationObserver(value: unknown): value is ObserverMockConstructor {
-  return typeof value === "function" && Reflect.get(value, MUTATION_OBSERVER_MOCK_MARKER) === true;
 }
 
 export function installTestObserverMocks(): {
@@ -157,8 +137,4 @@ export function mockObserverConstructors() {
     ...mocks,
     cleanupObservers: resetTestObserverMocks,
   };
-}
-
-export function hasInstalledTestObserverMocks(): boolean {
-  return isTestResizeObserver(globalThis.ResizeObserver) && isTestMutationObserver(globalThis.MutationObserver);
 }

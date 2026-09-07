@@ -84,7 +84,7 @@ const TauriCapabilityPermissionUrlSchema = s.object({
   url: v.string(),
 });
 
-export const TauriCapabilityPermissionSchema = v.union([
+const TauriCapabilityPermissionSchema = v.union([
   v.string(),
   s.object({
     identifier: v.string(),
@@ -93,7 +93,7 @@ export const TauriCapabilityPermissionSchema = v.union([
   }),
 ]);
 
-export const TauriCapabilitySchema = s.object({
+const TauriCapabilitySchema = s.object({
   identifier: v.optional(v.string()),
   webviews: v.optional(v.array(v.string())),
   permissions: v.array(TauriCapabilityPermissionSchema),
@@ -101,6 +101,4 @@ export const TauriCapabilitySchema = s.object({
 
 export const TauriCapabilityFileSchema = v.union([TauriCapabilitySchema, v.array(TauriCapabilitySchema)]);
 
-export type TauriCapabilityPermission = v.InferOutput<typeof TauriCapabilityPermissionSchema>;
 export type TauriCapability = v.InferOutput<typeof TauriCapabilitySchema>;
-export type TauriCapabilityFile = v.InferOutput<typeof TauriCapabilityFileSchema>;

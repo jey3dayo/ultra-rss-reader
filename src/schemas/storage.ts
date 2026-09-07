@@ -78,8 +78,6 @@ export const CommandHistoryStorageSchema = v.pipe(
   v.transform((items) => collectNormalizedUniqueStrings(items, normalizeCommandHistoryEntry, MAX_COMMAND_HISTORY)),
 );
 
-export type CommandHistoryStorage = v.InferOutput<typeof CommandHistoryStorageSchema>;
-
 export const StoredSidebarExpandedFoldersSchema = v.pipe(
   v.custom<Record<string, unknown>>(isUnknownRecord),
   v.transform((parsed): Record<string, string[]> => {
@@ -202,5 +200,3 @@ export const StorageCleanupPolicyConnectionsSchema = s.strictObject({
   settingsDataResetKeys: v.pipe(v.array(StorageKeySchema), v.readonly()),
   privateDataExportKeys: v.pipe(v.array(StorageKeySchema), v.readonly()),
 });
-
-export type StorageCleanupPolicyConnections = v.InferOutput<typeof StorageCleanupPolicyConnectionsSchema>;

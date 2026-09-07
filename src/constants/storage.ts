@@ -52,7 +52,7 @@ export const STORAGE_KEY_POLICIES = {
 export const LEGACY_STORAGE_KEYS = {
   startupSyncLastTriggeredAt: "startup-sync-last-triggered-at",
 } as const;
-export type LegacyStorageKeyName = keyof typeof LEGACY_STORAGE_KEYS;
+type LegacyStorageKeyName = keyof typeof LEGACY_STORAGE_KEYS;
 export type LegacyStorageKey = (typeof LEGACY_STORAGE_KEYS)[LegacyStorageKeyName];
 
 export const SETTINGS_DATA_RESET_STORAGE_CLEANUP_POLICIES = [

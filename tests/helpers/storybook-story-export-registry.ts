@@ -24,7 +24,7 @@ type StorybookNamedStoryLike = {
   tags?: unknown;
 };
 
-export type StorybookStoryExportRegistryEntry = {
+type StorybookStoryExportRegistryEntry = {
   filePath: string;
   defaultMeta: StorybookMetaLike;
   storyExportNames: string[];
@@ -38,7 +38,7 @@ type StorybookHelperExportAllowlistEntry = {
 
 // UI Reference canvases are exported so component-level registry tests can assert specimen coverage.
 // Normal story files must keep helper components private and expose only Storybook story objects.
-export const STORYBOOK_HELPER_EXPORT_ALLOWLIST: StorybookHelperExportAllowlistEntry[] = [
+const STORYBOOK_HELPER_EXPORT_ALLOWLIST: StorybookHelperExportAllowlistEntry[] = [
   {
     storyFilePath: "/src/components/storybook/ui-reference-button-controls-canvas.stories.tsx",
     helperExportName: "ButtonControlsCanvas",

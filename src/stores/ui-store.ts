@@ -17,7 +17,6 @@ import { createUiStoreSyncActions, getIdleSyncProgress } from "@/stores/ui-store
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 export type {
-  ArticleEngagement,
   NativeLifecycleBlockerEntry,
   NativeLifecycleBlockerOwner,
   NativeLifecycleBlockerSnapshot,

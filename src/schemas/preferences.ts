@@ -11,7 +11,6 @@ import {
   imagePreviewsPreferenceValues,
   isBackendOwnedPreferenceKey,
   isKnownPreferenceKey,
-  type KnownPreferenceKey,
   languagePreferenceValues,
   layoutPreferenceValues,
   listSelectionStylePreferenceValues,
@@ -25,40 +24,27 @@ import {
   unreadBadgePreferenceValues,
 } from "@/schemas/preference-values";
 
+// `@/schemas/preference-values` owns the preference value vocabulary; this module owns the
+// Valibot schemas built on top of it. Only the names actually consumed through this module are
+// re-exported, so the two public surfaces do not drift into duplicate entry points.
 export {
-  type AfterReadingPreference,
   backendOwnedPreferenceKeys,
-  type DebugAgentationVisibilityPreference,
-  type FontSizePreference,
-  type FontStylePreference,
   getLikelyPreferenceKeyTypo,
   type HiddenPreferenceKey,
   isRetiredBackendPassthroughPreferenceKey,
   type KnownPreferenceKey,
-  type LanguagePreference,
   normalizePreferenceRecord,
   normalizePreferenceValue,
   type PreferenceDefaultsRecord,
-  type PreferenceRecord,
   type PreferenceWritableKey,
-  parseLanguagePreference,
-  parseThemePreference,
   preferenceDefaults,
-  preferenceKeyMaxLength,
-  preferenceValueMaxUtf8Bytes,
-  reservedUnknownPreferenceKeyPrefixes,
   resolvePreferenceValue,
-  type SidebarDensityPreference,
-  type SortSubscriptions,
-  type StartupFolderExpansionPreference,
-  type Theme,
-  type UnreadBadgePreference,
   type VisiblePreferenceDefaultKey,
 } from "@/schemas/preference-values";
 
 export { languagePreferenceValues };
 
-export const themeSchema = v.picklist(themePreferenceValues);
+const themeSchema = v.picklist(themePreferenceValues);
 const languageSchema = v.picklist(languagePreferenceValues);
 const unreadBadgeSchema = v.picklist(unreadBadgePreferenceValues);
 const openLinksSchema = v.picklist(openLinksPreferenceValues);
@@ -102,7 +88,7 @@ const selectedAccountIdSchema = v.pipe(
   v.minLength(1),
   v.maxLength(256),
 );
-export const shortcutPreferenceValueSchema = v.pipe(
+const shortcutPreferenceValueSchema = v.pipe(
   v.string(),
   v.check((value) => !hasControlCharacter(value)),
   v.transform((value) => value.trim()),
@@ -174,18 +160,4 @@ export function getPreferenceValueSchema(
   }
 
   return undefined;
-}
-
-export function isReservedUnknownPreferenceKey(key: string): boolean {
-  if (getPreferenceValueSchema(key)) {
-    return false;
-  }
-
-  return key.startsWith("shortcut_");
-}
-
-export function parsePreferenceValue(key: KnownPreferenceKey, value: string): string | null {
-  const schema = preferenceSchemas[key];
-  const result = v.safeParse(schema, value);
-  return result.success ? result.output : null;
 }

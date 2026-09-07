@@ -36,6 +36,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - Remote article content privacy and CSP policy: [feed-content-privacy.md](./feed-content-privacy.md).
 - Reader article source, scope, filter, hook, and paging order: [reader-article-scope-matrix.md](./reader-article-scope-matrix.md).
 - Reader pane keyboard navigation, focus return, and focus styling contracts: [reader-keyboard-navigation.md](./reader-keyboard-navigation.md).
+- Knip unused-export and unused-type triage record: [knip-export-classification.md](./knip-export-classification.md).
 - Dated design and implementation records: [superpowers/README.md](./superpowers/README.md).
 
 ## Operational Docs
@@ -47,6 +48,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - [reader-keyboard-navigation.md](./reader-keyboard-navigation.md): source of truth for reader pane keyboard navigation, focus return behavior, and focus styling contracts
 - [reader-article-scope-matrix.md](./reader-article-scope-matrix.md): source of truth for reader article source, scope, and filter combinations
 - [flaky-test-quarantine-policy.md](./flaky-test-quarantine-policy.md): policy for quarantining, documenting, and retiring flaky tests
+- [knip-export-classification.md](./knip-export-classification.md): dated record classifying every Knip unused-export and unused-type finding from Issue #249; the durable policy lives in [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)
 
 ## Project Guidance
 

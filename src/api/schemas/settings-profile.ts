@@ -16,7 +16,7 @@ const tagColorSchema = v.nullable(
 );
 const muteKeywordScopeSchema = v.picklist(["title", "body", "title_and_body"]);
 
-export const SettingsProfileAccountSchema = s.strictObject({
+const SettingsProfileAccountSchema = s.strictObject({
   source_id: nonBlankTrimmedStringSchema,
   kind: accountKindSchema,
   name: nonBlankTrimmedStringSchema,
@@ -28,12 +28,12 @@ export const SettingsProfileAccountSchema = s.strictObject({
   keep_read_items_days: keepReadItemsDaysSchema,
 });
 
-export const SettingsProfileTagSchema = s.strictObject({
+const SettingsProfileTagSchema = s.strictObject({
   name: nonBlankTrimmedStringSchema,
   color: tagColorSchema,
 });
 
-export const SettingsProfileMuteKeywordSchema = s.strictObject({
+const SettingsProfileMuteKeywordSchema = s.strictObject({
   keyword: nonBlankTrimmedStringSchema,
   scope: muteKeywordScopeSchema,
 });

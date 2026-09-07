@@ -259,7 +259,7 @@ export function requireSampleStarredArticle(): ArticleFixture {
   return article;
 }
 
-export function collectFeedIdsByAccount(feeds: readonly FeedFixture[], accountId: string | undefined): Set<string> {
+function collectFeedIdsByAccount(feeds: readonly FeedFixture[], accountId: string | undefined): Set<string> {
   const feedIds = new Set<string>();
 
   for (const feed of feeds) {
@@ -271,10 +271,7 @@ export function collectFeedIdsByAccount(feeds: readonly FeedFixture[], accountId
   return feedIds;
 }
 
-export function listArticlesByFeedId(
-  articles: readonly ArticleFixture[],
-  feedId: string | undefined,
-): ArticleFixture[] {
+function listArticlesByFeedId(articles: readonly ArticleFixture[], feedId: string | undefined): ArticleFixture[] {
   const selectedArticles: ArticleFixture[] = [];
 
   for (const article of articles) {
@@ -330,7 +327,7 @@ export function listSampleArticlesByTagId(tagId: TagFixture["id"] | undefined): 
   return selectedArticles;
 }
 
-export function listArticlesByAccountId({
+function listArticlesByAccountId({
   articles,
   feeds,
   accountId,

@@ -17,13 +17,13 @@ export type EnumDriftRow = {
   drift: string;
 };
 
-export type MigrationInventory = {
+type MigrationInventory = {
   columnsByTable: Map<string, Set<string>>;
   indexes: Set<string>;
   tables: Set<string>;
 };
 
-export type RepositorySqlReference = {
+type RepositorySqlReference = {
   columns: readonly string[];
   file: string;
   indexes: readonly string[];
@@ -188,7 +188,7 @@ export function formatEnumDriftTable(rows: readonly EnumDriftRow[]): string {
   ].join("\n");
 }
 
-export function parseMigrationInventory(migrationSources: readonly string[]): MigrationInventory {
+function parseMigrationInventory(migrationSources: readonly string[]): MigrationInventory {
   const inventory = createEmptyMigrationInventory();
 
   for (const source of migrationSources) {
