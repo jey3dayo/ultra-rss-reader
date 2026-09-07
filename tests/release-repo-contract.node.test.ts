@@ -1056,35 +1056,58 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     // ci.yml runs the node/jsdom/Rust stages as separate steps (not the combined
     // test:ci/test:unit:ci tasks) so GitHub Actions reports a per-stage duration
     // breakdown for the previously opaque "Run tests" step. Asserting only that the
-    // three task names appear somewhere would still pass if they were folded back
+    // task names appear somewhere would still pass if they were folded back
     // into one step, which is exactly the regression this pins against, so split the
     // workflow into steps and require each stage to own one.
+    //
+    // The jsdom stage is further split into two shards (test:unit:ci:dom:shard1/2) run
+    // as separate steps in the same runner, a comparison experiment to spread the
+    // per-file jsdom fixed cost across two steps. This is distinct from a matrix/job
+    // split: it shares the one-time setup (checkout, toolchain, pnpm install) instead
+    // of paying it twice.
     const testJobSteps = extractWorkflowStepBlocks(ciWorkflow);
     const stepOwning = (task: string) =>
       testJobSteps.filter((step) => step.includes(`mise run ${task}`) && !step.includes(`mise run ${task}:`));
 
-    for (const task of ["test:unit:ci:node", "test:unit:ci:dom", "test:rust"]) {
+    for (const task of ["test:unit:ci:node", "test:unit:ci:dom:shard1", "test:unit:ci:dom:shard2", "test:rust"]) {
       const owners = stepOwning(task);
       expect(owners, `${task} must run in exactly one workflow step`).toHaveLength(1);
       // Without pipefail a failing stage is masked by the tee that follows it.
       expect(owners[0], `${task} must keep set -o pipefail`).toContain("set -o pipefail");
     }
 
-    // Each stage must be its own step; two stages sharing a step would report one
+    // Each stage must be its own step; stages sharing a step would report one
     // combined duration and defeat the breakdown.
     const nodeStep = stepOwning("test:unit:ci:node")[0];
-    const domStep = stepOwning("test:unit:ci:dom")[0];
+    const domShard1Step = stepOwning("test:unit:ci:dom:shard1")[0];
+    const domShard2Step = stepOwning("test:unit:ci:dom:shard2")[0];
     const rustStep = stepOwning("test:rust")[0];
-    expect(new Set([nodeStep, domStep, rustStep]).size).toBe(3);
+    expect(new Set([nodeStep, domShard1Step, domShard2Step, rustStep]).size).toBe(4);
 
-    // The jsdom stage appends to the same frontend log the node stage created, so the
-    // existing failure artifact still carries both Vitest projects.
+    // Both jsdom shards append to the same frontend log the node stage created, so the
+    // existing failure artifact still carries the node project and both jsdom shards
+    // instead of one shard's output overwriting the other's.
     expect(nodeStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
-    expect(domStep).toContain("tee -a tmp/ci-artifacts/frontend/test.log");
+    expect(domShard1Step).toContain("tee -a tmp/ci-artifacts/frontend/test.log");
+    expect(domShard2Step).toContain("tee -a tmp/ci-artifacts/frontend/test.log");
     expect(rustStep).toContain("tee tmp/ci-artifacts/rust/test.log");
+
+    // node must run exactly once: shard-per-project re-running node in each shard step
+    // would silently double the node suite instead of only parallelizing jsdom.
+    expect(ciWorkflow.match(/mise run test:unit:ci:node\b/g)).toHaveLength(1);
+
+    // The shard pairing itself is pinned in mise/test.toml (not ci.yml), so a step-only
+    // check here would miss a regression to unequal or overlapping shard indices.
+    const domShard1Task = extractTaskBlock(miseToml, "test:unit:ci:dom:shard1");
+    const domShard2Task = extractTaskBlock(miseToml, "test:unit:ci:dom:shard2");
+    expect(domShard1Task).toContain("--project jsdom --shard=1/2");
+    expect(domShard2Task).toContain("--project jsdom --shard=2/2");
 
     expect(ciWorkflow).not.toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
+    // Guard against silently reverting the shard split back to a single jsdom step,
+    // which would still pass a naive "the task name exists" check.
+    expect(ciWorkflow).not.toMatch(/mise run test:unit:ci:dom\b(?!:shard)/);
   });
 
   it("keeps Rust cfg(test) production-only release gaps inventoried", () => {
