@@ -108,7 +108,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 ## Native, Browser, And Skills
 
 - macOS is the primary day-to-day development environment. Treat Windows as authoritative for native Windows runtime/build checks, and use `mise run check:wsl` when static-analysis stability is more important than exercising Windows shims.
-- Browser-only UI checks use `mise run app:dev:browser` plus the `agent-browser` skill.
+- Browser-only UI checks use `mise run app:dev:browser` plus the browser-tool routing in `.claude/rules/ui-browser-prep.md` (currently available skills, not a fixed name).
 - Native desktop checks start from `mise run app:dev`; avoid duplicate app instances and operate the development app.
 - For native Tauri inspection, prefer `tauri-mcp-server` for DOM/computed-style/webview interaction and Computer Use for visible window state.
 - Use `tauri-dev-screenshot` for saved native-window PNG artifacts and `tauri-webview-geometry` for child webview sizing or pixel-ratio issues.
