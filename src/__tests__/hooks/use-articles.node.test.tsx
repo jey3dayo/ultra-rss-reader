@@ -11,6 +11,8 @@ import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands/shared";
 import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import type { AppError } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
+import * as readStateDiagnostics from "@/components/reader/hooks/article/read-state-diagnostics";
+import { READ_STATE_PENDING_SLOW_THRESHOLD_MS } from "@/components/reader/hooks/article/read-state-diagnostics";
 import { createInfiniteArticleQueryData } from "@/hooks/article-cache-projection";
 import {
   flattenArticleQueryData,
@@ -1175,6 +1177,114 @@ describe("useSetRead", () => {
     expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: true })]),
     );
+  });
+});
+
+describe("useSetRead read-state diagnostics", () => {
+  let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
+
+  beforeEach(() => {
+    const queryWrapper = createQueryWrapper({
+      queryClientConfig: {
+        defaultOptions: {
+          mutations: { retry: false },
+        },
+      },
+    });
+    wrapper = queryWrapper.wrapper;
+    vi.restoreAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("does not record any diagnostics for a manual mark-read without a diagnostics field", async () => {
+    vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
+    const settledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSettled");
+    const pendingSlowSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkPendingSlow");
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ id: "art-1", read: true });
+    });
+
+    expect(settledSpy).not.toHaveBeenCalled();
+    expect(pendingSlowSpy).not.toHaveBeenCalled();
+    expect(tauriCommands.markArticleRead).toHaveBeenCalledWith("art-1", true);
+  });
+
+  it("records a successful settled event with the caller's request id, generation, and stale-owner flag", async () => {
+    vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
+    const settledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSettled");
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "art-1",
+        read: true,
+        diagnostics: { requestId: "req-success", generation: 3, isStaleOwner: () => false },
+      });
+    });
+
+    expect(settledSpy).toHaveBeenCalledWith("req-success", 3, "success", expect.any(Number), undefined, false);
+    expect(tauriCommands.markArticleRead).toHaveBeenCalledWith("art-1", true, {
+      requestId: "req-success",
+      source: "auto",
+    });
+  });
+
+  it("records a failed settled event classified from the AppError type, with stale_owner true when superseded", async () => {
+    vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(
+      Result.fail({ type: "Retryable", message: "network blip" }),
+    );
+    const settledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSettled");
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+    await act(async () => {
+      await result.current
+        .mutateAsync({
+          id: "art-1",
+          read: true,
+          diagnostics: { requestId: "req-failure", generation: 5, isStaleOwner: () => true },
+        })
+        .catch(() => undefined);
+    });
+
+    expect(settledSpy).toHaveBeenCalledWith("req-failure", 5, "failure", expect.any(Number), "retryable", true);
+  });
+
+  it("records exactly one pending_slow event when the mutation is unanswered past the threshold, then clears it on settle", async () => {
+    const deferred = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    vi.spyOn(tauriCommands, "markArticleRead").mockReturnValue(deferred.promise);
+    const pendingSlowSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkPendingSlow");
+    const settledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSettled");
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+    const pending = result.current.mutateAsync({
+      id: "art-1",
+      read: true,
+      diagnostics: { requestId: "req-slow", generation: 1, isStaleOwner: () => false },
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(READ_STATE_PENDING_SLOW_THRESHOLD_MS);
+    });
+    expect(pendingSlowSpy).toHaveBeenCalledTimes(1);
+    expect(pendingSlowSpy).toHaveBeenCalledWith("req-slow", 1, expect.any(Number));
+
+    await act(async () => {
+      deferred.resolve(Result.succeed(null));
+      await pending;
+    });
+    expect(settledSpy).toHaveBeenCalledTimes(1);
+
+    // No further pending_slow events fire after settling.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(READ_STATE_PENDING_SLOW_THRESHOLD_MS);
+    });
+    expect(pendingSlowSpy).toHaveBeenCalledTimes(1);
   });
 });
 

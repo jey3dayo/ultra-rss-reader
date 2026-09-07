@@ -1,5 +1,6 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
+import type { SetReadMutationInput } from "@/hooks/use-articles";
 import { planOptimisticRetainOnRead } from "@/lib/articles/article-read-projection";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { AfterReadingPreference } from "@/schemas/preference-values";
@@ -7,6 +8,13 @@ import { useUiStore } from "@/stores/ui-store";
 import type { ArticleEngagement } from "@/stores/ui-store.types";
 import type { ArticleStatusToast } from "../../article-browser-actions";
 import { removeRetainedArticle } from "../../retained-articles";
+import {
+  createReadDiagnosticRequestId,
+  recordAutoMarkCancelled,
+  recordAutoMarkDispatched,
+  recordAutoMarkScheduled,
+  recordAutoMarkSkipped,
+} from "./read-state-diagnostics";
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
 
@@ -19,7 +27,7 @@ type UseArticleAutoMarkParams = {
   retainArticle: (articleId: string) => void;
   addRecentlyRead: (articleId: string) => void;
   removeRecentlyRead?: (articleId: string) => void;
-  setRead: ArticleStatusMutation<{ id: string; read: boolean }>;
+  setRead: ArticleStatusMutation<SetReadMutationInput>;
   showToast: ArticleStatusToast;
 };
 
@@ -67,6 +75,10 @@ export function useArticleAutoMark({
   const autoMarkMutationSucceededOwnerKeyRef = useRef<string | null>(null);
   const latestArticleStateRef = useRef({ articleId, selectedAccountId, viewMode });
   const pendingAutoMarkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Diagnostics for whichever attempt pendingAutoMarkTimeoutRef currently tracks; cleared together
+  // with it. Read only from effect cleanup to record a "cancelled" event for a scheduled (not yet
+  // dispatched) attempt.
+  const pendingAutoMarkDiagnosticsRef = useRef<{ requestId: string; generation: number } | null>(null);
   const autoMarkGenerationRef = useRef(0);
   const autoMarkOwnerKey = getAutoMarkOwnerKey(selectedAccountId, articleId);
   const { mutate } = setRead;
@@ -81,6 +93,7 @@ export function useArticleAutoMark({
 
     const clearPendingAutoMarkTimeout = () => {
       const pendingTimeout = pendingAutoMarkTimeoutRef.current;
+      pendingAutoMarkDiagnosticsRef.current = null;
       if (pendingTimeout === null) {
         return;
       }
@@ -101,6 +114,7 @@ export function useArticleAutoMark({
     }
 
     if (isRead) {
+      recordAutoMarkSkipped(createReadDiagnosticRequestId(), autoMarkGeneration, "already_read");
       if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
         if (autoMarkMutationSucceededOwnerKeyRef.current !== autoMarkOwnerKey) {
           autoMarkedOwnerKeyRef.current = null;
@@ -112,9 +126,15 @@ export function useArticleAutoMark({
       manualUnreadAutoMarkSuppressionKey !== autoMarkOwnerKey &&
       autoMarkedOwnerKeyRef.current !== autoMarkOwnerKey
     ) {
-      const markArticleAsRead = () => {
+      const requestId = createReadDiagnosticRequestId();
+      const delayMs = afterReading === "immediately" ? 0 : delayedAutoMarkTimeoutsMs[afterReading];
+      recordAutoMarkScheduled(requestId, autoMarkGeneration, delayMs);
+
+      const markArticleAsRead = (driftMs: number) => {
+        recordAutoMarkDispatched(requestId, autoMarkGeneration, driftMs);
         autoMarkedOwnerKeyRef.current = autoMarkOwnerKey;
         pendingAutoMarkTimeoutRef.current = null;
+        pendingAutoMarkDiagnosticsRef.current = null;
 
         const isLatestAutoMark = () => {
           const latestArticleState = latestArticleStateRef.current;
@@ -138,6 +158,11 @@ export function useArticleAutoMark({
           {
             id: articleId,
             read: true,
+            diagnostics: {
+              requestId,
+              generation: autoMarkGeneration,
+              isStaleOwner: () => !isLatestAutoMark(),
+            },
           },
           {
             onSuccess: () => {
@@ -167,17 +192,35 @@ export function useArticleAutoMark({
       };
 
       if (afterReading === "immediately") {
-        markArticleAsRead();
+        markArticleAsRead(0);
       } else if (typeof setTimeout === "function") {
+        const scheduledAt = Date.now();
         const timeout = setTimeout(() => {
           // Timer guard pattern: only the latest scheduled timeout may mutate read state.
           if (pendingAutoMarkTimeoutRef.current !== timeout) {
             return;
           }
 
-          markArticleAsRead();
-        }, delayedAutoMarkTimeoutsMs[afterReading]);
+          markArticleAsRead(Date.now() - scheduledAt - delayMs);
+        }, delayMs);
         pendingAutoMarkTimeoutRef.current = timeout;
+        pendingAutoMarkDiagnosticsRef.current = { requestId, generation: autoMarkGeneration };
+      }
+    } else {
+      // Negation of the branch above, evaluated in the same priority order it checks, purely to
+      // classify why auto-mark did not proceed. Diagnostics-only: no state here affects behavior.
+      const skipReason =
+        articleEngagement !== "reading"
+          ? "not_reading"
+          : afterReading === "never"
+            ? "preference_never"
+            : manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey
+              ? "manual_unread_suppressed"
+              : autoMarkedOwnerKeyRef.current === autoMarkOwnerKey
+                ? "already_requested"
+                : null;
+      if (skipReason !== null) {
+        recordAutoMarkSkipped(createReadDiagnosticRequestId(), autoMarkGeneration, skipReason);
       }
     }
 
@@ -187,12 +230,21 @@ export function useArticleAutoMark({
       }
 
       const pendingTimeout = pendingAutoMarkTimeoutRef.current;
+      const pendingDiagnostics = pendingAutoMarkDiagnosticsRef.current;
+      pendingAutoMarkDiagnosticsRef.current = null;
       if (pendingTimeout === null) {
         return;
       }
 
       clearTimeout(pendingTimeout);
       pendingAutoMarkTimeoutRef.current = null;
+      // A cleanup that still finds a pending timeout means a scheduled (not yet dispatched)
+      // auto-mark attempt is being torn down. Whether this is unmount or a dependency change
+      // cannot be distinguished from here, so this is always recorded as effect_cleanup rather
+      // than guessed at (see tmp/read-state/design-contract.md).
+      if (pendingDiagnostics !== null) {
+        recordAutoMarkCancelled(pendingDiagnostics.requestId, pendingDiagnostics.generation, "effect_cleanup");
+      }
     };
   }, [
     addRecentlyRead,

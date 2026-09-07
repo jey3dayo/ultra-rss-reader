@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type {
+  AppError,
   ReadDiagnosticCancelReason,
   ReadDiagnosticErrorClass,
   ReadDiagnosticEventArgs,
@@ -7,6 +8,23 @@ import type {
   ReadDiagnosticSkipReason,
 } from "@/api/schemas";
 import { recordReadDiagnosticsBatch } from "@/api/tauri-commands/system";
+
+// Provisional operating value (see tmp/read-state/design-contract.md): how long an auto-mark
+// mutation may stay unanswered before a single pending_slow event is recorded for it. Not a
+// timeout or cancellation -- the mutation keeps waiting for its real result.
+export const READ_STATE_PENDING_SLOW_THRESHOLD_MS = 5_000;
+
+/** Maps an AppError to the safe, message-free classification the diagnostics wire allows. */
+export function classifyAppErrorForReadDiagnostics(error: AppError): ReadDiagnosticErrorClass {
+  switch (error.type) {
+    case "UserVisible":
+      return "user_visible";
+    case "Retryable":
+      return "retryable";
+    default:
+      return "unknown";
+  }
+}
 
 // Local-only diagnostics for the auto-mark-as-read flow (see tmp/read-state/design-contract.md).
 // This module never touches article/feed/account identifiers, titles, URLs, body text, search

@@ -201,8 +201,12 @@ export const unstarAccountArticles = (accountId: string) =>
     { accountId },
   );
 
-export const markArticleRead = (articleId: string, read = true) =>
-  safeInvoke("mark_article_read", { response: NullResponseSchema, args: markArticleReadArgs }, { articleId, read });
+export const markArticleRead = (articleId: string, read = true, context?: { requestId: string; source: "auto" }) =>
+  safeInvoke(
+    "mark_article_read",
+    { response: NullResponseSchema, args: markArticleReadArgs },
+    { articleId, read, context },
+  );
 
 export const recordArticleView = (accountId: string, articleId: string) =>
   safeInvoke(
