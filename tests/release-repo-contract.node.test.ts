@@ -1053,55 +1053,97 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const ciTestTask = extractTaskBlock(miseToml, "test:ci");
     expect(ciTestTask).toContain("mise run test:unit:ci\nmise run test:rust");
     expect(ciTestTask).toContain('run_windows = "mise run test:unit:ci && mise run test:rust"');
-    // ci.yml runs the node/jsdom/Rust stages as separate steps (not the combined
-    // test:ci/test:unit:ci tasks) so GitHub Actions reports a per-stage duration
-    // breakdown for the previously opaque "Run tests" step. Asserting only that the
-    // task names appear somewhere would still pass if they were folded back
-    // into one step, which is exactly the regression this pins against, so split the
-    // workflow into steps and require each stage to own one.
+    // ci.yml runs the node+Rust stage and the jsdom shard stage as separate *jobs* (not
+    // steps within one job, and not the combined test:ci/test:unit:ci tasks) so the two
+    // run on independent runners in parallel instead of paying their fixed cost
+    // sequentially. Asserting only that the task names appear somewhere would still
+    // pass if they were folded back into one job, which is exactly the regression this
+    // pins against, so this asserts on job boundaries.
     //
-    // The jsdom stage is further split into two shards (test:unit:ci:dom:shard1/2) run
-    // as separate steps in the same runner, a comparison experiment to spread the
-    // per-file jsdom fixed cost across two steps. This is distinct from a matrix/job
-    // split: it shares the one-time setup (checkout, toolchain, pnpm install) instead
-    // of paying it twice.
-    const testJobSteps = extractWorkflowStepBlocks(ciWorkflow);
-    const stepOwning = (task: string) =>
-      testJobSteps.filter((step) => step.includes(`mise run ${task}`) && !step.includes(`mise run ${task}:`));
+    // The jsdom stage is split into two shards (test:unit:ci:dom:shard1/2), expressed as
+    // a `shard: [1, 2]` matrix axis on the jsdom job so each shard runs as its own job
+    // instance in parallel, rather than as sequential steps sharing one runner.
+    const nodeRustJobBlock = ciWorkflow.slice(
+      ciWorkflow.indexOf("\n  test-node-rust:"),
+      ciWorkflow.indexOf("\n  test-jsdom:"),
+    );
+    const jsdomJobBlock = ciWorkflow.slice(ciWorkflow.indexOf("\n  test-jsdom:"), ciWorkflow.indexOf("\n  build:"));
+    const qualityGateJobBlock = ciWorkflow.slice(ciWorkflow.indexOf("\n  quality-gate:"));
 
-    for (const task of ["test:unit:ci:node", "test:unit:ci:dom:shard1", "test:unit:ci:dom:shard2", "test:rust"]) {
-      const owners = stepOwning(task);
-      expect(owners, `${task} must run in exactly one workflow step`).toHaveLength(1);
-      // Without pipefail a failing stage is masked by the tee that follows it.
-      expect(owners[0], `${task} must keep set -o pipefail`).toContain("set -o pipefail");
-    }
+    // The node+Rust job and the jsdom shard job must not depend on each other: a
+    // `needs:` link here would serialize what is meant to run in parallel.
+    expect(nodeRustJobBlock).not.toContain("needs:");
+    expect(jsdomJobBlock).not.toContain("needs:");
 
-    // Each stage must be its own step; stages sharing a step would report one
-    // combined duration and defeat the breakdown.
-    const nodeStep = stepOwning("test:unit:ci:node")[0];
-    const domShard1Step = stepOwning("test:unit:ci:dom:shard1")[0];
-    const domShard2Step = stepOwning("test:unit:ci:dom:shard2")[0];
-    const rustStep = stepOwning("test:rust")[0];
-    expect(new Set([nodeStep, domShard1Step, domShard2Step, rustStep]).size).toBe(4);
+    // node and Rust share the one-time native setup (Tauri system deps, Rust
+    // toolchain/cache) in a single job so it is paid once, not once per shard.
+    expect(nodeRustJobBlock).toContain("mise run test:unit:ci:node");
+    expect(nodeRustJobBlock).toContain("mise run test:rust");
+    expect(nodeRustJobBlock).toContain("dtolnay/rust-toolchain");
+    expect(nodeRustJobBlock).toContain("Swatinem/rust-cache");
+    expect(nodeRustJobBlock).toContain("Install Tauri system dependencies");
 
-    // Both jsdom shards append to the same frontend log the node stage created, so the
-    // existing failure artifact still carries the node project and both jsdom shards
-    // instead of one shard's output overwriting the other's.
+    // jsdom is pure TypeScript/Vitest and must not repeat node/Rust, and must not carry
+    // native-only setup (Rust toolchain/cache, Tauri system deps) it does not need —
+    // mirroring the frontend-only "Check: Build" job, which already runs without them.
+    expect(jsdomJobBlock).not.toContain("mise run test:unit:ci:node");
+    expect(jsdomJobBlock).not.toContain("mise run test:rust");
+    expect(jsdomJobBlock).not.toContain("dtolnay/rust-toolchain");
+    expect(jsdomJobBlock).not.toContain("Swatinem/rust-cache");
+    expect(jsdomJobBlock).not.toContain("Install Tauri system dependencies");
+
+    // The jsdom job is matrix-parameterized by shard (plus os) with fail-fast disabled,
+    // so one shard failing still reports the other shard's result.
+    expect(jsdomJobBlock).toContain("shard: [1, 2]");
+    expect(jsdomJobBlock).toContain("fail-fast: false");
+    expect(jsdomJobBlock).toContain("mise run test:unit:ci:dom:shard${{ matrix.shard }}");
+
+    // Without pipefail a failing stage is masked by the tee that follows it. Each stage
+    // must also be its own step so a stage failure is attributable to that stage.
+    const nodeRustSteps = extractWorkflowStepBlocks(nodeRustJobBlock);
+    const nodeStep = nodeRustSteps.find((step) => step.includes("mise run test:unit:ci:node"));
+    const rustStep = nodeRustSteps.find((step) => step.includes("mise run test:rust"));
+    expect(nodeStep, "test:unit:ci:node must run in its own step").toBeDefined();
+    expect(rustStep, "test:rust must run in its own step").toBeDefined();
+    expect(nodeStep).not.toBe(rustStep);
+    expect(nodeStep).toContain("set -o pipefail");
+    expect(rustStep).toContain("set -o pipefail");
     expect(nodeStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
-    expect(domShard1Step).toContain("tee -a tmp/ci-artifacts/frontend/test.log");
-    expect(domShard2Step).toContain("tee -a tmp/ci-artifacts/frontend/test.log");
     expect(rustStep).toContain("tee tmp/ci-artifacts/rust/test.log");
 
-    // node must run exactly once: shard-per-project re-running node in each shard step
-    // would silently double the node suite instead of only parallelizing jsdom.
-    expect(ciWorkflow.match(/mise run test:unit:ci:node\b/g)).toHaveLength(1);
+    const jsdomSteps = extractWorkflowStepBlocks(jsdomJobBlock);
+    const jsdomShardStep = jsdomSteps.find((step) => step.includes("mise run test:unit:ci:dom:shard"));
+    expect(jsdomShardStep, "the jsdom shard must run in its own step").toBeDefined();
+    expect(jsdomShardStep).toContain("set -o pipefail");
+    expect(jsdomShardStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
 
-    // The shard pairing itself is pinned in mise/test.toml (not ci.yml), so a step-only
+    // node and Rust must each run exactly once per matrix combination: re-running them
+    // per jsdom shard would silently duplicate those suites instead of only
+    // parallelizing jsdom, and duplicating the jsdom shard invocation would double-run
+    // (or skip) a shard.
+    expect(ciWorkflow.match(/mise run test:unit:ci:node\b/g)).toHaveLength(1);
+    expect(ciWorkflow.match(/mise run test:rust\b/g)).toHaveLength(1);
+    expect(ciWorkflow.match(/mise run test:unit:ci:dom:shard\$\{\{ matrix\.shard \}\}/g)).toHaveLength(1);
+
+    // Artifact names must disambiguate by OS and, for jsdom, by shard as well, or the
+    // two shards' (and two OSes') failure diagnostics collide on upload.
+    expect(jsdomJobBlock).toContain("name: frontend-${{ matrix.os }}-jsdom-shard${{ matrix.shard }}-test-log");
+
+    // The shard pairing itself is pinned in mise/test.toml (not ci.yml), so a job-only
     // check here would miss a regression to unequal or overlapping shard indices.
     const domShard1Task = extractTaskBlock(miseToml, "test:unit:ci:dom:shard1");
     const domShard2Task = extractTaskBlock(miseToml, "test:unit:ci:dom:shard2");
     expect(domShard1Task).toContain("--project jsdom --shard=1/2");
     expect(domShard2Task).toContain("--project jsdom --shard=2/2");
+
+    // The quality gate must wait on both the node+Rust job and the jsdom job (across all
+    // of their matrix combinations), so a jsdom-only or node/Rust-only failure still
+    // fails the gate.
+    expect(qualityGateJobBlock).toContain(
+      "needs: [toolchain, format, lint, test-node-rust, test-jsdom, build, native-smoke, audit]",
+    );
+    expect(qualityGateJobBlock).toContain("needs.test-node-rust.result");
+    expect(qualityGateJobBlock).toContain("needs.test-jsdom.result");
 
     expect(ciWorkflow).not.toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
