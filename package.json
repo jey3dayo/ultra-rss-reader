@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.62.1",
   "type": "module",
-  "packageManager": "pnpm@11.24.0",
+  "packageManager": "pnpm@11.26.0",
   "engines": {
     "node": "26.4.0",
-    "pnpm": "11.24.0"
+    "pnpm": "11.26.0"
   },
   "scripts": {
     "dev": "pnpm exec vite",
@@ -59,7 +59,7 @@
     ]
   },
   "dependencies": {
-    "@base-ui/react": "^1.7.0",
+    "@base-ui/react": "^1.8.0",
     "@praha/byethrow": "^0.12.0",
     "@sentry/react": "^10.73.0",
     "@tanstack/react-query": "^5.102.8",
@@ -69,9 +69,9 @@
     "cmdk": "^1.1.1",
     "cn": "^0.2.4",
     "date-fns": "^4.4.0",
-    "i18next": "^26.4.1",
+    "i18next": "^26.4.2",
     "i18next-browser-languagedetector": "^8.2.1",
-    "lucide-react": "^1.40.0",
+    "lucide-react": "^1.41.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.13",
@@ -81,7 +81,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@sentry/vite-plugin": "^5.4.0",
     "@storybook/addon-a11y": "^10.6.0",
     "@storybook/addon-docs": "^10.6.0",
@@ -97,17 +97,17 @@
     "@vitejs/plugin-react": "^6.1.1",
     "agentation": "^3.0.2",
     "jsdom": "^30.0.1",
-    "knip": "6.33.0",
+    "knip": "6.34.0",
     "lefthook": "2.1.12",
     "markdownlint-cli2": "^0.23.2",
     "portless": "^0.15.6",
-    "react-doctor": "0.9.12",
-    "shadcn": "^4.20.1",
+    "react-doctor": "0.9.13",
+    "shadcn": "^4.21.0",
     "storybook": "^10.6.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11",
-    "wrangler": "4.127.1"
+    "wrangler": "4.129.0"
   }
 }
