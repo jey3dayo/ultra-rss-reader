@@ -98,19 +98,27 @@ const reactDoctorBaselines = {
     warningCount: 0,
     affectedFileCount: 0,
   },
+  // Full-scan constants re-pinned on 2026-09-08 after classifying every in-scope
+  // no-high-complexity-react-function finding; see
+  // docs/react-doctor-complexity-classification.md for the per-finding record and
+  // .claude/rules/quality-policy.md for the durable families. Measured with
+  // oxlint-plugin-react-doctor 0.9.13 on f9df8be7c, from the scan this file runs:
+  // react-doctor . --verbose --scope full --json --json-compact --blocking none
+  // --no-score --no-dead-code. All 25 in-scope findings are accepted risk; the
+  // outlier useAccountDetailViewProps (cyclomatic 85 / cognitive 106) is tracked
+  // separately as Issue #256, so its warning is still counted here.
   full: {
     score: null,
-    errorCount: 16,
-    warningCount: 75,
-    affectedFileCount: 46,
+    errorCount: 14,
+    warningCount: 120,
+    affectedFileCount: 74,
   },
 } as const;
 
 // Re-pinned on 2026-09-08 after classifying every reported export and type; see
 // docs/knip-export-classification.md for the per-finding record. The remaining 11 findings are
 // 7 unused files with `mise` / Vite-alias consumers, 2 intentional semantic aliases, and 2 exports
-// whose `export` keyword is itself the contract a test asserts. React Doctor's constants are
-// deliberately left alone until its complexity findings are classified.
+// whose `export` keyword is itself the contract a test asserts.
 const knipBaseline = {
   issueCount: 10,
   findingsCount: 11,
