@@ -18,7 +18,23 @@ Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→
 
 ## Knip Ignore Policy
 
-Knip is a report-only review tool in this repository, not a continuously enforced gate. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases. As of 2026-08-29, all six reported unused files were manually verified as false positives: `scripts/check-toolchain-contract.ts` and `scripts/report-dependency-licenses.ts` are invoked from `mise/quality.toml`, `scripts/install-windows-app.ts` is invoked by `mise.toml` `run_windows`, and the three `src/dev/prod-stubs/` files are Vite production-build alias targets covered by `production-dev-aliases.node.test.ts`. Keeping a hard count gate in that situation encourages number-matching instead of triage and degrades the signal. Reconsider this policy if Knip can trace these `mise` and Vite alias consumers.
+Knip is a report-only review tool in this repository, not a continuously enforced gate. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases. As of 2026-09-08, all seven reported unused files were verified as false positives by locating the actual consumer of each:
+
+| File | Consumer |
+| --- | --- |
+| `scripts/check-toolchain-contract.ts` | `mise/quality.toml` |
+| `scripts/report-dependency-licenses.ts` | `mise/quality.toml` |
+| `scripts/verify-action-pins.ts` | `mise/setup.toml` `deps:update` |
+| `scripts/install-windows-app.ts` | `mise.toml` `run_windows` |
+| `src/dev/prod-stubs/scenario-ids.ts` | `vite.config.ts` production alias |
+| `src/dev/prod-stubs/use-dev-intent.ts` | `vite.config.ts` production alias |
+| `src/dev/prod-stubs/use-resolved-dev-intent.ts` | `vite.config.ts` production alias |
+
+The three alias targets are covered by `production-dev-aliases.node.test.ts`.
+
+`scripts/run-guarded-pnpm-update.ts` has the same shape — invoked only from `mise/setup.toml` — but Knip does not report it, because `release-age-gate-contract.node.test.ts` imports it with `?raw` to pin its contract. That import is what makes it traceable, so do not treat its absence from the report as evidence that Knip can follow `mise` consumers.
+
+Keeping a hard count gate in that situation encourages number-matching instead of triage and degrades the signal. Reconsider this policy if Knip can trace these `mise` and Vite alias consumers.
 
 `package.json#knip.ignoreDependencies` entries must document why Knip cannot see a real consumer:
 
