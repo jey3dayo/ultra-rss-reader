@@ -459,3 +459,14 @@ export function getReadStateDiagnosticsRingForTests(): readonly ReadDiagnosticEv
 export function getReadStateDiagnosticsDroppedCountForTests(): number {
   return droppedCount;
 }
+
+/** Test-only: measures the real envelope byte size of `{ events, droppedCount }` exactly the way
+ * `recordReadDiagnosticsBatch` (src/api/tauri-commands/system.ts) will send it, so a byte-parity
+ * test can check this against an independently-computed expected value without duplicating
+ * `realByteSize`'s JSON+UTF-8 encoding logic. */
+export function envelopeByteSizeForTests(
+  events: readonly ReadDiagnosticEventArgs[],
+  batchDroppedCount: number,
+): number {
+  return envelopeByteSize(events, batchDroppedCount);
+}
