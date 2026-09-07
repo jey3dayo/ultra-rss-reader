@@ -99,7 +99,7 @@ export const WithIcons: Story = {
         Next
         <ChevronRight data-icon="inline-end" />
       </Button>
-      <Button size="icon" variant="secondary">
+      <Button aria-label="Add" size="icon" variant="secondary">
         <Plus />
       </Button>
     </div>
