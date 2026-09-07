@@ -175,10 +175,57 @@ function evictOldestUntilRoom(incomingSize: number): void {
   }
 }
 
-function takeBatchDroppedCount(): number {
-  const count = droppedCount;
+/** The exact shape `sendBatch` transmits, for measuring the real envelope (array brackets,
+ * commas, and the "events"/"droppedCount" keys all cost bytes that a per-event size sum does not
+ * capture). */
+function envelopeByteSize(events: readonly ReadDiagnosticEventArgs[], batchDroppedCount: number): number {
+  return realByteSize({ events, droppedCount: batchDroppedCount });
+}
+
+/**
+ * Takes everything currently in the ring and trims it down until the *actual serialized
+ * envelope* -- not just the sum of each event's own size -- fits within RING_MAX_BYTES. Per-event
+ * eviction already keeps that sum bounded, but array/object framing overhead (brackets, commas,
+ * key names, and the dropped-count digit width) is otherwise uncounted and can push a
+ * full-but-nominally-in-budget ring's real payload over the cap, which the backend's own
+ * envelope-based check would then reject outright.
+ *
+ * Trims from the oldest end first (consistent with the ring's FIFO eviction policy) and puts
+ * trimmed events back at the front of the ring for the next flush -- nothing is dropped or
+ * miscounted by this step alone. Only if a single remaining event's envelope still cannot fit
+ * (an extreme, near-cap single event plus framing overhead) is that event finally dropped and
+ * counted, exactly like the single-oversized-event path in `pushEvent`.
+ */
+function buildSendableBatch(): { events: ReadDiagnosticEventArgs[]; droppedCount: number } {
+  const candidateEvents = ring;
+  const candidateSizes = ringSizes;
+  let candidateDropped = droppedCount;
+  ring = [];
+  ringSizes = [];
+  ringBytesTotal = 0;
   droppedCount = 0;
-  return count;
+
+  while (candidateEvents.length > 0 && envelopeByteSize(candidateEvents, candidateDropped) > RING_MAX_BYTES) {
+    if (candidateEvents.length === 1) {
+      // Even alone, this event's envelope does not fit: drop it rather than defer it forever.
+      candidateEvents.pop();
+      candidateSizes.pop();
+      candidateDropped += 1;
+      break;
+    }
+    // Defer the oldest candidate back to the ring for the next flush; it is still pending, not
+    // dropped.
+    const deferredEvent = candidateEvents.shift();
+    const deferredSize = candidateSizes.shift();
+    if (deferredEvent === undefined || deferredSize === undefined) {
+      break;
+    }
+    ring.unshift(deferredEvent);
+    ringSizes.unshift(deferredSize);
+    ringBytesTotal += deferredSize;
+  }
+
+  return { events: candidateEvents, droppedCount: candidateDropped };
 }
 
 /** Runs after a send settles (success, failure, or a synchronous throw from the transport
@@ -219,11 +266,12 @@ function flush({ immediate }: { immediate: boolean }): void {
   }
   clearThrottledFlushTimer();
 
-  const batchEvents = ring;
-  ring = [];
-  ringSizes = [];
-  ringBytesTotal = 0;
-  const batchDroppedCount = takeBatchDroppedCount();
+  const { events: batchEvents, droppedCount: batchDroppedCount } = buildSendableBatch();
+  if (batchEvents.length === 0 && batchDroppedCount === 0) {
+    // Everything was deferred back into the ring (envelope trimming with nothing left to send
+    // yet); nothing to do until more content arrives or the ring is retried.
+    return;
+  }
   lastFlushAt = now;
   sending = true;
 

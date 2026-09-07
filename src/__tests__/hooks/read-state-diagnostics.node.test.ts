@@ -533,4 +533,78 @@ describe("read-state-diagnostics sink", () => {
       ]);
     });
   });
+
+  describe("envelope byte boundary (array/object framing, not just per-event sums)", () => {
+    // Backend measures the whole {events, dropped_count} envelope, including array brackets,
+    // commas, and key names -- none of which a per-event byte sum captures. This mirrors that
+    // measurement exactly, so the tests below assert against the same boundary the backend
+    // would reject at.
+    function measureEnvelope(events: readonly unknown[], droppedCount: number): number {
+      return new TextEncoder().encode(JSON.stringify({ events, droppedCount })).length;
+    }
+
+    it("keeps every sent batch's real envelope within 16 KiB at 64 near-cap-sized events", async () => {
+      const { transport, calls } = createFakeTransport();
+      setReadStateDiagnosticsTransportForTests(transport);
+
+      // Consume the "first push always flushes" opportunity so the 64 pushes below accumulate
+      // together instead of each triggering its own send.
+      recordAutoMarkScheduled("req-seed", 0, 300);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toHaveLength(1);
+
+      // Chosen so the 64 events' raw per-event byte sum fits within RING_MAX_BYTES (16 KiB) --
+      // evictOldestUntilRoom's incremental per-item check never trims any of them -- but the real
+      // serialized envelope (array brackets, commas, "event"/"requestId"/... keys) pushes the
+      // total over the cap by itself. Without envelope-aware trimming at flush time, this batch
+      // would be handed to the backend oversized and rejected outright.
+      const padLen = 174;
+      for (let i = 0; i < 64; i += 1) {
+        recordAutoMarkCancelled(`${"a".repeat(padLen)}-${i}`, i + 1, "effect_cleanup");
+      }
+
+      // Confirm the scenario actually requires envelope-level trimming: the raw per-event sum
+      // must fit, but the full envelope must not, or this test would not exercise anything new.
+      const ring = getReadStateDiagnosticsRingForTests();
+      const rawSum = ring.reduce((sum, event) => sum + new TextEncoder().encode(JSON.stringify(event)).length, 0);
+      expect(rawSum).toBeLessThanOrEqual(16 * 1024);
+      expect(measureEnvelope(ring, getReadStateDiagnosticsDroppedCountForTests())).toBeGreaterThan(16 * 1024);
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      // Drain any further scheduled continuation flushes for the deferred remainder.
+      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      const sentBatches = calls.slice(1);
+      expect(sentBatches.length).toBeGreaterThan(0);
+      for (const call of sentBatches) {
+        const envelopeSize = measureEnvelope(call.events, call.droppedCount);
+        expect(envelopeSize).toBeLessThanOrEqual(16 * 1024);
+      }
+
+      // Accounting integrity: every one of the 64 pushed events is accounted for as either sent
+      // or counted in a dropped count -- nothing silently vanishes.
+      const totalEventsSent = sentBatches.reduce((sum, call) => sum + call.events.length, 0);
+      const totalDropped = sentBatches.reduce((sum, call) => sum + call.droppedCount, 0);
+      expect(totalEventsSent + totalDropped).toBe(64);
+    });
+
+    it("measures a frontend-assembled batch about as strictly as the backend measures its own envelope", () => {
+      // The backend's ReadDiagnosticsBatchSizeCalc serializes { events, dropped_count } (snake
+      // case) via serde_json; the actual wire payload the frontend sends is { events,
+      // droppedCount } (camelCase, matching the real IPC call). The two key spellings differ by
+      // exactly one byte (droppedCount vs dropped_count), so measuring with the frontend's own
+      // camelCase shape -- which is what this module actually does at flush time -- lands within
+      // a byte of the backend's own approximation rather than wildly over- or under-counting the
+      // envelope framing (array brackets, commas, key names) that a per-event size sum misses.
+      const events = [
+        { event: "scheduled", requestId: "5b978598-36b8-4bd4-8ee4-1bf25f4773c2", generation: 1, delayMs: 300 },
+      ];
+      const frontendMeasured = measureEnvelope(events, 0);
+      const backendKeyMeasured = new TextEncoder().encode(JSON.stringify({ events, dropped_count: 0 })).length;
+
+      expect(Math.abs(frontendMeasured - backendKeyMeasured)).toBeLessThanOrEqual(1);
+      expect(frontendMeasured).toBeLessThanOrEqual(16 * 1024);
+    });
+  });
 });
