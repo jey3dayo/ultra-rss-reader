@@ -7,9 +7,9 @@ use super::{
     background_browser_open_failure_message, background_browser_open_status_failure_message,
     bulk_mark_account_read, bulk_mark_account_starred_read, bulk_mark_old_unread_read,
     bulk_unstar_account_articles, collect_old_unread_rows, has_blocking_frame_ancestors,
-    has_blocking_x_frame_options, mark_article_read_with_conn, mark_articles_read_with_conn,
-    mark_feed_read_with_conn, mark_folder_read_with_conn, maybe_queue_mutation,
-    native_browser_open_failure_message, old_unread_before_from_now,
+    has_blocking_x_frame_options, mark_article_read_impl, mark_article_read_with_conn,
+    mark_articles_read_with_conn, mark_feed_read_with_conn, mark_folder_read_with_conn,
+    maybe_queue_mutation, native_browser_open_failure_message, old_unread_before_from_now,
     open_browser_in_background_with_command, parse_article_list_mode,
     provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
     record_article_view_with_conn, repair_outdated_articles_for_render,
@@ -1003,7 +1003,7 @@ fn article_mutation_missing_id_contract_is_command_error() {
         db.writer(),
         ArticleId("missing-read".to_string()),
         true,
-        None,
+        &std::cell::Cell::new(None),
     )
     .expect_err("missing article read mutation should be returned as a command error");
     assert!(matches!(
@@ -1638,8 +1638,13 @@ fn article_read_and_star_commands_queue_pending_mutations_for_remote_feeds() {
         false,
     );
 
-    mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true, None)
-        .expect("read mutation should succeed");
+    mark_article_read_with_conn(
+        db.writer(),
+        ArticleId("article-a".to_string()),
+        true,
+        &std::cell::Cell::new(None),
+    )
+    .expect("read mutation should succeed");
     toggle_article_star_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
         .expect("star mutation should succeed");
 
@@ -1676,8 +1681,13 @@ fn article_read_and_star_commands_do_not_queue_pending_mutations_for_local_feeds
         false,
     );
 
-    mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true, None)
-        .expect("local read mutation should succeed");
+    mark_article_read_with_conn(
+        db.writer(),
+        ArticleId("article-a".to_string()),
+        true,
+        &std::cell::Cell::new(None),
+    )
+    .expect("local read mutation should succeed");
     toggle_article_star_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
         .expect("local star mutation should succeed");
 
@@ -1703,9 +1713,13 @@ fn mark_article_read_rolls_back_local_state_when_pending_mutation_queue_fails() 
         .expect("feed unread count setup should succeed");
     install_pending_mutation_insert_failure_trigger(&db);
 
-    let error =
-        mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true, None)
-            .expect_err("pending mutation queue failure should reject the read mutation");
+    let error = mark_article_read_with_conn(
+        db.writer(),
+        ArticleId("article-a".to_string()),
+        true,
+        &std::cell::Cell::new(None),
+    )
+    .expect_err("pending mutation queue failure should reject the read mutation");
 
     assert!(matches!(
         error,
@@ -1715,6 +1729,35 @@ fn mark_article_read_rolls_back_local_state_when_pending_mutation_queue_fails() 
     assert!(!article_is_read(&db, "article-a"));
     assert_eq!(feed_unread_count(&db, "feed-a"), 1);
     assert_eq!(pending_mutation_count(&db), 0);
+}
+
+#[test]
+fn mark_article_read_impl_returns_the_unchanged_poisoned_recovery_error_when_the_db_mutex_is_poisoned(
+) {
+    // Regression: a poisoned db mutex returns before any transaction is attempted (the earliest
+    // possible failure point), so the stage="lock" diagnostic path in mark_article_read_impl must
+    // still run and, crucially, must not change the returned AppError. The exact recovery message
+    // matching APP_STATE_POISONED_ERROR is the only evidence this test can observe without a
+    // tracing-capturing harness; by construction, that exact string is produced by exactly one
+    // branch in mark_article_read_impl (the lock_db(..).Err(..) arm), which is also the only
+    // branch that records stage=Lock. See build_mark_article_read_failure_log_fields's own tests
+    // in mutations/read_diagnostics.rs for the pure timing/classification assertions.
+    let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+    let poison_result = std::panic::catch_unwind(|| {
+        let _guard = db.lock().unwrap();
+        panic!("poison test database lock for mark_article_read_impl");
+    });
+    assert!(poison_result.is_err());
+
+    let error = mark_article_read_impl(&db, "article-a".to_string(), Some(true), None)
+        .expect_err("a poisoned db mutex should return an error, not silently succeed");
+
+    match error {
+        AppError::UserVisible { message } => {
+            assert_eq!(message, crate::commands::APP_STATE_POISONED_ERROR);
+        }
+        other => panic!("expected the unchanged app-state-poisoned recovery error, got {other:?}"),
+    }
 }
 
 #[test]

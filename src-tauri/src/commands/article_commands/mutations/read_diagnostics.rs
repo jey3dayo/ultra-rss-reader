@@ -250,24 +250,78 @@ fn observe_backend_diagnostic(kind: &'static str) -> RateLimitDecision {
     }
 }
 
+/// Pure (no I/O, no clock read) computation of everything `log_mark_article_read_failure` would
+/// log for a given stage/error/timing combination. Kept separate from the actual `tracing::warn!`
+/// call so the wiring -- in particular "a long lock wait combined with a fast transaction failure
+/// still reports lock_wait_slow=true" -- is directly unit-testable with injected `Duration`
+/// values, without needing a tracing subscriber to capture output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MarkArticleReadFailureLogFields {
+    pub(crate) stage: &'static str,
+    pub(crate) error_class: &'static str,
+    pub(crate) lock_wait_ms: u64,
+    pub(crate) transaction_ms: u64,
+    pub(crate) total_ms: u64,
+    pub(crate) lock_wait_slow: bool,
+    pub(crate) transaction_slow: bool,
+    pub(crate) total_slow: bool,
+}
+
+pub(crate) fn build_mark_article_read_failure_log_fields(
+    stage: MarkArticleReadStage,
+    error_class: ReadDbErrorClass,
+    lock_wait: Duration,
+    transaction_elapsed: Duration,
+) -> MarkArticleReadFailureLogFields {
+    let warning = classify_mark_article_read_timing(lock_wait, transaction_elapsed);
+    let total = lock_wait + transaction_elapsed;
+    MarkArticleReadFailureLogFields {
+        stage: stage.as_str(),
+        error_class: error_class.as_str(),
+        lock_wait_ms: lock_wait.as_millis() as u64,
+        transaction_ms: transaction_elapsed.as_millis() as u64,
+        total_ms: total.as_millis() as u64,
+        lock_wait_slow: warning.lock_wait_slow,
+        transaction_slow: warning.transaction_slow,
+        total_slow: warning.total_slow,
+    }
+}
+
+/// Single consolidated failure log for `mark_article_read`: stage, safe error classification,
+/// and the full lock_wait/transaction/total timing breakdown in one line, so a slow lock followed
+/// by a fast transaction failure is never misread as "just a fast failure". This replaces
+/// separately emitting a "failure" line (stage only) and a "slow" line (timing only) for the same
+/// call, which would double-count both the log volume and the rate limiter's suppression window.
 pub(crate) fn log_mark_article_read_failure(
     context: &ReadDiagnosticContext,
     stage: MarkArticleReadStage,
     error_class: ReadDbErrorClass,
-    elapsed: Duration,
+    lock_wait: Duration,
+    transaction_elapsed: Duration,
 ) {
-    let kind = stage.as_str();
+    let fields = build_mark_article_read_failure_log_fields(
+        stage,
+        error_class,
+        lock_wait,
+        transaction_elapsed,
+    );
+    let kind = fields.stage;
     match observe_backend_diagnostic(kind) {
         RateLimitDecision::Suppress => {}
         RateLimitDecision::Emit => {
             tracing::warn!(
                 target: "read_diagnostics",
                 event = "failure",
-                stage = kind,
-                error_class = error_class.as_str(),
+                stage = fields.stage,
+                error_class = fields.error_class,
                 source = context.source.as_str(),
                 request_id = %context.request_id,
-                elapsed_ms = elapsed.as_millis() as u64,
+                lock_wait_ms = fields.lock_wait_ms,
+                transaction_ms = fields.transaction_ms,
+                total_ms = fields.total_ms,
+                lock_wait_slow = fields.lock_wait_slow,
+                transaction_slow = fields.transaction_slow,
+                total_slow = fields.total_slow,
                 "mark_article_read failed"
             );
         }
@@ -275,11 +329,16 @@ pub(crate) fn log_mark_article_read_failure(
             tracing::warn!(
                 target: "read_diagnostics",
                 event = "failure",
-                stage = kind,
-                error_class = error_class.as_str(),
+                stage = fields.stage,
+                error_class = fields.error_class,
                 source = context.source.as_str(),
                 request_id = %context.request_id,
-                elapsed_ms = elapsed.as_millis() as u64,
+                lock_wait_ms = fields.lock_wait_ms,
+                transaction_ms = fields.transaction_ms,
+                total_ms = fields.total_ms,
+                lock_wait_slow = fields.lock_wait_slow,
+                transaction_slow = fields.transaction_slow,
+                total_slow = fields.total_slow,
                 suppressed_count = suppressed,
                 "mark_article_read failed (repeated)"
             );
@@ -334,10 +393,10 @@ pub(crate) fn log_mark_article_read_timing(
 #[cfg(test)]
 mod tests {
     use super::{
-        classify_mark_article_read_timing, classify_rusqlite_error, DiagnosticRateLimiter,
-        MarkArticleReadStage, RateLimitDecision, ReadDbErrorClass, ReadDiagnosticContext,
-        ReadDiagnosticSource, LOCK_WAIT_WARN_THRESHOLD_MS, TOTAL_WARN_THRESHOLD_MS,
-        TRANSACTION_WARN_THRESHOLD_MS,
+        build_mark_article_read_failure_log_fields, classify_mark_article_read_timing,
+        classify_rusqlite_error, DiagnosticRateLimiter, MarkArticleReadStage, RateLimitDecision,
+        ReadDbErrorClass, ReadDiagnosticContext, ReadDiagnosticSource, LOCK_WAIT_WARN_THRESHOLD_MS,
+        TOTAL_WARN_THRESHOLD_MS, TRANSACTION_WARN_THRESHOLD_MS,
     };
     use crate::commands::dto::ReadDiagnosticContextArg;
     use std::time::{Duration, Instant};
@@ -482,6 +541,53 @@ mod tests {
             )
             .total_slow
         );
+    }
+
+    #[test]
+    fn failure_log_fields_report_lock_contention_even_when_the_transaction_fails_fast() {
+        // Regression: a failure log must fold lock_wait into its timing classification. Before the
+        // fix, a failed transaction only ever logged its own (short) elapsed time, so a slow lock
+        // wait followed by a fast transaction failure looked like "just a fast failure" instead of
+        // a lock-contention failure.
+        let long_lock_wait = Duration::from_millis(LOCK_WAIT_WARN_THRESHOLD_MS + 50);
+        let fast_transaction_failure = Duration::from_millis(10);
+
+        let fields = build_mark_article_read_failure_log_fields(
+            MarkArticleReadStage::QueueMutation,
+            ReadDbErrorClass::Other,
+            long_lock_wait,
+            fast_transaction_failure,
+        );
+
+        assert!(fields.lock_wait_slow, "long lock wait must be flagged slow");
+        assert!(!fields.transaction_slow);
+        assert_eq!(fields.lock_wait_ms, long_lock_wait.as_millis() as u64);
+        assert_eq!(
+            fields.transaction_ms,
+            fast_transaction_failure.as_millis() as u64
+        );
+        assert_eq!(
+            fields.total_ms,
+            (long_lock_wait + fast_transaction_failure).as_millis() as u64
+        );
+        assert_eq!(fields.stage, "queue_mutation");
+        assert_eq!(fields.error_class, "other");
+    }
+
+    #[test]
+    fn failure_log_fields_do_not_fabricate_transaction_time_when_only_the_lock_failed() {
+        // When lock acquisition itself fails, no transaction was ever attempted; transaction_ms
+        // must be exactly zero, not some nonzero placeholder.
+        let fields = build_mark_article_read_failure_log_fields(
+            MarkArticleReadStage::Lock,
+            ReadDbErrorClass::Other,
+            Duration::from_millis(5),
+            Duration::ZERO,
+        );
+
+        assert_eq!(fields.transaction_ms, 0);
+        assert_eq!(fields.total_ms, 5);
+        assert_eq!(fields.stage, "lock");
     }
 
     #[test]

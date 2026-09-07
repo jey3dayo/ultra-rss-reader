@@ -70,12 +70,12 @@ use integrity::{cleanup_feed_integrity_orphans_inner, get_feed_integrity_report_
 #[cfg(test)]
 use mutations::{
     bulk_mark_account_read, bulk_mark_account_starred_read, bulk_mark_old_unread_read,
-    bulk_unstar_account_articles, collect_old_unread_rows, mark_article_read_with_conn,
-    mark_articles_read_with_conn, mark_feed_read_with_conn, mark_folder_read_with_conn,
-    old_unread_before_from_now, provider_supports_pending_article_mutations,
-    recalculate_bulk_feed_unread_counts, record_article_view_with_conn, supports_remote_mutations,
-    toggle_article_star_with_conn, validate_older_than_days, BulkArticleMutationRow,
-    OldUnreadScope,
+    bulk_unstar_account_articles, collect_old_unread_rows, mark_article_read_impl,
+    mark_article_read_with_conn, mark_articles_read_with_conn, mark_feed_read_with_conn,
+    mark_folder_read_with_conn, old_unread_before_from_now,
+    provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
+    record_article_view_with_conn, supports_remote_mutations, toggle_article_star_with_conn,
+    validate_older_than_days, BulkArticleMutationRow, OldUnreadScope,
 };
 
 #[cfg(test)]
