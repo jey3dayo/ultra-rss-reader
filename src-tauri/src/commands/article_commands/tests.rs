@@ -999,9 +999,13 @@ fn local_like_feeds_under_freshrss_accounts_do_not_queue_pending_mutations() {
 fn article_mutation_missing_id_contract_is_command_error() {
     let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
 
-    let read_error =
-        mark_article_read_with_conn(db.writer(), ArticleId("missing-read".to_string()), true)
-            .expect_err("missing article read mutation should be returned as a command error");
+    let read_error = mark_article_read_with_conn(
+        db.writer(),
+        ArticleId("missing-read".to_string()),
+        true,
+        None,
+    )
+    .expect_err("missing article read mutation should be returned as a command error");
     assert!(matches!(
         read_error,
         AppError::UserVisible { message }
@@ -1634,7 +1638,7 @@ fn article_read_and_star_commands_queue_pending_mutations_for_remote_feeds() {
         false,
     );
 
-    mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+    mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true, None)
         .expect("read mutation should succeed");
     toggle_article_star_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
         .expect("star mutation should succeed");
@@ -1672,7 +1676,7 @@ fn article_read_and_star_commands_do_not_queue_pending_mutations_for_local_feeds
         false,
     );
 
-    mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+    mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true, None)
         .expect("local read mutation should succeed");
     toggle_article_star_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
         .expect("local star mutation should succeed");
@@ -1699,8 +1703,9 @@ fn mark_article_read_rolls_back_local_state_when_pending_mutation_queue_fails() 
         .expect("feed unread count setup should succeed");
     install_pending_mutation_insert_failure_trigger(&db);
 
-    let error = mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
-        .expect_err("pending mutation queue failure should reject the read mutation");
+    let error =
+        mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true, None)
+            .expect_err("pending mutation queue failure should reject the read mutation");
 
     assert!(matches!(
         error,

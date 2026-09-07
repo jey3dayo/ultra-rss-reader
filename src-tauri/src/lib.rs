@@ -1137,6 +1137,7 @@ pub fn run() {
             commands::database_commands::vacuum_database,
             commands::database_commands::backup_database,
             commands::log_commands::open_log_dir,
+            commands::log_commands::record_read_diagnostics_batch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

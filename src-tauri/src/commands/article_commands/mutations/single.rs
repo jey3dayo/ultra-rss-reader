@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use rusqlite::OptionalExtension;
 use tauri::State;
 
@@ -16,15 +18,48 @@ use super::bulk::{
     mark_rows_read,
 };
 use super::pending::maybe_queue_mutation_in_current_transaction;
+use super::read_diagnostics::{
+    classify_domain_error, classify_rusqlite_error, log_mark_article_read_failure,
+    log_mark_article_read_timing, MarkArticleReadStage, ReadDbErrorClass, ReadDiagnosticContext,
+};
+use crate::commands::dto::ReadDiagnosticContextArg;
 
+/// Mirrors `mark_article_read_with_conn`'s transaction/commit contract exactly; the only addition
+/// is stage-tagged timing/failure diagnostics logged through `read_diagnostics`. `context` is
+/// `None` for every existing caller in this file's tests, matching production behavior before
+/// this diagnostic was added.
 pub(crate) fn mark_article_read_with_conn(
     conn: &rusqlite::Connection,
     article_id: ArticleId,
     read: bool,
+    context: Option<&ReadDiagnosticContext>,
 ) -> Result<(), AppError> {
-    let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
+    let transaction_start = Instant::now();
+
+    let tx = conn.unchecked_transaction().map_err(|e| {
+        if let Some(context) = context {
+            log_mark_article_read_failure(
+                context,
+                MarkArticleReadStage::Lock,
+                classify_rusqlite_error(&e),
+                transaction_start.elapsed(),
+            );
+        }
+        AppError::from(DomainError::from(e))
+    })?;
+
     let repo = SqliteArticleRepository::new(&tx);
-    repo.mark_as_read(&article_id, read)?;
+    repo.mark_as_read(&article_id, read).map_err(|e| {
+        if let Some(context) = context {
+            log_mark_article_read_failure(
+                context,
+                MarkArticleReadStage::UpdateRead,
+                classify_domain_error(&e),
+                transaction_start.elapsed(),
+            );
+        }
+        AppError::from(e)
+    })?;
 
     let feed_id_str = tx
         .query_row(
@@ -33,21 +68,67 @@ pub(crate) fn mark_article_read_with_conn(
             |row| row.get::<_, String>(0),
         )
         .optional()
-        .map_err(DomainError::from)?;
+        .map_err(|e| {
+            if let Some(context) = context {
+                log_mark_article_read_failure(
+                    context,
+                    MarkArticleReadStage::RecalculateCount,
+                    classify_rusqlite_error(&e),
+                    transaction_start.elapsed(),
+                );
+            }
+            AppError::from(DomainError::from(e))
+        })?;
 
     if let Some(feed_id_str) = feed_id_str {
         let feed_repo = SqliteFeedRepository::new(&tx);
-        feed_repo.recalculate_unread_count(&FeedId(feed_id_str))?;
+        feed_repo
+            .recalculate_unread_count(&FeedId(feed_id_str))
+            .map_err(|e| {
+                if let Some(context) = context {
+                    log_mark_article_read_failure(
+                        context,
+                        MarkArticleReadStage::RecalculateCount,
+                        classify_domain_error(&e),
+                        transaction_start.elapsed(),
+                    );
+                }
+                AppError::from(e)
+            })?;
 
         let mutation_type = if read {
             PendingMutationType::MarkRead
         } else {
             PendingMutationType::MarkUnread
         };
-        maybe_queue_mutation_in_current_transaction(&tx, &article_id, mutation_type)?;
+        maybe_queue_mutation_in_current_transaction(&tx, &article_id, mutation_type).inspect_err(
+            |_e| {
+                if let Some(context) = context {
+                    // maybe_queue_mutation_in_current_transaction already returns AppError; its
+                    // message is user-visible-safe but not diagnostic-safe, so log a fixed class.
+                    log_mark_article_read_failure(
+                        context,
+                        MarkArticleReadStage::QueueMutation,
+                        ReadDbErrorClass::Other,
+                        transaction_start.elapsed(),
+                    );
+                }
+            },
+        )?;
     }
 
-    tx.commit().map_err(DomainError::from)?;
+    tx.commit().map_err(|e| {
+        if let Some(context) = context {
+            log_mark_article_read_failure(
+                context,
+                MarkArticleReadStage::Commit,
+                classify_rusqlite_error(&e),
+                transaction_start.elapsed(),
+            );
+        }
+        AppError::from(DomainError::from(e))
+    })?;
+
     Ok(())
 }
 
@@ -120,11 +201,24 @@ pub fn mark_article_read(
     state: State<'_, AppState>,
     article_id: String,
     read: Option<bool>,
+    context: Option<ReadDiagnosticContextArg>,
 ) -> Result<(), AppError> {
+    let lock_wait_start = Instant::now();
     let db = crate::commands::lock_db(&state.db)?;
+    let lock_wait = lock_wait_start.elapsed();
+
     let article_id = ArticleId(article_id);
     let read = read.unwrap_or(true);
-    mark_article_read_with_conn(db.writer(), article_id, read)
+    let context = ReadDiagnosticContext::from_arg_or_backend_generated(context);
+
+    let transaction_start = Instant::now();
+    let result = mark_article_read_with_conn(db.writer(), article_id, read, Some(&context));
+    let transaction_elapsed = transaction_start.elapsed();
+
+    if result.is_ok() {
+        log_mark_article_read_timing(&context, lock_wait, transaction_elapsed);
+    }
+    result
 }
 
 #[tauri::command]

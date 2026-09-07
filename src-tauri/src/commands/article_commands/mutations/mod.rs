@@ -1,5 +1,6 @@
 mod bulk;
 mod pending;
+pub(crate) mod read_diagnostics;
 mod single;
 
 pub use bulk::{

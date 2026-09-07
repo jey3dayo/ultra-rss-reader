@@ -71,7 +71,8 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "check_for_update"
         | "download_update"
         | "restart_app"
-        | "open_log_dir" => CommandDbLockPolicy::NoDatabaseLock,
+        | "open_log_dir"
+        | "record_read_diagnostics_batch" => CommandDbLockPolicy::NoDatabaseLock,
         "list_accounts"
         | "update_account_sync"
         | "update_account_credentials"

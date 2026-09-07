@@ -1,7 +1,14 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use tauri::Manager;
 use tauri_plugin_opener::OpenerExt;
 
-use crate::commands::dto::AppError;
+use crate::commands::dto::{
+    is_valid_read_diagnostic_request_id, AppError, ReadDiagnosticCancelReasonArg,
+    ReadDiagnosticErrorClassArg, ReadDiagnosticEventArg, ReadDiagnosticOutcomeArg,
+    ReadDiagnosticSkipReasonArg, READ_DIAGNOSTICS_BATCH_MAX_BYTES,
+    READ_DIAGNOSTICS_BATCH_MAX_EVENTS, READ_DIAGNOSTICS_SESSION_MAX_BYTES,
+};
 
 fn log_dir_error_message(_action: &str, _error: impl std::fmt::Display) -> String {
     "Check OS permissions and try again.".to_string()
@@ -82,14 +89,235 @@ pub fn open_log_dir(app: tauri::AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
+const READ_DIAGNOSTICS_BATCH_REJECTED_MESSAGE: &str = "Diagnostics batch rejected.";
+
+/// Cumulative bytes accepted from `record_read_diagnostics_batch` across this process's
+/// lifetime. Deliberately process-global (not per-account or per-window) since diagnostics never
+/// carry account-scoped data; a fresh app launch resets it.
+static READ_DIAGNOSTICS_SESSION_BYTES_ACCEPTED: AtomicU64 = AtomicU64::new(0);
+
+fn read_diagnostics_batch_is_valid(
+    events: &[ReadDiagnosticEventArg],
+    serialized_bytes: usize,
+) -> bool {
+    !events.is_empty()
+        && events.len() <= READ_DIAGNOSTICS_BATCH_MAX_EVENTS
+        && serialized_bytes <= READ_DIAGNOSTICS_BATCH_MAX_BYTES
+        && events
+            .iter()
+            .all(|event| is_valid_read_diagnostic_request_id(event.request_id()))
+}
+
+/// Reserves `serialized_bytes` against `budget` if doing so would not exceed `cap`. Takes the
+/// counter and cap as parameters so the accept/reject boundary (including "already at cap") can
+/// be exercised against a fresh, test-local `AtomicU64` instead of the process-global counter,
+/// which would otherwise race across parallel test threads.
+fn reserve_diagnostics_budget(budget: &AtomicU64, cap: u64, serialized_bytes: u64) -> bool {
+    budget
+        .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |accepted| {
+            let next = accepted.saturating_add(serialized_bytes);
+            (next <= cap).then_some(next)
+        })
+        .is_ok()
+}
+
+fn try_reserve_read_diagnostics_session_budget(serialized_bytes: u64) -> bool {
+    reserve_diagnostics_budget(
+        &READ_DIAGNOSTICS_SESSION_BYTES_ACCEPTED,
+        READ_DIAGNOSTICS_SESSION_MAX_BYTES,
+        serialized_bytes,
+    )
+}
+
+fn read_diagnostic_skip_reason_str(reason: ReadDiagnosticSkipReasonArg) -> &'static str {
+    match reason {
+        ReadDiagnosticSkipReasonArg::AlreadyRead => "already_read",
+        ReadDiagnosticSkipReasonArg::NotReading => "not_reading",
+        ReadDiagnosticSkipReasonArg::PreferenceNever => "preference_never",
+        ReadDiagnosticSkipReasonArg::ManualUnreadSuppressed => "manual_unread_suppressed",
+        ReadDiagnosticSkipReasonArg::AlreadyRequested => "already_requested",
+    }
+}
+
+fn read_diagnostic_cancel_reason_str(reason: ReadDiagnosticCancelReasonArg) -> &'static str {
+    match reason {
+        ReadDiagnosticCancelReasonArg::ArticleChanged => "article_changed",
+        ReadDiagnosticCancelReasonArg::AccountChanged => "account_changed",
+        ReadDiagnosticCancelReasonArg::PreferenceChanged => "preference_changed",
+        ReadDiagnosticCancelReasonArg::EngagementChanged => "engagement_changed",
+        ReadDiagnosticCancelReasonArg::EffectCleanup => "effect_cleanup",
+    }
+}
+
+fn read_diagnostic_outcome_str(outcome: ReadDiagnosticOutcomeArg) -> &'static str {
+    match outcome {
+        ReadDiagnosticOutcomeArg::Success => "success",
+        ReadDiagnosticOutcomeArg::Failure => "failure",
+    }
+}
+
+fn read_diagnostic_error_class_str(
+    error_class: Option<ReadDiagnosticErrorClassArg>,
+) -> &'static str {
+    match error_class {
+        Some(ReadDiagnosticErrorClassArg::UserVisible) => "user_visible",
+        Some(ReadDiagnosticErrorClassArg::Retryable) => "retryable",
+        Some(ReadDiagnosticErrorClassArg::Unknown) | None => "unknown",
+    }
+}
+
+fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
+    match event {
+        ReadDiagnosticEventArg::Scheduled {
+            request_id,
+            generation,
+            delay_ms,
+        } => {
+            tracing::info!(
+                target: "read_diagnostics",
+                event = "scheduled",
+                request_id = %request_id,
+                generation,
+                delay_ms,
+                "auto-mark scheduled"
+            );
+        }
+        ReadDiagnosticEventArg::Skipped {
+            request_id,
+            generation,
+            reason,
+        } => {
+            tracing::info!(
+                target: "read_diagnostics",
+                event = "skipped",
+                request_id = %request_id,
+                generation,
+                reason = read_diagnostic_skip_reason_str(*reason),
+                "auto-mark skipped"
+            );
+        }
+        ReadDiagnosticEventArg::Cancelled {
+            request_id,
+            generation,
+            reason,
+        } => {
+            tracing::info!(
+                target: "read_diagnostics",
+                event = "cancelled",
+                request_id = %request_id,
+                generation,
+                reason = read_diagnostic_cancel_reason_str(*reason),
+                "auto-mark cancelled"
+            );
+        }
+        ReadDiagnosticEventArg::Dispatched {
+            request_id,
+            generation,
+            drift_ms,
+        } => {
+            tracing::info!(
+                target: "read_diagnostics",
+                event = "dispatched",
+                request_id = %request_id,
+                generation,
+                drift_ms,
+                "auto-mark dispatched"
+            );
+        }
+        ReadDiagnosticEventArg::Settled {
+            request_id,
+            generation,
+            outcome,
+            duration_ms,
+            error_class,
+            stale_owner,
+        } => {
+            let outcome_str = read_diagnostic_outcome_str(*outcome);
+            let error_class_str = read_diagnostic_error_class_str(*error_class);
+            if matches!(outcome, ReadDiagnosticOutcomeArg::Failure) {
+                tracing::warn!(
+                    target: "read_diagnostics",
+                    event = "settled",
+                    request_id = %request_id,
+                    generation,
+                    outcome = outcome_str,
+                    duration_ms,
+                    error_class = error_class_str,
+                    stale_owner,
+                    "auto-mark settled"
+                );
+            } else {
+                tracing::info!(
+                    target: "read_diagnostics",
+                    event = "settled",
+                    request_id = %request_id,
+                    generation,
+                    outcome = outcome_str,
+                    duration_ms,
+                    error_class = error_class_str,
+                    stale_owner,
+                    "auto-mark settled"
+                );
+            }
+        }
+        ReadDiagnosticEventArg::PendingSlow {
+            request_id,
+            generation,
+            elapsed_ms,
+        } => {
+            tracing::warn!(
+                target: "read_diagnostics",
+                event = "pending_slow",
+                request_id = %request_id,
+                generation,
+                elapsed_ms,
+                "auto-mark still pending"
+            );
+        }
+    }
+}
+
+/// Accepts a bounded batch of already-validated (frontend schema, then here) read-state
+/// diagnostic events and forwards each to the existing `tracing`/tauri-plugin-log app.log sink.
+/// Never touches the database and never affects any read/unread result; a rejected batch is
+/// simply dropped, both here and by the frontend caller (which does not retry or await this
+/// call). See `src/components/reader/hooks/article/read-state-diagnostics.ts` for the sender.
+#[tauri::command]
+pub fn record_read_diagnostics_batch(events: Vec<ReadDiagnosticEventArg>) -> Result<(), AppError> {
+    let serialized_bytes = serde_json::to_vec(&events)
+        .map(|bytes| bytes.len())
+        .unwrap_or(usize::MAX);
+
+    if !read_diagnostics_batch_is_valid(&events, serialized_bytes) {
+        return Err(AppError::UserVisible {
+            message: READ_DIAGNOSTICS_BATCH_REJECTED_MESSAGE.to_string(),
+        });
+    }
+
+    if !try_reserve_read_diagnostics_session_budget(serialized_bytes as u64) {
+        return Err(AppError::UserVisible {
+            message: READ_DIAGNOSTICS_BATCH_REJECTED_MESSAGE.to_string(),
+        });
+    }
+
+    for event in &events {
+        log_read_diagnostic_event(event);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
     use super::{
         diagnostics_size_policy, ensure_log_dir, log_dir_error_message, log_dir_opener_app_arg,
-        log_dir_opener_arg, log_dir_privacy_checklist,
+        log_dir_opener_arg, log_dir_privacy_checklist, read_diagnostics_batch_is_valid,
+        record_read_diagnostics_batch, reserve_diagnostics_budget,
     };
+    use crate::commands::dto::ReadDiagnosticEventArg;
+    use std::sync::atomic::AtomicU64;
 
     fn assert_user_visible_recovery_message(result: Result<(), crate::commands::dto::AppError>) {
         match result {
@@ -278,5 +506,94 @@ mod tests {
 
         assert_user_visible_recovery_message(ensure_log_dir(&log_dir));
         assert!(log_dir.is_file());
+    }
+
+    fn scheduled_event(request_id: &str) -> ReadDiagnosticEventArg {
+        ReadDiagnosticEventArg::Scheduled {
+            request_id: request_id.to_string(),
+            generation: 1,
+            delay_ms: 300,
+        }
+    }
+
+    #[test]
+    fn read_diagnostics_batch_is_valid_rejects_empty_batches() {
+        assert!(!read_diagnostics_batch_is_valid(&[], 0));
+    }
+
+    #[test]
+    fn read_diagnostics_batch_is_valid_rejects_more_than_the_max_event_count() {
+        let events: Vec<_> = (0..65).map(|_| scheduled_event("req-1")).collect();
+        assert!(!read_diagnostics_batch_is_valid(&events, 1));
+    }
+
+    #[test]
+    fn read_diagnostics_batch_is_valid_accepts_exactly_the_max_event_count() {
+        let events: Vec<_> = (0..64).map(|_| scheduled_event("req-1")).collect();
+        assert!(read_diagnostics_batch_is_valid(&events, 1));
+    }
+
+    #[test]
+    fn read_diagnostics_batch_is_valid_rejects_oversized_serialized_batches() {
+        let events = vec![scheduled_event("req-1")];
+        assert!(!read_diagnostics_batch_is_valid(&events, 16 * 1024 + 1));
+        assert!(read_diagnostics_batch_is_valid(&events, 16 * 1024));
+    }
+
+    #[test]
+    fn read_diagnostics_batch_is_valid_rejects_an_invalid_request_id() {
+        let events = vec![scheduled_event("id with spaces")];
+        assert!(!read_diagnostics_batch_is_valid(&events, 1));
+    }
+
+    #[test]
+    fn reserve_diagnostics_budget_accepts_until_the_cap_then_rejects() {
+        let budget = AtomicU64::new(0);
+        assert!(reserve_diagnostics_budget(&budget, 100, 40));
+        assert!(reserve_diagnostics_budget(&budget, 100, 40));
+        // 80 + 40 = 120 > 100: rejected, and the counter must not have moved.
+        assert!(!reserve_diagnostics_budget(&budget, 100, 40));
+        assert!(reserve_diagnostics_budget(&budget, 100, 20));
+    }
+
+    #[test]
+    fn reserve_diagnostics_budget_rejects_a_single_batch_larger_than_the_cap() {
+        let budget = AtomicU64::new(0);
+        assert!(!reserve_diagnostics_budget(&budget, 100, 101));
+        // The cap itself is inclusive.
+        assert!(reserve_diagnostics_budget(&budget, 100, 100));
+    }
+
+    #[test]
+    fn record_read_diagnostics_batch_rejects_an_empty_batch_without_logging() {
+        let result = record_read_diagnostics_batch(vec![]);
+        assert_user_visible_recovery_message_with(result, "Diagnostics batch rejected.");
+    }
+
+    #[test]
+    fn record_read_diagnostics_batch_rejects_an_invalid_request_id() {
+        let result =
+            record_read_diagnostics_batch(vec![scheduled_event("bad id; drop table articles")]);
+        assert_user_visible_recovery_message_with(result, "Diagnostics batch rejected.");
+    }
+
+    #[test]
+    fn record_read_diagnostics_batch_accepts_a_small_valid_batch() {
+        let result = record_read_diagnostics_batch(vec![scheduled_event(
+            "5b978598-36b8-4bd4-8ee4-1bf25f4773c2",
+        )]);
+        assert!(result.is_ok());
+    }
+
+    fn assert_user_visible_recovery_message_with(
+        result: Result<(), crate::commands::dto::AppError>,
+        expected: &str,
+    ) {
+        match result {
+            Err(crate::commands::dto::AppError::UserVisible { message }) => {
+                assert_eq!(message, expected);
+            }
+            other => panic!("expected user-visible error, got {other:?}"),
+        }
     }
 }
