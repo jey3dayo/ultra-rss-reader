@@ -31,8 +31,11 @@ Knip findings before: 82 (7 files, 44 exports, 29 types, 2 duplicates).
 Knip findings after: 11 (7 files, 2 exports, 2 duplicates). The 7 file findings and the 2 duplicate
 findings were out of scope and are unchanged.
 
-`scripts/quality-baseline.ts` was deliberately not updated; the baseline constants are refreshed
-separately once the whole Issue #249 classification lands.
+`scripts/quality-baseline.ts` re-pins the Knip baseline to 10 issues and 11 findings in the same
+change, because the export and type classification that produced those numbers is complete and the
+adopted narrowing is applied. The React Doctor constants are deliberately left alone: its
+`no-high-complexity-react-function` findings are still unclassified, and pinning a measured value
+before classifying it would turn the baseline into number-matching.
 
 ## Method
 
