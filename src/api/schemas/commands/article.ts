@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
+import { readDiagnosticContextArgs } from "./read-diagnostics";
 import {
   articleListModeSchema,
   nonBlankTrimmedIdSchema,
@@ -94,6 +95,7 @@ export const searchArticlesArgs = s.object({
 export const markArticleReadArgs = s.object({
   articleId: nonBlankTrimmedIdSchema,
   read: v.optional(v.boolean()),
+  context: v.optional(readDiagnosticContextArgs),
 });
 
 export const recordArticleViewArgs = s.object({

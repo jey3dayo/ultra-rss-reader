@@ -71,6 +71,7 @@ import {
   setMuteAutoMarkReadArgs,
   updateMuteKeywordArgs,
 } from "./mute-keyword";
+import { recordReadDiagnosticsBatchArgs } from "./read-diagnostics";
 import { exportSettingsProfileToFileArgs, importSettingsProfileArgs } from "./settings-profile";
 import {
   createTagArgs,
@@ -157,6 +158,7 @@ export const commandArgsSchemas = {
   set_local_account_sync_settings: setLocalAccountSyncSettingsArgs,
   export_local_account_sync_operations: exportLocalAccountSyncOperationsArgs,
   import_local_account_sync_operations: importLocalAccountSyncOperationsArgs,
+  record_read_diagnostics_batch: recordReadDiagnosticsBatchArgs,
 } as const satisfies Record<string, CommandArgsSchema>;
 
 export type CommandArgsSchemaRegistry = typeof commandArgsSchemas;
