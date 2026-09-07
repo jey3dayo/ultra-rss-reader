@@ -107,6 +107,10 @@ const reactDoctorBaselines = {
   // --no-score --no-dead-code. All 25 in-scope findings are accepted risk; the
   // outlier useAccountDetailViewProps (cyclomatic 85 / cognitive 106) is tracked
   // separately as Issue #256, so its warning is still counted here.
+  // Scope of that pass: only no-high-complexity-react-function (26 of the 120
+  // warnings) was classified. The error count and the other warning rules were
+  // re-measured, not triaged — the 14 errors are 13 no-ref-current-in-render plus
+  // 1 no-prop-callback-in-render, and none of them has been reviewed yet.
   full: {
     score: null,
     errorCount: 14,
