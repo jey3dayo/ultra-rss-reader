@@ -1,5 +1,6 @@
 mod bulk;
 mod pending;
+pub(crate) mod read_diagnostics;
 mod single;
 
 pub use bulk::{
@@ -36,6 +37,7 @@ pub(crate) use pending::{
 
 #[cfg(test)]
 pub(crate) use single::{
-    mark_article_read_with_conn, mark_articles_read_with_conn, mark_feed_read_with_conn,
-    mark_folder_read_with_conn, record_article_view_with_conn, toggle_article_star_with_conn,
+    mark_article_read_impl, mark_article_read_with_conn, mark_articles_read_with_conn,
+    mark_feed_read_with_conn, mark_folder_read_with_conn, record_article_view_with_conn,
+    toggle_article_star_with_conn,
 };

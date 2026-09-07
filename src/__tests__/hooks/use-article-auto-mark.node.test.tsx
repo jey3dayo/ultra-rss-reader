@@ -5,6 +5,7 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import type { ReactNode } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as readStateDiagnostics from "@/components/reader/hooks/article/read-state-diagnostics";
 import {
   clearManualUnreadAutoMarkSuppression,
   clearManualUnreadAutoMarkSuppressionsForTests,
@@ -115,7 +116,7 @@ describe("useArticleAutoMark", () => {
 
     expect(mutate).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith(
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -270,7 +271,7 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(1);
     expect(setRead.mutate).toHaveBeenCalledWith(
-      { id: "art-2", read: true },
+      expect.objectContaining({ id: "art-2", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -334,7 +335,7 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(1);
     expect(setRead.mutate).toHaveBeenCalledWith(
-      { id: "art-2", read: true },
+      expect.objectContaining({ id: "art-2", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -388,7 +389,7 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(1);
     expect(setRead.mutate).toHaveBeenCalledWith(
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -432,7 +433,7 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(1);
     expect(setRead.mutate).toHaveBeenCalledWith(
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -699,7 +700,7 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(1);
     expect(setRead.mutate).toHaveBeenCalledWith(
-      { id: "art-2", read: true },
+      expect.objectContaining({ id: "art-2", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -720,7 +721,7 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(2);
     expect(setRead.mutate).toHaveBeenLastCalledWith(
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -751,7 +752,7 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenCalledTimes(1);
     expect(setRead.mutate).toHaveBeenCalledWith(
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -779,7 +780,7 @@ describe("useArticleAutoMark", () => {
     });
 
     expect(setRead.mutate).toHaveBeenCalledWith(
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
@@ -901,12 +902,12 @@ describe("useArticleAutoMark", () => {
 
     expect(setRead.mutate).toHaveBeenNthCalledWith(
       1,
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({ onError: expect.any(Function) }),
     );
     expect(setRead.mutate).toHaveBeenNthCalledWith(
       2,
-      { id: "art-2", read: true },
+      expect.objectContaining({ id: "art-2", read: true }),
       expect.objectContaining({ onError: expect.any(Function) }),
     );
   });
@@ -1268,17 +1269,17 @@ describe("useArticleAutoMark", () => {
     expect(setRead.mutate).toHaveBeenCalledTimes(3);
     expect(setRead.mutate).toHaveBeenNthCalledWith(
       1,
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({ onError: expect.any(Function) }),
     );
     expect(setRead.mutate).toHaveBeenNthCalledWith(
       2,
-      { id: "art-2", read: true },
+      expect.objectContaining({ id: "art-2", read: true }),
       expect.objectContaining({ onError: expect.any(Function) }),
     );
     expect(setRead.mutate).toHaveBeenNthCalledWith(
       3,
-      { id: "art-1", read: true },
+      expect.objectContaining({ id: "art-1", read: true }),
       expect.objectContaining({ onError: expect.any(Function) }),
     );
   });
@@ -1300,5 +1301,172 @@ describe("useArticleAutoMark", () => {
     });
 
     expect(setRead.mutate).not.toHaveBeenCalled();
+  });
+});
+
+describe("useArticleAutoMark read-state diagnostics", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useUiStore.setState({
+      selectedAccountId: "account-1",
+      retainedArticleIds: new Set(),
+      recentlyReadIds: new Set(),
+    });
+    vi.restoreAllMocks();
+  });
+
+  afterEach(async () => {
+    cleanup();
+    clearManualUnreadAutoMarkSuppressionsForTests();
+    vi.useRealTimers();
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it("records scheduled then dispatched for a delayed auto-mark, with a stale-owner check available", () => {
+    const scheduledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkScheduled");
+    const dispatchedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkDispatched");
+    const mutate = vi.fn();
+
+    renderHook(() =>
+      useArticleAutoMark(
+        createParams({
+          afterReading: "after_0_3s",
+          setRead: { mutate },
+        }),
+      ),
+    );
+
+    expect(scheduledSpy).toHaveBeenCalledTimes(1);
+    const [requestId, generation, delayMs] = scheduledSpy.mock.calls[0] as [string, number, number];
+    expect(delayMs).toBe(300);
+    expect(typeof requestId).toBe("string");
+    expect(typeof generation).toBe("number");
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(dispatchedSpy).toHaveBeenCalledTimes(1);
+    expect(dispatchedSpy).toHaveBeenCalledWith(requestId, generation, expect.any(Number));
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        diagnostics: expect.objectContaining({ requestId, generation }),
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("records dispatched with zero drift for an immediate auto-mark", () => {
+    const dispatchedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkDispatched");
+    const mutate = vi.fn();
+
+    renderHook(() =>
+      useArticleAutoMark(
+        createParams({
+          afterReading: "immediately",
+          setRead: { mutate },
+        }),
+      ),
+    );
+
+    expect(dispatchedSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), 0);
+  });
+
+  it("records skipped(already_read) when the article is already read", () => {
+    const skippedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSkipped");
+
+    renderHook(() =>
+      useArticleAutoMark(
+        createParams({
+          isRead: true,
+        }),
+      ),
+    );
+
+    expect(skippedSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), "already_read");
+  });
+
+  it("records skipped(not_reading) when engagement is not reading", () => {
+    const skippedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSkipped");
+
+    renderHook(() =>
+      useArticleAutoMark(
+        createParams({
+          articleEngagement: "preview",
+        }),
+      ),
+    );
+
+    expect(skippedSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), "not_reading");
+  });
+
+  it("records skipped(preference_never) when after-reading preference is never", () => {
+    const skippedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSkipped");
+
+    renderHook(() =>
+      useArticleAutoMark(
+        createParams({
+          afterReading: "never",
+        }),
+      ),
+    );
+
+    expect(skippedSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), "preference_never");
+  });
+
+  it("records skipped(manual_unread_suppressed) after a manual unread on the same owner", () => {
+    suppressAutoMarkAfterManualUnread("account-1", "art-1");
+    const skippedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkSkipped");
+
+    renderHook(() => useArticleAutoMark(createParams()));
+
+    expect(skippedSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), "manual_unread_suppressed");
+  });
+
+  it("records cancelled(effect_cleanup) when a scheduled mark is torn down by an article change", () => {
+    const cancelledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkCancelled");
+    const setRead: UseArticleAutoMarkParams["setRead"] = { mutate: vi.fn() };
+
+    const { rerender } = renderHook((props: UseArticleAutoMarkParams) => useArticleAutoMark(props), {
+      initialProps: createParams({ articleId: "art-1", viewMode: "unread", setRead }),
+    });
+
+    rerender(createParams({ articleId: "art-2", viewMode: "unread", setRead }));
+
+    expect(cancelledSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), "effect_cleanup");
+  });
+
+  it("records cancelled(effect_cleanup) on unmount while a mark is still pending", () => {
+    const cancelledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkCancelled");
+    const setRead: UseArticleAutoMarkParams["setRead"] = { mutate: vi.fn() };
+
+    const { unmount } = renderHook(() => useArticleAutoMark(createParams({ setRead })));
+
+    unmount();
+
+    expect(cancelledSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), "effect_cleanup");
+  });
+
+  it("uses a distinct generation for each StrictMode re-invocation and never re-schedules the stale one", () => {
+    const scheduledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkScheduled");
+    const mutate = vi.fn();
+
+    renderHook(() => useArticleAutoMark(createParams({ afterReading: "after_0_3s", setRead: { mutate } })), {
+      wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
+    });
+
+    const generations = scheduledSpy.mock.calls.map((call) => call[1]);
+    expect(new Set(generations).size).toBe(generations.length);
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    // Only the surviving (latest) generation's timer actually dispatches; StrictMode's discarded
+    // first effect instance must not also fire a mutate call for its stale timer.
+    expect(mutate).toHaveBeenCalledTimes(1);
   });
 });

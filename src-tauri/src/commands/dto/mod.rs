@@ -1,6 +1,7 @@
 mod error;
 mod feed;
 mod platform;
+mod read_diagnostics;
 mod sync;
 
 pub use error::{
@@ -15,6 +16,13 @@ pub use feed::{
 pub use platform::{
     DevRuntimeOptionsDto, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto,
     PlatformPermissionDeniedRecoveryDto, PlatformPermissionDeniedSurfaceDto,
+};
+pub use read_diagnostics::{
+    is_valid_read_diagnostic_request_id, ReadDiagnosticCancelReasonArg, ReadDiagnosticContextArg,
+    ReadDiagnosticErrorClassArg, ReadDiagnosticEventArg, ReadDiagnosticOutcomeArg,
+    ReadDiagnosticSkipReasonArg, READ_DIAGNOSTICS_BATCH_MAX_BYTES,
+    READ_DIAGNOSTICS_BATCH_MAX_EVENTS, READ_DIAGNOSTICS_SESSION_MAX_BYTES,
+    READ_DIAGNOSTIC_REQUEST_ID_MAX_CHARS,
 };
 pub use sync::{
     AccountSyncError, AccountSyncStatus, AccountSyncWarning, AccountSyncWarningDetail,

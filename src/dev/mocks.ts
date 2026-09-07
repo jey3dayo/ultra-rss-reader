@@ -1289,6 +1289,9 @@ export function setupDevMocks(): RestoreDevMocks {
         return null;
       case "open_log_dir":
         return null;
+      case "record_read_diagnostics_batch":
+        parseBrowserMockArgs("record_read_diagnostics_batch", rawIpcPayload);
+        return null;
       case "check_for_update":
         return null;
       case "download_update":

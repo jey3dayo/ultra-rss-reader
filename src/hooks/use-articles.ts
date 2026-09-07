@@ -30,6 +30,12 @@ import {
   unstarAccountArticles,
 } from "@/api/tauri-commands";
 import {
+  classifyAppErrorForReadDiagnostics,
+  READ_STATE_PENDING_SLOW_THRESHOLD_MS,
+  recordAutoMarkPendingSlow,
+  recordAutoMarkSettled,
+} from "@/components/reader/hooks/article/read-state-diagnostics";
+import {
   clearArticleQueryData,
   createInfiniteArticleQueryData,
   flattenArticleQueryData,
@@ -55,6 +61,16 @@ import { useUiStore } from "@/stores/ui-store";
 export type SetReadMutationInput = {
   id: string;
   read: boolean;
+  /**
+   * Present only for auto-mark calls (see use-article-auto-mark.ts); manual read/unread actions
+   * never set this. When present, mutationFn records read-state diagnostics (settled/pending_slow)
+   * at the mutationFn Promise boundary so they are observed even if the calling component unmounts.
+   */
+  diagnostics?: {
+    requestId: string;
+    generation: number;
+    isStaleOwner: () => boolean;
+  };
 };
 
 export type ToggleStarMutationInput = {
@@ -365,13 +381,48 @@ export function useAccountStarredCount(accountId: string | null) {
   });
 }
 
+function runSetReadMutation({ id, read, diagnostics }: SetReadMutationInput) {
+  if (!diagnostics) {
+    return markArticleRead(id, read).then(Result.unwrap());
+  }
+
+  const { requestId, generation, isStaleOwner } = diagnostics;
+  const startedAt = Date.now();
+  let settled = false;
+  const pendingSlowTimer = setTimeout(() => {
+    if (!settled) {
+      recordAutoMarkPendingSlow(requestId, generation, Date.now() - startedAt);
+    }
+  }, READ_STATE_PENDING_SLOW_THRESHOLD_MS);
+
+  return markArticleRead(id, read, { requestId, source: "auto" }).then((result) => {
+    settled = true;
+    clearTimeout(pendingSlowTimer);
+    const durationMs = Date.now() - startedAt;
+    const staleOwner = isStaleOwner();
+    if (Result.isSuccess(result)) {
+      recordAutoMarkSettled(requestId, generation, "success", durationMs, undefined, staleOwner);
+    } else {
+      recordAutoMarkSettled(
+        requestId,
+        generation,
+        "failure",
+        durationMs,
+        classifyAppErrorForReadDiagnostics(result.error),
+        staleOwner,
+      );
+    }
+    return Result.unwrap()(result);
+  });
+}
+
 export function useSetRead() {
   const qc = useQueryClient();
   const [instanceId] = useState(() => Symbol("useSetRead"));
   const nextRequestIdRef = useRef(0);
 
   return useMutation({
-    mutationFn: ({ id, read }: SetReadMutationInput) => markArticleRead(id, read).then(Result.unwrap()),
+    mutationFn: runSetReadMutation,
     onMutate: (variables) => {
       const requestId = nextRequestIdRef.current + 1;
       nextRequestIdRef.current = requestId;
