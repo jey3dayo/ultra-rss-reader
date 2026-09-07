@@ -27,10 +27,14 @@ run = "ncu -p pnpm --target latest --format cooldown"
 # ならない。Actions 側の待機は依然として未実装であり、この検査で塞げるのは
 # pin のすり替えと可変 tag への依存だけである。
 # ネットワークと gh 認証を要するので lint / check / ci には入れない。
+# 更新の pnpm 呼び出しだけを run-guarded-pnpm-update.ts 経由にする。strict は TTY では
+# abort せず承認を求め、承認すると理由も owner も日付も無い例外が書き込まれて先へ進む。
+# runner は CI=true と非 TTY stdin を子プロセスにだけ与えて prompt を消し、pnpm の終了
+# コードをそのまま返す。CI は後続の mise run ci へは渡さない。
 ["deps:update"]
 description = "Update npm deps and GitHub Actions pins, then verify pins and run the full gate"
 run = """
-pnpm update --include-github-actions
+node ./scripts/run-guarded-pnpm-update.ts
 node ./scripts/verify-action-pins.ts
 mise run ci
 git status --short
