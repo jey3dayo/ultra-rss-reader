@@ -91,16 +91,21 @@ describe("CI workflow contract", () => {
   it("keeps lint and test job timeouts at 60 minutes", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const lintSection = extractWorkflowJobSection(ciWorkflow, "lint");
-    const testSection = extractWorkflowJobSection(ciWorkflow, "test");
+    const testNodeRustSection = extractWorkflowJobSection(ciWorkflow, "test-node-rust");
+    const testJsdomSection = extractWorkflowJobSection(ciWorkflow, "test-jsdom");
 
     expect(lintSection).toContain("timeout-minutes: 60");
-    expect(testSection).toContain("timeout-minutes: 60");
+    expect(testNodeRustSection).toContain("timeout-minutes: 60");
+    expect(testJsdomSection).toContain("timeout-minutes: 60");
   });
 
   it("uses the stable Ubuntu apt mirror for Linux Tauri dependencies in lint and test", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
-    for (const jobId of ["lint", "test"]) {
+    // test-jsdom intentionally omits this setup: it runs pure TypeScript/Vitest tests
+    // with no native compilation, so it does not need the Tauri system dependencies
+    // that lint and test-node-rust (Rust build/test) require.
+    for (const jobId of ["lint", "test-node-rust"]) {
       const jobSection = extractWorkflowJobSection(ciWorkflow, jobId);
 
       expect(jobSection, `${jobId} should keep Tauri dependency setup Linux-only`).toContain(

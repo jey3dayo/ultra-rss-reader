@@ -189,7 +189,28 @@ function extractMiseTaskNames(source: string) {
 }
 
 function extractMiseRunTasks(source: string) {
-  return [...source.matchAll(/\bmise\s+run\s+([A-Za-z0-9:_-]+)/g)].map((match) => match[1]);
+  // The jsdom shard job invokes its task with a `${{ matrix.shard }}` suffix
+  // (test:unit:ci:dom:shard${{ matrix.shard }}) so one step definition covers both
+  // shard matrix instances instead of duplicating the step per shard. That template
+  // is not itself a resolvable mise task name, so expand it against the workflow's
+  // own `shard: [...]` matrix values into the concrete task names it actually runs.
+  // Built via String.fromCharCode instead of a literal "${{" so this doesn't read as
+  // an accidental template-string placeholder (lint/suspicious/noTemplateCurlyInString).
+  const shardTemplate = `${String.fromCharCode(36)}{{ matrix.shard }}`;
+  const shardMatrixValues = [...source.matchAll(/shard:\s*\[([^\]]+)\]/g)].flatMap((match) =>
+    (match[1] ?? "").split(",").map((value) => value.trim()),
+  );
+
+  return [...source.matchAll(/\bmise\s+run\s+([A-Za-z0-9:_-]+)(\$\{\{\s*matrix\.shard\s*\}\})?/g)].flatMap((match) => {
+    const task = match[1] ?? "";
+    if (!match[2]) {
+      return [task];
+    }
+    if (shardMatrixValues.length === 0) {
+      throw new Error(`mise run ${task}${shardTemplate} has no matching \`shard: [...]\` matrix values`);
+    }
+    return shardMatrixValues.map((value) => `${task}${value}`);
+  });
 }
 
 function extractWorkflowJobIds(source: string) {
@@ -1453,7 +1474,8 @@ describe("repository static contracts", () => {
       "lint",
       "quality:toolchain",
       "test:rust",
-      "test:unit:ci:dom",
+      "test:unit:ci:dom:shard1",
+      "test:unit:ci:dom:shard2",
       "test:unit:ci:node",
     ]);
     expect(ciTasks.filter((task) => !miseTasks.has(task))).toEqual([]);
