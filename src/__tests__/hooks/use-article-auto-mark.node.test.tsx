@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider, useMutation } from "@tanstack/react-query";
 import "@testing-library/react/dont-cleanup-after-each";
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, render, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import type { ReactNode } from "react";
-import { StrictMode } from "react";
+import { StrictMode, Suspense, startTransition, use, useEffect, useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as readStateDiagnostics from "@/components/reader/hooks/article/read-state-diagnostics";
 import {
@@ -1467,6 +1467,392 @@ describe("useArticleAutoMark read-state diagnostics", () => {
 
     // Only the surviving (latest) generation's timer actually dispatches; StrictMode's discarded
     // first effect instance must not also fire a mutate call for its stale timer.
+    expect(mutate).toHaveBeenCalledTimes(1);
+  });
+});
+
+// A promise that never settles, so a render that reads it always suspends. Created once at module
+// scope: a promise created during render would be a different, uncached promise on every attempt.
+const neverCommittedArticle = new Promise<void>(() => {});
+
+function SuspendUnlessDisplayedArticle({ articleId }: { articleId: string }) {
+  if (articleId !== "art-1") {
+    // `use` may be called conditionally, unlike the other hooks.
+    use(neverCommittedArticle);
+  }
+  return null;
+}
+
+/** Params whose callback identities are stable across rerenders, so an unrelated rerender does not
+ * churn the scheduling effect's dependencies and silently restart the delay. */
+function createStableAutoMarkParams() {
+  const mutate = vi.fn();
+  const retainArticle = vi.fn();
+  const addRecentlyRead = vi.fn();
+  const showToast = vi.fn();
+  const setRead: UseArticleAutoMarkParams["setRead"] = { mutate };
+
+  return {
+    mutate,
+    retainArticle,
+    params(overrides: Partial<UseArticleAutoMarkParams> = {}): UseArticleAutoMarkParams {
+      return {
+        articleId: "art-1",
+        isRead: false,
+        articleEngagement: "reading",
+        afterReading: "after_0_3s",
+        viewMode: "all",
+        retainArticle,
+        addRecentlyRead,
+        setRead,
+        showToast,
+        ...overrides,
+      };
+    },
+  };
+}
+
+/** Replaces setTimeout so delayed auto-mark callbacks can be held and fired at a chosen point in
+ * the React lifecycle instead of by the timer queue. Only the auto-mark delay is captured; the
+ * diagnostics module's own throttle timers keep working through the same stub. */
+function captureDelayedAutoMarkCallbacks(delayMs: number): Array<() => void> {
+  const scheduledCallbacks: Array<() => void> = [];
+  let nextTimeoutHandle = 0;
+
+  vi.stubGlobal(
+    "setTimeout",
+    vi.fn((handler: TimerHandler, timeoutMs?: number) => {
+      if (typeof handler === "function" && timeoutMs === delayMs) {
+        scheduledCallbacks.push(() => {
+          handler();
+        });
+      }
+      nextTimeoutHandle += 1;
+      return nextTimeoutHandle;
+    }),
+  );
+  vi.stubGlobal("clearTimeout", vi.fn());
+
+  return scheduledCallbacks;
+}
+
+/** Fires a held auto-mark callback from the layout phase of a later commit, i.e. after that commit
+ * is committed but before its passive effects (and therefore this hook's passive cleanup) are
+ * flushed. `fireStaleTimerOnCommit` is a plain mutable box, not a React ref: it is test wiring, and
+ * it is only ever read from inside an effect. */
+function CommitBoundaryProbeHarness({
+  autoMarkParams,
+  label,
+  lifecycleOrder,
+  fireStaleTimerOnCommit,
+}: {
+  autoMarkParams: UseArticleAutoMarkParams;
+  label: string;
+  lifecycleOrder: string[];
+  fireStaleTimerOnCommit: { fire: (() => void) | null };
+}) {
+  useArticleAutoMark(autoMarkParams);
+  // Declared after the hook, so this runs in the same commit, after the hook's own layout effect
+  // and before any passive effect of that commit is flushed.
+  useLayoutEffect(() => {
+    lifecycleOrder.push(`layout:${label}`);
+    const fireStaleTimer = fireStaleTimerOnCommit.fire;
+    if (fireStaleTimer !== null) {
+      lifecycleOrder.push("stale-timer");
+      fireStaleTimer();
+    }
+  });
+  useEffect(() => {
+    lifecycleOrder.push(`passive:${label}`);
+  });
+  return null;
+}
+
+describe("useArticleAutoMark commit boundary", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useUiStore.setState({
+      selectedAccountId: "account-1",
+      retainedArticleIds: new Set(),
+      recentlyReadIds: new Set(),
+    });
+    vi.restoreAllMocks();
+  });
+
+  afterEach(async () => {
+    cleanup();
+    clearManualUnreadAutoMarkSuppressionsForTests();
+    vi.useRealTimers();
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+    vi.unstubAllGlobals();
+  });
+
+  // Deterministic injection of the commit-before-passive ordering, not a reproduction of how often
+  // the natural race happens: the previous article's timer callback is fired from a layout-phase
+  // probe in the commit that replaced it, so it lands after the newer article is committed but
+  // before that commit's passive effects (and therefore this hook's passive cleanup) are flushed.
+  it("does not dispatch a delayed mark whose committed target was replaced, even before the passive flush", () => {
+    const scheduledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkScheduled");
+    const dispatchedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkDispatched");
+    const cancelledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkCancelled");
+    const scheduledCallbacks = captureDelayedAutoMarkCallbacks(300);
+    const { mutate, retainArticle, params } = createStableAutoMarkParams();
+    const lifecycleOrder: string[] = [];
+    const fireStaleTimerOnCommit: { fire: (() => void) | null } = { fire: null };
+
+    const { rerender } = render(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ articleId: "art-1" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="art-1"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
+
+    expect(scheduledSpy).toHaveBeenCalledTimes(1);
+    const staleRequestId = scheduledSpy.mock.calls[0]?.[0];
+    expect(scheduledCallbacks).toHaveLength(1);
+
+    fireStaleTimerOnCommit.fire = () => {
+      scheduledCallbacks[0]?.();
+    };
+    rerender(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ articleId: "art-2" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="art-2"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
+    fireStaleTimerOnCommit.fire = null;
+
+    // The React ordering this guard depends on, asserted rather than assumed.
+    expect(lifecycleOrder).toEqual(["layout:art-1", "passive:art-1", "layout:art-2", "stale-timer", "passive:art-2"]);
+    expect(mutate).not.toHaveBeenCalled();
+    expect(retainArticle).not.toHaveBeenCalled();
+    expect(dispatchedSpy).not.toHaveBeenCalled();
+    // The blocked attempt leaves the pending refs alone, so it still ends as exactly one
+    // cancelled(effect_cleanup) recorded by the passive cleanup that follows.
+    expect(cancelledSpy).toHaveBeenCalledTimes(1);
+    expect(cancelledSpy).toHaveBeenCalledWith(staleRequestId, expect.any(Number), "effect_cleanup");
+
+    // The newly committed article is still marked by its own timer.
+    act(() => {
+      scheduledCallbacks[1]?.();
+    });
+
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ id: "art-2", read: true }), expect.anything());
+  });
+
+  // Same deterministic commit-before-passive injection as the article-change case, for the input
+  // that a single "eligible" boolean would have hidden: both after_0_3s and after_1s are enabled
+  // delays, so only the concrete delay value in the committed target can invalidate the timer that
+  // the previous preference armed.
+  it("does not dispatch a delayed mark armed under a previously committed after-reading delay", () => {
+    const scheduledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkScheduled");
+    const dispatchedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkDispatched");
+    const cancelledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkCancelled");
+    const scheduledCallbacks = captureDelayedAutoMarkCallbacks(300);
+    const { mutate, retainArticle, params } = createStableAutoMarkParams();
+    const lifecycleOrder: string[] = [];
+    const fireStaleTimerOnCommit: { fire: (() => void) | null } = { fire: null };
+
+    const { rerender } = render(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ afterReading: "after_0_3s" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="after_0_3s"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
+
+    expect(scheduledSpy).toHaveBeenCalledTimes(1);
+    expect(scheduledSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), 300);
+    const staleRequestId = scheduledSpy.mock.calls[0]?.[0];
+    expect(scheduledCallbacks).toHaveLength(1);
+
+    fireStaleTimerOnCommit.fire = () => {
+      scheduledCallbacks[0]?.();
+    };
+    rerender(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ afterReading: "after_1s" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="after_1s"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
+    fireStaleTimerOnCommit.fire = null;
+
+    expect(lifecycleOrder).toEqual([
+      "layout:after_0_3s",
+      "passive:after_0_3s",
+      "layout:after_1s",
+      "stale-timer",
+      "passive:after_1s",
+    ]);
+    expect(mutate).not.toHaveBeenCalled();
+    expect(retainArticle).not.toHaveBeenCalled();
+    expect(dispatchedSpy).not.toHaveBeenCalled();
+    expect(cancelledSpy).toHaveBeenCalledTimes(1);
+    expect(cancelledSpy).toHaveBeenCalledWith(staleRequestId, expect.any(Number), "effect_cleanup");
+
+    // The newly committed delay is what actually arms the next attempt.
+    expect(scheduledSpy).toHaveBeenCalledTimes(2);
+    expect(scheduledSpy).toHaveBeenLastCalledWith(expect.any(String), expect.any(Number), 1000);
+  });
+
+  it("marks the displayed article when the next article is rendered but never committed", () => {
+    const { mutate, params } = createStableAutoMarkParams();
+    const renderedArticleIds: string[] = [];
+    const committedArticleIds: string[] = [];
+    let selectNextArticle: (() => void) | null = null;
+
+    function UncommittedNextArticleHarness() {
+      const [articleId, setArticleId] = useState("art-1");
+      renderedArticleIds.push(articleId);
+      useArticleAutoMark(params({ articleId }));
+      useLayoutEffect(() => {
+        committedArticleIds.push(articleId);
+      }, [articleId]);
+      useEffect(() => {
+        selectNextArticle = () => {
+          startTransition(() => {
+            setArticleId("art-2");
+          });
+        };
+      }, []);
+
+      return (
+        <Suspense fallback={null}>
+          <SuspendUnlessDisplayedArticle articleId={articleId} />
+        </Suspense>
+      );
+    }
+
+    render(<UncommittedNextArticleHarness />);
+
+    act(() => {
+      selectNextArticle?.();
+    });
+
+    // Premise of this test: art-2 was rendered, but suspended in a transition and never committed.
+    expect(renderedArticleIds).toContain("art-2");
+    expect(committedArticleIds).toEqual(["art-1"]);
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    // art-1 is still the committed, displayed article, so the time it was on screen is a legitimate
+    // reason to mark it read. The commit-boundary guard must not turn an uncommitted render into a
+    // cancellation.
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ id: "art-1", read: true }), expect.anything());
+  });
+
+  it("ignores a pending delayed callback that lands after unmount", () => {
+    const scheduledCallbacks = captureDelayedAutoMarkCallbacks(300);
+    const { mutate, retainArticle, params } = createStableAutoMarkParams();
+
+    const { unmount } = renderHook(() => useArticleAutoMark(params()));
+
+    unmount();
+    act(() => {
+      scheduledCallbacks[0]?.();
+    });
+
+    expect(mutate).not.toHaveBeenCalled();
+    expect(retainArticle).not.toHaveBeenCalled();
+  });
+
+  it("re-arms the original delay from scratch when the selected account changes", () => {
+    const { mutate, params } = createStableAutoMarkParams();
+    const initialProps = params();
+
+    renderHook(() => useArticleAutoMark(initialProps));
+
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "account-2" });
+    });
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+
+    expect(mutate).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the delayed mark when eligibility changes before the delay elapses", () => {
+    const { mutate, params } = createStableAutoMarkParams();
+
+    const { rerender } = renderHook((props: UseArticleAutoMarkParams) => useArticleAutoMark(props), {
+      initialProps: params(),
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+    rerender(params({ isRead: true }));
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("marks once at the original delay under StrictMode", () => {
+    const { mutate, params } = createStableAutoMarkParams();
+
+    renderHook(() => useArticleAutoMark(params()), {
+      wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(299);
+    });
+
+    expect(mutate).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the original delay through an unrelated rerender of the same article", () => {
+    const { mutate, params } = createStableAutoMarkParams();
+
+    const { rerender } = renderHook((props: UseArticleAutoMarkParams) => useArticleAutoMark(props), {
+      initialProps: params(),
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+    rerender(params());
+    act(() => {
+      vi.advanceTimersByTime(149);
+    });
+
+    expect(mutate).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
     expect(mutate).toHaveBeenCalledTimes(1);
   });
 });
