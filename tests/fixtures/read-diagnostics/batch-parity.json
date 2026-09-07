@@ -1,0 +1,77 @@
+{
+  "$schema-note": "Canonical wire fixture for the record_read_diagnostics_batch byte-size contract. `wire` is the exact { events, droppedCount } envelope shape both the frontend (src/components/reader/hooks/article/read-state-diagnostics.ts) and the backend (src-tauri/src/commands/log_commands.rs, ReadDiagnosticsBatchSizeCalc) measure. `expectedBytes` was computed independently with Python's json.dumps(obj, separators=(',', ':')) encoded as UTF-8 -- not by calling either language's own measurement code -- so a regression in either side's key naming or optional-field handling changes the measured byte count away from this fixed number instead of trivially matching it.",
+  "cases": [
+    {
+      "name": "mixed_events_with_explicit_error_class",
+      "description": "One of each event type, including a settled event where errorClass is present with a value. Exercises the outer envelope key rename (events/droppedCount) across every event shape.",
+      "wire": {
+        "events": [
+          {
+            "event": "scheduled",
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "generation": 1,
+            "delayMs": 300
+          },
+          {
+            "event": "skipped",
+            "requestId": "22222222-2222-4222-8222-222222222222",
+            "generation": 2,
+            "reason": "already_read"
+          },
+          {
+            "event": "cancelled",
+            "requestId": "33333333-3333-4333-8333-333333333333",
+            "generation": 3,
+            "reason": "article_changed"
+          },
+          {
+            "event": "dispatched",
+            "requestId": "44444444-4444-4444-8444-444444444444",
+            "generation": 4,
+            "driftMs": -120,
+            "saturated": false
+          },
+          {
+            "event": "settled",
+            "requestId": "55555555-5555-4555-8555-555555555555",
+            "generation": 5,
+            "outcome": "failure",
+            "durationMs": 250,
+            "saturated": false,
+            "errorClass": "retryable",
+            "staleOwner": false
+          },
+          {
+            "event": "pending_slow",
+            "requestId": "66666666-6666-4666-8666-666666666666",
+            "generation": 6,
+            "elapsedMs": 5200,
+            "saturated": false
+          }
+        ],
+        "droppedCount": 3
+      },
+      "expectedBytes": 789
+    },
+    {
+      "name": "settled_event_with_null_error_class",
+      "description": "A settled event where errorClass is present on the wire as an explicit null (not omitted). Both a JS object with errorClass: null and a Rust Option<..>::None re-serialize to this same explicit-null form, so this case's expectedBytes is shared safely by both languages. This is distinct from errorClass being omitted entirely, which the frontend produces when errorClass is undefined and which Rust's SizeCalc cannot reproduce byte-for-byte (see the language-specific missing-key tests next to this fixture's consumers).",
+      "wire": {
+        "events": [
+          {
+            "event": "settled",
+            "requestId": "77777777-7777-4777-8777-777777777777",
+            "generation": 1,
+            "outcome": "success",
+            "durationMs": 10,
+            "saturated": false,
+            "errorClass": null,
+            "staleOwner": true
+          }
+        ],
+        "droppedCount": 0
+      },
+      "expectedBytes": 205
+    }
+  ]
+}

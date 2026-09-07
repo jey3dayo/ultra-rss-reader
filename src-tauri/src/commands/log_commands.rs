@@ -117,7 +117,15 @@ fn read_diagnostics_batch_is_valid(
 /// Local-only helper for measuring the serialized size of a batch (events plus the dropped
 /// count) the same way the caller will actually send it, without needing a real `events` +
 /// `dropped_count` pair of arguments at every call site.
+///
+/// This reproduces the command args' camelCase wire envelope (`{ events, droppedCount }`, see
+/// `recordReadDiagnosticsBatch` in `src/api/tauri-commands/system.ts`) purely to measure its
+/// size; it is never returned as an IPC DTO, so `rename_all` here is a byte-count-parity
+/// requirement, not a serialization-contract one. Without it, `dropped_count` serializes one byte
+/// longer than the real `droppedCount` key the frontend measures and sends, so a batch the
+/// frontend accepted as exactly at the cap is rejected here as one byte over.
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ReadDiagnosticsBatchSizeCalc<'a> {
     events: &'a [ReadDiagnosticEventArg],
     dropped_count: u32,
@@ -359,7 +367,7 @@ mod tests {
         log_dir_opener_arg, log_dir_privacy_checklist, read_diagnostics_batch_is_valid,
         record_read_diagnostics_batch, reserve_diagnostics_budget, ReadDiagnosticsBatchSizeCalc,
     };
-    use crate::commands::dto::ReadDiagnosticEventArg;
+    use crate::commands::dto::{ReadDiagnosticEventArg, ReadDiagnosticOutcomeArg};
     use std::sync::atomic::AtomicU64;
 
     fn assert_user_visible_recovery_message(result: Result<(), crate::commands::dto::AppError>) {
@@ -659,6 +667,86 @@ mod tests {
         })
         .unwrap();
         assert!(with_drops.len() > without_drops.len());
+    }
+
+    /// Canonical wire fixture shared with the frontend's
+    /// `read-state-diagnostics-batch-parity.node.test.ts`. `expectedBytes` in the fixture was
+    /// computed independently with Python's `json.dumps`, not with `ReadDiagnosticsBatchSizeCalc`
+    /// itself, so this test actually pins the `#[serde(rename_all = "camelCase")]` envelope
+    /// rename: reverting that attribute changes `serialized.len()` away from the fixture's fixed
+    /// number instead of trivially matching it.
+    const BATCH_PARITY_FIXTURE: &str =
+        include_str!("../../../tests/fixtures/read-diagnostics/batch-parity.json");
+
+    #[test]
+    fn read_diagnostics_batch_size_calc_matches_the_canonical_wire_fixture_byte_counts() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(BATCH_PARITY_FIXTURE).expect("fixture should be valid JSON");
+        let cases = fixture["cases"]
+            .as_array()
+            .expect("fixture should have a cases array");
+        assert!(!cases.is_empty(), "fixture should carry at least one case");
+
+        for case in cases {
+            let name = case["name"].as_str().expect("case should have a name");
+            let wire = &case["wire"];
+            let events: Vec<ReadDiagnosticEventArg> =
+                serde_json::from_value(wire["events"].clone())
+                    .unwrap_or_else(|e| panic!("case {name}: events should deserialize: {e}"));
+            let dropped_count = wire["droppedCount"]
+                .as_u64()
+                .unwrap_or_else(|| panic!("case {name}: droppedCount should be a u64"))
+                as u32;
+            let expected_bytes = case["expectedBytes"]
+                .as_u64()
+                .unwrap_or_else(|| panic!("case {name}: expectedBytes should be a u64"))
+                as usize;
+
+            let serialized = serde_json::to_vec(&ReadDiagnosticsBatchSizeCalc {
+                events: &events,
+                dropped_count,
+            })
+            .unwrap_or_else(|e| panic!("case {name}: batch should serialize: {e}"));
+
+            assert_eq!(
+                serialized.len(),
+                expected_bytes,
+                "case {name}: serialized byte count should match the independently-computed fixture value"
+            );
+        }
+    }
+
+    /// Documents a known, pre-existing asymmetry that is out of scope for the envelope-key-rename
+    /// fix above: the frontend's wire envelope omits `errorClass` entirely when it is `undefined`
+    /// (see `errorClass` in `recordAutoMarkSettled`, `read-state-diagnostics.ts`), but
+    /// `ReadDiagnosticEventArg::Settled.error_class` has no `skip_serializing_if`, so re-serializing
+    /// a deserialized `None` always re-emits an explicit `"errorClass":null`. The two sides'
+    /// measured byte counts for this specific shape are not expected to match, unlike the fixture
+    /// cases above where the key is present (as a value or as an explicit `null`) on both sides.
+    #[test]
+    fn read_diagnostics_batch_size_calc_reserializes_a_missing_error_class_as_explicit_null() {
+        let settled_without_error_class = ReadDiagnosticEventArg::Settled {
+            request_id: "88888888-8888-4888-8888-888888888888".to_string(),
+            generation: 1,
+            outcome: ReadDiagnosticOutcomeArg::Success,
+            duration_ms: 10,
+            saturated: false,
+            error_class: None,
+            stale_owner: false,
+        };
+        let events = vec![settled_without_error_class];
+
+        let serialized = serde_json::to_vec(&ReadDiagnosticsBatchSizeCalc {
+            events: &events,
+            dropped_count: 0,
+        })
+        .unwrap();
+        let as_text = String::from_utf8(serialized).unwrap();
+
+        assert!(
+            as_text.contains("\"errorClass\":null"),
+            "re-serializing a missing errorClass should always produce an explicit null: {as_text}"
+        );
     }
 
     fn assert_user_visible_recovery_message_with(
