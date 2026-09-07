@@ -51,19 +51,33 @@ Use this page when the app is already failing and you need the fastest path to t
 
 Use the source that matches the failure mode before collecting broader artifacts:
 
-| Failure area                  | First diagnostic source                                                             | Escalate when                                                                                    |
-| ----------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| startup / migration           | Packaged release log plus reported database or backup path                          | The app cannot reopen the database after preserving backup artifacts                             |
-| runtime database recovery     | User-facing support code plus packaged release log                                  | A read or write command reports corruption after startup succeeded                               |
-| account credentials / keyring | Packaged release log plus OS keyring behavior notes                                 | Credentials cannot be saved or reloaded with `DEV_CREDENTIALS` disabled                          |
-| sync                          | Packaged release log plus account name and toast/warning text                       | The same account repeatedly reports failure, partial failure, or retry-pending warnings          |
-| WebView / browser preview     | Debug HUD geometry rows plus packaged release log when available                    | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
-| test temp directory cleanup   | Rust test output plus cleanup warning and redacted temp root class                  | A temp database, keyring fixture, or profile directory cannot be removed after retry             |
-| CI frontend failure           | Vitest or Playwright output plus gate-specific screenshot/log artifact              | The failure cannot be reproduced locally from logs alone                                         |
-| CI Rust failure               | Rust test output plus `RUST_LOG` output and sanitized fixture class                 | The failure involves temp database state, filesystem permissions, or platform-only behavior      |
-| CI native smoke failure       | Native app log plus platform, bundle/executable class, and screenshot when relevant | The app starts differently on macOS or Windows CI than in local dev                              |
+| Failure area                         | First diagnostic source                                                             | Escalate when                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| startup / migration                  | Packaged release log plus reported database or backup path                          | The app cannot reopen the database after preserving backup artifacts                             |
+| runtime database recovery            | User-facing support code plus packaged release log                                  | A read or write command reports corruption after startup succeeded                               |
+| account credentials / keyring        | Packaged release log plus OS keyring behavior notes                                 | Credentials cannot be saved or reloaded with `DEV_CREDENTIALS` disabled                          |
+| sync                                 | Packaged release log plus account name and toast/warning text                       | The same account repeatedly reports failure, partial failure, or retry-pending warnings          |
+| WebView / browser preview            | Debug HUD geometry rows plus packaged release log when available                    | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
+| test temp directory cleanup          | Rust test output plus cleanup warning and redacted temp root class                  | A temp database, keyring fixture, or profile directory cannot be removed after retry             |
+| CI frontend failure                  | Vitest or Playwright output plus gate-specific screenshot/log artifact              | The failure cannot be reproduced locally from logs alone                                         |
+| CI Rust failure                      | Rust test output plus `RUST_LOG` output and sanitized fixture class                 | The failure involves temp database state, filesystem permissions, or platform-only behavior      |
+| CI native smoke failure              | Native app log plus platform, bundle/executable class, and screenshot when relevant | The app starts differently on macOS or Windows CI than in local dev                              |
+| auto-mark read state never completes | `read_diagnostics` target lines in the packaged release log                         | An article stays unread despite the "after N seconds" preference being enabled                   |
 
 Do not mix app UI debug actions with log collection in the same note. Record which button or command was used, then attach the corresponding diagnostic source separately.
+
+### Read-State (Auto-Mark) Diagnostics
+
+Search the release log for `target="read_diagnostics"` lines (or filter on `event=` in a log viewer). Each line is one of a fixed set of `event` values and never contains an article, feed, or account identifier, title, URL, body text, search string, token, local path, SQL, or a raw error message; the only identifying fields are an opaque `request_id`, a per-attempt `generation` number, and enum-shaped classifications.
+
+- `scheduled` / `dispatched`: a delayed auto-mark timer was set (`delay_ms`) and later fired (`drift_ms` shows scheduling slippage).
+- `skipped`: auto-mark did not even attempt to run this render; `reason` names why (already read, not in reading engagement, preference set to never, a manual unread suppressed it, or it was already requested).
+- `cancelled`: a scheduled (not yet dispatched) attempt was torn down before its timer fired; the frontend cannot distinguish unmount from a dependency change here, so `reason` is always `effect_cleanup`.
+- `slow` / `failure` (backend, from `mark_article_read` itself): the DB lock wait, transaction, or total time crossed a provisional warning threshold, or the mutation failed; `stage` names which part of the transaction was in flight (`lock`, `update_read`, `recalculate_count`, `queue_mutation`, `commit`) and `error_class` is a safe SQLite/domain error category, never the raw error text.
+- `settled` (frontend, from the mutation's own promise so it is recorded even if the reader pane unmounted first): `outcome` is `success` or `failure`, `duration_ms` is request-to-settle time, and `stale_owner: true` means the article/account/view had already moved on by the time the result arrived.
+- `pending_slow`: the mutation had not answered after 5 seconds; this is an observation, not a timeout, and a `settled` line for the same `request_id` should still follow later.
+
+These diagnostics observe the existing auto-mark and `mark_article_read` behavior; they do not change timing, retries, or sync. A repeated `failure`/`slow` `stage` across multiple `request_id`s is the strongest signal for where to look next; an isolated `pending_slow` with no later `settled` for the same `request_id` suggests the app was closed or killed before the operation finished.
 
 Attachment contract:
 
