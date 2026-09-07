@@ -16,8 +16,33 @@ import guardedPnpmUpdateRunner from "../../../scripts/run-guarded-pnpm-update.ts
  * These assertions are structural. They cannot prove pnpm's runtime behaviour, only that the
  * repository still asks for the configuration and the invocation path that were verified.
  */
+/**
+ * Returns the executable command lines of a mise task's `run` block, with blank and comment lines
+ * dropped and indentation trimmed.
+ *
+ * Matching the raw task text instead would make these assertions pass on prose: a comment naming
+ * the runner would satisfy a `toContain`, and a line-anchored negative pattern would miss an
+ * indented direct call. Both defeat the point of pinning a supply-chain gate.
+ */
+function extractTaskRunCommands(source: string, taskName: string): string[] {
+  const afterHeader = source.split(`["${taskName}"]`)[1];
+  if (afterHeader === undefined) {
+    throw new Error(`mise task ["${taskName}"] not found`);
+  }
+  // Stop at the next task header so a later task's run block cannot satisfy these assertions.
+  const section = afterHeader.split(/^\[/m)[0];
+  const runBlock = section.match(/^run = """\r?\n([\s\S]*?)^"""/m)?.[1];
+  if (runBlock === undefined) {
+    throw new Error(`mise task ["${taskName}"] has no multi-line run block`);
+  }
+  return runBlock
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"));
+}
+
 describe("release-age gate contract", () => {
-  const depsUpdateTask = miseSetupTasks.slice(miseSetupTasks.indexOf('["deps:update"]'));
+  const depsUpdateCommands = extractTaskRunCommands(miseSetupTasks, "deps:update");
 
   it("configures the cooldown explicitly rather than relying on the built-in default", () => {
     // pnpm 11 ships minimumReleaseAge: 1440 already, but its built-in default is non-strict for
@@ -35,15 +60,15 @@ describe("release-age gate contract", () => {
   });
 
   it("routes the dependency update through the guarded runner instead of calling pnpm update directly", () => {
-    expect(depsUpdateTask).toContain("node ./scripts/run-guarded-pnpm-update.ts");
-    expect(depsUpdateTask).not.toMatch(/^pnpm update/m);
+    expect(depsUpdateCommands).toContain("node ./scripts/run-guarded-pnpm-update.ts");
+    expect(depsUpdateCommands.filter((command) => command.startsWith("pnpm update"))).toEqual([]);
   });
 
   it("does not export CI to the whole update task", () => {
     // The runner sets CI on its own child only. Exporting it across the task would also change the
     // `mise run ci` step that follows, which should keep its normal local semantics.
-    expect(depsUpdateTask).not.toContain("CI=true");
-    expect(depsUpdateTask).toContain("mise run ci");
+    expect(depsUpdateCommands.filter((command) => command.includes("CI=true"))).toEqual([]);
+    expect(depsUpdateCommands).toContain("mise run ci");
   });
 
   it("removes the approval prompt in the runner rather than answering it", () => {
