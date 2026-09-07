@@ -232,11 +232,17 @@ jobs:
           mkdir -p tmp/ci-artifacts/frontend tmp/ci-artifacts/rust
           mise run test:unit:ci:node 2>&1 | tee tmp/ci-artifacts/frontend/test.log
 
-      - name: Run Vitest tests (jsdom)
+      - name: Run Vitest tests (jsdom shard 1/2)
         shell: bash
         run: |
           set -o pipefail
-          mise run test:unit:ci:dom 2>&1 | tee -a tmp/ci-artifacts/frontend/test.log
+          mise run test:unit:ci:dom:shard1 2>&1 | tee -a tmp/ci-artifacts/frontend/test.log
+
+      - name: Run Vitest tests (jsdom shard 2/2)
+        shell: bash
+        run: |
+          set -o pipefail
+          mise run test:unit:ci:dom:shard2 2>&1 | tee -a tmp/ci-artifacts/frontend/test.log
 
       - name: Run Rust tests
         shell: bash
