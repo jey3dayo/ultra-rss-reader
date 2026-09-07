@@ -41,11 +41,11 @@ description = "Run the Vitest jsdom project with quieter CI output; split from t
 run = "vitest run --project jsdom --reporter=dot --silent=passed-only"
 
 ["test:unit:ci:dom:shard1"]
-description = "Run shard 1/2 of the Vitest jsdom project; a comparison experiment to spread the jsdom per-file fixed cost across two CI steps in the same runner. Use with test:unit:ci:dom:shard2, whose union covers every jsdom file exactly once (see tests/release-repo-contract.node.test.ts for the pinned assertion)."
+description = "Run shard 1/2 of the Vitest jsdom project. CI runs this in its own job (parallel to shard2 and to the node+Rust job) so the jsdom per-file fixed cost is spread across independent runners instead of sequential steps in one job. Use with test:unit:ci:dom:shard2, whose union covers every jsdom file exactly once (see tests/release-repo-contract.node.test.ts for the pinned assertion)."
 run = "vitest run --project jsdom --shard=1/2 --reporter=dot --silent=passed-only"
 
 ["test:unit:ci:dom:shard2"]
-description = "Run shard 2/2 of the Vitest jsdom project; see test:unit:ci:dom:shard1 for the shard-pairing contract."
+description = "Run shard 2/2 of the Vitest jsdom project; see test:unit:ci:dom:shard1 for the shard-pairing contract and the parallel-job rationale."
 run = "vitest run --project jsdom --shard=2/2 --reporter=dot --silent=passed-only"
 
 ["test:unit:profile"]

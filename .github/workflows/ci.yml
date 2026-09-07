@@ -178,8 +178,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  test:
-    name: "Check: Test"
+  test-node-rust:
+    name: "Check: Test (Node + Rust)"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -232,18 +232,6 @@ jobs:
           mkdir -p tmp/ci-artifacts/frontend tmp/ci-artifacts/rust
           mise run test:unit:ci:node 2>&1 | tee tmp/ci-artifacts/frontend/test.log
 
-      - name: Run Vitest tests (jsdom shard 1/2)
-        shell: bash
-        run: |
-          set -o pipefail
-          mise run test:unit:ci:dom:shard1 2>&1 | tee -a tmp/ci-artifacts/frontend/test.log
-
-      - name: Run Vitest tests (jsdom shard 2/2)
-        shell: bash
-        run: |
-          set -o pipefail
-          mise run test:unit:ci:dom:shard2 2>&1 | tee -a tmp/ci-artifacts/frontend/test.log
-
       - name: Run Rust tests
         shell: bash
         run: |
@@ -267,6 +255,45 @@ jobs:
           path: tmp/ci-artifacts/rust/test.log
           if-no-files-found: ignore
           retention-days: 14
+
+  test-jsdom:
+    name: "Check: Test (jsdom shard ${{ matrix.shard }})"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        shard: [1, 2]
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
+        with:
+          runtime: node@26.4.0
+          cache: true
+          install: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run Vitest tests (jsdom shard ${{ matrix.shard }}/2)
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p tmp/ci-artifacts/frontend
+          mise run test:unit:ci:dom:shard${{ matrix.shard }} 2>&1 | tee tmp/ci-artifacts/frontend/test.log
+
+      - name: Upload frontend failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-${{ matrix.os }}-jsdom-shard${{ matrix.shard }}-test-log
+          path: tmp/ci-artifacts/frontend/test.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   build:
     name: "Check: Build"
@@ -415,7 +442,7 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [toolchain, format, lint, test, build, native-smoke, audit]
+    needs: [toolchain, format, lint, test-node-rust, test-jsdom, build, native-smoke, audit]
     if: always()
 
     steps:
@@ -424,7 +451,8 @@ jobs:
           FORMAT_RESULT: ${{ needs.format.result }}
           TOOLCHAIN_RESULT: ${{ needs.toolchain.result }}
           LINT_RESULT: ${{ needs.lint.result }}
-          TEST_RESULT: ${{ needs.test.result }}
+          TEST_NODE_RUST_RESULT: ${{ needs.test-node-rust.result }}
+          TEST_JSDOM_RESULT: ${{ needs.test-jsdom.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           NATIVE_SMOKE_RESULT: ${{ needs.native-smoke.result }}
           AUDIT_RESULT: ${{ needs.audit.result }}
@@ -457,7 +485,8 @@ jobs:
           report_required_check "Toolchain" "$TOOLCHAIN_RESULT"
           report_required_check "Format" "$FORMAT_RESULT"
           report_required_check "Lint" "$LINT_RESULT"
-          report_required_check "Test" "$TEST_RESULT"
+          report_required_check "Test (Node + Rust)" "$TEST_NODE_RUST_RESULT"
+          report_required_check "Test (jsdom)" "$TEST_JSDOM_RESULT"
           report_required_check "Build" "$BUILD_RESULT"
           report_required_check "Native Smoke" "$NATIVE_SMOKE_RESULT"
           report_required_check "Dependency Audit" "$AUDIT_RESULT"
