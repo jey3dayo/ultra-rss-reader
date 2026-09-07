@@ -1,1 +1,2 @@
 (B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
+(C) 2026-09-07 quality baseline の分類と再 pin: React Doctor 0.9.13 増分51件と Knip 既存 drift を分類してから定数更新(検証: quality:react-doctor:full と report:knip の pinned タスク再実行) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/249
