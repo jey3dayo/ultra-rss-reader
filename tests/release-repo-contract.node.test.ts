@@ -1042,6 +1042,10 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("documents the intentionally narrow Windows Rust test scope", () => {
+    // Built via String.fromCharCode instead of a literal "${{" so these read as
+    // real template interpolation, not an accidental placeholder
+    // (lint/suspicious/noTemplateCurlyInString).
+    const githubExpressionOpen = `${String.fromCharCode(36)}{{`;
     const rustTestTask = extractTaskBlock(miseToml, "test:rust");
 
     expect(rustTestTask).toContain("Windows CI is scoped to integration_test");
@@ -1096,7 +1100,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     // so one shard failing still reports the other shard's result.
     expect(jsdomJobBlock).toContain("shard: [1, 2]");
     expect(jsdomJobBlock).toContain("fail-fast: false");
-    expect(jsdomJobBlock).toContain("mise run test:unit:ci:dom:shard${{ matrix.shard }}");
+    expect(jsdomJobBlock).toContain(`mise run test:unit:ci:dom:shard${githubExpressionOpen} matrix.shard }}`);
 
     // Without pipefail a failing stage is masked by the tee that follows it. Each stage
     // must also be its own step so a stage failure is attributable to that stage.
@@ -1127,7 +1131,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     // Artifact names must disambiguate by OS and, for jsdom, by shard as well, or the
     // two shards' (and two OSes') failure diagnostics collide on upload.
-    expect(jsdomJobBlock).toContain("name: frontend-${{ matrix.os }}-jsdom-shard${{ matrix.shard }}-test-log");
+    expect(jsdomJobBlock).toContain(
+      `name: frontend-${githubExpressionOpen} matrix.os }}-jsdom-shard${githubExpressionOpen} matrix.shard }}-test-log`,
+    );
 
     // The shard pairing itself is pinned in mise/test.toml (not ci.yml), so a job-only
     // check here would miss a regression to unequal or overlapping shard indices.

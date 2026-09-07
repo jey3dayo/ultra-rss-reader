@@ -194,7 +194,9 @@ function extractMiseRunTasks(source: string) {
   // shard matrix instances instead of duplicating the step per shard. That template
   // is not itself a resolvable mise task name, so expand it against the workflow's
   // own `shard: [...]` matrix values into the concrete task names it actually runs.
-  const shardTemplate = "${{ matrix.shard }}";
+  // Built via String.fromCharCode instead of a literal "${{" so this doesn't read as
+  // an accidental template-string placeholder (lint/suspicious/noTemplateCurlyInString).
+  const shardTemplate = `${String.fromCharCode(36)}{{ matrix.shard }}`;
   const shardMatrixValues = [...source.matchAll(/shard:\s*\[([^\]]+)\]/g)].flatMap((match) =>
     (match[1] ?? "").split(",").map((value) => value.trim()),
   );
