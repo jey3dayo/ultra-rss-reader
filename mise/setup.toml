@@ -5,23 +5,36 @@ run = "if command -v apt-get >/dev/null 2>&1 && [ -f /etc/debian_version ]; then
 # 候補の確認だけを行う read-only の入口。更新は deps:update が担う。
 # ncu は npm registry の候補を出すだけで、GitHub Actions の pin は見ない。
 # したがって deps:update の代替にはならず、範囲の違う別契約として並置する。
+# -p pnpm は必須。ncu の default は npm で、pnpm-workspace.yaml の
+# minimumReleaseAge を読まないため cooldown なしの候補が出る。
+# --format cooldown は cooldown で除外された候補と公開経過時間を表示する。
 ["deps:outdated"]
 description = "同一 major 内の minor / patch 候補を確認する（何も変更しない）"
-run = "ncu --target minor"
+run = "ncu -p pnpm --target minor --format cooldown"
 
 # latest は major だけでなく latest dist-tag への候補を出す。major 限定ではない。
+# cooldown 内の latest は表示されず、閾値を通る最大版へフォールバックする。
+# 何が cooldown で伏せられたかは --format cooldown の一覧で確認する。
 ["deps:outdated:latest"]
 description = "major 更新を含む latest 候補を確認する（何も変更しない）"
-run = "ncu --target latest"
+run = "ncu -p pnpm --target latest --format cooldown"
 
 # verify-action-pins は pnpm#13923 の代償制御。--include-github-actions は
-# minimumReleaseAge を無視するため、Actions の pin だけが release-age の待機を
-# 素通りする。SHA↔tag の照合と tag オブジェクト pin の検出でそれを補う。
+# minimumReleaseAge を無視するため、npm deps が gate される一方で Actions の pin
+# だけが release-age の待機を素通りする。
+# 補えるのは参照の整合性だけである。SHA↔tag の照合と tag オブジェクト pin の検出は、
+# pin が指す実体が宣言どおりかを検査するもので、公開から 24 時間待つことの代替には
+# ならない。Actions 側の待機は依然として未実装であり、この検査で塞げるのは
+# pin のすり替えと可変 tag への依存だけである。
 # ネットワークと gh 認証を要するので lint / check / ci には入れない。
+# 更新の pnpm 呼び出しだけを run-guarded-pnpm-update.ts 経由にする。strict は TTY では
+# abort せず承認を求め、承認すると理由も owner も日付も無い例外が書き込まれて先へ進む。
+# runner は CI=true と非 TTY stdin を子プロセスにだけ与えて prompt を消し、pnpm の終了
+# コードをそのまま返す。CI は後続の mise run ci へは渡さない。
 ["deps:update"]
 description = "Update npm deps and GitHub Actions pins, then verify pins and run the full gate"
 run = """
-pnpm update --include-github-actions
+node ./scripts/run-guarded-pnpm-update.ts
 node ./scripts/verify-action-pins.ts
 mise run ci
 git status --short
