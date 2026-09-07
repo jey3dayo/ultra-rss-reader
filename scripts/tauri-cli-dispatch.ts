@@ -195,7 +195,7 @@ function appendUniquePathParts(pathValue: string, pathParts: readonly string[]):
   return existingParts.join(path.win32.delimiter);
 }
 
-export function normalizeChildEnvForPlatform(
+function normalizeChildEnvForPlatform(
   env: NodeJS.ProcessEnv,
   {
     platform = process.platform,

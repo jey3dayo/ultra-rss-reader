@@ -14,6 +14,10 @@ import { safeInvoke } from "./runtime";
 
 export const getPlatformInfo = () => safeInvoke("get_platform_info", { response: PlatformInfoSchema });
 export const getDevRuntimeOptions = () => safeInvoke("get_dev_runtime_options", { response: DevRuntimeOptionsSchema });
+// No production caller yet. `tests/helpers/tauri-mocks.node.test.ts` extracts the frontend command
+// set from this source and pins it against the default mock set, and `src/dev/mocks.ts` plus the
+// `debug-log-commands` capability allowlist complete that agreement. See
+// `.claude/rules/quality-policy.md`.
 export const getPlatformPermissionDeniedRecovery = () =>
   safeInvoke("get_platform_permission_denied_recovery", {
     response: PlatformPermissionDeniedRecoveryListSchema,

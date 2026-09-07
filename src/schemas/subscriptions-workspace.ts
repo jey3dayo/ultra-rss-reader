@@ -25,7 +25,7 @@ const subscriptionsWorkspaceExpandedGroupKeySchema = v.custom<SubscriptionsWorks
   (value) => typeof value === "string" && value.startsWith("group:") && value.length > "group:".length,
 );
 
-export const SubscriptionsWorkspaceListScrollStateSchema = s.strictObject({
+const SubscriptionsWorkspaceListScrollStateSchema = s.strictObject({
   scrollTop: v.pipe(v.number(), v.finite(), v.minValue(0)),
   layoutGeneration: v.string(),
   viewportHeight: v.pipe(v.number(), v.finite(), v.minValue(0)),

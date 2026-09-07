@@ -42,14 +42,14 @@ export const startupFolderExpansionPreferenceValues = ["all_collapsed", "unread_
 export type StartupFolderExpansionPreference = (typeof startupFolderExpansionPreferenceValues)[number];
 export const developerModePreferenceValues = booleanStringPreferenceValues;
 export const debugAgentationVisibilityPreferenceValues = ["always", "hide_in_settings", "off"] as const;
-export type DebugAgentationVisibilityPreference = Exclude<
+type DebugAgentationVisibilityPreference = Exclude<
   (typeof debugAgentationVisibilityPreferenceValues)[number],
   "hide_in_settings"
 >;
 
 export const preferenceKeyMaxLength = 128;
 export const preferenceValueMaxUtf8Bytes = 1024;
-export const reservedUnknownPreferenceKeyPrefixes = ["shortcut_"] as const;
+const reservedUnknownPreferenceKeyPrefixes = ["shortcut_"] as const;
 const textEncoder = new TextEncoder();
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -167,7 +167,7 @@ const knownPreferenceKeys = [
 ] as const satisfies readonly KnownPreferenceKey[];
 const knownPreferenceKeySet: ReadonlySet<string> = new Set(knownPreferenceKeys);
 
-export const hiddenPreferenceDefaultKeys = [
+const hiddenPreferenceDefaultKeys = [
   "recent_articles_history_enabled",
   "sort_subscriptions",
   "action_open_browser",

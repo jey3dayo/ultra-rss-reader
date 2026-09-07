@@ -106,9 +106,14 @@ const reactDoctorBaselines = {
   },
 } as const;
 
+// Re-pinned on 2026-09-08 after classifying every reported export and type; see
+// docs/knip-export-classification.md for the per-finding record. The remaining 11 findings are
+// 7 unused files with `mise` / Vite-alias consumers, 2 intentional semantic aliases, and 2 exports
+// whose `export` keyword is itself the contract a test asserts. React Doctor's constants are
+// deliberately left alone until its complexity findings are classified.
 const knipBaseline = {
-  issueCount: 31,
-  findingsCount: 74,
+  issueCount: 10,
+  findingsCount: 11,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {

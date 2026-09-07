@@ -44,6 +44,26 @@ Keeping a hard count gate in that situation encourages number-matching instead o
 
 - `mise` — launched via `spawnSync` by `scripts/similarity-report.ts` to run the Rust scan; `mise` is a toolchain runner rather than a package.json dependency and therefore cannot be declared as an npm dependency; reviewed 2026-08-29.
 
+### Unused Export And Type Findings
+
+Classify each `exports` / `types` finding as false-positive, accepted-risk, narrow, or remove. Decide from three checks, in this order, and record the evidence:
+
+1. Resolve the `from "…"` specifier of every import that mentions the name. A name appearing in many files is not proof a re-export is live; those files usually import it from the owner module, which makes the re-exporting entry dead.
+2. Search the tests that import source files with `?raw` for the name. Those contracts can pin the literal `export` keyword, and Knip cannot model them.
+3. Check whether the name is used inside its own file. If it is, narrowing to a module-local binding is the first candidate. If its only occurrence is the definition, narrowing is impossible — `tsc --noUnusedLocals` rejects the unused local — so the choice is remove or keep, never "drop the modifier".
+
+A mirrored Rust constant, DTO, command, or capability entry is a Rust-side contract and is not a reason to keep a TypeScript export; only a TypeScript consumer counts. Two shapes of TypeScript consumer are invisible to both Knip and an import-graph search, and both were found the hard way: a test that reads the `.rs` file as text and compares, and a test that extracts symbols from the *TypeScript* source text. `tests/helpers/tauri-mocks.node.test.ts` is the second kind — it scrapes `safeInvoke("…")` command strings out of `src/api/tauri-commands/*.ts` and pins them against the default mock set, so deleting a wrapper with no caller breaks it. Check both before deleting anything at a command or DTO boundary. "We might need it later" is not a reason either. Do not generalise the design-system barrel completeness precedent below to other barrels; check each owner for an actual pinned public surface instead.
+
+Standing accepted risk:
+
+- `getPlatformPermissionDeniedRecovery` (`src/api/tauri-commands/system.ts`) — no production caller, but the mock-parity test above pins it, and `src/dev/mocks.ts` plus the `debug-log-commands` capability allowlist agree with it. Retiring `get_platform_permission_denied_recovery` means retiring all five surfaces together; wiring a caller or retiring it end to end is the open decision. Reviewed 2026-09-08.
+
+Standing false positive:
+
+- `corePreferenceDefaults` (`src/schemas/preference-values.ts`) — `src/__tests__/schemas/preferences-schema-contract.test.ts` imports the module with `?raw` and matches `/export const corePreferenceDefaults = \{([\s\S]*?)\} as const/`. The `export` keyword is part of that contract, so the modifier must stay; reviewed 2026-09-08.
+
+The 2026-09-08 pass over Issue #249 classified all 73 findings and resolved 71 of them. The per-finding table is a historical record in [../../docs/knip-export-classification.md](../../docs/knip-export-classification.md).
+
 Intentional public barrel completeness is pinned by public API tests rather than a file-level Knip ignore. The design-system barrel re-exports each primitive in a component family as a complete public surface, and `src/__tests__/components/ui-wrapper-public-api.node.test.ts` consumes the full Command family so an unused member such as `CommandDialog` is not removed while the other primitives remain available. The existing `src/components/ui/*` export ignores remain limited to their small wrapper files; reviewed 2026-08-29.
 
 ## Provider Policy Family

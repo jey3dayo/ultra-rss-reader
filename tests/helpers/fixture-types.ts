@@ -1,8 +1,6 @@
 import type { Result } from "@praha/byethrow";
 
-export type CommandSuccess<TCommand> = TCommand extends (
-  ...args: infer _Args
-) => Result.ResultAsync<infer Output, unknown>
+type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
   ? Output
   : never;
 export type CommandListItem<TCommand> = CommandSuccess<TCommand> extends readonly (infer Item)[] ? Item : never;

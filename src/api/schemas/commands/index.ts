@@ -27,4 +27,4 @@ export {
   TAG_NAME_MAX_CHARS,
 } from "./shared";
 export * from "./tag";
-export { httpCommandUrlSchema, normalizeHttpCommandUrl } from "./url";
+export { normalizeHttpCommandUrl } from "./url";

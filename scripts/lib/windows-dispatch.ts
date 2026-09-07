@@ -33,8 +33,6 @@ type WindowsDispatchEnvSchema<Rules extends readonly WindowsDispatchEnvRule<stri
   [Rule in Rules[number] as Rule["key"]]: Rule["kind"];
 }>;
 
-export type WindowsDispatchEnvKey = (typeof WINDOWS_DISPATCH_ENV_ALLOWLIST)[number]["key"];
-
 export const WINDOWS_DISPATCH_ENV_SCHEMA = Object.freeze({
   DEV_CREDENTIALS: "devCredential",
   RUST_BACKTRACE: "passthrough",

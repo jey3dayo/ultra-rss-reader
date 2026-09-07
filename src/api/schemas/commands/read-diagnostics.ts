@@ -8,9 +8,9 @@ import { unwrapObjectSchema } from "@/api/schemas/validation";
 // body text, search string, token, local path, SQL, or a raw error message.
 
 // Mirrors READ_DIAGNOSTIC_REQUEST_ID_MAX_CHARS in src-tauri/src/commands/dto/read_diagnostics.rs.
-export const READ_DIAGNOSTIC_REQUEST_ID_MAX_CHARS = 64;
+const READ_DIAGNOSTIC_REQUEST_ID_MAX_CHARS = 64;
 // Mirrors READ_DIAGNOSTICS_BATCH_MAX_EVENTS in the same Rust module.
-export const READ_DIAGNOSTICS_BATCH_MAX_EVENTS = 64;
+const READ_DIAGNOSTICS_BATCH_MAX_EVENTS = 64;
 
 const readDiagnosticRequestIdSchema = v.pipe(
   v.string(),
@@ -25,22 +25,22 @@ const readDiagnosticDurationMsSchema = v.pipe(v.number(), v.integer(), v.minValu
 const readDiagnosticElapsedMsSchema = v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(600_000));
 const readDiagnosticDriftMsSchema = v.pipe(v.number(), v.integer(), v.minValue(-60_000), v.maxValue(60_000));
 
-export const readDiagnosticSkipReasonSchema = v.picklist([
+const readDiagnosticSkipReasonSchema = v.picklist([
   "already_read",
   "not_reading",
   "preference_never",
   "manual_unread_suppressed",
   "already_requested",
 ]);
-export const readDiagnosticCancelReasonSchema = v.picklist([
+const readDiagnosticCancelReasonSchema = v.picklist([
   "article_changed",
   "account_changed",
   "preference_changed",
   "engagement_changed",
   "effect_cleanup",
 ]);
-export const readDiagnosticOutcomeSchema = v.picklist(["success", "failure"]);
-export const readDiagnosticErrorClassSchema = v.picklist(["user_visible", "retryable", "unknown"]);
+const readDiagnosticOutcomeSchema = v.picklist(["success", "failure"]);
+const readDiagnosticErrorClassSchema = v.picklist(["user_visible", "retryable", "unknown"]);
 
 export type ReadDiagnosticSkipReason = v.InferOutput<typeof readDiagnosticSkipReasonSchema>;
 export type ReadDiagnosticCancelReason = v.InferOutput<typeof readDiagnosticCancelReasonSchema>;
@@ -104,7 +104,7 @@ const pendingSlowEventArgs = s.object({
   saturated: v.boolean(),
 });
 
-export const readDiagnosticEventArgs = v.variant("event", [
+const readDiagnosticEventArgs = v.variant("event", [
   unwrapObjectSchema(scheduledEventArgs),
   unwrapObjectSchema(skippedEventArgs),
   unwrapObjectSchema(cancelledEventArgs),

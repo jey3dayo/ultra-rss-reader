@@ -11,7 +11,7 @@ export type CommandValidationError = {
 
 export type CommandValidationCase = readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>];
 
-export async function runCommandCases<TCommand extends CommandValidationCase>(
+async function runCommandCases<TCommand extends CommandValidationCase>(
   commandCases: readonly TCommand[],
 ): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
   return Promise.all(

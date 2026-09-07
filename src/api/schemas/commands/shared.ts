@@ -46,7 +46,7 @@ export const tagNameSchema = v.pipe(
   nonBlankTrimmedStringSchema,
   v.maxLength(TAG_NAME_MAX_CHARS, `Tag name must be ${TAG_NAME_MAX_CHARS} characters or less`),
 );
-export const tagColorSchema = v.pipe(
+const tagColorSchema = v.pipe(
   v.string(),
   v.trim(),
   v.regex(/^#[0-9a-fA-F]{6}$/u, TAG_COLOR_VALIDATION_MESSAGE),

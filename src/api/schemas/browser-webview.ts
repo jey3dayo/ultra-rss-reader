@@ -64,8 +64,6 @@ export type BrowserWebviewDiagnosticsPayload = v.InferOutput<typeof BrowserWebvi
 
 export const BrowserWebviewDebugInputPayloadSchema = v.string();
 
-export type BrowserWebviewDebugInputPayload = v.InferOutput<typeof BrowserWebviewDebugInputPayloadSchema>;
-
 export const BROWSER_WEBVIEW_EVENT_PAYLOAD_SCHEMAS = {
   [BROWSER_WEBVIEW_EVENT_NAMES.stateChanged]: BrowserWebviewStateSchema,
   [BROWSER_WEBVIEW_EVENT_NAMES.closed]: v.nullish(BrowserWebviewClosedPayloadSchema),

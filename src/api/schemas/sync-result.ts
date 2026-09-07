@@ -7,7 +7,7 @@ const nonBlankTrimmedStringSchema = v.pipe(v.string(), v.trim(), v.minLength(1))
 const accountNameSchema = v.pipe(v.string(), v.trim());
 const feedTitleSchema = v.pipe(v.string(), v.trim());
 const mutationLabelSchema = v.pipe(v.string(), v.trim(), v.minLength(1));
-export const SyncIssueOwnerSchema = v.picklist(["account", "feed", "credential", "scheduler"]);
+const SyncIssueOwnerSchema = v.picklist(["account", "feed", "credential", "scheduler"]);
 
 const AccountSyncErrorSchema = s.strictObject({
   account_id: v.string(),
