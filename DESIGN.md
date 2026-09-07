@@ -34,6 +34,7 @@ Derived roles used across the product:
 - Text / Foreground (`#26251e`): Primary text and icon color
 - Muted Foreground (`rgba(38, 37, 30, 0.74)`): Secondary text and helper copy
 - Soft Foreground (`rgba(38, 37, 30, 0.58)`): Tertiary labels and lighter metadata
+- Text Muted (`rgba(38, 37, 30, 0.44)`): Lowest-emphasis metadata; implemented as `--text-muted`
 - Border (`rgba(38, 37, 30, 0.12)`): Default border and divider tone
 - Border Strong (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
 - Browser Overlay Loading Halo (`rgba(247, 247, 244, 0.8)` in light mode): Ambient glow behind embedded-browser loading feedback
@@ -411,7 +412,7 @@ These colors should be centralized as provider brand tokens or a dedicated excep
 
 #### Quick Color Reference
 
-- Primary action surface: `#ebeae5` background with `#26251e` text
+- Default button surface: `#ebeae5` background with `#26251e` text
 - Page background: `#f2f1ed`
 - Primary text: `#26251e`
 - Secondary text: `rgba(38, 37, 30, 0.74)`

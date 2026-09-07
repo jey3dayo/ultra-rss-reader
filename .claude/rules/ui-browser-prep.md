@@ -3,8 +3,7 @@
 ## UI/UX 調整の開始手順
 
 - UI の余白、配置、視覚状態を調整する時は、コード変更前に必ずブラウザで実画面を開いて確認する
-- 開発サーバーは `pnpm dev --host 127.0.0.1 --port 4173 --strictPort` で起動する
-- 確認 URL は `http://127.0.0.1:4173/` を使う
+- 開発サーバーは `mise run app:dev:browser` で起動し、`http://127.0.0.1:4173/` を開く
 - `src/main.tsx` の `setupDevMocks()` により、Tauri 外ではブラウザ用の mock IPC が自動注入される。UI 確認はまずこのブラウザモードで行う
 
 ## dev-browser の使い方
