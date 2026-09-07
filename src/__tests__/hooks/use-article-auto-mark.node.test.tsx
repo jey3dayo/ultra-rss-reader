@@ -1536,6 +1536,38 @@ function captureDelayedAutoMarkCallbacks(delayMs: number): Array<() => void> {
   return scheduledCallbacks;
 }
 
+/** Fires a held auto-mark callback from the layout phase of a later commit, i.e. after that commit
+ * is committed but before its passive effects (and therefore this hook's passive cleanup) are
+ * flushed. `fireStaleTimerOnCommit` is a plain mutable box, not a React ref: it is test wiring, and
+ * it is only ever read from inside an effect. */
+function CommitBoundaryProbeHarness({
+  autoMarkParams,
+  label,
+  lifecycleOrder,
+  fireStaleTimerOnCommit,
+}: {
+  autoMarkParams: UseArticleAutoMarkParams;
+  label: string;
+  lifecycleOrder: string[];
+  fireStaleTimerOnCommit: { fire: (() => void) | null };
+}) {
+  useArticleAutoMark(autoMarkParams);
+  // Declared after the hook, so this runs in the same commit, after the hook's own layout effect
+  // and before any passive effect of that commit is flushed.
+  useLayoutEffect(() => {
+    lifecycleOrder.push(`layout:${label}`);
+    const fireStaleTimer = fireStaleTimerOnCommit.fire;
+    if (fireStaleTimer !== null) {
+      lifecycleOrder.push("stale-timer");
+      fireStaleTimer();
+    }
+  });
+  useEffect(() => {
+    lifecycleOrder.push(`passive:${label}`);
+  });
+  return null;
+}
+
 describe("useArticleAutoMark commit boundary", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -1568,36 +1600,33 @@ describe("useArticleAutoMark commit boundary", () => {
     const scheduledCallbacks = captureDelayedAutoMarkCallbacks(300);
     const { mutate, retainArticle, params } = createStableAutoMarkParams();
     const lifecycleOrder: string[] = [];
-    let fireStaleTimerOnCommit: (() => void) | null = null;
+    const fireStaleTimerOnCommit: { fire: (() => void) | null } = { fire: null };
 
-    function CommitOrderHarness({ autoMarkParams }: { autoMarkParams: UseArticleAutoMarkParams }) {
-      useArticleAutoMark(autoMarkParams);
-      // Declared after the hook, so this runs in the same commit, after the hook's own layout
-      // effect and before any passive effect of that commit is flushed.
-      useLayoutEffect(() => {
-        lifecycleOrder.push(`layout:${autoMarkParams.articleId}`);
-        if (fireStaleTimerOnCommit !== null) {
-          lifecycleOrder.push("stale-timer");
-          fireStaleTimerOnCommit();
-        }
-      });
-      useEffect(() => {
-        lifecycleOrder.push(`passive:${autoMarkParams.articleId}`);
-      });
-      return null;
-    }
-
-    const { rerender } = render(<CommitOrderHarness autoMarkParams={params({ articleId: "art-1" })} />);
+    const { rerender } = render(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ articleId: "art-1" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="art-1"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
 
     expect(scheduledSpy).toHaveBeenCalledTimes(1);
     const staleRequestId = scheduledSpy.mock.calls[0]?.[0];
     expect(scheduledCallbacks).toHaveLength(1);
 
-    fireStaleTimerOnCommit = () => {
+    fireStaleTimerOnCommit.fire = () => {
       scheduledCallbacks[0]?.();
     };
-    rerender(<CommitOrderHarness autoMarkParams={params({ articleId: "art-2" })} />);
-    fireStaleTimerOnCommit = null;
+    rerender(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ articleId: "art-2" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="art-2"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
+    fireStaleTimerOnCommit.fire = null;
 
     // The React ordering this guard depends on, asserted rather than assumed.
     expect(lifecycleOrder).toEqual(["layout:art-1", "passive:art-1", "layout:art-2", "stale-timer", "passive:art-2"]);
@@ -1616,6 +1645,64 @@ describe("useArticleAutoMark commit boundary", () => {
 
     expect(mutate).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ id: "art-2", read: true }), expect.anything());
+  });
+
+  // Same deterministic commit-before-passive injection as the article-change case, for the input
+  // that a single "eligible" boolean would have hidden: both after_0_3s and after_1s are enabled
+  // delays, so only the concrete delay value in the committed target can invalidate the timer that
+  // the previous preference armed.
+  it("does not dispatch a delayed mark armed under a previously committed after-reading delay", () => {
+    const scheduledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkScheduled");
+    const dispatchedSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkDispatched");
+    const cancelledSpy = vi.spyOn(readStateDiagnostics, "recordAutoMarkCancelled");
+    const scheduledCallbacks = captureDelayedAutoMarkCallbacks(300);
+    const { mutate, retainArticle, params } = createStableAutoMarkParams();
+    const lifecycleOrder: string[] = [];
+    const fireStaleTimerOnCommit: { fire: (() => void) | null } = { fire: null };
+
+    const { rerender } = render(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ afterReading: "after_0_3s" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="after_0_3s"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
+
+    expect(scheduledSpy).toHaveBeenCalledTimes(1);
+    expect(scheduledSpy).toHaveBeenCalledWith(expect.any(String), expect.any(Number), 300);
+    const staleRequestId = scheduledSpy.mock.calls[0]?.[0];
+    expect(scheduledCallbacks).toHaveLength(1);
+
+    fireStaleTimerOnCommit.fire = () => {
+      scheduledCallbacks[0]?.();
+    };
+    rerender(
+      <CommitBoundaryProbeHarness
+        autoMarkParams={params({ afterReading: "after_1s" })}
+        fireStaleTimerOnCommit={fireStaleTimerOnCommit}
+        label="after_1s"
+        lifecycleOrder={lifecycleOrder}
+      />,
+    );
+    fireStaleTimerOnCommit.fire = null;
+
+    expect(lifecycleOrder).toEqual([
+      "layout:after_0_3s",
+      "passive:after_0_3s",
+      "layout:after_1s",
+      "stale-timer",
+      "passive:after_1s",
+    ]);
+    expect(mutate).not.toHaveBeenCalled();
+    expect(retainArticle).not.toHaveBeenCalled();
+    expect(dispatchedSpy).not.toHaveBeenCalled();
+    expect(cancelledSpy).toHaveBeenCalledTimes(1);
+    expect(cancelledSpy).toHaveBeenCalledWith(staleRequestId, expect.any(Number), "effect_cleanup");
+
+    // The newly committed delay is what actually arms the next attempt.
+    expect(scheduledSpy).toHaveBeenCalledTimes(2);
+    expect(scheduledSpy).toHaveBeenLastCalledWith(expect.any(String), expect.any(Number), 1000);
   });
 
   it("marks the displayed article when the next article is rendered but never committed", () => {

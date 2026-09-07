@@ -31,16 +31,20 @@ type UseArticleAutoMarkParams = {
   showToast: ArticleStatusToast;
 };
 
-// The auto-mark target as of the last *commit*, recorded by a layout effect. Identity plus
-// eligibility: every field here is a value the scheduling effect below reads when it decides to
-// keep, cancel, or re-arm a delayed mark, so a change to any of them invalidates a timer that was
-// scheduled for the previous target.
+// The auto-mark target as of the last *commit*, recorded by a layout effect. Every render value
+// the scheduling effect below reads when it decides to keep, cancel, re-arm, or re-time a delayed
+// mark is kept here as its concrete value, so a change to any of them invalidates a timer that was
+// scheduled for the previous target. Deliberately not collapsed into a single "eligible" boolean:
+// two distinct enabled delays (after_0_3s and after_1s) are both eligible, and a boolean would let
+// a timer armed for the old delay survive the preference change.
 type CommittedAutoMarkTarget = {
   commitGeneration: number;
   articleId: string;
   selectedAccountId: string | null;
   viewMode: ViewMode;
-  isAutoMarkEligible: boolean;
+  isRead: boolean;
+  articleEngagement: ArticleEngagement;
+  afterReading: AfterReadingPreference;
 };
 
 type DelayedAfterReadingPreference = Exclude<UseArticleAutoMarkParams["afterReading"], "never" | "immediately">;
@@ -100,10 +104,6 @@ export function useArticleAutoMark({
   const committedAutoMarkTargetRef = useRef<CommittedAutoMarkTarget | null>(null);
   const autoMarkOwnerKey = getAutoMarkOwnerKey(selectedAccountId, articleId);
   const { mutate } = setRead;
-  // Same condition the scheduling effect uses to arm a delayed mark, minus the two inputs that are
-  // not render values and therefore have no commit boundary: the module-level manual-unread
-  // suppression key and autoMarkedOwnerKeyRef.
-  const isAutoMarkEligible = !isRead && articleEngagement === "reading" && afterReading !== "never";
 
   // Commit-boundary gate for a delayed auto-mark dispatch.
   //
@@ -126,7 +126,9 @@ export function useArticleAutoMark({
       articleId,
       selectedAccountId,
       viewMode,
-      isAutoMarkEligible,
+      isRead,
+      articleEngagement,
+      afterReading,
     };
 
     // Stop a timer that was scheduled for the previous committed target from firing at all. The
@@ -148,7 +150,12 @@ export function useArticleAutoMark({
         clearTimeout(pendingTimeoutOnCleanup);
       }
     };
-  }, [articleId, isAutoMarkEligible, selectedAccountId, viewMode]);
+    // Every dependency here is also a dependency of the scheduling effect below, so a commit that
+    // invalidates a timer always reschedules it. The scheduling effect's remaining dependencies
+    // (callback identities and the mutation) are not part of the auto-mark target and must not
+    // advance the commit generation. The manual-unread suppression key and autoMarkedOwnerKeyRef
+    // also gate scheduling but are not render values, so they have no commit boundary.
+  }, [afterReading, articleEngagement, articleId, isRead, selectedAccountId, viewMode]);
 
   // Latest passive-flushed render state, used only for the post-settle stale-owner decisions in
   // onSuccess / onError / isStaleOwner. Kept separate from committedAutoMarkTargetRef on purpose:
@@ -265,7 +272,11 @@ export function useArticleAutoMark({
         );
       };
 
-      // True only while the commit this attempt was scheduled for is still the committed one.
+      // True only while the commit this attempt was scheduled for is still the committed one. The
+      // field comparison is not redundant with the generation check: it states the contract the
+      // generation stands in for. Because this attempt only exists when the scheduling branch found
+      // the article eligible, every field matching also means it is still eligible, at the same
+      // delay it was armed with.
       const isScheduledCommitStillCurrent = () => {
         const committedTarget = committedAutoMarkTargetRef.current;
         return (
@@ -275,7 +286,9 @@ export function useArticleAutoMark({
           committedTarget.articleId === articleId &&
           committedTarget.selectedAccountId === selectedAccountId &&
           committedTarget.viewMode === viewMode &&
-          committedTarget.isAutoMarkEligible
+          committedTarget.isRead === isRead &&
+          committedTarget.articleEngagement === articleEngagement &&
+          committedTarget.afterReading === afterReading
         );
       };
 
@@ -290,7 +303,8 @@ export function useArticleAutoMark({
           }
 
           // Commit-boundary guard, checked before the dispatched diagnostic, the optimistic retain,
-          // and the mutation: a newer article/account/view/eligibility has already been committed,
+          // and the mutation: a newer article, account, view mode, read state, engagement, or
+          // after-reading delay has already been committed,
           // so this attempt must leave no trace here. Every ref is left untouched, so the pending
           // passive cleanup still records its single cancelled(effect_cleanup) for this requestId.
           if (!isScheduledCommitStillCurrent()) {
