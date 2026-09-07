@@ -12,10 +12,7 @@
 
 macOS の開発機では `#[cfg(target_os = "macos")]` のアイテムがコンパイルされるので、無条件 import も「使われている」と判定される。pre-push フルゲートも同じ機械で走るため通過する。Linux / Windows で初めて未使用になり、CI の lint で落ちる。ローカル緑を merge の根拠にすると必ず踏む。
 
-実例(いずれも 2026-08-23):
-
-- PR #104 browser_webview 分割 — cfg-gate した close-bridge import が定義側と不一致。
-- PR #128 keyring_store 分割 — `macos_security_cli.rs` の import 3 行が無条件で、使用箇所は `#[cfg(any(target_os = "macos", test))]`。Lint (ubuntu/windows) 両方で 3 error。
+この失敗は過去に 2 回踏んでいる(`browser_webview` 分割と `keyring_store` 分割)。いずれもローカル緑のまま Linux / Windows の lint で落ちた。
 
 ## 例
 

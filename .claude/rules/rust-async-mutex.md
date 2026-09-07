@@ -49,8 +49,8 @@ repo.upsert(&articles)?;
 ## 強制
 
 - [x] 手動レビュー
-- [ ] 自動 Linter
 
 ## 関連ルール
 
-- `shadcn-ui.md`: フロントエンド側のルール
+- `async-side-effect-policy.md`: フロント側の stale completion / latest-only 方針
+- `remote-state-reconciliation.md`: ロックスコープ分割が前提になる reconciliation の順序ルール

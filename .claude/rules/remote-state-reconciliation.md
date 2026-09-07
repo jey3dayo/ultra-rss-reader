@@ -44,21 +44,19 @@ apply(db, &remote_state, &pending_read, &pending_starred)?;
 - 回帰テスト例: `repair_greader_remote_state_keeps_article_marked_read_during_pull_state`、
   `reconcile_greader_unread_state_keeps_article_marked_read_during_pull`(unread reconcile 経路)
 
-## unread reconcile 経路(plan 021 で解消)
+## unread reconcile 経路
 
-`commands/sync_providers/unread/mod.rs` の `reconcile_greader_unread_state_for_feed` は
-かつて pending 読みと is_read 更新を別々の `lock_db` スコープで行っており、
-`.await` を跨がないものの別ロック取得という同型の TOCTOU 窓が残っていた
-(棚卸し: 2026-08-21, plan `plans/021-sync-session-lock.md`)。
-現在は単一 `lock_db` スコープ内で `pending_remote_ids_by_axis` を再利用して読み直し、
-is_read UPDATE と commit まで行う。
+`commands/sync_providers/unread/mod.rs` の `reconcile_greader_unread_state_for_feed` は、
+単一 `lock_db` スコープ内で `pending_remote_ids_by_axis` を再利用して保護リストを読み直し、
+is_read UPDATE と commit までを同じスコープで行う。pending 読みと is_read 更新を別ロックに
+分けると、`.await` を跨がなくても同型の TOCTOU 窓が開く。
 
-付随事項として、`reconcile_greader_unread_counts`(unread.rs)のループ前カウント
-snapshot は「どの feed を reconcile するか」の選定に使われる。カウント不一致は従来どおり
+`reconcile_greader_unread_counts`(unread.rs)のループ前カウント
+snapshot は「どの feed を reconcile するか」の選定に使われる。カウント不一致の feed は
 無条件に reconcile し、カウント一致の feed も24時間クールダウンのローテーションで
-定期的に reconcile する(1 sync 最大3 feed)。従来の「選定漏れは次回 sync で回収される」
-という記述は、ループ前 snapshot が古くなった同一 sync 内の選定漏れについての許容であり、
-カウント一致を理由に永久に未修正となる状態には適用しない。巻き戻り保護そのものは
+定期的に reconcile する(1 sync 最大3 feed)。同一 sync 内でループ前 snapshot が古くなった
+ことによる選定漏れは次回 sync で回収されるため許容するが、カウント一致を理由に永久に
+未修正となる状態は許容しない。巻き戻り保護そのものは
 per-feed の pending 保護と最終 recalculate が担う。drift check は同期の必須作業ではないため、
 不完全 snapshot や取得エラーでもローテーションのチェック時刻を必ず進める。構造的な不完全や
 一時的なエラーは即時再試行で解決しないためであり、記録しないと
