@@ -78,6 +78,10 @@ const dispatchedEventArgs = s.object({
   requestId: readDiagnosticRequestIdSchema,
   generation: readDiagnosticGenerationSchema,
   driftMs: readDiagnosticDriftMsSchema,
+  // True only when the real drift value was out of [-60000, 60000] and had to be clamped before
+  // this field was populated (e.g. after a system sleep/resume). Lets a reader tell "drift was
+  // exactly at the bound" apart from "drift was truncated and the real value is unknown".
+  saturated: v.boolean(),
 });
 const settledEventArgs = s.object({
   event: v.literal("settled"),
@@ -85,6 +89,9 @@ const settledEventArgs = s.object({
   generation: readDiagnosticGenerationSchema,
   outcome: readDiagnosticOutcomeSchema,
   durationMs: readDiagnosticDurationMsSchema,
+  // See dispatchedEventArgs.saturated; true when durationMs was clamped from an out-of-range
+  // value (e.g. an IPC/DB stall past 60s).
+  saturated: v.boolean(),
   errorClass: v.optional(readDiagnosticErrorClassSchema),
   staleOwner: v.boolean(),
 });
@@ -93,6 +100,8 @@ const pendingSlowEventArgs = s.object({
   requestId: readDiagnosticRequestIdSchema,
   generation: readDiagnosticGenerationSchema,
   elapsedMs: readDiagnosticElapsedMsSchema,
+  // See dispatchedEventArgs.saturated; true when elapsedMs was clamped from an out-of-range value.
+  saturated: v.boolean(),
 });
 
 export const readDiagnosticEventArgs = v.variant("event", [
@@ -107,5 +116,11 @@ export const readDiagnosticEventArgs = v.variant("event", [
 export type ReadDiagnosticEventArgs = v.InferOutput<typeof readDiagnosticEventArgs>;
 
 export const recordReadDiagnosticsBatchArgs = s.object({
-  events: v.pipe(v.array(readDiagnosticEventArgs), v.minLength(1), v.maxLength(READ_DIAGNOSTICS_BATCH_MAX_EVENTS)),
+  events: v.pipe(v.array(readDiagnosticEventArgs), v.maxLength(READ_DIAGNOSTICS_BATCH_MAX_EVENTS)),
+  // Count of events dropped locally before this batch was sent (FIFO ring eviction while full, a
+  // single event too large to ever fit the batch cap, or a non-finite duration/drift/elapsed
+  // value). A typed count, never free text, so the backend can log it without any risk of
+  // secrets. May be sent with an empty `events` array when only drops occurred since the last
+  // send.
+  droppedCount: v.pipe(v.number(), v.integer(), v.minValue(0)),
 });

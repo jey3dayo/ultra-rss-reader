@@ -106,12 +106,19 @@ pub enum ReadDiagnosticEventArg {
         request_id: String,
         generation: u32,
         drift_ms: i32,
+        /// True only when the frontend had to clamp an out-of-range drift value before sending
+        /// it; lets a reader tell "drift was exactly at the bound" apart from "drift was
+        /// truncated and the real value is unknown".
+        saturated: bool,
     },
     Settled {
         request_id: String,
         generation: u32,
         outcome: ReadDiagnosticOutcomeArg,
         duration_ms: u32,
+        /// See `Dispatched::saturated`; true when duration_ms was clamped from an out-of-range
+        /// value (e.g. an IPC/DB stall past 60s).
+        saturated: bool,
         error_class: Option<ReadDiagnosticErrorClassArg>,
         stale_owner: bool,
     },
@@ -119,6 +126,9 @@ pub enum ReadDiagnosticEventArg {
         request_id: String,
         generation: u32,
         elapsed_ms: u32,
+        /// See `Dispatched::saturated`; true when elapsed_ms was clamped from an out-of-range
+        /// value.
+        saturated: bool,
     },
 }
 

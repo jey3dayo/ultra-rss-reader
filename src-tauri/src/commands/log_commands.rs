@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use serde::Serialize;
 use tauri::Manager;
 use tauri_plugin_opener::OpenerExt;
 
@@ -96,16 +97,30 @@ const READ_DIAGNOSTICS_BATCH_REJECTED_MESSAGE: &str = "Diagnostics batch rejecte
 /// carry account-scoped data; a fresh app launch resets it.
 static READ_DIAGNOSTICS_SESSION_BYTES_ACCEPTED: AtomicU64 = AtomicU64::new(0);
 
+/// A batch is valid when it carries something worth accepting (events, a dropped count, or both),
+/// stays within the count/byte caps, and every event id is well-formed. An empty-events batch
+/// with `dropped_count > 0` is accepted so the suppressed count can still reach app.log even when
+/// every recent event was itself dropped locally.
 fn read_diagnostics_batch_is_valid(
     events: &[ReadDiagnosticEventArg],
+    dropped_count: u32,
     serialized_bytes: usize,
 ) -> bool {
-    !events.is_empty()
+    (!events.is_empty() || dropped_count > 0)
         && events.len() <= READ_DIAGNOSTICS_BATCH_MAX_EVENTS
         && serialized_bytes <= READ_DIAGNOSTICS_BATCH_MAX_BYTES
         && events
             .iter()
             .all(|event| is_valid_read_diagnostic_request_id(event.request_id()))
+}
+
+/// Local-only helper for measuring the serialized size of a batch (events plus the dropped
+/// count) the same way the caller will actually send it, without needing a real `events` +
+/// `dropped_count` pair of arguments at every call site.
+#[derive(Serialize)]
+struct ReadDiagnosticsBatchSizeCalc<'a> {
+    events: &'a [ReadDiagnosticEventArg],
+    dropped_count: u32,
 }
 
 /// Reserves `serialized_bytes` against `budget` if doing so would not exceed `cap`. Takes the
@@ -214,6 +229,7 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
             request_id,
             generation,
             drift_ms,
+            saturated,
         } => {
             tracing::info!(
                 target: "read_diagnostics",
@@ -221,6 +237,7 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
                 request_id = %request_id,
                 generation,
                 drift_ms,
+                saturated,
                 "auto-mark dispatched"
             );
         }
@@ -229,6 +246,7 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
             generation,
             outcome,
             duration_ms,
+            saturated,
             error_class,
             stale_owner,
         } => {
@@ -242,6 +260,7 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
                     generation,
                     outcome = outcome_str,
                     duration_ms,
+                    saturated,
                     error_class = error_class_str,
                     stale_owner,
                     "auto-mark settled"
@@ -254,6 +273,7 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
                     generation,
                     outcome = outcome_str,
                     duration_ms,
+                    saturated,
                     error_class = error_class_str,
                     stale_owner,
                     "auto-mark settled"
@@ -264,6 +284,7 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
             request_id,
             generation,
             elapsed_ms,
+            saturated,
         } => {
             tracing::warn!(
                 target: "read_diagnostics",
@@ -271,10 +292,25 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
                 request_id = %request_id,
                 generation,
                 elapsed_ms,
+                saturated,
                 "auto-mark still pending"
             );
         }
     }
+}
+
+fn log_read_diagnostics_dropped_count(dropped_count: u32) {
+    if dropped_count == 0 {
+        return;
+    }
+    // A typed count, never free text: how many events this batch's sender could not keep (ring
+    // eviction while full, a single event too large to ever fit, or a non-finite time value).
+    tracing::warn!(
+        target: "read_diagnostics",
+        event = "dropped",
+        dropped_count,
+        "read diagnostics events dropped before send"
+    );
 }
 
 /// Accepts a bounded batch of already-validated (frontend schema, then here) read-state
@@ -283,12 +319,18 @@ fn log_read_diagnostic_event(event: &ReadDiagnosticEventArg) {
 /// simply dropped, both here and by the frontend caller (which does not retry or await this
 /// call). See `src/components/reader/hooks/article/read-state-diagnostics.ts` for the sender.
 #[tauri::command]
-pub fn record_read_diagnostics_batch(events: Vec<ReadDiagnosticEventArg>) -> Result<(), AppError> {
-    let serialized_bytes = serde_json::to_vec(&events)
-        .map(|bytes| bytes.len())
-        .unwrap_or(usize::MAX);
+pub fn record_read_diagnostics_batch(
+    events: Vec<ReadDiagnosticEventArg>,
+    dropped_count: u32,
+) -> Result<(), AppError> {
+    let serialized_bytes = serde_json::to_vec(&ReadDiagnosticsBatchSizeCalc {
+        events: &events,
+        dropped_count,
+    })
+    .map(|bytes| bytes.len())
+    .unwrap_or(usize::MAX);
 
-    if !read_diagnostics_batch_is_valid(&events, serialized_bytes) {
+    if !read_diagnostics_batch_is_valid(&events, dropped_count, serialized_bytes) {
         return Err(AppError::UserVisible {
             message: READ_DIAGNOSTICS_BATCH_REJECTED_MESSAGE.to_string(),
         });
@@ -300,6 +342,7 @@ pub fn record_read_diagnostics_batch(events: Vec<ReadDiagnosticEventArg>) -> Res
         });
     }
 
+    log_read_diagnostics_dropped_count(dropped_count);
     for event in &events {
         log_read_diagnostic_event(event);
     }
@@ -314,7 +357,7 @@ mod tests {
     use super::{
         diagnostics_size_policy, ensure_log_dir, log_dir_error_message, log_dir_opener_app_arg,
         log_dir_opener_arg, log_dir_privacy_checklist, read_diagnostics_batch_is_valid,
-        record_read_diagnostics_batch, reserve_diagnostics_budget,
+        record_read_diagnostics_batch, reserve_diagnostics_budget, ReadDiagnosticsBatchSizeCalc,
     };
     use crate::commands::dto::ReadDiagnosticEventArg;
     use std::sync::atomic::AtomicU64;
@@ -517,33 +560,40 @@ mod tests {
     }
 
     #[test]
-    fn read_diagnostics_batch_is_valid_rejects_empty_batches() {
-        assert!(!read_diagnostics_batch_is_valid(&[], 0));
+    fn read_diagnostics_batch_is_valid_rejects_empty_batches_with_no_dropped_count() {
+        assert!(!read_diagnostics_batch_is_valid(&[], 0, 0));
+    }
+
+    #[test]
+    fn read_diagnostics_batch_is_valid_accepts_empty_events_when_dropped_count_is_positive() {
+        // A batch that carries only a suppressed-count report (every recent event was itself
+        // dropped locally) must still be accepted so the count reaches app.log.
+        assert!(read_diagnostics_batch_is_valid(&[], 3, 1));
     }
 
     #[test]
     fn read_diagnostics_batch_is_valid_rejects_more_than_the_max_event_count() {
         let events: Vec<_> = (0..65).map(|_| scheduled_event("req-1")).collect();
-        assert!(!read_diagnostics_batch_is_valid(&events, 1));
+        assert!(!read_diagnostics_batch_is_valid(&events, 0, 1));
     }
 
     #[test]
     fn read_diagnostics_batch_is_valid_accepts_exactly_the_max_event_count() {
         let events: Vec<_> = (0..64).map(|_| scheduled_event("req-1")).collect();
-        assert!(read_diagnostics_batch_is_valid(&events, 1));
+        assert!(read_diagnostics_batch_is_valid(&events, 0, 1));
     }
 
     #[test]
     fn read_diagnostics_batch_is_valid_rejects_oversized_serialized_batches() {
         let events = vec![scheduled_event("req-1")];
-        assert!(!read_diagnostics_batch_is_valid(&events, 16 * 1024 + 1));
-        assert!(read_diagnostics_batch_is_valid(&events, 16 * 1024));
+        assert!(!read_diagnostics_batch_is_valid(&events, 0, 16 * 1024 + 1));
+        assert!(read_diagnostics_batch_is_valid(&events, 0, 16 * 1024));
     }
 
     #[test]
     fn read_diagnostics_batch_is_valid_rejects_an_invalid_request_id() {
         let events = vec![scheduled_event("id with spaces")];
-        assert!(!read_diagnostics_batch_is_valid(&events, 1));
+        assert!(!read_diagnostics_batch_is_valid(&events, 0, 1));
     }
 
     #[test]
@@ -566,23 +616,49 @@ mod tests {
 
     #[test]
     fn record_read_diagnostics_batch_rejects_an_empty_batch_without_logging() {
-        let result = record_read_diagnostics_batch(vec![]);
+        let result = record_read_diagnostics_batch(vec![], 0);
         assert_user_visible_recovery_message_with(result, "Diagnostics batch rejected.");
     }
 
     #[test]
     fn record_read_diagnostics_batch_rejects_an_invalid_request_id() {
         let result =
-            record_read_diagnostics_batch(vec![scheduled_event("bad id; drop table articles")]);
+            record_read_diagnostics_batch(vec![scheduled_event("bad id; drop table articles")], 0);
         assert_user_visible_recovery_message_with(result, "Diagnostics batch rejected.");
     }
 
     #[test]
     fn record_read_diagnostics_batch_accepts_a_small_valid_batch() {
-        let result = record_read_diagnostics_batch(vec![scheduled_event(
-            "5b978598-36b8-4bd4-8ee4-1bf25f4773c2",
-        )]);
+        let result = record_read_diagnostics_batch(
+            vec![scheduled_event("5b978598-36b8-4bd4-8ee4-1bf25f4773c2")],
+            0,
+        );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn record_read_diagnostics_batch_accepts_an_empty_events_batch_carrying_only_a_dropped_count() {
+        let result = record_read_diagnostics_batch(vec![], 5);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn read_diagnostics_batch_size_calc_counts_the_dropped_count_field_itself() {
+        // The size check must measure events + dropped_count together, the same shape the
+        // command actually serializes, so a large dropped_count cannot silently ride along
+        // uncounted.
+        let events = vec![scheduled_event("req-1")];
+        let without_drops = serde_json::to_vec(&ReadDiagnosticsBatchSizeCalc {
+            events: &events,
+            dropped_count: 0,
+        })
+        .unwrap();
+        let with_drops = serde_json::to_vec(&ReadDiagnosticsBatchSizeCalc {
+            events: &events,
+            dropped_count: 4_000_000_000,
+        })
+        .unwrap();
+        assert!(with_drops.len() > without_drops.len());
     }
 
     fn assert_user_visible_recovery_message_with(

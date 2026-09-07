@@ -41,9 +41,9 @@ export const backupDatabase = () => safeInvoke("backup_database", { response: Nu
 export const openLogDir = () => safeInvoke("open_log_dir", { response: NullResponseSchema });
 
 // Read-state diagnostics (see src/components/reader/hooks/article/read-state-diagnostics.ts)
-export const recordReadDiagnosticsBatch = (events: readonly ReadDiagnosticEventArgs[]) =>
+export const recordReadDiagnosticsBatch = (events: readonly ReadDiagnosticEventArgs[], droppedCount: number) =>
   safeInvoke(
     "record_read_diagnostics_batch",
     { response: NullResponseSchema, args: recordReadDiagnosticsBatchArgs },
-    { events: [...events] },
+    { events: [...events], droppedCount },
   );
