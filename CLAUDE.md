@@ -112,7 +112,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - Native desktop checks start from `mise run app:dev`; avoid duplicate app instances and operate the development app.
 - For native Tauri inspection, prefer `tauri-mcp-server` for DOM/computed-style/webview interaction and Computer Use for visible window state.
 - Use `tauri-dev-screenshot` for saved native-window PNG artifacts and `tauri-webview-geometry` for child webview sizing or pixel-ratio issues.
-- Use the `tauri` skill when changing Tauri-facing code paths, especially filesystem and path handling from the webview.
+- Use the `tauri` skill for framework-level guidance when changing Tauri-facing code. Its repository-specific commands, paths, binding workflow, and domain examples are non-authoritative here; resolve those from [CONTRIBUTING.md](CONTRIBUTING.md) and current local code. The skill is APM-managed, so do not edit deployed copies.
 
 ## Feature Work Reminder
 
