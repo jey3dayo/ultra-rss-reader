@@ -363,10 +363,19 @@ keyboard input routing.
 
 Confirm and record:
 
-- Modifier-key shortcuts (Ctrl and Alt combinations) resolve through Windows'
-  `ToUnicode`/virtual-key mapping according to the active keyboard layout, not
-  a fixed key-code assumption. Cover symbol keys plus Enter, Tab, Backspace,
-  Space, arrow keys, and F1-F12.
+- Layout-dependent keys resolve through `ToUnicode`. In
+  `src-tauri/src/browser_webview/shortcuts.rs`,
+  `browser_shortcut_key_from_virtual_key` reaches
+  `browser_shortcut_key_from_windows_layout` only for keys the fixed tables do
+  not claim, so this group is symbol keys plus Shift-and-digit combinations
+  (Shift+2 must produce the layout's glyph, not `2`). Verify these on a
+  non-US layout, because a US-only check cannot distinguish the two paths.
+- Fixed virtual-key names resolve from the platform-independent table in
+  `browser_shortcut_key_from_virtual_key_name` and never reach `ToUnicode`:
+  Enter, Tab, Backspace, Space, the arrow keys, F1-F12, Escape, unshifted
+  digits, and letters. Verify that they fire, but do not treat them as
+  layout-dependent; expecting a layout to change them would fail a check the
+  implementation is not trying to satisfy.
 - While the Web Preview surface has focus, an unmodified single-key press is
   correctly left to the previewed page rather than intercepted by the app,
   while modifier-key shortcuts still fire. Record this as two separate
