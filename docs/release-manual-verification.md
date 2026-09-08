@@ -352,6 +352,64 @@ When the optional job is enabled, verify:
 - The maintainer records the workflow run URL, source commit, artifact names,
   and SHA-256 digests after the first successful `build_linux: true` dispatch.
 
+### 2h. Windows Web Preview Keyboard Verification
+
+Run this on the Windows packaged release artifact whenever a Windows test
+environment is available. This is a standing, version-independent verification
+item for the Web Preview keyboard input path. It is not satisfied by the
+general Windows or packaged-app checks in sections 2c, 2f, 3, 4, or 5; those
+cover installer signing, crash visibility, keyring, updater, and startup, not
+keyboard input routing.
+
+Confirm and record:
+
+- Layout-dependent keys resolve through `ToUnicode`. In
+  `src-tauri/src/browser_webview/shortcuts.rs`,
+  `browser_shortcut_key_from_virtual_key` reaches
+  `browser_shortcut_key_from_windows_layout` only for keys the fixed tables do
+  not claim, so this group is symbol keys plus Shift-and-digit combinations
+  (Shift+2 must produce the layout's glyph, not `2`). Verify these on a
+  non-US layout, because a US-only check cannot distinguish the two paths.
+- Fixed virtual-key names resolve from the platform-independent table in
+  `browser_shortcut_key_from_virtual_key_name` and never reach `ToUnicode`:
+  Enter, Tab, Backspace, Space, the arrow keys, F1-F12, Escape, unshifted
+  digits, and letters. Verify that they fire, but do not treat them as
+  layout-dependent; expecting a layout to change them would fail a check the
+  implementation is not trying to satisfy.
+- While the Web Preview surface has focus, an unmodified single-key press is
+  correctly left to the previewed page rather than intercepted by the app,
+  while modifier-key shortcuts still fire. Record this as two separate
+  results, not one combined "keyboard works" result.
+- Use Ctrl, optionally with Shift, for the modifier case reachable from the
+  settings UI. The recorded shape in `src/lib/keyboard/keyboard-shortcuts.ts`
+  holds `metaKey`, `ctrlKey`, and `shiftKey` with no Alt flag,
+  `shouldIgnoreGlobalShortcutKeyboardEvent`
+  (`src/lib/keyboard/global-shortcut-targets.ts`) drops events with Alt held,
+  and the settings UI refuses to record an Alt combination.
+- An Alt or Option binding that is already stored is a separate case, and it
+  is implemented: `normalize_saved_browser_shortcut`
+  (`src-tauri/src/browser_webview/shortcuts.rs`) accepts `Alt`, `Option`, and
+  `⌥` in a saved binding, and the native monitor reads the Alt state from
+  `VK_MENU` (`src-tauri/src/browser_webview/escape_accelerator.rs`).
+  `Alt+S` and `Option+Shift+J` matching is covered by
+  `browser_preview_shortcut_matching_supports_command_control_and_alt_bindings`.
+  Because the settings UI cannot create one, seed it before the check by
+  writing the preference row directly — the binding is read from the app's
+  SQLite preferences (see `try_load_browser_preview_prefs_from_db`), keyed as
+  `shortcut_<action>` with a value such as `Alt+S`. Do not skip this: the
+  matching path is a live regression surface, and treating Alt as
+  unsupported would let a break in it pass unnoticed.
+- The Windows OS build and keyboard layout used for the check, for example
+  Windows 11 23H2 with a US QWERTY or JIS layout.
+- The app version the check was run against and the result (pass, fail, or
+  partial), so drift across versions stays visible.
+
+Status: Windows has not been verified for this item as of this entry. Run it
+the next time a Windows test environment becomes available (VM, physical
+machine, or an interactive Windows CI session), and record the owner, date, OS
+build, keyboard layout, app version, and result directly in this section when
+it is first run.
+
 ### 3. Native Keyring Verification
 
 Run the packaged app on the target OS with normal credentials storage enabled.
