@@ -109,6 +109,12 @@ export function ArticleTagPickerPopover({
           value={newTagName}
           onChange={(event) => onNewTagNameChange(event.target.value)}
           onKeyDown={(event) => {
+            // While an IME candidate is being composed the IME owns the keystroke: Enter confirms
+            // the candidate and Escape cancels it, so neither should reach the picker. React's
+            // synthetic event has no isComposing, so read it from the native event.
+            if (event.nativeEvent.isComposing) {
+              return;
+            }
             if (event.key === "Enter") {
               event.stopPropagation();
               handleCreateTag();
