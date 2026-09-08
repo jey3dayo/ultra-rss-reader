@@ -139,7 +139,8 @@ Final report must include:
 - matching `release.yml` workflow URL and evidence that its tag/ref and head SHA match the release;
 - GitHub Release URL, `tagName`, and draft status;
 - whether any `untagged-...` Release URL is acceptable based on structured fields;
-- reminder to review the draft Release and publish it manually after artifacts look correct.
+- reminder to review the draft Release and publish it manually after artifacts look correct
+  (the Claude `/release` command publishes in its own Phase 4; this skill stops at the verified draft).
 
 ## Guardrails
 

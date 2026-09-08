@@ -90,7 +90,7 @@ Keep a fix local when it depends on:
 
 ## Review Format
 
-Use the `design-md-review` format unless the user asks for something else.
+Use the review format below unless the user asks for something else.
 
 ```markdown
 総合判定: OK | 調整推奨 | 大幅修正推奨
@@ -177,7 +177,7 @@ When reviewing compact icon-only action strips, check semantic state and visual 
 
 If the direction is unclear:
 
-- use `design-md-review` to evaluate `DESIGN.md`
+- use the `design-md-workflow` skill to evaluate `DESIGN.md`
 - request `ui-ux-pro-max` review when visual or UX judgment is still ambiguous
 
 ## Notes

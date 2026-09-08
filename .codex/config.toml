@@ -1,11 +1,13 @@
 [mcp_servers.tauri-mcp-server]
 command = "npx"
 args = ["-y", "@hypothesi/tauri-mcp-server"]
+id = ""
+
+[mcp_servers.tauri-mcp-server.env]
 
 [mcp_servers.agentation]
 command = "npx"
 args = ["-y", "agentation-mcp", "server"]
-
-[mcp_servers.tauri-mcp-server.env]
+id = ""
 
 [mcp_servers.agentation.env]

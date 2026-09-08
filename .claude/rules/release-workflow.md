@@ -19,8 +19,8 @@ paths:
 
 - リリースは Git タグ (`v*`) プッシュでトリガーする
 - `tauri-apps/tauri-action@v0` を使用してビルド・Release 作成・アーティファクト添付を行う
-- ビルドマトリクスは macOS arm64 (`macos-latest`) + Windows (`windows-latest`) の 2 並列
-- GitHub Release は Draft として作成し、手動で Publish に切り替える
+- tag push の既定ビルドマトリクスは macOS arm64 (`macos-latest`) + Windows (`windows-latest`) の 2 並列。`workflow_dispatch` の `build_linux=true` では updater 対象外の Ubuntu `.deb` / AppImage を追加する
+- `tauri-action` は GitHub Release を Draft として作成する。Draft の解除は `/release` の Phase 4 が、ビルド成功とアーティファクト検証を確認したうえで行う（`.claude/commands/release.md` の 4c / 4d）。手動 Publish は `/release` を使わない場合の経路
 - `generateReleaseNotes` は `false`。リリースノートは CLI（`gh release edit/create`）で管理し、`tauri-action` はアーティファクト添付のみ担当する
 - GitHub Actions の uses にはコミットハッシュ pin + バージョンコメントを付与する
 - `fail-fast: false` で一部のプラットフォーム失敗が他に波及しないようにする
@@ -60,11 +60,12 @@ paths:
 
 ## リリースコマンド構造
 
-`/release` コマンドは 3 フェーズで構成される:
+`/release` コマンドは 4 フェーズで構成される:
 
-1. Phase 1: Pre-checks + Version — バージョン一致確認、ブランチ・ワークツリー確認、バージョンバンプ
-2. Phase 2: Changes + Release Notes — CHANGELOG 生成、リリースノート作成（`gh release edit/create` 経由）
-3. Phase 3: Commit + Tag + Publish — コミット、タグ作成、プッシュ、GitHub Release ワークフローのトリガー
+1. Phase 1: Pre-checks + Version Choice — ブランチ、ワークツリー、`origin/main` との一致、現在バージョン、bump 種別を確認
+2. Phase 2: Changes + Release Notes — 5 つの version owner、`CHANGELOG.md`、リリースノート、該当する `todo.txt` を更新
+3. Phase 3: Commit + Tag + Push — release commit、annotated tag、preflight、atomic push、draft Release ノート反映と workflow trigger の確認
+4. Phase 4: Build Wait + Publish — 対応する `release.yml` run の成功とアーティファクトを検証して draft を解除
 
 ユーザーが bump 種別と公開意図を明示している場合、各フェーズ間で同じ確認を繰り返さず、必須チェックと検証に失敗した場合だけ停止する。公開意図がない場合は、リリースノート確認と push 前確認を行う。
 
@@ -117,4 +118,4 @@ Tauri アプリのクロスプラットフォームビルドは OS 固有のツ�
 
 - Developer ID / Apple notarization による macOS 配布
 - Windows EV 証明書
-- Linux ビルド（.deb / .AppImage）
+- Linux updater と既定ユーザーへの配信。packaging 自体は `workflow_dispatch` の `build_linux=true` で optional job として実装済みだが、`latest.json` は macOS / Windows 限定のまま。updater 契約の正本は `docs/release-manual-verification.md` の `2g. Optional Linux Packaging Verification`
