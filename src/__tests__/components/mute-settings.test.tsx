@@ -451,6 +451,8 @@ describe("MuteSettings", () => {
 
   it("keeps the delete confirmation open when deletion fails", async () => {
     const user = userEvent.setup();
+    const showToast = vi.fn();
+    useUiStore.setState({ showToast });
     deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("delete failed"));
 
     render(<MuteSettings />);
@@ -468,6 +470,52 @@ describe("MuteSettings", () => {
     });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(expect.stringContaining("delete failed"));
+    });
+    // busy is released even on failure, so the confirmation controls become interactive again.
+    await waitFor(() => {
+      expect(confirmDeleteButton).not.toBeDisabled();
+    });
+    expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
+  });
+
+  it("releases the busy state even when the notification for a failed deletion throws", async () => {
+    const user = userEvent.setup();
+    const unhandledRejection = vi.fn();
+    process.once("unhandledRejection", unhandledRejection);
+    const showToast = vi.fn(() => {
+      throw new Error("notification channel unavailable");
+    });
+    useUiStore.setState({ showToast });
+    deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("delete failed"));
+
+    render(<MuteSettings />);
+
+    await user.click(getDeleteButtonAt(0));
+    const deleteButtons = screen.getAllByRole("button", { name: "Delete" });
+    const confirmDeleteButton = getElementAt(deleteButtons, deleteButtons.length - 1, "delete confirmation button");
+
+    await user.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(deleteMuteKeywordMutateAsyncMock).toHaveBeenCalledWith({
+        muteKeywordId: "mute-1",
+      });
+    });
+    // the throwing showToast means handleConfirmDelete's promise rejects (onConfirmDelete
+    // fires it with `void`, so the rejection is unhandled by design); busy release must not
+    // depend on that promise resolving cleanly.
+    await waitFor(() => {
+      expect(confirmDeleteButton).not.toBeDisabled();
+    });
+    expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    process.off("unhandledRejection", unhandledRejection);
   });
 
   it("does not let an older failed auto-mark update roll back a newer successful value", async () => {

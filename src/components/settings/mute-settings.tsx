@@ -115,10 +115,9 @@ export function MuteSettings() {
       });
       showToast(t("mute.delete_success"));
       dispatch({ type: "set-confirm-rule-id", value: null });
-      confirmDeleteInFlightRef.current = false;
-      setConfirmDeleteInFlight(false);
     } catch (error) {
       showToast(t("mute.delete_failed", { message: getErrorMessage(error) }));
+    } finally {
       confirmDeleteInFlightRef.current = false;
       setConfirmDeleteInFlight(false);
     }
