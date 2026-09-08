@@ -380,14 +380,25 @@ Confirm and record:
   correctly left to the previewed page rather than intercepted by the app,
   while modifier-key shortcuts still fire. Record this as two separate
   results, not one combined "keyboard works" result.
-- Use Ctrl, optionally with Shift, for the modifier case. Those are the only
-  modifiers a shortcut can carry: the recorded shape in
-  `src/lib/keyboard/keyboard-shortcuts.ts` holds `metaKey`, `ctrlKey`, and
-  `shiftKey` and no Alt flag, `shouldIgnoreGlobalShortcutKeyboardEvent`
-  (`src/lib/keyboard/global-shortcut-targets.ts`) drops any event with Alt
-  held, and the settings UI refuses to record an Alt combination. Do not test
-  an Alt binding and do not log its absence as a failure; there is no
-  supported way to configure one.
+- Use Ctrl, optionally with Shift, for the modifier case reachable from the
+  settings UI. The recorded shape in `src/lib/keyboard/keyboard-shortcuts.ts`
+  holds `metaKey`, `ctrlKey`, and `shiftKey` with no Alt flag,
+  `shouldIgnoreGlobalShortcutKeyboardEvent`
+  (`src/lib/keyboard/global-shortcut-targets.ts`) drops events with Alt held,
+  and the settings UI refuses to record an Alt combination.
+- An Alt or Option binding that is already stored is a separate case, and it
+  is implemented: `normalize_saved_browser_shortcut`
+  (`src-tauri/src/browser_webview/shortcuts.rs`) accepts `Alt`, `Option`, and
+  `⌥` in a saved binding, and the native monitor reads the Alt state from
+  `VK_MENU` (`src-tauri/src/browser_webview/escape_accelerator.rs`).
+  `Alt+S` and `Option+Shift+J` matching is covered by
+  `browser_preview_shortcut_matching_supports_command_control_and_alt_bindings`.
+  Because the settings UI cannot create one, seed it before the check by
+  writing the preference row directly — the binding is read from the app's
+  SQLite preferences (see `try_load_browser_preview_prefs_from_db`), keyed as
+  `shortcut_<action>` with a value such as `Alt+S`. Do not skip this: the
+  matching path is a live regression surface, and treating Alt as
+  unsupported would let a break in it pass unnoticed.
 - The Windows OS build and keyboard layout used for the check, for example
   Windows 11 23H2 with a US QWERTY or JIS layout.
 - The app version the check was run against and the result (pass, fail, or
