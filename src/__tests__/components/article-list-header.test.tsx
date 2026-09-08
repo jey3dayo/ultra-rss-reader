@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import i18n from "@tests/helpers/i18n-setup";
@@ -492,6 +492,37 @@ describe("ArticleListHeader", () => {
     searchInput.focus();
 
     await user.keyboard("{Escape}");
+
+    expect(onCloseSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps search open when Escape cancels an IME candidate", () => {
+    const onCloseSearch = vi.fn();
+
+    render(
+      <ArticleListHeader
+        showSearch
+        searchQuery="けんさく"
+        searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
+        showSidebarButton={false}
+        sidebarButtonLabel="Show sidebar"
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={onCloseSearch}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const searchInput = screen.getByRole("textbox", { name: "Search articles" });
+
+    fireEvent.keyDown(searchInput, { key: "Escape", isComposing: true });
+
+    expect(onCloseSearch).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(searchInput, { key: "Escape" });
 
     expect(onCloseSearch).toHaveBeenCalledTimes(1);
   });
