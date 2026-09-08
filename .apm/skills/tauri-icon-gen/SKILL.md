@@ -19,11 +19,11 @@ Tauri アプリ用のアイコン生成ワークフロー。ソース画像の�
 
 作業の最初に、リポジトリルートへ移動し、入力画像が正方形かどうか確認する。非正方形なら、先に余白追加やトリミングで正方形化してから進める。
 
-Codex では bundled script の root を `~/.agents/skills` として扱う。
+bundled script はこの skill に同梱される。`apm.yml` に `./.apm/skills/tauri-icon-gen` として登録された repo-local skill なので、source は対象リポジトリ配下にあり `$HOME` 配下ではない。
 
 ```bash
-SKILL_ROOT="$HOME/.agents/skills/tauri-icon-gen"
 cd /path/to/tauri-project
+SKILL_ROOT="$PWD/.apm/skills/tauri-icon-gen"
 ```
 
 ## Prerequisites
@@ -118,7 +118,6 @@ magick identify -format '%f %wx%h channels=%[channels] trim=%@ corner=%[pixel:p{
 ## Typical Usage (Ultra RSS Reader)
 
 ```bash
-SKILL_ROOT="$HOME/.agents/skills/tauri-icon-gen"
 cd /path/to/tauri-project
 
 # 元ラスターデザイン master は上書きしない
