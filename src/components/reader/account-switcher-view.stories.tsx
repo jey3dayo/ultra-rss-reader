@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { createRef } from "react";
+import { useRef } from "react";
 import { fn } from "storybook/test";
 import type { AccountDto } from "@/api/tauri-commands";
 import { type AccountSwitcherProps, AccountSwitcherView } from "./account-switcher-view";
@@ -31,15 +31,10 @@ const sampleAccounts: AccountDto[] = [
   },
 ];
 
-function createAccountItemRefs() {
-  const current: Array<HTMLButtonElement | null> = [];
-  return { current };
-}
-
 function AccountSwitcherStory(args: AccountSwitcherStoryArgs) {
-  return (
-    <AccountSwitcherView {...args} triggerRef={createRef<HTMLButtonElement>()} itemRefs={createAccountItemRefs()} />
-  );
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  return <AccountSwitcherView {...args} triggerRef={triggerRef} itemRefs={itemRefs} />;
 }
 
 const meta = {

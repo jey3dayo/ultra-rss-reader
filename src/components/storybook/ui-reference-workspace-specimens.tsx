@@ -386,45 +386,47 @@ export function DetailPanelSpecimen() {
   );
 }
 
+const workspaceTwoPaneSpecimenEntries = [
+  {
+    id: "automaton",
+    title: "AUTOMATON",
+    href: "https://automaton-media.com",
+    folder: "Gaming",
+    latestArticle: "2026/04/16",
+    unread: 0,
+    starred: 0,
+    status: "Review",
+    statusTone: "medium" as const,
+    article: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。",
+  },
+  {
+    id: "publickey",
+    title: "Publickey",
+    href: "https://www.publickey1.jp",
+    folder: "Engineering",
+    latestArticle: "2026/04/28",
+    unread: 2,
+    starred: 1,
+    status: "Watch",
+    statusTone: "low" as const,
+    article: "クラウドネイティブな開発環境とフロントエンド基盤の最新動向。",
+  },
+  {
+    id: "nhk",
+    title: "NHKニュース",
+    href: "https://www3.nhk.or.jp/news/",
+    folder: "News",
+    latestArticle: "2026/04/30",
+    unread: 4,
+    starred: 0,
+    status: "Normal",
+    statusTone: "neutral" as const,
+    article: "国内外の主要ニュースを短く確認するための定点観測フィード。",
+  },
+];
+
 export function WorkspaceTwoPaneSpecimen() {
-  const entries = [
-    {
-      id: "automaton",
-      title: "AUTOMATON",
-      href: "https://automaton-media.com",
-      folder: "Gaming",
-      latestArticle: "2026/04/16",
-      unread: 0,
-      starred: 0,
-      status: "Review",
-      statusTone: "medium" as const,
-      article: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。",
-    },
-    {
-      id: "publickey",
-      title: "Publickey",
-      href: "https://www.publickey1.jp",
-      folder: "Engineering",
-      latestArticle: "2026/04/28",
-      unread: 2,
-      starred: 1,
-      status: "Watch",
-      statusTone: "low" as const,
-      article: "クラウドネイティブな開発環境とフロントエンド基盤の最新動向。",
-    },
-    {
-      id: "nhk",
-      title: "NHKニュース",
-      href: "https://www3.nhk.or.jp/news/",
-      folder: "News",
-      latestArticle: "2026/04/30",
-      unread: 4,
-      starred: 0,
-      status: "Normal",
-      statusTone: "neutral" as const,
-      article: "国内外の主要ニュースを短く確認するための定点観測フィード。",
-    },
-  ];
+  const entries = workspaceTwoPaneSpecimenEntries;
   const [selectedEntryId, setSelectedEntryId] = useState(entries[0].id);
   const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? entries[0];
 
