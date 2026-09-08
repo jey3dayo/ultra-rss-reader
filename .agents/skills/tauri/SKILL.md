@@ -67,8 +67,8 @@ When a Tauri app uses `tauri-specta`, keep the Rust command registry, generated 
 Verification for IPC changes usually needs both sides:
 
 ```bash
-cargo check --manifest-path apps/whispering/src-tauri/Cargo.toml
-bun run --cwd apps/whispering bindings:tauri
+cargo check --manifest-path apps/epicenter/src-tauri/Cargo.toml
+cargo test --manifest-path apps/epicenter/src-tauri/Cargo.toml export_types
 ```
 
 If binding generation rewrites unrelated sections, inspect the diff before committing it.
@@ -79,10 +79,10 @@ Before choosing a path API, determine your execution context:
 
 | Context                 | Location                                       | Correct API            |
 | ----------------------- | ---------------------------------------------- | ---------------------- |
-| Tauri frontend      | `apps/*/src/**/*.ts`, `apps/*/src/**/*.svelte` | `@tauri-apps/api/path` |
-| Node.js/Bun backend | `packages/**/*.ts`, CLI tools                  | Node.js `path` module  |
+| **Tauri frontend**      | `apps/*/src/**/*.ts`, `apps/*/src/**/*.svelte` | `@tauri-apps/api/path` |
+| **Node.js/Bun backend** | `packages/**/*.ts`, CLI tools                  | Node.js `path` module  |
 
-Rule: If the code runs in the browser (Tauri webview), use Tauri's path APIs. If it runs in Node.js/Bun, use the Node.js `path` module.
+**Rule**: If the code runs in the browser (Tauri webview), use Tauri's path APIs. If it runs in Node.js/Bun, use the Node.js `path` module.
 
 ## Available Functions from `@tauri-apps/api/path`
 
