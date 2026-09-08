@@ -380,6 +380,14 @@ Confirm and record:
   correctly left to the previewed page rather than intercepted by the app,
   while modifier-key shortcuts still fire. Record this as two separate
   results, not one combined "keyboard works" result.
+- Use Ctrl, optionally with Shift, for the modifier case. Those are the only
+  modifiers a shortcut can carry: the recorded shape in
+  `src/lib/keyboard/keyboard-shortcuts.ts` holds `metaKey`, `ctrlKey`, and
+  `shiftKey` and no Alt flag, `shouldIgnoreGlobalShortcutKeyboardEvent`
+  (`src/lib/keyboard/global-shortcut-targets.ts`) drops any event with Alt
+  held, and the settings UI refuses to record an Alt combination. Do not test
+  an Alt binding and do not log its absence as a failure; there is no
+  supported way to configure one.
 - The Windows OS build and keyboard layout used for the check, for example
   Windows 11 23H2 with a US QWERTY or JIS layout.
 - The app version the check was run against and the result (pass, fail, or
