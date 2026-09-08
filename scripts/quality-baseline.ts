@@ -253,7 +253,9 @@ type ReactDoctorReport = {
 const unknownReactDoctorRule = "(unknown rule)";
 const unknownReactDoctorSeverity = "(unknown severity)";
 
-const reactDoctorSeverityOrder = ["error", "warning"] as const;
+// Typed as readonly string[] rather than a literal tuple so an arbitrary severity string
+// from the report can be looked up without a cast.
+const reactDoctorSeverityOrder: readonly string[] = ["error", "warning"];
 
 type KnipIssueBucket = Record<string, unknown>;
 
@@ -1010,8 +1012,8 @@ export function buildReactDoctorRuleCounts(diagnostics: readonly ReactDoctorDiag
 }
 
 function compareReactDoctorSeverity(left: string, right: string): number {
-  const leftRank = reactDoctorSeverityOrder.findIndex((severity) => severity === left);
-  const rightRank = reactDoctorSeverityOrder.findIndex((severity) => severity === right);
+  const leftRank = reactDoctorSeverityOrder.indexOf(left);
+  const rightRank = reactDoctorSeverityOrder.indexOf(right);
   const leftOrder = leftRank === -1 ? reactDoctorSeverityOrder.length : leftRank;
   const rightOrder = rightRank === -1 ? reactDoctorSeverityOrder.length : rightRank;
   return leftOrder - rightOrder || left.localeCompare(right);
