@@ -107,15 +107,19 @@ const reactDoctorBaselines = {
   // delta never reads as approval. Keep reactDoctorFullScanTriageStatus in step when
   // re-pinning these, and see docs/react-doctor-complexity-classification.md for the
   // per-finding record and .claude/rules/quality-policy.md for the durable families.
-  // The drop from the previous 14/120/74 pin has two separate causes and neither is a
+  // The drop from 14/120/74 to 14/97/64 had two separate causes and neither was a
   // suppression: PRs #259/#261/#262 removed real findings, and adding --project . stopped
   // the scan from counting vendored apm_modules projects, which had contributed one error
   // and inflated require-pnpm-hardening from 1 to 3 by re-reporting the same root file.
+  // The further drop to 93/60 is four findings actually fixed: one js-set-map-lookups
+  // (a quadratic membership test), two js-combine-iterations, and one
+  // no-loading-flag-reset-outside-finally. The remaining one of each of the first two
+  // rules is recorded as accepted risk in .claude/rules/quality-policy.md.
   full: {
     score: null,
     errorCount: 14,
-    warningCount: 97,
-    affectedFileCount: 64,
+    warningCount: 93,
+    affectedFileCount: 60,
   },
 } as const;
 
@@ -123,8 +127,15 @@ const reactDoctorBaselines = {
 // counts are frozen scan-time figures, not a live count of what is currently
 // unclassified: telling those apart needs a per-finding comparison against the record,
 // which this wrapper does not do.
-export const reactDoctorFullScanTriageStatus = {
-  scanSha: "c1183e67f",
+//
+// classifiedWarningFamilies is the confirmed disposition table for every rule family
+// classified in the 2026-09-08 pass that was NOT the no-high-complexity-react-function
+// family (that one is tracked separately as classifiedRule/classifiedFindingCount). Keep
+// this table as the source of truth for those dispositions; untriagedWarningCountAtScan
+// below is derived from it plus the complexity family so re-pinning warningCount never
+// requires a hand-recomputed subtraction.
+const reactDoctorFullScanTriageStatusBase = {
+  scanSha: "735aeb012",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -132,7 +143,63 @@ export const reactDoctorFullScanTriageStatus = {
   classifiedFindingCount: 26,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
-  untriagedWarningCountAtScan: 71,
+  classifiedWarningFamilies: [
+    {
+      rule: "no-loading-flag-reset-outside-finally",
+      count: 3,
+      disposition: "false-positive",
+      recordPath: ".claude/rules/quality-policy.md (Loading Flag Reset Findings)",
+    },
+    {
+      rule: "js-tosorted-immutable",
+      count: 3,
+      disposition: "false-positive",
+      recordPath: ".claude/rules/quality-policy.md (ES2023 Array Copy Methods)",
+    },
+    {
+      rule: "js-combine-iterations",
+      count: 1,
+      disposition: "accepted-risk",
+      recordPath: ".claude/rules/quality-policy.md (Iteration And Lookup Shape Findings)",
+    },
+    {
+      rule: "js-set-map-lookups",
+      count: 1,
+      disposition: "accepted-risk",
+      recordPath: ".claude/rules/quality-policy.md (Iteration And Lookup Shape Findings)",
+    },
+    {
+      rule: "no-self-updating-effect",
+      count: 1,
+      disposition: "accepted-risk",
+      recordPath: ".claude/rules/quality-policy.md (Behavioural Single Findings)",
+    },
+    {
+      rule: "prefer-html-dialog",
+      count: 1,
+      disposition: "accepted-risk",
+      recordPath: ".claude/rules/quality-policy.md (Behavioural Single Findings)",
+    },
+    {
+      rule: "require-pnpm-hardening",
+      count: 1,
+      disposition: "deferred",
+      recordPath: "https://github.com/jey3dayo/ultra-rss-reader/issues/264",
+    },
+  ],
+  // Findings that are neither classified nor part of the plain untriaged remainder: a
+  // decision is blocked on something other than reading the finding (here, whether the
+  // component should own different state, not a straight rule swap). Kept separate from
+  // classifiedWarningFamilies so its count is never added into or subtracted alongside the
+  // classified total, while still being named instead of silently folded into "other".
+  pendingJudgmentWarningFamilies: [
+    {
+      rule: "rerender-lazy-ref-init",
+      count: 2,
+      status: "judgment-pending: needs a state-ownership decision, not a rule swap",
+      trackingIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
+    },
+  ],
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
   errorCountAtScan: 14,
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
@@ -149,6 +216,24 @@ export const reactDoctorFullScanTriageStatus = {
     },
   ],
   reportArtifactPath: "tmp/react-doctor-full.json",
+} as const;
+
+const classifiedWarningFamiliesCount = reactDoctorFullScanTriageStatusBase.classifiedWarningFamilies.reduce(
+  (total, family) => total + family.count,
+  0,
+);
+
+// untriagedWarningCountAtScan is derived, not hand-pinned: it is the scanned warningCount
+// minus the complexity family and minus every classified warning family above. Re-pinning
+// reactDoctorBaselines.full.warningCount therefore keeps this number in step automatically;
+// it does not need a matching manual edit here.
+export const reactDoctorFullScanTriageStatus = {
+  ...reactDoctorFullScanTriageStatusBase,
+  classifiedWarningFamiliesCount,
+  untriagedWarningCountAtScan:
+    reactDoctorBaselines.full.warningCount -
+    reactDoctorFullScanTriageStatusBase.classifiedFindingCount -
+    classifiedWarningFamiliesCount,
 } as const;
 
 // Re-pinned on 2026-09-08 after classifying every reported export and type; see
@@ -481,7 +566,22 @@ function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: stri
       ` (${status.classifiedFindingCount - 1} accepted-risk, 1 outlier tracked at ${status.outlierIssue})`,
   );
   console.log(
-    `  other warnings: ${status.untriagedWarningCountAtScan} untriaged, tracked at ${status.untriagedWarningIssue}`,
+    `  additional classified warning families: ${status.classifiedWarningFamiliesCount} classified` +
+      " (not part of the complexity family above; disposition recorded per rule)",
+  );
+  for (const family of status.classifiedWarningFamilies) {
+    console.log(`    ${family.rule}: ${family.count} ${family.disposition}, recorded at ${family.recordPath}`);
+  }
+  for (const family of status.pendingJudgmentWarningFamilies) {
+    console.log(
+      `  ${family.rule} (${family.count}): ${family.status}; counted inside the untriaged total below,` +
+        ` tracked at ${family.trackingIssue}`,
+    );
+  }
+  console.log(
+    `  other warnings: ${status.untriagedWarningCountAtScan} untriaged` +
+      ` (= ${reactDoctorBaselines.full.warningCount} total − ${status.classifiedFindingCount} complexity −` +
+      ` ${status.classifiedWarningFamiliesCount} additional families), tracked at ${status.untriagedWarningIssue}`,
   );
   console.log(
     `  errors: ${status.errorCountAtScan} at scan time, tracked at ${status.errorIssue}` +

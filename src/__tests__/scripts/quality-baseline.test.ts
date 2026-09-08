@@ -190,6 +190,34 @@ describe("quality-baseline", () => {
     ]);
   });
 
+  it("derives the untriaged warning count from the classified families instead of a hand-pinned number", () => {
+    const status = reactDoctorFullScanTriageStatus;
+
+    // Pin the family total so a rule being added or removed from the table is caught here
+    // rather than only showing up as a silent drift in the derived subtraction below.
+    expect(status.classifiedWarningFamiliesCount).toBe(11);
+
+    // Do not re-declare the scanned warningCount (93) here: reactDoctorBaselines is not
+    // exported (adding an export just for this identity would grow the Knip-tracked export
+    // surface, see .claude/rules/quality-policy.md), and copying the literal in would be the
+    // same hand-pinned-number drift risk this status was built to remove. Pinning the
+    // derived total below is what actually catches a broken subtraction: if
+    // untriagedWarningCountAtScan stops being warningCount minus the two classified totals,
+    // this assertion fails without needing a second copy of warningCount in this file.
+    expect(status.untriagedWarningCountAtScan).toBe(56);
+  });
+
+  it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
+    const status = reactDoctorFullScanTriageStatus;
+
+    // rerender-lazy-ref-init is deliberately left untriaged pending an ownership decision
+    // on swapping the rule; it must not be silently absorbed into a "classified" family.
+    // The families table's rule field is a narrow string-literal union by design, so widen
+    // to `readonly string[]` via the annotation below rather than asserting past the type.
+    const classifiedFamilyRules: readonly string[] = status.classifiedWarningFamilies.map((family) => family.rule);
+    expect(classifiedFamilyRules.includes("rerender-lazy-ref-init")).toBe(false);
+  });
+
   it("reads the Knip report after unrelated JSON objects", () => {
     const output = '{"event":"start"}\n{"issues":[]}';
 

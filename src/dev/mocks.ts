@@ -1089,9 +1089,12 @@ export function setupDevMocks(): RestoreDevMocks {
         const feedIdx = mockFeeds.findIndex((f) => f.id === feedId);
         if (feedIdx >= 0) {
           const removed = mockFeeds.splice(feedIdx, 1)[0];
-          const removedArticleIds = new Set(
-            mockArticles.filter((article) => article.feed_id === removed.id).map((article) => article.id),
-          );
+          const removedArticleIds = new Set<string>();
+          for (const article of mockArticles) {
+            if (article.feed_id === removed.id) {
+              removedArticleIds.add(article.id);
+            }
+          }
           // Remove associated articles
           for (let i = mockArticles.length - 1; i >= 0; i--) {
             if (mockArticles[i].feed_id === removed.id) mockArticles.splice(i, 1);

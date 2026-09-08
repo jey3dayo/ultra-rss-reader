@@ -619,6 +619,12 @@ describe("useAccountDetailDangerZone", () => {
     await waitFor(() => {
       expect(result.current.localSyncEnabled).toBe(false);
     });
+    // localSyncEnabled is set optimistically before the persist starts, so waiting on it
+    // alone can pass while the toggle's own savingLocalSyncSettings is still true.
+    // handleSaveLocalSyncFolder returns early on that flag, so wait for it to clear.
+    await waitFor(() => {
+      expect(result.current.savingLocalSyncSettings).toBe(false);
+    });
 
     setLocalAccountSyncSettingsMock.mockClear();
     await act(async () => {

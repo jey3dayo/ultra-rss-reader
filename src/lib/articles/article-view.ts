@@ -326,6 +326,13 @@ export function buildArticleViewSummaryResult(
       return Result.fail("folder_not_found");
     }
 
+    const folderFeedIds = new Set<string>();
+    for (const feed of feeds ?? []) {
+      if (feed.folder_id === folder.id) {
+        folderFeedIds.add(feed.id);
+      }
+    }
+
     return Result.succeed({
       kind: "folder",
       folder,
@@ -336,7 +343,7 @@ export function buildArticleViewSummaryResult(
       weekArticleCount: summaryStats.weekArticleCount,
       recentFeeds: buildRecentSummaryFeeds({
         feeds,
-        feedIds: new Set((feeds ?? []).filter((feed) => feed.folder_id === folder.id).map((feed) => feed.id)),
+        feedIds: folderFeedIds,
       }),
       latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
     });
