@@ -96,6 +96,13 @@ describe("ShortcutsHelpModal", () => {
 
     await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
 
+    // The snapshot below is the unfiltered list in definition order, which only holds
+    // while the search box is empty. cmdk filters and re-sorts by score as soon as it is
+    // not, so a stray character turns this into a truncated, reordered snapshot that
+    // reads as "the shortcut definitions changed". Assert the premise synchronously:
+    // waiting for it to empty, or clearing it, would hide the contamination instead.
+    expect(screen.getByRole("combobox", { name: "Search shortcuts…" })).toHaveValue("");
+
     expect(
       screen.getAllByRole("option").map((option) => ({
         label: option.querySelector("span")?.textContent,
