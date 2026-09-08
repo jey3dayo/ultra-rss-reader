@@ -135,7 +135,9 @@ const reactDoctorBaselines = {
 // below is derived from it plus the complexity family so re-pinning warningCount never
 // requires a hand-recomputed subtraction.
 const reactDoctorFullScanTriageStatusBase = {
-  scanSha: "735aeb012",
+  // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
+  // and the pin then names a commit nobody can fetch to reproduce the measurement.
+  scanSha: "ad4a203a2",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
