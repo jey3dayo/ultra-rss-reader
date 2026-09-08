@@ -17,13 +17,20 @@ async function findNewestInstaller(directory: string, extension: ".exe" | ".msi"
   }
 
   const candidates = await Promise.all(
-    entries
-      .filter((entry) => entry.toLowerCase().endsWith(extension))
-      .map(async (entry): Promise<InstallerCandidate> => {
-        const installerPath = path.join(directory, entry);
-        const fileStat = await stat(installerPath);
-        return { path: installerPath, mtimeMs: fileStat.mtimeMs };
-      }),
+    entries.reduce<Promise<InstallerCandidate>[]>((candidates, entry) => {
+      if (!entry.toLowerCase().endsWith(extension)) {
+        return candidates;
+      }
+
+      candidates.push(
+        (async (): Promise<InstallerCandidate> => {
+          const installerPath = path.join(directory, entry);
+          const fileStat = await stat(installerPath);
+          return { path: installerPath, mtimeMs: fileStat.mtimeMs };
+        })(),
+      );
+      return candidates;
+    }, []),
   );
 
   return candidates.toSorted((left, right) => right.mtimeMs - left.mtimeMs)[0] ?? null;

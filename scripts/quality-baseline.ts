@@ -543,29 +543,27 @@ function runKnip(): void {
 
 export function formatKnipIssue(issue: KnipIssueBucket): string {
   const file = typeof issue.file === "string" ? issue.file : "<unknown file>";
-  const categories = Object.entries(issue)
-    .filter(([key, value]) => key !== "file" && Array.isArray(value) && value.length > 0)
-    .map(([key, value]) => {
-      if (!Array.isArray(value)) {
-        return key;
+  const categories = Object.entries(issue).flatMap(([key, value]) => {
+    if (key === "file" || !Array.isArray(value) || value.length === 0) {
+      return [];
+    }
+    const entries: unknown[] = value;
+    const names = entries.reduce<string[]>((names, entry) => {
+      let name: string | undefined;
+      if (typeof entry === "string") {
+        name = entry;
+      } else if (entry && typeof entry === "object" && "name" in entry && typeof entry.name === "string") {
+        name = entry.name;
       }
-      const entries: unknown[] = value;
-      const names = entries
-        .map((entry) => {
-          if (typeof entry === "string") {
-            return entry;
-          }
-          if (entry && typeof entry === "object" && "name" in entry && typeof entry.name === "string") {
-            return entry.name;
-          }
-          return undefined;
-        })
-        .filter((name): name is string => name !== undefined)
-        // Knip reports an unused file with its own path as the entry name, which
-        // would repeat the line prefix. Drop names that add nothing to the line.
-        .filter((name) => name !== file);
-      return names.length > 0 ? `${key}: ${names.join(", ")}` : key;
-    });
+      // Knip reports an unused file with its own path as the entry name, which
+      // would repeat the line prefix. Drop names that add nothing to the line.
+      if (name !== undefined && name !== file) {
+        names.push(name);
+      }
+      return names;
+    }, []);
+    return [names.length > 0 ? `${key}: ${names.join(", ")}` : key];
+  });
 
   return categories.length > 0 ? `${file} ${categories.join(" ")}` : file;
 }
@@ -753,8 +751,11 @@ export function buildTailwindArbitraryValueInventory(
   files: readonly { path: string; source: string }[],
 ): TailwindArbitraryValueInventory {
   const entries = files
-    .filter((file) => isTailwindArbitraryValueInventorySourcePath(file.path))
-    .flatMap((file) => readTailwindArbitraryValueEntries(file.path, file.source))
+    .flatMap((file) =>
+      isTailwindArbitraryValueInventorySourcePath(file.path)
+        ? readTailwindArbitraryValueEntries(file.path, file.source)
+        : [],
+    )
     .sort((left, right) => left.path.localeCompare(right.path) || left.line - right.line);
 
   const summary = createEmptyTailwindArbitraryValueSummary();
@@ -798,18 +799,23 @@ function readPnpmLicenseFindings(report: unknown): DependencyLicenseFinding[] {
 
   return Object.entries(report).flatMap(([license, value]) => {
     const entries = Array.isArray(value) ? value : [];
-    return entries.filter(isObject).map((entry) => {
+    return entries.flatMap((entry) => {
+      if (!isObject(entry)) {
+        return [];
+      }
       const packageName = readString(entry, "name");
-      return {
-        ecosystem: "pnpm" as const,
-        packageName,
-        version:
-          readOptionalString(entry, "version") ??
-          readOptionalStringArray(entry, "versions")?.join(",") ??
-          readPackageVersionSuffix(packageName),
-        license,
-        review: classifyLicenseReview(license),
-      };
+      return [
+        {
+          ecosystem: "pnpm" as const,
+          packageName,
+          version:
+            readOptionalString(entry, "version") ??
+            readOptionalStringArray(entry, "versions")?.join(",") ??
+            readPackageVersionSuffix(packageName),
+          license,
+          review: classifyLicenseReview(license),
+        },
+      ];
     });
   });
 }
@@ -824,15 +830,20 @@ function readCargoLicenseFindings(report: unknown): DependencyLicenseFinding[] {
     throw new Error("Cargo metadata did not return a packages array.");
   }
 
-  return packages.filter(isObject).map((entry) => {
+  return packages.flatMap((entry) => {
+    if (!isObject(entry)) {
+      return [];
+    }
     const license = readOptionalString(entry, "license") ?? readOptionalString(entry, "license_file") ?? "UNKNOWN";
-    return {
-      ecosystem: "cargo" as const,
-      packageName: readString(entry, "name"),
-      version: readOptionalString(entry, "version"),
-      license,
-      review: classifyLicenseReview(license),
-    };
+    return [
+      {
+        ecosystem: "cargo" as const,
+        packageName: readString(entry, "name"),
+        version: readOptionalString(entry, "version"),
+        license,
+        review: classifyLicenseReview(license),
+      },
+    ];
   });
 }
 

@@ -5,8 +5,9 @@ const errors = [];
 const workflowsDir = process.env.WORKFLOW_PINS_WORKFLOWS_DIR ?? ".github/workflows";
 const workflowPaths = fs
   .readdirSync(workflowsDir)
-  .filter((fileName) => fileName.endsWith(".yml") || fileName.endsWith(".yaml"))
-  .map((fileName) => path.join(workflowsDir, fileName))
+  .flatMap((fileName) =>
+    fileName.endsWith(".yml") || fileName.endsWith(".yaml") ? [path.join(workflowsDir, fileName)] : [],
+  )
   .sort();
 
 function readYamlScalar(rest) {

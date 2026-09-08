@@ -12,8 +12,9 @@ type UsesEntry = {
 
 const workflowsDir = ".github/workflows";
 const workflowPaths = readdirSync(workflowsDir)
-  .filter((fileName) => fileName.endsWith(".yml") || fileName.endsWith(".yaml"))
-  .map((fileName) => path.join(workflowsDir, fileName))
+  .flatMap((fileName) =>
+    fileName.endsWith(".yml") || fileName.endsWith(".yaml") ? [path.join(workflowsDir, fileName)] : [],
+  )
   .sort();
 
 function splitValueAndComment(rest: string): { value: string; comment: string | null } {

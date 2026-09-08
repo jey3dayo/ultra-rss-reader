@@ -154,12 +154,15 @@ const createEmptyMigrationInventory = (): MigrationInventory => ({
 
 export function buildEnumDriftRows(contracts: readonly EnumDriftContract[]): EnumDriftRow[] {
   return contracts.map((contract) => {
-    const rust = [...contract.rust].sort();
-    const typescript = [...contract.typescript].sort();
-    const labels = [...contract.labels].sort();
-    const missingInTypescript = rust.filter((variant) => !typescript.includes(variant));
-    const deadTypescript = typescript.filter((variant) => !rust.includes(variant));
-    const missingLabels = typescript.filter((variant) => !labels.includes(variant));
+    const rust = contract.rust.toSorted();
+    const typescript = contract.typescript.toSorted();
+    const labels = contract.labels.toSorted();
+    const rustSet = new Set(rust);
+    const typescriptSet = new Set(typescript);
+    const labelsSet = new Set(labels);
+    const missingInTypescript = rust.filter((variant) => !typescriptSet.has(variant));
+    const deadTypescript = typescript.filter((variant) => !rustSet.has(variant));
+    const missingLabels = typescript.filter((variant) => !labelsSet.has(variant));
     const drift = [
       ...missingInTypescript.map((variant) => `missing-ts:${variant}`),
       ...deadTypescript.map((variant) => `dead-ts:${variant}`),
@@ -368,6 +371,17 @@ export function readMigrationSources(migrationDir: string): string[] {
     .map((fileName) => readFileSync(`${migrationDir}/${fileName}`, "utf8"));
 }
 
+// The three `[...set].sort()` spreads below stay as they are. React Doctor reports
+// js-tosorted-immutable on them, and that report is a false positive: the rule's message assumes
+// the spread copies an array that `sort()` then copies again, but these sources are `Set`s, where
+// the spread is materialization rather than a redundant copy. Rewriting them as
+// `Array.from(set).toSorted()` allocates twice where `[...set].sort()` allocates once and sorts in
+// place, so following the rule here makes the code do more work.
+//
+// The rule flags spread-sorts reached through a property access without resolving the element
+// type; the local `Set`s built with `.add()` earlier in this file (see `readMigrationSources`'s
+// neighbours) use the same `[...set].sort()` shape and are not reported. So a flagged spread-sort
+// on a property access has to be checked by hand before it is rewritten.
 export function formatRepositorySqlInventoryReport(report: RepositorySqlInventoryReport): string {
   const tables = [...report.migrationInventory.tables].sort();
   const columns = tables.flatMap((table) =>
