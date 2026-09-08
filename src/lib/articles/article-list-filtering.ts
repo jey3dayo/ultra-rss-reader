@@ -222,9 +222,10 @@ export function mergeRetainedArticlesSnapshot(
 ): RetainedArticlesSnapshot | null {
   const { previous, contextKey, retainedArticleIds, currentRetainedArticles } = params;
   const cappedRetainedArticleIds = [...retainedArticleIds].slice(-MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE);
+  const cappedRetainedArticleIdSet = new Set(cappedRetainedArticleIds);
   const preservedArticles =
     previous?.contextKey === contextKey
-      ? previous.articles.filter((article) => cappedRetainedArticleIds.includes(article.id))
+      ? previous.articles.filter((article) => cappedRetainedArticleIdSet.has(article.id))
       : [];
   const merged = new Map(preservedArticles.map((article) => [article.id, article]));
   for (const article of currentRetainedArticles) {

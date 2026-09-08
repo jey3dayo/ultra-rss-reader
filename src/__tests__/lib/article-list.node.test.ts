@@ -1229,6 +1229,29 @@ describe("article-list utils", () => {
     );
   });
 
+  it("caps preserved articles from the previous snapshot to the newest retained ids", () => {
+    const retainedArticles = Array.from({ length: MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE + 2 }, (_, index) => ({
+      ...requireSampleUnreadArticle(),
+      id: `retained-${index}`,
+    }));
+    const retainedArticleIds = new Set(retainedArticles.map((article) => article.id));
+
+    const result = mergeRetainedArticlesSnapshot({
+      previous: {
+        contextKey: "account:acc-1:articles:unread",
+        articles: retainedArticles,
+      },
+      contextKey: "account:acc-1:articles:unread",
+      retainedArticleIds,
+      currentRetainedArticles: [],
+    });
+
+    expect(result?.articles).toHaveLength(MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE);
+    expect(result?.articles.map((article) => article.id)).toEqual(
+      retainedArticles.slice(2).map((article) => article.id),
+    );
+  });
+
   it("returns the adjacent article id", () => {
     const result = getAdjacentArticleId(sampleArticles, requireSampleArticle("art-1").id, 1);
 
