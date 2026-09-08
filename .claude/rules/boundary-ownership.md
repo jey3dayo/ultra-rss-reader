@@ -25,6 +25,7 @@ convention unless nearby code already proves that shape.
 | Tauri command boundary | `src-tauri/src/commands/` | UI-facing DTOs, AppState access, or `DomainError` to `AppError` mapping is duplicated elsewhere |
 | DTO / view-model transformation | Existing `src/lib/<domain>/`, `src/components/<feature>/lib/`, or schema-adjacent parser | The same DTO-to-view, row-to-domain, option-list, or presentation normalization is repeated |
 | Feature-local controller behavior | `src/components/<feature>/hooks/` or `src/components/<feature>/lib/` | Logic closes over feature state, component props, copy, toasts, optimistic updates, or local lifecycle |
+| 共有 UI の公開 API | `src/design-system/index.ts`（実装 owner は `src/components/ui/` と `src/components/shared/`） | app / feature / Storybook / test から共有 primitive や building block を使うとき。barrel から re-export する。feature-local UI の shared 化は再利用が確認できたときだけ |
 | Cross-feature pure helpers | `src/lib/<domain>/` | Logic is React-free, UI-copy-free, store-free, Tauri-command-free, and has multiple production callers |
 | Stable literals and protocol markers | `src/constants/`, `src/lib/actions.ts`, or `src/lib/app-actions.ts` | Storage keys, action IDs, event names, or protocol-like markers are repeated |
 | UI copy and translation resources | `src/locales/` plus `src/lib/i18n-resources.ts` | User-visible copy is embedded in shared helpers, schemas, constants, or tests without a locale owner |

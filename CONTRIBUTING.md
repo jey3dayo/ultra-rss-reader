@@ -192,6 +192,7 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 | Path                              | Responsibility                                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `api/tauri-commands.ts`           | All `invoke()` calls wrapped in `safeInvoke` returning `Result<T, AppError>`                                       |
+| `design-system/`                  | Public UI barrel (`index.ts`); app, feature, Storybook, and test code import shared UI as `@/design-system`        |
 | `schemas/`                        | Frontend-owned runtime schemas and schema parse helpers for config, storage, and preferences                       |
 | `constants/`                      | Cross-feature literal values, storage keys, layout constants, and motion tokens                                    |
 | `lib/account/`                    | Account selection, add-account form state, pane navigation, and sync status formatting helpers                     |

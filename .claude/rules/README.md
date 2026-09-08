@@ -37,6 +37,7 @@
 - 通常の feature UI は `src/components/<feature>/` に置く
 - 複数 feature で再利用する UI は `src/components/shared/` に置く
 - shadcn/Base UI wrapper は `src/components/ui/` に限定する
+- 共有 UI の公開 import は `@/design-system`（`src/design-system/index.ts`）に集約する。`src/components/ui/` と `src/components/shared/` は実装 owner として残し、app / feature / Storybook / test code は barrel 経由で import する。shared-vs-local 判定は [../../DESIGN_REVIEW.md](../../DESIGN_REVIEW.md) を参照する
 - cross-feature data hook は `src/hooks/`、cross-feature pure helper は `src/lib/` に置く
 - feature 内だけで使う hook は `src/components/<feature>/hooks/` に置く
 - app-wide action boundary は `src/lib/actions.ts` / `src/lib/app-actions.ts` に残す。keyboard、menu、command palette、dev scenario、IPC validation で共有されるため
