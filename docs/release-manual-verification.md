@@ -352,6 +352,36 @@ When the optional job is enabled, verify:
 - The maintainer records the workflow run URL, source commit, artifact names,
   and SHA-256 digests after the first successful `build_linux: true` dispatch.
 
+### 2h. Windows Web Preview Keyboard Verification
+
+Run this on the Windows packaged release artifact whenever a Windows test
+environment is available. This is a standing, version-independent verification
+item for the Web Preview keyboard input path. It is not satisfied by the
+general Windows or packaged-app checks in sections 2c, 2f, 3, 4, or 5; those
+cover installer signing, crash visibility, keyring, updater, and startup, not
+keyboard input routing.
+
+Confirm and record:
+
+- Modifier-key shortcuts (Ctrl and Alt combinations) resolve through Windows'
+  `ToUnicode`/virtual-key mapping according to the active keyboard layout, not
+  a fixed key-code assumption. Cover symbol keys plus Enter, Tab, Backspace,
+  Space, arrow keys, and F1-F12.
+- While the Web Preview surface has focus, an unmodified single-key press is
+  correctly left to the previewed page rather than intercepted by the app,
+  while modifier-key shortcuts still fire. Record this as two separate
+  results, not one combined "keyboard works" result.
+- The Windows OS build and keyboard layout used for the check, for example
+  Windows 11 23H2 with a US QWERTY or JIS layout.
+- The app version the check was run against and the result (pass, fail, or
+  partial), so drift across versions stays visible.
+
+Status: Windows has not been verified for this item as of this entry. Run it
+the next time a Windows test environment becomes available (VM, physical
+machine, or an interactive Windows CI session), and record the owner, date, OS
+build, keyboard layout, app version, and result directly in this section when
+it is first run.
+
 ### 3. Native Keyring Verification
 
 Run the packaged app on the target OS with normal credentials storage enabled.

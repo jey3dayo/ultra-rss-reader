@@ -1,4 +1,4 @@
-(B) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
+(D) 2026-08-16 Store審査結果対応→sideload検証→手動公開 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
 (C) 2026-09-07 quality baseline の分類と再 pin: React Doctor 0.9.13 増分51件と Knip 既存 drift を分類してから定数更新(検証: quality:react-doctor:full と report:knip の pinned タスク再実行) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/249
 (D) 2026-09-08 供給網 preflight: pnpm trustPolicy: no-downgrade の採用可否を isolated scratch で検証(検証: scratch checkout での実測、CI ゲートは追加しない) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/264
-(C) 2026-09-08 shortcuts-help-modal のスナップショットが設定の非同期ロードを待っておらず高負荷でデータ差になる(検証: ロード遅延モックで決定的に再現し、待ち条件を追加後に focused test) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/266
+(C) 2026-09-08 高負荷時にショートカット検索テスト間で入力が漏れている疑い(検証: cmdk スコア関数への純粋計算で欠落集合と順序をログと照合、解明できなければ同 suite での再発を再開条件に延期) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/266
