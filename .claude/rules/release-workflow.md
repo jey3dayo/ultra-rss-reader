@@ -118,4 +118,4 @@ Tauri アプリのクロスプラットフォームビルドは OS 固有のツ�
 
 - Developer ID / Apple notarization による macOS 配布
 - Windows EV 証明書
-- Linux updater と既定ユーザーへの配信（optional な `.deb` / AppImage packaging は `workflow_dispatch` の `build_linux=true` で実装済み）
+- Linux updater と既定ユーザーへの配信。packaging 自体は `workflow_dispatch` の `build_linux=true` で optional job として実装済みだが、`latest.json` は macOS / Windows 限定のまま。updater 契約の正本は `docs/release-manual-verification.md` の `2g. Optional Linux Packaging Verification`
