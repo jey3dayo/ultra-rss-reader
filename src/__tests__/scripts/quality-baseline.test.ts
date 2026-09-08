@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDependencyLicenseInventory,
   buildLockfileDuplicateMajorReport,
+  buildReactDoctorRuleCounts,
   buildTailwindArbitraryValueInventory,
   classifyTailwindArbitraryValue,
   createProcessDiagnostic,
@@ -16,6 +17,7 @@ import {
   parseReactDoctorReport,
   partitionQualityBaselineRepoScanPaths,
   qualityBaselineRepoScanIgnoredPathPrefixes,
+  reactDoctorFullScanTriageStatus,
   readJsonPayload,
   tailwindArbitraryValuesInventoryContract,
 } from "../../../scripts/quality-baseline";
@@ -53,6 +55,7 @@ describe("quality-baseline", () => {
         warningCount: 0,
         affectedFileCount: 0,
       },
+      diagnostics: [],
     });
   });
 
@@ -96,6 +99,7 @@ describe("quality-baseline", () => {
         warningCount: 228,
         affectedFileCount: 87,
       },
+      diagnostics: [],
     });
   });
 
@@ -112,7 +116,78 @@ describe("quality-baseline", () => {
         warningCount: 0,
         affectedFileCount: 0,
       },
+      diagnostics: [],
     });
+  });
+
+  it("counts React Doctor findings by severity and rule in a stable order", () => {
+    const output = JSON.stringify({
+      version: "0.9.13",
+      mode: "full",
+      summary: { score: null, errorCount: 2, warningCount: 4, affectedFileCount: 3 },
+      diagnostics: [
+        { severity: "warning", rule: "exhaustive-deps" },
+        { severity: "error", rule: "no-ref-current-in-render" },
+        { severity: "warning", rule: "no-high-complexity-react-function" },
+        { severity: "warning", rule: "exhaustive-deps" },
+        { severity: "error", rule: "no-prop-callback-in-render" },
+        { severity: "warning", rule: "a-brand-new-rule" },
+      ],
+    });
+
+    // Errors before warnings, then most frequent first, then rule name. A rule nobody has
+    // classified yet still has to show up rather than being absorbed into the total.
+    expect(buildReactDoctorRuleCounts(parseReactDoctorReport(output).diagnostics)).toEqual([
+      { severity: "error", rule: "no-prop-callback-in-render", count: 1 },
+      { severity: "error", rule: "no-ref-current-in-render", count: 1 },
+      { severity: "warning", rule: "exhaustive-deps", count: 2 },
+      { severity: "warning", rule: "a-brand-new-rule", count: 1 },
+      { severity: "warning", rule: "no-high-complexity-react-function", count: 1 },
+    ]);
+  });
+
+  it("keeps diagnostics with no readable rule or severity in the breakdown", () => {
+    const output = JSON.stringify({
+      version: "0.9.13",
+      mode: "full",
+      summary: { score: null, errorCount: 0, warningCount: 2, affectedFileCount: 1 },
+      diagnostics: [{ severity: "warning" }, {}],
+    });
+
+    expect(buildReactDoctorRuleCounts(parseReactDoctorReport(output).diagnostics)).toEqual([
+      { severity: "warning", rule: "(unknown rule)", count: 1 },
+      { severity: "(unknown severity)", rule: "(unknown rule)", count: 1 },
+    ]);
+  });
+
+  it("reads React Doctor diagnostics from projects when the top level omits them", () => {
+    const output = JSON.stringify({
+      version: "0.9.13",
+      mode: "full",
+      summary: { score: null, errorCount: 0, warningCount: 1, affectedFileCount: 1 },
+      projects: [{ diagnostics: [{ severity: "warning", rule: "no-derived-state" }] }],
+    });
+
+    expect(parseReactDoctorReport(output).diagnostics).toEqual([{ severity: "warning", rule: "no-derived-state" }]);
+  });
+
+  it("keeps the full-scan triage status honest about what the snapshot covers", () => {
+    const status = reactDoctorFullScanTriageStatus;
+
+    // The snapshot totals are not a classification set: the notice has to name a tracker
+    // for the warnings and errors the pass did not classify, so a zero baseline delta
+    // never reads as approval.
+    expect(status.untriagedWarningIssue).toContain("/issues/249");
+    expect(status.errorIssue).toContain("/issues/260");
+    expect(status.outlierIssue).toContain("/issues/256");
+    expect(status.untriagedWarningCountAtScan).toBeGreaterThan(0);
+    expect(status.reportArtifactPath).toBe("tmp/react-doctor-full.json");
+
+    // An earlier pass already classified one error finding. Re-pinning a total must not
+    // erase that, so the record has to survive in the status the wrapper prints.
+    expect(status.previouslyClassifiedErrors).toEqual([
+      expect.objectContaining({ rule: "no-prop-callback-in-render", classification: "accepted-risk" }),
+    ]);
   });
 
   it("reads the Knip report after unrelated JSON objects", () => {

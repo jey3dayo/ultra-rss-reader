@@ -145,6 +145,26 @@ Classify every React Doctor warning before suppressing or fixing it:
 
 Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality-baseline.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
 
+### High Complexity React Function Findings
+
+`no-high-complexity-react-function` reports when *either* cyclomatic or cognitive complexity exceeds 15; the plugin's condition is `cyclomatic <= 15 && cognitive <= 15 || report`. A function with cyclomatic 15 and cognitive 16 is reported on the cognitive side alone. Do not change the thresholds to make a count match.
+
+Read the dominant metric together with nesting depth before triaging. Cyclomatic-dominant at nesting 1-2 is a flat fan of sibling guards in one return or one props object, where the rule's "extract independent branches" advice relocates terms without removing them. Cognitive-dominant at nesting 3-4 is nested or sequentially dependent logic, where the number describes real reading cost and extraction is at least meaningful.
+
+The 2026-09-08 pass over Issue #249 classified all 25 in-scope findings as accepted risk, in these families. Triage a new hit against them instead of re-litigating the same reasoning; only a hit that fits none of them needs a fresh decision.
+
+- **Conditional-surface fan.** One return with N sibling optional slots and visibility guards for a single screen, panel, or card. The guards share the props they read, so extracted pieces re-receive most of the parent's props and the "what is visible when" contract leaves the one place a reader looks for it.
+- **Shared primitive variant matrix.** A `src/components/shared` or design-system component whose API is optional props crossed with placement and tone variants. Splitting by variant duplicates generated-id derivation, ARIA wiring, and event plumbing — a correctness risk larger than the complexity removed. `LabeledInputRow` is the reference case.
+- **Settings-view availability chain.** A settings view whose feature or action availability is decided by long boolean chains over the same flags — either a conjunction asserting that an optional feature's props were supplied as a set, or a disjunction over shared busy flags that gates actions. One view can contain both. The chain is one predicate, so moving it into a child relocates the same terms. Where the shape is prop presence, the real improvement is a props-shape change (one optional object instead of N optional props), which is a separate design decision, not a complexity fix.
+- **Reader selection-union dispatch.** Hooks mapping the reader selection union onto queries and view state. The Rules of Hooks require every query to be called unconditionally before one is selected, so the arity of the union is a floor on the count; an extracted hook still calls all of them.
+- **Container state-resolution chain.** Sequentially dependent derivations where each step consumes the previous. Not independent branches, so the rule's phrasing does not apply directly. The whole chain is extractable as one hook, which is the shape tracked by Issue #256 for `useAccountDetailViewProps` (cyclomatic 85 / cognitive 106, excluded from the pass as an outlier needing its own design).
+- **Platform window-chrome matrix.** Overlay-titlebar / compact-desktop / browser-preview branching governed by `tauri-window-chrome.md`. Per-platform splitting triplicates the surface.
+- **Opt-in diagnostic surface.** A lazily imported dev panel behind a preference, whose complexity is the diagnostic payload it exists to display.
+
+A finding is `must-fix` only when it is a bug, a regression, or introduced by the current change. Render frequency alone does not promote one: a hot-path component whose complexity is conditional class selection gets *worse* under the rule's remedy, because extraction adds component instances per render. `ArticleListItem` is that case. When a hot-path finding also has a genuine render cost — missing memoization, a per-row store subscription, an unvirtualized list — record that separately; it is a different rule's concern and is not fixed by extraction.
+
+The per-finding table is a historical record in [../../docs/react-doctor-complexity-classification.md](../../docs/react-doctor-complexity-classification.md).
+
 ## Accepted Rust File-Length Exceptions
 
 - `src-tauri/src/service/sync_scheduler/mod.rs` remains at 551 production lines after the responsibility split. This is an accepted exception decided on 2026-08-29: it is less than 10% above the 500-line guideline, and further splitting would make startup wiring less readable.

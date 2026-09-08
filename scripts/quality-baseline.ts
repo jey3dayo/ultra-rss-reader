@@ -98,19 +98,58 @@ const reactDoctorBaselines = {
     warningCount: 0,
     affectedFileCount: 0,
   },
+  // The full-scan numbers are a MEASUREMENT SNAPSHOT of the last scan, not a set of
+  // accepted risks. Equality with them means "the totals still match what was measured
+  // on 2026-09-08", and nothing at all about whether the findings behind them were
+  // reviewed. Only no-high-complexity-react-function was classified in that pass, so
+  // most of what these numbers cover is still untriaged; runReactDoctor prints the
+  // per-rule breakdown and the outstanding-triage notice on every full run so a zero
+  // delta never reads as approval. Keep reactDoctorFullScanTriageStatus in step when
+  // re-pinning these, and see docs/react-doctor-complexity-classification.md for the
+  // per-finding record and .claude/rules/quality-policy.md for the durable families.
   full: {
     score: null,
-    errorCount: 16,
-    warningCount: 75,
-    affectedFileCount: 46,
+    errorCount: 14,
+    warningCount: 120,
+    affectedFileCount: 74,
   },
+} as const;
+
+// What was and was not triaged at the snapshot the full-scan constants describe. The
+// counts are frozen scan-time figures, not a live count of what is currently
+// unclassified: telling those apart needs a per-finding comparison against the record,
+// which this wrapper does not do.
+export const reactDoctorFullScanTriageStatus = {
+  scanSha: "f9df8be7c",
+  pluginVersion: "0.9.13",
+  scanCommand: "react-doctor . --verbose --scope full --json --json-compact --blocking none --no-score --no-dead-code",
+  classifiedRule: "no-high-complexity-react-function",
+  classifiedFindingCount: 26,
+  classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
+  outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
+  untriagedWarningCountAtScan: 94,
+  untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
+  errorCountAtScan: 14,
+  errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
+  // Not every error is unreviewed. Issue #249 already classified one of them, and this
+  // pass did not re-confirm it rather than finding it unclassified; the distinction
+  // matters because re-pinning a total must not erase an earlier decision.
+  previouslyClassifiedErrors: [
+    {
+      rule: "no-prop-callback-in-render",
+      location: "src/__tests__/components/story-query-client-provider.node.test.tsx:12",
+      classification: "accepted-risk",
+      reason:
+        "Calls onClient during render, which the rule reports correctly. The call is a vi.fn QueryClient observation in a test helper, not a production state update; not re-confirmed in the 2026-09-08 pass.",
+    },
+  ],
+  reportArtifactPath: "tmp/react-doctor-full.json",
 } as const;
 
 // Re-pinned on 2026-09-08 after classifying every reported export and type; see
 // docs/knip-export-classification.md for the per-finding record. The remaining 11 findings are
 // 7 unused files with `mise` / Vite-alias consumers, 2 intentional semantic aliases, and 2 exports
-// whose `export` keyword is itself the contract a test asserts. React Doctor's constants are
-// deliberately left alone until its complexity findings are classified.
+// whose `export` keyword is itself the contract a test asserts.
 const knipBaseline = {
   issueCount: 10,
   findingsCount: 11,
@@ -192,11 +231,31 @@ type ReactDoctorSummary = {
   affectedFileCount: number;
 };
 
+export type ReactDoctorDiagnostic = {
+  severity: string;
+  rule: string;
+};
+
+export type ReactDoctorRuleCount = ReactDoctorDiagnostic & {
+  count: number;
+};
+
 type ReactDoctorReport = {
   version: string;
   mode: string;
   summary: ReactDoctorSummary;
+  diagnostics: ReactDoctorDiagnostic[];
 };
+
+// A diagnostic with no readable rule or severity still has to appear in the breakdown.
+// Dropping it would let an unnamed finding pass as reviewed, which is the failure the
+// per-rule output exists to prevent.
+const unknownReactDoctorRule = "(unknown rule)";
+const unknownReactDoctorSeverity = "(unknown severity)";
+
+// Typed as readonly string[] rather than a literal tuple so an arbitrary severity string
+// from the report can be looked up without a cast.
+const reactDoctorSeverityOrder: readonly string[] = ["error", "warning"];
 
 type KnipIssueBucket = Record<string, unknown>;
 
@@ -355,6 +414,10 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   ].join(" ");
   console.log(summary);
 
+  if (mode === "full") {
+    reportReactDoctorFullScanTriage(report, result.stdout);
+  }
+
   const drift = [
     checkEqual("mode", report.mode, mode),
     checkEqual("score", report.summary.score, expected.score),
@@ -372,6 +435,79 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
     process.exit(1);
   }
   console.error("Full scan drift is informational; update the baseline after triage.");
+}
+
+// The full-scan baseline compares totals only, so a zero delta says nothing about whether
+// the findings were reviewed. Print the per-rule breakdown and the outstanding triage
+// every run, drift or not, so equality can never be mistaken for approval.
+function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: string): void {
+  const status = reactDoctorFullScanTriageStatus;
+
+  console.log("React Doctor full baseline is a measurement snapshot of the last scan, not a set of accepted risks.");
+  console.log("Findings by severity and rule:");
+  const ruleCounts = buildReactDoctorRuleCounts(report.diagnostics);
+  if (ruleCounts.length === 0) {
+    console.log("  (report carried no per-diagnostic detail)");
+  }
+  for (const entry of ruleCounts) {
+    console.log(`  ${entry.severity} ${entry.rule}: ${entry.count}`);
+  }
+
+  const artifactPath = writeReactDoctorReportArtifact(stdout, status.reportArtifactPath);
+  console.log(
+    artifactPath === null
+      ? "Every finding is in the scan output above; the report artifact could not be written."
+      : `Every finding, with its file and message, is in ${artifactPath}.`,
+  );
+
+  console.log("Outstanding triage (counts are from the pinned scan, not a live count):");
+  console.log(
+    `  ${status.classifiedRule}: ${status.classifiedFindingCount} classified in ${status.classifiedRecordPath}` +
+      ` (${status.classifiedFindingCount - 1} accepted-risk, 1 outlier tracked at ${status.outlierIssue})`,
+  );
+  console.log(
+    `  other warnings: ${status.untriagedWarningCountAtScan} untriaged, tracked at ${status.untriagedWarningIssue}`,
+  );
+  console.log(
+    `  errors: ${status.errorCountAtScan} at scan time, tracked at ${status.errorIssue}` +
+      `; ${status.previouslyClassifiedErrors.length} of them already classified earlier and not re-confirmed in that pass`,
+  );
+  for (const entry of status.previouslyClassifiedErrors) {
+    console.log(`    already ${entry.classification}: ${entry.rule} at ${entry.location}`);
+  }
+  console.log(
+    `  Snapshot taken on ${status.scanSha} with oxlint-plugin-react-doctor ${status.pluginVersion};` +
+      " a current untriaged count needs a per-finding comparison against the record, which this wrapper does not do.",
+  );
+  console.log(
+    "  Totals only: an equal count can hide findings that were swapped for different ones, so this is not a general regression check.",
+  );
+}
+
+function writeReactDoctorReportArtifact(stdout: string, reportPath: string): string | null {
+  const payload = readReactDoctorReportPayload(stdout);
+  if (payload === null) {
+    return null;
+  }
+
+  try {
+    mkdirSync("tmp", { recursive: true });
+    writeFileSync(reportPath, `${payload}\n`);
+    return reportPath;
+  } catch {
+    return null;
+  }
+}
+
+function readReactDoctorReportPayload(stdout: string): string | null {
+  for (const payload of readJsonPayloads(stdout)) {
+    try {
+      readReactDoctorReport(JSON.parse(payload));
+      return payload;
+    } catch {}
+  }
+
+  return null;
 }
 
 function runKnip(): void {
@@ -815,7 +951,72 @@ function readReactDoctorReport(parsed: unknown): ReactDoctorReport {
       warningCount: readNumber(summary, "warningCount"),
       affectedFileCount: readNumber(summary, "affectedFileCount"),
     },
+    diagnostics: readReactDoctorDiagnostics(parsed),
   };
+}
+
+// React Doctor reports diagnostics at the top level and repeats them per project. Prefer
+// the top-level array and fall back to the per-project ones so the breakdown survives a
+// report shape that only carries the latter.
+function readReactDoctorDiagnostics(parsed: Record<string, unknown>): ReactDoctorDiagnostic[] {
+  const topLevel = parsed.diagnostics;
+  if (Array.isArray(topLevel)) {
+    return readReactDoctorDiagnosticList(topLevel);
+  }
+
+  const projects = parsed.projects;
+  if (!Array.isArray(projects)) {
+    return [];
+  }
+
+  return projects.flatMap((project) => {
+    if (!isObject(project)) {
+      return [];
+    }
+    const diagnostics = project.diagnostics;
+    return Array.isArray(diagnostics) ? readReactDoctorDiagnosticList(diagnostics) : [];
+  });
+}
+
+function readReactDoctorDiagnosticList(entries: readonly unknown[]): ReactDoctorDiagnostic[] {
+  return entries.flatMap((entry) => (isObject(entry) ? [readReactDoctorDiagnostic(entry)] : []));
+}
+
+function readReactDoctorDiagnostic(entry: Record<string, unknown>): ReactDoctorDiagnostic {
+  return {
+    severity: readOptionalString(entry, "severity") ?? unknownReactDoctorSeverity,
+    rule: readOptionalString(entry, "rule") ?? unknownReactDoctorRule,
+  };
+}
+
+// Stable order: known severities first in escalation order, then any unknown severity
+// alphabetically; within a severity, most frequent first, then rule name.
+export function buildReactDoctorRuleCounts(diagnostics: readonly ReactDoctorDiagnostic[]): ReactDoctorRuleCount[] {
+  const countsByKey = new Map<string, ReactDoctorRuleCount>();
+  for (const diagnostic of diagnostics) {
+    const key = `${diagnostic.severity} ${diagnostic.rule}`;
+    const existing = countsByKey.get(key);
+    if (existing === undefined) {
+      countsByKey.set(key, { severity: diagnostic.severity, rule: diagnostic.rule, count: 1 });
+    } else {
+      existing.count += 1;
+    }
+  }
+
+  return [...countsByKey.values()].sort(
+    (left, right) =>
+      compareReactDoctorSeverity(left.severity, right.severity) ||
+      right.count - left.count ||
+      left.rule.localeCompare(right.rule),
+  );
+}
+
+function compareReactDoctorSeverity(left: string, right: string): number {
+  const leftRank = reactDoctorSeverityOrder.indexOf(left);
+  const rightRank = reactDoctorSeverityOrder.indexOf(right);
+  const leftOrder = leftRank === -1 ? reactDoctorSeverityOrder.length : leftRank;
+  const rightOrder = rightRank === -1 ? reactDoctorSeverityOrder.length : rightRank;
+  return leftOrder - rightOrder || left.localeCompare(right);
 }
 
 export function parseKnipReport(stdout: string): KnipReport {
