@@ -107,15 +107,19 @@ const reactDoctorBaselines = {
   // delta never reads as approval. Keep reactDoctorFullScanTriageStatus in step when
   // re-pinning these, and see docs/react-doctor-complexity-classification.md for the
   // per-finding record and .claude/rules/quality-policy.md for the durable families.
-  // The drop from the previous 14/120/74 pin has two separate causes and neither is a
+  // The drop from 14/120/74 to 14/97/64 had two separate causes and neither was a
   // suppression: PRs #259/#261/#262 removed real findings, and adding --project . stopped
   // the scan from counting vendored apm_modules projects, which had contributed one error
   // and inflated require-pnpm-hardening from 1 to 3 by re-reporting the same root file.
+  // The further drop to 93/60 is four findings actually fixed: one js-set-map-lookups
+  // (a quadratic membership test), two js-combine-iterations, and one
+  // no-loading-flag-reset-outside-finally. The remaining one of each of the first two
+  // rules is recorded as accepted risk in .claude/rules/quality-policy.md.
   full: {
     score: null,
     errorCount: 14,
-    warningCount: 97,
-    affectedFileCount: 64,
+    warningCount: 93,
+    affectedFileCount: 60,
   },
 } as const;
 
@@ -124,7 +128,7 @@ const reactDoctorBaselines = {
 // unclassified: telling those apart needs a per-finding comparison against the record,
 // which this wrapper does not do.
 export const reactDoctorFullScanTriageStatus = {
-  scanSha: "c1183e67f",
+  scanSha: "735aeb012",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -132,7 +136,7 @@ export const reactDoctorFullScanTriageStatus = {
   classifiedFindingCount: 26,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
-  untriagedWarningCountAtScan: 71,
+  untriagedWarningCountAtScan: 67,
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
   errorCountAtScan: 14,
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",

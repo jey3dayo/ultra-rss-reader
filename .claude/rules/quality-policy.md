@@ -198,6 +198,91 @@ A finding is `must-fix` only when it is a bug, a regression, or introduced by th
 
 The per-finding table is a historical record in [../../docs/react-doctor-complexity-classification.md](../../docs/react-doctor-complexity-classification.md).
 
+### Loading Flag Reset Findings
+
+`no-loading-flag-reset-outside-finally` reports that a busy flag is reset "only on the success
+path". Check what the code actually does before accepting that reading; on 2026-09-08 all four
+findings had a reset the rule's message did not describe, and the four did not share one verdict.
+
+A **conditional** reset inside `finally` is not the shape the rule describes and must not be
+made unconditional. `use-account-detail-sync-controls.ts` guards its reset with a
+selected-account generation check so a stale request cannot clear the flag a newer request
+owns. When the guard is false the stale owner's responsibility is ended by the `account.id`
+change effect — which owns the generation bump and the ref/state reset — or by unmount, not by
+"the next request will reset it anyway". Removing the guard is a regression, not a fix. That
+effect is passive, so this does not claim commit-boundary freshness; that is a separate concern
+from the rule's success-only claim.
+
+A reset duplicated across `try` and `catch` is also not success-only, but it is still worth
+consolidating into `finally`: work inside `catch` — error formatting, translation, a toast — can
+itself throw and skip the reset, and a third path added later is easy to miss.
+
+Do not classify a whole rule's findings in one verdict because they share a rule id.
+
+### Iteration And Lookup Shape Findings
+
+`js-combine-iterations` and `js-set-map-lookups` describe shape, not cost. A `src/` path is not
+by itself evidence of a hot path, and rewriting a small fixed-size lookup into a per-render
+`Set` makes the code do more work. Classify each site by the size of what it iterates and by
+how often the surrounding code runs, and do not report a shape rewrite as a measured
+performance win.
+
+Standing accepted risk:
+
+- `article-list-footer.tsx` — the reported spread-lookup is over the small fixed set of list
+  modes. `disabledModes.includes(...)` stays; building a `Set` on every render has no basis at
+  that size. Reviewed 2026-09-08.
+- `use-account-detail-danger-zone.ts` — the reported filter-then-map runs once after an account
+  is deleted. A single pass is possible while preserving order and the first-element fallback,
+  but the frequency does not justify the churn. Reviewed 2026-09-08.
+
+A nested membership test is a different case: a `filter` whose predicate scans an array for
+each element is quadratic in the two sizes, and building the membership `Set` once inside the
+same function removes that without changing the contract. Keep the original array whenever a
+later step derives ordering from it.
+
+### Behavioural Single Findings
+
+These three were classified on 2026-09-08 and are not mechanical fixes.
+
+- `no-self-updating-effect` (`use-subscriptions-index-state.ts`) — the effect converges: the
+  next run returns early once `layoutGeneration` and `viewportHeight` agree. Already carried an
+  accepted-risk comment, and that classification is inherited. Being self-updating is not by
+  itself a reason to rewrite it.
+- `prefer-use-sync-external-store` (`subscriptions-index-page.tsx`) — external viewport-size
+  synchronisation. Migrating is not mandatory absent an observed defect; promoting the value to
+  a shared store is a separate design task. The subscription's full lifecycle has not been
+  audited.
+- `prefer-html-dialog` (`ui-reference-shell-specimens.tsx`) — a motion specimen absolutely
+  positioned inside a fixed 210px frame. A native `dialog` with `showModal` changes top-layer,
+  focus, and overlay behavior, so it is not a mechanical substitution. Accepted risk for a
+  display surface with no real modal contract; if it ever becomes a keyboard-operable target,
+  audit its accessibility requirements separately rather than exempting it for being a story.
+
+### Lazy Ref Init Findings
+
+`rerender-lazy-ref-init` suggests `useRef(null)` plus initialisation on first render. That form
+writes `ref.current` during render, which fires `no-ref-current-in-render` — an error. Applying
+it to two sites on 2026-09-08 traded 2 warnings for 2 errors (14 → 16), so it was reverted.
+
+`useState` with an initialiser function is not a general substitute: it captures once, so a
+value that must follow props goes stale. Decide who owns the state and what lifetime it needs
+before touching these; do not change code to trade one rule for another, and do not record them
+as accepted risk without that decision. They remain untriaged under Issue #249.
+
+### Supply Chain Hardening Findings
+
+`require-pnpm-hardening` asks for `trustPolicy`. Adopting `no-downgrade` is a supply-chain
+policy decision, not a lint fix, and belongs to its own preflight rather than a React Doctor
+triage pass. The preflight must record which packages the policy rejects and why, run against
+the current manifest and lockfile in an isolated scratch checkout — never by editing `main` or
+global configuration to observe the effect — and confirm the rejection condition against a
+controlled fixture or upstream test. A successful frozen install does not demonstrate that a
+future update's weakened trust signal would be caught.
+
+That preflight is tracked at <https://github.com/jey3dayo/ultra-rss-reader/issues/264>; the
+decision and its evidence belong in this section once it lands.
+
 ## Accepted Rust File-Length Exceptions
 
 - `src-tauri/src/service/sync_scheduler/mod.rs` remains at 551 production lines after the responsibility split. This is an accepted exception decided on 2026-08-29: it is less than 10% above the 500-line guideline, and further splitting would make startup wiring less readable.
