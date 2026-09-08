@@ -145,6 +145,28 @@ Local `Set`s built with `.add()` in the same function use the same shape and are
 flagged spread-sort on a property access has to be checked by hand before it is rewritten. Verified
 on 2026-09-08 with `oxlint-plugin-react-doctor` 0.9.13 in `scripts/repo-contract-inventory.ts`.
 
+## React Doctor Scan Scope
+
+The React Doctor tasks pass `--project .` so the scan covers only this repository's own
+project. Do not remove it to "scan more".
+
+`react-doctor .` discovers every project root beneath the working directory. `apm_modules/`
+holds vendored packages and is gitignored, so it exists in an ordinary checkout and is absent
+from a fresh worktree. Without `--project .` the same command therefore reported different
+totals depending on which tree it ran in, which repeatedly produced set comparisons between
+two different trees presented as before/after of one change.
+
+The distortion is not limited to extra files. Project-level rules fire once per discovered
+project even when they point at the same file: with the vendored projects included,
+`require-pnpm-hardening` was reported three times against the single root
+`pnpm-workspace.yaml`, and `require-reduced-motion` was reported against a vendored
+`package.json`. Measured on 2026-09-08 at `c1183e67f`, the unscoped scan reported
+15 errors / 100 warnings / 67 files and the scoped scan reported 14 / 97 / 64.
+
+Before comparing two React Doctor runs, confirm `projects[]` in the JSON report holds exactly
+the repository root. A count difference between two runs is not evidence about the code until
+that matches.
+
 ## React Doctor Warning Categories
 
 Classify every React Doctor warning before suppressing or fixing it:
