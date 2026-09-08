@@ -107,11 +107,15 @@ const reactDoctorBaselines = {
   // delta never reads as approval. Keep reactDoctorFullScanTriageStatus in step when
   // re-pinning these, and see docs/react-doctor-complexity-classification.md for the
   // per-finding record and .claude/rules/quality-policy.md for the durable families.
+  // The drop from the previous 14/120/74 pin has two separate causes and neither is a
+  // suppression: PRs #259/#261/#262 removed real findings, and adding --project . stopped
+  // the scan from counting vendored apm_modules projects, which had contributed one error
+  // and inflated require-pnpm-hardening from 1 to 3 by re-reporting the same root file.
   full: {
     score: null,
     errorCount: 14,
-    warningCount: 120,
-    affectedFileCount: 74,
+    warningCount: 97,
+    affectedFileCount: 64,
   },
 } as const;
 
@@ -120,14 +124,15 @@ const reactDoctorBaselines = {
 // unclassified: telling those apart needs a per-finding comparison against the record,
 // which this wrapper does not do.
 export const reactDoctorFullScanTriageStatus = {
-  scanSha: "f9df8be7c",
+  scanSha: "c1183e67f",
   pluginVersion: "0.9.13",
-  scanCommand: "react-doctor . --verbose --scope full --json --json-compact --blocking none --no-score --no-dead-code",
+  scanCommand:
+    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
   classifiedFindingCount: 26,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
-  untriagedWarningCountAtScan: 94,
+  untriagedWarningCountAtScan: 71,
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
   errorCountAtScan: 14,
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
@@ -386,6 +391,16 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
       "react-doctor",
       ".",
       "--verbose",
+      // Pin the scan to this repository's own project. `react-doctor .` discovers every
+      // project root beneath the working directory, and `apm_modules/` holds vendored
+      // packages that are gitignored — present in a normal checkout, absent from a fresh
+      // worktree. Scanning them made the same command report different totals depending
+      // on which tree it ran in, and inflated project-level rules such as
+      // require-pnpm-hardening, which then fired once per discovered project against the
+      // single root pnpm-workspace.yaml. pnpm-workspace.yaml declares no `packages`, so
+      // this repository has exactly one project and nothing legitimate is excluded.
+      "--project",
+      ".",
       ...scopeArgs,
       "--json",
       "--json-compact",
