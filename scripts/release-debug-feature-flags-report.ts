@@ -15,10 +15,12 @@ const OUTPUT_DIR = path.dirname(OUTPUT_PATH);
 const readText = (filePath: string): string => readFileSync(filePath, "utf8");
 
 const listFiles = (dir: string, extensions: readonly string[]): string[] =>
-  readdirSync(dir, { recursive: true })
-    .filter((entry): entry is string => typeof entry === "string")
-    .filter((entry) => extensions.some((extension) => entry.endsWith(extension)))
-    .map((entry) => path.posix.join(dir, entry.split(path.sep).join(path.posix.sep)));
+  readdirSync(dir, { recursive: true }).flatMap((entry) => {
+    if (typeof entry !== "string" || !extensions.some((extension) => entry.endsWith(extension))) {
+      return [];
+    }
+    return [path.posix.join(dir, entry.split(path.sep).join(path.posix.sep))];
+  });
 
 const sourceFiles = [
   ...listFiles("src", [".ts", ".tsx"]),

@@ -253,8 +253,7 @@ if (!Array.isArray(mainCapability?.permissions)) {
   errors.push("src-tauri/capabilities/default.json must declare main release permissions explicitly");
 } else if (
   capabilities
-    .flatMap((capability) => capability.permissions ?? [])
-    .map(permissionIdentifier)
+    .flatMap((capability) => (capability.permissions ?? []).flatMap((permission) => [permissionIdentifier(permission)]))
     .some((permission) => permission.startsWith("mcp-bridge:"))
 ) {
   errors.push("release capability must not include debug-only MCP bridge permissions");

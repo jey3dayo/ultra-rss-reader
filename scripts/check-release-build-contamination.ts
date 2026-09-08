@@ -80,10 +80,12 @@ const readJson = <T>(filePath: string): T => JSON.parse(readText(filePath)) as T
 const normalizePath = (filePath: string): string => filePath.split(path.sep).join(path.posix.sep);
 
 const listSourceFiles = (dir: string): string[] =>
-  readdirSync(dir, { recursive: true })
-    .filter((entry): entry is string => typeof entry === "string")
-    .filter((entry) => /\.(?:ts|tsx)$/.test(entry))
-    .map((entry) => normalizePath(path.join(dir, entry)));
+  readdirSync(dir, { recursive: true }).flatMap((entry) => {
+    if (typeof entry !== "string" || !/\.(?:ts|tsx)$/.test(entry)) {
+      return [];
+    }
+    return [normalizePath(path.join(dir, entry))];
+  });
 
 const normalizeCapabilities = (source: TauriCapabilityFile): TauriCapability[] => {
   if (Array.isArray(source)) {
@@ -158,8 +160,9 @@ if (!releaseCsp) {
 
 for (const [directive, requiredSources] of Object.entries(REQUIRED_RELEASE_CSP_DIRECTIVES)) {
   const sources = releaseCspDirectives.get(directive) ?? [];
+  const sourceSet = new Set(sources);
   for (const requiredSource of requiredSources) {
-    if (!sources.includes(requiredSource)) {
+    if (!sourceSet.has(requiredSource)) {
       errors.push(`release CSP ${directive} must include ${requiredSource}`);
     }
   }
@@ -211,10 +214,11 @@ if (!browserWebviewCapability) {
   }
 }
 
-const bridgePermissions = capabilities.flatMap(
-  (capability) =>
-    capability.permissions?.map(permissionIdentifier).filter((permission) => permission.startsWith("mcp-bridge:")) ??
-    [],
+const bridgePermissions = capabilities.flatMap((capability) =>
+  (capability.permissions ?? []).flatMap((permission) => {
+    const identifier = permissionIdentifier(permission);
+    return identifier.startsWith("mcp-bridge:") ? [identifier] : [];
+  }),
 );
 if (bridgePermissions.length > 0) {
   errors.push("release capability must not include debug-only MCP bridge permissions");

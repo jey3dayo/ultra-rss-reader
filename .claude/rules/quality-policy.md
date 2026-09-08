@@ -134,6 +134,17 @@ Compiler adoption is opt-in only. Until that preflight is accepted, keep manual 
 
 Prefer applying `.toSorted()` first in test-only or dev-script code. Production code changes should stay scoped to readability or mutation-safety wins, and hot-path rewrites need a focused test or profiling note. Do not add polyfills just to satisfy a React Doctor suggestion.
 
+`js-tosorted-immutable` on a `[...x].sort()` spread is a false positive whenever `x` is a `Set` or
+`Map`. The rule's message assumes the spread copies an array that `sort()` then copies again, but
+for a `Set` the spread is materialization, not a redundant copy: `[...set].sort()` allocates once
+and sorts in place, while `Array.from(set).toSorted()` allocates twice. Rewriting those sites makes
+the code do more work, so leave them and record the reason at the call site.
+
+The rule reports spread-sorts reached through a property access without resolving the element type.
+Local `Set`s built with `.add()` in the same function use the same shape and are not reported, so a
+flagged spread-sort on a property access has to be checked by hand before it is rewritten. Verified
+on 2026-09-08 with `oxlint-plugin-react-doctor` 0.9.13 in `scripts/repo-contract-inventory.ts`.
+
 ## React Doctor Warning Categories
 
 Classify every React Doctor warning before suppressing or fixing it:

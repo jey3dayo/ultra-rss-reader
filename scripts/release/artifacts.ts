@@ -147,14 +147,15 @@ const bundleRoots = (contract: ReleaseAssetContract): string[] => {
 };
 
 const findUpdaterAssets = (contract: ReleaseAssetContract): string[] =>
-  bundleRoots(contract)
-    .flatMap(listFiles)
-    .filter(
-      (filePath) =>
-        filePath.endsWith(contract.assetPattern) &&
-        !filePath.endsWith(contract.signaturePattern) &&
-        !filePath.endsWith(contract.checksumPattern),
-    );
+  bundleRoots(contract).flatMap((bundleRoot) =>
+    listFiles(bundleRoot).flatMap((filePath) =>
+      filePath.endsWith(contract.assetPattern) &&
+      !filePath.endsWith(contract.signaturePattern) &&
+      !filePath.endsWith(contract.checksumPattern)
+        ? [filePath]
+        : [],
+    ),
+  );
 
 const validateUpdaterAssets = (): void => {
   const contract = currentContract();
@@ -200,9 +201,9 @@ const validateMacosAppSignature = (): void => {
     fail(`macOS app signature validation cannot run for ${contract.platformKey}`);
   }
 
-  const appBundles = bundleRoots(contract)
-    .flatMap(listDirectories)
-    .filter((directoryPath) => directoryPath.endsWith(".app"));
+  const appBundles = bundleRoots(contract).flatMap((bundleRoot) =>
+    listDirectories(bundleRoot).flatMap((directoryPath) => (directoryPath.endsWith(".app") ? [directoryPath] : [])),
+  );
 
   if (appBundles.length !== 1) {
     fail(`macOS release must produce exactly one .app bundle, found ${appBundles.length}`);
