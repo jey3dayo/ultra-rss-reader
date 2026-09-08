@@ -62,7 +62,7 @@ Standing false positive:
 
 - `corePreferenceDefaults` (`src/schemas/preference-values.ts`) — `src/__tests__/schemas/preferences-schema-contract.test.ts` imports the module with `?raw` and matches `/export const corePreferenceDefaults = \{([\s\S]*?)\} as const/`. The `export` keyword is part of that contract, so the modifier must stay; reviewed 2026-09-08.
 
-The 2026-09-08 pass over Issue #249 classified all 73 findings and resolved 71 of them. The per-finding table is a historical record in [../../docs/knip-export-classification.md](../../docs/knip-export-classification.md).
+Findings already classified once are recorded per-finding in [../../docs/knip-export-classification.md](../../docs/knip-export-classification.md); check there before re-classifying a repeat hit.
 
 Intentional public barrel completeness is pinned by public API tests rather than a file-level Knip ignore. The design-system barrel re-exports each primitive in a component family as a complete public surface, and `src/__tests__/components/ui-wrapper-public-api.node.test.ts` consumes the full Command family so an unused member such as `CommandDialog` is not removed while the other primitives remain available. The existing `src/components/ui/*` export ignores remain limited to their small wrapper files; reviewed 2026-08-29.
 
@@ -184,7 +184,7 @@ Suppression records belong in the narrowest durable place: local code comment fo
 
 Read the dominant metric together with nesting depth before triaging. Cyclomatic-dominant at nesting 1-2 is a flat fan of sibling guards in one return or one props object, where the rule's "extract independent branches" advice relocates terms without removing them. Cognitive-dominant at nesting 3-4 is nested or sequentially dependent logic, where the number describes real reading cost and extraction is at least meaningful.
 
-The 2026-09-08 pass over Issue #249 classified all 25 in-scope findings as accepted risk, in these families. Triage a new hit against them instead of re-litigating the same reasoning; only a hit that fits none of them needs a fresh decision.
+Use the accepted-risk families below to triage repeat hits instead of re-litigating the same reasoning; only a hit that fits none of them needs a fresh decision.
 
 - **Conditional-surface fan.** One return with N sibling optional slots and visibility guards for a single screen, panel, or card. The guards share the props they read, so extracted pieces re-receive most of the parent's props and the "what is visible when" contract leaves the one place a reader looks for it.
 - **Shared primitive variant matrix.** A `src/components/shared` or design-system component whose API is optional props crossed with placement and tone variants. Splitting by variant duplicates generated-id derivation, ARIA wiring, and event plumbing — a correctness risk larger than the complexity removed. `LabeledInputRow` is the reference case.
@@ -196,7 +196,7 @@ The 2026-09-08 pass over Issue #249 classified all 25 in-scope findings as accep
 
 A finding is `must-fix` only when it is a bug, a regression, or introduced by the current change. Render frequency alone does not promote one: a hot-path component whose complexity is conditional class selection gets *worse* under the rule's remedy, because extraction adds component instances per render. `ArticleListItem` is that case. When a hot-path finding also has a genuine render cost — missing memoization, a per-row store subscription, an unvirtualized list — record that separately; it is a different rule's concern and is not fixed by extraction.
 
-The per-finding table is a historical record in [../../docs/react-doctor-complexity-classification.md](../../docs/react-doctor-complexity-classification.md).
+Per-finding classifications are recorded in [../../docs/react-doctor-complexity-classification.md](../../docs/react-doctor-complexity-classification.md).
 
 ### Loading Flag Reset Findings
 
