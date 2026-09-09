@@ -26,7 +26,7 @@
 
 ## Local Quality Gates
 
-- React Doctor diff scan is the changed-file regression gate: `mise run quality:react-doctor:diff`.
+- React Doctor diff scan is the regression gate for findings new against `origin/main`: `mise run quality:react-doctor:diff`.
 - React Doctor full scan is an informational baseline report: `mise run quality:react-doctor:full`.
 - Knip baseline drift is reported with `mise run report:knip`; humans decide how to triage the findings.
 - Similarity baseline drift is reported with `mise run report:similarity`.

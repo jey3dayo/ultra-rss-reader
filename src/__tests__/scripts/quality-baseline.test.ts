@@ -18,11 +18,29 @@ import {
   partitionQualityBaselineRepoScanPaths,
   qualityBaselineRepoScanIgnoredPathPrefixes,
   reactDoctorFullScanTriageStatus,
+  reactDoctorScopeArgs,
   readJsonPayload,
   tailwindArbitraryValuesInventoryContract,
 } from "../../../scripts/quality-baseline";
 
 describe("quality-baseline", () => {
+  // The diff gate's whole contract lives in these flags. `changed` is what makes an
+  // already-accepted finding in a touched file stop failing the gate, and `--include-untracked`
+  // is what keeps a brand-new file from passing unscanned; losing either is silent.
+  it("scans only findings new against origin/main, including untracked files, in diff mode", () => {
+    expect(reactDoctorScopeArgs("diff")).toEqual([
+      "--scope",
+      "changed",
+      "--base",
+      "origin/main",
+      "--include-untracked",
+    ]);
+  });
+
+  it("scans the whole project in full mode", () => {
+    expect(reactDoctorScopeArgs("full")).toEqual(["--scope", "full"]);
+  });
+
   it("formats Knip issues with safe category and symbol summaries", () => {
     expect(
       formatKnipIssue({
