@@ -650,7 +650,7 @@ describe("useKeyboard", () => {
   });
 
   it("coalesces repeated article navigation keys to the latest action per frame", () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "requestAnimationFrame");
     const cancelAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "cancelAnimationFrame");
     Object.defineProperty(window, "requestAnimationFrame", {
