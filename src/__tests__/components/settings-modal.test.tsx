@@ -643,8 +643,10 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
+    // AppConfirmDialog titles the dialog with the pending action's label, so the
+    // delete confirmation's accessible name is the delete action, not a generic word.
     const confirmDialog = await screen.findByRole("dialog", {
-      name: "Confirm",
+      name: "Delete",
     });
     const confirmDeleteButton = within(confirmDialog).getByRole("button", {
       name: /^Delete\b/,
@@ -708,7 +710,7 @@ describe("SettingsModal", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
     await holdToConfirmRealTime(
-      within(await screen.findByRole("dialog", { name: "Confirm" })).getByRole("button", { name: /^Delete\b/ }),
+      within(await screen.findByRole("dialog", { name: "Delete" })).getByRole("button", { name: /^Delete\b/ }),
     );
 
     await waitFor(() => {

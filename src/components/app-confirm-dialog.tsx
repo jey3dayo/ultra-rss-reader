@@ -63,7 +63,7 @@ export function AppConfirmDialog() {
   return (
     <ConfirmDialogView
       open={confirmDialog.open}
-      title={t("confirm")}
+      title={confirmDialog.actionLabel?.trim() || t("confirm")}
       message={confirmDialog.message}
       actionLabel={confirmDialog.actionLabel ?? t("ok")}
       actionAccessibleLabel={confirmDialog.actionAccessibleLabel ?? undefined}

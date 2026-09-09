@@ -283,6 +283,29 @@ itself throw and skip the reset, and a third path added later is easy to miss.
 
 Do not classify a whole rule's findings in one verdict because they share a rule id.
 
+### Adjust State On Prop Change Findings
+
+`no-adjust-state-on-prop-change` reports an effect that calls `setState` in response to a prop,
+and offers three remedies: derive during render, reset with a `key`, or update the state in the
+event that changes the prop. Check which of the three is actually available before treating the
+finding as a defect; where none is, the effect is the mechanism, not a mistake.
+
+Standing accepted risk:
+
+- `confirm-dialog-view.tsx` — the hold-to-confirm effect calls `cancelHold()` when `enabled`
+  goes false. Disabling the button detaches its pointer handlers, so a release can no longer
+  end the press; without the reset a later re-enable resumes a progress fill with no timer
+  behind it. None of the three remedies reaches that: `holding` drives an imperative
+  `setTimeout` and a CSS fill rather than rendered output, so it cannot be derived; a `key`
+  reset would remount the dialog and drop focus; and the prop is owned by the caller, so the
+  event that changes it is outside this component. What the rule describes as the cost — the
+  disabled button showing its fill for the frame before the effect runs — is reasoning from
+  the render order, not something observed on screen. The candidate improvement is to gate the
+  *visual* state on `enabled && holding` while leaving the timer teardown in the effect, which
+  would shorten that window without removing the reset; that is a state-ownership change to
+  code outside the change that surfaced this, so it belongs in its own pass. Reviewed
+  2026-09-09.
+
 ### Iteration And Lookup Shape Findings
 
 `js-combine-iterations` and `js-set-map-lookups` describe shape, not cost. A `src/` path is not

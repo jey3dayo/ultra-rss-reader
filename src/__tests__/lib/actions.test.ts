@@ -151,7 +151,7 @@ describe("executeAction", () => {
       expect(reloadSpy).not.toHaveBeenCalled();
       expect(useUiStore.getState().confirmDialog).toMatchObject({
         open: true,
-        message: "translated:reader:command_palette.restart_app",
+        message: "translated:reader:confirm_restart_app",
         actionLabel: "translated:reader:command_palette.restart_app",
         variant: "warning",
       });
@@ -174,7 +174,7 @@ describe("executeAction", () => {
       expect(restartAppMock).not.toHaveBeenCalled();
       expect(useUiStore.getState().confirmDialog).toMatchObject({
         open: true,
-        message: "translated:reader:command_palette.restart_app",
+        message: "translated:reader:confirm_restart_app",
         actionLabel: "translated:reader:command_palette.restart_app",
         variant: "warning",
       });

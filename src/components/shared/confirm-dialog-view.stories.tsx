@@ -39,6 +39,29 @@ export const WarningTone: Story = {
   args: {
     message: "This action cannot be undone.",
     actionLabel: "Continue",
+    variant: "warning",
+    icon: AlertTriangle,
+  },
+};
+
+export const DestructiveWithHold: Story = {
+  args: {
+    title: "Delete feed",
+    message: "This action cannot be undone.",
+    actionLabel: "Delete",
+    actionAccessibleLabel: "Delete this feed. This action cannot be undone.",
+    variant: "destructive",
+    holdHint: "Press and hold to confirm",
+  },
+};
+
+export const JapaneseFeedCount: Story = {
+  args: {
+    title: "既読にする",
+    message: "105件の日本語フィードを既読にしますか？",
+    actionLabel: "既読にする",
+    cancelLabel: "キャンセル",
+    variant: "warning",
     icon: AlertTriangle,
   },
 };

@@ -13,7 +13,7 @@ import {
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { stateSurfaceButtonClassName } from "@/components/shared/state-surface-button";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   MOTION_DATA_HOLD_ATTRIBUTE,
   MOTION_HOLD_CONFIRM_CLASS_NAME,
@@ -47,6 +47,7 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
   const cancelHold = useCallback(() => {
     clearTimer();
     activePointerIdRef.current = null;
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (hold-to-confirm teardown), .claude/rules/quality-policy.md "Adjust State On Prop Change Findings"
     setHolding(false);
   }, [clearTimer]);
 
@@ -169,6 +170,7 @@ const confirmDialogVariantStyles = {
   },
 } satisfies Record<ConfirmDialogVariant, ConfirmDialogVariantStyle>;
 
+// react-doctor-disable-next-line react-doctor/no-high-complexity-react-function -- accepted risk (Shared primitive variant matrix), docs/react-doctor-complexity-classification.md:159
 export function ConfirmDialogView({
   open,
   title,
@@ -203,20 +205,42 @@ export function ConfirmDialogView({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[300px]">
-        <DialogTitle className="sr-only">{title}</DialogTitle>
-        <DialogDescription className="sr-only">{message}</DialogDescription>
-        <div className="flex flex-col items-center gap-4 py-2 text-center">
-          <div
-            data-testid="confirm-dialog-icon"
-            className={cn("flex size-11 items-center justify-center rounded-md", tone.iconContainerClassName)}
-          >
-            <Icon data-testid="confirm-dialog-icon-svg" className={cn("size-5", tone.iconClassName)} />
-          </div>
-          <p className={cn("text-sm text-foreground", PHRASE_AWARE_TEXT_CLASS_NAME)} aria-hidden="true">
-            {message}
-          </p>
-          <div className="flex w-full flex-col gap-2">
+      <DialogContent
+        showCloseButton={false}
+        overlayPreset="readable"
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-6 sm:max-w-sm"
+      >
+        <div className="flex min-w-0 flex-col gap-6 text-left">
+          <DialogHeader className="min-w-0 gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div
+                data-testid="confirm-dialog-icon"
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-md",
+                  tone.iconContainerClassName,
+                )}
+              >
+                <Icon
+                  aria-hidden="true"
+                  data-testid="confirm-dialog-icon-svg"
+                  className={cn("size-4", tone.iconClassName)}
+                />
+              </div>
+              <DialogTitle className="min-w-0 break-words text-base leading-snug font-semibold">{title}</DialogTitle>
+            </div>
+            <DialogDescription className={cn("leading-relaxed", PHRASE_AWARE_TEXT_CLASS_NAME)}>
+              {message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={onCancel}
+              disabled={cancelDisabled}
+              className="h-auto min-h-11 min-w-0 max-w-full shrink whitespace-normal py-2 text-foreground-soft [overflow-wrap:anywhere]"
+            >
+              <span className="min-w-0">{cancelLabel}</span>
+            </Button>
             <Button
               onClick={handleClick}
               onPointerDown={holdEnabled ? handlePointerDown : undefined}
@@ -231,7 +255,7 @@ export function ConfirmDialogView({
               aria-busy={confirmDisabled || undefined}
               variant={tone.actionButtonVariant}
               className={cn(
-                "min-h-11 w-full",
+                "h-auto min-h-11 min-w-0 max-w-full shrink whitespace-normal py-2 [overflow-wrap:anywhere]",
                 // A 2s press must not start a text selection or a touch scroll.
                 holdEnabled && `${MOTION_HOLD_CONFIRM_CLASS_NAME} touch-none select-none`,
                 tone.actionButtonClassName,
@@ -244,21 +268,13 @@ export function ConfirmDialogView({
                   className={MOTION_HOLD_CONFIRM_FILL_CLASS_NAME}
                 />
               ) : null}
-              <span className="relative">{actionLabel}</span>
+              <span className="relative min-w-0">{actionLabel}</span>
             </Button>
             {showHoldHint ? (
-              <p id={holdHintId} className="text-center text-foreground-soft text-xs">
+              <p id={holdHintId} className="basis-full text-right text-foreground-soft text-xs leading-relaxed">
                 {holdHint}
               </p>
             ) : null}
-            <Button
-              variant="ghost"
-              onClick={onCancel}
-              disabled={cancelDisabled}
-              className="min-h-11 w-full border-border/45 bg-surface-1/72 text-foreground-soft"
-            >
-              {cancelLabel}
-            </Button>
           </div>
         </div>
       </DialogContent>

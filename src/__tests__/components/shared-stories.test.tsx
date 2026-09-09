@@ -56,7 +56,14 @@ const sharedStoryModules = import.meta.glob<unknown>("/src/components/shared/*.s
 });
 
 const requiredSharedStoryExportsByFilePath = {
-  "/src/components/shared/confirm-dialog-view.stories.tsx": ["Default", "LongCopy", "SuccessTone", "WarningTone"],
+  "/src/components/shared/confirm-dialog-view.stories.tsx": [
+    "Default",
+    "DestructiveWithHold",
+    "JapaneseFeedCount",
+    "LongCopy",
+    "SuccessTone",
+    "WarningTone",
+  ],
   "/src/components/shared/copyable-readonly-field-list.stories.tsx": ["CardSurface", "Plain"],
   "/src/components/shared/copyable-readonly-field.stories.tsx": ["Default", "Disabled", "EmptyValue"],
   "/src/components/shared/destructive-confirm-dialog-view.stories.tsx": ["Default", "LongCopy", "Pending"],
