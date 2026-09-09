@@ -259,14 +259,14 @@ describe("quality-baseline", () => {
     // rather than only showing up as a silent drift in the derived subtraction below.
     expect(status.classifiedWarningFamiliesCount).toBe(11);
 
-    // Do not re-declare the scanned warningCount (93) here: reactDoctorBaselines is not
+    // Do not re-declare the scanned warningCount (90) here: reactDoctorBaselines is not
     // exported (adding an export just for this identity would grow the Knip-tracked export
     // surface, see .claude/rules/quality-policy.md), and copying the literal in would be the
     // same hand-pinned-number drift risk this status was built to remove. Pinning the
     // derived total below is what actually catches a broken subtraction: if
     // untriagedWarningCountAtScan stops being warningCount minus the two classified totals,
     // this assertion fails without needing a second copy of warningCount in this file.
-    expect(status.untriagedWarningCountAtScan).toBe(56);
+    expect(status.untriagedWarningCountAtScan).toBe(54);
   });
 
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
