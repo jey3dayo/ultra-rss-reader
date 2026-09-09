@@ -1,3 +1,11 @@
+# pnpm's own packageManager self-management is off because mise pins pnpm in
+# mise.toml and CI resolves it through pnpm/setup. Leaving it on makes pnpm 12
+# emit pnpm-lock.yaml as two YAML documents, which any consumer that reads only
+# the first document reports as having no dependencies at all — GitHub's
+# dependency graph and the Dependabot/SBOM tooling behind it work that way.
+# That graph is currently disabled on this repository, so keeping the lockfile
+# single-document is about not leaving a trap for whoever enables it.
+pmOnFail: ignore
 # GHSA-3jxr-9vmj-r5cp / GHSA-mh99-v99m-4gvg: minimatch 経由の brace-expansion 5.x を patched 版へ固定。
 # minimatch の依存範囲 (^5.0.5) 内の patch bump で、upstream が追い付いたら削除する。
 overrides:

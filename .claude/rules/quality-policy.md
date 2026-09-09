@@ -16,6 +16,33 @@ Ignore entries:
 
 Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.
 
+## pnpm Version Enforcement
+
+Three files name the pnpm version and none of them is redundant, because three different
+consumers read them: `mise.toml` `[tools].pnpm` supplies pnpm locally, `package.json`
+`packageManager` is what `pnpm/setup` resolves in CI, and `package.json` `engines.pnpm` is a
+fail-fast for anyone still on pnpm 11. `scripts/check-toolchain-contract.ts` pins all three to
+the same value, the way it already does for Node.
+
+`pmOnFail: ignore` in `pnpm-workspace.yaml` turns off pnpm's own `packageManager` download and
+switch, because mise owns that locally. Leaving it on makes pnpm 12 write `pnpm-lock.yaml` as
+two YAML documents; consumers that read only the first document then report no dependencies
+(pnpm/pnpm#13805, dependabot-core#15904). GitHub's dependency graph is disabled on this
+repository — verified 2026-09-09: `/network/dependencies` renders "Dependency graph is
+disabled", `GET /repos/{owner}/{repo}/dependency-graph/sbom` returns 404 here while the same
+token gets 200 on another public repository, and `GET .../vulnerability-alerts` reports alerts
+disabled — so nothing reads it today. Keeping the lockfile single-document is about not leaving
+a trap for whoever enables it. The enforced advisory gate remains `mise run audit:deps`, which
+reads either shape.
+
+Do not rely on `engines.pnpm` to stop a wrong local pnpm 12.x. Measured on 2026-09-09 across
+seven install cases: pnpm 12 ignores the root project's `engines.pnpm` entirely, with or
+without `pmOnFail` and with or without `engineStrict`, which contradicts pnpm's own
+`package_json` documentation. pnpm 11 does enforce it, so an outdated toolchain fails fast with
+`ERR_PNPM_UNSUPPORTED_ENGINE`. The residual gap is a contributor who skips mise and runs some
+other pnpm 12.x; `--frozen-lockfile` catches a stale lockfile, and CI's toolchain contract
+catches version drift in the manifests, but neither sees that contributor's local binary.
+
 ## Knip Ignore Policy
 
 Knip is a report-only review tool in this repository, not a continuously enforced gate. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases. As of 2026-09-08, all seven reported unused files were verified as false positives by locating the actual consumer of each:

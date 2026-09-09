@@ -15,6 +15,7 @@ MD_EXCLUDE_TAURI_GEN = "#src-tauri/gen/**"
 
 [tools]
 node = "26.4.0"
+pnpm = "12.3.4"
 rust = "stable"
 taplo = "latest"
 actionlint = "latest"
