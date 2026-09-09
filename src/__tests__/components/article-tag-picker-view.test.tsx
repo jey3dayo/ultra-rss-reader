@@ -309,6 +309,49 @@ describe("ArticleTagPickerView", () => {
     expect(onCreateTag).toHaveBeenCalledWith("Fresh");
   });
 
+  it("ignores Enter and Escape while an IME candidate is being composed", () => {
+    const onCreateTag = vi.fn();
+    const onExpandedChange = vi.fn();
+
+    render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[]}
+        newTagName="ほんやく"
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={onExpandedChange}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={onCreateTag}
+      />,
+    );
+
+    const input = screen.getByPlaceholderText("Create tag");
+
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    fireEvent.keyDown(input, { key: "Escape", isComposing: true });
+
+    expect(onCreateTag).not.toHaveBeenCalled();
+    expect(onExpandedChange).not.toHaveBeenCalled();
+
+    // macOS WebKit reports the commit keystroke with isComposing false and legacy keyCode 229.
+    fireEvent.keyDown(input, { key: "Enter", keyCode: 229 });
+
+    expect(onCreateTag).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onCreateTag).toHaveBeenCalledWith("ほんやく");
+  });
+
   it("keeps text editing keys inside the new tag input instead of roving listbox focus", async () => {
     const user = userEvent.setup();
 

@@ -1,6 +1,7 @@
 import { type RefObject, useEffect } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { Input } from "@/design-system";
+import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 
 type ArticleListHeaderSearchProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -48,6 +49,13 @@ export function ArticleListHeaderSearch({
         className="min-h-11 border-[var(--sidebar-frame-border)] bg-[var(--workspace-header-surface)] shadow-none focus:border-[color:color-mix(in_srgb,var(--foreground)_22%,var(--border))] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)] focus-visible:border-[color:color-mix(in_srgb,var(--foreground)_22%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]"
         onChange={(e) => onSearchQueryChange(e.target.value)}
         onKeyDown={(event) => {
+          // Escape cancels an IME candidate while composing; closing search there would discard the
+          // user's in-progress input. React's synthetic event has no isComposing, so use the native
+          // one, and also accept the legacy keyCode 229 that macOS WebKit reports for the commit
+          // keystroke (see isImeCommitKeyEvent).
+          if (isImeCommitKeyEvent(event)) {
+            return;
+          }
           if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();

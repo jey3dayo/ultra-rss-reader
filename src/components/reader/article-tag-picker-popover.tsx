@@ -2,6 +2,7 @@ import { Loader2, Plus } from "lucide-react";
 import type { KeyboardEventHandler, MutableRefObject, RefObject } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Button, Input } from "@/design-system";
+import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 import { TagOptionRowButton } from "./article-tag-picker-buttons";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker-view";
 
@@ -109,6 +110,18 @@ export function ArticleTagPickerPopover({
           value={newTagName}
           onChange={(event) => onNewTagNameChange(event.target.value)}
           onKeyDown={(event) => {
+            // While an IME candidate is being composed the IME owns the keystroke: Enter confirms
+            // the candidate and Escape cancels it, so neither should reach the picker. React's
+            // synthetic event has no isComposing, so read it from the native event.
+            //
+            // macOS WebKit (WKWebView, which is what Tauri runs here) fires compositionend before
+            // the commit keydown on purpose for IE compatibility, so that keydown arrives with
+            // isComposing === false while the legacy keyCode stays 229. Without the keyCode check
+            // the commit Enter still creates a tag. See WebKit bug 165004; the fix (311717) is
+            // still behind an unstable flag as of Safari 26.3 (mdn/browser-compat-data#29998).
+            if (isImeCommitKeyEvent(event)) {
+              return;
+            }
             if (event.key === "Enter") {
               event.stopPropagation();
               handleCreateTag();
