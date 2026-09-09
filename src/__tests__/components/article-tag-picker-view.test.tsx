@@ -342,6 +342,11 @@ describe("ArticleTagPickerView", () => {
     expect(onCreateTag).not.toHaveBeenCalled();
     expect(onExpandedChange).not.toHaveBeenCalled();
 
+    // macOS WebKit reports the commit keystroke with isComposing false and legacy keyCode 229.
+    fireEvent.keyDown(input, { key: "Enter", keyCode: 229 });
+
+    expect(onCreateTag).not.toHaveBeenCalled();
+
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(onCreateTag).toHaveBeenCalledWith("ほんやく");

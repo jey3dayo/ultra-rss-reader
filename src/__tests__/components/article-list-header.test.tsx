@@ -522,6 +522,11 @@ describe("ArticleListHeader", () => {
 
     expect(onCloseSearch).not.toHaveBeenCalled();
 
+    // macOS WebKit reports the commit keystroke with isComposing false and legacy keyCode 229.
+    fireEvent.keyDown(searchInput, { key: "Escape", keyCode: 229 });
+
+    expect(onCloseSearch).not.toHaveBeenCalled();
+
     fireEvent.keyDown(searchInput, { key: "Escape" });
 
     expect(onCloseSearch).toHaveBeenCalledTimes(1);
