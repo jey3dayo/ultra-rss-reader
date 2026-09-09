@@ -470,7 +470,18 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
 }
 
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
-  const scopeArgs = mode === "diff" ? ["--scope", "files", "--base", "origin/main"] : ["--scope", "full"];
+  // `files` scanned every changed file whole, so touching a file that already carried a
+  // documented accepted risk turned the gate red and forced the same judgement to be
+  // re-made by hand each time. `changed` reports only findings new against the base, which
+  // is what "regression gate" was always meant to mean, and keeps the expectations pinned
+  // at zero rather than at a count that has to be re-measured. A finding inside a function
+  // this change rewrote still counts as new even when its metrics did not move; that is
+  // deliberate, and the way to clear it is the inline record described in
+  // .claude/rules/quality-policy.md, not a baseline bump. `--include-untracked` is required
+  // because the scope is resolved from git, so a brand-new file would otherwise pass
+  // unscanned.
+  const scopeArgs =
+    mode === "diff" ? ["--scope", "changed", "--base", "origin/main", "--include-untracked"] : ["--scope", "full"];
   const result = spawnSync(
     "pnpm",
     [

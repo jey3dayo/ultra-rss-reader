@@ -205,6 +205,37 @@ Classify every React Doctor warning before suppressing or fixing it:
 
 Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality-baseline.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
 
+### Recording An Accepted Risk So The Gate Can See It
+
+`quality:react-doctor:diff` runs with `--scope changed`, so it reports only findings that are
+new against `origin/main`. New means new to the scan, not worse: a finding inside a function
+the change rewrote is reported even when its metrics are identical to the base. That is the
+right default — rewriting a function is when to re-examine what it carries — but it means a
+finding already classified as accepted risk will keep stopping the gate until the decision is
+recorded somewhere the tool reads.
+
+React Doctor has no file- or function-scoped configuration; `rules set` and `rules disable`
+change a rule's severity everywhere. Turning a rule down to clear one classified finding would
+hide every other instance, including ones that are genuine. So the accepted risk goes in an
+inline record at the finding, which is the narrow case the repository-wide rule against inline
+suppression exempts:
+
+```ts
+// react-doctor-disable-next-line react-doctor/<rule> -- accepted risk (<family>), <path to the classification record>:<line>
+```
+
+The `--` reason must point at the record that holds the reasoning — the per-finding entry in
+[../../docs/react-doctor-complexity-classification.md](../../docs/react-doctor-complexity-classification.md)
+for complexity findings, or the owning section of this file otherwise. An inline disable with
+no such reference is not permitted: it asserts a judgement without saying who made it or why,
+which is the failure mode the general rule is guarding against. Do not add one for a finding
+that has not been classified yet; classify it first, or leave the gate red and say so.
+
+Inline disables are honoured by the scan, so adding one moves the full-scan counts. Re-run
+`mise run quality:react-doctor:full` and re-pin `reactDoctorFullScanTriageStatus` in the same
+change, and record in the commit that the delta came from a documented disposition rather than
+from findings disappearing.
+
 ### High Complexity React Function Findings
 
 `no-high-complexity-react-function` reports when *either* cyclomatic or cognitive complexity exceeds 15; the plugin's condition is `cyclomatic <= 15 && cognitive <= 15 || report`. A function with cyclomatic 15 and cognitive 16 is reported on the cognitive side alone. Do not change the thresholds to make a count match.
