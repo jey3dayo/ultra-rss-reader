@@ -18,6 +18,7 @@ import {
   parseReactDoctorReport,
   partitionQualityBaselineRepoScanPaths,
   qualityBaselineRepoScanIgnoredPathPrefixes,
+  reactDoctorDegradedNotice,
   reactDoctorFullScanTriageStatus,
   reactDoctorScopeArgs,
   readJsonPayload,
@@ -82,6 +83,7 @@ describe("quality-baseline", () => {
     expect(parseReactDoctorReport(output)).toEqual({
       version: "0.5.8",
       mode: "diff",
+      baselineDegraded: false,
       summary: {
         score: 100,
         errorCount: 0,
@@ -90,6 +92,28 @@ describe("quality-baseline", () => {
       },
       diagnostics: [],
     });
+  });
+
+  // The notice is the only thing that distinguishes a delta result from a changed-files
+  // result, since the counts are identical in shape. Pin both directions so removing the
+  // branch cannot pass as working.
+  it("says so when the run had no baseline comparison, and stays quiet when it did", () => {
+    expect(reactDoctorDegradedNotice({ baselineDegraded: true })).toContain("no baseline comparison");
+    expect(reactDoctorDegradedNotice({ baselineDegraded: true })).toContain("every finding in the changed files");
+    expect(reactDoctorDegradedNotice({ baselineDegraded: false })).toBeNull();
+  });
+
+  // react-doctor omits the field on a healthy comparison and sets it to true when the base
+  // could not be resolved, in which case the report silently becomes every finding in the
+  // changed files. Reading the absence as "not degraded" is what keeps that distinction.
+  it("reads a degraded baseline run as degraded and an absent flag as healthy", () => {
+    const degraded =
+      '{"version":"0.9.13","mode":"diff","baselineDegraded":true,"summary":{"score":null,"errorCount":0,"warningCount":1,"affectedFileCount":1}}';
+    expect(parseReactDoctorReport(degraded).baselineDegraded).toBe(true);
+
+    const healthy =
+      '{"version":"0.9.13","mode":"baseline","summary":{"score":null,"errorCount":0,"warningCount":0,"affectedFileCount":0}}';
+    expect(parseReactDoctorReport(healthy).baselineDegraded).toBe(false);
   });
 
   it("keeps nested braces and braces inside strings inside the JSON payload", () => {
@@ -126,6 +150,7 @@ describe("quality-baseline", () => {
     expect(parseReactDoctorReport(output)).toEqual({
       version: "0.5.8",
       mode: "full",
+      baselineDegraded: false,
       summary: {
         score: 85,
         errorCount: 0,
@@ -143,6 +168,7 @@ describe("quality-baseline", () => {
     expect(parseReactDoctorReport(output)).toEqual({
       version: "0.5.8",
       mode: "diff",
+      baselineDegraded: false,
       summary: {
         score: null,
         errorCount: 0,
@@ -157,6 +183,7 @@ describe("quality-baseline", () => {
     const output = JSON.stringify({
       version: "0.9.13",
       mode: "full",
+      baselineDegraded: false,
       summary: { score: null, errorCount: 2, warningCount: 4, affectedFileCount: 3 },
       diagnostics: [
         { severity: "warning", rule: "exhaustive-deps" },
@@ -183,6 +210,7 @@ describe("quality-baseline", () => {
     const output = JSON.stringify({
       version: "0.9.13",
       mode: "full",
+      baselineDegraded: false,
       summary: { score: null, errorCount: 0, warningCount: 2, affectedFileCount: 1 },
       diagnostics: [{ severity: "warning" }, {}],
     });
@@ -197,6 +225,7 @@ describe("quality-baseline", () => {
     const output = JSON.stringify({
       version: "0.9.13",
       mode: "full",
+      baselineDegraded: false,
       summary: { score: null, errorCount: 0, warningCount: 1, affectedFileCount: 1 },
       projects: [{ diagnostics: [{ severity: "warning", rule: "no-derived-state" }] }],
     });

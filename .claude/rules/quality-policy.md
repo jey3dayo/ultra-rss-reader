@@ -205,6 +205,31 @@ Classify every React Doctor warning before suppressing or fixing it:
 
 Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality-baseline.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
 
+### The Diff Gate Currently Runs Degraded
+
+`quality:react-doctor:diff` prints an extra line when react-doctor sets `baselineDegraded`:
+
+```text
+React Doctor reported no baseline comparison, so this run lists every finding in the changed files rather than only new ones.
+```
+
+react-doctor's own report schema documents that state as "a `baseline` run was intended but the
+base couldn't be resolved — a shallow CI checkout with no merge base, or a failed base/head
+lint", and says the report then "lists every finding in the changed files (mode downgrades to
+`diff`, the `baseline` block is dropped, the CI gate is skipped)". In other words a degraded run
+is the `files` behaviour again, and the counts alone cannot be told apart from a real delta —
+which is why the wrapper says so out loud instead of letting the numbers stand for something
+they are not. The wrapper names the missing comparison rather than a cause, because the flag is
+computed from `baselineDelta === undefined` and both listed causes land there indistinguishably.
+
+Measured 2026-09-09 in this repository: every `--scope changed` run degrades, on a linked
+worktree, against `origin/main`, an explicit SHA, or `git merge-base`, and with the flags
+stripped back to `--scope changed --base <ref>`. `--help` documents no baseline option, so the
+comparison is internal and the cause is not reachable from the CLI surface. Do not read a green
+diff gate as "no new findings" while this line appears; read it as "no findings at all in the
+changed files", which is strictly stronger and therefore still safe to gate on. Finding the
+cause, so the gate reports what it was changed to report, is open work.
+
 ### Recording An Accepted Risk So The Gate Can See It
 
 `quality:react-doctor:diff` runs with `--scope changed`, so it reports only findings that are
@@ -235,12 +260,21 @@ no such reference is not permitted: it asserts a judgement without saying who ma
 which is the failure mode the general rule is guarding against. Do not add one for a finding
 that has not been classified yet; classify it first, or leave the gate red and say so.
 
-Inline disables are honoured by the scan, so adding one moves the full-scan counts. Re-run
-`mise run quality:react-doctor:full` and re-pin **both** constants in the same change:
-`reactDoctorBaselines.full`, which is what `runReactDoctor` compares the report against, and
-`reactDoctorFullScanTriageStatus`, which records what was and was not triaged. Updating only
-the second leaves every later full scan reporting drift. Record in the commit that the delta
-came from a documented disposition rather than from findings disappearing.
+Inline disables are honoured by the scan, so adding one moves the full-scan counts. The
+constant to re-pin is `reactDoctorBaselines.full`, which is what `runReactDoctor` compares the
+report against. `reactDoctorFullScanTriageStatus.untriagedWarningCountAtScan` is derived and
+needs no direct edit, but the two totals it subtracts do: decrement
+`classifiedFindingCount` when the suppressed finding was in the classified complexity family,
+and decrement the matching entry's `count` in `classifiedWarningFamilies` when it belonged to
+one of those. Re-pinning the warning total alone leaves the stale classified count subtracting
+a finding the scan no longer reports, which understates the untriaged number by one per missed
+decrement. Record in the commit that the delta came from a documented disposition rather than
+from findings disappearing.
+
+Do not re-pin from a feature branch. `reactDoctorFullScanTriageStatusBase.scanSha` must name a
+commit reachable from `main`, and a branch commit is not — squash-merging drops it, and the pin
+then names something nobody can fetch to reproduce the measurement. Full-scan drift is
+informational and fails nothing, so land the change first and re-pin from `main` afterwards.
 
 ### High Complexity React Function Findings
 

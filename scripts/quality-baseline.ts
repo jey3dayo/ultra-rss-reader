@@ -335,6 +335,11 @@ export type ReactDoctorRuleCount = ReactDoctorDiagnostic & {
 type ReactDoctorReport = {
   version: string;
   mode: string;
+  // react-doctor sets this when a baseline run was asked for but the base could not be
+  // resolved. Its own docs say the report then "lists every finding in the changed files
+  // (mode downgrades to `diff`, the `baseline` block is dropped, the CI gate is skipped)".
+  // Absent on a successful comparison, so an absent field is not a degraded run.
+  baselineDegraded: boolean;
   summary: ReactDoctorSummary;
   diagnostics: ReactDoctorDiagnostic[];
 };
@@ -501,6 +506,22 @@ export function isExpectedReactDoctorReportMode(mode: ReactDoctorMode, reportMod
   return reportMode === "full";
 }
 
+// A degraded run reports every finding in the changed files instead of only the new ones, which
+// is the `files` behaviour the diff gate was moved away from. The counts look the same either
+// way, so without this notice a green run and a red run both read as if the delta comparison
+// happened. Say so rather than let the number stand for something it is not; the gate still
+// uses the counts, because a degraded run over-reports and never under-reports. The wording
+// names the missing comparison rather than a cause: react-doctor sets the flag from
+// `baselineDelta === undefined`, which an unresolved ref and a failed base or head lint both
+// produce, and the report does not say which happened.
+export function reactDoctorDegradedNotice(report: Pick<ReactDoctorReport, "baselineDegraded">): string | null {
+  if (!report.baselineDegraded) {
+    return null;
+  }
+
+  return "React Doctor reported no baseline comparison, so this run lists every finding in the changed files rather than only new ones.";
+}
+
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   const scopeArgs = reactDoctorScopeArgs(mode);
   const result = spawnSync(
@@ -547,6 +568,11 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
     `files=${report.summary.affectedFileCount}`,
   ].join(" ");
   console.log(summary);
+
+  const degradedNotice = reactDoctorDegradedNotice(report);
+  if (degradedNotice !== null) {
+    console.log(degradedNotice);
+  }
 
   if (mode === "full") {
     reportReactDoctorFullScanTriage(report, result.stdout);
@@ -1107,6 +1133,7 @@ function readReactDoctorReport(parsed: unknown): ReactDoctorReport {
   return {
     version: readString(parsed, "version"),
     mode: readString(parsed, "mode"),
+    baselineDegraded: parsed.baselineDegraded === true,
     summary: {
       score: readNullableNumber(summary, "score"),
       errorCount: readNumber(summary, "errorCount"),
