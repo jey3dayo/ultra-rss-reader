@@ -221,8 +221,12 @@ inline record at the finding, which is the narrow case the repository-wide rule 
 suppression exempts:
 
 ```ts
-// react-doctor-disable-next-line react-doctor/<rule> -- accepted risk (<family>), <path to the classification record>:<line>
+// react-doctor-disable-next-line <full rule id> -- accepted risk (<family>), <path to the classification record>:<line>
 ```
+
+Copy the rule id exactly as the scan printed it. Not every rule carries the `react-doctor/`
+prefix — `react/no-danger` in `article-content-view.tsx` is one of the existing records — and a
+disable whose id does not match the reported one silently clears nothing.
 
 The `--` reason must point at the record that holds the reasoning — the per-finding entry in
 [../../docs/react-doctor-complexity-classification.md](../../docs/react-doctor-complexity-classification.md)
@@ -232,9 +236,11 @@ which is the failure mode the general rule is guarding against. Do not add one f
 that has not been classified yet; classify it first, or leave the gate red and say so.
 
 Inline disables are honoured by the scan, so adding one moves the full-scan counts. Re-run
-`mise run quality:react-doctor:full` and re-pin `reactDoctorFullScanTriageStatus` in the same
-change, and record in the commit that the delta came from a documented disposition rather than
-from findings disappearing.
+`mise run quality:react-doctor:full` and re-pin **both** constants in the same change:
+`reactDoctorBaselines.full`, which is what `runReactDoctor` compares the report against, and
+`reactDoctorFullScanTriageStatus`, which records what was and was not triaged. Updating only
+the second leaves every later full scan reporting drift. Record in the commit that the delta
+came from a documented disposition rather than from findings disappearing.
 
 ### High Complexity React Function Findings
 
