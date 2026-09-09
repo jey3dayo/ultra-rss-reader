@@ -235,7 +235,7 @@ export function ConfirmDialogView({
               variant="ghost"
               onClick={onCancel}
               disabled={cancelDisabled}
-              className="min-h-11 min-w-0 max-w-full shrink whitespace-normal text-foreground-soft [overflow-wrap:anywhere]"
+              className="h-auto min-h-11 min-w-0 max-w-full shrink whitespace-normal py-2 text-foreground-soft [overflow-wrap:anywhere]"
             >
               <span className="min-w-0">{cancelLabel}</span>
             </Button>
@@ -253,7 +253,7 @@ export function ConfirmDialogView({
               aria-busy={confirmDisabled || undefined}
               variant={tone.actionButtonVariant}
               className={cn(
-                "min-h-11 min-w-0 max-w-full shrink whitespace-normal [overflow-wrap:anywhere]",
+                "h-auto min-h-11 min-w-0 max-w-full shrink whitespace-normal py-2 [overflow-wrap:anywhere]",
                 // A 2s press must not start a text selection or a touch scroll.
                 holdEnabled && `${MOTION_HOLD_CONFIRM_CLASS_NAME} touch-none select-none`,
                 tone.actionButtonClassName,
