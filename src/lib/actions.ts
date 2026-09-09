@@ -275,9 +275,10 @@ async function restartApplication(): Promise<void> {
 
 function requestApplicationRestart(): void {
   const store = useUiStore.getState();
-  const label = i18n.t("reader:command_palette.restart_app");
-  store.showConfirm(label, restartApplication, {
-    actionLabel: label,
+  // The dialog title is derived from actionLabel, so the message must be distinct
+  // copy; reusing the label rendered it as both the heading and the description.
+  store.showConfirm(i18n.t("reader:confirm_restart_app"), restartApplication, {
+    actionLabel: i18n.t("reader:command_palette.restart_app"),
     variant: "warning",
   });
 }
