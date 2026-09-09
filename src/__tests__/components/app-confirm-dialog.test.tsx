@@ -49,11 +49,11 @@ describe("AppConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
 
     await user.keyboard("{Escape}");
-    expect(screen.getByRole("dialog", { name: "Confirm" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Delete" })).toBeInTheDocument();
 
     act(() => deferred.resolve());
 
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Confirm" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Delete" })).not.toBeInTheDocument());
     await waitFor(() => expect(opener).toHaveFocus());
     opener.remove();
   });
@@ -87,7 +87,7 @@ describe("AppConfirmDialog", () => {
       expect(onConfirm).toHaveBeenCalledTimes(1);
       await waitFor(() => {
         expect(consoleError).toHaveBeenCalledWith("Failed to run confirm dialog action.", error);
-        expect(screen.getByRole("dialog", { name: "Confirm" })).toBeInTheDocument();
+        expect(screen.getByRole("dialog", { name: "Delete" })).toBeInTheDocument();
         expect(
           screen.getByRole("button", {
             name: 'Delete "Local". This cannot be undone.',
@@ -121,7 +121,7 @@ describe("AppConfirmDialog", () => {
     holdToConfirm(await screen.findByRole("button", { name: "Delete" }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Confirm" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Delete" })).not.toBeInTheDocument());
     expect(document.body).not.toContainElement(opener);
   });
 
@@ -142,7 +142,7 @@ describe("AppConfirmDialog", () => {
       holdToConfirm(await screen.findByRole("button", { name: "Delete" }));
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
-      await waitFor(() => expect(screen.queryByRole("dialog", { name: "Confirm" })).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByRole("dialog", { name: "Delete" })).not.toBeInTheDocument());
     } finally {
       activeElementSpy.mockRestore();
     }
@@ -174,7 +174,7 @@ describe("AppConfirmDialog", () => {
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
       expect(consoleError).toHaveBeenCalledWith("Failed to run confirm dialog action.", error);
-      expect(screen.getByRole("dialog", { name: "Confirm" })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "Delete" })).toBeInTheDocument();
       await waitFor(() =>
         expect(
           screen.getByRole("button", {

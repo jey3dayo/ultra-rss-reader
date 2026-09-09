@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { holdToConfirm, releaseHoldEarly } from "@tests/helpers/hold-to-confirm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,17 +28,19 @@ describe("ConfirmDialogView", () => {
     const dialog = screen.getByRole("dialog", { name: "Mark all as read" });
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
+    expect(screen.getByRole("heading", { name: "Mark all as read" })).toBeVisible();
+    expect(screen.getByText("Mark all selected articles as read?")).toBeVisible();
     expect(dialog).toHaveAccessibleDescription("Mark all selected articles as read?");
+    expect(
+      within(dialog)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["Cancel", "Mark all read"]);
     expect(dialog).toHaveClass("popup-dialog-centered", "motion-popup-dialog");
     expect(overlay).toHaveClass("motion-popup-overlay");
     expect(screen.getByTestId("confirm-dialog-icon")).toHaveClass("bg-surface-1/72");
     expect(screen.getByRole("button", { name: "Mark all read" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass(
-      "min-h-11",
-      "border-border/45",
-      "bg-surface-1/72",
-      "text-foreground-soft",
-    );
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
     await user.click(screen.getByRole("button", { name: "Mark all read" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -173,7 +175,9 @@ describe("ConfirmDialogView", () => {
     expect(retryButton).not.toBeDisabled();
     expect(dismissButton).not.toBeDisabled();
 
-    retryButton.focus();
+    await waitFor(() => expect(dismissButton).toHaveFocus());
+    await confirmUser.tab();
+    expect(retryButton).toHaveFocus();
     await confirmUser.keyboard("{Enter}");
 
     expect(onConfirm).toHaveBeenCalledTimes(1);

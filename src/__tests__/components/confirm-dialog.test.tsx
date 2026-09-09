@@ -10,14 +10,26 @@ describe("AppConfirmDialog", () => {
     useUiStore.setState(useUiStore.getInitialState());
   });
 
-  it("exposes an accessible name and description for the dialog", () => {
+  it("uses the action label as the visible and accessible dialog title", () => {
     useUiStore.getState().showConfirm("Delete this feed?", vi.fn(), { actionLabel: "Delete" });
 
     render(<AppConfirmDialog />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveAccessibleDescription("Delete this feed?");
+    expect(screen.getByRole("heading", { name: "Delete" })).toBeVisible();
+    expect(screen.getByText("Delete this feed?")).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Delete" })).toHaveAccessibleDescription("Delete this feed?");
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
+  });
+
+  it("falls back to the localized confirm title when no action label is provided", () => {
+    useUiStore.getState().showConfirm("Continue with this action?", vi.fn());
+
+    render(<AppConfirmDialog />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveAccessibleDescription("Continue with this action?");
+    expect(screen.getByRole("heading", { name: "Confirm" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "OK" })).toBeInTheDocument();
   });
 
   it("runs the confirm action once and clears dialog state", async () => {
