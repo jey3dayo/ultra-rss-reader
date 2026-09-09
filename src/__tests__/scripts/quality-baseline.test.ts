@@ -11,6 +11,7 @@ import {
   dependencyLicenseInventoryContract,
   dependencyUpdateSmokeContract,
   formatKnipIssue,
+  isExpectedReactDoctorReportMode,
   isQualityBaselineRepoScanIgnoredPath,
   isTailwindArbitraryValueInventorySourcePath,
   parseKnipReport,
@@ -39,6 +40,20 @@ describe("quality-baseline", () => {
 
   it("scans the whole project in full mode", () => {
     expect(reactDoctorScopeArgs("full")).toEqual(["--scope", "full"]);
+  });
+
+  // Under `--scope changed` react-doctor reports `baseline` as soon as it has findings to
+  // compare and `diff` when it has none, so pinning the literal "diff" only passed while the
+  // scan was empty and broke on the first branch that actually had a finding.
+  it("accepts either mode react-doctor reports for a changed-scope scan", () => {
+    expect(isExpectedReactDoctorReportMode("diff", "diff")).toBe(true);
+    expect(isExpectedReactDoctorReportMode("diff", "baseline")).toBe(true);
+  });
+
+  it("rejects a full scan reported for the diff gate and the reverse", () => {
+    expect(isExpectedReactDoctorReportMode("diff", "full")).toBe(false);
+    expect(isExpectedReactDoctorReportMode("full", "baseline")).toBe(false);
+    expect(isExpectedReactDoctorReportMode("full", "full")).toBe(true);
   });
 
   it("formats Knip issues with safe category and symbol summaries", () => {

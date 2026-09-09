@@ -487,6 +487,20 @@ export function reactDoctorScopeArgs(mode: ReactDoctorMode): string[] {
   return ["--scope", "full"];
 }
 
+// react-doctor names the mode after what the run actually did, not after the scope it was
+// given. Under `--scope changed` it reports `baseline` once it has a base to compare findings
+// against, and `diff` when the comparison produced nothing. Both are the diff gate working;
+// only a `full` here would mean the wrong scan ran. Asserting the literal "diff" passed review
+// on a branch whose scan happened to be empty and then failed on the first branch that had a
+// finding, which is the case the gate exists for.
+export function isExpectedReactDoctorReportMode(mode: ReactDoctorMode, reportMode: string): boolean {
+  if (mode === "diff") {
+    return reportMode === "diff" || reportMode === "baseline";
+  }
+
+  return reportMode === "full";
+}
+
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   const scopeArgs = reactDoctorScopeArgs(mode);
   const result = spawnSync(
@@ -539,7 +553,9 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   }
 
   const drift = [
-    checkEqual("mode", report.mode, mode),
+    isExpectedReactDoctorReportMode(mode, report.mode)
+      ? null
+      : `mode drift: expected a ${mode} scan, actual ${report.mode}`,
     checkEqual("score", report.summary.score, expected.score),
     checkEqual("errorCount", report.summary.errorCount, expected.errorCount),
     checkEqual("warningCount", report.summary.warningCount, expected.warningCount),
