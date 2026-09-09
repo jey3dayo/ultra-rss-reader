@@ -21,7 +21,15 @@ import { useShortcutsSettingsViewProps } from "./hooks/use-shortcuts-settings-vi
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
-  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing" | "preventDefault" | "stopPropagation"
+  | "key"
+  | "metaKey"
+  | "ctrlKey"
+  | "shiftKey"
+  | "altKey"
+  | "isComposing"
+  | "keyCode"
+  | "preventDefault"
+  | "stopPropagation"
 >;
 type ShortcutConflictMessageState = {
   id: ShortcutActionId;
@@ -29,7 +37,7 @@ type ShortcutConflictMessageState = {
 };
 
 function normalizeRecordedKey(
-  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing">,
+  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing" | "keyCode">,
 ): string | null {
   // Ignore bare modifier keys
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;

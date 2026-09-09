@@ -119,7 +119,7 @@ export function ArticleTagPickerPopover({
             // isComposing === false while the legacy keyCode stays 229. Without the keyCode check
             // the commit Enter still creates a tag. See WebKit bug 165004; the fix (311717) is
             // still behind an unstable flag as of Safari 26.3 (mdn/browser-compat-data#29998).
-            if (isImeCommitKeyEvent(event)) {
+            if (isImeCommitKeyEvent(event.nativeEvent)) {
               return;
             }
             if (event.key === "Enter") {

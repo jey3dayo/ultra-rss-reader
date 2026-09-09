@@ -8,6 +8,7 @@ import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { getCurrentDate } from "@/lib/datetime";
+import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
@@ -283,7 +284,7 @@ export function SubscriptionsIndexPage() {
       const target = event.target;
       if (
         event.defaultPrevented ||
-        event.isComposing ||
+        isImeCommitKeyEvent(event) ||
         event.key !== "Escape" ||
         editTargetFeed !== null ||
         deleteTargetFeed !== null ||

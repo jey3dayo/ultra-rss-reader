@@ -1,4 +1,5 @@
 import type { AppAction } from "@/lib/app-actions";
+import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 
 const globalShortcutIgnoredKeys = new Set(["Dead", "Unidentified", "Process"]);
 const modalAllowedMenuActions = new Set<AppAction>(["check-for-updates", "sync-all", "toggle-fullscreen"]);
@@ -7,6 +8,7 @@ type GlobalShortcutKeyboardEvent = {
   key: string;
   altKey?: boolean;
   isComposing?: boolean;
+  keyCode?: number;
 };
 
 export function isGlobalShortcutTextEditingTarget(target: Element | null): boolean {
@@ -33,7 +35,7 @@ export function isGlobalShortcutTextEditingTarget(target: Element | null): boole
 }
 
 export function shouldIgnoreGlobalShortcutKeyboardEvent(event: GlobalShortcutKeyboardEvent): boolean {
-  return event.isComposing === true || event.altKey === true || globalShortcutIgnoredKeys.has(event.key);
+  return isImeCommitKeyEvent(event) || event.altKey === true || globalShortcutIgnoredKeys.has(event.key);
 }
 
 const nativeActivationTagNames = new Set(["BUTTON", "SUMMARY"]);

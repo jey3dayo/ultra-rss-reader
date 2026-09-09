@@ -981,6 +981,17 @@ describe("SubscriptionsIndexPage", () => {
     expect(useUiStore.getState().focusedPane).toBe("content");
   });
 
+  it("does not close the subscriptions workspace for an IME commit keydown", async () => {
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("heading", { name: "購読一覧" });
+    fireEvent.keyDown(window, { key: "Escape", keyCode: 229 });
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+    });
+  });
+
   it("does not close the subscriptions workspace when another modal layer owns Escape", async () => {
     const user = userEvent.setup();
 

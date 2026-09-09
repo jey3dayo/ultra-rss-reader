@@ -224,6 +224,7 @@ describe("ShortcutsSettings", () => {
 
   it.each([
     ["IME composition", { key: "k", isComposing: true }],
+    ["IME legacy keyCode", { key: "k", keyCode: 229 }],
     ["dead key", { key: "Dead" }],
     ["unidentified key", { key: "Unidentified" }],
     ["process key", { key: "Process" }],
