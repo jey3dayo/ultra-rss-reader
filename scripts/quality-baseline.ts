@@ -115,11 +115,18 @@ const reactDoctorBaselines = {
   // (a quadratic membership test), two js-combine-iterations, and one
   // no-loading-flag-reset-outside-finally. The remaining one of each of the first two
   // rules is recorded as accepted risk in .claude/rules/quality-policy.md.
+  // 93/60 -> 90/58 was attributed on 2026-09-09 by comparing per-rule warning counts at
+  // ad4a203a2 against 835ad5b01, not by accepting the totals. Every rule is unchanged except
+  // three, each down exactly one: no-high-complexity-react-function 26 -> 25 and
+  // no-adjust-state-on-prop-change 17 -> 16 are the two inline records added on
+  // confirm-dialog-view.tsx in #279, and no-enter-submit-without-ime-composition-guard 1 -> 0
+  // is a finding #272 genuinely fixed. Those two rules were that file's only findings, so it
+  // leaves the affected set along with the file #272 fixed, which is the -2 on files.
   full: {
     score: null,
     errorCount: 14,
-    warningCount: 93,
-    affectedFileCount: 60,
+    warningCount: 90,
+    affectedFileCount: 58,
   },
 } as const;
 
@@ -137,12 +144,12 @@ const reactDoctorBaselines = {
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
-  scanSha: "ad4a203a2",
+  scanSha: "835ad5b01",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
-  classifiedFindingCount: 26,
+  classifiedFindingCount: 25,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   classifiedWarningFamilies: [
