@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
 import {
   applyFeedTreePointerDropOutcome,
@@ -40,18 +40,20 @@ export function useFeedTreePointerDragEvents({
     onDropToUnfoldered,
     onDragEnd,
   });
-  latestParamsRef.current = {
-    setPointerDragPreview,
-    setPointerHoverTarget,
-    queueSuppressHandleClickReset,
-    clearPointerTracking,
-    onDragStartFeed,
-    onDragEnterFolder,
-    onDragEnterUnfoldered,
-    onDropToFolder,
-    onDropToUnfoldered,
-    onDragEnd,
-  };
+  useLayoutEffect(() => {
+    latestParamsRef.current = {
+      setPointerDragPreview,
+      setPointerHoverTarget,
+      queueSuppressHandleClickReset,
+      clearPointerTracking,
+      onDragStartFeed,
+      onDragEnterFolder,
+      onDragEnterUnfoldered,
+      onDropToFolder,
+      onDropToUnfoldered,
+      onDragEnd,
+    };
+  });
 
   useEffect(() => {
     if (!isPointerTracking) {
