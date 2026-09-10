@@ -34,7 +34,7 @@ Issue #249 の未 triage 53 件のうち 34 件を扱う。残り 19 件（`no-p
 14 件が名指しする識別子（`feeds` / `tags` / `folders` / `feedList` / `folderList` /
 `isClosedEventCurrent`）は全件、当該依存配列に既にある。
 
-### A. `x ?? []` による identity churn（13 件）— must-fix 2 件 + accepted-risk 11 件
+### A. `x ?? []` による identity churn（13 件）— must-fix 1 件 + accepted-risk 12 件
 
 対象：`use-command-palette-data.ts:163,176,177,193,197,201,297` /
 `use-sidebar-feed-section-controller.ts:61,62` / `use-sidebar-feed-tree.ts:30,34,41` /
@@ -57,11 +57,23 @@ memo として働く。`data` が `undefined` の間だけ `?? []` が毎 render
   クエリは走らず `data` は undefined のまま。
 - fetch が失敗した場合も `data` は undefined のまま残る。
 
-#### must-fix: `use-sidebar-feed-section-controller.ts:61,62`
+#### must-fix: `use-sidebar-feed-section-controller.ts:62` の 1 件だけ
 
-この 2 件が指す `feedList` / `folderList`（同ファイル 58, 59 行の `?? []`）は、memo に入るだけで
-なく `:152,153` から `useSidebarStartupFolderExpansion` へ**直接**渡り、
-`use-sidebar-startup-folder-expansion.ts` の永続化 effect の依存になる。その effect は
+`feedList` / `folderList`（同ファイル 58, 59 行の `?? []`）はどちらも `:152,153` から
+`useSidebarStartupFolderExpansion` へ直接渡るが、**届く先の effect が違う**。
+
+- `folderList` は**永続化 effect**（`use-sidebar-startup-folder-expansion.ts:392-410`）の依存。
+  この effect の early return は `!selectedAccountId` と `restore_previous` と skip token だけで、
+  `foldersReady` を見ない。→ **`:62` は must-fix**
+- `feedList` は**起動時 effect**（同 :352 付近）の依存で、こちらは `:327` の
+  `if (!feedsReady || !foldersReady) return;` で早期 return する。`feedsReady = feeds !== undefined`
+  なので、**`feedList` が churn する条件はその effect が即 return する条件と同じ**。書き込みは起きない。
+  → **`:61` は accepted-risk**
+
+初稿は 2 件とも must-fix としていた。「両方とも expansion hook へ渡る」ところで止め、どちらが
+どの effect に届くかを見ていなかった。independent review（PR #296 の Codex 指摘）で訂正した。
+
+永続化 effect が呼ぶ `setStoredSidebarExpandedFolders` は
 `setStoredSidebarExpandedFolders(...)` を呼び、この関数は
 
 - localStorage を read し
@@ -77,7 +89,7 @@ memo として働く。`data` が `undefined` の間だけ `?? []` が毎 render
 したがって **account 選択済み × folders クエリがエラー**の状態では、毎 render
 localStorage の read + parse + write が走り続ける。これは shape ではなく実コストである。
 
-#### accepted-risk: 残り 11 件
+#### accepted-risk: 残り 12 件
 
 同じ idiom だが、下流が memo と描画に留まり、無条件の副作用に到達しない。
 
@@ -274,5 +286,10 @@ localStorage 書き込みが内容比較で止まることを確認し、そこ�
 `use-subscriptions-index-state.ts:98-104` と `use-article-list-sources.ts:311` も同じで、
 「remedy が成立しない」「消費側の契約が無い」を、対象コードを読まずに family の形から推定した。
 
-この誤りは #260 の 14 件の pass でも起きており（分類案 14 件中 12 件が棄却）、同じ日に 3 回
-繰り返している。**family として括った時点で、族の代表 1 件ではなく各件の下流を確認する。**
+この誤りは #260 の 14 件の pass でも起きており（分類案 14 件中 12 件が棄却）、同じ日に 4 回
+繰り返している。4 回目は本記録の訂正版で踏んだ——`feedList` と `folderList` が「どちらも
+expansion hook へ渡る」ところで止め、**どちらがどの effect に届くか**を見ずに 2 件とも must-fix
+とした。実際には片方は早期 return する effect にしか届かない。
+
+**family として括った時点で、族の代表 1 件ではなく各件の下流を確認する。** 「同じ hook に渡る」
+「同じファイルにある」「同じルールが出た」はいずれも下流が同じであることを意味しない。
