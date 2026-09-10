@@ -103,6 +103,7 @@ export type UseArticleListViewPropsParams = {
   trimmedDebouncedQuery: string;
   contentMotionKey: ArticleListBodyProps["contentMotionKey"];
   articleGroups: ArticleGroupsViewGroup[];
+  isActivePane: ArticleListBodyProps["isActivePane"];
   feeds?: FeedDto[];
   dimArchived: string;
   textPreview: string;
@@ -190,6 +191,7 @@ export type ArticleListPresentationPaneActions = {
 export type ArticleListPresentationViewPrefs = {
   keyboardPrefs: KeyboardShortcutPrefs;
   scrollToTopOnChange: string;
+  isActivePane: boolean;
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;

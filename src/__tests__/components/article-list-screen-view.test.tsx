@@ -11,6 +11,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading
         emptyMessage="No articles"
         loadingMessage="Loading articles"
@@ -38,6 +39,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         viewportRef={viewportRef}
         isLoading
         emptyMessage="No articles"
@@ -63,6 +65,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         viewportRef={viewportRef}
         isLoading={false}
         emptyMessage="No articles"
@@ -99,6 +102,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyMessage="No articles"
         loadingMessage="Loading articles"
@@ -139,6 +143,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyMessage="No articles"
         loadingMessage="Loading articles"
@@ -177,6 +182,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyStateVariant="setup"
         emptyMessage="Add an account and your articles will appear here."
@@ -207,6 +213,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyStateVariant="hidden"
         emptyMessage="Unused"
@@ -232,6 +239,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyMessage="No articles"
         loadingMessage="Loading articles"
@@ -279,6 +287,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyMessage="No articles"
         loadingMessage="Loading articles"
@@ -316,6 +325,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyMessage="No articles"
         loadingMessage="Loading articles"
@@ -354,6 +364,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyMessage='No matches for "Nope"'
         emptyDescription="Try a different keyword or clear the current search."
@@ -397,6 +408,7 @@ describe("ArticleListScreenView", () => {
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
+        isActivePane
         isLoading={false}
         emptyMessage="No articles"
         loadingMessage="Loading articles"

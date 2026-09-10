@@ -1,4 +1,4 @@
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { MOTION_ARTICLE_SELECTION_MARKER_CLASS_NAME, MOTION_ARTICLE_STATE_SLOT_CLASS_NAME } from "@/constants";
@@ -7,22 +7,21 @@ import { formatArticleTime } from "@/lib/articles/article-list";
 import { resolveArticleListItemPresentation } from "@/lib/articles/article-list-item-presentation";
 import { focusArticleContentTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
-import { useUiStore } from "@/stores/ui-store";
 
 type ArticleListItemProps = {
   article: ArticleDto;
   isSelected: boolean;
-  isActivePane?: boolean;
+  isActivePane: boolean;
   isRecentlyRead: boolean;
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;
   selectionStyle: string;
   feedName: string | undefined;
-  onSelect: () => void;
+  onSelect: (articleId: string) => void;
 };
 
-export function ArticleListItem({
+export const ArticleListItem = memo(function ArticleListItem({
   article,
   isSelected,
   isActivePane,
@@ -35,8 +34,6 @@ export function ArticleListItem({
   onSelect,
 }: ArticleListItemProps) {
   const { t } = useTranslation("reader");
-  const focusedPane = useUiStore((state) => state.focusedPane);
-  const activePane = isActivePane ?? focusedPane === "list";
   const viewedAtLabel = article.viewed_at ? t("viewed_at", { time: formatArticleTime(article.viewed_at) }) : null;
   const presentation = resolveArticleListItemPresentation({
     title: article.title,
@@ -63,7 +60,7 @@ export function ArticleListItem({
     }
 
     event.preventDefault();
-    onSelect();
+    onSelect(article.id);
     requestAnimationFrame(() => {
       focusArticleContentTarget();
     });
@@ -76,22 +73,22 @@ export function ArticleListItem({
       role="option"
       tabIndex={isSelected ? 0 : -1}
       aria-selected={isSelected}
-      data-active-pane={isSelected ? String(activePane) : undefined}
+      data-active-pane={isSelected ? String(isActivePane) : undefined}
       aria-label={presentation.ariaLabel}
-      onClick={onSelect}
+      onClick={() => onSelect(article.id)}
       onKeyDown={handleKeyDown}
       className={cn(
         "relative isolate flex w-full cursor-pointer select-none flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
         selectionStyle === "classic"
           ? cn(
               "border-l-2 border-transparent focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
-              isSelected && activePane && "border-primary bg-[image:var(--sidebar-selection-gradient)]",
-              isSelected && !activePane && "border-border-strong/60 bg-[image:var(--sidebar-hover-gradient)]",
+              isSelected && isActivePane && "border-primary bg-[image:var(--sidebar-selection-gradient)]",
+              isSelected && !isActivePane && "border-border-strong/60 bg-[image:var(--sidebar-hover-gradient)]",
             )
           : cn(
               isSelected &&
                 cn(
-                  activePane
+                  isActivePane
                     ? "bg-surface-2/45 after:bg-border-strong focus-visible:bg-surface-2/55"
                     : "bg-surface-2/28 after:bg-border-strong/70 focus-visible:bg-surface-2/38",
                   MOTION_ARTICLE_SELECTION_MARKER_CLASS_NAME,
@@ -182,4 +179,4 @@ export function ArticleListItem({
       )}
     </div>
   );
-}
+});

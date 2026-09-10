@@ -1,10 +1,34 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListItem } from "@/components/reader/article-list-item";
+import * as articleListItemPresentation from "@/lib/articles/article-list-item-presentation";
 import { resolveArticleListItemPresentation as resolvePresentation } from "@/lib/articles/article-list-item-presentation";
 import { useUiStore } from "@/stores/ui-store";
+
+const stableOnSelect = (_articleId: string) => {};
+
+function ArticleListItemStoreSubscriber() {
+  const focusedPane = useUiStore((state) => state.focusedPane);
+
+  return (
+    <div data-focused-pane={focusedPane}>
+      <ArticleListItem
+        article={sampleArticles[0]}
+        isSelected
+        isActivePane
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={stableOnSelect}
+      />
+    </div>
+  );
+}
 
 describe("ArticleListItem", () => {
   beforeEach(() => {
@@ -12,6 +36,25 @@ describe("ArticleListItem", () => {
       ...useUiStore.getInitialState(),
       focusedPane: "list",
     });
+  });
+
+  it("does not rerender when focused pane changes while the row props stay stable", () => {
+    const renderCounter = vi.spyOn(articleListItemPresentation, "resolveArticleListItemPresentation");
+
+    try {
+      render(<ArticleListItemStoreSubscriber />, { wrapper: createWrapper() });
+
+      const initialRenderCount = renderCounter.mock.calls.length;
+      expect(initialRenderCount).toBeGreaterThan(0);
+
+      act(() => {
+        useUiStore.setState({ focusedPane: "content" });
+      });
+
+      expect(renderCounter.mock.calls.length).toBe(initialRenderCount);
+    } finally {
+      renderCounter.mockRestore();
+    }
   });
 
   it("resolves article row presentation without duplicating title, feed, or recently read state", () => {
@@ -167,6 +210,7 @@ describe("ArticleListItem", () => {
           is_starred: false,
         }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -187,6 +231,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -235,6 +280,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], title: "  First\n\tArticle  ", is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -258,6 +304,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], thumbnail: "\n\t  ", is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -298,6 +345,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], title: "   ", is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -321,6 +369,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead
         dimArchived="true"
         textPreview="true"
@@ -340,6 +389,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -363,6 +413,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -382,6 +433,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: true, is_starred: true }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -401,6 +453,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: true, is_starred: false }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -423,6 +476,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -455,6 +509,7 @@ describe("ArticleListItem", () => {
           is_starred: false,
         }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -481,6 +536,7 @@ describe("ArticleListItem", () => {
           is_starred: false,
         }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -500,6 +556,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -524,6 +581,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -590,6 +648,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -610,6 +669,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -632,6 +692,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -660,6 +721,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -684,6 +746,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -711,6 +774,7 @@ describe("ArticleListItem", () => {
           is_starred: false,
         }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -731,6 +795,7 @@ describe("ArticleListItem", () => {
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: true, is_starred: false }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -758,6 +823,7 @@ describe("ArticleListItem", () => {
           is_starred: false,
         }}
         isSelected
+        isActivePane
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"
@@ -785,6 +851,7 @@ describe("ArticleListItem", () => {
           is_starred: false,
         }}
         isSelected={false}
+        isActivePane={false}
         isRecentlyRead={false}
         dimArchived="true"
         textPreview="true"

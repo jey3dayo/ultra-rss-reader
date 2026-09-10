@@ -146,6 +146,7 @@ const meta = {
         ],
       },
     ],
+    isActivePane: true,
     dimArchived: "true",
     textPreview: "true",
     imagePreviews: "off",

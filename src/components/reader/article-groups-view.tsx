@@ -18,6 +18,7 @@ export type ArticleGroupsViewGroup = {
 
 type ArticleGroupsViewProps = {
   groups: ArticleGroupsViewGroup[];
+  isActivePane: boolean;
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;
@@ -28,6 +29,7 @@ type ArticleGroupsViewProps = {
 
 export function ArticleGroupsView({
   groups,
+  isActivePane,
   dimArchived,
   textPreview,
   imagePreviews,
@@ -59,13 +61,14 @@ export function ArticleGroupsView({
               <ArticleListItem
                 article={item.article}
                 isSelected={item.isSelected}
+                isActivePane={item.isSelected && isActivePane}
                 isRecentlyRead={item.isRecentlyRead}
                 dimArchived={dimArchived}
                 textPreview={textPreview}
                 imagePreviews={imagePreviews}
                 selectionStyle={selectionStyle}
                 feedName={item.feedName}
-                onSelect={() => onSelectArticle(item.article.id)}
+                onSelect={onSelectArticle}
               />
             ),
           })}

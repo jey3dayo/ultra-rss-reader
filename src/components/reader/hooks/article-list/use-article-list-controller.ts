@@ -65,6 +65,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     handleCloseSearch,
     setSearchQuery,
   } = useArticleListRuntime();
+  const isActivePane = focusedPane === "list";
 
   const {
     feedId: resolvedFeedId,
@@ -172,6 +173,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     viewPrefs: {
       keyboardPrefs,
       scrollToTopOnChange,
+      isActivePane,
       dimArchived,
       textPreview,
       imagePreviews,
