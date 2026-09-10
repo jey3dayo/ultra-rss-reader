@@ -21,7 +21,15 @@ import { useShortcutsSettingsViewProps } from "./hooks/use-shortcuts-settings-vi
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
-  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing" | "preventDefault" | "stopPropagation"
+  | "key"
+  | "metaKey"
+  | "ctrlKey"
+  | "shiftKey"
+  | "altKey"
+  | "isComposing"
+  | "keyCode"
+  | "preventDefault"
+  | "stopPropagation"
 >;
 type ShortcutConflictMessageState = {
   id: ShortcutActionId;
@@ -29,7 +37,7 @@ type ShortcutConflictMessageState = {
 };
 
 function normalizeRecordedKey(
-  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing">,
+  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing" | "keyCode">,
 ): string | null {
   // Ignore bare modifier keys
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
@@ -133,8 +141,15 @@ export function ShortcutsSettings() {
     (id: ShortcutActionId, event: RecordedKeyEvent) => {
       if (recordingId !== id) return;
 
+      // This runs on a window capture listener, so letting an IME-owned keystroke through
+      // means it reaches the settings dialog and closes it, losing the recording session.
+      // Swallow it first, then ignore it: the IME has already consumed the keystroke by the
+      // time the commit keydown arrives, so preventDefault here cannot undo the candidate
+      // cancellation.
       event.preventDefault();
       event.stopPropagation();
+
+      if (shouldIgnoreGlobalShortcutKeyboardEvent(event)) return;
 
       if (event.key === "Escape") {
         handleCancel();

@@ -675,6 +675,7 @@ describe("keyboard shortcut resolver", () => {
   it.each([
     ["Alt/Option modified key", { key: "j", altKey: true }],
     ["IME composition", { key: "j", isComposing: true }],
+    ["IME legacy keyCode", { key: "j", keyCode: 229 }],
     ["dead key", { key: "Dead" }],
     ["unidentified key", { key: "Unidentified" }],
     ["process key", { key: "Process" }],
@@ -686,6 +687,7 @@ describe("keyboard shortcut resolver", () => {
       shiftKey: false,
       altKey: "altKey" in event ? event.altKey : undefined,
       isComposing: "isComposing" in event ? event.isComposing : undefined,
+      keyCode: "keyCode" in event ? event.keyCode : undefined,
       targetTag: "DIV",
       selectedArticleId: "art-1",
       contentMode: "reader",

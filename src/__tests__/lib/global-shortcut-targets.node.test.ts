@@ -46,6 +46,7 @@ describe("global shortcut targets", () => {
 
   it.each([
     ["IME composition", { key: "m", isComposing: true }],
+    ["IME legacy keyCode", { key: "m", keyCode: 229 }],
     ["Alt/Option modified key", { key: "m", altKey: true }],
     ["dead key", { key: "Dead" }],
     ["unidentified key", { key: "Unidentified" }],

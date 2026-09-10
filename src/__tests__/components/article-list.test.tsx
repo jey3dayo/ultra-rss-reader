@@ -750,6 +750,30 @@ describe("ArticleList", () => {
     });
   });
 
+  it("does not emit toggle-read for an IME-owned keyCode from a focused list option", async () => {
+    const toggleRead = vi.fn();
+    window.addEventListener(keyboardEvents.toggleRead, toggleRead);
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+    firstOption.focus();
+    expect(firstOption).toHaveFocus();
+
+    try {
+      fireEvent.keyDown(firstOption, { key: "m", keyCode: 229 });
+
+      expect(toggleRead).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(keyboardEvents.toggleRead, toggleRead);
+    }
+  });
+
   it("navigates articles with arrow keys from a focused list option", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");

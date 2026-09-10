@@ -53,7 +53,7 @@ export function ArticleListHeaderSearch({
           // user's in-progress input. React's synthetic event has no isComposing, so use the native
           // one, and also accept the legacy keyCode 229 that macOS WebKit reports for the commit
           // keystroke (see isImeCommitKeyEvent).
-          if (isImeCommitKeyEvent(event)) {
+          if (isImeCommitKeyEvent(event.nativeEvent)) {
             return;
           }
           if (event.key === "Escape") {

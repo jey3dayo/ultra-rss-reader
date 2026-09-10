@@ -511,6 +511,7 @@ type KeyboardContext = {
   shiftKey: boolean;
   altKey?: boolean;
   isComposing?: boolean;
+  keyCode?: number;
   targetTag?: string | null;
   targetIsTextEditing?: boolean;
   targetIsNativeActivation?: boolean;
@@ -634,6 +635,7 @@ export function resolveKeyboardAction(
     shiftKey,
     altKey,
     isComposing,
+    keyCode,
     targetTag,
     targetIsTextEditing,
     targetIsNativeActivation,
@@ -645,7 +647,7 @@ export function resolveKeyboardAction(
     platformKind = "macos",
   } = context;
 
-  if (shouldIgnoreGlobalShortcutKeyboardEvent({ key, altKey, isComposing })) {
+  if (shouldIgnoreGlobalShortcutKeyboardEvent({ key, altKey, isComposing, keyCode })) {
     return Result.fail("no_action");
   }
 
