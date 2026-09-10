@@ -245,8 +245,12 @@ describe("ShortcutsSettings", () => {
     await user.click(screen.getByTestId("shortcut-badge-next_article"));
 
     const recordingButton = screen.getByTestId("shortcut-badge-next_article");
-    fireEvent.keyDown(recordingButton, keyboardEvent);
+    // The badge listens on window in the capture phase, so an ignored keystroke that is not
+    // swallowed here keeps travelling and reaches the settings dialog's own Escape handling,
+    // which closes the modal and loses the recording session.
+    const swallowed = fireEvent.keyDown(recordingButton, keyboardEvent);
 
+    expect(swallowed).toBe(false);
     expect(setPref).not.toHaveBeenCalled();
     expect(recordingButton).toHaveTextContent("Press a key");
   });
