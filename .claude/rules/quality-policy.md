@@ -351,6 +351,24 @@ the reader. Measured on `main` at `3f1867a23` the full scan went from 14 errors 
 unchanged. The two that remain are this record's own false positive and its test-only accepted
 risk, so `errorClassification.mustFix` is 0.
 
+### Untriaged Warning Classification (Issue #249)
+
+The first wave — `exhaustive-deps` 18 and `no-adjust-state-on-prop-change` 16 — is recorded per
+finding in [../../docs/react-doctor-warning-classification-249.md](../../docs/react-doctor-warning-classification-249.md).
+Read it before re-classifying anything in those two families.
+
+Two things in it change how the remaining families should be approached.
+
+`exhaustive-deps` is not one kind of finding. Of the 18, only one names an absent dependency;
+14 name an identifier that is *already in the array* and complain about its identity churn, and
+3 say the callback is defined elsewhere so dependencies cannot be checked. Counting them as one
+backlog of "dependencies to add" is wrong.
+
+The `no-adjust-state-on-prop-change` findings all sit on a setter whose argument is a constant,
+and setters with computed arguments in the same effects are not reported. That regularity is
+inferred from four counter-examples, not from the rule implementation, which is minified in the
+shipped `dist`. Do not build a classification on it.
+
 ### Loading Flag Reset Findings
 
 `no-loading-flag-reset-outside-finally` reports that a busy flag is reset "only on the success
