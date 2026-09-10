@@ -101,14 +101,30 @@ localStorage の read + parse + write が走り続ける。これは shape で�
 
 #### remedy
 
-module scope の凍結済み空配列定数を共有し `?? EMPTY` にすれば 13 件すべて消える。Set 化のように
-仕事を増やす書き換えではなく減らす側なので、`js-set-map-lookups` に対する既存方針（shape 書き換えを
-性能改善と称さない）とは事情が異なる。
+初稿は「module scope の凍結済み空配列定数を共有し `?? EMPTY` にすれば 13 件すべて消える」と
+書いた。**この設計は採れない。** 独立レビューが 2 点を一次情報で示した。
 
-**ただし採る前に確認が要る**: `use-command-palette-data.ts:295-305` の依存配列には
-`feedsQuery` / `foldersQuery` / `tagsQuery` / `recentArticlesQuery` という query object 自体が
-入っている。これらの identity が render ごとに変わるなら `?? []` を潰しても memo は毎回走る。
-未確認。
+**1. query object の identity は安定でない。** `@tanstack/react-query` 5.102.8 の
+`useBaseQuery.ts:139-142` は既定で `observer.trackResult(result)` を返し、
+`query-core/queryObserver.ts:258-268` が**毎回 `new Proxy` を生成**する。このアプリは
+`notifyOnChangeProps` を上書きしていない。`useRecentArticles` はさらに
+`use-articles.ts:286` で毎 render `{ ...queryResult, data }` を作る。
+`use-command-palette-data.ts:301-311` の依存には query object 自体が入っているので、
+`?? []` を潰しても履歴 memo は `data` が定義済みでも毎 render 再評価される。
+（公式: <https://tanstack.com/query/latest/docs/framework/react/guides/render-optimizations#referential-identity>）
+
+**2. 素朴な `?? EMPTY` 置換は #295 を再導入する。** `undefined` を `[]` に潰すと、
+`data !== undefined` で「取得できたか」を判定している箇所が壊れる。まさにその判定の誤りが
+コマンドパレット履歴の全消去（#295、`032fd1a65` で修正）だった。
+
+したがって remedy は「fallback を定数に替える」ではなく次の形になる。
+
+- 生の `data` を取り、`data !== undefined` の readiness を**memo の外**で導出する
+- その boolean と、計算で実際に使う値だけを memo の依存に入れる（query object を入れない）
+- 型に合った安定 EMPTY は fallback が必要な箇所に限定し、**readiness 判定より後**に適用する
+- 残り 12 件も同じく各下流の依存を確認してから個別に適用する
+
+**「13 件すべて消える」「性能上の効果」はいずれも未検証**であり、実装後の再スキャンで確かめる。
 
 ### B. `useCallback(factory(t, key), [])`（3 件）— accepted-risk
 
@@ -219,16 +235,27 @@ effect（308-311 行）は `retainedArticleIds.size === 0` のとき snapshot �
   `indexReturnState.accountId === selectedAccountId` のときだけ非 null。account 切替直後は
   旧 account の returnState なので `null` になり、lazy initializer が返すのは
   `null` / 空 Set / `""` / `"title"` / `{}` / `"all"` ＝ **effect が 98-104 行で設定する値と同一**。
-- **「開いている dialog を破棄する」は機構としては正しいが、失うものは限定的。**
-  `deleteTargetFeed` は既に `:276-280` の effect で account 切替時に強制クリアされている。
-  `editTargetFeed` にはそれが無く、現状は旧 account の feed の編集ダイアログが開いたまま残る。
-  `key` はこれを**直す**側になる。実損は「離脱する account の feed に対する未保存の編集入力」だけ。
+- **「失うものは未保存の編集入力だけ」は誤りだった（独立レビューで訂正）。**
+  `deleteTargetFeed` のクリアは無条件ではなく、`subscriptions-index-page.tsx:276-280` が
+  `!deletePendingRef.current` で guard している。`:73-75` / `:222-243` は削除中の target、
+  pending 表示、重複 submit guard を**同一 page instance で保持する契約**である。`key` で
+  remount するとこれらを捨て、新 instance は `pending=false` から始まる一方、
+  **旧 `mutateAsync` の削除は走り続ける**（`use-delete-feed.ts:36-59` に instance を跨ぐ
+  guard や cancel は無い）。
 
-適用点は `src/components/reader/article-view.tsx:195` の `<LazySubscriptionsIndexPage />` に
-`key={selectedAccountId}` を足すだけで、構造上のブロッカーは無い。
+**さらに、`key` を付けても 7 件の warning は消えない。** warning は 91-106 行の effect に
+対して出ており、`key` を足しても effect は残る。消すには effect の削除と、この hook の
+全 consumer が account 境界で remount される保証が要る。現行 hook は account prop 変更時の
+reset 契約を単体テストで持っている（`use-subscriptions-index-state.node.test.tsx:390-424`）。
 
-したがってこれは「remedy が無い」ではなく **「未保存の編集入力を捨ててよいか」という仕様判断**
-である。判断が出るまで分類しない。
+初稿の「構造上のブロッカーは無い」は訂正する。
+
+**現時点の推奨は `key` 不採用。** 代わりに、account が不一致になった **idle な `editTargetFeed`
+だけ**を閉じる。既存の account-scoped reset（`:91-106`）と pending delete の保持は維持し、
+保存・削除の処理中は無条件 unmount しない。account 切替直後の render で旧対象への新規 submit を
+許さない guard も併せて要る。**effect を 1 つ足せば pending も解決した、とはしない。**
+
+7 件の分類は、この pending 保持契約を page の外へ出すかどうかを決めてからにする。
 
 #### `use-subscriptions-index-state.ts:162` は第 2 波へ
 
@@ -293,3 +320,14 @@ expansion hook へ渡る」ところで止め、**どちらがどの effect に�
 
 **family として括った時点で、族の代表 1 件ではなく各件の下流を確認する。** 「同じ hook に渡る」
 「同じファイルにある」「同じルールが出た」はいずれも下流が同じであることを意味しない。
+
+2 回目の独立レビュー（`reviewer`、gpt-6-astra）でさらに 2 件の前提が棄却された。どちらも
+**「remedy が効く」側の推定**で、誤りの向きは同じである。
+
+- `?? EMPTY` で 13 件消える → query object が依存に入っているので履歴 memo には効かず、
+  しかも素朴な置換は #295 を再導入する
+- `key` で 7 件消える → warning は effect に対して出ているので `key` では消えず、
+  さらに削除中の pending 契約を壊す
+
+**「remedy が成立しない」と同じくらい、「remedy が効く」も検証を要する主張である。** 前者だけを
+疑う癖がついていた。
