@@ -401,8 +401,33 @@ global configuration to observe the effect — and confirm the rejection conditi
 controlled fixture or upstream test. A successful frozen install does not demonstrate that a
 future update's weakened trust signal would be caught.
 
-That preflight is tracked at <https://github.com/jey3dayo/ultra-rss-reader/issues/264>; the
-decision and its evidence belong in this section once it lands.
+That preflight ran under <https://github.com/jey3dayo/ultra-rss-reader/issues/264>. The
+measurements are below; the decision it produced is here.
+
+#### Decision: adopted on 2026-09-10
+
+`pnpm-workspace.yaml` sets `trustPolicy: no-downgrade` with one entry in
+`trustPolicyExclude`. Exclusions follow the Dependency Advisory Policy above: never anonymous,
+always with the package, the reason, and the date, recorded here as well as at the setting.
+
+Current exclusions:
+
+- `semver@6.3.1` — reached transitively through `@babel/core` and
+  `@babel/helper-compilation-targets`. `pnpm why semver --prod` returns no match, so it never
+  reaches the shipped bundle. Remove this entry once Babel widens its `semver` range; verify
+  with `pnpm install --frozen-lockfile --no-trust-lockfile` after dropping it. Registered
+  2026-09-10.
+
+`--no-trust-lockfile` is what re-runs the check when the cached verdict would otherwise be
+reused, so use it whenever the point is to observe the policy rather than to install. Measured
+2026-09-10: with the exclusion the repository's 1102 lockfile entries pass; replacing the
+exclusion with a name that matches nothing fails with `ERR_PNPM_TRUST_DOWNGRADE` naming
+`semver@6.3.1`, which is how this entry is known to be load-bearing rather than decorative.
+
+Two exclusion mechanisms exist and only the first is used here. `trustPolicyExclude` names
+specific packages or versions. `trustPolicyIgnoreAfter` skips the check for anything published
+longer ago than a given duration, which would silently cover packages nobody reviewed, so it is
+deliberately left unset.
 
 #### 2026-09-10 preflight evidence
 

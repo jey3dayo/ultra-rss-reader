@@ -122,11 +122,15 @@ const reactDoctorBaselines = {
   // confirm-dialog-view.tsx in #279, and no-enter-submit-without-ime-composition-guard 1 -> 0
   // is a finding #272 genuinely fixed. Those two rules were that file's only findings, so it
   // leaves the affected set along with the file #272 fixed, which is the -2 on files.
+  // 90/58 -> 89/57 is one finding actually fixed, not a re-measurement: adopting
+  // trustPolicy: no-downgrade in pnpm-workspace.yaml cleared the sole
+  // require-pnpm-hardening warning, and that file was its only finding so it leaves the
+  // affected set too. Verified by counting the rule in the full diagnostics before and after.
   full: {
     score: null,
     errorCount: 14,
-    warningCount: 90,
-    affectedFileCount: 58,
+    warningCount: 89,
+    affectedFileCount: 57,
   },
 } as const;
 

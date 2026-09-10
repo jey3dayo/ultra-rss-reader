@@ -37,6 +37,17 @@ allowBuilds:
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: true
 minimumReleaseAgeExcludePrune: true
+# 供給網 gate。あるパッケージの trust level が過去に公開された版より低いとき install を
+# 失敗させる。比較は semver でなく公開日順で、trusted-publisher から provenance や
+# no-evidence へ落ちる遷移が「弱まった signal」にあたる。
+# 除外は Dependency Advisory Policy と同じ扱いにする。匿名の除外は禁止で、対象・理由・
+# 日付を quality-policy.md に記録する。
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  # semver@6.3.1: @babel/core と @babel/helper-compilation-targets 経由の transitive で、
+  # `pnpm why semver --prod` はヒット 0 なので出荷 bundle に到達しない。Babel が semver の
+  # 範囲を上げたらこの entry は不要になる。登録 2026-09-10。
+  - semver@6.3.1
 supportedArchitectures:
   os:
     - darwin
