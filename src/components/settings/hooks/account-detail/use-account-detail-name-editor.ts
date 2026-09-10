@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
+import { type KeyboardEvent, type RefObject, useCallback, useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { scheduleInputFocus } from "@/lib/dom/input-focus";
@@ -73,7 +73,10 @@ export function useAccountDetailNameEditor({
   const activeAccountIdRef = useRef(account.id);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
   const editSessionAtRender = editSessionRef.current;
-  activeAccountIdRef.current = account.id;
+
+  useLayoutEffect(() => {
+    activeAccountIdRef.current = account.id;
+  });
 
   const cancelScheduledFocus = useCallback(() => {
     cancelScheduledFocusRef.current?.();

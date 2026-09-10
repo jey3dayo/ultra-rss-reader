@@ -1,4 +1,4 @@
-import { useReducer, useRef } from "react";
+import { useLayoutEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { normalizeTagColorForCommand, normalizeTagColorForView } from "@/api/schemas/commands";
 import type { TagDto } from "@/api/tauri-commands";
@@ -121,9 +121,12 @@ export function TagsSettings() {
   const createInFlightRef = useRef(false);
   const nestedDialogPortalRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef(state);
-  stateRef.current = state;
   const tagsRef = useRef(tags);
-  tagsRef.current = tags;
+
+  useLayoutEffect(() => {
+    stateRef.current = state;
+    tagsRef.current = tags;
+  });
   const { name, color, createRevision, editingTag, editRevision, deletingTag, renameName, renameColor } = state;
   const createDirty = name.trim().length > 0;
   const editDirty =
