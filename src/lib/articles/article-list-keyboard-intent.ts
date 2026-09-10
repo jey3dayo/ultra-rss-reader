@@ -24,6 +24,8 @@ export type ResolveArticleListKeyboardIntentParams = {
   metaKey: boolean;
   ctrlKey: boolean;
   shiftKey: boolean;
+  isComposing?: boolean;
+  keyCode?: number;
   optionTargetTag: string;
   focusedArticleId: string | null;
   selectedArticleId: string | null;
@@ -37,6 +39,8 @@ export function resolveArticleListKeyboardIntent({
   metaKey,
   ctrlKey,
   shiftKey,
+  isComposing,
+  keyCode,
   optionTargetTag,
   focusedArticleId,
   selectedArticleId,
@@ -75,6 +79,8 @@ export function resolveArticleListKeyboardIntent({
     metaKey,
     ctrlKey,
     shiftKey,
+    isComposing,
+    keyCode,
     targetTag: optionTargetTag,
     selectedArticleId,
     contentMode,

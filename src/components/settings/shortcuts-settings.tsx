@@ -141,6 +141,8 @@ export function ShortcutsSettings() {
     (id: ShortcutActionId, event: RecordedKeyEvent) => {
       if (recordingId !== id) return;
 
+      if (shouldIgnoreGlobalShortcutKeyboardEvent(event)) return;
+
       event.preventDefault();
       event.stopPropagation();
 

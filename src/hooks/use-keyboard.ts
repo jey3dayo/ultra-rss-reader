@@ -219,6 +219,7 @@ export function useKeyboard() {
         shiftKey: e.shiftKey,
         altKey: e.altKey,
         isComposing: e.isComposing,
+        keyCode: e.keyCode,
         targetTag: targetElement?.tagName,
         targetIsTextEditing: isGlobalShortcutTextEditingTarget(targetElement),
         targetIsNativeActivation: isGlobalShortcutNativeActivationTarget(targetElement),

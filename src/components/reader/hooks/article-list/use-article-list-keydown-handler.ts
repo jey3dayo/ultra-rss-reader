@@ -53,6 +53,8 @@ function resolveArticleListKeyboardIntentFromEvent(
     metaKey: event.metaKey,
     ctrlKey: event.ctrlKey,
     shiftKey: event.shiftKey,
+    isComposing: event.nativeEvent.isComposing,
+    keyCode: event.keyCode,
     optionTargetTag: optionTarget.tagName,
     focusedArticleId: optionTarget.dataset.articleId ?? null,
     selectedArticleId,
