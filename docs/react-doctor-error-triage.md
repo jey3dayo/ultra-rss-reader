@@ -229,6 +229,16 @@ effect / effect、effect event、request token や reducer、listener の再登�
 
 分類：**must-fix**。scroll callback を render 外の listener が読むため、破棄された render の callback が呼ばれうる。
 
+## 13 と 14 の修正
+
+13 / 14 は `useState` + `useLayoutEffect` で open 遷移が commit してから locale を capture する形へ
+変えた。full scan の error は 14 → 12（`no-ref-current-in-render` 13 → 11）、affected files 57 → 56。
+**この修正の正しさをテストの緑で示すことはできない。** 壊れ方は破棄された並行 render にしか現れず、
+jsdom で決定的に再現できないため、13 / 14 が生きていた間も modal 3 本の locale 固定テストは緑のままだった
+（PR #241 / #243 と同じ形）。回帰ガードは形の pin
+（`src/__tests__/lib/stable-open-translation-render-purity.node.test.ts`）と full scan の error 数で、
+どちらも修正を戻すと落ちることを確認している。
+
 ## 13. Stable translation の open language capture
 
 対象：`src/lib/i18n/use-stable-open-translation.ts:10`、`no-ref-current-in-render`
@@ -243,7 +253,7 @@ effect / effect、effect event、request token や reducer、listener の再登�
    StrictMode の同じ open と locale なら同じ locale を二度 capture するが、並行 render が破棄された場合は、未 commit の locale が次の open 状態の memo と返却関数へ残る可能性がある。
 5. 既存のテスト：`src/__tests__/components/shortcuts-settings.test.tsx` の `keeps open shortcut settings labels on one locale while language changes`、`src/__tests__/components/shortcuts-help-modal.test.tsx` の `keeps open help labels on one locale while language changes`、`src/__tests__/components/settings-modal.test.tsx` の `keeps open modal chrome on one locale while language changes`。
 
-分類：**must-fix**。条件付き書き込みでも安全にならない。同じ ref を render の状態機械として使っているため、latest-value ref の議論では救えない。committed な open=true の間に close render が ref を null にして破棄され、その後 open=true の urgent render が現在言語を再 capture すると、開いたままの surface の言語固定が崩れる。**14 と 1 つの実装単位**として、open / close の committed transition に基づく locale snapshot 管理へ変える。
+分類：**must-fix**（修正済み）。条件付き書き込みでも安全にならない。同じ ref を render の状態機械として使っているため、latest-value ref の議論では救えない。committed な open=true の間に close render が ref を null にして破棄され、その後 open=true の urgent render が現在言語を再 capture すると、開いたままの surface の言語固定が崩れる。**14 と 1 つの実装単位**として、open / close の committed transition に基づく locale snapshot 管理へ変える。
 
 ## 14. Stable translation の close reset
 
@@ -259,4 +269,4 @@ effect / effect、effect event、request token や reducer、listener の再登�
    StrictMode の同じ close 状態なら null への代入結果は同じだが、並行 render が破棄された場合は、未 commit の close reset が別 render の open language capture と干渉し、memo が参照する locale 状態が commit 済み open 値とずれる可能性がある。
 5. 既存のテスト：`src/__tests__/components/shortcuts-settings.test.tsx` の `keeps open shortcut settings labels on one locale while language changes`、`src/__tests__/components/shortcuts-help-modal.test.tsx` の `keeps open help labels on one locale while language changes`、`src/__tests__/components/settings-modal.test.tsx` の `keeps open modal chrome on one locale while language changes`。
 
-分類：**must-fix**。13 と同じ状態機械の片側。破棄された open render の capture が closed な current tree を越えて次の open に残る経路もある。**13 と 1 つの実装単位**として扱う。
+分類：**must-fix**（修正済み）。13 と同じ状態機械の片側。破棄された open render の capture が closed な current tree を越えて次の open に残る経路もある。**13 と 1 つの実装単位**として扱う。

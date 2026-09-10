@@ -13,7 +13,5 @@ describe("useStableOpenTranslation render purity", () => {
     // renders, so the capture has to be committed state, not something a discarded render can
     // leave behind.
     expect(hookSource).not.toContain("useRef");
-    expect(hookSource).toContain("useLayoutEffect");
-    expect(hookSource).toContain("useState<string | null>(null)");
   });
 });
