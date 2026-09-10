@@ -24,8 +24,9 @@ export function useSidebarFeedTree({
   draggedFeedId,
   starredCountByFeedId = EMPTY_STARRED_COUNT_BY_FEED_ID,
 }: UseSidebarFeedTreeParams): UseSidebarFeedTreeResult {
-  const feedList: FeedDto[] = feeds ?? [];
-  const folderList: FolderDto[] = folders ?? [];
+  // Memoised rather than a bare `?? []`; see use-sidebar-feed-section-controller.ts.
+  const feedList = useMemo<FeedDto[]>(() => feeds ?? [], [feeds]);
+  const folderList = useMemo<FolderDto[]>(() => folders ?? [], [folders]);
 
   const feedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
 
