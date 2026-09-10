@@ -19,7 +19,7 @@
 - [schema-boundary.md](./schema-boundary.md): DTO / preferences / localStorage schema の strictness と fallback 所有者
 - [boundary-ownership.md](./boundary-ownership.md): refactor 時の owner 判定表と移動先ルール
 - [contract-test-policy.md](./contract-test-policy.md): contract test の置き場所、TODO 化する境界値、ルール昇格の判断基準
-- [quality-policy.md](./quality-policy.md): TODO priority taxonomy、TypeScript 単一バージョン方針と alias 復活の条件、React Compiler opt-in、ES2023 array copy methods、React Doctor warning suppression policy、`no-high-complexity-react-function` の発火条件と構造ファミリ別の triage 手順、Knip の unused export / type findings の分類手順、`no-loading-flag-reset-outside-finally` / 反復・探索形 / 振る舞い単発 / lazy ref init / 供給網 hardening の各 finding の分類
+- [quality-policy.md](./quality-policy.md): TODO priority taxonomy、TypeScript 単一バージョン方針と alias 復活の条件、React Compiler opt-in、ES2023 array copy methods、React Doctor warning suppression policy、`no-high-complexity-react-function` の発火条件と構造ファミリ別の triage 手順、Knip の unused export / type findings の分類手順、`no-loading-flag-reset-outside-finally` / 反復・探索形 / 振る舞い単発 / lazy ref init / 供給網 hardening の各 finding の分類、未 triage warning 第 1 波（exhaustive-deps / no-adjust-state-on-prop-change）の分類記録への導線
 - [tauri-window-chrome.md](./tauri-window-chrome.md): OS ごとに異なる titlebar / header の扱いと現在の実装方針
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン
 - [dev-scenarios-command-palette.md](./dev-scenarios-command-palette.md): dev intent と command palette の共通 runner / 責務分離ルール
