@@ -126,16 +126,11 @@ const reactDoctorBaselines = {
   // trustPolicy: no-downgrade in pnpm-workspace.yaml cleared the sole
   // require-pnpm-hardening warning, and that file was its only finding so it leaves the
   // affected set too. Verified by counting the rule in the full diagnostics before and after.
-  // 14/89/57 -> 12/89/56 is the two use-stable-open-translation.ts findings (sites 13 and 14
-  // of docs/react-doctor-error-triage.md) fixed by moving the open-locale capture out of
-  // render. Attributed per rule rather than by matching totals: no-ref-current-in-render
-  // 13 -> 11 is the whole error delta, every warning rule is unchanged at its previous count,
-  // and the -1 on files is that one file leaving the affected set.
   full: {
     score: null,
-    errorCount: 12,
+    errorCount: 14,
     warningCount: 89,
-    affectedFileCount: 56,
+    affectedFileCount: 57,
   },
 } as const;
 
@@ -152,10 +147,8 @@ const reactDoctorBaselines = {
 // requires a hand-recomputed subtraction.
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
-  // and the pin then names a commit nobody can fetch to reproduce the measurement. A re-pin
-  // measured on a branch therefore names the main commit it was measured against, and the
-  // branch's own delta is attributed in the full baseline comment above.
-  scanSha: "9307fdec2",
+  // and the pin then names a commit nobody can fetch to reproduce the measurement.
+  scanSha: "835ad5b01",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -222,15 +215,14 @@ const reactDoctorFullScanTriageStatusBase = {
   ],
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
-  // Every error the scan reports is classified; the 2026-09-10 pass covered all 14 it found
-  // then. These counts describe the CURRENT snapshot, so must-fix means a fix is still owed
-  // and drops as fixes land. The dispositions total errorCountAtScan, which is derived from
-  // the baseline above and pinned by a test, so re-pinning errorCount without re-counting
-  // here fails instead of letting the report claim a breakdown that no longer adds up.
+  // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
+  // The dispositions total errorCountAtScan, which the baseline test pins: re-pinning
+  // errorCount without re-classifying therefore fails instead of silently claiming coverage
+  // it does not have. must-fix means a fix is still owed, not that it has landed.
   errorClassification: {
     pass: "2026-09-10",
     recordPath: "docs/react-doctor-error-triage.md",
-    mustFix: 10,
+    mustFix: 12,
     falsePositive: 1,
     acceptedRisk: 1,
   },

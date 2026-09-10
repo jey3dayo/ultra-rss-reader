@@ -329,7 +329,8 @@ test-only accepted risk — with the per-finding evidence and reasoning in
 [../../docs/react-doctor-error-triage.md](../../docs/react-doctor-error-triage.md). The fixes are
 tracked separately from that record; group them by reader type rather than landing all twelve at
 once. The render state-machine group (sites 13 and 14, `use-stable-open-translation.ts`) landed
-first and took the full scan from 14 errors to 12.
+first and took the full scan from 14 errors to 12, measured on the branch; the baseline re-pin
+follows from `main` under the feature-branch rule above.
 
 ### Loading Flag Reset Findings
 

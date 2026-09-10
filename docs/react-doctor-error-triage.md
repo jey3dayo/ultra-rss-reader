@@ -232,12 +232,19 @@ effect / effect、effect event、request token や reducer、listener の再登�
 ## 13 と 14 の修正
 
 13 / 14 は `useState` + `useLayoutEffect` で open 遷移が commit してから locale を capture する形へ
-変えた。full scan の error は 14 → 12（`no-ref-current-in-render` 13 → 11）、affected files 57 → 56。
+変えた。branch 上の実測で full scan の error は 14 → 12（`no-ref-current-in-render` 13 → 11）、
+affected files 57 → 56。**baseline の re-pin はこの変更には含めない。** `scripts/quality-baseline.ts` の
+`scanSha` は main から到達できる commit でなければならず、branch の測定値を main の SHA で pin すると、
+その SHA を checkout しても再現しない数字になる（quality-policy.md「Do not re-pin from a feature branch」）。
+full scan の drift は informational で何も落とさないので、修正を land してから main で測り直して pin する。
+
 **この修正の正しさをテストの緑で示すことはできない。** 壊れ方は破棄された並行 render にしか現れず、
 jsdom で決定的に再現できないため、13 / 14 が生きていた間も modal 3 本の locale 固定テストは緑のままだった
-（PR #241 / #243 と同じ形）。回帰ガードは形の pin
-（`src/__tests__/lib/stable-open-translation-render-purity.node.test.ts`）と full scan の error 数で、
-どちらも修正を戻すと落ちることを確認している。
+（PR #241 / #243 と同じ形）。自動で走る回帰ガードは形の pin
+（`src/__tests__/lib/stable-open-translation-render-purity.node.test.ts`）**だけ**である。React Doctor は
+CI にも lefthook にも入っていないので、reintroduction を止めるのはこのテストに掛かっている。ref の
+コンストラクタ名ではなく `.current =` の書き込み自体を見ているのは、`React.useRef` や別名 import でも
+同じ穴が開くためで、素の revert と `React.useRef` 版の両方で落ちることを確認している。
 
 ## 13. Stable translation の open language capture
 
