@@ -126,11 +126,18 @@ const reactDoctorBaselines = {
   // trustPolicy: no-downgrade in pnpm-workspace.yaml cleared the sole
   // require-pnpm-hardening warning, and that file was its only finding so it leaves the
   // affected set too. Verified by counting the rule in the full diagnostics before and after.
+  // 14/89/57 -> 2/89/50 measured on main at 3f1867a23, after the three must-fix groups landed
+  // (#291 sites 13-14, #292 sites 2/6/12, #293 sites 4,5/7,8/9/10,11). Attributed per rule
+  // rather than by matching totals: no-ref-current-in-render 13 -> 1 is the whole error delta
+  // and every warning rule is unchanged at its previous count. The -7 on files is the nine
+  // touched files minus the two that stay for other findings —
+  // use-account-detail-credentials-editor.ts keeps its no-secrets-in-client-code warning, and
+  // use-article-list-data.ts keeps error site 3.
   full: {
     score: null,
-    errorCount: 14,
+    errorCount: 2,
     warningCount: 89,
-    affectedFileCount: 57,
+    affectedFileCount: 50,
   },
 } as const;
 
@@ -148,7 +155,7 @@ const reactDoctorBaselines = {
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
-  scanSha: "835ad5b01",
+  scanSha: "3f1867a23",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -218,11 +225,13 @@ const reactDoctorFullScanTriageStatusBase = {
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
   // The dispositions total errorCountAtScan, which the baseline test pins: re-pinning
   // errorCount without re-classifying therefore fails instead of silently claiming coverage
-  // it does not have. must-fix means a fix is still owed, not that it has landed.
+  // it does not have. must-fix counts fixes still owed, not fixes made, so it fell to 0 when
+  // the pass's twelve landed in #291/#292/#293; what remains is the pass's own false positive
+  // and its test-only accepted risk, which are decisions rather than pending work.
   errorClassification: {
     pass: "2026-09-10",
     recordPath: "docs/react-doctor-error-triage.md",
-    mustFix: 12,
+    mustFix: 0,
     falsePositive: 1,
     acceptedRisk: 1,
   },

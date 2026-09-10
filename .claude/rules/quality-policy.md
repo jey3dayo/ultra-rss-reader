@@ -343,9 +343,13 @@ The 2026-09-10 pass classified all 14 reported errors — 12 must-fix, 1 false p
 test-only accepted risk — with the per-finding evidence and reasoning in
 [../../docs/react-doctor-error-triage.md](../../docs/react-doctor-error-triage.md). The fixes are
 tracked separately from that record; group them by reader type rather than landing all twelve at
-once. The render state-machine group (sites 13 and 14, `use-stable-open-translation.ts`) landed
-first and took the full scan from 14 errors to 12, measured on the branch; the baseline re-pin
-follows from `main` under the feature-branch rule above.
+once. All twelve landed in three PRs — #291 (sites 13-14, the render state machine), #292
+(sites 2/6/12, DOM and window listeners), #293 (sites 4,5/7,8/9/10,11, async continuations) —
+each moving the ref write into a `useLayoutEffect` so only a committed render's value reaches
+the reader. Measured on `main` at `3f1867a23` the full scan went from 14 errors to 2, with
+`no-ref-current-in-render` 13 -> 1 accounting for the whole delta and every warning rule
+unchanged. The two that remain are this record's own false positive and its test-only accepted
+risk, so `errorClassification.mustFix` is 0.
 
 ### Loading Flag Reset Findings
 

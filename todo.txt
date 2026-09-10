@@ -2,4 +2,3 @@
 (C) 2026-09-07 React Doctor full の未 triage 53件を分類: exhaustive-deps 18 / no-adjust-state-on-prop-change 16 / no-pass-data-to-parent 7 / no-pass-live-state-to-parent 5 / 他7(検証: quality:react-doctor:full 再実行と quality-baseline.ts の untriagedWarningCountAtScan 減少) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/249
 (D) 2026-09-08 供給網 preflight: pnpm trustPolicy: no-downgrade の採用可否を isolated scratch で検証(検証: scratch checkout での実測、CI ゲートは追加しない) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/264
 (C) 2026-09-08 高負荷時にショートカット検索テスト間で入力が漏れている疑い(検証: bounded 調査は完了、通常負荷での再発または決定的再現を再開条件に延期) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/266
-(C) 2026-09-10 React Doctor の full baseline を main で測り直して re-pin する(#260 の修正 3 群が land した後。errorCount 14 は既に古く、errorClassification.mustFix も 0 へ) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/260

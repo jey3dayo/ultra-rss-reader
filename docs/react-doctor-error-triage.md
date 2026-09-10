@@ -14,6 +14,27 @@ owner: project-maintainers
 Issue #260 の14件について、コード上の事実、既存テストとの対応、そして分類を記録する。
 各節の 1〜5 は証拠、末尾の「分類」がその証拠に対する判定である。
 
+## 12 件の修正結果
+
+must-fix 12 件は reader の性質で 3 群に分けて land した。
+
+| 群 | サイト | PR | 手段 |
+| --- | --- | --- | --- |
+| render をまたぐ状態機械 | 13, 14 | #291 | `useState` + `useLayoutEffect` で open 遷移の commit 後に capture |
+| DOM / window listener | 2, 6, 12 | #292 | 最新 callback の書き込みを `useLayoutEffect` へ |
+| async continuation | 4, 5, 7, 8, 9, 10, 11 | #293 | stale 判定が読む値の書き込みを `useLayoutEffect` へ |
+
+3 群とも同じ性質を満たす——**commit した render の値だけが reader に見える**。独立レビューは
+「request token や reducer」という方向も示していたが、7 件についてはより重い作り替えをせずに
+同じ性質が得られ、それを per-file の実測で確認したため採らなかった。
+
+main（`3f1867a23`）での実測は error 14 → 2、warning 89 で全ルール不変、affected files 57 → 50。
+error の減少は `no-ref-current-in-render` の 13 → 1 で全部説明でき、files の −7 は触った 9 ファイルの
+うち 2 つが別の finding で残る分を引いた数である。**残る 2 件はこの記録の 1 番（test-only の
+accepted-risk）と 3 番（false-positive）で、どちらも作業ではなく判断**である。
+
+Issue #273（アカウント名エディタの IME ガード）は 9 番がブロッカーだったため #293 で同時に解消した。
+
 ## 判定を分けた軸
 
 **破棄された render の書き込みが、出力を変える形で観測されうるか**で決まる。観測点は
@@ -232,11 +253,10 @@ effect / effect、effect event、request token や reducer、listener の再登�
 ## 13 と 14 の修正
 
 13 / 14 は `useState` + `useLayoutEffect` で open 遷移が commit してから locale を capture する形へ
-変えた。branch 上の実測で full scan の error は 14 → 12（`no-ref-current-in-render` 13 → 11）、
-affected files 57 → 56。**baseline の re-pin はこの変更には含めない。** `scripts/quality-baseline.ts` の
-`scanSha` は main から到達できる commit でなければならず、branch の測定値を main の SHA で pin すると、
-その SHA を checkout しても再現しない数字になる（quality-policy.md「Do not re-pin from a feature branch」）。
-full scan の drift は informational で何も落とさないので、修正を land してから main で測り直して pin する。
+変えた。**baseline の re-pin はこの変更には含めない。** `scripts/quality-baseline.ts` の `scanSha` は
+main から到達できる commit でなければならず、branch の測定値を main の SHA で pin すると、その SHA を
+checkout しても再現しない数字になる（quality-policy.md「Do not re-pin from a feature branch」）。
+full scan の drift は informational で何も落とさないので、修正を land してから main で測り直して pin した。
 
 **この修正の正しさをテストの緑で示すことはできない。** 壊れ方は破棄された並行 render にしか現れず、
 jsdom で決定的に再現できないため、13 / 14 が生きていた間も modal 3 本の locale 固定テストは緑のままだった
