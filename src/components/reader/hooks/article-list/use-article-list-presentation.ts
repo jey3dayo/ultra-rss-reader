@@ -75,7 +75,15 @@ export function useArticleListPresentation({
     setViewMode,
     onManageSelectedFeed,
   },
-  viewPrefs: { keyboardPrefs, scrollToTopOnChange, dimArchived, textPreview, imagePreviews, selectionStyle },
+  viewPrefs: {
+    keyboardPrefs,
+    scrollToTopOnChange,
+    isActivePane,
+    dimArchived,
+    textPreview,
+    imagePreviews,
+    selectionStyle,
+  },
 }: UseArticleListPresentationParams): UseArticleListViewPropsResult {
   const viewState = useArticleListViewState({
     selection,
@@ -185,6 +193,7 @@ export function useArticleListPresentation({
     trimmedDebouncedQuery,
     contentMotionKey,
     articleGroups,
+    isActivePane,
     feeds,
     dimArchived,
     textPreview,

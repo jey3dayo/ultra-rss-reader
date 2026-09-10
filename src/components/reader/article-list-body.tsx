@@ -21,6 +21,7 @@ export type ArticleListBodyProps = {
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
   groups: ArticleGroupsViewGroup[];
+  isActivePane: boolean;
   feeds?: FeedDto[];
   contentMotionKey?: string;
   dimArchived: string;
@@ -47,6 +48,7 @@ export function ArticleListBody({
   emptyActionLabel,
   onEmptyAction,
   groups,
+  isActivePane,
   feeds,
   contentMotionKey,
   dimArchived,
@@ -79,6 +81,7 @@ export function ArticleListBody({
           emptyActionLabel={emptyActionLabel}
           onEmptyAction={onEmptyAction}
           groups={groups}
+          isActivePane={isActivePane}
           contentMotionKey={contentMotionKey}
           dimArchived={dimArchived}
           textPreview={textPreview}

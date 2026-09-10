@@ -65,6 +65,7 @@ function renderArticleListBody({
       emptyActionLabel={emptyActionLabel}
       onEmptyAction={onEmptyAction}
       groups={groups}
+      isActivePane
       contentMotionKey={contentMotionKey}
       dimArchived="true"
       textPreview="true"
@@ -148,6 +149,7 @@ describe("ArticleListBody", () => {
         loadingMessage="Loading articles"
         emptyMessage="No articles"
         groups={firstGroups}
+        isActivePane
         contentMotionKey="feed:feed-1|unread|browse"
         dimArchived="true"
         textPreview="true"
@@ -171,6 +173,7 @@ describe("ArticleListBody", () => {
         loadingMessage="Loading articles"
         emptyMessage="No articles"
         groups={secondGroups}
+        isActivePane
         contentMotionKey="feed:feed-1|unread|browse"
         dimArchived="true"
         textPreview="true"

@@ -47,6 +47,7 @@ type ArticleListScreenViewProps = {
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
   groups: ArticleGroupsViewGroup[];
+  isActivePane: boolean;
   contentMotionKey?: string;
   dimArchived: string;
   textPreview: string;
@@ -69,6 +70,7 @@ export function ArticleListScreenView({
   emptyActionLabel,
   onEmptyAction,
   groups,
+  isActivePane,
   contentMotionKey = "article-list",
   dimArchived,
   textPreview,
@@ -171,6 +173,7 @@ export function ArticleListScreenView({
           >
             <ArticleGroupsView
               groups={groups}
+              isActivePane={isActivePane}
               dimArchived={dimArchived}
               textPreview={textPreview}
               imagePreviews={imagePreviews}
