@@ -452,8 +452,11 @@ decision and its evidence belong in this section once it lands.
 
   The project config was then set to `trustPolicy: no-downgrade` using
   `mise exec pnpm@12.3.4 -- pnpm --dir /private/tmp/trustpolicy-fixture-<run> config set trust-policy no-downgrade --location project`.
-  The policy was observed with `pnpm config get trust-policy --location project` returning
-  `no-downgrade`.
+  The policy was observed with
+  `mise exec pnpm@12.3.4 -- pnpm --dir /private/tmp/trustpolicy-fixture-<run> config get trust-policy --location project`
+  returning `no-downgrade`. The `--dir` is load-bearing: `--location project` reads the project
+  config at the working directory, so replaying this from the repository root inspects this
+  repository's `pnpm-workspace.yaml` instead and returns `undefined`.
 
   ```text
   COMMAND: mise exec pnpm@12.3.4 -- pnpm --dir /private/tmp/trustpolicy-fixture-<run> install --frozen-lockfile --ignore-scripts --store-dir /private/tmp/trustpolicy-fixture-store-<run> --state-dir /private/tmp/trustpolicy-fixture-state-<run> --reporter append-only
