@@ -11,8 +11,29 @@ owner: project-maintainers
 
 # React Doctor の render 中 ref 書き換えに関する証拠記録
 
-Issue #260 の14件を、コード上の事実と既存テストの対応として記録する。
-この文書には分類や判定の欄を設けない。
+Issue #260 の14件について、コード上の事実、既存テストとの対応、そして分類を記録する。
+各節の 1〜5 は証拠、末尾の「分類」がその証拠に対する判定である。
+
+## 判定を分けた軸
+
+**render 外に reader がいるかどうか**で決まる。同じ ref object が current tree と
+work-in-progress render で共有されるため、render 中の代入は commit 前から async
+continuation、DOM / window event、timer に観測される。したがって「破棄された render の後に
+同じ props の render が上書きするから安全」は成り立たない。**上書きの順序が保証されない。**
+
+具体的な壊れ方（9 の例）。committed な account A の rename が pending の間に、低優先の
+account B render が ref へ B を書き、その render が破棄される。A の再 render より先に A の
+rename が完了すると、stale 判定は B を読み、表示は A のままなのに有効な A の応答を stale と
+して捨てる。ref が保持するのが props か state か derived 値かは関係なく、reader が render の
+外にいれば同じ穴が開く。
+
+この論点は 2026-09-10 の独立レビューで確定した。当初の分類案は 4〜12 を latest-value ref
+として一括で false-positive に倒すものだったが、上の反例により棄却されている。**「既存テストが
+通っているから false-positive」も根拠にしない。** PR #241 / #243 では、まさにテストが全緑の
+まま実画面が壊れた。
+
+修正の方向は reader の性質で選ぶ。commit と同期した値だけを reader へ公開するために、layout
+effect / effect、effect event、request token や reducer、listener の再登録を使い分ける。
 
 ## 1. StoryQueryClientProvider のテスト用 callback
 
@@ -29,6 +50,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 5. 既存のテスト：`src/__tests__/components/story-query-client-provider.node.test.tsx` の `creates an isolated non-retrying query client per story render`。
    callback の戻り値ではなく、各 render の QueryClient と設定および unmount 後の cache クリアを確認している。
 
+分類：**accepted-risk（test-only）**。production path ではない render 中の callback 副作用で、影響範囲が test harness の mock callback に閉じる。テストが通ることではなく、閉じていることが根拠。#249 の既存分類を対象の同一性を確認して引き継ぐ。
+
 ## 2. ArticleReaderBody のコンテンツ click listener
 
 対象：`src/components/reader/article-reader-body.tsx:228`、`no-ref-current-in-render`
@@ -42,6 +65,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 4. 二重実行：なる。
    StrictMode では同じ props に対する代入が二度起きるが、並行 render が破棄された場合は、commit されていない `articleUrl` を捕捉した callback が commit 済みの DOM event handler から読まれる可能性がある。
 5. 既存のテスト：`src/__tests__/components/article-reader-body.test.tsx` の `resolves relative content links against the article URL`、`delegates content link clicks added after the article body renders`、`delegates nested element clicks to the owning content link`、`does not intercept modified content link clicks`、`does not open relative content links without an article URL base`、`cleans up delegated content link clicks when switching articles`。
+
+分類：**must-fix**。新しい `articleUrl` の render が ref callback を更新したあと commit 前に中断・破棄されても、既存の DOM listener はその callback を読める。旧記事を表示したまま、新記事の未 commit base URL でリンクを解決して外部表示しうる。PR #241 / #243 の callback-ref 再登録問題とは別の、具体的な observable failure。
 
 ## 3. useArticleListData の source plan
 
@@ -58,6 +83,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 5. 既存のテスト：`src/__tests__/components/use-article-list-data.node.test.tsx` の `keeps filtered article memo stable when an equivalent sourcePlan object is recreated`。
    さらに `src/__tests__/lib/article-list.node.test.ts` の `builds a stable article list source plan key from semantic fields` と `scopes article list source plan keys by account switch context` が key の同値性と account 差分を確認している。
 
+分類：**false-positive**。reader が同じ render 内に閉じており、async / event / effect reader がない。条件終了時には `stableSourcePlan` の semantic key が当該 render の `sourcePlan` key と必ず一致する。別 render の書き込みが混入しても、key 不一致なら当該 input へ戻し、key 一致なら downstream が読む全フィールドが同値になるローカル契約。**この安全性は key が `buildArticleListData` の全読取フィールドを覆っていることが前提**なので、読取フィールドを増やすときは key も同時に見直す。
+
 ## 4. Add Feed の discovery URL
 
 対象：`src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts:88`、`no-ref-current-in-render`
@@ -70,6 +97,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 4. 二重実行：なる。
    StrictMode では同じ URL が二度書かれるが、並行 render が破棄された場合は、未 commit の URL が旧 discovery の完了判定に使われ、旧結果の採用または破棄が commit 済み入力とずれる可能性がある。
 5. 既存のテスト：`src/__tests__/hooks/use-add-feed-dialog-actions.node.test.tsx` の `ignores stale discovery responses after a newer URL discovery starts`、`ignores a discovery response after the URL changes before another discovery starts`、`ignores same-URL discovery responses after the dialog closes and reopens`。
+
+分類：**must-fix**。discovery URL を render 外の reader が読むため、破棄された render の値が観測されうる。
 
 ## 5. Add Feed の open 状態
 
@@ -85,6 +114,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 5. 既存のテスト：`src/__tests__/hooks/use-add-feed-dialog-actions.node.test.tsx` の `keeps late submit success quiet after the dialog is externally closed while pending`。
    close 後の submit 完了で `onOpenChange` と toast を呼ばないことを確認している。
 
+分類：**must-fix**。open 状態を render 外の reader が読むため、破棄された render の値が観測されうる。
+
 ## 6. Feed tree drag の最新 callback 集合
 
 対象：`src/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events.ts:43`、`no-ref-current-in-render`
@@ -99,6 +130,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 5. 既存のテスト：`src/__tests__/hooks/use-feed-tree-pointer-drag-events.node.test.tsx` の `keeps window listeners fixed for the drag session while using latest callbacks` と `cancels the current drag session on pointercancel`。
    前者は rerender 後に listener を増設せず最新 callback を使うこと、後者は cancel 時の cleanup callback を確認している。
 
+分類：**must-fix**。最新 callback 集合を pointer event handler が読むため、破棄された render の callback が呼ばれうる。
+
 ## 7. Credentials editor の active account id
 
 対象：`src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts:183`、`no-ref-current-in-render`
@@ -111,6 +144,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 4. 二重実行：なる。
    StrictMode では同じ account id が二度書かれるが、並行 render が破棄された場合は、旧 account の save または connection test の continuation が未 commit account id を読み、stale result の採用可否を誤る可能性がある。
 5. 既存のテスト：`src/__tests__/hooks/use-account-detail-credentials-editor.node.test.tsx` の `ignores a stale connection failure after switching accounts`、`drops a queued credential draft when the account changes before the in-flight save settles`、`does not test a stale account after credential persistence finishes on a previous account`、`does not restore focus from a stale account detail handler`。
+
+分類：**must-fix**。active account id を async continuation が stale 判定に読む。9 と同型。
 
 ## 8. Credentials editor の draft revision
 
@@ -125,6 +160,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
    StrictMode の同一 state では同じ数値になるが、並行 render が破棄された場合は、未 commit の draft revision が旧 save または test の stale 判定に使われ、別 draft の結果を処理する可能性がある。
 5. 既存のテスト：`src/__tests__/hooks/use-account-detail-credentials-editor.node.test.tsx` の `ignores a stale connection success when the draft changes before the result returns`、`does not apply a stale credential save when the draft changes before the save returns`、`queues a changed credential draft until the in-flight save settles`、`drops a queued credential draft when the account changes before the in-flight save settles`。
 
+分類：**must-fix**。draft revision を async continuation が読む。speculative な revision で完了判定すると、有効な応答を取り違える。
+
 ## 9. Name editor の active account id
 
 対象：`src/components/settings/hooks/account-detail/use-account-detail-name-editor.ts:76`、`no-ref-current-in-render`
@@ -137,6 +174,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 4. 二重実行：なる。
    StrictMode では同じ account id が二度書かれるが、並行 render が破棄された場合は、旧 account の rename 完了が未 commit account id と比較され、stale rename の扱いが表示中 account とずれる可能性がある。
 5. 既存のテスト：`src/__tests__/hooks/use-account-detail-name-editor.node.test.tsx` の `ignores a stale rename response after switching accounts and starting a new edit` と `clears saving state when a stale rename response arrives after switching accounts`。
+
+分類：**must-fix**。上の「判定を分けた軸」で挙げた反例そのもの。committed でない account id が rename の stale 判定に使われ、有効な応答を捨てる。**Issue #273 のブロッカーはこの箇所**であり、その IME ガードはこの修正と同じ変更で扱う。
 
 ## 10. TagsSettings の state snapshot
 
@@ -151,6 +190,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
    StrictMode では同じ state が二度書かれるが、並行 render が破棄された場合は、未 commit state の revision または編集対象が旧 mutation の完了判定に使われ、toast や reset の対象が表示中 state とずれる可能性がある。
 5. 既存のテスト：`src/__tests__/components/tags-settings.test.tsx` の `does not reset or toast from a stale tag creation after the draft changes` と `does not close or toast from a stale tag rename after the edit draft changes`。
 
+分類：**must-fix**。reducer state の speculative な値で create / rename の完了判定を行うため、成功した mutation の結果を誤って捨てうる。ref が保持するのが state でも穴は同じ。
+
 ## 11. TagsSettings の tag query snapshot
 
 対象：`src/components/settings/tags-settings.tsx:126`、`no-ref-current-in-render`
@@ -164,6 +205,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
    StrictMode では同じ query data が二度書かれるが、並行 render が破棄された場合は、UI event handler が未 commit の tag 一覧を読み、表示中の edit または delete 対象の存在判定がずれる可能性がある。
 5. 既存のテスト：`src/__tests__/components/tags-settings.test.tsx` の `closes edit dialog without renaming when the target tag disappears` と `keeps delete dialog visible but disabled when the target tag disappears`。
 
+分類：**must-fix**。query snapshot が speculative なため、committed な UI の click 判定を未表示のデータで行いうる。
+
 ## 12. SubscriptionsListPane の scroll callback
 
 対象：`src/components/subscriptions-index/subscriptions-list-pane.tsx:131`、`no-ref-current-in-render`
@@ -176,6 +219,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 4. 二重実行：なる。
    StrictMode では同じ callback が二度書かれるが、並行 render が破棄された場合は、commit 済み pane の scroll flush が未 commit の親 callback を呼び、scroll state の通知先が表示中 props とずれる可能性がある。
 5. 既存のテスト：`src/__tests__/components/subscriptions-list-pane.test.tsx` の `delegates feed clicks and batches list scroll position changes through separate callbacks`、`flushes the latest pending list scroll position on unmount`、`drops a pending list scroll position when the restored scroll top changes`、`drops a pending list scroll position when reset identity changes with the same restored top`。
+
+分類：**must-fix**。scroll callback を render 外の listener が読むため、破棄された render の callback が呼ばれうる。
 
 ## 13. Stable translation の open language capture
 
@@ -191,6 +236,8 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
    StrictMode の同じ open と locale なら同じ locale を二度 capture するが、並行 render が破棄された場合は、未 commit の locale が次の open 状態の memo と返却関数へ残る可能性がある。
 5. 既存のテスト：`src/__tests__/components/shortcuts-settings.test.tsx` の `keeps open shortcut settings labels on one locale while language changes`、`src/__tests__/components/shortcuts-help-modal.test.tsx` の `keeps open help labels on one locale while language changes`、`src/__tests__/components/settings-modal.test.tsx` の `keeps open modal chrome on one locale while language changes`。
 
+分類：**must-fix**。条件付き書き込みでも安全にならない。同じ ref を render の状態機械として使っているため、latest-value ref の議論では救えない。committed な open=true の間に close render が ref を null にして破棄され、その後 open=true の urgent render が現在言語を再 capture すると、開いたままの surface の言語固定が崩れる。**14 と 1 つの実装単位**として、open / close の committed transition に基づく locale snapshot 管理へ変える。
+
 ## 14. Stable translation の close reset
 
 対象：`src/lib/i18n/use-stable-open-translation.ts:12`、`no-ref-current-in-render`
@@ -204,3 +251,5 @@ Issue #260 の14件を、コード上の事実と既存テストの対応とし�
 4. 二重実行：なる。
    StrictMode の同じ close 状態なら null への代入結果は同じだが、並行 render が破棄された場合は、未 commit の close reset が別 render の open language capture と干渉し、memo が参照する locale 状態が commit 済み open 値とずれる可能性がある。
 5. 既存のテスト：`src/__tests__/components/shortcuts-settings.test.tsx` の `keeps open shortcut settings labels on one locale while language changes`、`src/__tests__/components/shortcuts-help-modal.test.tsx` の `keeps open help labels on one locale while language changes`、`src/__tests__/components/settings-modal.test.tsx` の `keeps open modal chrome on one locale while language changes`。
+
+分類：**must-fix**。13 と同じ状態機械の片側。破棄された open render の capture が closed な current tree を越えて次の open に残る経路もある。**13 と 1 つの実装単位**として扱う。

@@ -296,6 +296,33 @@ A finding is `must-fix` only when it is a bug, a regression, or introduced by th
 
 Per-finding classifications are recorded in [../../docs/react-doctor-complexity-classification.md](../../docs/react-doctor-complexity-classification.md).
 
+### Render-Time Ref Write Findings
+
+`no-ref-current-in-render` reports a ref assigned during render. Classify each by **whether
+anything outside that render reads the ref**, not by whether the value looks stable.
+
+The ref object is shared between the current tree and a work-in-progress render, so a render-time
+assignment is visible to async continuations, DOM and window listeners, and timers before that
+render commits. "A later render with the same props overwrites it" does not hold, because the
+ordering is not guaranteed: an abandoned render's write can be read before the next commit
+happens. Whether the ref holds a prop, state, or a derived value makes no difference — only the
+reader's position does.
+
+A reader confined to the same render can be a false positive, and
+`use-article-list-data.ts` is the one case here: its guard re-derives from a semantic key, so a
+foreign write either mismatches the key and is discarded or matches it and is equivalent. That
+argument depends on the key covering every field the consumer reads, so widening the consumer
+means revisiting the key.
+
+Do not use a passing test suite as evidence of a false positive. PR #241 and PR #243 were both
+this rule, and in both the tests stayed green while the real screen broke.
+
+The 2026-09-10 pass classified all 14 reported errors — 12 must-fix, 1 false positive, 1
+test-only accepted risk — with the per-finding evidence and reasoning in
+[../../docs/react-doctor-error-triage.md](../../docs/react-doctor-error-triage.md). The fixes are
+tracked separately from that record; group them by reader type rather than landing all twelve at
+once.
+
 ### Loading Flag Reset Findings
 
 `no-loading-flag-reset-outside-finally` reports that a busy flag is reset "only on the success
