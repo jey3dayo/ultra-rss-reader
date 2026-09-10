@@ -124,6 +124,23 @@ localStorage の read + parse + write が走り続ける。これは shape で�
 - 型に合った安定 EMPTY は fallback が必要な箇所に限定し、**readiness 判定より後**に適用する
 - 残り 12 件も同じく各下流の依存を確認してから個別に適用する
 
+現在の依存配列（`use-command-palette-data.ts:301-311`）は次のとおりで、`feeds` と `feedsQuery`
+の両方が入っている。後者 4 つが毎 render 新しい Proxy になるため、前者を安定させても効かない。
+
+```ts
+}, [actions, feeds, feedsQuery, folders, foldersQuery,
+    recentArticleCandidates, recentArticlesQuery, tags, tagsQuery]);
+```
+
+query object が依存に入っているのは readiness の判定（`hasFetchedData(feedsQuery)` 等）を
+memo の中で行っているためである。readiness を memo の外の boolean にすれば、query object を
+依存から落とせる。#295 の修正で `hasFetchedData` は `data` しか見なくなったので、この分離は
+既に可能になっている。
+
+**この remedy には回帰ガードが要る。** `?? EMPTY` を readiness 判定より前に置くと #295 が戻る。
+`032fd1a65` で入れた回帰テスト（`use-command-palette-data.node.test.tsx`、クエリ失敗時に履歴を
+保つ）がその位置を守るので、remedy の実装中にこのテストが落ちたら順序を間違えている。
+
 **「13 件すべて消える」「性能上の効果」はいずれも未検証**であり、実装後の再スキャンで確かめる。
 
 ### B. `useCallback(factory(t, key), [])`（3 件）— accepted-risk
