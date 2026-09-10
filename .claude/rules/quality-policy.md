@@ -298,21 +298,28 @@ Per-finding classifications are recorded in [../../docs/react-doctor-complexity-
 
 ### Render-Time Ref Write Findings
 
-`no-ref-current-in-render` reports a ref assigned during render. Classify each by **whether
-anything outside that render reads the ref**, not by whether the value looks stable.
+`no-ref-current-in-render` reports a ref assigned during render. Classify each by **whether a
+discarded render's write can be observed in a way that changes output** — by a reader outside
+that render, or by a later render — not by whether the value looks stable.
 
 The ref object is shared between the current tree and a work-in-progress render, so a render-time
 assignment is visible to async continuations, DOM and window listeners, and timers before that
 render commits. "A later render with the same props overwrites it" does not hold, because the
 ordering is not guaranteed: an abandoned render's write can be read before the next commit
-happens. Whether the ref holds a prop, state, or a derived value makes no difference — only the
-reader's position does.
+happens. Whether the ref holds a prop, state, or a derived value makes no difference — only
+whether an abandoned write survives to a reader does.
 
-A reader confined to the same render can be a false positive, and
-`use-article-list-data.ts` is the one case here: its guard re-derives from a semantic key, so a
-foreign write either mismatches the key and is discarded or matches it and is equivalent. That
-argument depends on the key covering every field the consumer reads, so widening the consumer
-means revisiting the key.
+That leaves two must-fix shapes, and the second is easy to mistake for safe. A ref read from
+outside the render is the obvious one. A ref read only inside render is still must-fix when the
+writes form a state machine across renders — `use-stable-open-translation.ts` writes a locale on
+open and clears it on close, so a discarded render's write outlives it and the next render reads
+a state the committed tree never produced.
+
+A same-render reader is a false positive only when a foreign write cannot change what the reader
+produces. `use-article-list-data.ts` is the one case here: its guard re-derives from a semantic
+key, so a foreign write either mismatches the key and is discarded or matches it and is
+equivalent. That argument depends on the key covering every field the consumer reads, so widening
+the consumer means revisiting the key.
 
 Do not use a passing test suite as evidence of a false positive. PR #241 and PR #243 were both
 this rule, and in both the tests stayed green while the real screen broke.

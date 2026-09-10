@@ -264,6 +264,20 @@ describe("quality-baseline", () => {
     ]);
   });
 
+  it("accounts for every scanned error in the classification dispositions", () => {
+    const status = reactDoctorFullScanTriageStatus;
+    const { mustFix, falsePositive, acceptedRisk } = status.errorClassification;
+
+    // The wrapper prints "all classified", so the dispositions must add up to the scanned
+    // error count. Re-pinning errorCountAtScan without re-classifying fails here instead of
+    // letting the report claim coverage the record does not have.
+    expect(mustFix + falsePositive + acceptedRisk).toBe(status.errorCountAtScan);
+    expect(status.errorClassification.recordPath).toBe("docs/react-doctor-error-triage.md");
+
+    // The one error classified before this pass is a subset of it, not a separate finding.
+    expect(status.previouslyClassifiedErrors.length).toBeLessThanOrEqual(acceptedRisk);
+  });
+
   it("derives the untriaged warning count from the classified families instead of a hand-pinned number", () => {
     const status = reactDoctorFullScanTriageStatus;
 

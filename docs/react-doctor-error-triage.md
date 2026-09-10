@@ -16,10 +16,17 @@ Issue #260 の14件について、コード上の事実、既存テストとの�
 
 ## 判定を分けた軸
 
-**render 外に reader がいるかどうか**で決まる。同じ ref object が current tree と
-work-in-progress render で共有されるため、render 中の代入は commit 前から async
-continuation、DOM / window event、timer に観測される。したがって「破棄された render の後に
-同じ props の render が上書きするから安全」は成り立たない。**上書きの順序が保証されない。**
+**破棄された render の書き込みが、出力を変える形で観測されうるか**で決まる。観測点は
+2 つある。render の外にいる reader（async continuation、DOM / window event、timer）と、
+後続の render 自身である。同じ ref object が current tree と work-in-progress render で
+共有されるため、render 中の代入は commit 前から前者に観測される。したがって「破棄された
+render の後に同じ props の render が上書きするから安全」は成り立たない。**上書きの順序が
+保証されない。**
+
+後者は 13 / 14 がその形で、reader は render 内にしかいない。それでも must-fix なのは、
+open で locale を書き close で消すという **render をまたぐ状態機械**を ref が担っており、
+破棄された render の書き込みがその render より長く生き残って、次の render が commit 済み
+tree の作らない状態を読むためである。
 
 具体的な壊れ方（9 の例）。committed な account A の rename が pending の間に、低優先の
 account B render が ref へ B を書き、その render が破棄される。A の再 render より先に A の

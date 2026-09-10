@@ -212,9 +212,19 @@ const reactDoctorFullScanTriageStatusBase = {
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
   errorCountAtScan: 14,
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
-  // Not every error is unreviewed. Issue #249 already classified one of them, and this
-  // pass did not re-confirm it rather than finding it unclassified; the distinction
-  // matters because re-pinning a total must not erase an earlier decision.
+  // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
+  // The dispositions total errorCountAtScan, which the baseline test pins: re-pinning
+  // errorCount without re-classifying therefore fails instead of silently claiming coverage
+  // it does not have. must-fix means a fix is still owed, not that it has landed.
+  errorClassification: {
+    pass: "2026-09-10",
+    recordPath: "docs/react-doctor-error-triage.md",
+    mustFix: 12,
+    falsePositive: 1,
+    acceptedRisk: 1,
+  },
+  // A subset of the pass above: the one error Issue #249 had already decided. Kept named
+  // because re-pinning a total must not erase an earlier decision.
   previouslyClassifiedErrors: [
     {
       rule: "no-prop-callback-in-render",
@@ -644,12 +654,15 @@ function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: stri
       ` (= ${reactDoctorBaselines.full.warningCount} total − ${status.classifiedFindingCount} complexity −` +
       ` ${status.classifiedWarningFamiliesCount} additional families), tracked at ${status.untriagedWarningIssue}`,
   );
+  const errorClassification = status.errorClassification;
   console.log(
-    `  errors: ${status.errorCountAtScan} at scan time, tracked at ${status.errorIssue}` +
-      `; ${status.previouslyClassifiedErrors.length} of them already classified earlier and not re-confirmed in that pass`,
+    `  errors: ${status.errorCountAtScan} at scan time, all classified in the ${errorClassification.pass} pass` +
+      ` recorded at ${errorClassification.recordPath}` +
+      ` (${errorClassification.mustFix} must-fix, ${errorClassification.falsePositive} false-positive,` +
+      ` ${errorClassification.acceptedRisk} accepted-risk); the must-fix fixes are tracked at ${status.errorIssue}`,
   );
   for (const entry of status.previouslyClassifiedErrors) {
-    console.log(`    already ${entry.classification}: ${entry.rule} at ${entry.location}`);
+    console.log(`    already ${entry.classification} before that pass: ${entry.rule} at ${entry.location}`);
   }
   console.log(
     `  Snapshot taken on ${status.scanSha} with oxlint-plugin-react-doctor ${status.pluginVersion};` +
