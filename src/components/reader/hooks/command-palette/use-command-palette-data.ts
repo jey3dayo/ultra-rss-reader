@@ -82,8 +82,14 @@ function filterByQuery<T>(
   );
 }
 
-function hasFetchedData(query: { data: unknown; isFetched?: boolean }): boolean {
-  return query.isFetched === true || query.data !== undefined;
+// Gate for "this resource list is known", used to decide whether the command history may be
+// pruned against it. Only the presence of data counts: a query that resolved to an empty list
+// still reports `data`, while a failed one reports `isFetched === true` with no data, because
+// TanStack Query's isFetched() is dataUpdateCount + errorUpdateCount > 0. Treating a failure as
+// "known" made an offline start prune every feed/folder/tag/article entry out of the stored
+// history and write the empty result back.
+function hasFetchedData(query: { data: unknown }): boolean {
+  return query.data !== undefined;
 }
 
 function resolveHasVisiblePaletteResults(params: {
