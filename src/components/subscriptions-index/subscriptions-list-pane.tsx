@@ -1,5 +1,5 @@
 import { ChevronDown, Folder, Search } from "lucide-react";
-import { useCallback, useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
@@ -128,7 +128,9 @@ export function SubscriptionsListPane({
   const totalRowCount = countSubscriptionGroupRows(groups);
   const hasRows = totalRowCount > 0;
 
-  onListScrollTopChangeRef.current = onListScrollTopChange;
+  useLayoutEffect(() => {
+    onListScrollTopChangeRef.current = onListScrollTopChange;
+  });
 
   const clearPendingScrollTopCommit = useCallback(() => {
     if (scrollCommitTimerRef.current !== null) {

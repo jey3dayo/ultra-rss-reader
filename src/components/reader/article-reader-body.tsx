@@ -225,34 +225,36 @@ export function ArticleReaderBody({
     [onOpenArticleTitleInWebPreview, openLinks],
   );
 
-  contentContainerClickListenerRef.current = (event: globalThis.MouseEvent) => {
-    const contentContainer = contentContainerRef.current;
-    if (!contentContainer) {
-      return;
-    }
+  useLayoutEffect(() => {
+    contentContainerClickListenerRef.current = (event: globalThis.MouseEvent) => {
+      const contentContainer = contentContainerRef.current;
+      if (!contentContainer) {
+        return;
+      }
 
-    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
-      return;
-    }
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+        return;
+      }
 
-    const target = event.target;
-    if (!(target instanceof Element)) {
-      return;
-    }
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
 
-    const anchor = target.closest<HTMLAnchorElement>("a[href]");
-    if (!anchor || !contentContainer.contains(anchor)) {
-      return;
-    }
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || !contentContainer.contains(anchor)) {
+        return;
+      }
 
-    event.preventDefault();
-    const resolvedUrl = resolveArticleContentLinkUrl(anchor.getAttribute("href") ?? "", articleUrl);
-    if (!resolvedUrl) {
-      return;
-    }
+      event.preventDefault();
+      const resolvedUrl = resolveArticleContentLinkUrl(anchor.getAttribute("href") ?? "", articleUrl);
+      if (!resolvedUrl) {
+        return;
+      }
 
-    void openArticleInExternalBrowser(resolvedUrl);
-  };
+      void openArticleInExternalBrowser(resolvedUrl);
+    };
+  });
 
   const setContentContainerElement = useCallback((node: HTMLDivElement | null) => {
     const listener = contentContainerEventHandlerRef.current;
