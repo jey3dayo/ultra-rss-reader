@@ -163,9 +163,22 @@ export function useCommandPaletteData({
     prefix === null ? deferredQuery : "",
   );
   const recentArticlesQuery = useRecentArticles(selectedAccountId);
-  const feeds = feedsQuery.data ?? [];
-  const folders = foldersQuery.data ?? [];
-  const tags = tagsQuery.data ?? [];
+  // Readiness is derived here, from the raw query data, and deliberately BEFORE the empty-array
+  // fallbacks below. Collapsing undefined to [] first would make a failed query look like a
+  // resource list that is known to be empty, which is the defect fixed in #295. It also keeps the
+  // query objects out of the history memo's dependencies: TanStack Query returns a new tracked
+  // result object every render, so listing them there defeated the memo even when the data was
+  // unchanged.
+  const resourcesReady =
+    hasFetchedData(feedsQuery) &&
+    hasFetchedData(foldersQuery) &&
+    hasFetchedData(tagsQuery) &&
+    hasFetchedData(recentArticlesQuery);
+  // Memoised rather than a bare `?? []`: while a query has no data the literal allocated a new
+  // array every render, so every memo below it recomputed and none of them memoised anything.
+  const feeds = useMemo(() => feedsQuery.data ?? [], [feedsQuery.data]);
+  const folders = useMemo(() => foldersQuery.data ?? [], [foldersQuery.data]);
+  const tags = useMemo(() => tagsQuery.data ?? [], [tagsQuery.data]);
   const currentFeedIds = useMemo(() => new Set(feeds.map((feed) => feed.id)), [feeds]);
   const articles = useMemo(
     () => searchArticleCandidates.filter((article) => currentFeedIds.has(article.feed_id)),
@@ -208,12 +221,6 @@ export function useCommandPaletteData({
   );
 
   const { recentActions, recentFeeds, recentFolders, recentTags, recentArticles, historyProjection } = useMemo(() => {
-    const resourcesReady =
-      hasFetchedData(feedsQuery) &&
-      hasFetchedData(foldersQuery) &&
-      hasFetchedData(tagsQuery) &&
-      hasFetchedData(recentArticlesQuery);
-
     const actionMap = new Map(actions.map((action) => [action.id, action]));
     const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
     const folderMap = new Map(folders.map((folder) => [folder.id, folder]));
@@ -298,17 +305,7 @@ export function useCommandPaletteData({
     }
 
     return { recentActions, recentFeeds, recentFolders, recentTags, recentArticles, historyProjection };
-  }, [
-    actions,
-    feeds,
-    feedsQuery,
-    folders,
-    foldersQuery,
-    recentArticleCandidates,
-    recentArticlesQuery,
-    tags,
-    tagsQuery,
-  ]);
+  }, [actions, feeds, folders, recentArticleCandidates, resourcesReady, tags]);
 
   useEffect(() => {
     if (!historyProjection) {

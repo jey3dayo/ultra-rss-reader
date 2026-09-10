@@ -45,8 +45,9 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const adoptedSnapshot = adoptSnapshotByKey(sidebarSnapshot, "accountId", selectedAccountId);
   const isFeedTreeLoading = selectedAccountId !== null && (feeds === undefined || folders === undefined);
   const showFeedTreeSkeleton = isFeedTreeLoading && adoptedSnapshot === null;
-  const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
-  const folderList = adoptedSnapshot?.folders ?? folders ?? [];
+  // Memoised rather than a bare `?? []`; see use-sidebar-feed-section-controller.ts.
+  const feedList = useMemo(() => adoptedSnapshot?.feeds ?? feeds ?? [], [adoptedSnapshot?.feeds, feeds]);
+  const folderList = useMemo(() => adoptedSnapshot?.folders ?? folders ?? [], [adoptedSnapshot?.folders, folders]);
   const starredCountByFeedId = adoptedSnapshot?.starredCountByFeedId ?? latestStarredCountByFeedId;
   const sidebarCountsSnapshotCandidate = useMemo(
     () =>

@@ -55,8 +55,12 @@ export function useSidebarFeedSectionController({
   const openFirstArticleOnFeedSelection =
     usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "open_first_article_on_feed_selection")) ===
     "true";
-  const feedList = feeds ?? [];
-  const folderList = folders ?? [];
+  // Memoised rather than a bare `?? []`: while the queries have no data the literal allocated a
+  // new array every render. folderList is the load-bearing one — it is a dependency of the
+  // expansion persistence effect, which writes localStorage without comparing content, so the
+  // churn made that write run on every render.
+  const feedList = useMemo(() => feeds ?? [], [feeds]);
+  const folderList = useMemo(() => folders ?? [], [folders]);
   const canDragFeeds = folderList.length > 0;
   const initialFeedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
   const initialFolderById = useMemo(() => new Map(folderList.map((folder) => [folder.id, folder])), [folderList]);
