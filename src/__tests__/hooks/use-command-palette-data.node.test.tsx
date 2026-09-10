@@ -55,6 +55,31 @@ describe("useCommandPaletteData", () => {
     );
   });
 
+  it("keeps stored history when a resource query fails instead of pruning against an empty list", () => {
+    // A failed query reports isFetched === true with no data, because TanStack Query's
+    // isFetched() counts error updates too. Treating that as "resources known" pruned every
+    // feed/folder/tag/article entry out of the stored history and wrote the empty result back,
+    // so an offline start lost the user's command history.
+    const storedHistory = ["feed:feed-1", "tag:tag-1", "action:open-settings"];
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(storedHistory));
+    vi.mocked(useFeeds).mockReturnValue(
+      createHookDataResult<ReturnType<typeof useFeeds>>(undefined, { isFetched: true }),
+    );
+
+    renderHook(() =>
+      useCommandPaletteData({
+        actions: [action],
+        deferredQuery: "",
+        devScenarios: [],
+        prefix: null,
+        query: "",
+        selectedAccountId: "acc-1",
+      }),
+    );
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.commandHistory) ?? "[]")).toEqual(storedHistory);
+  });
+
   it("projects only existing feed, tag, and article targets into recent resources", () => {
     localStorage.setItem(
       STORAGE_KEYS.commandHistory,
