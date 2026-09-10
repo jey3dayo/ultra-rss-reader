@@ -401,6 +401,29 @@ describe("useAccountDetailNameEditor", () => {
     expect(result.current.savingName).toBe(false);
     expect(result.current.nameDraft).toBe("Stale Name");
   });
+
+  it("ignores Enter and Escape while an IME candidate is being composed", async () => {
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("あたらしいなまえ");
+      result.current.handleNameKeyDown(createInputKeyboardEvent({ key: "Enter", isComposing: true }));
+      result.current.handleNameKeyDown(createInputKeyboardEvent({ key: "Escape", isComposing: true }));
+    });
+
+    // Composing Enter must not commit, and composing Escape must not discard the edit.
+    expect(renameAccountMock).not.toHaveBeenCalled();
+    expect(result.current.editingName).toBe(true);
+    expect(result.current.nameDraft).toBe("あたらしいなまえ");
+  });
 });
 
 function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputElement): void {

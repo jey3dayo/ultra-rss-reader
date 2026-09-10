@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
+import { type KeyboardEvent, type RefObject, useCallback, useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { scheduleInputFocus } from "@/lib/dom/input-focus";
@@ -73,7 +73,10 @@ export function useAccountDetailNameEditor({
   const activeAccountIdRef = useRef(account.id);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
   const editSessionAtRender = editSessionRef.current;
-  activeAccountIdRef.current = account.id;
+
+  useLayoutEffect(() => {
+    activeAccountIdRef.current = account.id;
+  });
 
   const cancelScheduledFocus = useCallback(() => {
     cancelScheduledFocusRef.current?.();
@@ -128,6 +131,12 @@ export function useAccountDetailNameEditor({
   };
 
   const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // While an IME candidate is being composed the IME owns the keystroke: Enter would commit a
+    // half-typed account name and Escape would discard the whole edit instead of the candidate.
+    // React's synthetic event has no isComposing, so read it from the native event.
+    if (event.nativeEvent.isComposing) {
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       void commitRename();

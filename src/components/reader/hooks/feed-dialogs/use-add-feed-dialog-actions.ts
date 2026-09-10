@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { Dispatch } from "react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
@@ -85,8 +85,11 @@ export function useAddFeedDialogActions({
   const latestDiscoveryUrlRef = useRef(trimmedUrl);
   const openRef = useRef(open);
   const submitLifecycle = useAsyncCommandLifecycle();
-  latestDiscoveryUrlRef.current = trimmedUrl;
-  openRef.current = open;
+
+  useLayoutEffect(() => {
+    latestDiscoveryUrlRef.current = trimmedUrl;
+    openRef.current = open;
+  });
 
   useEffect(() => {
     if (!open) {

@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type RefObject, useEffect, useReducer, useRef } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import { isValidRequiredHttpServerUrl } from "@/lib/account/server-url";
 import { focusFirstInput } from "@/lib/dom/input-focus";
@@ -180,8 +180,10 @@ export function useAccountDetailCredentialsEditor({
           ? "account-credentials-dirty"
           : null,
   };
-  activeAccountIdRef.current = account.id;
-  draftRevisionRef.current = state.draftRevision;
+  useLayoutEffect(() => {
+    activeAccountIdRef.current = account.id;
+    draftRevisionRef.current = state.draftRevision;
+  });
   useRegisterSettingsDirtyState(dirtyState);
 
   useEffect(() => {
