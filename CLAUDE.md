@@ -50,7 +50,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - `mise run check:wsl` is the WSL-backed static-analysis gate for formatter/linter stability. On Windows it delegates to a WSL checkout via `WSL_REPO_DIR`.
 - `mise run test:unit:dom` runs the jsdom Vitest suite separately when DOM, React rendering, Testing Library, or browser global behavior is affected.
 - `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
-- `mise run quality:react-doctor:diff` is the React Doctor regression gate; it reports only findings that are new against `origin/main`, so an accepted risk that already exists in a touched file does not turn it red.
+- `mise run quality:react-doctor:diff` is the React Doctor regression check; it reports only findings that are new against `origin/main`, so an accepted risk that already exists in a touched file does not turn it red. It is run by hand — no CI job or git hook invokes it, so it blocks nothing on its own; see [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md) (Nothing Runs React Doctor Automatically).
 - `mise run quality:react-doctor:full` is informational for known full-scan baseline debt.
 - `mise run report:knip` produces the Knip baseline drift report; humans triage the findings instead of treating them as a gate.
 - `mise run report:similarity` reports the similarity-ts TODO baseline. Treat 0.95 as near-copy, 0.9 as TODO triage, and 0.87 as broad discovery; increase size thresholds before extracting helpers from tiny callback-shape matches.

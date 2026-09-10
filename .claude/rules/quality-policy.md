@@ -205,6 +205,21 @@ Classify every React Doctor warning before suppressing or fixing it:
 
 Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality-baseline.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
 
+### Nothing Runs React Doctor Automatically
+
+Both React Doctor tasks are manual. Verified 2026-09-10 against the primary sources:
+`.github/workflows/ci.yml` invokes `mise run quality:toolchain` and no other `quality:` task,
+and `lefthook.yml` runs format, `test:unit:ci`, `lint`, `test:rust`, and `build` — neither file
+mentions `react-doctor`. So "gate" below and in `CLAUDE.md` names what the task is *for*, not
+something that stops a merge: a reintroduced finding reaches `main` unless a person runs the
+task or an ordinary test catches it.
+
+Two consequences. A fix for a React Doctor finding needs its own durable guard — an ordinary
+test that fails when the fix is reverted — because the scan will not notice; a source-shape
+contract test is the usual shape when the defect itself is not reachable from a sequential
+test. And a stale `reactDoctorBaselines` pin fails nothing, so re-pinning after a fix lands has
+to be tracked as work rather than assumed.
+
 ### The Diff Gate Currently Runs Degraded
 
 `quality:react-doctor:diff` prints an extra line when react-doctor sets `baselineDegraded`:
