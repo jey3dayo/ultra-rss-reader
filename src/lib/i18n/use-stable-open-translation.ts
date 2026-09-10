@@ -1,18 +1,21 @@
 import type { Namespace, TFunction } from "i18next";
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export function useStableOpenTranslation<Ns extends Namespace>(namespace: Ns, open: boolean): TFunction<Ns> {
   const { t, i18n } = useTranslation(namespace);
-  const openLanguageRef = useRef<string | null>(null);
+  // The captured locale is state written after the open transition commits, not a ref written
+  // during render. A render-time write is visible past the render that made it even when that
+  // render is discarded, so a discarded close could clear the locale a still-open surface is
+  // pinned to, and the next open render would re-capture whatever language is current by then.
+  const [openLanguage, setOpenLanguage] = useState<string | null>(null);
 
-  if (open && openLanguageRef.current === null) {
-    openLanguageRef.current = i18n.resolvedLanguage ?? i18n.language;
-  } else if (!open && openLanguageRef.current !== null) {
-    openLanguageRef.current = null;
-  }
-
-  const openLanguage = openLanguageRef.current;
+  useLayoutEffect(() => {
+    // Capture once per open. Keeping the previous value when one exists is what makes the
+    // language pin survive a re-run of this effect; i18n is a stable instance, but the guard
+    // must not depend on that to hold.
+    setOpenLanguage((previous) => (open ? (previous ?? i18n.resolvedLanguage ?? i18n.language) : null));
+  }, [open, i18n]);
 
   return useMemo(() => {
     if (openLanguage === null) {
