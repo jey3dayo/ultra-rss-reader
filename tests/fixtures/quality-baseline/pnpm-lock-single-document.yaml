@@ -1,0 +1,17 @@
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.0.0
+
+packages:
+
+  react@18.3.1:
+    resolution: {integrity: sha512-OLD}
+
+  react@19.0.0:
+    resolution: {integrity: sha512-NEW}

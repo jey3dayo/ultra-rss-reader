@@ -1333,15 +1333,20 @@ function countIssueFindings(issue: KnipIssueBucket): number {
   }, 0);
 }
 
-function readLockfilePackages(lockfile: string): Map<string, LockfilePackageVersion[]> {
-  const packagesStart = lockfile.indexOf("\npackages:\n");
-  if (packagesStart === -1) {
+export function readLockfilePackages(lockfile: string): Map<string, LockfilePackageVersion[]> {
+  const lockfileDocuments = lockfile.split(/^---[ \t]*(?:\r?\n|$)/m).filter((document) => document.trim().length > 0);
+  // Why: pnpm 12 can put pnpm itself and platform-specific binaries in an environment
+  // document before the dependency document. The final document owns application packages;
+  // retaining the sole-document path keeps traditional lockfiles unchanged.
+  const dependencyDocument = lockfileDocuments.at(-1) ?? lockfile;
+  const packagesMatch = /^packages:[ \t]*$/m.exec(dependencyDocument);
+  if (packagesMatch === null) {
     throw new Error("pnpm lockfile is missing a packages section.");
   }
 
   const versionsByPackageName = new Map<string, LockfilePackageVersion[]>();
   const packageKeyPattern = /^ {2}(?:"([^"]+)"|'([^']+)'|([^:\n]+)):/gm;
-  const packagesSection = lockfile.slice(packagesStart);
+  const packagesSection = dependencyDocument.slice(packagesMatch.index);
 
   for (const match of packagesSection.matchAll(packageKeyPattern)) {
     const packageKey = match[1] ?? match[2] ?? match[3];

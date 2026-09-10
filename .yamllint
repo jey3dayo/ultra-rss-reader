@@ -2,6 +2,11 @@ extends: relaxed
 
 rules:
   document-start:
+    # The lockfile fixtures reproduce pnpm 12's two-document output, so the "---"
+    # separators this rule forbids are the thing under test. Scoped to that directory
+    # rather than turned off, and every other rule still applies to those files.
+    ignore: |
+      tests/fixtures/quality-baseline/
     present: false
   brackets:
     min-spaces-inside: 0
