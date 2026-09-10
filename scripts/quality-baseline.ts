@@ -298,26 +298,18 @@ export const tailwindArbitraryValuesInventoryContract = {
     "Classify arbitrary values before tokenizing; repeated semantic color, elevation, spacing, and z-index values should become token candidates.",
 } as const;
 
+// Entries here are matched against the lockfile by name and major set, so one that matches
+// nothing is dead data rather than a harmless leftover — the same reason this file refuses
+// Rust false positives in similarityFalsePositiveBaseline. Measured against the lockfile on
+// 2026-09-10, after the Vitest 5 upgrade in #277: @vitest/expect, @vitest/pretty-format and
+// @vitest/utils now resolve to 3.2.4 alone, so their entries matched nothing and are removed;
+// only @vitest/spy is still duplicated, at 3.2.4 beside 5.0.0.
 const knownAcceptableLockfileDuplicateMajors = [
   {
-    name: "@vitest/expect",
-    majors: [3, 4],
-    reason: "Transitive Vitest 3 compatibility copy retained by the current Storybook/Vitest toolchain.",
-  },
-  {
-    name: "@vitest/pretty-format",
-    majors: [3, 4],
-    reason: "Transitive Vitest 3 compatibility copy retained by the current Storybook/Vitest toolchain.",
-  },
-  {
     name: "@vitest/spy",
-    majors: [3, 4],
-    reason: "Transitive Vitest 3 compatibility copy retained by the current Storybook/Vitest toolchain.",
-  },
-  {
-    name: "@vitest/utils",
-    majors: [3, 4],
-    reason: "Transitive Vitest 3 compatibility copy retained by the current Storybook/Vitest toolchain.",
+    majors: [3, 5],
+    reason:
+      "Transitive Vitest 3 compatibility copy retained beside Vitest 5 by the current Storybook/Vitest toolchain.",
   },
 ] as const;
 

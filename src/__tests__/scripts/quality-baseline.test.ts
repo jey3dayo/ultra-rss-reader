@@ -443,9 +443,9 @@ describe("quality-baseline", () => {
       "lockfileVersion: '9.0'",
       "",
       "packages:",
-      "  '@vitest/expect@3.2.4':",
+      "  '@vitest/spy@3.2.4':",
       "    resolution: {integrity: sha512-old}",
-      "  '@vitest/expect@4.1.5':",
+      "  '@vitest/spy@5.0.0':",
       "    resolution: {integrity: sha512-new}",
       "  'direct-lib@1.0.0':",
       "    resolution: {integrity: sha512-one}",
@@ -464,9 +464,12 @@ describe("quality-baseline", () => {
       unreviewedDuplicatePackageCount: 1,
       entries: [
         {
-          name: "@vitest/expect",
-          majors: [3, 4],
-          versions: ["3.2.4", "4.1.5"],
+          // The fixture stands in for "a transitive duplicate the allowlist covers"; it has to
+          // name an entry that is actually in knownAcceptableLockfileDuplicateMajors, or the
+          // allowed branch stops being exercised at all.
+          name: "@vitest/spy",
+          majors: [3, 5],
+          versions: ["3.2.4", "5.0.0"],
           dependencyType: "transitive",
           allowed: true,
           reason: expect.any(String),
