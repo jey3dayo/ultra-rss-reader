@@ -90,7 +90,7 @@ effect / effect、effect event、request token や reducer、listener の再登�
 5. 既存のテスト：`src/__tests__/components/use-article-list-data.node.test.tsx` の `keeps filtered article memo stable when an equivalent sourcePlan object is recreated`。
    さらに `src/__tests__/lib/article-list.node.test.ts` の `builds a stable article list source plan key from semantic fields` と `scopes article list source plan keys by account switch context` が key の同値性と account 差分を確認している。
 
-分類：**false-positive**。reader が同じ render 内に閉じており、async / event / effect reader がない。条件終了時には `stableSourcePlan` の semantic key が当該 render の `sourcePlan` key と必ず一致する。別 render の書き込みが混入しても、key 不一致なら当該 input へ戻し、key 一致なら downstream が読む全フィールドが同値になるローカル契約。**この安全性は key が `buildArticleListData` の全読取フィールドを覆っていることが前提**なので、読取フィールドを増やすときは key も同時に見直す。
+分類：**false-positive**。判定軸は reader の位置ではなく、破棄された render の書き込みが出力を変えうるかである。ここは変えられない。reader は同じ render 内に閉じていて async / event / effect reader が無く、かつ 13 / 14 のような render をまたぐ状態機械でもない（毎 render で key から再導出する）。条件終了時には `stableSourcePlan` の semantic key が当該 render の `sourcePlan` key と必ず一致する。別 render の書き込みが混入しても、key 不一致なら当該 input へ戻し、key 一致なら downstream が読む全フィールドが同値になるローカル契約。**この安全性は key が `buildArticleListData` の全読取フィールドを覆っていることが前提**なので、読取フィールドを増やすときは key も同時に見直す。
 
 ## 4. Add Feed の discovery URL
 

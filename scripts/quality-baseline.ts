@@ -210,7 +210,6 @@ const reactDoctorFullScanTriageStatusBase = {
     },
   ],
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
-  errorCountAtScan: 14,
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
   // The dispositions total errorCountAtScan, which the baseline test pins: re-pinning
@@ -249,6 +248,11 @@ const classifiedWarningFamiliesCount = reactDoctorFullScanTriageStatusBase.class
 export const reactDoctorFullScanTriageStatus = {
   ...reactDoctorFullScanTriageStatusBase,
   classifiedWarningFamiliesCount,
+  // Derived for the same reason untriagedWarningCountAtScan is: a second pinned copy of the
+  // error total drifts silently. Landing a must-fix fix re-pins full.errorCount, and the
+  // disposition-sum test then fails until errorClassification is re-counted, instead of the
+  // report claiming a classification breakdown that no longer adds up.
+  errorCountAtScan: reactDoctorBaselines.full.errorCount,
   untriagedWarningCountAtScan:
     reactDoctorBaselines.full.warningCount -
     reactDoctorFullScanTriageStatusBase.classifiedFindingCount -
