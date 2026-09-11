@@ -3,14 +3,14 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createModernMatchMedia } from "@tests/helpers/match-media";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "@/components/reader/feed-tree.types";
+import { presenceStatesEquivalent } from "@/components/reader/hooks/sidebar/feed-tree-presence-output";
 import {
   buildLogicalMaps,
   computeNextState,
   EMPTY_LOGICAL_MAPS,
   EMPTY_STATE,
-  presenceStatesEquivalent,
-  useFeedTreePresence,
-} from "@/components/reader/hooks/sidebar/use-feed-tree-presence";
+} from "@/components/reader/hooks/sidebar/feed-tree-presence-state";
+import { useFeedTreePresence } from "@/components/reader/hooks/sidebar/use-feed-tree-presence";
 import { MOTION_SIDEBAR_ROW_EXIT_DURATION_MS } from "@/constants";
 
 setupBrowserTestDom();
@@ -628,6 +628,69 @@ describe("useFeedTreePresence", () => {
     expect(result.current.folders).toHaveLength(1);
     expect(result.current.folders[0]?.isLeaving).toBe(false);
     expect(result.current.folders[0]?.feeds.map((f) => f.id)).toEqual(["new-child"]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("restarts a child's exit timer when its folder revives near the child's original deadline (collapse-owner handoff)", () => {
+    // Regression for PR #302 review: while a folder is leaving, its still-
+    // leaving children defer collapse ownership to the folder wrapper (see
+    // feed-tree-folder-section.tsx). If the folder revives and a child stays
+    // leaving on its own, the child's *own* collapse animation only starts at
+    // that moment -- so its exit timer must restart from there, not keep the
+    // deadline armed back when the folder still owned the collapse.
+    vi.useFakeTimers();
+    const childFeed = makeFeed({ id: "child-feed" });
+    const withFolder = [makeFolder({ id: "folder-a" }, [childFeed])];
+    const siblingFeed = makeFeed({ id: "sibling-feed" });
+    const withRevivedFolder = [makeFolder({ id: "folder-a" }, [siblingFeed])];
+    const nearOriginalDeadline = MOTION_SIDEBAR_ROW_EXIT_DURATION_MS - 10;
+
+    const { result, rerender } = renderHook(
+      ({ folders }: { folders: FeedTreeFolderViewModel[] }) =>
+        useFeedTreePresence({ folders, unfolderedFeeds: NO_FEEDS, scopeKey: "account-1" }),
+      { initialProps: { folders: withFolder } },
+    );
+
+    // t=0: folder and its only child leave together. The child's timer is
+    // armed for t=DURATION.
+    act(() => {
+      rerender({ folders: NO_FOLDERS });
+    });
+    expect(result.current.folders[0]?.isLeaving).toBe(true);
+    expect(result.current.folders[0]?.feeds.map((f) => f.id)).toEqual(["child-feed"]);
+
+    // t=DURATION-10: 10ms before the child's original deadline, the folder
+    // revives with a different child. `child-feed` is still absent from the
+    // logical tree, so it keeps leaving independently -- this is the moment
+    // collapse ownership hands off from the folder wrapper to the child's own
+    // wrapper.
+    act(() => {
+      vi.advanceTimersByTime(nearOriginalDeadline);
+    });
+    act(() => {
+      rerender({ folders: withRevivedFolder });
+    });
+    expect(result.current.folders[0]?.isLeaving).toBe(false);
+    expect(result.current.folders[0]?.feeds.map((f) => [f.id, f.isLeaving])).toEqual([
+      ["child-feed", true],
+      ["sibling-feed", false],
+    ]);
+
+    // t=DURATION: the child's *original* deadline. It must still be present
+    // -- the handoff above must have rearmed its timer -- or its own collapse
+    // animation (which only started at the handoff) would be cut off
+    // mid-flight.
+    act(() => {
+      vi.advanceTimersByTime(10);
+    });
+    expect(result.current.folders[0]?.feeds.map((f) => f.id)).toEqual(["child-feed", "sibling-feed"]);
+
+    // t=(handoff)+DURATION: the child's *new* deadline, counted from the
+    // handoff. Now it is gone.
+    act(() => {
+      vi.advanceTimersByTime(MOTION_SIDEBAR_ROW_EXIT_DURATION_MS - 10);
+    });
+    expect(result.current.folders[0]?.feeds.map((f) => f.id)).toEqual(["sibling-feed"]);
     expect(vi.getTimerCount()).toBe(0);
   });
 
