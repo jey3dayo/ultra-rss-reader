@@ -61,8 +61,11 @@ CSS トランジションは、変更前の計算値が存在して初めて補�
 
 ## 参照実装
 
-`src/components/reader/feed-tree-row-collapse.tsx` と、`src/styles/global.css` の
-`.motion-sidebar-row-collapse`。保持側の状態機械は
+`src/components/reader/feed-tree-row-collapse.tsx` と、`src/styles/motion.css` の
+`.motion-sidebar-row-collapse`。motion 規則は `global.css` から切り出してあり、
+`--motion-*` トークンだけが `global.css` の `:root` に残る。読み込み順が
+効くので、`src/main.tsx` と `.storybook/preview.ts` で `global.css` の後に
+読むこと（`src/__tests__/config/motion-css-cascade-order-contract.node.test.ts` が固定）。保持側の状態機械は
 `src/components/reader/hooks/sidebar/use-feed-tree-presence.ts`。
 
 ## 強制

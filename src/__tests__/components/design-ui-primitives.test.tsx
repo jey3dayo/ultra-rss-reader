@@ -32,12 +32,18 @@ import {
 } from "@/design-system";
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
-const motionCss = globalCss.slice(globalCss.indexOf("@keyframes vertical-wipe"), globalCss.indexOf("\n\nhtml,\nbody"));
-const reducedMotionCss = globalCss.slice(globalCss.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
+const motionCss = readFileSync(join(process.cwd(), "src/styles/motion.css"), "utf8");
+const reducedMotionCss = motionCss.slice(motionCss.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
 
 const expectGlobalCssToContain = (...snippets: readonly string[]) => {
   for (const snippet of snippets) {
     expect(globalCss).toContain(snippet);
+  }
+};
+
+const expectMotionCssToContain = (...snippets: readonly string[]) => {
+  for (const snippet of snippets) {
+    expect(motionCss).toContain(snippet);
   }
 };
 
@@ -53,19 +59,19 @@ const expectGlobalCssToContainMotionContract = () => {
   );
 
   for (const className of MOTION_CLASS_NAMES) {
-    expectGlobalCssToContain(`.${className}`);
+    expectMotionCssToContain(`.${className}`);
   }
 
   for (const keyframesName of MOTION_KEYFRAMES_NAMES) {
-    expectGlobalCssToContain(`@keyframes ${keyframesName}`);
+    expectMotionCssToContain(`@keyframes ${keyframesName}`);
   }
 
   for (const dataAttribute of MOTION_DATA_ATTRIBUTES) {
-    expectGlobalCssToContain(`[${dataAttribute}`);
+    expectMotionCssToContain(`[${dataAttribute}`);
   }
 
   for (const selector of MOTION_GLOBAL_CSS_CONTRACT_SELECTORS) {
-    expectGlobalCssToContain(selector);
+    expectMotionCssToContain(selector);
   }
 };
 
@@ -115,7 +121,7 @@ describe("Design-themed UI primitives", () => {
     expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("bg-surface-1", "border-border");
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
     expectGlobalCssToContainMotionContract();
-    expectGlobalCssToContain(
+    expectMotionCssToContain(
       "@starting-style",
       `.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`,
       "border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
@@ -129,13 +135,20 @@ describe("Design-themed UI primitives", () => {
     expect(reducedMotionCss).toContain(".animate-indeterminate");
     expect(reducedMotionCss).toContain(".motion-popup-surface");
     expect(reducedMotionCss).not.toContain(".motion-list-item-enter");
-    expect(globalCss).toContain(".motion-filter-toggle[data-pressed]");
-    expect(globalCss).toContain("transform: translateY(-1px);");
+    expect(motionCss).toContain(".motion-filter-toggle[data-pressed]");
+    expect(motionCss).toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
       "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
     );
+    expect(motionCss).not.toContain(
+      "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
+    );
     expect(globalCss).not.toContain(":root.theme-transitioning body");
+    expect(motionCss).not.toContain(":root.theme-transitioning body");
     expect(globalCss).not.toContain(
+      "background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color",
+    );
+    expect(motionCss).not.toContain(
       "background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color",
     );
   });

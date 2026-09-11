@@ -1,0 +1,853 @@
+/* Motion rules extracted from global.css.
+   Load order is load-bearing: this file MUST be imported after global.css
+   (see src/main.tsx and .storybook/preview.ts), never via a CSS @import
+   inside global.css itself. These rules are intentionally unlayered (no
+   @layer wrapper) so they keep winning over Tailwind's layered utilities
+   the same way they did before the split; see the cascade-order comment
+   preserved further below in this file. */
+
+@keyframes vertical-wipe {
+  0% {
+    clip-path: inset(0 0 100% 0);
+  }
+  100% {
+    clip-path: inset(0);
+  }
+}
+
+html.vertical-wipe-transition::view-transition-old(root),
+html.vertical-wipe-transition::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.vertical-wipe-transition::view-transition-old(root) {
+  z-index: 1;
+}
+
+html.vertical-wipe-transition::view-transition-new(root) {
+  z-index: 2;
+  animation: vertical-wipe 500ms ease-in-out forwards;
+}
+
+.motion-browser-theme-wipe-overlay {
+  animation: vertical-wipe 500ms ease-in-out forwards;
+  will-change: clip-path;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.vertical-wipe-transition::view-transition-new(root),
+  .motion-browser-theme-wipe-overlay {
+    animation: none;
+  }
+}
+
+@keyframes motion-loading-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.motion-loading-dot {
+  animation: motion-loading-pulse 1.2s var(--motion-ease-standard) infinite;
+}
+
+.motion-disclosure-panel {
+  display: grid;
+  overflow: hidden;
+  transition-property: grid-template-rows, opacity, transform;
+  transition-duration: var(--motion-duration-disclosure);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-disclosure-panel[data-state="open"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.motion-disclosure-panel[data-state="closed"] {
+  pointer-events: none;
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.motion-disclosure-body {
+  min-height: 0;
+  overflow: hidden;
+  transition: transform var(--motion-duration-disclosure) var(--motion-ease-standard);
+}
+
+.motion-disclosure-panel[data-state="open"] > .motion-disclosure-body {
+  transform: translateY(0);
+}
+
+.motion-disclosure-panel[data-state="closed"] > .motion-disclosure-body {
+  transform: translateY(calc(var(--motion-disclosure-offset) * -1));
+}
+
+.motion-disclosure-trigger,
+.motion-interactive-surface {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: var(--motion-duration-disclosure);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-disclosure-trigger:hover {
+  border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);
+}
+
+.motion-disclosure-icon {
+  transition: transform var(--motion-duration-disclosure) var(--motion-ease-standard);
+}
+
+.motion-pressable-surface {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: var(--motion-duration-popup);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-pressable-surface:active {
+  transform: scale(0.97);
+}
+
+.motion-button-surface {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: var(--motion-duration-disclosure);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-button-surface:active:not([aria-haspopup]) {
+  transform: translateY(1px);
+}
+
+.motion-contextual-surface,
+.motion-filter-toggle,
+.motion-static-hover-surface {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: var(--motion-duration-contextual);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-filter-toggle > [data-filter-toggle-content="true"] {
+  transform: translateY(0);
+  transition:
+    opacity var(--motion-duration-contextual) var(--motion-ease-standard),
+    transform var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+.motion-filter-toggle[data-pressed] > [data-filter-toggle-content="true"] {
+  transform: translateY(-1px);
+}
+
+.motion-filter-toggle:active > [data-filter-toggle-content="true"] {
+  transform: translateY(0);
+}
+
+.motion-hold-confirm {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hold progress is a plain two-state transition so an early release interpolates
+   back from the current progress instead of snapping from a keyframe end state. */
+.motion-hold-confirm-fill {
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  opacity: 0.24;
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--motion-duration-hold-confirm-release) var(--motion-ease-standard);
+}
+
+.motion-hold-confirm[data-motion-hold="true"] > .motion-hold-confirm-fill {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path var(--motion-duration-hold-confirm) linear;
+}
+
+.motion-static-hover-surface:hover,
+.motion-static-hover-surface:active,
+.motion-static-hover-surface:focus-visible {
+  transform: none;
+}
+
+.motion-feed-selection-marker::before {
+  opacity: 0;
+  transform: scaleY(0.72);
+  transition:
+    opacity var(--motion-duration-contextual) var(--motion-ease-standard),
+    transform var(--motion-duration-contextual) var(--motion-ease-emphasized);
+}
+
+.motion-feed-selection-marker[aria-current="page"]::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+@keyframes motion-content-swap-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-content-swap-offset));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-content-swap {
+  transform: translateY(0);
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-content-swap) var(--motion-ease-standard),
+    transform var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+.motion-content-swap[data-motion-phase="entering"] {
+  animation: motion-content-swap-enter var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+@keyframes motion-list-item-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Fires once per DOM mount (React key-based insertion), so it only plays for
+ * genuinely new/re-ordered rows (e.g. filter or subscription-list changes),
+ * not for prop updates on an already-mounted row.
+ */
+.motion-list-item-enter {
+  animation: motion-list-item-enter var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+@keyframes motion-article-slide-next {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-article-slide-offset));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motion-article-slide-prev {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-article-slide-offset) * -1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-article-slide {
+  overflow: hidden;
+}
+
+.motion-article-slide [data-article-slide-content="true"] {
+  transform: translateY(0);
+  will-change: transform, opacity;
+}
+
+.motion-article-slide[data-motion-direction="next"] [data-article-slide-content="true"] {
+  animation: motion-article-slide-next var(--motion-duration-article-slide) var(--motion-ease-standard);
+}
+
+.motion-article-slide[data-motion-direction="prev"] [data-article-slide-content="true"] {
+  animation: motion-article-slide-prev var(--motion-duration-article-slide) var(--motion-ease-standard);
+}
+
+@keyframes motion-settings-modal-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + var(--motion-settings-modal-offset)))
+      scale(var(--motion-settings-modal-scale-closed));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.motion-settings-modal[data-open],
+.motion-settings-modal[data-starting-style] {
+  animation: motion-settings-modal-enter var(--motion-duration-resize) var(--motion-ease-emphasized);
+}
+
+@keyframes motion-state-toggle-pop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.72;
+  }
+
+  65% {
+    transform: scale(var(--motion-state-toggle-scale-active));
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes motion-star-toggle-pop {
+  0% {
+    transform: rotate(0deg) scale(0.92);
+    opacity: 0.72;
+  }
+
+  60% {
+    transform: rotate(-10deg) scale(var(--motion-state-toggle-scale-active));
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.motion-state-toggle [data-state-toggle-icon="true"] {
+  transform-origin: center;
+  transition:
+    transform var(--motion-duration-popup) var(--motion-ease-standard),
+    opacity var(--motion-duration-popup) var(--motion-ease-standard);
+}
+
+.motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon="true"] {
+  animation: motion-state-toggle-pop var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+.motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon-tone="starred"] {
+  animation: motion-star-toggle-pop var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+@keyframes motion-article-selection-marker {
+  from {
+    opacity: 0;
+    transform: scaleY(0.72);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.motion-article-selection-marker::after {
+  transform-origin: center;
+  animation: motion-article-selection-marker var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+.motion-article-state-slot {
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-contextual) var(--motion-ease-standard),
+    transform var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+.motion-article-state-slot[data-article-state-slot="reserved"]:empty {
+  opacity: 0;
+  transform: scale(0.84);
+}
+
+@keyframes t-digit-pop-in {
+  0% {
+    transform: translate(
+      calc(var(--digit-distance) * var(--digit-dir-x)),
+      calc(var(--digit-distance) * var(--digit-dir-y))
+    );
+    opacity: 0;
+    filter: blur(var(--digit-blur));
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.t-digit-group {
+  display: inline-flex;
+  align-items: baseline;
+}
+.t-digit {
+  display: inline-block;
+}
+.t-digit-group.is-animating .t-digit {
+  will-change: transform, opacity, filter;
+  animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
+}
+.t-digit-group.is-animating .t-digit[data-stagger="1"] {
+  animation-delay: var(--digit-stagger);
+}
+.t-digit-group.is-animating .t-digit[data-stagger="2"] {
+  animation-delay: calc(var(--digit-stagger) * 2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-digit-group.is-animating .t-digit {
+    animation: none;
+  }
+}
+
+.motion-icon-swap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.motion-icon-swap-icon {
+  display: inline-flex;
+  grid-area: 1 / 1;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-content-swap) var(--motion-ease-standard),
+    filter var(--motion-duration-content-swap) var(--motion-ease-standard),
+    transform var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+.motion-icon-swap[data-state="a"] > .motion-icon-swap-icon[data-icon="a"],
+.motion-icon-swap[data-state="b"] > .motion-icon-swap-icon[data-icon="b"] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+.motion-icon-swap[data-state="a"] > .motion-icon-swap-icon[data-icon="b"],
+.motion-icon-swap[data-state="b"] > .motion-icon-swap-icon[data-icon="a"] {
+  opacity: 0;
+  filter: blur(var(--motion-icon-swap-inactive-blur));
+  transform: scale(var(--motion-icon-swap-inactive-scale));
+}
+
+/* Opacity-only fade so a badge's last count can linger and dissolve when it
+   clears (e.g. unread 1 -> 0), instead of unmounting instantly. Reuses the
+   popup-exit duration/easing pair rather than a dedicated token. */
+.motion-sidebar-badge {
+  transition: opacity var(--motion-duration-popup-exit) var(--motion-ease-standard);
+}
+
+.motion-sidebar-badge[data-motion-sidebar-badge-leaving="true"] {
+  opacity: 0;
+}
+
+/* Presence-driven collapse for a sidebar feed/folder row leaving the tree
+   (useFeedTreePresence). grid-template-rows transitions 1fr -> 0fr so the
+   row's occupied height collapses to zero even where fr-unit interpolation
+   isn't supported: the leaving state's geometry is a discrete 0fr value,
+   not merely an animation keyframe, so the final layout is always zero
+   height. The inner wrapper clips the row's own content (selection marker,
+   drag handle, label) as the track shrinks. The leaving state also zeroes
+   the block-end margin so collapsing a row does not leave a residual gap
+   from the parent's Tailwind `space-y-*` sibling margin utility. */
+.motion-sidebar-row-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--motion-duration-contextual) var(--motion-ease-collapse),
+    opacity var(--motion-duration-contextual) var(--motion-ease-collapse);
+}
+
+/* This is the grid item CSS Grid stretches to the 0fr track's zero height
+   during exit, so it is where content must be clipped vertically (a child's
+   own auto height is not otherwise constrained by a 0-height parent).
+   `min-height: 0` is what allows that stretch to actually reach zero: a
+   grid item's automatic minimum height otherwise defaults to its content
+   size, and authoring `min-height: 0` (rather than leaving it `auto`)
+   overrides that regardless of the `overflow`/`clip-path` choice below.
+
+   `--feed-tree-rail-offset` (see sidebar-density.ts) is negative: feed rows
+   position two decorations to the *left* of this box, outside its own left
+   edge, on purpose — that offset is the sidebar's reserved rail gutter
+   (feed-tree-selectable-row.tsx):
+     - the selection indicator, at `left: var(--feed-tree-rail-offset)` —
+       its own left edge sits exactly at the rail offset.
+     - the drag-handle anchor, at the same `left` plus `-translate-x-1/2`,
+       which shifts it an *additional* half of its own rendered width
+       further left. Its rendered width is `tokens.leadingControl` from
+       sidebar-density.ts (a Tailwind `size-*` utility: compact size-8 =
+       2rem, normal size-9 = 2.25rem, spacious size-11 = 2.75rem), so its
+       real left edge is `railOffset - controlWidth / 2` — always further
+       left than the indicator, and NOT recoverable from `railOffset`
+       alone by a fixed ratio (see the per-density numbers below).
+   A plain `overflow: hidden` clips at this box's own edges on every side
+   and would cut both decorations off at rest, not only while leaving,
+   since this class is applied unconditionally (see
+   motion-exit-animation.md). `overflow-x: visible` paired with
+   `overflow-y: hidden` cannot fix that either — per the CSS Overflow spec,
+   pairing `visible` on one axis with a non-visible value on the other
+   computes the `visible` axis to `auto`, turning this into a horizontal
+   scroll container that still hides both decorations (scrolled out of
+   view). `clip-path: inset()` clips independently of `overflow` and takes
+   a negative offset per side to *expand* the clip region past that edge,
+   without moving anything or touching either decoration's own `left`
+   position — so the left inset only needs to reach the *further* of the
+   two, the drag handle.
+
+   Using `var(--feed-tree-rail-offset)` directly (as the indicator alone
+   would need) under-covers the handle, so the inset instead multiplies it
+   by 3.25 — the ratio the handle itself needs at `normal` density, the
+   tightest of the three:
+     compact:  railOffset -0.5rem,  control 2rem   -> handle edge -1.5rem
+     normal:   railOffset -0.5rem,  control 2.25rem -> handle edge -1.625rem  (needs x3.25 exactly)
+     spacious: railOffset -0.75rem, control 2.75rem -> handle edge -2.125rem (x3.25 gives -2.4375rem)
+   x3.25 reaches -1.625rem exactly for `-0.5rem` (covering both compact and
+   normal, whose real need is only -1.5rem) and over-reaches to -2.4375rem
+   for spacious's -0.75rem (real need -2.125rem). A clip-path inset that
+   reaches further left than a row's own decorations need is harmless: it
+   only enlarges the region this element itself is *allowed* to paint in,
+   never what an unrelated sibling can paint, and it doesn't affect this
+   box's own layout size (clip-path is paint-only, unlike overflow's
+   automatic-minimum-size interaction, which is why `min-height: 0` above
+   is still required regardless of this). Falls back to 0 for the folder
+   row (feed-tree-folder-section.tsx), which does not set
+   `--feed-tree-rail-offset` (0 x 3.25 = 0) and whose own selection
+   indicator sits at its box's left edge already, with no drag handle.
+
+   `src/__tests__/components/feed-tree-collapse-layout.test.tsx` enumerates
+   the two left-decorating elements above and pins this derivation; revisit
+   both together if a third rail decoration is ever added, or if
+   sidebar-density.ts's rail offset / leading-control sizes change. */
+.motion-sidebar-row-collapse > * {
+  clip-path: inset(0 0 0 calc(var(--feed-tree-rail-offset, 0px) * 3.25));
+  min-height: 0;
+}
+
+/* No `!important`: this rule is plain (unlayered) CSS, while Tailwind's
+   `space-y-*` sibling-margin utility lives inside Tailwind's `utilities`
+   cascade layer (`@import "tailwindcss"` above). Unlayered declarations
+   always win over layered ones regardless of specificity or source order,
+   so this overrides the utility's margin without needing `!important`.
+   Tailwind 4's `space-y-*` sets `margin-block-end` on every non-last
+   sibling (not `margin-top`), so that is the property zeroed here. */
+.motion-sidebar-row-collapse[data-motion-sidebar-row-leaving="true"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+  margin-block-end: 0;
+}
+
+.motion-resize-surface {
+  transition-property:
+    width, height, min-height, max-width, padding, opacity, transform, border-color, background-color, color;
+  transition-duration: var(--motion-duration-resize);
+  transition-timing-function: var(--motion-ease-emphasized);
+}
+
+.motion-popup-overlay {
+  transition: opacity var(--motion-duration-popup-enter) var(--motion-ease-standard);
+}
+
+.motion-popup-overlay[data-open] {
+  opacity: 1;
+}
+
+.motion-popup-overlay[data-closed] {
+  opacity: 0;
+}
+
+.popup-dialog-centered {
+  --motion-popup-dialog-translate-y: -50%;
+  --motion-popup-dialog-scale: scale(1);
+
+  transform: translate(-50%, var(--motion-popup-dialog-translate-y)) var(--motion-popup-dialog-scale);
+  transform-origin: center;
+}
+
+.motion-popup-dialog {
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-popup-enter) var(--motion-ease-standard),
+    transform var(--motion-duration-popup-enter) var(--motion-ease-emphasized);
+}
+
+.motion-popup-overlay[data-ending-style],
+.motion-popup-dialog[data-ending-style],
+.motion-popup-surface[data-ending-style] {
+  transition-duration: var(--motion-duration-popup-exit);
+}
+
+.motion-popup-dialog[data-open] {
+  opacity: 1;
+  --motion-popup-dialog-translate-y: -50%;
+  --motion-popup-dialog-scale: scale(1);
+}
+
+.motion-popup-dialog[data-closed],
+.motion-popup-dialog[data-starting-style],
+.motion-popup-dialog[data-ending-style] {
+  opacity: 0;
+  --motion-popup-dialog-translate-y: calc(-50% - var(--motion-popup-offset));
+  --motion-popup-dialog-scale: scale(var(--motion-popup-scale-closed));
+}
+
+.motion-popup-surface {
+  --motion-popup-translate-x: 0px;
+  --motion-popup-translate-y: calc(var(--motion-popup-offset) * -1);
+
+  transform: translate(0, 0) scale(1);
+  transform-origin: var(--transform-origin, top center);
+  transition:
+    opacity var(--motion-duration-popup-enter) var(--motion-ease-standard),
+    transform var(--motion-duration-popup-enter) var(--motion-ease-emphasized);
+}
+
+.motion-popup-surface[data-side="top"] {
+  --motion-popup-translate-y: var(--motion-popup-offset);
+  transform-origin: var(--transform-origin, bottom center);
+}
+
+.motion-popup-surface[data-side="right"] {
+  --motion-popup-translate-x: calc(var(--motion-popup-offset) * -1);
+  --motion-popup-translate-y: 0px;
+  transform-origin: var(--transform-origin, left center);
+}
+
+.motion-popup-surface[data-side="bottom"] {
+  transform-origin: var(--transform-origin, top center);
+}
+
+.motion-popup-surface[data-side="left"] {
+  --motion-popup-translate-x: var(--motion-popup-offset);
+  --motion-popup-translate-y: 0px;
+  transform-origin: var(--transform-origin, right center);
+}
+
+.motion-popup-surface[data-open] {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+}
+
+@starting-style {
+  .motion-popup-surface[data-open] {
+    opacity: 0;
+    transform: translate(var(--motion-popup-translate-x), var(--motion-popup-translate-y))
+      scale(var(--motion-popup-scale-closed));
+  }
+}
+
+.motion-popup-surface[data-closed],
+.motion-popup-surface[data-starting-style],
+.motion-popup-surface[data-ending-style] {
+  opacity: 0;
+  transform: translate(var(--motion-popup-translate-x), var(--motion-popup-translate-y))
+    scale(var(--motion-popup-scale-closed));
+}
+
+.motion-browser-overlay-panel {
+  transform: translateY(var(--panel-translate-y));
+  opacity: 0;
+  filter: blur(var(--panel-blur));
+  pointer-events: none;
+  transition:
+    transform var(--panel-close-dur) var(--panel-ease),
+    opacity var(--panel-close-dur) var(--panel-ease),
+    filter var(--panel-close-dur) var(--panel-ease);
+  will-change: transform, opacity, filter;
+}
+
+.motion-browser-overlay-panel[data-open="false"] * {
+  pointer-events: none;
+}
+
+.motion-browser-overlay-panel[data-open="true"] {
+  transform: translateY(0);
+  opacity: 1;
+  filter: blur(0);
+  pointer-events: auto;
+  transition:
+    transform var(--panel-open-dur) var(--panel-ease),
+    opacity var(--panel-open-dur) var(--panel-ease),
+    filter var(--panel-open-dur) var(--panel-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-disclosure-panel,
+  .motion-disclosure-body,
+  .motion-disclosure-trigger,
+  .motion-disclosure-icon,
+  .motion-interactive-surface,
+  .motion-pressable-surface,
+  .motion-button-surface,
+  .motion-contextual-surface,
+  .motion-filter-toggle,
+  .motion-filter-toggle > [data-filter-toggle-content="true"],
+  .motion-static-hover-surface,
+  .motion-feed-selection-marker::before,
+  .motion-content-swap,
+  .motion-resize-surface,
+  .motion-browser-overlay-panel,
+  .motion-settings-modal,
+  .motion-state-toggle [data-state-toggle-icon="true"],
+  .motion-article-state-slot,
+  .motion-sidebar-badge,
+  .motion-sidebar-row-collapse {
+    transition-duration: 0ms;
+  }
+
+  /* Popups keep a short cross-fade: motion sensitivity is about transforms,
+     not opacity, so feedback stays while translation/scale is pinned. */
+  .motion-popup-overlay,
+  .motion-popup-overlay[data-ending-style],
+  .motion-popup-dialog,
+  .motion-popup-dialog[data-ending-style],
+  .motion-popup-surface,
+  .motion-popup-surface[data-ending-style] {
+    transition: opacity var(--motion-duration-popup-exit) var(--motion-ease-standard);
+  }
+
+  .motion-popup-dialog,
+  .motion-popup-dialog[data-open],
+  .motion-popup-dialog[data-closed],
+  .motion-popup-dialog[data-starting-style],
+  .motion-popup-dialog[data-ending-style] {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .motion-popup-surface,
+  .motion-popup-surface[data-open],
+  .motion-popup-surface[data-closed],
+  .motion-popup-surface[data-starting-style],
+  .motion-popup-surface[data-ending-style] {
+    transform: translate(0, 0) scale(1);
+  }
+
+  .motion-loading-dot {
+    animation: motion-loading-pulse 1.2s var(--motion-ease-standard) infinite;
+    opacity: 0.7;
+  }
+
+  .animate-indeterminate {
+    animation: motion-loading-pulse 1.5s var(--motion-ease-standard) infinite;
+  }
+
+  /* Keep the same hold duration; only soften the fill into an opacity ramp. */
+  .motion-hold-confirm-fill {
+    clip-path: none;
+    opacity: 0;
+    transition: opacity var(--motion-duration-hold-confirm-release) var(--motion-ease-standard);
+  }
+
+  .motion-hold-confirm[data-motion-hold="true"] > .motion-hold-confirm-fill {
+    clip-path: none;
+    opacity: 0.24;
+    transition: opacity var(--motion-duration-hold-confirm) linear;
+  }
+
+  .motion-disclosure-panel[data-state="open"] > .motion-disclosure-body,
+  .motion-disclosure-panel[data-state="closed"] > .motion-disclosure-body {
+    transform: translateY(0);
+  }
+
+  .motion-disclosure-trigger:hover,
+  .motion-disclosure-trigger:active,
+  .motion-interactive-surface:hover,
+  .motion-interactive-surface:active,
+  .motion-interactive-surface:focus-visible,
+  .motion-filter-toggle[data-pressed] > [data-filter-toggle-content="true"],
+  .motion-filter-toggle:active > [data-filter-toggle-content="true"],
+  .motion-contextual-surface:hover,
+  .motion-contextual-surface:active,
+  .motion-contextual-surface:focus-within,
+  .motion-pressable-surface:active,
+  .motion-button-surface:active:not([aria-haspopup]),
+  .motion-disclosure-trigger:focus-visible {
+    transform: none;
+  }
+
+  .motion-content-swap[data-motion-phase="entering"] {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .motion-article-slide[data-motion-direction="next"],
+  .motion-article-slide[data-motion-direction="prev"],
+  .motion-article-slide [data-article-slide-content="true"] {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .motion-settings-modal[data-open],
+  .motion-settings-modal[data-starting-style],
+  .motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon="true"],
+  .motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon-tone="starred"],
+  .motion-article-selection-marker,
+  .motion-article-selection-marker::after,
+  .desktop-overlay-titlebar-shell .article-list-leading-control {
+    animation: none;
+  }
+
+  .motion-settings-modal[data-open],
+  .motion-settings-modal[data-starting-style] {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .motion-state-toggle [data-state-toggle-icon="true"],
+  .motion-article-selection-marker,
+  .motion-article-selection-marker::after,
+  .motion-article-state-slot,
+  .motion-article-state-slot[data-article-state-slot="reserved"]:empty {
+    transform: none;
+  }
+
+  .motion-article-state-slot,
+  .motion-article-state-slot[data-article-state-slot="reserved"]:empty {
+    opacity: 1;
+  }
+
+  .motion-icon-swap-icon {
+    transition-duration: 0ms;
+  }
+
+  .motion-icon-swap[data-state="a"] > .motion-icon-swap-icon[data-icon="a"],
+  .motion-icon-swap[data-state="b"] > .motion-icon-swap-icon[data-icon="b"],
+  .motion-icon-swap[data-state="a"] > .motion-icon-swap-icon[data-icon="b"],
+  .motion-icon-swap[data-state="b"] > .motion-icon-swap-icon[data-icon="a"] {
+    filter: blur(0);
+    transform: scale(1);
+  }
+
+  .motion-popup-dialog[data-open],
+  .motion-popup-dialog[data-closed],
+  .motion-popup-dialog[data-starting-style],
+  .motion-popup-dialog[data-ending-style] {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .motion-popup-surface[data-open],
+  .motion-popup-surface[data-closed],
+  .motion-popup-surface[data-starting-style],
+  .motion-popup-surface[data-ending-style] {
+    transform: translate(0, 0) scale(1);
+  }
+
+  .motion-browser-overlay-panel,
+  .motion-browser-overlay-panel[data-open="true"] {
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}

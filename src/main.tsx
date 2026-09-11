@@ -4,6 +4,7 @@ import "./lib/i18n";
 import { createReactErrorHandlers, initMonitoring } from "@/lib/runtime/monitoring";
 import { App } from "./App";
 import "./styles/global.css";
+import "./styles/motion.css";
 
 const monitoringEnabled = initMonitoring();
 
