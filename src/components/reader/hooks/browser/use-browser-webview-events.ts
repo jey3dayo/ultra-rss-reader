@@ -133,7 +133,7 @@ export function useBrowserWebviewEvents({
       listenerGroup.dispose();
       listenerReadyRef.current = null;
     };
-    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (default param literal, no production caller omits it), docs/react-doctor-warning-classification-249.md
+    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (default param literal, no production caller omits it), docs/react-doctor-warning-classification-249.md:188（D. default parameter の関数リテラル 1 件）
   }, [isClosedEventCurrent, onClosed, onDiagnostics, onFallback, onStateChanged, showDiagnostics]);
 
   return useCallback(() => listenerReadyRef.current ?? Promise.resolve(), []);

@@ -50,7 +50,7 @@ export function DestructiveConfirmDialogView({
 
     if (!open) {
       confirmInFlightRef.current = false;
-      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (close resets in-flight confirm), docs/react-doctor-warning-classification-249.md
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (close resets in-flight confirm), docs/react-doctor-warning-classification-249.md:228（判定）
       setConfirmInFlight(false);
 
       if (wasOpenRef.current) {

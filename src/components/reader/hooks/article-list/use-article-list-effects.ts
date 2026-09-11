@@ -72,7 +72,7 @@ export function useArticleListEffects({
     if (scrollToTopOnChange === "true" && viewportRef.current) {
       viewportRef.current.scrollTop = 0;
     }
-    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (stable ref object, adding it changes nothing), docs/react-doctor-warning-classification-249.md
+    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (stable ref object, adding it changes nothing), docs/react-doctor-warning-classification-249.md:176（C. 依存が本当に無い 1 件）
   }, [selection, scrollToTopOnChange]);
 
   useEffect(() => {
