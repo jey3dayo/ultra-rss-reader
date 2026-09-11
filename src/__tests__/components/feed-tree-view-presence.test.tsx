@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedTreeView } from "@/components/reader/feed-tree-view";
 import { MOTION_DATA_SIDEBAR_ROW_LEAVING_ATTRIBUTE, MOTION_SIDEBAR_ROW_EXIT_DURATION_MS } from "@/constants";
 import i18n from "@/lib/i18n";
+import { SIDEBAR_ROW_LEAVING_ATTRIBUTE } from "@/lib/reader-focus";
 
 type Feed = {
   id: string;
@@ -133,6 +134,44 @@ describe("FeedTreeView presence wiring", () => {
 
     const leavingButton = document.querySelector('[data-feed-id="feed-b"]');
     expect(leavingButton).not.toHaveAttribute("data-sidebar-navigation-target");
+  });
+
+  it("marks a leaving feed row so an id-keyed focus lookup can skip it while data-feed-id stays queryable", () => {
+    const feedA = makeFeed({ id: "feed-a", title: "Alpha", unreadCount: 1 });
+    const feedB = makeFeed({ id: "feed-b", title: "Beta", unreadCount: 1 });
+
+    const { rerender } = render(
+      <FeedTreeView
+        isOpen={true}
+        scopeKey="acc-1:unread"
+        folders={[]}
+        unfolderedFeeds={[feedA, feedB]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    expect(document.querySelector('[data-feed-id="feed-b"]')).not.toHaveAttribute(SIDEBAR_ROW_LEAVING_ATTRIBUTE);
+
+    rerender(
+      <FeedTreeView
+        isOpen={true}
+        scopeKey="acc-1:unread"
+        folders={[]}
+        unfolderedFeeds={[feedA]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    // data-feed-id stays on the row (existing DOM tests rely on that), and
+    // the leaving-only marker is the separate signal a focus lookup checks.
+    const leavingButton = document.querySelector('[data-feed-id="feed-b"]');
+    expect(leavingButton).toHaveAttribute(SIDEBAR_ROW_LEAVING_ATTRIBUTE, "true");
   });
 
   it("drops a leaving feed row out of the tab order and stops it selecting", () => {

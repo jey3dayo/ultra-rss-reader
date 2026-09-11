@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/design-system";
 import { ContextMenu } from "@/design-system/context-menu";
-import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import { SIDEBAR_ROW_LEAVING_ATTRIBUTE, SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { FeedTreeRowProps } from "./feed-tree.types";
@@ -143,6 +143,14 @@ export function FeedTreeRow({
               // would then strip the `tabindex="-1"` that the mobile layout sets
               // imperatively on the descendants of a hidden pane.
               {...(feed.isLeaving ? { tabIndex: -1 } : {})}
+              // `data-feed-id` stays on the row unconditionally (existing DOM
+              // tests locate leaving rows by it), so a scheduled sidebar-focus
+              // frame (`use-sidebar-feed-navigation.ts`) can still find this
+              // element by feed id after it starts leaving. This separate
+              // marker is what that lookup checks to skip a dead, `tabIndex={-1}`
+              // leaving row instead of focusing it. See
+              // `.claude/rules/motion-exit-animation.md`.
+              {...(feed.isLeaving ? { [SIDEBAR_ROW_LEAVING_ATTRIBUTE]: "true" } : {})}
               data-feed-id={feed.id}
               className="motion-list-item-enter rounded-lg"
             />

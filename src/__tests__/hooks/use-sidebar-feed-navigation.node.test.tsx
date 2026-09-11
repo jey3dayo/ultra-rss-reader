@@ -4,6 +4,7 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSidebarFeedNavigation } from "@/components/reader/hooks/sidebar/use-sidebar-feed-navigation";
 import { APP_EVENTS } from "@/constants/events";
+import { SIDEBAR_ROW_LEAVING_ATTRIBUTE } from "@/lib/reader-focus";
 
 setupBrowserTestDom();
 
@@ -74,6 +75,46 @@ describe("useSidebarFeedNavigation", () => {
 
     expect(selectFeed).toHaveBeenCalledWith('feed-"quoted"');
     expect(button).toHaveFocus();
+
+    unmount();
+    button.remove();
+    requestAnimationFrameSpy.mockRestore();
+  });
+
+  it("does not focus a feed row that has started leaving since the frame was scheduled", () => {
+    // Regression for PR #302 review: a feed can start leaving (retained by
+    // useFeedTreePresence for its exit animation) in the window between this
+    // hook scheduling a focus frame and that frame running. Such a row is
+    // `tabIndex={-1}` and inert to pointer input; focusing it would strand
+    // keyboard navigation on a dead row.
+    const setExpandedFolders = vi.fn();
+    const selectFeed = vi.fn();
+    const button = document.createElement("button");
+    const focusSpy = vi.spyOn(button, "focus");
+    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callback(0);
+      return 0;
+    });
+
+    button.setAttribute("data-feed-id", "feed-2");
+    button.setAttribute(SIDEBAR_ROW_LEAVING_ATTRIBUTE, "true");
+    document.body.append(button);
+
+    const { unmount } = renderHook(() =>
+      useSidebarFeedNavigation({
+        orderedFeedIds: ["feed-1", "feed-2"],
+        selectedFeedId: "feed-1",
+        expandedFolderIds: new Set(),
+        getFeedFolderId: () => null,
+        setExpandedFolders,
+        selectFeed,
+      }),
+    );
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 }));
+
+    expect(selectFeed).toHaveBeenCalledWith("feed-2");
+    expect(focusSpy).not.toHaveBeenCalled();
 
     unmount();
     button.remove();
