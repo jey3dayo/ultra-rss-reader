@@ -133,11 +133,20 @@ const reactDoctorBaselines = {
   // The single no-adjust-state finding that remains is the one deliberately left unclassified
   // (use-subscriptions-index-state.ts, second wave: issues/300); every other finding in those
   // two families is either fixed or carries an inline record pointing at its classification.
+  // 2/56/44 -> 2/59/45 measured on main at 61af6f1c8. The previous pin described 9e3077f2f
+  // and #302 landed underneath it, so this closes that gap rather than re-measuring the same
+  // tree. #302 added four warnings across two files and #306 disposed of all four: the three
+  // js-combine-iterations in feed-tree-presence-output.ts are accepted risk (the family table
+  // below moves 1 -> 4, and a live scan reports exactly 4 of that rule), and the
+  // no-high-complexity-react-function on SidebarNavButton was removed by extracting the badge
+  // retention into a hook plus a local component, not classified. That asymmetry is why
+  // classifiedFindingCount stays 25 while the family total moves 11 -> 14, and why the derived
+  // untriaged count stays 20: nothing entered the backlog.
   full: {
     score: null,
     errorCount: 2,
-    warningCount: 56,
-    affectedFileCount: 44,
+    warningCount: 59,
+    affectedFileCount: 45,
   },
 } as const;
 
@@ -155,7 +164,7 @@ const reactDoctorBaselines = {
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
-  scanSha: "9e3077f2f",
+  scanSha: "61af6f1c8",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -178,7 +187,7 @@ const reactDoctorFullScanTriageStatusBase = {
     },
     {
       rule: "js-combine-iterations",
-      count: 1,
+      count: 4,
       disposition: "accepted-risk",
       recordPath: ".claude/rules/quality-policy.md (Iteration And Lookup Shape Findings)",
     },
