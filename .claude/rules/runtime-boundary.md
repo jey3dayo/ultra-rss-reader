@@ -16,6 +16,7 @@ Browser APIs, Tauri APIs, storage, platform globals, and native-window features 
 - Guard Tauri/native calls for runtime unavailable, permission denied, malformed payload, and command rejection when the call can run in browser preview, Storybook, tests, or dev-only flows.
 - Keep runtime fallback policy close to the boundary. UI components should receive already-normalized capability or state when practical.
 - Do not add platform-specific padding, geometry offsets, or browser-mode assumptions to view components before checking the runtime boundary owner.
+- Do not put a DOM attribute under React's control when something else writes it imperatively. Passing `tabIndex={undefined}` to make it conditional still makes React own the attribute, so every re-render strips the `tabindex="-1"` that the mobile layout sets on the descendants of a hidden pane — the full jsdom suite caught that, while the focused tests for the change did not. Spread the prop only in the state that needs it (`{...(leaving ? { tabIndex: -1 } : {})}`) so React never touches it otherwise.
 
 ## Test Expectations
 
