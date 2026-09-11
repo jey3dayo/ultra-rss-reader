@@ -251,7 +251,7 @@ describe("quality-baseline", () => {
     // The snapshot totals are not a classification set: the notice has to name a tracker
     // for the warnings and errors the pass did not classify, so a zero baseline delta
     // never reads as approval.
-    expect(status.untriagedWarningIssue).toContain("/issues/249");
+    expect(status.untriagedWarningIssue).toContain("/issues/300");
     expect(status.errorIssue).toContain("/issues/260");
     expect(status.outlierIssue).toContain("/issues/256");
     expect(status.untriagedWarningCountAtScan).toBeGreaterThan(0);
@@ -285,14 +285,20 @@ describe("quality-baseline", () => {
     // rather than only showing up as a silent drift in the derived subtraction below.
     expect(status.classifiedWarningFamiliesCount).toBe(11);
 
-    // Do not re-declare the scanned warningCount (89) here: reactDoctorBaselines is not
-    // exported (adding an export just for this identity would grow the Knip-tracked export
-    // surface, see .claude/rules/quality-policy.md), and copying the literal in would be the
-    // same hand-pinned-number drift risk this status was built to remove. Pinning the
-    // derived total below is what actually catches a broken subtraction: if
-    // untriagedWarningCountAtScan stops being warningCount minus the two classified totals,
-    // this assertion fails without needing a second copy of warningCount in this file.
-    expect(status.untriagedWarningCountAtScan).toBe(53);
+    // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
+    // (adding an export just for this identity would grow the Knip-tracked export surface, see
+    // .claude/rules/quality-policy.md), and copying the literal in would be the same
+    // hand-pinned-number drift risk this status was built to remove. Pinning the derived total
+    // below is what actually catches a broken subtraction: if untriagedWarningCountAtScan stops
+    // being warningCount minus the two classified totals, this assertion fails without needing
+    // a second copy of warningCount in this file.
+    //
+    // 20 is the second wave: 19 findings still to classify plus the one
+    // no-adjust-state-on-prop-change deliberately left unrecorded, both tracked at
+    // https://github.com/jey3dayo/ultra-rss-reader/issues/300. It is a cross-check on the
+    // subtraction, not an independently chosen number — if it stops matching that issue's
+    // count, one of the two is wrong.
+    expect(status.untriagedWarningCountAtScan).toBe(20);
   });
 
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {

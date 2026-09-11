@@ -490,7 +490,10 @@ it to two sites on 2026-09-08 traded 2 warnings for 2 errors (14 → 16), so it 
 `useState` with an initialiser function is not a general substitute: it captures once, so a
 value that must follow props goes stale. Decide who owns the state and what lifetime it needs
 before touching these; do not change code to trade one rule for another, and do not record them
-as accepted risk without that decision. They remain untriaged under Issue #249.
+as accepted risk without that decision. These two remain untriaged and are tracked with the
+rest of the second wave at <https://github.com/jey3dayo/ultra-rss-reader/issues/300>; the
+first-wave issue #249 is closed out and is the record of where they were found, not the
+place to pick them up.
 
 ### Supply Chain Hardening Findings
 
