@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/react-vite";
 import i18n from "../src/lib/i18n";
 import "../src/styles/global.css";
+import "../src/styles/motion.css";
 
 type StorybookPreviewBackgroundName = "dark" | "light";
 

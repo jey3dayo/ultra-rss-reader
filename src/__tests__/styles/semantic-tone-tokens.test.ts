@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const GLOBAL_CSS_PATH = resolve(process.cwd(), "src/styles/global.css");
+const MOTION_CSS_PATH = resolve(process.cwd(), "src/styles/motion.css");
 
 const REQUIRED_SEMANTIC_TONE_TOKENS = [
   "--tone-unread",
@@ -138,14 +139,14 @@ describe("semantic tone tokens", () => {
   });
 
   it("keeps empty-slot motion from hiding filled unread indicators", () => {
-    const css = readFileSync(GLOBAL_CSS_PATH, "utf-8");
+    const css = readFileSync(MOTION_CSS_PATH, "utf-8");
 
     expect(css).toContain('.motion-article-state-slot[data-article-state-slot="reserved"]:empty');
     expect(css).not.toContain(".motion-article-state-slot:empty {");
   });
 
   it("keeps article selection marker motion on compositor-friendly properties", () => {
-    const css = readFileSync(GLOBAL_CSS_PATH, "utf-8");
+    const css = readFileSync(MOTION_CSS_PATH, "utf-8");
     const markerKeyframes = css.match(/@keyframes motion-article-selection-marker\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
 
     expect(markerKeyframes).toContain("opacity: 0");

@@ -8,6 +8,9 @@ import { FeedTreeRowCollapse } from "@/components/reader/feed-tree-row-collapse"
 import { getSidebarDensityTokens, type SidebarDensity } from "@/components/reader/sidebar-density";
 import { MOTION_SIDEBAR_ROW_COLLAPSE_CLASS_NAME } from "@/constants";
 
+// The collapse rules live in motion.css since the extraction out of
+// global.css; `--spacing` still belongs to global.css's token block.
+const MOTION_CSS_SOURCE = readFileSync(resolve(process.cwd(), "src/styles/motion.css"), "utf8");
 const GLOBAL_CSS_SOURCE = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
 const FEED_TREE_SELECTABLE_ROW_SOURCE = readFileSync(
   resolve(process.cwd(), "src/components/reader/feed-tree-selectable-row.tsx"),
@@ -134,13 +137,13 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
     // clips independently of overflow and accepts a negative inset to
     // expand the clip region past that edge, so the rail is covered
     // without clipping being disabled anywhere.
-    expect(GLOBAL_CSS_SOURCE).not.toMatch(/\.motion-sidebar-row-collapse > \*\s*\{[^}]*overflow:\s*hidden/);
+    expect(MOTION_CSS_SOURCE).not.toMatch(/\.motion-sidebar-row-collapse > \*\s*\{[^}]*overflow:\s*hidden/);
 
     // Pin the exact formula so a numeric drift in it (not just in
     // sidebar-density.ts) is caught directly.
     const clipPathFormula = "clip-path: inset(0 0 0 calc(var(--feed-tree-rail-offset, 0px) * 3.25));";
-    expect(GLOBAL_CSS_SOURCE).toContain(clipPathFormula);
-    const multiplierMatch = GLOBAL_CSS_SOURCE.match(
+    expect(MOTION_CSS_SOURCE).toContain(clipPathFormula);
+    const multiplierMatch = MOTION_CSS_SOURCE.match(
       /clip-path:\s*inset\(0 0 0 calc\(var\(--feed-tree-rail-offset, 0px\) \* ([\d.]+)\)\);/,
     );
     expect(multiplierMatch).not.toBeNull();
@@ -186,8 +189,8 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
     // left the real margin-block-end in place, so a leaving row in a
     // space-y-* list (e.g. spacious density) kept a residual gap below it
     // until the row unmounted.
-    expect(GLOBAL_CSS_SOURCE).toContain('.motion-sidebar-row-collapse[data-motion-sidebar-row-leaving="true"]');
-    const leavingRuleMatch = GLOBAL_CSS_SOURCE.match(
+    expect(MOTION_CSS_SOURCE).toContain('.motion-sidebar-row-collapse[data-motion-sidebar-row-leaving="true"]');
+    const leavingRuleMatch = MOTION_CSS_SOURCE.match(
       /\.motion-sidebar-row-collapse\[data-motion-sidebar-row-leaving="true"\]\s*\{([^}]*)\}/,
     );
     expect(leavingRuleMatch).not.toBeNull();
