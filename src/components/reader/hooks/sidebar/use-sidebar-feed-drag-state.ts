@@ -15,7 +15,9 @@ export function useSidebarFeedDragState({
   const [activeDropTarget, setActiveDropTarget] = useState<ActiveDropTarget | null>(null);
 
   const clearDragState = useCallback(() => {
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (drag session teardown), docs/react-doctor-warning-classification-249.md:296（use-sidebar-feed-drag-state の理由）
     setDraggedFeedId(null);
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (drag session teardown), docs/react-doctor-warning-classification-249.md:296（use-sidebar-feed-drag-state の理由）
     setActiveDropTarget(null);
   }, []);
 
@@ -116,6 +118,7 @@ export function useSidebarFeedDragState({
 
     if (activeDropTarget.kind === "folder") {
       if (!canDropFeedToFolder(draggedFeedId, activeDropTarget.folderId)) {
+        // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (drag hover invalidation), docs/react-doctor-warning-classification-249.md:296（use-sidebar-feed-drag-state の理由）
         setActiveDropTarget(null);
       }
       return;
@@ -123,6 +126,7 @@ export function useSidebarFeedDragState({
 
     const draggedFeed = feedById.get(draggedFeedId);
     if (!draggedFeed || draggedFeed.folder_id === null) {
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (drag hover invalidation), docs/react-doctor-warning-classification-249.md:296（use-sidebar-feed-drag-state の理由）
       setActiveDropTarget(null);
     }
   }, [activeDropTarget, canDropFeedToFolder, draggedFeedId, feedById]);

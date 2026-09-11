@@ -233,7 +233,7 @@ default を module scope の定数へ出せば消える。
 | `use-sidebar-feed-drag-state.ts:18,19,119,126` | accepted-risk | 進行中の drag を巻き添えにせず remedy を適用できない |
 | `use-account-detail-sync-controls.ts:184,185` | accepted-risk | 既存決定の前提（下記の相互参照） |
 | `destructive-confirm-dialog-view.tsx:53` | accepted-risk | `key` remount が focus 復帰を壊す |
-| `use-subscriptions-index-state.ts:98-104` | **未決（仕様判断）** | `key` は成立する。採否は仕様判断（下記） |
+| `use-subscriptions-index-state.ts:98-104` | accepted-risk | `key` は warning を消さず、削除中の pending 契約を壊す（下記） |
 | `use-subscriptions-index-state.ts:162` | 第 2 波へ送る | 下記のとおり再検証が必要 |
 
 #### `use-article-list-sources.ts:311` は false-positive
@@ -243,7 +243,7 @@ effect（308-311 行）は `retainedArticleIds.size === 0` のとき snapshot �
 （`src/lib/articles/article-list-filtering.ts:272-273`）は**同じ条件**で早期 return し snapshot を
 読まない。したがってルールが主張する「stale な値が一瞬見える」は発生しない。
 
-#### `use-subscriptions-index-state.ts:98-104` は `key` が成立する（未決）
+#### `use-subscriptions-index-state.ts:98-104` は accepted-risk
 
 初稿では「remedy が無い」と書いたが誤りだった。
 
@@ -272,7 +272,19 @@ reset 契約を単体テストで持っている（`use-subscriptions-index-stat
 保存・削除の処理中は無条件 unmount しない。account 切替直後の render で旧対象への新規 submit を
 許さない guard も併せて要る。**effect を 1 つ足せば pending も解決した、とはしない。**
 
-7 件の分類は、この pending 保持契約を page の外へ出すかどうかを決めてからにする。
+**判定は accepted-risk で確定した（2026-09-11）。** 決め手は 2 つある。
+
+1. **`key` を付けても 7 件の warning は消えない。** 上記のとおり warning は effect に対して
+   出ており、`key` は effect を削除しない。「remedy を採れば消える finding」ではない。
+2. **`key` は削除中の pending 契約を壊す。** これは仕様の好みではなくコード上の事実で、
+   `use-delete-feed.ts:36-59` に instance を跨ぐ guard も cancel も無い。
+
+したがって「remedy はあるが採らない」ではなく、**この設計では remedy が成立しない**。
+`no-adjust-state-on-prop-change` の他の 8 件と同じ扱いになる。
+
+account 切替時に旧 account のダイアログが残る問題そのものは、page 全体の remount ではなく
+ダイアログ側で解く形で #301 が対応した（`feed-edit-dialog.tsx`）。編集ダイアログについては
+そこで解消しており、この 7 件が指す state reset とは別の層の話である。
 
 #### `use-subscriptions-index-state.ts:162` は第 2 波へ
 
