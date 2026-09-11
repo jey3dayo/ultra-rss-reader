@@ -1,14 +1,22 @@
 import { ChevronDown, Folder } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
 import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
-import type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
+import type {
+  ActiveDropTarget,
+  FeedTreeFeedViewModel,
+  FeedTreeFolderViewModel,
+  FeedTreePresenceFolderViewModel,
+} from "./feed-tree.types";
 import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
 import { FeedTreeRow } from "./feed-tree-row";
+import { FeedTreeRowCollapse } from "./feed-tree-row-collapse";
+import { useFeedTreeRowLeaveFocus } from "./hooks/sidebar/use-feed-tree-row-leave-focus";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
@@ -17,7 +25,7 @@ const folderChildRailClassName = "ml-[1.125rem] pl-3";
 
 type FeedTreeFolderSectionProps = {
   sidebarDensity?: SidebarDensity;
-  folder: FeedTreeFolderViewModel;
+  folder: FeedTreePresenceFolderViewModel;
   activeDropTarget: ActiveDropTarget;
   draggedFeedId?: string | null;
   onToggleFolder: (folderId: string) => void;
@@ -57,16 +65,21 @@ export function FeedTreeFolderSection({
   const { t } = useTranslation("sidebar");
   const tokens = getSidebarDensityTokens(sidebarDensity);
   const { contextMenuTarget, captureTarget, captureKeyboardTarget, clearTarget } = useContextMenuTargetSnapshot(folder);
-  const showDropOverlay = canDragFeeds && draggedFeedId !== null;
-  const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
+  const isDropTarget = canDragFeeds && !folder.isLeaving;
+  const showDropOverlay = isDropTarget && draggedFeedId !== null;
+  const isActive = isDropTarget && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
   const panelId = `feed-tree-folder-panel-${folder.id}`;
   const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) =>
     handleMiddleMouseMarkRead(event, folder, onMarkFolderRead);
+  const rowRef = useRef<HTMLDivElement>(null);
+  useFeedTreeRowLeaveFocus(rowRef, folder.isLeaving);
+  const isCurrentSelection = folder.isSelected && !folder.isLeaving;
 
   return (
     <div
+      ref={rowRef}
       className={cn("relative rounded-md", isActive && "bg-[var(--feed-tree-active-folder-surface)]")}
-      {...(canDragFeeds
+      {...(isDropTarget
         ? {
             [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
             [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
@@ -112,15 +125,23 @@ export function FeedTreeFolderSection({
                 aria-controls={panelId}
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
+                registerSidebarNavigationTarget={!folder.isLeaving}
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
+                trailingKeepLastOnClear
                 trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
-                {...(folder.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
-                {...(canDragFeeds
+                {...(isCurrentSelection ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+                {...(isDropTarget
                   ? {
                       [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
                       [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
                     }
                   : {})}
+                // See feed-tree-row.tsx: a keyboard-issued `contextmenu` targets
+                // whatever holds focus, so `pointer-events: none` alone does not
+                // close that path. Leaving the tab order does, and the prop is
+                // spread only while leaving so React does not own the attribute
+                // at rest.
+                {...(folder.isLeaving ? { tabIndex: -1 } : {})}
                 className={cn(
                   "flex-1 rounded-lg pl-0.5",
                   folderParentRailClassName,
@@ -128,19 +149,23 @@ export function FeedTreeFolderSection({
                 )}
               />
             }
-            onContextMenu={captureTarget}
-            onKeyDownCapture={captureKeyboardTarget}
-            onClick={() => {
-              if (folder.isSelected && folder.isExpanded) {
-                onToggleFolder(folder.id);
-                return;
-              }
-              if (!folder.isExpanded) {
-                onToggleFolder(folder.id);
-              }
-              onSelectFolder?.(folder.id);
-            }}
-            onMouseDown={handleMiddleMouseDown}
+            onContextMenu={folder.isLeaving ? undefined : captureTarget}
+            onKeyDownCapture={folder.isLeaving ? undefined : captureKeyboardTarget}
+            onClick={
+              folder.isLeaving
+                ? undefined
+                : () => {
+                    if (folder.isSelected && folder.isExpanded) {
+                      onToggleFolder(folder.id);
+                      return;
+                    }
+                    if (!folder.isExpanded) {
+                      onToggleFolder(folder.id);
+                    }
+                    onSelectFolder?.(folder.id);
+                  }
+            }
+            onMouseDown={folder.isLeaving ? undefined : handleMiddleMouseDown}
           >
             <span
               aria-hidden="true"
@@ -178,20 +203,26 @@ export function FeedTreeFolderSection({
             )}
           >
             {folder.feeds.map((feed) => (
-              <FeedTreeRow
-                key={feed.id}
-                sidebarDensity={sidebarDensity}
-                feed={feed}
-                displayFavicons={displayFavicons}
-                onSelectFeed={onSelectFeed}
-                onMarkFeedRead={onMarkFeedRead}
-                renderFeedContextMenu={renderFeedContextMenu}
-                canDragFeeds={canDragFeeds}
-                isDragged={draggedFeedId === feed.id}
-                onDragStartFeed={onDragStartFeed}
-                onPointerDownFeed={onPointerDownFeed}
-                consumeSuppressedHandleClick={consumeSuppressedHandleClick}
-              />
+              // The folder itself owns the collapse when it is leaving (its
+              // whole subtree, children included, is already shrinking to
+              // zero height); collapsing the child too here would collapse
+              // it twice. Only this wrapper collapses when the child is
+              // leaving on its own (folder not leaving).
+              <FeedTreeRowCollapse key={feed.id} collapsing={feed.isLeaving && !folder.isLeaving}>
+                <FeedTreeRow
+                  sidebarDensity={sidebarDensity}
+                  feed={feed}
+                  displayFavicons={displayFavicons}
+                  onSelectFeed={onSelectFeed}
+                  onMarkFeedRead={onMarkFeedRead}
+                  renderFeedContextMenu={renderFeedContextMenu}
+                  canDragFeeds={canDragFeeds}
+                  isDragged={draggedFeedId === feed.id}
+                  onDragStartFeed={onDragStartFeed}
+                  onPointerDownFeed={onPointerDownFeed}
+                  consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+                />
+              </FeedTreeRowCollapse>
             ))}
           </div>
         </div>

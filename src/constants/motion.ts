@@ -35,6 +35,24 @@ const MOTION_LOADING_DOT_CLASS_NAME = "motion-loading-dot";
 export const MOTION_HOLD_CONFIRM_CLASS_NAME = "motion-hold-confirm";
 export const MOTION_HOLD_CONFIRM_FILL_CLASS_NAME = "motion-hold-confirm-fill";
 export const MOTION_HOLD_CONFIRM_DURATION_MS = 2000;
+export const MOTION_SIDEBAR_BADGE_CLASS_NAME = "motion-sidebar-badge";
+// Single source for the sidebar badge leave timer: kept in sync with its CSS
+// duration token by src/__tests__/constants/source-of-truth.test.ts, the same
+// way MOTION_HOLD_CONFIRM_DURATION_MS is pinned to --motion-duration-hold-confirm.
+export const MOTION_SIDEBAR_BADGE_EXIT_DURATION_MS = 120;
+// Row-level feed/folder leave timer for useFeedTreePresence (retains an exiting
+// sidebar row long enough to animate out before it is dropped). Kept in sync
+// with its CSS duration token (--motion-duration-contextual) by
+// src/__tests__/constants/source-of-truth.test.ts, the same way
+// MOTION_HOLD_CONFIRM_DURATION_MS is pinned to --motion-duration-hold-confirm.
+export const MOTION_SIDEBAR_ROW_EXIT_DURATION_MS = 180;
+// Wraps a single sidebar feed/folder row so useFeedTreePresence's retained
+// "leaving" row can collapse its occupied height (grid-template-rows ->
+// 0fr) and fade out, instead of vanishing abruptly. Applied by exactly one
+// owner per transition: a leaving folder wraps itself; a leaving folder's
+// still-present children are not also wrapped, or the height reduction
+// would double-count.
+export const MOTION_SIDEBAR_ROW_COLLAPSE_CLASS_NAME = "motion-sidebar-row-collapse";
 export const MOTION_CLASS_NAMES = [
   MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
@@ -68,6 +86,8 @@ export const MOTION_CLASS_NAMES = [
   MOTION_LOADING_DOT_CLASS_NAME,
   MOTION_HOLD_CONFIRM_CLASS_NAME,
   MOTION_HOLD_CONFIRM_FILL_CLASS_NAME,
+  MOTION_SIDEBAR_BADGE_CLASS_NAME,
+  MOTION_SIDEBAR_ROW_COLLAPSE_CLASS_NAME,
 ] as const;
 export type MotionClassName = (typeof MOTION_CLASS_NAMES)[number];
 
@@ -114,6 +134,8 @@ const MOTION_DATA_STATE_TOGGLE_ICON_ATTRIBUTE = "data-state-toggle-icon";
 const MOTION_DATA_STATE_TOGGLE_ICON_TONE_ATTRIBUTE = "data-state-toggle-icon-tone";
 const MOTION_DATA_ARTICLE_STATE_SLOT_ATTRIBUTE = "data-article-state-slot";
 export const MOTION_DATA_HOLD_ATTRIBUTE = "data-motion-hold";
+export const MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE = "data-motion-sidebar-badge-leaving";
+export const MOTION_DATA_SIDEBAR_ROW_LEAVING_ATTRIBUTE = "data-motion-sidebar-row-leaving";
 export const MOTION_DATA_ATTRIBUTES = [
   MOTION_DATA_PHASE_ATTRIBUTE,
   MOTION_DATA_DIRECTION_ATTRIBUTE,
@@ -132,6 +154,8 @@ export const MOTION_DATA_ATTRIBUTES = [
   MOTION_DATA_STATE_TOGGLE_ICON_ATTRIBUTE,
   MOTION_DATA_STATE_TOGGLE_ICON_TONE_ATTRIBUTE,
   MOTION_DATA_HOLD_ATTRIBUTE,
+  MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE,
+  MOTION_DATA_SIDEBAR_ROW_LEAVING_ATTRIBUTE,
 ] as const;
 export type MotionDataAttribute = (typeof MOTION_DATA_ATTRIBUTES)[number];
 
@@ -187,6 +211,7 @@ export const MOTION_TRANSITION_TOKEN_DECLARATIONS = [
   "--motion-duration-popup-exit: 120ms;",
   "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
   "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
+  "--motion-ease-collapse: cubic-bezier(0.4, 0, 0.2, 1);",
 ] as const;
 export type MotionTransitionTokenDeclaration = (typeof MOTION_TRANSITION_TOKEN_DECLARATIONS)[number];
 
@@ -222,5 +247,7 @@ export const MOTION_GLOBAL_CSS_CONTRACT_SELECTORS = [
   `.${MOTION_BROWSER_OVERLAY_CLASS_NAME}[${MOTION_DATA_OPEN_ATTRIBUTE}="true"]`,
   `.${MOTION_HOLD_CONFIRM_FILL_CLASS_NAME}`,
   `.${MOTION_HOLD_CONFIRM_CLASS_NAME}[${MOTION_DATA_HOLD_ATTRIBUTE}="true"] > .${MOTION_HOLD_CONFIRM_FILL_CLASS_NAME}`,
+  `.${MOTION_SIDEBAR_BADGE_CLASS_NAME}[${MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE}="true"]`,
+  `.${MOTION_SIDEBAR_ROW_COLLAPSE_CLASS_NAME}[${MOTION_DATA_SIDEBAR_ROW_LEAVING_ATTRIBUTE}="true"]`,
 ] as const;
 export type MotionGlobalCssContractSelector = (typeof MOTION_GLOBAL_CSS_CONTRACT_SELECTORS)[number];

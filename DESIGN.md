@@ -276,6 +276,14 @@ Manual/a11y smoke:
 - Shadow transitions: 200ms ease
 - Transform feedback should remain subtle
 
+### Easing Selection
+
+- The shared easing tokens are not interchangeable. Pick by what the motion has to communicate, not by whichever token is nearest.
+- `--motion-ease-standard` and `--motion-ease-emphasized` are entrance curves: both spend most of their progress in the opening moments so an arriving element lands quickly and settles. Measured on a 36px row over 180ms, the two are effectively the same curve — 14.5px and 14.2px remaining at 30ms — so swapping one for the other is not a way to change how a transition reads.
+- A collapse or fold needs a curve that starts slowly, otherwise the element is perceptually gone before the fold is legible and the motion reads as the same abrupt removal it was meant to replace. `--motion-ease-collapse` exists for that case; the same measurement leaves 32.9px at 30ms.
+- Introduce a new easing token only when an existing one cannot express the intent, and record the intent at the token rather than at one call site. Do not inline a `cubic-bezier()` in a component.
+- Keep a departing element's opacity on the same curve as its size. Fading faster than the fold hides the motion that explains where the element went.
+
 ### Compact Action Feedback
 
 - Small icon-only actions should acknowledge accepted clicks with a short, restrained motion cue instead of feeling silent.

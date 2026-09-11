@@ -119,6 +119,13 @@
   --motion-duration-popup-exit: 120ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* --motion-ease-standard and --motion-ease-emphasized are both strong
+     ease-out curves meant for entrances: measured on a 36px sidebar row,
+     --motion-ease-standard reaches 14.5px by 30ms into its 180ms run, so a
+     collapse using it looks like the row vanishing rather than shrinking.
+     A collapse needs a gentler start so the shrink stays visible; this
+     curve is for exit/collapse transitions, not entrances. */
+  --motion-ease-collapse: cubic-bezier(0.4, 0, 0.2, 1);
   --theme-canvas: #f2f1ed;
   --theme-canvas-rgb: 242 241 237;
   --theme-foreground: #26251e;
@@ -1449,6 +1456,114 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transform: scale(var(--motion-icon-swap-inactive-scale));
 }
 
+/* Opacity-only fade so a badge's last count can linger and dissolve when it
+   clears (e.g. unread 1 -> 0), instead of unmounting instantly. Reuses the
+   popup-exit duration/easing pair rather than a dedicated token. */
+.motion-sidebar-badge {
+  transition: opacity var(--motion-duration-popup-exit) var(--motion-ease-standard);
+}
+
+.motion-sidebar-badge[data-motion-sidebar-badge-leaving="true"] {
+  opacity: 0;
+}
+
+/* Presence-driven collapse for a sidebar feed/folder row leaving the tree
+   (useFeedTreePresence). grid-template-rows transitions 1fr -> 0fr so the
+   row's occupied height collapses to zero even where fr-unit interpolation
+   isn't supported: the leaving state's geometry is a discrete 0fr value,
+   not merely an animation keyframe, so the final layout is always zero
+   height. The inner wrapper clips the row's own content (selection marker,
+   drag handle, label) as the track shrinks. The leaving state also zeroes
+   the block-end margin so collapsing a row does not leave a residual gap
+   from the parent's Tailwind `space-y-*` sibling margin utility. */
+.motion-sidebar-row-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--motion-duration-contextual) var(--motion-ease-collapse),
+    opacity var(--motion-duration-contextual) var(--motion-ease-collapse);
+}
+
+/* This is the grid item CSS Grid stretches to the 0fr track's zero height
+   during exit, so it is where content must be clipped vertically (a child's
+   own auto height is not otherwise constrained by a 0-height parent).
+   `min-height: 0` is what allows that stretch to actually reach zero: a
+   grid item's automatic minimum height otherwise defaults to its content
+   size, and authoring `min-height: 0` (rather than leaving it `auto`)
+   overrides that regardless of the `overflow`/`clip-path` choice below.
+
+   `--feed-tree-rail-offset` (see sidebar-density.ts) is negative: feed rows
+   position two decorations to the *left* of this box, outside its own left
+   edge, on purpose — that offset is the sidebar's reserved rail gutter
+   (feed-tree-selectable-row.tsx):
+     - the selection indicator, at `left: var(--feed-tree-rail-offset)` —
+       its own left edge sits exactly at the rail offset.
+     - the drag-handle anchor, at the same `left` plus `-translate-x-1/2`,
+       which shifts it an *additional* half of its own rendered width
+       further left. Its rendered width is `tokens.leadingControl` from
+       sidebar-density.ts (a Tailwind `size-*` utility: compact size-8 =
+       2rem, normal size-9 = 2.25rem, spacious size-11 = 2.75rem), so its
+       real left edge is `railOffset - controlWidth / 2` — always further
+       left than the indicator, and NOT recoverable from `railOffset`
+       alone by a fixed ratio (see the per-density numbers below).
+   A plain `overflow: hidden` clips at this box's own edges on every side
+   and would cut both decorations off at rest, not only while leaving,
+   since this class is applied unconditionally (see
+   motion-exit-animation.md). `overflow-x: visible` paired with
+   `overflow-y: hidden` cannot fix that either — per the CSS Overflow spec,
+   pairing `visible` on one axis with a non-visible value on the other
+   computes the `visible` axis to `auto`, turning this into a horizontal
+   scroll container that still hides both decorations (scrolled out of
+   view). `clip-path: inset()` clips independently of `overflow` and takes
+   a negative offset per side to *expand* the clip region past that edge,
+   without moving anything or touching either decoration's own `left`
+   position — so the left inset only needs to reach the *further* of the
+   two, the drag handle.
+
+   Using `var(--feed-tree-rail-offset)` directly (as the indicator alone
+   would need) under-covers the handle, so the inset instead multiplies it
+   by 3.25 — the ratio the handle itself needs at `normal` density, the
+   tightest of the three:
+     compact:  railOffset -0.5rem,  control 2rem   -> handle edge -1.5rem
+     normal:   railOffset -0.5rem,  control 2.25rem -> handle edge -1.625rem  (needs x3.25 exactly)
+     spacious: railOffset -0.75rem, control 2.75rem -> handle edge -2.125rem (x3.25 gives -2.4375rem)
+   x3.25 reaches -1.625rem exactly for `-0.5rem` (covering both compact and
+   normal, whose real need is only -1.5rem) and over-reaches to -2.4375rem
+   for spacious's -0.75rem (real need -2.125rem). A clip-path inset that
+   reaches further left than a row's own decorations need is harmless: it
+   only enlarges the region this element itself is *allowed* to paint in,
+   never what an unrelated sibling can paint, and it doesn't affect this
+   box's own layout size (clip-path is paint-only, unlike overflow's
+   automatic-minimum-size interaction, which is why `min-height: 0` above
+   is still required regardless of this). Falls back to 0 for the folder
+   row (feed-tree-folder-section.tsx), which does not set
+   `--feed-tree-rail-offset` (0 x 3.25 = 0) and whose own selection
+   indicator sits at its box's left edge already, with no drag handle.
+
+   `src/__tests__/components/feed-tree-collapse-layout.test.tsx` enumerates
+   the two left-decorating elements above and pins this derivation; revisit
+   both together if a third rail decoration is ever added, or if
+   sidebar-density.ts's rail offset / leading-control sizes change. */
+.motion-sidebar-row-collapse > * {
+  clip-path: inset(0 0 0 calc(var(--feed-tree-rail-offset, 0px) * 3.25));
+  min-height: 0;
+}
+
+/* No `!important`: this rule is plain (unlayered) CSS, while Tailwind's
+   `space-y-*` sibling-margin utility lives inside Tailwind's `utilities`
+   cascade layer (`@import "tailwindcss"` above). Unlayered declarations
+   always win over layered ones regardless of specificity or source order,
+   so this overrides the utility's margin without needing `!important`.
+   Tailwind 4's `space-y-*` sets `margin-block-end` on every non-last
+   sibling (not `margin-top`), so that is the property zeroed here. */
+.motion-sidebar-row-collapse[data-motion-sidebar-row-leaving="true"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+  margin-block-end: 0;
+}
+
 .motion-resize-surface {
   transition-property:
     width, height, min-height, max-width, padding, opacity, transform, border-color, background-color, color;
@@ -1601,7 +1716,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-browser-overlay-panel,
   .motion-settings-modal,
   .motion-state-toggle [data-state-toggle-icon="true"],
-  .motion-article-state-slot {
+  .motion-article-state-slot,
+  .motion-sidebar-badge,
+  .motion-sidebar-row-collapse {
     transition-duration: 0ms;
   }
 

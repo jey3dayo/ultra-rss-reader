@@ -4,6 +4,7 @@ import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/articles/article-list";
 import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
+import { SIDEBAR_ROW_LEAVING_ATTRIBUTE } from "@/lib/reader-focus";
 import {
   bindWindowEvents,
   createCustomEventDetailListener,
@@ -91,7 +92,14 @@ export function useSidebarFeedNavigation({
             "data-feed-id",
             resolvedNextFeedId,
           );
-          if (!nextFeedButton) {
+          // A feed id resolves to at most one row at a time (it is either
+          // logical or leaving, never both — see `use-feed-tree-presence.ts`),
+          // so a leaving match here means the row that owned this id has
+          // already started exiting since the frame was scheduled. It is
+          // `tabIndex={-1}` and inert to pointer input; focusing it would
+          // land the caret on a dead row that arrow-key navigation cannot
+          // move out of.
+          if (!nextFeedButton || nextFeedButton.hasAttribute(SIDEBAR_ROW_LEAVING_ATTRIBUTE)) {
             return;
           }
 

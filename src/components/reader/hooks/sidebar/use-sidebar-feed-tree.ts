@@ -52,8 +52,9 @@ export function useSidebarFeedTree({
   const selectedFolderId = selection.type === "folder" ? selection.folderId : null;
 
   const getVisibleFeeds = useCallback(
-    (candidateFeeds: FeedDto[]) => getVisibleSidebarFeeds(candidateFeeds, viewMode, sortFeeds, starredCountByFeedId),
-    [sortFeeds, starredCountByFeedId, viewMode],
+    (candidateFeeds: FeedDto[]) =>
+      getVisibleSidebarFeeds(candidateFeeds, viewMode, sortFeeds, selectedFeedId, starredCountByFeedId),
+    [selectedFeedId, sortFeeds, starredCountByFeedId, viewMode],
   );
 
   const { visibleFolderFeedsById, visibleUnfolderedFeeds, orderedFeedIds } = useMemo(

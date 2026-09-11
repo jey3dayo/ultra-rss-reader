@@ -202,6 +202,56 @@ describe("useSidebarFeedTree", () => {
     expect(result.current.unfolderedFeedViews[0]?.unreadCount).toBe(1);
   });
 
+  it("keeps the selected feed visible in unread view once its unread count reaches zero", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds: feeds.map((feed) =>
+          feed.id === "feed-a-2" || feed.id === "feed-z-2" || feed.id === "feed-u-1"
+            ? { ...feed, unread_count: 0 }
+            : feed,
+        ),
+        folders,
+        selection: { type: "feed", feedId: "feed-a-2" },
+        viewMode: "unread",
+        expandedFolderIds: new Set(["folder-a", "folder-z"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+      }),
+    );
+
+    expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a", "folder-z"]);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-1", "feed-a-2"]);
+    expect(result.current.feedTreeFolders[1]?.feeds.map((feed) => feed.id)).toEqual(["feed-z-1"]);
+    expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-2"]);
+  });
+
+  it("still hides an unselected feed in unread view once its unread count reaches zero", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds: feeds.map((feed) =>
+          feed.id === "feed-a-2" || feed.id === "feed-z-2" || feed.id === "feed-u-1"
+            ? { ...feed, unread_count: 0 }
+            : feed,
+        ),
+        folders,
+        // Some other feed is selected, so the zero-unread feeds must not be
+        // exempted from the unread filter.
+        selection: { type: "feed", feedId: "feed-a-1" },
+        viewMode: "unread",
+        expandedFolderIds: new Set(["folder-a", "folder-z"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+      }),
+    );
+
+    expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a", "folder-z"]);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-1"]);
+    expect(result.current.feedTreeFolders[1]?.feeds.map((feed) => feed.id)).toEqual(["feed-z-1"]);
+    expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-2"]);
+  });
+
   it("keeps starred feeds visible even when they have no unread articles", () => {
     const { result } = renderHook(() =>
       useSidebarFeedTree({
@@ -220,5 +270,50 @@ describe("useSidebarFeedTree", () => {
     expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a"]);
     expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-2"]);
     expect(result.current.feedTreeFolders[0]?.feeds[0]?.unreadCount).toBe(1);
+  });
+
+  it("hides the folder badge in starred view when its only visible feed is the selected, unstarred feed", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        // folder-a's only remaining feed is unstarred and selected, so it is
+        // kept visible by the selection guard but must not inflate the badge.
+        feeds: feeds.filter((feed) => feed.id !== "feed-a-1"),
+        folders,
+        selection: { type: "feed", feedId: "feed-a-2" },
+        viewMode: "starred",
+        expandedFolderIds: new Set(["folder-a"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+        starredCountByFeedId: new Map(),
+      }),
+    );
+
+    expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a"]);
+    expect(result.current.feedTreeFolders[0]?.unreadCount).toBe(0);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-2"]);
+    expect(result.current.feedTreeFolders[0]?.feeds[0]?.unreadCount).toBe(0);
+  });
+
+  it("counts only actually-starred feeds for the folder badge in starred view when the selected feed has zero stars", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds,
+        folders,
+        // feed-a-2 is selected but unstarred, so it stays visible without
+        // counting toward folder-a's starred badge.
+        selection: { type: "feed", feedId: "feed-a-2" },
+        viewMode: "starred",
+        expandedFolderIds: new Set(["folder-a"]),
+        sortSubscriptions: "alphabetical",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+        starredCountByFeedId: new Map([["feed-a-1", 2]]),
+      }),
+    );
+
+    expect(result.current.feedTreeFolders.map((folder) => folder.id)).toEqual(["folder-a"]);
+    expect(result.current.feedTreeFolders[0]?.unreadCount).toBe(1);
+    expect(result.current.feedTreeFolders[0]?.feeds.map((feed) => feed.id)).toEqual(["feed-a-1", "feed-a-2"]);
   });
 });

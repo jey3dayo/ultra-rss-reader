@@ -1,10 +1,11 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 import { cn } from "@/lib/utils";
 
 type FeedTreeSelectableRowProps = {
   rowClassName?: string;
   rowStyle?: CSSProperties;
   rowProps?: Record<string, string>;
+  rowRef?: Ref<HTMLDivElement>;
   selected: boolean;
   selectedIndicatorProps?: Record<string, string>;
   selectedIndicatorClassName?: string;
@@ -18,6 +19,7 @@ export function FeedTreeSelectableRow({
   rowClassName,
   rowStyle,
   rowProps,
+  rowRef,
   selected,
   selectedIndicatorProps,
   selectedIndicatorClassName,
@@ -27,7 +29,7 @@ export function FeedTreeSelectableRow({
   children,
 }: FeedTreeSelectableRowProps) {
   return (
-    <div className={cn("relative", rowClassName)} style={rowStyle} {...rowProps}>
+    <div ref={rowRef} className={cn("relative", rowClassName)} style={rowStyle} {...rowProps}>
       {selected ? (
         <span
           aria-hidden="true"

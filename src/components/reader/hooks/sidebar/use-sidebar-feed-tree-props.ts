@@ -3,6 +3,7 @@ import type { SidebarFeedTreeProps, SidebarFeedTreePropsParams } from "../../sid
 
 export function useSidebarFeedTreeProps({
   isFeedsSectionOpen,
+  scopeKey,
   feedTreeFolders,
   unfolderedFeedViews,
   toggleFolder,
@@ -41,6 +42,7 @@ export function useSidebarFeedTreeProps({
 
   return {
     isOpen: isFeedsSectionOpen,
+    scopeKey,
     sidebarDensity,
     folders: feedTreeFolders,
     unfolderedFeeds: unfolderedFeedViews,

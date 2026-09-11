@@ -7,6 +7,15 @@ export const SIDEBAR_FALLBACK_TARGET_ATTRIBUTE = "data-sidebar-fallback-target";
 export const ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE = "data-account-pane-selected-target";
 export const ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE = "data-account-pane-navigation-target";
 export const SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE = "data-sidebar-smart-view-kind";
+/**
+ * Marks a sidebar feed row as currently leaving (retained by
+ * `useFeedTreePresence` for its exit animation). `data-feed-id` itself stays
+ * on the row unconditionally so DOM tests can still locate a leaving row —
+ * this is the separate, leaving-only marker that ID-keyed focus lookups
+ * (`use-sidebar-feed-navigation.ts`) must check for and skip, since the row
+ * is `tabIndex={-1}` and inert to pointer input while leaving.
+ */
+export const SIDEBAR_ROW_LEAVING_ATTRIBUTE = "data-sidebar-row-leaving";
 
 type ReaderFocusTargetAttribute =
   | typeof SIDEBAR_SELECTED_TARGET_ATTRIBUTE
