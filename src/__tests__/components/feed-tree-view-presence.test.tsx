@@ -135,6 +135,50 @@ describe("FeedTreeView presence wiring", () => {
     expect(leavingButton).not.toHaveAttribute("data-sidebar-navigation-target");
   });
 
+  it("drops a leaving feed row out of the tab order and stops it selecting", () => {
+    const feedA = makeFeed({ id: "feed-a", title: "Alpha", unreadCount: 1 });
+    const feedB = makeFeed({ id: "feed-b", title: "Beta", unreadCount: 1 });
+    const onSelectFeed = vi.fn();
+
+    const { rerender } = render(
+      <FeedTreeView
+        isOpen={true}
+        scopeKey="acc-1:unread"
+        folders={[]}
+        unfolderedFeeds={[feedA, feedB]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={onSelectFeed}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    expect(document.querySelector('[data-feed-id="feed-b"]')).not.toHaveAttribute("tabindex", "-1");
+
+    rerender(
+      <FeedTreeView
+        isOpen={true}
+        scopeKey="acc-1:unread"
+        folders={[]}
+        unfolderedFeeds={[feedA]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={onSelectFeed}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    const leaving = document.querySelector('[data-feed-id="feed-b"]');
+    // A keyboard-issued `contextmenu` targets whatever holds focus, so the
+    // collapse wrapper's `pointer-events: none` does not close that path on its
+    // own; leaving the tab order is what does.
+    expect(leaving).toHaveAttribute("tabindex", "-1");
+
+    onSelectFeed.mockClear();
+    (leaving as HTMLElement).click();
+    expect(onSelectFeed).not.toHaveBeenCalled();
+  });
+
   it("excludes a leaving folder from drop-target attributes", () => {
     const folder = {
       id: "folder-a",

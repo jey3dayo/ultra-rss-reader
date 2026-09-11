@@ -129,14 +129,28 @@ export function FeedTreeRow({
                   : "text-[0.72rem] text-sidebar-foreground/52"
               }
               {...(isCurrentSelection ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+              // `pointer-events: none` on the collapse wrapper stops the pointer
+              // paths into the context menu, but a keyboard-issued `contextmenu`
+              // (Shift+F10, menu key) targets whatever holds focus. Dropping the
+              // row out of the tab order is what closes that path: the leave
+              // focus hook has already moved focus off the row, and this keeps it
+              // from being focused again on the way out. `inert` would do all of
+              // this at once, but React commits attributes before layout effects,
+              // so it would blur to `body` before that hook could redirect focus.
+              //
+              // Spread only while leaving. Passing `tabIndex={undefined}` at rest
+              // would put the attribute under React's control, and every re-render
+              // would then strip the `tabindex="-1"` that the mobile layout sets
+              // imperatively on the descendants of a hidden pane.
+              {...(feed.isLeaving ? { tabIndex: -1 } : {})}
               data-feed-id={feed.id}
               className="motion-list-item-enter rounded-lg"
             />
           }
-          onContextMenu={captureTarget}
-          onKeyDownCapture={captureKeyboardTarget}
-          onClick={() => onSelectFeed(feed.id)}
-          onMouseDown={handleMiddleMouseDown}
+          onContextMenu={feed.isLeaving ? undefined : captureTarget}
+          onKeyDownCapture={feed.isLeaving ? undefined : captureKeyboardTarget}
+          onClick={feed.isLeaving ? undefined : () => onSelectFeed(feed.id)}
+          onMouseDown={feed.isLeaving ? undefined : handleMiddleMouseDown}
         >
           {displayFavicons && (
             <span className="flex size-5 shrink-0 items-center justify-center">

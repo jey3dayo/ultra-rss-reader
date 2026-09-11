@@ -136,6 +136,12 @@ export function FeedTreeFolderSection({
                       [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
                     }
                   : {})}
+                // See feed-tree-row.tsx: a keyboard-issued `contextmenu` targets
+                // whatever holds focus, so `pointer-events: none` alone does not
+                // close that path. Leaving the tab order does, and the prop is
+                // spread only while leaving so React does not own the attribute
+                // at rest.
+                {...(folder.isLeaving ? { tabIndex: -1 } : {})}
                 className={cn(
                   "flex-1 rounded-lg pl-0.5",
                   folderParentRailClassName,
@@ -143,19 +149,23 @@ export function FeedTreeFolderSection({
                 )}
               />
             }
-            onContextMenu={captureTarget}
-            onKeyDownCapture={captureKeyboardTarget}
-            onClick={() => {
-              if (folder.isSelected && folder.isExpanded) {
-                onToggleFolder(folder.id);
-                return;
-              }
-              if (!folder.isExpanded) {
-                onToggleFolder(folder.id);
-              }
-              onSelectFolder?.(folder.id);
-            }}
-            onMouseDown={handleMiddleMouseDown}
+            onContextMenu={folder.isLeaving ? undefined : captureTarget}
+            onKeyDownCapture={folder.isLeaving ? undefined : captureKeyboardTarget}
+            onClick={
+              folder.isLeaving
+                ? undefined
+                : () => {
+                    if (folder.isSelected && folder.isExpanded) {
+                      onToggleFolder(folder.id);
+                      return;
+                    }
+                    if (!folder.isExpanded) {
+                      onToggleFolder(folder.id);
+                    }
+                    onSelectFolder?.(folder.id);
+                  }
+            }
+            onMouseDown={folder.isLeaving ? undefined : handleMiddleMouseDown}
           >
             <span
               aria-hidden="true"
