@@ -285,14 +285,20 @@ describe("quality-baseline", () => {
     // rather than only showing up as a silent drift in the derived subtraction below.
     expect(status.classifiedWarningFamiliesCount).toBe(11);
 
-    // Do not re-declare the scanned warningCount (89) here: reactDoctorBaselines is not
-    // exported (adding an export just for this identity would grow the Knip-tracked export
-    // surface, see .claude/rules/quality-policy.md), and copying the literal in would be the
-    // same hand-pinned-number drift risk this status was built to remove. Pinning the
-    // derived total below is what actually catches a broken subtraction: if
-    // untriagedWarningCountAtScan stops being warningCount minus the two classified totals,
-    // this assertion fails without needing a second copy of warningCount in this file.
-    expect(status.untriagedWarningCountAtScan).toBe(53);
+    // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
+    // (adding an export just for this identity would grow the Knip-tracked export surface, see
+    // .claude/rules/quality-policy.md), and copying the literal in would be the same
+    // hand-pinned-number drift risk this status was built to remove. Pinning the derived total
+    // below is what actually catches a broken subtraction: if untriagedWarningCountAtScan stops
+    // being warningCount minus the two classified totals, this assertion fails without needing
+    // a second copy of warningCount in this file.
+    //
+    // 20 is the second wave: 19 findings still to classify plus the one
+    // no-adjust-state-on-prop-change deliberately left unrecorded, both tracked at
+    // https://github.com/jey3dayo/ultra-rss-reader/issues/300. It is a cross-check on the
+    // subtraction, not an independently chosen number — if it stops matching that issue's
+    // count, one of the two is wrong.
+    expect(status.untriagedWarningCountAtScan).toBe(20);
   });
 
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
