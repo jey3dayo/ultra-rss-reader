@@ -155,14 +155,17 @@ export function useAccountDetailDangerZone({
   const showImportError = createAccountDetailErrorToast(t, "account.failed_to_import_opml");
   const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
   const showLocalSyncSettingsError = useCallback(
+    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (frozen t, unreachable language change), docs/react-doctor-warning-classification-249.md
     createAccountDetailErrorToast(t, "account.local_sync_settings_failed"),
     [],
   );
   const showLocalSyncExportError = useCallback(
+    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (frozen t, unreachable language change), docs/react-doctor-warning-classification-249.md
     createAccountDetailErrorToast(t, "account.local_sync_export_failed"),
     [],
   );
   const showLocalSyncImportError = useCallback(
+    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (frozen t, unreachable language change), docs/react-doctor-warning-classification-249.md
     createAccountDetailErrorToast(t, "account.local_sync_import_failed"),
     [],
   );

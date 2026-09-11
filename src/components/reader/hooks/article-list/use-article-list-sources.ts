@@ -308,6 +308,7 @@ export function useArticleListSources({
 
   useEffect(() => {
     if (retainedArticleIds.size === 0) {
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- false-positive (false positive: the consumer guards on the same condition), docs/react-doctor-warning-classification-249.md
       setRetainedArticlesSnapshot(null);
       return;
     }
