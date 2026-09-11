@@ -60,7 +60,20 @@ export function FeedEditDialog({ feed, open, onOpenChange }: FeedEditDialogProps
   // is running against it. `operationActive` is in the dependency array so this
   // re-evaluates and closes as soon as an in-flight save or unsubscribe settles.
   useEffect(() => {
-    if (open && isStale && !operationActive) {
+    if (!isStale || operationActive) {
+      return;
+    }
+
+    // The unsubscribe confirmation is a sibling driven by local state, so closing the outer
+    // dialog does not dismiss it. Owners such as FeedContextMenuContent keep this component
+    // mounted with open={false}, which would leave the confirmation for the departed account
+    // on screen — and confirming it would silently no-op, because claimOperation() rejects a
+    // stale account. Reset it here, and do so independently of `open`: once the outer dialog
+    // has closed this effect would otherwise never run again.
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), .claude/rules/quality-policy.md "Adjust State On Prop Change Findings"
+    setUnsubscribeOpen(false);
+
+    if (open) {
       // react-doctor-disable-next-line react-doctor/no-prop-callback-in-effect -- accepted risk (owner-close request), .claude/rules/quality-policy.md "Prop Callback In Effect Findings"
       onOpenChange(false);
     }

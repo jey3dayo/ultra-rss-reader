@@ -418,6 +418,15 @@ finding as a defect; where none is, the effect is the mechanism, not a mistake.
 
 Standing accepted risk:
 
+- `feed-edit-dialog.tsx` — the stale-account effect calls `setUnsubscribeOpen(false)` when the
+  edited feed's account is no longer selected. None of the three remedies reaches it: the flag is
+  opened by a user click so it cannot be derived during render; a `key` reset would remount the
+  dialog and discard an in-flight save or unsubscribe, which is the very thing the surrounding
+  guard exists to protect; and the event that changes the account lives outside this component.
+  Leaving the flag set is not an option — the confirmation is a sibling, and owners such as
+  `FeedContextMenuContent` keep the dialog mounted with `open={false}`, so the confirmation for
+  the departed account would stay on screen. Reviewed 2026-09-11.
+
 - `confirm-dialog-view.tsx` — the hold-to-confirm effect calls `cancelHold()` when `enabled`
   goes false. Disabling the button detaches its pointer handlers, so a release can no longer
   end the press; without the reset a later re-enable resumes a progress fill with no timer

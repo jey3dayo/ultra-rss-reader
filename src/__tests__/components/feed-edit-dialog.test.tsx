@@ -529,6 +529,39 @@ describe("FeedEditDialog", () => {
     });
   });
 
+  it("dismisses the nested unsubscribe confirmation when the account changes", async () => {
+    // The confirmation is a sibling driven by local state, and owners such as
+    // FeedContextMenuContent keep this component mounted with open={false}. Closing only the
+    // outer dialog would leave the confirmation for the departed account on screen.
+    const user = userEvent.setup();
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return undefined;
+      }
+    });
+
+    function EditFlow() {
+      const [open, setOpen] = useState(true);
+      return <FeedEditDialog feed={sampleFeeds[0]} open={open} onOpenChange={setOpen} />;
+    }
+
+    render(<EditFlow />, { wrapper: createQueryWrapper().wrapper });
+
+    await user.click(screen.getByRole("button", { name: "Unsubscribe…" }));
+    expect(await screen.findByRole("button", { name: "Cancel" })).toBeInTheDocument();
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    });
+  });
+
   it("does not save when the dialog is stale for the currently selected account", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
