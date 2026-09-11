@@ -13,7 +13,10 @@ import { useUiStore } from "@/stores/ui-store";
 describe("ArticleContextMenu", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("en");
-    useUiStore.setState(useUiStore.getInitialState());
+    // sampleFeeds[0].account_id is "acc-1": select that account so the resolved source
+    // feed's edit dialog (opened in the first test below) is not immediately treated as
+    // stale for an unselected account and auto-closed.
+    useUiStore.setState({ ...useUiStore.getInitialState(), selectedAccountId: "acc-1" });
     setupTauriMocks();
   });
 

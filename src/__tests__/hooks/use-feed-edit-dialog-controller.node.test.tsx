@@ -10,6 +10,22 @@ import { useFeedEditDialogController } from "@/components/reader/hooks/feed-dial
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
+function createOperationClaim() {
+  const claimRef = { current: false };
+  return {
+    claimOperation: () => {
+      if (claimRef.current) {
+        return false;
+      }
+      claimRef.current = true;
+      return true;
+    },
+    releaseOperation: () => {
+      claimRef.current = false;
+    },
+  };
+}
+
 const { copyTextToClipboardMock } = vi.hoisted(() => ({
   copyTextToClipboardMock: vi.fn(),
 }));
@@ -110,6 +126,7 @@ describe("useFeedEditDialogController copy action", () => {
           feed: sampleFeeds[0],
           open: true,
           onOpenChange: vi.fn(),
+          ...createOperationClaim(),
         }),
       { wrapper },
     );
@@ -134,6 +151,7 @@ describe("useFeedEditDialogController copy action", () => {
           feed: sampleFeeds[0],
           open: true,
           onOpenChange: vi.fn(),
+          ...createOperationClaim(),
         }),
       { wrapper },
     );
@@ -154,6 +172,7 @@ describe("useFeedEditDialogController copy action", () => {
           feed: sampleFeeds[0],
           open: true,
           onOpenChange,
+          ...createOperationClaim(),
         }),
       { wrapper },
     );

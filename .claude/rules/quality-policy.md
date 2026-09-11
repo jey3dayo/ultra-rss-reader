@@ -369,6 +369,25 @@ and setters with computed arguments in the same effects are not reported. That r
 inferred from four counter-examples, not from the rule implementation, which is minified in the
 shipped `dist`. Do not build a classification on it.
 
+### Prop Callback In Effect Findings
+
+`no-prop-callback-in-effect` reports an effect that calls a prop callback, and describes the cost
+as "your parent re-renders on every local state change … just to stay in sync". Check whether the
+effect actually mirrors state continuously before accepting that reading.
+
+Standing accepted risk:
+
+- `feed-edit-dialog.tsx` — the stale-account close. When the selected account no longer owns the
+  feed being edited and no save or unsubscribe is in flight, the dialog calls `onOpenChange(false)`
+  to hand control back to its owner. It fires on one transition, not on every local state change,
+  and asking the owner to close is the only channel a controlled dialog has. The alternative —
+  having the page derive staleness and clear `editTargetFeed` itself — was evaluated and rejected
+  by independent review on 2026-09-11: the page cannot see the dialog's busy state without
+  duplicating internal pending, an effect-delivered notification has a window before it arrives,
+  and a save-loading-only signal misses the unsubscribe path entirely. The `operationActive`
+  dependency is what makes the close wait for an in-flight operation and re-evaluate when it
+  settles; do not remove it to quiet the rule.
+
 ### Loading Flag Reset Findings
 
 `no-loading-flag-reset-outside-finally` reports that a busy flag is reset "only on the success

@@ -57,6 +57,8 @@ export function useFeedEditDialogController({
   feed,
   open,
   onOpenChange,
+  claimOperation,
+  releaseOperation,
 }: FeedEditDialogControllerParams): FeedEditDialogController {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(feedEditDialogReducer, feed, createInitialFeedEditDialogState);
@@ -102,44 +104,52 @@ export function useFeedEditDialogController({
   };
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      showToast(t("title_required", { defaultValue: "Title is required" }));
+    if (!claimOperation()) {
       return;
     }
 
-    const folderSelection = {
-      selectedFolderId,
-      isCreatingFolder,
-      newFolderName,
-      availableFolderIds: buildFolderOptions(folders, t("no_folder")).flatMap((option) =>
-        option.value === "" ? [] : [option.value],
-      ),
-    };
-
-    dispatch({ type: "set-loading", value: true });
     try {
-      const saved = await submitFeedEdits({
-        feed: feedSnapshot,
-        title,
-        displayPreset,
-        folderSelection,
-        queryClient: qc,
-        showToast,
-        createFolderErrorMessage: (error) => t("failed_to_create_folder", { message: error.message }),
-        renameErrorMessage: (error) => t("failed_to_rename", { message: error.message }),
-        updateFeedFolder: ({ feedId, folderId }) =>
-          updateFeedFolderMutation
-            .mutateAsync({ feedId, folderId })
-            .then(() => true)
-            .catch(() => false),
-        updateDisplaySettings: updateFeedDisplaySettings,
-      });
+      if (!title.trim()) {
+        showToast(t("title_required", { defaultValue: "Title is required" }));
+        return;
+      }
 
-      if (saved) {
-        onOpenChange(false);
+      const folderSelection = {
+        selectedFolderId,
+        isCreatingFolder,
+        newFolderName,
+        availableFolderIds: buildFolderOptions(folders, t("no_folder")).flatMap((option) =>
+          option.value === "" ? [] : [option.value],
+        ),
+      };
+
+      dispatch({ type: "set-loading", value: true });
+      try {
+        const saved = await submitFeedEdits({
+          feed: feedSnapshot,
+          title,
+          displayPreset,
+          folderSelection,
+          queryClient: qc,
+          showToast,
+          createFolderErrorMessage: (error) => t("failed_to_create_folder", { message: error.message }),
+          renameErrorMessage: (error) => t("failed_to_rename", { message: error.message }),
+          updateFeedFolder: ({ feedId, folderId }) =>
+            updateFeedFolderMutation
+              .mutateAsync({ feedId, folderId })
+              .then(() => true)
+              .catch(() => false),
+          updateDisplaySettings: updateFeedDisplaySettings,
+        });
+
+        if (saved) {
+          onOpenChange(false);
+        }
+      } finally {
+        dispatch({ type: "set-loading", value: false });
       }
     } finally {
-      dispatch({ type: "set-loading", value: false });
+      releaseOperation();
     }
   };
 
