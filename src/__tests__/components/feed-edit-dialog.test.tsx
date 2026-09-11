@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { Result } from "@praha/byethrow";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectTauriCommandError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
@@ -6,10 +7,27 @@ import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as tauriCommands from "@/api/tauri-commands";
 import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+type Deferred<T> = {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: unknown) => void;
+};
+
+function createDeferred<T>(): Deferred<T> {
+  let resolve: (value: T) => void = () => {};
+  let reject: (error: unknown) => void = () => {};
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
 
 vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
   FeedEditDialogView: (props: {
@@ -100,7 +118,9 @@ const sampleFolders = [
 describe("FeedEditDialog", () => {
   beforeEach(() => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
-    useUiStore.setState({ ...useUiStore.getInitialState() });
+    // sampleFeeds[0].account_id is "acc-1": model the real precondition for this
+    // dialog being open, namely that an account is selected and it owns the feed.
+    useUiStore.setState({ ...useUiStore.getInitialState(), selectedAccountId: "acc-1" });
   });
 
   afterEach(() => {
@@ -481,5 +501,248 @@ describe("FeedEditDialog", () => {
       cmd: "copy_to_clipboard",
       args: { text: "https://example.com/feed.xml" },
     });
+  });
+
+  it("closes an idle dialog once the selected account no longer matches the feed", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return undefined;
+      }
+    });
+    const onOpenChange = vi.fn();
+
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it("dismisses the nested unsubscribe confirmation when the account changes", async () => {
+    // The confirmation is a sibling driven by local state, and owners such as
+    // FeedContextMenuContent keep this component mounted with open={false}. Closing only the
+    // outer dialog would leave the confirmation for the departed account on screen.
+    const user = userEvent.setup();
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return undefined;
+      }
+    });
+
+    function EditFlow() {
+      const [open, setOpen] = useState(true);
+      return <FeedEditDialog feed={sampleFeeds[0]} open={open} onOpenChange={setOpen} />;
+    }
+
+    render(<EditFlow />, { wrapper: createQueryWrapper().wrapper });
+
+    await user.click(screen.getByRole("button", { name: "Unsubscribe…" }));
+    expect(await screen.findByRole("button", { name: "Cancel" })).toBeInTheDocument();
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not save when the dialog is stale for the currently selected account", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "rename_feed":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    const onOpenChange = vi.fn();
+
+    // `open` stays true here regardless of onOpenChange calls, since this test does not wire
+    // it back into a state setter -- exactly what is needed to prove the *save* guard, as
+    // opposed to the stale-close effect, is what stops the mutation.
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await user.clear(screen.getByLabelText(/title/i));
+    await user.type(screen.getByLabelText(/title/i), "Renamed While Stale");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(calls.find((call) => call.cmd === "rename_feed")).toBeUndefined();
+  });
+
+  it("keeps an in-flight save open across an account switch and closes once it succeeds", async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred<Awaited<ReturnType<typeof tauriCommands.renameFeed>>>();
+    const renameFeedSpy = vi.spyOn(tauriCommands, "renameFeed").mockReturnValue(deferred.promise);
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return undefined;
+      }
+    });
+
+    const onOpenChange = vi.fn();
+
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await user.clear(screen.getByLabelText(/title/i));
+    await user.type(screen.getByLabelText(/title/i), "Renamed In Flight");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => {
+      expect(renameFeedSpy).toHaveBeenCalled();
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    // Neither the save-success close nor the stale-close effect should have fired while the
+    // save is still in flight.
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      deferred.resolve(Result.succeed(null));
+      await deferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+
+    renameFeedSpy.mockRestore();
+  });
+
+  it("keeps an in-flight save open across an account switch and closes once it fails", async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred<Awaited<ReturnType<typeof tauriCommands.renameFeed>>>();
+    const renameFeedSpy = vi.spyOn(tauriCommands, "renameFeed").mockReturnValue(deferred.promise);
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return undefined;
+      }
+    });
+
+    const onOpenChange = vi.fn();
+
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await user.clear(screen.getByLabelText(/title/i));
+    await user.type(screen.getByLabelText(/title/i), "Renamed In Flight Fails");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => {
+      expect(renameFeedSpy).toHaveBeenCalled();
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      deferred.resolve(Result.fail({ type: "UserVisible", message: "rename failed" }));
+      await deferred.promise;
+    });
+
+    // The rename itself failed, so onOpenChange(false) here can only be the stale-close
+    // effect running once the operation settles -- not a save-success close.
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+
+    renameFeedSpy.mockRestore();
+  });
+
+  it("does not allow unsubscribe to start while a save is in flight", async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred<Awaited<ReturnType<typeof tauriCommands.renameFeed>>>();
+    const renameFeedSpy = vi.spyOn(tauriCommands, "renameFeed").mockReturnValue(deferred.promise);
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "delete_feed":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    const onOpenChange = vi.fn();
+
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await user.clear(screen.getByLabelText(/title/i));
+    await user.type(screen.getByLabelText(/title/i), "Renamed Blocking Unsubscribe");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => {
+      expect(renameFeedSpy).toHaveBeenCalled();
+    });
+
+    // Attempt to unsubscribe while the save above is still in flight.
+    await user.click(screen.getByRole("button", { name: "Unsubscribe…" }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: 'Unsubscribe from "Tech Blog". This cannot be undone.',
+      }),
+    );
+
+    expect(calls.find((call) => call.cmd === "delete_feed")).toBeUndefined();
+
+    await act(async () => {
+      deferred.resolve(Result.succeed(null));
+      await deferred.promise;
+    });
+
+    renameFeedSpy.mockRestore();
   });
 });

@@ -1,7 +1,8 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useFeedEditDialogController } from "@/components/reader/hooks/feed-dialogs/use-feed-edit-dialog-controller";
 import { useFeedEditDialogViewProps } from "@/components/reader/hooks/feed-dialogs/use-feed-edit-dialog-view-props";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
+import { useUiStore } from "@/stores/ui-store";
 import type { FeedEditDialogProps } from "./feed-edit-dialog.types";
 import { FeedEditDialogView } from "./feed-edit-dialog-view";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
@@ -9,13 +10,42 @@ import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 export function FeedEditDialog({ feed, open, onOpenChange }: FeedEditDialogProps) {
   const folderLabelId = useId();
   const [unsubscribeOpen, setUnsubscribeOpen] = useState(false);
-  const [unsubscribePending, setUnsubscribePending] = useState(false);
-  const unsubscribePendingRef = useRef(false);
   const deleteFeedMutation = useDeleteFeed();
+  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
+  const isStale = feed.account_id !== selectedAccountId;
+
+  // Shared claim covering both save (handleSubmit, in the controller) and unsubscribe
+  // (handleConfirmUnsubscribe, below), so the two mutually exclusive operations can
+  // never run at once, and a stale-account close never interrupts one in flight.
+  const operationActiveRef = useRef(false);
+  const [operationActive, setOperationActive] = useState(false);
+
+  const claimOperation = (): boolean => {
+    if (operationActiveRef.current) {
+      return false;
+    }
+    // Read the store at execution time rather than relying on the `selectedAccountId`
+    // captured above: a stale closure (e.g. a handler created before an account switch)
+    // must still be stopped from starting a new operation against the old account.
+    if (feed.account_id !== useUiStore.getState().selectedAccountId) {
+      return false;
+    }
+    operationActiveRef.current = true;
+    setOperationActive(true);
+    return true;
+  };
+
+  const releaseOperation = () => {
+    operationActiveRef.current = false;
+    setOperationActive(false);
+  };
+
   const controller = useFeedEditDialogController({
     feed,
     open,
     onOpenChange,
+    claimOperation,
+    releaseOperation,
   });
   const viewProps = useFeedEditDialogViewProps({
     open,
@@ -26,13 +56,34 @@ export function FeedEditDialog({ feed, open, onOpenChange }: FeedEditDialogProps
     controller,
   });
 
-  const handleConfirmUnsubscribe = async () => {
-    if (unsubscribePendingRef.current) {
+  // Close a stale dialog (its feed's account is no longer selected) once no operation
+  // is running against it. `operationActive` is in the dependency array so this
+  // re-evaluates and closes as soon as an in-flight save or unsubscribe settles.
+  useEffect(() => {
+    if (!isStale || operationActive) {
       return;
     }
 
-    unsubscribePendingRef.current = true;
-    setUnsubscribePending(true);
+    // The unsubscribe confirmation is a sibling driven by local state, so closing the outer
+    // dialog does not dismiss it. Owners such as FeedContextMenuContent keep this component
+    // mounted with open={false}, which would leave the confirmation for the departed account
+    // on screen — and confirming it would silently no-op, because claimOperation() rejects a
+    // stale account. Reset it here, and do so independently of `open`: once the outer dialog
+    // has closed this effect would otherwise never run again.
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), .claude/rules/quality-policy.md "Adjust State On Prop Change Findings"
+    setUnsubscribeOpen(false);
+
+    if (open) {
+      // react-doctor-disable-next-line react-doctor/no-prop-callback-in-effect -- accepted risk (owner-close request), .claude/rules/quality-policy.md "Prop Callback In Effect Findings"
+      onOpenChange(false);
+    }
+  }, [open, isStale, operationActive, onOpenChange]);
+
+  const handleConfirmUnsubscribe = async () => {
+    if (!claimOperation()) {
+      return;
+    }
+
     try {
       await deleteFeedMutation.mutateAsync({
         feedId: feed.id,
@@ -46,18 +97,25 @@ export function FeedEditDialog({ feed, open, onOpenChange }: FeedEditDialogProps
     } catch {
       return;
     } finally {
-      unsubscribePendingRef.current = false;
-      setUnsubscribePending(false);
+      releaseOperation();
     }
   };
 
   return (
     <>
-      <FeedEditDialogView {...viewProps} onRequestUnsubscribe={() => setUnsubscribeOpen(true)} />
+      <FeedEditDialogView
+        {...viewProps}
+        onRequestUnsubscribe={() => {
+          if (isStale) {
+            return;
+          }
+          setUnsubscribeOpen(true);
+        }}
+      />
       <UnsubscribeDialog
         feed={feed}
         open={unsubscribeOpen}
-        pending={unsubscribePending || deleteFeedMutation.isPending}
+        pending={operationActive || deleteFeedMutation.isPending}
         onOpenChange={setUnsubscribeOpen}
         onConfirm={handleConfirmUnsubscribe}
       />

@@ -369,6 +369,25 @@ and setters with computed arguments in the same effects are not reported. That r
 inferred from four counter-examples, not from the rule implementation, which is minified in the
 shipped `dist`. Do not build a classification on it.
 
+### Prop Callback In Effect Findings
+
+`no-prop-callback-in-effect` reports an effect that calls a prop callback, and describes the cost
+as "your parent re-renders on every local state change … just to stay in sync". Check whether the
+effect actually mirrors state continuously before accepting that reading.
+
+Standing accepted risk:
+
+- `feed-edit-dialog.tsx` — the stale-account close. When the selected account no longer owns the
+  feed being edited and no save or unsubscribe is in flight, the dialog calls `onOpenChange(false)`
+  to hand control back to its owner. It fires on one transition, not on every local state change,
+  and asking the owner to close is the only channel a controlled dialog has. The alternative —
+  having the page derive staleness and clear `editTargetFeed` itself — was evaluated and rejected
+  by independent review on 2026-09-11: the page cannot see the dialog's busy state without
+  duplicating internal pending, an effect-delivered notification has a window before it arrives,
+  and a save-loading-only signal misses the unsubscribe path entirely. The `operationActive`
+  dependency is what makes the close wait for an in-flight operation and re-evaluate when it
+  settles; do not remove it to quiet the rule.
+
 ### Loading Flag Reset Findings
 
 `no-loading-flag-reset-outside-finally` reports that a busy flag is reset "only on the success
@@ -398,6 +417,15 @@ event that changes the prop. Check which of the three is actually available befo
 finding as a defect; where none is, the effect is the mechanism, not a mistake.
 
 Standing accepted risk:
+
+- `feed-edit-dialog.tsx` — the stale-account effect calls `setUnsubscribeOpen(false)` when the
+  edited feed's account is no longer selected. None of the three remedies reaches it: the flag is
+  opened by a user click so it cannot be derived during render; a `key` reset would remount the
+  dialog and discard an in-flight save or unsubscribe, which is the very thing the surrounding
+  guard exists to protect; and the event that changes the account lives outside this component.
+  Leaving the flag set is not an option — the confirmation is a sibling, and owners such as
+  `FeedContextMenuContent` keep the dialog mounted with `open={false}`, so the confirmation for
+  the departed account would stay on screen. Reviewed 2026-09-11.
 
 - `confirm-dialog-view.tsx` — the hold-to-confirm effect calls `cancelHold()` when `enabled`
   goes false. Disabling the button detaches its pointer handlers, so a release can no longer

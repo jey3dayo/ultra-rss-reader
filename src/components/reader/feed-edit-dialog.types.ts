@@ -40,9 +40,21 @@ export type FeedEditDialogControllerParams = {
   feed: FeedDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Claims the shared save/unsubscribe operation slot. Returns false when another
+   * operation is already in flight, or when the feed's account is no longer the
+   * selected account (checked against live store state, not a stale closure).
+   */
+  claimOperation: () => boolean;
+  /** Releases the shared operation slot claimed by {@link claimOperation}. */
+  releaseOperation: () => void;
 };
 
-export type FeedEditDialogProps = FeedEditDialogControllerParams;
+export type FeedEditDialogProps = {
+  feed: FeedDto;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
 export type FeedEditDialogController = {
   title: string;
