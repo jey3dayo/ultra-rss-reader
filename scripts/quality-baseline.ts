@@ -217,10 +217,13 @@ const reactDoctorFullScanTriageStatusBase = {
       rule: "rerender-lazy-ref-init",
       count: 2,
       status: "judgment-pending: needs a state-ownership decision, not a rule swap",
-      trackingIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
+      trackingIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/300",
     },
   ],
-  untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/249",
+  // #300, not #249: the first wave classified 34 findings and closed out, so the remaining
+  // count this report prints belongs to the second wave. Pointing operators at the finished
+  // issue would send them to a list whose items are all already dispositioned.
+  untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/300",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
   // The dispositions total errorCountAtScan, which the baseline test pins: re-pinning
