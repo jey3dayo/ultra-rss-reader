@@ -1,5 +1,6 @@
 import { GripVertical } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/design-system";
 import { ContextMenu } from "@/design-system/context-menu";
@@ -9,6 +10,7 @@ import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { FeedTreeRowProps } from "./feed-tree.types";
 import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
 import { FeedTreeSelectableRow } from "./feed-tree-selectable-row";
+import { useFeedTreeRowLeaveFocus } from "./hooks/sidebar/use-feed-tree-row-leave-focus";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
@@ -84,9 +86,14 @@ export function FeedTreeRow({
   };
   const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) =>
     handleMiddleMouseMarkRead(event, feed, onMarkFeedRead);
+  const rowRef = useRef<HTMLDivElement>(null);
+  useFeedTreeRowLeaveFocus(rowRef, feed.isLeaving);
+  const canDragThisFeed = canDragFeeds && !feed.isLeaving;
+  const isCurrentSelection = feed.isSelected && !feed.isLeaving;
 
   return (
     <FeedTreeSelectableRow
+      rowRef={rowRef}
       rowClassName={cn("group/feed-row", isDragged && "opacity-70")}
       rowStyle={rowStyle}
       rowProps={{ "data-feed-row-id": feed.id }}
@@ -97,7 +104,7 @@ export function FeedTreeRow({
         <DragHandle
           feedTitle={feed.title}
           sidebarDensity={sidebarDensity}
-          canDragFeeds={canDragFeeds}
+          canDragFeeds={canDragThisFeed}
           isArmed={isDragged}
           onArm={() => onDragStartFeed?.(feed)}
           onPointerDown={(event) => onPointerDownFeed?.(feed, event)}
@@ -113,13 +120,15 @@ export function FeedTreeRow({
               density={sidebarDensity}
               selected={feed.isSelected}
               selectedIndicatorMode={canDragFeeds ? "hidden" : "always"}
+              registerSidebarNavigationTarget={!feed.isLeaving}
               trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
+              trailingKeepLastOnClear
               trailingClassName={
                 feed.isSelected
                   ? "text-[0.72rem] text-[var(--sidebar-selection-muted)]"
                   : "text-[0.72rem] text-sidebar-foreground/52"
               }
-              {...(feed.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+              {...(isCurrentSelection ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
               data-feed-id={feed.id}
               className="motion-list-item-enter rounded-lg"
             />

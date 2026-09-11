@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
+import type { FeedTreePresenceFeedViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeUnfolderedSection } from "@/components/reader/feed-tree-unfoldered-section";
 
-const unfolderedFeed: FeedTreeFeedViewModel = {
+const unfolderedFeed: FeedTreePresenceFeedViewModel = {
   id: "feed-1",
   accountId: "acc-1",
   folderId: null,
@@ -15,6 +15,7 @@ const unfolderedFeed: FeedTreeFeedViewModel = {
   webPreviewMode: "off",
   isSelected: false,
   grayscaleFavicon: false,
+  isLeaving: false,
 };
 
 describe("FeedTreeUnfolderedSection", () => {

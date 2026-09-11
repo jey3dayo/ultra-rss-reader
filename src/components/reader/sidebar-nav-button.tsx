@@ -1,6 +1,13 @@
 import { cva } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
+import { useEffect, useState } from "react";
+import {
+  MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE,
+  MOTION_SIDEBAR_BADGE_CLASS_NAME,
+  MOTION_SIDEBAR_BADGE_EXIT_DURATION_MS,
+} from "@/constants";
 import { MotionNumber, SIDEBAR_RIGHT_RAIL_CLASS_NAME } from "@/design-system";
+import { readMatchMedia, subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarDensity } from "./sidebar-density";
@@ -19,7 +26,19 @@ type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
   contentClassName?: string;
   ref?: Ref<HTMLButtonElement>;
   trailingClassName?: string;
+  /**
+   * Keeps rendering the last non-empty `trailing` value, fading it out
+   * instead of unmounting it the instant `trailing` becomes empty (e.g. an
+   * unread count dropping to 0). Opt-in: callers that rely on `trailing`
+   * disappearing immediately (smart views, tag list, the account service
+   * picker) must not set this.
+   */
+  trailingKeepLastOnClear?: boolean;
 };
+
+function isTrailingEmpty(trailing: ReactNode): boolean {
+  return trailing === null || trailing === undefined;
+}
 
 const selectedIndicatorVariants = cva(
   "before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:transition-opacity before:duration-150",
@@ -50,6 +69,7 @@ export function SidebarNavButton({
   ref,
   trailing,
   trailingClassName,
+  trailingKeepLastOnClear = false,
   type = "button",
   ...props
 }: SidebarNavButtonProps) {
@@ -62,6 +82,61 @@ export function SidebarNavButton({
     selected && activePane && "text-[var(--sidebar-selection-muted)]",
     trailingClassName,
   );
+
+  const [lastTrailing, setLastTrailing] = useState<ReactNode>(trailing);
+
+  // Holds a cleared `trailing` value visible for MOTION_SIDEBAR_BADGE_EXIT_DURATION_MS so it can
+  // fade out instead of unmounting instantly, then drops it so the row reclaims the rail width.
+  // The effect's own dependency on `lastTrailing` re-runs it once the timer clears that value,
+  // which the guard below turns into a no-op instead of restarting the fade.
+  useEffect(() => {
+    if (!isTrailingEmpty(trailing)) {
+      setLastTrailing(trailing);
+      return;
+    }
+
+    if (!trailingKeepLastOnClear || isTrailingEmpty(lastTrailing)) {
+      return;
+    }
+
+    const reducedMotionQuery = readMatchMedia("(prefers-reduced-motion: reduce)");
+
+    if (reducedMotionQuery?.matches) {
+      setLastTrailing(null);
+      return;
+    }
+
+    let timeoutId: number | undefined = window.setTimeout(() => {
+      timeoutId = undefined;
+      setLastTrailing(null);
+    }, MOTION_SIDEBAR_BADGE_EXIT_DURATION_MS);
+
+    // If reduced motion turns on mid-fade, the CSS token already jumps to 0ms;
+    // cancel the timer and unmount right away instead of leaving the rail
+    // width reserved for the rest of the duration.
+    const unsubscribeReducedMotion = reducedMotionQuery
+      ? subscribeMatchMediaChange(reducedMotionQuery, (event) => {
+          if (!event.matches) {
+            return;
+          }
+          if (timeoutId !== undefined) {
+            window.clearTimeout(timeoutId);
+            timeoutId = undefined;
+          }
+          setLastTrailing(null);
+        })
+      : () => {};
+
+    return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+      unsubscribeReducedMotion();
+    };
+  }, [trailing, trailingKeepLastOnClear, lastTrailing]);
+
+  const trailingIsLeaving = trailingKeepLastOnClear && isTrailingEmpty(trailing) && !isTrailingEmpty(lastTrailing);
+  const resolvedTrailing = trailingIsLeaving ? lastTrailing : trailing;
 
   return (
     <button
@@ -95,12 +170,18 @@ export function SidebarNavButton({
       >
         {children}
       </span>
-      {trailing ? (
-        typeof trailing === "string" || typeof trailing === "number" ? (
-          <MotionNumber key={trailing} value={trailing} className={trailingClassNames} />
-        ) : (
-          <span className={trailingClassNames}>{trailing}</span>
-        )
+      {resolvedTrailing ? (
+        <span
+          className={MOTION_SIDEBAR_BADGE_CLASS_NAME}
+          aria-hidden={trailingIsLeaving ? "true" : undefined}
+          {...{ [MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE]: trailingIsLeaving ? "true" : undefined }}
+        >
+          {typeof resolvedTrailing === "string" || typeof resolvedTrailing === "number" ? (
+            <MotionNumber key={resolvedTrailing} value={resolvedTrailing} className={trailingClassNames} />
+          ) : (
+            <span className={trailingClassNames}>{resolvedTrailing}</span>
+          )}
+        </span>
       ) : null}
     </button>
   );

@@ -104,6 +104,7 @@ export type SidebarFeedSectionParams = {
 
 export type SidebarFeedTreePropsParams = {
   isFeedsSectionOpen: boolean;
+  scopeKey: NonNullable<FeedTreeViewProps["scopeKey"]>;
   sidebarDensity: SidebarDensity;
   feedTreeFolders: FeedTreeViewProps["folders"];
   unfolderedFeedViews: FeedTreeViewProps["unfolderedFeeds"];

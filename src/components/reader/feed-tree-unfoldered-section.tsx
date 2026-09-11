@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
-import type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
+import type { FeedTreePresenceFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
 import { FeedTreeRow } from "./feed-tree-row";
+import { FeedTreeRowCollapse } from "./feed-tree-row-collapse";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 
 type FeedTreeUnfolderedSectionProps = {
   sidebarDensity?: SidebarDensity;
-  unfolderedFeeds: FeedTreeFeedViewModel[];
+  unfolderedFeeds: FeedTreePresenceFeedViewModel[];
   unfolderedLabel?: string;
   onSelectFeed: FeedTreeRowProps["onSelectFeed"];
   onMarkFeedRead?: FeedTreeRowProps["onMarkFeedRead"];
@@ -52,20 +53,21 @@ export function FeedTreeUnfolderedSection({
       ) : null}
       <div className={cn("border-l border-[var(--feed-tree-rail-border-soft)]", tokens.treeInset, tokens.childGap)}>
         {unfolderedFeeds.map((feed) => (
-          <FeedTreeRow
-            key={feed.id}
-            sidebarDensity={sidebarDensity}
-            feed={feed}
-            displayFavicons={displayFavicons}
-            onSelectFeed={onSelectFeed}
-            onMarkFeedRead={onMarkFeedRead}
-            renderFeedContextMenu={renderFeedContextMenu}
-            canDragFeeds={canDragFeeds}
-            isDragged={normalizedDraggedFeedId === feed.id}
-            onDragStartFeed={onDragStartFeed}
-            onPointerDownFeed={onPointerDownFeed}
-            consumeSuppressedHandleClick={consumeSuppressedHandleClick}
-          />
+          <FeedTreeRowCollapse key={feed.id} collapsing={feed.isLeaving}>
+            <FeedTreeRow
+              sidebarDensity={sidebarDensity}
+              feed={feed}
+              displayFavicons={displayFavicons}
+              onSelectFeed={onSelectFeed}
+              onMarkFeedRead={onMarkFeedRead}
+              renderFeedContextMenu={renderFeedContextMenu}
+              canDragFeeds={canDragFeeds}
+              isDragged={normalizedDraggedFeedId === feed.id}
+              onDragStartFeed={onDragStartFeed}
+              onPointerDownFeed={onPointerDownFeed}
+              consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+            />
+          </FeedTreeRowCollapse>
         ))}
       </div>
     </div>

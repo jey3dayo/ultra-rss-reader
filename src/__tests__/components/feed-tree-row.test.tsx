@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
+import type { FeedTreePresenceFeedViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeRow } from "@/components/reader/feed-tree-row";
 
-const baseFeed: FeedTreeFeedViewModel = {
+const baseFeed: FeedTreePresenceFeedViewModel = {
   id: "feed-1",
   accountId: "acc-1",
   folderId: "folder-1",
@@ -15,6 +15,7 @@ const baseFeed: FeedTreeFeedViewModel = {
   webPreviewMode: "off",
   isSelected: true,
   grayscaleFavicon: false,
+  isLeaving: false,
 };
 
 describe("FeedTreeRow", () => {

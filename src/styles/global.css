@@ -119,6 +119,13 @@
   --motion-duration-popup-exit: 120ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* --motion-ease-standard and --motion-ease-emphasized are both strong
+     ease-out curves meant for entrances: measured on a 36px sidebar row,
+     --motion-ease-standard reaches 14.5px by 30ms into its 180ms run, so a
+     collapse using it looks like the row vanishing rather than shrinking.
+     A collapse needs a gentler start so the shrink stays visible; this
+     curve is for exit/collapse transitions, not entrances. */
+  --motion-ease-collapse: cubic-bezier(0.4, 0, 0.2, 1);
   --theme-canvas: #f2f1ed;
   --theme-canvas-rgb: 242 241 237;
   --theme-foreground: #26251e;
@@ -1449,6 +1456,52 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transform: scale(var(--motion-icon-swap-inactive-scale));
 }
 
+/* Opacity-only fade so a badge's last count can linger and dissolve when it
+   clears (e.g. unread 1 -> 0), instead of unmounting instantly. Reuses the
+   popup-exit duration/easing pair rather than a dedicated token. */
+.motion-sidebar-badge {
+  transition: opacity var(--motion-duration-popup-exit) var(--motion-ease-standard);
+}
+
+.motion-sidebar-badge[data-motion-sidebar-badge-leaving="true"] {
+  opacity: 0;
+}
+
+/* Presence-driven collapse for a sidebar feed/folder row leaving the tree
+   (useFeedTreePresence). grid-template-rows transitions 1fr -> 0fr so the
+   row's occupied height collapses to zero even where fr-unit interpolation
+   isn't supported: the leaving state's geometry is a discrete 0fr value,
+   not merely an animation keyframe, so the final layout is always zero
+   height. The inner wrapper clips the row's own content (selection marker,
+   drag handle, label) as the track shrinks. margin-top is forced to 0 so
+   collapsing a row does not leave a residual gap from the parent's
+   Tailwind `space-y-*` sibling margin utility. */
+.motion-sidebar-row-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--motion-duration-contextual) var(--motion-ease-collapse),
+    opacity var(--motion-duration-contextual) var(--motion-ease-collapse);
+}
+
+.motion-sidebar-row-collapse > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* No `!important`: this rule is plain (unlayered) CSS, while Tailwind's
+   `space-y-*` sibling-margin utility lives inside Tailwind's `utilities`
+   cascade layer (`@import "tailwindcss"` above). Unlayered declarations
+   always win over layered ones regardless of specificity or source order,
+   so this overrides the utility's margin-top without needing `!important`. */
+.motion-sidebar-row-collapse[data-motion-sidebar-row-leaving="true"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+  margin-top: 0;
+}
+
 .motion-resize-surface {
   transition-property:
     width, height, min-height, max-width, padding, opacity, transform, border-color, background-color, color;
@@ -1601,7 +1654,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-browser-overlay-panel,
   .motion-settings-modal,
   .motion-state-toggle [data-state-toggle-icon="true"],
-  .motion-article-state-slot {
+  .motion-article-state-slot,
+  .motion-sidebar-badge,
+  .motion-sidebar-row-collapse {
     transition-duration: 0ms;
   }
 

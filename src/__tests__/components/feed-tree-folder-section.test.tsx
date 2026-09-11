@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { FeedTreeFolderViewModel } from "@/components/reader/feed-tree.types";
+import type { FeedTreeFolderViewModel, FeedTreePresenceFolderViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeFolderSection } from "@/components/reader/feed-tree-folder-section";
 
-const baseFolder: FeedTreeFolderViewModel = {
+const baseFolder: FeedTreePresenceFolderViewModel = {
   id: "folder-1",
   name: "Comic",
   accountId: "acc-1",
@@ -12,6 +12,7 @@ const baseFolder: FeedTreeFolderViewModel = {
   isExpanded: false,
   isSelected: true,
   feeds: [],
+  isLeaving: false,
 };
 
 describe("FeedTreeFolderSection", () => {
@@ -123,6 +124,7 @@ describe("FeedTreeFolderSection", () => {
               webPreviewMode: "off",
               isSelected: false,
               grayscaleFavicon: false,
+              isLeaving: false,
             },
           ],
         }}
@@ -259,6 +261,7 @@ describe("FeedTreeFolderSection", () => {
               webPreviewMode: "off",
               isSelected: false,
               grayscaleFavicon: false,
+              isLeaving: false,
             },
           ],
         }}
@@ -323,6 +326,7 @@ describe("FeedTreeFolderSection", () => {
               webPreviewMode: "off",
               isSelected: false,
               grayscaleFavicon: false,
+              isLeaving: false,
             },
           ],
         }}
@@ -367,6 +371,7 @@ describe("FeedTreeFolderSection", () => {
               webPreviewMode: "off",
               isSelected: false,
               grayscaleFavicon: false,
+              isLeaving: false,
             },
           ],
         }}

@@ -17,6 +17,8 @@ import {
   MOTION_GLOBAL_CSS_CONTRACT_SELECTORS,
   MOTION_HOLD_CONFIRM_DURATION_MS,
   MOTION_KEYFRAMES_NAMES,
+  MOTION_SIDEBAR_BADGE_EXIT_DURATION_MS,
+  MOTION_SIDEBAR_ROW_EXIT_DURATION_MS,
   MOTION_TRANSITION_TOKEN_DECLARATIONS,
   type MotionClassName,
   type MotionDataAttribute,
@@ -157,6 +159,18 @@ describe("constants source of truth", () => {
   it("keeps the hold-to-confirm timer aligned with its CSS duration token", () => {
     expect(MOTION_TRANSITION_TOKEN_DECLARATIONS).toContain(
       `--motion-duration-hold-confirm: ${MOTION_HOLD_CONFIRM_DURATION_MS}ms;`,
+    );
+  });
+
+  it("keeps the sidebar badge leave timer aligned with its CSS duration token", () => {
+    expect(MOTION_TRANSITION_TOKEN_DECLARATIONS).toContain(
+      `--motion-duration-popup-exit: ${MOTION_SIDEBAR_BADGE_EXIT_DURATION_MS}ms;`,
+    );
+  });
+
+  it("keeps the sidebar row leave timer aligned with its CSS duration token", () => {
+    expect(MOTION_TRANSITION_TOKEN_DECLARATIONS).toContain(
+      `--motion-duration-contextual: ${MOTION_SIDEBAR_ROW_EXIT_DURATION_MS}ms;`,
     );
   });
 

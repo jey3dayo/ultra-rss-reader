@@ -66,6 +66,12 @@ export function useSidebarFeedSectionController({
   const initialFolderById = useMemo(() => new Map(folderList.map((folder) => [folder.id, folder])), [folderList]);
   const isStarredTreeContext = selection.type === "smart" && selection.kind === "starred";
   const feedTreeViewMode = isStarredTreeContext ? "starred" : viewMode;
+  // Identifies the logical scope useFeedTreePresence retains rows within:
+  // account + the view mode that actually drives which feeds are visible
+  // here. Switching either discards any in-flight exit animation from the
+  // previous scope immediately, instead of carrying a stale account's
+  // leaving row into the next one.
+  const feedTreeScopeKey = `${selectedAccountId ?? ""}:${feedTreeViewMode}`;
 
   const {
     draggedFeedId,
@@ -190,6 +196,7 @@ export function useSidebarFeedSectionController({
 
   const feedTreeProps = useSidebarFeedTreeProps({
     isFeedsSectionOpen,
+    scopeKey: feedTreeScopeKey,
     feedTreeFolders,
     unfolderedFeedViews,
     toggleFolder,

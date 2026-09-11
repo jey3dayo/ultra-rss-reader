@@ -2,11 +2,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FeedContextMenuView } from "@/components/reader/feed-context-menu-view";
-import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
+import type { FeedTreeFeedViewModel, FeedTreePresenceFeedViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeRow } from "@/components/reader/feed-tree-row";
 import { ContextMenu } from "@/design-system/context-menu";
 
-const baseFeed: FeedTreeFeedViewModel = {
+const baseFeed: FeedTreePresenceFeedViewModel = {
   id: "feed-1",
   accountId: "acc-1",
   folderId: null,
@@ -18,6 +18,7 @@ const baseFeed: FeedTreeFeedViewModel = {
   webPreviewMode: "off",
   isSelected: false,
   grayscaleFavicon: false,
+  isLeaving: false,
 };
 
 describe("FeedContextMenuView", () => {
