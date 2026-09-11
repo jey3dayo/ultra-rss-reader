@@ -457,6 +457,15 @@ Standing accepted risk:
 - `use-account-detail-danger-zone.ts` — the reported filter-then-map runs once after an account
   is deleted. A single pass is possible while preserving order and the first-element fallback,
   but the frequency does not justify the churn. Reviewed 2026-09-08.
+- `feed-tree-presence-output.ts` (three sites) — `buildOutput` resolves the sidebar tree through
+  `order.map(resolve).filter(isDefined)` for a folder's children, for the folder list, and for
+  the unfoldered list. It runs inside a `useMemo` keyed on the presence state and the logical
+  maps, so it re-runs whenever the logical tree changes at all, including an unread count moving
+  during `j`/`k` reading — more often than "only when a row leaves". What it iterates is the
+  visible tree, tens of entries, and the second pass is over an already-cheap projection whose
+  cost is dwarfed by React reconciling the same rows. `filter(isDefined)` is also what narrows
+  the type; a single-pass `reduce` or `for...of` trades that for a manual push loop with no
+  measured win. Reviewed 2026-09-11.
 
 A nested membership test is a different case: a `filter` whose predicate scans an array for
 each element is quadratic in the two sizes, and building the membership `Set` once inside the
