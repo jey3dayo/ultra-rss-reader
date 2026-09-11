@@ -136,8 +136,8 @@ const reactDoctorBaselines = {
   full: {
     score: null,
     errorCount: 2,
-    warningCount: 56,
-    affectedFileCount: 44,
+    warningCount: 59,
+    affectedFileCount: 45,
   },
 } as const;
 
@@ -155,7 +155,7 @@ const reactDoctorBaselines = {
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
-  scanSha: "9e3077f2f",
+  scanSha: "61af6f1c8",
   pluginVersion: "0.9.13",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -178,7 +178,7 @@ const reactDoctorFullScanTriageStatusBase = {
     },
     {
       rule: "js-combine-iterations",
-      count: 1,
+      count: 4,
       disposition: "accepted-risk",
       recordPath: ".claude/rules/quality-policy.md (Iteration And Lookup Shape Findings)",
     },

@@ -283,7 +283,7 @@ describe("quality-baseline", () => {
 
     // Pin the family total so a rule being added or removed from the table is caught here
     // rather than only showing up as a silent drift in the derived subtraction below.
-    expect(status.classifiedWarningFamiliesCount).toBe(11);
+    expect(status.classifiedWarningFamiliesCount).toBe(14);
 
     // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
     // (adding an export just for this identity would grow the Knip-tracked export surface, see
