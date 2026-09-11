@@ -92,6 +92,13 @@ export function sortSidebarSubscriptionFeeds(feeds: FeedDto[], sortSubscriptions
   return sortFeedsByPreference(feeds, "alphabetical");
 }
 
+// The visible feed set (folderFeeds) keeps a selected feed even when it has
+// zero stars, so it can't be used to count the folder badge in starred view.
+// Count against the raw folder membership instead.
+function countStarredFeeds(feeds: FeedDto[], starredCountByFeedId: ReadonlyMap<string, number>): number {
+  return feeds.filter((feed) => (starredCountByFeedId.get(feed.id) ?? 0) > 0).length;
+}
+
 function buildVisibleSidebarFeedTreeFolder(
   folder: SidebarFeedTreeFolderBuildParams["sortedFolderList"][number],
   {
@@ -119,7 +126,10 @@ function buildVisibleSidebarFeedTreeFolder(
     name: folder.name,
     accountId: folder.account_id,
     sortOrder: folder.sort_order,
-    unreadCount: viewMode === "starred" ? folderFeeds.length : sumUnreadCounts(rawFolderFeeds),
+    unreadCount:
+      viewMode === "starred"
+        ? countStarredFeeds(rawFolderFeeds, starredCountByFeedId)
+        : sumUnreadCounts(rawFolderFeeds),
     isExpanded: expandedFolderIds.has(folder.id),
     isSelected,
     feeds: mapFeedsToFeedTreeViewModels(folderFeeds, {
@@ -135,14 +145,18 @@ export function getVisibleSidebarFeeds(
   feeds: FeedDto[],
   viewMode: SidebarFeedTreeViewMode,
   sortFeeds: SidebarSortFeeds,
+  selectedFeedId: string | null = null,
   starredCountByFeedId: ReadonlyMap<string, number> = EMPTY_STARRED_COUNT_BY_FEED_ID,
 ): FeedDto[] {
   const sortedFeeds = sortFeeds(feeds);
   if (viewMode === "unread") {
-    return sortedFeeds.filter((feed) => feed.unread_count > 0);
+    // A selected feed must not disappear the instant its unread count drops
+    // to 0 (e.g. the user just finished reading it); it stays visible until
+    // selection moves elsewhere, mirroring the folder-side selection guard.
+    return sortedFeeds.filter((feed) => feed.unread_count > 0 || feed.id === selectedFeedId);
   }
   if (viewMode === "starred") {
-    return sortedFeeds.filter((feed) => (starredCountByFeedId.get(feed.id) ?? 0) > 0);
+    return sortedFeeds.filter((feed) => (starredCountByFeedId.get(feed.id) ?? 0) > 0 || feed.id === selectedFeedId);
   }
   return sortedFeeds;
 }

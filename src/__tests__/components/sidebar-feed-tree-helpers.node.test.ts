@@ -82,6 +82,7 @@ describe("getVisibleSidebarFeedTreeData", () => {
         feeds,
         "starred",
         (candidateFeeds) => candidateFeeds,
+        null,
         new Map([
           ["feed-a", 0],
           ["feed-b", 2],
@@ -89,6 +90,34 @@ describe("getVisibleSidebarFeedTreeData", () => {
         ]),
       ).map((feed) => feed.id),
     ).toEqual(["feed-b", "feed-c"]);
+  });
+
+  it("keeps the selected feed visible in unread view once its unread count reaches zero", () => {
+    expect(
+      getVisibleSidebarFeeds(feeds, "unread", (candidateFeeds) => candidateFeeds, "feed-b").map((feed) => feed.id),
+    ).toEqual(["feed-a", "feed-b", "feed-c"]);
+  });
+
+  it("still hides an unselected feed in unread view once its unread count reaches zero", () => {
+    expect(
+      getVisibleSidebarFeeds(feeds, "unread", (candidateFeeds) => candidateFeeds, "feed-c").map((feed) => feed.id),
+    ).toEqual(["feed-a", "feed-c"]);
+  });
+
+  it("keeps the selected feed visible in starred view even with zero starred count", () => {
+    expect(
+      getVisibleSidebarFeeds(
+        feeds,
+        "starred",
+        (candidateFeeds) => candidateFeeds,
+        "feed-a",
+        new Map([
+          ["feed-a", 0],
+          ["feed-b", 2],
+          ["feed-c", 1],
+        ]),
+      ).map((feed) => feed.id),
+    ).toEqual(["feed-a", "feed-b", "feed-c"]);
   });
 
   it("uses starred counts for feed view model unread badges in starred mode", () => {
@@ -385,6 +414,60 @@ describe("getVisibleSidebarFeedTreeData", () => {
         id: "folder-1",
         unreadCount: 1,
         feeds: [{ id: "feed-b", unreadCount: 5 }],
+      },
+    ]);
+  });
+
+  it("hides the folder badge in starred mode when its only visible feed is the selected, unstarred feed", () => {
+    const soleFolders: FolderDto[] = [{ id: "folder-solo", account_id: "acc-1", name: "Solo", sort_order: 0 }];
+    const soleFeedsByFolder = new Map<string, FeedDto[]>([["folder-solo", [feeds[1]]]]);
+
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: soleFolders,
+      feedsByFolder: soleFeedsByFolder,
+      // feed-b has zero stars but is kept visible because it is selected.
+      visibleFolderFeedsById: new Map([["folder-solo", [feeds[1]]]]),
+      expandedFolderIds: new Set(["folder-solo"]),
+      selectedFolderId: null,
+      selectedFeedId: "feed-b",
+      grayscaleFavicons: false,
+      viewMode: "starred",
+      starredCountByFeedId: new Map(),
+      hideEmptyFoldersInCurrentView: true,
+    });
+
+    expect(folderModels).toMatchObject([
+      {
+        id: "folder-solo",
+        unreadCount: 0,
+        feeds: [{ id: "feed-b", unreadCount: 0, isSelected: true }],
+      },
+    ]);
+  });
+
+  it("counts only actually-starred feeds for the folder badge when the selected feed has zero stars", () => {
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: folders,
+      feedsByFolder,
+      // feed-b is kept visible for selection even though it has zero stars.
+      visibleFolderFeedsById: new Map([["folder-1", [feeds[0], feeds[1]]]]),
+      expandedFolderIds: new Set(["folder-1"]),
+      selectedFolderId: null,
+      selectedFeedId: "feed-b",
+      grayscaleFavicons: false,
+      viewMode: "starred",
+      starredCountByFeedId: new Map([["feed-a", 3]]),
+      hideEmptyFoldersInCurrentView: true,
+    });
+
+    expect(folderModels).toMatchObject([
+      {
+        id: "folder-1",
+        unreadCount: 1,
+        feeds: [
+          { id: "feed-a", unreadCount: 3 },
+          { id: "feed-b", unreadCount: 0, isSelected: true },
+        ],
       },
     ]);
   });
