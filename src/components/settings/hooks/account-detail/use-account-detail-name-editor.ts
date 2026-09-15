@@ -3,6 +3,7 @@ import { type KeyboardEvent, type RefObject, useCallback, useEffect, useLayoutEf
 import { renameAccount } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { scheduleInputFocus } from "@/lib/dom/input-focus";
+import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -131,10 +132,11 @@ export function useAccountDetailNameEditor({
   };
 
   const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    // While an IME candidate is being composed the IME owns the keystroke: Enter would commit a
-    // half-typed account name and Escape would discard the whole edit instead of the candidate.
-    // React's synthetic event has no isComposing, so read it from the native event.
-    if (event.nativeEvent.isComposing) {
+    // While an IME candidate is being composed or being committed, the IME owns the keystroke:
+    // Enter would commit a half-typed account name and Escape would discard the whole edit
+    // instead of the candidate. macOS WebKit fires compositionend before the commit keydown, so
+    // isComposing alone misses that Enter; isImeCommitKeyEvent also checks the legacy keyCode 229.
+    if (isImeCommitKeyEvent(event.nativeEvent)) {
       return;
     }
     if (event.key === "Enter") {

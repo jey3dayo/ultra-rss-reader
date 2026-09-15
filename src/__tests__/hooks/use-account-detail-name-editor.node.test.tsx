@@ -1,13 +1,13 @@
 import "@testing-library/jest-dom/vitest";
 import { Result } from "@praha/byethrow";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import { createInputKeyboardEvent } from "@tests/helpers/typed-test-factories";
-import type { RefObject } from "react";
+import type { KeyboardEvent, RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAccountDetailNameEditor } from "@/components/settings/hooks/account-detail/use-account-detail-name-editor";
 import { scheduleInputFocus } from "@/lib/dom/input-focus";
@@ -424,7 +424,102 @@ describe("useAccountDetailNameEditor", () => {
     expect(result.current.editingName).toBe(true);
     expect(result.current.nameDraft).toBe("あたらしいなまえ");
   });
+
+  it("does not commit an IME candidate Enter that arrives with isComposing false and legacy keyCode 229", async () => {
+    // Regression test: macOS WebKit fires compositionend before the commit keydown, so the Enter
+    // that confirms an IME candidate arrives with isComposing already false. keyCode 229 is the
+    // only remaining signal that this Enter still belongs to the IME, not to renaming the account.
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("あたらしいなまえ");
+    });
+    act(() => {
+      result.current.handleNameKeyDown(
+        createImeCommitKeyboardEvent({ key: "Enter", isComposing: false, keyCode: 229 }),
+      );
+    });
+
+    expect(renameAccountMock).not.toHaveBeenCalled();
+    expect(result.current.editingName).toBe(true);
+    expect(result.current.nameDraft).toBe("あたらしいなまえ");
+  });
+
+  it("does not cancel the edit for an IME candidate Escape that arrives with isComposing false and legacy keyCode 229", () => {
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("あたらしいなまえ");
+    });
+    act(() => {
+      result.current.handleNameKeyDown(
+        createImeCommitKeyboardEvent({ key: "Escape", isComposing: false, keyCode: 229 }),
+      );
+    });
+
+    expect(result.current.editingName).toBe(true);
+    expect(result.current.nameDraft).toBe("あたらしいなまえ");
+  });
+
+  it("commits exactly once on an ordinary Enter that is not an IME commit keystroke", async () => {
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    renameAccountMock.mockResolvedValue(Result.succeed({ ...account, name: "Renamed Account" }));
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("Renamed Account");
+    });
+    act(() => {
+      result.current.handleNameKeyDown(createImeCommitKeyboardEvent({ key: "Enter", isComposing: false, keyCode: 13 }));
+    });
+
+    await waitFor(() => expect(result.current.editingName).toBe(false));
+
+    expect(renameAccountMock).toHaveBeenCalledTimes(1);
+    expect(renameAccountMock).toHaveBeenCalledWith(account.id, "Renamed Account");
+  });
 });
+
+// createInputKeyboardEvent (tests/helpers/typed-test-factories.ts) does not carry keyCode, so this
+// local factory builds the same shape with the legacy IME commit keyCode included.
+function createImeCommitKeyboardEvent({
+  key,
+  isComposing,
+  keyCode,
+}: {
+  key: "Enter" | "Escape";
+  isComposing: boolean;
+  keyCode?: number;
+}): KeyboardEvent<HTMLInputElement> {
+  return {
+    key,
+    preventDefault: vi.fn(),
+    nativeEvent: { isComposing, keyCode },
+  } as unknown as KeyboardEvent<HTMLInputElement>;
+}
 
 function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputElement): void {
   Object.defineProperty(ref, "current", {
