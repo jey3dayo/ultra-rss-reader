@@ -90,7 +90,12 @@ Keep a fix local when it depends on:
 
 ## Review Format
 
-Use the review format below unless the user asks for something else.
+Use the format below when reviewing `DESIGN.md` / `DESIGN_REVIEW.md` themselves - whether the
+documents carry the right guidance, in the right place. It comes from the `design-md-workflow`
+skill and its axes grade the documents, not a screen.
+
+When reviewing a UI change, use the per-viewpoint pass / finding / N/A record in
+[.claude/rules/ui-design-review-loop.md](./.claude/rules/ui-design-review-loop.md) instead.
 
 ```markdown
 総合判定: OK | 調整推奨 | 大幅修正推奨

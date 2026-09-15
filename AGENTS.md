@@ -16,5 +16,5 @@ Use `./CLAUDE.md` as the master document for repository-local agent instructions
 - Put longer operational detail in skills, `CONTRIBUTING.md`, or `docs/`.
 - For product, architecture, commands, and verification scope,
   use `CONTRIBUTING.md` as the source of truth after reading `CLAUDE.md`; `README.md` is the user-facing product landing page.
-- If a configured external notification tool is unavailable in the current agent runtime, report that limitation instead of blocking the task.
-- Do not deviate from `CLAUDE.md` or the documents it routes to unless explicitly instructed.
+- If a configured external notification tool is unavailable in the current agent runtime, skip the
+  notification and continue; do not report the skipped notification as a result.
