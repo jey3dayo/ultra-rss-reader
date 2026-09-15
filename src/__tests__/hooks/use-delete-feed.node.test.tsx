@@ -15,10 +15,7 @@ import { useUiStore } from "@/stores/ui-store";
 setupBrowserTestDom();
 
 const { i18nTMock } = vi.hoisted(() => ({
-  // `localizeUserVisibleAppErrorMessage` imports `@/lib/i18n` directly (not via
-  // `useTranslation`), so the react-i18next mock below does not intercept it.
-  // Mock the module here too, with output that cannot be confused with the raw
-  // backend message, so the regression test below actually proves the helper ran.
+  // `@/lib/i18n` bypasses the react-i18next mock below, so it is mocked separately.
   i18nTMock: vi.fn((key: string) => `translated:${key}`),
 }));
 

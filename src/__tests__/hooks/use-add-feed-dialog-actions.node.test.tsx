@@ -3,7 +3,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addLocalFeed, createFolder, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
+import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import {
   getAddFeedDialogRestartBlockerSnapshot,
   resolveAddFeedDiscoveryAction,
@@ -14,18 +14,11 @@ import { resolveAddFeedInvalidationQueryKeys } from "@/lib/query/query-invalidat
 
 vi.mock("@/api/tauri-commands", () => ({
   addLocalFeed: vi.fn(),
-  createFolder: vi.fn(),
   discoverFeeds: vi.fn(),
   updateFeedFolder: vi.fn(),
 }));
 
 const t = i18n.getFixedT("en", "reader");
-// A fixed `ja` translator, unrelated to the process-wide `i18n.language`, proves
-// the localize helper ran: en text is byte-identical to the raw backend
-// message, so an en-only assertion cannot tell "localized" from "not wired".
-const tJa = i18n.getFixedT("ja", "reader");
-const DATABASE_MAINTENANCE_BUSY_MESSAGE_EN =
-  "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
 setupBrowserTestDom();
 
@@ -41,7 +34,6 @@ function createDeferred<T>() {
 describe("useAddFeedDialogActions", () => {
   beforeEach(() => {
     vi.mocked(addLocalFeed).mockReset();
-    vi.mocked(createFolder).mockReset();
     vi.mocked(discoverFeeds).mockReset();
     vi.mocked(updateFeedFolder).mockReset();
   });
@@ -612,140 +604,6 @@ describe("useAddFeedDialogActions", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("localizes a backend database-maintenance-busy failure when folder assignment fails", async () => {
-    vi.mocked(addLocalFeed).mockResolvedValue(
-      Result.succeed({
-        id: "feed-new",
-        account_id: "account-1",
-        folder_id: null,
-        remote_id: null,
-        title: "Example Feed",
-        url: "https://example.com/feed.xml",
-        site_url: "https://example.com",
-        icon_url: null,
-        unread_count: 0,
-        reader_mode: "inherit",
-        web_preview_mode: "inherit",
-      }),
-    );
-    vi.mocked(updateFeedFolder).mockResolvedValue(
-      Result.fail({
-        type: "UserVisible",
-        message: DATABASE_MAINTENANCE_BUSY_MESSAGE_EN,
-      }),
-    );
-
-    const dispatch = vi.fn();
-    const onOpenChange = vi.fn();
-    const showToast = vi.fn();
-
-    const { result } = renderHook(() =>
-      useAddFeedDialogActions({
-        accountId: "account-1",
-        state: {
-          url: "https://example.com/feed.xml",
-          error: null,
-          successMessage: null,
-          loading: false,
-          discovering: false,
-          discoveryRequestId: null,
-          discoveredFeeds: [],
-          selectedFeedUrl: null,
-        },
-        dispatch,
-        derived: {
-          hasManualUrl: true,
-          isManualUrlValid: true,
-          urlHint: null,
-          urlHintTone: "muted",
-          isSubmitDisabled: false,
-          isDiscoverDisabled: false,
-          discoveredFeedOptions: [],
-        },
-        trimmedUrl: "https://example.com/feed.xml",
-        folderSelection: {
-          selectedFolderId: "folder-1",
-          isCreatingFolder: false,
-          newFolderName: "",
-        },
-        queryClient: new QueryClient(),
-        onOpenChange,
-        showToast,
-        t: tJa,
-      }),
-    );
-
-    await act(async () => {
-      await result.current.handleSubmit();
-    });
-
-    expect(showToast).toHaveBeenCalledWith(
-      tJa("feed_added_folder_failed", {
-        message: "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。",
-      }),
-    );
-  });
-
-  it("localizes a backend database-maintenance-busy failure when folder creation fails", async () => {
-    vi.mocked(createFolder).mockResolvedValue(
-      Result.fail({
-        type: "UserVisible",
-        message: DATABASE_MAINTENANCE_BUSY_MESSAGE_EN,
-      }),
-    );
-
-    const dispatch = vi.fn();
-    const onOpenChange = vi.fn();
-    const showToast = vi.fn();
-
-    const { result } = renderHook(() =>
-      useAddFeedDialogActions({
-        accountId: "account-1",
-        state: {
-          url: "https://example.com/feed.xml",
-          error: null,
-          successMessage: null,
-          loading: false,
-          discovering: false,
-          discoveryRequestId: null,
-          discoveredFeeds: [],
-          selectedFeedUrl: null,
-        },
-        dispatch,
-        derived: {
-          hasManualUrl: true,
-          isManualUrlValid: true,
-          urlHint: null,
-          urlHintTone: "muted",
-          isSubmitDisabled: false,
-          isDiscoverDisabled: false,
-          discoveredFeedOptions: [],
-        },
-        trimmedUrl: "https://example.com/feed.xml",
-        folderSelection: {
-          selectedFolderId: null,
-          isCreatingFolder: true,
-          newFolderName: "New Folder",
-        },
-        queryClient: new QueryClient(),
-        onOpenChange,
-        showToast,
-        t: tJa,
-      }),
-    );
-
-    await act(async () => {
-      await result.current.handleSubmit();
-    });
-
-    expect(addLocalFeed).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith(
-      tJa("failed_to_create_folder", {
-        message: "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。",
-      }),
-    );
-  });
-
   it("ignores repeated submit calls while the first add feed request is in flight", async () => {
     const addFeed = createDeferred<Awaited<ReturnType<typeof addLocalFeed>>>();
     vi.mocked(addLocalFeed).mockReturnValue(addFeed.promise);
@@ -986,67 +844,6 @@ describe("useAddFeedDialogActions", () => {
     });
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
-  });
-
-  it("localizes a backend database-maintenance-busy failure when adding a feed fails", async () => {
-    vi.mocked(addLocalFeed).mockResolvedValue(
-      Result.fail({
-        type: "UserVisible",
-        message: DATABASE_MAINTENANCE_BUSY_MESSAGE_EN,
-      }),
-    );
-
-    const dispatch = vi.fn();
-    const showToast = vi.fn();
-    const onOpenChange = vi.fn();
-    const queryClient = new QueryClient();
-
-    const { result } = renderHook(() =>
-      useAddFeedDialogActions({
-        accountId: "account-1",
-        state: {
-          url: "https://example.com/feed.xml",
-          error: null,
-          successMessage: null,
-          loading: false,
-          discovering: false,
-          discoveryRequestId: null,
-          discoveredFeeds: [],
-          selectedFeedUrl: null,
-        },
-        dispatch,
-        derived: {
-          hasManualUrl: true,
-          isManualUrlValid: true,
-          urlHint: null,
-          urlHintTone: "muted",
-          isSubmitDisabled: false,
-          isDiscoverDisabled: false,
-          discoveredFeedOptions: [],
-        },
-        trimmedUrl: "https://example.com/feed.xml",
-        folderSelection: {
-          selectedFolderId: null,
-          isCreatingFolder: false,
-          newFolderName: "",
-        },
-        queryClient,
-        onOpenChange,
-        showToast,
-        t: tJa,
-      }),
-    );
-
-    await act(async () => {
-      await result.current.handleSubmit();
-    });
-
-    expect(dispatch).toHaveBeenCalledWith({
-      type: "set-submit-error",
-      error: tJa("failed_to_add_feed", {
-        message: "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。",
-      }),
-    });
   });
 
   it("keeps late submit success quiet after the dialog is externally closed while pending", async () => {

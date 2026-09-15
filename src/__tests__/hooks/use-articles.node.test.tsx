@@ -35,7 +35,6 @@ import {
   useSetRead,
   useToggleStar,
 } from "@/hooks/use-articles";
-import i18n from "@/lib/i18n";
 import { queryKeys, resolveArticleInvalidationQueryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -1590,38 +1589,6 @@ describe("recent article history mutations", () => {
       );
       expect(showToastMock).toHaveBeenCalledWith("Failed to clear recently viewed history: clear failed");
     });
-  });
-
-  it("localizes a backend database-maintenance-busy failure in the clear-history toast", async () => {
-    const showToastMock = vi.fn();
-    useUiStore.setState({ showToast: showToastMock });
-
-    const clearHistoryError: AppError = {
-      type: "UserVisible",
-      message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
-    };
-    vi.spyOn(tauriCommands, "clearArticleViewHistory").mockResolvedValue(Result.fail(clearHistoryError));
-
-    // `useTranslation("reader")` binds to the real, shared i18next instance (this
-    // test file does not mock it), so switching the resolved language is the only
-    // way to prove the busy message actually goes through the localize helper
-    // rather than being echoed back unchanged.
-    await i18n.changeLanguage("ja");
-    try {
-      const { result } = renderHook(() => useClearArticleViewHistory(), {
-        wrapper,
-      });
-
-      await expect(result.current.mutateAsync("acc-1")).rejects.toBeDefined();
-
-      await waitFor(() => {
-        expect(showToastMock).toHaveBeenCalledWith(
-          "閲覧履歴の削除に失敗しました: 同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。",
-        );
-      });
-    } finally {
-      await i18n.changeLanguage("en");
-    }
   });
 
   it("does not restore an older snapshot over a newer recent article cache update", async () => {

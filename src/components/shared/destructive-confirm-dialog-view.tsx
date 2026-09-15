@@ -43,9 +43,8 @@ export function DestructiveConfirmDialogView({
   const actionPending = pending || confirmInFlight;
   const confirmDisabledReasonId = useId();
   const confirmDescriptionId = confirmDisabled && confirmDisabledReason ? confirmDisabledReasonId : undefined;
-  // Every confirm dialog shell points initial focus at the confirm action so Enter
-  // runs it instead of dismissing (2026-09-15 decision, see dialog-keyboard-confirm.md).
-  // A disabled confirm button cannot take focus.
+  // Enter must confirm, not dismiss; a disabled button cannot take focus.
+  // See .claude/rules/dialog-keyboard-confirm.md.
   const initialFocus = actionPending || confirmDisabled ? undefined : confirmButtonRef;
 
   useEffect(() => {

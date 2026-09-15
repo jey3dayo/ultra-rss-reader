@@ -132,10 +132,8 @@ export function useAccountDetailNameEditor({
   };
 
   const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    // While an IME candidate is being composed or being committed, the IME owns the keystroke:
-    // Enter would commit a half-typed account name and Escape would discard the whole edit
-    // instead of the candidate. macOS WebKit fires compositionend before the commit keydown, so
-    // isComposing alone misses that Enter; isImeCommitKeyEvent also checks the legacy keyCode 229.
+    // The IME owns the keystroke: Enter would save a half-typed name, Escape would
+    // discard the edit. isComposing alone misses the commit Enter on macOS WebKit.
     if (isImeCommitKeyEvent(event.nativeEvent)) {
       return;
     }

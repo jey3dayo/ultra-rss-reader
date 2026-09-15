@@ -192,11 +192,8 @@ export function ConfirmDialogView({
   const holdEnabled = variant === "destructive" && !confirmDisabled;
   const holdHintId = useId();
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
-  // Base UI focuses the first tabbable element, which is Cancel. Enter would then
-  // dismiss instead of confirming, so every variant -- destructive included --
-  // points initial focus at the confirm action to keep dialogs consistent
-  // (2026-09-15 decision). Keyboard activation on a destructive confirm still
-  // runs the action immediately: it does not pass through the hold gate.
+  // Base UI would focus Cancel, so Enter would dismiss instead of confirming.
+  // Destructive included; see .claude/rules/dialog-keyboard-confirm.md.
   const initialFocus = confirmDisabled ? undefined : confirmButtonRef;
   const showHoldHint = holdEnabled && holdHint !== undefined;
   const { holding, cancelHold, cancelPointerHold, handlePointerDown, handleClick } = useHoldToConfirm({

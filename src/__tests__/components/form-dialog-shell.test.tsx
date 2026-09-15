@@ -3,21 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FormDialogShell } from "@/design-system";
 
-/**
- * Regression coverage for the FormDialogShell Enter-to-submit contract.
- *
- * Background: FormDialogShell used to rely on HTML implicit form submission,
- * which only fires when the form contains exactly one field that blocks
- * submission. Any dialog with a second field (e.g. a "new folder" input)
- * silently broke Enter-to-submit. The fix moves the submit button inside the
- * <form> so Enter always finds a real submit control, regardless of field
- * count.
- *
- * These tests intentionally use real keyboard events (`user.keyboard`),
- * never `fireEvent.submit`, because `fireEvent.submit` bypasses the browser's
- * implicit-submission / Enter-key resolution entirely and would not have
- * caught the original bug.
- */
+// Uses real keyboard events, not `fireEvent.submit`, which bypasses the
+// browser's implicit-submission / Enter-key resolution this contract covers.
 describe("FormDialogShell", () => {
   function renderShell(props: {
     onSubmit: () => void;

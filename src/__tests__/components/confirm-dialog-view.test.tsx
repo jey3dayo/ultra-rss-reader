@@ -254,9 +254,7 @@ describe("ConfirmDialogView", () => {
       />,
     );
 
-    // Destructive confirms now match every other dialog variant: initial focus
-    // goes to the confirm action. Keyboard activation still runs it immediately,
-    // with no hold gate (2026-09-15 decision).
+    // Initial focus goes to the confirm action; keyboard activation runs it immediately with no hold gate.
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveFocus();
     });

@@ -426,9 +426,8 @@ describe("useAccountDetailNameEditor", () => {
   });
 
   it("does not commit an IME candidate Enter that arrives with isComposing false and legacy keyCode 229", async () => {
-    // Regression test: macOS WebKit fires compositionend before the commit keydown, so the Enter
-    // that confirms an IME candidate arrives with isComposing already false. keyCode 229 is the
-    // only remaining signal that this Enter still belongs to the IME, not to renaming the account.
+    // macOS WebKit fires compositionend before the commit keydown, so keyCode 229 is the only
+    // remaining signal that this Enter still belongs to the IME.
     const account = { ...sampleAccounts[1], name: "FreshRSS" };
     const { result } = renderHook(() =>
       useAccountDetailNameEditor({
