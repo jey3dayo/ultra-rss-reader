@@ -49,6 +49,11 @@ afterEach(async () => {
 });
 
 vi.mock("react-i18next", () => ({
+  // localize-app-error-message pulls in @/lib/i18n transitively, which registers this plugin.
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => undefined,
+  },
   useTranslation: (namespace: string) => ({
     t: (key: string, options?: { count?: number }) => {
       if (namespace === "reader" && key === "no_old_unread_to_mark") {

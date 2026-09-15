@@ -61,6 +61,18 @@ vi.mock("@/hooks/use-update-feed-folder", () => ({
 
 setupBrowserTestDom();
 
+const { i18nTMock } = vi.hoisted(() => ({
+  // `localizeUserVisibleAppErrorMessage` imports `@/lib/i18n` directly (not via
+  // `useTranslation`), so the react-i18next mock below does not intercept it.
+  // Mock the module here too, with output that cannot be confused with the raw
+  // backend message, so the regression tests below actually prove the helper ran.
+  i18nTMock: vi.fn((key: string) => `translated:${key}`),
+}));
+
+vi.mock("@/lib/i18n", () => ({
+  default: { t: i18nTMock },
+}));
+
 vi.mock("react-i18next", () => ({
   I18nextProvider: ({ children }: { children: React.ReactNode }) => children,
   initReactI18next: {
@@ -188,5 +200,70 @@ describe("useFeedEditDialogController copy action", () => {
     expect(renameFeedMock).toHaveBeenCalledWith(sampleFeeds[0].id, "Snapshot café");
     expect(renameFeedMock).not.toHaveBeenCalledWith(sampleFeeds[1].id, "Snapshot café");
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("localizes a backend database-maintenance-busy failure when rename fails", async () => {
+    renameFeedMock.mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+      }),
+    );
+    const { wrapper } = createQueryWrapper();
+    const onOpenChange = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useFeedEditDialogController({
+          feed: sampleFeeds[0],
+          open: true,
+          onOpenChange,
+          ...createOperationClaim(),
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.setTitle("Renamed feed");
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(showToast).toHaveBeenCalledWith("Failed to rename: translated:errors.database_maintenance_busy");
+  });
+
+  it("localizes a backend database-maintenance-busy failure when folder creation fails", async () => {
+    createFolderMock.mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+      }),
+    );
+    const { wrapper } = createQueryWrapper();
+    const onOpenChange = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useFeedEditDialogController({
+          feed: sampleFeeds[0],
+          open: true,
+          onOpenChange,
+          ...createOperationClaim(),
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.folderSelectProps.handleFolderChange("__new__");
+    });
+    act(() => {
+      result.current.folderSelectProps.setNewFolderName("New Folder");
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(showToast).toHaveBeenCalledWith("Failed to create folder: translated:errors.database_maintenance_busy");
   });
 });

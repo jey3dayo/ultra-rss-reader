@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError, FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
@@ -160,6 +161,40 @@ describe("useUpdateFeedFolder", () => {
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: boom");
     });
+    expectTauriCommandError(consoleError, "update_feed_folder", appError);
+  });
+
+  it("localizes a backend database-maintenance-busy failure in the folder-update toast", async () => {
+    const consoleError = suppressConsoleError();
+    const appError: AppError = {
+      type: "UserVisible",
+      message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+    };
+    setupTauriMocks((cmd) => {
+      if (cmd === "update_feed_folder") {
+        throw appError;
+      }
+      return undefined;
+    });
+
+    // `useTranslation("reader")` binds to the real, shared i18next instance (this
+    // test file does not mock it), so switching the resolved language is the only
+    // way to prove the busy message actually goes through the localize helper
+    // rather than being echoed back unchanged.
+    await i18n.changeLanguage("ja");
+    try {
+      const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
+
+      await expect(result.current.mutateAsync({ feedId: "feed-1", folderId: null })).rejects.toBeDefined();
+
+      await waitFor(() => {
+        expect(showToastMock).toHaveBeenCalledWith(
+          "フォルダの更新に失敗しました: 同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。",
+        );
+      });
+    } finally {
+      await i18n.changeLanguage("en");
+    }
     expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 

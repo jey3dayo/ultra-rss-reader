@@ -7,6 +7,7 @@ import type { DiscoveredFeedDto } from "@/api/tauri-commands";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { invalidateAddFeedQueries } from "@/lib/query/query-invalidation";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import type {
   AddFeedDialogAction,
   AddFeedDialogControllerDerived,
@@ -218,7 +219,7 @@ export function useAddFeedDialogActions({
         if (Result.isFailure(folderResult)) {
           const error = Result.unwrapError(folderResult);
           const message = t("failed_to_create_folder", {
-            message: error.message,
+            message: localizeUserVisibleAppErrorMessage(error.message),
           });
           if (isLatestSubmit()) {
             dispatch({ type: "set-submit-error", error: message });
@@ -241,7 +242,7 @@ export function useAddFeedDialogActions({
             if (isLatestSubmit()) {
               dispatch({
                 type: "set-submit-error",
-                error: t("failed_to_add_feed", { message: error.message }),
+                error: t("failed_to_add_feed", { message: localizeUserVisibleAppErrorMessage(error.message) }),
               });
             }
           }),
@@ -257,7 +258,9 @@ export function useAddFeedDialogActions({
             Result.inspectError((error) => {
               console.error("Failed to assign folder:", error);
               if (isLatestSubmit()) {
-                showToast(t("feed_added_folder_failed", { message: error.message }));
+                showToast(
+                  t("feed_added_folder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+                );
               }
             }),
           );

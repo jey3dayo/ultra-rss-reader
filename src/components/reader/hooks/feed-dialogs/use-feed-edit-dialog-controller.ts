@@ -11,6 +11,7 @@ import { resolveFeedDisplayPreset } from "@/lib/articles/article-display";
 import { scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { focusAndSelectInput } from "@/lib/dom/input-focus";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 import type {
   FeedEditDialogController,
@@ -132,8 +133,10 @@ export function useFeedEditDialogController({
           folderSelection,
           queryClient: qc,
           showToast,
-          createFolderErrorMessage: (error) => t("failed_to_create_folder", { message: error.message }),
-          renameErrorMessage: (error) => t("failed_to_rename", { message: error.message }),
+          createFolderErrorMessage: (error) =>
+            t("failed_to_create_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+          renameErrorMessage: (error) =>
+            t("failed_to_rename", { message: localizeUserVisibleAppErrorMessage(error.message) }),
           updateFeedFolder: ({ feedId, folderId }) =>
             updateFeedFolderMutation
               .mutateAsync({ feedId, folderId })

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { updateFeedFolder } from "@/api/tauri-commands";
 import { invalidateFeedRootQueries, queryKeys } from "@/lib/query/query-invalidation";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
 export type UpdateFeedFolderArgs = {
@@ -59,7 +60,7 @@ export function useUpdateFeedFolder() {
           });
         });
       }
-      showToast(t("failed_to_update_folder", { message: error.message }));
+      showToast(t("failed_to_update_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }));
     },
   });
 }

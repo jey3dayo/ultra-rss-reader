@@ -14,6 +14,18 @@ import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
 
+const { i18nTMock } = vi.hoisted(() => ({
+  // `localizeUserVisibleAppErrorMessage` imports `@/lib/i18n` directly (not via
+  // `useTranslation`), so the react-i18next mock below does not intercept it.
+  // Mock the module here too, with output that cannot be confused with the raw
+  // backend message, so the regression test below actually proves the helper ran.
+  i18nTMock: vi.fn((key: string) => `translated:${key}`),
+}));
+
+vi.mock("@/lib/i18n", () => ({
+  default: { t: i18nTMock },
+}));
+
 vi.mock("react-i18next", () => ({
   I18nextProvider: ({ children }: { children: React.ReactNode }) => children,
   initReactI18next: {
@@ -188,6 +200,29 @@ describe("useDeleteFeed", () => {
       expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: boom");
     });
     expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("localizes a backend database-maintenance-busy failure in the unsubscribe toast", async () => {
+    vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+      }),
+    );
+
+    const { result } = renderHook(() => useDeleteFeed(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({
+        feedId: "feed-1",
+        accountId: "acc-1",
+        title: "Tech Blog",
+      }),
+    ).rejects.toBeDefined();
+
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: translated:errors.database_maintenance_busy");
+    });
   });
 
   it("keeps the delete failure reason when the optional error callback throws", async () => {

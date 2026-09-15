@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { deleteFeed } from "@/api/tauri-commands";
 import { invalidateDeleteFeedQueries } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
 type DeleteFeedArgs = {
@@ -52,7 +53,7 @@ export function useDeleteFeed() {
       }
     },
     onError: (error, variables) => {
-      showToast(t("failed_to_unsubscribe", { message: error.message }));
+      showToast(t("failed_to_unsubscribe", { message: localizeUserVisibleAppErrorMessage(error.message) }));
       const callbackErrorMessage = callOptionalCallback(variables.onError, "Delete feed error callback failed");
       if (callbackErrorMessage !== null) {
         showToast(`Unsubscribe failed, and UI cleanup failed: ${callbackErrorMessage}`);

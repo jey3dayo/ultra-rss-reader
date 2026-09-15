@@ -56,6 +56,7 @@ import {
   queryKeys,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
 export type SetReadMutationInput = {
@@ -577,7 +578,7 @@ export function useClearArticleViewHistory() {
           qc.setQueryData(queryKey, previousData);
         }
       }
-      showToast(t("clear_recent_history_failed", { message: error.message }));
+      showToast(t("clear_recent_history_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }));
     },
   });
 }
