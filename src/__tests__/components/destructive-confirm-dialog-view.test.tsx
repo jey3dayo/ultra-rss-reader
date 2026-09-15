@@ -37,6 +37,89 @@ describe("DestructiveConfirmDialogView", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it("focuses the confirm action initially and runs it once on Enter", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DestructiveConfirmDialogView
+        open={true}
+        title="Unsubscribe from feed"
+        description="This cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveFocus();
+    });
+
+    await user.keyboard("{Enter}");
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not focus a disabled confirm action or run it on Enter", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DestructiveConfirmDialogView
+        open={true}
+        title="Unsubscribe from feed"
+        description="This cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        confirmDisabled={true}
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    });
+
+    expect(screen.getByRole("button", { name: "Unsubscribe" })).toBeDisabled();
+
+    await user.keyboard("{Enter}");
+
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("does not focus the confirm action or run it on Enter while pending", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DestructiveConfirmDialogView
+        open={true}
+        title="Unsubscribe from feed"
+        description="This cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        pending={true}
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    const confirmButton = screen.getByRole("button", { name: "Unsubscribe" });
+
+    await waitFor(() => expect(confirmButton).toBeDisabled());
+    expect(confirmButton).not.toHaveFocus();
+
+    await user.keyboard("{Enter}");
+
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   it("restores focus to the opener after a controlled close", async () => {
     const opener = document.createElement("button");
     opener.textContent = "Open destructive dialog";

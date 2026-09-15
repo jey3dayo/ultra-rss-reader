@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -9,6 +10,7 @@ type DestructiveDialogFooterProps = {
   confirmDescriptionId?: string;
   confirmDisabled?: boolean;
   pending?: boolean;
+  confirmRef?: RefObject<HTMLButtonElement | null>;
   onCancel: () => void;
   onConfirm: () => void;
 };
@@ -20,6 +22,7 @@ export function DestructiveDialogFooter({
   confirmDescriptionId,
   confirmDisabled = false,
   pending = false,
+  confirmRef,
   onCancel,
   onConfirm,
 }: DestructiveDialogFooterProps) {
@@ -31,6 +34,7 @@ export function DestructiveDialogFooter({
         {cancelLabel}
       </Button>
       <DeleteButton
+        ref={confirmRef}
         onClick={onConfirm}
         disabled={actionDisabled}
         aria-label={confirmAccessibleLabel}

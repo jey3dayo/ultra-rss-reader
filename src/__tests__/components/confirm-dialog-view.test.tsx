@@ -236,7 +236,7 @@ describe("ConfirmDialogView", () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 
-  it("keeps the initial focus off a destructive confirm so Enter cannot run it immediately", async () => {
+  it("focuses the destructive confirm action initially, matching other dialog variants", async () => {
     const onConfirm = vi.fn();
 
     render(
@@ -254,12 +254,40 @@ describe("ConfirmDialogView", () => {
       />,
     );
 
-    // Keyboard activation runs a destructive action immediately, with no hold gate,
-    // so the cancel action keeps the initial focus.
+    // Destructive confirms now match every other dialog variant: initial focus
+    // goes to the confirm action. Keyboard activation still runs it immediately,
+    // with no hold gate (2026-09-15 decision).
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveFocus();
+    });
+
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("keeps a disabled destructive confirm from taking initial focus", async () => {
+    const onConfirm = vi.fn();
+
+    render(
+      <ConfirmDialogView
+        open={true}
+        title="Unsubscribe"
+        message="Remove this feed?"
+        actionLabel="Unsubscribe"
+        cancelLabel="Cancel"
+        variant="destructive"
+        confirmDisabled={true}
+        holdHint="Press and hold to confirm"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
     });
 
+    expect(screen.getByRole("button", { name: "Unsubscribe" })).toBeDisabled();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });

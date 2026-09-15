@@ -39,9 +39,14 @@ export function DestructiveConfirmDialogView({
   const confirmInFlightRef = useRef(false);
   const restoreFocusElementRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const actionPending = pending || confirmInFlight;
   const confirmDisabledReasonId = useId();
   const confirmDescriptionId = confirmDisabled && confirmDisabledReason ? confirmDisabledReasonId : undefined;
+  // Every confirm dialog shell points initial focus at the confirm action so Enter
+  // runs it instead of dismissing (2026-09-15 decision, see dialog-keyboard-confirm.md).
+  // A disabled confirm button cannot take focus.
+  const initialFocus = actionPending || confirmDisabled ? undefined : confirmButtonRef;
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -94,6 +99,7 @@ export function DestructiveConfirmDialogView({
       <DialogContent
         showCloseButton={false}
         portalContainer={portalContainer}
+        initialFocus={initialFocus}
         className="sm:max-w-md"
         aria-busy={actionPending}
       >
@@ -113,6 +119,7 @@ export function DestructiveConfirmDialogView({
           confirmDescriptionId={confirmDescriptionId}
           confirmDisabled={confirmDisabled}
           pending={actionPending}
+          confirmRef={confirmButtonRef}
           onCancel={() => handleOpenChange(false)}
           onConfirm={handleConfirm}
         />

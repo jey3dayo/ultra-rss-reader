@@ -5,7 +5,7 @@
 ## 制約
 
 - 確認ダイアログは**主アクションへ初期フォーカスを当てる**。Base UI の Dialog は最初の tabbable 要素へフォーカスを移すので、キャンセルを先に描画すると Enter がキャンセルを押す。`ConfirmDialogView` は `initialFocus` で実行ボタンを指す
-- 取り消せない操作(`destructive`)はキャンセル側へフォーカスを残す。キーボード活性化は press-and-hold ゲートを通らず即実行されるため、初期フォーカスを当てると Enter 一発で走る
+- 取り消せない操作(`destructive`)も含め、全ダイアログで実行ボタンへ初期フォーカスを当てて挙動を揃える(2026-09-15 のユーザー判断)。destructive のキーボード活性化は press-and-hold ゲートを通らず即実行されるが、ダイアログを開く時点で一度確認を経ているため許容する。実行ボタンが disabled のときはフォーカスを当てない(disabled 要素はフォーカスできない)
 - フォームダイアログの submit ボタンは **`<form>` の子孫に置く**。submit ボタン不在時の implicit submission フォールバックに依存しない
 - `submitType="submit"` と onClick の `onSubmit` を同時に渡さない。二重発火する
 - Enter を手で扱うときは IME を `isImeCommitKeyEvent`(`src/lib/keyboard/ime-key-event.ts`)で除外する。`isComposing` を直接読まない
