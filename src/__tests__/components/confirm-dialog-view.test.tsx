@@ -175,7 +175,10 @@ describe("ConfirmDialogView", () => {
     expect(retryButton).not.toBeDisabled();
     expect(dismissButton).not.toBeDisabled();
 
-    await waitFor(() => expect(dismissButton).toHaveFocus());
+    // The confirm action takes the initial focus so Enter runs it instead of dismissing.
+    await waitFor(() => expect(retryButton).toHaveFocus());
+    await confirmUser.tab({ shift: true });
+    expect(dismissButton).toHaveFocus();
     await confirmUser.tab();
     expect(retryButton).toHaveFocus();
     await confirmUser.keyboard("{Enter}");
@@ -202,6 +205,62 @@ describe("ConfirmDialogView", () => {
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Dismiss" })).toHaveFocus();
+  });
+
+  it("confirms on Enter for a non-destructive dialog instead of dismissing it", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+
+    render(
+      <ConfirmDialogView
+        open={true}
+        title="Mark feed read"
+        message="Mark the 4 articles in this feed as read?"
+        actionLabel="Mark read"
+        cancelLabel="Cancel"
+        variant="warning"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Mark read" })).toHaveFocus();
+    });
+
+    await user.keyboard("{Enter}");
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("keeps the initial focus off a destructive confirm so Enter cannot run it immediately", async () => {
+    const onConfirm = vi.fn();
+
+    render(
+      <ConfirmDialogView
+        open={true}
+        title="Unsubscribe"
+        message="Remove this feed?"
+        actionLabel="Unsubscribe"
+        cancelLabel="Cancel"
+        variant="destructive"
+        holdHint="Press and hold to confirm"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    // Keyboard activation runs a destructive action immediately, with no hold gate,
+    // so the cancel action keeps the initial focus.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    });
+
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });
 

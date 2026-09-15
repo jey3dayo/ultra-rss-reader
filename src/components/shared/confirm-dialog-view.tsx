@@ -191,6 +191,11 @@ export function ConfirmDialogView({
   const Icon = icon ?? tone.fallbackIcon;
   const holdEnabled = variant === "destructive" && !confirmDisabled;
   const holdHintId = useId();
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  // Base UI focuses the first tabbable element, which is Cancel. Enter would then
+  // dismiss instead of confirming. Destructive confirms keep that default on
+  // purpose: keyboard activation runs the action immediately, with no hold gate.
+  const initialFocus = variant === "destructive" || confirmDisabled ? undefined : confirmButtonRef;
   const showHoldHint = holdEnabled && holdHint !== undefined;
   const { holding, cancelHold, cancelPointerHold, handlePointerDown, handleClick } = useHoldToConfirm({
     enabled: holdEnabled,
@@ -207,6 +212,7 @@ export function ConfirmDialogView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
+        initialFocus={initialFocus}
         overlayPreset="readable"
         className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-6 sm:max-w-sm"
       >
@@ -242,6 +248,7 @@ export function ConfirmDialogView({
               <span className="min-w-0">{cancelLabel}</span>
             </Button>
             <Button
+              ref={confirmButtonRef}
               onClick={handleClick}
               onPointerDown={holdEnabled ? handlePointerDown : undefined}
               onPointerUp={holdEnabled ? cancelPointerHold : undefined}
