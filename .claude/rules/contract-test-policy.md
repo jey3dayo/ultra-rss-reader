@@ -27,6 +27,36 @@ Contract tests should capture durable boundaries: runtime inputs, DTO shapes, pu
 - Read a stylesheet with `readFileSync`, not a `?raw` import. Vite's CSS pipeline rewrites what `?raw` yields for a `.css` file: a real `@layer` at-rule injected into `motion.css` did not reach the imported string, so a guard asserting its absence passed against a genuinely layered file. `?raw` on `.ts` sources is unaffected and stays the normal way to pin source text.
 - Prove a new guard can fail before trusting it. Break the thing it protects — revert the fix, inject the at-rule, reverse the import order — confirm that exact test goes red, then restore. A guard written against a source the tooling transforms can be green for the whole life of the contract without ever having been able to fail.
 
+## A Helper With No Caller Is Not Covered
+
+A helper can have a passing unit test and still never run in the app. Its test proves the
+function works; nothing proves anything calls it. That gap is invisible to the whole suite,
+because every test involved is green.
+
+This repository shipped exactly that.
+`src/lib/ui/localize-app-error-message.ts` landed on 2026-07-26 with its own unit test and
+locale copy, and `CHANGELOG.md` recorded the sync-busy toast as localized in v0.54.4. It was
+wired into the settings, updater, and restart paths only. Every feed-side toast
+(unsubscribe, add feed, folder create/assign, rename, folder update, clear history) kept
+interpolating the raw backend string, so the English message reached a Japanese screen for
+seven weeks until someone unsubscribed a feed during a sync and saw it.
+
+So, when a change adds a helper that transforms something on its way to the user:
+
+- Name its call sites in the same change, or say in the commit which ones are deliberately
+  left out and why. "Add the helper now, wire it later" has no owner and no reminder.
+- Do not write the CHANGELOG entry for the user-visible symptom until the call sites exist.
+  The v0.54.4 entry described a fix the user could not see.
+- Prefer a test at the call site over a test on the helper. `useDeleteFeed` showing localized
+  copy is the contract; `localizeUserVisibleAppErrorMessage("...")` returning it is an
+  implementation detail that a caller-level test already covers.
+- Knip reports an unused export, not a partially wired one. A helper with three callers and
+  eight missing ones looks fully used to every tool in this repository.
+
+Before asserting a symbol has no caller, grep the **exported name**, not the file name or a
+name you remembered. Searching `localizeAppErrorMessage` when the export is
+`localizeUserVisibleAppErrorMessage` returns nothing and reads exactly like dead code.
+
 ## TODO Intake
 
 - Classify new TODO entries as one of: implementation, contract test, type placement cleanup, rule update, or manual verification.
