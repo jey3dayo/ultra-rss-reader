@@ -15,8 +15,12 @@ import {
   normalizeArticleExternalBrowserUrl,
   resolveArticleActionErrorCategory,
 } from "@/lib/articles/article-actions";
+import i18n from "@/lib/i18n";
 import { resolveClipboardErrorCategory } from "@/lib/runtime/clipboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
+
+const DATABASE_MAINTENANCE_BUSY_MESSAGE =
+  "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
 describe("article-browser-actions", () => {
   const showToast = vi.fn();
@@ -115,6 +119,28 @@ describe("article-browser-actions", () => {
       }),
     );
     expect(showToast).toHaveBeenCalledWith("Clipboard unavailable");
+  });
+
+  it("localizes a backend database-maintenance-busy failure when copying fails", async () => {
+    await i18n.changeLanguage("ja");
+    try {
+      setupTauriMocks((cmd) => {
+        if (cmd === "copy_to_clipboard") {
+          throw { type: "UserVisible", message: DATABASE_MAINTENANCE_BUSY_MESSAGE };
+        }
+        return undefined;
+      });
+
+      await copyArticleLink("https://example.com/article", {
+        showToast,
+        successMessage: "Link copied",
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 
   it("preserves clipboard categories when copy link reports them", () => {
@@ -469,6 +495,29 @@ describe("article-browser-actions", () => {
     });
 
     expect(showToast).toHaveBeenCalledWith("Browser unavailable");
+  });
+
+  it("localizes a backend database-maintenance-busy failure when opening a URL in the external browser fails", async () => {
+    await i18n.changeLanguage("ja");
+    try {
+      setupTauriMocks((cmd) => {
+        if (cmd === "open_in_browser") {
+          throw { type: "UserVisible", message: DATABASE_MAINTENANCE_BUSY_MESSAGE };
+        }
+        return undefined;
+      });
+
+      await openUrlInExternalBrowser("https://example.com/article", {
+        background: true,
+        showToast,
+        errorLabel: "Failed to open in browser",
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 
   it("logs and surfaces rejected external-browser commands for fire-and-forget callers", async () => {

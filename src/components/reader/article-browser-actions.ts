@@ -8,6 +8,7 @@ import {
 } from "@/lib/articles/article-actions";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -44,14 +45,14 @@ function runToastOperation<T>(
         Result.inspect(() => showToast(successMessage)),
         Result.inspectError((error) => {
           logArticleActionFailure(errorLabel, categorizeArticleActionError(error));
-          showToast(error.message);
+          showToast(localizeUserVisibleAppErrorMessage(error.message));
         }),
       ),
     )
     .catch((error: unknown) => {
       const actionError = toArticleActionError(error);
       logArticleActionFailure(errorLabel, actionError);
-      showToast(actionError.message);
+      showToast(localizeUserVisibleAppErrorMessage(actionError.message));
       return Result.fail(actionError);
     });
 }
@@ -66,14 +67,14 @@ function runExternalBrowserOperation(
         result,
         Result.inspectError((error) => {
           logArticleActionFailure(errorLabel, categorizeArticleActionError(error));
-          showToast(error.message);
+          showToast(localizeUserVisibleAppErrorMessage(error.message));
         }),
       ),
     )
     .catch((error: unknown) => {
       const actionError = toArticleActionError(error);
       logArticleActionFailure(errorLabel, actionError);
-      showToast(actionError.message);
+      showToast(localizeUserVisibleAppErrorMessage(actionError.message));
       return Result.fail(actionError);
     });
 }

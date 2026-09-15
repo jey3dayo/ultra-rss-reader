@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import type { SetReadMutationInput } from "@/hooks/use-articles";
 import { planOptimisticRetainOnRead } from "@/lib/articles/article-read-projection";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import type { AfterReadingPreference } from "@/schemas/preference-values";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleEngagement } from "@/stores/ui-store.types";
@@ -266,7 +267,7 @@ export function useArticleAutoMark({
               if (retainPlan.shouldRollbackOnError) {
                 removeRetainedArticle(articleId);
               }
-              showToast(error.message);
+              showToast(localizeUserVisibleAppErrorMessage(error.message));
             },
           },
         );

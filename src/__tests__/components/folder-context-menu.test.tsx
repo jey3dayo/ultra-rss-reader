@@ -15,6 +15,11 @@ const translations = new Map<string, string>([
 ]);
 
 vi.mock("react-i18next", () => ({
+  // localize-app-error-message pulls in @/lib/i18n transitively, which registers this plugin.
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => undefined,
+  },
   useTranslation: () => ({
     t: (key: string, options?: { message?: string }) => {
       const translated = translations.get(key) ?? key;

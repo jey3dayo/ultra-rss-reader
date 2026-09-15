@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import { redactProviderRuntimeDiagnosticText } from "@/lib/runtime/diagnostics";
 import type { UiDisplayState } from "@/lib/ui/display-state.types";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
 type AccountDetailError = UiDisplayState;
@@ -20,6 +21,10 @@ type AccountDetailErrorToastKey =
 
 export function createAccountDetailErrorToast(t: TFunction<"settings">, key: AccountDetailErrorToastKey) {
   return (error: AccountDetailError) => {
-    useUiStore.getState().showToast(t(key, { message: redactProviderRuntimeDiagnosticText(error.message) }));
+    useUiStore.getState().showToast(
+      t(key, {
+        message: redactProviderRuntimeDiagnosticText(localizeUserVisibleAppErrorMessage(error.message)),
+      }),
+    );
   };
 }

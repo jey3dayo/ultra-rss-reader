@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { countOldUnreadArticles, type OldUnreadScopeKind } from "@/api/tauri-commands";
 import { useMarkOldUnreadRead } from "@/hooks/use-articles";
 import { getErrorMessage } from "@/lib/ui/errors";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 import type { OldUnreadDayPreset } from "../../old-unread-context-menu-items";
 
@@ -26,7 +27,7 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
         }
 
         if (Result.isFailure(countResult)) {
-          showToast(Result.unwrapError(countResult).message);
+          showToast(localizeUserVisibleAppErrorMessage(Result.unwrapError(countResult).message));
           return null;
         }
 
@@ -59,7 +60,7 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
               { scopeKind, targetId, olderThanDays },
               {
                 onError: (error) => {
-                  showToast(error.message);
+                  showToast(localizeUserVisibleAppErrorMessage(error.message));
                 },
               },
             );

@@ -9,6 +9,7 @@ import {
   reloadBrowserWebview,
 } from "@/api/tauri-commands";
 import { isMissingEmbeddedBrowserWebviewError } from "@/lib/browser/browser-webview-state";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -114,7 +115,7 @@ export function useBrowserViewActions({
       }
 
       console.error(errorLabel, error);
-      showToast(error.message);
+      showToast(localizeUserVisibleAppErrorMessage(error.message));
     },
     [applyBrowserState, keepWebPreviewFocus, recoverMissingEmbeddedBrowserWebview, showToast],
   );

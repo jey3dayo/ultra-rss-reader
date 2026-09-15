@@ -1,7 +1,11 @@
 import type { TFunction } from "i18next";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAccountDetailErrorToast } from "@/components/settings/account-detail/toast";
+import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
+
+const DATABASE_MAINTENANCE_BUSY_MESSAGE =
+  "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
 describe("account-detail-toast", () => {
   afterEach(() => {
@@ -53,5 +57,29 @@ describe("account-detail-toast", () => {
     expect(toastMessage).not.toContain("acc-provider-secret");
     expect(toastMessage).not.toContain("provider-auth-token");
     expect(toastMessage).not.toContain("provider_session=raw-cookie");
+  });
+
+  it("localizes a backend database-maintenance-busy message before redaction runs", async () => {
+    await i18n.changeLanguage("ja");
+    try {
+      const showToast = vi.fn();
+      const t = ((key: string, values?: Record<string, unknown>) =>
+        key === "account.sync_failed" ? `Sync failed: ${String(values?.message)}` : key) as TFunction<"settings">;
+      useUiStore.setState({ showToast });
+
+      createAccountDetailErrorToast(
+        t,
+        "account.sync_failed",
+      )({
+        message: DATABASE_MAINTENANCE_BUSY_MESSAGE,
+        title: "Sync failed",
+      });
+
+      const localizedBusyMessage = i18n.t("errors.database_maintenance_busy", { ns: "common" });
+      expect(showToast).toHaveBeenCalledWith(`Sync failed: ${localizedBusyMessage}`);
+      expect(showToast).not.toHaveBeenCalledWith(`Sync failed: ${DATABASE_MAINTENANCE_BUSY_MESSAGE}`);
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

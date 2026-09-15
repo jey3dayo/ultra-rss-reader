@@ -1,12 +1,16 @@
 import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { UseArticleStatusActionsParams } from "@/components/reader/hooks/article/use-article-status-actions";
 import { useArticleStatusActions } from "@/components/reader/hooks/article/use-article-status-actions";
+import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
+
+const DATABASE_MAINTENANCE_BUSY_MESSAGE =
+  "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
 type SetReadMutate = UseArticleStatusActionsParams["setRead"]["mutate"];
 type ToggleStarMutate = UseArticleStatusActionsParams["toggleStar"]["mutate"];
@@ -313,5 +317,76 @@ describe("useArticleStatusActions", () => {
 
     expect(retainArticle).not.toHaveBeenCalled();
     expect(showToast).toHaveBeenCalledWith("Failed to unstar");
+  });
+
+  describe("database-maintenance-busy localization", () => {
+    afterEach(async () => {
+      await i18n.changeLanguage("en");
+    });
+
+    it("localizes a backend database-maintenance-busy failure when marking read fails", async () => {
+      await i18n.changeLanguage("ja");
+      const showToast = vi.fn();
+      const mutate: SetReadMutate = (variables, options) => {
+        options?.onError?.(
+          { type: "UserVisible", message: DATABASE_MAINTENANCE_BUSY_MESSAGE } as unknown as Error,
+          variables,
+          undefined,
+          createMutationContext(),
+        );
+      };
+      const setRead: UseArticleStatusActionsParams["setRead"] = {
+        mutate: vi.fn(mutate),
+      };
+
+      const { result } = renderHook(() =>
+        useArticleStatusActions(
+          createParams({
+            viewMode: "unread",
+            setRead,
+            showToast,
+          }),
+        ),
+      );
+
+      act(() => {
+        result.current.setReadStatus(true);
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    });
+
+    it("localizes a backend database-maintenance-busy failure when starring fails", async () => {
+      await i18n.changeLanguage("ja");
+      const showToast = vi.fn();
+      const mutate: ToggleStarMutate = (variables, options) => {
+        options?.onError?.(
+          { type: "UserVisible", message: DATABASE_MAINTENANCE_BUSY_MESSAGE } as unknown as Error,
+          variables,
+          undefined,
+          createMutationContext(),
+        );
+      };
+      const toggleStar: UseArticleStatusActionsParams["toggleStar"] = {
+        mutate: vi.fn(mutate),
+      };
+
+      const { result } = renderHook(() =>
+        useArticleStatusActions(
+          createParams({
+            showToast,
+            toggleStar,
+          }),
+        ),
+      );
+
+      act(() => {
+        result.current.setStarStatus(true);
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    });
   });
 });

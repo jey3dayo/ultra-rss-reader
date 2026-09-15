@@ -12,6 +12,7 @@ import {
   suppressAutoMarkAfterManualUnread,
   useArticleAutoMark,
 } from "@/components/reader/hooks/article/use-article-auto-mark";
+import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
@@ -846,6 +847,43 @@ describe("useArticleAutoMark", () => {
 
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
     expect(showToast).toHaveBeenCalledWith("Failed to mark read");
+  });
+
+  it("localizes a backend database-maintenance-busy auto mark failure", async () => {
+    const DATABASE_MAINTENANCE_BUSY_MESSAGE =
+      "Database maintenance is unavailable while syncing. Try again after sync completes.";
+    await i18n.changeLanguage("ja");
+    try {
+      const showToast = vi.fn();
+      const mutate: AutoMarkMutate = (variables, options) => {
+        options?.onError?.(
+          { type: "UserVisible", message: DATABASE_MAINTENANCE_BUSY_MESSAGE } as unknown as Error,
+          variables,
+          undefined,
+          createMutationContext(),
+        );
+      };
+      const setRead: UseArticleAutoMarkParams["setRead"] = {
+        mutate: vi.fn(mutate),
+      };
+
+      renderHook(() => {
+        useArticleAutoMark(
+          createParams({
+            afterReading: "immediately",
+            viewMode: "unread",
+            retainArticle: useUiStore.getState().retainArticle,
+            setRead,
+            showToast,
+          }),
+        );
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 
   it("keeps pre-existing retained unread articles when auto mark mutation fails", () => {

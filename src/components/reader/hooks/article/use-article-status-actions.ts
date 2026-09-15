@@ -6,6 +6,7 @@ import {
 } from "@/components/reader/hooks/article/use-article-auto-mark";
 import { planOptimisticRetainOnRead } from "@/lib/articles/article-read-projection";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-browser-actions";
 import { removeRetainedArticle } from "../../retained-articles";
@@ -84,7 +85,7 @@ export function useArticleStatusActions({
             if (retainPlan.shouldRollbackOnError) {
               removeRetainedArticle(articleId);
             }
-            showToast(error.message);
+            showToast(localizeUserVisibleAppErrorMessage(error.message));
           },
         },
       );
@@ -107,7 +108,7 @@ export function useArticleStatusActions({
             }
           },
           onError: (error) => {
-            showToast(error.message);
+            showToast(localizeUserVisibleAppErrorMessage(error.message));
           },
         },
       );

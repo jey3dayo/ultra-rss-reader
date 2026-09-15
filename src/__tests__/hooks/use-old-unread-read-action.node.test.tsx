@@ -5,7 +5,11 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { countOldUnreadArticles } from "@/api/tauri-commands";
 import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
+import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
+
+const DATABASE_MAINTENANCE_BUSY_MESSAGE =
+  "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
 type MarkOldUnreadReadVariables = {
   scopeKind: "account" | "folder" | "feed";
@@ -249,5 +253,58 @@ describe("useOldUnreadReadAction", () => {
       }),
     );
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  describe("database-maintenance-busy localization", () => {
+    afterEach(async () => {
+      await i18n.changeLanguage("en");
+    });
+
+    it("localizes a backend database-maintenance-busy failure from the old unread count", async () => {
+      await i18n.changeLanguage("ja");
+      const showToast = vi.fn();
+      countOldUnreadArticlesMock.mockResolvedValue(
+        Result.fail({ type: "UserVisible", message: DATABASE_MAINTENANCE_BUSY_MESSAGE }),
+      );
+      useUiStore.setState({
+        showConfirm: vi.fn(),
+        showToast,
+      });
+
+      const { result } = renderHook(() => useOldUnreadReadAction("feed", "feed-1"));
+
+      await act(async () => {
+        await result.current(30);
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    });
+
+    it("localizes a backend database-maintenance-busy failure from markOldUnreadRead", async () => {
+      await i18n.changeLanguage("ja");
+      const showToast = vi.fn();
+      markOldUnreadReadMutate.mockImplementation(
+        (_variables: MarkOldUnreadReadVariables, options?: MarkOldUnreadReadOptions) => {
+          options?.onError?.({ message: DATABASE_MAINTENANCE_BUSY_MESSAGE } as Error);
+        },
+      );
+      countOldUnreadArticlesMock.mockResolvedValue(Result.succeed(3));
+      useUiStore.setState({
+        showConfirm: (_message, onConfirm) => {
+          onConfirm();
+        },
+        showToast,
+      });
+
+      const { result } = renderHook(() => useOldUnreadReadAction("feed", "feed-1"));
+
+      await act(async () => {
+        await result.current(30);
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    });
   });
 });

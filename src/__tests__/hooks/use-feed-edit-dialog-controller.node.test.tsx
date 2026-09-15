@@ -154,6 +154,33 @@ describe("useFeedEditDialogController copy action", () => {
     );
   });
 
+  it("localizes a backend database-maintenance-busy failure when copy fails", async () => {
+    const error = {
+      type: "UserVisible" as const,
+      message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+    };
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    copyTextToClipboardMock.mockResolvedValue(Result.fail(error));
+    const { wrapper } = createQueryWrapper();
+    const { result } = renderHook(
+      () =>
+        useFeedEditDialogController({
+          feed: sampleFeeds[0],
+          open: true,
+          onOpenChange: vi.fn(),
+          ...createOperationClaim(),
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleCopy("https://example.com/feed.xml");
+    });
+
+    expect(showToast).toHaveBeenCalledWith("translated:errors.database_maintenance_busy");
+    expect(consoleError).toHaveBeenCalledWith("Copy failed:", error);
+  });
+
   it("shows the copied toast after a successful readonly URL copy", async () => {
     copyTextToClipboardMock.mockResolvedValue(Result.succeed(undefined));
     const { wrapper } = createQueryWrapper();

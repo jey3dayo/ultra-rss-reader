@@ -6,6 +6,7 @@ import { useArticleBrowserOverlay } from "@/components/reader/hooks/article/use-
 import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
 import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import type { ArticlePaneProps, ArticlePaneToolbarState } from "../../article-pane-view";
 import type { BrowserOverlayToolbarAction } from "../../browser-view.types";
 
@@ -101,7 +102,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
       {
         onError: (error) => {
           recordedSelectionRef.current = null;
-          showToast(error.message);
+          showToast(localizeUserVisibleAppErrorMessage(error.message));
         },
       },
     );

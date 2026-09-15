@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserViewActions } from "@/components/reader/hooks/browser/use-browser-view-actions";
-
+import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -219,6 +219,50 @@ describe("useBrowserViewActions", () => {
     });
 
     expect(showToast).toHaveBeenCalledWith("Reload failed");
+  });
+
+  it("localizes a backend database-maintenance-busy reload failure", async () => {
+    const DATABASE_MAINTENANCE_BUSY_MESSAGE =
+      "Database maintenance is unavailable while syncing. Try again after sync completes.";
+    await i18n.changeLanguage("ja");
+    try {
+      reloadBrowserWebviewMock.mockResolvedValue(
+        Result.fail({
+          type: "UserVisible",
+          message: DATABASE_MAINTENANCE_BUSY_MESSAGE,
+        }),
+      );
+
+      const showToast = vi.fn();
+
+      const { result } = renderHook(() => {
+        const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createBrowserState());
+        const browserStateRef = useRef(browserState);
+        browserStateRef.current = browserState;
+        const fallbackInFlightRef = useRef(false);
+
+        return useBrowserViewActions({
+          browserUrl: "https://example.com/article",
+          browserStateRef,
+          setBrowserState,
+          resetBrowserWebviewSyncState: vi.fn(),
+          clearSurfaceIssue: vi.fn(),
+          showToast,
+          syncBrowserWebview: vi.fn(async () => {}),
+          initialBrowserState: createInitialBrowserState,
+          fallbackInFlightRef,
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleReload();
+      });
+
+      expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy", { ns: "common" }));
+      expect(showToast).not.toHaveBeenCalledWith(DATABASE_MAINTENANCE_BUSY_MESSAGE);
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 
   it("restores webview focus after toolbar navigation when focus retention is enabled", async () => {
