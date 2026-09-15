@@ -92,14 +92,9 @@ Tauri の window chrome は OS ごとに前提が違う。特に macOS は overl
 ## 避けること
 
 - macOS の空白を消したいだけで overlay titlebar の仕組みを理解せず CSS だけ削る
-- `desktop-titlebar-offset` を shell と layout の両方に入れて二重に top inset を作る
-- pane header より前面に透明な drag 要素を被せてクリックを奪う
-- header 内の interactive 要素を drag region で覆う
 - browser mode を desktop app の一種として扱い、Windows と同じ compact desktop 分岐に混ぜる
 - 掴める面が十分ある header なのに、40px x 72px のような狭い strip や中央 spacer のみに drag を閉じ込める
-- ancestor selector で `app-region: drag` を当てないと動かない前提の CSS に依存する
 - drag surface を広げるために上段 wrapper を増やし、その wrapper 自体が title block を押し下げる
-- drag 可視化の色だけ見て「掴めるはず」と判断し、実機の hit testing を確認しない
 - ネイティブ側は `Visible` のまま、フロントだけ overlay 前提の offset を入れる
 - 逆にネイティブ側だけ `Overlay` にして、フロント側の offset / helper root を追加しない
 - Storybook の stale cache / HMR 崩れを app ロジックの不具合と決めつける。まず fresh 起動で `workspace-header` の 3 story を見直す
