@@ -37,6 +37,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - Reader article source, scope, filter, hook, and paging order: [reader-article-scope-matrix.md](./reader-article-scope-matrix.md).
 - Reader pane keyboard navigation, focus return, and focus styling contracts: [reader-keyboard-navigation.md](./reader-keyboard-navigation.md).
 - Knip unused-export and unused-type triage record: [knip-export-classification.md](./knip-export-classification.md).
+- pnpm `trustPolicy` adoption preflight evidence: [pnpm-trust-policy-preflight.md](./pnpm-trust-policy-preflight.md).
 - React Doctor high-complexity function triage record: [react-doctor-complexity-classification.md](./react-doctor-complexity-classification.md).
 - Dated design and implementation records: [superpowers/README.md](./superpowers/README.md).
 
