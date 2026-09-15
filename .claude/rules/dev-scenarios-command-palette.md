@@ -8,7 +8,7 @@ paths:
   - "src/dev/use-resolved-dev-intent.ts"
   - "src/components/reader/command-palette.tsx"
   - "src/__tests__/dev/scenarios/**/*.ts"
-  - "src/__tests__/dev/use-dev-intent.test.tsx"
+  - "src/__tests__/dev/use-dev-intent.node.test.tsx"
   - "src/__tests__/components/command-palette.test.tsx"
 ---
 

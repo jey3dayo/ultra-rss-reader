@@ -413,9 +413,13 @@ These colors currently appear in tag settings, tag rename flows, and the migrati
 Provider and service icon backgrounds may use brand or near-brand colors as explicit exceptions:
 
 - Local feeds: warm orange accent (`bg-orange-500` in current implementation)
-- Fever: neutral gray placeholder (`bg-gray-500` in current implementation)
 - FreshRSS: `#0062BE`
-- Inoreader: `#1875F3`
+- Feedly: `#2BB24C`
+- Fever: neutral gray placeholder (`bg-gray-500` in current implementation)
+
+`PROVIDER_ICON_BG_CLASS` in `src/components/shared/exception-palettes.ts` is the source of truth
+for this list; `ProviderKind` in `src-tauri/src/domain/provider.rs` is the source of truth for
+which providers exist.
 
 These colors should be centralized as provider brand tokens or a dedicated exception map, not treated as part of the core UI palette.
 
@@ -431,7 +435,7 @@ These colors should be centralized as provider brand tokens or a dedicated excep
 - Muted text: `rgba(38, 37, 30, 0.44)`
 - Brand accent: `#f54e00`
 - Hover / expressive accent: `#cf2d56`
-- Success: `#1f8a65`
+- Success: no single literal; use the `--state-success-*` tokens in `src/styles/global.css`
 - Unread semantic accent: `#9fbbe0`
 - Starred semantic accent: `#facc15`
 - Default border: `rgba(38, 37, 30, 0.12)` with warm oklab-style alternatives only when they match the same optical weight
