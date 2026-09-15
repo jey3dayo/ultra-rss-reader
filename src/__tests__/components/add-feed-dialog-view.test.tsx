@@ -153,6 +153,13 @@ describe("AddFeedDialogView", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  // Note: this case renders with isSubmitDisabled: true, so an unfired onSubmit here
+  // only proves the FormDialogShell submit guard blocked the call. It cannot
+  // distinguish that from Enter never reaching a submit control at all (the
+  // structural bug this dialog previously had with two blocking fields). The
+  // discriminating regression coverage — Enter reaching the submit button with
+  // one and with two fields, guard-blocked vs. structurally-blocked — lives in
+  // src/__tests__/components/form-dialog-shell.test.tsx.
   it("does not submit the form when submission is disabled", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();

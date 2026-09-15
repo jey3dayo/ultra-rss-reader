@@ -210,6 +210,12 @@ describe("shared form controls", () => {
       "shrink-0",
     );
     expect(screen.getByRole("textbox", { name: "Feed URL" }).closest("form")).toHaveClass(
+      "flex",
+      "min-h-0",
+      "flex-1",
+      "flex-col",
+    );
+    expect(screen.getByRole("textbox", { name: "Feed URL" }).closest("div.overflow-y-auto")).toHaveClass(
       "min-h-0",
       "flex-1",
       "overflow-y-auto",

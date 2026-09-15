@@ -90,24 +90,21 @@ export function FormDialogShell({
             </DialogDescription>
           ) : null}
         </DialogHeader>
-        <form
-          onSubmit={handleSubmit}
-          className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4", bodyClassName)}
-        >
-          {children}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4", bodyClassName)}>{children}</div>
+          <DialogFooter className="mx-0 mb-0 shrink-0 border-t border-border/70 bg-surface-1/72 px-6 py-4">
+            <FormActionButtons
+              cancelLabel={cancelLabel}
+              submitLabel={submitLabel}
+              submittingLabel={submittingLabel}
+              loading={loading}
+              submitDisabled={submitBlocked}
+              cancelDisabled={cancelDisabled}
+              onCancel={() => onOpenChange(false)}
+              submitType="submit"
+            />
+          </DialogFooter>
         </form>
-        <DialogFooter className="mx-0 mb-0 shrink-0 border-t border-border/70 bg-surface-1/72 px-6 py-4">
-          <FormActionButtons
-            cancelLabel={cancelLabel}
-            submitLabel={submitLabel}
-            submittingLabel={submittingLabel}
-            loading={loading}
-            submitDisabled={submitBlocked}
-            cancelDisabled={cancelDisabled}
-            onCancel={() => onOpenChange(false)}
-            onSubmit={submitWithGuard}
-          />
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
