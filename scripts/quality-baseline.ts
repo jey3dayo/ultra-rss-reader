@@ -198,7 +198,14 @@ const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = 
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
-  scanSha: "01f4ff5da",
+  //
+  // It also has to be a commit where every number in this block is true at once, which is not
+  // the same as where the scan ran. The measurement was taken at 01f4ff5da, but the follow-up
+  // that corrected classifiedFindingCount 25 -> 24 landed afterwards, so a checkout of 01f4ff5da
+  // reproduces the scanned 31/73 while its own file asserts 0 untriaged instead of 1. ac8a4aff3
+  // is the first commit where the scan output and the derived totals agree; verified by re-running
+  // the pinned scan there.
+  scanSha: "ac8a4aff3",
   pluginVersion: "0.9.14",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",

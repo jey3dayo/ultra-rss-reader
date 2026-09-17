@@ -565,7 +565,10 @@ audit との差 42 件が inline disable による抑制量である。`warningC
 
 ### Phase B の実施結果（2026-09-18、`01f4ff5da`）
 
-merge 後の main の SHA `01f4ff5da` で再計測して再 pin した。
+merge 後の main の SHA `01f4ff5da` で再計測して再 pin した。`scanSha` はその後
+`ac8a4aff3` へ直している——下記の訂正が `01f4ff5da` より後に入ったため、`01f4ff5da` を
+checkout すると scan の 31/73 は再現するがファイル自身は untriaged 0 と言う状態になる。
+pin の SHA は「scan 出力と導出値が同時に成り立つ最初の commit」でなければならない。
 
 | 走査 | error | warning | files |
 | --- | --- | --- | --- |
