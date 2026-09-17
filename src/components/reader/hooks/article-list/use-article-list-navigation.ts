@@ -24,7 +24,7 @@ export function useArticleListNavigation({
 }: UseArticleListNavigationParams) {
   const focusRequestGenerationRef = useRef(0);
   const focusRequestCleanupRef = useRef<(() => void) | null>(null);
-  const articleIdsSignatureRef = useRef(filteredArticles.map((article) => article.id).join("\0"));
+  const articleIdsSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
