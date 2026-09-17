@@ -679,6 +679,60 @@ describe("SubscriptionsIndexPage", () => {
     }
   });
 
+  it("adopts a viewport change that lands while the resize listener is being attached", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const originalInnerHeight = window.innerHeight;
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      subscriptionsWorkspace: {
+        kind: "index",
+        returnState: {
+          accountId: "acc-1",
+          activeSummaryFilter: "stale",
+          selectedFeedId: "feed-1",
+          expandedGroups: {
+            "group:subscription-list:1-folder:folder-1": false,
+            "group:subscription-list:1-folder:folder-2": true,
+            "group:subscription-list:0-sentinel:no-folder": true,
+          },
+          listScrollTop: {
+            scrollTop: 18,
+            layoutGeneration: "feed-1",
+            viewportHeight: originalInnerHeight,
+          },
+          keptFeedIds: [],
+          deferredFeedIds: [],
+        },
+      },
+    });
+    const addEventListener = vi.spyOn(window, "addEventListener").mockImplementation((type) => {
+      if (type === "resize") {
+        Object.defineProperty(window, "innerHeight", {
+          configurable: true,
+          value: originalInnerHeight + 200,
+        });
+      }
+    });
+
+    try {
+      render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+      await screen.findByTestId("subscriptions-folder-row-folder-1");
+      const listScrollRegion = document.querySelector('[data-testid="subscriptions-list-scroll-region"]');
+
+      await waitFor(() => {
+        expect(listScrollRegion).toHaveProperty("scrollTop", 0);
+      });
+    } finally {
+      addEventListener.mockRestore();
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+    }
+  });
+
   it("hides feeds already marked to keep when restoring the review filter", async () => {
     useUiStore.setState({
       ...useUiStore.getState(),

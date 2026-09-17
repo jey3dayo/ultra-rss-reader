@@ -418,7 +418,7 @@ immediately above this line", which reads as a limit of one and is not.
 
 **A `warningCount` pin is net of every inline disable, so it cannot distinguish a fixed finding
 from a silenced one.** Record the `--no-respect-inline-disables` total from the same scan
-alongside it. At the #300 landing the two were 31 and 74.
+alongside it. At the #300 landing the two were 31 and 73.
 
 **A classified family whose count no longer matches the scan silently understates the untriaged
 total.** `require-pnpm-hardening` stayed registered at 1 after both the finding and the rule

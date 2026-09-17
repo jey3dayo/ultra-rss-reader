@@ -64,7 +64,7 @@ function hasOpenNestedEscapeLayer(): boolean {
   return document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]') !== null;
 }
 
-// react-doctor-disable-next-line react-doctor/no-giant-component -- accepted risk (component split tracked separately), docs/react-doctor-warning-classification-300.md:385
+// react-doctor-disable-next-line react-doctor/no-giant-component -- accepted risk (component split tracked separately), docs/react-doctor-warning-classification-300.md:411
 export function SubscriptionsIndexPage() {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
@@ -86,7 +86,7 @@ export function SubscriptionsIndexPage() {
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
   const [reviewClock, setReviewClock] = useState(() => getCurrentDate());
-  const viewportHeight = useSyncExternalStore(subscribeToViewportHeight, getViewportHeight, getViewportHeight);
+  const viewportHeight = useSyncExternalStore(subscribeToViewportHeight, getViewportHeight);
 
   const candidates = useMemo(
     () =>

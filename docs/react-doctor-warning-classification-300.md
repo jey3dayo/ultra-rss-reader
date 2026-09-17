@@ -149,11 +149,20 @@ observed defect"）を引き継ぎ、「読み手が `:111` の 1 箇所だけ�
 実測: audit mode の warning が 74 → **73**。inline disable で黙らせたのではなく finding が
 消えている。
 
-テスト: `subscriptions-index-page.test.tsx` に
-「drops the restored list scroll when the window is resized after mount」を追加した。
-`subscribe` を no-op へ差し替える故障注入で落ちる（1 failed / 30 passed）。
-**ただしこのテストが固定するのは「購読が働くこと」までで、移行が直した
-「初回 render と購読開始の間の resize」自体はテストから到達できない。**
+テストは 2 件追加した。
+
+- 「drops the restored list scroll when the window is resized after mount」— 購読が働くことを固定。
+  `subscribe` を no-op へ差し替える故障注入で落ちる（1 failed / 30 passed）。
+  ただしこれは旧実装でも通るので、移行の guard にはならない
+- 「adopts a viewport change that lands while the resize listener is being attached」—
+  **移行が直した競合そのものを固定する。** `window.addEventListener` を spy して
+  `type === "resize"` の呼び出し中に `innerHeight` を変える。つまり購読の設置中に起きた
+  resize を再現する。`useSyncExternalStore` は購読後に `getSnapshot` を読み直すので採用され、
+  旧実装（`useState` + passive effect）では取り逃がす。旧実装へ戻すと落ちる
+  （1 failed / 31 passed）、現実装で 32 passed
+
+**初稿はこの競合を「テストから到達できない」と書いていた。独立レビューが到達方法を示して
+棄却した。** 到達不能だと書くこと自体が主張であり、証明が要る。
 
 ### false-positive（3 件）
 
@@ -253,8 +262,11 @@ false を返す。
 
 初稿はここに `no-adjust-state-on-prop-change` の remedy 3 つ
 （render 中に導出 / `key` で reset / prop を変えるイベント側で更新）を当てていた。
-**別ルールの remedy であり、12 件すべてで反論の相手を間違えていた。** 結論は変わらないが、
-根拠は上記に置き換えた。`rules explain` を先に引いていれば避けられた誤りである。
+**別ルールの remedy であり、`no-pass-*` 12 件のうち remedy を論じた 11 件
+（本節の 8 件、preference 修復 persist の 2 件、tag picker の 1 件）すべてで反論の相手を
+間違えていた。** 残る 1 件（`use-sidebar-feed-drag-state.ts:120`）は rule が対象を
+取り違えているので remedy の検討が要らない。結論はどれも変わらないが、根拠は
+正しい remedy に対するものへ置き換えた。`rules explain` を先に引いていれば避けられた誤りである。
 
 第 1 波の `use-sidebar-feed-section-controller.ts:62`（毎 render の localStorage write）型の
 must-fix が混ざっていないことを 1 件ずつ確認した。
@@ -285,6 +297,14 @@ must-fix が混ざっていないことを 1 件ずつ確認した。
 later load or edit"）なので、`savedAccountId` は新しい値のままになり `persistPreference` は
 false になる。ループしない。
 
+remedy は 8 件と同じ形で届かない。所有者を上へ移す remedy については、
+`selected_account_id` は既に preferences store が持っており子の state ではない。
+hook から返す remedy については、`useSidebarAccountSelection` が
+「この id を persist せよ」を返す形にしても、受け取る `useSidebarFeedSectionController` も
+hook なので `setPref` を呼ぶ effect がそちらへ移るだけである。適用点をイベントハンドラに
+できないのは、条件が accounts 一覧の到着と preferences load 完了という別々の非同期境界に
+またがるためで、どちらの地点も resolver の他方の入力を持たない。
+
 既存テスト: **この hook（`useSidebarAccountSelection`）の effect を通すテストは無い。**
 `sidebar-account-selection.node.test.ts` は純関数 resolver だけを検証しており、
 `restoreAccountSelection` / `setSelectedAccountPreference` が実際に呼ばれることを
@@ -298,7 +318,13 @@ false になる。ループしない。
 `onExpandedChange(false)` → `article-tag-chips.tsx:129` の
 `dispatch({ type: "set-show-picker", value: false })` で親の `useReducer` state を書く。
 
-remedy「prop を変えるイベント側で更新」は**タグ割り当て経路については既に owner が実装している**。
+`no-pass-data-to-parent` の remedy は「親でデータを取得して下ろす、または hook から返す」である。
+所有者を上へ移す側は既に満たされている: `showPicker` は owner の `useReducer` state であり、
+子は持っていない。hook から返す側は effect を 1 段上へ移すだけになる。前 render の件数との
+比較を `previousAvailableTagCountRef` で保持する必要があるため、比較は hook が持たざるを得ず、
+返された信号に owner が反応するには owner 側の effect が要る。
+
+そしてこの finding については、**タグ割り当て経路に限れば owner が既に別経路で閉じている**。
 `assignExistingTag` の `onSuccess` が `finish-create-tag` を dispatch し、reducer
 （`article-tag-chips.tsx:36-38`）が `{ showPicker: false, newTagName: "" }` を返す。さらに
 `useTagArticle` は `createMutation(fn, invalidateArticleTagQueries)`（`src/hooks/use-tags.ts:184-187`）で

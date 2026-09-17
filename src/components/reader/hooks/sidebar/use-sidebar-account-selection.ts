@@ -99,14 +99,14 @@ export function useSidebarAccountSelection({
       return;
     }
 
-    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:210
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:219
     restoreAccountSelection(action.accountId, {
       focusedPane: action.focusedPane,
     });
 
     if (action.persistPreference) {
-      // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:269
-      // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:269
+      // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:281
+      // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:281
       setSelectedAccountPreference(action.accountId);
     }
   }, [
