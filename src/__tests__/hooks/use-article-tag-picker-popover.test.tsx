@@ -145,4 +145,28 @@ describe("useArticleTagPickerPopover", () => {
     expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
     expect(focusSpy).not.toHaveBeenCalled();
   });
+
+  it("closes the popover and asks for focus restore when the available tags shrink while open", () => {
+    const onExpandedChange = vi.fn();
+
+    const { rerender } = render(
+      <HookHarness availableTagCount={3} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />,
+    );
+    expect(onExpandedChange).not.toHaveBeenCalled();
+
+    rerender(<HookHarness availableTagCount={2} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />);
+
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
+  it("keeps the popover open when the available tags grow", () => {
+    const onExpandedChange = vi.fn();
+
+    const { rerender } = render(
+      <HookHarness availableTagCount={2} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />,
+    );
+    rerender(<HookHarness availableTagCount={3} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />);
+
+    expect(onExpandedChange).not.toHaveBeenCalled();
+  });
 });
