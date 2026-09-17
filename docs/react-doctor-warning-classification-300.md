@@ -487,7 +487,7 @@ issue が引き継ぎとして残した 5 項目のうち、実際に判定を�
 
 ## 本 pass で追加すべきだった手順
 
-独立レビューで棄却された 1 件と、その後の見直しで見つかった 12 件の根拠誤りは、
+独立レビューで棄却された 1 件と、その後の見直しで見つかった 11 件の根拠誤りは、
 同じ原因から出ている。**scan が印字する 1 行メッセージを rule の主張と remedy の全体だと
 扱った。**
 
@@ -498,7 +498,9 @@ remedy を印字する。これを引いていれば避けられた誤りが 3 �
   並べており、片方（tearing）への反論では答えになっていなかった（棄却された 1 件）
 - `no-pass-data-to-parent` / `no-pass-live-state-to-parent`: remedy は「所有者を上へ移す /
   hook から返す」で、初稿が当てていた 3 つ（render 中に導出 / `key` / イベント側で更新）は
-  **別ルールの remedy** だった。12 件すべてで反論の相手を間違えていた
+  **別ルールの remedy** だった。remedy を論じた 11 件すべてで反論の相手を間違えていた
+  （12 件目の `use-sidebar-feed-drag-state.ts:120` は rule が対象を取り違えている
+  false-positive なので remedy の検討自体が無い）
 - `no-adjust-state-on-prop-change`: remedy の記述が
   "Avoid tracking the previous prop in more state" と、`no-derived-state` の
   `use-subscriptions-index-state.ts:97` に使っていた「前 prop の tracker だから導出できない」

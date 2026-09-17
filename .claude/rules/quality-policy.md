@@ -391,7 +391,9 @@ reasoning from it alone produced every wrong premise in the #300 draft. Three di
   `no-pass-live-state-to-parent` cite two different React docs sections and both ask for the
   *owner* to move up (or for the hook to return the value); the draft argued against derive-during-
   render, `key` reset, and update-in-the-event — which are `no-adjust-state-on-prop-change`'s
-  remedies — across all twelve findings.
+  remedies — across all eleven findings whose remedy it argued. The twelfth,
+  `use-sidebar-feed-drag-state.ts`, is a false positive on the rule's target rather than its
+  remedy, so no remedy analysis applied to it.
 - A remedy can pre-empt the defence you were about to write. `no-adjust-state-on-prop-change`
   says "Avoid tracking the previous prop in more state, which preserves the duplication", which
   is exactly the previous-prop-tracker argument the draft used to excuse a `no-derived-state`
