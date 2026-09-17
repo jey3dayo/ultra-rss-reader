@@ -34,7 +34,7 @@ export type AccountDetailCredentialsEditorResult = {
 };
 
 const MASKED_PASSWORD_VALUE = "••••••••";
-// react-doctor-disable-next-line react-doctor/no-secrets-in-client-code -- false positive (error-message marker, not a secret), docs/react-doctor-warning-classification-300.md:185
+// react-doctor-disable-next-line react-doctor/no-secrets-in-client-code -- false positive (error-message marker, not a secret), docs/react-doctor-warning-classification-300.md:194
 const MISSING_PASSWORD_ERROR_MARKER = "Password is not configured";
 
 type AccountDetailCredentialsEditorState = {
