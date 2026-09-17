@@ -57,6 +57,7 @@ function hasOpenNestedEscapeLayer(): boolean {
   return document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]') !== null;
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- accepted risk (component split tracked separately), docs/react-doctor-warning-classification-300.md:325
 export function SubscriptionsIndexPage() {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
@@ -78,6 +79,7 @@ export function SubscriptionsIndexPage() {
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
   const [reviewClock, setReviewClock] = useState(() => getCurrentDate());
+  // react-doctor-disable-next-line react-doctor/prefer-use-sync-external-store -- accepted risk (prior decision 2026-09-08), docs/react-doctor-warning-classification-300.md:337
   const [viewportHeight, setViewportHeight] = useState(() => getViewportHeight());
 
   const candidates = useMemo(

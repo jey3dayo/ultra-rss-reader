@@ -344,6 +344,8 @@ export function useSidebarStartupFolderExpansion({
       storedFolderIds: getStoredSidebarExpandedFolders(selectedAccountId, folderList).accounts[selectedAccountId] ?? [],
     });
 
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:176
+    // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:176
     setExpandedFolders(nextExpandedFolderIds);
     startupExpansionTokenRef.current = startupExpansionToken;
     skipActivePruneTokenRef.current = startupExpansionToken;
@@ -377,6 +379,7 @@ export function useSidebarStartupFolderExpansion({
     const validFolderIds = collectValidFolderIdsForAccount(selectedAccountId, folderList);
     const prunedExpandedFolderIds = [...expandedFolderIds].filter((folderId) => validFolderIds.has(folderId));
     if (prunedExpandedFolderIds.length !== expandedFolderIds.size) {
+      // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:176
       setExpandedFolders(prunedExpandedFolderIds);
     }
   }, [

@@ -117,6 +117,7 @@ export function useSidebarFeedDragState({
     }
 
     if (activeDropTarget.kind === "folder") {
+      // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- false positive (local useState setter, not a parent prop), docs/react-doctor-warning-classification-300.md:126
       if (!canDropFeedToFolder(draggedFeedId, activeDropTarget.folderId)) {
         // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (drag hover invalidation), docs/react-doctor-warning-classification-249.md:296（use-sidebar-feed-drag-state の理由）
         setActiveDropTarget(null);

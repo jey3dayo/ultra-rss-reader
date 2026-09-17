@@ -159,6 +159,7 @@ export function useArticleTagPickerPopover({
       return;
     }
 
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (available-tag shrink close), docs/react-doctor-warning-classification-300.md:242
     closePicker(true);
   }, [availableTagCount, closePicker, isExpanded]);
 
