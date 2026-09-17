@@ -572,13 +572,31 @@ merge 後の main の SHA `01f4ff5da` で再計測して再 pin した。
 | 既定 | 2 | 31 | 31 |
 | audit | 2 | 73 | 46 |
 
-`untriagedWarningCountAtScan` は **0**（31 − 25 complexity − 6 family）。
-第 2 波以前から続いていた「未 triage が残っている」状態が解消した。
+`untriagedWarningCountAtScan` は **1**（31 − 24 complexity − 6 family）。
+残る 1 件は complexity の outlier（`use-account-detail-view-props.tsx`、Issue #256）で、
+第 2 波の 21 件はすべて判定済みになった。
 
-ただし **0 は「findings が無い」ではなく「全 finding に判定が付いた」という意味**である。
-audit との差 42 件は inline disable で抑制されている。これを読み違えないよう、
-`scripts/quality-baseline.ts` に `auditWarningCount` を追加し、report が
-「Inline disables hide 42 of 73 warnings at that snapshot」と印字するようにした。
+audit との差 42 件は inline disable で抑制されている。**総数が減ったことを「直った」と
+読み違えさせない**ため、`scripts/quality-baseline.ts` に `auditWarningCount` を追加し、
+report が「Inline disables hide 42 of 73 warnings at that snapshot」と印字するようにした。
+
+### 再 pin の初稿は untriaged を 0 と誤って出した
+
+初稿は `classifiedFindingCount` を 25 のまま置き、31 − 25 − 6 = 0 を得ていた。
+**PR レビューが棄却した。** 記録の 25 行と scan の 25 件は別の集合である。
+
+- 記録の 25 行のうち `confirm-dialog-view.tsx:172` は #279 の inline disable で scan に出ない
+- scan の 25 件には、記録が明示的に除外している outlier
+  （`use-account-detail-view-props.tsx:59`、Issue #256）が入っている
+
+差し引き同数なので総数では気づけない。25 を引くと outlier が classified の中に隠れ、
+「backlog は全部片付いた」と主張してしまう。`classifiedFindingCount` は
+**「この scan が報告する finding のうち記録に行があるもの」**でなければならない。24 へ直し、
+outlier は `pendingJudgmentWarningFamilies` に移して untriaged の中に残した。
+
+**これは本文書が `require-pnpm-hardening` について書いた失敗と同型である。**
+count が陳腐化して untriaged を少なく見せる、という自分で書いたルールを自分で踏んだ。
+数が合うことは、引いている対象が正しいことの証拠にならない。
 
 `classifiedWarningFamilies` の扱いで 1 つ方針を決めた。**修正された family は table に入れない。**
 `rerender-lazy-ref-init` と `prefer-use-sync-external-store` は finding を消したので、

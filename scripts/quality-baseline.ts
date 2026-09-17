@@ -185,7 +185,15 @@ type PendingJudgmentWarningFamily = {
   readonly trackingIssue: string;
 };
 
-const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [];
+const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [
+  {
+    rule: "no-high-complexity-react-function",
+    count: 1,
+    status:
+      "judgment-pending: the useAccountDetailViewProps outlier (cyclomatic 85 / cognitive 106) is excluded from the complexity record and needs its own design",
+    trackingIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
+  },
+];
 
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
@@ -195,7 +203,14 @@ const reactDoctorFullScanTriageStatusBase = {
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
-  classifiedFindingCount: 25,
+  // 24, not the 25 rows the record holds. The record's set and the scan's set are not the same
+  // 25: #279 suppressed the confirm-dialog-view.tsx row, so the scan no longer reports it, while
+  // the scan does report the useAccountDetailViewProps outlier the record deliberately excludes.
+  // Subtracting 25 here therefore hid that outlier and made the derived untriaged total read 0.
+  // The count must be "rows in the record that this scan reports", and the outlier is carried in
+  // pendingJudgmentWarningFamilies instead so it stays inside the untriaged total until #256
+  // reaches a verdict. This is the same stale-count failure as require-pnpm-hardening below.
+  classifiedFindingCount: 24,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   classifiedWarningFamilies: [
@@ -312,14 +327,17 @@ const reactDoctorFullScanTriageStatusBase = {
   // component should own different state, not a straight rule swap). Kept separate from
   // classifiedWarningFamilies so its count is never added into or subtracted alongside the
   // classified total, while still being named instead of silently folded into "other".
-  // Empty since 2026-09-18: rerender-lazy-ref-init was the only entry and both of its findings
-  // were fixed. The remedy differed between the two sites, which is why they were not a single
-  // decision; see the classification record.
+  // rerender-lazy-ref-init left this table on 2026-09-18 because both of its findings were fixed
+  // (the remedy differed between the two sites, which is why they were not a single decision; see
+  // the classification record). The complexity outlier took its place: it is the one finding this
+  // scan reports that no record dispositions, so it has to be named here rather than absorbed
+  // into classifiedFindingCount.
   pendingJudgmentWarningFamilies,
-  // #300, not #249: the first wave classified 34 findings and closed out, so the remaining
-  // count this report prints belongs to the second wave. Pointing operators at the finished
-  // issue would send them to a list whose items are all already dispositioned.
-  untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/300",
+  // #256 as of 2026-09-18, for the same reason it was #300 before and #249 before that: this
+  // names where the remaining untriaged finding is tracked, and both earlier waves closed out.
+  // The one finding left is the complexity outlier, so pointing here at #300 would send an
+  // operator to a list whose items are all already dispositioned.
+  untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
   // The dispositions total errorCountAtScan, which the baseline test pins: re-pinning
@@ -756,8 +774,8 @@ function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: stri
 
   console.log("Outstanding triage (counts are from the pinned scan, not a live count):");
   console.log(
-    `  ${status.classifiedRule}: ${status.classifiedFindingCount} classified in ${status.classifiedRecordPath}` +
-      ` (${status.classifiedFindingCount - 1} accepted-risk, 1 outlier tracked at ${status.outlierIssue})`,
+    `  ${status.classifiedRule}: ${status.classifiedFindingCount} of this scan's findings are` +
+      ` accepted-risk rows in ${status.classifiedRecordPath}; the outlier is tracked at ${status.outlierIssue}`,
   );
   console.log(
     `  additional classified warning families: ${status.classifiedWarningFamiliesCount} classified` +

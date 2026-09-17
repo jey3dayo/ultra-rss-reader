@@ -251,7 +251,10 @@ describe("quality-baseline", () => {
     // The snapshot totals are not a classification set: the notice has to name a tracker
     // for the warnings and errors the pass did not classify, so a zero baseline delta
     // never reads as approval.
-    expect(status.untriagedWarningIssue).toContain("/issues/300");
+    // #256 since 2026-09-18: the second wave closed out and the one warning this snapshot leaves
+    // untriaged is the complexity outlier. The assertion follows where the remainder actually is
+    // rather than pinning one issue forever.
+    expect(status.untriagedWarningIssue).toContain("/issues/256");
     expect(status.errorIssue).toContain("/issues/260");
     expect(status.outlierIssue).toContain("/issues/256");
     expect(status.reportArtifactPath).toBe("tmp/react-doctor-full.json");
@@ -299,6 +302,7 @@ describe("quality-baseline", () => {
     // off or removed sit at count 0, because the table's counts have to match what the scan
     // reports while the entries themselves stay as the record of each decision.
     expect(status.classifiedWarningFamiliesCount).toBe(6);
+    expect(status.classifiedFindingCount).toBe(24);
 
     // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
     // (adding an export just for this identity would grow the Knip-tracked export surface, see
@@ -308,12 +312,13 @@ describe("quality-baseline", () => {
     // being warningCount minus the two classified totals, this assertion fails without needing
     // a second copy of warningCount in this file.
     //
-    // 0 since #300: every warning the scan reports now belongs to a family with a recorded
-    // disposition. Still a cross-check on the subtraction rather than a target — it holds only
-    // because 31 total, 25 complexity and 6 family findings agree, and it breaks if a new rule
-    // starts firing or a family count goes stale. Read it with auditWarningCount, asserted
-    // above: 0 untriaged says the backlog is dispositioned, not that the findings are gone.
-    expect(status.untriagedWarningCountAtScan).toBe(0);
+    // 1: the complexity outlier at Issue #256, which is the single finding this scan reports that
+    // no record dispositions. The #300 draft pinned 0 here by subtracting all 25 rows of the
+    // complexity record, but the record's 25 and the scan's 25 are different sets — #279
+    // suppressed one row and the scan reports the excluded outlier instead. Cross-check on the
+    // subtraction, not a target: it holds because 31 total, 24 classified complexity findings and
+    // 6 family findings agree, and the remainder is named in pendingJudgmentWarningFamilies.
+    expect(status.untriagedWarningCountAtScan).toBe(1);
   });
 
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
@@ -323,12 +328,15 @@ describe("quality-baseline", () => {
     // changed in #300 without the assertion changing: it used to be pending an ownership
     // decision, and both of its findings were then fixed. A fixed finding leaves no disposition
     // that would still apply if the rule fired again, so the table is the wrong place for it
-    // either way. pendingJudgmentWarningFamilies is empty for the same reason.
+    // either way. The table is not empty, though: the complexity outlier moved into it, so a
+    // finding nothing dispositions is still named rather than folded into a classified total.
     // The families table's rule field is a narrow string-literal union by design, so widen
     // to `readonly string[]` via the annotation below rather than asserting past the type.
     const classifiedFamilyRules: readonly string[] = status.classifiedWarningFamilies.map((family) => family.rule);
     expect(classifiedFamilyRules.includes("rerender-lazy-ref-init")).toBe(false);
-    expect(status.pendingJudgmentWarningFamilies).toEqual([]);
+    expect(status.pendingJudgmentWarningFamilies).toEqual([
+      expect.objectContaining({ rule: "no-high-complexity-react-function", count: 1 }),
+    ]);
   });
 
   it("reads the Knip report after unrelated JSON objects", () => {
