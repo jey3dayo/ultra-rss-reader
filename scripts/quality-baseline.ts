@@ -142,11 +142,26 @@ const reactDoctorBaselines = {
   // retention into a hook plus a local component, not classified. That asymmetry is why
   // classifiedFindingCount stays 25 while the family total moves 11 -> 14, and why the derived
   // untriaged count stays 20: nothing entered the backlog.
+  // 2/59/45 -> 2/31/31 measured on main at 01f4ff5da with plugin 0.9.14, and the -28 has three
+  // separate causes that a warning total cannot tell apart. Attributed by comparing per-rule
+  // counts, not by accepting the total:
+  //   -7  the 0.9.13 -> 0.9.14 bump (6ef1b4701) turned js-tosorted-immutable (3) and
+  //       js-combine-iterations (4) off by default. `react-doctor rules list` prints both as
+  //       `off (default)`, so these findings were not fixed; the rule stopped asking.
+  //       require-pnpm-hardening was removed from the rule set entirely in the same bump.
+  //   -3  three findings actually fixed in #311: two rerender-lazy-ref-init and one
+  //       prefer-use-sync-external-store. This is the only part of the delta that is an
+  //       improvement, and auditWarningCount below is what shows it.
+  //  -18  eighteen findings given inline dispositions in #311, recorded per finding in
+  //       docs/react-doctor-warning-classification-300.md. Silenced, not fixed.
+  // Every warning that remains belongs to a family with a recorded disposition, so the derived
+  // untriagedWarningCountAtScan is 0 for the first time. That is a statement about coverage of
+  // the backlog, not about the code being clean: 42 findings sit behind inline disables.
   full: {
     score: null,
     errorCount: 2,
-    warningCount: 59,
-    affectedFileCount: 45,
+    warningCount: 31,
+    affectedFileCount: 31,
   },
 } as const;
 
@@ -161,11 +176,22 @@ const reactDoctorBaselines = {
 // this table as the source of truth for those dispositions; untriagedWarningCountAtScan
 // below is derived from it plus the complexity family so re-pinning warningCount never
 // requires a hand-recomputed subtraction.
+// Named so the empty array below keeps an element type. `as const` infers `readonly []` for a
+// literal empty array, which makes the report loop over `never`.
+type PendingJudgmentWarningFamily = {
+  readonly rule: string;
+  readonly count: number;
+  readonly status: string;
+  readonly trackingIssue: string;
+};
+
+const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [];
+
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
-  scanSha: "61af6f1c8",
-  pluginVersion: "0.9.13",
+  scanSha: "01f4ff5da",
+  pluginVersion: "0.9.14",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
@@ -180,14 +206,18 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: ".claude/rules/quality-policy.md (Loading Flag Reset Findings)",
     },
     {
+      // 0.9.14 turned this rule off by default, so the scan no longer asks. The entry stays
+      // because the disposition is still the answer if it is ever turned back on; the count is
+      // only what the untriaged arithmetic needs, and it has to match what the scan reports.
       rule: "js-tosorted-immutable",
-      count: 3,
+      count: 0,
       disposition: "false-positive",
       recordPath: ".claude/rules/quality-policy.md (ES2023 Array Copy Methods)",
     },
     {
+      // Also off by default from 0.9.14; see the note above.
       rule: "js-combine-iterations",
-      count: 4,
+      count: 0,
       disposition: "accepted-risk",
       recordPath: ".claude/rules/quality-policy.md (Iteration And Lookup Shape Findings)",
     },
@@ -210,10 +240,71 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: ".claude/rules/quality-policy.md (Behavioural Single Findings)",
     },
     {
+      // The finding was cleared on 2026-09-10 by adopting trustPolicy: no-downgrade, and 0.9.14
+      // then removed the rule from the rule set entirely (`react-doctor rules list` does not
+      // print it). Leaving the count at 1 is what made the derived untriaged total read 20
+      // against 21 real findings for a week.
       rule: "require-pnpm-hardening",
-      count: 1,
+      count: 0,
       disposition: "deferred",
       recordPath: "https://github.com/jey3dayo/ultra-rss-reader/issues/264",
+    },
+    // Second wave (#300), recorded per finding in the classification document. Counts are 0
+    // because every finding in these families carries an inline disable, so the scan no longer
+    // reports it. The disposition still stands: remove a disable and the same verdict applies.
+    //
+    // rerender-lazy-ref-init and prefer-use-sync-external-store are deliberately absent. Their
+    // findings were fixed, not dispositioned, so there is nothing here that would still apply if
+    // the rule fired again — it would need classifying afresh. The fixes are attributed in the
+    // reactDoctorBaselines.full comment and recorded in the classification document.
+    {
+      rule: "no-pass-data-to-parent",
+      count: 0,
+      disposition: "accepted-risk",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
+    },
+    {
+      rule: "no-pass-live-state-to-parent",
+      count: 0,
+      disposition: "accepted-risk-and-false-positive",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
+    },
+    {
+      rule: "no-derived-state",
+      count: 0,
+      disposition: "accepted-risk-and-false-positive",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
+    },
+    {
+      // Only reported once no-derived-state is suppressed; see quality-policy on the pairing.
+      rule: "no-derived-state-effect",
+      count: 0,
+      disposition: "accepted-risk-and-false-positive",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
+    },
+    {
+      rule: "no-adjust-state-on-prop-change",
+      count: 0,
+      disposition: "accepted-risk",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
+    },
+    {
+      rule: "no-giant-component",
+      count: 0,
+      disposition: "accepted-risk",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
+    },
+    {
+      rule: "no-reset-all-state-on-prop-change",
+      count: 0,
+      disposition: "accepted-risk",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
+    },
+    {
+      rule: "no-secrets-in-client-code",
+      count: 0,
+      disposition: "false-positive",
+      recordPath: "docs/react-doctor-warning-classification-300.md",
     },
   ],
   // Findings that are neither classified nor part of the plain untriaged remainder: a
@@ -221,14 +312,10 @@ const reactDoctorFullScanTriageStatusBase = {
   // component should own different state, not a straight rule swap). Kept separate from
   // classifiedWarningFamilies so its count is never added into or subtracted alongside the
   // classified total, while still being named instead of silently folded into "other".
-  pendingJudgmentWarningFamilies: [
-    {
-      rule: "rerender-lazy-ref-init",
-      count: 2,
-      status: "judgment-pending: needs a state-ownership decision, not a rule swap",
-      trackingIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/300",
-    },
-  ],
+  // Empty since 2026-09-18: rerender-lazy-ref-init was the only entry and both of its findings
+  // were fixed. The remedy differed between the two sites, which is why they were not a single
+  // decision; see the classification record.
+  pendingJudgmentWarningFamilies,
   // #300, not #249: the first wave classified 34 findings and closed out, so the remaining
   // count this report prints belongs to the second wave. Pointing operators at the finished
   // issue would send them to a list whose items are all already dispositioned.
@@ -258,6 +345,13 @@ const reactDoctorFullScanTriageStatusBase = {
         "Calls onClient during render, which the rule reports correctly. The call is a vi.fn QueryClient observation in a test helper, not a production state update; not re-confirmed in the 2026-09-08 pass.",
     },
   ],
+  // The scanned warningCount is net of every inline disable, so on its own it cannot tell a
+  // fixed finding from a silenced one. auditWarningCount is the same scan with
+  // --no-respect-inline-disables, which is the number that moves only when a finding is
+  // actually fixed. Re-pin the two together; measured on the same SHA as scanSha.
+  auditWarningCount: 73,
+  auditScanCommand:
+    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
   reportArtifactPath: "tmp/react-doctor-full.json",
 } as const;
 
@@ -696,6 +790,11 @@ function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: stri
   console.log(
     `  Snapshot taken on ${status.scanSha} with oxlint-plugin-react-doctor ${status.pluginVersion};` +
       " a current untriaged count needs a per-finding comparison against the record, which this wrapper does not do.",
+  );
+  console.log(
+    `  Inline disables hide ${status.auditWarningCount - reactDoctorBaselines.full.warningCount} of` +
+      ` ${status.auditWarningCount} warnings at that snapshot. The count above is the suppressed view;` +
+      " re-run with --no-respect-inline-disables to see what a fix would move.",
   );
   console.log(
     "  Totals only: an equal count can hide findings that were swapped for different ones, so this is not a general regression check.",

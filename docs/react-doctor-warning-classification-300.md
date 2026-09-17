@@ -563,7 +563,30 @@ error 2 件は 2026-09-10 の pass で分類済み（false-positive 1 / test-onl
 audit との差 42 件が inline disable による抑制量である。`warningCount` 単独では
 「直った」と「黙らせた」を区別できないので、再 pin では audit 側の数も併記する必要がある。
 
-### Phase B（merge 後に main から実施）で必要な編集
+### Phase B の実施結果（2026-09-18、`01f4ff5da`）
+
+merge 後の main の SHA `01f4ff5da` で再計測して再 pin した。
+
+| 走査 | error | warning | files |
+| --- | --- | --- | --- |
+| 既定 | 2 | 31 | 31 |
+| audit | 2 | 73 | 46 |
+
+`untriagedWarningCountAtScan` は **0**（31 − 25 complexity − 6 family）。
+第 2 波以前から続いていた「未 triage が残っている」状態が解消した。
+
+ただし **0 は「findings が無い」ではなく「全 finding に判定が付いた」という意味**である。
+audit との差 42 件は inline disable で抑制されている。これを読み違えないよう、
+`scripts/quality-baseline.ts` に `auditWarningCount` を追加し、report が
+「Inline disables hide 42 of 73 warnings at that snapshot」と印字するようにした。
+
+`classifiedWarningFamilies` の扱いで 1 つ方針を決めた。**修正された family は table に入れない。**
+`rerender-lazy-ref-init` と `prefer-use-sync-external-store` は finding を消したので、
+再び rule が発火したときに適用できる判定が残っていない（改めて分類が必要）。一方
+inline disable を持つ 8 family は count 0 で entry を残す。disable を外せば同じ判定が当たるためである。
+0.9.14 で off / 削除になった 3 rule も entry を残して count 0 とした。
+
+### Phase B の編集内容
 
 1. `pluginVersion` を `0.9.14` へ
 2. `scanSha` を merge 後の main の SHA へ（feature branch から取らない）

@@ -254,8 +254,20 @@ describe("quality-baseline", () => {
     expect(status.untriagedWarningIssue).toContain("/issues/300");
     expect(status.errorIssue).toContain("/issues/260");
     expect(status.outlierIssue).toContain("/issues/256");
-    expect(status.untriagedWarningCountAtScan).toBeGreaterThan(0);
     expect(status.reportArtifactPath).toBe("tmp/react-doctor-full.json");
+
+    // This used to assert untriagedWarningCountAtScan > 0, on the reasoning that an unfinished
+    // backlog is what stops a clean-looking total from reading as approval. #300 finished the
+    // backlog, so that guard would now block the very outcome it was pushing towards. What keeps
+    // the report honest instead is auditWarningCount: 0 untriaged means every finding has a
+    // recorded verdict, not that the code has none, and most of those verdicts are inline
+    // disables. A pin where the two totals agree would be claiming there is nothing suppressed.
+    // reactDoctorBaselines stays unexported on purpose (see the note further down), so the
+    // scanned warningCount is reconstructed from the status rather than imported.
+    const scannedWarningCount =
+      status.untriagedWarningCountAtScan + status.classifiedFindingCount + status.classifiedWarningFamiliesCount;
+    expect(status.auditWarningCount).toBeGreaterThan(scannedWarningCount);
+    expect(status.auditScanCommand).toContain("--no-respect-inline-disables");
 
     // An earlier pass already classified one error finding. Re-pinning a total must not
     // erase that, so the record has to survive in the status the wrapper prints.
@@ -283,7 +295,10 @@ describe("quality-baseline", () => {
 
     // Pin the family total so a rule being added or removed from the table is caught here
     // rather than only showing up as a silent drift in the derived subtraction below.
-    expect(status.classifiedWarningFamiliesCount).toBe(14);
+    // 6, not the number of entries: the second-wave families and the three rules 0.9.14 turned
+    // off or removed sit at count 0, because the table's counts have to match what the scan
+    // reports while the entries themselves stay as the record of each decision.
+    expect(status.classifiedWarningFamiliesCount).toBe(6);
 
     // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
     // (adding an export just for this identity would grow the Knip-tracked export surface, see
@@ -293,23 +308,27 @@ describe("quality-baseline", () => {
     // being warningCount minus the two classified totals, this assertion fails without needing
     // a second copy of warningCount in this file.
     //
-    // 20 is the second wave: 19 findings still to classify plus the one
-    // no-adjust-state-on-prop-change deliberately left unrecorded, both tracked at
-    // https://github.com/jey3dayo/ultra-rss-reader/issues/300. It is a cross-check on the
-    // subtraction, not an independently chosen number — if it stops matching that issue's
-    // count, one of the two is wrong.
-    expect(status.untriagedWarningCountAtScan).toBe(20);
+    // 0 since #300: every warning the scan reports now belongs to a family with a recorded
+    // disposition. Still a cross-check on the subtraction rather than a target — it holds only
+    // because 31 total, 25 complexity and 6 family findings agree, and it breaks if a new rule
+    // starts firing or a family count goes stale. Read it with auditWarningCount, asserted
+    // above: 0 untriaged says the backlog is dispositioned, not that the findings are gone.
+    expect(status.untriagedWarningCountAtScan).toBe(0);
   });
 
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
     const status = reactDoctorFullScanTriageStatus;
 
-    // rerender-lazy-ref-init is deliberately left untriaged pending an ownership decision
-    // on swapping the rule; it must not be silently absorbed into a "classified" family.
+    // rerender-lazy-ref-init must not be absorbed into a "classified" family. The reason
+    // changed in #300 without the assertion changing: it used to be pending an ownership
+    // decision, and both of its findings were then fixed. A fixed finding leaves no disposition
+    // that would still apply if the rule fired again, so the table is the wrong place for it
+    // either way. pendingJudgmentWarningFamilies is empty for the same reason.
     // The families table's rule field is a narrow string-literal union by design, so widen
     // to `readonly string[]` via the annotation below rather than asserting past the type.
     const classifiedFamilyRules: readonly string[] = status.classifiedWarningFamilies.map((family) => family.rule);
     expect(classifiedFamilyRules.includes("rerender-lazy-ref-init")).toBe(false);
+    expect(status.pendingJudgmentWarningFamilies).toEqual([]);
   });
 
   it("reads the Knip report after unrelated JSON objects", () => {
