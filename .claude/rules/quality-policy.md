@@ -422,13 +422,22 @@ immediately above this line", which reads as a limit of one and is not.
 from a silenced one.** Record the `--no-respect-inline-disables` total from the same scan
 alongside it. At the #300 landing the two were 31 and 73.
 
-**A classified family whose count no longer matches the scan silently understates the untriaged
-total.** `require-pnpm-hardening` stayed registered at 1 after both the finding and the rule
-itself were gone (0.9.14 removed the rule), while `prefer-use-sync-external-store` was
-classified in this file on 2026-09-08 and never registered at all. The two errors cancelled, so
-the derived untriaged count read 20 against 21 real findings. When re-pinning, set every entry's
-count to what that scan reports and never delete an entry — the entry is the record of the
-decision, the count is only what the arithmetic needs.
+**A classified count that no longer matches the scan silently understates the untriaged
+total, and this happened twice in #300 — the second time after the rule below was written.**
+`require-pnpm-hardening` stayed registered at 1 after both the finding and the rule itself were
+gone (0.9.14 removed the rule), while `prefer-use-sync-external-store` was classified in this
+file on 2026-09-08 and never registered at all; the two errors cancelled, so the derived
+untriaged count read 20 against 21 real findings. Then the re-pin subtracted all 25 rows of the
+complexity record and reported 0 untriaged, because **the record's 25 and the scan's 25 are
+different sets**: #279 suppressed one row so the scan no longer reports it, and the scan reports
+the `useAccountDetailViewProps` outlier the record deliberately excludes. Equal totals, one
+finding hidden.
+
+So `classifiedFindingCount` means "findings this scan reports that the record has a row for",
+not "rows in the record". When re-pinning, set every count to what that scan reports and check
+it by listing the findings, not by checking the totals agree. Never delete an entry — the entry
+is the record of the decision, the count is only what the arithmetic needs — and carry a finding
+nothing dispositions in `pendingJudgmentWarningFamilies` so it stays inside the untriaged total.
 
 ### Prop Callback In Effect Findings
 

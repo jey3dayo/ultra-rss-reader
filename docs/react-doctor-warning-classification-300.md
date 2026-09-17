@@ -563,7 +563,48 @@ error 2 件は 2026-09-10 の pass で分類済み（false-positive 1 / test-onl
 audit との差 42 件が inline disable による抑制量である。`warningCount` 単独では
 「直った」と「黙らせた」を区別できないので、再 pin では audit 側の数も併記する必要がある。
 
-### Phase B（merge 後に main から実施）で必要な編集
+### Phase B の実施結果（2026-09-18、`01f4ff5da`）
+
+merge 後の main の SHA `01f4ff5da` で再計測して再 pin した。
+
+| 走査 | error | warning | files |
+| --- | --- | --- | --- |
+| 既定 | 2 | 31 | 31 |
+| audit | 2 | 73 | 46 |
+
+`untriagedWarningCountAtScan` は **1**（31 − 24 complexity − 6 family）。
+残る 1 件は complexity の outlier（`use-account-detail-view-props.tsx`、Issue #256）で、
+第 2 波の 21 件はすべて判定済みになった。
+
+audit との差 42 件は inline disable で抑制されている。**総数が減ったことを「直った」と
+読み違えさせない**ため、`scripts/quality-baseline.ts` に `auditWarningCount` を追加し、
+report が「Inline disables hide 42 of 73 warnings at that snapshot」と印字するようにした。
+
+### 再 pin の初稿は untriaged を 0 と誤って出した
+
+初稿は `classifiedFindingCount` を 25 のまま置き、31 − 25 − 6 = 0 を得ていた。
+**PR レビューが棄却した。** 記録の 25 行と scan の 25 件は別の集合である。
+
+- 記録の 25 行のうち `confirm-dialog-view.tsx:172` は #279 の inline disable で scan に出ない
+- scan の 25 件には、記録が明示的に除外している outlier
+  （`use-account-detail-view-props.tsx:59`、Issue #256）が入っている
+
+差し引き同数なので総数では気づけない。25 を引くと outlier が classified の中に隠れ、
+「backlog は全部片付いた」と主張してしまう。`classifiedFindingCount` は
+**「この scan が報告する finding のうち記録に行があるもの」**でなければならない。24 へ直し、
+outlier は `pendingJudgmentWarningFamilies` に移して untriaged の中に残した。
+
+**これは本文書が `require-pnpm-hardening` について書いた失敗と同型である。**
+count が陳腐化して untriaged を少なく見せる、という自分で書いたルールを自分で踏んだ。
+数が合うことは、引いている対象が正しいことの証拠にならない。
+
+`classifiedWarningFamilies` の扱いで 1 つ方針を決めた。**修正された family は table に入れない。**
+`rerender-lazy-ref-init` と `prefer-use-sync-external-store` は finding を消したので、
+再び rule が発火したときに適用できる判定が残っていない（改めて分類が必要）。一方
+inline disable を持つ 8 family は count 0 で entry を残す。disable を外せば同じ判定が当たるためである。
+0.9.14 で off / 削除になった 3 rule も entry を残して count 0 とした。
+
+### Phase B の編集内容
 
 1. `pluginVersion` を `0.9.14` へ
 2. `scanSha` を merge 後の main の SHA へ（feature branch から取らない）
