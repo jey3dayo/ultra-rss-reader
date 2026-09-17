@@ -365,6 +365,39 @@ and setters with computed arguments in the same effects are not reported. That r
 inferred from four counter-examples, not from the rule implementation, which is minified in the
 shipped `dist`. Do not build a classification on it.
 
+### Untriaged Warning Classification, Second Wave (Issue #300)
+
+The second wave — 21 findings across nine rules — is recorded per finding in
+[../../docs/react-doctor-warning-classification-300.md](../../docs/react-doctor-warning-classification-300.md).
+Two were fixed, three are false positives, sixteen are accepted risk, and none was must-fix.
+Read that record before re-classifying anything in those families. Four things in it change how
+a later pass should work.
+
+**Suppressing one rule can unmask a paired one.** `no-derived-state` and
+`no-derived-state-effect` describe the same state from the declaration side and the effect side,
+and react-doctor reports only one at a time; disabling the first revealed the second at the
+`useEffect(` line. Nineteen disables moved the total by seventeen, which is the only reason it
+was noticed. After adding a disable, check that the total moved by exactly the number added, and
+treat any shortfall as a rule that took its place rather than as a miscount. `--no-respect-inline-disables`
+shows only the shadowing rule, so the behaviour is in the rule engine, not in disable handling.
+
+**Two stacked `react-doctor-disable-next-line` comments on one line both take effect.** Verified
+by measurement: a line firing two rules, given one comment per rule, dropped both. The second
+comment is two lines above the code and is still honoured. `react-doctor why` says "add one
+immediately above this line", which reads as a limit of one and is not.
+
+**A `warningCount` pin is net of every inline disable, so it cannot distinguish a fixed finding
+from a silenced one.** Record the `--no-respect-inline-disables` total from the same scan
+alongside it. At the #300 landing the two were 31 and 74.
+
+**A classified family whose count no longer matches the scan silently understates the untriaged
+total.** `require-pnpm-hardening` stayed registered at 1 after both the finding and the rule
+itself were gone (0.9.14 removed the rule), while `prefer-use-sync-external-store` was
+classified in this file on 2026-09-08 and never registered at all. The two errors cancelled, so
+the derived untriaged count read 20 against 21 real findings. When re-pinning, set every entry's
+count to what that scan reports and never delete an entry — the entry is the record of the
+decision, the count is only what the arithmetic needs.
+
 ### Prop Callback In Effect Findings
 
 `no-prop-callback-in-effect` reports an effect that calls a prop callback, and describes the cost
@@ -495,10 +528,25 @@ it to two sites on 2026-09-08 traded 2 warnings for 2 errors (14 → 16), so it 
 `useState` with an initialiser function is not a general substitute: it captures once, so a
 value that must follow props goes stale. Decide who owns the state and what lifetime it needs
 before touching these; do not change code to trade one rule for another, and do not record them
-as accepted risk without that decision. These two remain untriaged and are tracked with the
-rest of the second wave at <https://github.com/jey3dayo/ultra-rss-reader/issues/300>; the
-first-wave issue #249 is closed out and is the record of where they were found, not the
-place to pick them up.
+as accepted risk without that decision.
+
+Both sites were resolved on 2026-09-18 under #300, and the remedy differed between them even
+though the rule was the same. The deciding fact is **where the ref is read**, so read that
+before picking a form.
+
+- Read during render, never written (`article-tag-chip-list.tsx`): a mount-time snapshot that
+  must *not* follow props. `useState(() => …)` is correct here — following props would delete
+  the entrance animation the snapshot exists to gate. `useMemo` is not, because React may
+  discard it and recompute from the current props.
+- Read only inside the effect that also writes it (`use-article-list-navigation.ts`): the
+  initial value exists only so the effect's first run returns early, so a `null` sentinel
+  removes it. The one behavioural difference — a generation counter incremented once at mount —
+  is unobservable because that counter is only compared against a value captured inside a
+  callback.
+
+Neither remedy added an error; measured with the full scan before and after. Do not carry
+forward the earlier conclusion that this rule cannot be addressed — that applied to the
+rule's *own* suggested form, not to every alternative.
 
 ### Supply Chain Hardening Findings
 
