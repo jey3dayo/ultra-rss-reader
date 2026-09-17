@@ -112,16 +112,16 @@ export function useSidebarVisibilityFallback({
         selectAll();
         return;
       case "select-feed":
-        // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:176
+        // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:210
         selectFeed(decision.feedId);
         return;
       case "select-smart-view":
-        // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:176
+        // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:210
         selectSmartView(decision.kind);
         return;
       case "set-view-mode":
-        // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:176
-        // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:176
+        // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:210
+        // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:210
         setViewMode(decision.mode);
         return;
       case "none":

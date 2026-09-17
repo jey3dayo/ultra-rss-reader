@@ -47,7 +47,7 @@ export function DestructiveConfirmDialogView({
   // See .claude/rules/dialog-keyboard-confirm.md.
   const initialFocus = actionPending || confirmDisabled ? undefined : confirmButtonRef;
 
-  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- accepted risk (focus-restore ref must survive close), docs/react-doctor-warning-classification-300.md:305
+  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- accepted risk (focus-restore ref must survive close), docs/react-doctor-warning-classification-300.md:339
   useEffect(() => {
     if (open && !wasOpenRef.current) {
       restoreFocusElementRef.current = getRestorableActiveElement();

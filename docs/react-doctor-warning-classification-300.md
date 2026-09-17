@@ -30,10 +30,13 @@ issue のタイトルは「残り 19 件」、本文の表は 21 件、
 **第 2 波 9 ルールの finding は 21 件**（issue 本文の表が正しい）。
 
 `prefer-use-sync-external-store`（`subscriptions-index-page.tsx:81`）は 2026-09-08 の pass で
-既に accepted-risk と決まっているが（`quality-policy.md`「Behavioural Single Findings」）、
+accepted-risk と決まっていたが（`quality-policy.md`「Behavioural Single Findings」）、
 `classifiedWarningFamilies` にその entry が無い。逆に `require-pnpm-hardening` は count 1 で
 登録されたまま、0.9.14 では **rule 自体が削除**されている（`react-doctor rules list` に無い）。
 つまり登録漏れ 1 件と過剰計上 1 件が打ち消しあって 20 になっていた。
+
+（この 1 件の accepted-risk は本 pass の独立レビューで棄却され、最終的に移行して finding を
+消した。経緯は「独立レビューで棄却された判定」に書く。）
 
 現 scan での照合:
 
@@ -74,7 +77,7 @@ issue のタイトルは「残り 19 件」、本文の表は 21 件、
 
 21 件のうち 2 件は修正して finding を消した。残り 19 件は該当行に inline 記録を置く。
 
-### 修正して finding を消した（2 件）
+### 修正して finding を消した（3 件）
 
 issue は「`rerender-lazy-ref-init` 2 件は適用すると `no-ref-current-in-render`(error) を生む」と
 警告していたが、それは **rule 自身が示唆する remedy**（`useRef(null)` + render 中で初期化）の話である。
@@ -120,6 +123,37 @@ navigate callback 内で `current + 1` として捕捉した局所値との等�
 
 **この変更には振る舞い上の署名が無いため、revert を検出する guard test は作れない。**
 形のみの変更であり、テストが緑であることは正しさの証拠ではない。
+
+#### `subscriptions-index-page.tsx:81`
+
+```ts
+const [viewportHeight, setViewportHeight] = useState(() => getViewportHeight());
+// … 別の effect で addEventListener("resize", …)
+```
+
+初稿はこれを accepted-risk とした。2026-09-08 の pass の判断
+（`quality-policy.md`「Behavioural Single Findings」の "Migrating is not mandatory absent an
+observed defect"）を引き継ぎ、「読み手が `:111` の 1 箇所だけなので rule の言う tearing は
+起こり得ない」という事実を足して裏づけた形にしていた。
+
+**独立レビューがこの根拠を棄却した。** rule のメッセージは "stale **or** torn values" で、
+読み手の数は tearing 側にしか効かない。stale 側は残る: 初回 render 中に
+`window.innerHeight` を読む一方、resize の購読が始まるのは passive effect なので、
+**その間に起きた resize は取り逃がす**。これは読み手が 1 つでも成立する。
+
+`useSyncExternalStore` へ移行した。`subscribe` は `window.addEventListener("resize", …)` を
+そのまま渡せる形で module scope に切り出した（`getSnapshot` は既に module scope にあった
+`getViewportHeight` をそのまま使える）。共有 store への昇格は不要で、2026-09-08 の pass が
+移行を見送った理由（「shared store への昇格は別の設計タスク」）は前提が違っていた。
+
+実測: audit mode の warning が 74 → **73**。inline disable で黙らせたのではなく finding が
+消えている。
+
+テスト: `subscriptions-index-page.test.tsx` に
+「drops the restored list scroll when the window is resized after mount」を追加した。
+`subscribe` を no-op へ差し替える故障注入で落ちる（1 failed / 30 passed）。
+**ただしこのテストが固定するのは「購読が働くこと」までで、移行が直した
+「初回 render と購読開始の間の resize」自体はテストから到達できない。**
 
 ### false-positive（3 件）
 
@@ -334,20 +368,6 @@ effect を hook へ切り出すのが実際の分割線になる**。うち view
 
 分類 pass の中で 370 行の再構成は行わない。分割は独立したタスクとして追跡する。
 
-### accepted-risk: 既判定の再確認と登録漏れ（1 件）
-
-`prefer-use-sync-external-store` `subscriptions-index-page.tsx:81`。
-
-`quality-policy.md`「Behavioural Single Findings」で 2026-09-08 に accepted-risk と決まっている
-（"Migrating is not mandatory absent an observed defect"）。本 pass の証拠でその判断を裏づける
-事実が 1 つ増えた: `viewportHeight` の読み手は `:111`（`useSubscriptionsIndexState` への引数）
-**1 箇所だけ**なので、rule が言う tearing はこのファイル内では現状起こり得ない。
-
-`getViewportHeight`（`:52-54`）は既に module scope にあり getSnapshot として使える形だが、
-`subscribe` の切り出しが必要で、resize をシミュレートするテストは無い。
-
-**必要な対応は分類ではなく登録である。** `classifiedWarningFamilies` にこの family の entry が無い。
-
 ### suppress したら別ルールが現れる（`no-derived-state` / `no-derived-state-effect`）
 
 `no-derived-state` 2 件に inline 記録を置いたところ、**報告されていなかった
@@ -375,12 +395,12 @@ effect を hook へ切り出すのが実際の分割線になる**。うち view
 
 | disposition | 件数 |
 | --- | --- |
-| 修正して finding を消した | 2 |
+| 修正して finding を消した | 3 |
 | false-positive | 3 |
-| accepted-risk | 16 |
+| accepted-risk | 15 |
 | 合計 | 21 |
 
-inline 記録は 19 件の finding に対して **21 個**置いてある。差の 2 個は上記の
+inline 記録は 18 件の finding に対して **20 個**置いてある。差の 2 個は上記の
 `no-derived-state-effect` ぶんで、同じ判定を 2 つ目の rule view にも付けたものである。
 
 `must-fix` は 0 件。判定基準は `quality-policy.md`「React Doctor Warning Categories」に従い、
@@ -403,11 +423,31 @@ issue が引き継ぎとして残した 5 項目のうち、実際に判定を�
 5. **テストの緑を根拠にしなかった。** 2 件の fix はいずれも故障注入で検出力を確認し、
    `use-article-list-navigation.ts:27` については guard が作れないことを明記した
 
-## 関連
+## 独立レビューで棄却された判定
 
-- Issue #300、親は Issue #249
-- [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md)
-- [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)
+第 1 波にならい、棄却された内容も残す。本 pass は 21 判定のうち **1 件が棄却**され、
+`.claude/rules/quality-policy.md` への追記 1 箇所が一般化しすぎと指摘された。
+残り 20 判定は棄却なし。レビューは作成者と別 identity・別セッション（Codex `gpt-5.6-sol`,
+effort high）で、SHA `473c3820254426710bf0f9c45bc50ed612fc2d36` を固定して実施した。
+
+### 棄却 1: `prefer-use-sync-external-store` を accepted-risk とした判定
+
+誤りは「読み手が 1 箇所なので tearing は起こり得ない」で止めたことだった。rule の主張は
+"stale **or** torn values" の 2 つで、読み手の数は前者に効かない。初回 render 中の
+`window.innerHeight` 読み取りと passive effect での購読開始の間に起きた resize を取り逃がす
+問題は、読み手が 1 つでも残る。詳細と対応は「修正して finding を消した」の
+`subscriptions-index-page.tsx:81` の項。
+
+この誤りの形は第 1 波で 4 回踏んだものとは違う。family の代表で一般化したのではなく、
+**rule のメッセージが並べている 2 つの主張のうち片方だけに反論して、全体を否定したものとして
+扱った。** rule が複数の症状を挙げているときは、症状ごとに成否を分けて書く必要がある。
+
+### 指摘 2: 件数差分の読み方を一般化しすぎていた
+
+`quality-policy.md` に「disable を足した数だけ総数が減らなければ、別 rule が置き換わったものと
+して扱う」と書いていた。短縮幅の不足は rule id の綴り違い、対象行の取り違え、コメント位置の
+誤りなど **disable が不発だった場合にも起きる**ので、この書き方では設定ミスを shadowing と
+誤診する。該当箇所は原因を 2 通り併記する形へ直した。
 
 ## 着地後の実測値（Phase B の再 pin 用）
 
@@ -416,9 +456,10 @@ worktree `quality/react-doctor-wave2-300` の本 pass 完了時点。plugin 0.9.
 | 走査 | error | warning | files |
 | --- | --- | --- | --- |
 | 既定（inline disable を尊重） | 2 | 31 | 31 |
-| `--no-respect-inline-disables`（audit） | 2 | 74 | 46 |
+| `--no-respect-inline-disables`（audit） | 2 | 73 | 46 |
 
-照合: 52（作業前）− 2（修正した lazy-ref）− 19（inline 記録を置いた finding）= **31**。
+照合: 52（作業前）− 3（修正した finding）− 18（inline 記録を置いた finding）= **31**。
+audit 側は 76（作業前の 52 + 第 1 波の disable 24）− 3（修正）= **73**。
 
 残る warning 31 件の rule は `no-high-complexity-react-function` 25 /
 `no-loading-flag-reset-outside-finally` 3 / `js-set-map-lookups` 1 /
@@ -442,8 +483,15 @@ audit との差 43 件が inline disable による抑制量である。`warningC
 4. 第 2 波で判定した family を `classifiedWarningFamilies` へ追加する（count は 0）。
    対象: `no-pass-data-to-parent` / `no-pass-live-state-to-parent` / `no-derived-state` /
    `no-derived-state-effect` / `no-adjust-state-on-prop-change` / `no-giant-component` /
-   `no-reset-all-state-on-prop-change` / `no-secrets-in-client-code` /
-   `prefer-use-sync-external-store` / `rerender-lazy-ref-init`
+   `no-reset-all-state-on-prop-change` / `no-secrets-in-client-code`。
+   `prefer-use-sync-external-store` と `rerender-lazy-ref-init` は移行・修正で消えたので
+   family 追加は不要（`quality-policy.md` 側の記述を更新済み）
 5. `pendingJudgmentWarningFamilies` の `rerender-lazy-ref-init` を外す（2 件とも修正済み）
 6. audit mode の warning 数を pin する定数を足す（`warningCount` だけでは
    suppress 後の数しか残らないため）
+
+## 関連
+
+- Issue #300、親は Issue #249
+- [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md)
+- [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -623,6 +623,60 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
     expect(listScrollRegion).toHaveProperty("scrollTop", 18);
+  });
+
+  it("drops the restored list scroll when the window is resized after mount", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const originalInnerHeight = window.innerHeight;
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      subscriptionsWorkspace: {
+        kind: "index",
+        returnState: {
+          accountId: "acc-1",
+          activeSummaryFilter: "stale",
+          selectedFeedId: "feed-1",
+          expandedGroups: {
+            "group:subscription-list:1-folder:folder-1": false,
+            "group:subscription-list:1-folder:folder-2": true,
+            "group:subscription-list:0-sentinel:no-folder": true,
+          },
+          listScrollTop: {
+            scrollTop: 18,
+            layoutGeneration: "feed-1",
+            viewportHeight: window.innerHeight,
+          },
+          keptFeedIds: [],
+          deferredFeedIds: [],
+        },
+      },
+    });
+
+    try {
+      render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+      await screen.findByTestId("subscriptions-folder-row-folder-1");
+      const listScrollRegion = document.querySelector('[data-testid="subscriptions-list-scroll-region"]');
+      expect(listScrollRegion).toHaveProperty("scrollTop", 18);
+
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight + 200,
+      });
+      act(() => {
+        window.dispatchEvent(new Event("resize"));
+      });
+
+      await waitFor(() => {
+        expect(listScrollRegion).toHaveProperty("scrollTop", 0);
+      });
+    } finally {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+    }
   });
 
   it("hides feeds already marked to keep when restoring the review filter", async () => {

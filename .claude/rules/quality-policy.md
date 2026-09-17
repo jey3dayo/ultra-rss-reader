@@ -369,17 +369,27 @@ shipped `dist`. Do not build a classification on it.
 
 The second wave — 21 findings across nine rules — is recorded per finding in
 [../../docs/react-doctor-warning-classification-300.md](../../docs/react-doctor-warning-classification-300.md).
-Two were fixed, three are false positives, sixteen are accepted risk, and none was must-fix.
-Read that record before re-classifying anything in those families. Four things in it change how
+Three were fixed, three are false positives, fifteen are accepted risk, and none was must-fix.
+Read that record before re-classifying anything in those families. Five things in it change how
 a later pass should work.
+
+**Answer every symptom a rule's message names, not the easiest one.** The independent review
+overturned exactly one of the 21 dispositions, and that was the failure: `prefer-use-sync-external-store`
+says "stale or torn values", the draft refuted tearing by counting readers, and treated the rule as
+answered. Where a message lists more than one symptom, record a verdict per symptom.
 
 **Suppressing one rule can unmask a paired one.** `no-derived-state` and
 `no-derived-state-effect` describe the same state from the declaration side and the effect side,
 and react-doctor reports only one at a time; disabling the first revealed the second at the
 `useEffect(` line. Nineteen disables moved the total by seventeen, which is the only reason it
-was noticed. After adding a disable, check that the total moved by exactly the number added, and
-treat any shortfall as a rule that took its place rather than as a miscount. `--no-respect-inline-disables`
-shows only the shadowing rule, so the behaviour is in the rule engine, not in disable handling.
+was noticed. So after adding disables, check that the total moved by exactly the number added —
+but a shortfall has two possible causes and they need different fixes. Either a paired rule took
+the finding's place, or a disable did not fire at all: a rule id spelled differently from what the
+scan printed, a comment above the wrong line, or a comment the reporting position does not sit
+under. Locate the remaining findings before concluding which it was; reading a shortfall as
+shadowing hides a suppression that silently records nothing. `--no-respect-inline-disables` shows
+only `no-derived-state`, so this shadowing lives in the rule engine rather than in disable
+handling, and that is the only pair measured here — do not assume every rule has one.
 
 **Two stacked `react-doctor-disable-next-line` comments on one line both take effect.** Verified
 by measurement: a line firing two rules, given one comment per rule, dropped both. The second
@@ -509,10 +519,15 @@ These three were classified on 2026-09-08 and are not mechanical fixes.
   next run returns early once `layoutGeneration` and `viewportHeight` agree. Already carried an
   accepted-risk comment, and that classification is inherited. Being self-updating is not by
   itself a reason to rewrite it.
-- `prefer-use-sync-external-store` (`subscriptions-index-page.tsx`) — external viewport-size
-  synchronisation. Migrating is not mandatory absent an observed defect; promoting the value to
-  a shared store is a separate design task. The subscription's full lifecycle has not been
-  audited.
+- `prefer-use-sync-external-store` (`subscriptions-index-page.tsx`) — **this 2026-09-08 accepted
+  risk was overturned on 2026-09-18 and the site now uses `useSyncExternalStore`.** Two of its
+  premises were wrong. Migrating did not need the value promoted to a shared store: `subscribe`
+  takes `window.addEventListener("resize", onStoreChange)` directly, and the existing
+  module-scope `getViewportHeight` already served as `getSnapshot`. And "absent an observed
+  defect" understated the rule, whose message names *stale* values as well as torn ones — the
+  hand-rolled form reads `window.innerHeight` during the first render but only subscribes in a
+  passive effect, so a resize in between is lost no matter how few readers there are. Counting
+  readers answers the tearing half and leaves the staleness half untouched.
 - `prefer-html-dialog` (`ui-reference-shell-specimens.tsx`) — a motion specimen absolutely
   positioned inside a fixed 210px frame. A native `dialog` with `showModal` changes top-layer,
   focus, and overlay behavior, so it is not a mechanical substitution. Accepted risk for a
