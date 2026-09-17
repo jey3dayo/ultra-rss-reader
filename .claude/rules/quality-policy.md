@@ -275,6 +275,13 @@ no such reference is not permitted: it asserts a judgement without saying who ma
 which is the failure mode the general rule is guarding against. Do not add one for a finding
 that has not been classified yet; classify it first, or leave the gate red and say so.
 
+Those `<record>.md:<line>` pointers are load-bearing and nothing in the record keeps them
+true — inserting a paragraph moves every entry below it, and the disables then name body text.
+`src/__tests__/config/react-doctor-disable-reference-contract.node.test.ts` requires each
+pointer to land on a heading or on a table row naming the referencing file, which is a drift
+guard rather than a proof: a pointer that slips onto a different heading still passes. After
+editing a classification record, re-derive the line numbers rather than trusting a green run.
+
 Inline disables are honoured by the scan, so adding one moves the full-scan counts. The
 constant to re-pin is `reactDoctorBaselines.full`, which is what `runReactDoctor` compares the
 report against. `reactDoctorFullScanTriageStatus.untriagedWarningCountAtScan` is derived and
@@ -373,10 +380,23 @@ Three were fixed, three are false positives, fifteen are accepted risk, and none
 Read that record before re-classifying anything in those families. Five things in it change how
 a later pass should work.
 
-**Answer every symptom a rule's message names, not the easiest one.** The independent review
-overturned exactly one of the 21 dispositions, and that was the failure: `prefer-use-sync-external-store`
-says "stale or torn values", the draft refuted tearing by counting readers, and treated the rule as
-answered. Where a message lists more than one symptom, record a verdict per symptom.
+**Run `react-doctor rules explain <rule id>` before classifying, once per rule id.** The
+one-line message the scan prints is neither the rule's full claim nor its remedy set, and
+reasoning from it alone produced every wrong premise in the #300 draft. Three distinct kinds:
+
+- A message can name more than one symptom. `prefer-use-sync-external-store` says "stale **or**
+  torn values"; the draft refuted tearing by counting readers and treated the rule as answered.
+  That is the one disposition the independent review overturned. Record a verdict per symptom.
+- The remedies you remember may belong to a different rule. `no-pass-data-to-parent` and
+  `no-pass-live-state-to-parent` cite two different React docs sections and both ask for the
+  *owner* to move up (or for the hook to return the value); the draft argued against derive-during-
+  render, `key` reset, and update-in-the-event — which are `no-adjust-state-on-prop-change`'s
+  remedies — across all twelve findings.
+- A remedy can pre-empt the defence you were about to write. `no-adjust-state-on-prop-change`
+  says "Avoid tracking the previous prop in more state, which preserves the duplication", which
+  is exactly the previous-prop-tracker argument the draft used to excuse a `no-derived-state`
+  finding. Such a finding can still be accepted risk, but because the fix is a design change —
+  not because the rule is wrong.
 
 **Suppressing one rule can unmask a paired one.** `no-derived-state` and
 `no-derived-state-effect` describe the same state from the declaration side and the effect side,

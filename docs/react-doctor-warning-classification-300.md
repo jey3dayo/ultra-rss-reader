@@ -227,17 +227,34 @@ false を返す。
 いずれも prop として渡ってくる callback の実体が **zustand store action** であり、
 親コンポーネントの state ではない。rule のモデルにある「親」が存在しない。
 
-remedy 3 つが届かない根拠:
+**remedy は `react-doctor rules explain` で確認した**（scan の 1 行メッセージには書かれていない）。
+2 つの rule は別々の React docs 節を根拠にし、remedy も別である。
 
-- **render 中に導出** — 渡すのは値ではなく**外部 store の mutation を起こす関数**なので、
-  render 中に呼ぶことは render phase の副作用になる。値の導出ではない
-- **`key` で reset** — remount 対象のコンポーネントが無い。prop に紐づくローカル state ではなく
-  グローバルな selection / expansion の補正である
-- **prop を変えるイベント側で更新** — 条件は複数の非同期ソース（preferences load、
-  React Query の feeds / folders / tags、dev intent）にまたがる resolver で、
-  `:115` `:118` `:121` は 7 入力、`:102` は 6 入力。イベント発生地点（preference トグル、
-  フィード木計算、タグ削除）はそれぞれ他方の入力を持たないため、resolver を N 箇所へ
-  複製することになる
+| rule | remedy | 根拠 |
+| --- | --- | --- |
+| `no-pass-data-to-parent` | 親でデータを取得して prop で下ろす、**または hook から返す** | [Passing data to the parent](https://react.dev/learn/you-might-not-need-an-effect#passing-data-to-the-parent) |
+| `no-pass-live-state-to-parent` | state を親へ上げる、**または hook から返す** | [Notifying parent components about state changes](https://react.dev/learn/you-might-not-need-an-effect#notifying-parent-components-about-state-changes) |
+
+どちらの remedy も **state / データの所有者を上へ移すこと**を求めている。
+この 8 件でそれが届かない理由は 2 つある。
+
+- **所有者は既に上にある。** 書き込み先は zustand store で、子が持っている state を
+  親へ知らせているのではない。子にあるのは store の state から store の state への
+  **補正の導出**だけで、子が起点のデータは無い。「親で取得して下ろす」は、下ろす元が
+  子にある場合の話である
+- **`hook から返す` は effect を消さず 1 段上へ移すだけ。** これらは既に hook であり、
+  `useSidebarVisibilityFallback` が decision を返す形にしても、受け取る
+  `useSidebarFeedSectionController` も hook なので、store action を呼ぶ effect が
+  そちらへ移る。effect を消せるのは適用点がイベントハンドラになるときだけで、
+  ここでは条件が複数の非同期ソース（preferences load、React Query の feeds / folders / tags、
+  dev intent）にまたがる resolver（`:115` `:118` `:121` は 7 入力、`:102` は 6 入力）であり、
+  単一のイベントに対応しない。イベント発生地点（preference トグル、フィード木計算、タグ削除）は
+  それぞれ他方の入力を持たないため、resolver を N 箇所へ複製することになる
+
+初稿はここに `no-adjust-state-on-prop-change` の remedy 3 つ
+（render 中に導出 / `key` で reset / prop を変えるイベント側で更新）を当てていた。
+**別ルールの remedy であり、12 件すべてで反論の相手を間違えていた。** 結論は変わらないが、
+根拠は上記に置き換えた。`rules explain` を先に引いていれば避けられた誤りである。
 
 第 1 波の `use-sidebar-feed-section-controller.ts:62`（毎 render の localStorage write）型の
 must-fix が混ざっていないことを 1 件ずつ確認した。
@@ -309,10 +326,19 @@ optimistic update を持たない invalidation のみなので、`availableTags`
 検出する** tracker である。読み手は `:93` の等値比較と `:113` の依存配列だけで、hook の
 戻り値には含まれない（render される出力に一切現れない）。現在の入力から導出することはできない。
 
-React docs の「render 中に前回値と比較して setState する」形へ移せば追加 render は消えるが、
-それは 8 個の setter と `resetListScrollState` を含むアカウント reset ブロック全体の作り替えになる。
-同ブロックの effect 形は第 1 波で既に accepted-risk として決まっている（`:98` / `:100` の inline 記録）。
-ここだけ作り替えるのは lint 修正ではなく設計変更である。
+**ただし「導出できないから rule が誤り」とは言えない。** 同 family の
+`no-adjust-state-on-prop-change` の `rules explain` は
+"Avoid tracking the previous prop in more state, which preserves the duplication" と述べており、
+**前 render の prop を state で追跡すること自体を避けるべきものとして名指ししている。**
+つまり rule 側の立場は「その tracker は存在するべきでない」であり、
+「導出できない」は反論になっていない。
+
+それでも accepted-risk とする理由は、rule が誤っているからではなく**変更が設計変更になる**ためである。
+tracker を無くすには、8 個の setter と `resetListScrollState` を含むアカウント reset ブロック全体を
+作り替える必要がある。同ブロックの effect 形は第 1 波で既に accepted-risk として決まっている
+（`:98` / `:100` の inline 記録）。`quality-policy.md`「React Doctor Warning Categories」の基準では
+バグ・回帰・当該変更が持ち込んだもののみが must-fix であり、これはどれにも当たらない。
+tracker を消す restructure は別タスクとして扱う。
 
 ### accepted-risk: 派生データの整合修復（1 件）
 
@@ -360,11 +386,14 @@ prop の owner はコンポーネントの外にあるので第 3 の remedy も
 
 `no-giant-component` `subscriptions-index-page.tsx:60`（370 行）。
 
-rule の指摘は妥当で、false-positive ではない。内訳は hook 呼び出し 52 行 /
-派生値とハンドラ 132 行 / effect 3 本 61 行 / JSX 121 行。JSX は
-`SubscriptionsIndexPageView` 1 要素に約 50 prop を渡す形なので、**JSX ツリーの分割ではなく
-effect を hook へ切り出すのが実際の分割線になる**。うち viewport 追従 effect は
-次項の `prefer-use-sync-external-store` と同じブロックである。
+rule の指摘は妥当で、false-positive ではない。`rules explain` の remedy は
+「各セクションを別コンポーネントへ切り出す」である。
+
+本 PR で viewport 追従 effect を `useSyncExternalStore` へ移したため、
+コンポーネントは `:68` から EOF（`:426`）までの **359 行**、effect は
+`:254` / `:273`（`useEffect`）と `:279`（`useLayoutEffect`）の **3 本**になった。
+JSX は `SubscriptionsIndexPageView` 1 要素に約 50 prop を渡す形なので、
+**JSX ツリーの分割ではなく effect と prop 構築を hook へ切り出すのが実際の分割線になる**。
 
 分類 pass の中で 370 行の再構成は行わない。分割は独立したタスクとして追跡する。
 
@@ -385,6 +414,13 @@ effect を hook へ切り出すのが実際の分割線になる**。うち view
 
 `--no-respect-inline-disables` を付けた走査では `no-derived-state` だけが出て
 `no-derived-state-effect` は出ない。つまり shadowing は disable の処理ではなく rule engine 側にある。
+
+`no-derived-state-effect` の remedy は `rules explain` によると
+「render 中に導出する」に加えて **`key` prop による reset** である。これも 2 件とも届かない。
+`use-subscriptions-index-state` は hook なので `key` を持てず、呼び出し元の
+`SubscriptionsIndexPage` を remount すると `keptFeedIds` / `deferredFeedIds` / `searchQuery` /
+スクロール位置まで失う。`useScreenSnapshot` も hook で、remount はラッチの目的
+（フェッチ中に直前スナップショットを見せ続ける）を真正面から壊す。
 
 判定は state について下したものなので、両方の rule view に同じ記録を付けた。
 **この形は「ルールを 1 つ黙らせたら別のルールと交換になる」典型で、件数の差分を取らないと見えない。**
@@ -420,8 +456,30 @@ issue が引き継ぎとして残した 5 項目のうち、実際に判定を�
    推定のままなら accepted-risk と誤判定していた
 4. **推論で止まっていた 1 件をテストで決めた。** `use-article-tag-picker-popover.ts:162` は
    「到達しない」推論と「テストが無い」事実が同時に立っていたので、テストを書いて到達性を固定した
-5. **テストの緑を根拠にしなかった。** 2 件の fix はいずれも故障注入で検出力を確認し、
+5. **テストの緑を根拠にしなかった。** 3 件の fix はいずれも故障注入で検出力を確認し、
    `use-article-list-navigation.ts:27` については guard が作れないことを明記した
+
+## 本 pass で追加すべきだった手順
+
+独立レビューで棄却された 1 件と、その後の見直しで見つかった 12 件の根拠誤りは、
+同じ原因から出ている。**scan が印字する 1 行メッセージを rule の主張と remedy の全体だと
+扱った。**
+
+`react-doctor rules explain <rule id>` は、rule の category、根拠にしている React docs の節、
+remedy を印字する。これを引いていれば避けられた誤りが 3 種類あった。
+
+- `prefer-use-sync-external-store`: メッセージは "stale **or** torn values" と 2 つの症状を
+  並べており、片方（tearing）への反論では答えになっていなかった（棄却された 1 件）
+- `no-pass-data-to-parent` / `no-pass-live-state-to-parent`: remedy は「所有者を上へ移す /
+  hook から返す」で、初稿が当てていた 3 つ（render 中に導出 / `key` / イベント側で更新）は
+  **別ルールの remedy** だった。12 件すべてで反論の相手を間違えていた
+- `no-adjust-state-on-prop-change`: remedy の記述が
+  "Avoid tracking the previous prop in more state" と、`no-derived-state` の
+  `use-subscriptions-index-state.ts:97` に使っていた「前 prop の tracker だから導出できない」
+  という弁護をそのまま否定していた
+
+**分類の前に、対象の rule id ごとに `rules explain` を引くこと。** メッセージだけで
+remedy を推測しない。
 
 ## 独立レビューで棄却された判定
 

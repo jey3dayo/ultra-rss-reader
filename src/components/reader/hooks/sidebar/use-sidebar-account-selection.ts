@@ -105,8 +105,8 @@ export function useSidebarAccountSelection({
     });
 
     if (action.persistPreference) {
-      // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:252
-      // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:252
+      // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:269
+      // react-doctor-disable-next-line react-doctor/no-pass-live-state-to-parent -- accepted risk (preference repair persist), docs/react-doctor-warning-classification-300.md:269
       setSelectedAccountPreference(action.accountId);
     }
   }, [
