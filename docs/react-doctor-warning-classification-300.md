@@ -75,7 +75,7 @@ accepted-risk と決まっていたが（`quality-policy.md`「Behavioural Singl
 
 ## 判定
 
-21 件のうち 2 件は修正して finding を消した。残り 19 件は該当行に inline 記録を置く。
+21 件のうち 3 件は修正して finding を消した。残り 18 件は該当行に inline 記録を置く。
 
 ### 修正して finding を消した（3 件）
 
@@ -337,12 +337,17 @@ optimistic update を持たない invalidation のみなので、`availableTags`
 （`previousAvailableTagCountRef`）で保持する必要があるため、render 中の導出では表現できない。
 
 **この effect にはテストが無かったので、本 pass で追加した。** 到達可能性を推論で済ませず
-固定するため。`use-article-tag-picker-popover.test.tsx` に 2 件:
+固定するため。`use-article-tag-picker-popover.test.tsx` に 3 件:
 
-- 「closes the popover and asks for focus restore when the available tags shrink while open」
+- 「closes the popover when the available tags shrink while open」
 - 「keeps the popover open when the available tags grow」
+- 「returns focus to the trigger after the available tags shrink closes the popover」
 
-検出力: `closePicker(true)` を落とす故障注入で前者が落ちる（1 failed / 6 passed）。
+検出力は 2 方向で確認した。`closePicker` の呼び出しごと落とすと 1 件目が落ち、
+`closePicker(true)` を `closePicker(false)` に変えると 3 件目が落ちる（1 failed / 7 passed）。
+**後者は PR レビューの指摘で足した。** 初稿は 1 件目のテスト名に focus restore を含めていたが、
+assert は `onExpandedChange(false)` だけで、`restoreFocusOnCloseRef` の設定を固定していなかった。
+テスト名が主張する範囲と assert の範囲を一致させること。
 
 ### accepted-risk: 前 render の prop を保持する tracker（1 件）
 
@@ -555,7 +560,7 @@ disposition が記録されている family である**。したがって
 
 error 2 件は 2026-09-10 の pass で分類済み（false-positive 1 / test-only accepted-risk 1）。
 
-audit との差 43 件が inline disable による抑制量である。`warningCount` 単独では
+audit との差 42 件が inline disable による抑制量である。`warningCount` 単独では
 「直った」と「黙らせた」を区別できないので、再 pin では audit 側の数も併記する必要がある。
 
 ### Phase B（merge 後に main から実施）で必要な編集
