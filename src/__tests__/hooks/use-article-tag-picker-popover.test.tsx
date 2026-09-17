@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useArticleTagPickerPopover } from "@/components/reader/hooks/article/use-article-tag-picker-popover";
 
@@ -6,15 +6,16 @@ type HookHarnessProps = {
   availableTagCount: number;
   onExpandedChange: (expanded: boolean) => void;
   onParentKeyDown: () => void;
+  isExpanded?: boolean;
 };
 
-function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: HookHarnessProps) {
+function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown, isExpanded = true }: HookHarnessProps) {
   const tags = Array.from({ length: availableTagCount }, (_, index) => ({
     id: `tag-${index + 1}`,
     name: `Tag ${index + 1}`,
   }));
-  const { pickerRef, tagOptionRefs, handleListboxKeyDown } = useArticleTagPickerPopover({
-    isExpanded: true,
+  const { pickerRef, triggerRef, tagOptionRefs, handleListboxKeyDown } = useArticleTagPickerPopover({
+    isExpanded,
     availableTagCount,
     onExpandedChange,
     onNewTagNameChange: vi.fn(),
@@ -23,6 +24,9 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown }: H
   return (
     <section ref={pickerRef} aria-label="Tag picker harness" onKeyDown={onParentKeyDown}>
       <span>Tag picker harness</span>
+      <button ref={triggerRef} type="button">
+        Tag picker trigger
+      </button>
       <div role="listbox" aria-label="Available tags" onKeyDown={handleListboxKeyDown}>
         {tags.map((tag, index) => (
           <button
@@ -144,5 +148,53 @@ describe("useArticleTagPickerPopover", () => {
 
     expect(cancelAnimationFrameSpy).toHaveBeenCalledWith(42);
     expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it("closes the popover when the available tags shrink while open", () => {
+    const onExpandedChange = vi.fn();
+
+    const { rerender } = render(
+      <HookHarness availableTagCount={3} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />,
+    );
+    expect(onExpandedChange).not.toHaveBeenCalled();
+
+    rerender(<HookHarness availableTagCount={2} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />);
+
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
+  it("returns focus to the trigger after the available tags shrink closes the popover", async () => {
+    const onExpandedChange = vi.fn();
+
+    const { rerender } = render(
+      <HookHarness availableTagCount={3} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />,
+    );
+    rerender(<HookHarness availableTagCount={2} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />);
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+
+    rerender(
+      <HookHarness
+        availableTagCount={2}
+        isExpanded={false}
+        onExpandedChange={onExpandedChange}
+        onParentKeyDown={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Tag picker trigger" });
+    await waitFor(() => {
+      expect(document.activeElement).toBe(trigger);
+    });
+  });
+
+  it("keeps the popover open when the available tags grow", () => {
+    const onExpandedChange = vi.fn();
+
+    const { rerender } = render(
+      <HookHarness availableTagCount={2} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />,
+    );
+    rerender(<HookHarness availableTagCount={3} onExpandedChange={onExpandedChange} onParentKeyDown={vi.fn()} />);
+
+    expect(onExpandedChange).not.toHaveBeenCalled();
   });
 });

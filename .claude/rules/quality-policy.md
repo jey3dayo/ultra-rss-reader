@@ -275,6 +275,13 @@ no such reference is not permitted: it asserts a judgement without saying who ma
 which is the failure mode the general rule is guarding against. Do not add one for a finding
 that has not been classified yet; classify it first, or leave the gate red and say so.
 
+Those `<record>.md:<line>` pointers are load-bearing and nothing in the record keeps them
+true — inserting a paragraph moves every entry below it, and the disables then name body text.
+`src/__tests__/config/react-doctor-disable-reference-contract.node.test.ts` requires each
+pointer to land on a heading or on a table row naming the referencing file, which is a drift
+guard rather than a proof: a pointer that slips onto a different heading still passes. After
+editing a classification record, re-derive the line numbers rather than trusting a green run.
+
 Inline disables are honoured by the scan, so adding one moves the full-scan counts. The
 constant to re-pin is `reactDoctorBaselines.full`, which is what `runReactDoctor` compares the
 report against. `reactDoctorFullScanTriageStatus.untriagedWarningCountAtScan` is derived and
@@ -364,6 +371,64 @@ The `no-adjust-state-on-prop-change` findings all sit on a setter whose argument
 and setters with computed arguments in the same effects are not reported. That regularity is
 inferred from four counter-examples, not from the rule implementation, which is minified in the
 shipped `dist`. Do not build a classification on it.
+
+### Untriaged Warning Classification, Second Wave (Issue #300)
+
+The second wave — 21 findings across nine rules — is recorded per finding in
+[../../docs/react-doctor-warning-classification-300.md](../../docs/react-doctor-warning-classification-300.md).
+Three were fixed, three are false positives, fifteen are accepted risk, and none was must-fix.
+Read that record before re-classifying anything in those families. Five things in it change how
+a later pass should work.
+
+**Run `react-doctor rules explain <rule id>` before classifying, once per rule id.** The
+one-line message the scan prints is neither the rule's full claim nor its remedy set, and
+reasoning from it alone produced every wrong premise in the #300 draft. Three distinct kinds:
+
+- A message can name more than one symptom. `prefer-use-sync-external-store` says "stale **or**
+  torn values"; the draft refuted tearing by counting readers and treated the rule as answered.
+  That is the one disposition the independent review overturned. Record a verdict per symptom.
+- The remedies you remember may belong to a different rule. `no-pass-data-to-parent` and
+  `no-pass-live-state-to-parent` cite two different React docs sections and both ask for the
+  *owner* to move up (or for the hook to return the value); the draft argued against derive-during-
+  render, `key` reset, and update-in-the-event — which are `no-adjust-state-on-prop-change`'s
+  remedies — across all eleven findings whose remedy it argued. The twelfth,
+  `use-sidebar-feed-drag-state.ts`, is a false positive on the rule's target rather than its
+  remedy, so no remedy analysis applied to it.
+- A remedy can pre-empt the defence you were about to write. `no-adjust-state-on-prop-change`
+  says "Avoid tracking the previous prop in more state, which preserves the duplication", which
+  is exactly the previous-prop-tracker argument the draft used to excuse a `no-derived-state`
+  finding. Such a finding can still be accepted risk, but because the fix is a design change —
+  not because the rule is wrong.
+
+**Suppressing one rule can unmask a paired one.** `no-derived-state` and
+`no-derived-state-effect` describe the same state from the declaration side and the effect side,
+and react-doctor reports only one at a time; disabling the first revealed the second at the
+`useEffect(` line. Nineteen disables moved the total by seventeen, which is the only reason it
+was noticed. So after adding disables, check that the total moved by exactly the number added —
+but a shortfall has two possible causes and they need different fixes. Either a paired rule took
+the finding's place, or a disable did not fire at all: a rule id spelled differently from what the
+scan printed, a comment above the wrong line, or a comment the reporting position does not sit
+under. Locate the remaining findings before concluding which it was; reading a shortfall as
+shadowing hides a suppression that silently records nothing. `--no-respect-inline-disables` shows
+only `no-derived-state`, so this shadowing lives in the rule engine rather than in disable
+handling, and that is the only pair measured here — do not assume every rule has one.
+
+**Two stacked `react-doctor-disable-next-line` comments on one line both take effect.** Verified
+by measurement: a line firing two rules, given one comment per rule, dropped both. The second
+comment is two lines above the code and is still honoured. `react-doctor why` says "add one
+immediately above this line", which reads as a limit of one and is not.
+
+**A `warningCount` pin is net of every inline disable, so it cannot distinguish a fixed finding
+from a silenced one.** Record the `--no-respect-inline-disables` total from the same scan
+alongside it. At the #300 landing the two were 31 and 73.
+
+**A classified family whose count no longer matches the scan silently understates the untriaged
+total.** `require-pnpm-hardening` stayed registered at 1 after both the finding and the rule
+itself were gone (0.9.14 removed the rule), while `prefer-use-sync-external-store` was
+classified in this file on 2026-09-08 and never registered at all. The two errors cancelled, so
+the derived untriaged count read 20 against 21 real findings. When re-pinning, set every entry's
+count to what that scan reports and never delete an entry — the entry is the record of the
+decision, the count is only what the arithmetic needs.
 
 ### Prop Callback In Effect Findings
 
@@ -476,10 +541,15 @@ These three were classified on 2026-09-08 and are not mechanical fixes.
   next run returns early once `layoutGeneration` and `viewportHeight` agree. Already carried an
   accepted-risk comment, and that classification is inherited. Being self-updating is not by
   itself a reason to rewrite it.
-- `prefer-use-sync-external-store` (`subscriptions-index-page.tsx`) — external viewport-size
-  synchronisation. Migrating is not mandatory absent an observed defect; promoting the value to
-  a shared store is a separate design task. The subscription's full lifecycle has not been
-  audited.
+- `prefer-use-sync-external-store` (`subscriptions-index-page.tsx`) — **this 2026-09-08 accepted
+  risk was overturned on 2026-09-18 and the site now uses `useSyncExternalStore`.** Two of its
+  premises were wrong. Migrating did not need the value promoted to a shared store: `subscribe`
+  takes `window.addEventListener("resize", onStoreChange)` directly, and the existing
+  module-scope `getViewportHeight` already served as `getSnapshot`. And "absent an observed
+  defect" understated the rule, whose message names *stale* values as well as torn ones — the
+  hand-rolled form reads `window.innerHeight` during the first render but only subscribes in a
+  passive effect, so a resize in between is lost no matter how few readers there are. Counting
+  readers answers the tearing half and leaves the staleness half untouched.
 - `prefer-html-dialog` (`ui-reference-shell-specimens.tsx`) — a motion specimen absolutely
   positioned inside a fixed 210px frame. A native `dialog` with `showModal` changes top-layer,
   focus, and overlay behavior, so it is not a mechanical substitution. Accepted risk for a
@@ -495,10 +565,25 @@ it to two sites on 2026-09-08 traded 2 warnings for 2 errors (14 → 16), so it 
 `useState` with an initialiser function is not a general substitute: it captures once, so a
 value that must follow props goes stale. Decide who owns the state and what lifetime it needs
 before touching these; do not change code to trade one rule for another, and do not record them
-as accepted risk without that decision. These two remain untriaged and are tracked with the
-rest of the second wave at <https://github.com/jey3dayo/ultra-rss-reader/issues/300>; the
-first-wave issue #249 is closed out and is the record of where they were found, not the
-place to pick them up.
+as accepted risk without that decision.
+
+Both sites were resolved on 2026-09-18 under #300, and the remedy differed between them even
+though the rule was the same. The deciding fact is **where the ref is read**, so read that
+before picking a form.
+
+- Read during render, never written (`article-tag-chip-list.tsx`): a mount-time snapshot that
+  must *not* follow props. `useState(() => …)` is correct here — following props would delete
+  the entrance animation the snapshot exists to gate. `useMemo` is not, because React may
+  discard it and recompute from the current props.
+- Read only inside the effect that also writes it (`use-article-list-navigation.ts`): the
+  initial value exists only so the effect's first run returns early, so a `null` sentinel
+  removes it. The one behavioural difference — a generation counter incremented once at mount —
+  is unobservable because that counter is only compared against a value captured inside a
+  callback.
+
+Neither remedy added an error; measured with the full scan before and after. Do not carry
+forward the earlier conclusion that this rule cannot be addressed — that applied to the
+rule's *own* suggested form, not to every alternative.
 
 ### Supply Chain Hardening Findings
 

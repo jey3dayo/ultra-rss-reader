@@ -22,11 +22,13 @@ export function useScreenSnapshot<T>(candidate: T | null, canAdopt: boolean): Sc
   const [snapshot, setSnapshot] = useState<T | null>(() => (canAdopt ? candidate : null));
   const hasAdoptedSnapshotRef = useRef(snapshot !== null);
 
+  // react-doctor-disable-next-line react-doctor/no-derived-state-effect -- false positive (snapshot latch, not derivable), docs/react-doctor-warning-classification-300.md:182
   useEffect(() => {
     if (!canAdopt || candidate === null) {
       return;
     }
 
+    // react-doctor-disable-next-line react-doctor/no-derived-state -- false positive (snapshot latch, not derivable), docs/react-doctor-warning-classification-300.md:182
     setSnapshot(candidate);
     hasAdoptedSnapshotRef.current = true;
   }, [candidate, canAdopt]);

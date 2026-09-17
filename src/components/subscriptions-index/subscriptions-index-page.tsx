@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
@@ -53,10 +53,18 @@ function getViewportHeight(): number {
   return typeof window === "undefined" ? 0 : window.innerHeight;
 }
 
+function subscribeToViewportHeight(onStoreChange: () => void): () => void {
+  window.addEventListener("resize", onStoreChange);
+  return () => {
+    window.removeEventListener("resize", onStoreChange);
+  };
+}
+
 function hasOpenNestedEscapeLayer(): boolean {
   return document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]') !== null;
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- accepted risk (component split tracked separately), docs/react-doctor-warning-classification-300.md:416
 export function SubscriptionsIndexPage() {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
@@ -78,7 +86,7 @@ export function SubscriptionsIndexPage() {
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
   const [reviewClock, setReviewClock] = useState(() => getCurrentDate());
-  const [viewportHeight, setViewportHeight] = useState(() => getViewportHeight());
+  const viewportHeight = useSyncExternalStore(subscribeToViewportHeight, getViewportHeight);
 
   const candidates = useMemo(
     () =>
@@ -259,17 +267,6 @@ export function SubscriptionsIndexPage() {
     return () => {
       window.clearInterval(timerId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportHeight(getViewportHeight());
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
     };
   }, []);
 

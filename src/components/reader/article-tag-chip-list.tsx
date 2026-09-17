@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { TagChip } from "@/design-system";
 import { cn } from "@/lib/utils";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker-view";
@@ -10,7 +10,7 @@ type ArticleTagChipListProps = {
 };
 
 export function ArticleTagChipList({ assignedTags, labels, onRemoveTag }: ArticleTagChipListProps) {
-  const initialAssignedTagIds = useRef(new Set(assignedTags.map((tag) => tag.id))).current;
+  const [initialAssignedTagIds] = useState(() => new Set(assignedTags.map((tag) => tag.id)));
 
   return assignedTags.map((tag) => (
     <TagChip
