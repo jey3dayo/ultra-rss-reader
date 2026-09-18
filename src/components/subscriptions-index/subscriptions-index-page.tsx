@@ -271,10 +271,10 @@ export function SubscriptionsIndexPage() {
   }, []);
 
   useEffect(() => {
-    if (deleteTargetFeed !== null && !deleteTargetInCurrentAccount && !deletePendingRef.current) {
+    if (deleteTargetFeed !== null && !deleteTargetInCurrentAccount && !deletePending) {
       setDeleteTargetFeed(null);
     }
-  }, [deleteTargetFeed, deleteTargetInCurrentAccount]);
+  }, [deleteTargetFeed, deleteTargetInCurrentAccount, deletePending]);
 
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {

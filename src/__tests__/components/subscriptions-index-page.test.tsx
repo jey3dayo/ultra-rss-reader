@@ -1210,6 +1210,46 @@ describe("SubscriptionsIndexPage", () => {
     expect(deleteFeedCalls).toEqual([]);
   });
 
+  it("closes stale unsubscribe targets once a rejected delete settles after account scope changes", async () => {
+    const user = userEvent.setup();
+    let rejectDelete: (error: Error) => void = () => {};
+    deleteFeedHandler = () =>
+      new Promise<null>((_resolve, reject) => {
+        rejectDelete = reject;
+      });
+
+    const { wrapper } = createQueryWrapper({ includeToastHost: true });
+    render(<SubscriptionsIndexPage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    const unsubscribeDialog = await screen.findByRole("dialog");
+    const confirmButton = within(unsubscribeDialog).getByRole("button", {
+      name: /^(「Example Feed」の購読を解除します。元に戻せません。|Unsubscribe from "Example Feed"\. This cannot be undone\.)$/,
+    });
+
+    fireEvent.click(confirmButton);
+    await waitFor(() => {
+      expect(deleteFeedCalls).toEqual(["feed-1"]);
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      selectedAccountId: "acc-2",
+    });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await act(async () => {
+      rejectDelete(new Error("boom"));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
   it("disables stale unsubscribe targets after the feed list refetch removes the target", async () => {
     const user = userEvent.setup();
     const { queryClient, wrapper } = createQueryWrapper({
