@@ -373,14 +373,17 @@ const reactDoctorFullScanTriageStatusBase = {
   // classified total, while still being named instead of silently folded into "other".
   // rerender-lazy-ref-init left this table on 2026-09-18 because both of its findings were fixed
   // (the remedy differed between the two sites, which is why they were not a single decision; see
-  // the classification record). The complexity outlier took its place: it is the one finding this
-  // scan reports that no record dispositions, so it has to be named here rather than absorbed
-  // into classifiedFindingCount.
+  // the classification record). The complexity outlier sat here next, pending the extraction
+  // design that Issue #256 was tracking; #321 landed that design, which is what emptied this
+  // table. The outlier now has its own row in the complexity record and is counted inside
+  // classifiedFindingCount instead. See the empty-array comment above for why this table stays
+  // empty rather than being removed.
   pendingJudgmentWarningFamilies,
   // #256 as of 2026-09-18, for the same reason it was #300 before and #249 before that: this
-  // names where the remaining untriaged finding is tracked, and both earlier waves closed out.
-  // The one finding left is the complexity outlier, so pointing here at #300 would send an
-  // operator to a list whose items are all already dispositioned.
+  // names where an untriaged finding would be tracked, and both earlier waves closed out. There
+  // is no untriaged finding at this pin — #321 gave the complexity outlier a record row, so the
+  // derived total is 0 — but the field still has to point somewhere current, and pointing at #300
+  // would send an operator to a list whose items are all already dispositioned.
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.

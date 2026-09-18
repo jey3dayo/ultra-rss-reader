@@ -315,17 +315,27 @@ describe("quality-baseline", () => {
     // being warningCount minus the two classified totals, this assertion fails without needing
     // a second copy of warningCount in this file.
     //
-    // 1: the complexity outlier at Issue #256, which is the single finding this scan reports that
-    // no record dispositions. The #300 draft pinned 0 here by subtracting all 25 rows of the
-    // complexity record, but the record's 25 and the scan's 25 are different sets — #279
-    // suppressed one row and the scan reports the excluded outlier instead. Cross-check on the
-    // subtraction, not a target: it holds because 32 total, 25 classified complexity findings and
-    // 7 family findings agree, and pendingJudgmentWarningFamilies is empty.
+    // 0 as of 2026-09-18. #321 split useAccountDetailViewProps, which removed the complexity
+    // record's stated reason for excluding it, so the scan's complexity set and the record's set
+    // agree at 25 for the first time — the outlier that used to sit in
+    // pendingJudgmentWarningFamilies is now inside classifiedFindingCount instead, and that table
+    // is empty.
     //
-    // 0, not because the number was the goal. #321 split useAccountDetailViewProps, which removed
-    // the record's stated reason for excluding it, so the scan's complexity set and the record's set
-    // agree at 25 for the first time. A re-pin that reaches 0 by subtracting rows the scan does not
-    // report is the failure this assertion's history is about, so check the sets, not the total.
+    // What this assertion cannot do is confirm the sets actually agree; it can only confirm the
+    // arithmetic (25 + 7 + 0 = 32 total) still holds. #300's draft made exactly this mistake once
+    // already: it subtracted all 25 rows of the complexity record and reported 0 untriaged while
+    // the record's 25 and the scan's 25 were different sets (#279 had suppressed one row, and the
+    // scan was reporting the excluded outlier in its place instead).
+    //
+    // That gap is unbuilt, not unbuildable. This test cannot run react-doctor, so it cannot
+    // re-derive the finding list itself, but under the scanSha contract the comparison no longer
+    // depends on a commit that does not exist yet and can run as a PR gate; the design is in
+    // docs/react-doctor-gate-mechanics.md. Until it exists, whoever re-pins these numbers lists
+    // the scan's findings and the record's rows and checks they are the same set by hand.
+    //
+    // This test also verifies nothing about scanSha: not that it is reachable from main, and not
+    // that the pinned commands reproduce these totals at that tree. Those are the contract's other
+    // two parts and they have no coverage here either.
     expect(status.untriagedWarningCountAtScan).toBe(0);
   });
 
