@@ -2,13 +2,17 @@ import type { TFunction } from "i18next";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import type { AccountDetailSyncProgress } from "@/components/settings/account-detail/account-detail";
-import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import type { AccountSyncStatusRow } from "@/components/settings/account-detail/sync-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import type { AccountDetailViewProps } from "@/components/settings/account-detail/view";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { isValidOptionalHttpServerUrl } from "@/lib/account/server-url";
+import { isFreshRssAccount, isLocalAccount } from "./account-kind";
+import { buildCredentialsSection } from "./build-credentials-section";
+import { buildDangerZoneSection } from "./build-danger-zone-section";
+import { buildGeneralSection } from "./build-general-section";
+import { buildSyncSection } from "./build-sync-section";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";
 
 type AccountDetailViewPropsParams = {
@@ -29,14 +33,6 @@ type AccountDetailViewPropsResult = Pick<
   AccountDetailViewProps,
   "title" | "subtitle" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
 >;
-
-function isFreshRssAccount(account: AccountDetailAccount): boolean {
-  return account.kind === "FreshRss";
-}
-
-function isLocalAccount(account: AccountDetailAccount): boolean {
-  return account.kind === "Local";
-}
 
 function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunction<"settings">): string | null {
   if (!isFreshRssAccount(account) && !isLocalAccount(account)) {
@@ -130,215 +126,46 @@ export function useAccountDetailViewProps({
     title: account.name,
     subtitle: quarantineReason ?? undefined,
     headerSummary,
-    generalSection: {
-      heading: t("account.general"),
-      nameLabel: t("account.description"),
-      nameValue: account.name,
-      editNameTitle: t("account.click_to_edit"),
-      isEditingName: controller.editingName,
-      isSavingName: controller.savingName,
-      nameDraft: controller.nameDraft,
-      nameInputRef: controller.nameInputRef,
-      infoRows: [
-        {
-          label: t("account.type"),
-          value: isFreshRssAccount(account)
-            ? t("account.freshrss")
-            : isLocalAccount(account)
-              ? t("account.local")
-              : account.kind,
-        },
-        ...(quarantineReason
-          ? [
-              {
-                label: t("account.quarantine_state"),
-                value: t("account.quarantine_state_value"),
-              },
-            ]
-          : []),
-        ...(!isValidOptionalHttpServerUrl(account.server_url)
-          ? [
-              {
-                label: t("account.server_url"),
-                value: account.server_url ?? "",
-              },
-            ]
-          : []),
-        ...(account.username
-          ? [
-              {
-                label: t("account.username"),
-                value: account.username,
-              },
-            ]
-          : []),
-        ...(quarantineReason
-          ? [
-              {
-                label: t("account.quarantine_action"),
-                value: t("account.quarantine_delete_action"),
-              },
-            ]
-          : []),
-        ...(isSetupFailed
-          ? [
-              {
-                label: t("account.recovery_credentials_label"),
-                value: t("account.recovery_credentials_detail"),
-              },
-              {
-                label: t("account.recovery_server_url_label"),
-                value: t("account.recovery_server_url_detail"),
-              },
-              {
-                label: t("account.recovery_cache_label"),
-                value: t("account.recovery_cache_detail"),
-              },
-            ]
-          : []),
-      ],
-      onStartEditingName: controller.startEditingName,
-      onNameDraftChange: controller.setNameDraft,
-      onCommitName: controller.commitRename,
-      onNameKeyDown: controller.handleNameKeyDown,
-      disabled: isSetupActive || isQuarantined,
-    },
-    credentialsSection: isFreshRssAccount(account) ? (
-      <AccountCredentialsSectionView
-        heading={t("account.server")}
-        note={
-          isQuarantined
-            ? t("account.quarantine_readonly_note")
-            : isSetupFailed
-              ? t("account.setup_failed_credentials_note")
-              : undefined
-        }
-        disabled={isSetupSyncing || isQuarantined}
-        serverUrlLabel={t("account.server_url")}
-        serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
-        serverUrlPlaceholder={t("account.server_url_placeholder")}
-        serverUrlInputRef={controller.serverUrlInputRef}
-        serverUrlCopyLabel={t("account.copy_server_url")}
-        onServerUrlChange={controller.setCredServerUrl}
-        onServerUrlBlur={controller.commitCredentials}
-        onServerUrlCopy={() => void controller.handleCopyServerUrl()}
-        usernameLabel={t("account.username")}
-        usernameValue={controller.credUsername ?? account.username ?? ""}
-        usernameInputRef={controller.usernameInputRef}
-        onUsernameChange={controller.setCredUsername}
-        onUsernameBlur={controller.commitCredentials}
-        passwordLabel={t("account.password")}
-        passwordValue={controller.passwordDisplayValue}
-        passwordPlaceholder={t("account.password_placeholder")}
-        onPasswordChange={controller.setCredPassword}
-        onPasswordFocus={controller.onPasswordFocus}
-        onPasswordBlur={controller.commitCredentials}
-        testConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.test_connection")}
-        testingConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.testing_connection")}
-        testConnectionTone={verificationStatus === "verified" ? "subtle" : "content"}
-        onTestConnection={isSetupActive || isQuarantined ? undefined : controller.handleTestConnection}
-        isTestingConnection={controller.testingConnection}
-      />
-    ) : undefined,
-    syncSection: {
-      heading: isQuarantined
-        ? t("account.quarantine_heading")
-        : isSetupSyncing
-          ? t("account.setup_syncing_heading")
-          : isSetupFailed
-            ? t("account.setup_failed_heading")
-            : t("account.syncing"),
-      note: isQuarantined
-        ? t("account.quarantine_readonly_note")
-        : isSetupSyncing
-          ? t("account.setup_syncing_description")
-          : isSetupFailed
-            ? (accountSetupErrorMessage ?? t("account.setup_failed_description"))
-            : undefined,
+    generalSection: buildGeneralSection({
+      account,
+      controller,
+      t,
+      quarantineReason,
+      isSetupFailed,
+      isSetupActive,
+      isQuarantined,
+    }),
+    credentialsSection: buildCredentialsSection({
+      account,
+      controller,
+      t,
+      verificationStatus,
+      isSetupSyncing,
+      isSetupFailed,
+      isSetupActive,
+      isQuarantined,
+    }),
+    syncSection: buildSyncSection({
+      account,
+      controller,
+      t,
+      syncStatusRows,
+      accountSetupErrorMessage,
+      isSyncing,
       progressLabel,
       progressValue,
       progressCurrentLabel,
-      syncInterval: {
-        name: "sync-interval",
-        label: t("account.sync"),
-        value: String(account.sync_interval_secs),
-        options: controller.syncIntervalOptions,
-        onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
-        disabled: isSetupActive || isQuarantined,
-      },
-      syncOnStartup: {
-        label: t("account.sync_on_startup"),
-        checked: account.sync_on_startup,
-        onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
-        disabled: isSetupActive || isQuarantined,
-      },
-      syncOnWake: {
-        label: t("account.sync_on_wake"),
-        checked: account.sync_on_wake,
-        onChange: (value) => controller.handleSyncUpdate({ syncOnWake: value }),
-        disabled: isSetupActive || isQuarantined,
-      },
-      keepReadItems: {
-        name: "keep-read-items",
-        label: t("account.keep_read_items"),
-        value: String(account.keep_read_items_days),
-        options: controller.keepReadItemsOptions,
-        onChange: (value) => controller.handleSyncUpdate({ keepReadItemsDays: Number(value) }),
-        disabled: isSetupActive || isQuarantined,
-      },
-      statusRows: syncStatusRows,
-      syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),
-      syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
-      onSyncNow: isQuarantined ? undefined : isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow,
-      isSyncing: isSyncing || controller.syncActionInFlight,
-      secondaryActionLabel: isSetupFailed && !isQuarantined ? t("account.setup_edit_credentials") : undefined,
-      onSecondaryAction: isSetupFailed && !isQuarantined ? controller.focusCredentialsEditor : undefined,
-      devCredentialsRecoveryActionLabel: canShowDevCredentialsRecovery
-        ? t("account.dev_credentials_recovery_action")
-        : undefined,
-      devCredentialsRecoveryLoadingLabel: canShowDevCredentialsRecovery
-        ? t("account.dev_credentials_recovery_loading")
-        : undefined,
-      onDevCredentialsRecoveryAction: canShowDevCredentialsRecovery ? controller.handleResetDevCredentials : undefined,
-      isDevCredentialsRecoveryInFlight: controller.devCredentialsRecoveryInFlight,
-    },
-    dangerZone: {
-      dataHeading: t("account.data_section"),
-      dangerHeading: t("account.danger_zone"),
-      importLabel: t("account.import_opml"),
-      importingLabel: t("account.importing_opml"),
-      exportLabel: t("account.export_opml"),
-      exportingLabel: t("account.exporting_opml"),
-      localSyncHeading: isLocalAccount(account) ? t("account.local_sync_heading") : undefined,
-      localSyncDescription: isLocalAccount(account) ? t("account.local_sync_description") : undefined,
-      localSyncEnabledLabel: isLocalAccount(account) ? t("account.local_sync_enabled_label") : undefined,
-      localSyncEnabledDescription: isLocalAccount(account) ? t("account.local_sync_enabled_description") : undefined,
-      localSyncEnabledChecked: controller.localSyncEnabled,
-      onLocalSyncEnabledChange: controller.handleToggleLocalSyncEnabled,
-      localSyncFolderLabel: isLocalAccount(account) ? t("account.local_sync_folder") : undefined,
-      localSyncFolderPlaceholder: isLocalAccount(account) ? t("account.local_sync_folder_placeholder") : undefined,
-      localSyncFolderValue: controller.localSyncFolderPath,
-      onLocalSyncFolderChange: controller.setLocalSyncFolderPath,
-      saveLocalSyncFolderLabel: isLocalAccount(account) ? t("account.local_sync_save") : undefined,
-      savingLocalSyncFolderLabel: isLocalAccount(account) ? t("account.local_sync_saving") : undefined,
-      exportLocalSyncLabel: isLocalAccount(account) ? t("account.local_sync_export") : undefined,
-      exportingLocalSyncLabel: isLocalAccount(account) ? t("account.local_sync_exporting") : undefined,
-      importLocalSyncLabel: isLocalAccount(account) ? t("account.local_sync_import") : undefined,
-      importingLocalSyncLabel: isLocalAccount(account) ? t("account.local_sync_importing") : undefined,
-      onSaveLocalSyncFolder: controller.handleSaveLocalSyncFolder,
-      onExportLocalSync: controller.handleExportLocalSyncOperations,
-      onImportLocalSync: controller.handleImportLocalSyncOperations,
-      loadingLocalSyncFolder: controller.loadingLocalSyncSettings,
-      savingLocalSyncFolder: controller.savingLocalSyncSettings,
-      exportingLocalSync: controller.exportingLocalSyncOperations,
-      importingLocalSync: controller.importingLocalSyncOperations,
-      deleteLabel: t("account.delete_account"),
-      onImport: controller.handleImportOpml,
-      onExport: controller.handleExportOpml,
-      onRequestDelete: controller.handleRequestDelete,
-      importing: controller.importingOpml,
-      exporting: controller.exportingOpml,
-      disabled: isSetupActive,
-    },
+      canShowDevCredentialsRecovery,
+      isSetupSyncing,
+      isSetupFailed,
+      isSetupActive,
+      isQuarantined,
+    }),
+    dangerZone: buildDangerZoneSection({
+      account,
+      controller,
+      t,
+      isSetupActive,
+    }),
   };
 }
