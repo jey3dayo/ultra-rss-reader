@@ -187,8 +187,7 @@ The distortion is not limited to extra files. Project-level rules fire once per 
 project even when they point at the same file: with the vendored projects included,
 `require-pnpm-hardening` was reported three times against the single root
 `pnpm-workspace.yaml`, and `require-reduced-motion` was reported against a vendored
-`package.json`. Measured on 2026-09-08 at `c1183e67f`, the unscoped scan reported
-15 errors / 100 warnings / 67 files and the scoped scan reported 14 / 97 / 64.
+`package.json`.
 
 Before comparing two React Doctor runs, confirm `projects[]` in the JSON report holds exactly
 the repository root. A count difference between two runs is not evidence about the code until
@@ -237,13 +236,13 @@ which is why the wrapper says so out loud instead of letting the numbers stand f
 they are not. The wrapper names the missing comparison rather than a cause, because the flag is
 computed from `baselineDelta === undefined` and both listed causes land there indistinguishably.
 
-Measured 2026-09-09 in this repository: every `--scope changed` run degrades, on a linked
-worktree, against `origin/main`, an explicit SHA, or `git merge-base`, and with the flags
-stripped back to `--scope changed --base <ref>`. `--help` documents no baseline option, so the
-comparison is internal and the cause is not reachable from the CLI surface. Do not read a green
-diff gate as "no new findings" while this line appears; read it as "no findings at all in the
-changed files", which is strictly stronger and therefore still safe to gate on. Finding the
-cause, so the gate reports what it was changed to report, is open work.
+Do not read a green diff gate as "no new findings" while this line appears; read it as "no
+findings at all in the changed files", which is strictly stronger and therefore still safe to
+gate on. Every `--scope changed` run in this repository currently degrades however the base is
+given, and `--help` documents no baseline option, so the cause is not reachable from the CLI
+surface. Finding it, so the gate reports what it was changed to report, is open work; the
+measured attempts are in
+[../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
 
 ### Recording An Accepted Risk So The Gate Can See It
 
@@ -298,37 +297,10 @@ commit reachable from `main`, and a branch commit is not — squash-merging drop
 then names something nobody can fetch to reproduce the measurement. Full-scan drift is
 informational and fails nothing, so land the change first and re-pin from `main` afterwards.
 
-Today review is what enforces that, and it has caught it twice: #313 after the second wave,
-then #319 after #318, where both bot reviewers flagged the same line. Both times the mismatch
-reached a merged commit first. What follows is where a gate can and cannot replace that, measured on
-2026-09-18.
-
-**A gate on the re-pin PR itself cannot work.** The scan runs on the tree *before* the pin is
-updated, so the measurement commit's own copy of this file still asserts the previous totals.
-A check strong enough to catch that mismatch fails the first of the two commits the contract
-requires — the one that has to be pushed and merged before the second can name its SHA. Do not
-add one to `lint`, `test:unit:ci`, or a lefthook job for this reason, not because the invariant
-is unverifiable.
-
-**A post-merge or scheduled check can work, and history is not the obstacle.** The CI test jobs
-have no history to read — `ci.yml` sets no `fetch-depth`, so `actions/checkout` takes one commit
-— but that is a property of where a check is placed, not of the invariant. A job can fetch what
-it needs from the same default checkout, and this repository already does:
-`scripts/release/validate-source.ts:60-61` runs
-`git fetch --force origin main:refs/remotes/origin/main` and then asserts reachability with
-`git merge-base --is-ancestor ... refs/remotes/origin/main` at `:81`. A check on `main` after the
-merge can fetch `scanSha`, read that commit's copy of this block, and compare it with the current
-one — catching a forgotten follow-up before it survives to a release, without blocking the
-baseline PR and without changing the field's contract. Not built yet; that pattern is the shape
-to build it with.
-
-A contract change would remove the need for the follow-up rather than detect it. Naming the field
-for what a measurement snapshot is — the commit the scan was **run against** — is true at the
-measurement commit immediately and needs one PR instead of two. What it gives up is this file
-agreeing with its own past copy; the pinned scan totals still reproduce at that commit, because
-the scan reads the source tree and not these constants. Not adopted, and recorded so the tradeoff
-is not re-derived from scratch: it is a weaker guarantee than the current one, and the current one
-is what the two reviews above were enforcing.
+The re-pin follow-up is enforced by review, not by a gate. Why an automated check cannot sit on
+the re-pin PR itself, the post-merge shape that would work, and the rejected contract change are
+recorded in
+[../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
 
 ### High Complexity React Function Findings
 

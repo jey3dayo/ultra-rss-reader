@@ -41,6 +41,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - React Doctor high-complexity function triage record: [react-doctor-complexity-classification.md](./react-doctor-complexity-classification.md).
 - React Doctor error triage record: [react-doctor-error-triage.md](./react-doctor-error-triage.md).
 - React Doctor warning classification records: [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md) (first wave) and [react-doctor-warning-classification-300.md](./react-doctor-warning-classification-300.md) (second wave).
+- React Doctor diff-gate degradation evidence and `scanSha` re-pin gating options: [react-doctor-gate-mechanics.md](./react-doctor-gate-mechanics.md).
 - Dated design and implementation records: [superpowers/README.md](./superpowers/README.md).
 
 ## Operational Docs
@@ -57,6 +58,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - [react-doctor-error-triage.md](./react-doctor-error-triage.md): dated record classifying every React Doctor error reported in the 2026-09-10 pass
 - [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md): first-wave warning classification (`exhaustive-deps` / `no-adjust-state-on-prop-change`), including the judgements an independent review rejected
 - [react-doctor-warning-classification-300.md](./react-doctor-warning-classification-300.md): second-wave warning classification across nine rules, the scan-count reconciliation, and the paired-rule shadowing measured while suppressing findings
+- [react-doctor-gate-mechanics.md](./react-doctor-gate-mechanics.md): measured evidence for the degraded diff gate and the `scanSha` re-pin gating options, including the contract change that was evaluated and not adopted
 
 ## Project Guidance
 
