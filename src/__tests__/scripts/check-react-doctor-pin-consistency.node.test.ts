@@ -298,10 +298,8 @@ describe("check-react-doctor-pin-consistency", () => {
   });
 
   describe("buildOriginMainFetchArgs", () => {
-    // A depth-1 CI checkout that already has refs/remotes/origin/main fetches nothing without
-    // --unshallow, so scanSha stays outside the boundary and rev-parse fails. A complete clone
-    // rejects --unshallow outright. Both measured; neither shape can be covered by running the
-    // real fetch here.
+    // Neither shape here is coverable by running a real fetch: it depends on whether the CI
+    // checkout already holds refs/remotes/origin/main, which only a live shallow clone has.
     it("deepens a shallow clone so scanSha is reachable", () => {
       expect(buildOriginMainFetchArgs(true)).toEqual([
         "fetch",

@@ -311,13 +311,9 @@ export function buildMaterializedScanCommandArgs(command: string, targetDir: str
   return parseCommandTokens(command).map((token) => (token === "." ? targetDir : token));
 }
 
-// --no-prune: with a global `fetch.prune = true` and this literal refspec, repeated fetches
-// alternately delete and recreate refs/remotes/origin/main.
-//
-// --unshallow only when the clone is shallow: without it a CI checkout that already has
-// refs/remotes/origin/main fetches nothing, leaving scanSha outside the depth-1 boundary. With
-// it on a complete clone git fails with "--unshallow on a complete repository does not make
-// sense". Both measured.
+// --no-prune avoids deleting refs/remotes/origin/main under a global `fetch.prune = true`.
+// --unshallow only when shallow: a CI checkout that already has that ref otherwise fetches
+// nothing, leaving scanSha unreachable; a complete clone rejects --unshallow outright.
 export function buildOriginMainFetchArgs(isShallow: boolean): string[] {
   return [
     "fetch",
