@@ -298,6 +298,31 @@ commit reachable from `main`, and a branch commit is not — squash-merging drop
 then names something nobody can fetch to reproduce the measurement. Full-scan drift is
 informational and fails nothing, so land the change first and re-pin from `main` afterwards.
 
+That contract is enforced by review only, and no test can take it over. Two independent reasons,
+both measured on 2026-09-18:
+
+- The CI checkout is shallow. `ci.yml` sets no `fetch-depth`, so `actions/checkout` fetches one
+  commit and any assertion that resolves a SHA or asks `git merge-base --is-ancestor` has no
+  history to read. Such a test can only skip there, which makes it green for its whole life in
+  the one place a gate would matter. Only `pr-insights-labeler.yml` sets `fetch-depth: 0`, and
+  that workflow runs no tests.
+- A guard strong enough to catch the real defect also blocks the fix. The scan runs on the tree
+  *before* the pin is updated, so the measurement commit's own copy of the file still asserts the
+  previous totals. Catching that mismatch means failing the first of the two commits the contract
+  requires — the one that has to be pushed and merged before the second can name its SHA.
+
+So the mismatch reaches a merged commit first, every time, and review is what catches it. It has
+twice: #313 after the second wave, and #319 after #318, where both bot reviewers flagged the same
+line and the follow-up was already in flight.
+
+If this should be gated rather than reviewed, the contract has to change and not the test. Naming
+the field for what a measurement snapshot actually is — the commit the scan was **run against** —
+is true at the measurement commit immediately, needs one PR instead of two, and is checkable at
+pre-push where the full history exists. What that gives up is the file agreeing with its own past
+copy; the pinned scan totals still reproduce at that commit, because the scan reads the source
+tree and not these constants. Not adopted: recorded so the tradeoff is not re-derived from
+scratch next time.
+
 ### High Complexity React Function Findings
 
 `no-high-complexity-react-function` reports when *either* cyclomatic or cognitive complexity exceeds 15; the plugin's condition is `cyclomatic <= 15 && cognitive <= 15 || report`. A function with cyclomatic 15 and cognitive 16 is reported on the cognitive side alone. Do not change the thresholds to make a count match.
