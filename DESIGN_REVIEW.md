@@ -18,7 +18,7 @@ Use this document when:
 - deciding whether a fix should stay feature-local
 - reviewing settings-form alignment, control placement, or radius consistency
 
-Do not use this document as a replacement for `DESIGN.md`. If the question is about color, typography, spacing, component appearance, or layout principles, read `DESIGN.md` first.
+If the question is about color, typography, spacing, component appearance, or layout principles, read `DESIGN.md` first.
 After reading `DESIGN.md`, consult the Storybook UI Reference catalog in this order before introducing new UI patterns:
 
 1. `UI Reference / Input Controls Canvas`
@@ -187,8 +187,6 @@ If the direction is unclear:
 
 ## Notes
 
-- Prefer the smallest fix that increases reuse.
-- Keep design specs and review operations separate.
 - If a local exception is intentional, document the reason in review output.
 - If a motion rule affects multiple screens or shell-level behavior, document it in `DESIGN.md` instead of leaving it feature-local.
 - If a settings-form issue appears in multiple rows or multiple settings pages, treat it as a `DESIGN.md` plus `shared` concern before considering feature-local overrides.

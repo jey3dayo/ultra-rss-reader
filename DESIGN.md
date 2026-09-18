@@ -425,20 +425,11 @@ These colors should be centralized as provider brand tokens or a dedicated excep
 
 ### Agent Prompt Guide
 
-#### Quick Color Reference
+#### Color Reference
 
-- Default button surface: `#ebeae5` background with `#26251e` text
-- Page background: `#f2f1ed`
-- Primary text: `#26251e`
-- Secondary text: `rgba(38, 37, 30, 0.74)`
-- Tertiary text: `rgba(38, 37, 30, 0.58)`
-- Muted text: `rgba(38, 37, 30, 0.44)`
-- Brand accent: `#f54e00`
-- Hover / expressive accent: `#cf2d56`
-- Success: no single literal; use the `--state-success-*` tokens in `src/styles/global.css`
-- Unread semantic accent: `#9fbbe0`
-- Starred semantic accent: `#facc15`
-- Default border: `rgba(38, 37, 30, 0.12)` with warm oklab-style alternatives only when they match the same optical weight
+Take literals from the `## Colors` section above, which
+`src/__tests__/config/repo-contracts.node.test.ts` pins against `src/styles/global.css`, and the
+token layer in `src/styles/global.css` for roles that have no single literal.
 
 #### Example Prompt Framing
 
