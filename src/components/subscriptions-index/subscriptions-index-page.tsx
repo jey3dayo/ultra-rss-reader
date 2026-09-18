@@ -1,14 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
 import { useAccountArticles } from "@/hooks/use-articles";
-import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
-import { getCurrentDate } from "@/lib/datetime";
-import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
@@ -42,12 +39,12 @@ import type {
   SubscriptionListRow,
   SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
-import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 import { useUiStore } from "@/stores/ui-store";
+import { useSubscriptionsFeedDialogs } from "./hooks/use-subscriptions-feed-dialogs";
+import { useSubscriptionsIndexEscape } from "./hooks/use-subscriptions-index-escape";
+import { useSubscriptionsReviewClock } from "./hooks/use-subscriptions-review-clock";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";
-
-const REVIEW_CLOCK_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 function getViewportHeight(): number {
   return typeof window === "undefined" ? 0 : window.innerHeight;
@@ -58,10 +55,6 @@ function subscribeToViewportHeight(onStoreChange: () => void): () => void {
   return () => {
     window.removeEventListener("resize", onStoreChange);
   };
-}
-
-function hasOpenNestedEscapeLayer(): boolean {
-  return document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]') !== null;
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- accepted risk (component split tracked separately), docs/react-doctor-warning-classification-300.md:416
@@ -77,15 +70,19 @@ export function SubscriptionsIndexPage() {
   const { data: folders = [] } = useFolders(selectedAccountId);
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
   const { data: feedArticleSummaries = [] } = useFeedArticleSummaries(selectedAccountId);
-  const deleteFeedMutation = useDeleteFeed();
-  const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
-  const deletePendingRef = useRef(false);
-  const [deletePending, setDeletePending] = useState(false);
-  const [editTargetFeed, setEditTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
+  const {
+    deleteTargetFeed,
+    editTargetFeed,
+    setDeleteTargetFeed,
+    setEditTargetFeed,
+    isDeleteTargetKnown,
+    confirmDelete,
+    unsubscribeDialogPending,
+  } = useSubscriptionsFeedDialogs({ selectedAccountId, feeds });
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
-  const [reviewClock, setReviewClock] = useState(() => getCurrentDate());
+  const reviewClock = useSubscriptionsReviewClock();
   const viewportHeight = useSyncExternalStore(subscribeToViewportHeight, getViewportHeight);
 
   const candidates = useMemo(
@@ -222,85 +219,7 @@ export function SubscriptionsIndexPage() {
         }
       : null;
 
-  const deleteTargetInCurrentAccount = deleteTargetFeed?.account_id === selectedAccountId;
-  const isDeleteTargetKnown =
-    deleteTargetFeed === null ||
-    (deleteTargetInCurrentAccount && feeds.some((feed) => feed.id === deleteTargetFeed.id));
-
-  const handleConfirmDelete = async () => {
-    if (!deleteTargetFeed || deletePendingRef.current || !isDeleteTargetKnown) {
-      return;
-    }
-
-    deletePendingRef.current = true;
-    setDeletePending(true);
-    try {
-      await deleteFeedMutation.mutateAsync({
-        feedId: deleteTargetFeed.id,
-        accountId: deleteTargetFeed.account_id,
-        title: deleteTargetFeed.title,
-        onSuccess: () => {
-          setDeleteTargetFeed(null);
-        },
-      });
-    } catch {
-      return;
-    } finally {
-      deletePendingRef.current = false;
-      setDeletePending(false);
-    }
-  };
-
-  useEffect(() => {
-    const refreshReviewClock = () => {
-      setReviewClock(getCurrentDate());
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        refreshReviewClock();
-      }
-    };
-
-    const timerId = window.setInterval(refreshReviewClock, REVIEW_CLOCK_REFRESH_INTERVAL_MS);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.clearInterval(timerId);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (deleteTargetFeed !== null && !deleteTargetInCurrentAccount && !deletePending) {
-      setDeleteTargetFeed(null);
-    }
-  }, [deleteTargetFeed, deleteTargetInCurrentAccount, deletePending]);
-
-  useLayoutEffect(() => {
-    const handleKeyDown = createKeyboardEventListener((event) => {
-      const target = event.target;
-      if (
-        event.defaultPrevented ||
-        isImeCommitKeyEvent(event) ||
-        event.key !== "Escape" ||
-        editTargetFeed !== null ||
-        deleteTargetFeed !== null ||
-        hasOpenNestedEscapeLayer() ||
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        (target instanceof HTMLElement && target.isContentEditable)
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      closeSubscriptionsWorkspace();
-    });
-
-    return bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
-  }, [closeSubscriptionsWorkspace, deleteTargetFeed, editTargetFeed]);
+  useSubscriptionsIndexEscape(editTargetFeed !== null || deleteTargetFeed !== null, closeSubscriptionsWorkspace);
 
   return (
     <>
@@ -408,7 +327,7 @@ export function SubscriptionsIndexPage() {
         <UnsubscribeDialog
           feed={deleteTargetFeed}
           open={true}
-          pending={deletePending || deleteFeedMutation.isPending}
+          pending={unsubscribeDialogPending}
           confirmDisabled={!isDeleteTargetKnown}
           confirmDisabledReason={t("delete_target_unavailable")}
           onOpenChange={(open) => {
@@ -417,7 +336,7 @@ export function SubscriptionsIndexPage() {
             }
           }}
           onConfirm={() => {
-            void handleConfirmDelete();
+            void confirmDelete();
           }}
         />
       ) : null}
