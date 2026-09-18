@@ -298,30 +298,37 @@ commit reachable from `main`, and a branch commit is not — squash-merging drop
 then names something nobody can fetch to reproduce the measurement. Full-scan drift is
 informational and fails nothing, so land the change first and re-pin from `main` afterwards.
 
-That contract is enforced by review only, and no test can take it over. Two independent reasons,
-both measured on 2026-09-18:
+Today review is what enforces that, and it has caught it twice: #313 after the second wave,
+then #319 after #318, where both bot reviewers flagged the same line. Both times the mismatch
+reached a merged commit first. What follows is where a gate can and cannot replace that, measured on
+2026-09-18.
 
-- The CI checkout is shallow. `ci.yml` sets no `fetch-depth`, so `actions/checkout` fetches one
-  commit and any assertion that resolves a SHA or asks `git merge-base --is-ancestor` has no
-  history to read. Such a test can only skip there, which makes it green for its whole life in
-  the one place a gate would matter. Only `pr-insights-labeler.yml` sets `fetch-depth: 0`, and
-  that workflow runs no tests.
-- A guard strong enough to catch the real defect also blocks the fix. The scan runs on the tree
-  *before* the pin is updated, so the measurement commit's own copy of the file still asserts the
-  previous totals. Catching that mismatch means failing the first of the two commits the contract
-  requires — the one that has to be pushed and merged before the second can name its SHA.
+**A gate on the re-pin PR itself cannot work.** The scan runs on the tree *before* the pin is
+updated, so the measurement commit's own copy of this file still asserts the previous totals.
+A check strong enough to catch that mismatch fails the first of the two commits the contract
+requires — the one that has to be pushed and merged before the second can name its SHA. Do not
+add one to `lint`, `test:unit:ci`, or a lefthook job for this reason, not because the invariant
+is unverifiable.
 
-So the mismatch reaches a merged commit first, every time, and review is what catches it. It has
-twice: #313 after the second wave, and #319 after #318, where both bot reviewers flagged the same
-line and the follow-up was already in flight.
+**A post-merge or scheduled check can work, and history is not the obstacle.** The CI test jobs
+have no history to read — `ci.yml` sets no `fetch-depth`, so `actions/checkout` takes one commit
+— but that is a property of where a check is placed, not of the invariant. A job can fetch what
+it needs from the same default checkout, and this repository already does:
+`scripts/release/validate-source.ts:60-61` runs
+`git fetch --force origin main:refs/remotes/origin/main` and then asserts reachability with
+`git merge-base --is-ancestor ... refs/remotes/origin/main` at `:81`. A check on `main` after the
+merge can fetch `scanSha`, read that commit's copy of this block, and compare it with the current
+one — catching a forgotten follow-up before it survives to a release, without blocking the
+baseline PR and without changing the field's contract. Not built yet; that pattern is the shape
+to build it with.
 
-If this should be gated rather than reviewed, the contract has to change and not the test. Naming
-the field for what a measurement snapshot actually is — the commit the scan was **run against** —
-is true at the measurement commit immediately, needs one PR instead of two, and is checkable at
-pre-push where the full history exists. What that gives up is the file agreeing with its own past
-copy; the pinned scan totals still reproduce at that commit, because the scan reads the source
-tree and not these constants. Not adopted: recorded so the tradeoff is not re-derived from
-scratch next time.
+A contract change would remove the need for the follow-up rather than detect it. Naming the field
+for what a measurement snapshot is — the commit the scan was **run against** — is true at the
+measurement commit immediately and needs one PR instead of two. What it gives up is this file
+agreeing with its own past copy; the pinned scan totals still reproduce at that commit, because
+the scan reads the source tree and not these constants. Not adopted, and recorded so the tradeoff
+is not re-derived from scratch: it is a weaker guarantee than the current one, and the current one
+is what the two reviews above were enforcing.
 
 ### High Complexity React Function Findings
 
