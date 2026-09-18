@@ -295,40 +295,51 @@ from findings disappearing.
 
 Do not re-pin from a feature branch. `reactDoctorFullScanTriageStatusBase.scanSha` must name a
 commit reachable from `main`, and a branch commit is not — squash-merging drops it, and the pin
-then names something nobody can fetch to reproduce the measurement. Full-scan drift is
-informational and fails nothing, so land the change first and re-pin from `main` afterwards.
+then names something nobody can fetch to reproduce the measurement.
 
-Today review is what enforces that, and it has caught it twice: #313 after the second wave,
-then #319 after #318, where both bot reviewers flagged the same line. Both times the mismatch
-reached a merged commit first. What follows is where a gate can and cannot replace that, measured on
-2026-09-18.
+**`scanSha` names the tree the scan ran against, not a commit that agrees with this block.**
+Adopted 2026-09-18 on an independent review (Codex sol, advisory, `agmsg` task
+`scansha-contract-323`) after the alternative had cost three follow-up PRs. Four parts:
 
-**A gate on the re-pin PR itself cannot work.** The scan runs on the tree *before* the pin is
-updated, so the measurement commit's own copy of this file still asserts the previous totals.
-A check strong enough to catch that mismatch fails the first of the two commits the contract
-requires — the one that has to be pushed and merged before the second can name its SHA. Do not
-add one to `lint`, `test:unit:ci`, or a lefthook job for this reason, not because the invariant
-is unverifiable.
+1. `scanSha` is the `main`-reachable commit where the pinned `pluginVersion` and `scanCommand` —
+   including `auditScanCommand` — were run.
+2. The raw scan totals reproduce at that tree: `warningCount`, `errorCount`, `affectedFileCount`
+   and `auditWarningCount`. Re-running the pinned commands there is the check.
+3. The classification metadata (`classifiedFindingCount`, `classifiedWarningFamilies`,
+   `pendingJudgmentWarningFamilies` and the derived `untriagedWarningCountAtScan`) is the pinned
+   diagnostics read through the **current** records, not through the records as they stood at
+   `scanSha`.
+4. That commit's own copy of this block is explicitly **not** part of the contract. Do not compare
+   them.
 
-**A post-merge or scheduled check can work, and history is not the obstacle.** The CI test jobs
-have no history to read — `ci.yml` sets no `fetch-depth`, so `actions/checkout` takes one commit
-— but that is a property of where a check is placed, not of the invariant. A job can fetch what
-it needs from the same default checkout, and this repository already does:
-`scripts/release/validate-source.ts:60-61` runs
-`git fetch --force origin main:refs/remotes/origin/main` and then asserts reachability with
-`git merge-base --is-ancestor ... refs/remotes/origin/main` at `:81`. A check on `main` after the
-merge can fetch `scanSha`, read that commit's copy of this block, and compare it with the current
-one — catching a forgotten follow-up before it survives to a release, without blocking the
-baseline PR and without changing the field's contract. Not built yet; that pattern is the shape
-to build it with.
+The reading this replaced required `scanSha` to name a commit where every number in the block was
+already true. That is unsatisfiable inside the PR that changes those numbers: the SHA must be an
+ancestor, and the values are introduced by the commit doing the pinning, so splitting the PR does
+not break the cycle either. It was also only ever workable under a non-recursive reading that
+excluded `scanSha` itself, since no commit can assert its own SHA. It forced a post-merge follow-up
+every time a snapshot or classification value moved — #313 after the second wave, #319 after #318,
+and a third time on #323 — and each time a reviewer, not a test, is what caught the gap.
 
-A contract change would remove the need for the follow-up rather than detect it. Naming the field
-for what a measurement snapshot is — the commit the scan was **run against** — is true at the
-measurement commit immediately and needs one PR instead of two. What it gives up is this file
-agreeing with its own past copy; the pinned scan totals still reproduce at that commit, because
-the scan reads the source tree and not these constants. Not adopted, and recorded so the tradeoff
-is not re-derived from scratch: it is a weaker guarantee than the current one, and the current one
-is what the two reviews above were enforcing.
+**Under this contract the consistency check is a PR gate rather than a post-merge job.** Nothing
+in it depends on a commit that does not exist yet. History is not the obstacle either: the CI test
+jobs have no history to read because `ci.yml` sets no `fetch-depth`, but that is a property of
+where a check is placed, and this repository already fetches what it needs from the same default
+checkout — `scripts/release/validate-source.ts:60-61` runs
+`git fetch --force origin main:refs/remotes/origin/main`, then asserts reachability with
+`git merge-base --is-ancestor ... refs/remotes/origin/main` at `:81`.
+
+The check, when it is built (not built yet):
+
+- fetch `origin/main`, resolve `scanSha` to a commit, assert it is an ancestor;
+- re-run `scanCommand` and `auditScanCommand` against that tree at the pinned `pluginVersion` and
+  lockfile, and compare the totals and `auditWarningCount`;
+- compare the **diagnostic identity set** — rule plus path plus a stable location key — against the
+  current classification records, because equal totals can hide one finding swapped for another,
+  and from that verify `classifiedFindingCount`, each `classifiedWarningFamilies` count,
+  `pendingJudgmentWarningFamilies`, and the derived `untriagedWarningCountAtScan`.
+
+Keep the field's name. `scanSha` already reads as "the commit the scan ran at"; `scanBaseSha` would
+suggest a diff or merge base, which it is not.
 
 ### High Complexity React Function Findings
 

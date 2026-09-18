@@ -207,18 +207,20 @@ const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
   //
-  // It also has to be a commit where every number in this block is true at once, which is not
-  // the same as where the scan ran. That gap is structural, not a slip: the scan runs on the
-  // tree before the pin is updated, so the measurement commit always asserts the previous
-  // numbers. It has now cost a follow-up PR twice — #313 re-pointed this at ac8a4aff3 after the
-  // second wave, and this change re-points it after #318 — which is the cost of the pin meaning
-  // "reproducible at this SHA" rather than "measured somewhere near here".
+  // It names the tree the scan ran against, and nothing more. What reproduces there is the raw
+  // scan: warningCount, errorCount, affectedFileCount and auditWarningCount, by re-running
+  // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
+  // are those diagnostics read through the *current* records, so this commit's own copy of the
+  // block is deliberately outside the contract — do not compare them.
   //
-  // 742a6919b is #321's squash commit, where the 32/73 scan for this pin was taken. The lag
-  // described above applies for the third time and in a new way: the scan totals are unchanged
-  // from the previous pin, so what moved is classifiedFindingCount 24 -> 25, which is true only
-  // from the commit that adds the record row. #320 recorded the contract change that would remove
-  // this cycle, and recorded it as not adopted; a third occurrence is worth weighing against that.
+  // 742a6919b is #321's squash commit, where the 32/73 scan for this pin was taken.
+  //
+  // The earlier reading required every number here to be true at scanSha, which is unsatisfiable
+  // inside the PR that changes them: the SHA has to be an ancestor, and the values arrive with the
+  // pinning commit. It cost a post-merge follow-up three times (#313, #319, #323) and was only
+  // workable non-recursively, since no commit can assert its own SHA. Changed on an independent
+  // review, recorded in .claude/rules/quality-policy.md; that section also has the consistency
+  // check this makes gateable in the PR.
   scanSha: "742a6919b",
   pluginVersion: "0.9.14",
   scanCommand:
