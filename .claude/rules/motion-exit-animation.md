@@ -10,6 +10,7 @@
 - 親と子の両方に収縮を掛けない。親が退場するときは親だけ、親が生存していて子が退場するときは子だけ、と owner を 1 つに決める。二重に掛けると高さの減少が重なる
 - 退場中の要素は即座に操作対象から外す。`pointer-events: none` や `inert` だけに頼らず、アプリ独自の ID / DOM 探索に使われている属性（navigation 登録、選択マーカー、drop target 等）を実際に外す
 - 退場の後始末を `transitionend` に依存しない。トランジションが走らない条件（`prefers-reduced-motion`、補間非対応のプロパティ）ではイベントが発火せず、要素が永久に残る
+- 収縮のために `display: grid` のラッパーを足したら、その grid item に `min-height: 0` と **`min-width: 0` を両方**当てる。grid item の automatic minimum size は**両軸**が content size で床打ちされるため、片方だけでは足りない。行ラベルが `white-space: nowrap` なら min-content 幅は省略前のタイトル全体になり、単一 auto 列がペイン幅を無視して広がって、行の右端にある数値がペインの `overflow: hidden` の外へ押し出されて消える。`truncate` は自分の box が文字より狭くならないと省略記号を出さないので、この状態では省略記号も出ない
 
 ## 根拠
 
