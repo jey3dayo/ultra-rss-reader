@@ -316,17 +316,18 @@ describe("quality-baseline", () => {
     // being warningCount minus the two classified totals, this assertion fails without needing
     // a second copy of warningCount in this file.
     //
-    // 0 as of 2026-09-18. #321 split useAccountDetailViewProps, which removed the complexity
-    // record's stated reason for excluding it, so the scan's complexity set and the record's set
-    // agree at 25 for the first time — the outlier that used to sit in
-    // pendingJudgmentWarningFamilies is now inside classifiedFindingCount instead, and that table
-    // is empty.
+    // 0 as of 2026-09-18, and the sets behind it were checked by hand on that date: the record
+    // holds 27 rows, the scan reports 25 of them, and it reports nothing the record lacks.
     //
-    // What this assertion cannot do is confirm the sets actually agree; it can only confirm the
-    // arithmetic (25 + 7 + 0 = 32 total) still holds. #300's draft made exactly this mistake once
-    // already: it subtracted all 25 rows of the complexity record and reported 0 untriaged while
-    // the record's 25 and the scan's 25 were different sets (#279 had suppressed one row, and the
-    // scan was reporting the excluded outlier in its place instead).
+    // It read 0 before that check too, wrongly. FeedTreeRow was in the scan with no record row,
+    // SidebarNavButton had a row whose finding #306 had already fixed, and the two cancelled to
+    // 25 = 25. That is the third time this shape has landed — #300's draft did it with #279's
+    // suppressed row against the excluded outlier, and the require-pnpm-hardening entry did it
+    // against prefer-use-sync-external-store.
+    //
+    // What this assertion cannot do is confirm the sets agree; it can only confirm the arithmetic
+    // (25 + 7 + 0 = 32 total) still holds, and every one of those three failures kept the
+    // arithmetic intact. The set comparison is what catches them, and it is Issue #324.
     //
     // That gap is unbuilt, not unbuildable, and it stays open: this assertion is not coverage for
     // it. This test cannot run react-doctor, so it cannot re-derive the finding list itself, but
@@ -334,7 +335,10 @@ describe("quality-baseline", () => {
     // yet and can run as a PR gate. The design is in docs/react-doctor-gate-mechanics.md and the
     // work is tracked at https://github.com/jey3dayo/ultra-rss-reader/issues/324. Until it exists,
     // whoever re-pins these numbers lists the scan's findings and the record's rows and checks
-    // they are the same set by hand.
+    // they are the same set by hand. Key that comparison on rule, path and function name, not on
+    // the record's line numbers: the record was measured at f9df8be7c under plugin 0.9.13, and at
+    // the current scanSha three of its matched rows sit on different lines than the scan reports
+    // (article-list-item 25/24, article-list-screen-view 59/60, feed-tree-folder-section 38/46).
     //
     // This test also verifies nothing about scanSha: not that it is reachable from main, and not
     // that the pinned commands reproduce these totals at that tree. Those are the contract's other
