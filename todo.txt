@@ -1,2 +1,1 @@
 (D) 2026-08-16 Store審査結果対応→sideload検証→手動公開(期限:2026-11-16 までに初回提出しないと名前予約が失効) +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
-(D) 2026-09-18 SubscriptionsIndexPage 359 行を分割: effect 3 本と prop 構築を hook へ切り出す(検証: quality:react-doctor:full で no-giant-component が 0 になり、subscriptions-index-page.test.tsx が緑のまま) +quality-tooling note:docs/react-doctor-warning-classification-300.md
