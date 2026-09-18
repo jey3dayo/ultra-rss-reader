@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - React Doctor の baseline を再 pin した。購読一覧ページの hook 分割で 1 件の警告が報告されるようになったため分類し、測定コミットを指す `scanSha` を一致するコミットへ向け直した。(#318, #319)
 - 設定のアカウント詳細画面の props 組み立てを、セクション単位のビルダーへ分割した。(#321)
 - アカウント詳細画面の複雑度の指摘を分類し、`scanSha` の意味を「スキャンを実行したツリーを指す」と定義し直した。(#323)
+- 依存パッケージとパッケージマネージャーを更新した。`@sentry/react`、`@tanstack/react-query`、`lucide-react` の更新と、pnpm 12.4.1 から 12.4.2 への更新を含む。あわせて `mise.toml` の pnpm の pin を `package.json` と一致させた。
 
 ### Documentation
 
