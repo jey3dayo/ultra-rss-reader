@@ -305,7 +305,7 @@ describe("quality-baseline", () => {
     // .claude/rules/quality-policy.md and carried as a second entry for that rule because it
     // has a different record from the 300.md rows.
     expect(status.classifiedWarningFamiliesCount).toBe(7);
-    expect(status.classifiedFindingCount).toBe(24);
+    expect(status.classifiedFindingCount).toBe(25);
 
     // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
     // (adding an export just for this identity would grow the Knip-tracked export surface, see
@@ -319,11 +319,14 @@ describe("quality-baseline", () => {
     // no record dispositions. The #300 draft pinned 0 here by subtracting all 25 rows of the
     // complexity record, but the record's 25 and the scan's 25 are different sets — #279
     // suppressed one row and the scan reports the excluded outlier instead. Cross-check on the
-    // subtraction, not a target: it holds because 32 total, 24 classified complexity findings and
-    // 7 family findings agree, and the remainder is named in pendingJudgmentWarningFamilies.
-    // It stayed 1 across the #317 re-pin because that PR added one warning and one classification
-    // in the same change; a re-pin that moves only the total would show up here.
-    expect(status.untriagedWarningCountAtScan).toBe(1);
+    // subtraction, not a target: it holds because 32 total, 25 classified complexity findings and
+    // 7 family findings agree, and pendingJudgmentWarningFamilies is empty.
+    //
+    // 0, not because the number was the goal. #321 split useAccountDetailViewProps, which removed
+    // the record's stated reason for excluding it, so the scan's complexity set and the record's set
+    // agree at 25 for the first time. A re-pin that reaches 0 by subtracting rows the scan does not
+    // report is the failure this assertion's history is about, so check the sets, not the total.
+    expect(status.untriagedWarningCountAtScan).toBe(0);
   });
 
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
@@ -339,9 +342,10 @@ describe("quality-baseline", () => {
     // to `readonly string[]` via the annotation below rather than asserting past the type.
     const classifiedFamilyRules: readonly string[] = status.classifiedWarningFamilies.map((family) => family.rule);
     expect(classifiedFamilyRules.includes("rerender-lazy-ref-init")).toBe(false);
-    expect(status.pendingJudgmentWarningFamilies).toEqual([
-      expect.objectContaining({ rule: "no-high-complexity-react-function", count: 1 }),
-    ]);
+    // Empty since #321: the complexity outlier it named is now a classified row rather than a
+    // pending judgment. The assertion stays so that folding a future pending finding into the
+    // classified table without a record row still fails here.
+    expect(status.pendingJudgmentWarningFamilies).toEqual([]);
   });
 
   it("reads the Knip report after unrelated JSON objects", () => {
