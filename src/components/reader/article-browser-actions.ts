@@ -33,6 +33,13 @@ function logArticleActionFailure(errorLabel: string, error: ArticleActionError):
   logRuntimeDiagnostic("article-action", `${errorLabel}:`, error);
 }
 
+function resolveArticleBrowserFailure(errorLabel: string, showToast: ArticleStatusToast, error: unknown) {
+  const actionError = toArticleActionError(error);
+  logArticleActionFailure(errorLabel, actionError);
+  showToast(localizeUserVisibleAppErrorMessage(actionError.message));
+  return Result.fail(actionError);
+}
+
 function runToastOperation<T>(
   operation: ArticleBrowserToastOperation<T>,
   { showToast, successMessage }: ArticleToastActionParams,
@@ -49,12 +56,7 @@ function runToastOperation<T>(
         }),
       ),
     )
-    .catch((error: unknown) => {
-      const actionError = toArticleActionError(error);
-      logArticleActionFailure(errorLabel, actionError);
-      showToast(localizeUserVisibleAppErrorMessage(actionError.message));
-      return Result.fail(actionError);
-    });
+    .catch((error: unknown) => resolveArticleBrowserFailure(errorLabel, showToast, error));
 }
 
 function runExternalBrowserOperation(
@@ -71,12 +73,7 @@ function runExternalBrowserOperation(
         }),
       ),
     )
-    .catch((error: unknown) => {
-      const actionError = toArticleActionError(error);
-      logArticleActionFailure(errorLabel, actionError);
-      showToast(localizeUserVisibleAppErrorMessage(actionError.message));
-      return Result.fail(actionError);
-    });
+    .catch((error: unknown) => resolveArticleBrowserFailure(errorLabel, showToast, error));
 }
 
 export function openArticleInExternalBrowser(
