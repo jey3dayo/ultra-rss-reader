@@ -55,11 +55,6 @@ function extractRequiredFieldIds(source: string): string[] {
     .filter((fieldId): fieldId is string => fieldId !== null);
 }
 
-function extractCheckboxLabels(source: string, fieldId: string): string[] {
-  const bodyItem = extractTemplateBodyItems(source).find((item) => item.includes(`\n    id: ${fieldId}\n`)) ?? "";
-  return [...bodyItem.matchAll(/^\s+- label: (.+)$/gm)].map((match) => match[1] ?? "");
-}
-
 function extractMarkdownCheckboxLabels(source: string, heading: string): string[] {
   const sectionStart = source.indexOf(`## ${heading}`);
   const nextSectionStart = source.indexOf("\n## ", sectionStart + 1);
