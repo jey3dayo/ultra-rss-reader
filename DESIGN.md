@@ -425,20 +425,14 @@ These colors should be centralized as provider brand tokens or a dedicated excep
 
 ### Agent Prompt Guide
 
-#### Quick Color Reference
+#### Color Reference
 
-- Default button surface: `#ebeae5` background with `#26251e` text
-- Page background: `#f2f1ed`
-- Primary text: `#26251e`
-- Secondary text: `rgba(38, 37, 30, 0.74)`
-- Tertiary text: `rgba(38, 37, 30, 0.58)`
-- Muted text: `rgba(38, 37, 30, 0.44)`
-- Brand accent: `#f54e00`
-- Hover / expressive accent: `#cf2d56`
-- Success: no single literal; use the `--state-success-*` tokens in `src/styles/global.css`
-- Unread semantic accent: `#9fbbe0`
-- Starred semantic accent: `#facc15`
-- Default border: `rgba(38, 37, 30, 0.12)` with warm oklab-style alternatives only when they match the same optical weight
+Take literals from the `## Colors` section above rather than from a second copy here. Only
+Primary, Unread, Loading, and Starred are pinned against `src/styles/global.css` by
+`src/__tests__/config/repo-contracts.node.test.ts`; every other literal in that section is
+prose that nothing re-checks, so confirm it against `src/styles/global.css` before relying on
+it. Success is the known divergence: treat its `#1f8a65` entry as descriptive and use the
+`--state-success-*` token family, which is emerald rather than that literal.
 
 #### Example Prompt Framing
 

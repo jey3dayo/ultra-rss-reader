@@ -1,14 +1,8 @@
 ---
 name: tauri-icon-gen
-description: "Use when an existing app image should be converted into Tauri-ready icons, including transparency cleanup, square source normalization, and `pnpm tauri icon` generation. Do not use for skill directory moves, path fixes, distribution, or marketplace packaging even if the path contains `tauri-icon-gen`; use `skill-creator` instead."
+description: "Use when an existing app image should be converted into Tauri-ready icons, including transparency cleanup, square source normalization, and `pnpm tauri icon` generation. Do not use for skill packaging, distribution, or directory restructuring."
 version: 1.0.0
 tags: [tauri, icon, png, transparency, image-processing]
-triggers:
-  - アイコン生成
-  - アイコン変換
-  - 透過PNG
-  - tauri icon
-  - app icon
 ---
 
 # Tauri App Icon Generation
