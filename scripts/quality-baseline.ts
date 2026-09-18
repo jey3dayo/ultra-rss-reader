@@ -226,13 +226,12 @@ const reactDoctorFullScanTriageStatusBase = {
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
-  // 24, not the 25 rows the record holds. The record's set and the scan's set are not the same
-  // 25: #279 suppressed the confirm-dialog-view.tsx row, so the scan no longer reports it, while
-  // the scan does report the useAccountDetailViewProps outlier the record deliberately excludes.
-  // Subtracting 25 here therefore hid that outlier and made the derived untriaged total read 0.
-  // The count must be "rows in the record that this scan reports", and the outlier is carried in
-  // pendingJudgmentWarningFamilies instead so it stays inside the untriaged total until #256
-  // reaches a verdict. This is the same stale-count failure as require-pnpm-hardening below.
+  // The count means "rows in the record that this scan reports", never "rows in the record". That
+  // distinction is why it read 24 before 2026-09-18: #279 suppressed the confirm-dialog-view.tsx
+  // row so the scan stopped reporting it, while the scan did report the useAccountDetailViewProps
+  // outlier the record deliberately excluded. Subtracting 25 then hid that outlier and made the
+  // derived untriaged total read 0 — the same stale-count failure as require-pnpm-hardening below.
+  //
   // 25 as of 2026-09-18. It was 24 because the complexity record excluded the
   // useAccountDetailViewProps outlier, which the scan reported with no row to match. #321 split its
   // four section builders out, taking it from 85/106 to 26/34 — the sixth-highest cognitive figure

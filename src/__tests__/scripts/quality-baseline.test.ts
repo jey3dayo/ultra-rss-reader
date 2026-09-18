@@ -251,9 +251,10 @@ describe("quality-baseline", () => {
     // The snapshot totals are not a classification set: the notice has to name a tracker
     // for the warnings and errors the pass did not classify, so a zero baseline delta
     // never reads as approval.
-    // #256 since 2026-09-18: the second wave closed out and the one warning this snapshot leaves
-    // untriaged is the complexity outlier. The assertion follows where the remainder actually is
-    // rather than pinning one issue forever.
+    // #256 since 2026-09-18: the second wave closed out, and #256 is where the open question about
+    // this snapshot now lives — the complexity outlier's family, not an untriaged warning. The
+    // snapshot leaves none untriaged. The assertion follows where the remainder actually is rather
+    // than pinning one issue forever.
     expect(status.untriagedWarningIssue).toContain("/issues/256");
     expect(status.errorIssue).toContain("/issues/260");
     expect(status.outlierIssue).toContain("/issues/256");
@@ -348,8 +349,8 @@ describe("quality-baseline", () => {
     // changed in #300 without the assertion changing: it used to be pending an ownership
     // decision, and both of its findings were then fixed. A fixed finding leaves no disposition
     // that would still apply if the rule fired again, so the table is the wrong place for it
-    // either way. The table is not empty, though: the complexity outlier moved into it, so a
-    // finding nothing dispositions is still named rather than folded into a classified total.
+    // either way. The table is empty at this pin: #321 gave the complexity outlier a record row, so
+    // it counts in classifiedFindingCount and nothing is left that no record dispositions.
     // The families table's rule field is a narrow string-literal union by design, so widen
     // to `readonly string[]` via the annotation below rather than asserting past the type.
     const classifiedFamilyRules: readonly string[] = status.classifiedWarningFamilies.map((family) => family.rule);

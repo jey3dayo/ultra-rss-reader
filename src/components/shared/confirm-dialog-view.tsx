@@ -170,7 +170,7 @@ const confirmDialogVariantStyles = {
   },
 } satisfies Record<ConfirmDialogVariant, ConfirmDialogVariantStyle>;
 
-// react-doctor-disable-next-line react-doctor/no-high-complexity-react-function -- accepted risk (Shared primitive variant matrix), docs/react-doctor-complexity-classification.md:169
+// react-doctor-disable-next-line react-doctor/no-high-complexity-react-function -- accepted risk (Shared primitive variant matrix), docs/react-doctor-complexity-classification.md:170
 export function ConfirmDialogView({
   open,
   title,
