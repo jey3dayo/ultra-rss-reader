@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Maintenance
+
+- React Doctor の baseline を再 pin した。購読一覧ページの hook 分割で 1 件の警告が報告されるようになったため分類し、測定コミットを指す `scanSha` を一致するコミットへ向け直した。(#318, #319)
+
+### Documentation
+
+- `scanSha` の契約をどこでゲートできてどこでできないかを記録した。re-pin PR 自体へのゲートは契約が要求する 2 コミットの 1 つめを落とすため成立せず、merge 後のチェックなら成立する。(#320)
+
 ## [0.63.4] - 2026-09-18
 
 ### Bug Fixes
