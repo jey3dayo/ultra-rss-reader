@@ -1,7 +1,7 @@
 ---
 type: record
 title: React Doctor Complexity Classification
-description: Dated triage record classifying the 26 no-high-complexity-react-function findings now in scope, 25 from Issue #249 and useAccountDetailViewProps added once Issue #256's split removed the reason it was excluded, with the structural family and rationale for each.
+description: Dated triage record classifying the 26 no-high-complexity-react-function findings now in scope, 25 from Issue #249 and useAccountDetailViewProps added once Issue #256's split removed the reason it was excluded, with a disposition and rationale for each and a structural family where one has been assigned.
 resource: urn:ultra-rss-reader:docs:react-doctor-complexity-classification
 tags: [category/quality, audience/agent, audience/developer, status/historical]
 timestamp: 2026-09-08

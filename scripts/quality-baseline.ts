@@ -197,10 +197,11 @@ type PendingJudgmentWarningFamily = {
 
 // Empty as of 2026-09-18. The one entry was the useAccountDetailViewProps outlier, and #321 resolved
 // what made it pending: it needed an extraction design, the design was measured in Issue #256, and
-// the split landed. What is left of the function is an ordinary family E finding with a row in the
-// complexity record, so it is inside classifiedFindingCount rather than named here. Keep the named
-// type: `as const` on an empty literal infers `readonly []`, which makes the report loop over
-// `never`.
+// the split landed. What is left of the function now has an accepted-risk row in the complexity
+// record but no assigned family — which family fits the post-split structure is still open at #256.
+// This table is for a finding nothing dispositions, and that row is a disposition, so the finding
+// belongs in classifiedFindingCount rather than here. Keep the named type: `as const` on an empty
+// literal infers `readonly []`, which makes the report loop over `never`.
 const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [];
 
 const reactDoctorFullScanTriageStatusBase = {
