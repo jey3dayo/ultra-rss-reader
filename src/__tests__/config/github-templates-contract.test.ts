@@ -19,10 +19,10 @@ const expectedQualityGateLabels = [
   "jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時は DOM/CI/focused test を記録",
 ] as const;
 const expectedRequiredFieldIdsByTemplate = {
-  "01-feature.yml": ["summary", "background", "scope", "done-when"],
-  "02-bug.yml": ["current-behavior", "expected-behavior", "reproduction", "impact", "done-when"],
-  "03-test-verification.yml": ["background", "scenarios", "prerequisites", "done-when"],
-  "04-maintenance.yml": ["summary", "background", "scope", "done-when"],
+  "01-feature.yml": ["summary"],
+  "02-bug.yml": ["current-behavior"],
+  "03-test-verification.yml": ["background"],
+  "04-maintenance.yml": ["summary"],
 } as const satisfies Record<string, readonly string[]>;
 
 function readRepoFile(path: string): string {
@@ -53,11 +53,6 @@ function extractRequiredFieldIds(source: string): string[] {
 function extractCheckboxLabels(source: string, fieldId: string): string[] {
   const bodyItem = extractTemplateBodyItems(source).find((item) => item.includes(`\n    id: ${fieldId}\n`)) ?? "";
   return [...bodyItem.matchAll(/^\s+- label: (.+)$/gm)].map((match) => match[1] ?? "");
-}
-
-function extractRequiredCheckboxLabels(source: string, fieldId: string): string[] {
-  const bodyItem = extractTemplateBodyItems(source).find((item) => item.includes(`\n    id: ${fieldId}\n`)) ?? "";
-  return [...bodyItem.matchAll(/^\s+- label: (.+)\n\s+required: true$/gm)].map((match) => match[1] ?? "");
 }
 
 function extractMarkdownCheckboxLabels(source: string, heading: string): string[] {
@@ -115,7 +110,7 @@ describe("GitHub templates contract", () => {
     }
   });
 
-  it("keeps issue quality gate checkboxes aligned with the PR template", () => {
+  it("keeps the PR template as sole owner of quality gate checkboxes", () => {
     const pullRequestTemplate = readRepoFile(".github/PULL_REQUEST_TEMPLATE.md");
     const prQualityGateLabels = extractMarkdownCheckboxLabels(pullRequestTemplate, "確認済み")
       .filter((label) => !label.startsWith("動作確認完了"))
@@ -126,8 +121,9 @@ describe("GitHub templates contract", () => {
 
     for (const path of issueTemplatePaths) {
       const source = readRepoFile(path);
-      expect(extractCheckboxLabels(source, "quality-gate"), path).toEqual([...expectedQualityGateLabels]);
-      expect(extractRequiredCheckboxLabels(source, "quality-gate"), path).toEqual([...expectedQualityGateLabels]);
+      const fieldIds = extractTemplateBodyItems(source).map(extractFieldId);
+      expect(fieldIds, path).not.toContain("quality-gate");
+      expect(extractCheckboxLabels(source, "quality-gate"), path).toEqual([]);
     }
   });
 

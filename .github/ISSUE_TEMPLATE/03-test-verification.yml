@@ -30,8 +30,6 @@ body:
         - [ ] ネットワーク切断
         - [ ] ダウンロード破損
         - [ ] endpoint 404 / 5xx
-    validations:
-      required: true
   - type: textarea
     id: prerequisites
     attributes:
@@ -41,8 +39,6 @@ body:
         - 署名付きリリース資産
         - 実機テスト環境
         - 手順書または再現用セットアップ
-    validations:
-      required: true
   - type: checkboxes
     id: areas
     attributes:
@@ -78,30 +74,8 @@ body:
         - [ ] リカバリ方法や注意点を記録した
         - [ ] 必要なら release note / docs へ反映した
         - [ ] PR 作成時は PR template の確認済み DoD を満たす
-    validations:
-      required: true
-  - type: checkboxes
-    id: quality-gate
-    attributes:
-      label: Quality Gate
-      description: >-
-        PR 作成時は PR template の確認済み DoD と同じ gate を満たしてください。
-        DOM/CI/focused test は `mise run test:unit:dom` / `mise run ci` / focused test の確認を指します。
-      options:
-        - label: 型エラー 0 件 (`mise run check` の `lint:types`)
-          required: true
-        - label: リント違反 0 件 (`mise run check` の `lint`)
-          required: true
-        - label: 高速テスト成功 (`mise run check` の `test:unit:fast` / `test:rust`)
-          required: true
-        - label: フォーマッター適用済み (`mise run check` の `format`)
-          required: true
-        - label: jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時は DOM/CI/focused test を記録
-          required: true
   - type: textarea
     id: references
     attributes:
       label: References
       description: 関連 issue、TODO、docs など
-    validations:
-      required: false
