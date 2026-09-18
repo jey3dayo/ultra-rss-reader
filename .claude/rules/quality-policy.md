@@ -294,12 +294,27 @@ from findings disappearing.
 
 Do not re-pin from a feature branch. `reactDoctorFullScanTriageStatusBase.scanSha` must name a
 commit reachable from `main`, and a branch commit is not — squash-merging drops it, and the pin
-then names something nobody can fetch to reproduce the measurement. Full-scan drift is
-informational and fails nothing, so land the change first and re-pin from `main` afterwards.
+then names something nobody can fetch to reproduce the measurement.
 
-The re-pin follow-up is enforced by review, not by a gate. Why an automated check cannot sit on
-the re-pin PR itself, the post-merge shape that would work, and the rejected contract change are
-recorded in
+**`scanSha` names the tree the scan ran against, not a commit that agrees with this block.**
+Adopted 2026-09-18. Four parts:
+
+1. `scanSha` is the `main`-reachable commit where the pinned `pluginVersion` and `scanCommand` —
+   including `auditScanCommand` — were run.
+2. The raw scan totals reproduce at that tree: `warningCount`, `errorCount`, `affectedFileCount`
+   and `auditWarningCount`. Re-running the pinned commands there is the check.
+3. The classification metadata (`classifiedFindingCount`, `classifiedWarningFamilies`,
+   `pendingJudgmentWarningFamilies` and the derived `untriagedWarningCountAtScan`) is the pinned
+   diagnostics read through the **current** records, not through the records as they stood at
+   `scanSha`.
+4. That commit's own copy of this block is explicitly **not** part of the contract. Do not compare
+   them.
+
+Keep the field's name. `scanSha` already reads as "the commit the scan ran at"; `scanBaseSha` would
+suggest a diff or merge base, which it is not.
+
+The reading this replaced, what it cost, why it only ever held under a non-recursive interpretation,
+and the consistency check this contract makes available as a PR gate are recorded in
 [../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
 
 ### High Complexity React Function Findings
@@ -314,7 +329,7 @@ Use the accepted-risk families below to triage repeat hits instead of re-litigat
 - **Shared primitive variant matrix.** A `src/components/shared` or design-system component whose API is optional props crossed with placement and tone variants. Splitting by variant duplicates generated-id derivation, ARIA wiring, and event plumbing — a correctness risk larger than the complexity removed. `LabeledInputRow` is the reference case.
 - **Settings-view availability chain.** A settings view whose feature or action availability is decided by long boolean chains over the same flags — either a conjunction asserting that an optional feature's props were supplied as a set, or a disjunction over shared busy flags that gates actions. One view can contain both. The chain is one predicate, so moving it into a child relocates the same terms. Where the shape is prop presence, the real improvement is a props-shape change (one optional object instead of N optional props), which is a separate design decision, not a complexity fix.
 - **Reader selection-union dispatch.** Hooks mapping the reader selection union onto queries and view state. The Rules of Hooks require every query to be called unconditionally before one is selected, so the arity of the union is a floor on the count; an extracted hook still calls all of them.
-- **Container state-resolution chain.** Sequentially dependent derivations where each step consumes the previous. Not independent branches, so the rule's phrasing does not apply directly. `useAccountDetailViewProps` is the reference case, but only for what remains of it: at cyclomatic 85 / cognitive 106 it was an outlier excluded from the pass, and Issue #256 measured why. The 216-line return object dominated it, and that part was five named sub-objects whose 46 `controller` members had zero overlap — the rule's own remedy, not this family. Splitting those four sections out took it to 26 / 34, inside the distribution, and what is left is the derivation chain this family describes. Read the dominant structure before assigning a finding here: a chain that carries a large independent surface is not this family until the surface is gone.
+- **Container state-resolution chain.** Sequentially dependent derivations where each step consumes the previous. Not independent branches, so the rule's phrasing does not apply directly. `useAccountDetailViewProps` is the cautionary case rather than the reference case. At cyclomatic 85 / cognitive 106 it was an outlier excluded from the pass, and Issue #256 measured why: the 216-line return object dominated it, and that part was five named sub-objects whose 46 `controller` members had zero overlap — the rule's own remedy, not this family. Splitting those four sections out took it to 26 / 34, inside the distribution, but the remainder still carries four derivations read straight from the shared inputs alongside three short chains, none of which dominates. So it is not this family either, and its record row carries no family pending Issue #256. Read the dominant structure before assigning a finding here: a chain that carries a large independent surface is not this family until the surface is gone.
 - **Platform window-chrome matrix.** Overlay-titlebar / compact-desktop / browser-preview branching governed by `tauri-window-chrome.md`. Per-platform splitting triplicates the surface.
 - **Opt-in diagnostic surface.** A lazily imported dev panel behind a preference, whose complexity is the diagnostic payload it exists to display.
 

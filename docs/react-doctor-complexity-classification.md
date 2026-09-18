@@ -1,7 +1,7 @@
 ---
 type: record
 title: React Doctor Complexity Classification
-description: Dated triage record classifying the 25 in-scope no-high-complexity-react-function findings from Issue #249, with the structural family and rationale for each.
+description: Dated triage record classifying the 26 no-high-complexity-react-function findings now in scope, 25 from Issue #249 and useAccountDetailViewProps added once Issue #256's split removed the reason it was excluded, with a disposition and rationale for each and a structural family where one has been assigned.
 resource: urn:ultra-rss-reader:docs:react-doctor-complexity-classification
 tags: [category/quality, audience/agent, audience/developer, status/historical]
 timestamp: 2026-09-08
@@ -18,18 +18,25 @@ half of this record — the structural families and the method for triaging a ne
 [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md). Everything below is a
 historical snapshot; do not treat the table as a list of code that still has these shapes.
 
-The scan reported 26 findings. `useAccountDetailViewProps`
-(`src/components/settings/hooks/account-detail/use-account-detail-view-props.tsx`, cyclomatic 85,
-cognitive 106) is excluded from this record and tracked separately as Issue #256: it is an order of
-magnitude above every other finding and needs its own extraction design rather than a classification
-row. The 25 rows below are the rest.
+The scan reported 26 findings. 25 of them were classified here on 2026-09-08.
+`useAccountDetailViewProps`
+(`src/components/settings/hooks/account-detail/use-account-detail-view-props.tsx`) was excluded and
+tracked separately as Issue #256, for one stated reason: at cyclomatic 85 / cognitive 106 it was an
+order of magnitude above every other finding and needed its own extraction design rather than a
+classification row.
+
+**That reason lapsed on 2026-09-18 and the finding now has a row.** Issue #256 measured the
+structure and split the four section builders out; the function is 26 / 34, the sixth-highest
+cognitive figure rather than 2.5x the next one. Which family fits what remains is open — the row
+records why family E does not, on the measurement below. So the table below holds 26 rows, and its
+last one is dated later than the rest.
 
 ## Result
 
 | Classification | Count | Action taken |
 | --- | --- | --- |
 | must-fix | 0 | — |
-| accepted-risk | 25 | Left as-is; each is an intentional single-owner surface whose split is recorded as a net loss below |
+| accepted-risk | 26 | Left as-is; each is an intentional single-owner surface whose split is recorded as a net loss below. The 26th is the post-split remainder of `useAccountDetailViewProps`, whose split *was* a net gain and was carried out |
 | false-positive | 0 | — |
 | suppress | 0 | — |
 
@@ -118,8 +125,10 @@ cannot be collapsed, only moved to another hook that still calls all of them. Se
 ### E. Container state-resolution chain
 
 A container whose derivations are sequentially dependent: each step consumes the previous one. These
-are not independent branches, so the rule's phrasing does not apply directly; the whole chain is
-extractable as one hook, which is the same shape as Issue #256.
+are not independent branches, so the rule's phrasing does not apply directly. Being extractable as
+one hook is not the test: `useAccountDetailViewProps` already was one, and Issue #256 found that a
+216-line independent surface was riding along inside it. Check that the chain is what dominates the
+function before assigning a finding here.
 
 ### F. Platform window-chrome matrix
 
@@ -134,7 +143,8 @@ complexity is the diagnostic payload it exists to display.
 
 ## Findings
 
-Metrics are cyclomatic / cognitive as reported. `F` is the family above.
+Metrics are cyclomatic / cognitive as reported. `F` is the family above; `—` means the measured
+structure does not fit any family yet and the rationale says why.
 
 | Location | Function | cy | co | F | Classification | Rationale |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -155,6 +165,7 @@ Metrics are cyclomatic / cognitive as reported. `F` is the family above.
 | `src/components/settings/add-account/account-config-form.tsx:136` | `AccountConfigForm` | 17 | 17 | E | accepted-risk | The only finding whose complexity is async side-effect control rather than rendering. `isCurrentSubmitSnapshot` is a seven-term latest-only guard and the failure path classifies retryable / auth / generic errors. Both are required by [../.claude/rules/async-side-effect-policy.md](../.claude/rules/async-side-effect-policy.md); splitting the guard away from the submit lifecycle weakens the stale-completion contract it exists to enforce. |
 | `src/components/settings/data-settings-view.tsx:52` | `DataSettingsView` | 20 | 11 | C | accepted-risk | The most cyclomatic-dominant row (cognitive 11, well under the threshold). The count is action availability, not conditional display: there is no `{cond && <Slot/>}` fan here. Lines 99-107 build five availability booleans as disjunctions of the shared busy flags `backingUp`, `vacuuming`, and `openingLogDir`, and those feed the `disabled` prop of five action buttons. Label fallbacks such as `{vacuumActionLabel ?? vacuumLabel}` are defaulting, not slots. Four `*ActionUnavailable` booleans are disjunctions of three, four, five, and five terms over the same busy flags. They are three distinct expressions across four names: `settingsProfileActionUnavailable` and `backupActionUnavailable` are the same five terms. Reading them adjacently is how both the differences and that duplication stay visible. |
 | `src/components/settings/settings-modal.tsx:192` | `SettingsModalContent` | 34 | 38 | E | accepted-risk | Sequential resolution of which account the settings modal shows and whether it is locked: `activeSetupAccountId` → `setupVisibleAccount` → `hasSelectedVisibleAccount` → `resolvedSettingsAccountId` → `selectedVisibleAccount` → `isSetupLocked`, each consuming the previous. Not independent branches. The whole chain is extractable as one hook, which is the same work as Issue #256; doing it here without that design would just move the number. |
+| `src/components/settings/hooks/account-detail/use-account-detail-view-props.tsx:55` | `useAccountDetailViewProps` | 26 | 34 | — | accepted-risk | Classified 2026-09-18, after Issue #256's split; re-measured against the source on the same date. Four derivations — the sync-progress value, its summary label, the current-account label, and the verification status — are independent, each read straight from `account` / `isSyncing` / `syncProgress` with no dependency on one another. Three short chains are sequential — `isSetupSyncing`/`isSetupFailed` into `isSetupActive`, `quarantineReason` into `isQuarantined` into `canShowDevCredentialsRecovery`, and `lastSuccessLabel` into `summaryDetail` into `headerSummary` — and none of them dominates the function. No one of those chains accounts for the count, and the family E definition above requires the independent surface to be gone, not merely reduced — four independent derivations alongside three chains none of which dominates is not that. The four section surfaces that used to ride along here (46 `controller` members with zero overlap across them) are now `build-general-section` / `build-credentials-section` / `build-sync-section` / `build-danger-zone-section`, and none of them reports a finding; that split is what took this from 85/106 to 26/34. The remaining classification is accepted-risk pending a reassessment of which family actually fits; tracked at Issue #256. |
 | `src/components/shared/app-toast-view.tsx:29` | `AppToastView` | 19 | 16 | A | accepted-risk | Toast surface across fixed/static positioning, the two `APP_TOAST_PLACEMENTS` values, and an update variant, plus optional progress and action rows. Cyclomatic-dominant at nesting 1: the placement and variant class picks are siblings in one `cn()` call, and their mutual exclusivity is only checkable while they are adjacent. |
 | `src/components/shared/confirm-dialog-view.tsx:172` | `ConfirmDialogView` | 16 | 16 | B | accepted-risk | Variant tone table plus hold-to-confirm, which is enabled only for the destructive variant and threads `holdEnabled` through eleven references in the body: its definition, two derived uses (`showHoldHint` and the `useHoldToConfirm` option), five pointer and blur handlers, one spread data attribute, one class term, and one conditional fill element. Those must all agree; a split that lets them disagree turns a 2s destructive confirmation into a single click. |
 | `src/components/shared/feed-detail-panel.tsx:131` | `FeedDetailPanel` | 34 | 35 | A | accepted-risk | Shared feed panel with fourteen optional top-level props crossed with a `card` / `low-wire` surface, which itself appears in eighteen `isLowWire` references, so most slots contribute two branches — one for presence, one for surface. Extracting slots scatters the low-wire pairing, and a surface change would then have to be applied in every extracted file to stay coherent. |

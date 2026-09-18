@@ -195,45 +195,54 @@ type PendingJudgmentWarningFamily = {
   readonly trackingIssue: string;
 };
 
-const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [
-  {
-    rule: "no-high-complexity-react-function",
-    count: 1,
-    status:
-      "judgment-pending: the useAccountDetailViewProps outlier (cyclomatic 85 / cognitive 106) is excluded from the complexity record and needs its own design",
-    trackingIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
-  },
-];
+// Empty as of 2026-09-18. The one entry was the useAccountDetailViewProps outlier, and #321 resolved
+// what made it pending: it needed an extraction design, the design was measured in Issue #256, and
+// the split landed. What is left of the function now has an accepted-risk row in the complexity
+// record but no assigned family — which family fits the post-split structure is still open at #256.
+// This table is for a finding nothing dispositions, and that row is a disposition, so the finding
+// belongs in classifiedFindingCount rather than here. Keep the named type: `as const` on an empty
+// literal infers `readonly []`, which makes the report loop over `never`.
+const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [];
 
 const reactDoctorFullScanTriageStatusBase = {
   // The SHA must be reachable from main. A branch commit is not: squash-merging drops it,
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
   //
-  // It also has to be a commit where every number in this block is true at once, which is not
-  // the same as where the scan ran. That gap is structural, not a slip: the scan runs on the
-  // tree before the pin is updated, so the measurement commit always asserts the previous
-  // numbers. It has now cost a follow-up PR twice — #313 re-pointed this at ac8a4aff3 after the
-  // second wave, and this change re-points it after #318 — which is the cost of the pin meaning
-  // "reproducible at this SHA" rather than "measured somewhere near here".
+  // It names the tree the scan ran against, and nothing more. What reproduces there is the raw
+  // scan: warningCount, errorCount, affectedFileCount and auditWarningCount, by re-running
+  // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
+  // are those diagnostics read through the *current* records, so this commit's own copy of the
+  // block is deliberately outside the contract — do not compare them.
   //
-  // ffd22d8bb is #318's squash commit: the 32/73 scan was taken on its parent 81be1c1cd, and
-  // ffd22d8bb is the first commit where re-running the pinned scan reproduces what this block
-  // asserts. Verified by re-running both the pinned and the audit scan there before changing
-  // this line.
-  scanSha: "ffd22d8bb",
+  // 742a6919b is #321's squash commit, where the 32/73 scan for this pin was taken.
+  //
+  // The earlier reading required every number here to be true at scanSha, which is unsatisfiable
+  // inside the PR that changes them: the SHA has to be an ancestor, and the values arrive with the
+  // pinning commit. It cost a post-merge follow-up three times (#313, #319, #323) and was only
+  // workable non-recursively, since no commit can assert its own SHA. Changed on an independent
+  // review, recorded in .claude/rules/quality-policy.md; that section also has the consistency
+  // check this makes gateable in the PR.
+  scanSha: "742a6919b",
   pluginVersion: "0.9.14",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
-  // 24, not the 25 rows the record holds. The record's set and the scan's set are not the same
-  // 25: #279 suppressed the confirm-dialog-view.tsx row, so the scan no longer reports it, while
-  // the scan does report the useAccountDetailViewProps outlier the record deliberately excludes.
-  // Subtracting 25 here therefore hid that outlier and made the derived untriaged total read 0.
-  // The count must be "rows in the record that this scan reports", and the outlier is carried in
-  // pendingJudgmentWarningFamilies instead so it stays inside the untriaged total until #256
-  // reaches a verdict. This is the same stale-count failure as require-pnpm-hardening below.
-  classifiedFindingCount: 24,
+  // The count means "rows in the record that this scan reports", never "rows in the record". That
+  // distinction is why it read 24 before 2026-09-18: #279 suppressed the confirm-dialog-view.tsx
+  // row so the scan stopped reporting it, while the scan did report the useAccountDetailViewProps
+  // outlier the record deliberately excluded. Subtracting 25 then hid that outlier and made the
+  // derived untriaged total read 0 — the same stale-count failure as require-pnpm-hardening below.
+  //
+  // 25 as of 2026-09-18. It was 24 because the complexity record excluded the
+  // useAccountDetailViewProps outlier, which the scan reported with no row to match. #321 split its
+  // four section builders out, taking it from 85/106 to 26/34 — the sixth-highest cognitive figure
+  // rather than 2.5x the next — so the record's stated reason for the exclusion lapsed and the
+  // finding gained a row. The count still means "rows in the record that this scan reports"; what
+  // changed is that the scan's set and the record's set now agree at 25.
+  classifiedFindingCount: 25,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
+  // Kept after #321 resolved the exclusion: the record's 26th row is dated later than the rest and
+  // this is where the reasoning for it lives. Rename or drop it only together with that row.
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   classifiedWarningFamilies: [
     {
@@ -364,14 +373,17 @@ const reactDoctorFullScanTriageStatusBase = {
   // classified total, while still being named instead of silently folded into "other".
   // rerender-lazy-ref-init left this table on 2026-09-18 because both of its findings were fixed
   // (the remedy differed between the two sites, which is why they were not a single decision; see
-  // the classification record). The complexity outlier took its place: it is the one finding this
-  // scan reports that no record dispositions, so it has to be named here rather than absorbed
-  // into classifiedFindingCount.
+  // the classification record). The complexity outlier sat here next, pending the extraction
+  // design that Issue #256 was tracking; #321 landed that design, which is what emptied this
+  // table. The outlier now has its own row in the complexity record and is counted inside
+  // classifiedFindingCount instead. See the empty-array comment above for why this table stays
+  // empty rather than being removed.
   pendingJudgmentWarningFamilies,
   // #256 as of 2026-09-18, for the same reason it was #300 before and #249 before that: this
-  // names where the remaining untriaged finding is tracked, and both earlier waves closed out.
-  // The one finding left is the complexity outlier, so pointing here at #300 would send an
-  // operator to a list whose items are all already dispositioned.
+  // names where an untriaged finding would be tracked, and both earlier waves closed out. There
+  // is no untriaged finding at this pin — #321 gave the complexity outlier a record row, so the
+  // derived total is 0 — but the field still has to point somewhere current, and pointing at #300
+  // would send an operator to a list whose items are all already dispositioned.
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
@@ -810,7 +822,8 @@ function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: stri
   console.log("Outstanding triage (counts are from the pinned scan, not a live count):");
   console.log(
     `  ${status.classifiedRule}: ${status.classifiedFindingCount} of this scan's findings are` +
-      ` accepted-risk rows in ${status.classifiedRecordPath}; the outlier is tracked at ${status.outlierIssue}`,
+      ` accepted-risk rows in ${status.classifiedRecordPath}; the outlier that record used to exclude` +
+      ` was split and classified under ${status.outlierIssue}`,
   );
   console.log(
     `  additional classified warning families: ${status.classifiedWarningFamiliesCount} classified` +
