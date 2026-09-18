@@ -1,7 +1,7 @@
 ---
 type: record
 title: React Doctor Gate Mechanics
-description: Dated record of why the React Doctor diff gate runs degraded and why the reactDoctorFullScanTriageStatusBase.scanSha re-pin contract is enforced by review, including the gate shapes evaluated and the rejected contract change.
+description: Dated record of why the React Doctor diff gate runs degraded and what the superseded reactDoctorFullScanTriageStatusBase.scanSha re-pin contract cost, including the consistency check the current contract makes available as a PR gate.
 resource: urn:ultra-rss-reader:docs:react-doctor-gate-mechanics
 tags: [category/quality, audience/agent, audience/developer, status/historical]
 timestamp: 2026-09-18
@@ -13,7 +13,7 @@ owner: project-maintainers
 
 Measurement and decision record behind two React Doctor gate behaviors. The durable rules live in
 [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md); this file holds the
-evidence and the options that were evaluated and not adopted.
+evidence behind them and the readings they replaced.
 
 ## Why The Diff Gate Runs Degraded
 
@@ -28,36 +28,63 @@ lint", and the wrapper names the missing comparison rather than a cause, because
 computed from `baselineDelta === undefined` and both listed causes land there
 indistinguishably.
 
-## scanSha Re-Pin Gating Options
+## scanSha Re-Pin Gating: What The Old Contract Cost
 
-Today review is what enforces the re-pin follow-up, and it has caught it twice: #313 after the
-second wave, then #319 after #318, where both bot reviewers flagged the same line. Both times
-the mismatch reached a merged commit first. What follows is where a gate can and cannot replace
-that, measured on 2026-09-18.
+Superseded on 2026-09-18. `quality-policy.md` now defines `scanSha` as the tree the scan ran
+against; this section records the reading it replaced, what that reading cost, and the check the
+new contract makes available.
 
-**A gate on the re-pin PR itself cannot work.** The scan runs on the tree *before* the pin is
-updated, so the measurement commit's own copy of the rule still asserts the previous totals.
-A check strong enough to catch that mismatch fails the first of the two commits the contract
-requires — the one that has to be pushed and merged before the second can name its SHA. Do not
-add one to `lint`, `test:unit:ci`, or a lefthook job for this reason, not because the invariant
-is unverifiable.
+### The reading this replaced
 
-**A post-merge or scheduled check can work, and history is not the obstacle.** The CI test jobs
-have no history to read — `ci.yml` sets no `fetch-depth`, so `actions/checkout` takes one commit
-— but that is a property of where a check is placed, not of the invariant. A job can fetch what
-it needs from the same default checkout, and this repository already does:
+It required `scanSha` to name a commit where every number in the pin block was already true. That
+is unsatisfiable inside the PR that changes those numbers: the SHA has to be reachable from `main`,
+and the values are introduced by the commit doing the pinning, so splitting the PR does not break
+the cycle either.
+
+It was not unsatisfiable in every case. A *pure* re-point follow-up, changing only the SHA, can
+name a merge commit that already carries the new values. The precise claim is that a post-merge
+follow-up became structurally necessary every time a snapshot or classification value moved — not
+that the contract could never be met at all.
+
+It also only ever held under a non-recursive reading. If `scanSha` itself counts as one of "every
+number in this block", no commit can assert its own SHA, so even a pure re-point is impossible.
+The old operation therefore depended on excluding `scanSha` from its own comparison, an exemption
+nobody had written down.
+
+### What it cost
+
+Three follow-up PRs: #313 after the second wave, #319 after #318, and a third on #323. Each time a
+reviewer, not a test, is what caught the gap, and each time the mismatch had already reached a
+merged commit.
+
+### The check the new contract allows
+
+Under the old reading a gate on the re-pin PR could not work, because the scan runs on the tree
+*before* the pin is updated. Under the new one nothing in the check depends on a commit that does
+not exist yet, so it can sit on the PR rather than in a post-merge job.
+
+History is not the obstacle either. The CI test jobs have no history to read — `ci.yml` sets no
+`fetch-depth`, so `actions/checkout` takes one commit — but that is a property of where a check is
+placed. This repository already fetches what it needs from the same default checkout:
 `scripts/release/validate-source.ts:60-61` runs
-`git fetch --force origin main:refs/remotes/origin/main` and then asserts reachability with
-`git merge-base --is-ancestor ... refs/remotes/origin/main` at `:81`. A check on `main` after the
-merge can fetch `scanSha`, read that commit's copy of the pinned block, and compare it with the
-current one — catching a forgotten follow-up before it survives to a release, without blocking
-the baseline PR and without changing the field's contract. Not built yet; that pattern is the
-shape to build it with.
+`git fetch --force origin main:refs/remotes/origin/main` and asserts reachability with
+`git merge-base --is-ancestor ... refs/remotes/origin/main` at `:81`.
 
-A contract change would remove the need for the follow-up rather than detect it. Naming the
-field for what a measurement snapshot is — the commit the scan was **run against** — is true at
-the measurement commit immediately and needs one PR instead of two. What it gives up is the rule
-file agreeing with its own past copy; the pinned scan totals still reproduce at that commit,
-because the scan reads the source tree and not these constants. Not adopted, and recorded so the
-tradeoff is not re-derived from scratch: it is a weaker guarantee than the current one, and the
-current one is what the two reviews above were enforcing.
+The check, not built yet:
+
+- fetch `origin/main`, resolve `scanSha` to a commit, assert it is an ancestor;
+- re-run `scanCommand` and `auditScanCommand` against that tree at the pinned `pluginVersion` and
+  lockfile, and compare the totals and `auditWarningCount`;
+- compare the diagnostic identity set — rule plus path plus a stable location key — against the
+  current classification records, because equal totals can hide one finding swapped for another,
+  and from that verify `classifiedFindingCount`, each `classifiedWarningFamilies` count,
+  `pendingJudgmentWarningFamilies`, and the derived `untriagedWarningCountAtScan`.
+
+Do not compare the `scanSha` commit's own copy of the pin block with the current one. Dropping that
+comparison is what the new contract does.
+
+### Provenance
+
+The contract change was recommended by an independent review (Codex `gpt-5.6-sol`) reading
+`5b90fbc20`, the state *before* contract B was implemented. That review is advisory on the design
+choice and is not an approval of the implementation in `4f7e51386`, which carries its own review.
