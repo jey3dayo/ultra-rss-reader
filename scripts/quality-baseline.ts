@@ -210,17 +210,17 @@ const reactDoctorFullScanTriageStatusBase = {
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
   //
   // It also has to be a commit where every number in this block is true at once, which is not
-  // the same as where the scan ran. That gap cost a separate PR once already: the second-wave
-  // measurement was taken at 01f4ff5da, the follow-up correcting classifiedFindingCount 25 -> 24
-  // landed afterwards, and #313 existed only to re-point this SHA at ac8a4aff3, the first commit
-  // where the scan output and the derived totals agreed.
+  // the same as where the scan ran. That gap is structural, not a slip: the scan runs on the
+  // tree before the pin is updated, so the measurement commit always asserts the previous
+  // numbers. It has now cost a follow-up PR twice — #313 re-pointed this at ac8a4aff3 after the
+  // second wave, and this change re-points it after #318 — which is the cost of the pin meaning
+  // "reproducible at this SHA" rather than "measured somewhere near here".
   //
-  // 81be1c1cd has the same one-commit lag and for the same structural reason: it is where the
-  // 32/73 scan ran, but the totals in this block only become true with the change that reads
-  // them off that scan. A checkout of 81be1c1cd reproduces the scanned 32 while its own file
-  // still asserts 31. Re-point this at the squash commit once this change is on main; until
-  // then it names the measurement, not the agreement.
-  scanSha: "81be1c1cd",
+  // ffd22d8bb is #318's squash commit: the 32/73 scan was taken on its parent 81be1c1cd, and
+  // ffd22d8bb is the first commit where re-running the pinned scan reproduces what this block
+  // asserts. Verified by re-running both the pinned and the audit scan there before changing
+  // this line.
+  scanSha: "ffd22d8bb",
   pluginVersion: "0.9.14",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
