@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   buildMaterializedScanCommandArgs,
+  buildOriginMainFetchArgs,
   buildScanComplexityIdentities,
   buildWarningRuleCounts,
   type ClassificationRecordRow,
@@ -293,6 +294,37 @@ describe("check-react-doctor-pin-consistency", () => {
       expect(pinned.warningCount).toBe(
         status.untriagedWarningCountAtScan + status.classifiedFindingCount + status.classifiedWarningFamiliesCount,
       );
+    });
+  });
+
+  describe("buildOriginMainFetchArgs", () => {
+    // Neither shape here is coverable by running a real fetch: it depends on whether the CI
+    // checkout already holds refs/remotes/origin/main, which only a live shallow clone has.
+    it("deepens a shallow clone so scanSha is reachable", () => {
+      expect(buildOriginMainFetchArgs(true)).toEqual([
+        "fetch",
+        "--no-prune",
+        "--force",
+        "--unshallow",
+        "origin",
+        "main:refs/remotes/origin/main",
+      ]);
+    });
+
+    it("omits --unshallow on a complete clone, which git rejects", () => {
+      expect(buildOriginMainFetchArgs(false)).toEqual([
+        "fetch",
+        "--no-prune",
+        "--force",
+        "origin",
+        "main:refs/remotes/origin/main",
+      ]);
+    });
+
+    it("always disables prune, which would otherwise delete the ref it just fetched", () => {
+      for (const isShallow of [true, false]) {
+        expect(buildOriginMainFetchArgs(isShallow)).toContain("--no-prune");
+      }
     });
   });
 

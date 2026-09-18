@@ -311,6 +311,20 @@ export function buildMaterializedScanCommandArgs(command: string, targetDir: str
   return parseCommandTokens(command).map((token) => (token === "." ? targetDir : token));
 }
 
+// --no-prune avoids deleting refs/remotes/origin/main under a global `fetch.prune = true`.
+// --unshallow only when shallow: a CI checkout that already has that ref otherwise fetches
+// nothing, leaving scanSha unreachable; a complete clone rejects --unshallow outright.
+export function buildOriginMainFetchArgs(isShallow: boolean): string[] {
+  return [
+    "fetch",
+    "--no-prune",
+    "--force",
+    ...(isShallow ? ["--unshallow"] : []),
+    "origin",
+    "main:refs/remotes/origin/main",
+  ];
+}
+
 function fail(failures: string[]): never {
   console.error("React Doctor pin consistency check failed:");
   for (const failure of failures) {
@@ -330,6 +344,14 @@ function runGit(args: readonly string[]): void {
 function gitSucceeds(args: readonly string[]): boolean {
   const result = spawnSync("git", [...args], { stdio: "ignore" });
   return result.status === 0;
+}
+
+function isShallowRepository(): boolean {
+  const result = spawnSync("git", ["rev-parse", "--is-shallow-repository"], { encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(`Could not determine whether the repository is shallow: ${result.stderr.trim()}`);
+  }
+  return result.stdout.trim() === "true";
 }
 
 function resolveCommit(ref: string): string {
@@ -395,9 +417,7 @@ function main(): void {
     ]);
   }
 
-  // --no-prune: with a global `fetch.prune = true` and this literal refspec, repeated fetches
-  // alternately delete and recreate refs/remotes/origin/main (measured directly).
-  runGit(["fetch", "--no-prune", "--force", "origin", "main:refs/remotes/origin/main"]);
+  runGit(buildOriginMainFetchArgs(isShallowRepository()));
   const scanCommit = resolveCommit(status.scanSha);
   const isAncestor = gitSucceeds(["merge-base", "--is-ancestor", scanCommit, "refs/remotes/origin/main"]);
   const ancestryFailure = checkAncestry(status.scanSha, scanCommit, isAncestor);
