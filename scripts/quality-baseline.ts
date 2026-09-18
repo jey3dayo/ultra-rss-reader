@@ -1725,7 +1725,7 @@ function normalizeRepoScanPath(filePath: string): string {
   return filePath.replaceAll("\\", "/").replace(/^\.\/+/, "");
 }
 
-function readJsonPayloads(stdout: string): string[] {
+export function readJsonPayloads(stdout: string): string[] {
   const payloads: string[] = [];
   for (let start = stdout.indexOf("{"); start !== -1; start = stdout.indexOf("{", start + 1)) {
     const payload = readBalancedJsonObject(stdout, start);

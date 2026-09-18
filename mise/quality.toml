@@ -23,6 +23,10 @@ run = "node ./scripts/quality-baseline.ts react-doctor:diff"
 description = "React Doctor full scan report; pinned tool and informational baseline"
 run = "node ./scripts/quality-baseline.ts react-doctor:full"
 
+["quality:react-doctor-pin"]
+description = "Verify the pinned React Doctor baseline reproduces at scanSha, by diagnostic identity set, not just totals"
+run = "node ./scripts/check-react-doctor-pin-consistency.ts"
+
 ["report:similarity"]
 description = "Similarity scan report with TODO false-positive baseline"
 run = "node ./scripts/similarity-report.ts"
