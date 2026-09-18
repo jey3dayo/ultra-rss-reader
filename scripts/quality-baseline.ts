@@ -228,10 +228,9 @@ const reactDoctorFullScanTriageStatusBase = {
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
   // The count means "rows in the record that this scan reports", never "rows in the record" —
-  // a total that matches is not evidence the sets do. 25 as of 2026-09-18: the record holds 27
-  // rows, the scan reports 25 of them, and the two it does not (fixed / suppressed) are marked
-  // in place rather than deleted. scripts/check-react-doctor-pin-consistency.ts (Issue #324)
-  // verifies the sets agree; see docs/react-doctor-complexity-classification.md for the history.
+  // a total that matches is not evidence the sets do. Rows the scan no longer reports (fixed or
+  // suppressed) are marked in place rather than deleted. scripts/check-react-doctor-pin-consistency.ts
+  // (Issue #324) verifies the sets agree; see docs/react-doctor-complexity-classification.md for the history.
   classifiedFindingCount: 25,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   // Kept after #321 resolved the exclusion: the record's 26th row is dated later than the rest and

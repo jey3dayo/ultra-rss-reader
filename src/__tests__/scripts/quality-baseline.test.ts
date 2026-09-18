@@ -316,12 +316,11 @@ describe("quality-baseline", () => {
     // being warningCount minus the two classified totals, this assertion fails without needing
     // a second copy of warningCount in this file.
     //
-    // 0 as of 2026-09-18. This assertion only confirms the arithmetic (25 + 7 + 0 = 32) still
-    // holds, which is not the same as the sets agreeing: it read 0 wrongly, twice before this,
-    // on arithmetic that happened to cancel out (docs/react-doctor-complexity-classification.md
-    // has the history). scripts/check-react-doctor-pin-consistency.ts (Issue #324) is the set
-    // comparison, and it also covers scanSha ancestry and reproducing the totals at that tree,
-    // which nothing in this file does.
+    // This assertion only confirms the arithmetic still holds, which is not the same as the
+    // sets agreeing: it read this value wrongly before, on arithmetic that happened to cancel
+    // out (docs/react-doctor-complexity-classification.md has the history). scripts/check-react-doctor-pin-consistency.ts
+    // (Issue #324) is the set comparison, and it also covers scanSha ancestry and reproducing
+    // the totals at that tree, which nothing in this file does.
     expect(status.untriagedWarningCountAtScan).toBe(0);
   });
 
