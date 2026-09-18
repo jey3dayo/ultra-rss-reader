@@ -511,6 +511,23 @@ Standing accepted risk:
   code outside the change that surfaced this, so it belongs in its own pass. Reviewed
   2026-09-09.
 
+- `use-subscriptions-feed-dialogs.ts` — the stale-target effect calls `setDeleteTargetFeed(null)`
+  when the target feed's account is no longer selected and no delete is in flight. None of the
+  three remedies reaches it: the target records a user's click on a specific feed, so no prop
+  it could be derived from exists; the finding is in a hook, so there is no component to `key`,
+  and keying the page would discard the list state `useSubscriptionsIndexState` restores from
+  `scopedIndexReturnState`; and `selectedAccountId` is owned by `useUiStore`, so the event that
+  changes it is outside this hook. Leaving the target set is the Issue #299 defect itself — the
+  delete dialog for the departed account stays on screen. The `deletePending` dependency is what
+  makes the clear re-evaluate when a **failed** delete settles, which is that fix; do not remove
+  it to quiet the rule.
+
+  This finding is a relocation artifact, not new code. The same effect sat in
+  `subscriptions-index-page.tsx` before #317 and was not reported there. Measured on 2026-09-18
+  by scanning both source forms in one run: the page form (a component taking no props) reports
+  0 of this rule, the hook form reports 1. The rule treats the hook's arguments as the changing
+  prop, so extraction is what made it applicable. Reviewed 2026-09-18.
+
 ### Iteration And Lookup Shape Findings
 
 `js-combine-iterations` and `js-set-map-lookups` describe shape, not cost. A `src/` path is not
