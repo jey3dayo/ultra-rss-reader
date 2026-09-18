@@ -187,8 +187,7 @@ The distortion is not limited to extra files. Project-level rules fire once per 
 project even when they point at the same file: with the vendored projects included,
 `require-pnpm-hardening` was reported three times against the single root
 `pnpm-workspace.yaml`, and `require-reduced-motion` was reported against a vendored
-`package.json`. Measured on 2026-09-08 at `c1183e67f`, the unscoped scan reported
-15 errors / 100 warnings / 67 files and the scoped scan reported 14 / 97 / 64.
+`package.json`.
 
 Before comparing two React Doctor runs, confirm `projects[]` in the JSON report holds exactly
 the repository root. A count difference between two runs is not evidence about the code until
@@ -237,13 +236,13 @@ which is why the wrapper says so out loud instead of letting the numbers stand f
 they are not. The wrapper names the missing comparison rather than a cause, because the flag is
 computed from `baselineDelta === undefined` and both listed causes land there indistinguishably.
 
-Measured 2026-09-09 in this repository: every `--scope changed` run degrades, on a linked
-worktree, against `origin/main`, an explicit SHA, or `git merge-base`, and with the flags
-stripped back to `--scope changed --base <ref>`. `--help` documents no baseline option, so the
-comparison is internal and the cause is not reachable from the CLI surface. Do not read a green
-diff gate as "no new findings" while this line appears; read it as "no findings at all in the
-changed files", which is strictly stronger and therefore still safe to gate on. Finding the
-cause, so the gate reports what it was changed to report, is open work.
+Do not read a green diff gate as "no new findings" while this line appears; read it as "no
+findings at all in the changed files", which is strictly stronger and therefore still safe to
+gate on. Every `--scope changed` run in this repository currently degrades however the base is
+given, and `--help` documents no baseline option, so the cause is not reachable from the CLI
+surface. Finding it, so the gate reports what it was changed to report, is open work; the
+measured attempts are in
+[../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
 
 ### Recording An Accepted Risk So The Gate Can See It
 
@@ -298,8 +297,7 @@ commit reachable from `main`, and a branch commit is not — squash-merging drop
 then names something nobody can fetch to reproduce the measurement.
 
 **`scanSha` names the tree the scan ran against, not a commit that agrees with this block.**
-Adopted 2026-09-18 on an independent review (Codex sol, advisory, `agmsg` task
-`scansha-contract-323`) after the alternative had cost three follow-up PRs. Four parts:
+Adopted 2026-09-18. Four parts:
 
 1. `scanSha` is the `main`-reachable commit where the pinned `pluginVersion` and `scanCommand` —
    including `auditScanCommand` — were run.
@@ -312,34 +310,12 @@ Adopted 2026-09-18 on an independent review (Codex sol, advisory, `agmsg` task
 4. That commit's own copy of this block is explicitly **not** part of the contract. Do not compare
    them.
 
-The reading this replaced required `scanSha` to name a commit where every number in the block was
-already true. That is unsatisfiable inside the PR that changes those numbers: the SHA must be an
-ancestor, and the values are introduced by the commit doing the pinning, so splitting the PR does
-not break the cycle either. It was also only ever workable under a non-recursive reading that
-excluded `scanSha` itself, since no commit can assert its own SHA. It forced a post-merge follow-up
-every time a snapshot or classification value moved — #313 after the second wave, #319 after #318,
-and a third time on #323 — and each time a reviewer, not a test, is what caught the gap.
-
-**Under this contract the consistency check is a PR gate rather than a post-merge job.** Nothing
-in it depends on a commit that does not exist yet. History is not the obstacle either: the CI test
-jobs have no history to read because `ci.yml` sets no `fetch-depth`, but that is a property of
-where a check is placed, and this repository already fetches what it needs from the same default
-checkout — `scripts/release/validate-source.ts:60-61` runs
-`git fetch --force origin main:refs/remotes/origin/main`, then asserts reachability with
-`git merge-base --is-ancestor ... refs/remotes/origin/main` at `:81`.
-
-The check, when it is built (not built yet):
-
-- fetch `origin/main`, resolve `scanSha` to a commit, assert it is an ancestor;
-- re-run `scanCommand` and `auditScanCommand` against that tree at the pinned `pluginVersion` and
-  lockfile, and compare the totals and `auditWarningCount`;
-- compare the **diagnostic identity set** — rule plus path plus a stable location key — against the
-  current classification records, because equal totals can hide one finding swapped for another,
-  and from that verify `classifiedFindingCount`, each `classifiedWarningFamilies` count,
-  `pendingJudgmentWarningFamilies`, and the derived `untriagedWarningCountAtScan`.
-
 Keep the field's name. `scanSha` already reads as "the commit the scan ran at"; `scanBaseSha` would
 suggest a diff or merge base, which it is not.
+
+The reading this replaced, what it cost, why it only ever held under a non-recursive interpretation,
+and the consistency check this contract makes available as a PR gate are recorded in
+[../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
 
 ### High Complexity React Function Findings
 

@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-09-08T09:42:05.453110+00:00'
+generated_at: '2026-09-18T06:27:00.966069+00:00'
 apm_version: 0.28.0
 dependencies:
 - repo_url: _local/tauri-icon-gen
@@ -14,9 +14,9 @@ dependencies:
   - .claude/skills/tauri-icon-gen/SKILL.md
   - .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py
   deployed_file_hashes:
-    .agents/skills/tauri-icon-gen/SKILL.md: sha256:69916bf7dcb2647f6fccbbdbac4240810f8fe6221a8ad920379e32a7fa010369
+    .agents/skills/tauri-icon-gen/SKILL.md: sha256:4504f64c0d61854a6358164e25dc052a7e48e0b189a84427bec633c639a84570
     .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
-    .claude/skills/tauri-icon-gen/SKILL.md: sha256:69916bf7dcb2647f6fccbbdbac4240810f8fe6221a8ad920379e32a7fa010369
+    .claude/skills/tauri-icon-gen/SKILL.md: sha256:4504f64c0d61854a6358164e25dc052a7e48e0b189a84427bec633c639a84570
     .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   source: local
   local_path: ./.apm/skills/tauri-icon-gen
@@ -106,26 +106,19 @@ dependencies:
   version: unknown
   package_type: skill_bundle
   deployed_files:
-  - .agents/skills/agentation
   - .agents/skills/agentation-self-driving
   - .agents/skills/agentation-self-driving/SKILL.md
   - .agents/skills/agentation-self-driving/references/two-session-workflow.md
-  - .agents/skills/agentation/SKILL.md
-  - .claude/skills/agentation
   - .claude/skills/agentation-self-driving
   - .claude/skills/agentation-self-driving/SKILL.md
   - .claude/skills/agentation-self-driving/references/two-session-workflow.md
-  - .claude/skills/agentation/SKILL.md
   deployed_file_hashes:
     .agents/skills/agentation-self-driving/SKILL.md: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
     .agents/skills/agentation-self-driving/references/two-session-workflow.md: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
-    .agents/skills/agentation/SKILL.md: sha256:0b66fa852d1dfcd5de86e71970e6f484bcd44b991265f95034365c38ed1ad3a8
     .claude/skills/agentation-self-driving/SKILL.md: sha256:3a9d99a656ea7e9ff907c0b2a9a6a2a6a18bd285bd6ad4b5d9dc55b27233e08a
     .claude/skills/agentation-self-driving/references/two-session-workflow.md: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
-    .claude/skills/agentation/SKILL.md: sha256:0b66fa852d1dfcd5de86e71970e6f484bcd44b991265f95034365c38ed1ad3a8
   content_hash: sha256:f543a041470b32b0a65278171932ac136d810d369281ec7b6c9d169de84088c4
   skill_subset:
-  - agentation
   - agentation-self-driving
 - repo_url: epicenterhq/epicenter
   materialization_repo_url: EpicenterHQ/epicenter
@@ -166,15 +159,6 @@ deployments:
   content_hash: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
 - kind: project-relative
   target: claude
-  value: .claude/skills/agentation
-  runtime: null
-  scope: project
-  owners:
-  - benjitaylor/agentation
-  active_owner: benjitaylor/agentation
-  content_hash: null
-- kind: project-relative
-  target: claude
   value: .claude/skills/agentation-self-driving
   runtime: null
   scope: project
@@ -200,15 +184,6 @@ deployments:
   - benjitaylor/agentation
   active_owner: benjitaylor/agentation
   content_hash: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
-- kind: project-relative
-  target: claude
-  value: .claude/skills/agentation/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - benjitaylor/agentation
-  active_owner: benjitaylor/agentation
-  content_hash: sha256:0b66fa852d1dfcd5de86e71970e6f484bcd44b991265f95034365c38ed1ad3a8
 - kind: project-relative
   target: claude
   value: .claude/skills/rust-best-practices
@@ -336,7 +311,7 @@ deployments:
   - ./.apm/skills/tauri-icon-gen
   - .
   active_owner: ./.apm/skills/tauri-icon-gen
-  content_hash: sha256:69916bf7dcb2647f6fccbbdbac4240810f8fe6221a8ad920379e32a7fa010369
+  content_hash: sha256:4504f64c0d61854a6358164e25dc052a7e48e0b189a84427bec633c639a84570
 - kind: project-relative
   target: claude
   value: .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py
@@ -408,15 +383,6 @@ deployments:
   content_hash: sha256:63701854ae4b4773534eb020e28c6edb756dd59ecd635c6f6f7822f93c6fed02
 - kind: project-relative
   target: codex
-  value: .agents/skills/agentation
-  runtime: null
-  scope: project
-  owners:
-  - benjitaylor/agentation
-  active_owner: benjitaylor/agentation
-  content_hash: null
-- kind: project-relative
-  target: codex
   value: .agents/skills/agentation-self-driving
   runtime: null
   scope: project
@@ -442,15 +408,6 @@ deployments:
   - benjitaylor/agentation
   active_owner: benjitaylor/agentation
   content_hash: sha256:3bff820a202d607cbf72a4b30ed9af28afa3b64ab83f63c3469b2f96a564f746
-- kind: project-relative
-  target: codex
-  value: .agents/skills/agentation/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - benjitaylor/agentation
-  active_owner: benjitaylor/agentation
-  content_hash: sha256:0b66fa852d1dfcd5de86e71970e6f484bcd44b991265f95034365c38ed1ad3a8
 - kind: project-relative
   target: codex
   value: .agents/skills/rust-best-practices
@@ -578,7 +535,7 @@ deployments:
   - ./.apm/skills/tauri-icon-gen
   - .
   active_owner: ./.apm/skills/tauri-icon-gen
-  content_hash: sha256:69916bf7dcb2647f6fccbbdbac4240810f8fe6221a8ad920379e32a7fa010369
+  content_hash: sha256:4504f64c0d61854a6358164e25dc052a7e48e0b189a84427bec633c639a84570
 - kind: project-relative
   target: codex
   value: .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py
@@ -732,14 +689,14 @@ local_deployed_files:
 - .claude/skills/tauri-webview-geometry/references/geometry-model.md
 - .claude/skills/tauri-webview-geometry/references/lifecycle-contracts.md
 local_deployed_file_hashes:
-  .agents/skills/tauri-icon-gen/SKILL.md: sha256:69916bf7dcb2647f6fccbbdbac4240810f8fe6221a8ad920379e32a7fa010369
+  .agents/skills/tauri-icon-gen/SKILL.md: sha256:4504f64c0d61854a6358164e25dc052a7e48e0b189a84427bec633c639a84570
   .agents/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   .agents/skills/tauri-webview-geometry/SKILL.md: sha256:a207ea36720f5f1a3cedff710ca36bf7f32411b9f3dd1485aa3a0266b20ce768
   .agents/skills/tauri-webview-geometry/agents/openai.yaml: sha256:4ed20d4f9141cf4909a2c34fb6226c738f38021887b3dc6b16922709527ebfa7
   .agents/skills/tauri-webview-geometry/references/geometry-model.md: sha256:3d31e2c9075415414b1acb1939329b51cce92a3cfe6d44f25b5c826c275c58b4
   .agents/skills/tauri-webview-geometry/references/lifecycle-contracts.md: sha256:65bf7daba079327f1e28eea8781798260d083fe16ec8ccf234d99262c6302ac2
   .agents/skills/todo-triage-format/SKILL.md: sha256:77edc7b524c2e23687534cf92f3427ff140d34d2e01040494f313aea201ed3c9
-  .claude/skills/tauri-icon-gen/SKILL.md: sha256:69916bf7dcb2647f6fccbbdbac4240810f8fe6221a8ad920379e32a7fa010369
+  .claude/skills/tauri-icon-gen/SKILL.md: sha256:4504f64c0d61854a6358164e25dc052a7e48e0b189a84427bec633c639a84570
   .claude/skills/tauri-icon-gen/scripts/remove_white_bg.py: sha256:563bcd994524cd61b895bcde8561e247d29cd73cbd6af06759aa79c8fee592a7
   .claude/skills/tauri-webview-geometry/SKILL.md: sha256:a207ea36720f5f1a3cedff710ca36bf7f32411b9f3dd1485aa3a0266b20ce768
   .claude/skills/tauri-webview-geometry/agents/openai.yaml: sha256:4ed20d4f9141cf4909a2c34fb6226c738f38021887b3dc6b16922709527ebfa7

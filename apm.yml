@@ -13,7 +13,6 @@ dependencies:
     - ./.apm/skills/tauri-webview-geometry
     - git: benjitaylor/agentation
       skills:
-        - agentation
         - agentation-self-driving
   mcp:
     - name: tauri-mcp-server
