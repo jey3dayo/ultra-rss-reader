@@ -427,9 +427,12 @@ These colors should be centralized as provider brand tokens or a dedicated excep
 
 #### Color Reference
 
-Take literals from the `## Colors` section above, which
-`src/__tests__/config/repo-contracts.node.test.ts` pins against `src/styles/global.css`, and the
-token layer in `src/styles/global.css` for roles that have no single literal.
+Take literals from the `## Colors` section above rather than from a second copy here. Only
+Primary, Unread, Loading, and Starred are pinned against `src/styles/global.css` by
+`src/__tests__/config/repo-contracts.node.test.ts`; every other literal in that section is
+prose that nothing re-checks, so confirm it against `src/styles/global.css` before relying on
+it. Success is the known divergence: treat its `#1f8a65` entry as descriptive and use the
+`--state-success-*` token family, which is emerald rather than that literal.
 
 #### Example Prompt Framing
 
