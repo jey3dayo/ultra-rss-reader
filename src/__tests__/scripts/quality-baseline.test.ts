@@ -327,11 +327,13 @@ describe("quality-baseline", () => {
     // the record's 25 and the scan's 25 were different sets (#279 had suppressed one row, and the
     // scan was reporting the excluded outlier in its place instead).
     //
-    // That gap is unbuilt, not unbuildable. This test cannot run react-doctor, so it cannot
-    // re-derive the finding list itself, but under the scanSha contract the comparison no longer
-    // depends on a commit that does not exist yet and can run as a PR gate; the design is in
-    // docs/react-doctor-gate-mechanics.md. Until it exists, whoever re-pins these numbers lists
-    // the scan's findings and the record's rows and checks they are the same set by hand.
+    // That gap is unbuilt, not unbuildable, and it stays open: this assertion is not coverage for
+    // it. This test cannot run react-doctor, so it cannot re-derive the finding list itself, but
+    // under the scanSha contract the comparison no longer depends on a commit that does not exist
+    // yet and can run as a PR gate. The design is in docs/react-doctor-gate-mechanics.md and the
+    // work is tracked at https://github.com/jey3dayo/ultra-rss-reader/issues/324. Until it exists,
+    // whoever re-pins these numbers lists the scan's findings and the record's rows and checks
+    // they are the same set by hand.
     //
     // This test also verifies nothing about scanSha: not that it is reachable from main, and not
     // that the pinned commands reproduce these totals at that tree. Those are the contract's other
