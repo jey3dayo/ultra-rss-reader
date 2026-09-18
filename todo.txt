@@ -1,5 +1,2 @@
 (D) 2026-08-16 Store審査結果対応→sideload検証→手動公開(期限:2026-11-16 までに初回提出しないと名前予約が失効) +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
-(C) 2026-09-08 高負荷時にショートカット検索テスト間で入力が漏れている疑い(検証: bounded 調査は完了、通常負荷での再発または決定的再現を再開条件に延期) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/266
-(B) 2026-09-10 コマンドパレット履歴がクエリ失敗時に全消去され localStorage へ書き戻される(検証: クエリを失敗させた状態で履歴が残る回帰テストを追加し、修正を外すと落ちることを確認) +reader note:https://github.com/jey3dayo/ultra-rss-reader/issues/295
-(D) 2026-09-15 kuchikiki を 0.8.9-speedreader へ上げて rand 0.7.3(RUSTSEC-2026-0097, build-dep のみで CI は未 fail)を落とす。html5ever 0.29->0.35 を跨ぐので独立検証が要る(検証: audit:deps:rust の allowed warnings が 9->8、cargo tree -i rand@0.7.3 が空、記事本文描画の実画面確認) +quality-tooling note:https://github.com/jey3dayo/ultra-rss-reader/issues/310
 (D) 2026-09-18 SubscriptionsIndexPage 359 行を分割: effect 3 本と prop 構築を hook へ切り出す(検証: quality:react-doctor:full で no-giant-component が 0 になり、subscriptions-index-page.test.tsx が緑のまま) +quality-tooling note:docs/react-doctor-warning-classification-300.md
