@@ -184,17 +184,10 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
   });
 
   it("lets the collapse item shrink below its label's min-content width, so a long title cannot push the unread count out of the sidebar", () => {
-    // Browser-measured on 2026-09-18 at 255px pane width, mock feed titled
-    // "市況かぶ全力２階建 [full] …": without `min-width: 0` the grid's single
-    // auto column is floored at the nowrap label's min-content width, the row
-    // renders 400px wide inside a 255px clip box, and the unread badge lands
-    // 170px past that box's right edge (invisible, and the label shows no
-    // ellipsis because its own box is never narrower than its text). With the
-    // declaration the row is 224px, the badge sits 6px inside the clip edge,
-    // and the label ellipsizes. 13 of 19 sidebar rows were affected.
-    //
-    // jsdom has no layout engine, so this is pinned as a source-shape
-    // contract; the behaviour itself is verified in the browser.
+    // jsdom has no layout engine, so the badge's visibility cannot be asserted
+    // here; this pins the declaration and the behaviour is verified in the
+    // browser (measured 2026-09-18 at 255px pane width: 13 of 19 rows overflowed,
+    // the badge landing 170px outside the clipping ancestor, 0 after).
     const collapseItemRuleMatch = MOTION_CSS_SOURCE.match(/\.motion-sidebar-row-collapse > \*\s*\{([^}]*)\}/);
     expect(collapseItemRuleMatch).not.toBeNull();
     const collapseItemRuleBody = collapseItemRuleMatch?.[1] ?? "";

@@ -535,10 +535,12 @@ html.vertical-wipe-transition::view-transition-new(root) {
    defaults to its content size on both axes. The row's label is
    `white-space: nowrap`, so its min-content width is the whole untruncated
    title, which floors this grid's single auto column at that width. The row
-   then overflows the sidebar instead of ellipsizing, and the unread count —
-   which sits at the row's right edge — is pushed outside the pane's own
-   `overflow: hidden` and disappears. Authoring `min-width: 0` lets the column
-   shrink to the pane, so `truncate` on the label has a narrower box to
+   then grows past the sidebar instead of ellipsizing, and the unread count —
+   which sits at the row's right edge — is carried outside the enclosing
+   `.motion-disclosure-body`, whose `overflow: hidden` is what actually clips
+   it out of view (measured: that is the nearest non-visible-overflow ancestor
+   of both a feed row and a folder row). Authoring `min-width: 0` lets the
+   column shrink to the pane, so `truncate` on the label has a narrower box to
    ellipsize into and the count stays in view. */
 .motion-sidebar-row-collapse > * {
   clip-path: inset(0 0 0 calc(var(--feed-tree-rail-offset, 0px) * 3.25));
