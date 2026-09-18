@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { suppressConsoleError } from "@tests/helpers/console-spies";
+import { createDeferred } from "@tests/helpers/deferred";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
@@ -25,15 +26,6 @@ vi.mock("@/api/tauri-commands", () => ({
 const browserUrl = "https://example.com/article";
 
 setupBrowserTestDom();
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void = () => {};
-  const promise = new Promise<T>((promiseResolve) => {
-    resolve = promiseResolve;
-  });
-
-  return { promise, resolve };
-}
 
 function createBrowserState(overrides?: Partial<BrowserWebviewState>): BrowserWebviewState {
   return {

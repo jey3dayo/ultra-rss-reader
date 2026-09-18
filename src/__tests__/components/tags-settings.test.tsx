@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createDeferred } from "@tests/helpers/deferred";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TagsSettings } from "@/components/settings/tags-settings";
 import { useUiStore } from "@/stores/ui-store";
@@ -317,14 +318,3 @@ describe("TagsSettings", () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 });
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void = () => {};
-  let reject: (reason?: unknown) => void = () => {};
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return { promise, resolve, reject };
-}

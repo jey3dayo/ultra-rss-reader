@@ -2,6 +2,7 @@ import "@testing-library/react/dont-cleanup-after-each";
 import { Result } from "@praha/byethrow";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createDeferred } from "@tests/helpers/deferred";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWindowAlwaysOnTop } from "@/hooks/use-window-always-on-top";
@@ -31,16 +32,6 @@ setupBrowserTestDom();
 function HookHarness() {
   useWindowAlwaysOnTop();
   return null;
-}
-
-function createDeferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((innerResolve, innerReject) => {
-    resolve = innerResolve;
-    reject = innerReject;
-  });
-  return { promise, resolve, reject };
 }
 
 describe("useWindowAlwaysOnTop", () => {

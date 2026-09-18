@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MuteSettings } from "@/components/settings/mute-settings";
 import { useUiStore } from "@/stores/ui-store";
@@ -47,17 +48,6 @@ vi.mock("@/hooks/use-mute-keywords", () => ({
     mutateAsync: updateMuteKeywordMutateAsyncMock,
   }),
 }));
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void = () => {};
-  let reject: (reason?: unknown) => void = () => {};
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return { promise, resolve, reject };
-}
 
 function getDeleteButtonAt(index: number): HTMLElement {
   return getElementAt(screen.getAllByRole("button", { name: "Delete" }), index, "delete button");

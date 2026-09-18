@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { act, render, waitFor } from "@testing-library/react";
 import { testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createDeferred } from "@tests/helpers/deferred";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
@@ -106,14 +107,6 @@ function createAccount(overrides: Partial<AccountDto> = {}): AccountDto {
     keep_read_items_days: 30,
     ...overrides,
   };
-}
-
-function createDeferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
 }
 
 function setDocumentHidden(hidden: boolean): void {

@@ -29,10 +29,6 @@ import {
 
 setupBrowserTestDom();
 
-function createDeferred() {
-  return createTestDeferred<void>();
-}
-
 function createRejectableDeferred() {
   return createTestDeferred<void>();
 }
@@ -231,7 +227,7 @@ describe("usePreferencesStore preferences", () => {
   });
 
   it("keeps manual theme switches as Tauri document-root view transitions when supported", async () => {
-    const transitionDone = createDeferred();
+    const transitionDone = createTestDeferred<void>();
     const startViewTransition = vi.fn((callback: ViewTransitionUpdateCallback): ViewTransition => {
       callback();
       return createViewTransition(transitionDone.promise);
@@ -309,8 +305,8 @@ describe("usePreferencesStore preferences", () => {
   });
 
   it("keeps the latest transition class when an older view transition finishes late", async () => {
-    const firstTransition = createDeferred();
-    const latestTransition = createDeferred();
+    const firstTransition = createTestDeferred<void>();
+    const latestTransition = createTestDeferred<void>();
     const startViewTransition = vi
       .fn<(callback: ViewTransitionUpdateCallback) => ViewTransition>()
       .mockImplementationOnce((callback) => {
@@ -547,7 +543,7 @@ describe("usePreferencesStore preferences", () => {
   });
 
   it("dedupes concurrent preference loads", async () => {
-    const deferred = createDeferred();
+    const deferred = createTestDeferred<void>();
     vi.mocked(getPreferences).mockReturnValue(
       deferred.promise.then(() => Result.succeed({ theme: "dark", language: "en" })),
     );
@@ -568,8 +564,8 @@ describe("usePreferencesStore preferences", () => {
   });
 
   it("clears the pending preference load promise during the test runtime reset", async () => {
-    const staleLoad = createDeferred();
-    const nextLoad = createDeferred();
+    const staleLoad = createTestDeferred<void>();
+    const nextLoad = createTestDeferred<void>();
     vi.mocked(getPreferences)
       .mockReturnValueOnce(staleLoad.promise.then(() => Result.succeed({ theme: "dark" })))
       .mockReturnValueOnce(nextLoad.promise.then(() => Result.succeed({ theme: "light" })));
@@ -588,7 +584,7 @@ describe("usePreferencesStore preferences", () => {
   });
 
   it("keeps optimistic preference writes when an older load resolves later", async () => {
-    const deferred = createDeferred();
+    const deferred = createTestDeferred<void>();
     vi.mocked(getPreferences).mockReturnValue(
       deferred.promise.then(() =>
         Result.succeed({
@@ -620,7 +616,7 @@ describe("usePreferencesStore preferences", () => {
 
   it("does not let an older load failure apply fallback over optimistic runtime preferences", async () => {
     const changeLanguage = vi.spyOn(i18n, "changeLanguage");
-    const deferred = createDeferred();
+    const deferred = createTestDeferred<void>();
     vi.mocked(getPreferences).mockReturnValue(
       deferred.promise.then(() => Result.fail({ type: "UserVisible", message: "boom" })),
     );
@@ -732,7 +728,7 @@ describe("usePreferencesStore preferences", () => {
       configurable: true,
       value: "ja-JP",
     });
-    const deferred = createDeferred();
+    const deferred = createTestDeferred<void>();
     vi.mocked(getPreferences).mockReturnValue(
       deferred.promise.then(() => Result.fail({ type: "UserVisible", message: "boom" })),
     );
