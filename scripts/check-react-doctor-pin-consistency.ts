@@ -26,10 +26,8 @@ export type ReactDoctorScanReport = {
   diagnostics: ReactDoctorScanDiagnostic[];
 };
 
-// react-doctor can emit log lines or a version banner before the report, which is why
-// quality-baseline.ts carries a brace-balancing payload reader instead of parsing stdout
-// whole. Reuse it and take the first payload that has the report's shape, so a prefix does
-// not fail this gate with a JSON syntax error.
+// react-doctor can print log lines before the report; reuse quality-baseline.ts's
+// brace-balancing payload reader rather than parsing stdout whole.
 export function parseReactDoctorScanReport(stdout: string): ReactDoctorScanReport {
   let lastError: unknown;
   for (const payload of readJsonPayloads(stdout)) {
@@ -104,10 +102,8 @@ function readNumberField(source: Record<string, unknown>, key: string): number {
   return value;
 }
 
-// The identity key deliberately excludes line and column: the classification record was taken
-// at a different plugin version and commit than any later re-pin, and rows measurably drift to
-// different lines while remaining the same finding. `id` embeds line, column and a content hash
-// and is unusable for the same reason.
+// Excludes line/column: rows measurably drift to different lines across plugin versions
+// while remaining the same finding, and react-doctor's `id` embeds both plus a content hash.
 export type ComplexityFindingIdentity = {
   rule: string;
   normalizedFilePath: string;
@@ -154,9 +150,7 @@ const noLongerReportedMarker = "(no longer reported:";
 const recordLocationCellPattern = /^`([^`]+):\d+`$/;
 const recordFunctionCellPattern = /^`([^`]+)`$/;
 
-// Splits on "|" not preceded by "\", so an escaped pipe inside the Rationale column (used
-// throughout this table, e.g. "visible \|\| holding") does not get mistaken for a column
-// boundary.
+// Splits on unescaped "|" only; the Rationale column uses "\|\|" for literal `||`.
 function splitMarkdownTableRow(line: string): string[] {
   const cells = line.split(/(?<!\\)\|/);
   if (cells.length > 0 && cells[0].trim() === "") {
@@ -278,10 +272,7 @@ export type PinnedFullScanSummary = {
   affectedFileCount: number;
 };
 
-// warningCount and errorCount are also derivable from the exported reactDoctorFullScanTriageStatus
-// (untriagedWarningCountAtScan + classifiedFindingCount + classifiedWarningFamiliesCount, and
-// errorCountAtScan respectively), but affectedFileCount is not exported anywhere. Reading it out
-// of the source text keeps this check from duplicating a second, driftable copy of the pin.
+// affectedFileCount has no export to read; regex-extracting the pin avoids a second, driftable copy.
 const pinnedFullScanSummaryPattern =
   /full:\s*\{\s*score:\s*null,\s*errorCount:\s*(\d+),\s*warningCount:\s*(\d+),\s*affectedFileCount:\s*(\d+),\s*\}/;
 
@@ -315,9 +306,7 @@ export function parseCommandTokens(command: string): string[] {
   return command.trim().split(/\s+/);
 }
 
-// The pinned scanCommand / auditScanCommand target the repository root as ".", both as the scan
-// target and as --project. Substituting that token is how the same pinned command is pointed at
-// the materialized scanSha tree instead.
+// The pinned commands target the repo root as "."; substitute it with the materialized tree.
 export function buildMaterializedScanCommandArgs(command: string, targetDir: string): string[] {
   return parseCommandTokens(command).map((token) => (token === "." ? targetDir : token));
 }
@@ -406,10 +395,8 @@ function main(): void {
     ]);
   }
 
-  // --no-prune overrides a user- or CI-image-level `fetch.prune = true`. With that setting and
-  // this literal (non-wildcard) refspec, alternating runs of this exact fetch alternately
-  // create and delete refs/remotes/origin/main - measured directly, reproducible every other
-  // invocation. --no-prune makes the fetch idempotent regardless of the caller's global config.
+  // --no-prune: with a global `fetch.prune = true` and this literal refspec, repeated fetches
+  // alternately delete and recreate refs/remotes/origin/main (measured directly).
   runGit(["fetch", "--no-prune", "--force", "origin", "main:refs/remotes/origin/main"]);
   const scanCommit = resolveCommit(status.scanSha);
   const isAncestor = gitSucceeds(["merge-base", "--is-ancestor", scanCommit, "refs/remotes/origin/main"]);

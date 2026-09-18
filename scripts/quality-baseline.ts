@@ -227,27 +227,11 @@ const reactDoctorFullScanTriageStatusBase = {
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
-  // The count means "rows in the record that this scan reports", never "rows in the record". That
-  // distinction is why it read 24 before 2026-09-18: #279 suppressed the confirm-dialog-view.tsx
-  // row so the scan stopped reporting it, while the scan did report the useAccountDetailViewProps
-  // outlier the record deliberately excluded. Subtracting 25 then hid that outlier and made the
-  // derived untriaged total read 0 — the same stale-count failure as require-pnpm-hardening below.
-  //
-  // 25 as of 2026-09-18, and the sets behind it now genuinely agree — which they did not when this
-  // first read 25. The record holds 27 rows; the scan reports 25 of them and nothing else. The two
-  // it does not report are marked in place: SidebarNavButton, fixed in #306, and ConfirmDialogView,
-  // inline-disabled in #279.
-  //
-  // The earlier 25 was arithmetic that happened to land. #321 gave useAccountDetailViewProps a row,
-  // taking the record to 26, and 26 - 1 suppressed row = 25 matched the scan's 25. But FeedTreeRow
-  // was in the scan with no row at all — #302 made it report and #306 triaged that PR's other four
-  // without covering it — while SidebarNavButton still had a row whose finding #306 had removed.
-  // Two errors cancelling, one finding hidden: the same failure the require-pnpm-hardening note
-  // below and #300's draft describe. Comparing the sets by rule, path and function name is what
-  // found it (Issue #324); the record gained FeedTreeRow's row and went to 27.
-  //
-  // So the count means "rows in the record that this scan reports", never "rows in the record",
-  // and a total that matches is not evidence the sets do.
+  // The count means "rows in the record that this scan reports", never "rows in the record" —
+  // a total that matches is not evidence the sets do. 25 as of 2026-09-18: the record holds 27
+  // rows, the scan reports 25 of them, and the two it does not (fixed / suppressed) are marked
+  // in place rather than deleted. scripts/check-react-doctor-pin-consistency.ts (Issue #324)
+  // verifies the sets agree; see docs/react-doctor-complexity-classification.md for the history.
   classifiedFindingCount: 25,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   // Kept after #321 resolved the exclusion: the record's 26th row is dated later than the rest and
