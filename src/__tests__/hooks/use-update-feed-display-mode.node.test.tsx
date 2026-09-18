@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
@@ -64,14 +65,6 @@ describe("useUpdateFeedDisplaySettings", () => {
 
   function createHook() {
     return renderHook(() => useUpdateFeedDisplaySettings(), { wrapper });
-  }
-
-  function createDeferred<T>() {
-    let resolve!: (value: T | PromiseLike<T>) => void;
-    const promise = new Promise<T>((innerResolve) => {
-      resolve = innerResolve;
-    });
-    return { promise, resolve };
   }
 
   it("optimistically updates display settings and invalidates feeds on success", async () => {

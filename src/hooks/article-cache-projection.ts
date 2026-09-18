@@ -16,6 +16,11 @@ type CachedArticleInsertOptions = {
   insertIfMissing: boolean;
 };
 
+type CachedArticleArrayUpdateOptions = {
+  insertIfMissing?: boolean;
+  queryKey?: QueryKey;
+};
+
 const READER_FILTERS = ["all", "unread", "starred"] as const;
 
 function patchCachedArticleState(
@@ -270,7 +275,7 @@ function prependArticleToFirstCachedPage(current: { pages: unknown[] }, article:
 function updateCachedArticleArrayPage(
   current: unknown[],
   nextArticle: ArticleDto,
-  options?: { insertIfMissing?: boolean; queryKey?: QueryKey },
+  options?: CachedArticleArrayUpdateOptions,
 ): unknown[] {
   const shouldKeepArticle = options?.queryKey ? shouldKeepArticleInQuery(options.queryKey, nextArticle) : true;
 
@@ -294,7 +299,7 @@ function updateCachedArticleArrayPage(
 function updateCachedArticleArray(
   current: unknown,
   nextArticle: ArticleDto,
-  options?: { insertIfMissing?: boolean; queryKey?: QueryKey },
+  options?: CachedArticleArrayUpdateOptions,
 ): unknown {
   if (isInfiniteArticleQueryData(current)) {
     const shouldKeepArticle = options?.queryKey ? shouldKeepArticleInQuery(options.queryKey, nextArticle) : true;

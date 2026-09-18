@@ -2,28 +2,13 @@ import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSidebarHeaderProps } from "@/components/reader/hooks/sidebar/use-sidebar-header-props";
 import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
 
 setupBrowserTestDom();
-
-type Deferred<T> = {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (error: unknown) => void;
-};
-
-function createDeferred<T>(): Deferred<T> {
-  let resolve: (value: T) => void = () => {};
-  let reject: (error: unknown) => void = () => {};
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
-}
 
 function createHeaderParams(
   overrides: Partial<Parameters<typeof useSidebarHeaderProps>[0]> = {},

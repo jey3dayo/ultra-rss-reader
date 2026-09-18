@@ -3,6 +3,7 @@ import { useEffect, useMemo, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
 import {
+  type AddAccountPayload,
   type AddAccountProviderKind,
   type AddAccountValidationError,
   addAccountFormInitialState,
@@ -44,14 +45,7 @@ type AccountConfigUiAction =
   | { type: "set-error-message"; value: string | null }
   | { type: "set-validation-error"; value: AddAccountValidationError | null };
 
-type AddAccountRequestSnapshot = {
-  requestId: number;
-  kind: AddAccountProviderKind;
-  name: string;
-  serverUrl?: string;
-  username?: string;
-  password?: string;
-};
+type AddAccountRequestSnapshot = AddAccountPayload & { requestId: number };
 
 const initialAccountConfigUiState: AccountConfigUiState = {
   submitting: false,

@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   translateCommandPaletteFallbackMessage,
@@ -46,16 +47,6 @@ afterEach(async () => {
     i18n.addResourceBundle("en", "reader", enReader, true, true);
   }
 });
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void = () => undefined;
-  let reject: (reason?: unknown) => void = () => undefined;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-  return { promise, resolve, reject };
-}
 
 function createHandlers(overrides: Partial<Parameters<typeof useCommandPaletteHandlers>[0]> = {}) {
   const { result } = renderHook(() =>

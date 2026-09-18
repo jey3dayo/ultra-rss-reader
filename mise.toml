@@ -23,6 +23,9 @@ shellcheck = "latest"
 uv = "latest"
 "pipx:yamllint" = "latest"
 "npm:npm-check-updates" = "22.2.9"
+# No os key: similarity-report.ts skips the css/rs scans off Linux/macOS but runs
+# the TypeScript scan unconditionally, so restricting it would fail rather than skip.
+"cargo:similarity-ts" = "0.5.0"
 "cargo:similarity-css" = { version = "0.5.0", os = ["linux", "macos"] }
 "cargo:similarity-rs" = { version = "0.5.0", os = ["linux", "macos"] }
 

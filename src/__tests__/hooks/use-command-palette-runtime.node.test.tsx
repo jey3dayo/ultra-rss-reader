@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandPaletteRuntime } from "@/components/reader/hooks/command-palette/use-command-palette-runtime";
 import type { loadRuntimeDevScenariosResult } from "@/dev/scenario-runtime";
@@ -19,17 +20,6 @@ afterEach(async () => {
   cleanup();
   await new Promise<void>((resolve) => setImmediate(resolve));
 });
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void = () => {};
-  let reject: (reason?: unknown) => void = () => {};
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return { promise, resolve, reject };
-}
 
 describe("useCommandPaletteRuntime", () => {
   beforeEach(() => {

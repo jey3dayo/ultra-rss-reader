@@ -1,5 +1,6 @@
 import { QueryClient, type QueryKey } from "@tanstack/react-query";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { runDevScenario } from "@/dev/scenarios/runner";
@@ -44,37 +45,6 @@ type MockInvocation = {
   mock: InvocationOrderMock;
   index: number;
 };
-
-type Deferred<T> = {
-  promise: Promise<T>;
-  resolve(value: T): void;
-  reject(error: unknown): void;
-};
-
-function createDeferred<T>(): Deferred<T> {
-  let resolve: ((value: T) => void) | null = null;
-  let reject: ((error: unknown) => void) | null = null;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return {
-    promise,
-    resolve(value) {
-      if (!resolve) {
-        throw new Error("Deferred resolve was not captured.");
-      }
-      resolve(value);
-    },
-    reject(error) {
-      if (!reject) {
-        throw new Error("Deferred reject was not captured.");
-      }
-      reject(error);
-    },
-  };
-}
 
 function firstInvocation(mock: InvocationOrderMock): MockInvocation {
   return { mock, index: 0 };
