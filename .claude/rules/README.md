@@ -7,7 +7,7 @@
 
 - [ui-browser-prep.md](./ui-browser-prep.md): UI 調整前後にブラウザ実画面で確認する手順
 - [ui-design-review-loop.md](./ui-design-review-loop.md): UI 実装後に観点別 pass/finding/N/A の記録と must-fix 解消を条件にデザインレビューを反復するルール
-- [motion-exit-animation.md](./motion-exit-animation.md): 退場アニメーションの base クラスは平常時から当てる、収縮 owner は親子で1つ、後始末を `transitionend` に依存しない
+- [motion-exit-animation.md](./motion-exit-animation.md): 退場アニメーションの base クラスは平常時から当てる、収縮 owner は親子で1つ、後始末を `transitionend` に依存しない、grid ラッパーの item には `min-height: 0` と `min-width: 0` を両方当てる
 - [dialog-keyboard-confirm.md](./dialog-keyboard-confirm.md): ダイアログの Enter 確定。確認は主アクションへ初期フォーカス、フォームは submit ボタンを `<form>` の子孫に置く。user-event の Enter は実ブラウザの implicit submission ではないので実画面確認とセットにする
 - [color-pattern.md](./color-pattern.md): インタラクティブ要素の ON / OFF 状態に使う色パターン
 - [shadcn-ui.md](./shadcn-ui.md): `src/components/ui/` の扱いと shadcn/ui 利用ルール

@@ -29,8 +29,6 @@ body:
       description: 本来どうあるべきか
       placeholder: |
         restore は fail-fast を維持し、部分復旧状態で処理が継続しないこと。
-    validations:
-      required: true
   - type: textarea
     id: reproduction
     attributes:
@@ -40,8 +38,6 @@ body:
         1. Windows file lock を想定した失敗注入を行う
         2. backup/restore failure を発生させる
         3. recovery path のログと継続条件を確認する
-    validations:
-      required: true
   - type: textarea
     id: impact
     attributes:
@@ -49,8 +45,6 @@ body:
       description: 影響範囲や想定リスク
       placeholder: |
         migration recovery はユーザーデータに直結するため、失敗時の導線が sharp edge になりやすい。
-    validations:
-      required: true
   - type: checkboxes
     id: areas
     attributes:
@@ -81,8 +75,6 @@ body:
       label: Relevant Logs / Evidence
       description: ログ、エラーメッセージ、関連コード、参考資料。公開 issue には redacted log excerpt、private fields を隠した screenshot、support code、diagnostics export の redacted subset など privacy-safe な最小証跡だけを添付してください。raw database backup、app data directory、keychain export、unreviewed support dump、token や account URL を含む診断一式は添付しないでください。
       render: shell
-    validations:
-      required: false
   - type: textarea
     id: done-when
     attributes:
@@ -94,23 +86,3 @@ body:
         - [ ] 関連 failure-path tests が追加または更新されている
         - [ ] 必要な recovery guidance が整理されている
         - [ ] PR 作成時は PR template の確認済み DoD を満たす
-    validations:
-      required: true
-  - type: checkboxes
-    id: quality-gate
-    attributes:
-      label: Quality Gate
-      description: >-
-        PR 作成時は PR template の確認済み DoD と同じ gate を満たしてください。
-        DOM/CI/focused test は `mise run test:unit:dom` / `mise run ci` / focused test の確認を指します。
-      options:
-        - label: 型エラー 0 件 (`mise run check` の `lint:types`)
-          required: true
-        - label: リント違反 0 件 (`mise run check` の `lint`)
-          required: true
-        - label: 高速テスト成功 (`mise run check` の `test:unit:fast` / `test:rust`)
-          required: true
-        - label: フォーマッター適用済み (`mise run check` の `format`)
-          required: true
-        - label: jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時は DOM/CI/focused test を記録
-          required: true

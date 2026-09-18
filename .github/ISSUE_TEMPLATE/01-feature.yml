@@ -30,8 +30,6 @@ body:
       placeholder: |
         現状は Local provider（ローカル RSS/Atom）と FreshRSS（GReader API）のみ対応しており、追加の remote provider は未対応。
         認証方式や同期契約を個別に整理する必要がある。
-    validations:
-      required: true
   - type: textarea
     id: scope
     attributes:
@@ -42,8 +40,6 @@ body:
         - account add/update/test-connection flow を追加する
         - sync flow と pending mutation compatibility を定義する
         - UI と tests を追加する
-    validations:
-      required: true
   - type: textarea
     id: non-goals
     attributes:
@@ -52,8 +48,6 @@ body:
       placeholder: |
         - 既存 provider の全面リライト
         - release 前の無理な MVP ねじ込み
-    validations:
-      required: false
   - type: checkboxes
     id: areas
     attributes:
@@ -93,30 +87,8 @@ body:
         - [ ] 必要な automated tests が追加されている
         - [ ] manual verification が必要なら観点が整理されている
         - [ ] PR 作成時は PR template の確認済み DoD を満たす
-    validations:
-      required: true
-  - type: checkboxes
-    id: quality-gate
-    attributes:
-      label: Quality Gate
-      description: >-
-        PR 作成時は PR template の確認済み DoD と同じ gate を満たしてください。
-        DOM/CI/focused test は `mise run test:unit:dom` / `mise run ci` / focused test の確認を指します。
-      options:
-        - label: 型エラー 0 件 (`mise run check` の `lint:types`)
-          required: true
-        - label: リント違反 0 件 (`mise run check` の `lint`)
-          required: true
-        - label: 高速テスト成功 (`mise run check` の `test:unit:fast` / `test:rust`)
-          required: true
-        - label: フォーマッター適用済み (`mise run check` の `format`)
-          required: true
-        - label: jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時は DOM/CI/focused test を記録
-          required: true
   - type: textarea
     id: notes
     attributes:
       label: Notes
       description: 参考リンク、open questions、補足
-    validations:
-      required: false

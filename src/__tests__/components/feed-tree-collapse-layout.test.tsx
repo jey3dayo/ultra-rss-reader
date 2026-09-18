@@ -183,6 +183,18 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
     expect(0 * multiplier).toBe(0);
   });
 
+  it("lets the collapse item shrink below its label's min-content width, so a long title cannot push the unread count out of the sidebar", () => {
+    // Source-shape only: jsdom has no layout engine, so the badge's visibility
+    // is verified in the browser (#309).
+    const collapseItemRuleMatch = MOTION_CSS_SOURCE.match(/\.motion-sidebar-row-collapse > \*\s*\{([^}]*)\}/);
+    expect(collapseItemRuleMatch).not.toBeNull();
+    const collapseItemRuleBody = collapseItemRuleMatch?.[1] ?? "";
+    expect(collapseItemRuleBody).toContain("min-width: 0;");
+    // Neither axis substitutes for the other; the height floor is what lets the
+    // 0fr exit track reach zero.
+    expect(collapseItemRuleBody).toContain("min-height: 0;");
+  });
+
   it("zeroes the space-y margin-block-end (not margin-top) on the leaving row", () => {
     // Tailwind 4's `space-y-*` utility sets `margin-block-end` on every
     // non-last sibling, not `margin-top`. Overriding `margin-top` here
