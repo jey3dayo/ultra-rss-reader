@@ -42,6 +42,8 @@ jobs:
 
       - run: mise run quality:toolchain
 
+      - run: mise run quality:react-doctor-pin
+
       - name: Verify CI image toolchain contract
         shell: bash
         run: |

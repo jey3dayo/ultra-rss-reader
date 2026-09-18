@@ -316,29 +316,11 @@ describe("quality-baseline", () => {
     // being warningCount minus the two classified totals, this assertion fails without needing
     // a second copy of warningCount in this file.
     //
-    // 0 as of 2026-09-18. #321 split useAccountDetailViewProps, which removed the complexity
-    // record's stated reason for excluding it, so the scan's complexity set and the record's set
-    // agree at 25 for the first time — the outlier that used to sit in
-    // pendingJudgmentWarningFamilies is now inside classifiedFindingCount instead, and that table
-    // is empty.
-    //
-    // What this assertion cannot do is confirm the sets actually agree; it can only confirm the
-    // arithmetic (25 + 7 + 0 = 32 total) still holds. #300's draft made exactly this mistake once
-    // already: it subtracted all 25 rows of the complexity record and reported 0 untriaged while
-    // the record's 25 and the scan's 25 were different sets (#279 had suppressed one row, and the
-    // scan was reporting the excluded outlier in its place instead).
-    //
-    // That gap is unbuilt, not unbuildable, and it stays open: this assertion is not coverage for
-    // it. This test cannot run react-doctor, so it cannot re-derive the finding list itself, but
-    // under the scanSha contract the comparison no longer depends on a commit that does not exist
-    // yet and can run as a PR gate. The design is in docs/react-doctor-gate-mechanics.md and the
-    // work is tracked at https://github.com/jey3dayo/ultra-rss-reader/issues/324. Until it exists,
-    // whoever re-pins these numbers lists the scan's findings and the record's rows and checks
-    // they are the same set by hand.
-    //
-    // This test also verifies nothing about scanSha: not that it is reachable from main, and not
-    // that the pinned commands reproduce these totals at that tree. Those are the contract's other
-    // two parts and they have no coverage here either.
+    // This assertion only confirms the arithmetic still holds, which is not the same as the
+    // sets agreeing: it read this value wrongly before, on arithmetic that happened to cancel
+    // out (docs/react-doctor-complexity-classification.md has the history). scripts/check-react-doctor-pin-consistency.ts
+    // (Issue #324) is the set comparison, and it also covers scanSha ancestry and reproducing
+    // the totals at that tree, which nothing in this file does.
     expect(status.untriagedWarningCountAtScan).toBe(0);
   });
 

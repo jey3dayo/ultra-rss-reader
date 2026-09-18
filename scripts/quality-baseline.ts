@@ -227,18 +227,10 @@ const reactDoctorFullScanTriageStatusBase = {
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
-  // The count means "rows in the record that this scan reports", never "rows in the record". That
-  // distinction is why it read 24 before 2026-09-18: #279 suppressed the confirm-dialog-view.tsx
-  // row so the scan stopped reporting it, while the scan did report the useAccountDetailViewProps
-  // outlier the record deliberately excluded. Subtracting 25 then hid that outlier and made the
-  // derived untriaged total read 0 — the same stale-count failure as require-pnpm-hardening below.
-  //
-  // 25 as of 2026-09-18. It was 24 because the complexity record excluded the
-  // useAccountDetailViewProps outlier, which the scan reported with no row to match. #321 split its
-  // four section builders out, taking it from 85/106 to 26/34 — the sixth-highest cognitive figure
-  // rather than 2.5x the next — so the record's stated reason for the exclusion lapsed and the
-  // finding gained a row. The count still means "rows in the record that this scan reports"; what
-  // changed is that the scan's set and the record's set now agree at 25.
+  // The count means "rows in the record that this scan reports", never "rows in the record" —
+  // a total that matches is not evidence the sets do. Rows the scan no longer reports (fixed or
+  // suppressed) are marked in place rather than deleted. scripts/check-react-doctor-pin-consistency.ts
+  // (Issue #324) verifies the sets agree; see docs/react-doctor-complexity-classification.md for the history.
   classifiedFindingCount: 25,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   // Kept after #321 resolved the exclusion: the record's 26th row is dated later than the rest and
@@ -1716,7 +1708,7 @@ function normalizeRepoScanPath(filePath: string): string {
   return filePath.replaceAll("\\", "/").replace(/^\.\/+/, "");
 }
 
-function readJsonPayloads(stdout: string): string[] {
+export function readJsonPayloads(stdout: string): string[] {
   const payloads: string[] = [];
   for (let start = stdout.indexOf("{"); start !== -1; start = stdout.indexOf("{", start + 1)) {
     const payload = readBalancedJsonObject(stdout, start);
