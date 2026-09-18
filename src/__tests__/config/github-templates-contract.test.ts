@@ -18,11 +18,8 @@ const expectedQualityGateLabels = [
   "フォーマッター適用済み (`mise run check` の `format`)",
   "jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時は DOM/CI/focused test を記録",
 ] as const;
-// One required field per form is a deliberate policy, decided in #309 because the
-// previous 3-5 required textareas plus five required quality-gate checkboxes were
-// heavy enough that reporters filled them with placeholder text. Each entry is the
-// form's leading "what happened / what do you want" field; everything else is
-// optional, and the quality gate belongs to the PR template alone (pinned below).
+// One required field per form is a deliberate policy (#309), not a test relaxed to
+// fit; the quality gate belongs to the PR template alone, pinned below.
 const expectedRequiredFieldIdsByTemplate = {
   "01-feature.yml": ["summary"],
   "02-bug.yml": ["current-behavior"],

@@ -530,18 +530,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
    both together if a third rail decoration is ever added, or if
    sidebar-density.ts's rail offset / leading-control sizes change.
 
-   `min-width: 0` is the horizontal counterpart of `min-height: 0` above, and
-   is required for the same reason: a grid item's automatic minimum size
-   defaults to its content size on both axes. The row's label is
-   `white-space: nowrap`, so its min-content width is the whole untruncated
-   title, which floors this grid's single auto column at that width. The row
-   then grows past the sidebar instead of ellipsizing, and the unread count —
-   which sits at the row's right edge — is carried outside the enclosing
-   `.motion-disclosure-body`, whose `overflow: hidden` is what actually clips
-   it out of view (measured: that is the nearest non-visible-overflow ancestor
-   of both a feed row and a folder row). Authoring `min-width: 0` lets the
-   column shrink to the pane, so `truncate` on the label has a narrower box to
-   ellipsize into and the count stays in view. */
+   `min-width: 0` is the inline-axis counterpart, needed because the automatic
+   minimum size floors both axes; derived in
+   `.claude/rules/motion-exit-animation.md`. */
 .motion-sidebar-row-collapse > * {
   clip-path: inset(0 0 0 calc(var(--feed-tree-rail-offset, 0px) * 3.25));
   min-height: 0;

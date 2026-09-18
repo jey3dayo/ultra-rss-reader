@@ -184,16 +184,14 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
   });
 
   it("lets the collapse item shrink below its label's min-content width, so a long title cannot push the unread count out of the sidebar", () => {
-    // jsdom has no layout engine, so the badge's visibility cannot be asserted
-    // here; this pins the declaration and the behaviour is verified in the
-    // browser (measured 2026-09-18 at 255px pane width: 13 of 19 rows overflowed,
-    // the badge landing 170px outside the clipping ancestor, 0 after).
+    // Source-shape only: jsdom has no layout engine, so the badge's visibility
+    // is verified in the browser (#309).
     const collapseItemRuleMatch = MOTION_CSS_SOURCE.match(/\.motion-sidebar-row-collapse > \*\s*\{([^}]*)\}/);
     expect(collapseItemRuleMatch).not.toBeNull();
     const collapseItemRuleBody = collapseItemRuleMatch?.[1] ?? "";
     expect(collapseItemRuleBody).toContain("min-width: 0;");
-    // Both axes are needed and neither substitutes for the other: the height
-    // floor is what lets the 0fr exit track actually reach zero.
+    // Neither axis substitutes for the other; the height floor is what lets the
+    // 0fr exit track reach zero.
     expect(collapseItemRuleBody).toContain("min-height: 0;");
   });
 
