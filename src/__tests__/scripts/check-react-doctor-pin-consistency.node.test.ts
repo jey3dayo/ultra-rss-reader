@@ -412,6 +412,21 @@ describe("check-react-doctor-pin-consistency", () => {
     });
   });
 
+  describe("pendingJudgmentWarningFamilies count drift", () => {
+    it("catches a pending-family rule reporting more findings than its pinned count", () => {
+      // A pending rule adding accountedRuleNames coverage without a count check would let this
+      // pass silently, which is the gap a real pendingJudgmentWarningFamilies entry would expose.
+      const pendingTotals = sumWarningFamilyCounts([{ rule: "some-pending-rule", count: 1 }]);
+      const scanCounts = buildWarningRuleCounts([
+        { rule: "some-pending-rule", severity: "warning", normalizedFilePath: "a.tsx", message: "" },
+        { rule: "some-pending-rule", severity: "warning", normalizedFilePath: "b.tsx", message: "" },
+      ]);
+      expect(findWarningFamilyCountMismatches(pendingTotals, scanCounts)).toEqual([
+        { rule: "some-pending-rule", expected: 1, actual: 2 },
+      ]);
+    });
+  });
+
   describe("real-data path", () => {
     it("the current classification record agrees exactly with the pinned classifiedFindingCount", () => {
       const status = reactDoctorFullScanTriageStatus;

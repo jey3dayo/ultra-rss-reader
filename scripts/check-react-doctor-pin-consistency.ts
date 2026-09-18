@@ -476,11 +476,15 @@ function main(): void {
     );
   }
 
-  const accountedRuleNames = new Set<string>([
-    status.classifiedRule,
-    ...familyTotals.keys(),
-    ...status.pendingJudgmentWarningFamilies.map((family) => family.rule),
-  ]);
+  const pendingTotals = sumWarningFamilyCounts(status.pendingJudgmentWarningFamilies);
+  const pendingMismatches = findWarningFamilyCountMismatches(pendingTotals, warningRuleCounts);
+  for (const mismatch of pendingMismatches) {
+    failures.push(
+      `pendingJudgmentWarningFamilies rule "${mismatch.rule}" is pinned at ${mismatch.expected}, but the scan reports ${mismatch.actual}.`,
+    );
+  }
+
+  const accountedRuleNames = new Set<string>([status.classifiedRule, ...familyTotals.keys(), ...pendingTotals.keys()]);
   const unaccountedRules = findUnaccountedWarningRules(warningRuleCounts, accountedRuleNames);
   if (unaccountedRules.length > 0) {
     failures.push(`The scan reports warning rule(s) with no classification: ${unaccountedRules.join(", ")}`);
