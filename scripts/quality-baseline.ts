@@ -157,11 +157,21 @@ const reactDoctorBaselines = {
   // Every warning that remains belongs to a family with a recorded disposition, so the derived
   // untriagedWarningCountAtScan is 0 for the first time. That is a statement about coverage of
   // the backlog, not about the code being clean: 42 findings sit behind inline disables.
+  // 2/31/31 -> 2/32/32 measured on main at 81be1c1cd with plugin 0.9.14, and the +1 is one
+  // finding becoming reportable rather than one appearing. #317 split SubscriptionsIndexPage into
+  // hooks, which moved the stale-delete-target effect out of a props-less component and into
+  // useSubscriptionsFeedDialogs; the rule treats the hook's arguments as the changing prop, so
+  // no-adjust-state-on-prop-change went 0 -> 1 on code that #315 had already settled. Measured
+  // by scanning both source forms in one run: page form 0, hook form 1. The same PR removed the
+  // no-giant-component inline disable because the component no longer trips the rule, which is
+  // why auditWarningCount below is unchanged at 73: -1 no-giant-component and +1
+  // no-adjust-state cancel there, and an unchanged audit total is the correct reading that
+  // nothing was fixed and nothing regressed.
   full: {
     score: null,
     errorCount: 2,
-    warningCount: 31,
-    affectedFileCount: 31,
+    warningCount: 32,
+    affectedFileCount: 32,
   },
 } as const;
 
@@ -200,12 +210,17 @@ const reactDoctorFullScanTriageStatusBase = {
   // and the pin then names a commit nobody can fetch to reproduce the measurement.
   //
   // It also has to be a commit where every number in this block is true at once, which is not
-  // the same as where the scan ran. The measurement was taken at 01f4ff5da, but the follow-up
-  // that corrected classifiedFindingCount 25 -> 24 landed afterwards, so a checkout of 01f4ff5da
-  // reproduces the scanned 31/73 while its own file asserts 0 untriaged instead of 1. ac8a4aff3
-  // is the first commit where the scan output and the derived totals agree; verified by re-running
-  // the pinned scan there.
-  scanSha: "ac8a4aff3",
+  // the same as where the scan ran. That gap cost a separate PR once already: the second-wave
+  // measurement was taken at 01f4ff5da, the follow-up correcting classifiedFindingCount 25 -> 24
+  // landed afterwards, and #313 existed only to re-point this SHA at ac8a4aff3, the first commit
+  // where the scan output and the derived totals agreed.
+  //
+  // 81be1c1cd has the same one-commit lag and for the same structural reason: it is where the
+  // 32/73 scan ran, but the totals in this block only become true with the change that reads
+  // them off that scan. A checkout of 81be1c1cd reproduces the scanned 32 while its own file
+  // still asserts 31. Re-point this at the squash commit once this change is on main; until
+  // then it names the measurement, not the agreement.
+  scanSha: "81be1c1cd",
   pluginVersion: "0.9.14",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -311,6 +326,19 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: "docs/react-doctor-warning-classification-300.md",
     },
     {
+      // A second entry for the same rule, not a replacement: the 300.md rows above are the
+      // second-wave findings and the scan reports none of them, while this one is the finding
+      // #317 made reportable and it has its own record. One entry per record keeps the
+      // recordPath honest; the reduce below just sums the counts.
+      rule: "no-adjust-state-on-prop-change",
+      count: 1,
+      disposition: "accepted-risk",
+      recordPath: ".claude/rules/quality-policy.md (Adjust State On Prop Change Findings)",
+    },
+    {
+      // Count 0 for a different reason from the entries around it: #317 split the component, so
+      // the rule no longer fires and the inline disable is gone. The entry stays because the
+      // 2026-09-08 disposition is still the answer if a component grows back into it.
       rule: "no-giant-component",
       count: 0,
       disposition: "accepted-risk",

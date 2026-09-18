@@ -298,10 +298,13 @@ describe("quality-baseline", () => {
 
     // Pin the family total so a rule being added or removed from the table is caught here
     // rather than only showing up as a silent drift in the derived subtraction below.
-    // 6, not the number of entries: the second-wave families and the three rules 0.9.14 turned
+    // 7, not the number of entries: the second-wave families and the three rules 0.9.14 turned
     // off or removed sit at count 0, because the table's counts have to match what the scan
-    // reports while the entries themselves stay as the record of each decision.
-    expect(status.classifiedWarningFamiliesCount).toBe(6);
+    // reports while the entries themselves stay as the record of each decision. The 6 -> 7 is
+    // the no-adjust-state-on-prop-change finding #317 made reportable, classified in
+    // .claude/rules/quality-policy.md and carried as a second entry for that rule because it
+    // has a different record from the 300.md rows.
+    expect(status.classifiedWarningFamiliesCount).toBe(7);
     expect(status.classifiedFindingCount).toBe(24);
 
     // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
@@ -316,8 +319,10 @@ describe("quality-baseline", () => {
     // no record dispositions. The #300 draft pinned 0 here by subtracting all 25 rows of the
     // complexity record, but the record's 25 and the scan's 25 are different sets — #279
     // suppressed one row and the scan reports the excluded outlier instead. Cross-check on the
-    // subtraction, not a target: it holds because 31 total, 24 classified complexity findings and
-    // 6 family findings agree, and the remainder is named in pendingJudgmentWarningFamilies.
+    // subtraction, not a target: it holds because 32 total, 24 classified complexity findings and
+    // 7 family findings agree, and the remainder is named in pendingJudgmentWarningFamilies.
+    // It stayed 1 across the #317 re-pin because that PR added one warning and one classification
+    // in the same change; a re-pin that moves only the total would show up here.
     expect(status.untriagedWarningCountAtScan).toBe(1);
   });
 
