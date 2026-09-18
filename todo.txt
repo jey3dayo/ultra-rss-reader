@@ -1,2 +1,1 @@
 (D) 2026-08-16 Store審査結果対応→sideload検証→手動公開(期限:2026-11-16 までに初回提出しないと名前予約が失効) +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
-(C) 2026-09-18 React Doctor baseline の再ピン時に減算だけでなく診断 identity 集合を照合する PR gate を実装(検証: 合計一致・集合不一致の fixture で落ちることを先に確認) +quality note:https://github.com/jey3dayo/ultra-rss-reader/issues/324
