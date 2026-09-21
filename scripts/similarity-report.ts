@@ -22,15 +22,15 @@ export const similarityScanExcludePatterns = [
   "src-tauri/gen/schemas",
 ] as const;
 const similarityScanBaseline = {
-  functionPairs: 35,
+  functionPairs: 38,
   similarTypePairs: 17,
   typeLiteralPairs: 0,
 } as const;
 const similarityCssScanBaseline = {
-  totalRules: 92,
-  exactDuplicates: 1,
-  similarStyles: 5,
-  bemVariations: 9,
+  totalRules: 98,
+  exactDuplicates: 0,
+  similarStyles: 8,
+  bemVariations: 10,
 } as const;
 
 type SimilarityThreshold = (typeof similarityThresholds)[number];
@@ -335,9 +335,11 @@ export function evaluateSimilarityReportGate(output: string): SimilarityReportGa
 }
 
 export function parseSimilarityTypeSummary(output: string): SimilarityTypeSummary {
-  const totalTypePairs = readOptionalCount(output, /Total similar type pairs found: (\d+)/);
+  const namedTypePairTotal = readOptionalCount(output, /Total similar type pairs found: (\d+)/);
+  const typeLiteralPairTotal = readOptionalCount(output, /Total similar type literal pairs found: (\d+)/);
+  const totalTypePairs = namedTypePairTotal + typeLiteralPairTotal;
   const similarTypePairs = countTypePairMarkers(output, "(type)");
-  const typeLiteralPairs = countTypePairMarkers(output, "(type literal)");
+  const typeLiteralPairs = countTypePairMarkers(output, "type-literal:");
 
   return {
     similarTypePairs,
