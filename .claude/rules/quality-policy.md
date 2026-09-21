@@ -686,7 +686,7 @@ The measured reproduction log for this preflight is in
 
 ## Similarity Report Baseline
 
-Use `mise run report:similarity` for the regular duplicate-code report. It wraps `similarity-ts --threshold 0.9 src/`, records TODO-backed false positives in `scripts/similarity-report.ts`, and treats drift as report output until it is triaged into TODO updates or refactoring work.
+Use `mise run report:similarity` for the regular duplicate-code report. It wraps `similarity-ts --threshold 0.9 src/`, records TODO-backed false positives in `scripts/similarity-report.ts`, and treats drift as report output until it is triaged into TODO updates or refactoring work. Pair-level classifications and the inventory that explains the display baselines live in [../../docs/similarity-pair-classification.md](../../docs/similarity-pair-classification.md).
 
 ### Rust Similarity Scan
 

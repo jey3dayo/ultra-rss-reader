@@ -39,6 +39,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - Knip unused-export and unused-type triage record: [knip-export-classification.md](./knip-export-classification.md).
 - pnpm `trustPolicy` adoption preflight evidence: [pnpm-trust-policy-preflight.md](./pnpm-trust-policy-preflight.md).
 - React Doctor high-complexity function triage record: [react-doctor-complexity-classification.md](./react-doctor-complexity-classification.md).
+- similarity-ts pair triage record: [similarity-pair-classification.md](./similarity-pair-classification.md).
 - React Doctor error triage record: [react-doctor-error-triage.md](./react-doctor-error-triage.md).
 - React Doctor warning classification records: [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md) (first wave) and [react-doctor-warning-classification-300.md](./react-doctor-warning-classification-300.md) (second wave).
 - React Doctor diff-gate degradation evidence and `scanSha` re-pin gating options: [react-doctor-gate-mechanics.md](./react-doctor-gate-mechanics.md).
@@ -55,6 +56,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - [flaky-test-quarantine-policy.md](./flaky-test-quarantine-policy.md): policy for quarantining, documenting, and retiring flaky tests
 - [knip-export-classification.md](./knip-export-classification.md): dated record classifying every Knip unused-export and unused-type finding from Issue #249; the durable policy lives in [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)
 - [react-doctor-complexity-classification.md](./react-doctor-complexity-classification.md): dated record classifying every in-scope `no-high-complexity-react-function` finding from Issue #249; the durable families and triage method live in [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)
+- [similarity-pair-classification.md](./similarity-pair-classification.md): dated record classifying every function and type pair from `similarity-ts` at threshold 0.9; durable heuristics live in [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)
 - [react-doctor-error-triage.md](./react-doctor-error-triage.md): dated record classifying every React Doctor error reported in the 2026-09-10 pass
 - [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md): first-wave warning classification (`exhaustive-deps` / `no-adjust-state-on-prop-change`), including the judgements an independent review rejected
 - [react-doctor-warning-classification-300.md](./react-doctor-warning-classification-300.md): second-wave warning classification across nine rules, the scan-count reconciliation, and the paired-rule shadowing measured while suppressing findings
