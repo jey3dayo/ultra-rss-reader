@@ -23,6 +23,7 @@ import {
   parseSimilarityOutput,
   parseSimilarityPairs,
   parseSimilarityRustSummary,
+  parseSimilarityTypeSummary,
   readThreshold,
   shouldRunRustSimilarityScan,
   similarityFalsePositiveBaseline,
@@ -129,7 +130,7 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
     expect(summary).toContain("scan excludes: node_modules / dist / src-tauri/target");
     expect(summary).toContain("unparsed similarity blocks: 0");
-    expect(summary).toContain("scan baseline function pairs: 35");
+    expect(summary).toContain("scan baseline function pairs: 38");
     expect(summary).toContain("allowlisted false positives present: 2");
     expect(summary).toContain("allowlisted false positives absent: 5");
     expect(summary).not.toContain("TODO baseline");
@@ -146,8 +147,8 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
 
     const summary = buildSimilarityCssSummary(sampleCssReport);
     expect(summary).toContain("current command: mise exec -- similarity-css --threshold 0.9 --min-size 3 src/");
-    expect(summary).toContain("scan baseline rules: 92");
-    expect(summary).toContain("scan baseline similar styles: 5");
+    expect(summary).toContain("scan baseline rules: 98");
+    expect(summary).toContain("scan baseline similar styles: 8");
 
     expect(buildSimilarityCssSummary(sampleCssReport, 0.87, "src/lib")).toContain(
       "current command: mise exec -- similarity-css --threshold 0.87 --min-size 3 src/lib",
@@ -225,6 +226,31 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
       exitCode: 1,
       message: "Similarity report gate failed: type pair report drift: 2",
     });
+  });
+
+  it("counts type-literal pairs and reconciles separate tool total lines", () => {
+    const report = `
+=== Type Similarity ===
+
+Similarity: 95.47% (structural: 100.00%, naming: 88.67%)
+  src/components/settings/shared/settings-shell-section-label.tsx:4 | L4-7 similar-type: SettingsShellSectionLabelProps (type)
+  src/components/shared/section-heading.tsx:4 | L4-7 similar-type: SectionHeadingProps (type)
+
+Similarity: 100.00% (structural: 100.00%, naming: 100.00%)
+  src/__tests__/components/use-article-list-data.node.test.ts:11 | L11 type-literal: buildSourcePlan (parameter: params)
+  src/__tests__/components/use-article-list-data.node.test.tsx:15 | L15 type-literal: buildSourcePlan (parameter: params)
+
+Total similar type pairs found: 1
+Total similar type literal pairs found: 1
+`;
+
+    expect(parseSimilarityTypeSummary(report)).toEqual({
+      similarTypePairs: 1,
+      typeLiteralPairs: 1,
+      totalTypePairs: 2,
+      reportedTypePairDrift: 0,
+    });
+    expect(evaluateSimilarityReportGate(report)).toBeNull();
   });
 
   it("keeps the report gate green when similarity-ts output matches the parser contract", () => {
