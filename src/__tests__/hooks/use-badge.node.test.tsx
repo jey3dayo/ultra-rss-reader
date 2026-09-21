@@ -2,6 +2,7 @@ import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,15 +30,6 @@ vi.mock("@tauri-apps/api/window", () => ({
 }));
 
 setupBrowserTestDom();
-
-function createDeferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  const promise = new Promise<T>((promiseResolve) => {
-    resolve = promiseResolve;
-  });
-
-  return { promise, resolve };
-}
 
 function HookHarness() {
   useBadge();

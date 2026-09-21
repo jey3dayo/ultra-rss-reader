@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,15 +26,6 @@ vi.mock("@/api/tauri-commands", () => ({
 }));
 
 setupBrowserTestDom();
-
-function createDeferred<T>() {
-  let resolve: (value: T) => void = () => {};
-  const promise = new Promise<T>((promiseResolve) => {
-    resolve = promiseResolve;
-  });
-
-  return { promise, resolve };
-}
 
 const successfulSyncResult = {
   synced: true,

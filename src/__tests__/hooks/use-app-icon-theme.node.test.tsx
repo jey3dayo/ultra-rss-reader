@@ -4,6 +4,7 @@ import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createDeferred } from "@tests/helpers/deferred";
 import { createLegacyMatchMedia, createModernMatchMedia } from "@tests/helpers/match-media";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_ICON_THEME_PATHS, useAppIconTheme } from "@/hooks/use-app-icon-theme";
@@ -46,17 +47,6 @@ function stubMatchMedia(matchMedia: ((query: string) => unknown) | undefined) {
     writable: true,
     value: matchMedia,
   });
-}
-
-function createDeferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-
-  return { promise, resolve, reject };
 }
 
 function setPlatformState({

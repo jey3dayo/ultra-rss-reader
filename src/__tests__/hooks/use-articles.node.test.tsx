@@ -4,6 +4,7 @@ import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -51,14 +52,6 @@ const sampleFeedsForAccountOne = sampleFeeds.map((feed) => ({
   ...feed,
   account_id: "acc-1",
 }));
-
-function createDeferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  const promise = new Promise<T>((innerResolve) => {
-    resolve = innerResolve;
-  });
-  return { promise, resolve };
-}
 
 describe("article mutation cache contract", () => {
   it("keeps article mutation invalidation roots aligned with query cache roots", () => {
