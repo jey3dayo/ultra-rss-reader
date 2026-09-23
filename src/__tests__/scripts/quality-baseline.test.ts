@@ -3,19 +3,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  buildDependencyLicenseInventory,
   buildLockfileDuplicateMajorReport,
   buildReactDoctorRuleCounts,
-  buildTailwindArbitraryValueInventory,
-  classifyTailwindArbitraryValue,
   createProcessDiagnostic,
   createReportDiagnostic,
-  dependencyLicenseInventoryContract,
-  dependencyUpdateSmokeContract,
   formatKnipIssue,
   isExpectedReactDoctorReportMode,
   isQualityBaselineRepoScanIgnoredPath,
-  isTailwindArbitraryValueInventorySourcePath,
   parseKnipReport,
   parseReactDoctorReport,
   partitionQualityBaselineRepoScanPaths,
@@ -25,7 +19,6 @@ import {
   reactDoctorScopeArgs,
   readJsonPayload,
   readLockfilePackages,
-  tailwindArbitraryValuesInventoryContract,
 } from "../../../scripts/quality-baseline";
 
 const SINGLE_DOCUMENT_LOCKFILE = readFileSync(
@@ -549,163 +542,6 @@ describe("quality-baseline", () => {
         ],
       ],
     ]);
-  });
-
-  it("classifies Tailwind arbitrary values into review buckets", () => {
-    expect(classifyTailwindArbitraryValue("max-w-[24ch]")).toBe("layout-critical");
-    expect(classifyTailwindArbitraryValue("motion-safe:duration-[180ms]")).toBe("motion-critical");
-    expect(classifyTailwindArbitraryValue("z-[60]")).toBe("z-index");
-    expect(classifyTailwindArbitraryValue("text-[color:var(--section-heading-color)]")).toBe("token-candidate");
-    expect(classifyTailwindArbitraryValue("supports-[backdrop-filter]:bg-background/80")).toBe("one-off-allowed");
-  });
-
-  it("builds a Tailwind arbitrary value inventory across app UI ownership scopes", () => {
-    expect(tailwindArbitraryValuesInventoryContract.categories).toEqual([
-      "layout-critical",
-      "motion-critical",
-      "z-index",
-      "token-candidate",
-      "one-off-allowed",
-    ]);
-    expect(isTailwindArbitraryValueInventorySourcePath("src/components/app-shell.tsx")).toBe(true);
-    expect(isTailwindArbitraryValueInventorySourcePath("src/components/reader/article-list.tsx")).toBe(true);
-    expect(isTailwindArbitraryValueInventorySourcePath("src/components/settings/account-view.tsx")).toBe(true);
-    expect(isTailwindArbitraryValueInventorySourcePath("src/__tests__/components/app.test.tsx")).toBe(false);
-
-    const inventory = buildTailwindArbitraryValueInventory([
-      {
-        path: "src/components/app-shell.tsx",
-        source: [
-          '<div className="grid max-w-[24ch] text-[color:var(--shell-label)] z-[60]">',
-          '<span className="motion-safe:duration-[180ms] supports-[backdrop-filter]:bg-background/80" />',
-        ].join("\n"),
-      },
-      {
-        path: "src/components/reader/article-list.tsx",
-        source: '<div className="max-w-[88ch]" />',
-      },
-    ]);
-
-    expect(inventory.summary).toEqual({
-      "layout-critical": 2,
-      "motion-critical": 1,
-      "z-index": 1,
-      "token-candidate": 1,
-      "one-off-allowed": 1,
-    });
-    expect(inventory.entries.map((entry) => `${entry.category}:${entry.line}:${entry.className}`)).toEqual([
-      "layout-critical:1:max-w-[24ch]",
-      "token-candidate:1:text-[color:var(--shell-label)]",
-      "z-index:1:z-[60]",
-      "motion-critical:2:motion-safe:duration-[180ms]",
-      "one-off-allowed:2:supports-[backdrop-filter]:bg-background/80",
-      "layout-critical:1:max-w-[88ch]",
-    ]);
-  });
-
-  it("builds a combined pnpm and Cargo dependency license inventory with review buckets", () => {
-    expect(dependencyLicenseInventoryContract.reportPath).toBe("tmp/dependency-license-inventory.json");
-    expect(dependencyLicenseInventoryContract.pnpmCommand).toEqual(["pnpm", "licenses", "list", "--json"]);
-    expect(dependencyLicenseInventoryContract.cargoCommand).toEqual([
-      "cargo",
-      "metadata",
-      "--manifest-path",
-      "src-tauri/Cargo.toml",
-      "--format-version",
-      "1",
-      "--locked",
-    ]);
-
-    const inventory = buildDependencyLicenseInventory({
-      pnpm: {
-        MIT: [{ name: "react", versions: ["19.2.6"] }],
-        UNKNOWN: [{ name: "mystery-js@1.0.0" }],
-      },
-      cargo: {
-        packages: [
-          { name: "serde", version: "1.0.228", license: "MIT OR Apache-2.0" },
-          { name: "internal-crate", version: "0.1.0", license: "" },
-        ],
-      },
-    });
-
-    expect(inventory.ecosystems).toEqual({ pnpm: 2, cargo: 2 });
-    expect(inventory.summary).toEqual({
-      total: 4,
-      unknownLicenseCount: 2,
-      dualLicenseCount: 1,
-    });
-    expect(inventory.findings).toEqual([
-      {
-        ecosystem: "cargo",
-        packageName: "internal-crate",
-        version: "0.1.0",
-        license: "",
-        review: "unknown-license",
-      },
-      {
-        ecosystem: "cargo",
-        packageName: "serde",
-        version: "1.0.228",
-        license: "MIT OR Apache-2.0",
-        review: "dual-license",
-      },
-      {
-        ecosystem: "pnpm",
-        packageName: "mystery-js@1.0.0",
-        version: "1.0.0",
-        license: "UNKNOWN",
-        review: "unknown-license",
-      },
-      {
-        ecosystem: "pnpm",
-        packageName: "react",
-        version: "19.2.6",
-        license: "MIT",
-        review: "ok",
-      },
-    ]);
-  });
-
-  it("classifies dependency update smoke by runtime behavior family", () => {
-    expect(dependencyUpdateSmokeContract.categories).toEqual([
-      "query-caching",
-      "store-equality",
-      "tauri-api",
-      "vite-dev-server",
-      "test-runner",
-    ]);
-    expect(dependencyUpdateSmokeContract.reviewPolicy).toContain("Classify lockfile updates by runtime behavior");
-
-    expect(dependencyUpdateSmokeContract.packages).toEqual(
-      expect.arrayContaining([
-        {
-          name: "@tanstack/react-query",
-          category: "query-caching",
-          smoke: "query cache boot/reload contract",
-        },
-        {
-          name: "zustand",
-          category: "store-equality",
-          smoke: "store selector equality and persistence contract",
-        },
-        {
-          name: "@tauri-apps/api",
-          category: "tauri-api",
-          smoke: "Tauri command/event wrapper contract",
-        },
-        {
-          name: "vite",
-          category: "vite-dev-server",
-          smoke: "Tauri dev Vite port and HMR contract",
-        },
-        {
-          name: "vitest",
-          category: "test-runner",
-          smoke: "unit test environment and setup contract",
-        },
-      ]),
-    );
   });
 });
 

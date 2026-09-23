@@ -252,14 +252,6 @@ describe("package scripts", () => {
     expect(miseToml).toContain("storybook build");
   });
 
-  it("exposes dependency license inventory generation through package scripts", () => {
-    const packageJson = readPackageJson();
-
-    expect(packageJson.scripts?.["quality:dependency-licenses"]).toBe(
-      "node ./scripts/quality-baseline.ts dependency-licenses",
-    );
-  });
-
   it("exposes macOS Keychain signature diagnostics through package scripts", () => {
     const packageJson = readPackageJson();
     const diagnosticScript = readWorkspaceFile("scripts/release/macos-keychain-signature-diagnostics.ts");

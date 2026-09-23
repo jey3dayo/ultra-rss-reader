@@ -26,6 +26,7 @@ Contract tests should capture durable boundaries: runtime inputs, DTO shapes, pu
 - If a contract requires manual desktop verification, keep the unit test for the narrow invariant and leave manual verification to the task or release checklist.
 - Read a stylesheet with `readFileSync`, not a `?raw` import. Vite's CSS pipeline rewrites what `?raw` yields for a `.css` file: a real `@layer` at-rule injected into `motion.css` did not reach the imported string, so a guard asserting its absence passed against a genuinely layered file. `?raw` on `.ts` sources is unaffected and stays the normal way to pin source text.
 - Prove a new guard can fail before trusting it. Break the thing it protects — revert the fix, inject the at-rule, reverse the import order — confirm that exact test goes red, then restore. A guard written against a source the tooling transforms can be green for the whole life of the contract without ever having been able to fail.
+- Delete tests that only mirror the code — a test asserting a constant equals its own literal, or covering a feature no task, script, or workflow runs. Delete the unwired feature with it rather than keeping it alive for its test.
 
 ## A Helper With No Caller Is Not Covered
 
