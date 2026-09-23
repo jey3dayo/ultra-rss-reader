@@ -1298,6 +1298,82 @@ describe("AccountDetail", () => {
     expect(screen.getByText("Authentication failed")).toBeInTheDocument();
   });
 
+  const pastSyncSuccessAt = "2020-01-06T01:06:00Z";
+  const pastSyncSuccessDate = new Date(pastSyncSuccessAt);
+  // Derived, not a literal: the formatter renders in the machine's local timezone and the
+  // test environment pins none.
+  const pastSyncSuccessDetail = `${pastSyncSuccessDate.toLocaleDateString("en", { month: "short", day: "numeric" })} ${pastSyncSuccessDate.toLocaleTimeString(
+    "en",
+    { hour: "2-digit", minute: "2-digit", hour12: false },
+  )}`;
+
+  function buildFreshRssAccountFixture(
+    overrides: Partial<
+      Pick<AccountDto, "connection_verification_status" | "connection_verified_at" | "connection_verification_error">
+    >,
+  ): AccountDto {
+    return {
+      id: "acc-1",
+      kind: "FreshRss",
+      name: "FreshRSS",
+      username: "user",
+      server_url: "https://freshrss.example.com",
+      sync_interval_secs: 3600,
+      sync_on_startup: true,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+      ...overrides,
+    };
+  }
+
+  it.each([
+    {
+      name: "synced on a past date",
+      verificationOverrides: {
+        connection_verification_status: "verified" as const,
+        connection_verified_at: "2026-04-19T05:32:00Z",
+        connection_verification_error: null,
+      },
+      syncStatus: { last_success_at: pastSyncSuccessAt, last_error: null },
+      expectedStatusLabel: "Verified",
+      expectedDetail: pastSyncSuccessDetail,
+    },
+    {
+      name: "fetch-failed when unverified and the last sync errored",
+      verificationOverrides: {},
+      syncStatus: { last_success_at: null, last_error: "Network timeout" },
+      expectedStatusLabel: "Unverified",
+      expectedDetail: "Fetching failed",
+    },
+    {
+      name: "not-fetched when unverified and nothing has synced",
+      verificationOverrides: {},
+      syncStatus: { last_success_at: null, last_error: null },
+      expectedStatusLabel: "Unverified",
+      expectedDetail: "Nothing has been fetched yet",
+    },
+  ])(
+    "shows the connection summary detail: $name",
+    async ({ verificationOverrides, syncStatus, expectedStatusLabel, expectedDetail }) => {
+      setupTauriMocks((cmd) => {
+        switch (cmd) {
+          case "list_accounts":
+            return [buildFreshRssAccountFixture(verificationOverrides)];
+          case "get_account_sync_status":
+            return { ...syncStatus, error_count: 0, next_retry_at: null };
+          default:
+            return undefined;
+        }
+      });
+
+      render(<AccountDetail />, { wrapper: createWrapper() });
+
+      expect(await screen.findByTestId("account-connection-summary")).toBeInTheDocument();
+      expect(await screen.findByText(expectedStatusLabel)).toBeInTheDocument();
+      expect(await screen.findByText(expectedDetail)).toBeInTheDocument();
+    },
+  );
+
   it("treats an unsuccessful connection test result as a failure toast", async () => {
     const user = userEvent.setup();
 
