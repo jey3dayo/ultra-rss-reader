@@ -27,7 +27,8 @@ paths:
 - [boundary-ownership.md](./boundary-ownership.md): refactor 時の owner 判定表と移動先ルール
 - [contract-test-policy.md](./contract-test-policy.md): contract test の置き場所、TODO 化する境界値、ルール昇格の判断基準
 - [code-policy.md](./code-policy.md): 依存 advisory と pnpm バージョンの方針、TypeScript 単一バージョン方針と alias 復活の条件、React Compiler opt-in、ES2023 array copy methods
-- [quality-policy.md](./quality-policy.md): Knip の ignore と unused export / type findings の分類手順、TODO priority taxonomy と aging、React Doctor の scan scope、similarity の baseline と false positive
+- [quality-policy.md](./quality-policy.md): Knip の ignore と unused export / type findings の分類手順、TODO priority taxonomy と aging、React Doctor の scan scope、similarity の baseline
+- [similarity-false-positives.md](./similarity-false-positives.md): similarity report の false positive の判定と、共有 helper を抽出してよい条件
 - [react-doctor-triage.md](./react-doctor-triage.md): React Doctor warning の分類と suppression の記録方法、scan task が自動実行されないこと、diff gate の degraded 表示、`scanSha` の契約、`no-high-complexity-react-function` の構造ファミリ別 triage、`no-loading-flag-reset-outside-finally` / 反復・探索形 / 振る舞い単発 / lazy ref init / 供給網 hardening の各 finding の分類、未 triage warning 第 1 波・第 2 波の分類記録への導線、suppress で別ルールが露出する挙動、同一行への disable 2 段重ね、audit mode（`--no-respect-inline-disables`）併記の必要性、classified family の count 陳腐化。path-scoped（読み込み条件は frontmatter の `paths:`）
 - [tauri-window-chrome.md](./tauri-window-chrome.md): OS ごとに異なる titlebar / header の扱いと現在の実装方針
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン

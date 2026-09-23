@@ -6,6 +6,7 @@ paths:
   - "todo.txt"
   - "docs/knip-export-classification.md"
   - "src-tauri/src/service/sync_scheduler/mod.rs"
+  - "src-tauri/src/domain/provider.rs"
 ---
 
 # Quality Policy

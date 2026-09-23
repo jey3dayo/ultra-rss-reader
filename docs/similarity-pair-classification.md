@@ -1,7 +1,7 @@
 ---
 type: record
 title: Similarity Pair Classification
-description: Dated triage record for similarity-ts function and type pairs at threshold 0.9; durable heuristics live in quality-policy.md.
+description: Dated triage record for similarity-ts function and type pairs at threshold 0.9; durable heuristics live in similarity-false-positives.md.
 resource: urn:ultra-rss-reader:docs:similarity-pair-classification
 tags: [category/quality, audience/agent, audience/developer, status/historical]
 timestamp: 2026-09-22
@@ -11,7 +11,7 @@ owner: project-maintainers
 
 # Similarity Pair Classification
 
-Triage record for `similarity-ts --threshold 0.9 src/` at commit `5a645904fbb896b111a3b1f84f261435cbdad7f0` (includes #327). The durable scan rules, hub-noise heuristics, and allowlist limits live in [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md). This file is the pair-level inventory those counts must explain.
+Triage record for `similarity-ts --threshold 0.9 src/` at commit `5a645904fbb896b111a3b1f84f261435cbdad7f0` (includes #327). The durable scan rules live in [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md); hub-noise heuristics and allowlist limits live in [../.claude/rules/similarity-false-positives.md](../.claude/rules/similarity-false-positives.md). This file is the pair-level inventory those counts must explain.
 
 Each row records **both paths and symbols** so later scans can diff pair sets without relying on symbol names alone.
 
@@ -75,7 +75,7 @@ Three function allowlist ids did not match any pair at scanSha (scan still lists
 
 ## Type pairs (17)
 
-Type pairs are recorded here because `similarityFalsePositiveBaseline` cannot match them (parser returns only the function half). See quality-policy.md.
+Type pairs are recorded here because `similarityFalsePositiveBaseline` cannot match them (parser returns only the function half). See similarity-false-positives.md.
 
 | Similarity % | Path A | Symbol A | Path B | Symbol B | Classification | Rationale |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -99,7 +99,7 @@ Type pairs are recorded here because `similarityFalsePositiveBaseline` cannot ma
 
 ## Measurement Notes
 
-Measured 2026-09-19 at `6e967f4b1`; these are the numbers behind the Similarity False Positives rules in `quality-policy.md`.
+Measured 2026-09-19 at `6e967f4b1`; these are the numbers behind the rules in `similarity-false-positives.md`.
 
 - Hub noise: `similarity-ts --threshold 0.9 src/` reported 40 function pairs. `useBrowserWebviewBoundsSync` appeared in 9 of them, paired with unrelated targets including `patchCachedAccount`, `useSubscriptionsIndexEscape`, and `useAccountDetailSyncStatusRows`; the eight most frequent symbols filled 44 of the 80 pair slots. The no-suppression decision was taken on the same date.
 - `createDeferred`: 22 files under `src/__tests__` defined their own copy while 4 imported `tests/helpers/deferred.ts`. `--filter-function createDeferred --threshold 0.9` returned 0 pairs; with `--no-size-penalty` it returned 1478. The 22 copies were removed in commit `1b9bf2bb3`. The first inventory counted 23 files and 26 definitions and both were wrong: the looser pattern `^[[:space:]]*(const|function) createDeferred` also matched `createDeferredCleanup()` in `tauri-event-listeners.node.test.ts` and call sites of the form `const createDeferredResult = createDeferred<...>()`.

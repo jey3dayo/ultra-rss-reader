@@ -92,7 +92,8 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - Refactor-time owner selection, helper extraction destinations, generated artifacts, UI copy, stable keys, and runtime capability ownership: [.claude/rules/boundary-ownership.md](.claude/rules/boundary-ownership.md).
 - Boundary tests or TODO findings that should become durable coverage: [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
 - Preference schema/defaults, backend allowlist, settings copy, and shortcut preference parity: [.claude/rules/preferences-pattern.md](.claude/rules/preferences-pattern.md).
-- TODO priority taxonomy, similarity false positives, or the React Doctor scan scope: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
+- TODO priority taxonomy, Knip findings and ignores, similarity report baselines, or the React Doctor scan scope: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
+- Similarity false positives and when to extract a shared helper: [.claude/rules/similarity-false-positives.md](.claude/rules/similarity-false-positives.md).
 - Before running or interpreting any React Doctor task, classifying a finding, adding a `react-doctor-disable` record, or re-pinning a React Doctor baseline, read [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md). It is path-scoped, so a run that reads none of its files does not load it.
 - Rust test `unwrap` / `expect` usage: [.claude/rules/rust-test-unwrap-policy.md](.claude/rules/rust-test-unwrap-policy.md).
 - TypeScript version, React Compiler, ES2023 copy methods, dependency advisory: [.claude/rules/code-policy.md](.claude/rules/code-policy.md).
