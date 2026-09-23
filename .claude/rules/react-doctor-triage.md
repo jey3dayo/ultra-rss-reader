@@ -2,6 +2,7 @@
 paths:
   - "scripts/quality-baseline.ts"
   - "src/__tests__/scripts/quality-baseline.test.ts"
+  - "src/__tests__/config/react-doctor-disable-reference-contract.node.test.ts"
   - "docs/react-doctor-*.md"
   - "mise/quality.toml"
   - "pnpm-workspace.yaml"
