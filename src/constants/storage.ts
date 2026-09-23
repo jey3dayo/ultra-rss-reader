@@ -74,21 +74,6 @@ function storageKeysForCleanupPolicies(cleanupPolicies: readonly StorageKeyClean
   );
 }
 
-export const STORAGE_RUNTIME_KEY_CONTRACT = {
-  privateStorageKeys: [
-    STORAGE_KEYS.theme,
-    STORAGE_KEYS.commandHistory,
-    STORAGE_KEYS.sidebarExpandedFolders,
-    STORAGE_KEYS.startupSyncLastTriggeredAt,
-  ],
-  testFixtureKeys: [],
-  deprecatedAliases: [LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt],
-} as const satisfies {
-  privateStorageKeys: readonly StorageKey[];
-  testFixtureKeys: readonly string[];
-  deprecatedAliases: readonly LegacyStorageKey[];
-};
-
 export const STORAGE_CLEANUP_POLICY_CONNECTIONS = {
   settingsDataResetKeys: storageKeysForCleanupPolicies(SETTINGS_DATA_RESET_STORAGE_CLEANUP_POLICIES),
   privateDataExportKeys: storageKeysForCleanupPolicies(PRIVATE_DATA_EXPORT_STORAGE_CLEANUP_POLICIES),

@@ -4,13 +4,12 @@ import { parse } from "valibot";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { PlatformInfoSchema } from "@/api/schemas";
 import {
-  BROWSER_RUNTIME_EVENT_CONTRACT,
   BROWSER_SURFACE_ISSUE_KINDS,
   BROWSER_WINDOW_EVENTS,
   type BrowserSurfaceIssueKind,
   type BrowserWindowEventName,
 } from "@/constants/browser";
-import { APP_EVENTS, APP_RUNTIME_EVENT_CONTRACT, type AppEventName } from "@/constants/events";
+import { APP_EVENTS, type AppEventName } from "@/constants/events";
 import {
   MOTION_CLASS_NAMES,
   MOTION_DATA_ATTRIBUTES,
@@ -42,7 +41,6 @@ import {
   type LegacyStorageKey,
   STORAGE_KEY_POLICIES,
   STORAGE_KEYS,
-  STORAGE_RUNTIME_KEY_CONTRACT,
   type StorageKey,
   type StorageKeyName,
 } from "@/constants/storage";
@@ -61,39 +59,11 @@ describe("constants source of truth", () => {
     expectTypeOf<AppEventName>().toEqualTypeOf<(typeof eventNames)[number]>();
   });
 
-  it("classifies app runtime events by runtime boundary", () => {
-    expect(APP_RUNTIME_EVENT_CONTRACT).toEqual({
-      publicWindowEvents: [
-        APP_EVENTS.navigateArticle,
-        APP_EVENTS.navigateFeed,
-        APP_EVENTS.debugInputTrace,
-        APP_EVENTS.browserDebugGeometry,
-      ],
-      publicTauriEvents: [APP_EVENTS.menuAction],
-    });
-    expectNoDuplicates([
-      ...APP_RUNTIME_EVENT_CONTRACT.publicWindowEvents,
-      ...APP_RUNTIME_EVENT_CONTRACT.publicTauriEvents,
-    ]);
-  });
-
   it("derives browser window event names from BROWSER_WINDOW_EVENTS", () => {
     const eventNames = Object.values(BROWSER_WINDOW_EVENTS);
 
     expectNoDuplicates(eventNames);
     expectTypeOf<BrowserWindowEventName>().toEqualTypeOf<(typeof eventNames)[number]>();
-  });
-
-  it("classifies browser window events as public Tauri runtime events", () => {
-    expect(BROWSER_RUNTIME_EVENT_CONTRACT).toEqual({
-      publicTauriEvents: [
-        BROWSER_WINDOW_EVENTS.stateChanged,
-        BROWSER_WINDOW_EVENTS.closed,
-        BROWSER_WINDOW_EVENTS.fallback,
-        BROWSER_WINDOW_EVENTS.diagnostics,
-      ],
-    });
-    expectNoDuplicates(BROWSER_RUNTIME_EVENT_CONTRACT.publicTauriEvents);
   });
 
   it("derives browser surface issue kinds from BROWSER_SURFACE_ISSUE_KINDS", () => {
@@ -110,22 +80,6 @@ describe("constants source of truth", () => {
     expect(storageKeys.some((key) => (legacyStorageKeys as readonly string[]).includes(key))).toBe(false);
     expectTypeOf<StorageKey>().toEqualTypeOf<(typeof storageKeys)[number]>();
     expectTypeOf<LegacyStorageKey>().toEqualTypeOf<(typeof legacyStorageKeys)[number]>();
-  });
-
-  it("classifies storage runtime keys by visibility and legacy status", () => {
-    expect(STORAGE_RUNTIME_KEY_CONTRACT).toEqual({
-      privateStorageKeys: [
-        STORAGE_KEYS.theme,
-        STORAGE_KEYS.commandHistory,
-        STORAGE_KEYS.sidebarExpandedFolders,
-        STORAGE_KEYS.startupSyncLastTriggeredAt,
-      ],
-      testFixtureKeys: [],
-      deprecatedAliases: [LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt],
-    });
-    expectNoDuplicates(STORAGE_RUNTIME_KEY_CONTRACT.privateStorageKeys);
-    expectNoDuplicates(STORAGE_RUNTIME_KEY_CONTRACT.deprecatedAliases);
-    expect(STORAGE_RUNTIME_KEY_CONTRACT.testFixtureKeys).toEqual([]);
   });
 
   it("classifies storage keys as runtime tokens with explicit policies", () => {

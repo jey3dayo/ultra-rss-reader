@@ -5,7 +5,7 @@ import { parse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { commandArgsSchemas, PlatformInfoSchema } from "@/api/schemas";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
-import { DEV_MOCK_NETWORK_BOUNDARY, DEV_MOCK_PLATFORM_INFO, DEV_MOCK_SIDE_EFFECT_BOUNDARY } from "@/dev/mocks";
+import { DEV_MOCK_PLATFORM_INFO } from "@/dev/mocks";
 
 function readSource(path: string): string {
   return readFileSync(resolve(process.cwd(), path), "utf8");
@@ -15,21 +15,6 @@ describe("dev mock static contracts", () => {
   it("keeps browser-only mock platform capabilities aligned with production defaults", () => {
     expect(parse(PlatformInfoSchema, DEV_MOCK_PLATFORM_INFO)).toEqual(DEV_MOCK_PLATFORM_INFO);
     expect(DEV_MOCK_PLATFORM_INFO).toEqual(DEFAULT_PLATFORM_INFO);
-  });
-
-  it("documents browser-only side effect and network boundaries", () => {
-    expect(DEV_MOCK_NETWORK_BOUNDARY).toEqual({
-      externalOpen: "record-only",
-      browserWebview: "state-only",
-      feedDiscovery: "synthetic",
-    });
-    expect(DEV_MOCK_SIDE_EFFECT_BOUNDARY).toEqual({
-      externalOpen: "record-only",
-      readingList: "record-only",
-      browserWebview: "state-only",
-      feedIntegrityCleanup: "dry-run-safe",
-      opmlImport: "explicitly-unsupported",
-    });
   });
 
   it("keeps every schema-validated command covered by the browser-only mock switch", () => {
