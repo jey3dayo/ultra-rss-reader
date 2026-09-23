@@ -974,13 +974,6 @@ const typeSurfaceInventory = [
     consumerScope: "reader article-list controller hooks, view-prop builder, presentation helpers, and focused tests",
     auditedExports: [
       "ArticleListSelection",
-      "ArticleListPresentationLoading",
-      "ArticleListPresentationPaneActions",
-      "ArticleListPresentationSearch",
-      "ArticleListPresentationSelectionState",
-      "ArticleListPresentationSource",
-      "ArticleListPresentationTranslators",
-      "ArticleListPresentationViewPrefs",
       "UseArticleListDataParams",
       "UseArticleListDataResult",
       "UseArticleListHeaderActionsParams",
@@ -1071,12 +1064,7 @@ const typeSurfaceInventory = [
     owner: "components/reader/sidebar-sources",
     classification: "feature-local",
     consumerScope: "reader sidebar source model hook, account status labels, feed tree, tags, and focused tests",
-    auditedExports: [
-      "SidebarAccountStatusLabels",
-      "SidebarAccountStatusLabelsParams",
-      "SidebarSourcesParams",
-      "SidebarSourcesResult",
-    ],
+    auditedExports: ["SidebarAccountStatusLabelsParams", "SidebarSourcesParams", "SidebarSourcesResult"],
     runtimeBoundary: false,
     followUp:
       "Keep sidebar source contracts here while account/feed/tag source hooks compose a single sidebar source model.",
@@ -1129,7 +1117,7 @@ const typeSurfaceInventory = [
     owner: "components/settings/settings-preference",
     classification: "feature-local",
     consumerScope: "settings preference view-prop hooks and schema parity focused tests",
-    auditedExports: ["SettingsPreferenceSetPref", "SettingsPreferenceViewPropsParams"],
+    auditedExports: ["SettingsPreferenceViewPropsParams"],
     runtimeBoundary: false,
     followUp:
       "Keep preference hook input contracts here while general, appearance, reading, actions, and debug settings share the same typed setter.",
@@ -2528,6 +2516,21 @@ describe("repository static contracts", () => {
         .filter(({ path }) => auditedReaderTypeSurfacePathSet.has(path))
         .every((inventoryItem) => "auditedExports" in inventoryItem && inventoryItem.auditedExports.length > 0),
     ).toBe(true);
+    const unexportedAuditedNames = typeSurfaceInventory.flatMap((inventoryItem) => {
+      if (!("auditedExports" in inventoryItem)) {
+        return [];
+      }
+      const source = readRepoFile(inventoryItem.path);
+      return inventoryItem.auditedExports
+        .filter(
+          (name) =>
+            !new RegExp(
+              `export\\s+(?:type|interface|const|function)\\s+${name}\\b|export\\s+(?:type\\s+)?\\{[^}]*\\b${name}\\b`,
+            ).test(source),
+        )
+        .map((name) => `${inventoryItem.path}:${name}`);
+    });
+    expect(unexportedAuditedNames).toEqual([]);
   });
 
   it("keeps remaining TypeScript type surface files on an explicit allowlist", () => {
