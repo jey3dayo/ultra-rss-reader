@@ -1,3 +1,11 @@
+---
+paths:
+  - "src/components/**/*.{ts,tsx}"
+  - "src/styles/**/*.css"
+  - "src/App.tsx"
+  - "src/locales/**"
+---
+
 # UI デザインレビュー反復ルール
 
 ## 対象

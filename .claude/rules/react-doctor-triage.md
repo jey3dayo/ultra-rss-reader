@@ -513,7 +513,7 @@ measurements are below; the decision it produced is here.
 
 `pnpm-workspace.yaml` sets `trustPolicy: no-downgrade` with one entry in
 `trustPolicyExclude`. Exclusions follow the Dependency Advisory Policy in
-[quality-policy.md](./quality-policy.md): never anonymous,
+[code-policy.md](./code-policy.md): never anonymous,
 always with the package, the reason, and the date, recorded here as well as at the setting.
 
 Current exclusions:

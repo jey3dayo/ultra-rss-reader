@@ -160,7 +160,7 @@ const reactDoctorFullScanTriageStatusBase = {
       rule: "js-tosorted-immutable",
       count: 0,
       disposition: "false-positive",
-      recordPath: ".claude/rules/quality-policy.md (ES2023 Array Copy Methods)",
+      recordPath: ".claude/rules/code-policy.md (ES2023 Array Copy Methods)",
     },
     {
       // Off by default in the pinned plugin.

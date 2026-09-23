@@ -87,7 +87,7 @@ Tauri の window chrome は OS ごとに前提が違う。特に macOS は overl
 - `SidebarHeaderView` の mac 専用逃がしを変えたら `src/__tests__/components/sidebar-header-view.test.tsx` を更新する
 - drag テストは「spacer がある」ことより、「interactive 要素が drag region に含まれないこと」と「passive surface 側に drag region が置かれていること」を確認する
 - Storybook 確認導線を触ったら `workspace-header.stories.tsx` の runtime mock と `shared-stories.test.tsx` の両方を見直す
-- drag 修正の完了判定は DOM テストだけで終えない。`tauri-dev-screenshot` や browser 実画面確認で layout 崩れと drag surface の位置を必ず目視確認する
+- drag 修正の完了判定は DOM テストだけで終えない。native-window screenshot（`tmp/screenshots/` に保存）や browser 実画面確認で layout 崩れと drag surface の位置を必ず目視確認する
 
 ## 避けること
 

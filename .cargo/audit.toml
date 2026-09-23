@@ -2,7 +2,7 @@
 #
 # Each entry must record the advisory ID, the reason it is safe to defer,
 # and the date it was reviewed. Anonymous ignores are forbidden — see
-# .claude/rules/quality-policy.md "Dependency Advisory Policy".
+# .claude/rules/code-policy.md "Dependency Advisory Policy".
 
 [advisories]
 ignore = [

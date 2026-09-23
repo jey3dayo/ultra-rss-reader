@@ -1839,6 +1839,7 @@ describe("repository static contracts", () => {
       ".claude/rules/README.md",
       ".claude/rules/async-side-effect-policy.md",
       ".claude/rules/boundary-ownership.md",
+      ".claude/rules/code-policy.md",
       ".claude/rules/contract-test-policy.md",
       ".claude/rules/preferences-pattern.md",
       ".claude/rules/quality-policy.md",
@@ -1847,6 +1848,7 @@ describe("repository static contracts", () => {
       ".claude/rules/runtime-boundary.md",
       ".claude/rules/rust-test-unwrap-policy.md",
       ".claude/rules/schema-boundary.md",
+      ".claude/rules/similarity-false-positives.md",
     ]);
     expect(missingFromIndex).toEqual([]);
   });

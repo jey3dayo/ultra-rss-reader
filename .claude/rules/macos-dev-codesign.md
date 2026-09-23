@@ -1,3 +1,10 @@
+---
+paths:
+  - "src-tauri/**"
+  - "mise.toml"
+  - "mise/*.toml"
+---
+
 # macOS 開発用コード署名
 
 ## 問題

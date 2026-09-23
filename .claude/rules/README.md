@@ -1,3 +1,8 @@
+---
+paths:
+  - ".claude/rules/**"
+---
+
 # .claude/rules Index
 
 このディレクトリにあるプロジェクト固有ルールの目次です。
@@ -21,7 +26,9 @@
 - [schema-boundary.md](./schema-boundary.md): DTO / preferences / localStorage schema の strictness と fallback 所有者
 - [boundary-ownership.md](./boundary-ownership.md): refactor 時の owner 判定表と移動先ルール
 - [contract-test-policy.md](./contract-test-policy.md): contract test の置き場所、TODO 化する境界値、ルール昇格の判断基準
-- [quality-policy.md](./quality-policy.md): 依存 advisory と pnpm バージョンの方針、Knip の ignore と unused export / type findings の分類手順、TODO priority taxonomy と aging、TypeScript 単一バージョン方針と alias 復活の条件、React Compiler opt-in、ES2023 array copy methods、React Doctor の scan scope、similarity の baseline と false positive
+- [code-policy.md](./code-policy.md): 依存 advisory と pnpm バージョンの方針、TypeScript 単一バージョン方針と alias 復活の条件、React Compiler opt-in、ES2023 array copy methods
+- [quality-policy.md](./quality-policy.md): Knip の ignore と unused export / type findings の分類手順、TODO priority taxonomy と aging、React Doctor の scan scope、similarity の baseline
+- [similarity-false-positives.md](./similarity-false-positives.md): similarity report の false positive の判定と、共有 helper を抽出してよい条件
 - [react-doctor-triage.md](./react-doctor-triage.md): React Doctor warning の分類と suppression の記録方法、scan task が自動実行されないこと、diff gate の degraded 表示、`scanSha` の契約、`no-high-complexity-react-function` の構造ファミリ別 triage、`no-loading-flag-reset-outside-finally` / 反復・探索形 / 振る舞い単発 / lazy ref init / 供給網 hardening の各 finding の分類、未 triage warning 第 1 波・第 2 波の分類記録への導線、suppress で別ルールが露出する挙動、同一行への disable 2 段重ね、audit mode（`--no-respect-inline-disables`）併記の必要性、classified family の count 陳腐化。path-scoped（読み込み条件は frontmatter の `paths:`）
 - [tauri-window-chrome.md](./tauri-window-chrome.md): OS ごとに異なる titlebar / header の扱いと現在の実装方針
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン
@@ -37,28 +44,7 @@
 
 ## Repository Structure
 
-- 通常の feature UI は `src/components/<feature>/` に置く
-- 複数 feature で再利用する UI は `src/components/shared/` に置く
-- shadcn/Base UI wrapper は `src/components/ui/` に限定する
-- 共有 UI の公開 import は `@/design-system`（`src/design-system/index.ts`）に集約する。`src/components/ui/` と `src/components/shared/` は実装 owner として残し、app / feature / Storybook / test code は barrel 経由で import する。逆に実装 owner 側から `@/design-system` を import しない。shared-vs-local 判定は [../../DESIGN_REVIEW.md](../../DESIGN_REVIEW.md) を参照する
-- この import 境界は `src/__tests__/components/design-system-import-boundary.node.test.ts` が強制する。直接 import が許される例外（cmdk の Command family、story 参照、headless primitive を直接触る test）は同テストの allowlist が正本なので、allowlist に載っているファイルを drift として扱わない。例外を増やすときは allowlist も同じ変更で更新する
-- cross-feature data hook は `src/hooks/`、cross-feature pure helper は `src/lib/` に置く
-- feature 内だけで使う hook は `src/components/<feature>/hooks/` に置く
-- app-wide action boundary は `src/lib/actions.ts` / `src/lib/app-actions.ts` に残す。keyboard、menu、command palette、dev scenario、IPC validation で共有されるため
-- app-wide runtime singleton や中立 primitive は `src/lib` root に残す。例: `i18n.ts`、`datetime.ts`、`utils.ts`
-- cross-pane DOM focus helper は `src/lib/reader-focus.ts` に残す。`src/lib/reader/` は reader query / source planning 用
-- frontend-owned runtime schema は `src/schemas/` に置く。local config、localStorage、preferences など IPC 以外の検証が対象
-- Tauri IPC request / response schema は `src/api/schemas/` に置く。local storage や app config schema と混ぜない
-- refactor 時の移動先判断は [boundary-ownership.md](./boundary-ownership.md) の owner 表を参照する
-- cross-feature literal は `src/constants/`、共有 type-only contract は `src/lib/*.types.ts` に置く
-- reusable test helper は `tests/helpers/` に置き、frontend tests からは `@tests/helpers/*` で import する
-- sample DTO / data fixture は `tests/helpers/fixtures.ts`、Tauri IPC mock setup は `tests/helpers/tauri-mocks.ts`、test-only の Tauri mock call contract は `tests/helpers/tauri-types.ts` に分ける
-- 大きい feature の controller hook は、再利用されない限り feature 配下の `hooks/` に co-locate してよい
-- reader 専用の pure helper は `src/components/reader/` に残してよい。`lib` / `stores` / 他 feature から必要になった時だけ `src/lib/` へ出す
-- component-local pure helper を `src/lib/` に抽出する時は、React-free、UI-copy-free、store-free、Tauri-command-free な logic だけを移す
-- hook、toast execution、store access、listener lifecycle、optimistic update、component props、view label は owning feature に残す
-- tests、mocks、近傍 component が旧 feature module の public surface を import している時は、互換 re-export を優先する
-- コマンド実行方針は [../../CLAUDE.md](../../CLAUDE.md) と [../../mise.toml](../../mise.toml) を参照する。日常的な project rule はこの `.claude/rules/` に置く
+- [repository-structure.md](./repository-structure.md): feature/shared/ui のディレクトリ配置、design-system barrel の import 境界、schema や test helper の置き場所
 
 ## Rust
 
