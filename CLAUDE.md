@@ -61,6 +61,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 
 - Prefer editing existing files over creating new files.
 - Avoid incidental refactors, feature additions, or docs churn outside the task.
+- Code comments state only contracts and constraints the code cannot show. Measurement history, before/after numbers, PR and incident narratives, and superseded designs go in the commit message, PR body, or a `docs/` record; delete them from code when found.
 - Put screenshots and other temporary artifacts under `tmp/`, preferably `tmp/screenshots/` for screenshots.
 - Treat `src/locales/ja/` as product UI copy. Keep Japanese labels concise and natural, and update copy-sensitive tests when visible labels change.
 - Reader article list behavior is governed by [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md).

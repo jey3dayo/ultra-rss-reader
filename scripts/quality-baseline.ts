@@ -98,75 +98,9 @@ const reactDoctorBaselines = {
     warningCount: 0,
     affectedFileCount: 0,
   },
-  // The full-scan numbers are a MEASUREMENT SNAPSHOT of the last scan, not a set of
-  // accepted risks. Equality with them means "the totals still match what was measured
-  // on 2026-09-08", and nothing at all about whether the findings behind them were
-  // reviewed. Only no-high-complexity-react-function was classified in that pass, so
-  // most of what these numbers cover is still untriaged; runReactDoctor prints the
-  // per-rule breakdown and the outstanding-triage notice on every full run so a zero
-  // delta never reads as approval. Keep reactDoctorFullScanTriageStatus in step when
-  // re-pinning these, and see docs/react-doctor-complexity-classification.md for the
-  // per-finding record and .claude/rules/react-doctor-triage.md for the durable families.
-  // The drop from 14/120/74 to 14/97/64 had two separate causes and neither was a
-  // suppression: PRs #259/#261/#262 removed real findings, and adding --project . stopped
-  // the scan from counting vendored apm_modules projects, which had contributed one error
-  // and inflated require-pnpm-hardening from 1 to 3 by re-reporting the same root file.
-  // The further drop to 93/60 is four findings actually fixed: one js-set-map-lookups
-  // (a quadratic membership test), two js-combine-iterations, and one
-  // no-loading-flag-reset-outside-finally. The remaining one of each of the first two
-  // rules is recorded as accepted risk in .claude/rules/react-doctor-triage.md.
-  // 93/60 -> 90/58 was attributed on 2026-09-09 by comparing per-rule warning counts at
-  // ad4a203a2 against 835ad5b01, not by accepting the totals. Every rule is unchanged except
-  // three, each down exactly one: no-high-complexity-react-function 26 -> 25 and
-  // no-adjust-state-on-prop-change 17 -> 16 are the two inline records added on
-  // confirm-dialog-view.tsx in #279, and no-enter-submit-without-ime-composition-guard 1 -> 0
-  // is a finding #272 genuinely fixed. Those two rules were that file's only findings, so it
-  // leaves the affected set along with the file #272 fixed, which is the -2 on files.
-  // 90/58 -> 89/57 is one finding actually fixed, not a re-measurement: adopting
-  // trustPolicy: no-downgrade in pnpm-workspace.yaml cleared the sole
-  // require-pnpm-hardening warning, and that file was its only finding so it leaves the
-  // affected set too. Verified by counting the rule in the full diagnostics before and after.
-  // 2/89/50 -> 2/56/44 measured on main at 9e3077f2f. The error count is unchanged; the -33 on
-  // warnings is fully attributed to two changes and nothing else moved. #298 memoised the
-  // `x ?? []` query fallbacks, taking exhaustive-deps 18 -> 5. #303 recorded the classified
-  // findings inline, taking exhaustive-deps 5 -> 0 and no-adjust-state-on-prop-change 16 -> 1.
-  // The single no-adjust-state finding that remains is the one deliberately left unclassified
-  // (use-subscriptions-index-state.ts, second wave: issues/300); every other finding in those
-  // two families is either fixed or carries an inline record pointing at its classification.
-  // 2/56/44 -> 2/59/45 measured on main at 61af6f1c8. The previous pin described 9e3077f2f
-  // and #302 landed underneath it, so this closes that gap rather than re-measuring the same
-  // tree. #302 added four warnings across two files and #306 disposed of all four: the three
-  // js-combine-iterations in feed-tree-presence-output.ts are accepted risk (the family table
-  // below moves 1 -> 4, and a live scan reports exactly 4 of that rule), and the
-  // no-high-complexity-react-function on SidebarNavButton was removed by extracting the badge
-  // retention into a hook plus a local component, not classified. That asymmetry is why
-  // classifiedFindingCount stays 25 while the family total moves 11 -> 14, and why the derived
-  // untriaged count stays 20: nothing entered the backlog.
-  // 2/59/45 -> 2/31/31 measured on main at 01f4ff5da with plugin 0.9.14, and the -28 has three
-  // separate causes that a warning total cannot tell apart. Attributed by comparing per-rule
-  // counts, not by accepting the total:
-  //   -7  the 0.9.13 -> 0.9.14 bump (6ef1b4701) turned js-tosorted-immutable (3) and
-  //       js-combine-iterations (4) off by default. `react-doctor rules list` prints both as
-  //       `off (default)`, so these findings were not fixed; the rule stopped asking.
-  //       require-pnpm-hardening was removed from the rule set entirely in the same bump.
-  //   -3  three findings actually fixed in #311: two rerender-lazy-ref-init and one
-  //       prefer-use-sync-external-store. This is the only part of the delta that is an
-  //       improvement, and auditWarningCount below is what shows it.
-  //  -18  eighteen findings given inline dispositions in #311, recorded per finding in
-  //       docs/react-doctor-warning-classification-300.md. Silenced, not fixed.
-  // Every warning that remains belongs to a family with a recorded disposition, so the derived
-  // untriagedWarningCountAtScan is 0 for the first time. That is a statement about coverage of
-  // the backlog, not about the code being clean: 42 findings sit behind inline disables.
-  // 2/31/31 -> 2/32/32 measured on main at 81be1c1cd with plugin 0.9.14, and the +1 is one
-  // finding becoming reportable rather than one appearing. #317 split SubscriptionsIndexPage into
-  // hooks, which moved the stale-delete-target effect out of a props-less component and into
-  // useSubscriptionsFeedDialogs; the rule treats the hook's arguments as the changing prop, so
-  // no-adjust-state-on-prop-change went 0 -> 1 on code that #315 had already settled. Measured
-  // by scanning both source forms in one run: page form 0, hook form 1. The same PR removed the
-  // no-giant-component inline disable because the component no longer trips the rule, which is
-  // why auditWarningCount below is unchanged at 73: -1 no-giant-component and +1
-  // no-adjust-state cancel there, and an unchanged audit total is the correct reading that
-  // nothing was fixed and nothing regressed.
+  // A measurement snapshot of the scan at scanSha, not a set of accepted risks: equal totals say
+  // nothing about whether the findings were reviewed. Re-pin together with
+  // reactDoctorFullScanTriageStatus.
   full: {
     score: null,
     errorCount: 2,
@@ -180,9 +114,8 @@ const reactDoctorBaselines = {
 // unclassified: telling those apart needs a per-finding comparison against the record,
 // which this wrapper does not do.
 //
-// classifiedWarningFamilies is the confirmed disposition table for every rule family
-// classified in the 2026-09-08 pass that was NOT the no-high-complexity-react-function
-// family (that one is tracked separately as classifiedRule/classifiedFindingCount). Keep
+// classifiedWarningFamilies is the disposition table for every rule family other than
+// classifiedRule, which is counted separately as classifiedFindingCount. Keep
 // this table as the source of truth for those dispositions; untriagedWarningCountAtScan
 // below is derived from it plus the complexity family so re-pinning warningCount never
 // requires a hand-recomputed subtraction.
@@ -206,26 +139,15 @@ const reactDoctorFullScanTriageStatusBase = {
   // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
-  //
-  // The earlier reading required every number here to be true at scanSha, which is unsatisfiable
-  // inside the PR that changes them: the SHA has to be an ancestor, and the values arrive with the
-  // pinning commit. It cost a post-merge follow-up three times (#313, #319, #323) and was only
-  // workable non-recursively, since no commit can assert its own SHA. Changed on an independent
-  // review, recorded in .claude/rules/react-doctor-triage.md; that section also has the consistency
-  // check this makes gateable in the PR.
   scanSha: "42e307a17",
   pluginVersion: "0.9.14",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
-  // The count means "rows in the record that this scan reports", never "rows in the record" —
-  // a total that matches is not evidence the sets do. Rows the scan no longer reports (fixed or
-  // suppressed) are marked in place rather than deleted. scripts/check-react-doctor-pin-consistency.ts
-  // (Issue #324) verifies the sets agree; see docs/react-doctor-complexity-classification.md for the history.
+  // Rows in the record that this scan reports, not rows in the record: rows the scan no longer
+  // reports stay in place, marked. scripts/check-react-doctor-pin-consistency.ts compares the sets.
   classifiedFindingCount: 24,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
-  // Kept after #321 resolved the exclusion: the record's 26th row is dated later than the rest and
-  // this is where the reasoning for it lives. Rename or drop it only together with that row.
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   classifiedWarningFamilies: [
     {
@@ -235,16 +157,14 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: ".claude/rules/react-doctor-triage.md (Loading Flag Reset Findings)",
     },
     {
-      // 0.9.14 turned this rule off by default, so the scan no longer asks. The entry stays
-      // because the disposition is still the answer if it is ever turned back on; the count is
-      // only what the untriaged arithmetic needs, and it has to match what the scan reports.
+      // Off by default in the pinned plugin. The disposition applies if it is turned back on.
       rule: "js-tosorted-immutable",
       count: 0,
       disposition: "false-positive",
       recordPath: ".claude/rules/quality-policy.md (ES2023 Array Copy Methods)",
     },
     {
-      // Also off by default from 0.9.14; see the note above.
+      // Off by default in the pinned plugin.
       rule: "js-combine-iterations",
       count: 0,
       disposition: "accepted-risk",
@@ -269,23 +189,14 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: ".claude/rules/react-doctor-triage.md (Behavioural Single Findings)",
     },
     {
-      // The finding was cleared on 2026-09-10 by adopting trustPolicy: no-downgrade, and 0.9.14
-      // then removed the rule from the rule set entirely (`react-doctor rules list` does not
-      // print it). Leaving the count at 1 is what made the derived untriaged total read 20
-      // against 21 real findings for a week.
+      // Removed from the pinned plugin's rule set. Counts must match the scan, so this stays 0.
       rule: "require-pnpm-hardening",
       count: 0,
       disposition: "deferred",
       recordPath: "https://github.com/jey3dayo/ultra-rss-reader/issues/264",
     },
-    // Second wave (#300), recorded per finding in the classification document. Counts are 0
-    // because every finding in these families carries an inline disable, so the scan no longer
-    // reports it. The disposition still stands: remove a disable and the same verdict applies.
-    //
-    // rerender-lazy-ref-init and prefer-use-sync-external-store are deliberately absent. Their
-    // findings were fixed, not dispositioned, so there is nothing here that would still apply if
-    // the rule fired again — it would need classifying afresh. The fixes are attributed in the
-    // reactDoctorBaselines.full comment and recorded in the classification document.
+    // Count 0 because every finding in these families carries an inline disable; the verdict
+    // applies again if a disable is removed.
     {
       rule: "no-pass-data-to-parent",
       count: 0,
@@ -318,19 +229,14 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: "docs/react-doctor-warning-classification-300.md",
     },
     {
-      // A second entry for the same rule, not a replacement: the 300.md rows above are the
-      // second-wave findings and the scan reports none of them, while this one is the finding
-      // #317 made reportable and it has its own record. One entry per record keeps the
-      // recordPath honest; the reduce below just sums the counts.
+      // A second entry for the same rule because this finding has a different record.
       rule: "no-adjust-state-on-prop-change",
       count: 1,
       disposition: "accepted-risk",
       recordPath: ".claude/rules/react-doctor-triage.md (Adjust State On Prop Change Findings)",
     },
     {
-      // Count 0 for a different reason from the entries around it: #317 split the component, so
-      // the rule no longer fires and the inline disable is gone. The entry stays because the
-      // 2026-09-08 disposition is still the answer if a component grows back into it.
+      // Count 0 because no component trips the rule; the disposition applies if one grows back.
       rule: "no-giant-component",
       count: 0,
       disposition: "accepted-risk",
@@ -349,28 +255,14 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: "docs/react-doctor-warning-classification-300.md",
     },
   ],
-  // Findings that are neither classified nor part of the plain untriaged remainder: a
-  // decision is blocked on something other than reading the finding (here, whether the
-  // component should own different state, not a straight rule swap). Kept separate from
-  // classifiedWarningFamilies so its count is never added into or subtracted alongside the
-  // classified total, while still being named instead of silently folded into "other".
-  // rerender-lazy-ref-init left this table on 2026-09-18 because both of its findings were fixed
-  // (the remedy differed between the two sites, which is why they were not a single decision; see
-  // the classification record). The complexity outlier sat here next, pending the extraction
-  // design that Issue #256 was tracking; #321 landed that design, which is what emptied this
-  // table. The outlier now has its own row in the complexity record and is counted inside
-  // classifiedFindingCount instead. See the empty-array comment above for why this table stays
-  // empty rather than being removed.
+  // Findings whose decision is blocked on something other than reading them. Kept out of
+  // classifiedWarningFamilies so their count stays inside the untriaged total.
   pendingJudgmentWarningFamilies,
   // No open tracker while the untriaged total is 0; point this at a new issue when one is needed.
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
-  // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
-  // The dispositions total errorCountAtScan, which the baseline test pins: re-pinning
-  // errorCount without re-classifying therefore fails instead of silently claiming coverage
-  // it does not have. must-fix counts fixes still owed, not fixes made, so it fell to 0 when
-  // the pass's twelve landed in #291/#292/#293; what remains is the pass's own false positive
-  // and its test-only accepted risk, which are decisions rather than pending work.
+  // The dispositions must total errorCountAtScan (pinned by the baseline test), so re-pinning
+  // errorCount without re-classifying fails. mustFix counts fixes still owed.
   errorClassification: {
     pass: "2026-09-10",
     recordPath: "docs/react-doctor-error-triage.md",
@@ -378,8 +270,7 @@ const reactDoctorFullScanTriageStatusBase = {
     falsePositive: 1,
     acceptedRisk: 1,
   },
-  // A subset of the pass above: the one error Issue #249 had already decided. Kept named
-  // because re-pinning a total must not erase an earlier decision.
+  // Named so re-pinning a total cannot erase an earlier decision.
   previouslyClassifiedErrors: [
     {
       rule: "no-prop-callback-in-render",
@@ -404,17 +295,12 @@ const classifiedWarningFamiliesCount = reactDoctorFullScanTriageStatusBase.class
   0,
 );
 
-// untriagedWarningCountAtScan is derived, not hand-pinned: it is the scanned warningCount
-// minus the complexity family and minus every classified warning family above. Re-pinning
-// reactDoctorBaselines.full.warningCount therefore keeps this number in step automatically;
-// it does not need a matching manual edit here.
+// untriagedWarningCountAtScan is derived from the pinned totals so re-pinning never needs a
+// hand-recomputed subtraction.
 export const reactDoctorFullScanTriageStatus = {
   ...reactDoctorFullScanTriageStatusBase,
   classifiedWarningFamiliesCount,
-  // Derived for the same reason untriagedWarningCountAtScan is: a second pinned copy of the
-  // error total drifts silently. Landing a must-fix fix re-pins full.errorCount, and the
-  // disposition-sum test then fails until errorClassification is re-counted, instead of the
-  // report claiming a classification breakdown that no longer adds up.
+  // Derived so there is no second pinned copy of the error total to drift.
   errorCountAtScan: reactDoctorBaselines.full.errorCount,
   untriagedWarningCountAtScan:
     reactDoctorBaselines.full.warningCount -
@@ -422,10 +308,7 @@ export const reactDoctorFullScanTriageStatus = {
     classifiedWarningFamiliesCount,
 } as const;
 
-// Re-pinned on 2026-09-08 after classifying every reported export and type; see
-// docs/knip-export-classification.md for the per-finding record. The remaining 11 findings are
-// 7 unused files with `mise` / Vite-alias consumers, 2 intentional semantic aliases, and 2 exports
-// whose `export` keyword is itself the contract a test asserts.
+// Per-finding classification: docs/knip-export-classification.md.
 const knipBaseline = {
   issueCount: 10,
   findingsCount: 11,
@@ -475,12 +358,8 @@ export const tailwindArbitraryValuesInventoryContract = {
     "Classify arbitrary values before tokenizing; repeated semantic color, elevation, spacing, and z-index values should become token candidates.",
 } as const;
 
-// Entries here are matched against the lockfile by name and major set, so one that matches
-// nothing is dead data rather than a harmless leftover — the same reason this file refuses
-// Rust false positives in similarityFalsePositiveBaseline. Measured against the lockfile on
-// 2026-09-10, after the Vitest 5 upgrade in #277: @vitest/expect, @vitest/pretty-format and
-// @vitest/utils now resolve to 3.2.4 alone, so their entries matched nothing and are removed;
-// only @vitest/spy is still duplicated, at 3.2.4 beside 5.0.0.
+// Matched against the lockfile by name and major set, so an entry that matches nothing is dead
+// data; remove it.
 const knownAcceptableLockfileDuplicateMajors = [
   {
     name: "@vitest/spy",
@@ -650,16 +529,9 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
   }
 }
 
-// `files` scanned every changed file whole, so touching a file that already carried a
-// documented accepted risk turned the gate red and forced the same judgement to be re-made by
-// hand each time. `changed` reports only findings new against the base, which is what
-// "regression gate" was always meant to mean, and keeps the expectations pinned at zero rather
-// than at a count that has to be re-measured. A finding inside a function this change rewrote
-// still counts as new even when its metrics did not move; that is deliberate, and the way to
-// clear it is the inline record described in .claude/rules/react-doctor-triage.md, not a baseline
-// bump. `--include-untracked` is required because the scope is resolved from git, so a
-// brand-new file would otherwise pass unscanned. Dropping it would be silent, which is why
-// this is exported and pinned by a test instead of inlined at the call site.
+// `changed` reports only findings new against the base. A finding inside a rewritten function
+// still counts as new; clear it with the inline record in .claude/rules/react-doctor-triage.md,
+// not a baseline bump. `--include-untracked` is required or a brand-new file passes unscanned.
 export function reactDoctorScopeArgs(mode: ReactDoctorMode): string[] {
   if (mode === "diff") {
     return ["--scope", "changed", "--base", "origin/main", "--include-untracked"];
@@ -668,12 +540,8 @@ export function reactDoctorScopeArgs(mode: ReactDoctorMode): string[] {
   return ["--scope", "full"];
 }
 
-// react-doctor names the mode after what the run actually did, not after the scope it was
-// given. Under `--scope changed` it reports `baseline` once it has a base to compare findings
-// against, and `diff` when the comparison produced nothing. Both are the diff gate working;
-// only a `full` here would mean the wrong scan ran. Asserting the literal "diff" passed review
-// on a branch whose scan happened to be empty and then failed on the first branch that had a
-// finding, which is the case the gate exists for.
+// Under `--scope changed` react-doctor reports `baseline` when it had a base to compare against
+// and `diff` when the comparison produced nothing; both are the diff gate working.
 export function isExpectedReactDoctorReportMode(mode: ReactDoctorMode, reportMode: string): boolean {
   if (mode === "diff") {
     return reportMode === "diff" || reportMode === "baseline";
@@ -682,14 +550,8 @@ export function isExpectedReactDoctorReportMode(mode: ReactDoctorMode, reportMod
   return reportMode === "full";
 }
 
-// A degraded run reports every finding in the changed files instead of only the new ones, which
-// is the `files` behaviour the diff gate was moved away from. The counts look the same either
-// way, so without this notice a green run and a red run both read as if the delta comparison
-// happened. Say so rather than let the number stand for something it is not; the gate still
-// uses the counts, because a degraded run over-reports and never under-reports. The wording
-// names the missing comparison rather than a cause: react-doctor sets the flag from
-// `baselineDelta === undefined`, which an unresolved ref and a failed base or head lint both
-// produce, and the report does not say which happened.
+// A degraded run lists every finding in the changed files, but its counts look like a delta.
+// The notice names the missing comparison, not a cause: the report does not say which happened.
 export function reactDoctorDegradedNotice(report: Pick<ReactDoctorReport, "baselineDegraded">): string | null {
   if (!report.baselineDegraded) {
     return null;
@@ -707,14 +569,8 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
       "react-doctor",
       ".",
       "--verbose",
-      // Pin the scan to this repository's own project. `react-doctor .` discovers every
-      // project root beneath the working directory, and `apm_modules/` holds vendored
-      // packages that are gitignored — present in a normal checkout, absent from a fresh
-      // worktree. Scanning them made the same command report different totals depending
-      // on which tree it ran in, and inflated project-level rules such as
-      // require-pnpm-hardening, which then fired once per discovered project against the
-      // single root pnpm-workspace.yaml. pnpm-workspace.yaml declares no `packages`, so
-      // this repository has exactly one project and nothing legitimate is excluded.
+      // Scan only this repository's project: `react-doctor .` also discovers the gitignored
+      // `apm_modules/` projects, which exist in some checkouts and not others.
       "--project",
       ".",
       ...scopeArgs,
