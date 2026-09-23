@@ -33,16 +33,8 @@ import {
 } from "./recovery";
 import { dataSettingsControllerReducer, initialDataSettingsControllerState } from "./reducer";
 
-export type {
-  DatabaseRecoveryActionSafety,
-  DatabaseRuntimeFailureKind,
-  DatabaseRuntimeRecoveryAction,
-  DatabaseRuntimeRecoveryMode,
-  DatabaseRuntimeRecoverySurface,
-  DatabaseSizeStatus,
-} from "./recovery";
+export type { DatabaseRecoveryActionSafety, DatabaseSizeStatus } from "./recovery";
 export { classifyDatabaseRuntimeRecoverySurface, formatBytes } from "./recovery";
-export type { DatabaseRestoreFrontendCacheResetReason } from "./restore-reconciliation";
 export { reconcileDatabaseRestoreFrontendState } from "./restore-reconciliation";
 
 type UseDataSettingsControllerParams = {

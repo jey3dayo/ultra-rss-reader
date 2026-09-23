@@ -22,10 +22,7 @@ const RUNTIME_WINDOW_DESCRIPTOR_NAMES: readonly RuntimeWindowDescriptorName[] = 
   "__ULTRA_RSS_BROWSER_MOCKS__",
 ];
 
-export function restoreRuntimeWindowDescriptor(
-  name: RuntimeWindowDescriptorName,
-  descriptor: PropertyDescriptor | undefined,
-) {
+function restoreRuntimeWindowDescriptor(name: RuntimeWindowDescriptorName, descriptor: PropertyDescriptor | undefined) {
   if (descriptor) {
     Object.defineProperty(window, name, descriptor);
     return;

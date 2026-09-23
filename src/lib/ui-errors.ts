@@ -149,14 +149,6 @@ export function getAppRecoveryActionsForCategory(category: AppRecoveryCategory):
   return APP_ERROR_RECOVERY_ACTIONS[category];
 }
 
-export function classifyAppErrorRecoveryCategory(error: AppError): AppRecoveryCategory {
-  return classifyAppRecoveryCategory(error);
-}
-
-export function getAppErrorRecoveryActions(error: AppError): readonly AppErrorRecoveryAction[] {
-  return getAppRecoveryActionsForCategory(classifyAppRecoveryCategory(error));
-}
-
 function hasRuntimeActionErrorToken(message: string, token: string): boolean {
   return message.split(/[^a-z0-9]+/).includes(token);
 }

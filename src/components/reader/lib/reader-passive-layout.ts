@@ -13,16 +13,13 @@
  */
 
 /** Ratio of the common viewport height used as the preferred (pre-clamp) optical anchor offset. */
-export const READER_PASSIVE_LAYOUT_OPTICAL_ANCHOR_RATIO = 0.25;
+const READER_PASSIVE_LAYOUT_OPTICAL_ANCHOR_RATIO = 0.25;
 
 /** Safe margin (CSS px) kept above and below a passively anchored card. */
 export const READER_PASSIVE_LAYOUT_SAFE_MARGIN_PX = 24;
 
 /** Hysteresis (CSS px) required before a fallback pane is allowed to return to normal anchoring. */
 export const READER_PASSIVE_LAYOUT_FALLBACK_RECOVERY_HYSTERESIS_PX = 4;
-
-/** Tolerance (CSS px) for "top edges match" evaluation between panes in normal mode. */
-export const READER_PASSIVE_LAYOUT_NORMAL_TOP_TOLERANCE_PX = 1;
 
 export type ReaderPassiveLayoutViewportBounds = {
   /** Viewport-relative top edge (CSS px), e.g. from `getBoundingClientRect().top`. */

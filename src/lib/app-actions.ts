@@ -91,7 +91,7 @@ const articleScopedActionSet: ReadonlySet<AppAction> = new Set(articleScopedActi
 
 const allSurfaces = ["commandPalette", "nativeMenu", "keyboardShortcut", "dispatcher"] as const;
 
-export const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailabilityRule> = new Map(
+const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailabilityRule> = new Map(
   APP_ACTIONS.map((action) => [
     action,
     {

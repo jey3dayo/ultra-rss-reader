@@ -18,13 +18,13 @@ type AccountSetupTrackedAccountSessionBase<State extends AccountSetupTrackedAcco
   state: State;
 };
 
-export type AccountSetupTrackedAccountSyncingSession = AccountSetupTrackedAccountSessionBase<"syncing">;
+type AccountSetupTrackedAccountSyncingSession = AccountSetupTrackedAccountSessionBase<"syncing">;
 
-export type AccountSetupTrackedAccountFailedSession = AccountSetupTrackedAccountSessionBase<"failed"> & {
+type AccountSetupTrackedAccountFailedSession = AccountSetupTrackedAccountSessionBase<"failed"> & {
   errorMessage?: string;
 };
 
-export type AccountSetupTrackedAccountSucceededSession = AccountSetupTrackedAccountSessionBase<"succeeded">;
+type AccountSetupTrackedAccountSucceededSession = AccountSetupTrackedAccountSessionBase<"succeeded">;
 
 export type AccountSetupTrackedAccountSession =
   | AccountSetupTrackedAccountSyncingSession

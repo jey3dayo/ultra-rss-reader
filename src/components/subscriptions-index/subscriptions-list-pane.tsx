@@ -56,7 +56,7 @@ function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) 
   return "neutral";
 }
 
-export function SubscriptionGroupDisclosureButton({
+function SubscriptionGroupDisclosureButton({
   group,
   expanded,
   controlsId,

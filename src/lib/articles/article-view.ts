@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { normalizeReaderContentImageUrl } from "@/lib/content/html";
-import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput, resolveDateTimeLocale } from "@/lib/datetime";
+import { getDateInputTimeMs, parseDateInput, resolveDateTimeLocale } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
 import { countFeedsInFolder } from "@/lib/sidebar/sidebar";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
@@ -265,10 +265,6 @@ export function formatArticleDate(dateStr: string, locale = "en-US"): string {
       minute: "2-digit",
     })
   );
-}
-
-export function formatArticleSummaryDate(value: string | null | undefined, locale: string): string {
-  return formatMediumDateOrDash(value, locale);
 }
 
 function formatArticleDateInvalidFallback(value: string): string {

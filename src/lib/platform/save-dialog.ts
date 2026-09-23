@@ -1,6 +1,6 @@
 import { save } from "@tauri-apps/plugin-dialog";
 
-export type SaveDialogFilter = {
+type SaveDialogFilter = {
   name: string;
   extensions: string[];
 };

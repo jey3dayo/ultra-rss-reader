@@ -5,7 +5,7 @@ export type SidebarSourcesParams = {
 };
 
 type SidebarAccountStatusLabelSource = Pick<AccountDto, "id">;
-export type SidebarAccountStatusLabels = Record<string, string>;
+type SidebarAccountStatusLabels = Record<string, string>;
 export type SidebarAccountStatusLabelsParams = readonly SidebarAccountStatusLabelSource[] | undefined;
 
 type SidebarAccountSourceModel = {

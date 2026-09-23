@@ -1,13 +1,6 @@
 import type { MutableRefObject } from "react";
 
-export type {
-  InvalidateFeedQueriesOptions,
-  InvalidateFeedQueriesOptions as FeedMutationCacheInvalidationOptions,
-} from "@/lib/query/query-invalidation";
-export {
-  invalidateArticleQueries,
-  invalidateFeedQueries,
-} from "@/lib/query/query-invalidation";
+export { invalidateFeedQueries } from "@/lib/query/query-invalidation";
 
 type FeedMutationOptimisticRollbackParams<TResult> = {
   run: () => Promise<TResult>;

@@ -9,7 +9,7 @@ import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 
 export type DatabaseSizeStatus = "loading" | "ready" | "error";
 
-export type DatabaseRuntimeFailureKind =
+type DatabaseRuntimeFailureKind =
   | "read_corruption"
   | "write_corruption"
   | "migration_failed"
@@ -18,14 +18,14 @@ export type DatabaseRuntimeFailureKind =
   | "permission_denied"
   | "disk_full";
 
-export type DatabaseRuntimeRecoveryMode =
+type DatabaseRuntimeRecoveryMode =
   | "read_only_degraded"
   | "startup_blocked"
   | "retry_when_idle"
   | "user_permission_fix"
   | "free_disk_space";
 
-export type DatabaseRuntimeRecoveryAction =
+type DatabaseRuntimeRecoveryAction =
   | "run_integrity_check"
   | "restore_backup"
   | "preserve_backup_and_restart"

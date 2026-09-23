@@ -140,7 +140,7 @@ export type SyncIssueDiagnosticsDetail = {
   actionOwner: SyncIssueOwner;
 };
 
-export const DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY: SyncFeedbackPublicCopy = {
+const DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY: SyncFeedbackPublicCopy = {
   unknownAccountLabel: "Unknown account",
   actionOwnerLabels: {
     credential: "credentials",

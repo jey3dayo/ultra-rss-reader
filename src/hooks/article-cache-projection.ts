@@ -81,14 +81,6 @@ export function createInfiniteArticleQueryData(articles: readonly unknown[] = []
   };
 }
 
-export function coerceInfiniteArticleQueryData(data: unknown): unknown {
-  if (Array.isArray(data)) {
-    return createInfiniteArticleQueryData(data);
-  }
-
-  return data;
-}
-
 export function shareInfiniteArticleQueryData(_oldData: unknown, newData: unknown): unknown {
   if (newData == null || isInfiniteArticleQueryData(newData)) {
     return newData;
