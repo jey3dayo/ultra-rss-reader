@@ -251,10 +251,8 @@ describe("quality-baseline", () => {
     // The snapshot totals are not a classification set: the notice has to name a tracker
     // for the warnings and errors the pass did not classify, so a zero baseline delta
     // never reads as approval.
-    // #256 since 2026-09-18: the second wave closed out, and #256 is where the open question about
-    // this snapshot now lives — the complexity outlier's family, not an untriaged warning. The
-    // snapshot leaves none untriaged. The assertion follows where the remainder actually is rather
-    // than pinning one issue forever.
+    // #256 was the last open question about this snapshot and #331 closed it; the snapshot leaves
+    // none untriaged. Move this assertion with the field when a new tracker is opened.
     expect(status.untriagedWarningIssue).toContain("/issues/256");
     expect(status.errorIssue).toContain("/issues/260");
     expect(status.outlierIssue).toContain("/issues/256");
@@ -306,7 +304,7 @@ describe("quality-baseline", () => {
     // .claude/rules/react-doctor-triage.md and carried as a second entry for that rule because it
     // has a different record from the 300.md rows.
     expect(status.classifiedWarningFamiliesCount).toBe(7);
-    expect(status.classifiedFindingCount).toBe(25);
+    expect(status.classifiedFindingCount).toBe(24);
 
     // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
     // (adding an export just for this identity would grow the Knip-tracked export surface, see
