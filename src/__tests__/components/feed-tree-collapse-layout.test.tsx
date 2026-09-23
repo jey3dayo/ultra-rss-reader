@@ -115,11 +115,8 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
   });
 
   it("enumerates every left-overhanging rail decoration exactly once, so a new one can't silently under-clip", () => {
-    // Both `left-[var(--feed-tree-rail-offset)]` occurrences in
-    // feed-tree-selectable-row.tsx are the full known set of left-overhanging decorations
-    // today: the indicator and the handle anchor. If a third one is ever added here, this
-    // count must be bumped *and* the clip-path derivation in global.css
-    // (`.motion-sidebar-row-collapse > *`) must be re-checked against it.
+    // Both occurrences are the full known set of left-overhanging decorations; a third
+    // added here must also revisit the clip-path derivation in global.css.
     const leftOffsetOccurrences = FEED_TREE_SELECTABLE_ROW_SOURCE.match(/left-\[var\(--feed-tree-rail-offset\)\]/g);
     expect(leftOffsetOccurrences).toHaveLength(2);
   });

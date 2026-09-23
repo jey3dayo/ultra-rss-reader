@@ -283,11 +283,8 @@ describe("quality-baseline", () => {
   it("derives the untriaged warning count from the classified families instead of a hand-pinned number", () => {
     const status = reactDoctorFullScanTriageStatus;
 
-    // Pin the family total so a rule being added or removed from the table is caught here
-    // rather than only showing up as a silent drift in the derived subtraction below. The
-    // count is not the number of entries: retired or currently-inactive rules keep a count-0
-    // row so the table remains the record of each decision, while the table's per-rule counts
-    // otherwise have to match what the scan reports.
+    // Pins the family total so an added/removed rule is caught here, not as a silent drift
+    // below. Retired or inactive rules keep a count-0 row as the record of that decision.
     expect(status.classifiedWarningFamiliesCount).toBe(7);
     expect(status.classifiedFindingCount).toBe(24);
 
@@ -309,11 +306,9 @@ describe("quality-baseline", () => {
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
     const status = reactDoctorFullScanTriageStatus;
 
-    // rerender-lazy-ref-init must not be absorbed into a "classified" family. A fixed
-    // finding leaves no disposition that would still apply if the rule fired again, so the
-    // table is the wrong place for it. The table is empty at this pin because every
-    // currently-reported finding already has its own record row, so nothing here needs a
-    // family-level disposition.
+    // rerender-lazy-ref-init must not be absorbed into a "classified" family: a fixed finding
+    // has no disposition that would apply again if the rule fired. Empty because every
+    // currently-reported finding already has its own record row.
     // The families table's rule field is a narrow string-literal union by design, so widen
     // to `readonly string[]` via the annotation below rather than asserting past the type.
     const classifiedFamilyRules: readonly string[] = status.classifiedWarningFamilies.map((family) => family.rule);

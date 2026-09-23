@@ -43,10 +43,8 @@ afterEach(() => {
 /**
  * Mirrors the real reader wiring end to end: a body viewport and a passive card registered
  * through the *context* hooks (not the bare `useReaderPassiveLayout` hook directly), inside a
- * real `ReaderPassiveLayoutProvider`. This is the seam `use-reader-passive-layout.node.test.tsx`
- * cannot cover: it calls `registerBody`/`registerCard` directly and can never see a ref-callback
- * identity churn caused by the context consumer hooks, because it never renders a context
- * consumer.
+ * real `ReaderPassiveLayoutProvider`, the seam a direct `registerBody`/`registerCard` call
+ * cannot cover: it never renders a context consumer, so it can't see ref-callback identity churn.
  */
 function TestPane({
   paneId,

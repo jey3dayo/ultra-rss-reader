@@ -106,11 +106,8 @@ pub(super) fn browser_preview_bridge_message_action(
 }
 
 // Scheme-navigation bridge actions are discarded at the native layer (see
-// `handle_browser_webview_shortcut_navigation` in `commands/browser_webview_commands.rs`), and
-// the native macOS Escape monitor / Windows `AcceleratorKeyPressed` handler already intercepts
-// modified shortcuts and close before the WebView sees them. Capturing those keys/buttons here
-// would only swallow them for both the app and the page. The one behavior this script owns is
-// Space-key page scrolling, which is not an app action.
+// `handle_browser_webview_shortcut_navigation`); the native shortcut handlers intercept those
+// keys before the WebView sees them. The one behavior this script owns is Space-key scrolling.
 #[cfg(any(test, not(windows)))]
 pub fn browser_preview_close_bridge_source(_prefs: &HashMap<String, String>) -> Option<String> {
     Some(

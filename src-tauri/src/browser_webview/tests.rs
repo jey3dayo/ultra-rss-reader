@@ -769,11 +769,8 @@ fn synthesized_shift_key_state_only_marks_shift_down() {
 
 #[test]
 fn shifted_digit_virtual_keys_do_not_use_the_fixed_unshifted_table() {
-    // `Shift+1` must not resolve to the fixed "1" table entry, because the frontend recorder
-    // saves the shift-applied glyph (e.g. "!" on a US layout) and a fixed digit would never
-    // match it. Real layout translation goes through `ToUnicode`, which is only callable on
-    // Windows; here we assert the pure dispatch does not take the fixed-table shortcut once
-    // Shift is held.
+    // `Shift+1` must not resolve to the fixed "1" entry: the frontend recorder saves the
+    // shift-applied glyph (e.g. "!"), which a fixed digit never matches.
     for virtual_key in 0x30..=0x39u32 {
         assert_ne!(
             browser_shortcut_key_from_virtual_key(virtual_key, true),
