@@ -41,13 +41,13 @@ export type TimerInstruction =
   | { action: "cancel"; kind: TimerKind; id: string };
 
 /** A feed's last-known view model and parent, frozen at the moment it left the logical tree. `parentKey` is the owning folder id, or `null` for unfoldered. */
-export type LeavingFeedEntry = {
+type LeavingFeedEntry = {
   viewModel: FeedTreeFeedViewModel;
   parentKey: string | null;
 };
 
 /** A folder's last-known view model, frozen at the moment it left the top-level logical tree. */
-export type LeavingFolderEntry = {
+type LeavingFolderEntry = {
   source: FeedTreeFolderViewModel;
 };
 

@@ -6,11 +6,9 @@ import { invalidateFeedEditQueries } from "@/lib/query/query-invalidation";
 import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./feed-edit-dialog.types";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
 
-export type {
-  FeedEditDisplayPreset,
-  SubmitFeedEditsParams,
-} from "./feed-edit-dialog.types";
-export type FeedMutationEditorState<ExtraState extends object = object> = {
+export type { SubmitFeedEditsParams } from "./feed-edit-dialog.types";
+
+type FeedMutationEditorState<ExtraState extends object = object> = {
   title: string;
   displayPreset: FeedEditDisplayPreset;
   loading: boolean;

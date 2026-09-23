@@ -41,13 +41,13 @@ export type SidebarFeedTreeViewModelOptions = {
   starredCountByFeedId: ReadonlyMap<string, number>;
 };
 
-export type SidebarFolderFeedVisibilityParams = {
+type SidebarFolderFeedVisibilityParams = {
   folderId: string;
   feedsByFolder: Map<string, FeedDto[]>;
   getVisibleFeeds: SidebarSortFeeds;
 };
 
-export type SidebarUnfolderedFeedVisibilityParams = {
+type SidebarUnfolderedFeedVisibilityParams = {
   unfolderedFeeds: FeedDto[];
   getVisibleFeeds: SidebarSortFeeds;
 };

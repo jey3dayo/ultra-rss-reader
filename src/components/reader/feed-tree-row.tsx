@@ -15,7 +15,7 @@ import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density"
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
-export type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
+export type { FeedTreeRowProps } from "./feed-tree.types";
 
 type FeedTreeRowStyle = CSSProperties & Record<"--feed-tree-rail-offset", string>;
 

@@ -88,6 +88,7 @@ Standing accepted risk:
 Standing false positive:
 
 - `corePreferenceDefaults` (`src/schemas/preference-values.ts`) — `src/__tests__/schemas/preferences-schema-contract.test.ts` imports the module with `?raw` and matches `/export const corePreferenceDefaults = \{([\s\S]*?)\} as const/`. The `export` keyword is part of that contract, so the modifier must stay; reviewed 2026-09-08.
+- `showRestartToast` (`src/hooks/use-updater.ts`) — no static import-graph caller, but `src/__tests__/hooks/use-updater.node.test.ts` dynamically imports the module (`await import("@/hooks/use-updater")`) and calls `updaterModule.showRestartToast(...)` directly. Knip does not trace named-export calls reached through a dynamic `import()` namespace object, so this is a real consumer it cannot model; reviewed 2026-09-23.
 
 Findings already classified once are recorded per-finding in [../../docs/knip-export-classification.md](../../docs/knip-export-classification.md); check there before re-classifying a repeat hit.
 

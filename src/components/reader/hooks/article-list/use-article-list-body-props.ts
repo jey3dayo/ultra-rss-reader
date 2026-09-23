@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 import type { ArticleListBodyProps } from "../../article-list-body";
 
-export type ArticleListFailureState = "permission" | "auth" | "network" | "schema";
+type ArticleListFailureState = "permission" | "auth" | "network" | "schema";
 export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds" | ArticleListFailureState;
 
 type ArticleListBodyEmptyStateProps = Pick<

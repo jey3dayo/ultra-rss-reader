@@ -122,13 +122,13 @@ export type UseArticleListViewPropsParams = {
     "footerModes" | "footerDisabledModes" | "isSearchLoading" | "isSearchEmptyState" | "setupEmptyState"
   >;
 
-export type ArticleListPresentationTranslators = {
+type ArticleListPresentationTranslators = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
 };
 
-export type ArticleListPresentationSource = {
+type ArticleListPresentationSource = {
   selection: ArticleListSelection;
   selectedAccountId: string | null;
   accountCount?: number;
@@ -147,7 +147,7 @@ export type ArticleListPresentationSource = {
   isFetchingNextPage?: boolean;
 };
 
-export type ArticleListPresentationLoading = {
+type ArticleListPresentationLoading = {
   isLoadingFeedArticles: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingFolderArticles: boolean;
@@ -155,7 +155,7 @@ export type ArticleListPresentationLoading = {
   isLoadingTagArticles: boolean;
 };
 
-export type ArticleListPresentationSearch = {
+type ArticleListPresentationSearch = {
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -168,7 +168,7 @@ export type ArticleListPresentationSearch = {
   setSearchQuery: (value: string) => void;
 };
 
-export type ArticleListPresentationSelectionState = {
+type ArticleListPresentationSelectionState = {
   selectedArticleId: string | null;
   recentlyReadIds: Set<string>;
   focusedPane: FocusedPane;
@@ -177,7 +177,7 @@ export type ArticleListPresentationSelectionState = {
   sidebarOpen: boolean;
 };
 
-export type ArticleListPresentationPaneActions = {
+type ArticleListPresentationPaneActions = {
   selectArticle: (articleId: string) => void;
   clearArticle: () => void;
   closeBrowser: () => void;
@@ -188,7 +188,7 @@ export type ArticleListPresentationPaneActions = {
   onManageSelectedFeed?: (() => void) | null;
 };
 
-export type ArticleListPresentationViewPrefs = {
+type ArticleListPresentationViewPrefs = {
   keyboardPrefs: KeyboardShortcutPrefs;
   scrollToTopOnChange: string;
   isActivePane: boolean;

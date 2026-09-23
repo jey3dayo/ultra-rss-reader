@@ -27,7 +27,7 @@ export type ArticleViewSelectionState =
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto; hasNextArticle: boolean };
 
-export type ArticleViewLandingCandidate = {
+type ArticleViewLandingCandidate = {
   article: ArticleDto;
   feed?: FeedDto;
   browserUrl: string | null;

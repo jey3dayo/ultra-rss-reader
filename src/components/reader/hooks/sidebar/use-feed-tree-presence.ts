@@ -48,7 +48,6 @@ export type FeedTreePresenceOptions = {
   scopeKey: string;
 };
 
-export type { FeedTreePresenceFeedViewModel, FeedTreePresenceFolderViewModel } from "../../feed-tree.types";
 export type { FeedTreePresenceResult } from "./feed-tree-presence-output";
 
 function timerKey(kind: TimerKind, id: string): string {

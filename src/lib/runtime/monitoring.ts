@@ -65,7 +65,7 @@ export function shouldInitMonitoring({ dsn, isDev, mode }: MonitoringInitOptions
 // decryption key. Treat the undecrypted placeholder as "not configured" and fall back;
 // keep the empty string as the explicit opt-out and any other value as-is so a
 // deliberate misconfiguration still fails loudly via origin validation.
-export function resolveMonitoringDsn(rawDsn: string | undefined = import.meta.env.VITE_SENTRY_DSN): string {
+function resolveMonitoringDsn(rawDsn: string | undefined = import.meta.env.VITE_SENTRY_DSN): string {
   if (rawDsn === undefined || rawDsn.startsWith("encrypted:")) {
     return DEFAULT_SENTRY_DSN;
   }

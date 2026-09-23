@@ -33,7 +33,7 @@ type DatabaseRestoreFrontendStateReconciliationParams<T extends DatabaseRestoreA
   storagePolicy?: DatabaseRestoreStorageReconciliationPolicy;
 };
 
-export type DatabaseRestoreFrontendCacheResetReason = "database-restore" | "private-data-reset";
+type DatabaseRestoreFrontendCacheResetReason = "database-restore" | "private-data-reset";
 
 type DatabaseRestoreFrontendStateReconciliationResult = {
   queryCacheCleared: boolean;

@@ -24,7 +24,7 @@ export const ACCOUNT_SYNC_ERROR_KINDS = [
   "migration",
 ] as const;
 
-export type AccountSyncErrorKind = (typeof ACCOUNT_SYNC_ERROR_KINDS)[number];
+type AccountSyncErrorKind = (typeof ACCOUNT_SYNC_ERROR_KINDS)[number];
 
 type AccountSyncErrorPrefix = {
   prefix: string;

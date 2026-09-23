@@ -4,7 +4,7 @@ import { closeBrowserWebviewBeforeReaderMode } from "@/lib/browser/close-browser
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-export type MarkAllReadConfirmationScope = "feed" | "folder" | "visible";
+type MarkAllReadConfirmationScope = "feed" | "folder" | "visible";
 type ConfirmMessageKey = "confirm_mark_feed_read" | "confirm_mark_folder_read" | "confirm_mark_read";
 
 type ConfirmMarkAllReadOptions = {

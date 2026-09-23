@@ -6,7 +6,7 @@ import { normalizeQueryAccountId, queryKeys } from "@/lib/query/query-invalidati
 export const ACCOUNT_SWITCH_RENDER_BUDGET_MS = 120;
 export const ACCOUNT_SWITCH_MEMORY_BUDGET_BYTES = 8 * 1024 * 1024;
 
-export const ACCOUNT_SWITCH_QUERY_ROOTS = [
+const ACCOUNT_SWITCH_QUERY_ROOTS = [
   queryKeys.feeds.root,
   queryKeys.folders.root,
   queryKeys.accountArticles.root,

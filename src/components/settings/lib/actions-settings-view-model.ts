@@ -28,7 +28,7 @@ export type ActionsSettingsViewModel = {
   services: ActionsSettingsServiceViewModel[];
 };
 
-export const ACTIONS_SETTINGS_SERVICE_ENTRIES = [
+const ACTIONS_SETTINGS_SERVICE_ENTRIES = [
   {
     toolbarActionId: "copy-link",
     id: "action-copy-link",
