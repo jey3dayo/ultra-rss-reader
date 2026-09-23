@@ -303,7 +303,7 @@ describe("quality-baseline", () => {
     // off or removed sit at count 0, because the table's counts have to match what the scan
     // reports while the entries themselves stay as the record of each decision. The 6 -> 7 is
     // the no-adjust-state-on-prop-change finding #317 made reportable, classified in
-    // .claude/rules/quality-policy.md and carried as a second entry for that rule because it
+    // .claude/rules/react-doctor-triage.md and carried as a second entry for that rule because it
     // has a different record from the 300.md rows.
     expect(status.classifiedWarningFamiliesCount).toBe(7);
     expect(status.classifiedFindingCount).toBe(25);

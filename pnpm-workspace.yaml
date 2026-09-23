@@ -41,7 +41,7 @@ minimumReleaseAgeExcludePrune: true
 # 失敗させる。比較は semver でなく公開日順で、trusted-publisher から provenance や
 # no-evidence へ落ちる遷移が「弱まった signal」にあたる。
 # 除外は Dependency Advisory Policy と同じ扱いにする。匿名の除外は禁止で、対象・理由・
-# 日付を quality-policy.md に記録する。
+# 日付を react-doctor-triage.md の Supply Chain Hardening Findings に記録する。
 trustPolicy: no-downgrade
 trustPolicyExclude:
   # semver@6.3.1: @babel/core と @babel/helper-compilation-targets 経由の transitive で、

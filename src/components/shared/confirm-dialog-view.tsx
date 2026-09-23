@@ -47,7 +47,7 @@ function useHoldToConfirm({ enabled, onConfirm }: UseHoldToConfirmOptions) {
   const cancelHold = useCallback(() => {
     clearTimer();
     activePointerIdRef.current = null;
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (hold-to-confirm teardown), .claude/rules/quality-policy.md "Adjust State On Prop Change Findings"
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (hold-to-confirm teardown), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
     setHolding(false);
   }, [clearTimer]);
 

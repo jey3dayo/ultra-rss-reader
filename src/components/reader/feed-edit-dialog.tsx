@@ -70,11 +70,11 @@ export function FeedEditDialog({ feed, open, onOpenChange }: FeedEditDialogProps
     // on screen — and confirming it would silently no-op, because claimOperation() rejects a
     // stale account. Reset it here, and do so independently of `open`: once the outer dialog
     // has closed this effect would otherwise never run again.
-    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), .claude/rules/quality-policy.md "Adjust State On Prop Change Findings"
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), .claude/rules/react-doctor-triage.md "Adjust State On Prop Change Findings"
     setUnsubscribeOpen(false);
 
     if (open) {
-      // react-doctor-disable-next-line react-doctor/no-prop-callback-in-effect -- accepted risk (owner-close request), .claude/rules/quality-policy.md "Prop Callback In Effect Findings"
+      // react-doctor-disable-next-line react-doctor/no-prop-callback-in-effect -- accepted risk (owner-close request), .claude/rules/react-doctor-triage.md "Prop Callback In Effect Findings"
       onOpenChange(false);
     }
   }, [open, isStale, operationActive, onOpenChange]);

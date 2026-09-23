@@ -46,4 +46,4 @@ fn spawn_security_cli() -> DomainResult<()> { /* ... */ }
 ## 関連ルール
 
 - `rust-test-unwrap-policy.md`: テストコードの扱い
-- `quality-policy.md`: lint 抑制の方針(inline disable でなく設定側で対処)
+- `react-doctor-triage.md`: lint 抑制の方針(inline disable でなく設定側で対処)

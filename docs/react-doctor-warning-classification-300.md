@@ -367,7 +367,7 @@ assert は `onExpandedChange(false)` だけで、`restoreFocusOnCloseRef` の設
 それでも accepted-risk とする理由は、rule が誤っているからではなく**変更が設計変更になる**ためである。
 tracker を無くすには、8 個の setter と `resetListScrollState` を含むアカウント reset ブロック全体を
 作り替える必要がある。同ブロックの effect 形は第 1 波で既に accepted-risk として決まっている
-（`:98` / `:100` の inline 記録）。`quality-policy.md`「React Doctor Warning Categories」の基準では
+（`:98` / `:100` の inline 記録）。`react-doctor-triage.md`「React Doctor Warning Categories」の基準では
 バグ・回帰・当該変更が持ち込んだもののみが must-fix であり、これはどれにも当たらない。
 tracker を消す restructure は別タスクとして扱う。
 
@@ -455,7 +455,7 @@ JSX は `SubscriptionsIndexPageView` 1 要素に約 50 prop を渡す形なの�
 
 判定は state について下したものなので、両方の rule view に同じ記録を付けた。
 **この形は「ルールを 1 つ黙らせたら別のルールと交換になる」典型で、件数の差分を取らないと見えない。**
-`quality-policy.md`「Lazy Ref Init Findings」が記録している warning 2 件 → error 2 件の交換と
+`react-doctor-triage.md`「Lazy Ref Init Findings」が記録している warning 2 件 → error 2 件の交換と
 同じ種類の事故である。
 
 ## 判定の集計
@@ -470,7 +470,7 @@ JSX は `SubscriptionsIndexPageView` 1 要素に約 50 prop を渡す形なの�
 inline 記録は 18 件の finding に対して **20 個**置いてある。差の 2 個は上記の
 `no-derived-state-effect` ぶんで、同じ判定を 2 つ目の rule view にも付けたものである。
 
-`must-fix` は 0 件。判定基準は `quality-policy.md`「React Doctor Warning Categories」に従い、
+`must-fix` は 0 件。判定基準は `react-doctor-triage.md`「React Doctor Warning Categories」に従い、
 バグ・回帰・当該変更が持ち込んだもののみを must-fix とする。render 頻度や形だけでは昇格させない。
 
 ## 第 1 波の手順のうち、本 pass で効いたもの
@@ -629,4 +629,5 @@ inline disable を持つ 8 family は count 0 で entry を残す。disable を�
 
 - Issue #300、親は Issue #249
 - [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md)
+- [../.claude/rules/react-doctor-triage.md](../.claude/rules/react-doctor-triage.md)
 - [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)

@@ -182,7 +182,7 @@ prop として渡る `useRef` オブジェクトで、生成元は `use-article-
 正しく、修正しても挙動は変わらない。直上に別 linter 向けの
 `biome-ignore useExhaustiveDependencies` が既にある。
 
-must-fix にしない。`quality-policy.md` の must-fix は「bug / regression / hot path / この変更が
+must-fix にしない。`react-doctor-triage.md` の must-fix は「bug / regression / hot path / この変更が
 持ち込んだもの」で、挙動が変わらない指摘はどれにも当たらない。
 
 ### D. default parameter の関数リテラル 1 件 — accepted-risk
@@ -306,7 +306,7 @@ accepted-risk とするのは `key` と event 側が成立しないためであ�
 ## 既存決定との関係
 
 - **`use-account-detail-sync-controls.ts:184,185`** が属する effect（179-185 行）は、
-  `quality-policy.md`「Loading Flag Reset Findings」が既に決定の**前提**として参照している。
+  `react-doctor-triage.md`「Loading Flag Reset Findings」が既に決定の**前提**として参照している。
   同節は「guard が false のときは account.id 変更 effect（generation bump と ref/state reset を
   所有）か unmount が責務を終わらせる」と書いており、その effect がここで分類している対象である。
   **ここに `key` remedy を適用すると、その決定が黙って無効になる。**
@@ -319,7 +319,7 @@ accepted-risk とするのは `key` と event 側が成立しないためであ�
 ## gate への反映手順
 
 accepted-risk と判定した finding は、記録するだけでは `quality:react-doctor:diff` を止め続ける。
-`quality-policy.md`「Recording An Accepted Risk So The Gate Can See It」に従い、finding 位置へ
+`react-doctor-triage.md`「Recording An Accepted Risk So The Gate Can See It」に従い、finding 位置へ
 inline record を置く。
 
 ```text

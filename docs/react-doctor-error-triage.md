@@ -255,7 +255,7 @@ effect / effect、effect event、request token や reducer、listener の再登�
 13 / 14 は `useState` + `useLayoutEffect` で open 遷移が commit してから locale を capture する形へ
 変えた。**baseline の re-pin はこの変更には含めない。** `scripts/quality-baseline.ts` の `scanSha` は
 main から到達できる commit でなければならず、branch の測定値を main の SHA で pin すると、その SHA を
-checkout しても再現しない数字になる（quality-policy.md「Do not re-pin from a feature branch」）。
+checkout しても再現しない数字になる（react-doctor-triage.md「Do not re-pin from a feature branch」）。
 full scan の drift は informational で何も落とさないので、修正を land してから main で測り直して pin した。
 
 **この修正の正しさをテストの緑で示すことはできない。** 壊れ方は破棄された並行 render にしか現れず、

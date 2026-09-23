@@ -12,7 +12,7 @@ owner: project-maintainers
 # React Doctor Gate Mechanics
 
 Measurement and decision record behind two React Doctor gate behaviors. The durable rules live in
-[../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md); this file holds the
+[../.claude/rules/react-doctor-triage.md](../.claude/rules/react-doctor-triage.md); this file holds the
 evidence behind them and the readings they replaced.
 
 ## Why The Diff Gate Runs Degraded
@@ -30,7 +30,7 @@ indistinguishably.
 
 ## scanSha Re-Pin Gating: What The Old Contract Cost
 
-Superseded on 2026-09-18. `quality-policy.md` now defines `scanSha` as the tree the scan ran
+Superseded on 2026-09-18. `react-doctor-triage.md` now defines `scanSha` as the tree the scan ran
 against; this section records the reading it replaced, what that reading cost, and the check the
 new contract makes available.
 

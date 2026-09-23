@@ -8,7 +8,7 @@ import sidebarSourcesSource from "@/components/reader/hooks/sidebar/use-sidebar-
 // query has no data — which is not a brief window, since a disabled or failed query keeps `data`
 // undefined indefinitely. Every memo downstream then recomputes, and in the sidebar that reached
 // an unguarded localStorage write. React Doctor reports the shape as `exhaustive-deps`, but
-// neither CI nor the git hooks run it (see .claude/rules/quality-policy.md, "No Scan Task Runs
+// neither CI nor the git hooks run it (see .claude/rules/react-doctor-triage.md, "No Scan Task Runs
 // Automatically"), so this test is the only thing that fails when it comes back.
 //
 // The regex distinguishes the two shapes by what follows the `[]`: a statement-level binding ends

@@ -12,7 +12,7 @@ owner: project-maintainers
 # pnpm trustPolicy Adoption Preflight (2026-09-10)
 
 Measured evidence behind the adoption decision recorded in
-[../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md) (Supply Chain Hardening
+[../.claude/rules/react-doctor-triage.md](../.claude/rules/react-doctor-triage.md) (Supply Chain Hardening
 Findings). The decision, the current `trustPolicyExclude` entries, and their review dates live in
 that rule; this page holds only the reproduction log. The scratch and fixture trees it names lived
 under `/private/tmp` and are gone - the commands are what reproduces them.

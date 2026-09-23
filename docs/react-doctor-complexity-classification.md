@@ -15,7 +15,7 @@ Triage record for the `no-high-complexity-react-function` findings reported by
 `pnpm exec react-doctor . --verbose --scope full --json --json-compact --blocking none --no-score --no-dead-code`
 (`oxlint-plugin-react-doctor@0.9.13`) on `f9df8be7c`, covering the remainder of Issue #249. The durable
 half of this record — the structural families and the method for triaging a new hit — lives in
-[../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md). Everything below is a
+[../.claude/rules/react-doctor-triage.md](../.claude/rules/react-doctor-triage.md). Everything below is a
 historical snapshot; do not treat the table as a list of code that still has these shapes.
 
 The scan reported 26 findings. 25 of them were classified here on 2026-09-08.
