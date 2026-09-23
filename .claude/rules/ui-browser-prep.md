@@ -1,3 +1,9 @@
+---
+paths:
+  - "src/components/**/*.{ts,tsx}"
+  - "src/styles/**/*.css"
+---
+
 # UI ブラウザ確認ルール
 
 ## UI/UX 調整の開始手順

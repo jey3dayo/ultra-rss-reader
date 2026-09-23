@@ -1,3 +1,8 @@
+---
+paths:
+  - "src-tauri/src/**/*.rs"
+---
+
 # Rust cfg ゲート付きコードの分割
 
 `#[cfg(target_os = ...)]` や `#[cfg(test)]` でゲートされたコードを含むファイルを分割するときのルール。

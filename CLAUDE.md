@@ -50,10 +50,8 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - `mise run check:wsl` is the WSL-backed static-analysis gate for formatter/linter stability. On Windows it delegates to a WSL checkout via `WSL_REPO_DIR`.
 - `mise run test:unit:dom` runs the jsdom Vitest suite separately when DOM, React rendering, Testing Library, or browser global behavior is affected.
 - `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
-- `mise run quality:react-doctor:diff` is the React Doctor regression check; it reports only findings that are new against `origin/main`, so an accepted risk that already exists in a touched file does not turn it red. It is run by hand — no CI job or git hook invokes it, so it blocks nothing on its own; see [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md) (No Scan Task Runs Automatically).
-- `mise run quality:react-doctor:full` is informational for known full-scan baseline debt.
+- React Doctor tasks (`quality:react-doctor:*`): read [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md) before running or interpreting them.
 - `mise run report:knip` produces the Knip baseline drift report; humans triage the findings instead of treating them as a gate.
-- `mise run quality:react-doctor-pin` verifies the pinned React Doctor baseline against the tree `scanSha` names, comparing the diagnostic identity set rather than only the totals. Unlike the scan tasks it does run in CI, and it reports nothing about findings in the current branch.
 - `mise run report:similarity` reports the similarity-ts TODO baseline. Treat 0.95 as near-copy, 0.9 as TODO triage, and 0.87 as broad discovery; increase size thresholds before extracting helpers from tiny callback-shape matches.
 - Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
@@ -94,9 +92,10 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - Refactor-time owner selection, helper extraction destinations, generated artifacts, UI copy, stable keys, and runtime capability ownership: [.claude/rules/boundary-ownership.md](.claude/rules/boundary-ownership.md).
 - Boundary tests or TODO findings that should become durable coverage: [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
 - Preference schema/defaults, backend allowlist, settings copy, and shortcut preference parity: [.claude/rules/preferences-pattern.md](.claude/rules/preferences-pattern.md).
-- TODO priority taxonomy, similarity false positives, the single-TypeScript version policy, React Compiler, ES2023 copy methods, or the React Doctor scan scope: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
+- TODO priority taxonomy, similarity false positives, or the React Doctor scan scope: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
 - Before running or interpreting any React Doctor task, classifying a finding, adding a `react-doctor-disable` record, or re-pinning a React Doctor baseline, read [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md). It is path-scoped, so a run that reads none of its files does not load it.
 - Rust test `unwrap` / `expect` usage: [.claude/rules/rust-test-unwrap-policy.md](.claude/rules/rust-test-unwrap-policy.md).
+- TypeScript version, React Compiler, ES2023 copy methods, dependency advisory: [.claude/rules/code-policy.md](.claude/rules/code-policy.md).
 
 ## Task Tracking
 
@@ -114,7 +113,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - Browser-only UI checks use `mise run app:dev:browser` plus the browser-tool routing in `.claude/rules/ui-browser-prep.md` (currently available skills, not a fixed name).
 - Native desktop checks start from `mise run app:dev`; avoid duplicate app instances and operate the development app.
 - For native Tauri inspection, prefer `tauri-mcp-server` for DOM/computed-style/webview interaction and Computer Use for visible window state.
-- Use `tauri-dev-screenshot` for saved native-window PNG artifacts and `tauri-webview-geometry` for child webview sizing or pixel-ratio issues.
+- Use `tauri-webview-geometry` for child webview sizing or pixel-ratio issues. Save native-window screenshots under `tmp/screenshots/`.
 - Use the `tauri` skill for framework-level guidance when changing Tauri-facing code. Its repository-specific commands, paths, binding workflow, and domain examples are non-authoritative here; resolve those from [CONTRIBUTING.md](CONTRIBUTING.md) and current local code. The skill is APM-managed, so do not edit deployed copies.
 
 ## Feature Work Reminder

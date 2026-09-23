@@ -1,3 +1,8 @@
+---
+paths:
+  - "src-tauri/src/**/*.rs"
+---
+
 # Remote State Reconciliation
 
 リモート状態(既読・スター等)をローカル DB へ一括反映する reconciliation 処理の順序ルール。

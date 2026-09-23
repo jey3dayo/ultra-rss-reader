@@ -1,3 +1,9 @@
+---
+paths:
+  - "src/components/**/*.{ts,tsx}"
+  - "src/styles/**/*.css"
+---
+
 # UI デザインレビュー反復ルール
 
 ## 対象

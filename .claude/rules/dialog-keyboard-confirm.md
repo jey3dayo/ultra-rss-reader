@@ -1,3 +1,9 @@
+---
+paths:
+  - "src/components/**/*dialog*.tsx"
+  - "src/components/**/*Dialog*.tsx"
+---
+
 # ダイアログのキーボード確定
 
 ダイアログやモーダルで Enter が主アクションへ届くようにするためのルール。
