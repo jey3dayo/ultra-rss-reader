@@ -109,7 +109,7 @@ describe("useSidebarHeaderProps", () => {
 
     expect(props.syncState.status).toBe("disabled");
   });
-  // Issue #102: the native `finished` progress stage means "sync finished",
+  // The native `finished` progress stage means "sync finished",
   // not "feed list updated" — the list is refetched after invalidation and
   // shows the previous snapshot until new data lands. The sync button must
   // keep spinning through that refetch so an idle button never sits next to

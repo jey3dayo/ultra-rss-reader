@@ -1631,7 +1631,7 @@ fn remote_item_id_round_trips_from_canonical_tag_ids() {
 fn short_hex_remote_item_ids_do_not_match_decimal_normalization() {
     // This records current behavior, not a desired contract. FreshRSS returns the canonical
     // 16-digit zero-padded form, so existing fixtures and working production read sync show no
-    // exposure as of 2026-08-29. If another provider returns short hex, contents stays raw while
+    // exposure. If another provider returns short hex, contents stays raw while
     // items/ids pads it to 16 digits, so apply_remote_state can roll every article back to unread.
     // The end-to-end contents/items/ids integration is covered by
     // commands/sync_providers/tests/remote_state_repair.rs through mockito.

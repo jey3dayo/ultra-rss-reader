@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import accountRsSource from "../../../src-tauri/src/commands/sync_providers/account/remote_state.rs?raw";
 import unreadReconcileSource from "../../../src-tauri/src/commands/sync_providers/unread/mod.rs?raw";
 
-// Structural regression guard for .claude/rules/remote-state-reconciliation.md
-// (plan 021): the pending-mutation protection list must be re-read inside the
+// Structural regression guard for .claude/rules/remote-state-reconciliation.md:
+// the pending-mutation protection list must be re-read inside the
 // same DB lock as the apply that overwrites local state with remote state.
 //
 // This is a name-based scan, not full enforcement: a rename, a call through a
@@ -16,11 +16,10 @@ import unreadReconcileSource from "../../../src-tauri/src/commands/sync_provider
 // invariant holds for all possible code shapes.
 
 const srcTauriSrcRoot = join(process.cwd(), "src-tauri/src");
-// account.rs was split by responsibility (plan: refactor/account-rs-split);
-// apply_remote_state_with_protection and pending_remote_ids_by_axis now live
+// apply_remote_state_with_protection and pending_remote_ids_by_axis live
 // in account/remote_state.rs, paired per
-// .claude/rules/remote-state-reconciliation.md. The other former account.rs
-// functions moved to account/{mod,warnings,feeds,entries,db}.rs.
+// .claude/rules/remote-state-reconciliation.md. The other account.rs
+// functions are in account/{mod,warnings,feeds,entries,db}.rs.
 const ACCOUNT_RS_REL_PATH = "commands/sync_providers/account/remote_state.rs";
 const UNREAD_RS_REL_PATH = "commands/sync_providers/unread/mod.rs";
 
@@ -55,8 +54,8 @@ function productionSourceExcludingTestModule(source: string): string {
 const HELPER_FN_PATTERN =
   /fn apply_remote_state_with_protection\([\s\S]*?\) -> Result<\(\), AppError> \{([\s\S]*?)\n\}/;
 
-// Structural regression guard for plan 025 (`.claude/rules/remote-state-reconciliation.md`
-// enforcement list): every `lock_db(` acquisition in `commands/sync_providers/**` production
+// Structural regression guard for `.claude/rules/remote-state-reconciliation.md`'s
+// enforcement list: every `lock_db(` acquisition in `commands/sync_providers/**` production
 // code must live inside a named, single-purpose function (never an unnamed inline scope in an
 // async orchestrator), and each such function acquires the lock exactly once. New lock scopes
 // must be added as a new named function and registered here; that update is also the prompt to

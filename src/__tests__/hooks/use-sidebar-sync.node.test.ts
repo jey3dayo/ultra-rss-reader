@@ -235,8 +235,8 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(triggerManualSyncWithCooldown).toHaveBeenCalledWith(expect.objectContaining({ selectedAccountId: "acc-1" }));
   });
 
-  // Issue #102: the feed-list invalidation has exactly one owner, the native
-  // `sync-completed` listener in App.tsx. A second owner on this path raced
+  // The feed-list invalidation has exactly one owner, the native
+  // `sync-completed` listener in App.tsx. A second owner on this path races
   // with that listener (a late onSuccess from an earlier run could re-arm it),
   // so manual sync only refreshes the account sync status here.
   it("leaves feed-list invalidation to the sync-completed listener after a successful manual sync", async () => {

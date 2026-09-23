@@ -49,8 +49,8 @@ function recordRow(
 
 describe("check-react-doctor-pin-consistency", () => {
   describe("acceptance criterion: totals-only comparison hides a swapped finding", () => {
-    // #300's draft failure, reproduced directly: the record and the scan both have 2 rows, so a
-    // totals-only comparison reports no drift, while one finding on each side is not the other's.
+    // The record and the scan both have 2 rows, so a totals-only comparison reports no
+    // drift, while one finding on each side is not the other's.
     const recordRows: ClassificationRecordRow[] = [
       recordRow("src/components/a.tsx", "AliveBoth"),
       recordRow("src/components/only-in-record.tsx", "OnlyInRecord"),

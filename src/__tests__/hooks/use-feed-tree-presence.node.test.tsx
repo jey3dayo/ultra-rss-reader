@@ -632,12 +632,8 @@ describe("useFeedTreePresence", () => {
   });
 
   it("restarts a child's exit timer when its folder revives near the child's original deadline (collapse-owner handoff)", () => {
-    // Regression for PR #302 review: while a folder is leaving, its still-
-    // leaving children defer collapse ownership to the folder wrapper (see
-    // feed-tree-folder-section.tsx). If the folder revives and a child stays
-    // leaving on its own, the child's *own* collapse animation only starts at
-    // that moment -- so its exit timer must restart from there, not keep the
-    // deadline armed back when the folder still owned the collapse.
+    // A still-leaving child defers collapse ownership to its leaving folder; if the folder
+    // revives, the child's own exit timer must restart from that moment, not the earlier one.
     vi.useFakeTimers();
     const childFeed = makeFeed({ id: "child-feed" });
     const withFolder = [makeFolder({ id: "folder-a" }, [childFeed])];

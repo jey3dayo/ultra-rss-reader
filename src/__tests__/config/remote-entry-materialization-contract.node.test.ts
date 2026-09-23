@@ -8,8 +8,7 @@ import articleMaterializerSource from "../../../src-tauri/src/service/article_ma
 // RemoteEntry -> Article field materialization must go through the single
 // `article_from_remote_entry` function in service/article_materializer.rs,
 // and the `articles` table upsert SQL must live only in
-// infra/db/sqlite_article/mutation.rs::upsert_articles_with_conn. Before this
-// plan, both were duplicated across 4-5 call sites that could silently drift.
+// infra/db/sqlite_article/mutation.rs::upsert_articles_with_conn.
 //
 // This is a name/string based scan, not full enforcement: a rename, a new
 // id-generation helper, a different SQL statement shape (e.g. dynamic SQL or
@@ -253,8 +252,7 @@ describe("remote-entry materialization contract", () => {
 
   it("does not misclassify known test-fixture `INSERT INTO articles` call sites as production", () => {
     // These files build article rows directly via SQL in their own test
-    // fixtures (not through upsert_articles_with_conn) and previously would
-    // have been false positives for a naive whole-file scan.
+    // fixtures, which a whole-file scan would misread as production writes.
     const knownFixtureFiles = [
       "commands/article_commands/tests.rs",
       "infra/db/sqlite_feed/mod.rs",

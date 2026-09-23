@@ -115,16 +115,8 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
   });
 
   it("enumerates every left-overhanging rail decoration exactly once, so a new one can't silently under-clip", () => {
-    // PR #302's first pass covered only the selection indicator's overhang
-    // and missed the drag handle's larger one (confirmed by browser
-    // measurement: normal density clip box left edge 43px, indicator left
-    // edge 35px [covered], handle anchor left edge 17px [26px left
-    // uncovered by the first pass's inset]). Both `left-[var(--feed-tree-
-    // rail-offset)]` occurrences in feed-tree-selectable-row.tsx are the
-    // full known set of left-overhanging decorations today: the indicator
-    // and the handle anchor. If a third one is ever added here, this count
-    // must be bumped *and* the clip-path derivation in global.css
-    // (`.motion-sidebar-row-collapse > *`) must be re-checked against it.
+    // Both occurrences are the full known set of left-overhanging decorations; a third
+    // added here must also revisit the clip-path derivation in global.css.
     const leftOffsetOccurrences = FEED_TREE_SELECTABLE_ROW_SOURCE.match(/left-\[var\(--feed-tree-rail-offset\)\]/g);
     expect(leftOffsetOccurrences).toHaveLength(2);
   });
@@ -185,7 +177,7 @@ describe("feed tree row collapse layout (PR #302 clipping + spacing fix)", () =>
 
   it("lets the collapse item shrink below its label's min-content width, so a long title cannot push the unread count out of the sidebar", () => {
     // Source-shape only: jsdom has no layout engine, so the badge's visibility
-    // is verified in the browser (#309).
+    // is verified in the browser.
     const collapseItemRuleMatch = MOTION_CSS_SOURCE.match(/\.motion-sidebar-row-collapse > \*\s*\{([^}]*)\}/);
     expect(collapseItemRuleMatch).not.toBeNull();
     const collapseItemRuleBody = collapseItemRuleMatch?.[1] ?? "";

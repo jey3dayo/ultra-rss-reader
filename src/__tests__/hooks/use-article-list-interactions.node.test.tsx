@@ -58,8 +58,7 @@ function ArticleListInteractionsHarness({
 // This pane is the single owner of the published `hasNextArticle` cursor value the content
 // pane reads (see `useArticleViewSelection`). These tests pin that publish to
 // `resolveArticleCursor` so the two stay in sync, and cover the mount lifecycle (initial
-// value, updates on selection/list change, and reset on unmount) that made the previous
-// ad hoc boundary check prone to drifting from actual navigation behavior (issue #54).
+// value, updates on selection/list change, and reset on unmount).
 describe("useArticleListInteractions", () => {
   beforeEach(() => {
     useUiStore.setState({ hasNextArticle: false });

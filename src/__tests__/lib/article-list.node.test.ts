@@ -1292,8 +1292,8 @@ describe("article-list utils", () => {
 
     it("treats the boundary clamp as no next/prev instead of the same article id", () => {
       // `getAdjacentArticleId` clamps at the list edge by returning the same id, which
-      // must not be reported as an adjacent article existing (this is the boundary check
-      // issue #54 depends on: a false "has next" would show a dead next-article control).
+      // must not be reported as an adjacent article existing: a false "has next" would show
+      // a dead next-article control.
       const firstArticleCursor = resolveArticleCursor(sampleArticles, requireSampleArticle("art-1").id);
       expect(firstArticleCursor.hasPrev).toBe(false);
       expect(firstArticleCursor.prevId).toBeNull();

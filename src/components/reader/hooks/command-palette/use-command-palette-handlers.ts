@@ -125,7 +125,7 @@ export function useCommandPaletteHandlers({
   // an in-flight promise's microtask continuation (e.g. openFeedLanding().then())
   // could read the pre-switch ref value and apply a stale completion. Layout
   // effects run synchronously in the commit phase, before any microtask can
-  // observe the old ref value, matching the previous render-phase-write timing.
+  // observe the old ref value.
   useLayoutEffect(() => {
     selectedAccountIdRef.current = selectedAccountId;
     feedLandingRequestIdRef.current += 1;

@@ -8,11 +8,9 @@ import browserWebviewBridgeSource from "../../../src-tauri/src/browser_webview/b
  * script at runtime (via `eval`) instead of asserting on string fragments of
  * the Rust source.
  *
- * Plan 019 Phase A/B discard every bridge action this script used to send
- * (scheme navigation for keydown bindings/close, and mouse button 3/4
- * capture) at the native layer, so the script no longer sends any of them.
- * The only behavior left here is Space-key page scrolling, which is not an
- * app action and is not affected by that native discard.
+ * Scheme navigation for keydown bindings/close, and mouse button 3/4 capture, are discarded
+ * at the native layer, so the script does not send any of them. The only behavior left here
+ * is Space-key page scrolling, which is not an app action.
  */
 function renderCloseBridgeScript(): string {
   const raw = browserWebviewBridgeSource.match(

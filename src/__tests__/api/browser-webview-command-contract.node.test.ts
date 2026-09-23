@@ -39,8 +39,8 @@ const browserBounds: BrowserWebviewBounds = {
 
 function readRustBrowserWebviewSource() {
   // BROWSER_WEBVIEW_EVENT_NAMES and the frontend-facing state/payload DTOs live in
-  // `browser_webview/mod.rs` after the runtime was split by responsibility; the shortcut,
-  // bridge, and native-accelerator submodules do not affect these contracts.
+  // `browser_webview/mod.rs`; the shortcut, bridge, and native-accelerator submodules do not
+  // affect these contracts.
   return readFileSync(join(process.cwd(), "src-tauri/src/browser_webview/mod.rs"), "utf8");
 }
 

@@ -12,8 +12,7 @@ mod shortcuts;
 mod tests;
 
 // Re-exported at the flat `crate::browser_webview::*` path so
-// `commands::browser_webview_commands` and other existing callers keep their contract
-// unchanged after this module was split by responsibility.
+// `commands::browser_webview_commands` and other callers keep a stable contract.
 pub(crate) use escape_accelerator::install_escape_accelerator_bridge;
 pub(crate) use navigation::{go_back, go_forward, navigation_availability};
 pub(crate) use prefs::{
