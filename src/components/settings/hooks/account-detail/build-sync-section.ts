@@ -1,5 +1,7 @@
 import type { TFunction } from "i18next";
 import type { ComponentProps } from "react";
+import type { AccountSyncStatusDto } from "@/api/tauri-commands";
+import type { AccountDetailSyncProgress } from "@/components/settings/account-detail/account-detail";
 import type {
   AccountSyncSectionView,
   AccountSyncStatusRow,
@@ -16,15 +18,18 @@ type BuildSyncSectionParams = {
   syncStatusRows: AccountSyncStatusRow[];
   accountSetupErrorMessage?: string | null;
   isSyncing: boolean;
-  progressLabel: string | undefined;
-  progressValue: number | null;
-  progressCurrentLabel: string | undefined;
-  canShowDevCredentialsRecovery: boolean;
+  syncProgress?: AccountDetailSyncProgress;
+  syncStatus: AccountSyncStatusDto | undefined;
+  canRecoverDevCredentialsStore: boolean;
   isSetupSyncing: boolean;
   isSetupFailed: boolean;
   isSetupActive: boolean;
   isQuarantined: boolean;
 };
+
+function hasOversizedDevCredentialsStoreError(syncStatus: AccountSyncStatusDto | undefined): boolean {
+  return syncStatus?.last_error?.includes("Dev store exceeds maximum size") === true;
+}
 
 export function buildSyncSection({
   account,
@@ -33,15 +38,36 @@ export function buildSyncSection({
   syncStatusRows,
   accountSetupErrorMessage,
   isSyncing,
-  progressLabel,
-  progressValue,
-  progressCurrentLabel,
-  canShowDevCredentialsRecovery,
+  syncProgress,
+  syncStatus,
+  canRecoverDevCredentialsStore,
   isSetupSyncing,
   isSetupFailed,
   isSetupActive,
   isQuarantined,
 }: BuildSyncSectionParams): SyncSectionProps {
+  const canShowDevCredentialsRecovery =
+    canRecoverDevCredentialsStore && !isQuarantined && hasOversizedDevCredentialsStoreError(syncStatus);
+  const progressValue =
+    isSyncing && syncProgress && syncProgress.total > 0
+      ? Math.max((syncProgress.completed / syncProgress.total) * 100, syncProgress.completed === 0 ? 8 : 0)
+      : null;
+  const progressLabel =
+    isSyncing && syncProgress && syncProgress.total > 0
+      ? t("account.sync_progress_summary", {
+          completed: syncProgress.completed,
+          total: syncProgress.total,
+        })
+      : isSyncing
+        ? t("account.sync_progress_preparing")
+        : undefined;
+  const progressCurrentLabel =
+    isSyncing && syncProgress?.currentAccountName
+      ? t("account.sync_progress_current_account", {
+          name: syncProgress.currentAccountName,
+        })
+      : undefined;
+
   return {
     heading: isQuarantined
       ? t("account.quarantine_heading")
