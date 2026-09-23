@@ -106,7 +106,7 @@ const reactDoctorBaselines = {
   // per-rule breakdown and the outstanding-triage notice on every full run so a zero
   // delta never reads as approval. Keep reactDoctorFullScanTriageStatus in step when
   // re-pinning these, and see docs/react-doctor-complexity-classification.md for the
-  // per-finding record and .claude/rules/quality-policy.md for the durable families.
+  // per-finding record and .claude/rules/react-doctor-triage.md for the durable families.
   // The drop from 14/120/74 to 14/97/64 had two separate causes and neither was a
   // suppression: PRs #259/#261/#262 removed real findings, and adding --project . stopped
   // the scan from counting vendored apm_modules projects, which had contributed one error
@@ -114,7 +114,7 @@ const reactDoctorBaselines = {
   // The further drop to 93/60 is four findings actually fixed: one js-set-map-lookups
   // (a quadratic membership test), two js-combine-iterations, and one
   // no-loading-flag-reset-outside-finally. The remaining one of each of the first two
-  // rules is recorded as accepted risk in .claude/rules/quality-policy.md.
+  // rules is recorded as accepted risk in .claude/rules/react-doctor-triage.md.
   // 93/60 -> 90/58 was attributed on 2026-09-09 by comparing per-rule warning counts at
   // ad4a203a2 against 835ad5b01, not by accepting the totals. Every rule is unchanged except
   // three, each down exactly one: no-high-complexity-react-function 26 -> 25 and
@@ -220,7 +220,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // inside the PR that changes them: the SHA has to be an ancestor, and the values arrive with the
   // pinning commit. It cost a post-merge follow-up three times (#313, #319, #323) and was only
   // workable non-recursively, since no commit can assert its own SHA. Changed on an independent
-  // review, recorded in .claude/rules/quality-policy.md; that section also has the consistency
+  // review, recorded in .claude/rules/react-doctor-triage.md; that section also has the consistency
   // check this makes gateable in the PR.
   scanSha: "742a6919b",
   pluginVersion: "0.9.14",
@@ -241,7 +241,7 @@ const reactDoctorFullScanTriageStatusBase = {
       rule: "no-loading-flag-reset-outside-finally",
       count: 3,
       disposition: "false-positive",
-      recordPath: ".claude/rules/quality-policy.md (Loading Flag Reset Findings)",
+      recordPath: ".claude/rules/react-doctor-triage.md (Loading Flag Reset Findings)",
     },
     {
       // 0.9.14 turned this rule off by default, so the scan no longer asks. The entry stays
@@ -257,25 +257,25 @@ const reactDoctorFullScanTriageStatusBase = {
       rule: "js-combine-iterations",
       count: 0,
       disposition: "accepted-risk",
-      recordPath: ".claude/rules/quality-policy.md (Iteration And Lookup Shape Findings)",
+      recordPath: ".claude/rules/react-doctor-triage.md (Iteration And Lookup Shape Findings)",
     },
     {
       rule: "js-set-map-lookups",
       count: 1,
       disposition: "accepted-risk",
-      recordPath: ".claude/rules/quality-policy.md (Iteration And Lookup Shape Findings)",
+      recordPath: ".claude/rules/react-doctor-triage.md (Iteration And Lookup Shape Findings)",
     },
     {
       rule: "no-self-updating-effect",
       count: 1,
       disposition: "accepted-risk",
-      recordPath: ".claude/rules/quality-policy.md (Behavioural Single Findings)",
+      recordPath: ".claude/rules/react-doctor-triage.md (Behavioural Single Findings)",
     },
     {
       rule: "prefer-html-dialog",
       count: 1,
       disposition: "accepted-risk",
-      recordPath: ".claude/rules/quality-policy.md (Behavioural Single Findings)",
+      recordPath: ".claude/rules/react-doctor-triage.md (Behavioural Single Findings)",
     },
     {
       // The finding was cleared on 2026-09-10 by adopting trustPolicy: no-downgrade, and 0.9.14
@@ -314,7 +314,7 @@ const reactDoctorFullScanTriageStatusBase = {
       recordPath: "docs/react-doctor-warning-classification-300.md",
     },
     {
-      // Only reported once no-derived-state is suppressed; see quality-policy on the pairing.
+      // Only reported once no-derived-state is suppressed; see react-doctor-triage.md on the pairing.
       rule: "no-derived-state-effect",
       count: 0,
       disposition: "accepted-risk-and-false-positive",
@@ -334,7 +334,7 @@ const reactDoctorFullScanTriageStatusBase = {
       rule: "no-adjust-state-on-prop-change",
       count: 1,
       disposition: "accepted-risk",
-      recordPath: ".claude/rules/quality-policy.md (Adjust State On Prop Change Findings)",
+      recordPath: ".claude/rules/react-doctor-triage.md (Adjust State On Prop Change Findings)",
     },
     {
       // Count 0 for a different reason from the entries around it: #317 split the component, so
@@ -669,7 +669,7 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
 // "regression gate" was always meant to mean, and keeps the expectations pinned at zero rather
 // than at a count that has to be re-measured. A finding inside a function this change rewrote
 // still counts as new even when its metrics did not move; that is deliberate, and the way to
-// clear it is the inline record described in .claude/rules/quality-policy.md, not a baseline
+// clear it is the inline record described in .claude/rules/react-doctor-triage.md, not a baseline
 // bump. `--include-untracked` is required because the scope is resolved from git, so a
 // brand-new file would otherwise pass unscanned. Dropping it would be silent, which is why
 // this is exported and pinned by a test instead of inlined at the call site.

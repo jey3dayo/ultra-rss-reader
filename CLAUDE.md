@@ -50,7 +50,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - `mise run check:wsl` is the WSL-backed static-analysis gate for formatter/linter stability. On Windows it delegates to a WSL checkout via `WSL_REPO_DIR`.
 - `mise run test:unit:dom` runs the jsdom Vitest suite separately when DOM, React rendering, Testing Library, or browser global behavior is affected.
 - `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
-- `mise run quality:react-doctor:diff` is the React Doctor regression check; it reports only findings that are new against `origin/main`, so an accepted risk that already exists in a touched file does not turn it red. It is run by hand — no CI job or git hook invokes it, so it blocks nothing on its own; see [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md) (No Scan Task Runs Automatically).
+- `mise run quality:react-doctor:diff` is the React Doctor regression check; it reports only findings that are new against `origin/main`, so an accepted risk that already exists in a touched file does not turn it red. It is run by hand — no CI job or git hook invokes it, so it blocks nothing on its own; see [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md) (No Scan Task Runs Automatically).
 - `mise run quality:react-doctor:full` is informational for known full-scan baseline debt.
 - `mise run report:knip` produces the Knip baseline drift report; humans triage the findings instead of treating them as a gate.
 - `mise run quality:react-doctor-pin` verifies the pinned React Doctor baseline against the tree `scanSha` names, comparing the diagnostic identity set rather than only the totals. Unlike the scan tasks it does run in CI, and it reports nothing about findings in the current branch.
@@ -93,7 +93,8 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - Refactor-time owner selection, helper extraction destinations, generated artifacts, UI copy, stable keys, and runtime capability ownership: [.claude/rules/boundary-ownership.md](.claude/rules/boundary-ownership.md).
 - Boundary tests or TODO findings that should become durable coverage: [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
 - Preference schema/defaults, backend allowlist, settings copy, and shortcut preference parity: [.claude/rules/preferences-pattern.md](.claude/rules/preferences-pattern.md).
-- TODO priority taxonomy, similarity false positives, the single-TypeScript version policy, React Compiler, ES2023 copy methods, or React Doctor suppression decisions: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
+- TODO priority taxonomy, similarity false positives, the single-TypeScript version policy, React Compiler, ES2023 copy methods, or the React Doctor scan scope: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
+- Before running or interpreting any React Doctor task, classifying a finding, adding a `react-doctor-disable` record, or re-pinning a React Doctor baseline, read [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md). It is path-scoped, so a run that reads none of its files does not load it.
 - Rust test `unwrap` / `expect` usage: [.claude/rules/rust-test-unwrap-policy.md](.claude/rules/rust-test-unwrap-policy.md).
 
 ## Task Tracking

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // Every accepted-risk / false-positive React Doctor disable carries a
-// `<record>.md:<line>` pointer, and `quality-policy.md` forbids an inline
+// `<record>.md:<line>` pointer, and `react-doctor-triage.md` forbids an inline
 // disable without one. Those line numbers are load-bearing but nothing keeps
 // them true: inserting a paragraph into a classification record silently moves
 // every heading below it, and the disables then point at prose or at the wrong
@@ -89,5 +89,28 @@ describe("React Doctor disable record references", () => {
       const basename = source.slice(source.lastIndexOf("/") + 1);
       expect(entry, `${record}:${line} is a row about another file`).toContain(basename);
     }
+  });
+});
+
+const INLINE_DISABLE_PATTERN = /\/\/\s*react-doctor-disable/;
+
+function readTriageRulePaths(): string[] {
+  const rule = readFileSync(join(REPO_ROOT, ".claude/rules/react-doctor-triage.md"), "utf8");
+  const frontmatter = rule.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+
+  return [...frontmatter.matchAll(/^\s+- "([^"]+)"$/gm)].map(([, path]) => String(path));
+}
+
+describe("React Doctor triage rule load scope", () => {
+  // The rule is path-scoped, so a file whose inline record points into it must be one of its
+  // paths; otherwise editing that file never loads the decision the record depends on.
+  it("lists every source file that carries an inline react-doctor-disable record", () => {
+    const rulePaths = new Set(readTriageRulePaths());
+    const filesWithInlineRecords = collectSourceFiles("src").filter((source) =>
+      INLINE_DISABLE_PATTERN.test(readFileSync(join(REPO_ROOT, source), "utf8")),
+    );
+
+    expect(filesWithInlineRecords.length).toBeGreaterThan(0);
+    expect(filesWithInlineRecords.filter((source) => !rulePaths.has(source))).toEqual([]);
   });
 });
