@@ -5,6 +5,12 @@ paths:
   - "pnpm-workspace.yaml"
   - "vite.config.ts"
   - "tsconfig.json"
+  - "mise.toml"
+  - ".cargo/audit.toml"
+  - "src-tauri/Cargo.toml"
+  - "scripts/check-toolchain-contract.ts"
+  - ".storybook/main.ts"
+  - "components.json"
 ---
 
 # Code Policy

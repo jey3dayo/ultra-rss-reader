@@ -1,6 +1,7 @@
 ---
 paths:
   - "src-tauri/**"
+  - "mise.toml"
   - "mise/*.toml"
 ---
 

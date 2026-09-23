@@ -1,7 +1,6 @@
 ---
 paths:
-  - "src/components/**/*dialog*.tsx"
-  - "src/components/**/*Dialog*.tsx"
+  - "src/components/**/*.tsx"
 ---
 
 # ダイアログのキーボード確定

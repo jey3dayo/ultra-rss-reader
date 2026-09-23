@@ -1,6 +1,8 @@
 ---
 paths:
   - "src/**/*.{ts,tsx}"
+  - "scripts/similarity-report.ts"
+  - "docs/similarity-pair-classification.md"
 ---
 
 # Similarity False Positives

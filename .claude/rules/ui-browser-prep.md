@@ -2,6 +2,8 @@
 paths:
   - "src/components/**/*.{ts,tsx}"
   - "src/styles/**/*.css"
+  - "src/App.tsx"
+  - "src/locales/**"
 ---
 
 # UI ブラウザ確認ルール
