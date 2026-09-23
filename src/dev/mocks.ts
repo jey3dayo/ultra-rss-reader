@@ -56,18 +56,6 @@ import { SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS } from "@/lib/subscriptions/s
 import type { RuntimeSchema, SchemaOutput } from "@/schemas/parse";
 
 export const DEV_MOCK_PLATFORM_INFO = DEFAULT_PLATFORM_INFO;
-export const DEV_MOCK_NETWORK_BOUNDARY = {
-  externalOpen: "record-only",
-  browserWebview: "state-only",
-  feedDiscovery: "synthetic",
-} as const;
-export const DEV_MOCK_SIDE_EFFECT_BOUNDARY = {
-  externalOpen: "record-only",
-  readingList: "record-only",
-  browserWebview: "state-only",
-  feedIntegrityCleanup: "dry-run-safe",
-  opmlImport: "explicitly-unsupported",
-} as const;
 
 type MockCommandArgsSchema = RuntimeSchema<Record<string, unknown>>;
 const browserMockCommandArgsSchemas: CommandArgsSchemaRegistry = commandArgsSchemas satisfies Record<

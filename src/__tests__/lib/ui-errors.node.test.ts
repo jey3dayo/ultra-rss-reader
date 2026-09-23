@@ -8,7 +8,6 @@ import {
   createSchemaParseAppError,
   getAppRecoveryActionsForCategory,
   isDevCredentialStoreRecoveryError,
-  USER_FACING_ERROR_DIAGNOSTICS_POLICY,
 } from "@/lib/ui-errors";
 
 describe("ui error projection", () => {
@@ -26,12 +25,6 @@ describe("ui error projection", () => {
   });
 
   it("keeps support code and diagnostics id out of user-facing error copy", () => {
-    expect(USER_FACING_ERROR_DIAGNOSTICS_POLICY).toEqual({
-      supportCode: "none",
-      diagnosticsId: "runtime-diagnostics-only",
-      copyPolicy: "Do not append support codes or diagnostics ids to user-facing AppError messages.",
-      correlationPolicy: "Correlate failures through redacted runtime diagnostics instead of user-visible identifiers.",
-    });
     expect(createSchemaParseAppError("response", "name: Required").message).toBe(
       "Response validation failed. See diagnostics for details.",
     );
