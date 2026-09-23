@@ -251,8 +251,6 @@ describe("quality-baseline", () => {
     // The snapshot totals are not a classification set: the notice has to name a tracker
     // for the warnings and errors the pass did not classify, so a zero baseline delta
     // never reads as approval.
-    // #256 was the last open question about this snapshot and #331 closed it; the snapshot leaves
-    // none untriaged. Move this assertion with the field when a new tracker is opened.
     expect(status.untriagedWarningIssue).toContain("/issues/256");
     expect(status.errorIssue).toContain("/issues/260");
     expect(status.outlierIssue).toContain("/issues/256");

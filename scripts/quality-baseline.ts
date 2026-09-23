@@ -167,9 +167,6 @@ const reactDoctorBaselines = {
   // why auditWarningCount below is unchanged at 73: -1 no-giant-component and +1
   // no-adjust-state cancel there, and an unchanged audit total is the correct reading that
   // nothing was fixed and nothing regressed.
-  // 2/32/32 -> 2/31/31 measured on main at 42e307a17. The -1 is one finding fixed, not silenced:
-  // #331 cleared no-high-complexity-react-function on useAccountDetailViewProps (25 -> 24), and
-  // auditWarningCount below falls 73 -> 72 with it.
   full: {
     score: null,
     errorCount: 2,
@@ -198,13 +195,6 @@ type PendingJudgmentWarningFamily = {
   readonly trackingIssue: string;
 };
 
-// Empty as of 2026-09-18. The one entry was the useAccountDetailViewProps outlier, and #321 resolved
-// what made it pending: it needed an extraction design, the design was measured in Issue #256, and
-// the split landed. #331 then cleared what was left, so the function no longer reports at all; its
-// record row is marked in place.
-// This table is for a finding nothing dispositions, and that row is a disposition, so the finding
-// belongs in classifiedFindingCount rather than here. Keep the named type: `as const` on an empty
-// literal infers `readonly []`, which makes the report loop over `never`.
 const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [];
 
 const reactDoctorFullScanTriageStatusBase = {
@@ -216,8 +206,6 @@ const reactDoctorFullScanTriageStatusBase = {
   // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
-  //
-  // 42e307a17 is #331's squash commit, where the 31/72 scan for this pin was taken.
   //
   // The earlier reading required every number here to be true at scanSha, which is unsatisfiable
   // inside the PR that changes them: the SHA has to be an ancestor, and the values arrive with the
@@ -374,9 +362,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // classifiedFindingCount instead. See the empty-array comment above for why this table stays
   // empty rather than being removed.
   pendingJudgmentWarningFamilies,
-  // #256 is the last issue that held an open question about this snapshot, and #331 answered it.
-  // The derived untriaged total is 0 at this pin, so no open tracker exists; when a finding
-  // lands without a disposition, open an issue for it and point this field there.
+  // No open tracker while the untriaged total is 0; point this at a new issue when one is needed.
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
