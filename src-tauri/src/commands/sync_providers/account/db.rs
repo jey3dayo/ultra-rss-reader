@@ -1,8 +1,7 @@
 //! Named, single-purpose DB-lock scopes shared by the account sync
 //! orchestrators (`feeds`, `entries`, `remote_state`). Each function acquires
 //! `lock_db` exactly once; see the `SYNC_PROVIDERS_LOCK_DB_ALLOWLIST` pin in
-//! `src/__tests__/config/sync-remote-state-lock-contract.node.test.ts`
-//! (plan 025 lock-scope audit).
+//! `src/__tests__/config/sync-remote-state-lock-contract.node.test.ts`.
 //!
 //! `apply_remote_state_with_protection` is the one related lock scope that
 //! does *not* live here: it stays in `remote_state.rs`, paired with

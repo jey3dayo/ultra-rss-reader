@@ -253,8 +253,7 @@ describe("remote-entry materialization contract", () => {
 
   it("does not misclassify known test-fixture `INSERT INTO articles` call sites as production", () => {
     // These files build article rows directly via SQL in their own test
-    // fixtures (not through upsert_articles_with_conn) and previously would
-    // have been false positives for a naive whole-file scan.
+    // fixtures, which a whole-file scan would misread as production writes.
     const knownFixtureFiles = [
       "commands/article_commands/tests.rs",
       "infra/db/sqlite_feed/mod.rs",

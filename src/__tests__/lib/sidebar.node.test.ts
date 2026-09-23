@@ -172,8 +172,8 @@ describe("buildStarredCountByFeedId", () => {
   });
 
   it("is not capped by the starred article list's default page size", () => {
-    // Regression: previously derived from list_starred_articles (default limit 50),
-    // which under-counted any feed once total starred articles exceeded the page size.
+    // Must not be capped by list_starred_articles' default page size (limit 50), which
+    // would under-count any feed once total starred articles exceed it.
     const counts = buildStarredCountByFeedId([
       makeFeedArticleSummary({ feed_id: "feed-a", starred_count: 30 }),
       makeFeedArticleSummary({ feed_id: "feed-b", starred_count: 21 }),

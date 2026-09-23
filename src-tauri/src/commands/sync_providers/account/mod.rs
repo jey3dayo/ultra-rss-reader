@@ -16,7 +16,7 @@
 //! - `entries`: GReader entry pull/persist for account-wide and single-feed
 //!   scopes.
 //! - `db`: named single-purpose DB-lock scopes shared by the orchestrators
-//!   above (plan 025 lock-scope audit surface).
+//!   above.
 use std::sync::Mutex;
 use std::time::Instant;
 

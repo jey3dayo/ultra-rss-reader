@@ -185,8 +185,8 @@ const MACOS_NS_FUNCTION_KEY_F12: char = '\u{F70F}';
 /// Resolves the logical shortcut key from `NSEvent.charactersIgnoringModifiers()` instead
 /// of a fixed US-keyboard `keyCode` table, so layout-dependent bindings (JIS symbols,
 /// QWERTZ/AZERTY letters) match the same logical key the frontend recorded from
-/// `KeyboardEvent.key`. See `.claude/rules` PR #67 review: a keyCode table silently
-/// mismatches on any non-US physical layout.
+/// `KeyboardEvent.key`. A fixed keyCode table silently mismatches on any non-US physical
+/// layout.
 #[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
 pub(super) fn browser_shortcut_key_from_macos_event_characters(characters: &str) -> Option<String> {
     let mut chars = characters.chars();
@@ -390,7 +390,7 @@ pub(super) fn browser_shortcut_key_from_virtual_key(
         // The fixed "0".."9" table only applies unshifted. Shift+digit produces a
         // layout-dependent symbol (US: "!", "@", ...), which must go through `ToUnicode`
         // so the resolved key matches the shift-applied glyph the frontend recorded from
-        // `KeyboardEvent.key` (see PR #71 review: a fixed digit table ignored Shift).
+        // `KeyboardEvent.key`.
         0x30..=0x39 if !shift => char::from_u32(virtual_key).map(|ch| ch.to_string()),
         0x41..=0x5A => char::from_u32(virtual_key).map(|ch| ch.to_ascii_lowercase().to_string()),
         #[cfg(windows)]

@@ -82,7 +82,7 @@ describe("useSidebarFeedNavigation", () => {
   });
 
   it("does not focus a feed row that has started leaving since the frame was scheduled", () => {
-    // Regression for PR #302 review: a feed can start leaving (retained by
+    // A feed can start leaving (retained by
     // useFeedTreePresence for its exit animation) in the window between this
     // hook scheduling a focus frame and that frame running. Such a row is
     // `tabIndex={-1}` and inert to pointer input; focusing it would strand

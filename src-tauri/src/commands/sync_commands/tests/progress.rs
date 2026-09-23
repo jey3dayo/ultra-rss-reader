@@ -106,7 +106,7 @@ fn purge_contract_skips_when_scheduler_or_automatic_sync_is_disabled() {
     assert!(!should_purge_old_articles_after_sync(false));
 }
 
-// Issue #102: for the manual single-account/single-feed commands
+// For the manual single-account/single-feed commands
 // (`trigger_sync_account` / `trigger_sync_feed`), `emit_finished` is called
 // unconditionally while `sync-completed` goes out only when this predicate
 // holds. So "sync finished" and "the frontend was told to refresh the feed

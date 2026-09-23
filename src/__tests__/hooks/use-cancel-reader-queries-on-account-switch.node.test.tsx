@@ -37,9 +37,8 @@ describe("useCancelReaderQueriesOnAccountSwitch", () => {
 
     rerender({ accountId: "acc-2" });
 
-    // A single predicate-based call replaces the old per-root loop so that the
-    // decision of "cancel or not" can look at the whole query key (root AND
-    // account id) instead of matching on root alone. See
+    // A single predicate-based call lets the decision of "cancel or not" look at the whole
+    // query key (root AND account id) instead of matching on root alone. See
     // isAccountSwitchCancelTarget in the hook module for why root-only
     // matching is unsafe.
     expect(cancelQueriesSpy).toHaveBeenCalledTimes(1);

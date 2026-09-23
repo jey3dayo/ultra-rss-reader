@@ -165,10 +165,10 @@ export function useCommandPaletteData({
   const recentArticlesQuery = useRecentArticles(selectedAccountId);
   // Readiness is derived here, from the raw query data, and deliberately BEFORE the empty-array
   // fallbacks below. Collapsing undefined to [] first would make a failed query look like a
-  // resource list that is known to be empty, which is the defect fixed in #295. It also keeps the
+  // resource list that is known to be empty. It also keeps the
   // query objects out of the history memo's dependencies: TanStack Query returns a new tracked
-  // result object every render, so listing them there defeated the memo even when the data was
-  // unchanged.
+  // result object every render, so listing them there would defeat the memo even when the data
+  // is unchanged.
   const resourcesReady =
     hasFetchedData(feedsQuery) &&
     hasFetchedData(foldersQuery) &&

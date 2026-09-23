@@ -91,9 +91,8 @@ describe("useSidebarSources starredCountByFeedId", () => {
   });
 
   it("derives per-feed starred counts from feed article summaries, matching the full DB count past the starred list's default page size", async () => {
-    // Regression for improve-005: 51 starred articles split across two feeds (30 / 21).
     // list_starred_articles defaults to a 50-row page, so deriving counts from that
-    // capped list previously under-counted one of the feeds. Deriving from
+    // capped list under-counts once a feed's starred total pushes past it. Deriving from
     // list_feed_article_summaries (a COUNT-based query) matches the DB truth instead.
     useFeedsMock.mockReturnValue({
       data: [makeFeed({ id: "feed-a" }), makeFeed({ id: "feed-b" })],

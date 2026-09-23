@@ -107,7 +107,7 @@ export function useArticleListData(params: UseArticleListDataParams): UseArticle
   // A single `buildArticleListData` call, memoized on its individual scalar/array
   // dependencies, keeps this hook's production behavior identical to the plain function
   // the tests exercise directly. Do not reintroduce a parallel step-by-step recomputation
-  // here; that previously let the hook body drift from `buildArticleListData`.
+  // here; that lets the hook body drift from `buildArticleListData`.
   return useMemo(
     () =>
       buildArticleListData({

@@ -12,14 +12,9 @@ async fn run_full_sync_skips_when_already_syncing() {
     assert!(!sync_result.synced, "should skip when sync in progress");
 }
 
-/// Regression test for the startup remote-state repair race: the repair
-/// loop must be gated by the same `syncing` guard as manual/scheduler
-/// syncs, checked *before* the repair loop starts (not only around the
-/// later `run_sync_for_accounts_*` call). Before the fix,
-/// `trigger_startup_sync` awaited `repair_greader_remote_state` for
-/// `repair_only_accounts` without ever consulting `state.syncing`, so a
-/// concurrent manual/scheduler sync could run its `apply_remote_state`
-/// alongside the repair's. See
+/// The startup remote-state repair loop must be gated by the same `syncing`
+/// guard as manual/scheduler syncs, checked *before* the repair loop starts
+/// (not only around the later `run_sync_for_accounts_*` call). See
 /// `.claude/rules/remote-state-reconciliation.md`.
 #[tokio::test]
 async fn run_startup_sync_and_repair_skips_repair_when_sync_already_in_progress() {

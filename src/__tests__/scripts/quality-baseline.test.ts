@@ -249,10 +249,7 @@ describe("quality-baseline", () => {
     expect(status.outlierIssue).toContain("/issues/256");
     expect(status.reportArtifactPath).toBe("tmp/react-doctor-full.json");
 
-    // This used to assert untriagedWarningCountAtScan > 0, on the reasoning that an unfinished
-    // backlog is what stops a clean-looking total from reading as approval. #300 finished the
-    // backlog, so that guard would now block the very outcome it was pushing towards. What keeps
-    // the report honest instead is auditWarningCount: 0 untriaged means every finding has a
+    // What keeps the report honest is auditWarningCount: 0 untriaged means every finding has a
     // recorded verdict, not that the code has none, and most of those verdicts are inline
     // disables. A pin where the two totals agree would be claiming there is nothing suppressed.
     // reactDoctorBaselines stays unexported on purpose (see the note further down), so the
@@ -287,13 +284,10 @@ describe("quality-baseline", () => {
     const status = reactDoctorFullScanTriageStatus;
 
     // Pin the family total so a rule being added or removed from the table is caught here
-    // rather than only showing up as a silent drift in the derived subtraction below.
-    // 7, not the number of entries: the second-wave families and the three rules 0.9.14 turned
-    // off or removed sit at count 0, because the table's counts have to match what the scan
-    // reports while the entries themselves stay as the record of each decision. The 6 -> 7 is
-    // the no-adjust-state-on-prop-change finding #317 made reportable, classified in
-    // .claude/rules/react-doctor-triage.md and carried as a second entry for that rule because it
-    // has a different record from the 300.md rows.
+    // rather than only showing up as a silent drift in the derived subtraction below. The
+    // count is not the number of entries: retired or currently-inactive rules keep a count-0
+    // row so the table remains the record of each decision, while the table's per-rule counts
+    // otherwise have to match what the scan reports.
     expect(status.classifiedWarningFamiliesCount).toBe(7);
     expect(status.classifiedFindingCount).toBe(24);
 
@@ -306,27 +300,25 @@ describe("quality-baseline", () => {
     // a second copy of warningCount in this file.
     //
     // This assertion only confirms the arithmetic still holds, which is not the same as the
-    // sets agreeing: it read this value wrongly before, on arithmetic that happened to cancel
-    // out (docs/react-doctor-complexity-classification.md has the history). scripts/check-react-doctor-pin-consistency.ts
-    // (Issue #324) is the set comparison, and it also covers scanSha ancestry and reproducing
-    // the totals at that tree, which nothing in this file does.
+    // sets agreeing. scripts/check-react-doctor-pin-consistency.ts is the set comparison, and
+    // it also covers scanSha ancestry and reproducing the totals at that tree, which nothing
+    // in this file does.
     expect(status.untriagedWarningCountAtScan).toBe(0);
   });
 
   it("keeps rerender-lazy-ref-init out of the classified warning families table", () => {
     const status = reactDoctorFullScanTriageStatus;
 
-    // rerender-lazy-ref-init must not be absorbed into a "classified" family. The reason
-    // changed in #300 without the assertion changing: it used to be pending an ownership
-    // decision, and both of its findings were then fixed. A fixed finding leaves no disposition
-    // that would still apply if the rule fired again, so the table is the wrong place for it
-    // either way. The table is empty at this pin: #321 gave the complexity outlier a record row, so
-    // it counts in classifiedFindingCount and nothing is left that no record dispositions.
+    // rerender-lazy-ref-init must not be absorbed into a "classified" family. A fixed
+    // finding leaves no disposition that would still apply if the rule fired again, so the
+    // table is the wrong place for it. The table is empty at this pin because every
+    // currently-reported finding already has its own record row, so nothing here needs a
+    // family-level disposition.
     // The families table's rule field is a narrow string-literal union by design, so widen
     // to `readonly string[]` via the annotation below rather than asserting past the type.
     const classifiedFamilyRules: readonly string[] = status.classifiedWarningFamilies.map((family) => family.rule);
     expect(classifiedFamilyRules.includes("rerender-lazy-ref-init")).toBe(false);
-    // Empty since #321: the complexity outlier it named is now a classified row rather than a
+    // Empty because the complexity outlier has its own classified row rather than being a
     // pending judgment. The assertion stays so that folding a future pending finding into the
     // classified table without a record row still fails here.
     expect(status.pendingJudgmentWarningFamilies).toEqual([]);

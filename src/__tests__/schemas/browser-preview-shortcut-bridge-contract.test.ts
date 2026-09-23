@@ -146,10 +146,9 @@ describe("browser preview shortcut bridge contract", () => {
       "browser preview bridge action allowlist",
     );
 
-    // Bridge actions this script used to send (bindings dispatch via postMessage, and mouse
-    // button 3/4 capture) are discarded at the native layer (plan 019 Phase A/B), so keydown
-    // capture here must be limited to Space-key page scrolling and the page-forgeable
-    // postMessage channel must be gone entirely.
+    // Bindings dispatch via postMessage, and mouse button 3/4 capture, are discarded at the
+    // native layer, so keydown capture here must be limited to Space-key page scrolling and
+    // the page-forgeable postMessage channel must be gone entirely.
     expect(windowsBridgeBlock).not.toContain("postMessage");
     expect(windowsBridgeBlock).not.toContain("bindings");
     expect(windowsBridgeBlock).not.toContain("mousedown");
@@ -177,7 +176,7 @@ describe("browser preview shortcut bridge contract", () => {
   });
 
   it("keeps MENU_ACTION_EVENT dispatch exclusive to native input channels", () => {
-    // Page-forgeable channels must never dispatch app actions (plan 019 Phase A):
+    // Page-forgeable channels must never dispatch app actions:
     // the shortcut-scheme navigation handler lives in browser_webview_commands.rs and
     // must stay emit-free end to end (doc comments may still mention the event name).
     expect(commandsSource).not.toContain("emit(MENU_ACTION_EVENT");
@@ -221,9 +220,9 @@ describe("browser preview shortcut bridge contract", () => {
 
     // `invoke('close_browser_webview')` is ACL-denied for the child webview capability
     // (`browser-webview` only grants `core:event:default`), and the scheme-navigation fallback
-    // is discarded at the native layer (plan 019 Phase A). Capturing Escape/bindings/mouse
-    // buttons 3-4 here only swallowed them for both the app and the page, so none of that
-    // capture remains; macOS Escape (NSEvent monitor) and Windows (AcceleratorKeyPressed)
+    // is discarded at the native layer. Capturing Escape/bindings/mouse
+    // buttons 3-4 here would only swallow them for both the app and the page;
+    // macOS Escape (NSEvent monitor) and Windows (AcceleratorKeyPressed)
     // handle those shortcuts before the WebView sees them.
     expect(closeBridgeBlock).not.toContain("invoke(");
     expect(closeBridgeBlock).not.toContain("close_browser_webview");
@@ -246,9 +245,9 @@ describe("browser preview shortcut bridge contract", () => {
     const specs = extractBrowserPreviewShortcutSpecs(backendSource);
     const scriptBridgeActions = specs.filter((spec) => spec.supportsScriptBridge).map((spec) => spec.appAction);
 
-    // The spec table still marks these actions as historically script-bridge-eligible (used by
+    // The spec table marks these actions as script-bridge-eligible (used by
     // `is_supported_browser_preview_bridge_action` for scheme-nav classification), but the
-    // injected script itself no longer builds or dispatches a bindings map for any of them.
+    // injected script does not build or dispatch a bindings map for any of them.
     expect(scriptBridgeActions).toContain("toggle-read");
     expect(closeBridgeBlock).not.toContain("const bindings");
     expect(closeBridgeBlock).not.toContain("actionQueue");
