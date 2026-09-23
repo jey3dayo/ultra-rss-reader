@@ -170,8 +170,8 @@ const reactDoctorBaselines = {
   full: {
     score: null,
     errorCount: 2,
-    warningCount: 32,
-    affectedFileCount: 32,
+    warningCount: 31,
+    affectedFileCount: 31,
   },
 } as const;
 
@@ -195,13 +195,6 @@ type PendingJudgmentWarningFamily = {
   readonly trackingIssue: string;
 };
 
-// Empty as of 2026-09-18. The one entry was the useAccountDetailViewProps outlier, and #321 resolved
-// what made it pending: it needed an extraction design, the design was measured in Issue #256, and
-// the split landed. What is left of the function now has an accepted-risk row in the complexity
-// record but no assigned family — which family fits the post-split structure is still open at #256.
-// This table is for a finding nothing dispositions, and that row is a disposition, so the finding
-// belongs in classifiedFindingCount rather than here. Keep the named type: `as const` on an empty
-// literal infers `readonly []`, which makes the report loop over `never`.
 const pendingJudgmentWarningFamilies: readonly PendingJudgmentWarningFamily[] = [];
 
 const reactDoctorFullScanTriageStatusBase = {
@@ -214,15 +207,13 @@ const reactDoctorFullScanTriageStatusBase = {
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
   //
-  // 742a6919b is #321's squash commit, where the 32/73 scan for this pin was taken.
-  //
   // The earlier reading required every number here to be true at scanSha, which is unsatisfiable
   // inside the PR that changes them: the SHA has to be an ancestor, and the values arrive with the
   // pinning commit. It cost a post-merge follow-up three times (#313, #319, #323) and was only
   // workable non-recursively, since no commit can assert its own SHA. Changed on an independent
   // review, recorded in .claude/rules/react-doctor-triage.md; that section also has the consistency
   // check this makes gateable in the PR.
-  scanSha: "742a6919b",
+  scanSha: "42e307a17",
   pluginVersion: "0.9.14",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
@@ -231,7 +222,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // a total that matches is not evidence the sets do. Rows the scan no longer reports (fixed or
   // suppressed) are marked in place rather than deleted. scripts/check-react-doctor-pin-consistency.ts
   // (Issue #324) verifies the sets agree; see docs/react-doctor-complexity-classification.md for the history.
-  classifiedFindingCount: 25,
+  classifiedFindingCount: 24,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   // Kept after #321 resolved the exclusion: the record's 26th row is dated later than the rest and
   // this is where the reasoning for it lives. Rename or drop it only together with that row.
@@ -371,11 +362,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // classifiedFindingCount instead. See the empty-array comment above for why this table stays
   // empty rather than being removed.
   pendingJudgmentWarningFamilies,
-  // #256 as of 2026-09-18, for the same reason it was #300 before and #249 before that: this
-  // names where an untriaged finding would be tracked, and both earlier waves closed out. There
-  // is no untriaged finding at this pin — #321 gave the complexity outlier a record row, so the
-  // derived total is 0 — but the field still has to point somewhere current, and pointing at #300
-  // would send an operator to a list whose items are all already dispositioned.
+  // No open tracker while the untriaged total is 0; point this at a new issue when one is needed.
   untriagedWarningIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   errorIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/260",
   // The 2026-09-10 pass classified every error the scan reported, so no error is untriaged.
@@ -406,7 +393,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // fixed finding from a silenced one. auditWarningCount is the same scan with
   // --no-respect-inline-disables, which is the number that moves only when a finding is
   // actually fixed. Re-pin the two together; measured on the same SHA as scanSha.
-  auditWarningCount: 73,
+  auditWarningCount: 72,
   auditScanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
   reportArtifactPath: "tmp/react-doctor-full.json",
