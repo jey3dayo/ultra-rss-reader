@@ -23,7 +23,6 @@
     "quality:react-doctor:full": "node ./scripts/quality-baseline.ts react-doctor:full",
     "report:knip": "node ./scripts/quality-baseline.ts knip",
     "quality:lockfile-duplicate-majors": "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
-    "quality:dependency-licenses": "node ./scripts/quality-baseline.ts dependency-licenses",
     "check:release-contamination": "node ./scripts/check-release-build-contamination.ts",
     "diagnose:macos-keychain-signature": "node ./scripts/release/macos-keychain-signature-diagnostics.ts",
     "hooks:install": "lefthook install",

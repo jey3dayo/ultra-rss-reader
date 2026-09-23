@@ -4,7 +4,6 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const qualityToolTimeoutMs = 120_000;
-const qualityToolMaxBufferBytes = 64 * 1024 * 1024;
 
 export const qualityBaselineRepoScanIgnoredPathPrefixes = [
   "node_modules/",
@@ -325,39 +324,6 @@ const lockfileDuplicateMajorBaseline = {
   unreviewedDuplicatePackageCount: 46,
 } as const;
 
-export const dependencyLicenseInventoryContract = {
-  reportPath: "tmp/dependency-license-inventory.json",
-  pnpmCommand: ["pnpm", "licenses", "list", "--json"],
-  cargoCommand: ["cargo", "metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version", "1", "--locked"],
-  requiredEcosystems: ["pnpm", "cargo"],
-  reviewPolicy:
-    "Review unknown and dual-license entries before release distribution; generated inventory artifacts stay under tmp/.",
-} as const;
-
-export const dependencyUpdateSmokeContract = {
-  categories: ["query-caching", "store-equality", "tauri-api", "vite-dev-server", "test-runner"] as const,
-  reviewPolicy:
-    "Classify lockfile updates by runtime behavior before review; pure dev dependency updates need only the matching test-runner or Vite smoke.",
-  packages: [
-    { name: "@tanstack/react-query", category: "query-caching", smoke: "query cache boot/reload contract" },
-    { name: "zustand", category: "store-equality", smoke: "store selector equality and persistence contract" },
-    { name: "@tauri-apps/api", category: "tauri-api", smoke: "Tauri command/event wrapper contract" },
-    { name: "@tauri-apps/plugin-updater", category: "tauri-api", smoke: "updater hook command boundary contract" },
-    { name: "vite", category: "vite-dev-server", smoke: "Tauri dev Vite port and HMR contract" },
-    { name: "vitest", category: "test-runner", smoke: "unit test environment and setup contract" },
-    { name: "@vitest/browser", category: "test-runner", smoke: "browser-mode test runner contract" },
-  ],
-} as const;
-
-export const tailwindArbitraryValuesInventoryContract = {
-  sourcePathPrefixes: ["src/"],
-  sourceFileExtensions: [".tsx", ".css"],
-  ignoredPathPrefixes: ["src/__tests__/"],
-  categories: ["layout-critical", "motion-critical", "z-index", "token-candidate", "one-off-allowed"],
-  reviewPolicy:
-    "Classify arbitrary values before tokenizing; repeated semantic color, elevation, spacing, and z-index values should become token candidates.",
-} as const;
-
 // Matched against the lockfile by name and major set, so an entry that matches nothing is dead
 // data; remove it.
 const knownAcceptableLockfileDuplicateMajors = [
@@ -443,42 +409,6 @@ export type LockfileDuplicateMajorReport = {
   entries: LockfileDuplicateMajorEntry[];
 };
 
-export type TailwindArbitraryValueCategory = (typeof tailwindArbitraryValuesInventoryContract.categories)[number];
-
-export type TailwindArbitraryValueEntry = {
-  path: string;
-  line: number;
-  className: string;
-  value: string;
-  category: TailwindArbitraryValueCategory;
-};
-
-export type TailwindArbitraryValueSummary = Record<TailwindArbitraryValueCategory, number>;
-
-export type TailwindArbitraryValueInventory = {
-  summary: TailwindArbitraryValueSummary;
-  entries: TailwindArbitraryValueEntry[];
-};
-
-export type DependencyLicenseFinding = {
-  ecosystem: "pnpm" | "cargo";
-  packageName: string;
-  version?: string;
-  license: string;
-  review: "ok" | "dual-license" | "unknown-license";
-};
-
-export type DependencyLicenseInventory = {
-  generatedReportPath: string;
-  ecosystems: Record<(typeof dependencyLicenseInventoryContract.requiredEcosystems)[number], number>;
-  summary: {
-    total: number;
-    unknownLicenseCount: number;
-    dualLicenseCount: number;
-  };
-  findings: DependencyLicenseFinding[];
-};
-
 export type QualityToolDiagnosticKind =
   | "missing-command"
   | "non-zero-exit"
@@ -504,12 +434,10 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     command !== "react-doctor:diff" &&
     command !== "react-doctor:full" &&
     command !== "knip" &&
-    command !== "lockfile-duplicate-majors" &&
-    command !== "tailwind-arbitrary-values" &&
-    command !== "dependency-licenses"
+    command !== "lockfile-duplicate-majors"
   ) {
     console.error(
-      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|lockfile-duplicate-majors|tailwind-arbitrary-values|dependency-licenses",
+      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|lockfile-duplicate-majors",
     );
     process.exit(2);
   }
@@ -520,12 +448,8 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     runReactDoctor("full", false);
   } else if (command === "knip") {
     runKnip();
-  } else if (command === "lockfile-duplicate-majors") {
-    runLockfileDuplicateMajorReport();
-  } else if (command === "tailwind-arbitrary-values") {
-    runTailwindArbitraryValuesInventory();
   } else {
-    runDependencyLicenseInventory();
+    runLockfileDuplicateMajorReport();
   }
 }
 
@@ -832,97 +756,6 @@ function runLockfileDuplicateMajorReport(): void {
   }
 }
 
-function runTailwindArbitraryValuesInventory(): void {
-  const result = spawnSync("git", ["ls-files", "src/**/*.tsx", "src/**/*.css"], {
-    encoding: "utf8",
-    timeout: qualityToolTimeoutMs,
-  });
-  const processDiagnostic = createProcessDiagnostic("Tailwind arbitrary values inventory", "git ls-files", result);
-  if (processDiagnostic !== null) {
-    writeToolDiagnostic(processDiagnostic);
-    process.exit(exitCodeForDiagnostic(processDiagnostic));
-  }
-
-  const files = result.stdout
-    .split("\n")
-    .map((path) => path.trim())
-    .filter((path) => path.length > 0)
-    .filter(isTailwindArbitraryValueInventorySourcePath)
-    .map((path) => ({ path, source: readFileSync(path, "utf8") }));
-  const inventory = buildTailwindArbitraryValueInventory(files);
-
-  console.log(
-    [
-      `Tailwind arbitrary values: total=${inventory.entries.length}`,
-      ...tailwindArbitraryValuesInventoryContract.categories.map(
-        (category) => `${category}=${inventory.summary[category]}`,
-      ),
-    ].join(" "),
-  );
-
-  for (const entry of inventory.entries) {
-    console.log(`${entry.category}: ${entry.path}:${entry.line} ${entry.className}`);
-  }
-}
-
-function runDependencyLicenseInventory(): void {
-  const pnpmResult = spawnSync(
-    dependencyLicenseInventoryContract.pnpmCommand[0],
-    dependencyLicenseInventoryContract.pnpmCommand.slice(1),
-    { encoding: "utf8", maxBuffer: qualityToolMaxBufferBytes, timeout: qualityToolTimeoutMs },
-  );
-  const pnpmDiagnostic = createProcessDiagnostic("pnpm license inventory", "pnpm licenses list --json", pnpmResult);
-  if (pnpmDiagnostic !== null) {
-    writeToolDiagnostic(pnpmDiagnostic);
-    process.exit(exitCodeForDiagnostic(pnpmDiagnostic));
-  }
-
-  const cargoResult = spawnSync(
-    dependencyLicenseInventoryContract.cargoCommand[0],
-    dependencyLicenseInventoryContract.cargoCommand.slice(1),
-    { encoding: "utf8", maxBuffer: qualityToolMaxBufferBytes, timeout: qualityToolTimeoutMs },
-  );
-  const cargoDiagnostic = createProcessDiagnostic(
-    "Cargo license inventory",
-    "cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 --locked",
-    cargoResult,
-  );
-  if (cargoDiagnostic !== null) {
-    writeToolDiagnostic(cargoDiagnostic);
-    process.exit(exitCodeForDiagnostic(cargoDiagnostic));
-  }
-
-  let inventory: DependencyLicenseInventory;
-  try {
-    inventory = buildDependencyLicenseInventory({
-      pnpm: JSON.parse(readJsonPayload(pnpmResult.stdout)),
-      cargo: JSON.parse(readJsonPayload(cargoResult.stdout)),
-    });
-  } catch (error) {
-    const diagnostic = createReportDiagnostic(
-      "Dependency license inventory",
-      "pnpm licenses list --json && cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 --locked",
-      `${pnpmResult.stdout}\n${cargoResult.stdout}`,
-      error,
-    );
-    writeToolDiagnostic(diagnostic);
-    process.exit(exitCodeForDiagnostic(diagnostic));
-  }
-
-  mkdirSync("tmp", { recursive: true });
-  writeFileSync(dependencyLicenseInventoryContract.reportPath, `${JSON.stringify(inventory, null, 2)}\n`);
-  console.log(
-    [
-      `Dependency licenses: total=${inventory.summary.total}`,
-      `pnpm=${inventory.ecosystems.pnpm}`,
-      `cargo=${inventory.ecosystems.cargo}`,
-      `unknown=${inventory.summary.unknownLicenseCount}`,
-      `dual=${inventory.summary.dualLicenseCount}`,
-      `report=${inventory.generatedReportPath}`,
-    ].join(" "),
-  );
-}
-
 export function buildLockfileDuplicateMajorReport(
   lockfile: string,
   manifest: PackageManifest,
@@ -963,161 +796,6 @@ export function buildLockfileDuplicateMajorReport(
     unreviewedDuplicatePackageCount: entries.filter((entry) => !entry.allowed).length,
     entries,
   };
-}
-
-export function buildTailwindArbitraryValueInventory(
-  files: readonly { path: string; source: string }[],
-): TailwindArbitraryValueInventory {
-  const entries = files
-    .flatMap((file) =>
-      isTailwindArbitraryValueInventorySourcePath(file.path)
-        ? readTailwindArbitraryValueEntries(file.path, file.source)
-        : [],
-    )
-    .sort((left, right) => left.path.localeCompare(right.path) || left.line - right.line);
-
-  const summary = createEmptyTailwindArbitraryValueSummary();
-  for (const entry of entries) {
-    summary[entry.category] += 1;
-  }
-
-  return { summary, entries };
-}
-
-export function buildDependencyLicenseInventory(reports: {
-  pnpm: unknown;
-  cargo: unknown;
-}): DependencyLicenseInventory {
-  const findings = [...readPnpmLicenseFindings(reports.pnpm), ...readCargoLicenseFindings(reports.cargo)].sort(
-    (left, right) =>
-      left.ecosystem.localeCompare(right.ecosystem) ||
-      left.packageName.localeCompare(right.packageName) ||
-      (left.version ?? "").localeCompare(right.version ?? ""),
-  );
-
-  return {
-    generatedReportPath: dependencyLicenseInventoryContract.reportPath,
-    ecosystems: {
-      pnpm: findings.filter((finding) => finding.ecosystem === "pnpm").length,
-      cargo: findings.filter((finding) => finding.ecosystem === "cargo").length,
-    },
-    summary: {
-      total: findings.length,
-      unknownLicenseCount: findings.filter((finding) => finding.review === "unknown-license").length,
-      dualLicenseCount: findings.filter((finding) => finding.review === "dual-license").length,
-    },
-    findings,
-  };
-}
-
-function readPnpmLicenseFindings(report: unknown): DependencyLicenseFinding[] {
-  if (!isObject(report)) {
-    throw new Error("pnpm licenses did not return a JSON object.");
-  }
-
-  return Object.entries(report).flatMap(([license, value]) => {
-    const entries = Array.isArray(value) ? value : [];
-    return entries.flatMap((entry) => {
-      if (!isObject(entry)) {
-        return [];
-      }
-      const packageName = readString(entry, "name");
-      return [
-        {
-          ecosystem: "pnpm" as const,
-          packageName,
-          version:
-            readOptionalString(entry, "version") ??
-            readOptionalStringArray(entry, "versions")?.join(",") ??
-            readPackageVersionSuffix(packageName),
-          license,
-          review: classifyLicenseReview(license),
-        },
-      ];
-    });
-  });
-}
-
-function readCargoLicenseFindings(report: unknown): DependencyLicenseFinding[] {
-  const packages = Array.isArray(report)
-    ? report
-    : isObject(report) && Array.isArray(report.packages)
-      ? report.packages
-      : null;
-  if (packages === null) {
-    throw new Error("Cargo metadata did not return a packages array.");
-  }
-
-  return packages.flatMap((entry) => {
-    if (!isObject(entry)) {
-      return [];
-    }
-    const license = readOptionalString(entry, "license") ?? readOptionalString(entry, "license_file") ?? "UNKNOWN";
-    return [
-      {
-        ecosystem: "cargo" as const,
-        packageName: readString(entry, "name"),
-        version: readOptionalString(entry, "version"),
-        license,
-        review: classifyLicenseReview(license),
-      },
-    ];
-  });
-}
-
-function classifyLicenseReview(license: string): DependencyLicenseFinding["review"] {
-  const normalizedLicense = license.trim();
-  if (normalizedLicense.length === 0 || /^unknown$/i.test(normalizedLicense) || /no license/i.test(normalizedLicense)) {
-    return "unknown-license";
-  }
-  if (/\b(?:OR|AND)\b|\//.test(normalizedLicense)) {
-    return "dual-license";
-  }
-  return "ok";
-}
-
-function readPackageVersionSuffix(packageName: string): string | undefined {
-  const separatorIndex = packageName.startsWith("@") ? packageName.indexOf("@", 1) : packageName.lastIndexOf("@");
-  return separatorIndex === -1 ? undefined : packageName.slice(separatorIndex + 1);
-}
-
-export function isTailwindArbitraryValueInventorySourcePath(filePath: string): boolean {
-  const normalizedPath = normalizeRepoScanPath(filePath);
-  return (
-    tailwindArbitraryValuesInventoryContract.sourcePathPrefixes.some((prefix) => normalizedPath.startsWith(prefix)) &&
-    tailwindArbitraryValuesInventoryContract.sourceFileExtensions.some((extension) =>
-      normalizedPath.endsWith(extension),
-    ) &&
-    !tailwindArbitraryValuesInventoryContract.ignoredPathPrefixes.some((prefix) => normalizedPath.startsWith(prefix)) &&
-    !isQualityBaselineRepoScanIgnoredPath(normalizedPath)
-  );
-}
-
-export function classifyTailwindArbitraryValue(className: string): TailwindArbitraryValueCategory {
-  const normalizedClassName = stripTailwindVariants(className);
-  const value = readTailwindArbitraryValue(className);
-
-  if (/^z-\[/.test(normalizedClassName)) {
-    return "z-index";
-  }
-  if (/^(?:duration|delay|ease|animate)-\[/.test(normalizedClassName)) {
-    return "motion-critical";
-  }
-  if (/^(?:bg|text|border|ring|fill|stroke|shadow|accent|caret|decoration)-\[/.test(normalizedClassName)) {
-    return "token-candidate";
-  }
-  if (/var\(--|color-mix\(|oklch\(|rgba?\(|hsla?\(/.test(value)) {
-    return "token-candidate";
-  }
-  if (
-    /^(?:w|h|size|min-w|min-h|max-w|max-h|inset|top|right|bottom|left|translate-x|translate-y|grid-cols|grid-rows|col|row|gap|space|m|mx|my|mt|mr|mb|ml|p|px|py|pt|pr|pb|pl|basis|aspect|leading|tracking|rounded)-\[/.test(
-      normalizedClassName,
-    )
-  ) {
-    return "layout-critical";
-  }
-
-  return "one-off-allowed";
 }
 
 function readKnipVersion(): string {
@@ -1480,73 +1158,6 @@ export function partitionQualityBaselineRepoScanPaths(paths: readonly string[]):
   return { includedPaths, ignoredPaths };
 }
 
-function readTailwindArbitraryValueEntries(path: string, source: string): TailwindArbitraryValueEntry[] {
-  const entries: TailwindArbitraryValueEntry[] = [];
-  const tokenPattern = /[^\s"'`<>]+/g;
-
-  for (const match of source.matchAll(tokenPattern)) {
-    const className = cleanPotentialTailwindToken(match[0]);
-    if (!isTailwindArbitraryToken(className)) {
-      continue;
-    }
-    const offset = match.index ?? 0;
-    entries.push({
-      path: normalizeRepoScanPath(path),
-      line: countLinesBeforeOffset(source, offset) + 1,
-      className,
-      value: readTailwindArbitraryValue(className),
-      category: classifyTailwindArbitraryValue(className),
-    });
-  }
-
-  return entries;
-}
-
-function cleanPotentialTailwindToken(token: string): string {
-  return token.replace(/^[{(]+/, "").replace(/[}),;]+$/, "");
-}
-
-function isTailwindArbitraryToken(token: string): boolean {
-  if (!token.includes("[") || !token.includes("]")) {
-    return false;
-  }
-  return stripTailwindVariants(token).includes("-[") || token.includes("]:");
-}
-
-function stripTailwindVariants(className: string): string {
-  const bracketDepthAwareSeparator = /:(?![^[]*\])/g;
-  return className.split(bracketDepthAwareSeparator).at(-1) ?? className;
-}
-
-function readTailwindArbitraryValue(className: string): string {
-  const start = className.indexOf("[");
-  const end = className.lastIndexOf("]");
-  if (start === -1 || end <= start) {
-    return "";
-  }
-  return className.slice(start + 1, end);
-}
-
-function createEmptyTailwindArbitraryValueSummary(): TailwindArbitraryValueSummary {
-  return {
-    "layout-critical": 0,
-    "motion-critical": 0,
-    "z-index": 0,
-    "token-candidate": 0,
-    "one-off-allowed": 0,
-  };
-}
-
-function countLinesBeforeOffset(source: string, offset: number): number {
-  let lines = 0;
-  for (let index = 0; index < offset; index += 1) {
-    if (source[index] === "\n") {
-      lines += 1;
-    }
-  }
-  return lines;
-}
-
 function normalizeRepoScanPath(filePath: string): string {
   return filePath.replaceAll("\\", "/").replace(/^\.\/+/, "");
 }
@@ -1685,11 +1296,6 @@ function readString(source: Record<string, unknown>, key: string): string {
 function readOptionalString(source: Record<string, unknown>, key: string): string | undefined {
   const value = source[key];
   return typeof value === "string" ? value : undefined;
-}
-
-function readOptionalStringArray(source: Record<string, unknown>, key: string): string[] | undefined {
-  const value = source[key];
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string") ? value : undefined;
 }
 
 function readNumber(source: Record<string, unknown>, key: string): number {
