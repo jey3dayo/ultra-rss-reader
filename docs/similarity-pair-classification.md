@@ -96,3 +96,10 @@ Type pairs are recorded here because `similarityFalsePositiveBaseline` cannot ma
 | 92.80 | `src/__tests__/hooks/use-sidebar-sync.node.test.ts` | `QueryInvalidationSpy` | `src/__tests__/dev/scenarios/runner.node.test.ts` | `InvocationOrderMock` | pending | No type-pair allowlist entry; record here |
 | 92.70 | `src/lib/ui/options.ts` | `OptionWithLabel` | `src/lib/browser/browser-debug-geometry.ts` | `BrowserDebugGeometryRow` | pending | No type-pair allowlist entry; record here |
 | 90.88 | `src/components/reader/hooks/article-list/article-list-controller.types.ts` | `ArticleListPresentationSearch` | `src/components/reader/hooks/article-list/article-list-controller.types.ts` | `UseArticleListSearchResult` | pending | No type-pair allowlist entry; record here |
+
+## Measurement Notes
+
+Measured 2026-09-19 at `6e967f4b1`; these are the numbers behind the Similarity False Positives rules in `quality-policy.md`.
+
+- Hub noise: `similarity-ts --threshold 0.9 src/` reported 40 function pairs. `useBrowserWebviewBoundsSync` appeared in 9 of them, paired with unrelated targets including `patchCachedAccount`, `useSubscriptionsIndexEscape`, and `useAccountDetailSyncStatusRows`; the eight most frequent symbols filled 44 of the 80 pair slots. The no-suppression decision was taken on the same date.
+- `createDeferred`: 22 files under `src/__tests__` defined their own copy while 4 imported `tests/helpers/deferred.ts`. `--filter-function createDeferred --threshold 0.9` returned 0 pairs; with `--no-size-penalty` it returned 1478. The 22 copies were removed in commit `1b9bf2bb3`. The first inventory counted 23 files and 26 definitions and both were wrong: the looser pattern `^[[:space:]]*(const|function) createDeferred` also matched `createDeferredCleanup()` in `tauri-event-listeners.node.test.ts` and call sites of the form `const createDeferredResult = createDeferred<...>()`.
