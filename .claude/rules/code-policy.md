@@ -33,11 +33,12 @@ Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→
 
 ## pnpm Version Enforcement
 
-Three files name the pnpm version and none of them is redundant, because three different
-consumers read them: `mise.toml` `[tools].pnpm` supplies pnpm locally, `package.json`
-`packageManager` is what `pnpm/setup` resolves in CI, and `package.json` `engines.pnpm` is a
-fail-fast for anyone still on pnpm 11. `scripts/check-toolchain-contract.ts` pins all three to
-the same value, the way it already does for Node.
+Two files name the pnpm version and neither is redundant, because two different consumers
+read them: `package.json` `packageManager` is what `pnpm/setup` resolves in CI and what mise
+reads locally via `mise.toml` `[settings].idiomatic_version_file_enable_tools = ["pnpm"]`, and
+`package.json` `engines.pnpm` is a fail-fast for anyone still on pnpm 11.
+`scripts/check-toolchain-contract.ts` pins both to the same value, the way it already does for
+Node.
 
 `pmOnFail: ignore` in `pnpm-workspace.yaml` turns off pnpm's own `packageManager` download and
 switch, because mise owns that locally. Leaving it on makes pnpm 12 write `pnpm-lock.yaml` as
