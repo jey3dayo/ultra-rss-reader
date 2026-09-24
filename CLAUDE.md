@@ -68,7 +68,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 
 ## Placement And Boundaries
 
-- Follow the repository structure rules in [.claude/rules/README.md](.claude/rules/README.md) before moving code or creating shared surfaces.
+- Follow the repository structure rules in [.claude/rules/repository-structure.md](.claude/rules/repository-structure.md) before moving code or creating shared surfaces.
 - Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output, not source. Do not hand-edit files there; change `src-tauri/capabilities/` or the owning Tauri permission/config source, rerun the Tauri CLI command that generated the schema drift, and review the resulting schema diff as generated output before committing.
 - Keep frontend-owned runtime schemas in `src/schemas/`; keep Tauri IPC request/response schemas in `src/api/schemas/`.
 - Do not move React props or hook params/results to `src/schemas/` unless they validate runtime input.
