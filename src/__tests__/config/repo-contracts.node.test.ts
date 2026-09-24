@@ -1844,6 +1844,7 @@ describe("repository static contracts", () => {
       ".claude/rules/preferences-pattern.md",
       ".claude/rules/quality-policy.md",
       ".claude/rules/react-doctor-triage.md",
+      ".claude/rules/repository-structure.md",
       ".claude/rules/result-boundary.md",
       ".claude/rules/runtime-boundary.md",
       ".claude/rules/rust-test-unwrap-policy.md",
