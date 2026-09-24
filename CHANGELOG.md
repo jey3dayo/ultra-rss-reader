@@ -4,6 +4,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.63.7] - 2026-09-24
+
+### Bug Fixes
+
+- similarity report の baseline の棚卸しと、type literal を解析する処理の不具合を直した。(#328)
+
+### Maintenance
+
+- similarity report で重複と判定された箇所を整理し、テストの deferred fixture を共通の helper にまとめた。(#327)
+- 設定のアカウント詳細画面で、使い先が 1 か所しかない導出をそれぞれの使い先へ移した。React Doctor の複雑度の指摘が解消し、あわせて baseline を取り直した。(#331, #332)
+- `scripts/quality-baseline.ts` から測定履歴のコメントを削り、どこからも実行されていない 3 つの機能とそのテストを削除した。(#333, #334)
+- Knip の新しい unused export / type の指摘を整理し、baseline の水準へ戻した。型の一覧と実際の export を突き合わせる確認も追加した。(#335)
+- コードのコメントから経緯や来歴の記述を削った。(#336)
+- 実装を写すだけのテストと、そのテストしか読んでいない定数を削除した。(#337)
+- 常時読み込まれていた `.claude/rules/` をほぼすべて path-scoped にし、agent が毎回読む分量を減らした。(#338)
+- pnpm の版を `package.json` の `packageManager` から読むようにし、`mise.toml` の pin をやめた。
+
+### Documentation
+
+- `quality-policy.md` から測定ログを docs へ移し、React Doctor の triage を path-scoped の別 rule に分けた。(#329, #330)
+- pnpm の版の正本についての記述と、#338 で分けた rule への入口の docs の参照を更新した。(#339)
+
 ## [0.63.6] - 2026-09-19
 
 ### Maintenance
