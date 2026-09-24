@@ -77,7 +77,7 @@ Tasks live in `todo.txt` (tuxedo format) with rich context in linked GitHub Issu
 - `(C)` P2: quality debt with clear implementation work, test gap, or warning cleanup that can be batched safely.
 - `(D)` P3: policy, taxonomy, adoption preflight, documentation, or low-risk cleanup that should prevent future drift but does not change runtime behavior by itself.
 
-When a task becomes a durable rule, move the rule into `CLAUDE.md` or `.claude/rules/`, then close the issue and remove the `todo.txt` line after verifying the rule is discoverable.
+When a task becomes a durable rule, move the rule into `AGENTS.md` or `.claude/rules/`, then close the issue and remove the `todo.txt` line after verifying the rule is discoverable.
 
 ## Task Aging
 

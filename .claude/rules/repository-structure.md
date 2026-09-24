@@ -27,4 +27,4 @@ paths:
 - component-local pure helper を `src/lib/` に抽出する時は、React-free、UI-copy-free、store-free、Tauri-command-free な logic だけを移す
 - hook、toast execution、store access、listener lifecycle、optimistic update、component props、view label は owning feature に残す
 - tests、mocks、近傍 component が旧 feature module の public surface を import している時は、互換 re-export を優先する
-- コマンド実行方針は [../../CLAUDE.md](../../CLAUDE.md) と [../../mise.toml](../../mise.toml) を参照する。日常的な project rule はこの `.claude/rules/` に置く
+- コマンド実行方針は [../../AGENTS.md](../../AGENTS.md) と [../../mise.toml](../../mise.toml) を参照する。日常的な project rule はこの `.claude/rules/` に置く

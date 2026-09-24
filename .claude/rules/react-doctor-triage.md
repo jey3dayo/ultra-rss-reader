@@ -43,7 +43,7 @@ How React Doctor findings are classified, recorded, suppressed, and pinned. Tool
 policy, including the React Doctor scan scope, lives in [quality-policy.md](./quality-policy.md).
 
 `paths:` is a secondary trigger, not the boundary of where this rule applies: it applies to every
-React Doctor run and finding, and `quality-policy.md` and `CLAUDE.md` tell the agent to read it
+React Doctor run and finding, and `quality-policy.md` and `AGENTS.md` tell the agent to read it
 before one. The source files listed are the ones this rule names or that carry an inline
 `react-doctor-disable` record, so editing one loads the decision it is bound by.
 `react-doctor-disable-reference-contract.node.test.ts` fails when a file with an inline record is
@@ -65,7 +65,7 @@ Suppression records belong in the narrowest durable place: local code comment fo
 Both React Doctor *scan* tasks — `quality:react-doctor:diff` and `quality:react-doctor:full` —
 are manual (verified 2026-09-10 against the primary sources): `lefthook.yml` runs
 format, `test:unit:ci`, `lint`, `test:rust`, and `build`, and mentions no `react-doctor` task. So
-"gate" below and in `CLAUDE.md` names what those tasks are *for*, not something that stops a
+"gate" below and in `AGENTS.md` names what those tasks are *for*, not something that stops a
 merge: a reintroduced finding reaches `main` unless a person runs the task or an ordinary test
 catches it.
 

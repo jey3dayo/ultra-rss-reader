@@ -1,7 +1,7 @@
 # Contributing / Development Guide
 
 This document is the source of truth for development setup, development modes, verification commands, architecture, provider support (Local feeds and FreshRSS via the GReader API), and coding conventions.
-For the product overview, see [README.md](README.md). For agent workflow and rule routing, see [CLAUDE.md](CLAUDE.md).
+For the product overview, see [README.md](README.md). For agent workflow and rule routing, see [AGENTS.md](AGENTS.md).
 
 ## Start Here
 
@@ -264,4 +264,4 @@ macOS release artifacts are built under a no Developer ID policy. The release co
 ## Documentation
 
 Use [docs/README.md](docs/README.md) as the index for operational docs, current behavior references, and historical design records.
-Agent-specific workflow guidance lives in [CLAUDE.md](CLAUDE.md), and topic-specific engineering rules live in [.claude/rules/README.md](.claude/rules/README.md).
+Agent-specific workflow guidance lives in [AGENTS.md](AGENTS.md), and topic-specific engineering rules live in [.claude/rules/README.md](.claude/rules/README.md).

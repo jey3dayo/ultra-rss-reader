@@ -5,16 +5,14 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 
 ## Read Order
 
-1. `AGENTS.md`: thin router and instruction precedence for external agents.
-2. `CLAUDE.md`: short repository-local agent workflow.
-3. `README.md`: user-facing product landing page; `CONTRIBUTING.md`: source of truth for architecture, commands, and verification.
-4. `docs/README.md`: index for operational docs, current behavior references, and historical design records.
+1. `AGENTS.md`: repository-local agent workflow, quality gates, and rule routing.
+2. `README.md`: user-facing product landing page; `CONTRIBUTING.md`: source of truth for architecture, commands, and verification.
+3. `docs/README.md`: index for operational docs, current behavior references, and historical design records.
 
 ## Source Of Truth
 
 - Product overview: [README.md](README.md); architecture, development modes, commands, verification matrix: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Agent workflow and rule routing: [CLAUDE.md](CLAUDE.md)
-- External agent router: [AGENTS.md](AGENTS.md)
+- Agent workflow and rule routing: [AGENTS.md](AGENTS.md)
 - Documentation index: [docs/README.md](docs/README.md)
 - Completed user-visible changes: [CHANGELOG.md](CHANGELOG.md)
 - UI design rules: [DESIGN.md](DESIGN.md)

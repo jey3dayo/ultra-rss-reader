@@ -406,7 +406,7 @@ function markdownFilesUnderDirectory(path: string) {
 }
 
 function markdownFilesUnderDocs() {
-  const topLevelDocs = ["AGENTS.md", "README.md", "CLAUDE.md", ".claude/rules/README.md", "docs/README.md"];
+  const topLevelDocs = ["AGENTS.md", "README.md", ".claude/rules/README.md", "docs/README.md"];
   const commandFiles = markdownFilesUnderDirectory(".claude/commands");
   const codexSkillFiles = markdownFilesUnderDirectory(".codex/skills");
   const docsFiles = markdownFilesUnderDirectory("docs");
@@ -1354,7 +1354,7 @@ describe("repository static contracts", () => {
   it("keeps generated schema and target artifacts outside repo scan inventories", () => {
     const gitignoreSource = readRepoFile(".gitignore");
     const ripgrepIgnoreSource = readRepoFile(".ignore");
-    const claudeGuidance = readRepoFile("CLAUDE.md");
+    const claudeGuidance = readRepoFile("AGENTS.md");
     const miseSource = readMiseTaskCorpus();
     const ignoredArtifactPrefixes = [
       "dist/",
@@ -1813,11 +1813,11 @@ describe("repository static contracts", () => {
     const missingRuleLinks = ruleFiles.filter((ruleFile) => !indexedRuleLinks.has(ruleFile));
 
     expect(missingRuleLinks).toEqual([]);
-    expect(readRepoFile("CLAUDE.md")).toContain("[.claude/rules/README.md](.claude/rules/README.md)");
+    expect(readRepoFile("AGENTS.md")).toContain("[.claude/rules/README.md](.claude/rules/README.md)");
   });
 
-  it("keeps CLAUDE rule links aligned with the rules index", () => {
-    const claudeGuidance = readRepoFile("CLAUDE.md");
+  it("keeps AGENTS rule links aligned with the rules index", () => {
+    const claudeGuidance = readRepoFile("AGENTS.md");
     const ruleIndex = readRepoFile(".claude/rules/README.md");
     const indexedRuleFiles = new Set(
       extractMarkdownRelativeLinks(ruleIndex)
@@ -1861,17 +1861,22 @@ describe("repository static contracts", () => {
     expect(topLevelDocsSection).not.toContain(["R", "T", "K"].join(""));
   });
 
-  it("keeps AGENTS as a thin router to CLAUDE guidance", () => {
+  it("keeps AGENTS as the single repository-local agent workflow guide", () => {
     const agents = readRepoFile("AGENTS.md");
 
-    expect(agents).toContain("Use `./CLAUDE.md` as the master document");
-    expect(agents).toContain("Read order for repository-local guidance: `AGENTS.md` -> `CLAUDE.md`");
-    expect(agents).toContain("Keep this file as a thin router only.");
-    expect(agents.trim().split("\n").length).toBeLessThanOrEqual(20);
-    expect([...agents.matchAll(/^## .+$/gm)].map((match) => match[0])).toEqual(["## Overview", "## Instructions"]);
-    expect(agents).not.toContain("## File Placement");
-    expect(agents).not.toContain("## Type Surface Policy");
-    expect(agents).not.toContain("## Operational Notes");
+    expect(agents).not.toContain("CLAUDE.md");
+    expect([...agents.matchAll(/^## .+$/gm)].map((match) => match[0])).toEqual([
+      "## First Actions",
+      "## Source Of Truth",
+      "## Quality Gates",
+      "## High-Signal Rules",
+      "## Placement And Boundaries",
+      "## Type Surface Policy",
+      "## Rule Routing",
+      "## Task Tracking",
+      "## Native, Browser, And Skills",
+      "## Feature Work Reminder",
+    ]);
   });
 
   it("keeps PR quality gate checklist aligned with AGENTS DoD guidance", () => {

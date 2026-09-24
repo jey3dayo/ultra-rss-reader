@@ -9,7 +9,7 @@ Use this skill after UI or component changes in Ultra RSS Reader.
 
 ## Review Inputs
 
-1. Read `AGENTS.md`, `CLAUDE.md`, `DESIGN.md`, and `DESIGN_REVIEW.md`.
+1. Read `AGENTS.md`, `DESIGN.md`, and `DESIGN_REVIEW.md`.
 2. Inspect the diff for files under `src/design-system`, `src/components`, `src/styles`, Storybook canvases, and UI tests.
 3. Treat `src/design-system/index.ts` as the public component-library API.
 

@@ -18,8 +18,7 @@ When current product behavior, architecture, commands, or verification scope mat
 
 - [../README.md](../README.md): user-facing product landing page (features, install, keyboard shortcuts); Japanese version in [../README.ja.md](../README.ja.md)
 - [../CONTRIBUTING.md](../CONTRIBUTING.md): source of truth for development setup, development modes, commands, architecture, and verification model
-- [../CLAUDE.md](../CLAUDE.md): short repository-local agent workflow, quality gates, and rule routing
-- [../AGENTS.md](../AGENTS.md): thin entry point for agents that read it before repository-local guidance
+- [../AGENTS.md](../AGENTS.md): repository-local agent workflow, quality gates, and rule routing
 - [../llms.txt](../llms.txt): compressed LLM-oriented map of sources, constraints, and main code areas
 - [../todo.txt](../todo.txt): active and upcoming work as one-line tuxedo tasks; rich context lives in linked GitHub Issues
 - [../CHANGELOG.md](../CHANGELOG.md): completed user-visible changes
@@ -29,7 +28,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - Unknown operational or historical document: start here.
 - Product overview, install, and feature summary: [../README.md](../README.md).
 - Architecture, command details, development modes, verification matrix, and release summary: [../CONTRIBUTING.md](../CONTRIBUTING.md).
-- Agent workflow, quality gate selection, and rule routing: [../CLAUDE.md](../CLAUDE.md).
+- Agent workflow, quality gate selection, and rule routing: [../AGENTS.md](../AGENTS.md).
 - Packaged builds, updater checks, live-service checks, release provenance, and release sign-off: [release-manual-verification.md](./release-manual-verification.md).
 - Logs, backups, recovery, updater, keyring, and sync triage: [incident-runbook.md](./incident-runbook.md).
 - Native dev app process capture, screenshots, key input, and Debug HUD verification: [native-dev-verification.md](./native-dev-verification.md).
