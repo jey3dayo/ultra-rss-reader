@@ -2,6 +2,10 @@
 # グローバル設定
 # ========================================
 
+[settings]
+# pnpm の版は package.json の packageManager が正本（CI の pnpm/action-setup と同じ所を読む）
+idiomatic_version_file_enable_tools = ["pnpm"]
+
 [env]
 _.path = ["./node_modules/.bin"]
 
@@ -15,7 +19,6 @@ MD_EXCLUDE_TAURI_GEN = "#src-tauri/gen/**"
 
 [tools]
 node = "26.4.0"
-pnpm = "12.4.2"
 rust = "stable"
 taplo = "latest"
 actionlint = "latest"

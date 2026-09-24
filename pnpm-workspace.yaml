@@ -1,5 +1,6 @@
-# pnpm's own packageManager self-management is off because mise pins pnpm in
-# mise.toml and CI resolves it through pnpm/setup. Leaving it on makes pnpm 12
+# pnpm's own packageManager self-management is off because the version comes
+# from package.json's packageManager field, which mise reads (idiomatic version
+# file), and CI resolves it through pnpm/setup. Leaving it on makes pnpm 12
 # emit pnpm-lock.yaml as two YAML documents, which any consumer that reads only
 # the first document reports as having no dependencies at all — GitHub's
 # dependency graph and the Dependabot/SBOM tooling behind it work that way.
