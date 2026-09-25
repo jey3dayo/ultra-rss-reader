@@ -44,10 +44,9 @@ pub struct OrphanedFeedGroup {
     pub latest_article_published_at: Option<String>,
 }
 
-/// Per-feed article aggregates for the `urr feed list` / `urr feed diagnose`
-/// CLI commands (`cli::commands::feed`). Not part of `ArticleReadRepository`
-/// or `ArticleListRepository`: those traits serve the app's own read paths,
-/// and this is a new diagnostics-only aggregate with no other caller.
+/// Per-feed article aggregates for the `urr feed list` / `feed diagnose` CLI
+/// commands. Not part of `ArticleReadRepository` or `ArticleListRepository`:
+/// those serve the app's own read paths.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FeedArticleStats {
     pub article_count: i64,
@@ -164,18 +163,28 @@ impl<'a> SqliteArticleRepository<'a> {
     /// Per-feed article count and newest published/fetched timestamps for
     /// every feed in `account_id`, including feeds with zero articles
     /// (`LEFT JOIN`, so `article_count` is 0 and the timestamps are `None`).
+    ///
+    /// `article_count` counts every row. `latest_published_at` excludes rows
+    /// whose `published_at` is later than the injected `now` (a bind param,
+    /// not SQLite's `'now'`, so tests can control it) — a future-dated
+    /// `published_at` must not look like the newest article.
+    /// `latest_fetched_at` is the app's own ingestion time, not feed-supplied,
+    /// so it is not filtered.
     pub fn feed_article_stats_by_account(
         &self,
         account_id: &AccountId,
+        now: DateTime<Utc>,
     ) -> DomainResult<HashMap<FeedId, FeedArticleStats>> {
         let mut stmt = self.conn.prepare(
-            "SELECT f.id, COUNT(a.id), MAX(a.published_at), MAX(a.fetched_at)
+            "SELECT f.id, COUNT(a.id),
+                MAX(CASE WHEN julianday(a.published_at) <= julianday(?2) THEN a.published_at ELSE NULL END),
+                MAX(a.fetched_at)
              FROM feeds f
              LEFT JOIN articles a ON a.feed_id = f.id
              WHERE f.account_id = ?1
              GROUP BY f.id",
         )?;
-        let mut rows = stmt.query(params![account_id.0])?;
+        let mut rows = stmt.query(params![account_id.0, now.to_rfc3339()])?;
         let mut stats = HashMap::new();
         while let Some(row) = rows.next()? {
             let feed_id = FeedId(row.get(0)?);
@@ -201,18 +210,22 @@ impl<'a> SqliteArticleRepository<'a> {
     }
 
     /// The `limit` most recent `published_at` values for one feed, newest
-    /// first. Used by `feed stale`'s expected-interval calculation, which
-    /// only needs the timestamps, not full `Article` rows.
+    /// first, excluding rows whose `published_at` is later than `now` (see
+    /// `feed_article_stats_by_account` for why `now` is injected). Used by
+    /// `feed stale`'s expected-interval calculation.
     pub fn latest_published_ats_by_feed(
         &self,
         feed_id: &FeedId,
         limit: usize,
+        now: DateTime<Utc>,
     ) -> DomainResult<Vec<DateTime<Utc>>> {
         let mut stmt = self.conn.prepare(
-            "SELECT published_at FROM articles WHERE feed_id = ?1 ORDER BY published_at DESC LIMIT ?2",
+            "SELECT published_at FROM articles
+             WHERE feed_id = ?1 AND julianday(published_at) <= julianday(?3)
+             ORDER BY published_at DESC LIMIT ?2",
         )?;
         let dates = stmt
-            .query_map(params![feed_id.0, limit as i64], |row| {
+            .query_map(params![feed_id.0, limit as i64, now.to_rfc3339()], |row| {
                 let raw: String = row.get(0)?;
                 parse_datetime(&raw)
             })?

@@ -2,10 +2,9 @@ use serde::Serialize;
 
 use crate::repository::sync_state::SyncState;
 
-/// Shared shape for a single `sync_state` row across `status`, `feed
-/// diagnose`, and (with extra fields layered on) `sync-state show`. Never
-/// exposes the raw `last_error` message, `continuation`, or `etag` value —
-/// only presence/counts, per this task's "no secrets" contract.
+/// Shared shape for a `sync_state` row across `status`, `feed diagnose`, and
+/// `sync-state show`. Never exposes raw `last_error`/`continuation`/`etag`
+/// values — only presence/counts.
 #[derive(Serialize, Clone)]
 pub(super) struct SyncStateView {
     pub(super) last_success_at: Option<String>,

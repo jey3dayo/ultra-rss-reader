@@ -5,7 +5,7 @@ use super::error::CliError;
 
 const SCHEMA_VERSION: u32 = 1;
 
-/// Envelope fields shared by every successful `--json` response (design doc §5).
+/// Envelope fields shared by every successful `--json` response.
 pub(crate) struct Envelope {
     pub(crate) profile: String,
     pub(crate) db_path: String,

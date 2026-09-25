@@ -15,10 +15,9 @@ const CAPABILITIES: &[Capability] = &[Capability::DbRead];
 
 pub(crate) struct AccountListCommand;
 
-/// `username` carries the account's actual username (not a bool presence
-/// flag): only passwords/tokens/keyring contents are secrets per this task's
-/// output contract, and a username is already visible in the app's account
-/// list UI.
+/// `username` is the actual value, not a presence flag: only
+/// passwords/tokens/keyring contents are secrets, and a username is already
+/// visible in the app's account list UI.
 #[derive(Serialize)]
 struct AccountListItem {
     id: String,

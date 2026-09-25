@@ -17,11 +17,8 @@ pub(crate) struct PendingMutationListCommand {
     pub(crate) account: Option<String>,
 }
 
-/// `pending_mutations` has no payload-body column (see
-/// `repository::pending_mutation::PendingMutation`): only `id`, the account,
-/// a mutation type/axis, the target `remote_entry_id`, and `created_at`.
-/// Nothing here is sized/redacted because there is nothing beyond these
-/// already-non-secret identifiers to show.
+/// No payload-body column exists on `pending_mutations`, so there's nothing
+/// beyond these already-non-secret fields to redact or size.
 #[derive(Serialize)]
 struct PendingMutationRow {
     id: Option<i64>,

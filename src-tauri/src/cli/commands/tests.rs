@@ -89,10 +89,8 @@ fn fixture_article(
     }
 }
 
-/// Checkpoints and drops the writer connection, then opens a fresh
-/// `ReadOnlyDb` against the resulting file — the same close/reopen sequence
-/// `migrated_read_only_db_with_one_account` uses, factored out for fixtures
-/// that need custom seed data beyond a single account.
+/// Checkpoints and drops the writer, then opens a fresh `ReadOnlyDb` — the
+/// same sequence `migrated_read_only_db_with_one_account` uses.
 fn checkpoint_close_and_open_read_only(manager: DbManager, db_path: &Path) -> ReadOnlyDb {
     manager
         .writer()
@@ -103,13 +101,10 @@ fn checkpoint_close_and_open_read_only(manager: DbManager, db_path: &Path) -> Re
         .expect("read-only open should succeed on a freshly migrated, checkpointed database")
 }
 
-/// Builds a real, fully-migrated database via `DbManager::new` (the same
-/// entrypoint the app uses), seeds one account through the same repository
-/// production code uses, checkpoints and drops the writer connection, and
-/// hands back a `ReadOnlyDb` (opened, schema-validated, then closed) against
-/// the resulting file. This is the fixture boundary: any failure here means
-/// the fixture itself did not start, not a behavior under test (see
-/// rust-test-unwrap-policy.md).
+/// Builds a fully-migrated DB via `DbManager::new`, seeds one account, then
+/// hands back a checkpointed, closed-and-reopened `ReadOnlyDb`. Fixture
+/// boundary: a failure here means the fixture didn't start, not the
+/// behavior under test.
 fn migrated_read_only_db_with_one_account() -> (tempfile::TempDir, ReadOnlyDb) {
     let dir = tempdir().expect("tempdir should be creatable");
     let db_path = dir.path().join("fixture.db");
@@ -418,10 +413,8 @@ async fn db_integrity_reports_orphaned_articles_and_feed_groups() {
             )])
             .expect("saving the healthy fixture article should succeed");
 
-        // Orphaned article: same pattern as
-        // sqlite_article/tests/orphaned.rs — toggle `foreign_keys` off just
-        // for this insert, since `articles.feed_id` has a real FK and the
-        // fixture intentionally points at a feed that does not exist.
+        // Orphaned article: same pattern as sqlite_article/tests/orphaned.rs
+        // — toggle foreign_keys off since articles.feed_id has a real FK.
         manager
             .writer()
             .execute_batch("PRAGMA foreign_keys = OFF;")

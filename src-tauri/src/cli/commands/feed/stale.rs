@@ -62,7 +62,7 @@ impl CliCommand for FeedStaleCommand {
             {
                 for feed in feed_repo.find_by_account(&account.id)? {
                     let published_at_desc =
-                        article_repo.latest_published_ats_by_feed(&feed.id, SAMPLE_SIZE)?;
+                        article_repo.latest_published_ats_by_feed(&feed.id, SAMPLE_SIZE, now)?;
                     let Some(assessment) =
                         assess_staleness(now, &published_at_desc, self.min_hours)
                     else {

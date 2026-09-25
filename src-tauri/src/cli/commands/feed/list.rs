@@ -45,6 +45,7 @@ impl CliCommand for FeedListCommand {
             );
         };
 
+        let now = chrono::Utc::now();
         let items: Vec<FeedListItem> = db.with_conn(|conn| {
             let account_repo = SqliteAccountRepository::new(conn);
             let feed_repo = SqliteFeedRepository::new(conn);
@@ -69,7 +70,7 @@ impl CliCommand for FeedListCommand {
                     continue;
                 }
 
-                let stats = article_repo.feed_article_stats_by_account(&account.id)?;
+                let stats = article_repo.feed_article_stats_by_account(&account.id, now)?;
                 for feed in feeds {
                     let feed_stats = stats.get(&feed.id).cloned().unwrap_or_default();
                     items.push(FeedListItem {

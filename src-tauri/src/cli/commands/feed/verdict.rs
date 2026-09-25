@@ -1,10 +1,11 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 
 use crate::domain::provider::ProviderKind;
 
-/// Allowed delay between a source publishing and the app holding the entry: one
-/// FreshRSS crawl interval plus one app sync interval (both hourly by default).
-const UPSTREAM_LATENCY_HOURS: i64 = 2;
+/// Allowance for the upstream publish-to-fetch gap (crawl time), applied to
+/// both provider kinds. The account's own sync interval is added on top for
+/// the `behind_source` threshold.
+const FRESHRSS_CRAWL_ALLOWANCE_HOURS: i64 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SourceStatus {
@@ -33,8 +34,7 @@ impl Verdict {
         }
     }
 
-    /// Exit-code-7-worthy per this task's MUST: only `behind_source` and
-    /// `source_unreachable` make a `feed diagnose` invocation unhealthy.
+    /// Only `behind_source` and `source_unreachable` are unhealthy (exit 7).
     pub(crate) fn is_unhealthy(self) -> bool {
         matches!(self, Self::BehindSource | Self::SourceUnreachable)
     }
@@ -61,9 +61,9 @@ pub(crate) struct VerdictInput {
     pub(crate) provider_kind: ProviderKind,
     pub(crate) source_status: SourceStatus,
     pub(crate) source_newest: Option<DateTime<Utc>>,
-    /// Every fetched entry's date (published, falling back to updated), used
-    /// only to count entries the last sync missed (see
-    /// `missed_before_last_sync`). Empty whenever `source_status` is not
+    /// Every fetched entry's date (published, falling back to updated).
+    /// Callers must drop future-dated entries before computing
+    /// `source_newest` from this. Empty whenever `source_status` is not
     /// `Fetched`.
     pub(crate) source_entry_dates: Vec<DateTime<Utc>>,
     pub(crate) app_newest_published_at: Option<DateTime<Utc>>,
@@ -71,36 +71,66 @@ pub(crate) struct VerdictInput {
     /// (`account:greader:all`'s `last_success_at`). Only consulted for
     /// `ProviderKind::FreshRss` when deriving the `behind_source` hint.
     pub(crate) account_last_success_at: Option<DateTime<Utc>>,
+    /// `accounts.sync_interval_secs`. Added to the crawl allowance for the
+    /// `behind_source` threshold: publishing sooner than one sync interval
+    /// after the app's newest item isn't "behind" yet.
+    pub(crate) account_sync_interval: Duration,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct VerdictOutcome {
     pub(crate) verdict: Verdict,
     pub(crate) hint: Option<Hint>,
-    /// Source entries newer than `app_newest + latency` and older than
-    /// `account_last_success_at - latency`: the last sync should have received them.
-    /// Always `0` for non-FreshRSS matches and when the verdict isn't `BehindSource`.
+    /// Source entries older than `account_last_success_at - crawl_allowance`
+    /// (and, if the app has articles, newer than `app_newest +
+    /// crawl_allowance`). Always `0` outside FreshRSS `BehindSource`.
     pub(crate) missed_before_last_sync: usize,
 }
 
 fn count_missed_before_last_sync(
     source_entry_dates: &[DateTime<Utc>],
-    app_newest: DateTime<Utc>,
+    app_newest: Option<DateTime<Utc>>,
     account_last_success_at: DateTime<Utc>,
 ) -> usize {
-    let latency = chrono::Duration::hours(UPSTREAM_LATENCY_HOURS);
-    let missed_after = app_newest + latency;
-    let missed_before = account_last_success_at - latency;
+    let crawl_allowance = Duration::hours(FRESHRSS_CRAWL_ALLOWANCE_HOURS);
+    let missed_after = app_newest.map(|date| date + crawl_allowance);
+    let missed_before = account_last_success_at - crawl_allowance;
     source_entry_dates
         .iter()
-        .filter(|&&date| date > missed_after && date < missed_before)
+        .filter(|&&date| missed_after.is_none_or(|after| date > after) && date < missed_before)
         .count()
 }
 
-/// Pure verdict/hint derivation (design doc §6, this task's MUST #4, and the
-/// `freshrss_not_delivering` correction in `cli-phase1-t2-fix`). Kept free of
-/// DB/network access so it can be unit-tested with synthetic `DateTime`
-/// inputs instead of a real fetch or fixture DB.
+/// `app_newest` is `None` when the app has zero articles: the FreshRSS
+/// missed-count then drops its lower bound; Local always reports
+/// `LocalFetchFailing`.
+fn derive_behind_source_hint(
+    input: &VerdictInput,
+    app_newest: Option<DateTime<Utc>>,
+) -> (Hint, usize) {
+    match &input.provider_kind {
+        ProviderKind::FreshRss => match input.account_last_success_at {
+            Some(last_success) => {
+                let missed = count_missed_before_last_sync(
+                    &input.source_entry_dates,
+                    app_newest,
+                    last_success,
+                );
+                if missed >= 1 {
+                    (Hint::FreshrssNotDelivering, missed)
+                } else {
+                    (Hint::AwaitingSync, 0)
+                }
+            }
+            None => (Hint::AwaitingSync, 0),
+        },
+        ProviderKind::Local | ProviderKind::Quarantined => (Hint::LocalFetchFailing, 0),
+    }
+}
+
+/// Pure verdict/hint derivation, free of DB/network access so it can be
+/// unit-tested with synthetic `DateTime` inputs instead of a real fetch or
+/// fixture DB.
 pub(crate) fn derive_verdict(input: &VerdictInput) -> VerdictOutcome {
     let no_hint = |verdict: Verdict| VerdictOutcome {
         verdict,
@@ -121,33 +151,23 @@ pub(crate) fn derive_verdict(input: &VerdictInput) -> VerdictOutcome {
         };
     };
 
+    // No app timestamp to compare against, so any dated source entry means
+    // this feed is unconditionally behind, not `NoArticles`.
     let Some(app_newest) = input.app_newest_published_at else {
-        return no_hint(Verdict::NoArticles);
+        let (hint, missed_before_last_sync) = derive_behind_source_hint(input, None);
+        return VerdictOutcome {
+            verdict: Verdict::BehindSource,
+            hint: Some(hint),
+            missed_before_last_sync,
+        };
     };
 
-    if source_newest <= app_newest + chrono::Duration::hours(UPSTREAM_LATENCY_HOURS) {
+    let crawl_allowance = Duration::hours(FRESHRSS_CRAWL_ALLOWANCE_HOURS);
+    if source_newest <= app_newest + crawl_allowance + input.account_sync_interval {
         return no_hint(Verdict::Healthy);
     }
 
-    let (hint, missed_before_last_sync) = match &input.provider_kind {
-        ProviderKind::FreshRss => match input.account_last_success_at {
-            Some(last_success) => {
-                let missed = count_missed_before_last_sync(
-                    &input.source_entry_dates,
-                    app_newest,
-                    last_success,
-                );
-                if missed >= 1 {
-                    (Hint::FreshrssNotDelivering, missed)
-                } else {
-                    (Hint::AwaitingSync, 0)
-                }
-            }
-            None => (Hint::AwaitingSync, 0),
-        },
-        ProviderKind::Local | ProviderKind::Quarantined => (Hint::LocalFetchFailing, 0),
-    };
-
+    let (hint, missed_before_last_sync) = derive_behind_source_hint(input, Some(app_newest));
     VerdictOutcome {
         verdict: Verdict::BehindSource,
         hint: Some(hint),
@@ -164,6 +184,12 @@ mod tests {
             + chrono::Duration::hours(hour.into())
     }
 
+    /// Defaults to 1h so tests keep their original 2h-slack expectations
+    /// (1h crawl allowance + 1h interval).
+    fn default_interval() -> Duration {
+        Duration::hours(1)
+    }
+
     fn input(
         provider_kind: ProviderKind,
         source_status: SourceStatus,
@@ -172,6 +198,27 @@ mod tests {
         app_newest_published_at: Option<DateTime<Utc>>,
         account_last_success_at: Option<DateTime<Utc>>,
     ) -> VerdictInput {
+        input_with_interval(
+            provider_kind,
+            source_status,
+            source_newest,
+            source_entry_dates,
+            app_newest_published_at,
+            account_last_success_at,
+            default_interval(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn input_with_interval(
+        provider_kind: ProviderKind,
+        source_status: SourceStatus,
+        source_newest: Option<DateTime<Utc>>,
+        source_entry_dates: Vec<DateTime<Utc>>,
+        app_newest_published_at: Option<DateTime<Utc>>,
+        account_last_success_at: Option<DateTime<Utc>>,
+        account_sync_interval: Duration,
+    ) -> VerdictInput {
         VerdictInput {
             provider_kind,
             source_status,
@@ -179,6 +226,7 @@ mod tests {
             source_entry_dates,
             app_newest_published_at,
             account_last_success_at,
+            account_sync_interval,
         }
     }
 
@@ -314,12 +362,43 @@ mod tests {
     }
 
     #[test]
-    fn no_articles_when_source_fetched_but_app_has_nothing() {
+    fn behind_source_when_app_has_no_articles_but_freshrss_source_has_entries() {
+        let outcome = derive_verdict(&input(
+            ProviderKind::FreshRss,
+            SourceStatus::Fetched,
+            Some(at(10)),
+            vec![at(10), at(4), at(3)],
+            None,
+            Some(at(8)),
+        ));
+        assert_eq!(outcome.verdict, Verdict::BehindSource);
+        assert_eq!(outcome.hint, Some(Hint::FreshrssNotDelivering));
+        // Entries at/after (last_success - crawl_allowance) don't count as missed.
+        assert_eq!(outcome.missed_before_last_sync, 2);
+    }
+
+    #[test]
+    fn behind_source_when_app_has_no_articles_but_local_source_has_entries() {
         let outcome = derive_verdict(&input(
             ProviderKind::Local,
             SourceStatus::Fetched,
             Some(at(10)),
             vec![at(10)],
+            None,
+            None,
+        ));
+        assert_eq!(outcome.verdict, Verdict::BehindSource);
+        assert_eq!(outcome.hint, Some(Hint::LocalFetchFailing));
+        assert_eq!(outcome.missed_before_last_sync, 0);
+    }
+
+    #[test]
+    fn no_articles_stays_healthy_when_source_has_no_dated_entries_and_app_is_empty() {
+        let outcome = derive_verdict(&input(
+            ProviderKind::Local,
+            SourceStatus::Fetched,
+            None,
+            vec![],
             None,
             None,
         ));
@@ -340,6 +419,34 @@ mod tests {
         ));
         assert_eq!(outcome.verdict, Verdict::Healthy);
         assert_eq!(outcome.hint, None);
+    }
+
+    #[test]
+    fn healthy_when_source_is_within_crawl_allowance_plus_a_long_sync_interval() {
+        let outcome = derive_verdict(&input_with_interval(
+            ProviderKind::FreshRss,
+            SourceStatus::Fetched,
+            Some(at(5)),
+            vec![at(5)],
+            Some(at(0)),
+            None,
+            Duration::hours(12),
+        ));
+        assert_eq!(outcome.verdict, Verdict::Healthy);
+    }
+
+    #[test]
+    fn behind_source_when_source_exceeds_crawl_allowance_plus_a_short_sync_interval() {
+        let outcome = derive_verdict(&input_with_interval(
+            ProviderKind::FreshRss,
+            SourceStatus::Fetched,
+            Some(at(3)),
+            vec![at(3)],
+            Some(at(0)),
+            None,
+            Duration::hours(1),
+        ));
+        assert_eq!(outcome.verdict, Verdict::BehindSource);
     }
 
     #[test]

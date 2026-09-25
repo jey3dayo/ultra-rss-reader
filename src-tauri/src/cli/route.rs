@@ -7,14 +7,11 @@ use crate::infra::db::connection::{DatabaseInfo, ReadOnlyDbManager};
 use super::error::CliResult;
 
 /// A capability a [`super::command::CliCommand`] declares it needs. The
-/// dispatcher inspects `capabilities()` to decide which [`Route`] to build
-/// and whether [`NetworkAccess`] is `Allowed`; a command never opens a
-/// database connection, acquires a lock, or builds an HTTP client itself, so
-/// a command that declares only `DbRead` cannot reach the network even if
-/// its `run` body tried to.
+/// dispatcher uses `capabilities()` to decide the [`Route`] and whether
+/// [`NetworkAccess`] is `Allowed`; a command never opens a DB connection,
+/// lock, or HTTP client itself.
 ///
-/// `DbWrite` / `Credentials` / `Sync` (design doc §5) are added when the
-/// Phase 2 routed/app-connected commands that need them land.
+/// `DbWrite` / `Credentials` / `Sync` are added when Phase 2 needs them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Capability {
     DbRead,
@@ -23,16 +20,13 @@ pub(crate) enum Capability {
 
 /// A read-only view onto the application database.
 ///
-/// Holds only the already schema-validated path, not an open connection:
+/// Holds only the schema-validated path, not an open connection:
 /// [`ReadOnlyDb::with_conn`] opens a fresh [`ReadOnlyDbManager`], runs the
-/// closure, and drops it before returning. This matters for commands that
-/// also do network I/O (`feed diagnose`): an open reader holds a WAL read
-/// mark that blocks the app's `wal_checkpoint(TRUNCATE)`
-/// (`infra/db/connection/maintenance.rs`), so the connection must not still
-/// be open while a command is waiting on an HTTP response. A command that
-/// needs both DB and network reads should call `with_conn` to gather what it
-/// needs, let the returned value drop the connection, and only then await
-/// the network call.
+/// closure, and drops it before returning.
+///
+/// An open reader holds a WAL read mark that blocks the app's
+/// `wal_checkpoint(TRUNCATE)`, so a command doing both DB and network I/O
+/// must finish its DB reads and drop the connection before awaiting network.
 pub(crate) struct ReadOnlyDb {
     path: PathBuf,
 }
@@ -71,10 +65,9 @@ pub(crate) enum NetworkAccess {
     Disabled,
 }
 
-/// The DB-access route a dispatched command receives. Phase 2 (design doc §3)
-/// adds `Headless` (process-lock-guarded direct DB access while the app is
-/// not running) and `ViaApp` (routed through the running app's control
-/// endpoint); those variants are added alongside the commands that need them.
+/// The DB-access route a dispatched command receives. Phase 2 adds
+/// `Headless` (direct DB access under a process lock while the app is not
+/// running) and `ViaApp` (routed through the app's control endpoint).
 pub(crate) enum Route {
     None,
     ReadOnly(ReadOnlyDb),

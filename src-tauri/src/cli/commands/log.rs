@@ -8,10 +8,8 @@ use crate::cli::route::{Capability, NetworkAccess, Route};
 
 const CAPABILITIES: &[Capability] = &[];
 
-/// No database is involved, so this command declares no capabilities and the
-/// dispatcher routes it as `Route::None`. The identifier is resolved once by
-/// the dispatcher and passed in at construction, mirroring how every other
-/// command receives only what it is allowed to touch.
+/// No DB involved: declares no capabilities, routed as `Route::None`.
+/// `identifier` is resolved by the dispatcher and passed in at construction.
 pub(crate) struct LogPathCommand {
     identifier: &'static str,
 }

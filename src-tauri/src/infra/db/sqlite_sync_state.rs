@@ -14,9 +14,8 @@ impl<'a> SqliteSyncStateRepository<'a> {
     }
 
     /// All `sync_state` rows for an account, across every scope. Not part of
-    /// `SyncStateRepository`: that trait's `get` is scope-keyed for the
-    /// app's own read paths, and `urr sync-state show` (`cli::commands`) is
-    /// the only caller that needs every scope at once.
+    /// `SyncStateRepository`: that trait's `get` is scope-keyed; `urr
+    /// sync-state show` is the only caller that needs every scope at once.
     pub fn find_all_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<SyncState>> {
         let mut stmt = self.conn.prepare(
             "SELECT account_id, scope_key, timestamp_usec, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at FROM sync_state WHERE account_id = ?1 ORDER BY scope_key ASC",

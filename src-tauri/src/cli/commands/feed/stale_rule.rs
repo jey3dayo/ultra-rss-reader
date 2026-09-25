@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 
-/// Minimum sample size before an expected interval is trusted at all
-/// (design doc / this task's MUST #5).
+/// Minimum sample size before an expected interval is trusted at all.
 const MIN_SAMPLE_ARTICLES: usize = 5;
 /// A feed is stale when its age is more than this many expected intervals.
 const STALE_INTERVAL_MULTIPLIER: f64 = 4.0;
@@ -25,14 +24,13 @@ fn median(values: &mut [f64]) -> f64 {
 }
 
 /// Assesses staleness from the latest `published_at` values for one feed,
-/// newest first (design doc / this task's MUST #5):
+/// newest first:
 ///
 /// - `expected_interval` = median gap between consecutive entries among the
-///   latest 20 (fewer than 5 samples: no assessment, the feed is skipped).
+///   latest 20 (fewer than 5 samples: skipped).
 /// - Stale when `age_of_latest > max(min_hours, 4 × expected_interval)`, so
-///   a low-frequency feed on schedule is not flagged, but the `min_hours`
-///   floor still catches a high-frequency feed that fell silent even though
-///   `4 × expected_interval` alone would be a very small number.
+///   low-frequency feeds on schedule aren't flagged while `min_hours` still
+///   catches a high-frequency feed gone silent.
 pub(crate) fn assess_staleness(
     now: DateTime<Utc>,
     published_at_desc: &[DateTime<Utc>],

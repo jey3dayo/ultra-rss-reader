@@ -1,11 +1,8 @@
-//! `urr`, the read-only diagnostics CLI (design doc:
-//! `plans/cli/001-cli-design.md`, Phase 1).
+//! `urr`, the read-only diagnostics CLI (design doc: `plans/cli/001-cli-design.md`).
 //!
-//! This module never starts the Tauri runtime, never calls [`crate::run`],
-//! and never constructs an `AppHandle`. `cli_main` is the only public item;
-//! everything else is `pub(crate)` or private so a future command cannot
-//! bypass the capability-gated `Route` dispatch in `route`/`command` by
-//! reaching into internals directly (design doc §5).
+//! Never starts the Tauri runtime or constructs an `AppHandle`. `cli_main` is
+//! the only public item; everything else is `pub(crate)` or private so a
+//! command cannot bypass the capability-gated `Route` dispatch.
 
 mod args;
 mod command;

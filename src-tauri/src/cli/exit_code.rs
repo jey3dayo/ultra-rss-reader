@@ -1,15 +1,6 @@
-/// Stable process exit codes for `urr`.
-///
-/// This mirrors the exit-code contract in `plans/cli/001-cli-design.md` §5,
-/// which reserves the full 0-8 range across CLI phases:
-/// `0=OK 1=FAILED 2=USAGE 3=NOT_FOUND 4=SCHEMA_MISMATCH 5=APP_REQUIRED
-/// 6=APP_BUSY 7=DIAGNOSIS_UNHEALTHY 8=APP_OPERATION_IN_PROGRESS`.
-///
-/// Only the variants a code path actually returns are defined here.
-/// `APP_REQUIRED` (5), `APP_BUSY` (6), and `APP_OPERATION_IN_PROGRESS` (8)
-/// are added alongside the Phase-2 routed/app-connected commands that
-/// produce them, rather than pre-declared now (which `-D warnings` treats as
-/// dead code since nothing would construct them yet).
+/// Stable process exit codes for `urr`. Only variants a code path actually
+/// constructs are defined (an unconstructed variant is dead code under `-D
+/// warnings`); codes 5, 6, and 8 are reserved for Phase 2.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CliExitCode {
     Ok,
@@ -17,8 +8,7 @@ pub(crate) enum CliExitCode {
     Usage,
     NotFound,
     SchemaMismatch,
-    /// `feed diagnose` returns this (via `CommandOutput::exit_code`, not as
-    /// an error) when any match's verdict is `behind_source` or
+    /// Set when any `feed diagnose` match is `behind_source` or
     /// `source_unreachable`.
     DiagnosisUnhealthy,
 }

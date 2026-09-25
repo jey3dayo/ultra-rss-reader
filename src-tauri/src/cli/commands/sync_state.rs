@@ -18,9 +18,8 @@ pub(crate) struct SyncStateShowCommand {
     pub(crate) scope: Option<String>,
 }
 
-/// Never carries the raw `continuation` or `etag` value (this task's MUST
-/// #6): only presence booleans, mirroring `sync_state_view::SyncStateView`'s
-/// treatment of `last_error`.
+/// Never carries the raw `continuation` or `etag` value — only presence
+/// booleans, like `SyncStateView`'s treatment of `last_error`.
 #[derive(Serialize)]
 struct SyncStateRow {
     scope_key: String,

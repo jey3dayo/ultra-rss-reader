@@ -53,6 +53,7 @@ struct MatchDbData {
     account_greader_remote_state_full: Option<SyncStateView>,
     scheduler: Option<SyncStateView>,
     local_feed_scope: Option<SyncStateView>,
+    account_sync_interval: chrono::Duration,
 }
 
 fn error_class(error: &DomainError) -> &'static str {
@@ -81,7 +82,8 @@ impl CliCommand for FeedDiagnoseCommand {
             );
         };
 
-        let matches: Vec<MatchDbData> = db.with_conn(|conn| self.load_matches(conn))?;
+        let db_now = chrono::Utc::now();
+        let matches: Vec<MatchDbData> = db.with_conn(|conn| self.load_matches(conn, db_now))?;
         if matches.is_empty() {
             return Err(CliError::not_found(format!(
                 "no feed matched id or url {:?}",
@@ -89,16 +91,15 @@ impl CliCommand for FeedDiagnoseCommand {
             )));
         }
 
-        // Source layer: fetched with no DB connection open (design doc's WAL
-        // read-mark constraint, this task's MUST #1). Distinct URLs are
-        // fetched once each; an id match is always a single URL, and a url
-        // match's candidates all share the queried URL by construction.
+        // Fetched with no DB connection open (see ReadOnlyDb's WAL-read-mark
+        // note). Distinct URLs are fetched once each.
         let mut source_by_url: HashMap<String, SourceOutcome> = HashMap::new();
         if matches!(network, NetworkAccess::Allowed) {
             let provider = LocalProvider::try_new()?;
             let distinct_urls: HashSet<String> =
                 matches.iter().map(|m| m.feed.url.clone()).collect();
             for url in distinct_urls {
+                let fetch_now = chrono::Utc::now();
                 let outcome = match provider
                     .pull_entries(
                         PullScope::Feed(FeedIdentifier::Local {
@@ -109,10 +110,14 @@ impl CliCommand for FeedDiagnoseCommand {
                     .await
                 {
                     Ok(result) => {
+                        // A source can hand back a bogus future-dated entry;
+                        // it must not become `source_newest` or count toward
+                        // `missed_before_last_sync`.
                         let entry_dates: Vec<chrono::DateTime<chrono::Utc>> = result
                             .entries
                             .iter()
                             .filter_map(|entry| entry.published_at.or(entry.updated_at))
+                            .filter(|date| *date <= fetch_now)
                             .collect();
                         let newest = entry_dates.iter().copied().max();
                         SourceOutcome {
@@ -179,6 +184,7 @@ impl CliCommand for FeedDiagnoseCommand {
                 source_entry_dates,
                 app_newest_published_at: data.app_newest_published_at,
                 account_last_success_at: data.account_greader_all_last_success_at,
+                account_sync_interval: data.account_sync_interval,
             });
             if outcome.verdict.is_unhealthy() {
                 any_unhealthy = true;
@@ -235,7 +241,11 @@ impl CliCommand for FeedDiagnoseCommand {
 }
 
 impl FeedDiagnoseCommand {
-    fn load_matches(&self, conn: &rusqlite::Connection) -> CliResult<Vec<MatchDbData>> {
+    fn load_matches(
+        &self,
+        conn: &rusqlite::Connection,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> CliResult<Vec<MatchDbData>> {
         let account_repo = SqliteAccountRepository::new(conn);
         let feed_repo = SqliteFeedRepository::new(conn);
         let article_repo = SqliteArticleRepository::new(conn);
@@ -248,7 +258,7 @@ impl FeedDiagnoseCommand {
             .filter(|account| self.account.as_deref().is_none_or(|id| id == account.id.0))
         {
             let feeds = feed_repo.find_by_account(&account.id)?;
-            let stats = article_repo.feed_article_stats_by_account(&account.id)?;
+            let stats = article_repo.feed_article_stats_by_account(&account.id, now)?;
             for feed in feeds
                 .into_iter()
                 .filter(|feed| feed.id.0 == self.query || feed.url == self.query)
@@ -315,6 +325,7 @@ impl FeedDiagnoseCommand {
                     account_greader_remote_state_full,
                     scheduler,
                     local_feed_scope,
+                    account_sync_interval: chrono::Duration::seconds(account.sync_interval_secs),
                 });
             }
         }

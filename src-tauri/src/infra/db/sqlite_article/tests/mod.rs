@@ -6,6 +6,7 @@ mod orphaned;
 mod read;
 mod remote_state;
 mod search;
+mod stats;
 mod unread;
 
 pub(super) use super::*;
