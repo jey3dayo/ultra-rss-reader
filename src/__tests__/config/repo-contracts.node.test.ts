@@ -398,6 +398,25 @@ function extractCargoPackageVersion(source: string) {
   return packageSection.match(/^version\s*=\s*"([^"]+)"/m)?.[1] ?? null;
 }
 
+function extractCargoPackageField(source: string, field: string) {
+  const packageStart = source.indexOf("[package]");
+  const nextSection = source.indexOf("\n[", packageStart + "[package]".length);
+  const packageSection = source.slice(packageStart, nextSection === -1 ? undefined : nextSection);
+  return packageSection.match(new RegExp(`^${field}\\s*=\\s*(["'])([^"']+)\\1`, "m"))?.[2];
+}
+
+function extractCargoBinNames(source: string) {
+  return [...source.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*(["'])([^"']+)\1/g)].map(
+    (match) => match[2],
+  );
+}
+
+type TauriBundleConfig = { bundle?: { externalBin?: string[] } };
+
+function readTauriBundleConfig(path: string): TauriBundleConfig {
+  return JSON.parse(readRepoFile(path));
+}
+
 function markdownFilesUnderDirectory(path: string) {
   return readdirSync(join(repoRoot, path), { recursive: true })
     .filter((entry): entry is string => typeof entry === "string")
@@ -1981,19 +2000,38 @@ describe("repository static contracts", () => {
     expect(tauriReleaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   });
 
-  it("bundles the urr CLI sidecar only in release builds", () => {
-    const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
-    const devTauriConfig = JSON.parse(readRepoFile("src-tauri/tauri.dev.conf.json"));
-    const stageIndex = releaseWorkflow.indexOf("node ./scripts/release/stage-cli-sidecar.ts");
-    const tauriActionIndex = releaseWorkflow.indexOf("uses: tauri-apps/tauri-action@");
+  it("declares Cargo default-run for the app binary because more than one [[bin]] exists", () => {
+    const cargoToml = readRepoFile("src-tauri/Cargo.toml");
+    const binNames = extractCargoBinNames(cargoToml);
 
-    expect(tauriReleaseConfig.bundle.externalBin).toEqual(["binaries/urr"]);
-    expect("externalBin" in tauriConfig.bundle).toBe(false);
-    expect("externalBin" in (devTauriConfig.bundle ?? {})).toBe(false);
-    expect(releaseWorkflow).toContain("Stage urr CLI sidecar binary");
-    expect(releaseWorkflow).toContain("node ./scripts/release/stage-cli-sidecar.ts $" + "{{ matrix.cargo_target }}");
-    expect(stageIndex).toBeGreaterThanOrEqual(0);
-    expect(stageIndex).toBeLessThan(tauriActionIndex);
+    expect(binNames.length).toBeGreaterThan(1);
+    expect(extractCargoPackageField(cargoToml, "default-run")).toBe(extractCargoPackageField(cargoToml, "name"));
+  });
+
+  it("keeps no Tauri config externalBin entry duplicating a Cargo [[bin]] name", () => {
+    const cargoToml = readRepoFile("src-tauri/Cargo.toml");
+    const binNames = extractCargoBinNames(cargoToml);
+    const configPaths = [
+      "src-tauri/tauri.conf.json",
+      "src-tauri/tauri.dev.conf.json",
+      "src-tauri/tauri.release.conf.json",
+      "src-tauri/tauri.linux.release.conf.json",
+    ].filter((configPath) => existsSync(join(repoRoot, configPath)));
+
+    for (const configPath of configPaths) {
+      const config = readTauriBundleConfig(configPath);
+      for (const externalBin of config.bundle?.externalBin ?? []) {
+        expect(binNames).not.toContain(externalBin.split("/").pop());
+      }
+    }
+  });
+
+  it("does not stage the urr CLI as a release sidecar binary", () => {
+    const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
+
+    expect(releaseWorkflow).not.toContain("Stage urr CLI sidecar binary");
+    expect(releaseWorkflow).not.toContain("scripts/release/stage-cli-sidecar.ts");
+    expect(existsSync(join(repoRoot, "scripts/release/stage-cli-sidecar.ts"))).toBe(false);
   });
 
   it("keeps release provenance uploads recoverable after partial asset failures", () => {

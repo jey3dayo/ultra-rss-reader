@@ -8,7 +8,6 @@ node_modules/
 # Build output
 dist/
 src-tauri/target/
-src-tauri/binaries/
 tmp/
 .tmp/
 src-tauri/gen/schemas/
