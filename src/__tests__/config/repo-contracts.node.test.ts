@@ -1981,6 +1981,21 @@ describe("repository static contracts", () => {
     expect(tauriReleaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   });
 
+  it("bundles the urr CLI sidecar only in release builds", () => {
+    const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
+    const devTauriConfig = JSON.parse(readRepoFile("src-tauri/tauri.dev.conf.json"));
+    const stageIndex = releaseWorkflow.indexOf("node ./scripts/release/stage-cli-sidecar.ts");
+    const tauriActionIndex = releaseWorkflow.indexOf("uses: tauri-apps/tauri-action@");
+
+    expect(tauriReleaseConfig.bundle.externalBin).toEqual(["binaries/urr"]);
+    expect("externalBin" in tauriConfig.bundle).toBe(false);
+    expect("externalBin" in (devTauriConfig.bundle ?? {})).toBe(false);
+    expect(releaseWorkflow).toContain("Stage urr CLI sidecar binary");
+    expect(releaseWorkflow).toContain("node ./scripts/release/stage-cli-sidecar.ts $" + "{{ matrix.cargo_target }}");
+    expect(stageIndex).toBeGreaterThanOrEqual(0);
+    expect(stageIndex).toBeLessThan(tauriActionIndex);
+  });
+
   it("keeps release provenance uploads recoverable after partial asset failures", () => {
     const releaseArtifactsScript = readRepoFile("scripts/release/artifacts.ts");
 

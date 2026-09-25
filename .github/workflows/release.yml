@@ -336,6 +336,11 @@ jobs:
           security default-keychain -d user -s "$keychain_path"
           security find-identity -v -p codesigning "$keychain_path"
 
+      - name: Stage urr CLI sidecar binary
+        if: steps.signing-preflight.outputs.should_build == 'true'
+        shell: bash
+        run: node ./scripts/release/stage-cli-sidecar.ts ${{ matrix.cargo_target }}
+
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         if: steps.signing-preflight.outputs.should_build == 'true'
         env:
