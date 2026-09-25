@@ -54,6 +54,17 @@ struct MatchDbData {
     scheduler: Option<SyncStateView>,
     local_feed_scope: Option<SyncStateView>,
     account_sync_interval: chrono::Duration,
+    feed_scope_synced: bool,
+}
+
+/// Excludes quarantined matches before deduping fetch targets: a quarantined
+/// account's feed must never trigger a network request.
+fn urls_needing_fetch(matches: &[(ProviderKind, String)]) -> HashSet<String> {
+    matches
+        .iter()
+        .filter(|(kind, _)| *kind != ProviderKind::Quarantined)
+        .map(|(_, url)| url.clone())
+        .collect()
 }
 
 fn error_class(error: &DomainError) -> &'static str {
@@ -96,8 +107,12 @@ impl CliCommand for FeedDiagnoseCommand {
         let mut source_by_url: HashMap<String, SourceOutcome> = HashMap::new();
         if matches!(network, NetworkAccess::Allowed) {
             let provider = LocalProvider::try_new()?;
-            let distinct_urls: HashSet<String> =
-                matches.iter().map(|m| m.feed.url.clone()).collect();
+            let distinct_urls = urls_needing_fetch(
+                &matches
+                    .iter()
+                    .map(|m| (m.account.kind.clone(), m.feed.url.clone()))
+                    .collect::<Vec<_>>(),
+            );
             for url in distinct_urls {
                 let fetch_now = chrono::Utc::now();
                 let outcome = match provider
@@ -150,10 +165,18 @@ impl CliCommand for FeedDiagnoseCommand {
         let mut any_unhealthy = false;
         for data in matches {
             let is_freshrss = data.account.kind == ProviderKind::FreshRss;
-            let (source_json, source_status, source_newest, source_entry_dates) = if matches!(
-                network,
-                NetworkAccess::Allowed
-            ) {
+            let (source_json, source_status, source_newest, source_entry_dates) = if data
+                .account
+                .kind
+                == ProviderKind::Quarantined
+            {
+                (
+                    json!({ "status": "skipped" }),
+                    SourceStatus::Skipped,
+                    None,
+                    Vec::new(),
+                )
+            } else if matches!(network, NetworkAccess::Allowed) {
                 match source_by_url.get(&data.feed.url) {
                     Some(outcome) => (
                         outcome.json.clone(),
@@ -185,6 +208,7 @@ impl CliCommand for FeedDiagnoseCommand {
                 app_newest_published_at: data.app_newest_published_at,
                 account_last_success_at: data.account_greader_all_last_success_at,
                 account_sync_interval: data.account_sync_interval,
+                feed_scope_synced: data.feed_scope_synced,
             });
             if outcome.verdict.is_unhealthy() {
                 any_unhealthy = true;
@@ -311,6 +335,7 @@ impl FeedDiagnoseCommand {
                         .map(SyncStateView::from);
                     (None, None, None, None, None, local_feed_scope)
                 };
+                let feed_scope_synced = feed_scope.is_some() || local_feed_scope.is_some();
 
                 matches.push(MatchDbData {
                     account: account.clone(),
@@ -326,9 +351,53 @@ impl FeedDiagnoseCommand {
                     scheduler,
                     local_feed_scope,
                     account_sync_interval: chrono::Duration::seconds(account.sync_interval_secs),
+                    feed_scope_synced,
                 });
             }
         }
         Ok(matches)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn urls_needing_fetch_excludes_quarantined_matches_sharing_a_url_with_a_live_one() {
+        let matches = vec![
+            (
+                ProviderKind::Quarantined,
+                "https://example.com/a.xml".to_string(),
+            ),
+            (
+                ProviderKind::FreshRss,
+                "https://example.com/a.xml".to_string(),
+            ),
+            (ProviderKind::Local, "https://example.com/b.xml".to_string()),
+        ];
+        let urls = urls_needing_fetch(&matches);
+        assert_eq!(
+            urls,
+            HashSet::from([
+                "https://example.com/a.xml".to_string(),
+                "https://example.com/b.xml".to_string(),
+            ])
+        );
+    }
+
+    #[test]
+    fn urls_needing_fetch_is_empty_when_every_match_is_quarantined() {
+        let matches = vec![
+            (
+                ProviderKind::Quarantined,
+                "https://example.com/a.xml".to_string(),
+            ),
+            (
+                ProviderKind::Quarantined,
+                "https://example.com/b.xml".to_string(),
+            ),
+        ];
+        assert!(urls_needing_fetch(&matches).is_empty());
     }
 }

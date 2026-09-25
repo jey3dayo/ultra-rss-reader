@@ -40,6 +40,7 @@ fn missing_env_var_error(name: &str) -> CliError {
     ))
 }
 
+#[cfg(any(target_os = "macos", windows, test))]
 fn required_env_path(name: &str) -> Result<PathBuf, CliError> {
     std::env::var_os(name)
         .map(PathBuf::from)

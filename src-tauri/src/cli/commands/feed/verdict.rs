@@ -21,6 +21,8 @@ pub(crate) enum Verdict {
     SourceUnreachable,
     SourceSkipped,
     NoArticles,
+    AccountQuarantined,
+    AwaitingFirstSync,
 }
 
 impl Verdict {
@@ -31,6 +33,8 @@ impl Verdict {
             Self::SourceUnreachable => "source_unreachable",
             Self::SourceSkipped => "source_skipped",
             Self::NoArticles => "no_articles",
+            Self::AccountQuarantined => "account_quarantined",
+            Self::AwaitingFirstSync => "awaiting_first_sync",
         }
     }
 
@@ -75,6 +79,9 @@ pub(crate) struct VerdictInput {
     /// `behind_source` threshold: publishing sooner than one sync interval
     /// after the app's newest item isn't "behind" yet.
     pub(crate) account_sync_interval: Duration,
+    /// Whether the feed-level sync_state row (`feed:<remote_id>` for
+    /// FreshRSS, `local_feed:<url>` for Local) exists at all.
+    pub(crate) feed_scope_synced: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,7 +131,10 @@ fn derive_behind_source_hint(
             }
             None => (Hint::AwaitingSync, 0),
         },
-        ProviderKind::Local | ProviderKind::Quarantined => (Hint::LocalFetchFailing, 0),
+        ProviderKind::Local => (Hint::LocalFetchFailing, 0),
+        ProviderKind::Quarantined => {
+            unreachable!("account_quarantined short-circuits before this")
+        }
     }
 }
 
@@ -137,6 +147,10 @@ pub(crate) fn derive_verdict(input: &VerdictInput) -> VerdictOutcome {
         hint: None,
         missed_before_last_sync: 0,
     };
+
+    if input.provider_kind == ProviderKind::Quarantined {
+        return no_hint(Verdict::AccountQuarantined);
+    }
 
     match input.source_status {
         SourceStatus::Skipped => return no_hint(Verdict::SourceSkipped),
@@ -152,8 +166,12 @@ pub(crate) fn derive_verdict(input: &VerdictInput) -> VerdictOutcome {
     };
 
     // No app timestamp to compare against, so any dated source entry means
-    // this feed is unconditionally behind, not `NoArticles`.
+    // this feed is unconditionally behind, not `NoArticles` -- unless the
+    // feed has never completed its first sync at all.
     let Some(app_newest) = input.app_newest_published_at else {
+        if !input.feed_scope_synced {
+            return no_hint(Verdict::AwaitingFirstSync);
+        }
         let (hint, missed_before_last_sync) = derive_behind_source_hint(input, None);
         return VerdictOutcome {
             verdict: Verdict::BehindSource,
@@ -227,6 +245,7 @@ mod tests {
             app_newest_published_at,
             account_last_success_at,
             account_sync_interval,
+            feed_scope_synced: true,
         }
     }
 
@@ -450,12 +469,64 @@ mod tests {
     }
 
     #[test]
+    fn quarantined_account_is_healthy_regardless_of_source_state() {
+        let outcome = derive_verdict(&input(
+            ProviderKind::Quarantined,
+            SourceStatus::Skipped,
+            None,
+            vec![],
+            None,
+            None,
+        ));
+        assert_eq!(outcome.verdict, Verdict::AccountQuarantined);
+        assert_eq!(outcome.hint, None);
+        assert!(!outcome.verdict.is_unhealthy());
+    }
+
+    #[test]
+    fn awaiting_first_sync_when_app_is_empty_and_feed_scope_has_never_synced() {
+        let outcome = derive_verdict(&VerdictInput {
+            feed_scope_synced: false,
+            ..input(
+                ProviderKind::FreshRss,
+                SourceStatus::Fetched,
+                Some(at(10)),
+                vec![at(10), at(4), at(3)],
+                None,
+                Some(at(8)),
+            )
+        });
+        assert_eq!(outcome.verdict, Verdict::AwaitingFirstSync);
+        assert_eq!(outcome.hint, None);
+        assert!(!outcome.verdict.is_unhealthy());
+    }
+
+    #[test]
+    fn behind_source_when_app_is_empty_but_feed_scope_has_synced_before() {
+        let outcome = derive_verdict(&VerdictInput {
+            feed_scope_synced: true,
+            ..input(
+                ProviderKind::FreshRss,
+                SourceStatus::Fetched,
+                Some(at(10)),
+                vec![at(10), at(4), at(3)],
+                None,
+                Some(at(8)),
+            )
+        });
+        assert_eq!(outcome.verdict, Verdict::BehindSource);
+        assert_eq!(outcome.hint, Some(Hint::FreshrssNotDelivering));
+    }
+
+    #[test]
     fn verdict_and_hint_strings_are_stable_snake_case() {
         assert_eq!(Verdict::Healthy.as_str(), "healthy");
         assert_eq!(Verdict::BehindSource.as_str(), "behind_source");
         assert_eq!(Verdict::SourceUnreachable.as_str(), "source_unreachable");
         assert_eq!(Verdict::SourceSkipped.as_str(), "source_skipped");
         assert_eq!(Verdict::NoArticles.as_str(), "no_articles");
+        assert_eq!(Verdict::AccountQuarantined.as_str(), "account_quarantined");
+        assert_eq!(Verdict::AwaitingFirstSync.as_str(), "awaiting_first_sync");
         assert_eq!(
             Hint::FreshrssNotDelivering.as_str(),
             "freshrss_not_delivering"
