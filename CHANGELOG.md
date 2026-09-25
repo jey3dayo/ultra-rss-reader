@@ -4,6 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-09-25
+
+### Features
+
+- ターミナルからアプリの状態を調べる読み取り専用の CLI `urr` を追加した。`feed diagnose` は元 RSS・アプリの DB・同期の記録を並べて、どこで更新が止まっているかを判定する。ほかに `feed stale` / `status` / `sync-state show` などがあり、`--json` で機械が読める形でも出力できる。(#340)
+
+### Documentation
+
+- `CLAUDE.md` の内容を `AGENTS.md` にまとめた。
+
+### Maintenance
+
+- release のインストーラに `urr` を同梱した。macOS は `Ultra RSS Reader.app/Contents/MacOS/urr`、Windows はインストール先のフォルダの `urr.exe` に置かれる。PATH には追加しない。(#341)
+
 ## [0.63.7] - 2026-09-24
 
 ### Bug Fixes
