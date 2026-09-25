@@ -32,16 +32,22 @@ impl Profile {
     }
 }
 
-fn unresolvable_dir_error(what: &str) -> CliError {
-    CliError::failed(format!(
-        "cannot resolve the application {what} directory; pass --db to specify the database path directly"
-    ))
+fn unresolvable_data_dir_error() -> CliError {
+    CliError::failed(
+        "cannot resolve the application data directory; pass --db to specify the database path directly",
+    )
+}
+
+fn unresolvable_log_dir_error() -> CliError {
+    CliError::failed(
+        "cannot resolve the application log directory: the OS reported no home or local data directory for this user",
+    )
 }
 
 /// Mirrors Tauri's `PathResolver::app_data_dir` (tauri 2.11.5 `src/path/desktop.rs`): `dirs::data_dir()/<identifier>`.
 pub(crate) fn app_data_dir(identifier: &str) -> Result<PathBuf, CliError> {
     Ok(dirs::data_dir()
-        .ok_or_else(|| unresolvable_dir_error("data"))?
+        .ok_or_else(unresolvable_data_dir_error)?
         .join(identifier))
 }
 
@@ -49,7 +55,7 @@ pub(crate) fn app_data_dir(identifier: &str) -> Result<PathBuf, CliError> {
 #[cfg(target_os = "macos")]
 pub(crate) fn app_log_dir(identifier: &str) -> Result<PathBuf, CliError> {
     Ok(dirs::home_dir()
-        .ok_or_else(|| unresolvable_dir_error("log"))?
+        .ok_or_else(unresolvable_log_dir_error)?
         .join("Library/Logs")
         .join(identifier))
 }
@@ -58,7 +64,7 @@ pub(crate) fn app_log_dir(identifier: &str) -> Result<PathBuf, CliError> {
 #[cfg(not(target_os = "macos"))]
 pub(crate) fn app_log_dir(identifier: &str) -> Result<PathBuf, CliError> {
     Ok(dirs::data_local_dir()
-        .ok_or_else(|| unresolvable_dir_error("log"))?
+        .ok_or_else(unresolvable_log_dir_error)?
         .join(identifier)
         .join("logs"))
 }
