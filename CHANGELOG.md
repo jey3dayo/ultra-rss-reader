@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.64.1] - 2026-09-25
+
+### Bug Fixes
+
+- 0.64.0 で Windows の MSI が作れなかった不具合を直した。`urr` が Cargo のバイナリとしての自動同梱と `externalBin` の2経路から重複して WiX に渡っていたため、`externalBin` をやめて自動同梱だけにした。0.64.0 は publish していないので、0.64.0 の変更はこのリリースで初めて配布される。(#342)
+- `urr` を追加してから `mise run app:dev` が起動できなくなっていた不具合を直した。`Cargo.toml` に `default-run` を指定した。(#342)
+
 ## [0.64.0] - 2026-09-25
 
 ### Features
