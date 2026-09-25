@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { buildUrrCargoArgs } from "./release/stage-cli-sidecar.ts";
 
 type TauriConfig = {
   identifier?: string;
@@ -42,13 +41,12 @@ const RELEASE_WORKFLOW_PATH = ".github/workflows/release.yml";
 const BASE_TAURI_CONFIG_PATH = "src-tauri/tauri.conf.json";
 const RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.release.conf.json";
 const DEV_TAURI_CONFIG_PATH = "src-tauri/tauri.dev.conf.json";
+const LINUX_RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.linux.release.conf.json";
 const DEFAULT_CAPABILITY_PATH = "src-tauri/capabilities/default.json";
 const TAURI_LIB_PATH = "src-tauri/src/lib.rs";
 const CARGO_TOML_PATH = "src-tauri/Cargo.toml";
 const DEV_MOCKS_PATH = "src/dev/mocks.ts";
 const VITE_CONFIG_PATH = "vite.config.ts";
-const STAGE_CLI_SIDECAR_PATH = "scripts/release/stage-cli-sidecar.ts";
-const CLI_SIDECAR_EXTERNAL_BIN = "binaries/urr";
 const DEV_CREDENTIAL_ENV_PATTERN = /\b(?:DEV_CREDENTIALS|ULTRA_RSS_DEV_CREDENTIALS)\s*:/;
 const DEV_ONLY_IMPORT_PATTERN = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
 const STATIC_DEV_MOCKS_IMPORT_PATTERN = /^\s*import\s+(?!type\b)[^;\n]+from\s*["']@\/dev\/mocks["']/m;
@@ -131,6 +129,7 @@ const defaultCapability = readJson<TauriCapabilityFile>(DEFAULT_CAPABILITY_PATH)
 const tauriLib = readText(TAURI_LIB_PATH);
 const devMocks = readText(DEV_MOCKS_PATH);
 const viteConfig = readText(VITE_CONFIG_PATH);
+const cargoToml = readText(CARGO_TOML_PATH);
 const capabilities = normalizeCapabilities(defaultCapability);
 
 if (releaseWorkflow.includes(`--config ${DEV_TAURI_CONFIG_PATH}`)) {
@@ -157,28 +156,44 @@ if (tauriReleaseConfig.build?.devUrl) {
   errors.push("release Tauri config must not define build.devUrl");
 }
 
-if (!tauriReleaseConfig.bundle?.externalBin?.includes(CLI_SIDECAR_EXTERNAL_BIN)) {
-  errors.push(`release Tauri config must declare bundle.externalBin for ${CLI_SIDECAR_EXTERNAL_BIN}`);
+// Tauri's `get_binaries` already adds every Cargo `[[bin]]` to the bundle, so an
+// `externalBin` entry that duplicates a Cargo bin name reaches WiX twice and fails
+// `light.exe` on Windows (macOS silently overwrites the duplicate instead).
+const cargoBinNames = [...cargoToml.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*"([^"]+)"/g)].map(
+  (match) => match[1],
+);
+
+const tauriConfigsToCheck: Array<{ path: string; config: TauriConfig }> = [
+  { path: BASE_TAURI_CONFIG_PATH, config: baseTauriConfig },
+  { path: DEV_TAURI_CONFIG_PATH, config: tauriDevConfig },
+  { path: RELEASE_TAURI_CONFIG_PATH, config: tauriReleaseConfig },
+];
+
+if (existsSync(LINUX_RELEASE_TAURI_CONFIG_PATH)) {
+  tauriConfigsToCheck.push({
+    path: LINUX_RELEASE_TAURI_CONFIG_PATH,
+    config: readJson<TauriConfig>(LINUX_RELEASE_TAURI_CONFIG_PATH),
+  });
 }
 
-if (baseTauriConfig.bundle?.externalBin) {
-  errors.push("base Tauri config must not declare bundle.externalBin (build.rs fails without a staged binary)");
+for (const { path: configPath, config } of tauriConfigsToCheck) {
+  for (const externalBin of config.bundle?.externalBin ?? []) {
+    const basename = externalBin.split("/").pop() ?? externalBin;
+    if (cargoBinNames.includes(basename)) {
+      errors.push(
+        `${configPath} bundle.externalBin must not list "${externalBin}": Tauri already bundles the Cargo [[bin]] "${basename}", duplicating it breaks WiX`,
+      );
+    }
+  }
 }
 
-if (tauriDevConfig.bundle?.externalBin) {
-  errors.push("dev Tauri config must not declare bundle.externalBin (build.rs fails without a staged binary)");
-}
+const cargoPackageName = cargoToml.match(/\[package\][^[]*?name\s*=\s*"([^"]+)"/)?.[1];
+const cargoDefaultRun = cargoToml.match(/\[package\][^[]*?default-run\s*=\s*"([^"]+)"/)?.[1];
 
-const stageCliSidecarIndex = releaseWorkflow.indexOf(`node ./${STAGE_CLI_SIDECAR_PATH}`);
-const tauriActionIndex = releaseWorkflow.indexOf("uses: tauri-apps/tauri-action@");
-if (stageCliSidecarIndex === -1) {
-  errors.push("release build must stage the urr CLI sidecar binary before invoking tauri-action");
-} else if (stageCliSidecarIndex > tauriActionIndex) {
-  errors.push("urr CLI sidecar staging must run before tauri-action");
-}
-
-if (buildUrrCargoArgs("x86_64-pc-windows-msvc").some((arg) => arg.startsWith("--features"))) {
-  errors.push("urr CLI sidecar build must not enable optional Cargo features (mcp-bridge contamination guard)");
+if (cargoBinNames.length > 1 && cargoDefaultRun !== cargoPackageName) {
+  errors.push(
+    `Cargo.toml must declare default-run = "${cargoPackageName}" when more than one [[bin]] exists (tauri dev runs cargo run without --bin)`,
+  );
 }
 
 const releaseCsp = baseTauriConfig.app?.security?.csp ?? "";
@@ -269,8 +284,6 @@ for (const requiredPlugin of REQUIRED_RELEASE_PLUGINS) {
     errors.push(`release runtime must initialize ${requiredPlugin}`);
   }
 }
-
-const cargoToml = readText(CARGO_TOML_PATH);
 
 if (!/tauri-plugin-mcp-bridge\s*=\s*\{[^}]*optional\s*=\s*true/.test(cargoToml)) {
   errors.push("tauri-plugin-mcp-bridge dependency must be declared with optional = true");

@@ -3,6 +3,7 @@ name = "ultra-rss-reader"
 version = "0.64.0"
 edition = "2021"
 description = "A Tauri-based RSS reader"
+default-run = "ultra-rss-reader"
 
 [lib]
 name = "ultra_rss_reader_lib"
