@@ -5,7 +5,7 @@ use crate::domain::provider::ProviderKind;
 /// Allowance for the upstream publish-to-fetch gap (crawl time), applied to
 /// both provider kinds. The account's own sync interval is added on top for
 /// the `behind_source` threshold.
-const FRESHRSS_CRAWL_ALLOWANCE_HOURS: i64 = 1;
+const FRESHRSS_CRAWL_ALLOWANCE_HOURS: i64 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SourceStatus {
@@ -71,9 +71,9 @@ pub(crate) struct VerdictInput {
     /// `Fetched`.
     pub(crate) source_entry_dates: Vec<DateTime<Utc>>,
     pub(crate) app_newest_published_at: Option<DateTime<Utc>>,
-    /// The FreshRSS account's own last successful sync completion
-    /// (`account:greader:all`'s `last_success_at`). Only consulted for
-    /// `ProviderKind::FreshRss` when deriving the `behind_source` hint.
+    /// Last successful scheduler sync (`scheduler` scope's `last_success_at`).
+    /// FreshRSS `behind_source` hints also use `account:greader:all`'s
+    /// `last_success_at` via the diagnose loader.
     pub(crate) account_last_success_at: Option<DateTime<Utc>>,
     /// `accounts.sync_interval_secs`. Added to the crawl allowance for the
     /// `behind_source` threshold: publishing sooner than one sync interval
@@ -108,30 +108,32 @@ fn count_missed_before_last_sync(
         .count()
 }
 
-/// `app_newest` is `None` when the app has zero articles: the FreshRSS
-/// missed-count then drops its lower bound; Local always reports
-/// `LocalFetchFailing`.
+fn missed_sync_hint(
+    input: &VerdictInput,
+    app_newest: Option<DateTime<Utc>>,
+    fetch_failing: Hint,
+) -> (Hint, usize) {
+    match input.account_last_success_at {
+        Some(last_success) => {
+            let missed =
+                count_missed_before_last_sync(&input.source_entry_dates, app_newest, last_success);
+            if missed >= 1 {
+                (fetch_failing, missed)
+            } else {
+                (Hint::AwaitingSync, 0)
+            }
+        }
+        None => (Hint::AwaitingSync, 0),
+    }
+}
+
 fn derive_behind_source_hint(
     input: &VerdictInput,
     app_newest: Option<DateTime<Utc>>,
 ) -> (Hint, usize) {
     match &input.provider_kind {
-        ProviderKind::FreshRss => match input.account_last_success_at {
-            Some(last_success) => {
-                let missed = count_missed_before_last_sync(
-                    &input.source_entry_dates,
-                    app_newest,
-                    last_success,
-                );
-                if missed >= 1 {
-                    (Hint::FreshrssNotDelivering, missed)
-                } else {
-                    (Hint::AwaitingSync, 0)
-                }
-            }
-            None => (Hint::AwaitingSync, 0),
-        },
-        ProviderKind::Local => (Hint::LocalFetchFailing, 0),
+        ProviderKind::FreshRss => missed_sync_hint(input, app_newest, Hint::FreshrssNotDelivering),
+        ProviderKind::Local => missed_sync_hint(input, app_newest, Hint::LocalFetchFailing),
         ProviderKind::Quarantined => {
             unreachable!("account_quarantined short-circuits before this")
         }
@@ -202,8 +204,8 @@ mod tests {
             + chrono::Duration::hours(hour.into())
     }
 
-    /// Defaults to 1h so tests keep their original 2h-slack expectations
-    /// (1h crawl allowance + 1h interval).
+    /// Defaults to 1h so tests keep their original 3h-slack expectations
+    /// (2h crawl allowance + 1h interval).
     fn default_interval() -> Duration {
         Duration::hours(1)
     }
@@ -336,18 +338,33 @@ mod tests {
     }
 
     #[test]
-    fn local_behind_source_hints_local_fetch_failing() {
+    fn local_behind_source_hints_awaiting_sync_when_entries_are_after_last_sync() {
         let outcome = derive_verdict(&input(
             ProviderKind::Local,
             SourceStatus::Fetched,
             Some(at(10)),
-            vec![at(10)],
+            vec![at(10), at(8)],
             Some(at(0)),
-            None,
+            Some(at(5)),
+        ));
+        assert_eq!(outcome.verdict, Verdict::BehindSource);
+        assert_eq!(outcome.hint, Some(Hint::AwaitingSync));
+        assert_eq!(outcome.missed_before_last_sync, 0);
+    }
+
+    #[test]
+    fn local_behind_source_hints_local_fetch_failing_when_entries_predate_last_sync() {
+        let outcome = derive_verdict(&input(
+            ProviderKind::Local,
+            SourceStatus::Fetched,
+            Some(at(10)),
+            vec![at(10), at(4), at(3)],
+            Some(at(0)),
+            Some(at(8)),
         ));
         assert_eq!(outcome.verdict, Verdict::BehindSource);
         assert_eq!(outcome.hint, Some(Hint::LocalFetchFailing));
-        assert_eq!(outcome.missed_before_last_sync, 0);
+        assert_eq!(outcome.missed_before_last_sync, 2);
     }
 
     #[test]
@@ -402,13 +419,13 @@ mod tests {
             ProviderKind::Local,
             SourceStatus::Fetched,
             Some(at(10)),
-            vec![at(10)],
+            vec![at(10), at(4), at(3)],
             None,
-            None,
+            Some(at(8)),
         ));
         assert_eq!(outcome.verdict, Verdict::BehindSource);
         assert_eq!(outcome.hint, Some(Hint::LocalFetchFailing));
-        assert_eq!(outcome.missed_before_last_sync, 0);
+        assert_eq!(outcome.missed_before_last_sync, 2);
     }
 
     #[test]
@@ -459,8 +476,8 @@ mod tests {
         let outcome = derive_verdict(&input_with_interval(
             ProviderKind::FreshRss,
             SourceStatus::Fetched,
-            Some(at(3)),
-            vec![at(3)],
+            Some(at(4)),
+            vec![at(4)],
             Some(at(0)),
             None,
             Duration::hours(1),

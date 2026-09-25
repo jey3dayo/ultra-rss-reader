@@ -113,7 +113,7 @@ impl GReaderProvider {
                 == Some(next)
         });
         let has_more = resp.continuation.is_some() && !repeated_continuation;
-        let next_since_usec = next_ot_timestamp_usec(&item_timestamps, has_more, raw_item_count);
+        let next_since_usec = next_ot_timestamp_usec(&item_timestamps, has_more);
         let next_cursor =
             if resp.continuation.is_some() || next_since_usec.is_some() || cursor.is_some() {
                 Some(SyncCursor {
