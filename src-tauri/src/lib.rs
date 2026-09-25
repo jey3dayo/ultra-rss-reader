@@ -447,10 +447,9 @@ fn focus_main_webview_on_startup<R: tauri::Runtime>(
     active: Arc<AtomicBool>,
 ) {
     tauri::async_runtime::spawn(async move {
-        // On macOS overlay titlebar windows, the native webview can start unfocused
-        // even though the app window is visible. Delay one tick so the window is
-        // fully realized before restoring focus.
-        tokio::time::sleep(Duration::from_millis(150)).await;
+        // `restore_state` queues the resized frame on the event loop; clamp and
+        // show only after that frame is applied so users see one final geometry.
+        tokio::time::sleep(Duration::from_millis(250)).await;
 
         if !startup_focus_restore_is_active(&active) {
             return;
@@ -476,6 +475,21 @@ fn focus_main_webview_on_startup<R: tauri::Runtime>(
             let Some(webview) = main_webview else {
                 return;
             };
+
+            #[cfg(desktop)]
+            if let Some(tauri_window) = app_handle_for_main_thread.get_window("main") {
+                clamp_main_window_size_after_state_restore(&tauri_window);
+                match tauri_window.inner_size() {
+                    Ok(size) => {
+                        enforce_main_window_min_size_after_window_resize(&tauri_window, size);
+                    }
+                    Err(error) => {
+                        tracing::warn!(
+                            "Failed to read main window size before presenting startup window: {error}"
+                        );
+                    }
+                }
+            }
 
             if let Err(error) = window.show() {
                 tracing::warn!("{}", startup_main_window_show_warning(&error));
@@ -999,23 +1013,6 @@ pub fn run() {
                     _ => {}
                 });
             }
-
-            let app_handle_for_startup_size = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(Duration::from_millis(250)).await;
-                let Some(window) = app_handle_for_startup_size.get_window("main") else {
-                    tracing::warn!("Failed to find main window while enforcing startup size");
-                    return;
-                };
-                #[cfg(desktop)]
-                clamp_main_window_size_after_state_restore(&window);
-                match window.inner_size() {
-                    Ok(size) => enforce_main_window_min_size_after_window_resize(&window, size),
-                    Err(error) => {
-                        tracing::warn!("Failed to read main window size after startup: {error}");
-                    }
-                }
-            });
 
             focus_main_webview_on_startup(app.handle().clone(), startup_focus_restore_active);
 
@@ -1881,6 +1878,11 @@ mod tests {
                 window_config.get("fullscreen").is_none(),
                 "main window config must not restore fullscreen state across disconnected monitors"
             );
+            assert_eq!(
+                window_config.get("visible"),
+                Some(&serde_json::Value::Bool(false)),
+                "main window should stay hidden until restored geometry is applied"
+            );
         }
         assert!(cargo_toml.contains("tauri-plugin-window-state"));
         // Search only production code: this test's own assertion strings would
@@ -1926,7 +1928,7 @@ mod tests {
             "the plugin's on-ready restore must stay off so the size guards own the restored geometry"
         );
         assert!(
-            lib_rs.contains("clamp_main_window_size_after_state_restore(&window)"),
+            lib_rs.contains("clamp_main_window_size_after_state_restore(&tauri_window)"),
             "restored physical sizes need a DPI-change and monitor-shrink guard to actually run"
         );
         assert!(
