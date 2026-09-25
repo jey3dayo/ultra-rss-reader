@@ -2,6 +2,7 @@
   "identifier": "com.jey3dayo.ultra-rss-reader",
   "bundle": {
     "createUpdaterArtifacts": true,
+    "externalBin": ["binaries/urr"],
     "macOS": {
       "signingIdentity": "-"
     }

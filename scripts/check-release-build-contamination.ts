@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { buildUrrCargoArgs } from "./release/stage-cli-sidecar.ts";
 
 type TauriConfig = {
   identifier?: string;
@@ -12,6 +13,9 @@ type TauriConfig = {
   };
   build?: {
     devUrl?: string;
+  };
+  bundle?: {
+    externalBin?: string[];
   };
 };
 
@@ -43,6 +47,8 @@ const TAURI_LIB_PATH = "src-tauri/src/lib.rs";
 const CARGO_TOML_PATH = "src-tauri/Cargo.toml";
 const DEV_MOCKS_PATH = "src/dev/mocks.ts";
 const VITE_CONFIG_PATH = "vite.config.ts";
+const STAGE_CLI_SIDECAR_PATH = "scripts/release/stage-cli-sidecar.ts";
+const CLI_SIDECAR_EXTERNAL_BIN = "binaries/urr";
 const DEV_CREDENTIAL_ENV_PATTERN = /\b(?:DEV_CREDENTIALS|ULTRA_RSS_DEV_CREDENTIALS)\s*:/;
 const DEV_ONLY_IMPORT_PATTERN = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
 const STATIC_DEV_MOCKS_IMPORT_PATTERN = /^\s*import\s+(?!type\b)[^;\n]+from\s*["']@\/dev\/mocks["']/m;
@@ -149,6 +155,30 @@ if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
 
 if (tauriReleaseConfig.build?.devUrl) {
   errors.push("release Tauri config must not define build.devUrl");
+}
+
+if (!tauriReleaseConfig.bundle?.externalBin?.includes(CLI_SIDECAR_EXTERNAL_BIN)) {
+  errors.push(`release Tauri config must declare bundle.externalBin for ${CLI_SIDECAR_EXTERNAL_BIN}`);
+}
+
+if (baseTauriConfig.bundle?.externalBin) {
+  errors.push("base Tauri config must not declare bundle.externalBin (build.rs fails without a staged binary)");
+}
+
+if (tauriDevConfig.bundle?.externalBin) {
+  errors.push("dev Tauri config must not declare bundle.externalBin (build.rs fails without a staged binary)");
+}
+
+const stageCliSidecarIndex = releaseWorkflow.indexOf(`node ./${STAGE_CLI_SIDECAR_PATH}`);
+const tauriActionIndex = releaseWorkflow.indexOf("uses: tauri-apps/tauri-action@");
+if (stageCliSidecarIndex === -1) {
+  errors.push("release build must stage the urr CLI sidecar binary before invoking tauri-action");
+} else if (stageCliSidecarIndex > tauriActionIndex) {
+  errors.push("urr CLI sidecar staging must run before tauri-action");
+}
+
+if (buildUrrCargoArgs("x86_64-pc-windows-msvc").some((arg) => arg.startsWith("--features"))) {
+  errors.push("urr CLI sidecar build must not enable optional Cargo features (mcp-bridge contamination guard)");
 }
 
 const releaseCsp = baseTauriConfig.app?.security?.csp ?? "";
