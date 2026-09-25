@@ -14,6 +14,11 @@ name = "ultra-rss-reader"
 path = "src/main.rs"
 test = false
 
+[[bin]]
+name = "urr"
+path = "src/bin/urr.rs"
+test = false
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
@@ -58,6 +63,8 @@ futures = "0.3.32"
 sys-locale = "0.3"
 unicode-normalization = "0.1"
 tauri-plugin-dialog = "2"
+clap = { version = "4", features = ["derive"] }
+dirs = "6"
 
 [features]
 # Debug-only MCP bridge plugin (see `run()` in src/lib.rs). Not part of the

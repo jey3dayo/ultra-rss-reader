@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -40,6 +42,16 @@ pub struct OrphanedFeedGroup {
     pub article_count: i64,
     pub latest_article_title: Option<String>,
     pub latest_article_published_at: Option<String>,
+}
+
+/// Per-feed article aggregates for the `urr feed list` / `feed diagnose` CLI
+/// commands. Not part of `ArticleReadRepository` or `ArticleListRepository`:
+/// those serve the app's own read paths.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct FeedArticleStats {
+    pub article_count: i64,
+    pub latest_published_at: Option<DateTime<Utc>>,
+    pub latest_fetched_at: Option<DateTime<Utc>>,
 }
 
 impl<'a> SqliteArticleRepository<'a> {
@@ -146,6 +158,79 @@ impl<'a> SqliteArticleRepository<'a> {
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(groups)
+    }
+
+    /// Per-feed article count and newest published/fetched timestamps for
+    /// every feed in `account_id`, including feeds with zero articles
+    /// (`LEFT JOIN`, so `article_count` is 0 and the timestamps are `None`).
+    ///
+    /// `article_count` counts every row. `latest_published_at` excludes rows
+    /// whose `published_at` is later than the injected `now` (a bind param,
+    /// not SQLite's `'now'`, so tests can control it) — a future-dated
+    /// `published_at` must not look like the newest article.
+    /// `latest_fetched_at` is the app's own ingestion time, not feed-supplied,
+    /// so it is not filtered.
+    pub fn feed_article_stats_by_account(
+        &self,
+        account_id: &AccountId,
+        now: DateTime<Utc>,
+    ) -> DomainResult<HashMap<FeedId, FeedArticleStats>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT f.id, COUNT(a.id),
+                MAX(CASE WHEN julianday(a.published_at) <= julianday(?2) THEN a.published_at ELSE NULL END),
+                MAX(a.fetched_at)
+             FROM feeds f
+             LEFT JOIN articles a ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+             GROUP BY f.id",
+        )?;
+        let mut rows = stmt.query(params![account_id.0, now.to_rfc3339()])?;
+        let mut stats = HashMap::new();
+        while let Some(row) = rows.next()? {
+            let feed_id = FeedId(row.get(0)?);
+            let article_count: i64 = row.get(1)?;
+            let latest_published_at = row
+                .get::<_, Option<String>>(2)?
+                .map(|raw| parse_datetime(&raw))
+                .transpose()?;
+            let latest_fetched_at = row
+                .get::<_, Option<String>>(3)?
+                .map(|raw| parse_datetime(&raw))
+                .transpose()?;
+            stats.insert(
+                feed_id,
+                FeedArticleStats {
+                    article_count,
+                    latest_published_at,
+                    latest_fetched_at,
+                },
+            );
+        }
+        Ok(stats)
+    }
+
+    /// The `limit` most recent `published_at` values for one feed, newest
+    /// first, excluding rows whose `published_at` is later than `now` (see
+    /// `feed_article_stats_by_account` for why `now` is injected). Used by
+    /// `feed stale`'s expected-interval calculation.
+    pub fn latest_published_ats_by_feed(
+        &self,
+        feed_id: &FeedId,
+        limit: usize,
+        now: DateTime<Utc>,
+    ) -> DomainResult<Vec<DateTime<Utc>>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT published_at FROM articles
+             WHERE feed_id = ?1 AND julianday(published_at) <= julianday(?3)
+             ORDER BY published_at DESC LIMIT ?2",
+        )?;
+        let dates = stmt
+            .query_map(params![feed_id.0, limit as i64, now.to_rfc3339()], |row| {
+                let raw: String = row.get(0)?;
+                parse_datetime(&raw)
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(dates)
     }
 
     fn find_by_folder_with_filter(

@@ -5,7 +5,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::domain::error::{DomainError, DomainResult};
 
 mod maintenance;
+mod read_only;
 mod reconcile;
+
+pub use read_only::{ReadOnlyDbManager, ReadOnlyOpenError};
 
 static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 const BUSY_TIMEOUT_MS: i32 = 5000;
