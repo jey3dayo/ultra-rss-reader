@@ -159,8 +159,8 @@ if (tauriReleaseConfig.build?.devUrl) {
 // Tauri's `get_binaries` already adds every Cargo `[[bin]]` to the bundle, so an
 // `externalBin` entry that duplicates a Cargo bin name reaches WiX twice and fails
 // `light.exe` on Windows (macOS silently overwrites the duplicate instead).
-const cargoBinNames = [...cargoToml.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*"([^"]+)"/g)].map(
-  (match) => match[1],
+const cargoBinNames = [...cargoToml.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*(["'])([^"']+)\1/g)].map(
+  (match) => match[2],
 );
 
 const tauriConfigsToCheck: Array<{ path: string; config: TauriConfig }> = [
@@ -187,8 +187,8 @@ for (const { path: configPath, config } of tauriConfigsToCheck) {
   }
 }
 
-const cargoPackageName = cargoToml.match(/\[package\][^[]*?name\s*=\s*"([^"]+)"/)?.[1];
-const cargoDefaultRun = cargoToml.match(/\[package\][^[]*?default-run\s*=\s*"([^"]+)"/)?.[1];
+const cargoPackageName = cargoToml.match(/\[package\][^[]*?name\s*=\s*(["'])([^"']+)\1/)?.[2];
+const cargoDefaultRun = cargoToml.match(/\[package\][^[]*?default-run\s*=\s*(["'])([^"']+)\1/)?.[2];
 
 if (cargoBinNames.length > 1 && cargoDefaultRun !== cargoPackageName) {
   errors.push(

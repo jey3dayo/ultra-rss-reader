@@ -402,11 +402,13 @@ function extractCargoPackageField(source: string, field: string) {
   const packageStart = source.indexOf("[package]");
   const nextSection = source.indexOf("\n[", packageStart + "[package]".length);
   const packageSection = source.slice(packageStart, nextSection === -1 ? undefined : nextSection);
-  return packageSection.match(new RegExp(`^${field}\\s*=\\s*"([^"]+)"`, "m"))?.[1];
+  return packageSection.match(new RegExp(`^${field}\\s*=\\s*(["'])([^"']+)\\1`, "m"))?.[2];
 }
 
 function extractCargoBinNames(source: string) {
-  return [...source.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*"([^"]+)"/g)].map((match) => match[1]);
+  return [...source.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*(["'])([^"']+)\1/g)].map(
+    (match) => match[2],
+  );
 }
 
 type TauriBundleConfig = { bundle?: { externalBin?: string[] } };
