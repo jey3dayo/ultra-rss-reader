@@ -32,97 +32,35 @@ impl Profile {
     }
 }
 
-/// Shared wording for a missing HOME/APPDATA/LOCALAPPDATA error, so every
-/// caller points the user to the same next step.
-fn missing_env_var_error(name: &str) -> CliError {
+fn unresolvable_dir_error(what: &str) -> CliError {
     CliError::failed(format!(
-        "environment variable {name} is not set; pass --db to specify the database path directly"
+        "cannot resolve the application {what} directory; pass --db to specify the database path directly"
     ))
 }
 
-#[cfg(any(target_os = "macos", windows, test))]
-fn required_env_path(name: &str) -> Result<PathBuf, CliError> {
-    std::env::var_os(name)
-        .map(PathBuf::from)
-        .filter(|path| !path.as_os_str().is_empty())
-        .ok_or_else(|| missing_env_var_error(name))
-}
-
-/// Matches `dirs::data_dir` on macOS: `$HOME/Library/Application Support`.
-#[cfg(target_os = "macos")]
+/// Mirrors Tauri's `PathResolver::app_data_dir` (tauri 2.11.5 `src/path/desktop.rs`): `dirs::data_dir()/<identifier>`.
 pub(crate) fn app_data_dir(identifier: &str) -> Result<PathBuf, CliError> {
-    Ok(required_env_path("HOME")?
-        .join("Library/Application Support")
+    Ok(dirs::data_dir()
+        .ok_or_else(|| unresolvable_dir_error("data"))?
         .join(identifier))
 }
 
-/// Matches `dirs::data_dir` on Windows: `%APPDATA%`.
-#[cfg(windows)]
-pub(crate) fn app_data_dir(identifier: &str) -> Result<PathBuf, CliError> {
-    Ok(required_env_path("APPDATA")?.join(identifier))
-}
-
-#[cfg(all(unix, not(target_os = "macos")))]
-pub(crate) fn app_data_dir(identifier: &str) -> Result<PathBuf, CliError> {
-    Ok(xdg_data_home()?.join(identifier))
-}
-
-/// Matches `dirs`' log dir on macOS: `$HOME/Library/Logs`, a different base
-/// than `app_data_dir`.
+/// Mirrors Tauri's `PathResolver::app_log_dir` on macOS (tauri 2.11.5 `src/path/desktop.rs`): `dirs::home_dir()/Library/Logs/<identifier>`.
 #[cfg(target_os = "macos")]
 pub(crate) fn app_log_dir(identifier: &str) -> Result<PathBuf, CliError> {
-    Ok(required_env_path("HOME")?
+    Ok(dirs::home_dir()
+        .ok_or_else(|| unresolvable_dir_error("log"))?
         .join("Library/Logs")
         .join(identifier))
 }
 
-/// Matches `dirs`' log dir on Windows: `%LOCALAPPDATA%/<identifier>/logs`.
-#[cfg(windows)]
+/// Mirrors Tauri's `PathResolver::app_log_dir` on non-macOS (tauri 2.11.5 `src/path/desktop.rs`): `dirs::data_local_dir()/<identifier>/logs`.
+#[cfg(not(target_os = "macos"))]
 pub(crate) fn app_log_dir(identifier: &str) -> Result<PathBuf, CliError> {
-    Ok(required_env_path("LOCALAPPDATA")?
+    Ok(dirs::data_local_dir()
+        .ok_or_else(|| unresolvable_dir_error("log"))?
         .join(identifier)
         .join("logs"))
-}
-
-#[cfg(all(unix, not(target_os = "macos")))]
-pub(crate) fn app_log_dir(identifier: &str) -> Result<PathBuf, CliError> {
-    Ok(xdg_data_home()?.join(identifier).join("logs"))
-}
-
-/// Matches `dirs::data_dir` on Linux: `XDG_DATA_HOME` only if absolute,
-/// otherwise `$HOME/.local/share`.
-///
-/// Takes explicit `Option<&str>` env values instead of reading
-/// `std::env::var` directly so tests can inject values without mutating the
-/// real process environment.
-///
-/// Also compiled under `test`: its only non-test caller is unix/non-macOS
-/// gated, so this would otherwise be dead code on every other target.
-#[cfg(any(all(unix, not(target_os = "macos")), test))]
-fn xdg_data_home_from_env(
-    xdg_data_home: Option<&str>,
-    home: Option<&str>,
-) -> Result<PathBuf, CliError> {
-    if let Some(candidate) = xdg_data_home
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
-        .filter(|path| path.is_absolute())
-    {
-        return Ok(candidate);
-    }
-
-    let home = home
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| missing_env_var_error("HOME"))?;
-    Ok(PathBuf::from(home).join(".local/share"))
-}
-
-#[cfg(all(unix, not(target_os = "macos")))]
-fn xdg_data_home() -> Result<PathBuf, CliError> {
-    xdg_data_home_from_env(
-        std::env::var("XDG_DATA_HOME").ok().as_deref(),
-        std::env::var("HOME").ok().as_deref(),
-    )
 }
 
 pub(crate) fn default_db_path(profile: Profile) -> Result<PathBuf, CliError> {
@@ -131,14 +69,8 @@ pub(crate) fn default_db_path(profile: Profile) -> Result<PathBuf, CliError> {
 
 /// Home directory for display-only path shortening; unlike `app_data_dir`,
 /// a missing value just disables shortening instead of erroring.
-#[cfg(unix)]
 pub(crate) fn home_dir_for_display() -> Option<PathBuf> {
-    std::env::var_os("HOME").map(PathBuf::from)
-}
-
-#[cfg(windows)]
-pub(crate) fn home_dir_for_display() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE").map(PathBuf::from)
+    dirs::home_dir()
 }
 
 pub(crate) fn shorten_home_prefix(path: &std::path::Path) -> String {
@@ -202,98 +134,43 @@ mod tests {
         assert_eq!(shorten_home_prefix(path), "/var/db/example.db");
     }
 
+    #[test]
+    fn app_data_dir_matches_tauris_app_data_dir_rule() {
+        let resolved = app_data_dir("com.example.test").expect("app_data_dir should resolve");
+        let expected = dirs::data_dir()
+            .expect("dirs::data_dir should resolve while running tests")
+            .join("com.example.test");
+        assert_eq!(resolved, expected);
+    }
+
     #[cfg(target_os = "macos")]
     #[test]
-    fn macos_data_dir_uses_application_support() {
-        let home = required_env_path("HOME").expect("HOME should be set while running tests");
-        let resolved = app_data_dir("com.example.test").expect("app_data_dir should resolve");
-        assert_eq!(
-            resolved,
-            home.join("Library/Application Support/com.example.test")
-        );
-    }
-
-    #[cfg(target_os = "macos")]
-    #[test]
-    fn macos_log_dir_uses_library_logs() {
-        let home = required_env_path("HOME").expect("HOME should be set while running tests");
+    fn app_log_dir_matches_tauris_macos_app_log_dir_rule() {
         let resolved = app_log_dir("com.example.test").expect("app_log_dir should resolve");
-        assert_eq!(resolved, home.join("Library/Logs/com.example.test"));
+        let expected = dirs::home_dir()
+            .expect("dirs::home_dir should resolve while running tests")
+            .join("Library/Logs")
+            .join("com.example.test");
+        assert_eq!(resolved, expected);
     }
 
-    #[cfg(windows)]
+    #[cfg(not(target_os = "macos"))]
     #[test]
-    fn windows_data_dir_uses_appdata() {
-        let appdata =
-            required_env_path("APPDATA").expect("APPDATA should be set while running tests");
-        let resolved = app_data_dir("com.example.test").expect("app_data_dir should resolve");
-        assert_eq!(resolved, appdata.join("com.example.test"));
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn windows_log_dir_uses_localappdata_logs() {
-        let local_appdata = required_env_path("LOCALAPPDATA")
-            .expect("LOCALAPPDATA should be set while running tests");
+    fn app_log_dir_matches_tauris_non_macos_app_log_dir_rule() {
         let resolved = app_log_dir("com.example.test").expect("app_log_dir should resolve");
-        assert_eq!(
-            resolved,
-            local_appdata.join("com.example.test").join("logs")
-        );
-    }
-
-    #[cfg(all(unix, not(target_os = "macos")))]
-    #[test]
-    fn linux_data_dir_prefers_xdg_data_home() {
-        let resolved = app_data_dir("com.example.test").expect("app_data_dir should resolve");
-        if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
-            if !xdg.is_empty() {
-                assert_eq!(resolved, PathBuf::from(xdg).join("com.example.test"));
-                return;
-            }
-        }
-        let home = required_env_path("HOME").expect("HOME should be set while running tests");
-        assert_eq!(resolved, home.join(".local/share/com.example.test"));
-    }
-
-    #[cfg(all(unix, not(target_os = "macos")))]
-    #[test]
-    fn linux_log_dir_is_under_the_data_dir() {
-        let data = app_data_dir("com.example.test").expect("app_data_dir should resolve");
-        let log = app_log_dir("com.example.test").expect("app_log_dir should resolve");
-        assert_eq!(log, data.join("logs"));
+        let expected = dirs::data_local_dir()
+            .expect("dirs::data_local_dir should resolve while running tests")
+            .join("com.example.test")
+            .join("logs");
+        assert_eq!(resolved, expected);
     }
 
     #[test]
-    fn linux_xdg_data_home_ignores_a_relative_value() {
-        let resolved = xdg_data_home_from_env(Some("relative/xdg-data"), Some("/home/example"))
-            .expect("HOME fallback should resolve");
-        assert_eq!(
-            resolved,
-            PathBuf::from("/home/example/.local/share"),
-            "a relative XDG_DATA_HOME must be ignored, falling back to $HOME/.local/share"
-        );
-    }
-
-    #[test]
-    fn xdg_data_home_uses_an_absolute_value_when_set() {
-        let resolved = xdg_data_home_from_env(Some("/mnt/data"), Some("/home/example"))
-            .expect("absolute XDG_DATA_HOME should resolve");
-        assert_eq!(resolved, PathBuf::from("/mnt/data"));
-    }
-
-    #[test]
-    fn xdg_data_home_ignores_an_empty_value() {
-        let resolved = xdg_data_home_from_env(Some(""), Some("/home/example"))
-            .expect("HOME fallback should resolve");
-        assert_eq!(resolved, PathBuf::from("/home/example/.local/share"));
-    }
-
-    #[test]
-    fn xdg_data_home_errors_with_db_flag_guidance_when_home_is_missing() {
-        let error = xdg_data_home_from_env(None, None)
-            .expect_err("missing HOME with no XDG_DATA_HOME should be a clear error");
-        assert!(error.message.contains("HOME"));
-        assert!(error.message.contains("--db"));
+    fn default_db_path_joins_the_db_file_name() {
+        let resolved = default_db_path(Profile::Prod).expect("default_db_path should resolve");
+        let expected = app_data_dir(PROD_IDENTIFIER)
+            .expect("app_data_dir should resolve")
+            .join(DB_FILE_NAME);
+        assert_eq!(resolved, expected);
     }
 }

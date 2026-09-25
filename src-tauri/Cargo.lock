@@ -6187,6 +6187,7 @@ dependencies = [
  "block2 0.6.2",
  "chrono",
  "clap",
+ "dirs",
  "feed-rs",
  "flate2",
  "futures",

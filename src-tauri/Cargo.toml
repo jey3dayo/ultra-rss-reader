@@ -64,6 +64,7 @@ sys-locale = "0.3"
 unicode-normalization = "0.1"
 tauri-plugin-dialog = "2"
 clap = { version = "4", features = ["derive"] }
+dirs = "6"
 
 [features]
 # Debug-only MCP bridge plugin (see `run()` in src/lib.rs). Not part of the
