@@ -12,6 +12,33 @@ impl<'a> SqliteSyncStateRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
     }
+
+    /// All `sync_state` rows for an account, across every scope. Not part of
+    /// `SyncStateRepository`: that trait's `get` is scope-keyed for the
+    /// app's own read paths, and `urr sync-state show` (`cli::commands`) is
+    /// the only caller that needs every scope at once.
+    pub fn find_all_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<SyncState>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT account_id, scope_key, timestamp_usec, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at FROM sync_state WHERE account_id = ?1 ORDER BY scope_key ASC",
+        )?;
+        let rows = stmt
+            .query_map(params![account_id.0], |row| {
+                Ok(SyncState {
+                    account_id: AccountId(row.get(0)?),
+                    scope_key: row.get(1)?,
+                    timestamp_usec: row.get(2)?,
+                    continuation: row.get(3)?,
+                    etag: row.get(4)?,
+                    last_modified: row.get(5)?,
+                    last_success_at: row.get(6)?,
+                    last_error: row.get(7)?,
+                    error_count: row.get(8)?,
+                    next_retry_at: row.get(9)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
 }
 
 impl SyncStateRepository for SqliteSyncStateRepository<'_> {
