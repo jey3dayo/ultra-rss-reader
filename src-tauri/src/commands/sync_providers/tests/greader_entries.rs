@@ -125,7 +125,7 @@ async fn sync_greader_feed_entries_advances_timestamp_from_entries_without_next_
         .unwrap()
         .unwrap();
 
-    assert_eq!(state.timestamp_usec, Some(1_700_000_100_000_001));
+    assert_eq!(state.timestamp_usec, Some(1_700_000_100_000_000));
 }
 
 #[tokio::test]
@@ -244,7 +244,7 @@ async fn sync_greader_feed_entries_advances_timestamp_after_all_pages_finish() {
         .unwrap();
 
     assert_eq!(articles.len(), 2);
-    assert_eq!(state.timestamp_usec, Some(1_700_000_200_000_001));
+    assert_eq!(state.timestamp_usec, Some(1_700_000_200_000_000));
     assert_eq!(state.continuation, None);
 }
 

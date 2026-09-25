@@ -236,8 +236,7 @@ pub(super) fn next_ot_timestamp_usec(
         return item_timestamps.iter().min().copied();
     }
 
-    let newest_timestamp = item_timestamps.iter().max().copied()?;
-    newest_timestamp.checked_add(1).or(Some(newest_timestamp))
+    item_timestamps.iter().max().copied()
 }
 
 pub(super) fn valid_item_cursor_timestamp_usec(timestamp_usec: i64) -> Option<i64> {
@@ -297,8 +296,8 @@ mod next_ot_tests {
     }
 
     #[test]
-    fn finished_pages_advance_ot_past_the_newest_item() {
+    fn finished_pages_keep_the_newest_timestamp_reachable() {
         let timestamps = [3_000_000, 2_000_000, 1_000_000];
-        assert_eq!(next_ot_timestamp_usec(&timestamps, false), Some(3_000_001));
+        assert_eq!(next_ot_timestamp_usec(&timestamps, false), Some(3_000_000));
     }
 }

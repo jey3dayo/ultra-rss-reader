@@ -43,13 +43,22 @@ pub(crate) fn assess_staleness(
         return None;
     }
 
-    let mut gaps: Vec<f64> = published_at_desc
+    let positive_gaps: Vec<f64> = published_at_desc
         .windows(2)
         .map(|pair| (pair[0] - pair[1]).num_seconds() as f64 / 3600.0)
+        .filter(|gap| *gap > 0.0)
+        .collect();
+    if positive_gaps.is_empty() {
+        return None;
+    }
+
+    let mut gaps: Vec<f64> = positive_gaps
+        .iter()
+        .copied()
         .filter(|gap| *gap >= MIN_CADENCE_GAP_HOURS)
         .collect();
     if gaps.is_empty() {
-        return None;
+        gaps = positive_gaps;
     }
 
     let expected_interval_hours = median(&mut gaps);
@@ -144,6 +153,22 @@ mod tests {
         let now = Utc::now();
         let history = vec![now; 6];
         assert_eq!(assess_staleness(now, &history, 6.0), None);
+    }
+
+    #[test]
+    fn high_frequency_feed_with_sub_half_hour_gaps_still_assesses() {
+        let now = "2026-09-25T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        let newest = now - chrono::Duration::hours(72);
+        let history = published_at_desc(newest, &[0.3, 0.3, 0.3, 0.3, 0.3]);
+
+        let assessment = assess_staleness(now, &history, 6.0).expect("5 samples should assess");
+
+        assert!(
+            (assessment.expected_interval_hours - 0.3).abs() < 0.001,
+            "expected_interval_hours should fall back to short gaps, got {}",
+            assessment.expected_interval_hours
+        );
+        assert!(assessment.is_stale);
     }
 
     #[test]

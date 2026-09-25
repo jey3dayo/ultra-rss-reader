@@ -59,14 +59,18 @@ struct MatchDbData {
 
 /// Excludes quarantined matches before deduping fetch targets: a quarantined
 /// account's feed must never trigger a network request.
-fn scheduler_last_success_at(
-    scheduler: &Option<SyncStateView>,
-) -> Option<chrono::DateTime<chrono::Utc>> {
-    scheduler
+fn scope_last_success_at(scope: &Option<SyncStateView>) -> Option<chrono::DateTime<chrono::Utc>> {
+    scope
         .as_ref()
         .and_then(|state| state.last_success_at.as_deref())
         .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
         .map(|dt| dt.with_timezone(&chrono::Utc))
+}
+
+fn latest_last_success_at(
+    candidates: impl IntoIterator<Item = Option<chrono::DateTime<chrono::Utc>>>,
+) -> Option<chrono::DateTime<chrono::Utc>> {
+    candidates.into_iter().flatten().max()
 }
 
 fn account_last_success_at_for_verdict(
@@ -74,7 +78,10 @@ fn account_last_success_at_for_verdict(
 ) -> Option<chrono::DateTime<chrono::Utc>> {
     match data.account.kind {
         ProviderKind::FreshRss => data.account_greader_all_last_success_at,
-        ProviderKind::Local => scheduler_last_success_at(&data.scheduler),
+        ProviderKind::Local => latest_last_success_at([
+            scope_last_success_at(&data.scheduler),
+            scope_last_success_at(&data.local_feed_scope),
+        ]),
         ProviderKind::Quarantined => None,
     }
 }

@@ -1963,7 +1963,7 @@ async fn pull_entries_advances_ot_past_the_newest_item_when_the_page_finishes() 
             .next_cursor
             .and_then(|cursor| cursor.since)
             .map(|timestamp| timestamp.timestamp_micros()),
-        Some(1_700_000_200_000_001)
+        Some(1_700_000_200_000_000)
     );
     stream_mock.assert_async().await;
 }
@@ -2023,7 +2023,7 @@ async fn pull_entries_keeps_equal_timestamp_reachable_when_ot_fallback_page_is_f
             .next_cursor
             .and_then(|cursor| cursor.since)
             .map(|timestamp| timestamp.timestamp_micros()),
-        Some(1_700_000_100_000_001)
+        Some(1_700_000_100_000_000)
     );
     stream_mock.assert_async().await;
 }
