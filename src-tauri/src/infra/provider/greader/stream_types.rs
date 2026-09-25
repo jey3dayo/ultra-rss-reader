@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer};
 use std::collections::HashSet;
 
-use super::{LABEL_PREFIX, STREAM_CONTENTS_LIMIT};
+use super::LABEL_PREFIX;
 use crate::domain::provider::{RemoteSubscription, GREADER_FEED_ID_PREFIX};
 
 // --- Google Reader API response types ---
@@ -228,14 +228,15 @@ pub(super) fn subscription_matches_quickadd_keys(
 pub(super) fn next_ot_timestamp_usec(
     item_timestamps: &[i64],
     has_continuation: bool,
-    raw_item_count: usize,
 ) -> Option<i64> {
-    let oldest_timestamp = item_timestamps.iter().min().copied()?;
-    if has_continuation || raw_item_count < STREAM_CONTENTS_LIMIT as usize {
-        return Some(oldest_timestamp);
+    if item_timestamps.is_empty() {
+        return None;
+    }
+    if has_continuation {
+        return item_timestamps.iter().min().copied();
     }
 
-    oldest_timestamp.checked_add(1).or(Some(oldest_timestamp))
+    item_timestamps.iter().max().copied()
 }
 
 pub(super) fn valid_item_cursor_timestamp_usec(timestamp_usec: i64) -> Option<i64> {
@@ -281,5 +282,22 @@ pub(super) fn normalize_item_id(id: &str) -> String {
     match id.parse::<u64>() {
         Ok(n) => format!("{TAG_PREFIX}{n:016x}"),
         Err(_) => id.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod next_ot_tests {
+    use super::next_ot_timestamp_usec;
+
+    #[test]
+    fn continuation_pages_keep_the_oldest_timestamp_for_ot() {
+        let timestamps = [3_000_000, 2_000_000, 1_000_000];
+        assert_eq!(next_ot_timestamp_usec(&timestamps, true), Some(1_000_000));
+    }
+
+    #[test]
+    fn finished_pages_keep_the_newest_timestamp_reachable() {
+        let timestamps = [3_000_000, 2_000_000, 1_000_000];
+        assert_eq!(next_ot_timestamp_usec(&timestamps, false), Some(3_000_000));
     }
 }

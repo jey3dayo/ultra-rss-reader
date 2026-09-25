@@ -2,6 +2,9 @@ use chrono::{DateTime, Utc};
 
 /// Minimum sample size before an expected interval is trusted at all.
 const MIN_SAMPLE_ARTICLES: usize = 5;
+/// Gaps shorter than this are ignored when estimating cadence so batch
+/// drops on the same timestamp do not collapse the median toward zero.
+const MIN_CADENCE_GAP_HOURS: f64 = 0.5;
 /// A feed is stale when its age is more than this many expected intervals.
 const STALE_INTERVAL_MULTIPLIER: f64 = 4.0;
 
@@ -40,13 +43,22 @@ pub(crate) fn assess_staleness(
         return None;
     }
 
-    let mut gaps: Vec<f64> = published_at_desc
+    let positive_gaps: Vec<f64> = published_at_desc
         .windows(2)
         .map(|pair| (pair[0] - pair[1]).num_seconds() as f64 / 3600.0)
         .filter(|gap| *gap > 0.0)
         .collect();
-    if gaps.is_empty() {
+    if positive_gaps.is_empty() {
         return None;
+    }
+
+    let mut gaps: Vec<f64> = positive_gaps
+        .iter()
+        .copied()
+        .filter(|gap| *gap >= MIN_CADENCE_GAP_HOURS)
+        .collect();
+    if gaps.is_empty() {
+        gaps = positive_gaps;
     }
 
     let expected_interval_hours = median(&mut gaps);
@@ -141,5 +153,41 @@ mod tests {
         let now = Utc::now();
         let history = vec![now; 6];
         assert_eq!(assess_staleness(now, &history, 6.0), None);
+    }
+
+    #[test]
+    fn high_frequency_feed_with_sub_half_hour_gaps_still_assesses() {
+        let now = "2026-09-25T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        let newest = now - chrono::Duration::hours(72);
+        let history = published_at_desc(newest, &[0.3, 0.3, 0.3, 0.3, 0.3]);
+
+        let assessment = assess_staleness(now, &history, 6.0).expect("5 samples should assess");
+
+        assert!(
+            (assessment.expected_interval_hours - 0.3).abs() < 0.001,
+            "expected_interval_hours should fall back to short gaps, got {}",
+            assessment.expected_interval_hours
+        );
+        assert!(assessment.is_stale);
+    }
+
+    #[test]
+    fn batch_posted_entries_use_longer_gaps_for_expected_interval() {
+        let now = "2026-09-25T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        let newest = now - chrono::Duration::hours(48);
+        let history = published_at_desc(newest, &[0.01, 0.01, 0.01, 0.01, 168.0]);
+
+        let assessment = assess_staleness(now, &history, 6.0).expect("5 samples should assess");
+
+        assert!(
+            (assessment.expected_interval_hours - 168.0).abs() < 0.001,
+            "expected_interval_hours should ignore sub-hour batch gaps, got {}",
+            assessment.expected_interval_hours
+        );
+        assert!(
+            assessment.ratio.is_finite() && assessment.ratio < 10.0,
+            "ratio should stay reasonable for a weekly feed, got {}",
+            assessment.ratio
+        );
     }
 }

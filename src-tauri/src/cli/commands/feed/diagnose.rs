@@ -59,6 +59,33 @@ struct MatchDbData {
 
 /// Excludes quarantined matches before deduping fetch targets: a quarantined
 /// account's feed must never trigger a network request.
+fn scope_last_success_at(scope: &Option<SyncStateView>) -> Option<chrono::DateTime<chrono::Utc>> {
+    scope
+        .as_ref()
+        .and_then(|state| state.last_success_at.as_deref())
+        .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+}
+
+fn latest_last_success_at(
+    candidates: impl IntoIterator<Item = Option<chrono::DateTime<chrono::Utc>>>,
+) -> Option<chrono::DateTime<chrono::Utc>> {
+    candidates.into_iter().flatten().max()
+}
+
+fn account_last_success_at_for_verdict(
+    data: &MatchDbData,
+) -> Option<chrono::DateTime<chrono::Utc>> {
+    match data.account.kind {
+        ProviderKind::FreshRss => data.account_greader_all_last_success_at,
+        ProviderKind::Local => latest_last_success_at([
+            scope_last_success_at(&data.scheduler),
+            scope_last_success_at(&data.local_feed_scope),
+        ]),
+        ProviderKind::Quarantined => None,
+    }
+}
+
 fn urls_needing_fetch(matches: &[(ProviderKind, String)]) -> HashSet<String> {
     matches
         .iter()
@@ -206,7 +233,7 @@ impl CliCommand for FeedDiagnoseCommand {
                 source_newest,
                 source_entry_dates,
                 app_newest_published_at: data.app_newest_published_at,
-                account_last_success_at: data.account_greader_all_last_success_at,
+                account_last_success_at: account_last_success_at_for_verdict(&data),
                 account_sync_interval: data.account_sync_interval,
                 feed_scope_synced: data.feed_scope_synced,
             });

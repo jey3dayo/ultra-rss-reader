@@ -1908,7 +1908,7 @@ async fn pull_entries_includes_ot_when_since_cursor_is_present() {
 }
 
 #[tokio::test]
-async fn pull_entries_uses_oldest_timestamp_for_ot_cursor_fallback() {
+async fn pull_entries_advances_ot_past_the_newest_item_when_the_page_finishes() {
     let mut server = mockito::Server::new_async().await;
     server
         .mock("POST", "/api/greader.php/accounts/ClientLogin")
@@ -1963,7 +1963,7 @@ async fn pull_entries_uses_oldest_timestamp_for_ot_cursor_fallback() {
             .next_cursor
             .and_then(|cursor| cursor.since)
             .map(|timestamp| timestamp.timestamp_micros()),
-        Some(1_700_000_100_000_000)
+        Some(1_700_000_200_000_000)
     );
     stream_mock.assert_async().await;
 }
@@ -2023,7 +2023,7 @@ async fn pull_entries_keeps_equal_timestamp_reachable_when_ot_fallback_page_is_f
             .next_cursor
             .and_then(|cursor| cursor.since)
             .map(|timestamp| timestamp.timestamp_micros()),
-        Some(1_700_000_100_000_001)
+        Some(1_700_000_100_000_000)
     );
     stream_mock.assert_async().await;
 }
