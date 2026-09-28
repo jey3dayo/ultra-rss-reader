@@ -6,6 +6,7 @@ import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } f
 import type { ContentMode, LayoutMode } from "../lib/layout/layout-state.types";
 import { cn } from "../lib/utils";
 import { useUiStore } from "../stores/ui-store";
+import { AppLayoutLazyPaneFallback, type AppLayoutLazyPaneKind } from "./app-layout-lazy-pane-fallback";
 import type { ReaderPassiveLayoutPaneId } from "./reader/hooks/use-reader-passive-layout";
 import { ReaderPassiveLayoutProvider } from "./reader/reader-passive-layout";
 
@@ -58,11 +59,19 @@ const Sidebar = lazy(async () => {
   return { default: mod.Sidebar };
 });
 
-function LazyPaneContent({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<div aria-hidden="true" className="h-full min-h-0 min-w-0" />}>{children}</Suspense>;
+function LazyPaneContent({ pane, children }: { pane: AppLayoutLazyPaneKind; children: ReactNode }) {
+  return <Suspense fallback={<AppLayoutLazyPaneFallback pane={pane} />}>{children}</Suspense>;
 }
 
-function DeferredLazyPaneContent({ active, children }: { active: boolean; children: ReactNode }) {
+function DeferredLazyPaneContent({
+  pane,
+  active,
+  children,
+}: {
+  pane: AppLayoutLazyPaneKind;
+  active: boolean;
+  children: ReactNode;
+}) {
   const hasBeenActiveRef = useRef(active);
   const shouldRender = active || hasBeenActiveRef.current;
 
@@ -76,7 +85,7 @@ function DeferredLazyPaneContent({ active, children }: { active: boolean; childr
     return null;
   }
 
-  return <LazyPaneContent>{children}</LazyPaneContent>;
+  return <LazyPaneContent pane={pane}>{children}</LazyPaneContent>;
 }
 
 function HiddenPaneBoundary({
@@ -170,7 +179,7 @@ function SlidingPaneLayout({
     return (
       <div className="h-full overflow-hidden bg-background text-foreground">
         <main data-testid="main-stage" className="h-full">
-          <LazyPaneContent>
+          <LazyPaneContent pane="content">
             <ArticleView />
           </LazyPaneContent>
         </main>
@@ -201,7 +210,7 @@ function SlidingPaneLayout({
           }}
           hidden={!shouldShowAccountPane}
         >
-          <DeferredLazyPaneContent active={shouldShowAccountPane}>
+          <DeferredLazyPaneContent pane="account" active={shouldShowAccountPane}>
             <AccountPane />
           </DeferredLazyPaneContent>
         </HiddenPaneBoundary>
@@ -220,7 +229,7 @@ function SlidingPaneLayout({
               style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
               hidden={!showSidebarPane}
             >
-              <DeferredLazyPaneContent active={showSidebarPane}>
+              <DeferredLazyPaneContent pane="sidebar" active={showSidebarPane}>
                 <Sidebar />
               </DeferredLazyPaneContent>
             </HiddenPaneBoundary>
@@ -230,7 +239,7 @@ function SlidingPaneLayout({
               style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
               hidden={!showListPane}
             >
-              <DeferredLazyPaneContent active={showListPane}>
+              <DeferredLazyPaneContent pane="list" active={showListPane}>
                 <ArticleList />
               </DeferredLazyPaneContent>
             </HiddenPaneBoundary>
@@ -239,7 +248,7 @@ function SlidingPaneLayout({
               className={cn("h-full min-h-0 overflow-hidden", isMobile ? "w-full shrink-0" : "min-w-0 flex-1")}
               hidden={!showContentPane}
             >
-              <DeferredLazyPaneContent active={showContentPane}>
+              <DeferredLazyPaneContent pane="content" active={showContentPane}>
                 <ArticleView />
               </DeferredLazyPaneContent>
             </HiddenPaneBoundary>
@@ -336,7 +345,7 @@ function WideLayout({
               style={{ width: `${ACCOUNT_PANE_WIDTH_PX}px` }}
               hidden={!shouldShowAccountPane}
             >
-              <DeferredLazyPaneContent active={shouldShowAccountPane}>
+              <DeferredLazyPaneContent pane="account" active={shouldShowAccountPane}>
                 <AccountPane />
               </DeferredLazyPaneContent>
             </HiddenPaneBoundary>
@@ -361,7 +370,7 @@ function WideLayout({
               style={{ width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
               hidden={!shouldShowSidebar}
             >
-              <DeferredLazyPaneContent active={shouldShowSidebar}>
+              <DeferredLazyPaneContent pane="sidebar" active={shouldShowSidebar}>
                 <Sidebar />
               </DeferredLazyPaneContent>
             </HiddenPaneBoundary>
@@ -371,14 +380,14 @@ function WideLayout({
       <main data-testid="main-stage" className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
         {panes.includes("list") && (
           <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}>
-            <LazyPaneContent>
+            <LazyPaneContent pane="list">
               <ArticleList />
             </LazyPaneContent>
           </div>
         )}
         {panes.includes("content") && (
           <div className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-            <LazyPaneContent>
+            <LazyPaneContent pane="content">
               <ArticleView />
             </LazyPaneContent>
           </div>
@@ -386,7 +395,7 @@ function WideLayout({
       </main>
       {!panes.includes("list") && !panes.includes("content") && (
         <div className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-          <LazyPaneContent>
+          <LazyPaneContent pane="content">
             <ArticleView />
           </LazyPaneContent>
         </div>
