@@ -30,6 +30,22 @@ export const ALLOWED_SENTRY_INTEGRATIONS = [
   "Dedupe",
 ] as const;
 
+// Sentry v11 `dataCollection` equivalent of v10 `sendDefaultPii: false` (see SDK MIGRATION.md).
+export const SENTRY_RESTRICTIVE_DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: {
+    request: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+    response: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+  },
+  httpBodies: [],
+  urlQueryParams: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+  genAI: { inputs: false, outputs: false },
+  databaseQueryData: false,
+  queues: false,
+  graphQL: { document: false, variables: false },
+};
+
 export type MonitoringInitOptions = {
   dsn?: string;
   isDev?: boolean;
@@ -90,7 +106,7 @@ export function initMonitoring({
     Sentry.init({
       dsn,
       environment: mode,
-      sendDefaultPii: false,
+      dataCollection: SENTRY_RESTRICTIVE_DATA_COLLECTION,
       // Allowlist (not an exclude list) of default Sentry integrations, per the
       // remote telemetry privacy contract in docs/feed-content-privacy.md.
       integrations: (defaults) => {
