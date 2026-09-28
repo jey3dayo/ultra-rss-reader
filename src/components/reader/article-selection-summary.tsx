@@ -178,7 +178,11 @@ function SummaryEmptyState({
             )}
             style={{
               ...SUMMARY_MOTION_STYLE,
-              ...(passiveCard.enabled ? { marginTop: passiveCard.offsetPx } : undefined),
+              ...(passiveCard.enabled
+                ? passiveCard.isMeasured
+                  ? { marginTop: passiveCard.offsetPx }
+                  : { visibility: "hidden" }
+                : undefined),
             }}
           >
             <div className="w-full @container">

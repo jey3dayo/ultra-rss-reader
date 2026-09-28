@@ -52,8 +52,10 @@ export function useReaderPassiveLayoutBodyRef(paneId: ReaderPassiveLayoutPaneId)
 
 /**
  * Registers a pane's passive card under the given content identity and returns its computed
- * mode/offset. Outside a provider, while disabled, or before the first measurement, resolves to
- * a safe top-anchored fallback state instead of hiding the card.
+ * mode/offset. Outside a provider or while disabled, resolves to the fallback state without
+ * applying a measured margin. While enabled and waiting for the first measurement, callers
+ * should keep the card hidden (for example via `visibility: hidden`) instead of committing
+ * `offsetPx: 0` as `marginTop`.
  *
  * See `useReaderPassiveLayoutBodyRef` above for why `cardRef` depends on `enabled`/`registerCard`
  * individually rather than the whole context object.
@@ -61,7 +63,10 @@ export function useReaderPassiveLayoutBodyRef(paneId: ReaderPassiveLayoutPaneId)
 export function useReaderPassiveLayoutCard(
   paneId: ReaderPassiveLayoutPaneId,
   identityKey: string,
-): { cardRef: (element: HTMLElement | null) => void; enabled: boolean } & ReaderPassiveLayoutCardState {
+): {
+  cardRef: (element: HTMLElement | null) => void;
+  enabled: boolean;
+} & ReaderPassiveLayoutCardState {
   const context = useOptionalReaderPassiveLayoutContext();
   const enabled = context?.enabled ?? false;
   const registerCard = context?.registerCard;
@@ -81,6 +86,7 @@ export function useReaderPassiveLayoutCard(
     enabled,
     mode: state?.mode ?? READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE.mode,
     offsetPx: state?.offsetPx ?? READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE.offsetPx,
+    isMeasured: state?.isMeasured ?? READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE.isMeasured,
   };
 }
 

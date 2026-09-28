@@ -71,7 +71,10 @@ describe("useReaderPassiveLayout", () => {
       rafCallback?.(0);
     });
 
-    expect(result.current.getCardState("list")).toEqual(READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE);
+    expect(result.current.getCardState("list")).toEqual({
+      ...READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE,
+      isMeasured: true,
+    });
   });
 
   it("anchors a card in normal mode once geometry and ResizeObserver are both available", () => {
@@ -97,7 +100,7 @@ describe("useReaderPassiveLayout", () => {
       rafCallback?.(0);
     });
 
-    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250 });
+    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250, isMeasured: true });
   });
 
   it("falls back a single pane's card when it alone does not fit under the shared anchor", () => {
@@ -129,7 +132,7 @@ describe("useReaderPassiveLayout", () => {
       rafCallback?.(0);
     });
 
-    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250 });
+    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250, isMeasured: true });
     expect(result.current.getCardState("content").mode).toBe("fallback");
     expect(result.current.getCardState("content").offsetPx).toBe(24);
   });
@@ -158,7 +161,7 @@ describe("useReaderPassiveLayout", () => {
     });
 
     // H = 790, Y = 10 + clamp(24, 197.5, 766) = 207.5; offsetPx = Y - bodyTop = 207.5 - 10 = 197.5
-    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 197.5 });
+    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 197.5, isMeasured: true });
   });
 
   it("un-registers a body/card cleanly and re-measures", () => {
@@ -363,7 +366,7 @@ describe("useReaderPassiveLayout", () => {
       rafCallback?.(0);
     });
 
-    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250 });
+    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250, isMeasured: true });
   });
 
   it("survives a StrictMode-style setup->cleanup->setup: no leaked observer, no throw from the stale frame", () => {
@@ -419,6 +422,6 @@ describe("useReaderPassiveLayout", () => {
       postSetupCallback?.(0);
     });
 
-    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250 });
+    expect(result.current.getCardState("list")).toEqual({ mode: "normal", offsetPx: 250, isMeasured: true });
   });
 });
