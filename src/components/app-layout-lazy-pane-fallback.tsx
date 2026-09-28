@@ -44,12 +44,13 @@ function ArticleViewShellSkeleton({ label }: { label: string }) {
     >
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="space-y-2 border-b border-border px-6 py-4">
-        <Skeleton className="h-5 max-w-md bg-surface-4/70" />
-        <Skeleton className="h-3 max-w-xs bg-surface-4/55" />
+        <Skeleton aria-hidden="true" className="h-5 max-w-md bg-surface-4/70" />
+        <Skeleton aria-hidden="true" className="h-3 max-w-xs bg-surface-4/55" />
       </div>
       <div aria-hidden="true" className="min-h-0 flex-1 space-y-3 overflow-hidden px-6 py-5">
-        {ARTICLE_VIEW_BODY_LINE_WIDTH_CLASS_NAMES.map((widthClassName) => (
-          <Skeleton key={widthClassName} className={`h-3 bg-surface-4/55 ${widthClassName}`} />
+        {ARTICLE_VIEW_BODY_LINE_WIDTH_CLASS_NAMES.map((widthClassName, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder lines with no stable identity
+          <Skeleton key={index} aria-hidden="true" className={`h-3 bg-surface-4/55 ${widthClassName}`} />
         ))}
       </div>
     </div>
@@ -66,9 +67,9 @@ function SidebarShellSkeleton({ label }: { label: string }) {
     >
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="flex items-center gap-2 border-b border-border px-3 py-3">
-        <Skeleton className="h-8 min-w-0 flex-1 rounded-md bg-surface-4/55" />
-        <Skeleton className="size-8 shrink-0 rounded-md bg-surface-4/70" />
-        <Skeleton className="size-8 shrink-0 rounded-md bg-surface-4/70" />
+        <Skeleton aria-hidden="true" className="h-8 min-w-0 flex-1 rounded-md bg-surface-4/55" />
+        <Skeleton aria-hidden="true" className="size-8 shrink-0 rounded-md bg-surface-4/70" />
+        <Skeleton aria-hidden="true" className="size-8 shrink-0 rounded-md bg-surface-4/70" />
       </div>
       <div aria-hidden="true" className="min-h-0 flex-1 overflow-hidden p-2">
         <SidebarFeedTreeSkeletonRows />

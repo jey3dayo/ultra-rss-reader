@@ -1,31 +1,31 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { AppLayoutLazyPaneFallback } from "@/components/app-layout-lazy-pane-fallback";
+import { AppLayoutLazyPaneFallback, type AppLayoutLazyPaneKind } from "@/components/app-layout-lazy-pane-fallback";
+
+const PANE_SHELL_TEST_IDS: ReadonlyArray<[AppLayoutLazyPaneKind, string]> = [
+  ["sidebar", "app-layout-sidebar-shell-skeleton"],
+  ["list", "article-list-skeleton"],
+  ["content", "app-layout-article-view-shell-skeleton"],
+  ["account", "app-layout-account-pane-shell-skeleton"],
+];
 
 describe("AppLayoutLazyPaneFallback", () => {
-  it("renders sidebar shell skeleton with a single loading status", () => {
+  it.each(PANE_SHELL_TEST_IDS)("renders the %s pane shell while lazy content is pending", (pane, testId) => {
+    render(<AppLayoutLazyPaneFallback pane={pane} />);
+
+    expect(screen.getByTestId(testId)).toBeInTheDocument();
+  });
+
+  it("exposes one loading status for the sidebar shell", () => {
     render(<AppLayoutLazyPaneFallback pane="sidebar" />);
 
     expect(screen.getByTestId("app-layout-sidebar-shell-skeleton")).toHaveAttribute("role", "status");
     expect(screen.getByText("Loading…")).toHaveClass("sr-only");
   });
 
-  it("renders article list skeleton for the list pane", () => {
-    render(<AppLayoutLazyPaneFallback pane="list" />);
-
-    expect(screen.getByTestId("article-list-skeleton")).toBeInTheDocument();
-  });
-
-  it("renders article view shell skeleton for the content pane", () => {
-    render(<AppLayoutLazyPaneFallback pane="content" />);
-
-    expect(screen.getByTestId("app-layout-article-view-shell-skeleton")).toBeInTheDocument();
-  });
-
-  it("renders account pane shell skeleton with accounts heading", () => {
+  it("shows the account pane heading from sidebar copy", () => {
     render(<AppLayoutLazyPaneFallback pane="account" />);
 
-    expect(screen.getByTestId("app-layout-account-pane-shell-skeleton")).toBeInTheDocument();
     expect(screen.getByText("Accounts")).toBeInTheDocument();
   });
 });
