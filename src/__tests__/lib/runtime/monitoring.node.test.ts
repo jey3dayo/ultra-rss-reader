@@ -14,6 +14,7 @@ import {
   DEFAULT_SENTRY_DSN,
   initMonitoring,
   SENTRY_INGEST_ORIGIN,
+  SENTRY_RESTRICTIVE_DATA_COLLECTION,
   shouldInitMonitoring,
 } from "@/lib/runtime/monitoring";
 
@@ -67,7 +68,7 @@ describe("initMonitoring", () => {
       expect.objectContaining({
         dsn: `${SENTRY_INGEST_ORIGIN}/1`,
         environment: "production",
-        dataCollection: expect.objectContaining({ userInfo: false, cookies: false }),
+        dataCollection: SENTRY_RESTRICTIVE_DATA_COLLECTION,
         integrations: expect.any(Function),
       }),
     );
