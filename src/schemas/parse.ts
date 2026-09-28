@@ -51,14 +51,14 @@ export const JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS = {
   },
 } as const;
 
-/**
- * Throwing schema boundary. Invalid values surface as the schema library error.
- * Use only where the callsite immediately converts the throw into Result/reject or intentionally fails a test.
- */
 export function isSchemaParseError(error: unknown): error is SchemaParseError {
   return isValiError(error);
 }
 
+/**
+ * Throwing schema boundary. Invalid values surface as the schema library error.
+ * Use only where the callsite immediately converts the throw into Result/reject or intentionally fails a test.
+ */
 export function parseWithSchema<TSchema extends RuntimeSchema>(schema: TSchema, value: unknown): SchemaOutput<TSchema> {
   return parse(schema, value);
 }

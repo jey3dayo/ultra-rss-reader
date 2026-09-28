@@ -73,7 +73,7 @@ function tryWriteSidebarExpandedFoldersStorage(
   }
 }
 
-function normalizeSidebarExpandedFoldersStorage(raw: string): SidebarExpandedFoldersStorage | null {
+function repairSidebarExpandedFoldersStorage(raw: string): SidebarExpandedFoldersStorage | null {
   if (raw.length > MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH) {
     tryRemoveSidebarExpandedFoldersStorage("remove-oversized");
     return null;
@@ -131,7 +131,7 @@ function readStoredSidebarExpandedFolders(): SidebarExpandedFoldersStorage {
       return normalizeStoredSidebarExpandedFolders({});
     }
 
-    return normalizeSidebarExpandedFoldersStorage(raw) ?? normalizeStoredSidebarExpandedFolders({});
+    return repairSidebarExpandedFoldersStorage(raw) ?? normalizeStoredSidebarExpandedFolders({});
   } catch (error) {
     logSidebarExpandedFoldersStorageFailure("read", error);
     return normalizeStoredSidebarExpandedFolders({});
@@ -211,7 +211,7 @@ function pruneStoredSidebarExpandedFolders(
   return normalizeStoredSidebarExpandedFolders(parse(StoredSidebarExpandedFoldersSchema, accounts));
 }
 
-function getStoredSidebarExpandedFolders(
+function readAndRepairStoredSidebarExpandedFolders(
   accountId: string,
   folderList: StartupFolderExpansionFolder[],
 ): SidebarExpandedFoldersStorage {
@@ -341,7 +341,8 @@ export function useSidebarStartupFolderExpansion({
       startupFolderExpansion,
       feedList,
       folderList,
-      storedFolderIds: getStoredSidebarExpandedFolders(selectedAccountId, folderList).accounts[selectedAccountId] ?? [],
+      storedFolderIds:
+        readAndRepairStoredSidebarExpandedFolders(selectedAccountId, folderList).accounts[selectedAccountId] ?? [],
     });
 
     // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (external store convergent correction), docs/react-doctor-warning-classification-300.md:219

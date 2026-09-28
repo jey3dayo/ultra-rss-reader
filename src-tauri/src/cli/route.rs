@@ -65,9 +65,7 @@ pub(crate) enum NetworkAccess {
     Disabled,
 }
 
-/// The DB-access route a dispatched command receives. Phase 2 adds
-/// `Headless` (direct DB access under a process lock while the app is not
-/// running) and `ViaApp` (routed through the app's control endpoint).
+/// The DB-access route a dispatched command receives.
 pub(crate) enum Route {
     None,
     ReadOnly(ReadOnlyDb),
