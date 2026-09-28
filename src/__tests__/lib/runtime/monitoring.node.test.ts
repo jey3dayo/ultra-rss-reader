@@ -67,7 +67,7 @@ describe("initMonitoring", () => {
       expect.objectContaining({
         dsn: `${SENTRY_INGEST_ORIGIN}/1`,
         environment: "production",
-        sendDefaultPii: false,
+        dataCollection: expect.objectContaining({ userInfo: false, cookies: false }),
         integrations: expect.any(Function),
       }),
     );

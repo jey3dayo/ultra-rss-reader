@@ -253,7 +253,7 @@ Decision: crash and error reporting may be sent to Sentry. This supersedes the e
 Scope of what may leave the device:
 
 - exception type, message, and stack trace, plus the release environment
-- nothing else by default: `sendDefaultPii` is disabled, and `Sentry.init` is given an explicit allowlist of default integrations (`ALLOWED_SENTRY_INTEGRATIONS`) instead of an exclude list, so only the minimal set needed for error capture is kept: `InboundFilters`, `FunctionToString`, `BrowserApiErrors`, `GlobalHandlers`, `LinkedErrors`, `Dedupe`
+- nothing else by default: Sentry v11 `dataCollection` is set to the restrictive profile (`SENTRY_RESTRICTIVE_DATA_COLLECTION`, equivalent to v10 `sendDefaultPii: false`), and `Sentry.init` is given an explicit allowlist of default integrations (`ALLOWED_SENTRY_INTEGRATIONS`) instead of an exclude list, so only the minimal set needed for error capture is kept: `InboundFilters`, `FunctionToString`, `BrowserApiErrors`, `GlobalHandlers`, `LinkedErrors`, `Dedupe`
 
 The allowlist is a hard requirement, not a default: it also drops `HttpContext` (URL, Referer, user agent), `CultureContext` (locale, timezone), and `BrowserSession` (session envelopes sent even without an exception), in addition to `Breadcrumbs` (DOM clicks, console arguments, `fetch`/XHR URLs, history navigation). This app's `console.error` calls carry raw errors that can contain feed, article, and server URLs, which the rest of this document prohibits sending remotely. Any future opt-in of an excluded integration needs a redaction allowlist and its own tests before it lands.
 
