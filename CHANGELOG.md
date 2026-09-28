@@ -4,14 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.64.2] - 2026-09-28
+
 ### Bug Fixes
 
 - 起動時にメインウィンドウの位置・サイズを復元する前に表示され、一瞬ちらついて見える問題を修正した。(#344)
+- リーダーのパッシブレイアウトで、計測完了前に空状態カードが上から落ちて見える問題を修正した。計測が終わるまで非表示にし、確定した位置だけを見せる。(#348)
+- アプリ起動直後にサイドバーなどのシェル幅が transition で動いて見える問題を修正した。設定読込完了までリサイズ surface の transition を抑止する。(#350)
+- `urr` の `feed diagnose` のヒント、`feed stale` の判定、同期カーソル更新、GReader 向けの診断出力を直した。
 
 ### Maintenance
 
 - Biome 2.5.14 に合わせて lint 設定と motion のセレクタ順を整え、購読一覧のテストで桁区切り付きの件数表記を許容した。(#345)
 - フロントエンドの依存とツールチェーンを更新した。`@sentry/react` v11 の `dataCollection` API へ移行し、Tauri 2.12 と Windows 向け WebView2 の依存整合を含む。(#346)
+- jev-lint で指摘された紛らわしい名前と doc コメントを整理した。(#349)
 
 ### Documentation
 
