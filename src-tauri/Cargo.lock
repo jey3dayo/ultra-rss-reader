@@ -2205,7 +2205,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -6224,7 +6224,7 @@ dependencies = [
  "tracing-subscriber",
  "unicode-normalization",
  "uuid",
- "webview2-com 0.38.2",
+ "webview2-com 0.39.1",
  "windows 0.61.3",
 ]
 
