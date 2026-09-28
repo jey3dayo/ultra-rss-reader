@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -52,6 +52,7 @@
       "*.json",
       "!!tests/fixtures/sanitizer",
       "!!node_modules",
+      "!!.pnpm-store",
       "!!dist",
       "!!src-tauri/target",
       "!!.worktrees",

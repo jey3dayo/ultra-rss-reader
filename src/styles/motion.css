@@ -795,6 +795,14 @@ html.vertical-wipe-transition::view-transition-new(root) {
     transform: translateY(0);
   }
 
+  .motion-state-toggle [data-state-toggle-icon="true"],
+  .motion-article-selection-marker,
+  .motion-article-selection-marker::after,
+  .motion-article-state-slot,
+  .motion-article-state-slot[data-article-state-slot="reserved"]:empty {
+    transform: none;
+  }
+
   .motion-settings-modal[data-open],
   .motion-settings-modal[data-starting-style],
   .motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon="true"],
@@ -809,14 +817,6 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-settings-modal[data-starting-style] {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
-  }
-
-  .motion-state-toggle [data-state-toggle-icon="true"],
-  .motion-article-selection-marker,
-  .motion-article-selection-marker::after,
-  .motion-article-state-slot,
-  .motion-article-state-slot[data-article-state-slot="reserved"]:empty {
-    transform: none;
   }
 
   .motion-article-state-slot,
