@@ -94,7 +94,14 @@ function TestPane({
       <div
         data-testid={`${paneId}-card`}
         data-passive-layout-mode={passiveCard.mode}
-        style={{ marginTop: passiveCard.offsetPx }}
+        data-passive-layout-measured={String(passiveCard.isMeasured)}
+        style={
+          passiveCard.enabled
+            ? passiveCard.isMeasured
+              ? { marginTop: passiveCard.offsetPx }
+              : { visibility: "hidden" }
+            : undefined
+        }
         ref={cardElementRef}
       />
     </div>
@@ -207,5 +214,43 @@ describe("useReaderPassiveLayoutBodyRef / useReaderPassiveLayoutCard (context in
     expect(contentCard.getAttribute("data-passive-layout-mode")).toBe("normal");
     expect(listCard.style.marginTop).toBe("250px");
     expect(contentCard.style.marginTop).toBe("250px");
+  });
+
+  it("does not treat the pre-measurement fallback offset as a committed marginTop (avoids 0px then anchor jump)", () => {
+    mockLayoutObservers();
+    const rafCallbacks: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+
+    const listAttach = { body: 0, card: 0 };
+
+    const { getByTestId } = render(
+      <ReaderPassiveLayoutProvider layoutMode="wide" visiblePanes={["list"]}>
+        <TestPane
+          paneId="list"
+          identityKey="list-empty"
+          bodyTop={0}
+          bodyBottom={1000}
+          cardHeight={100}
+          attachCounter={listAttach}
+        />
+      </ReaderPassiveLayoutProvider>,
+    );
+
+    const listCard = getByTestId("list-card");
+
+    expect(listCard.getAttribute("data-passive-layout-measured")).toBe("false");
+    expect(listCard.style.marginTop).toBe("");
+    expect(listCard.style.visibility).toBe("hidden");
+
+    act(() => {
+      rafCallbacks[rafCallbacks.length - 1]?.(0);
+    });
+
+    expect(listCard.getAttribute("data-passive-layout-measured")).toBe("true");
+    expect(listCard.style.marginTop).toBe("250px");
+    expect(listCard.style.visibility).not.toBe("hidden");
   });
 });

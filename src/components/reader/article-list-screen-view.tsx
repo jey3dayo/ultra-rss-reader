@@ -130,7 +130,13 @@ export function ArticleListScreenView({
                 readerPassiveCardPaddingClassName,
                 !passiveCard.enabled && readerListPassiveCardOffsetClassName,
               )}
-              style={passiveCard.enabled ? { marginTop: passiveCard.offsetPx } : undefined}
+              style={
+                passiveCard.enabled
+                  ? passiveCard.isMeasured
+                    ? { marginTop: passiveCard.offsetPx }
+                    : { visibility: "hidden" }
+                  : undefined
+              }
               data-testid="article-list-empty-state"
               data-passive-layout-mode={passiveCard.enabled ? passiveCard.mode : undefined}
             >

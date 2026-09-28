@@ -61,7 +61,10 @@ export function useReaderPassiveLayoutBodyRef(paneId: ReaderPassiveLayoutPaneId)
 export function useReaderPassiveLayoutCard(
   paneId: ReaderPassiveLayoutPaneId,
   identityKey: string,
-): { cardRef: (element: HTMLElement | null) => void; enabled: boolean } & ReaderPassiveLayoutCardState {
+): {
+  cardRef: (element: HTMLElement | null) => void;
+  enabled: boolean;
+} & ReaderPassiveLayoutCardState {
   const context = useOptionalReaderPassiveLayoutContext();
   const enabled = context?.enabled ?? false;
   const registerCard = context?.registerCard;
@@ -81,6 +84,7 @@ export function useReaderPassiveLayoutCard(
     enabled,
     mode: state?.mode ?? READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE.mode,
     offsetPx: state?.offsetPx ?? READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE.offsetPx,
+    isMeasured: state?.isMeasured ?? READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE.isMeasured,
   };
 }
 

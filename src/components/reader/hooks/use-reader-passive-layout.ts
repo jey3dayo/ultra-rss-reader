@@ -16,11 +16,13 @@ export type ReaderPassiveLayoutPaneId = "list" | "content";
 export type ReaderPassiveLayoutCardState = {
   mode: ReaderPassiveLayoutMode;
   offsetPx: number;
+  isMeasured: boolean;
 };
 
 export const READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE: ReaderPassiveLayoutCardState = {
   mode: "fallback",
   offsetPx: 0,
+  isMeasured: false,
 };
 
 type BodyEntry = { element: HTMLElement };
@@ -115,7 +117,7 @@ export function useReaderPassiveLayout({
 
       if (!bodyBounds || !isValidViewportBounds(bodyBounds) || !canEvaluateFit || normalAnchorY === null) {
         modesRef.current.set(paneId, "fallback");
-        nextStates[paneId] = READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE;
+        nextStates[paneId] = { ...READER_PASSIVE_LAYOUT_FALLBACK_CARD_STATE, isMeasured: true };
         continue;
       }
 
@@ -135,7 +137,7 @@ export function useReaderPassiveLayout({
         bodyHeight: bodyBounds.bottom - bodyBounds.top,
       });
 
-      nextStates[paneId] = { mode: nextMode, offsetPx };
+      nextStates[paneId] = { mode: nextMode, offsetPx, isMeasured: true };
     }
 
     setCardStates((previous) => {
@@ -147,7 +149,11 @@ export function useReaderPassiveLayout({
       for (const paneId of paneIds) {
         const before = previous[paneId];
         const after = nextStates[paneId];
-        if (before?.mode !== after?.mode || before?.offsetPx !== after?.offsetPx) {
+        if (
+          before?.mode !== after?.mode ||
+          before?.offsetPx !== after?.offsetPx ||
+          before?.isMeasured !== after?.isMeasured
+        ) {
           changed = true;
           break;
         }
