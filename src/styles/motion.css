@@ -564,12 +564,6 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transition-duration: 0ms;
 }
 
-:root[data-app-booting="true"] .motion-content-swap[data-motion-phase="entering"] {
-  animation: none;
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .motion-popup-overlay {
   transition: opacity var(--motion-duration-popup-enter) var(--motion-ease-standard);
 }
