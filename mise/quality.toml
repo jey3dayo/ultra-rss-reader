@@ -30,3 +30,7 @@ run = "node ./scripts/check-react-doctor-pin-consistency.ts"
 ["report:similarity"]
 description = "Similarity scan report with TODO false-positive baseline"
 run = "node ./scripts/similarity-report.ts"
+
+["report:jev"]
+description = "jev-lint LLM review of the diff against main (needs TYPESAFE_API_KEY); advisory, human triage required"
+run = "pnpm dlx jev-lint@0.7.0 review --base main"
