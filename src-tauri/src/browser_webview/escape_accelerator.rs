@@ -180,7 +180,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                     AddScriptToExecuteOnDocumentCreatedCompletedHandler::create(Box::new(|_, _| Ok(())));
                 let script = HSTRING::from(shortcut_script);
                 webview
-                    .AddScriptToExecuteOnDocumentCreated(script.as_ref().as_pcwstr(), &handler)
+                    .AddScriptToExecuteOnDocumentCreated(&script, &handler)
                     .map_err(|error| error.to_string())?;
 
                 let app_handle = app_handle.clone();
