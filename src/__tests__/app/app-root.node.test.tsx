@@ -7,6 +7,7 @@ import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-int
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 import type { AccountDto, AppError } from "@/api/tauri-commands";
+import { MOTION_DATA_APP_BOOTING_ATTRIBUTE } from "@/constants";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "@/constants/ui-runtime";
 
@@ -132,6 +133,7 @@ describe("App", () => {
     resetDevIntentState(devIntentState);
     uiState.selectedAccountId = null;
     uiState.settingsOpen = false;
+    document.documentElement.setAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE, "true");
   });
 
   it("shows Agentation while settings is open by default", async () => {
@@ -622,5 +624,85 @@ describe("App", () => {
     });
     dateNowSpy.mockRestore();
     consoleWarnSpy.mockRestore();
+  });
+
+  describe("boot motion suppression", () => {
+    function mockAnimationFrames() {
+      const callbacks: FrameRequestCallback[] = [];
+      vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+        callbacks.push(callback);
+        return callbacks.length;
+      });
+      vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+
+      const flushFrames = (count: number) => {
+        for (let index = 0; index < count; index += 1) {
+          const callback = callbacks.shift();
+          if (callback) {
+            act(() => {
+              callback(0);
+            });
+          }
+        }
+      };
+
+      const flushUntilBootCleared = () => {
+        let safety = 0;
+        while (document.documentElement.hasAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE) && safety < 12) {
+          if (callbacks.length === 0) {
+            break;
+          }
+          flushFrames(1);
+          safety += 1;
+        }
+      };
+
+      return { callbacks, flushFrames, flushUntilBootCleared };
+    }
+
+    it("keeps data-app-booting while preferences are still loading", () => {
+      preferencesState.loaded = false;
+
+      render(<App />);
+
+      expect(document.documentElement.getAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE)).toBe("true");
+    });
+
+    it("removes data-app-booting only after preferencesLoaded and two animation frames", () => {
+      const { flushFrames, flushUntilBootCleared } = mockAnimationFrames();
+
+      render(<App />);
+
+      expect(document.documentElement.getAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE)).toBe("true");
+
+      flushFrames(1);
+      expect(document.documentElement.getAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE)).toBe("true");
+
+      flushUntilBootCleared();
+      expect(document.documentElement.hasAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE)).toBe(false);
+    });
+
+    it("does not clear boot motion before preferences finish loading even after animation frames", () => {
+      preferencesState.loaded = false;
+      const { flushFrames } = mockAnimationFrames();
+
+      render(<App />);
+      flushFrames(2);
+
+      expect(document.documentElement.getAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE)).toBe("true");
+    });
+
+    it("does not re-apply data-app-booting after it was cleared", () => {
+      const { flushUntilBootCleared } = mockAnimationFrames();
+
+      const { rerender } = render(<App />);
+      flushUntilBootCleared();
+      expect(document.documentElement.hasAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE)).toBe(false);
+
+      preferencesState.loaded = false;
+      rerender(<App />);
+
+      expect(document.documentElement.hasAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE)).toBe(false);
+    });
   });
 });

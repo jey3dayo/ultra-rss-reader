@@ -560,6 +560,10 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transition-timing-function: var(--motion-ease-emphasized);
 }
 
+:root[data-app-booting="true"] .motion-resize-surface {
+  transition-duration: 0ms;
+}
+
 .motion-popup-overlay {
   transition: opacity var(--motion-duration-popup-enter) var(--motion-ease-standard);
 }

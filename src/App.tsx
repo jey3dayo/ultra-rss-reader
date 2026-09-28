@@ -1,7 +1,9 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
+import { MOTION_DATA_APP_BOOTING_ATTRIBUTE } from "@/constants";
 import { useDevIntent } from "@/dev/use-dev-intent";
 import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
+import { scheduleAnimationFrameWithTimeoutFallback } from "@/lib/dom/animation-frame";
 import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AgentationMount } from "./components/app/agentation-mount";
 import { AppShell } from "./components/app-shell";
@@ -31,6 +33,36 @@ function AppInner() {
   useEffect(() => {
     loadPreferences();
   }, [loadPreferences]);
+
+  const bootMotionSuppressedRef = useRef(false);
+
+  useEffect(() => {
+    if (!preferencesLoaded || bootMotionSuppressedRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    let cancelInner: (() => void) | undefined;
+
+    const cancelOuter = scheduleAnimationFrameWithTimeoutFallback(() => {
+      if (cancelled) {
+        return;
+      }
+      cancelInner = scheduleAnimationFrameWithTimeoutFallback(() => {
+        if (cancelled) {
+          return;
+        }
+        document.documentElement.removeAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE);
+        bootMotionSuppressedRef.current = true;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelOuter();
+      cancelInner?.();
+    };
+  }, [preferencesLoaded]);
 
   const startupSyncRequested = useRef(false);
 

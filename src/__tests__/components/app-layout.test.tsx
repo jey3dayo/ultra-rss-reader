@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/components/app-layout";
+import { MOTION_DATA_APP_BOOTING_ATTRIBUTE, MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { WORKSPACE_DETAIL_PANE_WIDTH } from "@/design-system";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -120,6 +121,35 @@ describe("AppLayout", () => {
     render(<AppLayout />);
 
     expect(screen.getByTestId("sliding-pane-tray")).toHaveClass("motion-reduce:transition-none");
+  });
+
+  it("applies boot resize suppression to wide layout shells while data-app-booting is set", () => {
+    document.documentElement.setAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE, "true");
+    const style = document.createElement("style");
+    style.setAttribute("data-testid", "boot-motion-fixture");
+    style.textContent = `:root[${MOTION_DATA_APP_BOOTING_ATTRIBUTE}="true"] .${MOTION_RESIZE_SURFACE_CLASS_NAME} { transition-duration: 0ms; }`;
+    document.head.append(style);
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "content",
+      sidebarOpen: true,
+      selectedAccountId: "acc-1",
+    });
+
+    render(<AppLayout />);
+
+    const sidebarShell = screen.getByTestId("wide-sidebar-shell");
+    const accountShell = screen.getByTestId("wide-account-pane-shell");
+
+    expect(sidebarShell).toHaveClass(MOTION_RESIZE_SURFACE_CLASS_NAME);
+    expect(accountShell).toHaveClass(MOTION_RESIZE_SURFACE_CLASS_NAME);
+    expect(getComputedStyle(sidebarShell).transitionDuration).toBe("0ms");
+    expect(getComputedStyle(accountShell).transitionDuration).toBe("0ms");
+
+    style.remove();
+    document.documentElement.removeAttribute(MOTION_DATA_APP_BOOTING_ATTRIBUTE);
   });
 
   it("uses the shared pane width constants for desktop widths", () => {
