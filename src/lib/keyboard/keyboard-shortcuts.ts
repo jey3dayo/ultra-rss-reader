@@ -438,7 +438,6 @@ export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMa
   return map;
 }
 
-/** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
 function isPrimaryModifierActive(platformKind: PlatformKind, e: ShortcutModifierEvent): boolean {
   return platformKind === "macos" ? e.metaKey : e.ctrlKey;
 }
@@ -456,6 +455,7 @@ function normalizeKeyToken(key: string, shiftKey: boolean): string {
   return key.length === 1 && shiftKey ? key.toUpperCase() : key;
 }
 
+/** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
 function normalizeKeyFromEvent(e: ShortcutKeyEvent): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");

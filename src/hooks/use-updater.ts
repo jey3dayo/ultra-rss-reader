@@ -214,7 +214,7 @@ function normalizeDownloadProgressPercent(percent: number | null): number | null
   return Math.min(100, Math.max(0, Math.round(percent)));
 }
 
-function readDownloadProgressPercent(payload: unknown): number | null | undefined {
+function trackDownloadProgressPercent(payload: unknown): number | null | undefined {
   const result = safeParse(UpdateDownloadProgressEventPayloadSchema, payload);
   if (!result.success) {
     return undefined;
@@ -249,7 +249,7 @@ function readDownloadProgressPercent(payload: unknown): number | null | undefine
   return percent;
 }
 
-function isCurrentDownloadReady(payload: unknown): boolean {
+function claimCurrentDownloadReady(payload: unknown): boolean {
   const result = safeParse(UpdateReadyEventPayloadSchema, payload);
   if (!result.success || !downloadInFlight) {
     return false;
@@ -490,7 +490,7 @@ export function useUpdater(): void {
               return;
             }
 
-            const percent = readDownloadProgressPercent(event.payload);
+            const percent = trackDownloadProgressPercent(event.payload);
             if (percent === undefined) {
               return;
             }
@@ -513,7 +513,7 @@ export function useUpdater(): void {
               return;
             }
 
-            if (!isCurrentDownloadReady(event.payload)) {
+            if (!claimCurrentDownloadReady(event.payload)) {
               return;
             }
             if (activeDownloadRequestId === null) {
