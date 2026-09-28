@@ -25,16 +25,24 @@ function SidebarFeedTreeSkeletonRow({
   );
 }
 
+export function SidebarFeedTreeSkeletonRows() {
+  return (
+    <div className="space-y-1">
+      <SidebarFeedTreeSkeletonRow countWidthClassName="w-7" />
+      <SidebarFeedTreeSkeletonRow inset countWidthClassName="w-6" />
+      <SidebarFeedTreeSkeletonRow inset countWidthClassName="w-9" />
+      <SidebarFeedTreeSkeletonRow countWidthClassName="w-8" />
+      <SidebarFeedTreeSkeletonRow inset countWidthClassName="w-5" />
+    </div>
+  );
+}
+
 export function SidebarFeedTreeSkeleton({ label }: SidebarFeedTreeSkeletonProps) {
   return (
     <div data-testid="sidebar-feed-tree-skeleton" role="status" aria-live="polite" className="p-2">
       <span className="sr-only">{label}</span>
-      <div aria-hidden="true" className="space-y-1">
-        <SidebarFeedTreeSkeletonRow countWidthClassName="w-7" />
-        <SidebarFeedTreeSkeletonRow inset countWidthClassName="w-6" />
-        <SidebarFeedTreeSkeletonRow inset countWidthClassName="w-9" />
-        <SidebarFeedTreeSkeletonRow countWidthClassName="w-8" />
-        <SidebarFeedTreeSkeletonRow inset countWidthClassName="w-5" />
+      <div aria-hidden="true">
+        <SidebarFeedTreeSkeletonRows />
       </div>
     </div>
   );
