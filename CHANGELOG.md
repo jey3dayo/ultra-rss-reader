@@ -4,6 +4,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- 起動時にメインウィンドウの位置・サイズを復元する前に表示され、一瞬ちらついて見える問題を修正した。(#344)
+
+### Maintenance
+
+- Biome 2.5.14 に合わせて lint 設定と motion のセレクタ順を整え、購読一覧のテストで桁区切り付きの件数表記を許容した。(#345)
+- フロントエンドの依存とツールチェーンを更新した。`@sentry/react` v11 の `dataCollection` API へ移行し、Tauri 2.12 と Windows 向け WebView2 の依存整合を含む。(#346)
+
+### Documentation
+
+- Sentry の制限付きデータ収集と `dataCollection` の説明を、v11 の挙動に合わせて更新した。(#346)
+
 ## [0.64.1] - 2026-09-25
 
 ### Bug Fixes
