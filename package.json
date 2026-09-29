@@ -28,6 +28,7 @@
     "hooks:install": "lefthook install",
     "report:release-debug-flags": "node ./scripts/release-debug-feature-flags-report.ts",
     "report:similarity": "node ./scripts/similarity-report.ts",
+    "report:jev": "pnpm dlx jev-lint@0.7.0 review --base origin/main",
     "test": "pnpm run test:node && pnpm run test:jsdom",
     "test:node": "pnpm exec vitest run --project node",
     "test:jsdom": "pnpm exec vitest run --project jsdom",

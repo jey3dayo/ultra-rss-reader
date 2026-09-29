@@ -98,6 +98,7 @@ mise run test:storybook:e2e # Storybook Playwright smoke tests
 mise run build:storybook    # Storybook static build check
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
+mise run report:jev   # jev-lint LLM review of the diff against origin/main (needs TYPESAFE_API_KEY; advisory, not a gate)
 mise run app:dev      # Launch the native app in repository dev mode
 mise run app:dev:native-keyring     # Launch the native app in dev mode with the OS keyring backend
 mise run app:install  # Build, locally re-sign, and install the current checkout; not published release verification
@@ -138,6 +139,7 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 | Native keyring integration                | Unit / integration tests around app logic only | Manual verification on each target OS                      |
 | Updater download / install                | Config and command-level checks only           | Manual verification on packaged builds per target OS       |
 | Code quality baseline reports             | Not part of default CI                         | `mise run report:knip` / `mise run report:similarity`      |
+| jev-lint diff review (LLM, advisory)      | Not part of default CI                         | `mise run report:jev` (needs `TYPESAFE_API_KEY`)           |
 
 > **Windows Rust scope:** Windows CI's `mise run test:rust` runs `cargo test --test integration_test` only. Full Rust library tests run in Linux CI and on macOS/Linux with `mise run check`.
 
