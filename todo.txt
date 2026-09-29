@@ -1,1 +1,3 @@
 (D) 2026-08-16 Store審査結果対応→sideload検証→手動公開(期限:2026-11-16 までに初回提出しないと名前予約が失効) +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/57 claude-resume:0d200da1-f571-4107-96c9-00ee7d101b5b @blocked @decision
+(C) 2026-09-28 macOS Reading List Rust 経路の private host 拒否: validate_public_http_url と frontend hasPrivateHttpHost の .local/単一ラベル差の方針決定待ち +security note:plans/improve/README.md @decision
+(D) 2026-09-28 アップデート失敗時フォールバックの手動検証 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/18 @manual
