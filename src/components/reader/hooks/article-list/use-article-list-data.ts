@@ -73,8 +73,7 @@ export function useArticleListData(params: UseArticleListDataParams): UseArticle
     sortUnread,
     groupBy,
   } = params;
-  // Source objects may be recreated for loading or paging updates without changing
-  // the list. Only the plan content and article/feed references invalidate filtering.
+  // Equivalent plans retain their identity so loading or paging updates do not invalidate filtering.
   const sourcePlanRef = useRef(sourcePlan);
   if (buildArticleListSourcePlanKey(sourcePlanRef.current) !== buildArticleListSourcePlanKey(sourcePlan)) {
     sourcePlanRef.current = sourcePlan;

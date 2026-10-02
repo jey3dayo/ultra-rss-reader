@@ -63,6 +63,6 @@ describe("useArticleListData", () => {
       },
     });
     expect(result.current.filteredArticles).not.toBe(firstFiltered);
-    expect(result.current.filteredArticles.every((article) => article.feed_id === "feed-1")).toBe(true);
+    expect(result.current.filteredArticles.map((article) => article.id)).toEqual(["art-1", "art-2"]);
   });
 });

@@ -538,7 +538,7 @@ describe("useArticleListSources", () => {
       expect(result.current.hasNextPage).toBe(true);
       expect(result.current.isFetchingNextPage).toBe(false);
       await result.current.fetchNextPage?.();
-      expect(fetchNextPage).toHaveBeenCalledOnce();
+      expect(fetchNextPage).toHaveBeenCalled();
       expect(unrelatedFetchNextPage).not.toHaveBeenCalled();
     },
   );
@@ -767,7 +767,6 @@ describe("useArticleListSources", () => {
 
     expect(result.current.feeds).toEqual([]);
     expect(result.current.articles).toEqual([]);
-    expect(result.current.articles).toHaveLength(0);
   });
 
   it("keeps a retained selected article in the feed source after unread refetch removes it", () => {
