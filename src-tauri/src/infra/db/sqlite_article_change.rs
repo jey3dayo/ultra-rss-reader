@@ -1,5 +1,3 @@
-//! Atomic user-initiated article changes and their remote pending mutations.
-
 use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::{Connection, OptionalExtension};
 
