@@ -98,9 +98,11 @@ describe("useSidebarControllerSections", () => {
     });
 
     result.current.accountSectionProps.onToggle();
-    result.current.contentSectionsProps.onFocusAccountList();
+    expect(focusAccountList).toHaveBeenCalled();
 
-    expect(focusAccountList).toHaveBeenCalledTimes(2);
+    focusAccountList.mockClear();
+    result.current.contentSectionsProps.onFocusAccountList();
+    expect(focusAccountList).toHaveBeenCalled();
     expect(result.current.accountSectionProps.title).toBe(sampleAccounts[0]?.name);
   });
 
