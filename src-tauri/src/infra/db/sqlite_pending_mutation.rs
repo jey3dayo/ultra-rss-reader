@@ -1,4 +1,5 @@
 use rusqlite::{params, Connection};
+use std::collections::{hash_map::Entry, HashMap};
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::ProviderKind;
@@ -68,12 +69,25 @@ fn delete_replaced_mutations(
 }
 
 fn validate_pending_mutation(conn: &Connection, mutation: &PendingMutation) -> DomainResult<()> {
-    if mutation.remote_entry_id.trim().is_empty() {
+    validate_remote_entry_id(&mutation.remote_entry_id)?;
+    let scope = pending_mutation_account_scope(conn, &mutation.account_id)?;
+    validate_pending_mutation_capabilities(mutation, &scope)
+}
+
+fn validate_remote_entry_id(remote_entry_id: &str) -> DomainResult<()> {
+    if remote_entry_id.trim().is_empty() {
         return Err(DomainError::Validation(
             "pending mutation remote_entry_id cannot be blank".to_string(),
         ));
     }
-    match pending_mutation_account_scope(conn, &mutation.account_id)? {
+    Ok(())
+}
+
+fn validate_pending_mutation_capabilities(
+    mutation: &PendingMutation,
+    scope: &PendingMutationAccountScope,
+) -> DomainResult<()> {
+    match scope {
         PendingMutationAccountScope::LocalOnly => {
             return Err(DomainError::Validation(
                 "pending mutations require a remote account".to_string(),
@@ -95,12 +109,24 @@ fn validate_pending_mutation(conn: &Connection, mutation: &PendingMutation) -> D
 
 /// Saves into the caller's transaction without starting or committing another one.
 /// The caller must roll back the transaction if this operation fails.
-pub(super) fn save_pending_mutation_in_transaction(
+pub(super) fn save_pending_mutations_in_transaction(
     tx: &rusqlite::Transaction<'_>,
-    mutation: &PendingMutation,
+    mutations: impl IntoIterator<Item = PendingMutation>,
 ) -> DomainResult<()> {
-    validate_pending_mutation(tx, mutation)?;
-    replace_pending_mutation(tx, mutation)
+    let mut account_scopes = HashMap::new();
+    for mutation in mutations {
+        validate_remote_entry_id(&mutation.remote_entry_id)?;
+        let scope = match account_scopes.entry(mutation.account_id.clone()) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => {
+                let scope = pending_mutation_account_scope(tx, entry.key())?;
+                entry.insert(scope)
+            }
+        };
+        validate_pending_mutation_capabilities(&mutation, scope)?;
+        replace_pending_mutation(tx, &mutation)?;
+    }
+    Ok(())
 }
 
 fn replace_pending_mutation(

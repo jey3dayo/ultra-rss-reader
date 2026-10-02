@@ -10,7 +10,7 @@ use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
 
 use super::sqlite_article::SqliteArticleRepository;
 use super::sqlite_feed::SqliteFeedRepository;
-use super::sqlite_pending_mutation::save_pending_mutation_in_transaction;
+use super::sqlite_pending_mutation::save_pending_mutations_in_transaction;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum OldUnreadScope {
@@ -240,23 +240,19 @@ fn queue_bulk_pending_mutations(
     rows: &[BulkArticleMutationRow],
     mutation_type: PendingMutationType,
 ) -> DomainResult<()> {
-    for row in rows {
-        if let Some(remote_entry_id) = &row.remote_entry_id {
-            if supports_remote_mutations(&row.account_kind, row.feed_remote_id.as_deref()) {
-                save_pending_mutation_in_transaction(
-                    conn,
-                    &PendingMutation {
-                        id: None,
-                        account_id: AccountId(row.account_id.clone()),
-                        mutation_type,
-                        remote_entry_id: remote_entry_id.clone(),
-                        created_at: Utc::now().to_rfc3339(),
-                    },
-                )?;
+    let mutations = rows.iter().filter_map(|row| {
+        let remote_entry_id = row.remote_entry_id.as_ref()?;
+        supports_remote_mutations(&row.account_kind, row.feed_remote_id.as_deref()).then(|| {
+            PendingMutation {
+                id: None,
+                account_id: AccountId(row.account_id.clone()),
+                mutation_type,
+                remote_entry_id: remote_entry_id.clone(),
+                created_at: Utc::now().to_rfc3339(),
             }
-        }
-    }
-    Ok(())
+        })
+    });
+    save_pending_mutations_in_transaction(conn, mutations)
 }
 
 fn collect_account_unread_rows(
@@ -451,15 +447,15 @@ fn maybe_queue_mutation_in_current_transaction(
 
     if let Some((remote_entry_id, account_kind, account_id, feed_remote_id)) = row {
         if supports_remote_mutations(&account_kind, feed_remote_id.as_deref()) {
-            save_pending_mutation_in_transaction(
+            save_pending_mutations_in_transaction(
                 conn,
-                &PendingMutation {
+                [PendingMutation {
                     id: None,
                     account_id: AccountId(account_id),
                     mutation_type,
                     remote_entry_id,
                     created_at: chrono::Utc::now().to_rfc3339(),
-                },
+                }],
             )?;
         }
     }
