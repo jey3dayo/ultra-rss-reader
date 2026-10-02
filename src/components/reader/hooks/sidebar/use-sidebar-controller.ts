@@ -4,11 +4,11 @@ import { useSidebarAccountSelection } from "@/components/reader/hooks/sidebar/us
 import { useSidebarControllerActions } from "@/components/reader/hooks/sidebar/use-sidebar-controller-actions";
 import { useSidebarControllerSections } from "@/components/reader/hooks/sidebar/use-sidebar-controller-sections";
 import { useSidebarRuntime } from "@/components/reader/hooks/sidebar/use-sidebar-runtime";
-import { useSidebarViewProps } from "@/components/reader/hooks/sidebar/use-sidebar-view-props";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { focusSelectedAccountPaneTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
+import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { focusAccountItem } from "../../account-switcher-focus";
 import type { SidebarControllerResult } from "../../sidebar.types";
@@ -278,7 +278,6 @@ export function useSidebarController(): SidebarControllerResult {
     accountDropdownRef,
     accountTriggerRef,
     accountItemRefs,
-    toggleAccountList,
     handleSelectAccount,
     closeAccountList,
     focusAccountList,
@@ -310,11 +309,14 @@ export function useSidebarController(): SidebarControllerResult {
     selectTagFromCurrentContext,
   });
 
-  return useSidebarViewProps({
-    opaqueSidebars,
+  return {
+    sidebarClassName: cn(
+      "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",
+      opaqueSidebars && "bg-opacity-100",
+    ),
     headerProps,
     accountSectionProps,
     smartViewsProps,
     contentSectionsProps,
-  });
+  };
 }

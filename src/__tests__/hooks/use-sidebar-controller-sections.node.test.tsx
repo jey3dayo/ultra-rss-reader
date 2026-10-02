@@ -53,7 +53,6 @@ function createSectionsParams(
     accountDropdownRef: createRef<HTMLDivElement | null>(),
     accountTriggerRef: createRef<HTMLButtonElement | null>(),
     accountItemRefs: { current: [] },
-    toggleAccountList: vi.fn(),
     handleSelectAccount: vi.fn(),
     closeAccountList: vi.fn(),
     focusAccountList: vi.fn(),
@@ -89,6 +88,47 @@ function createSectionsParams(
 describe("useSidebarControllerSections", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("uses the account focus action for both account navigation entry points", () => {
+    const focusAccountList = vi.fn();
+    const params = createSectionsParams({ focusAccountList });
+    const { result } = renderHook(() => useSidebarControllerSections(params), {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    result.current.accountSectionProps.onToggle();
+    result.current.contentSectionsProps.onFocusAccountList();
+
+    expect(focusAccountList).toHaveBeenCalledTimes(2);
+    expect(result.current.accountSectionProps.title).toBe(sampleAccounts[0]?.name);
+  });
+
+  it("preserves the empty account fallback and pending feed state", () => {
+    const selectTagFromCurrentContext = vi.fn();
+    const params = createSectionsParams({
+      accounts: undefined,
+      selectedAccount: undefined,
+      selectedAccountId: null,
+      isFeedTreeLoading: true,
+      showFeedTreeSkeleton: true,
+      sidebarDensity: "compact",
+      selectTagFromCurrentContext,
+    });
+    const { result } = renderHook(() => useSidebarControllerSections(params), {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    expect(result.current.accountSectionProps.accounts).toEqual([]);
+    expect(result.current.accountSectionProps.title).toBe("app_name");
+    expect(result.current.contentSectionsProps.feedTree).toMatchObject({
+      isLoading: true,
+      showSkeleton: true,
+    });
+    expect(result.current.contentSectionsProps.sidebarDensity).toBe("compact");
+    expect(result.current.contentSectionsProps.addFeedDialog.accountId).toBeNull();
+    result.current.contentSectionsProps.tagSection.onSelectTag("tag-1");
+    expect(selectTagFromCurrentContext).toHaveBeenCalledWith("tag-1");
   });
 
   it("opens only folders with unread feeds when selecting the unread smart view", () => {
