@@ -82,25 +82,25 @@ pub fn import_local_account_sync_folder(
     })
 }
 
+/// Writes the current state and records the digest of that same snapshot.
+/// Manual exports always write, even when the state is unchanged.
 pub fn export_local_account_sync_folder(
     db: &DbManager,
     account_id: &AccountId,
-    sync_account_id: &LocalSyncAccountId,
-    device_id: &LocalSyncDeviceId,
-    account_root: &Path,
+    settings: &LocalAccountSyncSettings,
 ) -> DomainResult<LocalAccountSyncExportReport> {
-    let operations = build_current_state_operations(db, account_id, sync_account_id, device_id)?;
-    write_operation_files(account_root, device_id, &operations)
+    let operations = build_current_state_operations(
+        db,
+        account_id,
+        &settings.sync_account_id,
+        &settings.device_id,
+    )?;
+    let digest = compute_local_account_sync_digest(&operations);
+    write_export_snapshot(db, account_id, settings, &operations, &digest)
 }
 
-/// Exports the current local-account state only when it differs from the
-/// last exported state, so unchanged runs neither rewrite the full operation
-/// snapshot nor grow the sync folder file count.
-///
-/// Returns `Ok(None)` without writing anything when the projected state is
-/// unchanged since the last export (per `settings.last_export_digest`).
-/// Otherwise writes the operation files exactly like
-/// [`export_local_account_sync_folder`] and persists the new digest.
+/// Returns `Ok(None)` without writing when the current state matches
+/// `settings.last_export_digest`; otherwise writes and records the snapshot.
 pub fn export_local_account_sync_folder_if_changed(
     db: &DbManager,
     account_id: &AccountId,
@@ -117,43 +117,24 @@ pub fn export_local_account_sync_folder_if_changed(
         return Ok(None);
     }
 
-    let account_root = Path::new(&settings.sync_folder_path);
-    let report = write_operation_files(account_root, &settings.device_id, &operations)?;
-
-    // If the files above were written successfully but persisting the digest below
-    // fails (e.g. a transient DB error), the next call will not see the new digest
-    // and will re-export the same unchanged state once more. This is an accepted
-    // tolerance: a redundant export is harmless, while silently dropping the write
-    // would not be.
-    let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
-    settings_repo.save_export_digest(account_id, &digest)?;
-
-    Ok(Some(report))
+    write_export_snapshot(db, account_id, settings, &operations, &digest).map(Some)
 }
 
-/// Persists `settings.last_export_digest` to match the current local-account
-/// state, without writing any operation files.
-///
-/// Intended to be called right after a manual export
-/// ([`export_local_account_sync_folder`]) succeeds, so the digest reflects
-/// what was just written and the very next auto-export
-/// ([`export_local_account_sync_folder_if_changed`]) does not redundantly
-/// rewrite the same full snapshot it just wrote manually.
-pub fn save_current_state_export_digest(
+fn write_export_snapshot(
     db: &DbManager,
     account_id: &AccountId,
     settings: &LocalAccountSyncSettings,
-) -> DomainResult<()> {
-    let operations = build_current_state_operations(
-        db,
-        account_id,
-        &settings.sync_account_id,
-        &settings.device_id,
-    )?;
-    let digest = compute_local_account_sync_digest(&operations);
+    operations: &[LocalAccountSyncOperation],
+    digest: &str,
+) -> DomainResult<LocalAccountSyncExportReport> {
+    let account_root = Path::new(&settings.sync_folder_path);
+    let report = write_operation_files(account_root, &settings.device_id, operations)?;
+
+    // Persist only after every file is written. A digest-save failure leaves the
+    // previous digest intact, allowing a harmless retry rather than losing state.
     let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
-    settings_repo.save_export_digest(account_id, &digest)?;
-    Ok(())
+    settings_repo.save_export_digest(account_id, digest)?;
+    Ok(report)
 }
 
 /// Writes the given operations as sequential files under `account_root` for
