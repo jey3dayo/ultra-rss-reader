@@ -333,26 +333,10 @@ export function useArticleListSources({
   const isPrimarySourceLoading = primarySourceLoading && adoptedPrimarySourceSnapshot === null;
 
   return {
-    feedId: sourcePlan.feedId,
-    folderId: sourcePlan.folderId,
-    tagId: sourcePlan.tagId,
     sourcePlan,
-    accountListScopeId:
-      sourcePlan.sourceKind === "account" || sourcePlan.sourceKind === "folder" || sourcePlan.sourceKind === "recent"
-        ? sourcePlan.sourceKey
-        : null,
     feeds: resolvedFeeds,
-    articles: sourcePlan.sourceKind === "feed" ? resolvedPrimarySourceArticlesWithRetained : latestFeedArticles,
-    accountArticles:
-      sourcePlan.sourceKind === "account" || sourcePlan.sourceKind === "folder" || sourcePlan.sourceKind === "recent"
-        ? resolvedPrimarySourceArticlesWithRetained
-        : latestAccountArticles,
-    tagArticles: sourcePlan.sourceKind === "tag" ? resolvedPrimarySourceArticlesWithRetained : tagArticles,
-    isLoadingFeedArticles: sourcePlan.sourceKind === "feed" ? isPrimarySourceLoading : isLoadingFeedArticles,
-    isLoadingAccountArticles: sourcePlan.sourceKind === "account" ? isPrimarySourceLoading : isLoadingAccountArticles,
-    isLoadingFolderArticles: sourcePlan.sourceKind === "folder" ? isPrimarySourceLoading : isLoadingFolderArticles,
-    isLoadingRecentArticles: sourcePlan.sourceKind === "recent" ? isPrimarySourceLoading : isLoadingRecentArticles,
-    isLoadingTagArticles: sourcePlan.sourceKind === "tag" ? isPrimarySourceLoading : isLoadingTagArticles,
+    articles: resolvedPrimarySourceArticlesWithRetained,
+    isLoadingArticles: sourcePlan.query !== null && isPrimarySourceLoading,
     fetchNextPage: primaryFetchNextPage ? () => primaryFetchNextPage() : undefined,
     hasNextPage: primaryArticleQuery.hasNextPage ?? false,
     isFetchingNextPage: primaryArticleQuery.isFetchingNextPage ?? false,

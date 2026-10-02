@@ -12,17 +12,9 @@ export function buildArticleListDataSourcePlan(params: { accountId: string; filt
 
 export function buildArticleListDataParams(sourcePlan: ReaderSourcePlan): UseArticleListDataParams {
   return {
-    feedId: null,
-    folderId: null,
-    tagId: null,
-    sourcePlan,
-    accountListScopeId: sourcePlan.sourceKey,
+    source: { sourcePlan, feeds: sampleFeeds, articles: sampleArticles },
     selectedArticleId: null,
     retainedArticleIds: EMPTY_RETAINED_ARTICLE_IDS,
-    feeds: sampleFeeds,
-    articles: EMPTY_ARTICLES,
-    accountArticles: sampleArticles,
-    tagArticles: EMPTY_ARTICLES,
     searchResults: EMPTY_ARTICLES,
     showSearch: false,
     trimmedDebouncedQuery: "",

@@ -66,6 +66,7 @@ owner: project-maintainers
 
 - データ取得と表示対象決定は `ReaderQuery` を見る。
 - hook の選択、snapshot key、mode は `ReaderSourcePlan` を見る。
+- `useArticleListSources` は scope 検証、snapshot、retained article の復元を済ませた単一の `articles` と、その取得元の `isLoadingArticles` / paging controls を返す。一覧・本文 pane はこの結果を `useArticleListData` の `source` に渡し、取得元ごとの配列や loading flag を選び直さない。検索結果の scope 絞り込みと、本文 pane の全件 summary 用取得はそれぞれの用途に残す。
 - UI 表示名、フォーカス、履歴キー、空状態ラベルなど UI 固有の処理は `selection` を見てもよい。
 - `recent + unread/starred` は「最近見た時点」ではなく、現在の記事状態で判定する。
 - `recent` は常に `viewed_at DESC` を維持し、通常記事側の sort 設定を適用しない。

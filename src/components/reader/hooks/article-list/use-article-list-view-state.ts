@@ -5,16 +5,8 @@ import type { UseArticleListViewStateParams, UseArticleListViewStateResult } fro
 export function useArticleListViewState({
   selection,
   selectedAccountId,
-  feedId,
-  tagId,
-  accountListScopeId,
   accountCount,
   feedCount,
-  isLoadingFeedArticles,
-  isLoadingAccountArticles,
-  isLoadingFolderArticles,
-  isLoadingRecentArticles,
-  isLoadingTagArticles,
   showSearch,
   trimmedDebouncedQuery,
   isSearching,
@@ -36,16 +28,6 @@ export function useArticleListViewState({
     return [];
   }, [selection]);
 
-  const isPrimarySourceLoading = feedId
-    ? isLoadingFeedArticles
-    : tagId
-      ? isLoadingTagArticles
-      : selection.type === "folder"
-        ? isLoadingFolderArticles
-        : selection.type === "smart" && selection.kind === "recent"
-          ? isLoadingRecentArticles
-          : accountListScopeId != null && isLoadingAccountArticles;
-
   const isSearchLoading = showSearch && trimmedDebouncedQuery.length > 0 && isSearching;
   const isSearchEmptyState =
     showSearch && trimmedDebouncedQuery.length > 0 && !isSearchLoading && filteredArticleCount === 0;
@@ -61,7 +43,6 @@ export function useArticleListViewState({
   return {
     footerModes,
     footerDisabledModes,
-    isPrimarySourceLoading,
     isSearchLoading,
     isSearchEmptyState,
     setupEmptyState,

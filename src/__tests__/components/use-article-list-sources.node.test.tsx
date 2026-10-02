@@ -381,7 +381,7 @@ describe("useArticleListSources", () => {
     expect(useRecentArticlesMock).toHaveBeenCalledWith("acc-1", {
       mode: "all",
     });
-    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["art-2", "art-1"]);
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["art-2", "art-1"]);
   });
 
   it("requests mode-filtered recent articles for recent footer filters", () => {
@@ -421,11 +421,10 @@ describe("useArticleListSources", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(result.current.isLoadingAccountArticles).toBe(false);
-    expect(result.current.isLoadingFolderArticles).toBe(true);
+    expect(result.current.isLoadingArticles).toBe(true);
   });
 
-  it("reports feed source loading with a feed-specific result name", () => {
+  it("reports filtered feed loading instead of the all-mode query state", () => {
     useArticlesMock.mockImplementation((feedId: string | null, options?: { mode?: ViewMode }) => ({
       data: feedId && options?.mode === "all" ? sampleArticles : undefined,
       isLoading: options?.mode === "unread",
@@ -443,8 +442,7 @@ describe("useArticleListSources", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(result.current.isLoadingFeedArticles).toBe(true);
-    expect(result.current.isLoadingAccountArticles).toBe(false);
+    expect(result.current.isLoadingArticles).toBe(true);
   });
 
   it("reports recent source loading separately from account article loading", () => {
@@ -466,8 +464,7 @@ describe("useArticleListSources", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(result.current.isLoadingAccountArticles).toBe(false);
-    expect(result.current.isLoadingRecentArticles).toBe(true);
+    expect(result.current.isLoadingArticles).toBe(true);
   });
 
   it("requests starred tag articles through the tag mode when the tag view is starred", () => {
@@ -486,6 +483,99 @@ describe("useArticleListSources", () => {
     expect(useArticlesByTagMock).toHaveBeenCalledWith("tag-1", "acc-1", {
       mode: "starred",
     });
+  });
+
+  it.each([
+    { selection: { type: "all" }, query: useAccountArticlesMock },
+    { selection: { type: "feed", feedId: "feed-1" }, query: useArticlesMock },
+    { selection: { type: "folder", folderId: "folder-1" }, query: useFolderArticlesMock },
+    { selection: { type: "tag", tagId: "tag-1" }, query: useArticlesByTagMock },
+    { selection: { type: "smart", kind: "recent" }, query: useRecentArticlesMock },
+  ] satisfies Array<{ selection: ArticleListSelection; query: ReturnType<typeof vi.fn> }>)(
+    "resolves articles, loading, and paging together for $selection while unrelated queries load",
+    async ({ selection, query }) => {
+      const unrelatedFetchNextPage = vi.fn();
+      for (const other of [
+        useAccountArticlesMock,
+        useArticlesMock,
+        useFolderArticlesMock,
+        useArticlesByTagMock,
+        useRecentArticlesMock,
+      ]) {
+        other.mockReturnValue({
+          data: undefined,
+          isLoading: true,
+          fetchNextPage: unrelatedFetchNextPage,
+          hasNextPage: false,
+          isFetchingNextPage: true,
+        });
+      }
+      const articles = [sampleArticles[0]];
+      const fetchNextPage = vi.fn().mockResolvedValue(undefined);
+      query.mockImplementation((...args: unknown[]) => {
+        const options = args.at(-1);
+        const isPrimary =
+          typeof options === "object" && options !== null && "mode" in options && options.mode === "unread";
+        return isPrimary
+          ? { data: articles, isLoading: false, fetchNextPage, hasNextPage: true, isFetchingNextPage: false }
+          : { data: undefined, isLoading: true, fetchNextPage: unrelatedFetchNextPage };
+      });
+
+      const { result } = renderHook(
+        () =>
+          useArticleListSources({
+            selection,
+            selectedAccountId: "acc-1",
+            selectedArticleId: null,
+            retainedArticleIds: new Set(),
+            viewMode: "unread",
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      expect(result.current.articles).toEqual(articles);
+      expect(result.current.isLoadingArticles).toBe(false);
+      expect(result.current.hasNextPage).toBe(true);
+      expect(result.current.isFetchingNextPage).toBe(false);
+      await result.current.fetchNextPage?.();
+      expect(fetchNextPage).toHaveBeenCalledOnce();
+      expect(unrelatedFetchNextPage).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not fall back to other loaded sources while selected tag articles are unresolved", () => {
+    useArticlesByTagMock.mockReturnValue({ data: undefined, isLoading: true });
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "tag", tagId: "tag-1" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "all",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.articles).toBeUndefined();
+    expect(result.current.isLoadingArticles).toBe(true);
+  });
+
+  it("reports no article loading when there is no selected account", () => {
+    useAccountArticlesMock.mockReturnValue({ data: undefined, isLoading: true });
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "all" },
+          selectedAccountId: null,
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "all",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoadingArticles).toBe(false);
   });
 
   it("matches docs/reader-article-scope-matrix.md counts for source, scope, and filter combinations", () => {
@@ -544,7 +634,6 @@ describe("useArticleListSources", () => {
       expectedCount: number;
       expectedHook: ReturnType<typeof vi.fn>;
       expectedArgs: unknown[];
-      resultKey: "accountArticles" | "articles" | "tagArticles";
     }> = [
       {
         name: "unread smart view",
@@ -553,7 +642,6 @@ describe("useArticleListSources", () => {
         expectedCount: 3,
         expectedHook: useAccountArticlesMock,
         expectedArgs: ["acc-1", { mode: "unread" }],
-        resultKey: "accountArticles",
       },
       {
         name: "starred smart view",
@@ -562,7 +650,6 @@ describe("useArticleListSources", () => {
         expectedCount: 4,
         expectedHook: useAccountArticlesMock,
         expectedArgs: ["acc-1", { mode: "starred" }],
-        resultKey: "accountArticles",
       },
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `selection all ${mode}`,
@@ -571,7 +658,6 @@ describe("useArticleListSources", () => {
         expectedCount: filterMatrixMode(matrixSources.accountArticles, mode).length,
         expectedHook: useAccountArticlesMock,
         expectedArgs: ["acc-1", { mode }],
-        resultKey: "accountArticles" as const,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `folder ${mode}`,
@@ -580,7 +666,6 @@ describe("useArticleListSources", () => {
         expectedCount: filterMatrixMode(matrixSources.folderArticles, mode).length,
         expectedHook: useFolderArticlesMock,
         expectedArgs: ["folder-1", { mode }],
-        resultKey: "accountArticles" as const,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `feed ${mode}`,
@@ -589,7 +674,6 @@ describe("useArticleListSources", () => {
         expectedCount: filterMatrixMode(matrixSources.feedArticles, mode).length,
         expectedHook: useArticlesMock,
         expectedArgs: ["feed-1", { mode }],
-        resultKey: "articles" as const,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `tag ${mode}`,
@@ -598,7 +682,6 @@ describe("useArticleListSources", () => {
         expectedCount: filterMatrixMode(matrixSources.tagArticles, mode).length,
         expectedHook: useArticlesByTagMock,
         expectedArgs: ["tag-1", "acc-1", { mode }],
-        resultKey: "tagArticles" as const,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `recent ${mode}`,
@@ -607,7 +690,6 @@ describe("useArticleListSources", () => {
         expectedCount: filterMatrixMode(matrixSources.recentArticles, mode).length,
         expectedHook: useRecentArticlesMock,
         expectedArgs: ["acc-1", { mode }],
-        resultKey: "accountArticles" as const,
       })),
     ];
 
@@ -626,7 +708,7 @@ describe("useArticleListSources", () => {
         { wrapper: createWrapper() },
       );
 
-      expect(result.current[testCase.resultKey]?.length, testCase.name).toBe(testCase.expectedCount);
+      expect(result.current.articles?.length, testCase.name).toBe(testCase.expectedCount);
       const expectedSourcePlan = resolveReaderSourcePlan(testCase.selection, testCase.viewMode, "acc-1");
       expect(result.current.sourcePlan.sourceKind, testCase.name).toBe(expectedSourcePlan.sourceKind);
       expect(result.current.sourcePlan.sourceKey, testCase.name).toBe(expectedSourcePlan.sourceKey);
@@ -684,8 +766,8 @@ describe("useArticleListSources", () => {
     );
 
     expect(result.current.feeds).toEqual([]);
-    expect(result.current.accountArticles).toEqual([]);
-    expect(result.current.accountArticles).toHaveLength(0);
+    expect(result.current.articles).toEqual([]);
+    expect(result.current.articles).toHaveLength(0);
   });
 
   it("keeps a retained selected article in the feed source after unread refetch removes it", () => {
@@ -790,7 +872,7 @@ describe("useArticleListSources", () => {
     rerender();
 
     expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1", "art-2"]);
-    expect(result.current.isLoadingFeedArticles).toBe(false);
+    expect(result.current.isLoadingArticles).toBe(false);
 
     isLoading = false;
     rerender();
@@ -862,8 +944,8 @@ describe("useArticleListSources", () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["matrix-4"]);
-    expect(result.current.accountArticles?.[0]?.is_read).toBe(false);
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["matrix-4"]);
+    expect(result.current.articles?.[0]?.is_read).toBe(false);
 
     // Simulate the auto-mark read patch: the article leaves the unread folder
     // source but stays in the all-mode folder source with is_read: true.
@@ -871,8 +953,8 @@ describe("useArticleListSources", () => {
     currentAllFolderArticles = [readArticle];
     rerender();
 
-    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["matrix-4"]);
-    expect(result.current.accountArticles?.[0]?.is_read).toBe(true);
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["matrix-4"]);
+    expect(result.current.articles?.[0]?.is_read).toBe(true);
   });
 
   it("keeps a retained selected article in the smart starred source after unstar refetch removes it", () => {
@@ -899,11 +981,11 @@ describe("useArticleListSources", () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["art-2"]);
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["art-2"]);
 
     currentStarredArticles = [];
     rerender();
 
-    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["art-2"]);
+    expect(result.current.articles?.map((article) => article.id)).toEqual(["art-2"]);
   });
 });

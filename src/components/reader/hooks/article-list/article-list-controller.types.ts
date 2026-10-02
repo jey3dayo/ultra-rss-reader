@@ -53,16 +53,8 @@ export type UseArticleListInteractionsResult = {
 export type UseArticleListViewStateParams = {
   selection: ArticleListSelection;
   selectedAccountId: string | null;
-  feedId: string | null;
-  tagId: string | null;
-  accountListScopeId: string | null;
   accountCount?: number;
   feedCount?: number;
-  isLoadingFeedArticles: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingFolderArticles: boolean;
-  isLoadingRecentArticles: boolean;
-  isLoadingTagArticles: boolean;
   showSearch: boolean;
   trimmedDebouncedQuery: string;
   searchResults: unknown[] | undefined;
@@ -73,7 +65,6 @@ export type UseArticleListViewStateParams = {
 export type UseArticleListViewStateResult = {
   footerModes: ReadonlyArray<ViewMode>;
   footerDisabledModes: ReadonlyArray<ViewMode>;
-  isPrimarySourceLoading: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;
   setupEmptyState: ArticleListSetupState;
@@ -95,11 +86,7 @@ export type UseArticleListViewPropsParams = {
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
   handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
-  isLoadingFeedArticles: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingFolderArticles: boolean;
-  isLoadingRecentArticles: boolean;
-  isLoadingTagArticles: boolean;
+  isLoadingArticles: boolean;
   trimmedDebouncedQuery: string;
   contentMotionKey: ArticleListBodyProps["contentMotionKey"];
   articleGroups: ArticleGroupsViewGroup[];
@@ -133,9 +120,8 @@ type ArticleListPresentationSource = {
   selectedAccountId: string | null;
   accountCount?: number;
   feeds: FeedDto[] | undefined;
+  isLoadingArticles: boolean;
   feedId: string | null;
-  tagId: string | null;
-  accountListScopeId: string | null;
   filteredArticles: ArticleDto[];
   groupedArticles: Record<string, ArticleDto[]>;
   groupBy: string;
@@ -145,14 +131,6 @@ type ArticleListPresentationSource = {
   fetchNextPage?: () => Promise<unknown>;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
-};
-
-type ArticleListPresentationLoading = {
-  isLoadingFeedArticles: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingFolderArticles: boolean;
-  isLoadingRecentArticles: boolean;
-  isLoadingTagArticles: boolean;
 };
 
 type ArticleListPresentationSearch = {
@@ -201,7 +179,6 @@ type ArticleListPresentationViewPrefs = {
 export type UseArticleListPresentationParams = {
   translators: ArticleListPresentationTranslators;
   source: ArticleListPresentationSource;
-  loading: ArticleListPresentationLoading;
   search: ArticleListPresentationSearch;
   selectionState: ArticleListPresentationSelectionState;
   paneActions: ArticleListPresentationPaneActions;
@@ -291,37 +268,19 @@ export type UseArticleListSourcesParams = {
 };
 
 export type UseArticleListSourcesResult = {
-  feedId: string | null;
-  folderId: string | null;
-  tagId: string | null;
   sourcePlan: ReaderSourcePlan;
-  accountListScopeId: string | null;
   feeds: FeedDto[] | undefined;
   articles: ArticleDto[] | undefined;
-  accountArticles: ArticleDto[] | undefined;
-  tagArticles: ArticleDto[] | undefined;
-  isLoadingFeedArticles: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingFolderArticles: boolean;
-  isLoadingRecentArticles: boolean;
-  isLoadingTagArticles: boolean;
+  isLoadingArticles: boolean;
   fetchNextPage?: () => Promise<unknown>;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
 };
 
 export type UseArticleListDataParams = {
-  feedId: UseArticleListSourcesResult["feedId"];
-  folderId: UseArticleListSourcesResult["folderId"];
-  tagId: UseArticleListSourcesResult["tagId"];
-  sourcePlan: UseArticleListSourcesResult["sourcePlan"];
-  accountListScopeId: UseArticleListSourcesResult["accountListScopeId"];
+  source: Pick<UseArticleListSourcesResult, "sourcePlan" | "feeds" | "articles">;
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;
-  feeds: UseArticleListSourcesResult["feeds"];
-  articles: UseArticleListSourcesResult["articles"];
-  accountArticles: UseArticleListSourcesResult["accountArticles"];
-  tagArticles: UseArticleListSourcesResult["tagArticles"];
   searchResults: ArticleDto[] | undefined;
   showSearch: boolean;
   trimmedDebouncedQuery: string;
@@ -331,8 +290,6 @@ export type UseArticleListDataParams = {
 
 export type UseArticleListDataResult = {
   feedId: string | null;
-  tagId: string | null;
-  accountListScopeId: string | null;
   effectiveViewMode: ViewMode;
   feedNameMap: Map<string, string>;
   filteredArticles: ArticleDto[];

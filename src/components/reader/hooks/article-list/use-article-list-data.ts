@@ -11,23 +11,16 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { UseArticleListDataParams, UseArticleListDataResult } from "./article-list-controller.types";
 
 export function buildArticleListData({
-  feedId,
-  folderId,
-  tagId,
-  sourcePlan,
-  accountListScopeId,
+  source: { sourcePlan, feeds, articles },
   selectedArticleId,
   retainedArticleIds,
-  feeds,
-  articles,
-  accountArticles,
-  tagArticles,
   searchResults,
   showSearch,
   trimmedDebouncedQuery,
   sortUnread,
   groupBy,
 }: UseArticleListDataParams): UseArticleListDataResult {
+  const { feedId, folderId, tagId } = sourcePlan;
   const sourceFilter = sourcePlan.query?.filter ?? null;
   const effectiveViewMode: ViewMode = sourcePlan.effectiveViewMode;
   const effectiveRetainedArticleIds = resolveEffectiveRetainedArticleIds({
@@ -40,8 +33,6 @@ export function buildArticleListData({
   const folderFeedIds = buildFolderFeedIdSet(feeds, folderId);
   const filteredArticles = selectVisibleArticles({
     articles,
-    accountArticles,
-    tagArticles,
     searchResults,
     feedId,
     tagId,
@@ -63,8 +54,6 @@ export function buildArticleListData({
 
   return {
     feedId,
-    tagId,
-    accountListScopeId,
     effectiveViewMode,
     feedNameMap,
     filteredArticles,
@@ -75,53 +64,29 @@ export function buildArticleListData({
 
 export function useArticleListData(params: UseArticleListDataParams): UseArticleListDataResult {
   const {
-    feedId,
-    folderId,
-    tagId,
-    sourcePlan,
-    accountListScopeId,
+    source: { sourcePlan, feeds, articles },
     selectedArticleId,
     retainedArticleIds,
-    feeds,
-    articles,
-    accountArticles,
-    tagArticles,
     searchResults,
     showSearch,
     trimmedDebouncedQuery,
     sortUnread,
     groupBy,
   } = params;
-  // `sourcePlan` is recreated on every render by `useArticleListSources`, but its content
-  // (not its identity) is what should drive recomputation — see the memo-stability contract
-  // pinned by `use-article-list-data.node.test.tsx`. Keep the previous reference as long as
-  // `buildArticleListSourcePlanKey` reports the same content so the memo below only sees a
-  // changed `sourcePlan` when something it actually reads (source, filter, view mode, order)
-  // changed.
+  // Source objects may be recreated for loading or paging updates without changing
+  // the list. Only the plan content and article/feed references invalidate filtering.
   const sourcePlanRef = useRef(sourcePlan);
   if (buildArticleListSourcePlanKey(sourcePlanRef.current) !== buildArticleListSourcePlanKey(sourcePlan)) {
     sourcePlanRef.current = sourcePlan;
   }
   const stableSourcePlan = sourcePlanRef.current;
 
-  // A single `buildArticleListData` call, memoized on its individual scalar/array
-  // dependencies, keeps this hook's production behavior identical to the plain function
-  // the tests exercise directly. Do not reintroduce a parallel step-by-step recomputation
-  // here; that lets the hook body drift from `buildArticleListData`.
   return useMemo(
     () =>
       buildArticleListData({
-        feedId,
-        folderId,
-        tagId,
-        sourcePlan: stableSourcePlan,
-        accountListScopeId,
+        source: { sourcePlan: stableSourcePlan, feeds, articles },
         selectedArticleId,
         retainedArticleIds,
-        feeds,
-        articles,
-        accountArticles,
-        tagArticles,
         searchResults,
         showSearch,
         trimmedDebouncedQuery,
@@ -129,17 +94,11 @@ export function useArticleListData(params: UseArticleListDataParams): UseArticle
         groupBy,
       }),
     [
-      feedId,
-      folderId,
-      tagId,
       stableSourcePlan,
-      accountListScopeId,
       selectedArticleId,
       retainedArticleIds,
       feeds,
       articles,
-      accountArticles,
-      tagArticles,
       searchResults,
       showSearch,
       trimmedDebouncedQuery,

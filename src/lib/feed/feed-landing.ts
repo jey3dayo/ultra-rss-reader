@@ -37,9 +37,7 @@ export function resolveFeedLandingArticleResult(params: {
   viewMode?: ReaderFilter;
 }): Result.Result<ArticleDto, ResolveFeedLandingArticleError> {
   const visibleArticles = selectVisibleArticles({
-    articles: undefined,
-    accountArticles: params.articles,
-    tagArticles: undefined,
+    articles: params.articles,
     searchResults: undefined,
     feedId: null,
     tagId: null,
