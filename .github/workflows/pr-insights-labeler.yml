@@ -27,7 +27,7 @@ jobs:
 
       - name: Apply PR Insights Labels
         # Source of truth: PR Insights owns risk/* and size/* labels only.
-        uses: jey3dayo/pr-insights-labeler@3934dcb1a60e4d79e4acd7ffa7daf4e2097ad184 # v1.11.1
+        uses: jey3dayo/pr-insights-labeler@19045111c0318d811e60d49706878074df2c3593 # v1.15.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
