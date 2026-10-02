@@ -2436,7 +2436,7 @@ fn bulk_read_changes_recalculate_each_affected_feed_once() {
     )
     .expect("bulk read changes should succeed");
     let recounts: i64 = db
-        .reader()
+        .writer()
         .query_row("SELECT COUNT(*) FROM recounts", [], |row| row.get(0))
         .expect("recount observation should be readable");
     assert_eq!(recounts, 1);
