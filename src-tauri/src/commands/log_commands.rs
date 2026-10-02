@@ -137,7 +137,7 @@ struct ReadDiagnosticsBatchSizeCalc<'a> {
 /// which would otherwise race across parallel test threads.
 fn reserve_diagnostics_budget(budget: &AtomicU64, cap: u64, serialized_bytes: u64) -> bool {
     budget
-        .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |accepted| {
+        .try_update(Ordering::SeqCst, Ordering::SeqCst, |accepted| {
             let next = accepted.saturating_add(serialized_bytes);
             (next <= cap).then_some(next)
         })

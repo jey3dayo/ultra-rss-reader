@@ -914,7 +914,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
 
     expect(extractWorkflowUses(prInsightsLabelerWorkflow)).toContain(
-      "jey3dayo/pr-insights-labeler@3934dcb1a60e4d79e4acd7ffa7daf4e2097ad184",
+      "jey3dayo/pr-insights-labeler@19045111c0318d811e60d49706878074df2c3593",
     );
     expect(extractTaskBlock(miseToml, "lint:workflow-pins")).toContain("node scripts/check-workflow-pins.mjs");
     expect(readText("scripts/check-workflow-pins.mjs")).toContain('?? ".github/workflows"');
