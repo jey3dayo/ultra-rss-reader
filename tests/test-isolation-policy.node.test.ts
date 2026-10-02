@@ -141,7 +141,6 @@ describe("test isolation policy contract", () => {
         "browser.rs",
         "integrity.rs",
         "mutations/mod.rs",
-        "mutations/pending.rs",
         "mutations/bulk.rs",
         "mutations/single.rs",
         "queries.rs",

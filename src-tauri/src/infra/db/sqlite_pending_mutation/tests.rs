@@ -677,7 +677,7 @@ fn save_keeps_existing_pending_mutation_when_replacement_insert_fails() {
     let result = repo.save(&PendingMutation {
         id: None,
         account_id: account_id.clone(),
-        mutation_type: PendingMutationType::Unstar,
+        mutation_type: PendingMutationType::MarkUnread,
         remote_entry_id: "entry-1".to_string(),
         created_at: "2024-01-01T00:00:01Z".to_string(),
     });

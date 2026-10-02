@@ -6,16 +6,14 @@ use super::{
     acquire_browser_open_queue_guard_from, article_command_pagination,
     background_browser_open_failure_message, background_browser_open_status_failure_message,
     bulk_mark_account_read, bulk_mark_account_starred_read, bulk_mark_old_unread_read,
-    bulk_unstar_account_articles, collect_old_unread_rows, has_blocking_frame_ancestors,
-    has_blocking_x_frame_options, mark_article_read_impl, mark_article_read_with_conn,
-    mark_articles_read_with_conn, mark_feed_read_with_conn, mark_folder_read_with_conn,
-    maybe_queue_mutation, native_browser_open_failure_message, old_unread_before_from_now,
-    open_browser_in_background_with_command, parse_article_list_mode,
-    provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
+    bulk_unstar_account_articles, has_blocking_frame_ancestors, has_blocking_x_frame_options,
+    mark_article_read_impl, mark_article_read_with_conn, mark_articles_read_with_conn,
+    mark_feed_read_with_conn, mark_folder_read_with_conn, native_browser_open_failure_message,
+    old_unread_before_from_now, open_browser_in_background_with_command, parse_article_list_mode,
     record_article_view_with_conn, repair_outdated_articles_for_render,
-    should_use_background_browser_open, supports_remote_mutations, toggle_article_star_with_conn,
+    should_use_background_browser_open, toggle_article_star_with_conn,
     validate_browser_embed_redirect, validate_feed_article_filters, validate_older_than_days,
-    BrowserOpenQueueKey, BulkArticleMutationRow, OldUnreadScope, ARTICLE_SEARCH_QUERY_MAX_CHARS,
+    BrowserOpenQueueKey, OldUnreadScope, ARTICLE_SEARCH_QUERY_MAX_CHARS,
     BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT, DEFAULT_ARTICLE_LIST_LIMIT,
     DEFAULT_RECENT_ARTICLE_LIST_LIMIT, DOWNGRADE_REDIRECT_VALIDATION_MESSAGE,
     MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
@@ -28,6 +26,7 @@ use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
+use crate::infra::db::sqlite_article_change::count_old_unread_articles as count_old_unread_with_conn;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::sanitizer;
@@ -737,22 +736,51 @@ fn background_open_exit_failure_message_trims_stderr() {
 }
 
 #[test]
-fn remote_mutations_require_provider_managed_greader_feed_ids() {
-    assert!(provider_supports_pending_article_mutations("FreshRss"));
-    assert!(!provider_supports_pending_article_mutations("Local"));
-    assert!(!provider_supports_pending_article_mutations(
-        "FutureProvider"
-    ));
-
-    assert!(supports_remote_mutations("FreshRss", Some("feed/1")));
-
-    assert!(!supports_remote_mutations(
-        "FreshRss",
-        Some("https://example.com/feed.xml")
-    ));
-    assert!(!supports_remote_mutations("FreshRss", None));
-    assert!(!supports_remote_mutations("Local", Some("feed/1")));
-    assert!(!supports_remote_mutations("FutureProvider", Some("feed/1")));
+fn article_changes_only_queue_for_provider_managed_greader_feeds() {
+    let cases = [
+        ("FreshRss", Some("feed/1"), Some("remote-a"), 2),
+        (
+            "FreshRss",
+            Some("https://example.com/feed.xml"),
+            Some("remote-a"),
+            0,
+        ),
+        ("FreshRss", None, Some("remote-a"), 0),
+        ("FreshRss", Some("feed/1"), None, 0),
+        ("Local", Some("feed/1"), Some("remote-a"), 0),
+        ("Quarantined", Some("feed/1"), Some("remote-a"), 0),
+        ("FutureProvider", Some("feed/1"), Some("remote-a"), 0),
+    ];
+    for (kind, feed_remote_id, article_remote_id, expected_pending) in cases {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", kind);
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, feed_remote_id);
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            article_remote_id,
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        mark_article_read_with_conn(
+            db.writer(),
+            ArticleId("article-a".into()),
+            true,
+            &std::cell::Cell::new(None),
+        )
+        .expect("read changes should preserve provider eligibility");
+        toggle_article_star_with_conn(db.writer(), ArticleId("article-a".into()), true)
+            .expect("star changes should preserve provider eligibility");
+        assert!(article_is_read(&db, "article-a"));
+        assert!(article_is_starred(&db, "article-a"));
+        assert_eq!(
+            pending_mutation_count(&db),
+            expected_pending,
+            "{kind}: {feed_remote_id:?}"
+        );
+    }
 }
 
 #[test]
@@ -985,8 +1013,14 @@ fn local_like_feeds_under_freshrss_accounts_do_not_queue_pending_mutations() {
         )
         .expect("article insert should succeed");
 
-    maybe_queue_mutation(db.writer(), &article_id, PendingMutationType::MarkRead)
-        .expect("local-like feeds should be ignored without error");
+    mark_article_read_with_conn(
+        db.writer(),
+        article_id.clone(),
+        true,
+        &std::cell::Cell::new(None),
+    )
+    .expect("local-like feeds should still allow local read changes");
+    assert!(article_is_read(&db, &article_id.0));
 
     let pending_repo = SqlitePendingMutationRepository::new(db.reader());
     let pending = pending_repo
@@ -1247,23 +1281,47 @@ fn record_article_view_persistence_failure_is_user_visible_not_retryable() {
 }
 
 #[test]
-fn article_pending_mutation_query_errors_are_reported() {
+fn article_pending_mutation_query_errors_roll_back_read_state() {
+    use super::mutations::read_diagnostics::{MarkArticleReadStage, ReadDbErrorClass};
+
     let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+    insert_bulk_account(&db, "acc-a", "FreshRss");
+    insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+    insert_bulk_article(
+        &db,
+        "article-a",
+        "feed-a",
+        Some("remote-a"),
+        "2026-04-01T00:00:00Z",
+        false,
+        false,
+    );
     db.writer()
-        .execute("DROP TABLE articles", [])
-        .expect("articles table drop should succeed");
-
-    let error = maybe_queue_mutation(
+        .execute("UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a'", [])
+        .expect("feed count setup should succeed");
+    // Column resolution in the queue query fails after the article and feed writes.
+    db.writer()
+        .execute(
+            "ALTER TABLE accounts RENAME COLUMN kind TO unavailable_kind",
+            [],
+        )
+        .expect("queue query failure fixture should initialize");
+    let failure_stage = std::cell::Cell::new(None);
+    let error = mark_article_read_with_conn(
         db.writer(),
-        &ArticleId("article-1".to_string()),
-        PendingMutationType::MarkRead,
+        ArticleId("article-a".into()),
+        true,
+        &failure_stage,
     )
-    .expect_err("pending mutation query DB errors should be reported");
-
-    assert!(matches!(
-        error,
-        AppError::UserVisible { ref message } if message.contains("no such table: articles")
-    ));
+    .expect_err("pending queue query failure should reject the read change");
+    assert!(matches!(error, AppError::UserVisible { message } if message.contains("acc.kind")));
+    assert_eq!(
+        failure_stage.get(),
+        Some((MarkArticleReadStage::QueueMutation, ReadDbErrorClass::Other))
+    );
+    assert!(!article_is_read(&db, "article-a"));
+    assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+    assert_eq!(pending_mutation_count(&db), 0);
 }
 
 #[test]
@@ -1664,6 +1722,192 @@ fn article_read_and_star_commands_queue_pending_mutations_for_remote_feeds() {
     assert!(pending
         .iter()
         .all(|mutation| mutation.remote_entry_id == "remote-a"));
+}
+
+#[test]
+fn article_changes_replace_only_the_latest_intent_on_each_axis() {
+    let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+    insert_bulk_account(&db, "acc-a", "FreshRss");
+    insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+    insert_bulk_article(
+        &db,
+        "article-a",
+        "feed-a",
+        Some("remote-a"),
+        "2026-04-01T00:00:00Z",
+        false,
+        false,
+    );
+    db.writer()
+        .execute_batch(
+            "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+         VALUES ('acc-a', 'MarkUnread', 'remote-a', '2026-04-01T00:00:00Z'),
+                ('acc-a', 'SetStarred', 'remote-a', '2026-04-01T00:00:00Z');",
+        )
+        .expect("legacy mutation fixtures should initialize");
+
+    for read in [true, false, true] {
+        mark_article_read_with_conn(
+            db.writer(),
+            ArticleId("article-a".into()),
+            read,
+            &std::cell::Cell::new(None),
+        )
+        .expect("read state replacement should succeed");
+    }
+    for starred in [true, false, false] {
+        toggle_article_star_with_conn(db.writer(), ArticleId("article-a".into()), starred)
+            .expect("star state replacement should succeed");
+    }
+    let pending = SqlitePendingMutationRepository::new(db.reader())
+        .find_by_account(&AccountId("acc-a".into()))
+        .expect("pending mutations should be readable");
+    assert_eq!(pending.len(), 2);
+    assert_eq!(pending[0].mutation_type, PendingMutationType::MarkRead);
+    assert_eq!(pending[1].mutation_type, PendingMutationType::Unstar);
+    assert!(article_is_read(&db, "article-a"));
+    assert!(!article_is_starred(&db, "article-a"));
+    assert_eq!(feed_unread_count(&db, "feed-a"), 0);
+}
+
+#[test]
+fn article_changes_restore_replaced_pending_intent_when_queue_insert_fails() {
+    for read_axis in [true, false] {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            true,
+        );
+        db.writer()
+            .execute_batch(
+                "UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a';
+             INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+             VALUES ('acc-a', 'MarkUnread', 'remote-a', '2026-04-01T00:00:00Z'),
+                    ('acc-a', 'SetStarred', 'remote-a', '2026-04-01T00:00:00Z');",
+            )
+            .expect("existing intent fixtures should initialize");
+        install_pending_mutation_insert_failure_trigger(&db);
+        let result = if read_axis {
+            mark_article_read_with_conn(
+                db.writer(),
+                ArticleId("article-a".into()),
+                true,
+                &std::cell::Cell::new(None),
+            )
+        } else {
+            toggle_article_star_with_conn(db.writer(), ArticleId("article-a".into()), false)
+        };
+        let error =
+            result.expect_err("failed replacement should roll back the whole article change");
+        assert!(
+            matches!(error, AppError::UserVisible { message } if message.contains("pending mutation insert failed"))
+        );
+        let pending = SqlitePendingMutationRepository::new(db.reader())
+            .find_by_account(&AccountId("acc-a".into()))
+            .expect("pending mutations should remain readable");
+        assert_eq!(pending.len(), 2);
+        assert_eq!(pending[0].mutation_type, PendingMutationType::MarkUnread);
+        assert_eq!(pending[1].mutation_type, PendingMutationType::Star);
+        assert!(pending
+            .iter()
+            .all(|mutation| mutation.created_at == "2026-04-01T00:00:00Z"));
+        assert!(!article_is_read(&db, "article-a"));
+        assert!(article_is_starred(&db, "article-a"));
+        assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+    }
+}
+
+#[test]
+fn article_changes_with_blank_remote_entry_ids_roll_back_local_state() {
+    for operation in ["read", "bulk_read", "star"] {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some(" "),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a'", [])
+            .expect("feed count setup should succeed");
+        let article_id = ArticleId("article-a".into());
+        let result = match operation {
+            "read" => mark_article_read_with_conn(
+                db.writer(),
+                article_id,
+                true,
+                &std::cell::Cell::new(None),
+            ),
+            "bulk_read" => mark_articles_read_with_conn(db.writer(), &[article_id]),
+            "star" => toggle_article_star_with_conn(db.writer(), article_id, true),
+            _ => unreachable!("fixture only contains supported operations"),
+        };
+        let error =
+            result.expect_err("blank remote entry IDs must reject the complete article change");
+        assert!(
+            matches!(error, AppError::UserVisible { message } if message == "Validation error: pending mutation remote_entry_id cannot be blank")
+        );
+        assert!(!article_is_read(&db, "article-a"), "{operation}");
+        assert!(!article_is_starred(&db, "article-a"), "{operation}");
+        assert_eq!(feed_unread_count(&db, "feed-a"), 1, "{operation}");
+        assert_eq!(pending_mutation_count(&db), 0, "{operation}");
+    }
+}
+
+#[test]
+fn article_read_commit_failure_rolls_back_all_changes_and_preserves_diagnostics() {
+    use super::mutations::read_diagnostics::{MarkArticleReadStage, ReadDbErrorClass};
+
+    let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+    insert_bulk_account(&db, "acc-a", "FreshRss");
+    insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+    insert_bulk_article(
+        &db,
+        "article-a",
+        "feed-a",
+        Some("remote-a"),
+        "2026-04-01T00:00:00Z",
+        false,
+        false,
+    );
+    db.writer().execute_batch(
+        "UPDATE feeds SET unread_count = 1 WHERE id = 'feed-a';
+         CREATE TABLE deferred_parent (id INTEGER PRIMARY KEY);
+         CREATE TABLE deferred_child (parent_id INTEGER REFERENCES deferred_parent(id) DEFERRABLE INITIALLY DEFERRED);
+         CREATE TEMP TRIGGER fail_article_commit AFTER UPDATE OF is_read ON articles
+         BEGIN INSERT INTO deferred_child (parent_id) VALUES (1); END;"
+    ).expect("deferred commit failure fixture should initialize");
+    let failure_stage = std::cell::Cell::new(None);
+    let error = mark_article_read_with_conn(
+        db.writer(),
+        ArticleId("article-a".into()),
+        true,
+        &failure_stage,
+    )
+    .expect_err("deferred foreign-key failure should reject commit");
+    assert!(
+        matches!(error, AppError::UserVisible { message } if message.contains("FOREIGN KEY constraint failed"))
+    );
+    assert_eq!(
+        failure_stage.get(),
+        Some((MarkArticleReadStage::Commit, ReadDbErrorClass::Constraint))
+    );
+    assert!(!article_is_read(&db, "article-a"));
+    assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+    assert_eq!(pending_mutation_count(&db), 0);
+    assert!(db.writer().is_autocommit());
 }
 
 #[test]
@@ -2136,7 +2380,7 @@ fn bulk_mark_account_read_marks_only_account_and_queues_remote_mutations() {
 }
 
 #[test]
-fn bulk_feed_unread_recalculation_handles_duplicate_rows_once_per_feed() {
+fn bulk_read_changes_recalculate_each_affected_feed_once() {
     let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
     insert_bulk_account(&db, "acc-a", "Local");
     insert_bulk_feed(&db, "feed-a", "acc-a", None, None);
@@ -2175,35 +2419,30 @@ fn bulk_feed_unread_recalculation_handles_duplicate_rows_once_per_feed() {
         .execute("UPDATE feeds SET unread_count = 77 WHERE id = 'feed-b'", [])
         .expect("feed-b stale count update should succeed");
 
-    let duplicate_rows = vec![
-        BulkArticleMutationRow {
-            article_id: "article-a1".to_string(),
-            feed_id: "feed-a".to_string(),
-            remote_entry_id: None,
-            account_kind: "Local".to_string(),
-            account_id: "acc-a".to_string(),
-            feed_remote_id: None,
-        },
-        BulkArticleMutationRow {
-            article_id: "article-a2".to_string(),
-            feed_id: "feed-a".to_string(),
-            remote_entry_id: None,
-            account_kind: "Local".to_string(),
-            account_id: "acc-a".to_string(),
-            feed_remote_id: None,
-        },
-        BulkArticleMutationRow {
-            article_id: "article-a1-duplicate".to_string(),
-            feed_id: "feed-a".to_string(),
-            remote_entry_id: None,
-            account_kind: "Local".to_string(),
-            account_id: "acc-a".to_string(),
-            feed_remote_id: None,
-        },
-    ];
-
-    recalculate_bulk_feed_unread_counts(db.writer(), &duplicate_rows)
-        .expect("bulk feed unread recalculation should succeed");
+    db.writer()
+        .execute_batch(
+            "CREATE TEMP TABLE recounts (feed_id TEXT);
+         CREATE TEMP TRIGGER record_feed_recount AFTER UPDATE OF unread_count ON feeds
+         BEGIN INSERT INTO recounts (feed_id) VALUES (NEW.id); END;",
+        )
+        .expect("recount observation should initialize");
+    mark_articles_read_with_conn(
+        db.writer(),
+        &[
+            ArticleId("article-a1".into()),
+            ArticleId("article-a2".into()),
+            ArticleId("article-a1".into()),
+        ],
+    )
+    .expect("bulk read changes should succeed");
+    let recounts: i64 = db
+        .reader()
+        .query_row("SELECT COUNT(*) FROM recounts", [], |row| row.get(0))
+        .expect("recount observation should be readable");
+    assert_eq!(recounts, 1);
+    assert!(article_is_read(&db, "article-a1"));
+    assert!(article_is_read(&db, "article-a2"));
+    assert!(!article_is_read(&db, "article-b1"));
 
     let feed_a_unread: i64 = db
         .reader()
@@ -2222,7 +2461,7 @@ fn bulk_feed_unread_recalculation_handles_duplicate_rows_once_per_feed() {
         )
         .expect("feed-b unread count query should succeed");
 
-    assert_eq!(feed_a_unread, 2);
+    assert_eq!(feed_a_unread, 0);
     assert_eq!(feed_b_unread, 77);
 }
 
@@ -2251,12 +2490,12 @@ fn old_unread_missing_targets_are_zero_count_success() {
     ];
 
     for (scope, target_id) in cases {
-        let rows = collect_old_unread_rows(db.reader(), scope, target_id, before)
+        let count = count_old_unread_with_conn(db.reader(), scope, target_id, before)
             .expect("missing old unread target count should succeed");
         let marked = bulk_mark_old_unread_read(db.writer(), scope, target_id, before)
             .expect("missing old unread target mark should succeed");
 
-        assert!(rows.is_empty(), "{target_id} should count as zero");
+        assert_eq!(count, 0, "{target_id} should count as zero");
         assert_eq!(marked, 0, "{target_id} should mark zero articles");
     }
     assert!(!article_is_read(&db, "article-a"));

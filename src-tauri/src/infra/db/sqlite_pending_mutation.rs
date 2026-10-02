@@ -67,6 +67,65 @@ fn delete_replaced_mutations(
     Ok(())
 }
 
+fn validate_pending_mutation(conn: &Connection, mutation: &PendingMutation) -> DomainResult<()> {
+    if mutation.remote_entry_id.trim().is_empty() {
+        return Err(DomainError::Validation(
+            "pending mutation remote_entry_id cannot be blank".to_string(),
+        ));
+    }
+    match pending_mutation_account_scope(conn, &mutation.account_id)? {
+        PendingMutationAccountScope::LocalOnly => {
+            return Err(DomainError::Validation(
+                "pending mutations require a remote account".to_string(),
+            ));
+        }
+        PendingMutationAccountScope::Remote(kind) => {
+            let capabilities = kind.capabilities();
+            if !mutation.mutation_type.is_supported_by(&capabilities) {
+                return Err(DomainError::Validation(format!(
+                    "pending mutation {} is not supported by account provider capabilities",
+                    mutation.mutation_type
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Saves into the caller's transaction without starting or committing another one.
+/// The caller must roll back the transaction if this operation fails.
+pub(super) fn save_pending_mutation_in_transaction(
+    tx: &rusqlite::Transaction<'_>,
+    mutation: &PendingMutation,
+) -> DomainResult<()> {
+    validate_pending_mutation(tx, mutation)?;
+    replace_pending_mutation(tx, mutation)
+}
+
+fn replace_pending_mutation(
+    tx: &rusqlite::Transaction<'_>,
+    mutation: &PendingMutation,
+) -> DomainResult<()> {
+    let replacement_types = mutation.mutation_type.replacement_type_values();
+    delete_replaced_mutations(
+        tx,
+        &mutation.account_id,
+        &mutation.remote_entry_id,
+        replacement_types,
+    )?;
+    tx.execute(
+            "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                mutation.account_id.0,
+                mutation.mutation_type.as_str(),
+                mutation.remote_entry_id,
+                mutation.created_at,
+            ],
+        )?;
+    Ok(())
+}
+
 pub struct SqlitePendingMutationRepository<'a> {
     conn: &'a Connection,
 }
@@ -107,45 +166,9 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
     }
 
     fn save(&self, mutation: &PendingMutation) -> DomainResult<()> {
-        if mutation.remote_entry_id.trim().is_empty() {
-            return Err(DomainError::Validation(
-                "pending mutation remote_entry_id cannot be blank".to_string(),
-            ));
-        }
-        match pending_mutation_account_scope(self.conn, &mutation.account_id)? {
-            PendingMutationAccountScope::LocalOnly => {
-                return Err(DomainError::Validation(
-                    "pending mutations require a remote account".to_string(),
-                ));
-            }
-            PendingMutationAccountScope::Remote(kind) => {
-                let capabilities = kind.capabilities();
-                if !mutation.mutation_type.is_supported_by(&capabilities) {
-                    return Err(DomainError::Validation(format!(
-                        "pending mutation {} is not supported by account provider capabilities",
-                        mutation.mutation_type
-                    )));
-                }
-            }
-        }
-
+        validate_pending_mutation(self.conn, mutation)?;
         let tx = self.conn.unchecked_transaction()?;
-        let replacement_types = mutation.mutation_type.replacement_type_values();
-        delete_replaced_mutations(
-            &tx,
-            &mutation.account_id,
-            &mutation.remote_entry_id,
-            replacement_types,
-        )?;
-        tx.execute(
-            "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at) VALUES (?1, ?2, ?3, ?4)",
-            params![
-                mutation.account_id.0,
-                mutation.mutation_type.as_str(),
-                mutation.remote_entry_id,
-                mutation.created_at,
-            ],
-        )?;
+        replace_pending_mutation(&tx, mutation)?;
         tx.commit()?;
         Ok(())
     }

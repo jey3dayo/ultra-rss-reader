@@ -3,6 +3,7 @@ pub mod connection;
 pub mod migration;
 pub mod sqlite_account;
 pub mod sqlite_article;
+pub(crate) mod sqlite_article_change;
 pub mod sqlite_feed;
 pub mod sqlite_folder;
 pub mod sqlite_local_account_sync_settings;
