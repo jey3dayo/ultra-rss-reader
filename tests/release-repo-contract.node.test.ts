@@ -967,11 +967,24 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
   });
 
-  it("keeps release workflow permissions limited to release asset publishing", () => {
+  it("limits release writes to contents and preflight run-history access to read", () => {
     const releasePermissions = extractYamlScalarBlockEntries(extractTopLevelYamlBlock(releaseWorkflow, "permissions"));
 
     expect(releasePermissions).toEqual({ contents: "write" });
-    expect(releaseWorkflow).not.toMatch(/^ {4}permissions:/m);
+    const jobPermissions = [...releaseWorkflow.matchAll(/^ {4}permissions:\n((?: {6}[^\n]+\n)+)/gm)];
+    expect(jobPermissions.map((match) => match[1])).toEqual(["      contents: write\n      actions: read\n"]);
+    expect(releaseWorkflow).toContain("  preflight:\n    permissions:\n      contents: write\n      actions: read");
+  });
+
+  it("checks the build slot under the tag lock and revalidates every build attempt", () => {
+    expect(releaseWorkflow).toContain("run: node ./scripts/release/validate-source.ts");
+    expect(releaseWorkflow).toContain("node ./scripts/release/guard-release-build.ts");
+    expect(releaseWorkflow).toContain(`validated_run_attempt: \${{ steps.build-slot.outputs.validated_run_attempt }}`);
+    const releaseJob = releaseWorkflow.slice(releaseWorkflow.indexOf("\n  release:"));
+    expect(releaseJob).toContain('if [[ "$VALIDATED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]]');
+    expect(releaseJob.indexOf("Require preflight for this run attempt")).toBeLessThan(
+      releaseJob.indexOf("actions/checkout@"),
+    );
   });
 
   it("keeps release workflow action, token, and cache surfaces pinned to the release asset scope", () => {
