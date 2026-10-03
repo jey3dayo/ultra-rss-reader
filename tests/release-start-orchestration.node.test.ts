@@ -35,6 +35,7 @@ describe("release side effects", () => {
   let dispatchFails: boolean;
   let mainMoved: boolean;
   let priorRun: boolean;
+  let unresolvedReleaseTarget: string | undefined;
   let writes: string[];
 
   beforeEach(() => {
@@ -45,6 +46,7 @@ describe("release side effects", () => {
     dispatchFails = false;
     mainMoved = false;
     priorRun = false;
+    unresolvedReleaseTarget = undefined;
     writes = [];
     for (const [name, value] of Object.entries({
       RELEASE_TAG: tag,
@@ -88,16 +90,19 @@ describe("release side effects", () => {
         const path = input.replace("https://api.github.com/repos/o/r/", "");
         const method = init?.method ?? "GET";
         if (input === "https://api.github.com/graphql") {
-          const nodes = otherRelease
-            ? [{ tagName: "other-tag", tagCommit: { oid: state.sha }, url: "existing" }]
-            : draftExists
-              ? [{ tagName: tag, tagCommit: { oid: state.sha }, url: draft.html_url }]
-              : [];
+          const nodes = unresolvedReleaseTarget
+            ? [{ databaseId: 99, tagName: "old-tag", tagCommit: null, url: "old-release" }]
+            : otherRelease
+              ? [{ tagName: "other-tag", tagCommit: { oid: state.sha }, url: "existing" }]
+              : draftExists
+                ? [{ tagName: tag, tagCommit: { oid: state.sha }, url: draft.html_url }]
+                : [];
           return Response.json({
             data: { repository: { releases: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } },
           });
         }
         if (method === "POST") writes.push(path);
+        if (path === "releases/99") return Response.json({ target_commitish: unresolvedReleaseTarget });
         if (path === "git/ref/heads/main")
           return Response.json({ object: { type: "commit", sha: mainMoved ? "b".repeat(40) : state.sha } });
         if (path.startsWith("actions/workflows/ci.yml/"))
@@ -160,6 +165,15 @@ describe("release side effects", () => {
     tagExists = true;
     await startRelease();
     expect(writes).toEqual(["releases", "dispatch"]);
+  });
+
+  it("allows an unrelated missing tag but rejects its explicit same-SHA release target", async () => {
+    unresolvedReleaseTarget = state.sha;
+    await expect(startRelease()).rejects.toThrow("already targets this commit");
+    expect(writes).toEqual([]);
+    unresolvedReleaseTarget = "b".repeat(40);
+    await startRelease();
+    expect(writes).toEqual(["git/tags", "git/refs", "releases", "dispatch"]);
   });
   it("stops before writes when main moved, a same-SHA release exists, or a prior run exists", async () => {
     mainMoved = true;

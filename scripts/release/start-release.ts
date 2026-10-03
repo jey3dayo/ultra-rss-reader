@@ -25,7 +25,7 @@ type WorkflowRun = {
 };
 type WorkflowRuns = { workflow_runs: WorkflowRun[] };
 type ReleaseConnection = {
-  nodes: { tagName: string; tagCommit: { oid: string } | null; url: string }[];
+  nodes: { databaseId: number; tagName: string; tagCommit: { oid: string } | null; url: string }[];
   pageInfo: { hasNextPage: boolean; endCursor: string | null };
 };
 type ReleaseQuery = {
@@ -168,7 +168,7 @@ export const startRelease = async (): Promise<void> => {
         query: `query($owner:String!,$name:String!,$after:String) {
           repository(owner:$owner,name:$name) {
             releases(first:100,after:$after) {
-              nodes { tagName tagCommit { oid } url }
+              nodes { databaseId tagName tagCommit { oid } url }
               pageInfo { hasNextPage endCursor }
             }
           }
@@ -182,8 +182,17 @@ export const startRelease = async (): Promise<void> => {
       );
       if (existing)
         throw new Error(`Release already exists: ${existing.url}. Preserve notes/assets and inspect recovery.`);
-      if (releases.nodes.some((release) => !release.tagCommit))
-        throw new Error("Cannot resolve an existing release commit");
+      for (const release of releases.nodes.filter((candidate) => !candidate.tagCommit)) {
+        const detail = await get<{ target_commitish: string }>(`releases/${release.databaseId}`);
+        const target = detail.target_commitish;
+        if (typeof target !== "string" || !target) throw new Error("Cannot verify an existing release target");
+        const resolved = /^[0-9a-f]{40}$/.test(target)
+          ? { sha: target }
+          : await request<{ sha: string }>("GET", `commits/${encodeURIComponent(target)}`, undefined, true);
+        if (resolved?.sha === expectedSha) {
+          throw new Error(`Release already targets this commit: ${release.url}; inspect recovery`);
+        }
+      }
       if (!releases.pageInfo.hasNextPage) return;
       if (!releases.pageInfo.endCursor || releases.pageInfo.endCursor === after)
         throw new Error("Invalid release cursor");
