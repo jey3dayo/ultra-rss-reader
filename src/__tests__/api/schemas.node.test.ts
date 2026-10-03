@@ -116,7 +116,6 @@ const RUST_ARTICLE_COMMAND_MODULE_FILES = [
   "browser.rs",
   "integrity.rs",
   "mutations/mod.rs",
-  "mutations/pending.rs",
   "mutations/bulk.rs",
   "mutations/single.rs",
   "queries.rs",

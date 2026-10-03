@@ -47,6 +47,53 @@ fn save_and_find_by_account() {
 }
 
 #[test]
+fn transaction_batches_validate_each_account_and_reload_changed_providers() {
+    let db = test_db();
+    let account_a = insert_test_account(&db);
+    let account_b = insert_test_account(&db);
+    let mutations = [account_a.clone(), account_b.clone()].map(|account_id| PendingMutation {
+        id: None,
+        account_id,
+        mutation_type: PendingMutationType::MarkRead,
+        remote_entry_id: "shared-entry".to_string(),
+        created_at: "2024-01-01T00:00:00Z".to_string(),
+    });
+    let tx = db.writer().unchecked_transaction().unwrap();
+    save_pending_mutations_in_transaction(&tx, mutations.clone())
+        .expect("a batch should validate and queue both remote accounts");
+    tx.commit().expect("the valid batch should commit");
+
+    db.writer()
+        .execute(
+            "UPDATE accounts SET kind = 'Local' WHERE id = ?1",
+            params![account_b.0],
+        )
+        .expect("provider change fixture should succeed");
+
+    let replacements = mutations.map(|mut mutation| {
+        mutation.mutation_type = PendingMutationType::MarkUnread;
+        mutation
+    });
+    let tx = db.writer().unchecked_transaction().unwrap();
+    let error = save_pending_mutations_in_transaction(&tx, replacements)
+        .expect_err("a new batch must reject the account that became local");
+    assert!(
+        matches!(error, DomainError::Validation(message) if message == "pending mutations require a remote account")
+    );
+    tx.rollback().expect("the failed batch should roll back");
+
+    let unchanged_count: i64 = db
+        .reader()
+        .query_row(
+            "SELECT COUNT(*) FROM pending_mutations WHERE mutation_type = 'mark_read'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("committed queue entries should remain readable");
+    assert_eq!(unchanged_count, 2);
+}
+
+#[test]
 fn save_persists_created_at_as_utc_rfc3339_string() {
     let db = test_db();
     let account_id = insert_test_account(&db);
@@ -677,7 +724,7 @@ fn save_keeps_existing_pending_mutation_when_replacement_insert_fails() {
     let result = repo.save(&PendingMutation {
         id: None,
         account_id: account_id.clone(),
-        mutation_type: PendingMutationType::Unstar,
+        mutation_type: PendingMutationType::MarkUnread,
         remote_entry_id: "entry-1".to_string(),
         created_at: "2024-01-01T00:00:01Z".to_string(),
     });

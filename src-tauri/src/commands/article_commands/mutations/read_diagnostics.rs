@@ -121,25 +121,13 @@ impl ReadDbErrorClass {
     }
 }
 
-pub(crate) fn classify_rusqlite_error(error: &rusqlite::Error) -> ReadDbErrorClass {
-    match error {
-        rusqlite::Error::SqliteFailure(sqlite_error, _) => match sqlite_error.code {
-            rusqlite::ErrorCode::DatabaseBusy => ReadDbErrorClass::Busy,
-            rusqlite::ErrorCode::DatabaseLocked => ReadDbErrorClass::Locked,
-            rusqlite::ErrorCode::ConstraintViolation => ReadDbErrorClass::Constraint,
-            _ => ReadDbErrorClass::Other,
-        },
+pub(crate) fn classify_sqlite_error_code(code: Option<rusqlite::ErrorCode>) -> ReadDbErrorClass {
+    match code {
+        Some(rusqlite::ErrorCode::DatabaseBusy) => ReadDbErrorClass::Busy,
+        Some(rusqlite::ErrorCode::DatabaseLocked) => ReadDbErrorClass::Locked,
+        Some(rusqlite::ErrorCode::ConstraintViolation) => ReadDbErrorClass::Constraint,
         _ => ReadDbErrorClass::Other,
     }
-}
-
-/// A repository call already collapsed its failure into `DomainError` before we see it, so the
-/// original SQLite code (if any) is gone. Classifying by domain error kind alone (never by its
-/// message) is coarser than `classify_rusqlite_error` but stays within the "type only" contract.
-pub(crate) fn classify_domain_error(
-    _error: &crate::domain::error::DomainError,
-) -> ReadDbErrorClass {
-    ReadDbErrorClass::Other
 }
 
 /// Pure timing classification: which of the three provisional thresholds this operation tripped.
@@ -394,7 +382,7 @@ pub(crate) fn log_mark_article_read_timing(
 mod tests {
     use super::{
         build_mark_article_read_failure_log_fields, classify_mark_article_read_timing,
-        classify_rusqlite_error, DiagnosticRateLimiter, MarkArticleReadStage, RateLimitDecision,
+        classify_sqlite_error_code, DiagnosticRateLimiter, MarkArticleReadStage, RateLimitDecision,
         ReadDbErrorClass, ReadDiagnosticContext, ReadDiagnosticSource, LOCK_WAIT_WARN_THRESHOLD_MS,
         TOTAL_WARN_THRESHOLD_MS, TRANSACTION_WARN_THRESHOLD_MS,
     };
@@ -471,34 +459,40 @@ mod tests {
     }
 
     #[test]
-    fn classify_rusqlite_error_maps_known_sqlite_codes() {
+    fn classify_sqlite_error_code_maps_known_sqlite_codes() {
         use rusqlite::ffi;
 
         let busy = rusqlite::Error::SqliteFailure(ffi::Error::new(ffi::SQLITE_BUSY), None);
-        assert_eq!(classify_rusqlite_error(&busy), ReadDbErrorClass::Busy);
+        assert_eq!(
+            classify_sqlite_error_code(busy.sqlite_error_code()),
+            ReadDbErrorClass::Busy
+        );
 
         let locked = rusqlite::Error::SqliteFailure(ffi::Error::new(ffi::SQLITE_LOCKED), None);
-        assert_eq!(classify_rusqlite_error(&locked), ReadDbErrorClass::Locked);
+        assert_eq!(
+            classify_sqlite_error_code(locked.sqlite_error_code()),
+            ReadDbErrorClass::Locked
+        );
 
         let constraint =
             rusqlite::Error::SqliteFailure(ffi::Error::new(ffi::SQLITE_CONSTRAINT), None);
         assert_eq!(
-            classify_rusqlite_error(&constraint),
+            classify_sqlite_error_code(constraint.sqlite_error_code()),
             ReadDbErrorClass::Constraint
         );
 
         assert_eq!(
-            classify_rusqlite_error(&rusqlite::Error::QueryReturnedNoRows),
+            classify_sqlite_error_code(rusqlite::Error::QueryReturnedNoRows.sqlite_error_code()),
             ReadDbErrorClass::Other
         );
     }
 
     #[test]
-    fn classify_rusqlite_error_never_needs_the_error_message() {
+    fn classify_sqlite_error_code_never_needs_the_error_message() {
         // Regression guard: classification must be derivable without ever formatting the error,
         // which would risk leaking raw SQL/bind-value text into a diagnostic log.
         let error = rusqlite::Error::QueryReturnedNoRows;
-        let _ = classify_rusqlite_error(&error);
+        let _ = classify_sqlite_error_code(error.sqlite_error_code());
         let _ = error.to_string(); // Display still works; classification just never calls it.
     }
 

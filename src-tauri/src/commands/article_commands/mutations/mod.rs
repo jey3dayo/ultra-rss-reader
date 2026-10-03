@@ -1,5 +1,4 @@
 mod bulk;
-mod pending;
 pub(crate) mod read_diagnostics;
 mod single;
 
@@ -25,14 +24,8 @@ pub use single::{
 #[cfg(test)]
 pub(crate) use bulk::{
     bulk_mark_account_read, bulk_mark_account_starred_read, bulk_mark_old_unread_read,
-    bulk_unstar_account_articles, collect_old_unread_rows, old_unread_before_from_now,
-    recalculate_bulk_feed_unread_counts, validate_older_than_days, OldUnreadScope,
-};
-
-#[cfg(test)]
-pub(crate) use pending::{
-    maybe_queue_mutation, provider_supports_pending_article_mutations, supports_remote_mutations,
-    BulkArticleMutationRow,
+    bulk_unstar_account_articles, old_unread_before_from_now, validate_older_than_days,
+    OldUnreadScope,
 };
 
 #[cfg(test)]
