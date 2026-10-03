@@ -1,0 +1,48 @@
+# Start a release from GitHub Actions
+
+This manual entry point prepares a draft and starts the existing release build.
+It does not publish the release or replace signing and artifact verification.
+
+## Inputs and prerequisites
+
+1. Merge the approved version and changelog changes into `main`.
+2. Wait for the latest `ci.yml` push run on that exact main commit to succeed.
+3. Run **Start Release** from the `main` branch with:
+   - `release_tag`: the stable tag matching all five version owners, e.g. `v0.64.4`
+   - `expected_sha`: the full 40-character main commit SHA you reviewed
+
+The starter verifies the checkout, current remote main, versions, changelog,
+and exact-SHA main CI before writing. It creates an annotated tag and an empty
+draft Release, then explicitly dispatches `release.yml` with the tag as its ref.
+This explicit dispatch is necessary because tag writes made with `GITHUB_TOKEN`
+do not trigger another push workflow.
+
+The starter uses only the job-scoped `GITHUB_TOKEN` with `contents: write` and
+`actions: write`. No PAT or additional signing secret is required. Signing
+secrets remain in the existing release build. Do not run the starter and a
+separate manual release dispatch concurrently.
+
+## Verification and publication
+
+The job summary records the tag, commit, draft URL, and matching release run.
+A successful starter means the build was dispatched, not that release assets
+are ready. Follow the existing release artifact and manual-verification
+procedures before publishing the draft. Verify the release run has the exact
+tag and SHA, all required builds succeeded, and signatures, updater metadata,
+checksums, provenance, and expected platform assets are correct.
+
+## Failure and recovery
+
+- A changed main commit or unsuccessful CI stops without releasing that commit.
+- An existing lightweight tag or a tag pointing elsewhere is never overwritten.
+- A matching annotated tag with no draft or release run can be reused.
+- Any existing draft/published Release or release run for the SHA stops the
+  starter. This intentionally includes dry runs and failed/cancelled runs.
+- An uncertain dispatch leaves the draft intact. Inspect Actions and the draft
+  before using the existing manual recovery procedure; do not blindly retry.
+- Partial build assets must be inspected using the existing release recovery
+  procedure. The starter never deletes assets or reruns uploads automatically.
+
+The assistant release skill should adopt this route only after its first
+end-to-end release has been verified; adding this entry point alone is not
+evidence of a successful production release.
