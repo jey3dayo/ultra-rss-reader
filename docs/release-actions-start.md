@@ -80,11 +80,16 @@ existing updater distribution path.
 - A matching annotated tag with no draft or release run can be reused.
 - Any existing draft/published Release or release run for the SHA stops the
   starter. This intentionally includes dry runs and failed/cancelled runs.
+- Do not start a dry run for a SHA intended for production publication. Reruns
+  preserve `dry_run=true` and cannot produce artifacts, while a fresh build run
+  for that SHA is rejected. If a dry run already owns the commit, stop and
+  report the blocker for a separately approved recovery/design change. Do not
+  delete run history, retag, or weaken the duplicate guard to work around it.
 - An uncertain dispatch leaves the draft intact. First inspect Actions for the
   exact tag and commit. If a run exists, follow that run instead of dispatching
   another. If no run exists and the draft is empty, dispatch the existing
   **Release** workflow once with its ref and `release_tag` both set to the tag.
-- If the original run failed before any upload, explicitly **Re-run all jobs**
+- If the original artifact-building run (`dry_run=false`) failed before any upload, explicitly **Re-run all jobs**
   on that original run ID after fixing the cause. A different run ID for the
   commit is rejected. Re-running only failed/individual jobs is rejected before
   build/upload because it would reuse a preflight from a previous run attempt.
@@ -92,6 +97,7 @@ existing updater distribution path.
   removing incomplete output. Only after deliberate cleanup and confirming the
   draft is empty may the original run ID be rerun. No automatic cleanup occurs;
   asset removal requires a deliberate, authorized cleanup decision.
+  This rerun path also requires the original run to have `dry_run=false`.
 - If all assets exist, use **Release** with `reuse_existing_assets=true` and `dry_run=false` to
   validate the unpublished draft without rebuilding or uploading. Follow the
   [provenance and signing checklist](./release-manual-verification.md) before

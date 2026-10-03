@@ -42,7 +42,7 @@ Use `scripts/release_checks.py` for deterministic helper checks when useful. Dur
 - Own approval carry-forward and every stop/continue decision.
 - Own `current_version`, `new_version`, `previous_tag`, release commit hash, tag name, and publication intent.
 - Run and interpret all release gates.
-- Edit release files, create the release commit, create the annotated tag, push, and mutate GitHub Releases.
+- Edit release files and own the reviewed source commit/PR. On the Local CLI route, create the release commit and annotated tag and push after its gates pass. On the Actions route, initiate and verify Start Release's tag/draft/dispatch operations; do not duplicate them locally. Own subsequent Release edits and authorized publication on either route.
 - Verify any subagent draft against local evidence before using it.
 - Report phase checkpoints and final remote state.
 
