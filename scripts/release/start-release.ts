@@ -24,6 +24,14 @@ type WorkflowRun = {
   html_url: string;
 };
 type WorkflowRuns = { workflow_runs: WorkflowRun[] };
+type ReleaseConnection = {
+  nodes: { tagName: string; tagCommit: { oid: string } | null; url: string }[];
+  pageInfo: { hasNextPage: boolean; endCursor: string | null };
+};
+type ReleaseQuery = {
+  errors?: unknown[];
+  data?: { repository: { releases: ReleaseConnection } | null };
+};
 
 export const validateStartInputs = (releaseTag: string, expectedSha: string): void => {
   if (releaseTag !== releaseTag.trim() || !/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(releaseTag)) {
@@ -83,7 +91,7 @@ const requiredEnv = (name: string): string => {
   return value;
 };
 
-const startRelease = async (): Promise<void> => {
+export const startRelease = async (): Promise<void> => {
   const releaseTag = requiredEnv("RELEASE_TAG");
   const expectedSha = requiredEnv("EXPECTED_SHA");
   validateStartInputs(releaseTag, expectedSha);
@@ -109,7 +117,7 @@ const startRelease = async (): Promise<void> => {
     body?: unknown,
     optional = false,
   ): Promise<T | undefined> => {
-    const response = await fetch(`${base}/${endpoint}`, {
+    const response = await fetch(endpoint === "graphql" ? "https://api.github.com/graphql" : `${base}/${endpoint}`, {
       method,
       headers: {
         Accept: "application/vnd.github+json",
@@ -153,14 +161,33 @@ const startRelease = async (): Promise<void> => {
     }
   };
   const noExistingRelease = async (): Promise<void> => {
-    // Authenticated listing includes drafts; a by-tag 404 alone is not enough.
-    for (let page = 1; ; page += 1) {
-      const releases = await get<Release[]>(`releases?per_page=100&page=${page}`);
-      const existing = releases.find((release) => release.tag_name === releaseTag);
-      if (existing) {
-        throw new Error(`Release already exists: ${existing.html_url}. Preserve notes/assets and inspect recovery.`);
-      }
-      if (releases.length < 100) return;
+    const [owner, name] = repository.split("/");
+    let after: string | null = null;
+    for (;;) {
+      const response: ReleaseQuery | undefined = await request<ReleaseQuery>("POST", "graphql", {
+        query: `query($owner:String!,$name:String!,$after:String) {
+          repository(owner:$owner,name:$name) {
+            releases(first:100,after:$after) {
+              nodes { tagName tagCommit { oid } url }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        }`,
+        variables: { owner, name, after },
+      });
+      const releases: ReleaseConnection | undefined = response?.data?.repository?.releases;
+      if (response?.errors?.length || !releases) throw new Error("Cannot verify existing releases");
+      const existing = releases.nodes.find(
+        (release) => release.tagName === releaseTag || release.tagCommit?.oid === expectedSha,
+      );
+      if (existing)
+        throw new Error(`Release already exists: ${existing.url}. Preserve notes/assets and inspect recovery.`);
+      if (releases.nodes.some((release) => !release.tagCommit))
+        throw new Error("Cannot resolve an existing release commit");
+      if (!releases.pageInfo.hasNextPage) return;
+      if (!releases.pageInfo.endCursor || releases.pageInfo.endCursor === after)
+        throw new Error("Invalid release cursor");
+      after = releases.pageInfo.endCursor;
     }
   };
   const verifyRemoteTag = async (): Promise<void> => {

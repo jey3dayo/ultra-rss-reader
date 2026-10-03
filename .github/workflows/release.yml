@@ -34,12 +34,16 @@ concurrency:
 
 jobs:
   preflight:
+    permissions:
+      contents: write
+      actions: read
     if: >-
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
+      validated_run_attempt: ${{ steps.build-slot.outputs.validated_run_attempt }}
       should_publish: ${{ steps.signing-preflight.outputs.should_publish }}
       should_build: ${{ steps.signing-preflight.outputs.should_build }}
       release_matrix: ${{ steps.resolve-release-matrix.outputs.matrix }}
@@ -60,6 +64,18 @@ jobs:
           WORKFLOW_REF_NAME: ${{ github.ref_name }}
           REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
         run: node ./scripts/release/validate-source.ts
+
+      - name: Reject duplicate or published release builds
+        id: build-slot
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
+        run: |
+          set -euo pipefail
+          node ./scripts/release/guard-release-build.ts
+          echo "validated_run_attempt=$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
         with:
@@ -183,6 +199,17 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Require preflight for this run attempt
+        shell: bash
+        env:
+          VALIDATED_RUN_ATTEMPT: ${{ needs.preflight.outputs.validated_run_attempt }}
+        run: |
+          set -euo pipefail
+          if [[ "$VALIDATED_RUN_ATTEMPT" != "$GITHUB_RUN_ATTEMPT" ]]; then
+            echo "::error::Rerun all jobs after inspecting draft assets so preflight validates this attempt"
+            exit 1
+          fi
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.ref }}

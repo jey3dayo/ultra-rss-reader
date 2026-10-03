@@ -2274,6 +2274,10 @@ describe("repository static contracts", () => {
         },
       },
       {
+        path: ".github/workflows/release-start.yml",
+        permissions: {},
+      },
+      {
         path: ".github/workflows/release.yml",
         permissions: {
           contents: "write",
