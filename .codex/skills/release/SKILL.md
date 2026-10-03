@@ -1,13 +1,13 @@
 ---
 name: release
-description: Use when cutting an Ultra RSS Reader release from `main`, choosing a semver bump, synchronizing the five version owners with `scripts/release/bump-version.ts`, generating `CHANGELOG.md` and GitHub Release notes from commit history, tagging `v*`, pushing safely, and verifying the draft GitHub Release workflow.
+description: Cut an Ultra RSS Reader release through local CLI or guarded GitHub Actions, synchronize versions and notes, verify the exact source and artifacts, and publish when authorized.
 ---
 
 # Release
 
 ## Operating Model
 
-Cut releases as a parent-controlled workflow. The parent agent owns state, approval, file edits, commit/tag/push, and GitHub Release mutation. Use subagents only for read-only inventory, drafting, review, or post-push observation.
+Cut releases as a parent-controlled workflow. The parent owns state, approval, file edits, PR/merge decisions, tag/build initiation, recovery, and publication. Actions may perform protected tag, draft, and dispatch operations on the parent's behalf. Use subagents only for read-only inventory, drafting, review, or observation.
 
 Keep a compact release state after each phase so the workflow can recover from context compaction:
 
@@ -16,6 +16,15 @@ release_state: current=<x.y.z> new=<x.y.z> bump=<patch|minor|major> previous_tag
 ```
 
 If a required check fails, stop immediately. Do not carry approval across failed checks, dirty working trees, branch mismatch, version mismatch, unexpected generated files, user correction requests, or external publication uncertainty.
+
+## Route Selection
+
+- **Local CLI:** Use the Phase 1–3 references when the checkout, toolchain, Git push authentication, and `gh` authentication are available. Preserve all local preflight and pre-push gates.
+- **GitHub Actions:** For a stable release without local CLI credentials, follow [the Actions runbook](../../../docs/release-actions-start.md) at repository path `docs/release-actions-start.md`. Prepare the version/CHANGELOG PR through the authorized repository connection, verify the merge and exact-main CI, then run **Start Release** from `main` in the authenticated GitHub UI with `release_tag` and `expected_sha`. This replaces local Phase 1–3 orchestration; do not also create/push a local tag.
+- A working connector or clone is not proof of Git push or `gh` authentication. Do not extract credentials, add a PAT, or change routes to bypass a denied action or failed required check.
+- Both routes converge on Phase 4. A tag/push or draft-only request does not authorize publication.
+
+Record the route, source CI URL, starter run ID when applicable, build run ID/attempt, and Release ID/URL alongside `release_state`.
 
 ## Reference Loading
 
@@ -33,7 +42,7 @@ Use `scripts/release_checks.py` for deterministic helper checks when useful. Dur
 - Own approval carry-forward and every stop/continue decision.
 - Own `current_version`, `new_version`, `previous_tag`, release commit hash, tag name, and publication intent.
 - Run and interpret all release gates.
-- Edit release files, create the release commit, create the annotated tag, push, and mutate GitHub Releases.
+- Edit release files and own the reviewed source commit/PR. On the Local CLI route, create the release commit and annotated tag and push after its gates pass. On the Actions route, initiate and verify Start Release's tag/draft/dispatch operations; do not duplicate them locally. Own subsequent Release edits and authorized publication on either route.
 - Verify any subagent draft against local evidence before using it.
 - Report phase checkpoints and final remote state.
 
@@ -62,7 +71,7 @@ When using subagents, give each one a read-only task and require evidence: comma
 
 Minimize repeat confirmations by carrying forward explicit user intent.
 
-- Treat a user request that includes a valid bump and publication intent (`push`, `publish`, `tag`, `release`, `最後まで`, `リリースして`) as approval to run all phases after required checks pass.
+- Carry explicit user intent only through authorized steps. A request to publish, release, or finish the release can cover publication after required checks pass; tag/push-only and draft-only requests do not.
 - Treat a later reply such as `OK`, `push`, `進めて`, or `そのまま` as approval for the next blocked step and every remaining step that matches the reply's intent.
 - Ask for the bump type only when it is absent or invalid.
 - Ask for release-note edits only when the user has not already approved publication, or when the generated notes are ambiguous enough that publishing them would be risky.
@@ -70,6 +79,8 @@ Minimize repeat confirmations by carrying forward explicit user intent.
 - Even when approval carries forward, show the Phase 2 checkpoint with `current_version -> new_version`, changed files, release notes, and `release_state`, then continue without waiting.
 
 ## Phase 1: Pre-Checks And Version Choice
+
+Phases 1–3 below apply to the Local CLI route. The Actions preparation/start sequence is owned by `docs/release-actions-start.md`.
 
 Read `references/phase-1-prechecks.md`, then complete every check before editing anything.
 
@@ -139,8 +150,15 @@ Final report must include:
 - matching `release.yml` workflow URL and evidence that its tag/ref and head SHA match the release;
 - GitHub Release URL, `tagName`, and draft status;
 - whether any `untagged-...` Release URL is acceptable based on structured fields;
-- reminder to review the draft Release and publish it manually after artifacts look correct
-  (the Claude `/release` command publishes in its own Phase 4; this skill stops at the verified draft).
+- proceed to Phase 4 when publication is authorized; otherwise report the verified draft and remaining checks.
+
+## Phase 4: Verify And Publish
+
+Follow the verification/publication section of `docs/release-actions-start.md` for both routes. The parent verifies the original build run's exact tag/ref and SHA, required job conclusions, draft identity/body, and expected artifact inventory. Starter success, a dry run, or inventory-only recovery is not proof of a successful release build.
+
+Keep the applicable checks in `docs/release-manual-verification.md`. Record passed, failed, not-in-scope, and explicitly waived checks accurately. A release-specific exception is not a standing waiver. Asset presence alone is not cryptographic signature verification.
+
+When the required checks are satisfied and publication is authorized, publish through the authenticated GitHub Release UI or existing `gh` credentials. Re-read the Release and verify tag, published state, prerelease/latest policy, notes, and assets. Report its URL, source SHA, original build run URL/conclusion, asset summary, and verification exceptions.
 
 ## Guardrails
 
