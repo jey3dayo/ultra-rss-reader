@@ -194,6 +194,15 @@ describe("useSidebarController", () => {
     toggleAccountListMock.mockReset();
   });
 
+  it.each([false, true])("applies the opaque sidebar preference when it is %s", (opaqueSidebars) => {
+    runtimeState.value = createRuntime({ opaqueSidebars });
+
+    const { result } = renderHook(() => useSidebarController());
+
+    expect(result.current.sidebarClassName.split(" ").includes("bg-opacity-100")).toBe(opaqueSidebars);
+    expect(result.current.sidebarClassName).toContain("text-sidebar-foreground");
+  });
+
   it("cancels a pending wide account pane focus request when a newer request supersedes it", () => {
     const frameCallbacks: FrameRequestCallback[] = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {

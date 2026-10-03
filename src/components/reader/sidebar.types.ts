@@ -1,5 +1,4 @@
 import type { TFunction } from "i18next";
-import type { RefObject } from "react";
 import type { SortSubscriptions } from "@/schemas/preference-values";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarAccountSectionProps } from "./sidebar-account-section";
@@ -49,11 +48,9 @@ export type SidebarSectionPropsResult = {
   contentSectionsProps: SidebarContentProps;
 };
 
-export type SidebarViewPropsResult = SidebarSectionPropsResult & {
+export type SidebarControllerResult = SidebarSectionPropsResult & {
   sidebarClassName: string;
 };
-
-export type SidebarControllerResult = SidebarViewPropsResult;
 
 export type SidebarControllerSectionsParams = {
   t: TFunction<"sidebar">;
@@ -91,7 +88,6 @@ export type SidebarControllerSectionsParams = {
   accountDropdownRef: SidebarAccountContainerRef;
   accountTriggerRef: SidebarAccountTriggerRef;
   accountItemRefs: SidebarAccountItemRefs;
-  toggleAccountList: () => void;
   handleSelectAccount: SidebarAccountSelectHandler;
   closeAccountList: () => void;
   focusAccountList: () => void;
@@ -199,62 +195,6 @@ export type SidebarContentSectionsPropsParams = {
   isFeedTreeLoading: SidebarContentSectionsProps["feedTree"]["isLoading"];
   showFeedTreeSkeleton: SidebarContentSectionsProps["feedTree"]["showSkeleton"];
   onFocusAccountList: SidebarContentSectionsProps["onFocusAccountList"];
-};
-
-export type SidebarSectionPropsParams = {
-  t: TFunction<"sidebar">;
-  syncProgress: SidebarSyncProgress;
-  handleSync: SidebarSyncHandler;
-  syncTooltipLabel: string | null;
-  isSyncCoolingDown: boolean;
-  isSyncDisabled: boolean;
-  handleAddFeed: SidebarHeaderAddFeedHandler;
-  selectedAccountName?: string;
-  lastSyncedLabel: string;
-  accounts: SidebarAccountSectionProps["accounts"];
-  accountStatusLabels: SidebarAccountStatusLabels;
-  selectedAccountId: SidebarAccountSectionProps["selectedAccountId"];
-  isAccountListOpen: boolean;
-  accountMenuId: string;
-  accountDropdownRef: SidebarAccountContainerRef;
-  accountTriggerRef: SidebarAccountTriggerRef;
-  accountItemRefs: SidebarAccountItemRefs;
-  toggleAccountList: () => void;
-  handleSelectAccount: SidebarAccountSelectHandler;
-  closeAccountList: () => void;
-  focusAccountList: () => void;
-  visibleSmartViews: SidebarSmartViewsResult;
-  selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
-  isFeedsSectionOpen: boolean;
-  toggleFeedsSection: () => void;
-  renderSubscriptionsSectionContextMenu: SidebarSubscriptionsContextMenuRenderer;
-  feedViewportRef: RefObject<HTMLDivElement | null>;
-  openSubscriptionsIndex: () => void;
-  handleOpenSettings: () => void;
-  isAddFeedDialogOpen: boolean;
-  handleAddFeedDialogOpenChange: (open: boolean) => void;
-  showSidebarTags: boolean;
-  isTagsSectionOpen: boolean;
-  toggleTagsSection: () => void;
-  handleOpenAccountSettings: () => void;
-  feedTreeProps: SidebarFeedTreeSectionProps;
-  tags: SidebarTagItems;
-  tagArticleCounts: SidebarTagArticleCounts;
-  selection: SidebarTagSelection;
-  selectTag: SidebarTagSelectHandler;
-  renderTagContextMenu: SidebarTagContextMenuRenderer;
-  renderTagSectionContextMenu: SidebarTagSectionContextMenuRenderer;
-  sidebarDensity: SidebarDensity;
-  isFeedTreeLoading: SidebarContentSectionsProps["feedTree"]["isLoading"];
-  showFeedTreeSkeleton: SidebarContentSectionsProps["feedTree"]["showSkeleton"];
-};
-
-export type SidebarViewPropsParams = {
-  opaqueSidebars: boolean;
-  headerProps: SidebarHeaderProps;
-  accountSectionProps: SidebarAccountProps;
-  smartViewsProps: SidebarSmartViewsProps;
-  contentSectionsProps: SidebarContentProps;
 };
 
 export type SidebarContextMenuRenderersResult = {
