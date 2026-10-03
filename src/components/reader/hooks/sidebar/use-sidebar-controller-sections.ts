@@ -1,8 +1,11 @@
 import { useCallback } from "react";
+import { useSidebarAccountSectionProps } from "@/components/reader/hooks/sidebar/use-sidebar-account-section-props";
+import { useSidebarContentSectionsProps } from "@/components/reader/hooks/sidebar/use-sidebar-content-sections-props";
 import { useSidebarContextMenuRenderers } from "@/components/reader/hooks/sidebar/use-sidebar-context-menu-renderers";
 import { useSidebarFeedSectionController } from "@/components/reader/hooks/sidebar/use-sidebar-feed-section-controller";
-import { useSidebarSectionProps } from "@/components/reader/hooks/sidebar/use-sidebar-section-props";
+import { useSidebarHeaderProps } from "@/components/reader/hooks/sidebar/use-sidebar-header-props";
 import { useSidebarSmartViews } from "@/components/reader/hooks/sidebar/use-sidebar-smart-views";
+import { useSidebarSmartViewsProps } from "@/components/reader/hooks/sidebar/use-sidebar-smart-views-props";
 import type { SidebarControllerSectionsParams, SidebarSectionPropsResult } from "../../sidebar.types";
 
 export function useSidebarControllerSections({
@@ -150,14 +153,18 @@ export function useSidebarControllerSections({
     renderFeedContextMenu,
   });
 
-  return useSidebarSectionProps({
+  const headerProps = useSidebarHeaderProps({
     t,
+    selectedAccountId,
     syncProgress,
     handleSync,
     syncTooltipLabel,
     isSyncCoolingDown,
     isSyncDisabled,
     handleAddFeed,
+  });
+  const accountSectionProps = useSidebarAccountSectionProps({
+    t,
     selectedAccountName: selectedAccount?.name,
     lastSyncedLabel,
     accounts: accounts ?? [],
@@ -171,14 +178,17 @@ export function useSidebarControllerSections({
     toggleAccountList: focusAccountList,
     handleSelectAccount,
     closeAccountList,
-    focusAccountList,
-    visibleSmartViews,
-    selectSmartView: handleSelectSmartView,
+    handleOpenAccountSettings,
+  });
+  const contentSectionsProps = useSidebarContentSectionsProps({
+    t,
     isFeedsSectionOpen,
     toggleFeedsSection,
+    renderSubscriptionsSectionContextMenu,
     feedViewportRef,
     openSubscriptionsIndex,
     handleOpenSettings,
+    selectedAccountId,
     isAddFeedDialogOpen,
     handleAddFeedDialogOpenChange,
     showSidebarTags,
@@ -192,9 +202,22 @@ export function useSidebarControllerSections({
     selectTag: handleSelectTag,
     renderTagSectionContextMenu,
     renderTagContextMenu,
-    renderSubscriptionsSectionContextMenu,
     sidebarDensity,
     isFeedTreeLoading,
     showFeedTreeSkeleton,
+    onFocusAccountList: focusAccountList,
   });
+  const smartViewsProps = useSidebarSmartViewsProps({
+    t,
+    selectedAccountId,
+    visibleSmartViews,
+    selectSmartView: handleSelectSmartView,
+  });
+
+  return {
+    headerProps,
+    accountSectionProps,
+    smartViewsProps,
+    contentSectionsProps,
+  };
 }
