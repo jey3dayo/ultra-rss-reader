@@ -16,14 +16,12 @@ describe("useArticleListViewState", () => {
       useArticleListViewState(
         createParams({
           selection: { type: "smart", kind: "unread" },
-          isLoadingRecentArticles: true,
         }),
       ),
     );
 
     expect(result.current.footerModes).toEqual(["unread", "all", "starred"]);
     expect(result.current.footerDisabledModes).toEqual(["unread", "all", "starred"]);
-    expect(result.current.isPrimarySourceLoading).toBe(false);
   });
 
   it("keeps every footer button visible and locked for the starred smart view", () => {
@@ -37,28 +35,6 @@ describe("useArticleListViewState", () => {
 
     expect(result.current.footerModes).toEqual(["unread", "all", "starred"]);
     expect(result.current.footerDisabledModes).toEqual(["unread", "all", "starred"]);
-  });
-
-  it("uses the selected source loading flag before setup empty states", () => {
-    const { result } = renderHook(() =>
-      useArticleListViewState(
-        createParams({
-          selection: { type: "folder", folderId: "folder-1" },
-          selectedAccountId: "account-1",
-          accountListScopeId: "account-1",
-          accountCount: 0,
-          feedCount: 0,
-          filteredArticleCount: 0,
-          isLoadingAccountArticles: true,
-          isLoadingFolderArticles: true,
-        }),
-      ),
-    );
-
-    expect(result.current.footerModes).toEqual(["unread", "all", "starred"]);
-    expect(result.current.footerDisabledModes).toEqual([]);
-    expect(result.current.isPrimarySourceLoading).toBe(true);
-    expect(result.current.setupEmptyState).toBe("no-accounts");
   });
 
   it("keeps search loading and empty states independent from setup empty states", () => {
@@ -88,32 +64,11 @@ describe("useArticleListViewState", () => {
     );
 
     expect(loading.result.current.isSearchLoading).toBe(true);
-    expect(loading.result.current.isPrimarySourceLoading).toBe(false);
     expect(loading.result.current.isSearchEmptyState).toBe(false);
     expect(loading.result.current.setupEmptyState).toBe("no-accounts");
     expect(empty.result.current.isSearchLoading).toBe(false);
     expect(empty.result.current.isSearchEmptyState).toBe(true);
     expect(empty.result.current.setupEmptyState).toBe("none");
-  });
-
-  it("keeps primary source loading separate from search fetching", () => {
-    const { result } = renderHook(() =>
-      useArticleListViewState(
-        createParams({
-          selection: { type: "folder", folderId: "folder-1" },
-          showSearch: true,
-          trimmedDebouncedQuery: "rss",
-          searchResults: undefined,
-          isSearching: true,
-          isLoadingFolderArticles: true,
-          filteredArticleCount: 0,
-        }),
-      ),
-    );
-
-    expect(result.current.isPrimarySourceLoading).toBe(true);
-    expect(result.current.isSearchLoading).toBe(true);
-    expect(result.current.isSearchEmptyState).toBe(false);
   });
 
   it("treats current search fetching as loading even when stale results are still present", () => {
@@ -139,16 +94,8 @@ function createParams(overrides: Partial<UseArticleListViewStateParams> = {}): U
   return {
     selection: { type: "smart", kind: "recent" },
     selectedAccountId: null,
-    feedId: null,
-    tagId: null,
-    accountListScopeId: null,
     accountCount: 1,
     feedCount: 1,
-    isLoadingFeedArticles: false,
-    isLoadingAccountArticles: false,
-    isLoadingFolderArticles: false,
-    isLoadingRecentArticles: false,
-    isLoadingTagArticles: false,
     showSearch: false,
     trimmedDebouncedQuery: "",
     searchResults: undefined,

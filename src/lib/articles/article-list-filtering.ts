@@ -7,8 +7,6 @@ export const MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE = 50;
 
 export type SelectVisibleArticlesParams = {
   articles: ArticleDto[] | undefined;
-  accountArticles: ArticleDto[] | undefined;
-  tagArticles: ArticleDto[] | undefined;
   searchResults: ArticleDto[] | undefined;
   feedId: string | null;
   tagId: string | null;
@@ -291,8 +289,6 @@ export function mergeResolvedArticlesWithRetained(
 export function selectVisibleArticles(params: SelectVisibleArticlesParams): ArticleDto[] {
   const {
     articles,
-    accountArticles,
-    tagArticles,
     searchResults,
     feedId,
     tagId,
@@ -313,17 +309,15 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
       filterByTagArticles(
         filterByFeedId(filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds), feedId),
         tagId,
-        tagArticles,
+        articles,
       ),
       viewMode,
       sourceFilter,
       retainedArticleIds,
     );
-  } else if (tagId) {
-    list = filterByViewMode([...(tagArticles ?? [])], viewMode, sourceFilter, retainedArticleIds);
   } else {
     list = filterByViewMode(
-      filterByFeedId(filterByFolderFeedIds(feedId ? (articles ?? []) : (accountArticles ?? []), folderFeedIds), feedId),
+      filterByFeedId(filterByFolderFeedIds(articles ?? [], folderFeedIds), feedId),
       viewMode,
       sourceFilter,
       retainedArticleIds,

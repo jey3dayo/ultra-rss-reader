@@ -83,14 +83,9 @@ describe("useArticleViewSelection", () => {
     useArticlesByTagMock.mockReturnValue({ data: [] });
     useRecentArticlesMock.mockReturnValue({ data: [] });
     useArticleListSourcesMock.mockReturnValue({
-      accountArticles: [],
-      accountListScopeId: "acc-1",
       articles: [],
-      feedId: null,
       feeds: [],
-      folderId: null,
       sourcePlan: { kind: "account", mode: "all" },
-      tagArticles: [],
       tagId: null,
     });
     useArticleListDataMock.mockReturnValue({
@@ -354,14 +349,9 @@ describe("useArticleViewSelection", () => {
       webPreviewSessionMode: "forced-off",
     });
     useArticleListSourcesMock.mockReturnValue({
-      accountArticles: [],
-      accountListScopeId: "acc-1",
       articles: [],
-      feedId: "feed-1",
       feeds: [previewFeed],
-      folderId: null,
       sourcePlan: { kind: "feed", mode: "unread" },
-      tagArticles: [],
       tagId: null,
     });
     useArticleListDataMock.mockReturnValue({
@@ -407,14 +397,9 @@ describe("useArticleViewSelection", () => {
       webPreviewSessionMode: "forced-on",
     });
     useArticleListSourcesMock.mockReturnValue({
-      accountArticles: [],
-      accountListScopeId: "acc-1",
       articles: [],
-      feedId: "feed-1",
       feeds: [standardFeed],
-      folderId: null,
       sourcePlan: { kind: "feed", mode: "unread" },
-      tagArticles: [],
       tagId: null,
     });
     useArticleListDataMock.mockReturnValue({
@@ -468,14 +453,9 @@ describe("useArticleViewSelection", () => {
       data: [{ ...sampleFolders[0], id: "folder-1" }],
     });
     useArticleListSourcesMock.mockReturnValue({
-      accountArticles: [],
-      accountListScopeId: "acc-1",
       articles: [],
-      feedId: null,
       feeds: folderFeeds,
-      folderId: "folder-1",
       sourcePlan: { kind: "folder", mode: "unread" },
-      tagArticles: [],
       tagId: null,
     });
     useArticleListDataMock.mockReturnValue({
