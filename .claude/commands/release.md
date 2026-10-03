@@ -9,7 +9,7 @@ description: "Release: version bump, release notes, tag, push, trigger GitHub Re
 GitHub Actions の release workflow がクロスプラットフォームビルド + ドラフト GitHub Release を作成する。
 ビルド完了を待ってアーティファクトを検証し、Release を publish するまでが既定の完了地点。
 
-品質ゲートは lefthook に委譲する: `git push` 時に pre-push フック（format:check / lint / test:unit:ci / test:rust / build）が自動実行されるため、このコマンド内では事前チェックを重複実行しない。リリース固有の検証（version parity・release contamination）だけ `release:preflight:local` で行う。
+Local CLI 経路では品質ゲートを lefthook に委譲する: `git push` 時に pre-push フック（format:check / lint / test:unit:ci / test:rust / build）が自動実行されるため、このコマンド内では事前チェックを重複実行しない。リリース固有の検証（version parity・release contamination）だけ `release:preflight:local` で行う。
 
 ## 引数
 
@@ -28,6 +28,10 @@ $ARGUMENTS (patch / minor / major。省略時は patch。ただしコミット�
 - 失敗時はその時点で停止して報告し、ユーザーの修正指示をまたいで承認を持ち越さない。
 
 ## Phase 1: 事前条件＋バージョン決定
+
+以下の Phase 1–3 は Local CLI 経路。Git / `gh` のローカル認証がない stable release は `docs/release-actions-start.md` の Actions 経路を使う。repository connector で version / CHANGELOG の PR を準備し、承認された merge と exact-main CI を確認して、認証済み GitHub UI の **Start Release** を `main`・`release_tag`・`expected_sha` で実行する。
+
+Actions 経路ではローカルフックの実行を仮定せず、同じ Phase 4 へ合流する。ローカル tag / push を重複実行しない。connector や clone の成功を CLI 認証の証拠にせず、PAT の追加や認証情報の取り出し、必須チェックの回避をしない。親が dispatch・復旧・publish を管理し、子エージェントは read-only に限定する。
 
 1つでも失敗したら中止して理由を報告する:
 
@@ -128,21 +132,23 @@ git ls-remote --tags origin | grep "refs/tags/v{new_version}$" || git push origi
 
 `gh release edit v{new_version} --notes "..."`（絵文字付きカテゴリ）。Release 未作成（Actions 未完了）なら `gh release create v{new_version} --draft --notes "..."` で先にドラフト作成する。
 
-責務分担: リリースノート本文は CLI が管理し、`release.yml` の `tauri-action` はアーティファクト添付のみ。workflow は常に draft を作り、semver prerelease タグのみ `prerelease=true` にする。
+責務分担: Local CLI 経路の本文は `gh release edit/create` で管理する。Actions 経路は starter が reviewed `CHANGELOG.md` の対象 version section を本文にする。release workflow はノートを自動生成せず、draft を維持し、semver prerelease タグのみ `prerelease=true` にする。
 
 ### 3d. push 後報告
 
-コミット・タグ・workflow run URL（`gh run list --workflow=release.yml --limit=1`）・ドラフト Release URL を報告し、確認を待たずに Phase 4 へ進む。
+コミット・タグ・一致を確認した workflow run URL・ドラフト Release URL を報告し、Phase 4 へ進む。単に最新の run を選ばない。
 
 ## Phase 4: ビルド完了待ち＋publish
+
+以下の `gh` コマンドは Local CLI 経路の例。Actions 経路では認証済み GitHub UI / connector で同じ run の完了待ち、結論、Release fields と assets を確認する。
 
 ### 4a. 対象 run の特定
 
 ```bash
-gh run list --workflow=release.yml --limit=5 --json databaseId,headSha,status,conclusion
+gh run list --workflow=release.yml --limit=20 --json databaseId,url,headSha,headBranch,event,status,conclusion
 ```
 
-`headSha` が release commit hash と一致する run を対象にする。見つからなければ run 登録前の可能性があるため短時間待って再取得する。
+`headSha` が release commit hash、`headBranch` が release tag と一致する元の build run を対象にする。Actions 経路では starter が返した run ID も記録する。UI / connector でも同じ情報を確認する。未表示なら登録遅延を考慮して再取得し、再 dispatch はしない。
 
 ### 4b. ビルド完了待ち
 
@@ -160,7 +166,9 @@ gh release view v{new_version} --json isDraft,isPrerelease,assets --jq '{isDraft
 
 ### 4d. publish
 
-停止条件に該当しなければ draft を解除し、`isDraft=false` を確認する:
+両経路とも `docs/release-actions-start.md` の Verification and publication と `docs/release-manual-verification.md` に従い、元の build run、既存の必須ゲート、checksum / provenance / dependency 記録を確認する。asset 名の存在確認だけを署名の暗号学的検証と報告しない。手動確認の例外はその release と項目に対する明示承認のみ有効で、次回へ持ち越さない。
+
+必須チェックが満たされ、公開承認があれば draft を解除する。Actions 経路は認証済み GitHub Release UI で同じ tag / draft / prerelease / latest 設定を確認して Publish し、公開状態を再取得する。CLI 経路は次を使う:
 
 ```bash
 gh release edit v{new_version} --draft=false --latest

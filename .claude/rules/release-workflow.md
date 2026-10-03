@@ -1,6 +1,9 @@
 ---
 paths:
   - ".github/workflows/release.yml"
+  - ".github/workflows/release-start.yml"
+  - "scripts/release/start-release.ts"
+  - "scripts/release/guard-release-build.ts"
   - ".github/release.yml"
   - ".github/PULL_REQUEST_TEMPLATE.md"
   - "src-tauri/tauri.conf.json"
@@ -17,11 +20,12 @@ paths:
 
 ## 制約
 
-- リリースは Git タグ (`v*`) プッシュでトリガーする
+- 開始経路は Local CLI の annotated `v*` tag push、または `release-start.yml` の **Start Release**。Actions は reviewed exact-main SHA の CI 成功を確認し、annotated tag と draft を作って tag ref で release build を起動する。詳細・復旧の正本は `docs/release-actions-start.md`
 - `tauri-apps/tauri-action@v0` を使用してビルド・Release 作成・アーティファクト添付を行う
 - tag push の既定ビルドマトリクスは macOS arm64 (`macos-latest`) + Windows (`windows-latest`) の 2 並列。`workflow_dispatch` の `build_linux=true` では updater 対象外の Ubuntu `.deb` / AppImage を追加する
-- `tauri-action` は GitHub Release を Draft として作成する。Draft の解除は `/release` の Phase 4 が、ビルド成功とアーティファクト検証を確認したうえで行う（`.claude/commands/release.md` の 4c / 4d）。手動 Publish は `/release` を使わない場合の経路
-- `generateReleaseNotes` は `false`。リリースノートは CLI（`gh release edit/create`）で管理し、`tauri-action` はアーティファクト添付のみ担当する
+- release workflow は Draft を維持する。両 entry point の Phase 4 が、元の build run・必須ゲート・アーティファクト・適用される手動確認と公開承認を確認し、認証済み CLI または GitHub UI で Publish する
+- `generateReleaseNotes` は `false`。Local CLI は `gh release edit/create`、Actions は reviewed `CHANGELOG.md` の version section から本文を管理する
+- 別 run ID の重複 build、starter の盲目的な再実行、retag、自動 asset 削除を行わない。元 run ID の **Re-run all jobs** または read-only の `reuse_existing_assets=true` を runbook の条件に従って選ぶ。後者は inventory / metadata 検証で、元の build の代替ではない
 - GitHub Actions の uses にはコミットハッシュ pin + バージョンコメントを付与する
 - `fail-fast: false` で一部のプラットフォーム失敗が他に波及しないようにする
 - macOS は Developer ID なし前提でリリースする。`src-tauri/tauri.release.conf.json` は ad-hoc signing (`signingIdentity: "-"`) を使い、workflow は `codesign --verify --deep --strict` を必須検証にする
@@ -33,15 +37,15 @@ paths:
 - バージョンは `tauri.conf.json` の `version`、`Cargo.toml` の `version`、`package.json` の `version`、`src-tauri/Cargo.lock` の `ultra-rss-reader` package entry、`msix/Package.appxmanifest` の `Identity Version`(形式は `X.Y.Z.0`)の 5 箇所で管理される
 - バージョンを変更するときは `node scripts/release/bump-version.ts <new_version>` を使い、5 箇所を一括更新する
 - タグ作成前に 5 箇所のバージョンが一致していることを確認する
-- release タグは version bump commit を作成した後、その `HEAD` commit に対して作成する
-- push 前に `git rev-list -n 1 vX.Y.Z` が release commit hash と一致し、tag 先の 5 箇所が同じ `X.Y.Z`(MSIX は `X.Y.Z.0`)を返すことを確認する
-- push 前に `RELEASE_TAG=vX.Y.Z mise run release:preflight:local` を実行し、GitHub Actions の artifact build 前 preflight に近い軽量ゲートをローカルで先取りする
+- release タグは version / CHANGELOG 変更を含む reviewed commit に作成する。Local CLI は release commit の `HEAD`、Actions は merge 後に CI 成功を確認した exact-main SHA を使う
+- Local CLI の push 前に `git rev-list -n 1 vX.Y.Z` と release commit hash、tag 先の 5 箇所の `X.Y.Z`（MSIX は `X.Y.Z.0`）一致を確認する。Actions starter も同じ version / tag target 契約を検証する
+- Local CLI の push 前に `RELEASE_TAG=vX.Y.Z mise run release:preflight:local` を実行する。Actions は exact-main CI と既存 release workflow の必須ゲートを使い、ローカルで未実行のチェックを実行済みと扱わない
 - セマンティックバージョニング (semver) に従う
 
 ## 開発フロー（リリースノート自動生成の前提）
 
 - feature branch → PR → merge の運用を徹底する
-- main への直接コミットは避ける（`generateReleaseNotes` は PR ベースで生成するため、直接コミットはリリースノートに載らない）
+- main への直接コミットは避け、変更・レビュー・CI と release commit の対応を PR で追跡可能にする
 - PR 作成時に種別に応じたラベルを付与する
 - `.github/release.yml` でラベルごとにリリースノートを自動分類する
 - `skip-changelog` ラベルで特定 PR をリリースノートから除外できる
@@ -61,6 +65,8 @@ paths:
 ## リリースコマンド構造
 
 `/release` コマンドは 4 フェーズで構成される:
+
+以下は Local CLI 経路。Actions は Phase 1–3 を version PR → exact-main CI → Start Release に置き換え、Phase 4 に合流する。
 
 1. Phase 1: Pre-checks + Version Choice — ブランチ、ワークツリー、`origin/main` との一致、現在バージョン、bump 種別を確認
 2. Phase 2: Changes + Release Notes — 5 つの version owner、`CHANGELOG.md`、リリースノート、該当する `todo.txt` を更新
