@@ -25,7 +25,7 @@ paths:
 - tag push の既定ビルドマトリクスは macOS arm64 (`macos-latest`) + Windows (`windows-latest`) の 2 並列。`workflow_dispatch` の `build_linux=true` では updater 対象外の Ubuntu `.deb` / AppImage を追加する
 - release workflow は Draft を維持する。両 entry point の Phase 4 が、元の build run・必須ゲート・アーティファクト・適用される手動確認と公開承認を確認し、認証済み CLI または GitHub UI で Publish する
 - `generateReleaseNotes` は `false`。Local CLI は `gh release edit/create`、Actions は reviewed `CHANGELOG.md` の version section から本文を管理する
-- 別 run ID の重複 build、starter の盲目的な再実行、retag、自動 asset 削除を行わない。元 run ID の **Re-run all jobs** または read-only の `reuse_existing_assets=true` を runbook の条件に従って選ぶ。後者は inventory / metadata 検証で、元の build の代替ではない
+- 失敗・再試行・dry run・asset 再利用の判断は [Actions runbook の Failure and recovery](../../docs/release-actions-start.md#failure-and-recovery) を正本にする。ここでは条件を重複定義しない
 - GitHub Actions の uses にはコミットハッシュ pin + バージョンコメントを付与する
 - `fail-fast: false` で一部のプラットフォーム失敗が他に波及しないようにする
 - macOS は Developer ID なし前提でリリースする。`src-tauri/tauri.release.conf.json` は ad-hoc signing (`signingIdentity: "-"`) を使い、workflow は `codesign --verify --deep --strict` を必須検証にする

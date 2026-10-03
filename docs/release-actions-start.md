@@ -75,6 +75,11 @@ existing updater distribution path.
 
 ## Failure and recovery
 
+This section is the source of truth for retry and recovery decisions on both
+release routes. An artifact-building run means a `v*` tag-push event (effective
+`dry_run=false`) or a manual dispatch with `dry_run=false` and
+`reuse_existing_assets=false`. A validation-only run is not an artifact build.
+
 - A changed main commit or unsuccessful CI stops without releasing that commit.
 - An existing lightweight tag or a tag pointing elsewhere is never overwritten.
 - A matching annotated tag with no draft or release run can be reused.
@@ -89,7 +94,7 @@ existing updater distribution path.
   exact tag and commit. If a run exists, follow that run instead of dispatching
   another. If no run exists and the draft is empty, dispatch the existing
   **Release** workflow once with its ref and `release_tag` both set to the tag.
-- If the original artifact-building run (`dry_run=false`) failed before any upload, explicitly **Re-run all jobs**
+- If the original artifact-building run failed before any upload, explicitly **Re-run all jobs**
   on that original run ID after fixing the cause. A different run ID for the
   commit is rejected. Re-running only failed/individual jobs is rejected before
   build/upload because it would reuse a preflight from a previous run attempt.
@@ -97,7 +102,7 @@ existing updater distribution path.
   removing incomplete output. Only after deliberate cleanup and confirming the
   draft is empty may the original run ID be rerun. No automatic cleanup occurs;
   asset removal requires a deliberate, authorized cleanup decision.
-  This rerun path also requires the original run to have `dry_run=false`.
+  This rerun path also requires an original artifact-building run as defined above.
 - If all assets exist, use **Release** with `reuse_existing_assets=true` and `dry_run=false` to
   validate the unpublished draft without rebuilding or uploading. Follow the
   [provenance and signing checklist](./release-manual-verification.md) before

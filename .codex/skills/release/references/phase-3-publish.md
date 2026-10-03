@@ -77,19 +77,16 @@ For annotated tags, `refs/tags/v{new_version}` is the tag object and `refs/tags/
 - Verify the workflow run by matching the release tag/ref and release commit. Do not report an unrelated latest run as the release run.
 - Use structured output such as `gh run list --workflow=release.yml --limit=20 --json databaseId,url,status,conclusion,headSha,headBranch,event,displayTitle,createdAt` and select a run whose `headSha` is the release commit and whose tag/ref/title corresponds to `v{new_version}`.
 - The release workflow concurrency group is keyed by the release tag for both tag push and manual dispatch, with `cancel-in-progress: false`.
+- For dry-run limits, duplicate-run handling, and all retry/asset-recovery decisions, use [Failure and recovery](../../../../docs/release-actions-start.md#failure-and-recovery). This reference does not define a separate recovery policy.
 - Build dispatches must select the release tag as both workflow ref and `release_tag`. Verify `headSha` and `headBranch` match the release commit/tag; do not build from a `main` dispatch ref.
-- Do not dispatch another build when a release run already exists for the commit. Recovery by original run ID applies only to artifact-building runs originally started with `dry_run=false`; a dry run cannot be promoted this way.
 - For artifact-building runs, source preflight requires the release tag to exist on `origin`, be an annotated tag object distinct from its peeled commit, match the checkout commit, and be reachable from `origin/main`.
 - For artifact-building runs, signing preflight stops before release quality checks, Tauri artifact creation, or asset upload when `TAURI_SIGNING_PRIVATE_KEY` or `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is missing.
-- Do not run `dry_run=true` first on a commit intended for production publication. A rerun retains the original inputs and still skips artifacts, while a new build run for the same SHA is rejected. If such a dry run already exists, stop and report the blocked state for a separately approved recovery/design change; do not delete run history, retag, or weaken the guard. A dry run checks only its executed preflight steps, not signing-secret availability or artifact creation.
 - The release workflow keeps Releases as drafts.
 - Stable tags use `prerelease=false`.
 - semver prerelease tags such as `v1.2.3-alpha.1` use `prerelease=true`.
 - build metadata alone such as `v1.2.3+build.1` does not make the Release a prerelease.
 - `.github/release.yml` only owns Release Drafter PR-label changelog grouping.
 - The release workflow and this skill own release notes publication, tag validation, artifact builds, updater sidecars, provenance, and draft Release asset publication.
-- Follow `docs/release-actions-start.md` for recovery. Inspect the original artifact-building run and draft before any mutation. An empty draft may permit **Re-run all jobs** on that original run ID with its original `dry_run=false` inputs; never blindly retry the starter, retag, or automatically delete partial assets. Deliberate cleanup requires the appropriate authorization.
-- `reuse_existing_assets=true` is read-only draft inventory/metadata validation, not a rebuild or cryptographic verification. A `main` ref is permitted only for this validation-only route; preserve the original build evidence.
 - Artifact-building preflight stops before creation if the checkout commit, tag target commit, main ancestry, or version files do not match.
 
 ## Update GitHub Release Notes
