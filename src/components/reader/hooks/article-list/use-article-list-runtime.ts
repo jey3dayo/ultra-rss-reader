@@ -17,7 +17,7 @@ export function useArticleListRuntime() {
 
   return {
     ...uiState,
-    ...sources,
+    source: sources,
     ...search,
   };
 }

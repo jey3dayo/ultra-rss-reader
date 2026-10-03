@@ -99,17 +99,9 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     viewMode,
   });
   const data = useArticleListData({
-    feedId: sources.feedId,
-    folderId: sources.folderId,
-    tagId: sources.tagId,
-    sourcePlan: sources.sourcePlan,
-    accountListScopeId: sources.accountListScopeId,
+    source: sources,
     selectedArticleId,
     retainedArticleIds,
-    feeds: sources.feeds,
-    articles: sources.articles,
-    accountArticles: sources.accountArticles,
-    tagArticles: sources.tagArticles,
     searchResults: undefined,
     showSearch: false,
     trimmedDebouncedQuery: "",

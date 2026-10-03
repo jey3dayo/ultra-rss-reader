@@ -15,11 +15,7 @@ type UseArticleListBodyPropsParams = {
   listRef: ArticleListBodyProps["listRef"];
   viewportRef: ArticleListBodyProps["viewportRef"];
   handleListKeyDownCapture: ArticleListBodyProps["onListKeyDownCapture"];
-  isLoadingFeedArticles: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingFolderArticles: boolean;
-  isLoadingRecentArticles: boolean;
-  isLoadingTagArticles: boolean;
+  isLoadingArticles: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;
   setupEmptyState: ArticleListSetupState;
@@ -130,11 +126,7 @@ export function useArticleListBodyProps({
   listRef,
   viewportRef,
   handleListKeyDownCapture,
-  isLoadingFeedArticles,
-  isLoadingAccountArticles,
-  isLoadingFolderArticles,
-  isLoadingRecentArticles,
-  isLoadingTagArticles,
+  isLoadingArticles,
   isSearchLoading,
   isSearchEmptyState,
   setupEmptyState,
@@ -166,13 +158,7 @@ export function useArticleListBodyProps({
     listRef,
     viewportRef,
     onListKeyDownCapture: handleListKeyDownCapture,
-    isLoading:
-      isLoadingFeedArticles ||
-      isLoadingAccountArticles ||
-      isLoadingFolderArticles ||
-      isLoadingRecentArticles ||
-      isLoadingTagArticles ||
-      isSearchLoading,
+    isLoading: isLoadingArticles || isSearchLoading,
     loadingMessage: tc("loading"),
     ...emptyStateProps,
     groups: articleGroups,

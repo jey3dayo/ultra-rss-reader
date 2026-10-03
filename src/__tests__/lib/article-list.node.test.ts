@@ -73,9 +73,7 @@ describe("article-list utils", () => {
     ];
 
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: articles,
-      tagArticles: [],
+      articles: articles,
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -112,9 +110,7 @@ describe("article-list utils", () => {
     }));
 
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: articles,
-      tagArticles: [],
+      articles: articles,
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -139,8 +135,6 @@ describe("article-list utils", () => {
   it("prefers search results when search is open", () => {
     const result = selectVisibleArticles({
       articles: sampleArticles,
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [sampleArticles[1]],
       feedId: "feed-1",
       tagId: null,
@@ -157,8 +151,6 @@ describe("article-list utils", () => {
   it("preserves search result source order instead of applying unread date sort", () => {
     const result = selectVisibleArticles({
       articles: [],
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [
         {
           ...sampleArticles[0],
@@ -189,8 +181,6 @@ describe("article-list utils", () => {
   it("keeps retained read search results in source order for unread searches", () => {
     const result = selectVisibleArticles({
       articles: [],
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [
         {
           ...sampleArticles[0],
@@ -221,8 +211,6 @@ describe("article-list utils", () => {
   it("keeps the normal article source when search is open with an empty query", () => {
     const result = selectVisibleArticles({
       articles: sampleArticles,
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [sampleArticles[1]],
       feedId: "feed-1",
       tagId: null,
@@ -238,8 +226,7 @@ describe("article-list utils", () => {
 
   it("applies unread date sort when search is not active", () => {
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [
+      articles: [
         {
           ...sampleArticles[0],
           id: "older-unread",
@@ -253,7 +240,6 @@ describe("article-list utils", () => {
           published_at: "2026-03-25T10:00:00Z",
         },
       ],
-      tagArticles: [],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -270,8 +256,7 @@ describe("article-list utils", () => {
 
   it("filters account articles to the selected folder feed ids before unread filtering", () => {
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [
+      articles: [
         {
           ...sampleArticles[0],
           id: "art-folder",
@@ -291,7 +276,6 @@ describe("article-list utils", () => {
           is_read: true,
         },
       ],
-      tagArticles: [],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -325,8 +309,6 @@ describe("article-list utils", () => {
           is_read: true,
         },
       ],
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [],
       feedId: "feed-1",
       tagId: null,
@@ -344,8 +326,6 @@ describe("article-list utils", () => {
   it("filters search results to the selected folder feed ids", () => {
     const result = selectVisibleArticles({
       articles: [],
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [
         { ...sampleArticles[0], id: "art-folder", feed_id: "feed-1" },
         { ...sampleArticles[1], id: "art-other", feed_id: "feed-2" },
@@ -367,8 +347,6 @@ describe("article-list utils", () => {
   it("filters search results to the selected feed source", () => {
     const result = selectVisibleArticles({
       articles: [],
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [
         { ...sampleArticles[0], id: "art-feed", feed_id: "feed-1" },
         { ...sampleArticles[1], id: "art-other", feed_id: "feed-2" },
@@ -399,9 +377,7 @@ describe("article-list utils", () => {
     };
 
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [],
-      tagArticles: [taggedArticle],
+      articles: [taggedArticle],
       searchResults: [taggedArticle, untaggedArticle],
       feedId: null,
       tagId: "tag-1",
@@ -419,8 +395,6 @@ describe("article-list utils", () => {
   it("keeps smart unread searches limited to unread articles", () => {
     const result = selectVisibleArticles({
       articles: [],
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [
         {
           ...sampleArticles[0],
@@ -451,8 +425,6 @@ describe("article-list utils", () => {
   it("keeps smart starred searches limited to unread starred articles when footer mode is unread", () => {
     const result = selectVisibleArticles({
       articles: [],
-      accountArticles: [],
-      tagArticles: [],
       searchResults: [
         {
           ...sampleArticles[0],
@@ -488,8 +460,7 @@ describe("article-list utils", () => {
 
   it("keeps starred smart view limited to starred articles when footer mode is all", () => {
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [
+      articles: [
         {
           ...sampleArticles[0],
           id: "starred-read",
@@ -509,7 +480,6 @@ describe("article-list utils", () => {
           is_read: false,
         },
       ],
-      tagArticles: [],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -526,8 +496,7 @@ describe("article-list utils", () => {
 
   it("keeps starred smart view limited to unread starred articles when footer mode is unread", () => {
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [
+      articles: [
         {
           ...sampleArticles[0],
           id: "starred-read",
@@ -547,7 +516,6 @@ describe("article-list utils", () => {
           is_read: false,
         },
       ],
-      tagArticles: [],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -562,50 +530,12 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["starred-unread"]);
   });
 
-  it("uses tag articles as the source when a tag is selected even if feed and account sources are present", () => {
-    const result = selectVisibleArticles({
-      articles: [{ ...sampleArticles[0], id: "feed-source", feed_id: "feed-1" }],
-      accountArticles: [{ ...sampleArticles[1], id: "account-source", feed_id: "feed-2" }],
-      tagArticles: [{ ...sampleArticles[2], id: "tag-source", feed_id: "feed-3" }],
-      searchResults: [],
-      feedId: "feed-1",
-      tagId: "tag-1",
-      viewMode: "all",
-      sourceFilter: null,
-      showSearch: false,
-      searchQuery: "",
-      sortUnread: "newest_first",
-    });
-
-    expect(result.map((article) => article.id)).toEqual(["tag-source"]);
-  });
-
-  it("does not fall back to feed or account articles while selected tag articles are unresolved", () => {
-    const result = selectVisibleArticles({
-      articles: [{ ...sampleArticles[0], id: "feed-source", feed_id: "feed-1" }],
-      accountArticles: [{ ...sampleArticles[1], id: "account-source", feed_id: "feed-2" }],
-      tagArticles: undefined,
-      searchResults: [],
-      feedId: "feed-1",
-      tagId: "tag-1",
-      viewMode: "all",
-      sourceFilter: null,
-      showSearch: false,
-      searchQuery: "",
-      sortUnread: "newest_first",
-    });
-
-    expect(result).toEqual([]);
-  });
-
   it("returns no visible folder articles when the selected folder has no feeds", () => {
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [
+      articles: [
         { ...sampleArticles[0], id: "account-feed-1", feed_id: "feed-1" },
         { ...sampleArticles[1], id: "account-feed-2", feed_id: "feed-2" },
       ],
-      tagArticles: [],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -637,9 +567,7 @@ describe("article-list utils", () => {
     ];
 
     const unreadResult = selectVisibleArticles({
-      articles: [],
-      accountArticles: [],
-      tagArticles,
+      articles: tagArticles,
       searchResults: [],
       feedId: null,
       tagId: "tag-1",
@@ -651,9 +579,7 @@ describe("article-list utils", () => {
       sourceFilter: null,
     });
     const starredResult = selectVisibleArticles({
-      articles: [],
-      accountArticles: [],
-      tagArticles,
+      articles: tagArticles,
       searchResults: [],
       feedId: null,
       tagId: "tag-1",
@@ -671,8 +597,7 @@ describe("article-list utils", () => {
 
   it("keeps recently viewed articles in history order", () => {
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [
+      articles: [
         {
           ...sampleArticles[0],
           id: "viewed-first",
@@ -684,7 +609,6 @@ describe("article-list utils", () => {
           published_at: "2026-04-22T00:00:00Z",
         },
       ],
-      tagArticles: [],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -801,8 +725,7 @@ describe("article-list utils", () => {
 
   it("sorts same timestamps and invalid dates deterministically", () => {
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [
+      articles: [
         {
           ...sampleArticles[0],
           id: "same-b",
@@ -819,7 +742,6 @@ describe("article-list utils", () => {
           published_at: "2026-03-25T10:00:00Z",
         },
       ],
-      tagArticles: [],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -1477,9 +1399,7 @@ describe("article-list utils", () => {
     const retainedArticleIds = new Set(["recently-read"]);
 
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [readArticle, unreadArticle, oldReadArticle],
-      tagArticles: [],
+      articles: [readArticle, unreadArticle, oldReadArticle],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -1509,9 +1429,7 @@ describe("article-list utils", () => {
     };
 
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [readArticle, unreadArticle],
-      tagArticles: [],
+      articles: [readArticle, unreadArticle],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -1540,9 +1458,7 @@ describe("article-list utils", () => {
     };
 
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [unstarredArticle, starredArticle],
-      tagArticles: [],
+      articles: [unstarredArticle, starredArticle],
       searchResults: [],
       feedId: null,
       tagId: null,
@@ -1572,9 +1488,7 @@ describe("article-list utils", () => {
     };
 
     const result = selectVisibleArticles({
-      articles: [],
-      accountArticles: [unstarredArticle, starredArticle],
-      tagArticles: [],
+      articles: [unstarredArticle, starredArticle],
       searchResults: [],
       feedId: null,
       tagId: null,

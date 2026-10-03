@@ -4,6 +4,7 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import type { UseArticleListDataParams } from "@/components/reader/hooks/article-list/article-list-controller.types";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
+import { resolveReaderSourcePlan } from "@/lib/reader/reader-query";
 
 setupBrowserTestDom();
 
@@ -42,5 +43,26 @@ describe("useArticleListData", () => {
     });
 
     expect(result.current.filteredArticles).not.toBe(firstFilteredArticles);
+  });
+
+  it("ignores source loading and paging changes but invalidates filtering on a scope change", () => {
+    const params = buildArticleListDataParams(buildArticleListDataSourcePlan({ accountId: "acc-1", filter: "all" }));
+    const initialSource = { ...params.source, isLoadingArticles: false, hasNextPage: false, isFetchingNextPage: false };
+    const { result, rerender } = renderHook(({ source }) => useArticleListData({ ...params, source }), {
+      initialProps: { source: initialSource },
+    });
+    const firstFiltered = result.current.filteredArticles;
+
+    rerender({ source: { ...initialSource, isLoadingArticles: true, hasNextPage: true, isFetchingNextPage: true } });
+    expect(result.current.filteredArticles).toBe(firstFiltered);
+
+    rerender({
+      source: {
+        ...initialSource,
+        sourcePlan: resolveReaderSourcePlan({ type: "feed", feedId: "feed-1" }, "all", "acc-1"),
+      },
+    });
+    expect(result.current.filteredArticles).not.toBe(firstFiltered);
+    expect(result.current.filteredArticles.map((article) => article.id)).toEqual(["art-1", "art-2"]);
   });
 });
