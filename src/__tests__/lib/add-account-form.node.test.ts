@@ -66,6 +66,44 @@ describe("add-account-form utils", () => {
     });
   });
 
+  it("adds Cloudflare Access only as a complete HTTPS replacement", () => {
+    const input = {
+      kind: "FreshRss" as const,
+      name: "Work RSS",
+      serverUrl: "https://reader.example.com",
+      username: "alice",
+      password: "fresh-password",
+      cloudflareAccessEnabled: true,
+      cloudflareAccessClientId: " client-id ",
+      cloudflareAccessClientSecret: "dummy-access-secret",
+    };
+
+    expect(Result.unwrap(buildAddAccountPayload(input))).toEqual({
+      kind: "FreshRss",
+      name: "Work RSS",
+      serverUrl: "https://reader.example.com",
+      username: "alice",
+      password: "fresh-password",
+      cloudflareAccess: { action: "replace", clientId: "client-id", clientSecret: "dummy-access-secret" },
+    });
+    expect(Result.unwrapError(buildAddAccountPayload({ ...input, serverUrl: "http://reader.example.com" }))).toBe(
+      "cloudflare_access_https_required",
+    );
+    expect(Result.unwrapError(buildAddAccountPayload({ ...input, cloudflareAccessClientSecret: " " }))).toBe(
+      "missing_cloudflare_access_client_secret",
+    );
+    expect(
+      Result.unwrap(
+        buildAddAccountPayload({
+          ...input,
+          cloudflareAccessEnabled: false,
+          cloudflareAccessClientId: "",
+          cloudflareAccessClientSecret: "",
+        }),
+      ),
+    ).not.toHaveProperty("cloudflareAccess");
+  });
+
   it("allows HTTP FreshRSS server URLs", () => {
     for (const serverUrl of [
       "http://localhost:8080/",
@@ -196,6 +234,9 @@ describe("add-account-form utils", () => {
       "error_server_url_invalid",
       "error_username_required",
       "error_password_required",
+      "error_cloudflare_access_client_id_required",
+      "error_cloudflare_access_secret_required",
+      "error_cloudflare_access_https_required",
     ] as const;
 
     for (const key of keys) {

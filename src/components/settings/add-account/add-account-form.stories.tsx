@@ -53,6 +53,19 @@ export const FreshRSSConfig: Story = {
   },
 };
 
+export const FreshRSSWithCloudflareAccess: Story = {
+  args: {
+    initialKind: "FreshRss",
+    debugState: {
+      name: "Work RSS",
+      serverUrl: "https://freshrss.example.com",
+      username: "alice",
+      cloudflareAccessEnabled: true,
+      cloudflareAccessClientId: "demo-client-id",
+    },
+  },
+};
+
 export const FreshRSSLoading: Story = {
   args: {
     initialKind: "FreshRss",

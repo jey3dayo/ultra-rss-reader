@@ -3,7 +3,10 @@ import {
   AccountDtoSchema,
   AccountSyncStatusSchema,
   addAccountArgs,
+  CloudflareAccessMetadataSchema,
+  type CloudflareAccessUpdate,
   deleteAccountArgs,
+  getAccountCloudflareAccessArgs,
   getAccountSyncStatusArgs,
   NullResponseSchema,
   renameAccountArgs,
@@ -15,11 +18,22 @@ import { safeInvoke } from "./runtime";
 
 export const listAccounts = () => safeInvoke("list_accounts", { response: AccountDtoListSchema });
 
-export const addAccount = (kind: string, name: string, serverUrl?: string, username?: string, password?: string) =>
+export const addAccount = (
+  kind: string,
+  name: string,
+  serverUrl?: string,
+  username?: string,
+  password?: string,
+  cloudflareAccess?: CloudflareAccessUpdate,
+) =>
   safeInvoke(
     "add_account",
-    { response: AccountDtoSchema, args: addAccountArgs },
-    { kind, name, serverUrl, username, password },
+    {
+      response: AccountDtoSchema,
+      args: addAccountArgs,
+      redactErrorDetails: cloudflareAccess?.action === "replace" || cloudflareAccess?.action === "remove",
+    },
+    { kind, name, serverUrl, username, password, ...(cloudflareAccess ? { cloudflareAccess } : {}) },
   );
 
 export const updateAccountSync = (
@@ -41,11 +55,28 @@ export const updateAccountSync = (
     },
   );
 
-export const updateAccountCredentials = (accountId: string, serverUrl?: string, username?: string, password?: string) =>
+export const updateAccountCredentials = (
+  accountId: string,
+  serverUrl?: string,
+  username?: string,
+  password?: string,
+  cloudflareAccess?: CloudflareAccessUpdate,
+) =>
   safeInvoke(
     "update_account_credentials",
-    { response: AccountDtoSchema, args: updateAccountCredentialsArgs },
-    { accountId, serverUrl, username, password },
+    {
+      response: AccountDtoSchema,
+      args: updateAccountCredentialsArgs,
+      redactErrorDetails: cloudflareAccess?.action === "replace" || cloudflareAccess?.action === "remove",
+    },
+    { accountId, serverUrl, username, password, ...(cloudflareAccess ? { cloudflareAccess } : {}) },
+  );
+
+export const getAccountCloudflareAccess = (accountId: string) =>
+  safeInvoke(
+    "get_account_cloudflare_access",
+    { response: CloudflareAccessMetadataSchema, args: getAccountCloudflareAccessArgs },
+    { accountId },
   );
 
 export const renameAccount = (accountId: string, name: string) =>

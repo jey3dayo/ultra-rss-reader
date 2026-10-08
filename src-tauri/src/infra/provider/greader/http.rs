@@ -1,3 +1,4 @@
+use crate::infra::keyring_store::cloudflare_access::{https_origin, CloudflareAccess};
 use reqwest::header::HeaderValue;
 use serde::de::DeserializeOwned;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -85,6 +86,9 @@ impl GReaderProvider {
             auth_base: base,
             http_client,
             auth_token: None,
+            #[cfg(test)]
+            mock_http_transport: false,
+            cloudflare_access: None,
         }
     }
 
@@ -96,10 +100,41 @@ impl GReaderProvider {
             auth_base: base.clone(),
             http_client: Ok(Self::build_http_client(&base)?),
             auth_token: None,
+            #[cfg(test)]
+            mock_http_transport: false,
+            cloudflare_access: None,
+        })
+    }
+
+    pub(crate) fn try_for_freshrss_with_access(
+        server_url: &str,
+        access: Option<CloudflareAccess>,
+    ) -> DomainResult<Self> {
+        if let Some(access) = &access {
+            access.ensure_origin(server_url)?;
+        }
+        let base = freshrss_api_base(server_url);
+        let client = Self::build_http_client_with_access(&base, access.as_ref())?;
+        Ok(Self {
+            kind: ProviderKind::FreshRss,
+            api_base: base.clone(),
+            auth_base: base,
+            http_client: Ok(client),
+            auth_token: None,
+            #[cfg(test)]
+            mock_http_transport: false,
+            cloudflare_access: access,
         })
     }
 
     pub(super) fn build_http_client(base: &str) -> DomainResult<reqwest::Client> {
+        Self::build_http_client_with_access(base, None)
+    }
+
+    fn build_http_client_with_access(
+        base: &str,
+        access: Option<&CloudflareAccess>,
+    ) -> DomainResult<reqwest::Client> {
         let base_url = reqwest::Url::parse(base).map_err(|_| {
             DomainError::Validation(
                 crate::domain::url_policy::UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
@@ -125,14 +160,32 @@ impl GReaderProvider {
             }
         }
 
+        let access_origin = access.map(|access| access.origin().to_string());
+        let redirect_policy = if access_origin.is_none() {
+            http_defaults::provider_redirect_policy_for_initial_private_host(
+                initial_private_host,
+                validate_discovery_url,
+            )
+        } else {
+            reqwest::redirect::Policy::custom(move |attempt| {
+                let validation = validate_access_redirect(access_origin.as_deref(), attempt.url())
+                    .and_then(|()| {
+                        http_defaults::validate_provider_redirect_attempt_for_initial_private_host(
+                            attempt.previous(),
+                            attempt.url(),
+                            initial_private_host.as_deref(),
+                            validate_discovery_url,
+                        )
+                    });
+                match validation {
+                    Ok(()) => attempt.follow(),
+                    Err(error) => attempt.error(http_defaults::ProviderRedirectError::new(error)),
+                }
+            })
+        };
         let mut builder = http_client_builder()
             .dns_resolver(Arc::new(resolver))
-            .redirect(
-                http_defaults::provider_redirect_policy_for_initial_private_host(
-                    initial_private_host,
-                    validate_discovery_url,
-                ),
-            );
+            .redirect(redirect_policy);
         if let Some(host) = base_host {
             if !resolved_addresses.is_empty() {
                 builder = builder.resolve_to_addrs(host, &resolved_addresses);
@@ -175,6 +228,45 @@ impl GReaderProvider {
         self.http_client.as_ref().map_err(|error| error.clone())
     }
 
+    pub(super) fn request(
+        &self,
+        method: reqwest::Method,
+        url: &str,
+    ) -> DomainResult<reqwest::RequestBuilder> {
+        if let Some(access) = &self.cloudflare_access {
+            access.ensure_origin(url)?;
+        }
+        #[cfg(test)]
+        let mock_url = if self.mock_http_transport {
+            // Mockito has no TLS listener. Validate the original HTTPS request
+            // above, then route only test traffic to its local HTTP listener.
+            let mut mock_url = reqwest::Url::parse(url)
+                .map_err(|_| DomainError::Validation("Invalid test URL".into()))?;
+            mock_url
+                .set_scheme("http")
+                .map_err(|_| DomainError::Validation("Invalid test scheme".into()))?;
+            Some(mock_url)
+        } else {
+            None
+        };
+        #[cfg(test)]
+        let url = mock_url.as_ref().map(reqwest::Url::as_str).unwrap_or(url);
+        let mut request = self.http_client()?.request(method, url);
+        if let Some(access) = &self.cloudflare_access {
+            request = request.headers(access.headers()?);
+        }
+        Ok(request)
+    }
+
+    pub(super) fn map_request_error(&self, error: reqwest::Error) -> DomainError {
+        let error = if self.cloudflare_access.is_some() {
+            error.without_url()
+        } else {
+            error
+        };
+        http_defaults::map_provider_request_error(error)
+    }
+
     pub(super) fn api_url(&self, path: &str) -> String {
         format!("{}{}", self.api_base, path)
     }
@@ -188,14 +280,34 @@ impl GReaderProvider {
             .auth_token
             .as_deref()
             .ok_or_else(|| DomainError::Auth("Not authenticated".into()))?;
-        HeaderValue::from_str(&format!("GoogleLogin auth={token}"))
-            .map_err(|e| DomainError::Auth(e.to_string()))
+        let mut header = HeaderValue::from_str(&format!("GoogleLogin auth={token}"))
+            .map_err(|_| DomainError::Auth("Invalid FreshRSS authorization response".into()))?;
+        header.set_sensitive(true);
+        Ok(header)
     }
 
     pub(super) fn ensure_success_response(
         response: reqwest::Response,
     ) -> DomainResult<reqwest::Response> {
         let status = response.status();
+        if matches!(status.as_u16(), 401 | 403) {
+            return Err(DomainError::Auth(format!(
+                "HTTP {status}. Check FreshRSS API credentials and any access gateway settings."
+            )));
+        }
+        if status.is_success()
+            && response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|value| {
+                    let content_type = value.split(';').next().unwrap_or_default().trim();
+                    content_type.eq_ignore_ascii_case("text/html")
+                        || content_type.eq_ignore_ascii_case("application/xhtml+xml")
+                })
+        {
+            return Err(access_html_error());
+        }
         if status.is_success() {
             return Ok(response);
         }
@@ -210,13 +322,33 @@ impl GReaderProvider {
     where
         T: DeserializeOwned,
     {
-        http_defaults::response_json_with_decoded_cap(
+        let body = Self::read_response_body(response).await?;
+        serde_json::from_slice(&body)
+            .map_err(|_| DomainError::Parse("Invalid GReader JSON response".into()))
+    }
+
+    async fn read_response_body(response: reqwest::Response) -> DomainResult<Vec<u8>> {
+        let body = http_defaults::response_bytes_with_decoded_cap(
             response,
             http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES,
             greader_json_body_too_large_error,
             DomainError::from_provider_http_error,
         )
-        .await
+        .await?;
+        let prefix = String::from_utf8_lossy(&body[..body.len().min(512)]);
+        let prefix = prefix
+            .trim_start_matches('\u{feff}')
+            .trim_start()
+            .to_ascii_lowercase();
+        if prefix.starts_with("<!doctype html") || prefix.starts_with("<html") {
+            return Err(access_html_error());
+        }
+        Ok(body)
+    }
+
+    pub(super) async fn read_text_response(response: reqwest::Response) -> DomainResult<String> {
+        String::from_utf8(Self::read_response_body(response).await?)
+            .map_err(|_| DomainError::Parse("Invalid GReader text response".into()))
     }
 
     pub(super) async fn authenticate_with_client_login(
@@ -242,23 +374,15 @@ impl GReaderProvider {
         );
 
         let response = self
-            .http_client()?
-            .post(&url)
+            .request(reqwest::Method::POST, &url)?
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)?;
+            .map_err(|error| self.map_request_error(error))?;
 
-        let status = response.status();
-        if !status.is_success() {
-            return Err(DomainError::from_provider_http_response_status(
-                status,
-                response.headers(),
-            ));
-        }
-
-        let text = response.text().await?;
+        let response = Self::ensure_success_response(response)?;
+        let text = Self::read_text_response(response).await?;
         let auth_token = text
             .lines()
             .find_map(|line| line.strip_prefix("Auth="))
@@ -303,15 +427,16 @@ impl GReaderProvider {
                 }
             };
 
-            self.http_client()?
-                .post(&url)
+            let response = self
+                .request(reqwest::Method::POST, &url)?
                 .header("Authorization", auth.clone())
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .body(body)
                 .send()
                 .await
-                .map_err(http_defaults::map_provider_request_error)
+                .map_err(|error| self.map_request_error(error))
                 .and_then(Self::ensure_success_response)?;
+            Self::read_text_response(response).await?;
         }
 
         Ok(())
@@ -331,15 +456,16 @@ impl GReaderProvider {
         let auth = self.auth_header()?;
         let body = format!("ac=unsubscribe&s={}", urlencoded(remote_id));
 
-        self.http_client()?
-            .post(&url)
+        let response = self
+            .request(reqwest::Method::POST, &url)?
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
+        Self::read_text_response(response).await?;
 
         Ok(())
     }
@@ -376,16 +502,38 @@ impl GReaderProvider {
             ));
         }
 
-        self.http_client()?
-            .post(&url)
+        let response = self
+            .request(reqwest::Method::POST, &url)?
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
+        Self::read_text_response(response).await?;
 
         Ok(())
     }
+}
+
+fn access_html_error() -> DomainError {
+    DomainError::Auth(
+        "The API returned an HTML page. Check the server URL and any access gateway settings."
+            .into(),
+    )
+}
+
+pub(super) fn validate_access_redirect(
+    origin: Option<&str>,
+    next_url: &reqwest::Url,
+) -> DomainResult<()> {
+    if let Some(origin) = origin {
+        if https_origin(next_url.as_str()).ok().as_deref() != Some(origin) {
+            return Err(DomainError::Validation(
+                "Cloudflare Access blocked a redirect outside the registered HTTPS origin. Check the server URL and access gateway settings.".into(),
+            ));
+        }
+    }
+    Ok(())
 }

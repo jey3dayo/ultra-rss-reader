@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
+import type { CloudflareAccessUpdate } from "@/api/schemas";
 import { validateFreshRssServerUrl } from "@/lib/account/server-url";
+import { resolveCloudflareAccessUpdate } from "./cloudflare-access";
 
 export type AddAccountProviderKind = "Local" | "FreshRss";
 
@@ -9,6 +11,7 @@ export type AddAccountPayload = {
   serverUrl?: string;
   username?: string;
   password?: string;
+  cloudflareAccess?: CloudflareAccessUpdate;
 };
 
 export type AddAccountValidationError =
@@ -16,7 +19,10 @@ export type AddAccountValidationError =
   | "invalid_server_url"
   | "server_url_credentials"
   | "missing_username"
-  | "missing_password";
+  | "missing_password"
+  | "missing_cloudflare_access_client_id"
+  | "missing_cloudflare_access_client_secret"
+  | "cloudflare_access_https_required";
 
 export type AddAccountFormState = {
   kind: AddAccountProviderKind;
@@ -24,11 +30,25 @@ export type AddAccountFormState = {
   serverUrl: string;
   username: string;
   password: string;
+  cloudflareAccessEnabled: boolean;
+  cloudflareAccessClientId: string;
+  cloudflareAccessClientSecret: string;
 };
 
 export type AddAccountFormAction =
   | { type: "setKind"; value: AddAccountProviderKind }
-  | { type: "setField"; field: "name" | "serverUrl" | "username" | "password"; value: string };
+  | {
+      type: "setField";
+      field:
+        | "name"
+        | "serverUrl"
+        | "username"
+        | "password"
+        | "cloudflareAccessClientId"
+        | "cloudflareAccessClientSecret";
+      value: string;
+    }
+  | { type: "setCloudflareAccessEnabled"; value: boolean };
 
 export const addAccountFormInitialState: AddAccountFormState = {
   kind: "Local",
@@ -36,6 +56,9 @@ export const addAccountFormInitialState: AddAccountFormState = {
   serverUrl: "",
   username: "",
   password: "",
+  cloudflareAccessEnabled: false,
+  cloudflareAccessClientId: "",
+  cloudflareAccessClientSecret: "",
 };
 
 export function addAccountFormReducer(state: AddAccountFormState, action: AddAccountFormAction): AddAccountFormState {
@@ -44,16 +67,32 @@ export function addAccountFormReducer(state: AddAccountFormState, action: AddAcc
       return { ...state, kind: action.value };
     case "setField":
       return { ...state, [action.field]: action.value };
+    case "setCloudflareAccessEnabled":
+      return {
+        ...state,
+        cloudflareAccessEnabled: action.value,
+        cloudflareAccessClientId: action.value ? state.cloudflareAccessClientId : "",
+        cloudflareAccessClientSecret: action.value ? state.cloudflareAccessClientSecret : "",
+      };
   }
 }
 
-type AddAccountFormInput = AddAccountFormState;
+type AddAccountFormInput = Omit<
+  AddAccountFormState,
+  "cloudflareAccessEnabled" | "cloudflareAccessClientId" | "cloudflareAccessClientSecret"
+> &
+  Partial<
+    Pick<AddAccountFormState, "cloudflareAccessEnabled" | "cloudflareAccessClientId" | "cloudflareAccessClientSecret">
+  >;
 
 type AddAccountValidationMessageKey =
   | "account.error_server_url_required"
   | "account.error_server_url_invalid"
   | "account.error_username_required"
-  | "account.error_password_required";
+  | "account.error_password_required"
+  | "account.error_cloudflare_access_client_id_required"
+  | "account.error_cloudflare_access_secret_required"
+  | "account.error_cloudflare_access_https_required";
 
 type AddAccountFormConfig = {
   sectionHeading: "Account" | "Server" | "Credentials";
@@ -99,6 +138,12 @@ export function formatAddAccountValidationError(
       return "account.error_username_required";
     case "missing_password":
       return "account.error_password_required";
+    case "missing_cloudflare_access_client_id":
+      return "account.error_cloudflare_access_client_id_required";
+    case "missing_cloudflare_access_client_secret":
+      return "account.error_cloudflare_access_secret_required";
+    case "cloudflare_access_https_required":
+      return "account.error_cloudflare_access_https_required";
   }
 }
 
@@ -134,6 +179,29 @@ export function buildAddAccountPayload(
       return Result.fail(Result.unwrapError(serverUrlResult));
     }
 
+    const accessResolution = resolveCloudflareAccessUpdate({
+      draft: {
+        enabled: input.cloudflareAccessEnabled ?? false,
+        clientId: input.cloudflareAccessClientId ?? "",
+        clientSecret: input.cloudflareAccessClientSecret ?? "",
+      },
+      serverUrl: Result.unwrap(serverUrlResult),
+      savedClientId: null,
+      savedOrigin: null,
+    });
+    if (Result.isFailure(accessResolution)) {
+      switch (Result.unwrapError(accessResolution)) {
+        case "client_id_required":
+          return Result.fail("missing_cloudflare_access_client_id");
+        case "client_secret_required":
+          return Result.fail("missing_cloudflare_access_client_secret");
+        case "https_required":
+          return Result.fail("cloudflare_access_https_required");
+      }
+    }
+
+    const accessUpdate = Result.unwrap(accessResolution);
+
     return Result.pipe(
       validateCredentials(input),
       Result.map((creds) => ({
@@ -141,6 +209,7 @@ export function buildAddAccountPayload(
         name,
         serverUrl: Result.unwrap(serverUrlResult),
         ...creds,
+        ...(accessUpdate.action === "replace" ? { cloudflareAccess: accessUpdate } : {}),
       })),
     );
   }

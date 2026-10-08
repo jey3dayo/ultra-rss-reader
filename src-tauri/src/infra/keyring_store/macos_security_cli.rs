@@ -144,6 +144,44 @@ pub(super) fn get_password_from_security_cli(account_id: &str) -> DomainResult<S
     )))
 }
 
+#[cfg(target_os = "macos")]
+pub(super) fn get_credential_from_security_cli(
+    service: &str,
+    account_id: &str,
+) -> DomainResult<Option<String>> {
+    let child = std::process::Command::new("security")
+        .args([
+            "find-generic-password",
+            "-s",
+            service,
+            "-a",
+            account_id,
+            "-w",
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|_| DomainError::Keychain("Could not read OS keyring entry".into()))?;
+    let output = wait_for_security_cli_output(child, KEYRING_SECURITY_CLI_TIMEOUT)?;
+    decode_credential_output(output)
+}
+
+#[cfg(target_os = "macos")]
+fn decode_credential_output(output: std::process::Output) -> DomainResult<Option<String>> {
+    if output.status.success() {
+        let value = String::from_utf8(output.stdout)
+            .map_err(|_| DomainError::Keychain("Invalid OS keyring entry encoding".into()))?;
+        // `security -w` appends one newline; preserve opaque credential bytes.
+        return Ok(Some(value.strip_suffix('\n').unwrap_or(&value).to_string()));
+    }
+    if output.status.code() == Some(44) {
+        return Ok(None);
+    }
+    Err(DomainError::Keychain(
+        "Could not read OS keyring entry. Allow keyring access and try again.".into(),
+    ))
+}
+
 #[cfg(all(test, target_os = "macos"))]
 mod tests {
     use super::run_force_delete_keychain_entry;
@@ -154,5 +192,28 @@ mod tests {
         command.args(["-c", "sleep 1"]);
 
         run_force_delete_keychain_entry(command, std::time::Duration::from_millis(10));
+    }
+    #[test]
+    fn cloudflare_access_security_output_distinguishes_absence_and_redacts_failures() {
+        use std::os::unix::process::ExitStatusExt;
+        let output = |code, stdout: Vec<u8>| std::process::Output {
+            status: std::process::ExitStatus::from_raw(code << 8),
+            stdout,
+            stderr: b"cfast_dummy_secret".to_vec(),
+        };
+        assert_eq!(
+            super::decode_credential_output(output(44, vec![])).unwrap(),
+            None
+        );
+        assert_eq!(
+            super::decode_credential_output(output(0, b"dummy-json\n".to_vec()))
+                .unwrap()
+                .as_deref(),
+            Some("dummy-json")
+        );
+        for response in [output(36, vec![]), output(0, vec![0xff])] {
+            let error = super::decode_credential_output(response).unwrap_err();
+            assert!(!format!("{error:?} {error}").contains("cfast_dummy_secret"));
+        }
     }
 }

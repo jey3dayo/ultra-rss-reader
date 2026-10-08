@@ -2,6 +2,7 @@ import type { BaseIssue, BaseSchema } from "valibot";
 import {
   addAccountArgs,
   deleteAccountArgs,
+  getAccountCloudflareAccessArgs,
   getAccountSyncStatusArgs,
   renameAccountArgs,
   startupSyncArgs,
@@ -119,6 +120,7 @@ export const commandArgsSchemas = {
   rename_account: renameAccountArgs,
   test_account_connection: testAccountConnectionArgs,
   delete_account: deleteAccountArgs,
+  get_account_cloudflare_access: getAccountCloudflareAccessArgs,
   get_account_sync_status: getAccountSyncStatusArgs,
   trigger_startup_sync: startupSyncArgs,
   trigger_sync_account: syncAccountArgs,

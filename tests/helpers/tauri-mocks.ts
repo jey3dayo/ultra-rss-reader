@@ -436,6 +436,8 @@ function createDefaultHandler(): MockHandler {
         };
       case "test_account_connection":
         return createSampleAccounts().find((account) => account.id === args.accountId) ?? createSampleAccounts()[0];
+      case "get_account_cloudflare_access":
+        return { client_id: null };
       case "delete_account":
         return null;
       case "get_account_sync_status":

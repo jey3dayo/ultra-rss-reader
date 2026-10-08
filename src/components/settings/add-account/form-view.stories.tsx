@@ -96,6 +96,28 @@ export const FreshRSSAccount: Story = {
         onChange: fn(),
         disabled: false,
       },
+      cloudflareAccess: {
+        label: "Cloudflare Access",
+        description: "Add Access authentication",
+        enabled: false,
+        onChange: fn(),
+        disabled: false,
+        clientId: {
+          label: "Client ID",
+          name: "cloudflare-access-client-id",
+          value: "",
+          onChange: fn(),
+          disabled: false,
+        },
+        clientSecret: {
+          label: "Client Secret",
+          name: "cloudflare-access-client-secret",
+          value: "",
+          type: "password",
+          onChange: fn(),
+          disabled: false,
+        },
+      },
     },
   },
 };

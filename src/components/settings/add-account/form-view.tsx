@@ -1,3 +1,4 @@
+import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
@@ -28,6 +29,15 @@ export type AddAccountCredentialsSection = {
   serverUrl?: AddAccountInputControl;
   credential: AddAccountInputControl;
   password: AddAccountInputControl;
+  cloudflareAccess?: {
+    label: string;
+    description: string;
+    enabled: boolean;
+    onChange: (enabled: boolean) => void;
+    disabled: boolean;
+    clientId: AddAccountInputControl;
+    clientSecret: AddAccountInputControl;
+  };
 };
 
 type AddAccountFormSelectControl = Pick<LabeledSelectRowProps, "label" | "name" | "value" | "options" | "onChange"> & {
@@ -120,6 +130,25 @@ export function AddAccountFormView({
             {credentialsSection.serverUrl && <AddAccountInputRow control={credentialsSection.serverUrl} />}
             <AddAccountInputRow control={credentialsSection.credential} />
             <AddAccountInputRow control={credentialsSection.password} />
+            {credentialsSection.cloudflareAccess && (
+              <>
+                <CloudflareAccessControl
+                  mode="add"
+                  label={credentialsSection.cloudflareAccess.label}
+                  description={credentialsSection.cloudflareAccess.description}
+                  checked={credentialsSection.cloudflareAccess.enabled}
+                  onChange={credentialsSection.cloudflareAccess.onChange}
+                  disabled={credentialsSection.cloudflareAccess.disabled}
+                  labelClassName={LABEL_COLUMN_CLASS_NAME}
+                />
+                {credentialsSection.cloudflareAccess.enabled && (
+                  <>
+                    <AddAccountInputRow control={credentialsSection.cloudflareAccess.clientId} />
+                    <AddAccountInputRow control={credentialsSection.cloudflareAccess.clientSecret} />
+                  </>
+                )}
+              </>
+            )}
           </SettingsSection>
         )}
 

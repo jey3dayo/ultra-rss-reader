@@ -181,6 +181,10 @@ fn command_db_lock_policy_classifies_command_categories() {
             CommandDbLockPolicy::AsyncCommandBlockingLock,
         ),
         ("list_accounts", CommandDbLockPolicy::BlockingLock),
+        (
+            "get_account_cloudflare_access",
+            CommandDbLockPolicy::BlockingLock,
+        ),
         ("delete_feed", CommandDbLockPolicy::AsyncCommandBlockingLock),
         (
             "trigger_sync",

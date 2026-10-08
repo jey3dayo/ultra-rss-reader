@@ -36,6 +36,7 @@ import {
   type exportLocalAccountSyncOperations,
   exportOpmlToFile,
   focusBrowserWebview,
+  getAccountCloudflareAccess,
   getAccountSyncStatus,
   getArticle,
   getArticleTags,
@@ -592,6 +593,36 @@ describe("tauri-commands with mockIPC", () => {
         sync_on_wake: false,
         keep_read_items_days: 30,
       });
+    });
+
+    it("forwards Cloudflare Access replacement as a separate top-level update", async () => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "add_account") {
+          expect(args).toEqual({
+            kind: "FreshRss",
+            name: "Work RSS",
+            serverUrl: "https://reader.example.com",
+            username: "alice",
+            password: "freshrss-password",
+            cloudflareAccess: { action: "replace", clientId: "client-id", clientSecret: "dummy-secret" },
+          });
+        }
+        return undefined;
+      });
+
+      const result = await addAccount(
+        "FreshRss",
+        "Work RSS",
+        "https://reader.example.com",
+        "alice",
+        "freshrss-password",
+        {
+          action: "replace",
+          clientId: "client-id",
+          clientSecret: "dummy-secret",
+        },
+      );
+      expect(Result.isSuccess(result)).toBe(true);
     });
   });
 
@@ -1877,6 +1908,158 @@ describe("safeInvoke args validation", () => {
     });
 
     Result.unwrap(await updateAccountCredentials("acc-1", " https://example.com ", " user ", " secret "));
+  });
+
+  it("forwards Cloudflare Access updates and reads only nonsecret metadata", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "update_account_credentials") {
+        expect(args).toEqual({
+          accountId: "acc-1",
+          serverUrl: "https://reader.example.com",
+          username: "alice",
+          cloudflareAccess: { action: "replace", clientId: "client-id", clientSecret: "dummy-secret" },
+        });
+        return sampleAccounts[1];
+      }
+      if (cmd === "get_account_cloudflare_access") {
+        expect(args).toEqual({ accountId: "acc-1" });
+        return { client_id: "client-id" };
+      }
+      return undefined;
+    });
+
+    const updated = await updateAccountCredentials("acc-1", "https://reader.example.com", "alice", undefined, {
+      action: "replace",
+      clientId: "client-id",
+      clientSecret: "dummy-secret",
+    });
+    expect(Result.isSuccess(updated)).toBe(true);
+    expect(Result.unwrap(await getAccountCloudflareAccess("acc-1"))).toEqual({ client_id: "client-id" });
+  });
+
+  it.each(["replace", "remove"] satisfies Array<"replace" | "remove">)(
+    "retains only the safe rollback recovery category for %s",
+    async (action) => {
+      const consoleError = suppressConsoleError();
+      setupTauriMocks(() => {
+        throw {
+          type: "UserVisible",
+          message:
+            "Write reflected current-dummy-secret previous-dummy-secret. Credential rollback failed (FreshRSS password: restored; Cloudflare Access: failed). Recovery required: re-enter credentials or remove Access in account settings before reconnecting.",
+        };
+      });
+      const result = await updateAccountCredentials(
+        "acc-2",
+        "https://reader.example.com",
+        "alice",
+        undefined,
+        action === "replace" ? { action, clientId: "dummy-id", clientSecret: "current-dummy-secret" } : { action },
+      );
+      expect(Result.unwrapError(result)).toEqual({
+        type: "UserVisible",
+        message: "Cloudflare Access credential recovery required.",
+      });
+      expect(consoleError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      label: "raw rollback text",
+      error: new Error(
+        "current-dummy-secret. Credential rollback failed (FreshRSS password: failed; Cloudflare Access: restored). Recovery required: re-enter credentials or remove Access in account settings before reconnecting.",
+      ),
+      type: "UserVisible",
+    },
+    {
+      label: "ordinary native error",
+      error: { type: "UserVisible", message: "current-dummy-secret previous-dummy-secret Recovery required" },
+      type: "UserVisible",
+    },
+    {
+      label: "malformed native error",
+      error: { type: "UserVisible", message: "current-dummy-secret", unexpected: true },
+      type: "UserVisible",
+    },
+    {
+      label: "unknown rejection",
+      error: { details: "current-dummy-secret previous-dummy-secret" },
+      type: "UserVisible",
+    },
+    {
+      label: "native retry category",
+      error: { type: "Retryable", message: "current-dummy-secret previous-dummy-secret" },
+      type: "Retryable",
+    },
+    { label: "raw timeout", error: new Error("timeout current-dummy-secret previous-dummy-secret"), type: "Retryable" },
+    {
+      label: "rollback with no failed restoration",
+      error: {
+        type: "UserVisible",
+        message:
+          "current-dummy-secret. Credential rollback failed (FreshRSS password: restored; Cloudflare Access: restored). Recovery required: re-enter credentials or remove Access in account settings before reconnecting.",
+      },
+      type: "UserVisible",
+    },
+  ])("redacts $label without creating a recovery category", async ({ error, type }) => {
+    const consoleError = suppressConsoleError();
+    setupTauriMocks(() => {
+      throw error;
+    });
+    const result = await updateAccountCredentials("acc-2", "https://reader.example.com", "alice", undefined, {
+      action: "replace",
+      clientId: "dummy-id",
+      clientSecret: "current-dummy-secret",
+    });
+    expect(Result.unwrapError(result)).toEqual({
+      type,
+      message: "Cloudflare Access credential operation failed. Check your connection and keyring access, then retry.",
+    });
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it("redacts Access args and response validation failures without a recovery category", async () => {
+    const consoleError = suppressConsoleError();
+    const invoked = vi.fn();
+    setupTauriMocks(() => {
+      invoked();
+      return { message: "current-dummy-secret previous-dummy-secret" };
+    });
+    const invalidArgs = await updateAccountCredentials("acc-2", "https://reader.example.com", "alice", undefined, {
+      action: "replace",
+      clientId: "",
+      clientSecret: "current-dummy-secret",
+    });
+    expect(invoked).not.toHaveBeenCalled();
+    const invalidResponse = await updateAccountCredentials("acc-2", "https://reader.example.com", "alice", undefined, {
+      action: "replace",
+      clientId: "dummy-id",
+      clientSecret: "current-dummy-secret",
+    });
+    for (const result of [invalidArgs, invalidResponse]) {
+      expect(Result.unwrapError(result)).toEqual({
+        type: "UserVisible",
+        message: "Cloudflare Access credential operation failed. Check your connection and keyring access, then retry.",
+      });
+    }
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it("redacts Cloudflare Access Secrets from command failure results and console output", async () => {
+    const consoleError = suppressConsoleError();
+    setupTauriMocks(() => {
+      throw new Error("backend failure echoed dummy-access-secret");
+    });
+
+    const result = await updateAccountCredentials("acc-1", "https://reader.example.com", "alice", undefined, {
+      action: "replace",
+      clientId: "client-id",
+      clientSecret: "dummy-access-secret",
+    });
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).not.toContain("dummy-access-secret");
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it.each(["", "   "] as const)(

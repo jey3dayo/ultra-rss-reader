@@ -766,8 +766,8 @@ async fn authenticate_request_sends_no_store_headers() {
 #[tokio::test]
 async fn authenticate_maps_provider_http_status_categories() {
     let cases = [
-        (401, "Auth error: HTTP 401 Unauthorized"),
-        (403, "Auth error: HTTP 403 Forbidden"),
+        (401, "Auth error: HTTP 401 Unauthorized. Check FreshRSS API credentials and any access gateway settings."),
+        (403, "Auth error: HTTP 403 Forbidden. Check FreshRSS API credentials and any access gateway settings."),
         (429, "Rate limit error: HTTP 429 Too Many Requests"),
         (502, "Network error: HTTP 502 Bad Gateway"),
     ];
@@ -872,13 +872,13 @@ async fn redaction_authenticate_auth_failure_does_not_surface_credentials() {
         .expect_err("auth failure should return a domain error");
     let domain_message = error.to_string();
 
-    assert_eq!(domain_message, "Auth error: HTTP 401 Unauthorized");
+    assert_eq!(domain_message, "Auth error: HTTP 401 Unauthorized. Check FreshRSS API credentials and any access gateway settings.");
     assert!(!domain_message.contains(username));
     assert!(!domain_message.contains(password));
 
     match AppError::from(error) {
         AppError::UserVisible { message } => {
-            assert_eq!(message, "Auth error: HTTP 401 Unauthorized");
+            assert_eq!(message, "Auth error: HTTP 401 Unauthorized. Check FreshRSS API credentials and any access gateway settings.");
             assert!(!message.contains(username));
             assert!(!message.contains(password));
         }
@@ -1190,7 +1190,7 @@ async fn get_subscriptions_normalizes_label_remote_ids() {
 #[tokio::test]
 async fn get_subscriptions_maps_provider_http_status_categories() {
     let cases = [
-        (401, "Auth error: HTTP 401 Unauthorized"),
+        (401, "Auth error: HTTP 401 Unauthorized. Check FreshRSS API credentials and any access gateway settings."),
         (429, "Rate limit error: HTTP 429 Too Many Requests"),
         (502, "Network error: HTTP 502 Bad Gateway"),
     ];

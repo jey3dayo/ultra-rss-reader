@@ -78,6 +78,8 @@ type DevLocalSyncSettings = {
   enabled: boolean;
 };
 
+const mockCloudflareAccessClientIds = new Map<string, string>();
+
 const mockLocalSyncSettings = new Map<string, DevLocalSyncSettings>();
 
 export type { RestoreDevMocks } from "@/dev/mock-runtime";
@@ -107,6 +109,7 @@ function resetDevMockState() {
   resetDevMockDiagnostics();
   resetDevMockExternalOpens();
   mockLocalSyncSettings.clear();
+  mockCloudflareAccessClientIds.clear();
 }
 
 function normalizeSettingsProfileServerUrl(serverUrl: string | null): string | null {
@@ -278,7 +281,7 @@ export function setupDevMocks(): RestoreDevMocks {
         return cloneMockResponse(mockAccounts);
 
       case "add_account": {
-        const { kind, name, serverUrl } = parseBrowserMockArgs("add_account", rawIpcPayload);
+        const { kind, name, serverUrl, cloudflareAccess } = parseBrowserMockArgs("add_account", rawIpcPayload);
         const account: AccountDto = {
           id: `dev-acc-${takeNextDevMockAccountId()}`,
           kind,
@@ -291,6 +294,9 @@ export function setupDevMocks(): RestoreDevMocks {
           keep_read_items_days: 30,
         };
         mockAccounts.push(account);
+        if (cloudflareAccess?.action === "replace") {
+          mockCloudflareAccessClientIds.set(account.id, cloudflareAccess.clientId);
+        }
         return cloneMockResponse(account);
       }
 
@@ -309,12 +315,28 @@ export function setupDevMocks(): RestoreDevMocks {
         return cloneMockResponse(target ?? null);
       }
 
+      case "get_account_cloudflare_access": {
+        const { accountId } = parseBrowserMockArgs("get_account_cloudflare_access", rawIpcPayload);
+        if (!mockAccounts.some((account) => account.id === accountId)) {
+          throw new Error("Account not found");
+        }
+        return { client_id: mockCloudflareAccessClientIds.get(accountId) ?? null };
+      }
+
       case "update_account_credentials": {
-        const { accountId, serverUrl, username } = parseBrowserMockArgs("update_account_credentials", rawIpcPayload);
+        const { accountId, serverUrl, username, cloudflareAccess } = parseBrowserMockArgs(
+          "update_account_credentials",
+          rawIpcPayload,
+        );
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
           target.server_url = serverUrl ?? target.server_url;
           target.username = username ?? target.username;
+          if (cloudflareAccess?.action === "replace") {
+            mockCloudflareAccessClientIds.set(accountId, cloudflareAccess.clientId);
+          } else if (cloudflareAccess?.action === "remove") {
+            mockCloudflareAccessClientIds.delete(accountId);
+          }
         }
         return cloneMockResponse(target ?? null);
       }
@@ -336,6 +358,7 @@ export function setupDevMocks(): RestoreDevMocks {
       case "delete_account": {
         const { accountId } = parseBrowserMockArgs("delete_account", rawIpcPayload);
         deleteDevMockAccount(accountId);
+        mockCloudflareAccessClientIds.delete(accountId);
         return null;
       }
 

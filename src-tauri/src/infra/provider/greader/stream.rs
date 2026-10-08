@@ -1,7 +1,6 @@
 use chrono::DateTime;
 use std::collections::{HashMap, HashSet};
 
-use super::super::http_defaults;
 use super::super::normalizer::normalize_trusted_backend_article_url;
 use super::stream_types::{
     next_ot_timestamp_usec, normalize_item_id, valid_item_cursor_timestamp_usec, GReaderItem,
@@ -40,12 +39,11 @@ impl GReaderProvider {
     pub(super) async fn fetch_unread_count_map(&self) -> DomainResult<HashMap<String, i32>> {
         let url = self.api_url("/reader/api/0/unread-count?output=json&all=true");
         let response = self
-            .http_client()?
-            .get(&url)
+            .request(reqwest::Method::GET, &url)?
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
         let response: super::stream_types::UnreadCountsResponse =
             Self::read_json_response(response).await?;
@@ -91,12 +89,11 @@ impl GReaderProvider {
         }
 
         let resp = self
-            .http_client()?
-            .get(&url)
+            .request(reqwest::Method::GET, &url)?
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
         let resp: StreamContentsResponse = Self::read_json_response(resp).await?;
 
@@ -228,12 +225,11 @@ impl GReaderProvider {
         }
 
         let response = self
-            .http_client()?
-            .get(&url)
+            .request(reqwest::Method::GET, &url)?
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
         Self::read_json_response(response).await
     }

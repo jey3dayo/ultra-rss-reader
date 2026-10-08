@@ -3,6 +3,7 @@ use dev_store_file::{read_dev_store, validate_dev_credential_account_id, write_d
 use dev_store_lock::{delete_dev_password_at_path, with_dev_store_lock};
 use dev_store_path::dev_credentials_path;
 
+pub(crate) mod cloudflare_access;
 mod dev_store_file;
 mod dev_store_lock;
 mod dev_store_path;

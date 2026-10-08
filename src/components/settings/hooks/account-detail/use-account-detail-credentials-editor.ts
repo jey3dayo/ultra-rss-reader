@@ -1,10 +1,23 @@
 import { Result } from "@praha/byethrow";
 import { type RefObject, useEffect, useLayoutEffect, useReducer, useRef } from "react";
-import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
+import type { CloudflareAccessUpdate } from "@/api/schemas";
+import {
+  copyToClipboard,
+  getAccountCloudflareAccess,
+  testAccountConnection,
+  updateAccountCredentials,
+} from "@/api/tauri-commands";
+import {
+  type CloudflareAccessDraftError,
+  getHttpsOrigin,
+  resolveCloudflareAccessUpdate,
+} from "@/lib/account/cloudflare-access";
+import { isCloudflareAccessRecoveryRequired } from "@/lib/account/cloudflare-access-error";
 import { isValidRequiredHttpServerUrl } from "@/lib/account/server-url";
 import { focusFirstInput } from "@/lib/dom/input-focus";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
+import { hasTauriRuntime } from "@/lib/window/window-chrome";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -19,6 +32,12 @@ export type AccountDetailCredentialsEditorResult = {
   credUsername: string | null;
   credPassword: string | null;
   passwordDisplayValue: string;
+  cloudflareAccessStatus: "loading" | "ready" | "error" | "unavailable";
+  cloudflareAccessRecoveryAction: "replace" | "remove" | null;
+  cloudflareAccessEnabled: boolean;
+  cloudflareAccessClientId: string;
+  cloudflareAccessSecret: string;
+  cloudflareAccessValidationError: CloudflareAccessDraftError | null;
   testingConnection: boolean;
   dirtyState: SettingsDirtyStateEntry;
   serverUrlInputRef: RefObject<HTMLInputElement | null>;
@@ -26,6 +45,10 @@ export type AccountDetailCredentialsEditorResult = {
   setCredServerUrl: (value: string | null) => void;
   setCredUsername: (value: string | null) => void;
   setCredPassword: (value: string | null) => void;
+  setCloudflareAccessRecoveryAction: (action: "replace" | "remove") => void;
+  setCloudflareAccessEnabled: (value: boolean) => void;
+  setCloudflareAccessClientId: (value: string) => void;
+  setCloudflareAccessSecret: (value: string) => void;
   commitCredentials: () => Promise<boolean>;
   handleTestConnection: () => Promise<void>;
   handleCopyServerUrl: () => Promise<void>;
@@ -34,6 +57,11 @@ export type AccountDetailCredentialsEditorResult = {
 };
 
 const MASKED_PASSWORD_VALUE = "••••••••";
+const CLOUDFLARE_ACCESS_ERROR_MESSAGE_KEY = {
+  client_id_required: "account.error_cloudflare_access_client_id_required",
+  client_secret_required: "account.error_cloudflare_access_secret_required",
+  https_required: "account.error_cloudflare_access_https_required",
+} as const satisfies Record<CloudflareAccessDraftError, string>;
 // react-doctor-disable-next-line react-doctor/no-secrets-in-client-code -- false positive (error-message marker, not a secret), docs/react-doctor-warning-classification-300.md:194
 const MISSING_PASSWORD_ERROR_MARKER = "Password is not configured";
 
@@ -42,6 +70,15 @@ type AccountDetailCredentialsEditorState = {
   credUsername: string | null;
   credPassword: string | null;
   hasSavedPassword: boolean;
+  cloudflareAccessStatus: "loading" | "ready" | "error" | "unavailable";
+  savedCloudflareAccessClientId: string | null;
+  savedCloudflareAccessOrigin: string | null;
+  cloudflareAccessRecoveryAction: "replace" | "remove" | null;
+  cloudflareAccessEnabled: boolean;
+  cloudflareAccessClientId: string;
+  cloudflareAccessSecret: string;
+  cloudflareAccessDraftTouched: boolean;
+  cloudflareAccessRemovalRequested: boolean;
   testingConnection: boolean;
   credentialSavePending: boolean;
   draftRevision: number;
@@ -58,6 +95,18 @@ type AccountDetailCredentialsEditorAction =
   | { type: "set-cred-server-url"; value: string | null }
   | { type: "set-cred-username"; value: string | null }
   | { type: "set-cred-password"; value: string | null }
+  | { type: "set-cloudflare-access-recovery-action"; value: "replace" | "remove" }
+  | { type: "set-cloudflare-access-enabled"; value: boolean }
+  | { type: "set-cloudflare-access-client-id"; value: string }
+  | { type: "set-cloudflare-access-secret"; value: string }
+  | { type: "set-cloudflare-access-status"; value: "loading" | "error" | "unavailable" }
+  | { type: "cloudflare-access-loaded"; clientId: string | null; serverUrl: string }
+  | {
+      type: "record-saved-cloudflare-access";
+      clientId: string | null;
+      serverUrl: string;
+      draftRevision: number;
+    }
   | { type: "set-testing-connection"; value: boolean }
   | { type: "set-credential-save-pending"; value: boolean }
   | { type: "sync-saved-password-presence"; value: boolean }
@@ -87,6 +136,15 @@ function createInitialAccountDetailCredentialsEditorState(
     credUsername: null,
     credPassword: null,
     hasSavedPassword: accountMayHaveSavedPassword(account),
+    cloudflareAccessStatus: account.kind.toLowerCase() === "freshrss" ? "loading" : "ready",
+    savedCloudflareAccessClientId: null,
+    savedCloudflareAccessOrigin: null,
+    cloudflareAccessRecoveryAction: null,
+    cloudflareAccessEnabled: false,
+    cloudflareAccessClientId: "",
+    cloudflareAccessSecret: "",
+    cloudflareAccessDraftTouched: false,
+    cloudflareAccessRemovalRequested: false,
     testingConnection: false,
     credentialSavePending: false,
     draftRevision: 0,
@@ -116,6 +174,85 @@ function accountDetailCredentialsEditorReducer(
         credPassword: action.value,
         draftRevision: state.draftRevision + 1,
       };
+    case "set-cloudflare-access-recovery-action":
+      if (state.cloudflareAccessStatus !== "error") {
+        return state;
+      }
+      return {
+        ...state,
+        cloudflareAccessRecoveryAction: action.value,
+        cloudflareAccessDraftTouched: true,
+        draftRevision: state.draftRevision + 1,
+      };
+    case "set-cloudflare-access-enabled":
+      return {
+        ...state,
+        cloudflareAccessEnabled: action.value,
+        cloudflareAccessDraftTouched: true,
+        cloudflareAccessRemovalRequested: !action.value,
+        cloudflareAccessSecret: action.value ? state.cloudflareAccessSecret : "",
+        cloudflareAccessClientId:
+          action.value || state.savedCloudflareAccessClientId !== null ? state.cloudflareAccessClientId : "",
+        draftRevision: state.draftRevision + 1,
+      };
+    case "set-cloudflare-access-client-id":
+      return {
+        ...state,
+        cloudflareAccessClientId: action.value,
+        cloudflareAccessDraftTouched: true,
+        draftRevision: state.draftRevision + 1,
+      };
+    case "set-cloudflare-access-secret":
+      return {
+        ...state,
+        cloudflareAccessSecret: action.value,
+        cloudflareAccessDraftTouched: true,
+        draftRevision: state.draftRevision + 1,
+      };
+    case "set-cloudflare-access-status":
+      return { ...state, cloudflareAccessStatus: action.value };
+    case "cloudflare-access-loaded":
+      return !state.cloudflareAccessDraftTouched
+        ? {
+            ...state,
+            cloudflareAccessStatus: "ready",
+            cloudflareAccessRecoveryAction: null,
+            savedCloudflareAccessClientId: action.clientId,
+            savedCloudflareAccessOrigin: action.clientId === null ? null : getHttpsOrigin(action.serverUrl),
+            cloudflareAccessEnabled: action.clientId !== null,
+            cloudflareAccessClientId: action.clientId ?? "",
+            cloudflareAccessSecret: "",
+          }
+        : {
+            ...state,
+            cloudflareAccessStatus: "ready",
+            cloudflareAccessRecoveryAction: null,
+            savedCloudflareAccessClientId: action.clientId,
+            savedCloudflareAccessOrigin: action.clientId === null ? null : getHttpsOrigin(action.serverUrl),
+          };
+    case "record-saved-cloudflare-access": {
+      const savedClientId = action.clientId;
+      const savedOrigin = savedClientId === null ? null : getHttpsOrigin(action.serverUrl);
+      if (state.draftRevision !== action.draftRevision) {
+        return {
+          ...state,
+          savedCloudflareAccessClientId: savedClientId,
+          savedCloudflareAccessOrigin: savedOrigin,
+        };
+      }
+      return {
+        ...state,
+        cloudflareAccessStatus: "ready",
+        cloudflareAccessRecoveryAction: null,
+        savedCloudflareAccessClientId: savedClientId,
+        savedCloudflareAccessOrigin: savedOrigin,
+        cloudflareAccessEnabled: savedClientId !== null,
+        cloudflareAccessClientId: savedClientId ?? "",
+        cloudflareAccessSecret: "",
+        cloudflareAccessDraftTouched: false,
+        cloudflareAccessRemovalRequested: false,
+      };
+    }
     case "set-testing-connection":
       return { ...state, testingConnection: action.value };
     case "set-credential-save-pending":
@@ -158,6 +295,7 @@ export function useAccountDetailCredentialsEditor({
   const pendingCredentialSaveRef = useRef<Promise<CredentialCommitOutcome> | null>(null);
   const pendingCredentialSaveRevisionRef = useRef<number | null>(null);
   const pendingConnectionTestRef = useRef(false);
+  const cloudflareAccessRequestIdRef = useRef(0);
   const activeAccountIdRef = useRef(account.id);
   const draftRevisionRef = useRef(state.draftRevision);
   const mountedRef = useRef(true);
@@ -168,16 +306,62 @@ export function useAccountDetailCredentialsEditor({
   const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed");
   const savedPasswordPresence = accountMayHaveSavedPassword(account);
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
+  const currentServerUrl = (credServerUrl ?? account.server_url ?? "").trim();
+  const cloudflareAccessResolution: Result.Result<CloudflareAccessUpdate, CloudflareAccessDraftError> | null =
+    state.cloudflareAccessStatus === "ready"
+      ? !state.cloudflareAccessEnabled && !state.cloudflareAccessRemovalRequested
+        ? Result.succeed({ action: "keep" })
+        : resolveCloudflareAccessUpdate({
+            draft: {
+              enabled: state.cloudflareAccessEnabled,
+              clientId: state.cloudflareAccessClientId,
+              clientSecret: state.cloudflareAccessSecret,
+            },
+            serverUrl: currentServerUrl,
+            savedClientId: state.savedCloudflareAccessClientId,
+            savedOrigin: state.savedCloudflareAccessOrigin,
+          })
+      : state.cloudflareAccessStatus === "error" && state.cloudflareAccessRecoveryAction === "replace"
+        ? resolveCloudflareAccessUpdate({
+            draft: {
+              enabled: true,
+              clientId: state.cloudflareAccessClientId,
+              clientSecret: state.cloudflareAccessSecret,
+            },
+            serverUrl: currentServerUrl,
+            savedClientId: null,
+            savedOrigin: null,
+          })
+        : null;
+  const cloudflareAccessValidationError =
+    cloudflareAccessResolution !== null && Result.isFailure(cloudflareAccessResolution)
+      ? Result.unwrapError(cloudflareAccessResolution)
+      : null;
+  const cloudflareAccessUpdate: CloudflareAccessUpdate | undefined =
+    state.cloudflareAccessStatus === "error" && state.cloudflareAccessRecoveryAction === "remove"
+      ? { action: "remove" }
+      : cloudflareAccessResolution !== null && Result.isSuccess(cloudflareAccessResolution)
+        ? Result.unwrap(cloudflareAccessResolution)
+        : undefined;
+  const cloudflareAccessDirty =
+    (state.cloudflareAccessStatus === "error" && state.cloudflareAccessRecoveryAction !== null) ||
+    (state.cloudflareAccessStatus === "ready" &&
+      (state.cloudflareAccessEnabled
+        ? state.savedCloudflareAccessClientId === null ||
+          state.cloudflareAccessClientId.trim() !== state.savedCloudflareAccessClientId ||
+          state.cloudflareAccessSecret.trim().length > 0
+        : state.cloudflareAccessRemovalRequested && state.savedCloudflareAccessClientId !== null));
   const credentialsDirty =
     credServerUrl !== null || credUsername !== null || (credPassword !== null && credPassword !== "");
+  const credentialsOrAccessDirty = credentialsDirty || cloudflareAccessDirty;
   const dirtyState: SettingsDirtyStateEntry = {
     owner: "account",
-    dirty: credentialsDirty,
+    dirty: credentialsOrAccessDirty,
     pending: credentialSavePending || testingConnection,
     blockingReason:
       credentialSavePending || testingConnection
         ? "account-credentials-pending"
-        : credentialsDirty
+        : credentialsOrAccessDirty
           ? "account-credentials-dirty"
           : null,
   };
@@ -193,6 +377,55 @@ export function useAccountDetailCredentialsEditor({
       value: savedPasswordPresence,
     });
   }, [savedPasswordPresence]);
+
+  useEffect(() => {
+    if (account.kind.toLowerCase() !== "freshrss") {
+      return;
+    }
+    const hasBrowserMock =
+      typeof window !== "undefined" &&
+      window.__DEV_BROWSER_MOCKS__ === true &&
+      window.__ULTRA_RSS_BROWSER_MOCKS__ === true &&
+      window.__TAURI_INTERNALS__ !== null &&
+      typeof window.__TAURI_INTERNALS__ === "object" &&
+      typeof Reflect.get(window.__TAURI_INTERNALS__, "invoke") === "function";
+    if (!hasTauriRuntime() && !hasBrowserMock) {
+      dispatch({ type: "set-cloudflare-access-status", value: "unavailable" });
+      return;
+    }
+
+    const requestId = cloudflareAccessRequestIdRef.current + 1;
+    cloudflareAccessRequestIdRef.current = requestId;
+    let active = true;
+    dispatch({ type: "set-cloudflare-access-status", value: "loading" });
+    void getAccountCloudflareAccess(account.id)
+      .then((result) => {
+        if (
+          !active ||
+          cloudflareAccessRequestIdRef.current !== requestId ||
+          activeAccountIdRef.current !== account.id
+        ) {
+          return;
+        }
+        if (Result.isFailure(result)) {
+          dispatch({ type: "set-cloudflare-access-status", value: "error" });
+          return;
+        }
+        dispatch({
+          type: "cloudflare-access-loaded",
+          clientId: Result.unwrap(result).client_id,
+          serverUrl: account.server_url ?? "",
+        });
+      })
+      .catch(() => {
+        if (active && cloudflareAccessRequestIdRef.current === requestId && activeAccountIdRef.current === account.id) {
+          dispatch({ type: "set-cloudflare-access-status", value: "error" });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [account.id, account.kind, account.server_url]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -272,6 +505,10 @@ export function useAccountDetailCredentialsEditor({
       const serverUrlChanged = credServerUrl !== null && serverUrl !== ((account.server_url ?? "").trim() || undefined);
       const usernameChanged = credUsername !== null && username !== ((account.username ?? "").trim() || undefined);
       const passwordChanged = credPassword !== null && credPassword !== "";
+      const accessMetadataUnavailable =
+        state.cloudflareAccessStatus === "loading" ||
+        state.cloudflareAccessStatus === "error" ||
+        state.cloudflareAccessStatus === "unavailable";
 
       if (
         !mountedRef.current ||
@@ -286,15 +523,37 @@ export function useAccountDetailCredentialsEditor({
         return { saved: false, verified: false };
       }
 
-      if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
+      if (cloudflareAccessValidationError !== null) {
+        useUiStore.getState().showToast(t(CLOUDFLARE_ACCESS_ERROR_MESSAGE_KEY[cloudflareAccessValidationError]));
+        return { saved: false, verified: false };
+      }
+
+      if (
+        accessMetadataUnavailable &&
+        cloudflareAccessUpdate?.action !== "replace" &&
+        cloudflareAccessUpdate?.action !== "remove" &&
+        serverUrlChanged &&
+        getHttpsOrigin(serverUrl ?? "") !== getHttpsOrigin(account.server_url ?? "")
+      ) {
+        useUiStore.getState().showToast(t("account.cloudflare_access_metadata_required_for_origin_change"));
+        return { saved: false, verified: false };
+      }
+
+      if (!serverUrlChanged && !usernameChanged && !passwordChanged && !cloudflareAccessDirty) {
         dispatch({ type: "clear-password-input" });
         return { saved: true, verified: false };
       }
 
       let saved = false;
       let saveResult: Awaited<ReturnType<typeof updateAccountCredentials>>;
+      const accessOperationPending =
+        cloudflareAccessUpdate?.action === "replace" || cloudflareAccessUpdate?.action === "remove";
       try {
-        saveResult = await updateAccountCredentials(account.id, serverUrl, username, password);
+        const accessUpdateForRequest = cloudflareAccessUpdate?.action === "keep" ? undefined : cloudflareAccessUpdate;
+        saveResult =
+          accessUpdateForRequest === undefined
+            ? await updateAccountCredentials(account.id, serverUrl, username, password)
+            : await updateAccountCredentials(account.id, serverUrl, username, password, accessUpdateForRequest);
       } catch (error) {
         if (
           !mountedRef.current ||
@@ -303,7 +562,9 @@ export function useAccountDetailCredentialsEditor({
         ) {
           return { saved: false, verified: false };
         }
-        showCredentialSaveError({ message: getErrorMessage(error) });
+        showCredentialSaveError({
+          message: accessOperationPending ? t("account.cloudflare_access_save_failed") : getErrorMessage(error),
+        });
         return { saved: false, verified: false };
       }
 
@@ -316,12 +577,29 @@ export function useAccountDetailCredentialsEditor({
       }
 
       if (Result.isFailure(saveResult)) {
-        showCredentialSaveError(Result.unwrapError(saveResult));
+        const error = Result.unwrapError(saveResult);
+        showCredentialSaveError({
+          message: isCloudflareAccessRecoveryRequired(error)
+            ? t("account.cloudflare_access_recovery_required")
+            : accessOperationPending
+              ? t("account.cloudflare_access_save_failed")
+              : error.message,
+        });
         return { saved: false, verified: false };
       }
 
       const updated = Result.unwrap(saveResult);
       saved = true;
+      if (cloudflareAccessUpdate !== undefined && cloudflareAccessUpdate.action !== "keep") {
+        cloudflareAccessRequestIdRef.current += 1;
+        const savedClientId = cloudflareAccessUpdate.action === "replace" ? cloudflareAccessUpdate.clientId : null;
+        dispatch({
+          type: "record-saved-cloudflare-access",
+          clientId: savedClientId,
+          serverUrl: serverUrl ?? account.server_url ?? "",
+          draftRevision,
+        });
+      }
       updateCachedAccount(queryClient, updated);
       invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
 
@@ -361,7 +639,7 @@ export function useAccountDetailCredentialsEditor({
 
   const commitCredentials = async (): Promise<boolean> => {
     const outcome = await commitCredentialDraft("account.credentials_saved");
-    return outcome.saved && (outcome.verified || !credentialsDirty);
+    return outcome.saved && (outcome.verified || !credentialsOrAccessDirty);
   };
 
   const handleTestConnection = async () => {
@@ -435,6 +713,12 @@ export function useAccountDetailCredentialsEditor({
     credUsername,
     credPassword,
     passwordDisplayValue,
+    cloudflareAccessStatus: state.cloudflareAccessStatus,
+    cloudflareAccessRecoveryAction: state.cloudflareAccessRecoveryAction,
+    cloudflareAccessEnabled: state.cloudflareAccessEnabled,
+    cloudflareAccessClientId: state.cloudflareAccessClientId,
+    cloudflareAccessSecret: state.cloudflareAccessSecret,
+    cloudflareAccessValidationError,
     testingConnection,
     dirtyState,
     serverUrlInputRef,
@@ -442,6 +726,10 @@ export function useAccountDetailCredentialsEditor({
     setCredServerUrl: (value) => dispatch({ type: "set-cred-server-url", value }),
     setCredUsername: (value) => dispatch({ type: "set-cred-username", value }),
     setCredPassword: (value) => dispatch({ type: "set-cred-password", value }),
+    setCloudflareAccessRecoveryAction: (value) => dispatch({ type: "set-cloudflare-access-recovery-action", value }),
+    setCloudflareAccessEnabled: (value) => dispatch({ type: "set-cloudflare-access-enabled", value }),
+    setCloudflareAccessClientId: (value) => dispatch({ type: "set-cloudflare-access-client-id", value }),
+    setCloudflareAccessSecret: (value) => dispatch({ type: "set-cloudflare-access-secret", value }),
     commitCredentials,
     handleTestConnection,
     handleCopyServerUrl,
