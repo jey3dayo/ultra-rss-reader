@@ -31,6 +31,24 @@ use ultra_rss_reader_lib::repository::pending_mutation::{
 
 const TEMP_DIR_CLEANUP_RETRIES: usize = 2;
 
+#[cfg(not(target_os = "macos"))]
+struct MockOsCredentials;
+
+#[cfg(not(target_os = "macos"))]
+impl MockOsCredentials {
+    fn new() -> Self {
+        keyring::set_default_credential_builder(keyring::mock::default_credential_builder());
+        Self
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+impl Drop for MockOsCredentials {
+    fn drop(&mut self) {
+        keyring::set_default_credential_builder(keyring::default::default_credential_builder());
+    }
+}
+
 struct PasswordCleanup {
     account_id: String,
     expected_password: String,
@@ -222,6 +240,8 @@ fn with_locked_db(db: &Mutex<DbManager>, f: impl FnOnce(&DbManager)) {
 
 #[tokio::test]
 async fn freshrss_sync_preserves_local_like_feed_read_state() {
+    #[cfg(not(target_os = "macos"))]
+    let _os_credentials = MockOsCredentials::new();
     std::env::set_var("DEV_CREDENTIALS", "1");
     let _env_cleanup = EnvVarCleanup("DEV_CREDENTIALS");
     let credentials_dir =
