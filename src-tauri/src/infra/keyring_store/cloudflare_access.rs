@@ -169,6 +169,10 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
 pub(crate) fn load_for_sync(
     account_id: &str,
 ) -> Result<Option<CloudflareAccess>, AccessStoreError> {
+    #[cfg(test)]
+    if let Some(result) = test_support::lookup(account_id) {
+        return result;
+    }
     #[cfg(target_os = "macos")]
     {
         let raw = super::macos_security_cli::get_credential_from_security_cli(SERVICE, account_id)
@@ -274,6 +278,62 @@ fn decode_bundle(value: &str) -> Result<CloudflareAccess, AccessStoreError> {
         return Err(AccessStoreError::Malformed);
     }
     Ok(access)
+}
+
+#[cfg(test)]
+pub(crate) mod test_support {
+    use std::collections::HashMap;
+    use std::sync::{LazyLock, Mutex};
+
+    use super::{AccessStoreError, CloudflareAccess};
+
+    type SyncAccessResult = Result<Option<CloudflareAccess>, AccessStoreError>;
+
+    static SYNC_ACCESS: LazyLock<Mutex<HashMap<String, SyncAccessResult>>> =
+        LazyLock::new(|| Mutex::new(HashMap::new()));
+
+    /// Same-account overrides must be dropped in reverse registration order.
+    pub(crate) struct SyncAccessGuard {
+        account_id: String,
+        previous: Option<SyncAccessResult>,
+    }
+
+    impl SyncAccessGuard {
+        pub(crate) fn new(account_id: &str, result: SyncAccessResult) -> Self {
+            let previous = SYNC_ACCESS
+                .lock()
+                .expect("sync Access fixtures should lock")
+                .insert(account_id.to_string(), result);
+            Self {
+                account_id: account_id.to_string(),
+                previous,
+            }
+        }
+    }
+
+    impl Drop for SyncAccessGuard {
+        fn drop(&mut self) {
+            let mut overrides = SYNC_ACCESS
+                .lock()
+                .expect("sync Access fixtures should lock for cleanup");
+            match self.previous.take() {
+                Some(previous) => {
+                    overrides.insert(self.account_id.clone(), previous);
+                }
+                None => {
+                    overrides.remove(&self.account_id);
+                }
+            }
+        }
+    }
+
+    pub(super) fn lookup(account_id: &str) -> Option<SyncAccessResult> {
+        SYNC_ACCESS
+            .lock()
+            .expect("sync Access fixtures should lock for lookup")
+            .get(account_id)
+            .cloned()
+    }
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 use super::*;
+use crate::infra::keyring_store::cloudflare_access::test_support::SyncAccessGuard;
 
 pub(super) const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
  <rss version="2.0">
@@ -15,6 +16,7 @@ pub(super) static DEV_CREDENTIALS_ENV_LOCK: std::sync::LazyLock<tokio::sync::Mut
     std::sync::LazyLock::new(|| tokio::sync::Mutex::new(()));
 
 pub(super) struct DevCredentialsContext {
+    _access: SyncAccessGuard,
     _guard: tokio::sync::MutexGuard<'static, ()>,
     _dir: tempfile::TempDir,
     previous_home: Option<String>,
@@ -90,6 +92,7 @@ pub(super) async fn configure_dev_credentials(account_id: &AccountId) -> DevCred
     .unwrap();
     keyring_store::set_password(account_id.as_ref(), "p").unwrap();
     DevCredentialsContext {
+        _access: SyncAccessGuard::new(account_id.as_ref(), Ok(None)),
         _guard: guard,
         _dir: credentials_dir,
         previous_home,

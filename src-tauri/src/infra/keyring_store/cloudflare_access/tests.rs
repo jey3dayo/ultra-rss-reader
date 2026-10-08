@@ -1,4 +1,45 @@
 use super::*;
+use test_support::SyncAccessGuard;
+
+#[test]
+fn cloudflare_access_sync_overrides_isolate_accounts_and_cleanup_on_drop() {
+    let missing_id = uuid::Uuid::new_v4().to_string();
+    let unavailable_id = uuid::Uuid::new_v4().to_string();
+    let unrelated_id = uuid::Uuid::new_v4().to_string();
+    let missing = SyncAccessGuard::new(&missing_id, Ok(None));
+    let unavailable = SyncAccessGuard::new(&unavailable_id, Err(AccessStoreError::Unavailable));
+
+    assert_eq!(load_for_sync(&missing_id), Ok(None));
+    assert_eq!(
+        load_for_sync(&unavailable_id),
+        Err(AccessStoreError::Unavailable)
+    );
+    assert!(test_support::lookup(&unrelated_id).is_none());
+
+    drop(missing);
+    assert!(test_support::lookup(&missing_id).is_none());
+    assert_eq!(
+        load_for_sync(&unavailable_id),
+        Err(AccessStoreError::Unavailable)
+    );
+    drop(unavailable);
+    assert!(test_support::lookup(&unavailable_id).is_none());
+}
+
+#[test]
+fn cloudflare_access_sync_override_restores_previous_account_result() {
+    let account_id = uuid::Uuid::new_v4().to_string();
+    let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://example.com")
+        .expect("dummy Access fixture should have valid HTTPS credentials");
+    let configured = SyncAccessGuard::new(&account_id, Ok(Some(access.clone())));
+    {
+        let _missing = SyncAccessGuard::new(&account_id, Ok(None));
+        assert_eq!(load_for_sync(&account_id), Ok(None));
+    }
+    assert_eq!(load_for_sync(&account_id), Ok(Some(access)));
+    drop(configured);
+    assert!(test_support::lookup(&account_id).is_none());
+}
 
 #[test]
 fn cloudflare_access_validates_https_origin_and_opaque_headers() {
