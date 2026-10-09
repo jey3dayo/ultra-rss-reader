@@ -302,12 +302,43 @@ const updateToastSpecimens = [
     },
   },
   {
+    label: "Download 43%",
+    testId: "reference-update-toast-download-43",
+    toast: {
+      message: "ダウンロード中… 43%",
+      persistent: true,
+      progress: 43,
+      variant: "update",
+    },
+  },
+  {
     label: "Download 90%",
     testId: "reference-update-toast-download-90",
     toast: {
       message: "ダウンロード中… 90%",
       persistent: true,
       progress: 90,
+      variant: "update",
+    },
+  },
+  {
+    label: "Download 100%",
+    testId: "reference-update-toast-download-100",
+    toast: {
+      message: "ダウンロード中… 100%",
+      persistent: true,
+      progress: 100,
+      variant: "update",
+    },
+  },
+  {
+    label: "Download indeterminate / long message",
+    testId: "reference-update-toast-download-indeterminate-long",
+    toast: {
+      message:
+        "更新パッケージをダウンロード中です。通信状況によって時間がかかる場合があります。完了までお待ちください。",
+      persistent: true,
+      progress: null,
       variant: "update",
     },
   },

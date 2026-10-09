@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import type { ToastData } from "@/lib/ui/toast.types";
@@ -37,6 +38,7 @@ export function AppToastView({
 }: AppToastViewProps) {
   const { t } = useTranslation("common");
   const { message, progress, actions, variant } = toastMessage;
+  const hasProgress = progress !== undefined;
   const showInBrowserRail = position === "fixed" && placement === APP_TOAST_PLACEMENTS.browserRail;
   void syncActionState;
 
@@ -69,9 +71,9 @@ export function AppToastView({
           aria-label={t("close")}
           variant="ghost"
           size="icon-sm"
-          className="ml-1 size-8 shrink-0 text-foreground-soft"
+          className={cn("ml-1 size-8 shrink-0 text-foreground-soft", hasProgress && "justify-end border-0")}
         >
-          &times;
+          {hasProgress ? <X aria-hidden="true" className="size-4" viewBox="5 5 14 14" strokeWidth={2} /> : "×"}
         </Button>
       </div>
       {progress !== undefined && (

@@ -4,6 +4,17 @@ import { describe, expect, it, vi } from "vitest";
 import { AppToastView } from "@/design-system";
 
 describe("AppToastView", () => {
+  it.each([
+    { progress: 0, scale: "scaleX(0)" },
+    { progress: 43, scale: "scaleX(0.43)" },
+    { progress: 100, scale: "scaleX(1)" },
+  ])("renders $progress% progress", ({ progress, scale }) => {
+    render(<AppToastView toastMessage={{ message: "Downloading", progress }} onClose={vi.fn()} />);
+
+    expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveStyle({ transform: scale });
+    expect(screen.getByRole("button", { name: "Close" }).querySelector("svg")).toHaveAttribute("viewBox", "5 5 14 14");
+  });
+
   it("clamps numeric progress scale and keeps null progress indeterminate", () => {
     const onClose = vi.fn();
     const { rerender } = render(
@@ -44,6 +55,11 @@ describe("AppToastView", () => {
       "size-8",
       "focus-visible:border-transparent",
     );
+    expect(screen.getByRole("button", { name: "Close" })).not.toHaveClass("justify-end");
+    expect(screen.getByRole("button", { name: "Close" })).not.toHaveClass("border-0");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("justify-center");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveTextContent("×");
+    expect(screen.getByRole("button", { name: "Close" }).querySelector("svg")).toBeNull();
   });
 
   it("gives update toasts an aligned action rail and clear action hierarchy", () => {
@@ -88,6 +104,80 @@ describe("AppToastView", () => {
       "text-primary",
       "focus-visible:border-transparent",
     );
+  });
+
+  it("fits the round-stroke paint bounds to the viewport at the trailing edge of indeterminate update toasts", () => {
+    render(
+      <AppToastView
+        toastMessage={{
+          message: "Downloading a very long update package while keeping the progress status readable",
+          variant: "update",
+          progress: null,
+        }}
+        onClose={vi.fn()}
+        position="static"
+      />,
+    );
+
+    const toast = screen.getByTestId("app-toast");
+    const closeButton = screen.getByRole("button", { name: "Close" });
+    const progressTrack = toast.querySelector(".animate-indeterminate")?.parentElement;
+    const closeIcon = closeButton.querySelector("svg");
+
+    expect(toast).toHaveClass("w-[min(320px,calc(100vw-2rem))]");
+    expect(screen.getByText(/very long update package/)).toHaveClass("min-w-0", "break-words");
+    expect(closeButton).toHaveClass("size-8", "shrink-0", "justify-end", "border-0");
+    expect(closeIcon).toHaveClass("size-4");
+    expect(closeIcon).toHaveAttribute("stroke-linecap", "round");
+    expect(closeIcon).toHaveAttribute("stroke-width", "2");
+    expect(Array.from(closeIcon?.querySelectorAll("path") ?? [], (path) => path.getAttribute("d"))).toEqual([
+      "M18 6 6 18",
+      "m6 6 12 12",
+    ]);
+    const strokeRadius = Number(closeIcon?.getAttribute("stroke-width")) / 2;
+    const viewport = closeIcon?.getAttribute("viewBox")?.split(/\s+/).map(Number);
+    expect(viewport).toEqual([
+      6 - strokeRadius,
+      6 - strokeRadius,
+      18 - 6 + 2 * strokeRadius,
+      18 - 6 + 2 * strokeRadius,
+    ]);
+    expect(progressTrack).toHaveClass("h-1.5", "w-full");
+  });
+
+  it("focuses the progress dismiss button with Tab and dismisses with Enter, Space, or pointer without canceling", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const cancelDownload = vi.fn();
+
+    render(
+      <AppToastView
+        toastMessage={{
+          message: "Downloading",
+          progress: 43,
+          actions: [{ label: "Cancel download", onClick: cancelDownload }],
+        }}
+        onClose={onClose}
+      />,
+    );
+
+    const closeButton = screen.getByRole("button", { name: "Close" });
+    expect(closeButton).toHaveClass("size-8", "focus-visible:ring-3", "focus-visible:ring-ring/60");
+
+    await user.tab();
+    expect(closeButton).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(cancelDownload).not.toHaveBeenCalled();
+
+    await user.keyboard(" ");
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(cancelDownload).not.toHaveBeenCalled();
+
+    await user.click(closeButton);
+
+    expect(onClose).toHaveBeenCalledTimes(3);
+    expect(cancelDownload).not.toHaveBeenCalled();
   });
 
   it("keeps recovery toast actions and dismiss reachable from the keyboard", async () => {
