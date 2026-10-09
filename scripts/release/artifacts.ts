@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { parseUpdaterChecksum } from "./updater-checksum.ts";
 
 type ReleaseAssetContract = {
   assetPattern: string;
@@ -280,13 +281,9 @@ const generateReleaseProvenance = (): void => {
   }
 
   const checksumAsset = checksumAssets[0];
-  const checksumContent = readFileSync(checksumAsset, "utf8").trim();
-  const checksumParts = checksumContent.match(/^(\S+)\s+(.*)$/);
-  const artifactSha256 = checksumParts?.[1] ?? "";
-  const artifactName = checksumParts?.[2];
-  if (!/^[a-f0-9]{64}$/i.test(artifactSha256)) {
-    fail(`invalid updater checksum digest for ${artifactName}`);
-  }
+  const checksumContent = readFileSync(checksumAsset, "utf8");
+  const parsedChecksum = parseUpdaterChecksum(checksumContent);
+  const checksum = parsedChecksum.ok ? parsedChecksum.value : fail(parsedChecksum.error);
 
   const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as PackageJson;
   const releaseTag = requiredEnv("RELEASE_TAG");
@@ -298,8 +295,8 @@ const generateReleaseProvenance = (): void => {
   const record = {
     artifact: {
       checksumAssetName: path.basename(checksumAsset),
-      name: artifactName,
-      sha256: artifactSha256,
+      name: checksum.artifactName,
+      sha256: checksum.sha256,
     },
     dependencyProvenanceAssets: dependencyAssets.map((asset) => path.basename(asset)),
     packageVersion: packageJson.version,

@@ -25,8 +25,12 @@ const createFixture = (runnerOs: string, artifactName: string): ProvenanceFixtur
   const scriptPath = join(fixtureRoot, "scripts/release/artifacts.ts");
   mkdirSync(dirname(scriptPath), { recursive: true });
   copyFileSync(resolve("scripts/release/artifacts.ts"), scriptPath);
+  copyFileSync(
+    resolve("scripts/release/updater-checksum.ts"),
+    join(fixtureRoot, "scripts/release/updater-checksum.ts"),
+  );
 
-  writeFileSync(join(fixtureRoot, "package.json"), '{"version":"1.2.3"}\n');
+  writeFileSync(join(fixtureRoot, "package.json"), '{"type":"module","version":"1.2.3"}\n');
 
   const targetDirectory = join(fixtureRoot, "src-tauri/target");
   mkdirSync(targetDirectory, { recursive: true });
@@ -143,6 +147,22 @@ describe("release provenance artifact filename", () => {
 
       expect(parsed.artifact.name).toBe(fixture.artifactName);
       expect(parsed.artifact.sha256).toBe(fixture.artifactSha256);
+    });
+  });
+
+  it("rejects a missing checksum line before writing provenance upload assets", () => {
+    withFixture("macOS", "Ultra RSS Reader.app.tar.gz", (fixture) => {
+      writeFileSync(fixture.checksumAssetPath, "\n");
+
+      const result = runCommand(fixture, "generate-release-provenance");
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("::error::invalid updater checksum line");
+      expect(existsSync(join(fixture.fixtureRoot, "src-tauri/target/release-provenance-assets.txt"))).toBe(false);
+      expect(
+        existsSync(
+          join(fixture.fixtureRoot, RELEASE_PROVENANCE_DIR, `release-provenance-${fixture.assetPlatform}.json`),
+        ),
+      ).toBe(false);
     });
   });
 
