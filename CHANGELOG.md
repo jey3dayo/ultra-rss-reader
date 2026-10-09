@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- FreshRSSのセットアップ再試行を、未保存または接続確認中の認証情報では実行しないようにしました。(#389)
+
 ## [0.65.2] - 2026-10-09
 
 ### Bug Fixes
