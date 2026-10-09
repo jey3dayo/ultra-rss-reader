@@ -51,8 +51,8 @@ pub(crate) use warnings::deleted_greader_folders_warning;
 // directly, and no test does either).
 #[cfg(test)]
 pub(crate) use entries::{
-    sync_greader_account_entries, sync_greader_feed_entries,
-    sync_greader_feed_entries_with_max_pages,
+    sync_greader_account_entries, sync_greader_account_entries_with_max_pages,
+    sync_greader_feed_entries, sync_greader_feed_entries_with_max_pages,
 };
 #[cfg(test)]
 pub(crate) use remote_state::apply_remote_state_with_protection;
