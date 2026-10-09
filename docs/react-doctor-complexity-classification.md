@@ -189,8 +189,9 @@ structure does not fit any family yet and the rationale says why.
 
 ## Observation Outside This Rule
 
-`ArticleListItem` is not memoized, subscribes to `useUiStore` per row for `focusedPane` even though
-the parent can pass `isActivePane`, and renders inside an unvirtualized list. That is a real render
-cost on the app's hottest path, but it is not what `no-high-complexity-react-function` reports, and
-none of it is fixed by the extraction this rule recommends. It is recorded here so the finding is not
-lost, and belongs in its own issue rather than in this classification.
+`ArticleListItem` is wrapped in `memo()` and receives `isActivePane` as a prop (`ArticleGroupsView` passes
+`item.isSelected && isActivePane`), so the row no longer subscribes to a store. The list is still
+unvirtualized, so every row remains mounted; that is a render-cost concern on the app's hottest path,
+but it is not what `no-high-complexity-react-function` reports, and the extraction this rule
+recommends does not address it. It is recorded here so the finding is not lost, and belongs in its own
+issue rather than in this classification.

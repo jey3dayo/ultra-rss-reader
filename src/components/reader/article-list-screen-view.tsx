@@ -1,4 +1,3 @@
-import { Inbox } from "lucide-react";
 import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -9,23 +8,16 @@ import {
 import type { ArticleDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_SLOW_DURATION_MS, MOTION_CONTENT_SWAP_SLOW_OFFSET_PX } from "@/constants";
 import { ScrollArea } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
+import { ArticleListEmptyState, type ArticleListEmptyStateVariant } from "./article-list-empty-state";
 import { ArticleListSkeleton } from "./article-list-skeleton";
 import {
   mergeReaderPassiveLayoutRefs,
   useReaderPassiveLayoutBodyRef,
   useReaderPassiveLayoutCard,
 } from "./hooks/use-reader-passive-layout-context";
-import { ReaderPassiveActionButton } from "./reader-passive-action-button";
-import {
-  ReaderPassiveCard,
-  readerListPassiveCardOffsetClassName,
-  readerPassiveCardClassName,
-  readerPassiveCardPaddingClassName,
-} from "./reader-passive-card";
 
-export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
+export type { ArticleListEmptyStateVariant };
 
 type ListMotionStyle = CSSProperties &
   Record<"--motion-content-swap-offset" | "--motion-duration-content-swap", string>;
@@ -94,67 +86,16 @@ export function ArticleListScreenView({
   }
 
   if (groups.length === 0) {
-    const isSetupEmptyState = emptyStateVariant === "setup";
-    const isHiddenEmptyState = emptyStateVariant === "hidden";
-    const isDefaultEmptyState = !isSetupEmptyState && !isHiddenEmptyState;
-
     return (
       <ScrollArea className="h-full" viewportRef={mergedViewportRef}>
-        <div
-          className={cn(
-            isHiddenEmptyState
-              ? "h-full"
-              : isDefaultEmptyState && passiveCard.enabled
-                ? "flex justify-center px-6 pb-6"
-                : "flex h-full items-center justify-center p-6",
-          )}
-        >
-          {isHiddenEmptyState ? null : isSetupEmptyState ? (
-            <ReaderPassiveCard className="w-full max-w-sm rounded-md border border-border/65 bg-surface-1/48 px-7 py-6 text-left shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none">
-              <p className="text-base font-medium leading-6 tracking-[-0.01em] text-foreground">{emptyMessage}</p>
-              {emptyDescription ? (
-                <p className="mt-2 text-sm leading-6 text-foreground-soft">{emptyDescription}</p>
-              ) : null}
-              {emptyActionLabel && onEmptyAction ? (
-                <ReaderPassiveActionButton variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
-                  {emptyActionLabel}
-                </ReaderPassiveActionButton>
-              ) : null}
-            </ReaderPassiveCard>
-          ) : (
-            <div
-              ref={passiveCard.cardRef}
-              className={cn(
-                "flex w-full max-w-[17rem] flex-col items-center text-center",
-                readerPassiveCardClassName,
-                readerPassiveCardPaddingClassName,
-                !passiveCard.enabled && readerListPassiveCardOffsetClassName,
-              )}
-              style={
-                passiveCard.enabled
-                  ? passiveCard.isMeasured
-                    ? { marginTop: passiveCard.offsetPx }
-                    : { visibility: "hidden" }
-                  : undefined
-              }
-              data-testid="article-list-empty-state"
-              data-passive-layout-mode={passiveCard.enabled ? passiveCard.mode : undefined}
-            >
-              <Inbox aria-hidden="true" className="size-9 text-foreground-soft/60" strokeWidth={1.5} />
-              <p className="mt-3 text-base font-semibold leading-tight tracking-[-0.01em] text-foreground">
-                {emptyMessage}
-              </p>
-              {emptyDescription ? (
-                <p className="mt-1.5 text-sm leading-6 text-foreground-soft">{emptyDescription}</p>
-              ) : null}
-              {emptyActionLabel && onEmptyAction ? (
-                <ReaderPassiveActionButton variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
-                  {emptyActionLabel}
-                </ReaderPassiveActionButton>
-              ) : null}
-            </div>
-          )}
-        </div>
+        <ArticleListEmptyState
+          variant={emptyStateVariant}
+          passiveCard={passiveCard}
+          message={emptyMessage}
+          description={emptyDescription}
+          actionLabel={emptyActionLabel}
+          onAction={onEmptyAction}
+        />
       </ScrollArea>
     );
   }
