@@ -182,15 +182,8 @@ props または hook を通して必要な箇所へ渡す。
 
 ### 6. 旧系 sidebar コンポーネントの扱い
 
-`src/components/reader/feed-item.tsx` と `src/components/reader/folder-section.tsx` は
-storybook / test 用の旧系実装として残っている。
-
-今回の原則:
-
-- 実運用の sidebar 導線で使っている `feed-tree*` を優先して density 化する
-- 旧系コンポーネントを変更するかどうかは、
-  そのテストと story の整合性を保つ最小限に留める
-- この機会に大きく統合リファクタはしない
+`feed-item.tsx` と `folder-section.tsx` は本番で使われていなかったため削除済み。
+density 化の対象は実運用の sidebar 導線で使っている `feed-tree*` に限る。
 
 ## UX Notes
 
