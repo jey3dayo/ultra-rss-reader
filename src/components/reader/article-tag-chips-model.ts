@@ -23,6 +23,22 @@ export function findArticleTagByName(tags: Array<TagViewItem> | undefined, name:
   return tags?.find((tag) => normalizeArticleTagNameForMatch(tag.name) === normalizedName) ?? null;
 }
 
+function toUniqueTagViewsById(
+  tags: Array<TagViewItem>,
+  isIncluded: (tag: TagViewItem) => boolean,
+): ArticleTagPickerTagView[] {
+  const seenIds = new Set<string>();
+  const views: ArticleTagPickerTagView[] = [];
+  for (const tag of tags) {
+    if (!tag.id || seenIds.has(tag.id) || !isIncluded(tag)) {
+      continue;
+    }
+    seenIds.add(tag.id);
+    views.push(toArticleTagPickerTagView(tag));
+  }
+  return views;
+}
+
 export function buildArticleTagPickerLists(params: {
   articleTags: Array<TagViewItem> | undefined;
   allTags: Array<TagViewItem> | undefined;
@@ -30,36 +46,11 @@ export function buildArticleTagPickerLists(params: {
   assignedTags: ArticleTagPickerTagView[];
   availableTags: ArticleTagPickerTagView[];
 } {
-  const { articleTags, allTags } = params;
-  const tagsLength = Math.max(articleTags?.length ?? 0, allTags?.length ?? 0);
-  const activeTagIds = allTags ? new Set<string>() : null;
-  if (activeTagIds) {
-    for (const tag of allTags ?? []) {
-      if (tag.id.length > 0) {
-        activeTagIds.add(tag.id);
-      }
-    }
-  }
-  const assignedTagIds = new Set<string>();
-  const assignedTags: ArticleTagPickerTagView[] = [];
-  const availableTagsById = new Map<string, ArticleTagPickerTagView>();
+  const { articleTags = [], allTags } = params;
+  const activeTagIds = allTags ? new Set(allTags.map((tag) => tag.id)) : null;
+  const assignedTags = toUniqueTagViewsById(articleTags, (tag) => !activeTagIds || activeTagIds.has(tag.id));
+  const assignedTagIds = new Set(assignedTags.map((tag) => tag.id));
+  const availableTags = toUniqueTagViewsById(allTags ?? [], (tag) => !assignedTagIds.has(tag.id));
 
-  for (let index = 0; index < tagsLength; index += 1) {
-    const articleTag = articleTags?.[index];
-    if (articleTag?.id && activeTagIds?.has(articleTag.id) !== false && !assignedTagIds.has(articleTag.id)) {
-      assignedTagIds.add(articleTag.id);
-      assignedTags.push(toArticleTagPickerTagView(articleTag));
-      availableTagsById.delete(articleTag.id);
-    }
-
-    const availableTag = allTags?.[index];
-    if (availableTag?.id && !assignedTagIds.has(availableTag.id) && !availableTagsById.has(availableTag.id)) {
-      availableTagsById.set(availableTag.id, toArticleTagPickerTagView(availableTag));
-    }
-  }
-
-  return {
-    assignedTags,
-    availableTags: Array.from(availableTagsById.values()),
-  };
+  return { assignedTags, availableTags };
 }
