@@ -139,7 +139,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
   scanSha: "42e307a17",
-  pluginVersion: "0.9.14",
+  pluginVersion: "0.9.17",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
