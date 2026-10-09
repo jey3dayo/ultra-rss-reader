@@ -23,7 +23,6 @@ export function buildCredentialsSection({
   verificationStatus,
   isSetupSyncing,
   isSetupFailed,
-  isSetupActive,
   isQuarantined,
 }: BuildCredentialsSectionParams): ReactNode {
   if (!isFreshRssAccount(account)) {
@@ -52,19 +51,17 @@ export function buildCredentialsSection({
       serverUrlInputRef={controller.serverUrlInputRef}
       serverUrlCopyLabel={t("account.copy_server_url")}
       onServerUrlChange={controller.setCredServerUrl}
-      onServerUrlBlur={controller.commitCredentials}
       onServerUrlCopy={() => void controller.handleCopyServerUrl()}
       usernameLabel={t("account.username")}
       usernameValue={controller.credUsername ?? account.username ?? ""}
       usernameInputRef={controller.usernameInputRef}
       onUsernameChange={controller.setCredUsername}
-      onUsernameBlur={controller.commitCredentials}
       passwordLabel={t("account.password")}
       passwordValue={controller.passwordDisplayValue}
       passwordPlaceholder={t("account.password_placeholder")}
       onPasswordChange={controller.setCredPassword}
       onPasswordFocus={controller.onPasswordFocus}
-      onPasswordBlur={controller.commitCredentials}
+      onPasswordBlur={controller.onPasswordBlur}
       cloudflareAccess={{
         status: controller.cloudflareAccessStatus,
         recoveryAction: controller.cloudflareAccessRecoveryAction,
@@ -81,23 +78,27 @@ export function buildCredentialsSection({
           value: controller.cloudflareAccessClientId,
           placeholder: t("account.cloudflare_access_client_id_placeholder"),
           onChange: controller.setCloudflareAccessClientId,
-          onBlur: controller.commitCredentials,
         },
         clientSecret: {
           label: t("account.cloudflare_access_secret"),
           value: controller.cloudflareAccessSecret,
           placeholder: t("account.cloudflare_access_secret_placeholder"),
           onChange: controller.setCloudflareAccessSecret,
-          onBlur: controller.commitCredentials,
         },
         clientIdError: t("account.error_cloudflare_access_client_id_required"),
         clientSecretError: t("account.error_cloudflare_access_secret_required"),
         validationError: cloudflareAccessError,
       }}
-      testConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.test_connection")}
-      testingConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.testing_connection")}
+      testConnectionLabel={
+        isSetupSyncing || isQuarantined
+          ? undefined
+          : controller.dirtyState.dirty
+            ? t("account.save_and_test_connection")
+            : t("account.test_connection")
+      }
+      testingConnectionLabel={isSetupSyncing || isQuarantined ? undefined : t("account.testing_connection")}
       testConnectionTone={verificationStatus === "verified" ? "subtle" : "content"}
-      onTestConnection={isSetupActive || isQuarantined ? undefined : controller.handleTestConnection}
+      onTestConnection={isSetupSyncing || isQuarantined ? undefined : controller.handleTestConnection}
       isTestingConnection={controller.testingConnection}
     />
   );

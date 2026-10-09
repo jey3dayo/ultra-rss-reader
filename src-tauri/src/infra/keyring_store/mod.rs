@@ -2,6 +2,12 @@ use crate::domain::error::{DomainError, DomainResult};
 use dev_store_file::{read_dev_store, validate_dev_credential_account_id, write_dev_store};
 use dev_store_lock::{delete_dev_password_at_path, with_dev_store_lock};
 use dev_store_path::dev_credentials_path;
+#[cfg(any(target_os = "macos", test))]
+use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(any(target_os = "macos", test))]
+use std::sync::Arc;
+#[cfg(any(target_os = "macos", test))]
+use std::time::Duration;
 
 pub(crate) mod cloudflare_access;
 mod dev_store_file;
@@ -15,6 +21,90 @@ mod tests;
 pub(super) const SERVICE: &str = "ultra-rss-reader";
 pub(super) const DEV_CREDENTIALS_RECOVERY_HINT: &str =
     "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent temporary/lock files, then restart the application.";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CredentialLookupMode {
+    Background,
+    Interactive,
+}
+
+impl CredentialLookupMode {
+    #[cfg(target_os = "macos")]
+    pub(crate) fn timeout(self) -> Duration {
+        match self {
+            Self::Background => Duration::from_secs(5),
+            Self::Interactive => Duration::from_secs(60),
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+static SYNC_CREDENTIAL_LOOKUP_GATE: std::sync::LazyLock<Arc<tokio::sync::Semaphore>> =
+    std::sync::LazyLock::new(|| Arc::new(tokio::sync::Semaphore::new(1)));
+
+#[cfg(any(target_os = "macos", test))]
+struct PendingLookup(Arc<AtomicBool>);
+
+#[cfg(any(target_os = "macos", test))]
+impl Drop for PendingLookup {
+    fn drop(&mut self) {
+        self.0.store(true, Ordering::SeqCst);
+    }
+}
+
+pub(crate) async fn read_for_sync<T, F>(mode: CredentialLookupMode, read: F) -> DomainResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce() -> DomainResult<T> + Send + 'static,
+{
+    #[cfg(target_os = "macos")]
+    {
+        read_for_sync_with_gate(
+            Arc::clone(&SYNC_CREDENTIAL_LOOKUP_GATE),
+            mode.timeout(),
+            read,
+        )
+        .await
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = mode;
+        tokio::task::spawn_blocking(read)
+            .await
+            .map_err(|_| DomainError::Keychain("Credential lookup failed".into()))?
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+async fn read_for_sync_with_gate<T, F>(
+    gate: Arc<tokio::sync::Semaphore>,
+    queue_timeout: Duration,
+    read: F,
+) -> DomainResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce() -> DomainResult<T> + Send + 'static,
+{
+    // Only the queue wait can be cancelled by a Tokio timeout. The child owns its deadline.
+    let permit = tokio::time::timeout(queue_timeout, gate.acquire_owned())
+        .await
+        .map_err(|_| DomainError::Keychain("Timed out waiting for credential lookup".into()))?
+        .map_err(|_| DomainError::Keychain("Credential lookup is unavailable".into()))?;
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let _pending = PendingLookup(Arc::clone(&cancelled));
+    tokio::task::spawn_blocking(move || {
+        // Retain serialization until the blocking read has cleaned up its child.
+        let _permit = permit;
+        if cancelled.load(Ordering::SeqCst) {
+            return Err(DomainError::Keychain(
+                "Credential lookup was cancelled".into(),
+            ));
+        }
+        read()
+    })
+    .await
+    .map_err(|_| DomainError::Keychain("Credential lookup failed".into()))?
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -64,18 +154,22 @@ pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
 
     let entry = keyring::Entry::new(SERVICE, account_id)
         .map_err(|e| DomainError::Keychain(format!("Failed to access credential store: {e}")))?;
-    match entry.set_password(password) {
-        Ok(()) => {}
-        Err(_) => {
-            // ACL mismatch from re-signed dev builds: force-delete via CLI, then retry
-            macos_security_cli::force_delete_keychain_entry(account_id);
-            entry
-                .set_password(password)
-                .map_err(|e| DomainError::Keychain(format!("Failed to save password: {e}")))?;
-        }
-    }
+    set_password_with_entry(account_id, password, &entry, get_password)
+}
 
-    verify_saved_password(account_id, password)
+fn set_password_with_entry<F>(
+    account_id: &str,
+    password: &str,
+    entry: &keyring::Entry,
+    read_password: F,
+) -> DomainResult<()>
+where
+    F: Fn(&str) -> DomainResult<String>,
+{
+    entry
+        .set_password(password)
+        .map_err(|e| DomainError::Keychain(format!("Failed to save password: {e}")))?;
+    verify_saved_password_with_reader(account_id, password, read_password)
 }
 
 pub fn get_password(account_id: &str) -> DomainResult<String> {
@@ -100,6 +194,13 @@ pub fn get_password(account_id: &str) -> DomainResult<String> {
 }
 
 pub fn get_password_for_sync(account_id: &str) -> DomainResult<String> {
+    get_password_for_sync_with_mode(account_id, CredentialLookupMode::Background)
+}
+
+pub(crate) fn get_password_for_sync_with_mode(
+    account_id: &str,
+    mode: CredentialLookupMode,
+) -> DomainResult<String> {
     if let Some(path) = dev_credentials_path() {
         validate_dev_credential_account_id(account_id)?;
         let store = read_dev_store(&path)?;
@@ -111,11 +212,12 @@ pub fn get_password_for_sync(account_id: &str) -> DomainResult<String> {
 
     #[cfg(target_os = "macos")]
     {
-        macos_security_cli::get_password_from_security_cli(account_id)
+        macos_security_cli::get_password_from_security_cli(account_id, mode.timeout())
     }
 
     #[cfg(not(target_os = "macos"))]
     {
+        let _ = mode;
         get_password(account_id)
     }
 }

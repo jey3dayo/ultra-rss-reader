@@ -15,11 +15,14 @@ use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
+use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::sync_state::{SyncStateRepository, SyncStateScopeKey};
 
-use super::account_sync::{run_sync_for_accounts_with_progress, sync_account, sync_feed};
+use super::account_sync::{
+    run_sync_for_accounts_with_mode, sync_account_with_mode, sync_feed_with_mode,
+};
 use super::progress::{
     emit_sync_event_log_only, emit_sync_warning_event, should_emit_manual_single_sync_completion,
     SyncGuard, SyncProgressReporter, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
@@ -41,9 +44,14 @@ pub async fn trigger_sync(
         SyncProgressKind::ManualAll,
         accounts.len(),
     );
-    let result =
-        run_sync_for_accounts_with_progress(&state.db, &state.syncing, accounts, Some(reporter))
-            .await?;
+    let result = run_sync_for_accounts_with_mode(
+        &state.db,
+        &state.syncing,
+        accounts,
+        Some(reporter),
+        CredentialLookupMode::Interactive,
+    )
+    .await?;
     if super::should_purge_old_articles_after_sync(result.synced) {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
@@ -112,7 +120,7 @@ pub async fn trigger_sync_account(
         failed: Vec::new(),
         warnings: Vec::new(),
     };
-    match sync_account(&state.db, &account).await {
+    match sync_account_with_mode(&state.db, &account, CredentialLookupMode::Interactive).await {
         Ok(outcome) => {
             result.succeeded = 1;
             if let Err(error) = clear_scheduler_sync_status(&state.db, &account.id) {
@@ -218,7 +226,14 @@ pub async fn trigger_sync_feed(
         warnings: Vec::new(),
     };
 
-    match sync_feed(&state.db, &account, &feed).await {
+    match sync_feed_with_mode(
+        &state.db,
+        &account,
+        &feed,
+        CredentialLookupMode::Interactive,
+    )
+    .await
+    {
         Ok(outcome) => {
             result.succeeded = 1;
             result

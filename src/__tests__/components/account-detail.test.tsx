@@ -1049,7 +1049,7 @@ describe("AccountDetail", () => {
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
 
-    const clickPromise = user.click(screen.getByRole("button", { name: "Test Connection" }));
+    const clickPromise = user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
@@ -1102,6 +1102,20 @@ describe("AccountDetail", () => {
             sync_on_wake: false,
             keep_read_items_days: 30,
           };
+        case "test_account_connection":
+          return {
+            id: "acc-1",
+            kind: "FreshRss",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: "verified",
+            connection_verified_at: "2026-04-19T05:32:00Z",
+            connection_verification_error: null,
+          };
         default:
           return undefined;
       }
@@ -1112,10 +1126,11 @@ describe("AccountDetail", () => {
     const passwordInput = await findPasswordInput();
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
-    passwordInput.blur();
+    await user.click(await screen.findByRole("button", { name: "Save & Test Connection" }));
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
+      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
       expect(passwordInput).toHaveValue("••••••••");
     });
 
@@ -1125,7 +1140,7 @@ describe("AccountDetail", () => {
     });
   });
 
-  it("keeps newer credential drafts when an older blur save finishes", async () => {
+  it("keeps newer credential drafts when an older explicit save finishes", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     const resolveCredentialSaves: Array<() => void> = [];
@@ -1166,6 +1181,20 @@ describe("AccountDetail", () => {
           });
         case "copy_to_clipboard":
           return null;
+        case "test_account_connection":
+          return {
+            id: "acc-1",
+            kind: "FreshRss",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: "verified",
+            connection_verified_at: "2026-04-19T05:32:00Z",
+            connection_verification_error: null,
+          };
         default:
           return undefined;
       }
@@ -1178,15 +1207,15 @@ describe("AccountDetail", () => {
     });
     await user.clear(serverUrlInput);
     await user.type(serverUrlInput, "https://first-draft.example.com");
-    fireEvent.blur(serverUrlInput);
+    const firstSaveClick = user.click(await screen.findByRole("button", { name: "Save & Test Connection" }));
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
+      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(0);
     });
 
     await user.clear(serverUrlInput);
     await user.type(serverUrlInput, "https://second-draft.example.com");
-    fireEvent.blur(serverUrlInput);
     await user.click(screen.getByRole("button", { name: "Copy Server URL" }));
 
     expect(calls).toContainEqual({
@@ -1198,6 +1227,16 @@ describe("AccountDetail", () => {
       throw new Error("credential save promise was never created");
     }
     resolveCredentialSaves[0]();
+    await firstSaveClick;
+
+    await waitFor(() => {
+      expect(serverUrlInput).toHaveValue("https://second-draft.example.com");
+      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(0);
+    });
+
+    const secondSaveButton = screen.getByRole("button", { name: "Save & Test Connection" });
+    await waitFor(() => expect(secondSaveButton).toBeEnabled());
+    const secondSaveClick = user.click(secondSaveButton);
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(2);
@@ -1209,10 +1248,17 @@ describe("AccountDetail", () => {
           username: "user",
         }),
       });
-      expect(serverUrlInput).toHaveValue("https://second-draft.example.com");
     });
 
-    resolveCredentialSaves[1]?.();
+    if (!resolveCredentialSaves[1]) {
+      throw new Error("second credential save promise was never created");
+    }
+    resolveCredentialSaves[1]();
+    await secondSaveClick;
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
+    });
   });
 
   it("shows the persisted connection summary for a verified FreshRSS account", async () => {
@@ -1405,7 +1451,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Test Connection" }));
+    await user.click(await screen.findByRole("button", { name: "Check Connection" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).not.toBeNull();
@@ -1447,7 +1493,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.dblClick(await screen.findByRole("button", { name: "Test Connection" }));
+    await user.dblClick(await screen.findByRole("button", { name: "Check Connection" }));
 
     expect(connectionTestCalls).toHaveBeenCalledTimes(1);
 

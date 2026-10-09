@@ -114,7 +114,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(usernameInput.selectionEnd).toBe(usernameInput.value.length);
   });
 
-  it("trims server URL and username before saving credentials", async () => {
+  it("saves a dirty draft and verifies exactly once from the explicit action", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
     updateAccountCredentialsMock.mockResolvedValue(
@@ -141,7 +141,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     await act(async () => {
-      await result.current.commitCredentials();
+      await result.current.handleTestConnection();
     });
 
     expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
@@ -233,6 +233,22 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.dirtyState.dirty).toBe(false);
   });
 
+  it("restores the saved password mask on blur without saving or testing", () => {
+    const account = sampleAccounts[1];
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    act(() => result.current.onPasswordFocus());
+    expect(result.current.passwordDisplayValue).toBe("");
+    act(() => result.current.onPasswordBlur());
+
+    expect(result.current.passwordDisplayValue).toBe("••••••••");
+    expect(result.current.dirtyState.dirty).toBe(false);
+    expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
+  });
+
   it("preserves explicit Access replacement edits made before metadata resolves", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
@@ -300,6 +316,12 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.cloudflareAccessEnabled).toBe(true);
     expect(result.current.cloudflareAccessValidationError).toBe("client_secret_required");
     expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+    expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
   });
 
   it.each(["replace", "remove"] satisfies Array<"replace" | "remove">)(
@@ -751,6 +773,44 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { field: "username", value: "", toastKey: "account.error_username_required" },
+    { field: "username", value: "   ", toastKey: "account.error_username_required" },
+    { field: "server URL", value: "", toastKey: "account.error_server_url_required" },
+    { field: "server URL", value: "   ", toastKey: "account.error_server_url_required" },
+  ] as const)(
+    "keeps credential edits and skips save and test when $field is blank",
+    async ({ field, value, toastKey }) => {
+      setTauriRuntimePresent();
+      const account = sampleAccounts[1];
+      updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
+      testAccountConnectionMock.mockResolvedValue(Result.succeed(account));
+      const { result } = renderHook(() =>
+        useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+      );
+
+      await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+
+      act(() => {
+        if (field === "username") result.current.setCredUsername(value);
+        if (field === "server URL") result.current.setCredServerUrl(value);
+        result.current.setCredPassword("changed-dummy-password");
+      });
+
+      await act(async () => {
+        await result.current.handleTestConnection();
+      });
+
+      expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+      expect(testAccountConnectionMock).not.toHaveBeenCalled();
+      expect(result.current.credUsername).toBe(field === "username" ? value : null);
+      expect(result.current.credServerUrl).toBe(field === "server URL" ? value : null);
+      expect(result.current.credPassword).toBe("changed-dummy-password");
+      expect(result.current.dirtyState.dirty).toBe(true);
+      expect(useUiStore.getState().toastMessage?.message).toBe(t(toastKey));
+    },
+  );
+
   it("surfaces rejected credential saves, keeps drafts, and allows retry", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
@@ -787,12 +847,10 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.credServerUrl).toBe("https://reader.example.com");
     expect(result.current.credUsername).toBe("alice");
 
-    let secondSaved = false;
     await act(async () => {
-      secondSaved = await result.current.commitCredentials();
+      await result.current.handleTestConnection();
     });
 
-    expect(secondSaved).toBe(true);
     expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(2);
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
   });
@@ -834,7 +892,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
   });
 
-  it("requires connection verification before accepting saved credential drafts", async () => {
+  it("records a successful save when the single connection verification fails", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(queryKeys.accounts.root, [account]);
@@ -859,17 +917,102 @@ describe("useAccountDetailCredentialsEditor", () => {
       result.current.setCredPassword("bad-secret");
     });
 
-    let saved = true;
     await act(async () => {
-      saved = await result.current.commitCredentials();
+      await result.current.handleTestConnection();
     });
 
-    expect(saved).toBe(false);
     expect(updateAccountCredentialsMock).toHaveBeenCalledWith(account.id, account.server_url, "alice", "bad-secret");
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
     expect(testAccountConnectionMock).toHaveBeenCalledWith(account.id);
-    expect(result.current.credUsername).toBe("alice");
-    expect(result.current.credPassword).toBe("bad-secret");
+    expect(result.current.credUsername).toBeNull();
+    expect(result.current.credPassword).toBeNull();
+    expect(result.current.dirtyState.dirty).toBe(false);
     expect(useUiStore.getState().toastMessage?.message).toBe("Connection failed: invalid credentials");
+
+    testAccountConnectionMock.mockResolvedValue(
+      Result.succeed({
+        ...account,
+        username: "alice",
+        connection_verification_status: "verified",
+        connection_verified_at: "2026-04-19T05:32:00Z",
+        connection_verification_error: null,
+      }),
+    );
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+
+    expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(1);
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not rewrite saved Access credentials when retrying a failed connection check", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "saved-client-id" }));
+    updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
+    testAccountConnectionMock.mockResolvedValueOnce(Result.fail({ message: "invalid credentials" }));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+
+    act(() => {
+      result.current.setCloudflareAccessClientId("replacement-client-id");
+      result.current.setCloudflareAccessSecret("replacement-dummy-secret");
+    });
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+    expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
+      account.id,
+      account.server_url,
+      account.username,
+      undefined,
+      {
+        action: "replace",
+        clientId: "replacement-client-id",
+        clientSecret: "replacement-dummy-secret",
+      },
+    );
+    expect(result.current.dirtyState.dirty).toBe(false);
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+    expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(1);
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps connection verification single-flight", async () => {
+    const account = sampleAccounts[1];
+    const verification = createDeferred<ReturnType<typeof testAccountConnectionMock>>();
+    testAccountConnectionMock.mockReturnValue(verification.promise);
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    let firstTest: Promise<void> = Promise.resolve();
+    let secondTest: Promise<void> = Promise.resolve();
+    act(() => {
+      firstTest = result.current.handleTestConnection();
+      secondTest = result.current.handleTestConnection();
+    });
+    await waitFor(() => expect(testAccountConnectionMock).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      verification.resolve(
+        Result.succeed({
+          ...account,
+          connection_verification_status: "verified",
+          connection_verified_at: "2026-04-19T05:32:00Z",
+          connection_verification_error: null,
+        }),
+      );
+      await Promise.all([firstTest, secondTest]);
+    });
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
+    expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
   });
 
   it("does not start a connection test after a rejected credential save", async () => {
@@ -1014,7 +1157,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.testingConnection).toBe(false);
   });
 
-  it("does not apply a stale credential save when the draft changes before the save returns", async () => {
+  it("records a persisted revision without testing or clearing a newer draft", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(queryKeys.accounts.root, [account]);
@@ -1032,7 +1175,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     act(() => {
       result.current.setCredUsername("stale-user");
     });
-    const saveCredentials = result.current.commitCredentials();
+    const saveCredentials = result.current.handleTestConnection();
 
     act(() => {
       result.current.setCredUsername("current-draft");
@@ -1043,9 +1186,33 @@ describe("useAccountDetailCredentialsEditor", () => {
       await saveCredentials;
     });
 
-    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([{ ...account, username: "stale-user" }]);
     expect(useUiStore.getState().toastMessage).toBeNull();
     expect(result.current.credUsername).toBe("current-draft");
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
+  });
+
+  it("clears a saved password while keeping an unrelated newer edit", async () => {
+    const account = sampleAccounts[1];
+    const save = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
+    updateAccountCredentialsMock.mockReturnValue(save.promise);
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    act(() => result.current.setCredPassword("first-dummy-password"));
+    const saving = result.current.commitCredentials();
+    act(() => result.current.setCredUsername("newer-username"));
+
+    await act(async () => {
+      save.resolve(Result.succeed(account));
+      await saving;
+    });
+
+    expect(result.current.credPassword).toBeNull();
+    expect(result.current.credUsername).toBe("newer-username");
+    expect(result.current.dirtyState.dirty).toBe(true);
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
   });
 
   it("reuses an in-flight credential save for the same draft", async () => {
@@ -1088,15 +1255,6 @@ describe("useAccountDetailCredentialsEditor", () => {
         username: "current-draft",
       }),
     );
-    const verifiedCurrentDraft = {
-      ...account,
-      username: "current-draft",
-      connection_verification_status: "verified" as const,
-      connection_verified_at: "2026-04-19T05:32:00Z",
-      connection_verification_error: null,
-    };
-    testAccountConnectionMock.mockResolvedValue(Result.succeed(verifiedCurrentDraft));
-
     const { result } = renderHook(() =>
       useAccountDetailCredentialsEditor({
         account,
@@ -1130,7 +1288,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       "current-draft",
       undefined,
     );
-    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([verifiedCurrentDraft]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([{ ...account, username: "current-draft" }]);
     expect(result.current.credUsername).toBeNull();
   });
 
@@ -1312,7 +1470,7 @@ describe("useAccountDetailCredentialsEditor", () => {
         ],
       }),
     );
-    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([verified]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([updated]);
     expect(useUiStore.getState().toastMessage?.message).toBe("Credentials saved");
   });
 

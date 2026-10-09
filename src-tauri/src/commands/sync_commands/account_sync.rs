@@ -19,6 +19,7 @@ use crate::domain::feed::Feed;
 use crate::domain::provider::ProviderKind;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::feed::FeedRepository;
 
 use super::local_import_export::{
@@ -32,6 +33,14 @@ use super::scheduler::{clear_scheduler_sync_status, load_all_accounts};
 pub(crate) async fn sync_account(
     db: &Mutex<DbManager>,
     account: &Account,
+) -> Result<ProviderSyncOutcome, AppError> {
+    sync_account_with_mode(db, account, CredentialLookupMode::Background).await
+}
+
+pub(crate) async fn sync_account_with_mode(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    mode: CredentialLookupMode,
 ) -> Result<ProviderSyncOutcome, AppError> {
     match account.kind {
         ProviderKind::Local => {
@@ -63,7 +72,13 @@ pub(crate) async fn sync_account(
         }
         ProviderKind::FreshRss => {
             let auth_started_at = Instant::now();
-            let session = match GReaderSession::establish(account).await {
+            let session_result = match mode {
+                CredentialLookupMode::Background => GReaderSession::establish(account).await,
+                CredentialLookupMode::Interactive => {
+                    GReaderSession::establish_interactive(account).await
+                }
+            };
+            let session = match session_result {
                 Ok(session) => session,
                 Err(error @ SessionError::MissingUsername) => {
                     error.log_skip(account);
@@ -88,10 +103,20 @@ pub(crate) async fn sync_account(
     }
 }
 
+#[cfg(test)]
 pub(crate) async fn sync_feed(
     db: &Mutex<DbManager>,
     account: &Account,
     feed: &Feed,
+) -> Result<ProviderSyncOutcome, AppError> {
+    sync_feed_with_mode(db, account, feed, CredentialLookupMode::Background).await
+}
+
+pub(crate) async fn sync_feed_with_mode(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    feed: &Feed,
+    mode: CredentialLookupMode,
 ) -> Result<ProviderSyncOutcome, AppError> {
     match account.kind {
         ProviderKind::Local => {
@@ -100,7 +125,13 @@ pub(crate) async fn sync_feed(
             Ok(ProviderSyncOutcome::default())
         }
         ProviderKind::FreshRss => {
-            let session = match GReaderSession::establish(account).await {
+            let session_result = match mode {
+                CredentialLookupMode::Background => GReaderSession::establish(account).await,
+                CredentialLookupMode::Interactive => {
+                    GReaderSession::establish_interactive(account).await
+                }
+            };
+            let session = match session_result {
                 Ok(session) => session,
                 Err(error @ SessionError::MissingUsername) => {
                     error.log_skip_with_context(account, "single-feed sync");
@@ -146,6 +177,23 @@ pub(crate) async fn run_sync_for_accounts_with_progress(
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
 ) -> Result<SyncResult, AppError> {
+    run_sync_for_accounts_with_mode(
+        db,
+        syncing,
+        accounts,
+        reporter,
+        CredentialLookupMode::Background,
+    )
+    .await
+}
+
+pub(crate) async fn run_sync_for_accounts_with_mode(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    accounts: Vec<Account>,
+    reporter: Option<SyncProgressReporter>,
+    mode: CredentialLookupMode,
+) -> Result<SyncResult, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
@@ -161,7 +209,7 @@ pub(crate) async fn run_sync_for_accounts_with_progress(
     }
     let _guard = SyncGuard(syncing);
 
-    run_sync_for_accounts_guarded(db, accounts, reporter).await
+    run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode).await
 }
 
 /// Runs the account-sync body assuming the `syncing` flag/[`SyncGuard`] is
@@ -174,6 +222,21 @@ pub(crate) async fn run_sync_for_accounts_guarded(
     db: &Mutex<DbManager>,
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
+) -> Result<SyncResult, AppError> {
+    run_sync_for_accounts_guarded_with_mode(
+        db,
+        accounts,
+        reporter,
+        CredentialLookupMode::Background,
+    )
+    .await
+}
+
+async fn run_sync_for_accounts_guarded_with_mode(
+    db: &Mutex<DbManager>,
+    accounts: Vec<Account>,
+    reporter: Option<SyncProgressReporter>,
+    mode: CredentialLookupMode,
 ) -> Result<SyncResult, AppError> {
     let total = accounts.len();
     let mut succeeded = 0usize;
@@ -193,7 +256,12 @@ pub(crate) async fn run_sync_for_accounts_guarded(
                 if let Some(reporter) = reporter.as_ref() {
                     reporter.emit_account_started(&account);
                 }
-                let result = sync_account(db, &account).await;
+                let result = match mode {
+                    CredentialLookupMode::Background => sync_account(db, &account).await,
+                    CredentialLookupMode::Interactive => {
+                        sync_account_with_mode(db, &account, mode).await
+                    }
+                };
                 if let Some(reporter) = reporter.as_ref() {
                     reporter.emit_account_finished(&account, result.is_ok());
                 }

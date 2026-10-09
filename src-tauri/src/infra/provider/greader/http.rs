@@ -12,7 +12,7 @@ use crate::infra::feed_discovery::{
 };
 
 use super::super::http_defaults::{self, http_client_builder};
-use super::super::traits::Credentials as ProviderCredentials;
+use super::super::traits::{Credentials as ProviderCredentials, FeedProvider};
 use super::{urlencoded, GReaderProvider, LABEL_PREFIX, STATE_READ, STATE_STARRED};
 
 pub(super) fn freshrss_api_base(server_url: &str) -> String {
@@ -391,6 +391,27 @@ impl GReaderProvider {
 
         self.auth_token = Some(auth_token);
         Ok(())
+    }
+
+    pub(crate) async fn verify_api_access(&self) -> DomainResult<()> {
+        self.get_folders()
+            .await
+            .map(|_| ())
+            .map_err(|error| match error {
+                DomainError::Auth(message) => {
+                    let context = if message.contains("HTTP 401") {
+                        "tag-list HTTP 401 Unauthorized"
+                    } else if message.contains("HTTP 403") {
+                        "tag-list HTTP 403 Forbidden"
+                    } else if message.contains("HTML page") {
+                        "tag-list returned an HTML page"
+                    } else {
+                        "tag-list access denied"
+                    };
+                    DomainError::Auth(context.into())
+                }
+                error => error,
+            })
     }
 
     pub(super) async fn push_mutations_impl(&self, mutations: &[Mutation]) -> DomainResult<()> {

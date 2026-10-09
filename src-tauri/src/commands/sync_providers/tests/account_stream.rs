@@ -1,19 +1,70 @@
 use super::*;
 
 #[tokio::test]
-async fn greader_password_lookup_times_out_when_keychain_blocks() {
-    let started_at = Instant::now();
-    let error = get_greader_password_with_timeout("acc-timeout", Duration::from_millis(10), |_| {
-        std::thread::sleep(Duration::from_millis(250));
-        Ok("password".to_string())
-    })
-    .await
-    .expect_err("blocking keychain lookup should time out");
+async fn greader_password_lookup_waits_for_owned_blocking_read() {
+    let (finished_tx, mut finished_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::channel();
+    let lookup = get_greader_password_with_reader(
+        "acc-delayed",
+        CredentialLookupMode::Interactive,
+        move |_| {
+            release_rx
+                .recv_timeout(Duration::from_secs(1))
+                .expect("dummy password read should be released by its caller");
+            let _ = finished_tx.send(());
+            Ok("password".to_string())
+        },
+    );
+    tokio::pin!(lookup);
+    tokio::select! {
+        result = &mut lookup => panic!("lookup should still own its delayed read: {result:?}"),
+        _ = tokio::time::sleep(Duration::from_millis(10)) => {},
+    }
+    assert!(matches!(
+        finished_rx.try_recv(),
+        Err(tokio::sync::oneshot::error::TryRecvError::Empty)
+    ));
+    release_tx
+        .send(())
+        .expect("dummy password read should still be waiting");
+    assert_eq!(lookup.await.unwrap(), "password");
+    assert!(finished_rx.try_recv().is_ok());
+}
 
-    assert!(started_at.elapsed() < Duration::from_millis(200));
+#[cfg(not(target_os = "macos"))]
+#[tokio::test]
+async fn native_password_lookup_retains_legacy_cutoff_without_cancelling_blocking_read() {
+    let (finished_tx, finished_rx) = tokio::sync::oneshot::channel();
+    let error = get_greader_password_with_timeout(
+        "acc-native-timeout".into(),
+        Duration::from_millis(10),
+        move |_| {
+            std::thread::sleep(Duration::from_millis(50));
+            let _ = finished_tx.send(());
+            Ok("dummy-password".into())
+        },
+    )
+    .await
+    .expect_err("native password read should retain the legacy caller cutoff");
+    assert!(error.to_string().contains("Timed out reading password"));
+    finished_rx
+        .await
+        .expect("legacy cutoff must not be treated as blocking-task cancellation");
+}
+
+#[tokio::test]
+async fn greader_password_lookup_preserves_owned_read_timeout_error() {
+    let error =
+        get_greader_password_with_reader("acc-timeout", CredentialLookupMode::Background, |_| {
+            Err(DomainError::Keychain(
+                "Timed out reading password from macOS Keychain CLI".into(),
+            ))
+        })
+        .await
+        .expect_err("the child owner's deadline should reach the command boundary");
     match error {
         AppError::UserVisible { message } => {
-            assert!(message.contains("Timed out reading password from macOS Keychain"));
+            assert!(message.contains("Timed out reading password from macOS Keychain CLI"));
         }
         other => panic!("expected user-visible keychain timeout, got {other:?}"),
     }

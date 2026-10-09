@@ -24,8 +24,8 @@ const meta = {
     passwordLabel: "Password",
     passwordValue: "",
     passwordPlaceholder: "Enter new password",
-    testConnectionLabel: "Test Connection",
-    testingConnectionLabel: "Testing…",
+    testConnectionLabel: "Check Connection",
+    testingConnectionLabel: "Checking…",
     onServerUrlChange: fn(),
     onServerUrlBlur: fn(),
     onServerUrlCopy: fn(),
@@ -53,6 +53,21 @@ export const Default: Story = {};
 export const SavedPassword: Story = {
   args: {
     passwordValue: "••••••••",
+  },
+};
+
+export const DirtyDraft: Story = {
+  args: {
+    serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
+    testConnectionLabel: "Save & Test Connection",
+  },
+};
+
+export const SetupFailedDirtyDraft: Story = {
+  args: {
+    note: "Setup failed",
+    serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
+    testConnectionLabel: "Save & Test Connection",
   },
 };
 
@@ -110,8 +125,8 @@ export const JapaneseNarrow: Story = {
     usernameLabel: "ユーザー名",
     passwordLabel: "パスワード",
     passwordPlaceholder: "新しいパスワードを入力",
-    testConnectionLabel: "接続テスト",
-    testingConnectionLabel: "テスト中…",
+    testConnectionLabel: "接続確認",
+    testingConnectionLabel: "確認中…",
   },
   decorators: [
     (Story) => (

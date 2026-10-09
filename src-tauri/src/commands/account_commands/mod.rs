@@ -225,32 +225,17 @@ pub async fn test_account_connection(
         return Ok(AccountDto::from(account));
     }
 
-    match GReaderSession::establish(&account).await {
-        Ok(_) => {}
-        Err(SessionError::Auth(error)) => {
-            let error_message = error.to_string();
-            let db = crate::commands::lock_db(&state.db)?;
-            let repo = SqliteAccountRepository::new(db.writer());
-            repo.update_connection_verification(
-                &id,
-                ConnectionVerificationStatus::Error,
-                None,
-                Some(&error_message),
-            )?;
-            return Err(error);
+    let session = GReaderSession::establish_interactive(&account).await;
+    let verification = verify_authenticated_freshrss_session(session).await;
+    let verification = match verification {
+        Err(error @ (SessionError::MissingUsername | SessionError::MissingServerUrl)) => {
+            return Err(error.into_user_visible());
         }
-        Err(error) => return Err(error.into_user_visible()),
-    }
-
-    let verified_at = chrono::Utc::now().to_rfc3339();
+        result => result,
+    };
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
-    repo.update_connection_verification(
-        &id,
-        ConnectionVerificationStatus::Verified,
-        Some(&verified_at),
-        None,
-    )?;
+    persist_connection_verification_result(&repo, &id, verification)?;
     let updated = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
@@ -258,7 +243,186 @@ pub async fn test_account_connection(
     Ok(AccountDto::from(updated))
 }
 
+async fn verify_authenticated_freshrss_session(
+    session: Result<GReaderSession, SessionError>,
+) -> Result<(), SessionError> {
+    let session = session?;
+    session
+        .provider()
+        .verify_api_access()
+        .await
+        .map_err(|error| SessionError::Auth(error.into()))
+}
+
+fn persist_connection_verification_result(
+    repo: &impl AccountRepository,
+    id: &AccountId,
+    result: Result<(), SessionError>,
+) -> Result<(), AppError> {
+    match result {
+        Ok(()) => {
+            let verified_at = chrono::Utc::now().to_rfc3339();
+            repo.update_connection_verification(
+                id,
+                ConnectionVerificationStatus::Verified,
+                Some(&verified_at),
+                None,
+            )?;
+            Ok(())
+        }
+        Err(SessionError::Auth(error)) => {
+            let error_message = error.to_string();
+            repo.update_connection_verification(
+                id,
+                ConnectionVerificationStatus::Error,
+                None,
+                Some(&error_message),
+            )?;
+            Err(error)
+        }
+        Err(error) => Err(error.into_user_visible()),
+    }
+}
+
 #[tauri::command]
 pub fn delete_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
     delete_account_with_sync_boundary(&state.db, state.syncing.as_ref(), AccountId(account_id))
+}
+
+#[cfg(test)]
+mod connection_probe_tests {
+    use super::{persist_connection_verification_result, verify_authenticated_freshrss_session};
+    use crate::commands::dto::AppError;
+    use crate::commands::sync_providers::{GReaderSession, SessionError};
+    use crate::domain::account::{Account, ConnectionVerificationStatus};
+    use crate::domain::provider::ProviderKind;
+    use crate::domain::types::AccountId;
+    use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_account::SqliteAccountRepository;
+    use crate::infra::provider::greader::GReaderProvider;
+    use crate::infra::provider::traits::{Credentials, FeedProvider};
+    use crate::repository::account::AccountRepository;
+
+    fn account(server_url: &str, status: ConnectionVerificationStatus) -> Account {
+        Account {
+            id: AccountId("connection-probe-test".to_string()),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS test".to_string(),
+            server_url: Some(server_url.to_string()),
+            username: Some("dummy-user".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: status,
+            connection_verified_at: (status == ConnectionVerificationStatus::Verified)
+                .then(|| "2026-10-08T00:00:00Z".to_string()),
+            connection_verification_error: None,
+        }
+    }
+
+    async fn establish_fake_session(account: &Account) -> Result<GReaderSession, SessionError> {
+        let server_url = account
+            .server_url
+            .as_deref()
+            .ok_or(SessionError::MissingServerUrl)?;
+        let mut provider = GReaderProvider::try_for_freshrss(server_url)
+            .map_err(|error| SessionError::Auth(error.into()))?;
+        provider
+            .authenticate(&Credentials {
+                token: Some("dummy-user".to_string()),
+                password: Some("dummy-password".to_string()),
+            })
+            .await
+            .map_err(|error| SessionError::Auth(error.into()))?;
+        Ok(GReaderSession::from_provider_for_tests(provider))
+    }
+
+    #[tokio::test]
+    async fn protected_probe_failure_updates_error_and_clears_old_verified_badge() {
+        let mut server = mockito::Server::new_async().await;
+        let login = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .match_body("Email=dummy-user&Passwd=dummy-password")
+            .with_body("Auth=dummy-auth\n")
+            .create_async()
+            .await;
+        let tag_list = server
+            .mock("GET", "/api/greader.php/reader/api/0/tag/list")
+            .match_query("output=json")
+            .with_status(403)
+            .with_body("dummy-auth sensitive response body")
+            .create_async()
+            .await;
+        let account = account(&server.url(), ConnectionVerificationStatus::Verified);
+        let db = DbManager::new_in_memory().expect("test database should initialize");
+        let repo = SqliteAccountRepository::new(db.writer());
+        repo.save(&account).expect("test account should save");
+
+        let session = establish_fake_session(&account).await;
+        let result = verify_authenticated_freshrss_session(session).await;
+        let error = persist_connection_verification_result(&repo, &account.id, result)
+            .expect_err("failed protected read must fail the Test verification flow");
+        let updated = repo
+            .find_by_id(&account.id)
+            .expect("account query should succeed")
+            .expect("account should remain persisted");
+
+        assert!(matches!(error, AppError::UserVisible { .. }));
+        assert!(error.to_string().contains("tag-list"));
+        assert!(error.to_string().contains("HTTP 403"));
+        assert!(!error.to_string().contains("dummy-auth"));
+        assert!(!error.to_string().contains("sensitive response body"));
+        assert_eq!(
+            updated.connection_verification_status,
+            ConnectionVerificationStatus::Error
+        );
+        assert_eq!(updated.connection_verified_at, None);
+        assert_eq!(
+            updated.connection_verification_error.as_deref(),
+            Some("Auth error: tag-list HTTP 403 Forbidden")
+        );
+        login.assert_async().await;
+        tag_list.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn successful_protected_probe_is_the_result_persisted_as_verified() {
+        let mut server = mockito::Server::new_async().await;
+        let login = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .match_body("Email=dummy-user&Passwd=dummy-password")
+            .with_body("Auth=dummy-auth\n")
+            .create_async()
+            .await;
+        let tag_list = server
+            .mock("GET", "/api/greader.php/reader/api/0/tag/list")
+            .match_query("output=json")
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"tags":[]}"#)
+            .create_async()
+            .await;
+        let account = account(&server.url(), ConnectionVerificationStatus::Unverified);
+        let db = DbManager::new_in_memory().expect("test database should initialize");
+        let repo = SqliteAccountRepository::new(db.writer());
+        repo.save(&account).expect("test account should save");
+
+        let session = establish_fake_session(&account).await;
+        let result = verify_authenticated_freshrss_session(session).await;
+        persist_connection_verification_result(&repo, &account.id, result)
+            .expect("successful protected read should persist verification");
+        let updated = repo
+            .find_by_id(&account.id)
+            .expect("account query should succeed")
+            .expect("account should remain persisted");
+
+        assert_eq!(
+            updated.connection_verification_status,
+            ConnectionVerificationStatus::Verified
+        );
+        assert!(updated.connection_verified_at.is_some());
+        assert_eq!(updated.connection_verification_error, None);
+        login.assert_async().await;
+        tag_list.assert_async().await;
+    }
 }
