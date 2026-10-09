@@ -330,7 +330,7 @@
     "setup_syncing_action": "Setting up…",
     "setup_failed_heading": "Could not finish setup",
     "setup_failed_description": "Check your credentials or server status, then try again.",
-    "setup_failed_credentials_note": "You can update the server URL, username, or password below, then retry setup.",
+    "setup_failed_credentials_note": "After editing credentials, select “Save & Test Connection” to save them, then retry setup.",
     "setup_retry": "Retry setup",
     "setup_edit_credentials": "Edit credentials",
     "recovery_credentials_label": "Credential reset",
