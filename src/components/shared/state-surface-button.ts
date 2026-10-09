@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority";
 import { type StateTone, stateToneSurfaceClassNames } from "@/components/shared/state-tone";
 
 // Button-specific layer on top of the shared state-tone triplet: flat surface,
@@ -11,8 +12,12 @@ const stateSurfaceButtonInteractionClassNames = {
     "shadow-none hover:border-state-success-border hover:bg-state-success-surface-hover hover:text-state-success-foreground focus-visible:border-state-success-border",
 } as const satisfies Record<StateTone, string>;
 
-export type StateSurfaceButtonTone = StateTone;
-
-export function stateSurfaceButtonClassName(tone: StateSurfaceButtonTone): string {
-  return `${stateToneSurfaceClassNames[tone]} ${stateSurfaceButtonInteractionClassNames[tone]}`;
-}
+export const stateSurfaceButtonVariants = cva("", {
+  variants: {
+    tone: {
+      warning: `${stateToneSurfaceClassNames.warning} ${stateSurfaceButtonInteractionClassNames.warning}`,
+      danger: `${stateToneSurfaceClassNames.danger} ${stateSurfaceButtonInteractionClassNames.danger}`,
+      success: `${stateToneSurfaceClassNames.success} ${stateSurfaceButtonInteractionClassNames.success}`,
+    },
+  },
+});
