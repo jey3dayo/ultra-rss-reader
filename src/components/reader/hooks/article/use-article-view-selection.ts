@@ -9,6 +9,7 @@ import { useArticlesByTag, useTags } from "@/hooks/use-tags";
 import { type ArticleViewSummaryState, buildArticleViewSummaryResult } from "@/lib/articles/article-view";
 import { resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { resolveReaderSelectionSourceKind, resolveReaderSourceArticles } from "@/lib/reader/reader-source-articles";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -89,8 +90,8 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   });
   const { data: fullSelectedArticle, isPending: isSelectedArticlePending } = useArticle(selectedArticleId);
   const prefs = usePreferencesStore((s) => s.prefs);
-  const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
-  const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
+  const sortUnread = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reading_sort"));
+  const groupBy = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "group_by"));
   const sources = useArticleListSources({
     selection,
     selectedAccountId,

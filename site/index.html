@@ -420,12 +420,16 @@
           <strong>First-class FreshRSS sync</strong>
           <p>
             Connect a FreshRSS server via the Google Reader API. Read status and stars sync bidirectionally, with
-            pending local changes protected from being overwritten by stale remote state.
+            pending local changes protected from being overwritten by stale remote state. For HTTPS servers,
+            optional Cloudflare Access Service Token authentication is supported.
           </p>
         </div>
         <div class="card">
           <strong>Credentials in the OS keyring</strong>
-          <p>Passwords and tokens go to Keychain / Credential Manager / Secret Service, never into the database.</p>
+          <p>
+            Passwords, tokens, and optional Cloudflare Access Service Token credentials go to
+            Keychain / Credential Manager / Secret Service, never into the database.
+          </p>
         </div>
         <div class="card">
           <strong>Keyboard-driven</strong>

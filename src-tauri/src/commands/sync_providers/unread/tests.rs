@@ -941,3 +941,179 @@ async fn reconcile_greader_unread_state_skips_duplicate_ids_across_pages() {
     assert!(matches!(outcome, ReconcileOutcome::SkippedIncomplete));
     assert_article_is_unread(&db, &feed, &local_article.id);
 }
+
+#[derive(Clone, Default)]
+struct LogBuffer(Arc<Mutex<Vec<u8>>>);
+
+impl std::io::Write for LogBuffer {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0
+            .lock()
+            .expect("log buffer lock should not be poisoned")
+            .extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl LogBuffer {
+    fn contents(&self) -> String {
+        let bytes = self
+            .0
+            .lock()
+            .expect("log buffer lock should not be poisoned");
+        String::from_utf8_lossy(&bytes).into_owned()
+    }
+}
+
+fn capture_warnings() -> (LogBuffer, tracing::subscriber::DefaultGuard) {
+    let buffer = LogBuffer::default();
+    let writer = buffer.clone();
+    let subscriber = tracing_subscriber::fmt()
+        .with_ansi(false)
+        .with_max_level(tracing::Level::WARN)
+        .with_writer(move || writer.clone())
+        .finish();
+    (buffer, tracing::subscriber::set_default(subscriber))
+}
+
+fn assert_incomplete_warning(logs: &str, reason: &str, page: usize, entries: usize) {
+    assert!(
+        logs.contains(&format!("reason=\"{reason}\"")),
+        "warning should carry reason {reason}: {logs}"
+    );
+    assert!(
+        logs.contains(&format!("page={page}")),
+        "warning should carry page {page}: {logs}"
+    );
+    assert!(
+        logs.contains(&format!("entries={entries}")),
+        "warning should carry entries {entries}: {logs}"
+    );
+    assert!(
+        !logs.contains("example.com"),
+        "warning should not expose the feed host: {logs}"
+    );
+}
+
+#[tokio::test]
+async fn unread_snapshot_once_returns_none_with_warning_when_entry_limit_is_exceeded() {
+    let account = test_account();
+    let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+    let ids = (0..=MAX_UNREAD_RECONCILE_ENTRIES)
+        .map(|index| format!("entry-{index}"))
+        .collect::<Vec<_>>();
+
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+        )
+        .match_query(mockito::Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(stream_items_response(&ids, None))
+        .create_async()
+        .await;
+    let provider = authenticated_provider(&mut server).await;
+
+    let (logs, _guard) = capture_warnings();
+    let snapshot = fetch_greader_unread_snapshot_once(&provider, &account, &feed, 0).await;
+
+    assert!(matches!(snapshot, Ok(None)));
+    assert_incomplete_warning(
+        &logs.contents(),
+        "entry_limit",
+        1,
+        MAX_UNREAD_RECONCILE_ENTRIES + 1,
+    );
+}
+
+#[tokio::test]
+async fn unread_snapshot_once_returns_none_with_warning_when_page_limit_is_reached() {
+    let account = test_account();
+    let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
+    let request_count = Arc::new(AtomicUsize::new(0));
+
+    let mut server = mockito::Server::new_async().await;
+    let request_count_for_mock = Arc::clone(&request_count);
+    server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fa",
+        )
+        .match_query(mockito::Matcher::UrlEncoded(
+            "xt".into(),
+            "user/-/state/com.google/read".into(),
+        ))
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body_from_request(move |_| {
+            let page = request_count_for_mock.fetch_add(1, Ordering::SeqCst) + 1;
+            stream_items_response([format!("page-{page}")], Some(&format!("cursor-{page}")))
+                .into_bytes()
+        })
+        .create_async()
+        .await;
+    let provider = authenticated_provider(&mut server).await;
+
+    let (logs, _guard) = capture_warnings();
+    let snapshot = fetch_greader_unread_snapshot_once(
+        &provider,
+        &account,
+        &feed,
+        i32::try_from(MAX_UNREAD_RECONCILE_PAGES).expect("page limit should fit in i32"),
+    )
+    .await;
+
+    assert!(matches!(snapshot, Ok(None)));
+    assert_eq!(
+        request_count.load(Ordering::SeqCst),
+        MAX_UNREAD_RECONCILE_PAGES
+    );
+    assert_incomplete_warning(
+        &logs.contents(),
+        "page_limit",
+        MAX_UNREAD_RECONCILE_PAGES,
+        MAX_UNREAD_RECONCILE_PAGES,
+    );
+}
+
+fn cursor_with_continuation(continuation: Option<&str>) -> SyncCursor {
+    SyncCursor {
+        continuation: continuation.map(str::to_string),
+        since: None,
+        etag: None,
+        last_modified: None,
+    }
+}
+
+#[test]
+fn next_unread_cursor_reports_missing_continuation_without_cursor() {
+    let reason = next_unread_cursor(1, None).expect_err("a missing cursor should be incomplete");
+
+    assert_eq!(reason, "missing_continuation");
+}
+
+#[test]
+fn next_unread_cursor_reports_missing_continuation_for_cursor_without_continuation() {
+    let reason = next_unread_cursor(1, Some(cursor_with_continuation(None)))
+        .expect_err("a cursor without continuation should be incomplete");
+
+    assert_eq!(reason, "missing_continuation");
+}
+
+#[test]
+fn next_unread_cursor_returns_cursor_with_continuation() {
+    let cursor = next_unread_cursor(1, Some(cursor_with_continuation(Some("next"))))
+        .expect("a cursor with continuation should continue the scan");
+
+    assert_eq!(cursor.continuation.as_deref(), Some("next"));
+}

@@ -421,13 +421,14 @@
           <p>
             Google Reader API 経由で FreshRSS
             サーバーと接続。既読・スターは双方向同期し、ローカルの未送信変更が古いリモート状態で巻き戻されないよう保護されます。
+            HTTPS サーバーでは、任意の Cloudflare Access Service Token 認証も利用できます。
           </p>
         </div>
         <div class="card">
           <strong>認証情報は OS キーリングへ</strong>
           <p>
-            パスワードやトークンは Keychain / Credential Manager / Secret Service
-            に保存され、データベースには入りません。
+            パスワードやトークン、任意の Cloudflare Access Service Token 認証情報は
+            Keychain / Credential Manager / Secret Service に保存され、データベースには入りません。
           </p>
         </div>
         <div class="card">
