@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { projectRecentPaletteEntries } from "@/lib/command-palette/recent-palette-entries";
+import { projectRecentPaletteEntries } from "@/components/reader/lib/recent-palette-entries";
 
 const resources = {
   actions: [{ id: "sync-all" }, { id: "open-settings" }],

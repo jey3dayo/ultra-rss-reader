@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
+import { projectRecentPaletteEntries } from "@/components/reader/lib/recent-palette-entries";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -9,7 +10,6 @@ import {
   getHistory,
   writeNormalizedHistoryAfterResourceProjection,
 } from "@/lib/command-palette/command-history-storage";
-import { projectRecentPaletteEntries } from "@/lib/command-palette/recent-palette-entries";
 import type { PaletteAction } from "../../command-palette.types";
 
 type UseCommandPaletteDataParams = {
