@@ -207,7 +207,7 @@ pub(crate) fn get_password_for_sync_with_mode(
 
     #[cfg(target_os = "macos")]
     {
-        macos_security_cli::get_password_from_security_cli(account_id, mode.timeout())
+        macos_security_cli::get_password_from_security_cli(account_id, mode)
     }
 
     #[cfg(not(target_os = "macos"))]
