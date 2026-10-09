@@ -942,68 +942,8 @@ async fn reconcile_greader_unread_state_skips_duplicate_ids_across_pages() {
     assert_article_is_unread(&db, &feed, &local_article.id);
 }
 
-#[derive(Clone, Default)]
-struct LogBuffer(Arc<Mutex<Vec<u8>>>);
-
-impl std::io::Write for LogBuffer {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.0
-            .lock()
-            .expect("log buffer lock should not be poisoned")
-            .extend_from_slice(buf);
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-impl LogBuffer {
-    fn contents(&self) -> String {
-        let bytes = self
-            .0
-            .lock()
-            .expect("log buffer lock should not be poisoned");
-        String::from_utf8_lossy(&bytes).into_owned()
-    }
-}
-
-fn capture_warnings() -> (LogBuffer, tracing::subscriber::DefaultGuard) {
-    let buffer = LogBuffer::default();
-    let writer = buffer.clone();
-    let subscriber = tracing_subscriber::fmt()
-        .with_ansi(false)
-        .with_max_level(tracing::Level::WARN)
-        .with_writer(move || writer.clone())
-        .finish();
-    let guard = tracing::subscriber::set_default(subscriber);
-    // Callsites first hit by a parallel test thread can keep a stale "never" interest.
-    tracing::callsite::rebuild_interest_cache();
-    (buffer, guard)
-}
-
-fn assert_incomplete_warning(logs: &str, reason: &str, page: usize, entries: usize) {
-    assert!(
-        logs.contains(&format!("reason=\"{reason}\"")),
-        "warning should carry reason {reason}: {logs}"
-    );
-    assert!(
-        logs.contains(&format!("page={page}")),
-        "warning should carry page {page}: {logs}"
-    );
-    assert!(
-        logs.contains(&format!("entries={entries}")),
-        "warning should carry entries {entries}: {logs}"
-    );
-    assert!(
-        !logs.contains("example.com"),
-        "warning should not expose the feed host: {logs}"
-    );
-}
-
 #[tokio::test]
-async fn unread_snapshot_once_returns_none_with_warning_when_entry_limit_is_exceeded() {
+async fn unread_snapshot_scan_is_incomplete_when_entry_limit_is_exceeded() {
     let account = test_account();
     let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
     let ids = (0..=MAX_UNREAD_RECONCILE_ENTRIES)
@@ -1027,20 +967,22 @@ async fn unread_snapshot_once_returns_none_with_warning_when_entry_limit_is_exce
         .await;
     let provider = authenticated_provider(&mut server).await;
 
-    let (logs, _guard) = capture_warnings();
-    let snapshot = fetch_greader_unread_snapshot_once(&provider, &account, &feed, 0).await;
+    let scan = scan_greader_unread_pages(&provider, &account, &feed, "feed/a", 0)
+        .await
+        .expect("an oversized unread page should be reported as incomplete, not as an error");
+    let PageScan::Incomplete(incomplete) = scan else {
+        panic!("an unread page above the entry limit should not produce a complete snapshot");
+    };
+    assert_eq!(incomplete.reason, "entry_limit");
+    assert_eq!(incomplete.page, 1);
+    assert_eq!(incomplete.entries, MAX_UNREAD_RECONCILE_ENTRIES + 1);
 
+    let snapshot = fetch_greader_unread_snapshot_once(&provider, &account, &feed, 0).await;
     assert!(matches!(snapshot, Ok(None)));
-    assert_incomplete_warning(
-        &logs.contents(),
-        "entry_limit",
-        1,
-        MAX_UNREAD_RECONCILE_ENTRIES + 1,
-    );
 }
 
 #[tokio::test]
-async fn unread_snapshot_once_returns_none_with_warning_when_page_limit_is_reached() {
+async fn unread_snapshot_scan_is_incomplete_when_page_limit_is_reached() {
     let account = test_account();
     let feed = test_feed(&account.id, "feed/a", "https://example.com/a.rss");
     let request_count = Arc::new(AtomicUsize::new(0));
@@ -1067,25 +1009,20 @@ async fn unread_snapshot_once_returns_none_with_warning_when_page_limit_is_reach
         .await;
     let provider = authenticated_provider(&mut server).await;
 
-    let (logs, _guard) = capture_warnings();
-    let snapshot = fetch_greader_unread_snapshot_once(
-        &provider,
-        &account,
-        &feed,
-        i32::try_from(MAX_UNREAD_RECONCILE_PAGES).expect("page limit should fit in i32"),
-    )
-    .await;
-
-    assert!(matches!(snapshot, Ok(None)));
+    let server_unread_count =
+        i32::try_from(MAX_UNREAD_RECONCILE_PAGES).expect("page limit should fit in i32");
+    let scan = scan_greader_unread_pages(&provider, &account, &feed, "feed/a", server_unread_count)
+        .await
+        .expect("reaching the page limit should be reported as incomplete, not as an error");
+    let PageScan::Incomplete(incomplete) = scan else {
+        panic!("reaching the page limit should not produce a complete snapshot");
+    };
+    assert_eq!(incomplete.reason, "page_limit");
+    assert_eq!(incomplete.page, MAX_UNREAD_RECONCILE_PAGES);
+    assert_eq!(incomplete.entries, MAX_UNREAD_RECONCILE_PAGES);
     assert_eq!(
         request_count.load(Ordering::SeqCst),
         MAX_UNREAD_RECONCILE_PAGES
-    );
-    assert_incomplete_warning(
-        &logs.contents(),
-        "page_limit",
-        MAX_UNREAD_RECONCILE_PAGES,
-        MAX_UNREAD_RECONCILE_PAGES,
     );
 }
 
