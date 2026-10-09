@@ -31,6 +31,55 @@ function hasOversizedDevCredentialsStoreError(syncStatus: AccountSyncStatusDto |
   return syncStatus?.last_error?.includes("Dev store exceeds maximum size") === true;
 }
 
+type SyncPhase = "quarantined" | "setup-syncing" | "setup-failed" | "idle";
+
+const SYNC_HEADING_KEYS = {
+  quarantined: "account.quarantine_heading",
+  "setup-syncing": "account.setup_syncing_heading",
+  "setup-failed": "account.setup_failed_heading",
+  idle: "account.syncing",
+} as const satisfies Record<SyncPhase, string>;
+
+const SYNC_NOTE_KEYS = {
+  quarantined: "account.quarantine_readonly_note",
+  "setup-syncing": "account.setup_syncing_description",
+  "setup-failed": "account.setup_failed_description",
+  idle: undefined,
+} as const satisfies Record<SyncPhase, string | undefined>;
+
+function resolveSyncPhase({
+  isQuarantined,
+  isSetupSyncing,
+  isSetupFailed,
+}: Pick<BuildSyncSectionParams, "isQuarantined" | "isSetupSyncing" | "isSetupFailed">): SyncPhase {
+  if (isQuarantined) return "quarantined";
+  if (isSetupSyncing) return "setup-syncing";
+  if (isSetupFailed) return "setup-failed";
+  return "idle";
+}
+
+function buildSyncProgress({
+  isSyncing,
+  syncProgress,
+  t,
+}: Pick<BuildSyncSectionParams, "isSyncing" | "syncProgress" | "t">) {
+  const hasTotal = isSyncing && syncProgress !== undefined && syncProgress.total > 0;
+  return {
+    progressValue: hasTotal
+      ? Math.max((syncProgress.completed / syncProgress.total) * 100, syncProgress.completed === 0 ? 8 : 0)
+      : null,
+    progressLabel: hasTotal
+      ? t("account.sync_progress_summary", { completed: syncProgress.completed, total: syncProgress.total })
+      : isSyncing
+        ? t("account.sync_progress_preparing")
+        : undefined,
+    progressCurrentLabel:
+      isSyncing && syncProgress?.currentAccountName
+        ? t("account.sync_progress_current_account", { name: syncProgress.currentAccountName })
+        : undefined,
+  };
+}
+
 export function buildSyncSection({
   account,
   controller,
@@ -48,41 +97,14 @@ export function buildSyncSection({
 }: BuildSyncSectionParams): SyncSectionProps {
   const canShowDevCredentialsRecovery =
     canRecoverDevCredentialsStore && !isQuarantined && hasOversizedDevCredentialsStoreError(syncStatus);
-  const progressValue =
-    isSyncing && syncProgress && syncProgress.total > 0
-      ? Math.max((syncProgress.completed / syncProgress.total) * 100, syncProgress.completed === 0 ? 8 : 0)
-      : null;
-  const progressLabel =
-    isSyncing && syncProgress && syncProgress.total > 0
-      ? t("account.sync_progress_summary", {
-          completed: syncProgress.completed,
-          total: syncProgress.total,
-        })
-      : isSyncing
-        ? t("account.sync_progress_preparing")
-        : undefined;
-  const progressCurrentLabel =
-    isSyncing && syncProgress?.currentAccountName
-      ? t("account.sync_progress_current_account", {
-          name: syncProgress.currentAccountName,
-        })
-      : undefined;
+  const phase = resolveSyncPhase({ isQuarantined, isSetupSyncing, isSetupFailed });
+  const noteKey = SYNC_NOTE_KEYS[phase];
+  const { progressValue, progressLabel, progressCurrentLabel } = buildSyncProgress({ isSyncing, syncProgress, t });
 
   return {
-    heading: isQuarantined
-      ? t("account.quarantine_heading")
-      : isSetupSyncing
-        ? t("account.setup_syncing_heading")
-        : isSetupFailed
-          ? t("account.setup_failed_heading")
-          : t("account.syncing"),
-    note: isQuarantined
-      ? t("account.quarantine_readonly_note")
-      : isSetupSyncing
-        ? t("account.setup_syncing_description")
-        : isSetupFailed
-          ? (accountSetupErrorMessage ?? t("account.setup_failed_description"))
-          : undefined,
+    heading: t(SYNC_HEADING_KEYS[phase]),
+    note:
+      phase === "setup-failed" && accountSetupErrorMessage != null ? accountSetupErrorMessage : noteKey && t(noteKey),
     progressLabel,
     progressValue,
     progressCurrentLabel,
