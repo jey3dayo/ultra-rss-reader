@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.65.0] - 2026-10-09
+
+### Features
+
+- FreshRSS に Cloudflare Access の Service Token 認証を追加した。Client ID / Client Secret は OS の安全な保存領域に保管し、同じ HTTPS 接続先への API リクエストに使用する。(#361)
+- アカウント設定の説明を簡潔にし、詳細は情報ボタンのポップオーバーで確認できるようにした。説明を開いてもキャンセル・追加ボタンの位置は変わらない。(#361)
+
+### Documentation
+
+- GitHub Actions を使ったリリースの開始・検証・公開手順を更新した。(#359)
+
 ## [0.64.4] - 2026-10-03
 
 ### Maintenance
