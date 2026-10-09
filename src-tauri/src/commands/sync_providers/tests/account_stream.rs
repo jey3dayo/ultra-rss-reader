@@ -469,7 +469,7 @@ async fn sync_greader_account_entries_stops_on_continuation_cycle_after_persisti
     assert_eq!(state.last_success_at, None);
 }
 
-const ACCOUNT_MAX_ENTRY_PAGES: usize = crate::infra::provider::greader::G_READER_MAX_ENTRY_PAGES;
+const ACCOUNT_MAX_ENTRY_PAGES: usize = 3;
 
 #[tokio::test]
 async fn sync_greader_account_entries_stops_at_page_cap_after_persisting_entries() {
@@ -511,9 +511,15 @@ async fn sync_greader_account_entries_stops_at_page_cap_after_persisting_entries
     let provider = authenticated_provider(&server.url()).await;
     let feeds_by_remote_id = HashMap::from([(FEED_REMOTE_ID.to_string(), feed.clone())]);
 
-    sync_greader_account_entries(&db, &provider, &account, &feeds_by_remote_id)
-        .await
-        .expect("reaching the page cap should return a partial outcome with failure state");
+    sync_greader_account_entries_with_max_pages(
+        &db,
+        &provider,
+        &account,
+        &feeds_by_remote_id,
+        ACCOUNT_MAX_ENTRY_PAGES,
+    )
+    .await
+    .expect("reaching the page cap should return a partial outcome with failure state");
 
     stream_mock.assert_async().await;
     assert_eq!(
