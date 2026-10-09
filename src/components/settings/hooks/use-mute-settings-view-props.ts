@@ -60,8 +60,11 @@ export function useMuteSettingsViewProps({
   return {
     title: t("mute.heading"),
     addHeading: t("mute.add_heading"),
-    intro: `${t("mute.note")} ${t("mute.keyword_too_short_note")}`,
+    intro: t("mute.summary"),
     keywordLabel: t("mute.keyword"),
+    keywordHint: t("mute.keyword_hint"),
+    keywordHelp: `${t("mute.note")} ${t("mute.keyword_too_short_note")}`,
+    keywordInfoAriaLabel: t("mute.keyword_info_aria_label"),
     keywordValue: keyword,
     keywordPlaceholder: t("mute.keyword_placeholder"),
     scopeAriaLabel: t("mute.scope"),
@@ -90,6 +93,8 @@ export function useMuteSettingsViewProps({
     autoMarkReadChecked,
     autoMarkReadDisabled,
     autoMarkReadHint: t("mute.auto_mark_read_note"),
+    autoMarkReadSummary: t("mute.auto_mark_read_summary"),
+    autoMarkReadInfoAriaLabel: t("mute.auto_mark_read_info_aria_label"),
     onAutoMarkReadChange,
     confirmOpen: confirmRule !== null,
     confirmMessage: confirmRule

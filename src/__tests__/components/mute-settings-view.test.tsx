@@ -28,13 +28,18 @@ describe("mute keyword scope select policy", () => {
 });
 
 describe("MuteSettingsView", () => {
-  it("uses softened helper tones for coming-soon and empty-state support copy", () => {
+  it("keeps the auto-read warning visible and reveals its details on demand", async () => {
+    const user = userEvent.setup();
+    const onAutoMarkReadChange = vi.fn();
     render(
       <MuteSettingsView
         title="Mute"
         addHeading="Add muted keyword"
-        intro="Hide articles that match these rules. Turning this on will also mark existing matches as read."
+        intro="Muted matches stay out of lists and search."
         keywordLabel="Keyword"
+        keywordHint="At least 3 characters"
+        keywordHelp="Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordInfoAriaLabel="Show keyword rules"
         keywordValue=""
         keywordPlaceholder="spoiler"
         scopeAriaLabel="Mute scope"
@@ -60,8 +65,10 @@ describe("MuteSettingsView", () => {
         autoMarkReadLabel="Mark muted items as read"
         autoMarkReadChecked={false}
         autoMarkReadDisabled={false}
-        autoMarkReadHint="Existing matches are marked read immediately. Turning this off does not restore unread state."
-        onAutoMarkReadChange={vi.fn()}
+        autoMarkReadSummary="Existing matches become read; turning this off does not restore unread state."
+        autoMarkReadInfoAriaLabel="Show auto mark as read details"
+        autoMarkReadHint="Turning this on marks existing muted matches as read immediately. Turning it off does not restore unread state."
+        onAutoMarkReadChange={onAutoMarkReadChange}
         confirmOpen={false}
         confirmMessage="Delete muted keyword?"
         confirmActionLabel="Delete"
@@ -71,26 +78,44 @@ describe("MuteSettingsView", () => {
       />,
     );
 
+    expect(screen.getByText("Muted matches stay out of lists and search.")).toHaveClass("text-foreground-soft");
+    expect(
+      screen.getByText("Existing matches become read; turning this off does not restore unread state."),
+    ).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("At least 3 characters")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveAccessibleDescription("At least 3 characters");
+    expect(
+      screen.queryByText(
+        "Turning this on marks existing muted matches as read immediately. Turning it off does not restore unread state.",
+      ),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show auto mark as read details" }));
     expect(
       screen.getByText(
-        "Hide articles that match these rules. Turning this on will also mark existing matches as read.",
+        "Turning this on marks existing muted matches as read immediately. Turning it off does not restore unread state.",
       ),
-    ).toHaveClass("text-foreground-soft");
-    expect(
-      screen.getByText("Existing matches are marked read immediately. Turning this off does not restore unread state."),
-    ).toHaveClass("text-foreground-soft");
+    ).toBeInTheDocument();
+    expect(onAutoMarkReadChange).not.toHaveBeenCalled();
     expect(screen.getByText("No mute keywords yet.")).toHaveClass("motion-content-swap", "text-foreground-soft");
     expect(screen.getByText("No mute keywords yet.")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByRole("switch", { name: "Mark muted items as read" })).not.toHaveAttribute("aria-disabled");
+    await user.click(screen.getByRole("switch", { name: "Mark muted items as read" }));
+    expect(onAutoMarkReadChange).toHaveBeenCalledTimes(1);
+    expect(onAutoMarkReadChange.mock.calls[0]?.[0]).toBe(true);
   });
 
-  it("surfaces the ASCII-only matching contract in the add keyword helper copy", () => {
+  it("keeps concise keyword guidance visible and reveals matching rules on demand", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
     render(
       <MuteSettingsView
         title="Mute"
         addHeading="Add muted keyword"
-        intro="Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        intro="Muted matches stay out of lists and search."
         keywordLabel="Keyword"
+        keywordHint="At least 3 characters"
+        keywordHelp="Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordInfoAriaLabel="Show keyword rules"
         keywordValue=""
         keywordPlaceholder="spoiler"
         scopeAriaLabel="Mute scope"
@@ -103,7 +128,7 @@ describe("MuteSettingsView", () => {
         addLabel="Add"
         onKeywordChange={vi.fn()}
         onScopeChange={vi.fn()}
-        onAdd={vi.fn()}
+        onAdd={onAdd}
         addDisabled={false}
         savedHeading="Saved rules"
         emptyState="No mute keywords yet."
@@ -116,6 +141,8 @@ describe("MuteSettingsView", () => {
         autoMarkReadLabel="Mark muted items as read"
         autoMarkReadChecked={false}
         autoMarkReadDisabled={false}
+        autoMarkReadSummary="Existing matches become read; turning this off does not restore unread state."
+        autoMarkReadInfoAriaLabel="Show auto mark as read details"
         autoMarkReadHint="Existing matches are marked read immediately."
         onAutoMarkReadChange={vi.fn()}
         confirmOpen={false}
@@ -127,9 +154,19 @@ describe("MuteSettingsView", () => {
       />,
     );
 
-    expect(screen.getByText(/Case-insensitive matching applies to ASCII letters only/)).toHaveTextContent(
-      "Use at least 3 characters. Case-insensitive matching applies to ASCII letters only.",
-    );
+    expect(screen.getByText("At least 3 characters")).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only.",
+      ),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show keyword rules" }));
+    expect(
+      screen.getByText(
+        "Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only.",
+      ),
+    ).toBeInTheDocument();
+    expect(onAdd).not.toHaveBeenCalled();
   });
 
   it("keeps mute controls on the shared right-side settings rail", async () => {
@@ -141,6 +178,9 @@ describe("MuteSettingsView", () => {
         addHeading="Add muted keyword"
         intro="Hide articles that match these rules."
         keywordLabel="Keyword"
+        keywordHint="At least 3 characters"
+        keywordHelp="Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordInfoAriaLabel="Show keyword rules"
         keywordValue=""
         keywordPlaceholder="spoiler"
         scopeAriaLabel="Mute scope"
@@ -166,6 +206,8 @@ describe("MuteSettingsView", () => {
         autoMarkReadLabel="Mark muted items as read"
         autoMarkReadChecked={false}
         autoMarkReadDisabled={false}
+        autoMarkReadSummary="Existing matches become read; turning this off does not restore unread state."
+        autoMarkReadInfoAriaLabel="Show auto mark as read details"
         autoMarkReadHint="Existing matches are marked read immediately."
         onAutoMarkReadChange={vi.fn()}
         confirmOpen={false}
@@ -213,6 +255,9 @@ describe("MuteSettingsView", () => {
         addHeading="Add muted keyword"
         intro="Hide articles that match these rules."
         keywordLabel="Keyword"
+        keywordHint="At least 3 characters"
+        keywordHelp="Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordInfoAriaLabel="Show keyword rules"
         keywordValue="spoiler"
         keywordPlaceholder="spoiler"
         scopeAriaLabel="Mute scope"
@@ -238,6 +283,8 @@ describe("MuteSettingsView", () => {
         autoMarkReadLabel="Mark muted items as read"
         autoMarkReadChecked={false}
         autoMarkReadDisabled={false}
+        autoMarkReadSummary="Existing matches become read; turning this off does not restore unread state."
+        autoMarkReadInfoAriaLabel="Show auto mark as read details"
         autoMarkReadHint="Existing matches are marked read immediately."
         onAutoMarkReadChange={vi.fn()}
         confirmOpen={false}
@@ -258,6 +305,9 @@ describe("MuteSettingsView", () => {
         addHeading="Add muted keyword"
         intro="Hide articles that match these rules."
         keywordLabel="Keyword"
+        keywordHint="At least 3 characters"
+        keywordHelp="Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordInfoAriaLabel="Show keyword rules"
         keywordValue="spoiler"
         keywordPlaceholder="spoiler"
         scopeAriaLabel="Mute scope"
@@ -283,6 +333,8 @@ describe("MuteSettingsView", () => {
         autoMarkReadLabel="Mark muted items as read"
         autoMarkReadChecked={false}
         autoMarkReadDisabled={false}
+        autoMarkReadSummary="Existing matches become read; turning this off does not restore unread state."
+        autoMarkReadInfoAriaLabel="Show auto mark as read details"
         autoMarkReadHint="Existing matches are marked read immediately."
         onAutoMarkReadChange={vi.fn()}
         confirmOpen={false}
@@ -309,6 +361,9 @@ describe("MuteSettingsView", () => {
         addHeading="Add muted keyword"
         intro="Hide articles that match these rules."
         keywordLabel="Keyword"
+        keywordHint="At least 3 characters"
+        keywordHelp="Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordInfoAriaLabel="Show keyword rules"
         keywordValue="spoiler"
         keywordPlaceholder="spoiler"
         scopeAriaLabel="Mute scope"
@@ -336,6 +391,8 @@ describe("MuteSettingsView", () => {
         autoMarkReadLabel="Mark muted items as read"
         autoMarkReadChecked={false}
         autoMarkReadDisabled={false}
+        autoMarkReadSummary="Existing matches become read; turning this off does not restore unread state."
+        autoMarkReadInfoAriaLabel="Show auto mark as read details"
         autoMarkReadHint="Existing matches are marked read immediately."
         onAutoMarkReadChange={vi.fn()}
         confirmOpen={false}
@@ -365,6 +422,9 @@ describe("MuteSettingsView", () => {
         addHeading="Add muted keyword"
         intro="Hide articles that match these rules."
         keywordLabel="Keyword"
+        keywordHint="At least 3 characters"
+        keywordHelp="Muted keywords are hidden from lists and search. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordInfoAriaLabel="Show keyword rules"
         keywordValue=""
         keywordPlaceholder="spoiler"
         scopeAriaLabel="Mute scope"
@@ -396,6 +456,8 @@ describe("MuteSettingsView", () => {
         autoMarkReadLabel="Mark muted items as read"
         autoMarkReadChecked={false}
         autoMarkReadDisabled={false}
+        autoMarkReadSummary="Existing matches become read; turning this off does not restore unread state."
+        autoMarkReadInfoAriaLabel="Show auto mark as read details"
         autoMarkReadHint="Existing matches are marked read immediately."
         onAutoMarkReadChange={vi.fn()}
         confirmOpen={false}

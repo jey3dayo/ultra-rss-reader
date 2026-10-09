@@ -40,14 +40,20 @@ export function DataSettings() {
       databaseSizeLoadingLabel={t("data.database_size_loading")}
       databaseSizeErrorLabel={t("data.database_size_error")}
       safetyHeading={t("data.safety")}
+      safetySummary={t("data.safety_summary")}
       safetyDescription={t("data.safety_description")}
       safetyChecklist={safetyChecklist}
+      safetyInfoAriaLabel={t("data.safety_info_aria_label")}
       backupLabel={t("data.backup")}
+      backupSummary={t("data.backup_summary")}
       backupDescription={t("data.backup_description")}
+      backupInfoAriaLabel={t("data.backup_info_aria_label")}
       backupActionLabel={controller.backingUp ? t("data.backing_up") : t("data.backup_action")}
       backingUp={controller.backingUp}
       settingsProfileHeading={t("data.settings_profile")}
       settingsProfileDescription={t("data.settings_profile_description")}
+      settingsProfilePrivacyWarning={t("data.settings_profile_privacy_warning")}
+      settingsProfileInfoAriaLabel={t("data.settings_profile_info_aria_label")}
       settingsProfileImportLabel={t("data.settings_profile_import")}
       settingsProfileImportActionLabel={
         controller.importingSettingsProfile ? t("data.settings_profile_importing") : t("data.settings_profile_import")
@@ -60,7 +66,9 @@ export function DataSettings() {
       importingSettingsProfile={controller.importingSettingsProfile}
       exportingSettingsProfile={controller.exportingSettingsProfile}
       optimizationHeading={t("data.optimization")}
+      vacuumSummary={t("data.vacuum_summary")}
       vacuumDescription={t("data.vacuum_description")}
+      vacuumInfoAriaLabel={t("data.vacuum_info_aria_label")}
       vacuumLabel={t("data.vacuum")}
       vacuumActionLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}
       vacuuming={controller.vacuuming}

@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { AccountCredentialsSectionView } from "./credentials-section-view";
+
+async function openCloudflareAccessHelp(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement);
+  await userEvent.click(canvas.getByRole("button", { name: "About Cloudflare Access" }));
+  const dialog = await within(document.body).findByRole("dialog", { name: "Cloudflare Access" });
+  await expect(dialog).toBeVisible();
+}
 
 const meta = {
   title: "Settings/Section/AccountCredentialsSectionView",
@@ -79,6 +86,22 @@ export const CloudflareAccessConfigured: Story = {
       validationError: null,
     },
   },
+};
+
+export const CloudflareAccessConfiguredHelpOpen: Story = {
+  ...CloudflareAccessConfigured,
+  play: ({ canvasElement }) => openCloudflareAccessHelp(canvasElement),
+};
+
+export const CloudflareAccessConfiguredNarrow: Story = {
+  ...CloudflareAccessConfigured,
+  decorators: [
+    (Story) => (
+      <div className="w-[360px] bg-background p-4">
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 export const JapaneseNarrow: Story = {

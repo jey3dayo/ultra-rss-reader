@@ -169,6 +169,9 @@ Elevation scale:
 - Desktop settings forms should use a stable two-column grid: a fixed or semifixed label column on the left and a right control column with a shared endpoint.
 - In settings-style forms, the control column should feel like one rail. Wide controls may stop short with a max width, but compact controls should still align to that same rail.
 - Settings form rows should switch to the two-column label/control rail only when the row's container has enough room. Narrow settings cards and constrained Storybook fixtures should keep controls stacked instead of forcing a desktop rail from viewport width alone.
+- In settings rows, place an info control immediately after its label on the same title line, keep a short summary visible below, and reserve the trailing rail for the setting control. Put longer static help in a portal popover so opening it does not move form fields or action footers.
+- Keep errors, status, validation, and essential irreversible-action or security warnings visible in the form even when a help popover explains them in more detail.
+- When several toolbar settings share one explanation, show that label once in the trailing column or group heading instead of repeating it beside every switch.
 - Icon-led action rows in settings should use the shared settings row primitive for label, icon, divider, and control alignment. Destructive compact actions should use a labeled icon-only danger button rather than a local text button when adjacent settings surfaces already use icon actions.
 
 ### Whitespace Philosophy

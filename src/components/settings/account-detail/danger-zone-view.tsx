@@ -1,7 +1,7 @@
 import { type ChangeEvent, useId, useRef } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { DeleteButton, LabeledSwitchRow } from "@/design-system";
+import { DeleteButton, LabeledSwitchRow, SettingsInfoPopover } from "@/design-system";
 
 type AccountDangerZoneViewProps = {
   dataHeading: string;
@@ -11,9 +11,13 @@ type AccountDangerZoneViewProps = {
   exportLabel: string;
   exportingLabel?: string;
   localSyncHeading?: string;
+  localSyncSummary?: string;
   localSyncDescription?: string;
+  localSyncInfoAriaLabel?: string;
   localSyncEnabledLabel?: string;
   localSyncEnabledDescription?: string;
+  localSyncEnabledSummary?: string;
+  localSyncEnabledInfoAriaLabel?: string;
   localSyncEnabledChecked?: boolean;
   onLocalSyncEnabledChange?: (checked: boolean) => void;
   localSyncFolderLabel?: string;
@@ -51,9 +55,13 @@ export function AccountDangerZoneView({
   exportLabel,
   exportingLabel,
   localSyncHeading,
+  localSyncSummary,
   localSyncDescription,
+  localSyncInfoAriaLabel,
   localSyncEnabledLabel,
   localSyncEnabledDescription,
+  localSyncEnabledSummary,
+  localSyncEnabledInfoAriaLabel,
   localSyncEnabledChecked = true,
   onLocalSyncEnabledChange,
   localSyncFolderLabel,
@@ -118,16 +126,32 @@ export function AccountDangerZoneView({
         {hasLocalSyncControls ? (
           <div className="mb-4 flex flex-col gap-3 rounded-md border border-border-subtle/70 p-3">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">{localSyncHeading}</h3>
-              {localSyncDescription ? (
-                <p className="mt-1 text-sm text-foreground-soft">{localSyncDescription}</p>
-              ) : null}
+              <div className="flex items-center gap-1">
+                <h3 className="text-sm font-semibold text-foreground">{localSyncHeading}</h3>
+                {localSyncDescription && localSyncInfoAriaLabel ? (
+                  <SettingsInfoPopover
+                    title={localSyncHeading}
+                    content={localSyncDescription}
+                    ariaLabel={localSyncInfoAriaLabel}
+                  />
+                ) : null}
+              </div>
+              {localSyncSummary ? <p className="mt-1 text-sm text-foreground-soft">{localSyncSummary}</p> : null}
             </div>
             {hasLocalSyncEnabledControl ? (
               <div data-testid="local-sync-enabled-toggle">
                 <LabeledSwitchRow
                   label={localSyncEnabledLabel}
-                  description={localSyncEnabledDescription}
+                  description={localSyncEnabledSummary}
+                  labelAccessory={
+                    localSyncEnabledDescription && localSyncEnabledInfoAriaLabel ? (
+                      <SettingsInfoPopover
+                        title={localSyncEnabledLabel}
+                        content={localSyncEnabledDescription}
+                        ariaLabel={localSyncEnabledInfoAriaLabel}
+                      />
+                    ) : undefined
+                  }
                   checked={localSyncEnabledChecked}
                   onChange={onLocalSyncEnabledChange}
                   disabled={localSyncDisabled}

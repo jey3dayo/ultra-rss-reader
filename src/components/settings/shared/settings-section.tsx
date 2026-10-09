@@ -6,6 +6,7 @@ import { SETTINGS_SECTION_BORDER_CLASS } from "./settings-surface";
 
 type SettingsSectionProps = {
   heading: string;
+  headingAccessory?: ReactNode;
   children: ReactNode;
   note?: string;
   surface?: "card" | "flat";
@@ -18,6 +19,7 @@ type SettingsSectionProps = {
 
 export function SettingsSection({
   heading,
+  headingAccessory,
   children,
   note,
   surface = "card",
@@ -31,6 +33,14 @@ export function SettingsSection({
     "mt-1.5 font-sans text-[13px] leading-[1.5] text-foreground-soft sm:mt-2",
     PHRASE_AWARE_TEXT_CLASS_NAME,
   );
+  const sectionHeading = headingAccessory ? (
+    <div className="mb-2.5 flex min-w-0 items-center gap-1.5 sm:mb-3">
+      <SectionHeading className={cn("mb-0 min-w-0", headingClassName)}>{heading}</SectionHeading>
+      <span className="shrink-0">{headingAccessory}</span>
+    </div>
+  ) : (
+    <SectionHeading className={cn("mb-2.5 sm:mb-3", headingClassName)}>{heading}</SectionHeading>
+  );
 
   if (surface === "flat") {
     return (
@@ -42,7 +52,7 @@ export function SettingsSection({
           className,
         )}
       >
-        <SectionHeading className={cn("mb-2.5 sm:mb-3", headingClassName)}>{heading}</SectionHeading>
+        {sectionHeading}
         <div className={cn("[&>*:first-child]:pt-0 [&>*:last-child]:pb-0", contentClassName)}>{children}</div>
         {note ? <p className={cn(defaultNoteClassName, noteClassName)}>{note}</p> : null}
       </section>
@@ -58,7 +68,7 @@ export function SettingsSection({
           SETTINGS_SECTION_BORDER_CLASS,
         )}
       >
-        <SectionHeading className={cn("mb-2.5 sm:mb-3", headingClassName)}>{heading}</SectionHeading>
+        {sectionHeading}
         <div className={contentClassName}>{children}</div>
         {note ? <p className={cn(defaultNoteClassName, noteClassName)}>{note}</p> : null}
       </SurfaceCard>

@@ -18,6 +18,7 @@ import {
   SelectPopup,
   SelectTrigger,
   SelectValue,
+  SettingsInfoPopover,
   SurfaceCard,
   Switch,
 } from "@/design-system";
@@ -148,6 +149,50 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
       />
       <ReferenceRadioGroup />
     </SettingsSection>
+  );
+}
+
+export function LabelHelpSwitchSpecimen() {
+  const [enabled, setEnabled] = useState(false);
+
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Label-adjacent help</SectionHeading>
+      <div className="space-y-0">
+        <LabeledSwitchRow
+          label="Use an app password"
+          description="Adds account-specific access for this server."
+          checked={enabled}
+          onChange={setEnabled}
+          labelAccessory={
+            <SettingsInfoPopover
+              title="App password details"
+              ariaLabel="About app passwords"
+              content="Create an app-specific password on the server and store it with this account."
+            />
+          }
+        />
+        <div className="max-w-[18rem]">
+          <LabeledSwitchRow
+            label="Keep the currently selected article visible when switching between feeds"
+            description="This preference applies to the current reading session."
+            checked={false}
+            onChange={() => {}}
+            labelAccessory={
+              <SettingsInfoPopover
+                title="Article selection"
+                ariaLabel="About article selection"
+                content="When this is enabled, switching feeds keeps the selected article in view when it is still available."
+              />
+            }
+          />
+        </div>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+        Keep the short summary with its label, reserve the trailing rail for the setting, and open longer help in a
+        portal popover.
+      </p>
+    </SurfaceCard>
   );
 }
 

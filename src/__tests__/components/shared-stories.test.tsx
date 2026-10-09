@@ -81,7 +81,13 @@ const requiredSharedStoryExportsByFilePath = {
   "/src/components/shared/indeterminate-progress.stories.tsx": ["Default", "ToolbarPreview"],
   "/src/components/shared/labeled-action-input-row.stories.tsx": ["WithTrailingAction"],
   "/src/components/shared/labeled-action-select-row.stories.tsx": ["WithTrailingAction"],
-  "/src/components/shared/labeled-control-row.stories.tsx": ["WithInput", "WithLongLabel", "WithSelect"],
+  "/src/components/shared/labeled-control-row.stories.tsx": [
+    "NarrowLongLabelHelp",
+    "WithInput",
+    "WithLabelHelp",
+    "WithLongLabel",
+    "WithSelect",
+  ],
   "/src/components/shared/labeled-input-row.stories.tsx": [
     "Default",
     "Disabled",

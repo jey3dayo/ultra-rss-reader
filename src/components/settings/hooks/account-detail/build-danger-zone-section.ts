@@ -28,9 +28,15 @@ export function buildDangerZoneSection({
     exportLabel: t("account.export_opml"),
     exportingLabel: t("account.exporting_opml"),
     localSyncHeading: isLocalAccount(account) ? t("account.local_sync_heading") : undefined,
+    localSyncSummary: isLocalAccount(account) ? t("account.local_sync_summary") : undefined,
     localSyncDescription: isLocalAccount(account) ? t("account.local_sync_description") : undefined,
+    localSyncInfoAriaLabel: isLocalAccount(account) ? t("account.local_sync_info_aria_label") : undefined,
     localSyncEnabledLabel: isLocalAccount(account) ? t("account.local_sync_enabled_label") : undefined,
     localSyncEnabledDescription: isLocalAccount(account) ? t("account.local_sync_enabled_description") : undefined,
+    localSyncEnabledSummary: isLocalAccount(account) ? t("account.local_sync_enabled_summary") : undefined,
+    localSyncEnabledInfoAriaLabel: isLocalAccount(account)
+      ? t("account.local_sync_enabled_info_aria_label")
+      : undefined,
     localSyncEnabledChecked: controller.localSyncEnabled,
     onLocalSyncEnabledChange: controller.handleToggleLocalSyncEnabled,
     localSyncFolderLabel: isLocalAccount(account) ? t("account.local_sync_folder") : undefined,

@@ -40,7 +40,9 @@ const sourceFiles = globSync("{src,tests,e2e,.storybook}/**/*.{ts,tsx}", {
   .filter((path) => !path.endsWith(["components", "design-system-import-boundary.node.test.ts"].join(sep)));
 const implementationFiles = globSync("{src/components/ui,src/components/shared}/**/*.{ts,tsx}", {
   cwd: process.cwd(),
-}).map((path) => path.split("/").join(sep));
+})
+  .map((path) => path.split("/").join(sep))
+  .filter((path) => !path.endsWith(".stories.tsx"));
 
 describe("design system import boundary", () => {
   it("keeps heavy menu primitives out of the startup public barrel", () => {

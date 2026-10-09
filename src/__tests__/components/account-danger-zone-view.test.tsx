@@ -240,7 +240,12 @@ describe("AccountDangerZoneView", () => {
         exportLabel="Export OPML"
         deleteLabel="Delete account"
         localSyncEnabledLabel="Sync automatically"
-        localSyncEnabledDescription="Import and export run automatically."
+        localSyncEnabledDescription="Import and export run automatically every time this account syncs."
+        localSyncEnabledSummary="Runs automatically when this account syncs."
+        localSyncEnabledInfoAriaLabel="Show automatic sync details"
+        localSyncSummary="Sync files contain subscription and article URLs plus article state."
+        localSyncDescription="Stores private subscription URLs and never writes credentials or SQLite files."
+        localSyncInfoAriaLabel="Show local sync folder details"
         localSyncEnabledChecked={true}
         onLocalSyncEnabledChange={onLocalSyncEnabledChange}
         onImport={vi.fn()}
@@ -253,7 +258,26 @@ describe("AccountDangerZoneView", () => {
     const toggle = screen.getByRole("switch", { name: "Sync automatically" });
     expect(screen.getByTestId("local-sync-enabled-toggle")).toBeInTheDocument();
     expect(toggle).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText("Import and export run automatically.")).toBeInTheDocument();
+    expect(screen.getByText("Runs automatically when this account syncs.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Sync files contain subscription and article URLs plus article state."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Stores private subscription URLs and never writes credentials or SQLite files."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Import and export run automatically every time this account syncs."),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show local sync folder details" }));
+    expect(
+      screen.getByText("Stores private subscription URLs and never writes credentials or SQLite files."),
+    ).toBeInTheDocument();
+    expect(onLocalSyncEnabledChange).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Show automatic sync details" }));
+    expect(screen.getByText("Import and export run automatically every time this account syncs.")).toBeInTheDocument();
+    expect(onLocalSyncEnabledChange).not.toHaveBeenCalled();
 
     await user.click(toggle);
 
