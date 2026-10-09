@@ -150,8 +150,8 @@ describe("deriveCloudflareAccessDraftState", () => {
     });
   });
 
-  it("has no update while loading or unavailable", () => {
-    expect(deriveCloudflareAccessDraftState({ ...base, status: "loading" })).toEqual({
+  it.each(["loading", "unavailable"] as const)("has no update while %s", (status) => {
+    expect(deriveCloudflareAccessDraftState({ ...base, status })).toEqual({
       validationError: null,
       update: undefined,
       dirty: false,
