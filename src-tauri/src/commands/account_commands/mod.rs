@@ -9,18 +9,18 @@ use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::repository::account::AccountRepository;
 
+mod access_credentials;
 mod credentials;
+use access_credentials::{access_metadata, persist_account_credentials, OsAccountCredentialStore};
+pub use access_credentials::{CloudflareAccessArg, CloudflareAccessMetadata};
 mod validation;
 
+pub(crate) use credentials::delete_account_with_sync_boundary;
 #[cfg(test)]
 pub(crate) use credentials::{
     delete_account_then_password, delete_account_with_sync_boundary_with_keyring,
     save_account_after_optional_password_with_keyring,
     update_account_credentials_after_optional_password_with_keyring,
-};
-pub(crate) use credentials::{
-    delete_account_with_sync_boundary, save_account_after_optional_password,
-    update_account_credentials_after_optional_password,
 };
 pub(crate) use validation::{
     normalize_new_freshrss_server_url, normalize_updated_account_server_url, validate_account_name,
@@ -47,6 +47,7 @@ pub async fn add_account(
     server_url: Option<String>,
     username: Option<String>,
     password: Option<String>,
+    cloudflare_access: Option<CloudflareAccessArg>,
 ) -> Result<AccountDto, AppError> {
     let provider_kind = validate_add_account_args(
         &kind,
@@ -87,11 +88,32 @@ pub async fn add_account(
 
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
-    save_account_after_optional_password(&account, password.as_deref(), |account| {
-        repo.save(account).map_err(AppError::from)
-    })?;
+    persist_account_credentials(
+        &account,
+        password.as_deref(),
+        &cloudflare_access.unwrap_or_default(),
+        true,
+        &OsAccountCredentialStore,
+        || repo.save(&account).map_err(AppError::from),
+    )?;
 
     Ok(AccountDto::from(account))
+}
+
+#[tauri::command]
+pub fn get_account_cloudflare_access(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<CloudflareAccessMetadata, AppError> {
+    let account = {
+        let db = crate::commands::lock_db(&state.db)?;
+        let repo = SqliteAccountRepository::new(db.reader());
+        repo.find_by_id(&AccountId(account_id))?
+            .ok_or_else(|| AppError::UserVisible {
+                message: "Account not found".into(),
+            })?
+    };
+    access_metadata(&account, &OsAccountCredentialStore)
 }
 
 #[tauri::command]
@@ -127,8 +149,10 @@ pub fn update_account_credentials(
     server_url: Option<String>,
     username: Option<String>,
     password: Option<String>,
+    cloudflare_access: Option<CloudflareAccessArg>,
 ) -> Result<AccountDto, AppError> {
     let id = AccountId(account_id);
+    let _guard = crate::commands::start_database_maintenance(state.syncing.as_ref())?;
 
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
@@ -136,13 +160,29 @@ pub fn update_account_credentials(
         message: "Account not found".into(),
     })?;
     let server_url = normalize_updated_account_server_url(&current_account, server_url.as_deref())?;
-    let account = update_account_credentials_after_optional_password(
-        &id,
+    let mut planned_account = current_account;
+    planned_account.server_url = server_url.clone();
+    planned_account.username = username.clone();
+    let account = persist_account_credentials(
+        &planned_account,
         password.as_deref(),
-        |id| repo.find_by_id(id).map_err(AppError::from),
-        |id| {
-            repo.update_credentials(id, server_url.as_deref(), username.as_deref())
-                .map_err(AppError::from)
+        &cloudflare_access.unwrap_or_default(),
+        false,
+        &OsAccountCredentialStore,
+        || {
+            let transaction = db
+                .writer()
+                .unchecked_transaction()
+                .map_err(crate::domain::error::DomainError::from)?;
+            let repo = SqliteAccountRepository::new(&transaction);
+            repo.update_credentials(&id, server_url.as_deref(), username.as_deref())?;
+            let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+                message: "Account not found".into(),
+            })?;
+            transaction
+                .commit()
+                .map_err(crate::domain::error::DomainError::from)?;
+            Ok(account)
         },
     )?;
     Ok(AccountDto::from(account))

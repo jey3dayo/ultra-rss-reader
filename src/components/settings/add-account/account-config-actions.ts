@@ -11,7 +11,14 @@ export async function matchAddAccountCommand<T>(
   payload: AddAccountPayload,
   handlers: AddAccountCommandHandlers<T>,
 ): Promise<T> {
-  const result = await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password);
+  const result = await addAccount(
+    payload.kind,
+    payload.name,
+    payload.serverUrl,
+    payload.username,
+    payload.password,
+    payload.cloudflareAccess,
+  );
   return Result.isSuccess(result)
     ? handlers.onSuccess(Result.unwrap(result))
     : handlers.onFailure(Result.unwrapError(result));

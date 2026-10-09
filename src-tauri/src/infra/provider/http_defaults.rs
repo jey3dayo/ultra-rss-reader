@@ -28,7 +28,7 @@ pub const PROVIDER_PRAGMA: &str = "no-cache";
 pub(crate) struct ProviderRedirectError(DomainError);
 
 impl ProviderRedirectError {
-    fn new(error: DomainError) -> Self {
+    pub(crate) fn new(error: DomainError) -> Self {
         Self(error)
     }
 }

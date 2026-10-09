@@ -1042,6 +1042,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::account_commands::list_accounts,
+            commands::account_commands::get_account_cloudflare_access,
             commands::account_commands::add_account,
             commands::account_commands::update_account_sync,
             commands::account_commands::update_account_credentials,

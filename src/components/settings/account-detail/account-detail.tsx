@@ -101,6 +101,7 @@ export function AccountDetail() {
 
   return (
     <AccountDetailContent
+      key={account.id}
       account={account}
       isSyncing={isSyncing || accountSetupState === "syncing"}
       syncProgress={

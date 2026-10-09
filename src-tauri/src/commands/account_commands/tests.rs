@@ -414,11 +414,14 @@ fn add_account_does_not_create_db_account_when_keyring_save_fails() {
         AppError::UserVisible { message } if message == "keyring failed"
     ));
     assert!(saved_accounts.borrow().is_empty());
-    assert!(deleted_passwords.borrow().is_empty());
+    assert_eq!(
+        deleted_passwords.borrow().as_slice(),
+        &[account.id.as_ref().to_string()]
+    );
 }
 
 #[test]
-fn add_account_keeps_original_db_error_when_keyring_rollback_fails() {
+fn add_account_reports_original_db_error_and_recovery_when_keyring_rollback_fails() {
     let account = fresh_rss_account();
 
     let error = save_account_after_optional_password_with_keyring(
@@ -439,7 +442,11 @@ fn add_account_keeps_original_db_error_when_keyring_rollback_fails() {
     .expect_err("DB save failure should remain the returned error");
 
     match error {
-        AppError::UserVisible { message } => assert_eq!(message, "db failed"),
+        AppError::UserVisible { message } => {
+            assert!(message.starts_with("db failed"));
+            assert!(message.contains("FreshRSS password: failed"));
+            assert!(message.contains("Recovery required"));
+        }
         AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
             panic!("unexpected retryable error: {message}");
         }
@@ -751,7 +758,7 @@ fn update_account_credentials_does_not_mutate_db_or_password_when_old_password_r
 }
 
 #[test]
-fn update_account_credentials_keeps_db_error_when_previous_password_restore_fails() {
+fn update_account_credentials_reports_db_error_and_recovery_when_password_restore_fails() {
     let account = fresh_rss_account();
     let saved_passwords = RefCell::new(Vec::new());
 
@@ -782,7 +789,7 @@ fn update_account_credentials_keeps_db_error_when_previous_password_restore_fail
 
     assert!(matches!(
         error,
-        AppError::UserVisible { message } if message == "db failed"
+        AppError::UserVisible { message } if message.starts_with("db failed") && message.contains("Recovery required") && message.contains("FreshRSS password: failed")
     ));
     assert_eq!(
         saved_passwords.borrow().as_slice(),

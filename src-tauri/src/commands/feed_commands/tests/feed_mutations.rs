@@ -307,6 +307,75 @@ async fn rename_feed_command_keeps_local_title_when_remote_push_fails() {
 }
 
 #[tokio::test]
+async fn rename_feed_command_access_errors_fail_closed_before_http() {
+    use crate::infra::keyring_store::cloudflare_access::{
+        test_support::SyncAccessGuard, AccessStoreError, CloudflareAccess,
+    };
+
+    let mut server = mockito::Server::new_async().await;
+    let auth_mock = server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=tok\n")
+        .expect(0)
+        .create_async()
+        .await;
+    let edit_mock = server
+        .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+        .with_status(200)
+        .expect(0)
+        .create_async()
+        .await;
+    let db = Mutex::new(test_db());
+    let (account_id, feed_id) = {
+        let guard = db.lock().unwrap();
+        let account_id = insert_freshrss_account(&guard, &server.url());
+        let feed_id = insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss");
+        (account_id, feed_id)
+    };
+    let _credentials = configure_dev_credentials(&account_id).await;
+    let syncing = AtomicBool::new(false);
+    let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://example.com")
+        .expect("dummy Access fixture should have valid HTTPS credentials");
+
+    for (result, expected_message) in [
+        (
+            Err(AccessStoreError::Unavailable),
+            "Keychain error: Cloudflare Access OS keyring is unavailable. Allow keyring access and try again.",
+        ),
+        (
+            Ok(Some(access)),
+            "Validation error: Cloudflare Access requires an HTTPS server URL.",
+        ),
+    ] {
+        let _access = SyncAccessGuard::new(account_id.as_ref(), result);
+        let error = rename_feed_with_remote_sync_boundary(
+            &db,
+            &syncing,
+            feed_id.0.clone(),
+            "Renamed Feed".to_string(),
+        )
+        .await
+        .expect_err("Access lookup or origin errors should reject rename before HTTP");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == expected_message
+        ));
+        let guard = db.lock().unwrap();
+        let feed = SqliteFeedRepository::new(guard.reader())
+            .find_by_id(&feed_id)
+            .unwrap()
+            .expect("existing feed fixture should remain stored");
+        assert_eq!(feed.title, "Feed");
+        assert!(!syncing.load(Ordering::SeqCst));
+    }
+
+    auth_mock.assert_async().await;
+    edit_mock.assert_async().await;
+}
+
+#[tokio::test]
 async fn rename_feed_command_skips_remote_push_for_local_account() {
     let db = Mutex::new(test_db());
     let account_id = {

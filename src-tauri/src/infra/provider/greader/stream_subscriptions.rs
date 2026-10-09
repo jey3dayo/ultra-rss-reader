@@ -1,4 +1,3 @@
-use super::super::http_defaults;
 use super::super::normalizer::normalize_provider_metadata_url;
 use super::stream_types::{
     normalize_label_remote_id, quickadd_fallback_subscription, quickadd_match_keys,
@@ -12,12 +11,11 @@ impl GReaderProvider {
     pub(super) async fn get_subscriptions_impl(&self) -> DomainResult<Vec<RemoteSubscription>> {
         let url = self.api_url("/reader/api/0/subscription/list?output=json");
         let resp = self
-            .http_client()?
-            .get(&url)
+            .request(reqwest::Method::GET, &url)?
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
         let resp: SubscriptionListResponse = Self::read_json_response(resp).await?;
 
@@ -48,12 +46,11 @@ impl GReaderProvider {
     pub(super) async fn get_folders_impl(&self) -> DomainResult<Vec<RemoteFolder>> {
         let url = self.api_url("/reader/api/0/tag/list?output=json");
         let resp = self
-            .http_client()?
-            .get(&url)
+            .request(reqwest::Method::GET, &url)?
             .header("Authorization", self.auth_header()?)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
         let resp: TagListResponse = Self::read_json_response(resp).await?;
 
@@ -96,17 +93,16 @@ impl GReaderProvider {
         }
 
         let resp = self
-            .http_client()?
-            .post(&api_url)
+            .request(reqwest::Method::POST, &api_url)?
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
-            .map_err(http_defaults::map_provider_request_error)
+            .map_err(|error| self.map_request_error(error))
             .and_then(Self::ensure_success_response)?;
 
-        let response_body = resp.text().await?;
+        let response_body = Self::read_text_response(resp).await?;
 
         // After quickadd, fetch subscriptions to find the new one. If the
         // verification fetch fails after the remote mutation succeeded, keep a

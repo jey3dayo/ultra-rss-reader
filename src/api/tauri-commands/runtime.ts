@@ -3,6 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import type { IssuePathItem } from "valibot";
 import { safeParse } from "valibot";
 import { type AppError, AppErrorSchema } from "@/api/schemas";
+import {
+  CLOUDFLARE_ACCESS_RECOVERY_REQUIRED,
+  isCloudflareAccessRollbackFailure,
+} from "@/lib/account/cloudflare-access-error";
 import { redactRuntimeDiagnosticText } from "@/lib/runtime/diagnostics";
 import { createSchemaParseAppError, RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
 import {
@@ -22,6 +26,7 @@ type InvokeArgsOptions = {
 
 type SchemaBackedInvokeOptions<R extends RuntimeSchema> = InvokeArgsOptions & {
   response: R;
+  redactErrorDetails?: boolean;
 };
 
 type GenericInvokeOptions = InvokeArgsOptions;
@@ -119,6 +124,24 @@ function toAppError(cmd: string, error: unknown): AppError {
   return { type: "UserVisible", message };
 }
 
+function toRedactedCommandError(error: unknown): AppError {
+  const parsed = safeParse(AppErrorSchema, error);
+  if (parsed.success && isCloudflareAccessRollbackFailure(parsed.output)) {
+    return { type: "UserVisible", message: CLOUDFLARE_ACCESS_RECOVERY_REQUIRED };
+  }
+  const type = parsed.success
+    ? parsed.output.type === "Retryable"
+      ? "Retryable"
+      : "UserVisible"
+    : isRetryableRuntimeErrorMessage(runtimeErrorMessage(error))
+      ? "Retryable"
+      : "UserVisible";
+  return {
+    type,
+    message: "Cloudflare Access credential operation failed. Check your connection and keyring access, then retry.",
+  };
+}
+
 function validateInvokeArgs(options: InvokeArgsOptions, args?: InvokeArgsRecord): InvokeArgsRecord | undefined {
   // Missing args intentionally bypass schema parsing for schema-backed no-arg calls.
   // Throwing is contained here because safeInvoke converts schema parse errors into AppError Result.
@@ -181,6 +204,9 @@ export function safeInvoke<R extends RuntimeSchema, T = unknown>(
         ? invokeWithResponseSchema(cmd, options, args)
         : invokeWithoutResponseSchema<T>(cmd, options, args);
     },
-    catch: (error) => toAppError(cmd, error),
+    catch: (error) =>
+      "redactErrorDetails" in options && options.redactErrorDetails
+        ? toRedactedCommandError(error)
+        : toAppError(cmd, error),
   });
 }

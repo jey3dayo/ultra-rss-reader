@@ -74,6 +74,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "open_log_dir"
         | "record_read_diagnostics_batch" => CommandDbLockPolicy::NoDatabaseLock,
         "list_accounts"
+        | "get_account_cloudflare_access"
         | "update_account_sync"
         | "update_account_credentials"
         | "rename_account"

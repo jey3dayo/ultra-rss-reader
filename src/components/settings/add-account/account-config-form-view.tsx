@@ -1,4 +1,5 @@
 import { ChevronLeft } from "lucide-react";
+import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
@@ -121,6 +122,25 @@ export function AccountConfigFormView({
             {credentialsSection.serverUrl && <AccountConfigInputRow control={credentialsSection.serverUrl} />}
             <AccountConfigInputRow control={credentialsSection.credential} />
             <AccountConfigInputRow control={credentialsSection.password} />
+            {credentialsSection.cloudflareAccess && (
+              <>
+                <CloudflareAccessControl
+                  mode="add"
+                  label={credentialsSection.cloudflareAccess.label}
+                  description={credentialsSection.cloudflareAccess.description}
+                  checked={credentialsSection.cloudflareAccess.enabled}
+                  onChange={credentialsSection.cloudflareAccess.onChange}
+                  disabled={credentialsSection.cloudflareAccess.disabled}
+                  labelClassName={LABEL_COLUMN_CLASS_NAME}
+                />
+                {credentialsSection.cloudflareAccess.enabled && (
+                  <>
+                    <AccountConfigInputRow control={credentialsSection.cloudflareAccess.clientId} />
+                    <AccountConfigInputRow control={credentialsSection.cloudflareAccess.clientSecret} />
+                  </>
+                )}
+              </>
+            )}
           </SettingsSection>
         )}
 

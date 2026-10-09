@@ -30,6 +30,8 @@ export function buildCredentialsSection({
     return undefined;
   }
 
+  const cloudflareAccessError = controller.cloudflareAccessValidationError;
+
   return (
     <AccountCredentialsSectionView
       heading={t("account.server")}
@@ -44,6 +46,9 @@ export function buildCredentialsSection({
       serverUrlLabel={t("account.server_url")}
       serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
       serverUrlPlaceholder={t("account.server_url_placeholder")}
+      serverUrlErrorText={
+        cloudflareAccessError === "https_required" ? t("account.error_cloudflare_access_https_required") : undefined
+      }
       serverUrlInputRef={controller.serverUrlInputRef}
       serverUrlCopyLabel={t("account.copy_server_url")}
       onServerUrlChange={controller.setCredServerUrl}
@@ -60,6 +65,35 @@ export function buildCredentialsSection({
       onPasswordChange={controller.setCredPassword}
       onPasswordFocus={controller.onPasswordFocus}
       onPasswordBlur={controller.commitCredentials}
+      cloudflareAccess={{
+        status: controller.cloudflareAccessStatus,
+        recoveryAction: controller.cloudflareAccessRecoveryAction,
+        onRecoveryActionChange: controller.setCloudflareAccessRecoveryAction,
+        loadingMessage: t("account.cloudflare_access_loading"),
+        readErrorMessage: t("account.cloudflare_access_read_failed"),
+        unavailableMessage: t("account.cloudflare_access_unavailable"),
+        label: t("account.cloudflare_access"),
+        description: t("account.cloudflare_access_description"),
+        enabled: controller.cloudflareAccessEnabled,
+        onEnabledChange: controller.setCloudflareAccessEnabled,
+        clientId: {
+          label: t("account.cloudflare_access_client_id"),
+          value: controller.cloudflareAccessClientId,
+          placeholder: t("account.cloudflare_access_client_id_placeholder"),
+          onChange: controller.setCloudflareAccessClientId,
+          onBlur: controller.commitCredentials,
+        },
+        clientSecret: {
+          label: t("account.cloudflare_access_secret"),
+          value: controller.cloudflareAccessSecret,
+          placeholder: t("account.cloudflare_access_secret_placeholder"),
+          onChange: controller.setCloudflareAccessSecret,
+          onBlur: controller.commitCredentials,
+        },
+        clientIdError: t("account.error_cloudflare_access_client_id_required"),
+        clientSecretError: t("account.error_cloudflare_access_secret_required"),
+        validationError: cloudflareAccessError,
+      }}
       testConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.test_connection")}
       testingConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.testing_connection")}
       testConnectionTone={verificationStatus === "verified" ? "subtle" : "content"}

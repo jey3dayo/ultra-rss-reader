@@ -31,12 +31,36 @@ impl GReaderSession {
             .map(str::trim)
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
-        let provider = GReaderProvider::for_freshrss(server_url);
+        let account_id = account.id.as_ref().to_string();
+        let access = tokio::task::spawn_blocking(move || {
+            crate::infra::keyring_store::cloudflare_access::load_for_sync(&account_id)
+        })
+        .await
+        .map_err(|_| {
+            SessionError::Auth(AppError::UserVisible {
+                message: "Cloudflare Access credential lookup failed. Try reconnecting.".into(),
+            })
+        })?;
+        let provider = Self::provider_with_access(server_url, access)?;
         let password = super::get_greader_password(account)
             .await
             .map_err(SessionError::Auth)?;
 
         Self::authenticate(provider, username, password).await
+    }
+
+    fn provider_with_access(
+        server_url: &str,
+        access: Result<
+            Option<crate::infra::keyring_store::cloudflare_access::CloudflareAccess>,
+            crate::infra::keyring_store::cloudflare_access::AccessStoreError,
+        >,
+    ) -> Result<GReaderProvider, SessionError> {
+        let access = access.map_err(|error| {
+            SessionError::Auth(crate::domain::error::DomainError::from(error).into())
+        })?;
+        GReaderProvider::try_for_freshrss_with_access(server_url, access)
+            .map_err(|error| SessionError::Auth(error.into()))
     }
 
     pub(crate) fn provider(&self) -> &GReaderProvider {
@@ -208,5 +232,21 @@ mod tests {
             error,
             SessionError::Auth(AppError::UserVisible { .. })
         ));
+    }
+    #[test]
+    fn cloudflare_access_session_load_errors_and_imported_origin_changes_fail_closed() {
+        use crate::infra::keyring_store::cloudflare_access::{AccessStoreError, CloudflareAccess};
+        for error in [AccessStoreError::Unavailable, AccessStoreError::Malformed] {
+            assert!(matches!(
+                GReaderSession::provider_with_access("https://localhost", Err(error)),
+                Err(SessionError::Auth(_))
+            ));
+        }
+        let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://localhost").unwrap();
+        assert!(matches!(
+            GReaderSession::provider_with_access("https://127.0.0.1", Ok(Some(access))),
+            Err(SessionError::Auth(_))
+        ));
+        assert!(GReaderSession::provider_with_access("http://localhost", Ok(None)).is_ok());
     }
 }

@@ -1,9 +1,13 @@
 import { Copy } from "lucide-react";
 import type { ComponentProps, RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
+import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
+import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
-import { LabeledControlRow, LabeledInputRow } from "@/design-system";
+import { LabeledControlRow, LabeledInputRow, SurfaceCard } from "@/design-system";
+import type { CloudflareAccessDraftError } from "@/lib/account/cloudflare-access";
 
 type AccountCredentialInputRow = {
   label: string;
@@ -14,6 +18,25 @@ type AccountCredentialInputRow = {
   onBlur: () => void;
   onFocus?: () => void;
   inputRef?: RefObject<HTMLInputElement | null>;
+  errorText?: string;
+};
+
+type AccountCloudflareAccessSection = {
+  status: "loading" | "ready" | "error" | "unavailable";
+  recoveryAction?: "replace" | "remove" | null;
+  onRecoveryActionChange?: (action: "replace" | "remove") => void;
+  loadingMessage: string;
+  readErrorMessage: string;
+  unavailableMessage: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+  clientId: AccountCredentialInputRow;
+  clientSecret: AccountCredentialInputRow;
+  clientIdError: string;
+  clientSecretError: string;
+  validationError: CloudflareAccessDraftError | null;
 };
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
@@ -31,6 +54,7 @@ type AccountCredentialsSectionViewProps = {
   onServerUrlBlur?: () => void;
   serverUrlCopyLabel?: string;
   onServerUrlCopy?: () => void;
+  serverUrlErrorText?: string;
   usernameLabel: string;
   usernameValue: string;
   usernameInputRef?: AccountCredentialInputRow["inputRef"];
@@ -48,6 +72,7 @@ type AccountCredentialsSectionViewProps = {
   isTestingConnection?: boolean;
   testConnectionTone?: ComponentProps<typeof SettingsLoadingActionButton>["tone"];
   extraRows?: AccountCredentialInputRow[];
+  cloudflareAccess?: AccountCloudflareAccessSection;
 };
 
 export function AccountCredentialsSectionView({
@@ -62,6 +87,7 @@ export function AccountCredentialsSectionView({
   onServerUrlBlur,
   serverUrlCopyLabel,
   onServerUrlCopy,
+  serverUrlErrorText,
   usernameLabel,
   usernameValue,
   usernameInputRef,
@@ -79,7 +105,9 @@ export function AccountCredentialsSectionView({
   isTestingConnection,
   testConnectionTone,
   extraRows,
+  cloudflareAccess,
 }: AccountCredentialsSectionViewProps) {
+  const { t } = useTranslation("settings");
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
   const resolvedExtraRows = extraRows ?? EMPTY_EXTRA_ROWS;
 
@@ -97,6 +125,7 @@ export function AccountCredentialsSectionView({
           onBlur={!disabled ? onServerUrlBlur : undefined}
           labelClassName={labelColumnClassName}
           inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+          errorText={serverUrlErrorText}
           actionLabel={serverUrlCopyLabel}
           actionAriaLabel={serverUrlCopyLabel}
           actionTooltipLabel={serverUrlCopyLabel}
@@ -147,6 +176,101 @@ export function AccountCredentialsSectionView({
         inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
         disabled={disabled}
       />
+      {cloudflareAccess?.status === "loading" && (
+        <p className="text-sm text-foreground-soft" role="status">
+          {cloudflareAccess.loadingMessage}
+        </p>
+      )}
+      {cloudflareAccess?.status === "error" && (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{cloudflareAccess.readErrorMessage}</p>
+          {cloudflareAccess.onRecoveryActionChange && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <SettingsActionButton
+                type="button"
+                size="compact"
+                disabled={disabled}
+                aria-pressed={cloudflareAccess.recoveryAction === "replace"}
+                onClick={() => cloudflareAccess.onRecoveryActionChange?.("replace")}
+              >
+                {t("account.cloudflare_access_reconfigure")}
+              </SettingsActionButton>
+              <SettingsActionButton
+                type="button"
+                tone="danger"
+                size="compact"
+                disabled={disabled}
+                aria-pressed={cloudflareAccess.recoveryAction === "remove"}
+                onClick={() => cloudflareAccess.onRecoveryActionChange?.("remove")}
+              >
+                {t("account.cloudflare_access_remove")}
+              </SettingsActionButton>
+            </div>
+          )}
+          {cloudflareAccess.recoveryAction === "remove" && (
+            <p className="mt-2 text-sm leading-[1.5]">{t("account.cloudflare_access_remove_on_save")}</p>
+          )}
+        </SurfaceCard>
+      )}
+      {cloudflareAccess?.status === "unavailable" && (
+        <SurfaceCard variant="info" tone="subtle" padding="compact" role="status">
+          <p className="text-sm leading-[1.5]">{cloudflareAccess.unavailableMessage}</p>
+        </SurfaceCard>
+      )}
+      {cloudflareAccess && (cloudflareAccess.status === "ready" || cloudflareAccess.status === "error") && (
+        <>
+          {cloudflareAccess.status === "ready" && (
+            <CloudflareAccessControl
+              mode="detail"
+              label={cloudflareAccess.label}
+              description={cloudflareAccess.description}
+              checked={cloudflareAccess.enabled}
+              onChange={cloudflareAccess.onEnabledChange}
+              disabled={disabled}
+              labelClassName={labelColumnClassName}
+            />
+          )}
+          {(cloudflareAccess.status === "ready"
+            ? cloudflareAccess.enabled
+            : cloudflareAccess.recoveryAction === "replace") && (
+            <>
+              <LabeledInputRow
+                label={cloudflareAccess.clientId.label}
+                name="cloudflare-access-client-id"
+                type="text"
+                value={cloudflareAccess.clientId.value}
+                onChange={cloudflareAccess.clientId.onChange}
+                onBlur={!disabled ? cloudflareAccess.clientId.onBlur : undefined}
+                placeholder={cloudflareAccess.clientId.placeholder}
+                labelClassName={labelColumnClassName}
+                inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+                disabled={disabled}
+                errorText={
+                  cloudflareAccess.validationError === "client_id_required" ? cloudflareAccess.clientIdError : undefined
+                }
+              />
+              <LabeledInputRow
+                label={cloudflareAccess.clientSecret.label}
+                name="cloudflare-access-client-secret"
+                type="password"
+                value={cloudflareAccess.clientSecret.value}
+                onChange={cloudflareAccess.clientSecret.onChange}
+                onBlur={!disabled ? cloudflareAccess.clientSecret.onBlur : undefined}
+                onFocus={!disabled ? cloudflareAccess.clientSecret.onFocus : undefined}
+                placeholder={cloudflareAccess.clientSecret.placeholder}
+                labelClassName={labelColumnClassName}
+                inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+                disabled={disabled}
+                errorText={
+                  cloudflareAccess.validationError === "client_secret_required"
+                    ? cloudflareAccess.clientSecretError
+                    : undefined
+                }
+              />
+            </>
+          )}
+        </>
+      )}
       {onTestConnection && (
         <LabeledControlRow label={testConnectionLabel ?? ""} labelClassName={labelColumnClassName}>
           <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>

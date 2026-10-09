@@ -48,6 +48,9 @@ pub struct GReaderProvider {
     // provider operation returns the error instead of silently using a default client.
     http_client: Result<reqwest::Client, DomainError>,
     auth_token: Option<String>,
+    #[cfg(test)]
+    mock_http_transport: bool,
+    cloudflare_access: Option<crate::infra::keyring_store::cloudflare_access::CloudflareAccess>,
 }
 
 impl fmt::Debug for GReaderProvider {
@@ -149,5 +152,7 @@ impl FeedProvider for GReaderProvider {
     }
 }
 
+#[cfg(test)]
+mod access_tests;
 #[cfg(test)]
 mod tests;

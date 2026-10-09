@@ -20,11 +20,13 @@ import {
   BrowserWebviewFallbackPayloadSchema,
   BrowserWebviewStateSchema,
   browserWebviewBoundsArgs,
+  CloudflareAccessMetadataSchema,
   COUNT_RESPONSE_MAX_VALUE,
   type CommandWithArgs,
   CountResponseSchema,
   checkBrowserEmbedSupportArgs,
   clearArticleViewHistoryArgs,
+  cloudflareAccessUpdateSchema,
   commandArgsSchemas,
   copyToClipboardArgs,
   countAccountStarredArticlesArgs,
@@ -43,6 +45,7 @@ import {
   FeedDtoSchema,
   FolderDtoSchema,
   FRONTEND_SCHEMA_CONTRACT_VERSION,
+  getAccountCloudflareAccessArgs,
   getAccountSyncStatusArgs,
   getArticleTagsArgs,
   getCommandArgsSchema,
@@ -93,6 +96,7 @@ import {
   toggleArticleStarArgs,
   UpdateInfoDtoSchema,
   untagArticleArgs,
+  updateAccountCredentialsArgs,
   updateAccountSyncArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
@@ -1958,6 +1962,77 @@ describe("command args schemas", () => {
       }),
     ).toThrow();
     expect(() => parse(addAccountArgs, { kind: "Unknown", name: "Test" })).toThrow();
+  });
+  it("validates Cloudflare Access update actions and FreshRSS HTTPS requirements", () => {
+    expect(parse(cloudflareAccessUpdateSchema, { action: "keep" })).toEqual({ action: "keep" });
+    expect(parse(cloudflareAccessUpdateSchema, { action: "remove" })).toEqual({ action: "remove" });
+    expect(
+      parse(cloudflareAccessUpdateSchema, {
+        action: "replace",
+        clientId: " client-id ",
+        clientSecret: " dummy-secret ",
+      }),
+    ).toEqual({ action: "replace", clientId: "client-id", clientSecret: " dummy-secret " });
+    expect(() =>
+      parse(cloudflareAccessUpdateSchema, { action: "replace", clientId: " ", clientSecret: "x" }),
+    ).toThrow();
+    expect(() =>
+      parse(cloudflareAccessUpdateSchema, { action: "replace", clientId: "id", clientSecret: "  " }),
+    ).toThrow();
+    expect(() =>
+      parse(addAccountArgs, {
+        kind: "FreshRss",
+        name: "FreshRSS",
+        serverUrl: "http://rss.example.com",
+        username: "alice",
+        password: "password",
+        cloudflareAccess: { action: "replace", clientId: "id", clientSecret: "secret" },
+      }),
+    ).toThrow();
+    expect(() =>
+      parse(addAccountArgs, {
+        kind: "Local",
+        name: "Local",
+        cloudflareAccess: { action: "replace", clientId: "id", clientSecret: "secret" },
+      }),
+    ).toThrow();
+    expect(
+      parse(updateAccountCredentialsArgs, {
+        accountId: "acc-1",
+        serverUrl: "https://rss.example.com",
+        cloudflareAccess: { action: "replace", clientId: "id", clientSecret: "secret" },
+      }),
+    ).toEqual({
+      accountId: "acc-1",
+      serverUrl: "https://rss.example.com",
+      cloudflareAccess: { action: "replace", clientId: "id", clientSecret: "secret" },
+    });
+    expect(() =>
+      parse(updateAccountCredentialsArgs, {
+        accountId: "acc-1",
+        cloudflareAccess: { action: "replace", clientId: "id", clientSecret: "secret" },
+      }),
+    ).toThrow();
+    expect(() =>
+      parse(updateAccountCredentialsArgs, {
+        accountId: "acc-1",
+        serverUrl: "http://rss.example.com",
+        cloudflareAccess: { action: "replace", clientId: "id", clientSecret: "secret" },
+      }),
+    ).toThrow();
+    expect(() =>
+      parse(updateAccountCredentialsArgs, {
+        accountId: "acc-1",
+        serverUrl: "https://alice:password@rss.example.com",
+        cloudflareAccess: { action: "replace", clientId: "id", clientSecret: "secret" },
+      }),
+    ).toThrow();
+  });
+  it("keeps Cloudflare Access metadata limited to a nullable Client ID", () => {
+    expect(parse(getAccountCloudflareAccessArgs, { accountId: " acc-1 " })).toEqual({ accountId: "acc-1" });
+    expect(parse(CloudflareAccessMetadataSchema, { client_id: null })).toEqual({ client_id: null });
+    expect(parse(CloudflareAccessMetadataSchema, { client_id: "client-id" })).toEqual({ client_id: "client-id" });
+    expect(() => parse(CloudflareAccessMetadataSchema, { client_id: "client-id", client_secret: "secret" })).toThrow();
   });
   it("trims and rejects blank feed URL command args", () => {
     expect(parse(discoverFeedsArgs, { url: " https://example.com/feed.xml " })).toEqual({

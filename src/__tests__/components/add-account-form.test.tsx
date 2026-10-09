@@ -39,13 +39,27 @@ vi.mock("react-i18next", () => {
       "account.server_url_placeholder": "https://example.com",
       "account.username": "Username",
       "account.password": "Password",
+      "account.cloudflare_access": "Cloudflare Access",
+      "account.cloudflare_access_description": "Add Access authentication",
+      "account.cloudflare_access_info": "About Cloudflare Access",
+      "account.cloudflare_access_add_details":
+        "Enter the Client ID and Client Secret. Credentials are stored securely in your OS keyring.",
+      "account.cloudflare_access_client_id": "Client ID",
+      "account.cloudflare_access_client_id_placeholder": "Cloudflare Access Client ID",
+      "account.cloudflare_access_secret": "Client Secret",
+      "account.cloudflare_access_secret_placeholder": "Leave blank to keep the saved Secret",
+      "account.error_cloudflare_access_client_id_required": "Enter a Cloudflare Access Client ID",
+      "account.error_cloudflare_access_secret_required":
+        "Enter a Client Secret when changing the Client ID or server origin",
+      "account.error_cloudflare_access_https_required": "Cloudflare Access requires an HTTPS server URL",
+      "account.cloudflare_access_save_failed": "Cloudflare Access credentials could not be saved.",
       "account.error_server_url_required": "Server URL is required",
       "account.error_server_url_invalid": "Enter a valid server URL",
       "account.error_username_required": "Username is required",
       "account.error_password_required": "Password is required",
       "account.error_network": "Cannot connect to server. Please check the URL",
-      "account.error_auth": "Authentication failed. Please check your username and API password",
-      "account.error_auth_hint_freshrss": "You need to set an API password in FreshRSS Profile settings",
+      "account.error_auth":
+        "Authentication was rejected. Check FreshRSS credentials and, if configured, Cloudflare Access credentials.",
       "account.failed_to_add": "Failed to add account: {{message}}",
     },
     ja: {
@@ -64,13 +78,26 @@ vi.mock("react-i18next", () => {
       "account.server_url_placeholder": "https://example.com",
       "account.username": "ユーザー名",
       "account.password": "パスワード",
+      "account.cloudflare_access": "Cloudflare Access",
+      "account.cloudflare_access_description": "Access 認証を追加",
+      "account.cloudflare_access_info": "Cloudflare Access の説明",
+      "account.cloudflare_access_add_details":
+        "Client ID と Client Secret を入力します。認証情報は OS の安全な保存領域に保管されます。",
+      "account.cloudflare_access_client_id": "Client ID",
+      "account.cloudflare_access_client_id_placeholder": "Cloudflare Access の Client ID",
+      "account.cloudflare_access_secret": "Client Secret",
+      "account.cloudflare_access_secret_placeholder": "空欄なら保存済みの Secret を使います",
+      "account.error_cloudflare_access_client_id_required": "Client ID を入力してください",
+      "account.error_cloudflare_access_secret_required": "Client Secret を入力してください",
+      "account.error_cloudflare_access_https_required": "HTTPS のサーバーURLが必要です",
+      "account.cloudflare_access_save_failed": "Cloudflare Access の認証情報を保存できませんでした。",
       "account.error_server_url_required": "サーバーURLを入力してください",
       "account.error_server_url_invalid": "有効なサーバーURLを入力してください",
       "account.error_username_required": "ユーザー名を入力してください",
       "account.error_password_required": "パスワードを入力してください",
       "account.error_network": "サーバーに接続できません。URLを確認してください",
-      "account.error_auth": "認証に失敗しました。ユーザー名とAPIパスワードを確認してください",
-      "account.error_auth_hint_freshrss": "FreshRSSのプロフィール設定でAPIパスワードを設定してください",
+      "account.error_auth":
+        "認証に失敗しました。FreshRSS と Cloudflare Access（設定している場合）の認証情報を確認してください",
       "account.failed_to_add": "アカウントの追加に失敗しました: {{message}}",
     },
   };
@@ -525,7 +552,7 @@ describe("AddAccountForm", () => {
     });
   });
 
-  it("shows auth error with FreshRSS API password hint when authentication fails", async () => {
+  it("uses generic auth guidance when FreshRSS or Cloudflare Access authentication fails", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
         throw {
@@ -547,9 +574,82 @@ describe("AddAccountForm", () => {
 
     await waitFor(() => {
       const toast = useUiStore.getState().toastMessage;
-      expect(toast?.message).toContain("Authentication failed");
-      expect(toast?.message).toContain("API password");
+      expect(toast?.message).toContain("Authentication was rejected");
+      expect(toast?.message).toContain("Cloudflare Access credentials");
+      expect(toast?.message).not.toContain("API password");
       expect(useUiStore.getState().accountSetupSession).toBeNull();
+    });
+  });
+
+  it("keeps Cloudflare Access optional and forwards a validated replacement on FreshRSS add", async () => {
+    const addAccountCalls = vi.fn();
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "add_account") {
+        addAccountCalls(args);
+      }
+      return undefined;
+    });
+
+    const user = userEvent.setup();
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+    const accessSwitch = screen.getByRole("switch", { name: "Cloudflare Access" });
+    expect(accessSwitch).not.toBeChecked();
+    expect(screen.queryByLabelText("Client ID")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Client Secret")).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Name"), "Work RSS");
+    await user.type(screen.getByLabelText("Server URL"), "http://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "fresh-password");
+    await user.click(accessSwitch);
+
+    expect(screen.getByLabelText("Client ID")).toBeInTheDocument();
+    expect(screen.getByLabelText("Client Secret")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Client ID"), "client-id");
+    const clientSecretInput = screen.getByLabelText("Client Secret");
+    expect(screen.getByLabelText("Server URL")).toHaveAttribute("aria-invalid", "true");
+    await user.clear(screen.getByLabelText("Server URL"));
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    expect(clientSecretInput).toHaveAttribute("aria-invalid", "true");
+    expect(document.getElementById(clientSecretInput.getAttribute("aria-errormessage") ?? "")).toHaveTextContent(
+      "Enter a Client Secret when changing the Client ID or server origin",
+    );
+    await user.type(clientSecretInput, "dummy-access-secret");
+    await user.clear(screen.getByLabelText("Server URL"));
+    await user.type(screen.getByLabelText("Server URL"), "http://freshrss.example.com");
+    expect(screen.getByLabelText("Server URL")).toHaveAttribute("aria-invalid", "true");
+    expect(
+      document.getElementById(screen.getByLabelText("Server URL").getAttribute("aria-errormessage") ?? ""),
+    ).toHaveTextContent("Cloudflare Access requires an HTTPS server URL");
+
+    await user.clear(screen.getByLabelText("Server URL"));
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    expect(screen.getByRole("button", { name: "Add" })).toBeEnabled();
+    const info = screen.getByRole("button", { name: "About Cloudflare Access" });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cloudflare Access" })).not.toBeInTheDocument());
+    await user.click(info);
+    const popup = screen.getByRole("dialog", { name: "Cloudflare Access" });
+    expect(popup).toHaveTextContent("OS keyring");
+    expect(info.closest("form")).not.toContainElement(popup);
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cloudflare Access" })).not.toBeInTheDocument());
+    expect(addAccountCalls).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(addAccountCalls).toHaveBeenCalledWith({
+        kind: "FreshRss",
+        name: "Work RSS",
+        serverUrl: "https://freshrss.example.com",
+        username: "alice",
+        password: "fresh-password",
+        cloudflareAccess: { action: "replace", clientId: "client-id", clientSecret: "dummy-access-secret" },
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Client Secret")).toHaveValue("");
     });
   });
 

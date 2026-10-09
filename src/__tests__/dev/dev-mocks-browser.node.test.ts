@@ -35,6 +35,7 @@ import {
   TagDtoSchema,
 } from "@/api/schemas";
 import {
+  addAccount,
   addLocalFeed,
   addToReadingList,
   checkBrowserEmbedSupport,
@@ -53,6 +54,7 @@ import {
   discoverFeeds,
   exportOpmlToFile,
   exportSettingsProfile,
+  getAccountCloudflareAccess,
   getAccountSyncStatus,
   getArticleTags,
   getDatabaseInfo,
@@ -149,6 +151,38 @@ describe("setupDevMocks", () => {
     // them against a frozen clock, so later tests start from the real baseline.
     refreshRelativeMockArticleDates(mockArticles);
     vi.unstubAllEnvs();
+  });
+
+  it("keeps only Access Client ID metadata across add, keep, replace, remove, and delete", async () => {
+    setupDevMocks();
+    const account = Result.unwrap(
+      await addAccount("FreshRss", "Access preview", "https://preview.example.com", "reader", "dummy-password", {
+        action: "replace",
+        clientId: "preview-client",
+        clientSecret: "dummy-secret",
+      }),
+    );
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "preview-client" });
+    expect(account).not.toHaveProperty("cloudflareAccess");
+    await updateAccountCredentials(account.id, undefined, "new-reader");
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "preview-client" });
+    await updateAccountCredentials(account.id, undefined, undefined, undefined, { action: "keep" });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "preview-client" });
+    await updateAccountCredentials(account.id, "https://preview.example.com", undefined, undefined, {
+      action: "replace",
+      clientId: "next-client",
+      clientSecret: "next-dummy-secret",
+    });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "next-client" });
+    await updateAccountCredentials(account.id, undefined, undefined, undefined, { action: "remove" });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: null });
+    await updateAccountCredentials(account.id, "https://preview.example.com", undefined, undefined, {
+      action: "replace",
+      clientId: "last-client",
+      clientSecret: "last-dummy-secret",
+    });
+    await deleteAccount(account.id);
+    expect(Result.isFailure(await getAccountCloudflareAccess(account.id))).toBe(true);
   });
 
   it("installs and restores browser-only mock window globals", () => {

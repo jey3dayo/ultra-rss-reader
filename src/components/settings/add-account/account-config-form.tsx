@@ -13,6 +13,8 @@ import {
   isAddAccountFormSubmittable,
   matchAddAccountPayload,
 } from "@/lib/account/add-account-form";
+import { matchCloudflareAccessUpdate } from "@/lib/account/cloudflare-access";
+import { isCloudflareAccessRecoveryRequired } from "@/lib/account/cloudflare-access-error";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 import { upsertCachedAccount } from "../account-detail/query-cache";
@@ -28,6 +30,8 @@ export type AccountConfigFormProps = {
     serverUrl?: string;
     username?: string;
     password?: string;
+    cloudflareAccessEnabled?: boolean;
+    cloudflareAccessClientId?: string;
     submitting?: boolean;
     errorMessage?: string | null;
     submitMessage?: string | null;
@@ -71,7 +75,9 @@ function accountConfigUiReducer(state: AccountConfigUiState, action: AccountConf
   }
 }
 
-function getAddAccountValidationErrorField(error: AddAccountValidationError): "serverUrl" | "username" | "password" {
+function getAddAccountValidationErrorField(
+  error: AddAccountValidationError,
+): "serverUrl" | "username" | "password" | "cloudflareAccessClientId" | "cloudflareAccessClientSecret" {
   switch (error) {
     case "missing_server_url":
     case "invalid_server_url":
@@ -81,6 +87,12 @@ function getAddAccountValidationErrorField(error: AddAccountValidationError): "s
       return "username";
     case "missing_password":
       return "password";
+    case "missing_cloudflare_access_client_id":
+      return "cloudflareAccessClientId";
+    case "missing_cloudflare_access_client_secret":
+      return "cloudflareAccessClientSecret";
+    case "cloudflare_access_https_required":
+      return "serverUrl";
   }
 }
 
@@ -89,6 +101,9 @@ function getFreshRssLiveValidationError(form: {
   serverUrl: string;
   username: string;
   password: string;
+  cloudflareAccessEnabled: boolean;
+  cloudflareAccessClientId: string;
+  cloudflareAccessClientSecret: string;
 }): AddAccountValidationError | null {
   if (form.kind !== "FreshRss") {
     return null;
@@ -124,7 +139,31 @@ function getFreshRssLiveValidationError(form: {
     return "missing_password";
   }
 
-  return null;
+  return matchCloudflareAccessUpdate<AddAccountValidationError | null>(
+    {
+      draft: {
+        enabled: form.cloudflareAccessEnabled,
+        clientId: form.cloudflareAccessClientId,
+        clientSecret: form.cloudflareAccessClientSecret,
+      },
+      serverUrl,
+      savedClientId: null,
+      savedOrigin: null,
+    },
+    {
+      success: () => null,
+      failure: (error) => {
+        switch (error) {
+          case "client_id_required":
+            return "missing_cloudflare_access_client_id";
+          case "client_secret_required":
+            return "missing_cloudflare_access_client_secret";
+          case "https_required":
+            return "cloudflare_access_https_required";
+        }
+      },
+    },
+  );
 }
 
 export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFormProps) {
@@ -140,6 +179,9 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     serverUrl: debugState?.serverUrl ?? addAccountFormInitialState.serverUrl,
     username: debugState?.username ?? addAccountFormInitialState.username,
     password: debugState?.password ?? addAccountFormInitialState.password,
+    cloudflareAccessEnabled: debugState?.cloudflareAccessEnabled ?? addAccountFormInitialState.cloudflareAccessEnabled,
+    cloudflareAccessClientId:
+      debugState?.cloudflareAccessClientId ?? addAccountFormInitialState.cloudflareAccessClientId,
   });
   const [uiState, dispatchUi] = useReducer(accountConfigUiReducer, {
     ...initialAccountConfigUiState,
@@ -229,13 +271,14 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           }
 
           let message: string;
-          if (e.type === "Retryable") {
+          if (isCloudflareAccessRecoveryRequired(e)) {
+            message = t("account.cloudflare_access_recovery_required");
+          } else if (e.type === "Retryable") {
             message = t("account.error_network");
           } else if (e.message.toLowerCase().includes("auth")) {
             message = t("account.error_auth");
-            if (kind === "FreshRss") {
-              message += `\n${t("account.error_auth_hint_freshrss")}`;
-            }
+          } else if (payload.cloudflareAccess?.action === "replace") {
+            message = t("account.cloudflare_access_save_failed");
           } else {
             message = t("account.failed_to_add", { message: e.message });
           }
@@ -250,6 +293,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           }
 
           submittedSuccessfullyRef.current = true;
+          dispatch({ type: "setField", field: "cloudflareAccessClientSecret", value: "" });
           upsertCachedAccount(qc, account);
           invalidateQueryKeysLogOnly(qc, [queryKeys.accounts.root, queryKeys.feeds.root]);
           const { selectAccount } = useUiStore.getState();
@@ -285,7 +329,10 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     }
   };
 
-  const handleFieldChange = (field: "name" | "serverUrl" | "username" | "password", value: string) => {
+  const handleFieldChange = (
+    field: "name" | "serverUrl" | "username" | "password" | "cloudflareAccessClientId" | "cloudflareAccessClientSecret",
+    value: string,
+  ) => {
     dispatch({ type: "setField", field, value });
     if (validationError != null && getAddAccountValidationErrorField(validationError) === field) {
       dispatchUi({ type: "set-validation-error", value: null });
@@ -301,8 +348,20 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     resolvedValidationError != null
       ? t(formatAddAccountValidationError(form.kind, resolvedValidationError))
       : undefined;
-  const validationErrorFor = (field: "serverUrl" | "username" | "password") =>
-    resolvedValidationErrorField === field ? validationErrorMessage : undefined;
+  const validationErrorFor = (
+    field: "serverUrl" | "username" | "password" | "cloudflareAccessClientId" | "cloudflareAccessClientSecret",
+  ) => (resolvedValidationErrorField === field ? validationErrorMessage : undefined);
+  const handleCloudflareAccessEnabledChange = (value: boolean) => {
+    dispatch({ type: "setCloudflareAccessEnabled", value });
+    if (
+      !value &&
+      (validationError === "missing_cloudflare_access_client_id" ||
+        validationError === "missing_cloudflare_access_client_secret" ||
+        validationError === "cloudflare_access_https_required")
+    ) {
+      dispatchUi({ type: "set-validation-error", value: null });
+    }
+  };
   const submitDisabled = !isAddAccountFormSubmittable(form);
 
   return (
@@ -360,6 +419,30 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
                 onChange: (value) => handleFieldChange("password", value),
                 disabled: submitting,
                 errorText: validationErrorFor("password"),
+              },
+              cloudflareAccess: {
+                label: t("account.cloudflare_access"),
+                description: t("account.cloudflare_access_description"),
+                enabled: form.cloudflareAccessEnabled,
+                onChange: handleCloudflareAccessEnabledChange,
+                disabled: submitting,
+                clientId: {
+                  label: t("account.cloudflare_access_client_id"),
+                  name: "cloudflare-access-client-id",
+                  value: form.cloudflareAccessClientId,
+                  onChange: (value) => handleFieldChange("cloudflareAccessClientId", value),
+                  disabled: submitting,
+                  errorText: validationErrorFor("cloudflareAccessClientId"),
+                },
+                clientSecret: {
+                  label: t("account.cloudflare_access_secret"),
+                  name: "cloudflare-access-client-secret",
+                  type: "password",
+                  value: form.cloudflareAccessClientSecret,
+                  onChange: (value) => handleFieldChange("cloudflareAccessClientSecret", value),
+                  disabled: submitting,
+                  errorText: validationErrorFor("cloudflareAccessClientSecret"),
+                },
               },
             }
           : undefined
