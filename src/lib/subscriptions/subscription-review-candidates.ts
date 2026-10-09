@@ -189,6 +189,35 @@ function calculateSubscriptionReviewStaleDays(now: Date, latestArticleDate: Date
   return Math.max(0, Math.floor(dayDeltaMs / 86_400_000));
 }
 
+function resolveSubscriptionReviewReasonKeys({
+  staleDays,
+  unreadCount,
+  hasFetchedArticle,
+}: {
+  staleDays: number | null;
+  unreadCount: number;
+  hasFetchedArticle: boolean;
+}): SubscriptionReviewReasonKey[] {
+  if (staleDays === null) {
+    return [];
+  }
+
+  const reasonKeys: SubscriptionReviewReasonKey[] = [];
+  const hasStale90 = staleDays >= SUBSCRIPTION_REVIEW_STALE_DAYS;
+  const hasQuietNoUnread = hasFetchedArticle && staleDays >= SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS && unreadCount === 0;
+
+  if (hasStale90) {
+    reasonKeys.push("stale_90d");
+  }
+  if (hasQuietNoUnread) {
+    reasonKeys.push("quiet_no_unread");
+  } else if (!hasStale90 && staleDays >= SUBSCRIPTION_REVIEW_ATTENTION_DAYS) {
+    reasonKeys.push("attention_30d");
+  }
+
+  return reasonKeys;
+}
+
 export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
@@ -213,20 +242,7 @@ export function buildSubscriptionReviewCandidates({
     const unreadCount = normalizeSubscriptionCount(feed.unread_count);
     const starredCount = normalizeSubscriptionCount(summary?.starred_count ?? 0);
     const hasFetchedArticle = latestArticleAt !== null;
-    const reasonKeys: SubscriptionReviewReasonKey[] = [];
-
-    const hasStale90 = staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_STALE_DAYS;
-    const hasQuietNoUnread =
-      hasFetchedArticle && staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS && unreadCount === 0;
-
-    if (hasStale90) {
-      reasonKeys.push("stale_90d");
-    }
-    if (hasQuietNoUnread) {
-      reasonKeys.push("quiet_no_unread");
-    } else if (!hasStale90 && staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_ATTENTION_DAYS) {
-      reasonKeys.push("attention_30d");
-    }
+    const reasonKeys = resolveSubscriptionReviewReasonKeys({ staleDays, unreadCount, hasFetchedArticle });
 
     candidates.push({
       feedId: feed.id,
