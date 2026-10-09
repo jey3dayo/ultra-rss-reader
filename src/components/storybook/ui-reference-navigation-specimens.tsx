@@ -1,10 +1,8 @@
 import { cn } from "cn";
 import { List, Settings2 } from "lucide-react";
 import { useState } from "react";
-import { parse } from "valibot";
-import { FeedDtoListSchema, FolderDtoSchema } from "@/api/schemas";
-import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { FolderSectionView } from "@/components/reader/folder-section";
+import type { FeedTreePresenceFolderViewModel } from "@/components/reader/feed-tree.types";
+import { FeedTreeFolderSection } from "@/components/reader/feed-tree-folder-section";
 import { SidebarFooterActions } from "@/components/reader/sidebar-footer-actions";
 import { SidebarNavButton } from "@/components/reader/sidebar-nav-button";
 import { SmartViewsView } from "@/components/reader/smart-views-view";
@@ -66,41 +64,48 @@ const ACCOUNT_CARDS: AccountNavItem[] = [
   { id: "acc-3", name: "Local", kind: "local", isActive: false },
 ];
 
-const NAV_SAMPLE_FOLDER: FolderDto = parse(FolderDtoSchema, {
+const NAV_SAMPLE_FOLDER: FeedTreePresenceFolderViewModel = {
   id: "folder-interior",
-  account_id: "acc-1",
   name: "Interior",
-  sort_order: 0,
-});
-
-const NAV_SAMPLE_FEEDS: FeedDto[] = parse(FeedDtoListSchema, [
-  {
-    id: "feed-diy",
-    account_id: "acc-1",
-    folder_id: "folder-interior",
-    remote_id: null,
-    title: "99% DIY -DIYブログ-",
-    url: "https://example.com/diy.xml",
-    site_url: "https://example.com/diy",
-    icon_url: null,
-    unread_count: 3,
-    reader_mode: "on",
-    web_preview_mode: "off",
-  },
-  {
-    id: "feed-cafict",
-    account_id: "acc-1",
-    folder_id: "folder-interior",
-    remote_id: null,
-    title: "CAFICT",
-    url: "https://example.com/cafict.xml",
-    site_url: "https://example.com/cafict",
-    icon_url: null,
-    unread_count: 4,
-    reader_mode: "on",
-    web_preview_mode: "off",
-  },
-]);
+  accountId: "acc-1",
+  sortOrder: 0,
+  unreadCount: 7,
+  isExpanded: true,
+  isSelected: false,
+  isLeaving: false,
+  feeds: [
+    {
+      id: "feed-diy",
+      accountId: "acc-1",
+      folderId: "folder-interior",
+      title: "99% DIY -DIYブログ-",
+      url: "https://example.com/diy.xml",
+      siteUrl: "https://example.com/diy",
+      iconUrl: null,
+      unreadCount: 3,
+      readerMode: "on",
+      webPreviewMode: "off",
+      isSelected: false,
+      grayscaleFavicon: false,
+      isLeaving: false,
+    },
+    {
+      id: "feed-cafict",
+      accountId: "acc-1",
+      folderId: "folder-interior",
+      title: "CAFICT",
+      url: "https://example.com/cafict.xml",
+      siteUrl: "https://example.com/cafict",
+      iconUrl: null,
+      unreadCount: 4,
+      readerMode: "on",
+      webPreviewMode: "off",
+      isSelected: false,
+      grayscaleFavicon: false,
+      isLeaving: false,
+    },
+  ],
+};
 
 const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-md";
 
@@ -323,12 +328,10 @@ export function NavigationStackSpecimen() {
           "max-w-[18rem] border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-2 text-sidebar-foreground shadow-elevation-1",
         )}
       >
-        <FolderSectionView
+        <FeedTreeFolderSection
           folder={NAV_SAMPLE_FOLDER}
-          feeds={NAV_SAMPLE_FEEDS}
-          isExpanded={true}
-          onToggle={() => {}}
-          selectedFeedId={null}
+          activeDropTarget={null}
+          onToggleFolder={() => {}}
           onSelectFeed={() => {}}
           displayFavicons={true}
         />

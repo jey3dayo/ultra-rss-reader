@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { Trash2 } from "lucide-react";
 import type { ComponentProps } from "react";
-import { stateSurfaceButtonClassName } from "@/components/shared/state-surface-button";
+import { stateSurfaceButtonVariants } from "@/components/shared/state-surface-button";
 import { Button } from "@/components/ui/button";
 
 type DeleteButtonProps = ComponentProps<typeof Button> & {
@@ -19,7 +19,11 @@ export function DeleteButton({
     <Button
       data-delete-button
       variant={variant}
-      className={cn(stateSurfaceButtonClassName("danger"), "font-medium focus-visible:ring-destructive/20", className)}
+      className={cn(
+        stateSurfaceButtonVariants({ tone: "danger" }),
+        "font-medium focus-visible:ring-destructive/20",
+        className,
+      )}
       {...props}
     >
       {showIcon ? <Trash2 className="size-3.5" /> : null}
