@@ -281,7 +281,13 @@ const generateReleaseProvenance = (): void => {
 
   const checksumAsset = checksumAssets[0];
   const checksumContent = readFileSync(checksumAsset, "utf8").trim();
-  const [artifactSha256, artifactName] = checksumContent.split(/\s+/, 2);
+  const checksumParts = checksumContent.match(/^(\S+)\s+(.*)$/);
+  const artifactSha256 = checksumParts?.[1] ?? "";
+  const artifactName = checksumParts?.[2];
+  if (!/^[a-f0-9]{64}$/i.test(artifactSha256)) {
+    fail(`invalid updater checksum digest for ${artifactName}`);
+  }
+
   const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as PackageJson;
   const releaseTag = requiredEnv("RELEASE_TAG");
   const sourceSha = git(["rev-parse", "HEAD"]);
@@ -325,9 +331,6 @@ const generateReleaseProvenance = (): void => {
   writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`);
   writeFileSync(RELEASE_PROVENANCE_ASSETS_LIST, `${recordPath}\n`);
 
-  if (!/^[a-f0-9]{64}$/i.test(artifactSha256)) {
-    fail(`invalid updater checksum digest for ${artifactName}`);
-  }
   if (sourceSha !== tagTargetSha) {
     fail(`release provenance source ${sourceSha} does not match tag target ${tagTargetSha}`);
   }
