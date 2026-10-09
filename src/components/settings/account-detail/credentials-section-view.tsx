@@ -4,8 +4,8 @@ import { SettingsLoadingActionButton } from "@/components/settings/settings-load
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow, LabeledInputRow } from "@/design-system";
+import type { AccountCloudflareAccessSection, AccountCredentialInputRow } from "./cloudflare-access-credential-fields";
 import { CloudflareAccessCredentialFields } from "./cloudflare-access-credential-fields";
-import type { AccountCloudflareAccessSection, AccountCredentialInputRow } from "./credentials-section-view.types";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
 const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";
