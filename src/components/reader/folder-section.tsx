@@ -26,9 +26,8 @@ type FolderSectionTriggerContentProps = {
   isExpanded: boolean;
 };
 
-function getFolderTriggerClassName() {
-  return "flex min-h-11 w-full items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:bg-[var(--sidebar-hover-surface)]";
-}
+const FOLDER_TRIGGER_CLASS_NAME =
+  "flex min-h-11 w-full items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:bg-[var(--sidebar-hover-surface)]";
 
 function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: FolderSectionTriggerContentProps) {
   return (
@@ -62,7 +61,7 @@ export function FolderSectionView({
       <button
         type="button"
         onClick={() => onToggle(folder.id)}
-        className={getFolderTriggerClassName()}
+        className={FOLDER_TRIGGER_CLASS_NAME}
         aria-expanded={isExpanded}
         aria-controls={panelId}
       >

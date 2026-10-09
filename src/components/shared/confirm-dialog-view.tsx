@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
-import { stateSurfaceButtonClassName } from "@/components/shared/state-surface-button";
+import { stateSurfaceButtonVariants } from "@/components/shared/state-surface-button";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -158,7 +158,7 @@ const confirmDialogVariantStyles = {
     iconContainerClassName: "bg-state-warning-surface",
     iconClassName: "text-state-warning-foreground",
     actionButtonVariant: "outline",
-    actionButtonClassName: stateSurfaceButtonClassName("warning"),
+    actionButtonClassName: stateSurfaceButtonVariants({ tone: "warning" }),
     fallbackIcon: AlertTriangle,
   },
   destructive: {
