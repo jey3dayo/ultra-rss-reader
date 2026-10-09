@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { useState } from "react";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
@@ -22,7 +23,6 @@ import {
   SurfaceCard,
   Switch,
 } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
 type FormRowsSpecimenProps = {

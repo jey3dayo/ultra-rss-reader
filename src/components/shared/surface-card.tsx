@@ -1,9 +1,8 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 import type { HTMLAttributes } from "react";
-
 import { stateToneSurfaceClassNames } from "@/components/shared/state-tone";
 import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME } from "@/constants";
-import { cn } from "@/lib/utils";
 
 const surfaceCardVariants = cva(
   `${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME} border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow] duration-150 ease-standard motion-reduce:transition-none`,

@@ -1,11 +1,11 @@
 import { Popover } from "@base-ui/react/popover";
+import { cn } from "cn";
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
-import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 type SettingsInfoPopoverProps = {

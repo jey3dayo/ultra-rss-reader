@@ -1,7 +1,7 @@
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
+import { cn } from "cn";
 import { Check } from "lucide-react";
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
 
 type CheckboxProps = ComponentProps<typeof CheckboxPrimitive.Root>;
 

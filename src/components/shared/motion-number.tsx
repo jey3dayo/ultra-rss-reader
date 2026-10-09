@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { type ComponentProps, useLayoutEffect, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -11,7 +12,6 @@ import {
   MOTION_PHASE_ENTERING,
   type MotionDigitStagger,
 } from "@/constants";
-import { cn } from "@/lib/utils";
 
 type MotionNumberProps = Omit<ComponentProps<"span">, "children"> & {
   value: number | string;

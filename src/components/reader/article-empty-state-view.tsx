@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { CSSProperties } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -6,7 +7,6 @@ import {
   MOTION_DATA_PHASE_ATTRIBUTE,
   MOTION_PHASE_ENTERING,
 } from "@/constants";
-import { cn } from "@/lib/utils";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 
 type ArticleEmptyStateViewProps = {

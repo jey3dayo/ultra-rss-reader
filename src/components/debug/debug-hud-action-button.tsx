@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import type { ComponentProps } from "react";
 import { Button } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type DebugHudActionButtonProps = ComponentProps<typeof Button>;
 

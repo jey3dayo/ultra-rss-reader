@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { Star } from "lucide-react";
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
 
 type UnreadIconProps = {
   unread: boolean;

@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import { describe, expect, it } from "vitest";
-import { cn } from "@/lib/utils";
 
 describe("cn", () => {
   it("omits falsey class inputs and keeps truthy class names", () => {

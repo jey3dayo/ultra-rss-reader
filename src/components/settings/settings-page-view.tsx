@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import type { SettingsPageControl, SettingsPageViewProps } from "@/components/settings/settings-page.types";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
@@ -12,7 +13,6 @@ import {
   LabeledSelectRow,
   LabeledSwitchRow,
 } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type SettingsPageControlRowProps<Control> = {
   control: Control;

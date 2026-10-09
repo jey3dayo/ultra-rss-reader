@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import type { SectionHeadingProps } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type SettingsShellSectionLabelProps = SectionHeadingProps;
 

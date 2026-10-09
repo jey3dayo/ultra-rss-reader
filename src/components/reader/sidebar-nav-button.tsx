@@ -1,8 +1,8 @@
 import { cva } from "class-variance-authority";
+import { cn } from "cn";
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
 import { MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE, MOTION_SIDEBAR_BADGE_CLASS_NAME } from "@/constants";
 import { MotionNumber, SIDEBAR_RIGHT_RAIL_CLASS_NAME } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { useSidebarNavButtonTrailing } from "./hooks/sidebar/use-sidebar-nav-button-trailing";
 import type { SidebarDensity } from "./sidebar-density";

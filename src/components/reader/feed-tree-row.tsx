@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { GripVertical } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useRef } from "react";
@@ -5,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/design-system";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_ROW_LEAVING_ATTRIBUTE, SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
-import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { FeedTreeRowProps } from "./feed-tree.types";
 import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";

@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { SectionHeading } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type AnnotatedNoteProps = {
   title: string;

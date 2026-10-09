@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { useId } from "react";
 import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME, PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
-import { cn } from "@/lib/utils";
 
 type LabeledControlRowA11y = {
   descriptionId: string | undefined;

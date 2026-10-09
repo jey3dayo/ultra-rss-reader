@@ -1,7 +1,7 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { cn } from "cn";
 import type { ComponentProps, ReactNode } from "react";
 import { AppTooltip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { ghostUtilityActionInteractionClassName } from "./icon-toolbar-control-styles";
 
 const sidebarFooterActionButtonClassName = cn(

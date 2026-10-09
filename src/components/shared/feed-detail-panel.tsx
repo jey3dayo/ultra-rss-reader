@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { ExternalLink, List, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
@@ -5,7 +6,6 @@ import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
-import { cn } from "@/lib/utils";
 
 type FeedDetailTone = "neutral" | "low" | "medium" | "high";
 type FeedDetailAccentTone = "unread" | "starred";

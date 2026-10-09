@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import { Fragment } from "react";
-import { cn } from "@/lib/utils";
 import { CopyableReadonlyField, type CopyableReadonlyFieldProps } from "./copyable-readonly-field";
 
 export type CopyableReadonlyFieldItem = CopyableReadonlyFieldProps & {

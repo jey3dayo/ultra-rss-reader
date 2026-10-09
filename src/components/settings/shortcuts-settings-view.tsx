@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { RotateCcw } from "lucide-react";
 import { type ComponentPropsWithoutRef, type ReactNode, type Ref, useEffect, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
@@ -5,7 +6,6 @@ import { SettingsContentLayout } from "@/components/settings/shared/settings-con
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { Kbd } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 
 type ShortcutsSettingsItem = {

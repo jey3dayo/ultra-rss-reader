@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import type { ComponentProps, ReactNode } from "react";
 import { workspaceCompactActionButtonClassName } from "@/components/shared/decision-button";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 type WorkspaceManagementActionButtonProps = Omit<ComponentProps<typeof Button>, "children" | "variant" | "size"> & {
   intent: "edit" | "delete";

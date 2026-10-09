@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { useState } from "react";
 import { TagChip } from "@/design-system";
-import { cn } from "@/lib/utils";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker-view";
 
 type ArticleTagChipListProps = {

@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import { type ReactNode, useId } from "react";
-import { cn } from "@/lib/utils";
 import { SidebarSectionToggle, sidebarSectionLabelClassName } from "./sidebar-section-toggle";
 
 type SidebarSectionShellProps = {

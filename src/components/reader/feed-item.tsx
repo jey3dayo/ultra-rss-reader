@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import type { FeedDto } from "@/api/tauri-commands";
 import { FeedFavicon, MotionNumber, NavRowButton } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type FeedItemViewProps = {
   feed: FeedDto;

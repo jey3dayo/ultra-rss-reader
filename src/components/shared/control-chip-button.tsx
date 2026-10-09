@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cn } from "@/lib/utils";
 import { controlChipVariants } from "./control-chip";
 
 type ControlChipButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

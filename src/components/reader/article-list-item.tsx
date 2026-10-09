@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { memo, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
@@ -6,7 +7,6 @@ import { StarIcon, UnreadIcon } from "@/design-system";
 import { formatArticleTime } from "@/lib/articles/article-list";
 import { resolveArticleListItemPresentation } from "@/lib/articles/article-list-item-presentation";
 import { focusArticleContentTarget } from "@/lib/reader-focus";
-import { cn } from "@/lib/utils";
 
 type ArticleListItemProps = {
   article: ArticleDto;

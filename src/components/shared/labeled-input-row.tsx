@@ -1,9 +1,9 @@
+import { cn } from "cn";
 import { type KeyboardEventHandler, type ReactNode, type RefObject, useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppTooltip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 
 type LabeledInputRowProps = {
   inputId?: string;

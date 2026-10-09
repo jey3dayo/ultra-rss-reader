@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { type RefObject, useId } from "react";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 type StackedInputFieldProps = {
   label: string;

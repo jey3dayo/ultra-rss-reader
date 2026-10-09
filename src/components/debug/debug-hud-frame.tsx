@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
+import { cn } from "cn";
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
-import { cn } from "@/lib/utils";
 
 const debugHudFrameVariants = cva("", {
   variants: {

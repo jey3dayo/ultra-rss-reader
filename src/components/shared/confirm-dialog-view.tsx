@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { AlertTriangle, CheckCheck, Trash2 } from "lucide-react";
 import {
   type ComponentProps,
@@ -21,7 +22,6 @@ import {
   MOTION_HOLD_CONFIRM_FILL_CLASS_NAME,
   PHRASE_AWARE_TEXT_CLASS_NAME,
 } from "@/constants";
-import { cn } from "@/lib/utils";
 
 type UseHoldToConfirmOptions = {
   enabled: boolean;

@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import type { CSSProperties, ReactNode, Ref } from "react";
-import { cn } from "@/lib/utils";
 
 type FeedTreeSelectableRowProps = {
   rowClassName?: string;

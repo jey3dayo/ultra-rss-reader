@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -5,7 +6,6 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { ContextMenu } from "@/design-system/context-menu";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
-import { cn } from "@/lib/utils";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenuView } from "./article-context-menu-view";

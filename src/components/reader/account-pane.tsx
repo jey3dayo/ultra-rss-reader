@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { type KeyboardEvent as ReactKeyboardEvent, type RefCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
@@ -16,7 +17,6 @@ import {
   focusSidebarSmartViewTargetWhenReady,
   scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
-import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { SidebarNavButton } from "./sidebar-nav-button";
 

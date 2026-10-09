@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import { useTranslation } from "react-i18next";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import type { ToastData } from "@/lib/ui/toast.types";
-import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 import { Button } from "../ui/button";
 import { APP_TOAST_PLACEMENTS, type AppToastPlacement } from "./app-toast-placement";

@@ -1,10 +1,10 @@
+import { cn } from "cn";
 import { type CSSProperties, lazy, type ReactNode, Suspense, useLayoutEffect, useRef } from "react";
 import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { disableHiddenPaneFocus, restoreHiddenPaneFocus } from "@/lib/dom/hidden-pane-focus";
 import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } from "../hooks/use-layout";
 import type { ContentMode, LayoutMode } from "../lib/layout/layout-state.types";
-import { cn } from "../lib/utils";
 import { useUiStore } from "../stores/ui-store";
 import { AppLayoutLazyPaneFallback, type AppLayoutLazyPaneKind } from "./app-layout-lazy-pane-fallback";
 import type { ReaderPassiveLayoutPaneId } from "./reader/hooks/use-reader-passive-layout";

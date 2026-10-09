@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { Trash2 } from "lucide-react";
 import type { ComponentProps } from "react";
 import { stateSurfaceButtonClassName } from "@/components/shared/state-surface-button";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 type DeleteButtonProps = ComponentProps<typeof Button> & {
   showIcon?: boolean;

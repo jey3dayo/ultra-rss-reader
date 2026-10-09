@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import {
   preloadSettingsModalModuleForDev,
@@ -30,7 +31,6 @@ import {
   listenTauriEvent,
   TAURI_EVENT_LISTENER_FAILURE_EVENT,
 } from "../lib/runtime/tauri-event-listeners";
-import { cn } from "../lib/utils";
 import { startWindowDragging } from "../lib/window/tauri-window";
 import { usePlatformStore } from "../stores/platform-store";
 import { usePreferencesStore } from "../stores/preferences-store";

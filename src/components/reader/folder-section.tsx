@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { ChevronDown } from "lucide-react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { MotionNumber } from "@/design-system";
 import { sumUnreadCounts } from "@/lib/sidebar/sidebar";
-import { cn } from "@/lib/utils";
 import { FeedItemView } from "./feed-item";
 
 function getFolderUnreadCount(feeds: FeedDto[]) {

@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { Check, X } from "lucide-react";
 import { type KeyboardEvent, useId, useRef } from "react";
-import { cn } from "@/lib/utils";
 
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 

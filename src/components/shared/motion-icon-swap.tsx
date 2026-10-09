@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import {
   MOTION_DATA_ICON_ATTRIBUTE,
@@ -8,7 +9,6 @@ import {
   MOTION_ICON_SWAP_ICON_CLASS_NAME,
   type MotionIconSwapState,
 } from "@/constants";
-import { cn } from "@/lib/utils";
 
 type MotionIconSwapProps = {
   state: MotionIconSwapState;

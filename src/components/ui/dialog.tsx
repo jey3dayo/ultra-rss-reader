@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
+import { cn } from "cn";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +12,6 @@ import {
   PHRASE_AWARE_TEXT_CLASS_NAME,
 } from "@/constants";
 import { hideElementsOutsideDialog } from "@/lib/dom/top-layer";
-import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 export type DialogProps = DialogPrimitive.Root.Props;

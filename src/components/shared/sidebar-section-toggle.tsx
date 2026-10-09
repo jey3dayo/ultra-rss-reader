@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { cn } from "cn";
 import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
 import { SIDEBAR_RIGHT_RAIL_CLASS_NAME } from "./sidebar-right-rail";
 
 type SidebarSectionToggleProps = {

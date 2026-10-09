@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { controlChipVariants } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type TagPickerTriggerButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   compact?: boolean;

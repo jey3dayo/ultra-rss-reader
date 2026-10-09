@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { ChevronDown, Folder } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { useRef } from "react";
@@ -5,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
-import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type {
   ActiveDropTarget,

@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { NavRowButton } from "@/design-system";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
-import { cn } from "@/lib/utils";
 
 type SettingsNavSelectHandler<TItemId extends string = SettingsNavItemId> = (categoryId: TItemId) => void;
 

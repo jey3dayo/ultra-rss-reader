@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 import type { HTMLAttributes } from "react";
 import { stateToneSurfaceClassNames } from "@/components/shared/state-tone";
-import { cn } from "@/lib/utils";
 
 const labelChipVariants = cva(
   "inline-flex items-center gap-1.5 rounded-full border font-sans font-medium leading-none whitespace-nowrap tabular-nums transition-[color,background-color,border-color] duration-150 ease-standard motion-reduce:transition-none",
