@@ -286,7 +286,7 @@ describe("quality-baseline", () => {
     // Pins the family total so an added/removed rule is caught here, not as a silent drift
     // below. Retired or inactive rules keep a count-0 row as the record of that decision.
     expect(status.classifiedWarningFamiliesCount).toBe(7);
-    expect(status.classifiedFindingCount).toBe(24);
+    expect(status.classifiedFindingCount).toBe(22);
 
     // Do not re-declare the scanned warningCount here: reactDoctorBaselines is not exported
     // (adding an export just for this identity would grow the Knip-tracked export surface, see
