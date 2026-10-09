@@ -103,8 +103,8 @@ const reactDoctorBaselines = {
   full: {
     score: null,
     errorCount: 2,
-    warningCount: 31,
-    affectedFileCount: 31,
+    warningCount: 29,
+    affectedFileCount: 29,
   },
 } as const;
 
@@ -138,14 +138,14 @@ const reactDoctorFullScanTriageStatusBase = {
   // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
-  scanSha: "42e307a17",
+  scanSha: "4b7c5977c",
   pluginVersion: "0.9.17",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
   // Rows in the record that this scan reports, not rows in the record: rows the scan no longer
   // reports stay in place, marked. scripts/check-react-doctor-pin-consistency.ts compares the sets.
-  classifiedFindingCount: 24,
+  classifiedFindingCount: 22,
   classifiedRecordPath: "docs/react-doctor-complexity-classification.md",
   outlierIssue: "https://github.com/jey3dayo/ultra-rss-reader/issues/256",
   classifiedWarningFamilies: [
@@ -283,7 +283,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // fixed finding from a silenced one. auditWarningCount is the same scan with
   // --no-respect-inline-disables, which is the number that moves only when a finding is
   // actually fixed. Re-pin the two together; measured on the same SHA as scanSha.
-  auditWarningCount: 72,
+  auditWarningCount: 70,
   auditScanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
   reportArtifactPath: "tmp/react-doctor-full.json",
