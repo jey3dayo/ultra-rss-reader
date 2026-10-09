@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- 記事一覧の取得に失敗したとき（権限・認証・通信・データ形式）の空状態の文言を、日本語表示でも日本語で出すようにしました。(#375)
+
 ## [0.65.1] - 2026-10-09
 
 ### Bug Fixes
