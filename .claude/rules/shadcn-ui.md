@@ -27,4 +27,4 @@ paths:
 - 複数 feature で使うコンポーネントは `src/components/shared/` に配置
 - ファイル名は kebab-case（`article-list.tsx`）、コンポーネント名は PascalCase
 - 300 行を超えたら分割を検討
-- 分割時は同じディレクトリ内にファイルを抽出する（例: `feed-item.tsx`, `folder-section.tsx`）
+- 分割時は同じディレクトリ内にファイルを抽出する（例: `feed-tree-row.tsx`, `feed-tree-folder-section.tsx`）
