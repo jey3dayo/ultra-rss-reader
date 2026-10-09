@@ -41,28 +41,6 @@ type BuildArticleListBodyEmptyStateParams = Pick<
   onManageSelectedFeed?: (() => void) | null;
 };
 
-const ARTICLE_LIST_FAILURE_EMPTY_STATES = {
-  permission: {
-    emptyMessage: "Permission required",
-    emptyDescription: "The article list is unavailable until access is restored.",
-  },
-  auth: {
-    emptyMessage: "Authentication required",
-    emptyDescription: "Reconnect the account before treating this list as empty.",
-  },
-  network: {
-    emptyMessage: "Cannot refresh articles",
-    emptyDescription: "Check the connection or retry before assuming there are no articles.",
-  },
-  schema: {
-    emptyMessage: "Article data needs recovery",
-    emptyDescription: "The response could not be read. Open logs or contact support.",
-  },
-} as const satisfies Record<
-  ArticleListFailureState,
-  Pick<ArticleListBodyEmptyStateProps, "emptyMessage" | "emptyDescription">
->;
-
 type ArticleListBodyEmptyStateKind = "search" | ArticleListSetupState;
 
 function resolveArticleListBodyEmptyStateKind(
@@ -121,7 +99,8 @@ export function buildArticleListBodyEmptyState({
     case "schema":
       return {
         emptyStateVariant: "setup",
-        ...ARTICLE_LIST_FAILURE_EMPTY_STATES[kind],
+        emptyMessage: t(`article_list_setup_${kind}_title`),
+        emptyDescription: t(`article_list_setup_${kind}_description`),
         emptyActionLabel: undefined,
         onEmptyAction: undefined,
       };
