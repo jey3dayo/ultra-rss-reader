@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useUiStore } from "@/stores/ui-store";
 import {
   type AccountDetailCredentialsEditorResult,
   useAccountDetailCredentialsEditor,
@@ -57,5 +58,13 @@ export function useAccountDetailController({
     ...credentialsEditor,
     ...syncControls,
     ...dangerZone,
+    handleSetupRetry: async () => {
+      if (credentialsEditor.dirtyState.dirty || credentialsEditor.dirtyState.pending) {
+        useUiStore.getState().showToast(t("account.setup_failed_credentials_note"));
+        credentialsEditor.focusCredentialsEditor();
+        return;
+      }
+      await syncControls.handleSetupRetry();
+    },
   };
 }
