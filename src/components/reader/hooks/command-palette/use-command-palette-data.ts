@@ -6,14 +6,10 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTags } from "@/hooks/use-tags";
 import {
-  type CommandPaletteHistoryEntry,
-  parseCommandPaletteHistoryEntry,
-} from "@/lib/command-palette/command-history";
-import {
   getHistory,
-  projectCommandHistoryForExistingEntries,
   writeNormalizedHistoryAfterResourceProjection,
 } from "@/lib/command-palette/command-history-storage";
+import { projectRecentPaletteEntries } from "@/lib/command-palette/recent-palette-entries";
 import type { PaletteAction } from "../../command-palette.types";
 
 type UseCommandPaletteDataParams = {
@@ -221,90 +217,15 @@ export function useCommandPaletteData({
   );
 
   const { recentActions, recentFeeds, recentFolders, recentTags, recentArticles, historyProjection } = useMemo(() => {
-    const actionMap = new Map(actions.map((action) => [action.id, action]));
-    const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
-    const folderMap = new Map(folders.map((folder) => [folder.id, folder]));
-    const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
-    const articleMap = new Map(recentArticleCandidates.map((article) => [article.id, article]));
-    const history = getHistory();
-    const historyEntries = resourcesReady
-      ? projectCommandHistoryForExistingEntries(
-          history,
-          new Set<string>([
-            ...actions.map((action) => `action:${action.id}`),
-            ...feeds.map((feed) => `feed:${feed.id}`),
-            ...folders.map((folder) => `folder:${folder.id}`),
-            ...tags.map((tag) => `tag:${tag.id}`),
-            ...recentArticleCandidates.map((article) => `article:${article.id}`),
-          ]),
-        )
-      : history;
-    const historyProjection = resourcesReady ? { previous: history, next: historyEntries } : null;
-    const entries: CommandPaletteHistoryEntry[] = [];
-    for (const historyEntry of historyEntries) {
-      const entry = parseCommandPaletteHistoryEntry(historyEntry);
-      if (entry !== null) {
-        entries.push(entry);
-      }
-    }
-
-    const recentActions: PaletteAction[] = [];
-    const recentFeeds: FeedDto[] = [];
-    const recentFolders: FolderDto[] = [];
-    const recentTags: TagDto[] = [];
-    const recentArticles: ArticleDto[] = [];
-    const projectedEntryKeys = new Set<string>();
-
-    for (const entry of entries) {
-      const entryKey = `${entry.kind}:${entry.id}`;
-      if (projectedEntryKeys.has(entryKey)) {
-        continue;
-      }
-      projectedEntryKeys.add(entryKey);
-
-      if (entry.kind === "action") {
-        const action = actionMap.get(entry.id);
-        if (action) {
-          recentActions.push(action);
-        }
-        continue;
-      }
-
-      if (!resourcesReady) {
-        continue;
-      }
-
-      if (entry.kind === "feed") {
-        const feed = feedMap.get(entry.id);
-        if (feed) {
-          recentFeeds.push(feed);
-        }
-        continue;
-      }
-
-      if (entry.kind === "folder") {
-        const folder = folderMap.get(entry.id);
-        if (folder) {
-          recentFolders.push(folder);
-        }
-        continue;
-      }
-
-      if (entry.kind === "tag") {
-        const tag = tagMap.get(entry.id);
-        if (tag) {
-          recentTags.push(tag);
-        }
-        continue;
-      }
-
-      const article = articleMap.get(entry.id);
-      if (article) {
-        recentArticles.push(article);
-      }
-    }
-
-    return { recentActions, recentFeeds, recentFolders, recentTags, recentArticles, historyProjection };
+    return projectRecentPaletteEntries({
+      history: getHistory(),
+      resourcesReady,
+      actions,
+      feeds,
+      folders,
+      tags,
+      articles: recentArticleCandidates,
+    });
   }, [actions, feeds, folders, recentArticleCandidates, resourcesReady, tags]);
 
   useEffect(() => {
