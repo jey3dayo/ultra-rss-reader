@@ -977,7 +977,10 @@ fn capture_warnings() -> (LogBuffer, tracing::subscriber::DefaultGuard) {
         .with_max_level(tracing::Level::WARN)
         .with_writer(move || writer.clone())
         .finish();
-    (buffer, tracing::subscriber::set_default(subscriber))
+    let guard = tracing::subscriber::set_default(subscriber);
+    // Callsites first hit by a parallel test thread can keep a stale "never" interest.
+    tracing::callsite::rebuild_interest_cache();
+    (buffer, guard)
 }
 
 fn assert_incomplete_warning(logs: &str, reason: &str, page: usize, entries: usize) {
