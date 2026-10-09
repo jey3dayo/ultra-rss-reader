@@ -51,6 +51,7 @@ pub async fn trigger_sync(
         accounts,
         Some(reporter),
         CredentialLookupMode::Interactive,
+        SyncTrigger::ManualAll,
     )
     .await?;
     if super::should_purge_old_articles_after_sync(result.synced) {

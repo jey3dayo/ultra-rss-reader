@@ -2,7 +2,9 @@ use crate::domain::error::{DomainError, DomainResult};
 use dev_store_file::{read_dev_store, validate_dev_credential_account_id, write_dev_store};
 use dev_store_lock::{delete_dev_password_at_path, with_dev_store_lock};
 use dev_store_path::dev_credentials_path;
-use diagnostics::{log_keyring_access_failed, log_keyring_error, log_sync_read_failed, KeyringOp};
+use diagnostics::{
+    log_keyring_access_failed, log_keyring_error, log_sync_read_gate_failed, KeyringOp,
+};
 #[cfg(any(target_os = "macos", test))]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(any(target_os = "macos", test))]
@@ -72,7 +74,7 @@ where
         match run_gated_read(Arc::clone(&SYNC_CREDENTIAL_LOOKUP_GATE), read).await {
             Ok(result) => result,
             Err(failure) => {
-                log_sync_read_failed(credential_kind, mode, failure.label());
+                log_sync_read_gate_failed(credential_kind, mode, failure.label());
                 Err(failure.into_domain_error())
             }
         }
@@ -98,11 +100,11 @@ where
     match tokio::time::timeout(timeout, tokio::task::spawn_blocking(read)).await {
         Ok(Ok(result)) => result,
         Ok(Err(_)) => {
-            log_sync_read_failed(credential_kind, mode, "join");
+            log_sync_read_gate_failed(credential_kind, mode, "join");
             Err(DomainError::Keychain("Credential lookup failed".into()))
         }
         Err(_) => {
-            log_sync_read_failed(credential_kind, mode, "caller-timeout");
+            log_sync_read_gate_failed(credential_kind, mode, "caller-timeout");
             Err(DomainError::Keychain(
                 "Timed out reading credentials from the OS credential store. Unlock it or re-enter the credentials, then try again.".into(),
             ))
@@ -201,7 +203,13 @@ where
     F: Fn(&str) -> DomainResult<String>,
 {
     let actual_password = read_password(account_id).map_err(|e| {
-        log_keyring_access_failed(CredentialKind::FreshRssPassword, KeyringOp::Verify, "read");
+        if matches!(e, DomainError::Validation(_)) {
+            log_keyring_access_failed(
+                CredentialKind::FreshRssPassword,
+                KeyringOp::Verify,
+                "missing",
+            );
+        }
         DomainError::Keychain(format!("Failed to verify saved password: {e}"))
     })?;
 

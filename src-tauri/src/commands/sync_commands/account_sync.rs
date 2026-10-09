@@ -185,6 +185,7 @@ pub(crate) async fn run_sync_for_accounts_with_progress(
         accounts,
         reporter,
         CredentialLookupMode::Background,
+        SyncTrigger::Background,
     )
     .await
 }
@@ -195,6 +196,7 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
     mode: CredentialLookupMode,
+    trigger: SyncTrigger,
 ) -> Result<SyncResult, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -211,7 +213,7 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     }
     let _guard = SyncGuard(syncing);
 
-    run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode).await
+    run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode, trigger).await
 }
 
 /// Runs the account-sync body assuming the `syncing` flag/[`SyncGuard`] is
@@ -224,12 +226,14 @@ pub(crate) async fn run_sync_for_accounts_guarded(
     db: &Mutex<DbManager>,
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
+    trigger: SyncTrigger,
 ) -> Result<SyncResult, AppError> {
     run_sync_for_accounts_guarded_with_mode(
         db,
         accounts,
         reporter,
         CredentialLookupMode::Background,
+        trigger,
     )
     .await
 }
@@ -239,6 +243,7 @@ async fn run_sync_for_accounts_guarded_with_mode(
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
     mode: CredentialLookupMode,
+    trigger: SyncTrigger,
 ) -> Result<SyncResult, AppError> {
     let total = accounts.len();
     let mut succeeded = 0usize;
@@ -300,14 +305,7 @@ async fn run_sync_for_accounts_guarded_with_mode(
             }
             Err(e) => {
                 warn!(account_id = %account.id.as_ref(), "Sync failed for account: {e}");
-                log_sync_failure(
-                    match mode {
-                        CredentialLookupMode::Background => SyncTrigger::Background,
-                        CredentialLookupMode::Interactive => SyncTrigger::ManualAll,
-                    },
-                    &account.kind,
-                    &e,
-                );
+                log_sync_failure(trigger, &account.kind, &e);
                 failed.push(AccountSyncError {
                     account_id: account.id.as_ref().to_string(),
                     account_name: account.name.clone(),
@@ -473,8 +471,13 @@ pub(crate) async fn run_startup_sync_and_repair(
         // The syncing guard is already held above, so call the guarded body
         // directly rather than `run_sync_for_accounts_with_progress`, which
         // would fail its own CAS against our already-true `syncing` flag.
-        let mut result =
-            run_sync_for_accounts_guarded(db, startup_sync_accounts, Some(reporter)).await?;
+        let mut result = run_sync_for_accounts_guarded(
+            db,
+            startup_sync_accounts,
+            Some(reporter),
+            SyncTrigger::Startup,
+        )
+        .await?;
         result.total += repair_only_accounts.len();
         result.succeeded += repaired_account_ids.len();
         result.failed.extend(repair_failures.clone());

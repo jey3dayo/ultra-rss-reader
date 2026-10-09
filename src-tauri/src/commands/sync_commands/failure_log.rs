@@ -7,6 +7,7 @@ pub(crate) enum SyncTrigger {
     ManualAccount,
     ManualFeed,
     Background,
+    Startup,
     StartupRepair,
 }
 
@@ -17,6 +18,7 @@ impl SyncTrigger {
             Self::ManualAccount => "manual-account",
             Self::ManualFeed => "manual-feed",
             Self::Background => "background",
+            Self::Startup => "startup",
             Self::StartupRepair => "startup-repair",
         }
     }

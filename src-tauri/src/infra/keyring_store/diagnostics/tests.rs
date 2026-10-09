@@ -37,7 +37,7 @@ fn keyring_diagnostic_lines_carry_only_fixed_fields() {
             KeyringOp::Verify,
             "mismatch",
         );
-        log_sync_read_failed(
+        log_sync_read_gate_failed(
             CredentialKind::CloudflareAccess,
             CredentialLookupMode::Interactive,
             "caller-timeout",
@@ -56,7 +56,7 @@ fn keyring_diagnostic_lines_carry_only_fixed_fields() {
         [
             "event=keyring-access-failed credential_kind=cloudflare-access op=save failure_reason=platform",
             "event=keyring-access-failed credential_kind=freshrss-password op=verify failure_reason=mismatch",
-            "event=keyring-read-failed credential_kind=cloudflare-access mode=interactive failure_reason=caller-timeout",
+            "event=keyring-read-gate-failed credential_kind=cloudflare-access mode=interactive failure_reason=caller-timeout",
             "event=keyring-credential-malformed credential_kind=cloudflare-access stage=json",
         ]
     );

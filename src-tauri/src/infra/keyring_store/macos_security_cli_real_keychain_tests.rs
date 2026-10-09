@@ -1,3 +1,4 @@
+use super::CredentialKind;
 use super::{read_credential_from_security_cli_command, read_password_from_security_cli_command};
 use crate::infra::keyring_store::CredentialLookupMode;
 use std::process::{Command, Stdio};
@@ -65,6 +66,7 @@ fn real_keychain_non_ascii_value_is_read_exactly_by_both_readers() {
 
     let credential = read_credential_from_security_cli_command(
         Command::new(super::SECURITY_CLI_PATH),
+        CredentialKind::CloudflareAccess,
         DUMMY_SERVICE,
         DUMMY_ACCOUNT,
         CredentialLookupMode::Background,

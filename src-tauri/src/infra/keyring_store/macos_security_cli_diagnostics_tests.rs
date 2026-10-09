@@ -1,3 +1,4 @@
+use super::CredentialKind;
 use super::{read_credential_from_security_cli_command, read_password_from_security_cli_command};
 use std::time::Duration;
 
@@ -114,7 +115,7 @@ fn read_failure_events_are_emitted_safely_in_isolated_subprocesses() {
         (
             "other-cli-exit",
             Some("cli-exit"),
-            "other",
+            "cloudflare-access",
             "background",
             Some(23),
         ),
@@ -260,7 +261,14 @@ fn exercise_read_failure_scenario(scenario: &str) {
         } else {
             super::super::cloudflare_access::SERVICE
         };
-        read_credential_from_security_cli_command(command, service, ACCOUNT_SENTINEL, mode, timeout)
+        read_credential_from_security_cli_command(
+            command,
+            CredentialKind::CloudflareAccess,
+            service,
+            ACCOUNT_SENTINEL,
+            mode,
+            timeout,
+        )
     };
 
     if scenario == "fresh-missing" {
@@ -276,7 +284,7 @@ fn exercise_read_failure_scenario(scenario: &str) {
         let message = format!("{error:?} {error}");
         for sentinel in [STDERR_SENTINEL, SECRET_SENTINEL, STDOUT_SENTINEL] {
             assert!(
-                !message.contains(sentinel) || scenario.ends_with("cli-exit"),
+                !message.contains(sentinel),
                 "scenario {scenario} error leaked {sentinel}: {message}"
             );
         }

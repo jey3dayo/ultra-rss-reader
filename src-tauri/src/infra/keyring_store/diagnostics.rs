@@ -7,7 +7,7 @@ pub(crate) enum CredentialKind {
 }
 
 impl CredentialKind {
-    fn label(self) -> &'static str {
+    pub(super) fn label(self) -> &'static str {
         match self {
             Self::FreshRssPassword => "freshrss-password",
             Self::CloudflareAccess => "cloudflare-access",
@@ -89,14 +89,14 @@ pub(super) fn log_keyring_error(
     log_keyring_access_failed(credential_kind, op, keyring_failure_reason(error));
 }
 
-pub(super) fn log_sync_read_failed(
+pub(super) fn log_sync_read_gate_failed(
     credential_kind: CredentialKind,
     mode: CredentialLookupMode,
     failure_reason: &str,
 ) {
     log::warn!(
         target: "keyring_store",
-        "event=keyring-read-failed credential_kind={} mode={} failure_reason={}",
+        "event=keyring-read-gate-failed credential_kind={} mode={} failure_reason={}",
         credential_kind.label(),
         mode_label(mode),
         failure_reason

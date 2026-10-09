@@ -1,5 +1,7 @@
 #[cfg(target_os = "macos")]
 use super::dev_store_file::validate_dev_credential_account_id;
+#[cfg(target_os = "macos")]
+use super::diagnostics::CredentialKind;
 #[cfg(any(target_os = "macos", test))]
 use super::redaction::redact_diagnostic_text;
 #[cfg(any(target_os = "macos", test))]
@@ -15,25 +17,6 @@ pub(super) const KEYRING_SECURITY_CLI_TIMEOUT: Duration = Duration::from_secs(5)
 const KEYRING_SECURITY_CLI_RETRY_DELAY: Duration = Duration::from_millis(25);
 #[cfg(target_os = "macos")]
 const SECURITY_CLI_PATH: &str = "/usr/bin/security";
-
-#[cfg(target_os = "macos")]
-#[derive(Clone, Copy)]
-enum CredentialKind {
-    FreshRssPassword,
-    CloudflareAccess,
-    Other,
-}
-
-#[cfg(target_os = "macos")]
-impl CredentialKind {
-    fn label(self) -> &'static str {
-        match self {
-            Self::FreshRssPassword => "freshrss-password",
-            Self::CloudflareAccess => "cloudflare-access",
-            Self::Other => "other",
-        }
-    }
-}
 
 #[cfg(target_os = "macos")]
 #[derive(Clone, Copy)]
@@ -91,15 +74,6 @@ fn log_keyring_read_failure(
         diagnostic.push_str(&format!(" exit_code={code}"));
     }
     log::warn!(target: "keyring_store::macos_security_cli", "{diagnostic}");
-}
-
-#[cfg(target_os = "macos")]
-fn credential_kind_for_service(service: &str) -> CredentialKind {
-    match service {
-        super::SERVICE => CredentialKind::FreshRssPassword,
-        super::cloudflare_access::SERVICE => CredentialKind::CloudflareAccess,
-        _ => CredentialKind::Other,
-    }
 }
 
 #[cfg(test)]
@@ -255,12 +229,14 @@ fn read_password_from_security_cli_command(
 
 #[cfg(target_os = "macos")]
 pub(super) fn get_credential_from_security_cli(
+    credential_kind: CredentialKind,
     service: &str,
     account_id: &str,
     mode: super::CredentialLookupMode,
 ) -> DomainResult<Option<String>> {
     read_credential_from_security_cli_command(
         std::process::Command::new(SECURITY_CLI_PATH),
+        credential_kind,
         service,
         account_id,
         mode,
@@ -271,12 +247,12 @@ pub(super) fn get_credential_from_security_cli(
 #[cfg(target_os = "macos")]
 fn read_credential_from_security_cli_command(
     mut command: std::process::Command,
+    credential_kind: CredentialKind,
     service: &str,
     account_id: &str,
     mode: super::CredentialLookupMode,
     timeout: Duration,
 ) -> DomainResult<Option<String>> {
-    let credential_kind = credential_kind_for_service(service);
     command.args([
         "find-generic-password",
         "-s",

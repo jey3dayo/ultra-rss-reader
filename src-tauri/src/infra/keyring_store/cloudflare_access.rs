@@ -188,9 +188,13 @@ pub(crate) fn load_for_sync_with_mode(
     }
     #[cfg(target_os = "macos")]
     {
-        let raw =
-            super::macos_security_cli::get_credential_from_security_cli(SERVICE, account_id, mode)
-                .map_err(|_| AccessStoreError::Unavailable)?;
+        let raw = super::macos_security_cli::get_credential_from_security_cli(
+            CredentialKind::CloudflareAccess,
+            SERVICE,
+            account_id,
+            mode,
+        )
+        .map_err(|_| AccessStoreError::Unavailable)?;
         raw.map(|raw| decode_bundle(&raw)).transpose()
     }
     #[cfg(not(target_os = "macos"))]
@@ -205,9 +209,7 @@ pub(crate) fn verify_saved_access(
     account_id: &str,
     expected: Option<&CloudflareAccess>,
 ) -> Result<(), AccessStoreError> {
-    let actual = store.load(account_id).inspect_err(|_| {
-        log_keyring_access_failed(CredentialKind::CloudflareAccess, KeyringOp::Verify, "read");
-    })?;
+    let actual = store.load(account_id)?;
     if actual.as_ref() == expected {
         Ok(())
     } else {
