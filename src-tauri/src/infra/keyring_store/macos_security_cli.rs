@@ -13,6 +13,8 @@ use std::time::{Duration, Instant};
 pub(super) const KEYRING_SECURITY_CLI_TIMEOUT: Duration = Duration::from_secs(5);
 #[cfg(target_os = "macos")]
 const KEYRING_SECURITY_CLI_RETRY_DELAY: Duration = Duration::from_millis(25);
+#[cfg(target_os = "macos")]
+const SECURITY_CLI_PATH: &str = "/usr/bin/security";
 
 #[cfg(target_os = "macos")]
 #[derive(Clone, Copy)]
@@ -42,6 +44,7 @@ enum KeyringReadFailureReason {
     Timeout,
     CliExit,
     InvalidEncoding,
+    ParseOutput,
 }
 
 #[cfg(target_os = "macos")]
@@ -54,6 +57,7 @@ impl KeyringReadFailureReason {
             Self::Timeout => "timeout",
             Self::CliExit => "cli-exit",
             Self::InvalidEncoding => "invalid-encoding",
+            Self::ParseOutput => "parse-output",
         }
     }
 }
@@ -181,7 +185,8 @@ pub(super) fn get_password_from_security_cli(
     mode: super::CredentialLookupMode,
 ) -> DomainResult<String> {
     read_password_from_security_cli_command(
-        std::process::Command::new("security"),
+        std::process::Command::new(SECURITY_CLI_PATH),
+        super::SERVICE,
         account_id,
         mode,
         mode.timeout(),
@@ -191,6 +196,7 @@ pub(super) fn get_password_from_security_cli(
 #[cfg(target_os = "macos")]
 fn read_password_from_security_cli_command(
     mut command: std::process::Command,
+    service: &str,
     account_id: &str,
     mode: super::CredentialLookupMode,
     timeout: Duration,
@@ -199,10 +205,10 @@ fn read_password_from_security_cli_command(
     command.args([
         "find-generic-password",
         "-s",
-        super::SERVICE,
+        service,
         "-a",
         account_id,
-        "-w",
+        "-g",
     ]);
     let output = run_keyring_read_command(command, timeout).map_err(|failure| {
         failure.log(CredentialKind::FreshRssPassword, mode, timeout);
@@ -210,29 +216,27 @@ fn read_password_from_security_cli_command(
     })?;
 
     if output.output.status.success() {
-        let password = String::from_utf8(output.output.stdout)
-            .map_err(|error| {
-                log_keyring_read_failure(
-                    CredentialKind::FreshRssPassword,
-                    mode,
-                    KeyringReadFailureReason::InvalidEncoding,
-                    output.elapsed,
-                    timeout,
-                    None,
-                    None,
-                );
-                DomainError::Keychain(format!(
-                    "Failed to decode password from macOS Keychain CLI: {error}"
-                ))
-            })?
-            .trim_end_matches(['\r', '\n'])
-            .to_string();
+        let password = parse_security_cli_password(&output.output.stderr).map_err(|failure| {
+            log_keyring_read_failure(
+                CredentialKind::FreshRssPassword,
+                mode,
+                failure.reason(),
+                output.elapsed,
+                timeout,
+                None,
+                None,
+            );
+            failure.into_password_error()
+        })?;
         if password.is_empty() {
             return Err(super::missing_password_error());
         }
         return Ok(password);
     }
 
+    if output.output.status.code() == Some(ERR_SEC_ITEM_NOT_FOUND_EXIT_CODE) {
+        return Err(super::missing_password_error());
+    }
     log_keyring_read_failure(
         CredentialKind::FreshRssPassword,
         mode,
@@ -256,7 +260,7 @@ pub(super) fn get_credential_from_security_cli(
     mode: super::CredentialLookupMode,
 ) -> DomainResult<Option<String>> {
     read_credential_from_security_cli_command(
-        std::process::Command::new("security"),
+        std::process::Command::new(SECURITY_CLI_PATH),
         service,
         account_id,
         mode,
@@ -279,7 +283,7 @@ fn read_credential_from_security_cli_command(
         service,
         "-a",
         account_id,
-        "-w",
+        "-g",
     ]);
     let output = run_keyring_read_command(command, timeout).map_err(|failure| {
         failure.log(credential_kind, mode, timeout);
@@ -309,15 +313,99 @@ fn decode_credential_output_with_failure(
     output: std::process::Output,
 ) -> Result<Option<String>, CredentialOutputFailure> {
     if output.status.success() {
-        let value = String::from_utf8(output.stdout)
-            .map_err(|_| CredentialOutputFailure::InvalidEncoding)?;
-        // `security -w` appends one newline; preserve opaque credential bytes.
-        return Ok(Some(value.strip_suffix('\n').unwrap_or(&value).to_string()));
+        return parse_security_cli_password(&output.stderr)
+            .map(Some)
+            .map_err(CredentialOutputFailure::from);
     }
-    if output.status.code() == Some(44) {
+    if output.status.code() == Some(ERR_SEC_ITEM_NOT_FOUND_EXIT_CODE) {
         return Ok(None);
     }
     Err(CredentialOutputFailure::CliExit(output.status.code()))
+}
+
+#[cfg(target_os = "macos")]
+const ERR_SEC_ITEM_NOT_FOUND_EXIT_CODE: i32 = 44;
+
+#[cfg(target_os = "macos")]
+enum PasswordParseFailure {
+    Unparseable,
+    InvalidEncoding,
+}
+
+#[cfg(target_os = "macos")]
+impl PasswordParseFailure {
+    fn reason(&self) -> KeyringReadFailureReason {
+        match self {
+            Self::Unparseable => KeyringReadFailureReason::ParseOutput,
+            Self::InvalidEncoding => KeyringReadFailureReason::InvalidEncoding,
+        }
+    }
+
+    fn into_password_error(self) -> DomainError {
+        DomainError::Keychain(
+            match self {
+                Self::Unparseable => "Failed to parse password from macOS Keychain CLI output",
+                Self::InvalidEncoding => "Failed to decode password from macOS Keychain CLI",
+            }
+            .into(),
+        )
+    }
+}
+
+/// Parses the `password:` line that `security -g` writes to stderr. `-w` is not
+/// used because it prints non-ASCII or backslash-containing values as bare hex.
+/// Errors carry no output bytes because the line holds the secret.
+#[cfg(target_os = "macos")]
+fn parse_security_cli_password(stderr: &[u8]) -> Result<String, PasswordParseFailure> {
+    let remainder = stderr
+        .split(|byte| *byte == b'\n')
+        .find_map(|line| line.strip_prefix(b"password:"))
+        .ok_or(PasswordParseFailure::Unparseable)?;
+    let remainder = remainder.strip_prefix(b" ").unwrap_or(remainder);
+    let bytes = match remainder.first() {
+        None => Vec::new(),
+        Some(b'"') => {
+            let end = remainder
+                .iter()
+                .rposition(|byte| *byte == b'"')
+                .filter(|end| *end > 0)
+                .ok_or(PasswordParseFailure::Unparseable)?;
+            remainder[1..end].to_vec()
+        }
+        Some(_) => decode_hex_password(remainder)?,
+    };
+    String::from_utf8(bytes).map_err(|_| PasswordParseFailure::InvalidEncoding)
+}
+
+#[cfg(target_os = "macos")]
+fn decode_hex_password(remainder: &[u8]) -> Result<Vec<u8>, PasswordParseFailure> {
+    let digits = remainder
+        .strip_prefix(b"0x")
+        .ok_or(PasswordParseFailure::Unparseable)?;
+    let digits = digits
+        .split(|byte| byte.is_ascii_whitespace())
+        .next()
+        .unwrap_or_default();
+    if digits.is_empty() || digits.len() % 2 != 0 {
+        return Err(PasswordParseFailure::Unparseable);
+    }
+    let (pairs, _) = digits.as_chunks::<2>();
+    pairs
+        .iter()
+        .map(|pair| {
+            let high = hex_digit_value(pair[0])?;
+            let low = hex_digit_value(pair[1])?;
+            Ok(high << 4 | low)
+        })
+        .collect()
+}
+
+#[cfg(target_os = "macos")]
+fn hex_digit_value(digit: u8) -> Result<u8, PasswordParseFailure> {
+    char::from(digit)
+        .to_digit(16)
+        .and_then(|value| u8::try_from(value).ok())
+        .ok_or(PasswordParseFailure::Unparseable)
 }
 
 #[cfg(target_os = "macos")]
@@ -441,7 +529,18 @@ fn run_keyring_read_command(
 #[cfg(target_os = "macos")]
 enum CredentialOutputFailure {
     InvalidEncoding,
+    ParseOutput,
     CliExit(Option<i32>),
+}
+
+#[cfg(target_os = "macos")]
+impl From<PasswordParseFailure> for CredentialOutputFailure {
+    fn from(failure: PasswordParseFailure) -> Self {
+        match failure {
+            PasswordParseFailure::Unparseable => Self::ParseOutput,
+            PasswordParseFailure::InvalidEncoding => Self::InvalidEncoding,
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -449,13 +548,14 @@ impl CredentialOutputFailure {
     fn reason(&self) -> KeyringReadFailureReason {
         match self {
             Self::InvalidEncoding => KeyringReadFailureReason::InvalidEncoding,
+            Self::ParseOutput => KeyringReadFailureReason::ParseOutput,
             Self::CliExit(_) => KeyringReadFailureReason::CliExit,
         }
     }
 
     fn exit_code(&self) -> Option<i32> {
         match self {
-            Self::InvalidEncoding => None,
+            Self::InvalidEncoding | Self::ParseOutput => None,
             Self::CliExit(code) => *code,
         }
     }
@@ -464,6 +564,9 @@ impl CredentialOutputFailure {
         match self {
             Self::InvalidEncoding => {
                 DomainError::Keychain("Invalid OS keyring entry encoding".into())
+            }
+            Self::ParseOutput => {
+                DomainError::Keychain("Failed to parse OS keyring entry output".into())
             }
             Self::CliExit(_) => DomainError::Keychain(
                 "Could not read OS keyring entry. Allow keyring access and try again.".into(),
@@ -526,6 +629,54 @@ mod tests {
         .success());
     }
 
+    fn parse(stderr: &str) -> Option<String> {
+        super::parse_security_cli_password(stderr.as_bytes()).ok()
+    }
+
+    #[test]
+    fn parses_quoted_and_hex_password_lines_from_security_g_output() {
+        for (stderr, expected) in [
+            ("password: \"0x41\"\n", "0x41"),
+            ("password: \"c3a9\"\n", "c3a9"),
+            (
+                "password: \"{\"client_id\":\"x\",\"client_secret\":\"y\"}\"\n",
+                "{\"client_id\":\"x\",\"client_secret\":\"y\"}",
+            ),
+            (
+                "keychain: \"/x\"\nversion: 512\npassword: 0x70C3A4737377C3B672642DE38386E382B9E38388  \"p\\303\\244ssw\\303\\266rd-\\343\\203\\206\\343\\202\\271\\343\\203\\210\"\n",
+                "pässwörd-テスト",
+            ),
+            (
+                "password: 0x77697468202271756F74652220616E64205C6261636B  \"with \"quote\" and \\134back\"\n",
+                "with \"quote\" and \\back",
+            ),
+            ("password: 0x6162\n", "ab"),
+            ("password: \n", ""),
+        ] {
+            assert_eq!(parse(stderr).as_deref(), Some(expected), "{stderr}");
+        }
+    }
+
+    #[test]
+    fn malformed_security_g_output_fails_without_leaking_stderr() {
+        let sentinel = "leak-sentinel";
+        for stderr in [
+            format!("{sentinel}\n"),
+            String::new(),
+            format!("password: 0x123 {sentinel}\n"),
+            format!("password: 0xZZ {sentinel}\n"),
+            format!("password: 0x {sentinel}\n"),
+            format!("password: {sentinel}\n"),
+            format!("password: \"{sentinel}\n"),
+        ] {
+            let Err(failure) = super::parse_security_cli_password(stderr.as_bytes()) else {
+                panic!("expected parse failure for {stderr:?}");
+            };
+            let message = format!("{}", failure.into_password_error());
+            assert!(!message.contains(sentinel), "{message}");
+        }
+    }
+
     #[test]
     fn force_delete_keychain_entry_ignores_cli_timeout() {
         let mut command = std::process::Command::new("sh");
@@ -537,22 +688,26 @@ mod tests {
     #[test]
     fn cloudflare_access_security_output_distinguishes_absence_and_redacts_failures() {
         use std::os::unix::process::ExitStatusExt;
-        let output = |code, stdout: Vec<u8>| std::process::Output {
+        let output = |code, stderr: &[u8]| std::process::Output {
             status: std::process::ExitStatus::from_raw(code << 8),
-            stdout,
-            stderr: b"cfast_dummy_secret".to_vec(),
+            stdout: vec![],
+            stderr: stderr.to_vec(),
         };
         assert_eq!(
-            super::decode_credential_output(output(44, vec![])).unwrap(),
+            super::decode_credential_output(output(44, b"")).unwrap(),
             None
         );
         assert_eq!(
-            super::decode_credential_output(output(0, b"dummy-json\n".to_vec()))
+            super::decode_credential_output(output(0, b"password: \"dummy-json\"\n"))
                 .unwrap()
                 .as_deref(),
             Some("dummy-json")
         );
-        for response in [output(36, vec![]), output(0, vec![0xff])] {
+        for response in [
+            output(36, b"cfast_dummy_secret"),
+            output(0, b"cfast_dummy_secret"),
+            output(0, b"password: 0xFF\n"),
+        ] {
             let error = super::decode_credential_output(response).unwrap_err();
             assert!(!format!("{error:?} {error}").contains("cfast_dummy_secret"));
         }
@@ -562,3 +717,7 @@ mod tests {
 #[cfg(all(test, target_os = "macos"))]
 #[path = "macos_security_cli_diagnostics_tests.rs"]
 mod diagnostics_tests;
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "macos_security_cli_real_keychain_tests.rs"]
+mod real_keychain_tests;
