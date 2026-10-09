@@ -22,6 +22,7 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::feed::FeedRepository;
 
+use super::failure_log::{log_local_feed_fetch_failure, log_sync_failure, SyncTrigger};
 use super::local_import_export::{
     local_feed_sync_warning, local_provider, run_local_account_auto_export,
     run_local_account_auto_import,
@@ -62,6 +63,7 @@ pub(crate) async fn sync_account_with_mode(
                         host_class = redacted_feed_host_class(&feed.url),
                         "Failed to pull entries for local feed: {error}"
                     );
+                    log_local_feed_fetch_failure(redacted_feed_host_class(&feed.url), &error);
                     warnings.push(local_feed_sync_warning(feed, &error));
                 }
             }
@@ -298,6 +300,14 @@ async fn run_sync_for_accounts_guarded_with_mode(
             }
             Err(e) => {
                 warn!(account_id = %account.id.as_ref(), "Sync failed for account: {e}");
+                log_sync_failure(
+                    match mode {
+                        CredentialLookupMode::Background => SyncTrigger::Background,
+                        CredentialLookupMode::Interactive => SyncTrigger::ManualAll,
+                    },
+                    &account.kind,
+                    &e,
+                );
                 failed.push(AccountSyncError {
                     account_id: account.id.as_ref().to_string(),
                     account_name: account.name.clone(),
@@ -408,12 +418,15 @@ pub(crate) async fn run_startup_sync_and_repair(
         match GReaderSession::establish(account).await {
             Ok(session) => match repair_greader_remote_state(db, account, &session).await {
                 Ok(()) => repaired_account_ids.push(account.id.as_ref().to_string()),
-                Err(error) => repair_failures.push(AccountSyncError {
-                    account_id: account.id.as_ref().to_string(),
-                    account_name: account.name.clone(),
-                    action_owner: Some(sync_issue_owner_for_app_error(&error)),
-                    message: error.to_string(),
-                }),
+                Err(error) => {
+                    log_sync_failure(SyncTrigger::StartupRepair, &account.kind, &error);
+                    repair_failures.push(AccountSyncError {
+                        account_id: account.id.as_ref().to_string(),
+                        account_name: account.name.clone(),
+                        action_owner: Some(sync_issue_owner_for_app_error(&error)),
+                        message: error.to_string(),
+                    });
+                }
             },
             Err(error @ SessionError::MissingUsername) => {
                 error.log_skip_with_context(account, "remote-state repair");
@@ -421,6 +434,7 @@ pub(crate) async fn run_startup_sync_and_repair(
             }
             Err(error @ SessionError::MissingServerUrl) => {
                 let error = error.into_user_visible();
+                log_sync_failure(SyncTrigger::StartupRepair, &account.kind, &error);
                 repair_failures.push(AccountSyncError {
                     account_id: account.id.as_ref().to_string(),
                     account_name: account.name.clone(),
@@ -428,12 +442,15 @@ pub(crate) async fn run_startup_sync_and_repair(
                     message: error.to_string(),
                 });
             }
-            Err(SessionError::Auth(error)) => repair_failures.push(AccountSyncError {
-                account_id: account.id.as_ref().to_string(),
-                account_name: account.name.clone(),
-                action_owner: Some(sync_issue_owner_for_app_error(&error)),
-                message: error.to_string(),
-            }),
+            Err(SessionError::Auth(error)) => {
+                log_sync_failure(SyncTrigger::StartupRepair, &account.kind, &error);
+                repair_failures.push(AccountSyncError {
+                    account_id: account.id.as_ref().to_string(),
+                    account_name: account.name.clone(),
+                    action_owner: Some(sync_issue_owner_for_app_error(&error)),
+                    message: error.to_string(),
+                });
+            }
         }
     }
 

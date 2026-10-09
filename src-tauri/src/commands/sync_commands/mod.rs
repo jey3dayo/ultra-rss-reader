@@ -1,4 +1,5 @@
 mod account_sync;
+mod failure_log;
 mod local_import_export;
 mod manual;
 mod progress;
@@ -13,6 +14,7 @@ pub use account_sync::run_full_sync;
 pub(crate) use account_sync::sync_account;
 #[cfg(test)]
 pub(crate) use account_sync::sync_feed;
+pub(crate) use failure_log::{log_sync_failure, SyncTrigger};
 
 #[cfg(not(test))]
 pub(crate) use manual::{

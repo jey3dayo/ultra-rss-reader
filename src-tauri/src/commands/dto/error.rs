@@ -73,6 +73,28 @@ impl From<DomainError> for AppError {
     }
 }
 
+impl AppError {
+    /// Static label safe for release logs; never derived from message content.
+    pub fn diagnostic_kind(&self) -> &'static str {
+        match self {
+            AppError::UserVisible { message } => {
+                const PREFIXED_KINDS: [(&str, &str); 5] = [
+                    ("Keychain error:", "keychain"),
+                    ("Auth error:", "auth"),
+                    ("Validation error:", "validation"),
+                    ("Persistence error:", "persistence"),
+                    ("Parse error:", "parse"),
+                ];
+                PREFIXED_KINDS
+                    .iter()
+                    .find(|(prefix, _)| message.starts_with(prefix))
+                    .map_or("user-visible", |(_, kind)| kind)
+            }
+            AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. } => "retryable",
+        }
+    }
+}
+
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -117,6 +139,29 @@ mod tests {
         UserFacingErrorSupportPolicy,
     };
     use crate::domain::error::DomainError;
+
+    #[test]
+    fn diagnostic_kind_is_a_static_label_without_message_text() {
+        const SENTINEL: &str = "https://secret-sentinel.invalid/acct-42";
+        let errors = [
+            AppError::UserVisible {
+                message: SENTINEL.to_string(),
+            },
+            AppError::from(DomainError::Keychain(SENTINEL.to_string())),
+            AppError::from(DomainError::Auth(SENTINEL.to_string())),
+            AppError::from(DomainError::Network(SENTINEL.to_string())),
+            AppError::RetryableWithMetadata {
+                message: SENTINEL.to_string(),
+                retry_after_seconds: Some(30),
+            },
+        ];
+        let kinds: Vec<&str> = errors.iter().map(AppError::diagnostic_kind).collect();
+        assert!(kinds.iter().all(|kind| !kind.contains("sentinel")));
+        assert_eq!(
+            kinds,
+            ["user-visible", "keychain", "auth", "retryable", "retryable"]
+        );
+    }
 
     #[test]
     fn domain_network_error_maps_to_retryable_app_error() {

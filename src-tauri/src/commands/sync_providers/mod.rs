@@ -157,9 +157,13 @@ where
     let account_id = account_id.to_string();
     #[cfg(target_os = "macos")]
     {
-        keyring_store::read_for_sync(mode, move || read_password(account_id))
-            .await
-            .map_err(AppError::from)
+        keyring_store::read_for_sync(
+            keyring_store::CredentialKind::FreshRssPassword,
+            mode,
+            move || read_password(account_id),
+        )
+        .await
+        .map_err(AppError::from)
     }
     #[cfg(not(target_os = "macos"))]
     {
@@ -181,10 +185,10 @@ where
     tokio::time::timeout(timeout, tokio::task::spawn_blocking(move || read_password(account_id)))
         .await
         .map_err(|_| AppError::from(DomainError::Keychain(
-            "Timed out reading password from macOS Keychain. Unlock Keychain Access or re-enter the account password, then try again.".into(),
+            "Timed out reading password from the OS credential store. Unlock it or re-enter the account password, then try again.".into(),
         )))?
         .map_err(|error| AppError::from(DomainError::Keychain(format!(
-            "Failed to read password from macOS Keychain: {error}"
+            "Failed to read password from the OS credential store: {error}"
         ))))?
         .map_err(AppError::from)
 }

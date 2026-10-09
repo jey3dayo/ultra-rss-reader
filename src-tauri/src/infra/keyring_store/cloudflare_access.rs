@@ -7,6 +7,11 @@ use thiserror::Error;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::validate_user_provided_server_url;
 
+use super::diagnostics::{
+    log_credential_malformed, log_keyring_access_failed, log_keyring_error, CredentialKind,
+    KeyringOp,
+};
+
 pub(super) const SERVICE: &str = "ultra-rss-reader-cloudflare-access";
 pub(crate) const CLIENT_ID_HEADER: &str = "cf-access-client-id";
 pub(crate) const CLIENT_SECRET_HEADER: &str = "cf-access-client-secret";
@@ -99,15 +104,15 @@ pub(crate) struct OsCloudflareAccessStore;
 
 impl OsCloudflareAccessStore {
     fn raw(&self, account_id: &str) -> Result<Option<String>, AccessStoreError> {
-        match Self::entry(account_id)?.get_password() {
+        match Self::entry(account_id, KeyringOp::Load)?.get_password() {
             Ok(value) => Ok(Some(value)),
             Err(keyring::Error::NoEntry) => Ok(None),
-            Err(_) => Err(AccessStoreError::Unavailable),
+            Err(error) => Err(unavailable(KeyringOp::Load, &error)),
         }
     }
 
-    fn entry(account_id: &str) -> Result<keyring::Entry, AccessStoreError> {
-        keyring::Entry::new(SERVICE, account_id).map_err(|_| AccessStoreError::Unavailable)
+    fn entry(account_id: &str, op: KeyringOp) -> Result<keyring::Entry, AccessStoreError> {
+        keyring::Entry::new(SERVICE, account_id).map_err(|error| unavailable(op, &error))
     }
 }
 
@@ -125,16 +130,16 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
             https_origin: access.https_origin.clone(),
         })
         .map_err(|_| AccessStoreError::Malformed)?;
-        Self::entry(account_id)?
+        Self::entry(account_id, KeyringOp::Save)?
             .set_password(&value)
-            .map_err(|_| AccessStoreError::Unavailable)?;
+            .map_err(|error| unavailable(KeyringOp::Save, &error))?;
         verify_saved_access(self, account_id, Some(access))
     }
 
     fn remove(&self, account_id: &str) -> Result<(), AccessStoreError> {
-        match Self::entry(account_id)?.delete_credential() {
+        match Self::entry(account_id, KeyringOp::Remove)?.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => {}
-            Err(_) => return Err(AccessStoreError::Unavailable),
+            Err(error) => return Err(unavailable(KeyringOp::Remove, &error)),
         }
         verify_saved_access(self, account_id, None)
     }
@@ -153,12 +158,13 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
             AccessSnapshot::Missing => self.remove(account_id),
             AccessSnapshot::Configured(access) => self.save(account_id, access),
             AccessSnapshot::Malformed(raw) => {
-                Self::entry(account_id)?
+                Self::entry(account_id, KeyringOp::Restore)?
                     .set_password(raw)
-                    .map_err(|_| AccessStoreError::Unavailable)?;
+                    .map_err(|error| unavailable(KeyringOp::Restore, &error))?;
                 if self.raw(account_id)?.as_ref() == Some(raw) {
                     Ok(())
                 } else {
+                    log_verification_mismatch();
                     Err(AccessStoreError::Verification)
                 }
             }
@@ -199,11 +205,33 @@ pub(crate) fn verify_saved_access(
     account_id: &str,
     expected: Option<&CloudflareAccess>,
 ) -> Result<(), AccessStoreError> {
-    if store.load(account_id)?.as_ref() == expected {
+    let actual = store.load(account_id).inspect_err(|_| {
+        log_keyring_access_failed(CredentialKind::CloudflareAccess, KeyringOp::Verify, "read");
+    })?;
+    if actual.as_ref() == expected {
         Ok(())
     } else {
+        log_verification_mismatch();
         Err(AccessStoreError::Verification)
     }
+}
+
+fn log_verification_mismatch() {
+    log_keyring_access_failed(
+        CredentialKind::CloudflareAccess,
+        KeyringOp::Verify,
+        "mismatch",
+    );
+}
+
+fn unavailable(op: KeyringOp, error: &keyring::Error) -> AccessStoreError {
+    log_keyring_error(CredentialKind::CloudflareAccess, op, error);
+    AccessStoreError::Unavailable
+}
+
+fn malformed(stage: &str) -> AccessStoreError {
+    log_credential_malformed(CredentialKind::CloudflareAccess, stage);
+    AccessStoreError::Malformed
 }
 
 impl CloudflareAccess {
@@ -275,16 +303,23 @@ pub(crate) fn https_origin(server_url: &str) -> DomainResult<String> {
 }
 
 fn decode_bundle(value: &str) -> Result<CloudflareAccess, AccessStoreError> {
-    let stored: StoredBundle =
-        serde_json::from_str(value).map_err(|_| AccessStoreError::Malformed)?;
+    let stored: StoredBundle = serde_json::from_str(value).map_err(|_| malformed("json"))?;
     let access = CloudflareAccess::new(
         &stored.client_id,
         &stored.client_secret,
         &stored.https_origin,
     )
-    .map_err(|_| AccessStoreError::Malformed)?;
+    .map_err(|_| {
+        if validate_header(&stored.client_id).is_err()
+            || validate_header(&stored.client_secret).is_err()
+        {
+            malformed("header")
+        } else {
+            malformed("origin")
+        }
+    })?;
     if access.https_origin != stored.https_origin {
-        return Err(AccessStoreError::Malformed);
+        return Err(malformed("origin"));
     }
     Ok(access)
 }

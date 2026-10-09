@@ -8,6 +8,16 @@ pub enum ProviderKind {
     Quarantined,
 }
 
+impl ProviderKind {
+    pub fn diagnostic_label(&self) -> &'static str {
+        match self {
+            Self::Local => "local",
+            Self::FreshRss => "freshrss",
+            Self::Quarantined => "quarantined",
+        }
+    }
+}
+
 /// GReader protocol stream-id prefix for feed-backed streams (e.g.
 /// `feed/https://example.com/rss`). Single owner for the identity check used
 /// by both Rust predicates and raw SQL `LIKE` construction, so a prefix
