@@ -6,7 +6,7 @@ use dev_store_path::dev_credentials_path;
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(any(target_os = "macos", test))]
 use std::sync::Arc;
-#[cfg(any(target_os = "macos", test))]
+#[cfg(target_os = "macos")]
 use std::time::Duration;
 
 pub(crate) mod cloudflare_access;
@@ -52,23 +52,17 @@ impl Drop for PendingLookup {
     }
 }
 
-pub(crate) async fn read_for_sync<T, F>(mode: CredentialLookupMode, read: F) -> DomainResult<T>
+pub(crate) async fn read_for_sync<T, F>(_mode: CredentialLookupMode, read: F) -> DomainResult<T>
 where
     T: Send + 'static,
     F: FnOnce() -> DomainResult<T> + Send + 'static,
 {
     #[cfg(target_os = "macos")]
     {
-        read_for_sync_with_gate(
-            Arc::clone(&SYNC_CREDENTIAL_LOOKUP_GATE),
-            mode.timeout(),
-            read,
-        )
-        .await
+        read_for_sync_with_gate(Arc::clone(&SYNC_CREDENTIAL_LOOKUP_GATE), read).await
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = mode;
         tokio::task::spawn_blocking(read)
             .await
             .map_err(|_| DomainError::Keychain("Credential lookup failed".into()))?
@@ -78,17 +72,17 @@ where
 #[cfg(any(target_os = "macos", test))]
 async fn read_for_sync_with_gate<T, F>(
     gate: Arc<tokio::sync::Semaphore>,
-    queue_timeout: Duration,
     read: F,
 ) -> DomainResult<T>
 where
     T: Send + 'static,
     F: FnOnce() -> DomainResult<T> + Send + 'static,
 {
-    // Only the queue wait can be cancelled by a Tokio timeout. The child owns its deadline.
-    let permit = tokio::time::timeout(queue_timeout, gate.acquire_owned())
+    // Queued accounts must not spend their child-process deadline waiting for another read.
+    // Dropping the caller cancels this wait; a running child retains its own bounded deadline.
+    let permit = gate
+        .acquire_owned()
         .await
-        .map_err(|_| DomainError::Keychain("Timed out waiting for credential lookup".into()))?
         .map_err(|_| DomainError::Keychain("Credential lookup is unavailable".into()))?;
     let cancelled = Arc::new(AtomicBool::new(false));
     let _pending = PendingLookup(Arc::clone(&cancelled));

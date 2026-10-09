@@ -330,7 +330,7 @@
     "setup_syncing_action": "セットアップ中…",
     "setup_failed_heading": "セットアップを完了できませんでした",
     "setup_failed_description": "認証情報またはサーバー状態を確認してから、もう一度試してください。",
-    "setup_failed_credentials_note": "下のサーバーURL、ユーザー名、パスワードを修正してから、セットアップを再試行できます。",
+    "setup_failed_credentials_note": "下の認証情報を修正したら、「保存して接続確認」を押してからセットアップを再試行してください。",
     "setup_retry": "再試行",
     "setup_edit_credentials": "認証情報を修正",
     "recovery_credentials_label": "認証情報リセット",

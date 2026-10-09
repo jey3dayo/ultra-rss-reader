@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import i18n from "@tests/helpers/i18n-setup";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
@@ -919,6 +920,78 @@ describe("AccountDetail", () => {
     expect(screen.getByRole("button", { name: "Retry setup" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit credentials" })).toBeInTheDocument();
   });
+
+  it.each(["username", "password", "access-removal"])(
+    "blocks setup retry until the %s draft is saved and its connection check finishes",
+    async (field) => {
+      const user = userEvent.setup();
+      const calls: string[] = [];
+      const verification = createDeferred<AccountDto>();
+      let account: AccountDto = {
+        id: "acc-1",
+        kind: "FreshRss",
+        name: "FreshRSS",
+        username: "user",
+        server_url: "https://freshrss.example.com",
+        sync_interval_secs: 3600,
+        sync_on_startup: true,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+      };
+      setupTauriMocks((cmd, args) => {
+        calls.push(cmd);
+        switch (cmd) {
+          case "list_accounts":
+            return [account];
+          case "get_account_cloudflare_access":
+            return { client_id: "dummy-id" };
+          case "update_account_credentials":
+            account = { ...account, username: String(args.username) };
+            return account;
+          case "test_account_connection":
+            return verification.promise;
+          case "trigger_sync_account":
+            return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };
+          default:
+            return null;
+        }
+      });
+      useUiStore.setState({
+        accountSetupSession: {
+          accountId: account.id,
+          owner: "add-account",
+          state: "failed",
+          errorMessage: "Authentication failed",
+        },
+      });
+      render(<AccountDetail />, { wrapper: createWrapper() });
+      await screen.findByRole("button", { name: "Retry setup" });
+      if (field === "password") {
+        await user.type(await findPasswordInput(), "dummy-new-password");
+      } else if (field === "username") {
+        const input = screen.getByRole("textbox", { name: "Username" });
+        await user.clear(input);
+        await user.type(input, "new-user");
+      } else {
+        await user.click(await screen.findByRole("switch", { name: "Cloudflare Access" }));
+      }
+      await user.click(screen.getByRole("button", { name: "Retry setup" }));
+      expect(calls).not.toContain("trigger_sync_account");
+      expect(calls).not.toContain("update_account_credentials");
+      expect(useUiStore.getState().accountSetupSession?.state).toBe("failed");
+      expect(useUiStore.getState().toastMessage?.message).toContain("Save & Test Connection");
+
+      await user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
+      await waitFor(() => expect(calls).toContain("test_account_connection"));
+      await user.click(screen.getByRole("button", { name: "Retry setup" }));
+      expect(calls).not.toContain("trigger_sync_account");
+      await act(async () => verification.resolve({ ...account, connection_verification_status: "verified" }));
+      await screen.findByRole("button", { name: "Check Connection" });
+      await user.click(screen.getByRole("button", { name: "Retry setup" }));
+      await waitFor(() => expect(calls).toContain("trigger_sync_account"));
+      expect(calls.indexOf("update_account_credentials")).toBeLessThan(calls.indexOf("trigger_sync_account"));
+    },
+  );
 
   it("closes settings and lands on unread after setup retry succeeds", async () => {
     const user = userEvent.setup();
