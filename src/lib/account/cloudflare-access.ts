@@ -74,3 +74,86 @@ export function matchCloudflareAccessUpdate<T>(
     ? handlers.success(Result.unwrap(updateResult))
     : handlers.failure(Result.unwrapError(updateResult));
 }
+
+export type CloudflareAccessDraftStateInput = {
+  status: "loading" | "ready" | "error" | "unavailable";
+  enabled: boolean;
+  removalRequested: boolean;
+  recoveryAction: "replace" | "remove" | null;
+  clientId: string;
+  clientSecret: string;
+  savedClientId: string | null;
+  savedOrigin: string | null;
+  serverUrl: string;
+};
+
+export type CloudflareAccessDraftState = {
+  validationError: CloudflareAccessDraftError | null;
+  update: CloudflareAccessUpdate | undefined;
+  dirty: boolean;
+};
+
+type CloudflareAccessResolution = Result.Result<CloudflareAccessUpdate, CloudflareAccessDraftError>;
+
+function resolveReadyCloudflareAccess(input: CloudflareAccessDraftStateInput): CloudflareAccessResolution {
+  if (!input.enabled && !input.removalRequested) {
+    return Result.succeed({ action: "keep" });
+  }
+  return resolveCloudflareAccessUpdate({
+    draft: { enabled: input.enabled, clientId: input.clientId, clientSecret: input.clientSecret },
+    serverUrl: input.serverUrl,
+    savedClientId: input.savedClientId,
+    savedOrigin: input.savedOrigin,
+  });
+}
+
+function resolveRecoveryCloudflareAccess(input: CloudflareAccessDraftStateInput): CloudflareAccessResolution {
+  return resolveCloudflareAccessUpdate({
+    draft: { enabled: true, clientId: input.clientId, clientSecret: input.clientSecret },
+    serverUrl: input.serverUrl,
+    savedClientId: null,
+    savedOrigin: null,
+  });
+}
+
+function resolveCloudflareAccessDraft(input: CloudflareAccessDraftStateInput): CloudflareAccessResolution | null {
+  if (input.status === "ready") {
+    return resolveReadyCloudflareAccess(input);
+  }
+  if (input.status === "error" && input.recoveryAction === "replace") {
+    return resolveRecoveryCloudflareAccess(input);
+  }
+  return null;
+}
+
+function isReadyCloudflareAccessDirty(input: CloudflareAccessDraftStateInput): boolean {
+  if (!input.enabled) {
+    return input.removalRequested && input.savedClientId !== null;
+  }
+  return (
+    input.savedClientId === null ||
+    input.clientId.trim() !== input.savedClientId ||
+    input.clientSecret.trim().length > 0
+  );
+}
+
+function isCloudflareAccessDraftDirty(input: CloudflareAccessDraftStateInput): boolean {
+  if (input.status === "error") {
+    return input.recoveryAction !== null;
+  }
+  return input.status === "ready" && isReadyCloudflareAccessDirty(input);
+}
+
+export function deriveCloudflareAccessDraftState(input: CloudflareAccessDraftStateInput): CloudflareAccessDraftState {
+  const dirty = isCloudflareAccessDraftDirty(input);
+  if (input.status === "error" && input.recoveryAction === "remove") {
+    return { validationError: null, update: { action: "remove" }, dirty };
+  }
+  const resolution = resolveCloudflareAccessDraft(input);
+  if (resolution === null) {
+    return { validationError: null, update: undefined, dirty };
+  }
+  return Result.isSuccess(resolution)
+    ? { validationError: null, update: Result.unwrap(resolution), dirty }
+    : { validationError: Result.unwrapError(resolution), update: undefined, dirty };
+}

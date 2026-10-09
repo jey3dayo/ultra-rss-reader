@@ -1,6 +1,5 @@
 import { Result } from "@praha/byethrow";
 import { type RefObject, useEffect, useLayoutEffect, useReducer, useRef } from "react";
-import type { CloudflareAccessUpdate } from "@/api/schemas";
 import {
   copyToClipboard,
   getAccountCloudflareAccess,
@@ -9,8 +8,8 @@ import {
 } from "@/api/tauri-commands";
 import {
   type CloudflareAccessDraftError,
+  deriveCloudflareAccessDraftState,
   getHttpsOrigin,
-  resolveCloudflareAccessUpdate,
 } from "@/lib/account/cloudflare-access";
 import { isCloudflareAccessRecoveryRequired } from "@/lib/account/cloudflare-access-error";
 import { isValidRequiredHttpServerUrl } from "@/lib/account/server-url";
@@ -307,50 +306,21 @@ export function useAccountDetailCredentialsEditor({
   const savedPasswordPresence = accountMayHaveSavedPassword(account);
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
   const currentServerUrl = (credServerUrl ?? account.server_url ?? "").trim();
-  const cloudflareAccessResolution: Result.Result<CloudflareAccessUpdate, CloudflareAccessDraftError> | null =
-    state.cloudflareAccessStatus === "ready"
-      ? !state.cloudflareAccessEnabled && !state.cloudflareAccessRemovalRequested
-        ? Result.succeed({ action: "keep" })
-        : resolveCloudflareAccessUpdate({
-            draft: {
-              enabled: state.cloudflareAccessEnabled,
-              clientId: state.cloudflareAccessClientId,
-              clientSecret: state.cloudflareAccessSecret,
-            },
-            serverUrl: currentServerUrl,
-            savedClientId: state.savedCloudflareAccessClientId,
-            savedOrigin: state.savedCloudflareAccessOrigin,
-          })
-      : state.cloudflareAccessStatus === "error" && state.cloudflareAccessRecoveryAction === "replace"
-        ? resolveCloudflareAccessUpdate({
-            draft: {
-              enabled: true,
-              clientId: state.cloudflareAccessClientId,
-              clientSecret: state.cloudflareAccessSecret,
-            },
-            serverUrl: currentServerUrl,
-            savedClientId: null,
-            savedOrigin: null,
-          })
-        : null;
-  const cloudflareAccessValidationError =
-    cloudflareAccessResolution !== null && Result.isFailure(cloudflareAccessResolution)
-      ? Result.unwrapError(cloudflareAccessResolution)
-      : null;
-  const cloudflareAccessUpdate: CloudflareAccessUpdate | undefined =
-    state.cloudflareAccessStatus === "error" && state.cloudflareAccessRecoveryAction === "remove"
-      ? { action: "remove" }
-      : cloudflareAccessResolution !== null && Result.isSuccess(cloudflareAccessResolution)
-        ? Result.unwrap(cloudflareAccessResolution)
-        : undefined;
-  const cloudflareAccessDirty =
-    (state.cloudflareAccessStatus === "error" && state.cloudflareAccessRecoveryAction !== null) ||
-    (state.cloudflareAccessStatus === "ready" &&
-      (state.cloudflareAccessEnabled
-        ? state.savedCloudflareAccessClientId === null ||
-          state.cloudflareAccessClientId.trim() !== state.savedCloudflareAccessClientId ||
-          state.cloudflareAccessSecret.trim().length > 0
-        : state.cloudflareAccessRemovalRequested && state.savedCloudflareAccessClientId !== null));
+  const {
+    validationError: cloudflareAccessValidationError,
+    update: cloudflareAccessUpdate,
+    dirty: cloudflareAccessDirty,
+  } = deriveCloudflareAccessDraftState({
+    status: state.cloudflareAccessStatus,
+    enabled: state.cloudflareAccessEnabled,
+    removalRequested: state.cloudflareAccessRemovalRequested,
+    recoveryAction: state.cloudflareAccessRecoveryAction,
+    clientId: state.cloudflareAccessClientId,
+    clientSecret: state.cloudflareAccessSecret,
+    savedClientId: state.savedCloudflareAccessClientId,
+    savedOrigin: state.savedCloudflareAccessOrigin,
+    serverUrl: currentServerUrl,
+  });
   const credentialsDirty =
     credServerUrl !== null || credUsername !== null || (credPassword !== null && credPassword !== "");
   const credentialsOrAccessDirty = credentialsDirty || cloudflareAccessDirty;
