@@ -13,8 +13,9 @@ use crate::commands::dto::{
     SyncProgressKind,
 };
 use crate::commands::sync_commands::{
-    purge_old_articles, should_purge_old_articles_after_sync, sync_account, SyncProgressReporter,
-    SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
+    log_sync_failure, purge_old_articles, should_purge_old_articles_after_sync, sync_account,
+    SyncProgressReporter, SyncTrigger, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
+    SYNC_WARNING_EVENT,
 };
 use crate::domain::account::Account;
 #[cfg(test)]
@@ -385,6 +386,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                     }
                     Ok(Err(e)) => {
                         tracing::warn!(account_id = %account.id.as_ref(), "Background sync failed: {e}");
+                        log_sync_failure(SyncTrigger::Background, &account.kind, &e);
                         reporter.emit_account_finished(account, false);
                         match load_scheduler_account(&state.db, &account.id) {
                             Ok(Some(latest_account)) => {

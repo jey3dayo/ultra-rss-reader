@@ -2,21 +2,27 @@ use crate::domain::error::{DomainError, DomainResult};
 use dev_store_file::{read_dev_store, validate_dev_credential_account_id, write_dev_store};
 use dev_store_lock::{delete_dev_password_at_path, with_dev_store_lock};
 use dev_store_path::dev_credentials_path;
+use diagnostics::{log_keyring_access_failed, log_keyring_error, log_sync_read_failed, KeyringOp};
 #[cfg(any(target_os = "macos", test))]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(any(target_os = "macos", test))]
 use std::sync::Arc;
-#[cfg(target_os = "macos")]
 use std::time::Duration;
 
 pub(crate) mod cloudflare_access;
 mod dev_store_file;
 mod dev_store_lock;
 mod dev_store_path;
+mod diagnostics;
 mod macos_security_cli;
 mod redaction;
 #[cfg(test)]
 mod tests;
+
+pub(crate) use diagnostics::CredentialKind;
+
+#[cfg(not(target_os = "macos"))]
+const CALLER_READ_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub(super) const SERVICE: &str = "ultra-rss-reader";
 pub(super) const DEV_CREDENTIALS_RECOVERY_HINT: &str =
@@ -52,26 +58,89 @@ impl Drop for PendingLookup {
     }
 }
 
-pub(crate) async fn read_for_sync<T, F>(mode: CredentialLookupMode, read: F) -> DomainResult<T>
+pub(crate) async fn read_for_sync<T, F>(
+    credential_kind: CredentialKind,
+    mode: CredentialLookupMode,
+    read: F,
+) -> DomainResult<T>
 where
     T: Send + 'static,
     F: FnOnce() -> DomainResult<T> + Send + 'static,
 {
     #[cfg(target_os = "macos")]
     {
-        let _ = mode;
-        read_for_sync_with_gate(Arc::clone(&SYNC_CREDENTIAL_LOOKUP_GATE), read).await
+        match run_gated_read(Arc::clone(&SYNC_CREDENTIAL_LOOKUP_GATE), read).await {
+            Ok(result) => result,
+            Err(failure) => {
+                log_sync_read_failed(credential_kind, mode, failure.label());
+                Err(failure.into_domain_error())
+            }
+        }
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = mode;
-        tokio::task::spawn_blocking(read)
-            .await
-            .map_err(|_| DomainError::Keychain("Credential lookup failed".into()))?
+        read_with_caller_timeout(credential_kind, mode, CALLER_READ_TIMEOUT, read).await
+    }
+}
+
+// The caller cutoff does not cancel the blocking read.
+#[cfg(any(not(target_os = "macos"), test))]
+async fn read_with_caller_timeout<T, F>(
+    credential_kind: CredentialKind,
+    mode: CredentialLookupMode,
+    timeout: Duration,
+    read: F,
+) -> DomainResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce() -> DomainResult<T> + Send + 'static,
+{
+    match tokio::time::timeout(timeout, tokio::task::spawn_blocking(read)).await {
+        Ok(Ok(result)) => result,
+        Ok(Err(_)) => {
+            log_sync_read_failed(credential_kind, mode, "join");
+            Err(DomainError::Keychain("Credential lookup failed".into()))
+        }
+        Err(_) => {
+            log_sync_read_failed(credential_kind, mode, "caller-timeout");
+            Err(DomainError::Keychain(
+                "Timed out reading credentials from the OS credential store. Unlock it or re-enter the credentials, then try again.".into(),
+            ))
+        }
     }
 }
 
 #[cfg(any(target_os = "macos", test))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GatedReadFailure {
+    GateClosed,
+    Cancelled,
+    Join,
+}
+
+#[cfg(any(target_os = "macos", test))]
+impl GatedReadFailure {
+    fn label(self) -> &'static str {
+        match self {
+            Self::GateClosed => "gate-closed",
+            Self::Cancelled => "cancelled",
+            Self::Join => "join",
+        }
+    }
+
+    fn into_domain_error(self) -> DomainError {
+        DomainError::Keychain(
+            match self {
+                Self::GateClosed => "Credential lookup is unavailable",
+                Self::Cancelled => "Credential lookup was cancelled",
+                Self::Join => "Credential lookup failed",
+            }
+            .into(),
+        )
+    }
+}
+
+#[cfg(test)]
 async fn read_for_sync_with_gate<T, F>(
     gate: Arc<tokio::sync::Semaphore>,
     read: F,
@@ -80,25 +149,37 @@ where
     T: Send + 'static,
     F: FnOnce() -> DomainResult<T> + Send + 'static,
 {
+    run_gated_read(gate, read)
+        .await
+        .unwrap_or_else(|failure| Err(failure.into_domain_error()))
+}
+
+#[cfg(any(target_os = "macos", test))]
+async fn run_gated_read<T, F>(
+    gate: Arc<tokio::sync::Semaphore>,
+    read: F,
+) -> Result<DomainResult<T>, GatedReadFailure>
+where
+    T: Send + 'static,
+    F: FnOnce() -> DomainResult<T> + Send + 'static,
+{
     // All callers wait cancellably for earlier reads; each child owns its deadline.
     let permit = gate
         .acquire_owned()
         .await
-        .map_err(|_| DomainError::Keychain("Credential lookup is unavailable".into()))?;
+        .map_err(|_| GatedReadFailure::GateClosed)?;
     let cancelled = Arc::new(AtomicBool::new(false));
     let _pending = PendingLookup(Arc::clone(&cancelled));
     tokio::task::spawn_blocking(move || {
         // Retain serialization until the blocking read has cleaned up its child.
         let _permit = permit;
         if cancelled.load(Ordering::SeqCst) {
-            return Err(DomainError::Keychain(
-                "Credential lookup was cancelled".into(),
-            ));
+            return Err(GatedReadFailure::Cancelled);
         }
-        read()
+        Ok(read())
     })
     .await
-    .map_err(|_| DomainError::Keychain("Credential lookup failed".into()))?
+    .map_err(|_| GatedReadFailure::Join)?
 }
 
 // ---------------------------------------------------------------------------
@@ -119,12 +200,19 @@ fn verify_saved_password_with_reader<F>(
 where
     F: Fn(&str) -> DomainResult<String>,
 {
-    let actual_password = read_password(account_id)
-        .map_err(|e| DomainError::Keychain(format!("Failed to verify saved password: {e}")))?;
+    let actual_password = read_password(account_id).map_err(|e| {
+        log_keyring_access_failed(CredentialKind::FreshRssPassword, KeyringOp::Verify, "read");
+        DomainError::Keychain(format!("Failed to verify saved password: {e}"))
+    })?;
 
     if actual_password == expected_password {
         Ok(())
     } else {
+        log_keyring_access_failed(
+            CredentialKind::FreshRssPassword,
+            KeyringOp::Verify,
+            "mismatch",
+        );
         Err(DomainError::Keychain(
             "Failed to verify saved password: retrieved value did not match the saved credential"
                 .to_string(),
@@ -147,8 +235,10 @@ pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
         return verify_saved_password(account_id, password);
     }
 
-    let entry = keyring::Entry::new(SERVICE, account_id)
-        .map_err(|e| DomainError::Keychain(format!("Failed to access credential store: {e}")))?;
+    let entry = keyring::Entry::new(SERVICE, account_id).map_err(|e| {
+        log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Save, &e);
+        DomainError::Keychain(format!("Failed to access credential store: {e}"))
+    })?;
     set_password_with_entry(account_id, password, &entry, get_password)
 }
 
@@ -161,9 +251,10 @@ fn set_password_with_entry<F>(
 where
     F: Fn(&str) -> DomainResult<String>,
 {
-    entry
-        .set_password(password)
-        .map_err(|e| DomainError::Keychain(format!("Failed to save password: {e}")))?;
+    entry.set_password(password).map_err(|e| {
+        log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Save, &e);
+        DomainError::Keychain(format!("Failed to save password: {e}"))
+    })?;
     verify_saved_password_with_reader(account_id, password, read_password)
 }
 
@@ -177,14 +268,19 @@ pub fn get_password(account_id: &str) -> DomainResult<String> {
             .ok_or_else(missing_password_error);
     }
 
-    let entry = keyring::Entry::new(SERVICE, account_id)
-        .map_err(|e| DomainError::Keychain(format!("Failed to access credential store: {e}")))?;
+    let entry = keyring::Entry::new(SERVICE, account_id).map_err(|e| {
+        log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Load, &e);
+        DomainError::Keychain(format!("Failed to access credential store: {e}"))
+    })?;
     match entry.get_password() {
         Ok(password) => Ok(password),
         Err(keyring::Error::NoEntry) => Err(missing_password_error()),
-        Err(e) => Err(DomainError::Keychain(format!(
-            "Failed to retrieve password: {e}"
-        ))),
+        Err(e) => {
+            log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Load, &e);
+            Err(DomainError::Keychain(format!(
+                "Failed to retrieve password: {e}"
+            )))
+        }
     }
 }
 
@@ -222,14 +318,19 @@ pub fn delete_password(account_id: &str) -> DomainResult<()> {
         return with_dev_store_lock(&path, || delete_dev_password_at_path(&path, account_id));
     }
 
-    let entry = keyring::Entry::new(SERVICE, account_id)
-        .map_err(|e| DomainError::Keychain(format!("Failed to access credential store: {e}")))?;
+    let entry = keyring::Entry::new(SERVICE, account_id).map_err(|e| {
+        log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Remove, &e);
+        DomainError::Keychain(format!("Failed to access credential store: {e}"))
+    })?;
     match entry.delete_credential() {
         Ok(()) => Ok(()),
         Err(keyring::Error::NoEntry) => Ok(()), // Already gone, not an error
-        Err(e) => Err(DomainError::Keychain(format!(
-            "Failed to delete password: {e}"
-        ))),
+        Err(e) => {
+            log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Remove, &e);
+            Err(DomainError::Keychain(format!(
+                "Failed to delete password: {e}"
+            )))
+        }
     }
 }
 

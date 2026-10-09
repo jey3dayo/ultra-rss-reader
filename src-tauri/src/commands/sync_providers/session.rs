@@ -2,7 +2,7 @@ use tracing::warn;
 
 use crate::commands::dto::AppError;
 use crate::domain::account::Account;
-use crate::infra::keyring_store::{self, cloudflare_access, CredentialLookupMode};
+use crate::infra::keyring_store::{self, cloudflare_access, CredentialKind, CredentialLookupMode};
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 
@@ -44,17 +44,20 @@ impl GReaderSession {
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
         let account_id = account.id.as_ref().to_string();
-        let access = keyring_store::read_for_sync(mode, move || {
-            match mode {
-                CredentialLookupMode::Background => cloudflare_access::load_for_sync(&account_id),
-                CredentialLookupMode::Interactive => {
-                    cloudflare_access::load_for_sync_with_mode(&account_id, mode)
+        let access =
+            keyring_store::read_for_sync(CredentialKind::CloudflareAccess, mode, move || {
+                match mode {
+                    CredentialLookupMode::Background => {
+                        cloudflare_access::load_for_sync(&account_id)
+                    }
+                    CredentialLookupMode::Interactive => {
+                        cloudflare_access::load_for_sync_with_mode(&account_id, mode)
+                    }
                 }
-            }
-            .map_err(crate::domain::error::DomainError::from)
-        })
-        .await
-        .map_err(|error| SessionError::Auth(error.into()))?;
+                .map_err(crate::domain::error::DomainError::from)
+            })
+            .await
+            .map_err(|error| SessionError::Auth(error.into()))?;
         let provider = Self::provider_with_access(server_url, Ok(access))?;
         let password = match mode {
             CredentialLookupMode::Background => super::get_greader_password(account).await,

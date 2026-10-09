@@ -23,6 +23,7 @@ use crate::repository::sync_state::{SyncStateRepository, SyncStateScopeKey};
 use super::account_sync::{
     run_sync_for_accounts_with_mode, sync_account_with_mode, sync_feed_with_mode,
 };
+use super::failure_log::{log_sync_failure, SyncTrigger};
 use super::progress::{
     emit_sync_event_log_only, emit_sync_warning_event, should_emit_manual_single_sync_completion,
     SyncGuard, SyncProgressReporter, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
@@ -149,6 +150,7 @@ pub async fn trigger_sync_account(
         }
         Err(e) => {
             warn!(account_id = %account.id.as_ref(), "Sync failed for account: {e}");
+            log_sync_failure(SyncTrigger::ManualAccount, &account.kind, &e);
             result.failed.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
                 account_name: account.name.clone(),
@@ -260,6 +262,7 @@ pub async fn trigger_sync_feed(
                 feed_id = %feed.id.as_ref(),
                 "Sync failed for feed: {e}"
             );
+            log_sync_failure(SyncTrigger::ManualFeed, &account.kind, &e);
             result.failed.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
                 account_name: account.name.clone(),
