@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { ComponentProps, FormEventHandler, ReactNode } from "react";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import {
@@ -8,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 
 type FormDialogShellSize = "compact" | "wide";
 

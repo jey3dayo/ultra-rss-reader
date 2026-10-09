@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import type { ButtonHTMLAttributes, Ref } from "react";
-import { cn } from "@/lib/utils";
 
 type ReaderInlineActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   ref?: Ref<HTMLButtonElement>;

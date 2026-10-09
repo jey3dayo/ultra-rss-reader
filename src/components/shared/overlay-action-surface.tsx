@@ -1,7 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 import type { HTMLAttributes } from "react";
-
-import { cn } from "@/lib/utils";
 import { ghostUtilityActionInteractionClassName } from "./icon-toolbar-control-styles";
 
 const overlayActionSurfaceVariants = cva("motion-pressable-surface pointer-events-auto rounded-lg text-foreground", {

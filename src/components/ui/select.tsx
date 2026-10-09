@@ -1,9 +1,8 @@
 import { Select as SelectPrimitive } from "@base-ui/react/select";
+import { cn } from "cn";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import type * as React from "react";
-
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
-import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 export type SelectProps = SelectPrimitive.Root.Props<string>;

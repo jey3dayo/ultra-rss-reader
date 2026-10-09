@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
 import type { ScrollAreaProps } from "./scroll-area.types";
 
 type ScrollBarProps = Omit<ComponentProps<"div">, "children"> & {

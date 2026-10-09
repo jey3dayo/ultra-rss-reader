@@ -2,9 +2,9 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
 import { cva } from "class-variance-authority";
+import { cn } from "cn";
 import { forwardRef, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { AppTooltip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { iconToolbarButtonClassName } from "./icon-toolbar-control-styles";
 import { OverlayActionSurface } from "./overlay-action-surface";
 

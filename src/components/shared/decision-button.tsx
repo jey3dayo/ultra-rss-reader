@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import type { ComponentProps } from "react";
 import { stateSurfaceButtonVariants } from "@/components/shared/state-surface-button";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 type DecisionButtonProps = ComponentProps<typeof Button> & {
   intent: "keep" | "defer" | "delete";

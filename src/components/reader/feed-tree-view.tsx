@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import { useFeedTreeDrag } from "@/components/reader/hooks/feed-tree/use-feed-tree-drag";
-import { cn } from "@/lib/utils";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
 import { FeedTreeEmptyState } from "./feed-tree-empty-state";

@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { Pencil, Trash2 } from "lucide-react";
 import { type FormEvent, useId } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
@@ -6,7 +7,6 @@ import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { Input, TagColorPicker } from "@/design-system";
 import type { TagViewItem } from "@/lib/tags.types";
-import { cn } from "@/lib/utils";
 
 type TagsSettingsListItem = TagViewItem;
 

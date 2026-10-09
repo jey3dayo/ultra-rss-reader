@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticlePaneController } from "@/components/reader/hooks/article/use-article-pane-controller";
 import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
@@ -9,7 +10,6 @@ import {
   MOTION_DIRECTION_PREV,
   type MotionDirection,
 } from "@/constants/motion";
-import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleReaderBody } from "./article-reader-body";

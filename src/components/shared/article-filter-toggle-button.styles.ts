@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
+import { cn } from "cn";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import { cn } from "@/lib/utils";
 import { controlChipVariants } from "./control-chip";
 
 export type ArticleFilterToggleMode = ViewMode;

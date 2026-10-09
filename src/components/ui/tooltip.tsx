@@ -1,6 +1,6 @@
 import { Tooltip } from "@base-ui/react/tooltip";
+import { cn } from "cn";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
-import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 export type TooltipProviderProps = {

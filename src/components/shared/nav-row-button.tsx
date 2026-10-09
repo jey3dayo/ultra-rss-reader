@@ -1,10 +1,10 @@
+import { cn } from "cn";
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import {
   MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
   MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
   PHRASE_AWARE_TEXT_CLASS_NAME,
 } from "@/constants";
-import { cn } from "@/lib/utils";
 import { MotionNumber } from "./motion-number";
 
 type NavRowButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title"> & {

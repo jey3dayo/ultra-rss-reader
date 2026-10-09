@@ -1,9 +1,9 @@
+import { cn } from "cn";
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useBrowserViewController } from "@/components/reader/hooks/browser/use-browser-view-controller";
 import { MOTION_BROWSER_OVERLAY_CLASS_NAME, MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME } from "@/constants/motion";
 import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
-import { cn } from "@/lib/utils";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

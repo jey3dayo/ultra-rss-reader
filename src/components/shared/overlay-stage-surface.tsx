@@ -1,7 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 import type { HTMLAttributes } from "react";
-
-import { cn } from "@/lib/utils";
 
 const overlayStageSurfaceVariants = cva("absolute z-10 overflow-hidden", {
   variants: {

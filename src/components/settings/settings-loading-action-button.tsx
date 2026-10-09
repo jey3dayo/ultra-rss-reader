@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import type { ComponentProps, ReactNode } from "react";
 import { LoadingActionContent } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { SettingsActionButton } from "./shared/settings-action-button";
 
 type SettingsLoadingActionButtonProps = Omit<ComponentProps<typeof SettingsActionButton>, "children"> & {

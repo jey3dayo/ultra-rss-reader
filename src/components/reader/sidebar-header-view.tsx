@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
 import { IconToolbarButton } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 export type SidebarHeaderProps = {
   onSync: () => void;

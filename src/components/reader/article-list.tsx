@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { useArticleListController } from "@/components/reader/hooks/article-list/use-article-list-controller";
 import { ARTICLE_LIST_PANE_WIDTH_PX } from "@/constants/ui-layout";
-import { cn } from "@/lib/utils";
 import { ArticleListBody } from "./article-list-body";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";

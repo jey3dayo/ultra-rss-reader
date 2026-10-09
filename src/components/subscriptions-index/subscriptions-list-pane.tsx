@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { ChevronDown, Folder, Search } from "lucide-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 import {
@@ -11,7 +12,6 @@ import {
 import { AppTooltip, Button, FeedFavicon, Input, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
-import { cn } from "@/lib/utils";
 
 const LIST_SCROLL_TOP_COMMIT_DELAY_MS = 120;
 

@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { ChevronDownIcon } from "lucide-react";
 import { GradientSwitch, LabeledControlRow } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type AccountDetailSettingsRowProps =
   | {

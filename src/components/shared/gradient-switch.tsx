@@ -1,6 +1,6 @@
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 /**
  * Gradient-style Switch based on Base UI's official dark-mode sample.

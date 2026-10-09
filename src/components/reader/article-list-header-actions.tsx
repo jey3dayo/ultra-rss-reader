@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
 import type { RefObject } from "react";
 import { AppTooltip, Button, IconToolbarButton, TooltipProvider } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type ArticleListHeaderActionsProps = {
   showSearch: boolean;

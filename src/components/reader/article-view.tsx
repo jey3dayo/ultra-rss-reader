@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { type ComponentProps, lazy, Suspense, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
@@ -6,7 +7,6 @@ import type { ArticleViewSummaryState } from "@/lib/articles/article-view";
 import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
-import { cn } from "@/lib/utils";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { ChevronLeft } from "lucide-react";
 import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
@@ -5,7 +6,6 @@ import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { FormActionButtons, LabeledInputRow, SurfaceCard } from "@/design-system";
-import { cn } from "@/lib/utils";
 import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view";
 import type { ServicePresentation } from "./services";
 

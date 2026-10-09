@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
@@ -14,7 +15,6 @@ import {
   SurfaceCard,
 } from "@/design-system";
 import type { SubscriptionListGroup, SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
-import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
 export { AnnotatedNote, ReferencePage };

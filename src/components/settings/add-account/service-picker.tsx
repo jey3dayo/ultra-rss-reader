@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { ChevronRight } from "lucide-react";
 import { SETTINGS_INFO_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { NavRowButton, SectionHeading } from "@/design-system";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
-import { cn } from "@/lib/utils";
 import type { ServiceDefinition, ServicePresentation } from "./services";
 
 type DisabledServicePickerKind = Extract<ServiceDefinition, { disabled: true }>["kind"];

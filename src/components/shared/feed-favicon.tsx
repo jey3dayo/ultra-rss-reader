@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { useState } from "react";
 import { resolveExternalFaviconHost } from "@/lib/feed/feed";
-import { cn } from "@/lib/utils";
 
 type FeedFaviconSize = "sm" | "md" | "lg";
 

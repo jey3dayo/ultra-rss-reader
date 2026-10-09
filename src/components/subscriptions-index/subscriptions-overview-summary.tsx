@@ -1,9 +1,9 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { AppTooltip, TooltipProvider } from "@/design-system";
 import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
-import { cn } from "@/lib/utils";
 
 type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
 

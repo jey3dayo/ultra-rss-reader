@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cn } from "@/lib/utils";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 
 type SidebarLeadingControlButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

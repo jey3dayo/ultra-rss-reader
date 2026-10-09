@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import type { FeedTreePresenceFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
 import { FeedTreeRow } from "./feed-tree-row";
 import { FeedTreeRowCollapse } from "./feed-tree-row-collapse";

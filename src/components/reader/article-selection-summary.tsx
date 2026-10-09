@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { Clock3, Folder, Hash, Inbox, Star } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +16,6 @@ import {
   resolveArticleSummaryWebsiteLabel,
 } from "@/lib/articles/article-view";
 import { focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
-import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell } from "./article-view-state";

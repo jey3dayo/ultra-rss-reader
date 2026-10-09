@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { AlertTriangle, Trash2 } from "lucide-react";
 import type { FormEvent } from "react";
 import type { MuteKeywordScope } from "@/api/schemas";
@@ -15,7 +16,6 @@ import {
   LabeledControlRow,
   SettingsInfoPopover,
 } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { handleMuteKeywordScopeSelectValue } from "./mute-keyword-scope-select";
 
 type MuteSettingsScopeOption = {

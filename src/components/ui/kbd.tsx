@@ -1,6 +1,5 @@
+import { cn } from "cn";
 import type { ComponentPropsWithoutRef } from "react";
-
-import { cn } from "@/lib/utils";
 
 type KbdProps = ComponentPropsWithoutRef<"kbd">;
 

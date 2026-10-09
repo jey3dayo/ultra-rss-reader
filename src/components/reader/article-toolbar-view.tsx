@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B, MOTION_STATE_TOGGLE_CLASS_NAME } from "@/constants";
@@ -13,7 +14,6 @@ import {
   UnreadIcon,
 } from "@/design-system";
 import { Menu } from "@/design-system/menu";
-import { cn } from "@/lib/utils";
 import type {
   ArticleToolbarActionOptions,
   ArticleToolbarArticleState,

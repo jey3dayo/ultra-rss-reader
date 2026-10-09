@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
+import { cn } from "cn";
 import { Inbox } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { useReaderPassiveLayoutCard } from "./hooks/use-reader-passive-layout-context";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 import {

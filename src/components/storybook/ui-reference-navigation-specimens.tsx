@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { List, Settings2 } from "lucide-react";
 import { useState } from "react";
 import type { FeedTreePresenceFolderViewModel } from "@/components/reader/feed-tree.types";
@@ -26,7 +27,6 @@ import {
   TooltipProvider,
   UnreadIcon,
 } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
 export { AnnotatedNote, ReferencePage };

@@ -1,10 +1,10 @@
+import { cn } from "cn";
 import type { RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { focusAccountItem } from "@/components/reader/account-switcher-focus";
 import { NavRowButton } from "@/design-system";
 import { getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
 import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
-import { cn } from "@/lib/utils";
 
 type AccountSwitcherMenuProps = {
   accounts: AccountDto[];

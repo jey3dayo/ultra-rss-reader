@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
 import { SectionHeading, SurfaceCard } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { SETTINGS_SECTION_BORDER_CLASS } from "./settings-surface";
 
 type SettingsSectionProps = {

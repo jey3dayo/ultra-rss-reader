@@ -1,7 +1,7 @@
+import { cn } from "cn";
 import type { RefObject } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import { Button, Input, LabeledControlRow } from "@/design-system";
-import { cn } from "@/lib/utils";
 import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
 

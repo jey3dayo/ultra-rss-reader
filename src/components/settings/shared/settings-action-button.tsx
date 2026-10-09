@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 import type { ComponentProps } from "react";
 import { HeadlessButton } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "./settings-surface";
 
 const settingsActionButtonVariants = cva(

@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { ChevronLeft, X } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,6 @@ import {
   type MotionPhase,
   PHRASE_AWARE_TEXT_CLASS_NAME,
 } from "@/constants";
-import { cn } from "@/lib/utils";
 import {
   hasTauriRuntime,
   LAYER_POINTER_EVENT_CLASS_NAMES,

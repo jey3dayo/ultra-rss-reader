@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 export const ghostUtilityActionInteractionClassName = cn(
   "bg-transparent shadow-none hover:bg-transparent focus-visible:bg-transparent active:translate-y-0",

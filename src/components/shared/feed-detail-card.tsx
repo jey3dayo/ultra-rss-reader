@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import type { HTMLAttributes, ReactNode } from "react";
 import { SurfaceCard } from "@/components/shared/surface-card";
-import { cn } from "@/lib/utils";
 
 type FeedDetailCardProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;

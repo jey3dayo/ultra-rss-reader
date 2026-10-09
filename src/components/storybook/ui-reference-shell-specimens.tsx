@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { AlertTriangle, BookOpen, Check, Clock3, Palette, RefreshCw, Save, Settings2, Share } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
@@ -21,7 +22,6 @@ import {
   UnreadIcon,
 } from "@/design-system";
 import type { ToastData } from "@/lib/ui/toast.types";
-import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
 type MainContentShellSpecimenProps = {

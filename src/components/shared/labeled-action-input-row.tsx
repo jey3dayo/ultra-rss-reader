@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 type LabeledActionInputRowProps = {
   label: string;

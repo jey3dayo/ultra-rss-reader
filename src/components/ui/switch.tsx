@@ -1,6 +1,6 @@
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const switchTransitionClassName =
   "transition-[color,background-color,border-color,box-shadow,opacity] duration-150 ease-standard motion-reduce:transition-none";

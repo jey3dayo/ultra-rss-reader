@@ -1,6 +1,6 @@
+import { cn } from "cn";
 import { PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
 import { LabelChip } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type AccountConnectionSummaryProps = {
   statusLabel: string;

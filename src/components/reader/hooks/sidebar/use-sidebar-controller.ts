@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSidebarAccountSelection } from "@/components/reader/hooks/sidebar/use-sidebar-account-selection";
@@ -8,7 +9,6 @@ import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { focusSelectedAccountPaneTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
-import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { focusAccountItem } from "../../account-switcher-focus";
 import type { SidebarControllerResult } from "../../sidebar.types";

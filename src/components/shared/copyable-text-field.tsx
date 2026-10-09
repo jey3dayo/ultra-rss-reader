@@ -1,8 +1,8 @@
+import { cn } from "cn";
 import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppTooltip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 
 type CopyableTextFieldType = "text" | "url" | "password";
 

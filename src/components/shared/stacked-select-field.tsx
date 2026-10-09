@@ -1,9 +1,9 @@
+import { cn } from "cn";
 import { useId } from "react";
 import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
 import { createSelectValueChangeHandler } from "@/components/shared/select-value-change-handler";
 import { Select, SelectTrigger } from "@/components/ui/select";
 import type { OptionWithLabel } from "@/lib/ui/options";
-import { cn } from "@/lib/utils";
 import { AppSelectPopup } from "./app-select-popup";
 
 type StackedSelectFieldProps = {

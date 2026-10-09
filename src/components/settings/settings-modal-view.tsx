@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
@@ -16,7 +17,6 @@ import {
   MOTION_SETTINGS_MODAL_CLASS_NAME,
 } from "@/constants/motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, IndeterminateProgress, ScrollArea } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type SettingsModalContentScrollBehavior = "auto" | "always" | "never";
 type SettingsModalOpenChangeHandler = (open: boolean) => void;

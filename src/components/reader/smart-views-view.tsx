@@ -1,10 +1,10 @@
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { sidebarSectionLabelClassName } from "@/design-system";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE, SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE } from "@/lib/reader-focus";
 import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
-import { cn } from "@/lib/utils";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type SidebarSmartViewsProps = {

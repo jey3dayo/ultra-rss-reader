@@ -1,5 +1,5 @@
+import { cn } from "cn";
 import { LabelChip, SectionHeading, SurfaceCard } from "@/design-system";
-import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
 function ReferenceTypeScaleBlock({
