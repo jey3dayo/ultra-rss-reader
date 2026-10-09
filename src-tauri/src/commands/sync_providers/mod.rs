@@ -2,12 +2,10 @@
 use std::collections::{HashMap, HashSet};
 #[cfg(test)]
 use std::sync::Mutex;
+#[cfg(any(test, not(target_os = "macos")))]
 use std::time::Duration;
-#[cfg(test)]
-use std::time::Instant;
 
 use reqwest::Url;
-use tracing::warn;
 
 use crate::commands::dto::{AccountSyncWarningDetail, AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
@@ -15,7 +13,9 @@ use crate::domain::account::Account;
 use crate::domain::article::generate_entry_id;
 #[cfg(test)]
 use crate::domain::article::Article;
-use crate::domain::error::{DomainError, DomainResult};
+#[cfg(any(test, not(target_os = "macos")))]
+use crate::domain::error::DomainError;
+use crate::domain::error::DomainResult;
 #[cfg(test)]
 use crate::domain::feed::Feed;
 #[cfg(test)]
@@ -42,7 +42,7 @@ use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 #[cfg(test)]
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
-use crate::infra::keyring_store;
+use crate::infra::keyring_store::{self, CredentialLookupMode};
 #[cfg(test)]
 use crate::infra::provider::greader::GReaderProvider;
 #[cfg(test)]
@@ -100,8 +100,6 @@ use subscriptions::{
 #[cfg(test)]
 use unread::reconcile_greader_unread_counts;
 
-const G_READER_PASSWORD_LOOKUP_TIMEOUT: Duration = Duration::from_secs(10);
-
 /// Keep provider feed diagnostics to the host class allowed by the privacy policy.
 ///
 /// The input may be a persisted feed URL or a GReader remote feed identifier
@@ -124,46 +122,71 @@ pub(super) fn redacted_feed_host_class(value: &str) -> &'static str {
 }
 
 pub(super) async fn get_greader_password(account: &Account) -> Result<String, AppError> {
-    get_greader_password_with_timeout(
+    get_greader_password_with_reader(
         account.id.as_ref(),
-        G_READER_PASSWORD_LOOKUP_TIMEOUT,
+        CredentialLookupMode::Background,
         |account_id| keyring_store::get_password_for_sync(&account_id),
     )
     .await
 }
 
-async fn get_greader_password_with_timeout<F>(
+pub(super) async fn get_greader_password_interactive(
+    account: &Account,
+) -> Result<String, AppError> {
+    get_greader_password_with_reader(
+        account.id.as_ref(),
+        CredentialLookupMode::Interactive,
+        |account_id| {
+            keyring_store::get_password_for_sync_with_mode(
+                &account_id,
+                CredentialLookupMode::Interactive,
+            )
+        },
+    )
+    .await
+}
+
+async fn get_greader_password_with_reader<F>(
     account_id: &str,
-    timeout_duration: Duration,
+    mode: CredentialLookupMode,
     read_password: F,
 ) -> Result<String, AppError>
 where
     F: FnOnce(String) -> DomainResult<String> + Send + 'static,
 {
     let account_id = account_id.to_string();
-    let account_id_for_log = account_id.clone();
-    match tokio::time::timeout(
-        timeout_duration,
-        tokio::task::spawn_blocking(move || read_password(account_id)),
-    )
-    .await
+    #[cfg(target_os = "macos")]
     {
-        Ok(Ok(Ok(password))) => Ok(password),
-        Ok(Ok(Err(error))) => Err(AppError::from(error)),
-        Ok(Err(error)) => Err(AppError::from(DomainError::Keychain(format!(
-            "Failed to read password from macOS Keychain: {error}"
-        )))),
-        Err(_) => {
-            warn!(
-                account_id = %account_id_for_log,
-                timeout_ms = timeout_duration.as_millis() as u64,
-                "Timed out reading FreshRSS password from macOS Keychain"
-            );
-            Err(AppError::from(DomainError::Keychain(
-                "Timed out reading password from macOS Keychain. Unlock Keychain Access or re-enter the account password, then try again.".to_string(),
-            )))
-        }
+        keyring_store::read_for_sync(mode, move || read_password(account_id))
+            .await
+            .map_err(AppError::from)
     }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = mode;
+        get_greader_password_with_timeout(account_id, Duration::from_secs(10), read_password).await
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+async fn get_greader_password_with_timeout<F>(
+    account_id: String,
+    timeout: Duration,
+    read_password: F,
+) -> Result<String, AppError>
+where
+    F: FnOnce(String) -> DomainResult<String> + Send + 'static,
+{
+    // Native calls retain their legacy caller cutoff; it does not cancel blocking work.
+    tokio::time::timeout(timeout, tokio::task::spawn_blocking(move || read_password(account_id)))
+        .await
+        .map_err(|_| AppError::from(DomainError::Keychain(
+            "Timed out reading password from macOS Keychain. Unlock Keychain Access or re-enter the account password, then try again.".into(),
+        )))?
+        .map_err(|error| AppError::from(DomainError::Keychain(format!(
+            "Failed to read password from macOS Keychain: {error}"
+        ))))?
+        .map_err(AppError::from)
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

@@ -52,6 +52,7 @@ export type AccountDetailCredentialsEditorResult = {
   handleTestConnection: () => Promise<void>;
   handleCopyServerUrl: () => Promise<void>;
   onPasswordFocus: () => void;
+  onPasswordBlur: () => void;
   focusCredentialsEditor: () => void;
 };
 
@@ -83,11 +84,26 @@ type AccountDetailCredentialsEditorState = {
   draftRevision: number;
 };
 
-type CredentialSaveSuccessToastKey = "account.credentials_saved" | "account.connection_success";
+type CloudflareAccessDraftSnapshot = Pick<
+  AccountDetailCredentialsEditorState,
+  | "cloudflareAccessRecoveryAction"
+  | "cloudflareAccessEnabled"
+  | "cloudflareAccessClientId"
+  | "cloudflareAccessSecret"
+  | "cloudflareAccessDraftTouched"
+  | "cloudflareAccessRemovalRequested"
+>;
+
+type CredentialDraftSnapshot = Pick<
+  AccountDetailCredentialsEditorState,
+  "credServerUrl" | "credUsername" | "credPassword"
+>;
+
+type CredentialSaveSuccessToastKey = "account.credentials_saved";
 
 type CredentialCommitOutcome = {
   saved: boolean;
-  verified: boolean;
+  updatedAccount: AccountDetailCredentialsEditorParams["account"] | null;
 };
 
 type AccountDetailCredentialsEditorAction =
@@ -104,7 +120,7 @@ type AccountDetailCredentialsEditorAction =
       type: "record-saved-cloudflare-access";
       clientId: string | null;
       serverUrl: string;
-      draftRevision: number;
+      draft: CloudflareAccessDraftSnapshot;
     }
   | { type: "set-testing-connection"; value: boolean }
   | { type: "set-credential-save-pending"; value: boolean }
@@ -112,9 +128,41 @@ type AccountDetailCredentialsEditorAction =
   | {
       type: "clear-credential-drafts";
       passwordWasSaved: boolean;
-      draftRevision: number;
-    }
-  | { type: "clear-password-input" };
+      draft: CredentialDraftSnapshot;
+    };
+
+function getCloudflareAccessDraftSnapshot(state: AccountDetailCredentialsEditorState): CloudflareAccessDraftSnapshot {
+  return {
+    cloudflareAccessRecoveryAction: state.cloudflareAccessRecoveryAction,
+    cloudflareAccessEnabled: state.cloudflareAccessEnabled,
+    cloudflareAccessClientId: state.cloudflareAccessClientId,
+    cloudflareAccessSecret: state.cloudflareAccessSecret,
+    cloudflareAccessDraftTouched: state.cloudflareAccessDraftTouched,
+    cloudflareAccessRemovalRequested: state.cloudflareAccessRemovalRequested,
+  };
+}
+
+function cloudflareAccessDraftMatches(
+  state: AccountDetailCredentialsEditorState,
+  draft: CloudflareAccessDraftSnapshot,
+): boolean {
+  return (
+    state.cloudflareAccessRecoveryAction === draft.cloudflareAccessRecoveryAction &&
+    state.cloudflareAccessEnabled === draft.cloudflareAccessEnabled &&
+    state.cloudflareAccessClientId === draft.cloudflareAccessClientId &&
+    state.cloudflareAccessSecret === draft.cloudflareAccessSecret &&
+    state.cloudflareAccessDraftTouched === draft.cloudflareAccessDraftTouched &&
+    state.cloudflareAccessRemovalRequested === draft.cloudflareAccessRemovalRequested
+  );
+}
+
+function getCredentialDraftSnapshot(state: AccountDetailCredentialsEditorState): CredentialDraftSnapshot {
+  return {
+    credServerUrl: state.credServerUrl,
+    credUsername: state.credUsername,
+    credPassword: state.credPassword,
+  };
+}
 
 function accountHasMissingSavedPassword(account: AccountDetailCredentialsEditorParams["account"]): boolean {
   return (
@@ -232,9 +280,10 @@ function accountDetailCredentialsEditorReducer(
     case "record-saved-cloudflare-access": {
       const savedClientId = action.clientId;
       const savedOrigin = savedClientId === null ? null : getHttpsOrigin(action.serverUrl);
-      if (state.draftRevision !== action.draftRevision) {
+      if (!cloudflareAccessDraftMatches(state, action.draft)) {
         return {
           ...state,
+          cloudflareAccessStatus: "ready",
           savedCloudflareAccessClientId: savedClientId,
           savedCloudflareAccessOrigin: savedOrigin,
         };
@@ -259,21 +308,13 @@ function accountDetailCredentialsEditorReducer(
     case "sync-saved-password-presence":
       return { ...state, hasSavedPassword: action.value };
     case "clear-credential-drafts":
-      if (state.draftRevision !== action.draftRevision) {
-        return {
-          ...state,
-          hasSavedPassword: state.hasSavedPassword || action.passwordWasSaved,
-        };
-      }
       return {
         ...state,
-        credServerUrl: null,
-        credUsername: null,
-        credPassword: null,
+        credServerUrl: state.credServerUrl === action.draft.credServerUrl ? null : state.credServerUrl,
+        credUsername: state.credUsername === action.draft.credUsername ? null : state.credUsername,
+        credPassword: state.credPassword === action.draft.credPassword ? null : state.credPassword,
         hasSavedPassword: state.hasSavedPassword || action.passwordWasSaved,
       };
-    case "clear-password-input":
-      return { ...state, credPassword: null };
     default:
       return state;
   }
@@ -413,7 +454,11 @@ export function useAccountDetailCredentialsEditor({
     try {
       result = await testAccountConnection(requestAccountId);
     } catch (error) {
-      if (activeAccountIdRef.current !== requestAccountId || draftRevisionRef.current !== requestDraftRevision) {
+      if (
+        !mountedRef.current ||
+        activeAccountIdRef.current !== requestAccountId ||
+        draftRevisionRef.current !== requestDraftRevision
+      ) {
         return false;
       }
       showConnectionError({ message: getErrorMessage(error) });
@@ -421,7 +466,11 @@ export function useAccountDetailCredentialsEditor({
       return false;
     }
 
-    if (activeAccountIdRef.current !== requestAccountId || draftRevisionRef.current !== requestDraftRevision) {
+    if (
+      !mountedRef.current ||
+      activeAccountIdRef.current !== requestAccountId ||
+      draftRevisionRef.current !== requestDraftRevision
+    ) {
       return false;
     }
     if (Result.isFailure(result)) {
@@ -447,7 +496,7 @@ export function useAccountDetailCredentialsEditor({
   };
 
   const commitCredentialDraft = async (
-    successToastKey: CredentialSaveSuccessToastKey,
+    successToastKey: CredentialSaveSuccessToastKey | null,
   ): Promise<CredentialCommitOutcome> => {
     if (pendingCredentialSaveRef.current) {
       if (state.draftRevision === pendingCredentialSaveRevisionRef.current) {
@@ -461,13 +510,15 @@ export function useAccountDetailCredentialsEditor({
           activeAccountIdRef.current !== queuedAccountId ||
           draftRevisionRef.current !== queuedDraftRevision
         ) {
-          return { saved: false, verified: false };
+          return { saved: false, updatedAccount: null };
         }
         return commitCredentialDraft(successToastKey);
       });
     }
 
     const draftRevision = state.draftRevision;
+    const credentialDraft = getCredentialDraftSnapshot(state);
+    const cloudflareAccessDraft = getCloudflareAccessDraftSnapshot(state);
     const saveTask = (async () => {
       const serverUrl = (credServerUrl ?? account.server_url ?? "").trim() || undefined;
       const username = (credUsername ?? account.username ?? "").trim() || undefined;
@@ -485,17 +536,27 @@ export function useAccountDetailCredentialsEditor({
         activeAccountIdRef.current !== account.id ||
         draftRevisionRef.current !== draftRevision
       ) {
-        return { saved: false, verified: false };
+        return { saved: false, updatedAccount: null };
+      }
+
+      if (!serverUrl) {
+        useUiStore.getState().showToast(t("account.error_server_url_required"));
+        return { saved: false, updatedAccount: null };
+      }
+
+      if (!username) {
+        useUiStore.getState().showToast(t("account.error_username_required"));
+        return { saved: false, updatedAccount: null };
       }
 
       if (serverUrl && !isValidRequiredHttpServerUrl(serverUrl)) {
         useUiStore.getState().showToast(t("account.error_server_url_invalid"));
-        return { saved: false, verified: false };
+        return { saved: false, updatedAccount: null };
       }
 
       if (cloudflareAccessValidationError !== null) {
         useUiStore.getState().showToast(t(CLOUDFLARE_ACCESS_ERROR_MESSAGE_KEY[cloudflareAccessValidationError]));
-        return { saved: false, verified: false };
+        return { saved: false, updatedAccount: null };
       }
 
       if (
@@ -506,15 +567,18 @@ export function useAccountDetailCredentialsEditor({
         getHttpsOrigin(serverUrl ?? "") !== getHttpsOrigin(account.server_url ?? "")
       ) {
         useUiStore.getState().showToast(t("account.cloudflare_access_metadata_required_for_origin_change"));
-        return { saved: false, verified: false };
+        return { saved: false, updatedAccount: null };
       }
 
       if (!serverUrlChanged && !usernameChanged && !passwordChanged && !cloudflareAccessDirty) {
-        dispatch({ type: "clear-password-input" });
-        return { saved: true, verified: false };
+        dispatch({
+          type: "clear-credential-drafts",
+          passwordWasSaved: false,
+          draft: credentialDraft,
+        });
+        return { saved: true, updatedAccount: null };
       }
 
-      let saved = false;
       let saveResult: Awaited<ReturnType<typeof updateAccountCredentials>>;
       const accessOperationPending =
         cloudflareAccessUpdate?.action === "replace" || cloudflareAccessUpdate?.action === "remove";
@@ -530,23 +594,22 @@ export function useAccountDetailCredentialsEditor({
           activeAccountIdRef.current !== account.id ||
           draftRevisionRef.current !== draftRevision
         ) {
-          return { saved: false, verified: false };
+          return { saved: false, updatedAccount: null };
         }
         showCredentialSaveError({
           message: accessOperationPending ? t("account.cloudflare_access_save_failed") : getErrorMessage(error),
         });
-        return { saved: false, verified: false };
+        return { saved: false, updatedAccount: null };
       }
 
-      if (
-        !mountedRef.current ||
-        activeAccountIdRef.current !== account.id ||
-        draftRevisionRef.current !== draftRevision
-      ) {
-        return { saved: false, verified: false };
+      if (!mountedRef.current || activeAccountIdRef.current !== account.id) {
+        return { saved: false, updatedAccount: null };
       }
 
       if (Result.isFailure(saveResult)) {
+        if (draftRevisionRef.current !== draftRevision) {
+          return { saved: false, updatedAccount: null };
+        }
         const error = Result.unwrapError(saveResult);
         showCredentialSaveError({
           message: isCloudflareAccessRecoveryRequired(error)
@@ -555,11 +618,10 @@ export function useAccountDetailCredentialsEditor({
               ? t("account.cloudflare_access_save_failed")
               : error.message,
         });
-        return { saved: false, verified: false };
+        return { saved: false, updatedAccount: null };
       }
 
       const updated = Result.unwrap(saveResult);
-      saved = true;
       if (cloudflareAccessUpdate !== undefined && cloudflareAccessUpdate.action !== "keep") {
         cloudflareAccessRequestIdRef.current += 1;
         const savedClientId = cloudflareAccessUpdate.action === "replace" ? cloudflareAccessUpdate.clientId : null;
@@ -567,33 +629,21 @@ export function useAccountDetailCredentialsEditor({
           type: "record-saved-cloudflare-access",
           clientId: savedClientId,
           serverUrl: serverUrl ?? account.server_url ?? "",
-          draftRevision,
+          draft: cloudflareAccessDraft,
         });
       }
       updateCachedAccount(queryClient, updated);
       invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
-
-      const verified = await runConnectionVerification(account.id, draftRevision, updated);
-      if (!verified) {
-        return { saved: true, verified: false };
-      }
-
-      if (
-        !mountedRef.current ||
-        activeAccountIdRef.current !== account.id ||
-        draftRevisionRef.current !== draftRevision
-      ) {
-        return { saved: false, verified: false };
-      }
-
       dispatch({
         type: "clear-credential-drafts",
         passwordWasSaved: passwordChanged,
-        draftRevision,
+        draft: credentialDraft,
       });
-      useUiStore.getState().showToast(t(successToastKey));
+      if (successToastKey !== null && draftRevisionRef.current === draftRevision) {
+        useUiStore.getState().showToast(t(successToastKey));
+      }
 
-      return { saved, verified };
+      return { saved: true, updatedAccount: updated };
     })();
 
     pendingCredentialSaveRevisionRef.current = draftRevision;
@@ -609,7 +659,7 @@ export function useAccountDetailCredentialsEditor({
 
   const commitCredentials = async (): Promise<boolean> => {
     const outcome = await commitCredentialDraft("account.credentials_saved");
-    return outcome.saved && (outcome.verified || !credentialsOrAccessDirty);
+    return outcome.saved;
   };
 
   const handleTestConnection = async () => {
@@ -622,18 +672,23 @@ export function useAccountDetailCredentialsEditor({
     const requestAccountId = account.id;
     const requestDraftRevision = state.draftRevision;
     try {
-      const credentialCommit = await commitCredentialDraft("account.connection_success");
+      const credentialCommit = await commitCredentialDraft(null);
       if (!credentialCommit.saved) {
         return;
       }
-      if (activeAccountIdRef.current !== requestAccountId || draftRevisionRef.current !== requestDraftRevision) {
-        return;
-      }
-      if (credentialCommit.verified) {
+      if (
+        !mountedRef.current ||
+        activeAccountIdRef.current !== requestAccountId ||
+        draftRevisionRef.current !== requestDraftRevision
+      ) {
         return;
       }
 
-      const verified = await runConnectionVerification(requestAccountId, requestDraftRevision);
+      const verified = await runConnectionVerification(
+        requestAccountId,
+        requestDraftRevision,
+        credentialCommit.updatedAccount ?? undefined,
+      );
       if (!verified) {
         return;
       }
@@ -666,6 +721,12 @@ export function useAccountDetailCredentialsEditor({
   const onPasswordFocus = () => {
     if (credPassword === null) {
       dispatch({ type: "set-cred-password", value: "" });
+    }
+  };
+
+  const onPasswordBlur = () => {
+    if (credPassword === "") {
+      dispatch({ type: "set-cred-password", value: null });
     }
   };
 
@@ -704,6 +765,7 @@ export function useAccountDetailCredentialsEditor({
     handleTestConnection,
     handleCopyServerUrl,
     onPasswordFocus,
+    onPasswordBlur,
     focusCredentialsEditor,
   };
 }

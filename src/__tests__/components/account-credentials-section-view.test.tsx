@@ -49,6 +49,36 @@ describe("AccountCredentialsSectionView", () => {
     expect(onPasswordBlur).toHaveBeenCalled();
   });
 
+  it("does not trigger persistence or connection verification when blur callbacks are absent", async () => {
+    const user = userEvent.setup();
+    const onTestConnection = vi.fn();
+    const onServerUrlChange = vi.fn();
+
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        serverUrlLabel="Server URL"
+        serverUrlValue="https://reader.example.com"
+        onServerUrlChange={onServerUrlChange}
+        usernameLabel="Username"
+        usernameValue="alice"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        onTestConnection={onTestConnection}
+      />,
+    );
+
+    const serverUrlInput = screen.getByRole("textbox", { name: "Server URL" });
+    await user.type(serverUrlInput, "/changed");
+    serverUrlInput.blur();
+
+    expect(onServerUrlChange).toHaveBeenCalled();
+    expect(onTestConnection).not.toHaveBeenCalled();
+  });
+
   it("shows a settings-toned loading action while testing the connection", () => {
     render(
       <AccountCredentialsSectionView

@@ -27,13 +27,13 @@ type AccountCredentialsSectionViewProps = {
   usernameValue: string;
   usernameInputRef?: AccountCredentialInputRow["inputRef"];
   onUsernameChange: (value: string) => void;
-  onUsernameBlur: () => void;
+  onUsernameBlur?: () => void;
   passwordLabel: string;
   passwordValue: string;
   passwordPlaceholder: string;
   onPasswordChange: (value: string) => void;
   onPasswordFocus?: () => void;
-  onPasswordBlur: () => void;
+  onPasswordBlur?: () => void;
   testConnectionLabel?: string;
   testingConnectionLabel?: string;
   onTestConnection?: () => void;

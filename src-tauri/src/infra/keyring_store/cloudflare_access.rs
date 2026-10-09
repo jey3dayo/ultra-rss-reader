@@ -169,18 +169,30 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
 pub(crate) fn load_for_sync(
     account_id: &str,
 ) -> Result<Option<CloudflareAccess>, AccessStoreError> {
+    load_for_sync_with_mode(account_id, super::CredentialLookupMode::Background)
+}
+
+pub(crate) fn load_for_sync_with_mode(
+    account_id: &str,
+    mode: super::CredentialLookupMode,
+) -> Result<Option<CloudflareAccess>, AccessStoreError> {
     #[cfg(test)]
     if let Some(result) = test_support::lookup(account_id) {
         return result;
     }
     #[cfg(target_os = "macos")]
     {
-        let raw = super::macos_security_cli::get_credential_from_security_cli(SERVICE, account_id)
-            .map_err(|_| AccessStoreError::Unavailable)?;
+        let raw = super::macos_security_cli::get_credential_from_security_cli(
+            SERVICE,
+            account_id,
+            mode.timeout(),
+        )
+        .map_err(|_| AccessStoreError::Unavailable)?;
         raw.map(|raw| decode_bundle(&raw)).transpose()
     }
     #[cfg(not(target_os = "macos"))]
     {
+        let _ = mode;
         OsCloudflareAccessStore.load(account_id)
     }
 }

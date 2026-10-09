@@ -12,7 +12,7 @@ export type AccountCredentialInputRow = {
   placeholder?: string;
   type?: "text" | "password" | "url";
   onChange: (value: string) => void;
-  onBlur: () => void;
+  onBlur?: () => void;
   onFocus?: () => void;
   inputRef?: RefObject<HTMLInputElement | null>;
   errorText?: string;

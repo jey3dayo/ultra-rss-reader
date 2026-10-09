@@ -2,6 +2,7 @@ use tracing::warn;
 
 use crate::commands::dto::AppError;
 use crate::domain::account::Account;
+use crate::infra::keyring_store::{self, cloudflare_access, CredentialLookupMode};
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 
@@ -21,6 +22,17 @@ pub(crate) enum SessionError {
 impl GReaderSession {
     /// Resolve the account credentials and authenticate exactly once.
     pub(crate) async fn establish(account: &Account) -> Result<Self, SessionError> {
+        Self::establish_with_mode(account, CredentialLookupMode::Background).await
+    }
+
+    pub(crate) async fn establish_interactive(account: &Account) -> Result<Self, SessionError> {
+        Self::establish_with_mode(account, CredentialLookupMode::Interactive).await
+    }
+
+    async fn establish_with_mode(
+        account: &Account,
+        mode: CredentialLookupMode,
+    ) -> Result<Self, SessionError> {
         let username = account
             .username
             .clone()
@@ -32,19 +44,25 @@ impl GReaderSession {
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
         let account_id = account.id.as_ref().to_string();
-        let access = tokio::task::spawn_blocking(move || {
-            crate::infra::keyring_store::cloudflare_access::load_for_sync(&account_id)
+        let access = keyring_store::read_for_sync(mode, move || {
+            match mode {
+                CredentialLookupMode::Background => cloudflare_access::load_for_sync(&account_id),
+                CredentialLookupMode::Interactive => {
+                    cloudflare_access::load_for_sync_with_mode(&account_id, mode)
+                }
+            }
+            .map_err(crate::domain::error::DomainError::from)
         })
         .await
-        .map_err(|_| {
-            SessionError::Auth(AppError::UserVisible {
-                message: "Cloudflare Access credential lookup failed. Try reconnecting.".into(),
-            })
-        })?;
-        let provider = Self::provider_with_access(server_url, access)?;
-        let password = super::get_greader_password(account)
-            .await
-            .map_err(SessionError::Auth)?;
+        .map_err(|error| SessionError::Auth(error.into()))?;
+        let provider = Self::provider_with_access(server_url, Ok(access))?;
+        let password = match mode {
+            CredentialLookupMode::Background => super::get_greader_password(account).await,
+            CredentialLookupMode::Interactive => {
+                super::get_greader_password_interactive(account).await
+            }
+        }
+        .map_err(SessionError::Auth)?;
 
         Self::authenticate(provider, username, password).await
     }

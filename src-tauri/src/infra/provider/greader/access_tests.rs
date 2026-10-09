@@ -3,6 +3,77 @@ use crate::infra::keyring_store::cloudflare_access::{
     CloudflareAccess, CLIENT_ID_HEADER, CLIENT_SECRET_HEADER,
 };
 
+#[test]
+fn safe_greader_failure_diagnostic_formats_only_allowlisted_values() {
+    let endpoint_cases = [
+        (
+            "/tenant/alice/account-123/api/greader.php/accounts/ClientLogin",
+            "client-login",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/tag/list",
+            "tag-list",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/subscription/list",
+            "subscriptions",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/stream/contents/user%2Fsecret",
+            "stream",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/edit-tag",
+            "api-other",
+        ),
+    ];
+
+    for (path, endpoint) in endpoint_cases {
+        assert_eq!(
+            http::safe_greader_failure_diagnostic(
+                path,
+                403,
+                http::SafeGReaderFailureReason::HttpAuth,
+            ),
+            format!("endpoint={endpoint} status=403 reason=http-auth")
+        );
+    }
+
+    assert_eq!(
+        http::safe_greader_failure_diagnostic(
+            "/api/greader.php/reader/api/0/tag/list",
+            200,
+            http::SafeGReaderFailureReason::Html,
+        ),
+        "endpoint=tag-list status=200 reason=html"
+    );
+
+    let url = reqwest::Url::parse(
+        "https://host-secret.invalid/alice/account-123?query-secret#fragment-secret",
+    )
+    .expect("test URL should parse");
+    let diagnostic = http::safe_greader_failure_diagnostic(
+        url.path(),
+        401,
+        http::SafeGReaderFailureReason::HttpAuth,
+    );
+    for sensitive_value in [
+        "https://",
+        "host-secret",
+        "alice",
+        "account-123",
+        "query-secret",
+        "fragment-secret",
+        "client-id",
+        "secret",
+        "header",
+        "body",
+        "raw error",
+    ] {
+        assert!(!diagnostic.contains(sensitive_value));
+    }
+}
+
 fn access_provider(server: &mockito::Server) -> GReaderProvider {
     let origin = server.url().replacen("http://", "https://", 1);
     let access = CloudflareAccess::new("dummy-id", "cfast_dummy_secret", &origin).unwrap();
@@ -17,6 +88,176 @@ fn authenticated_mock(mock: mockito::Mock) -> mockito::Mock {
         .match_header(CLIENT_SECRET_HEADER, "cfast_dummy_secret")
         .match_header("authorization", "GoogleLogin auth=dummy-auth")
         .match_header("cache-control", "no-store")
+}
+
+async fn authenticate_access_provider(provider: &mut GReaderProvider) {
+    provider
+        .authenticate(&Credentials {
+            token: Some("dummy-user".into()),
+            password: Some("dummy-password".into()),
+        })
+        .await
+        .expect("fake ClientLogin response should authenticate");
+}
+
+#[tokio::test]
+async fn api_access_probe_authenticates_and_reads_tag_list_with_access_headers() {
+    let mut server = mockito::Server::new_async().await;
+    let login = server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .match_header(CLIENT_ID_HEADER, "dummy-id")
+        .match_header(CLIENT_SECRET_HEADER, "cfast_dummy_secret")
+        .match_body("Email=dummy-user&Passwd=dummy-password")
+        .with_body("Auth=dummy-auth\n")
+        .create_async()
+        .await;
+    let tag_list = authenticated_mock(server.mock("GET", "/api/greader.php/reader/api/0/tag/list"))
+        .match_query("output=json")
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"tags":[]}"#)
+        .create_async()
+        .await;
+    let mut provider = access_provider(&server);
+
+    authenticate_access_provider(&mut provider).await;
+    provider
+        .verify_api_access()
+        .await
+        .expect("valid protected tag-list response should pass the probe");
+
+    login.assert_async().await;
+    tag_list.assert_async().await;
+}
+
+#[tokio::test]
+async fn api_access_probe_reports_only_endpoint_class_and_status_for_auth_failures() {
+    for status in [401, 403] {
+        let mut server = mockito::Server::new_async().await;
+        let login = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .match_header(CLIENT_ID_HEADER, "dummy-id")
+            .match_header(CLIENT_SECRET_HEADER, "cfast_dummy_secret")
+            .with_body("Auth=dummy-auth\n")
+            .create_async()
+            .await;
+        let tag_list = authenticated_mock(
+            server.mock("GET", "/api/greader.php/reader/api/0/tag/list"),
+        )
+        .match_query("output=json")
+        .with_status(status)
+        .with_body(
+            "alice dummy-auth cfast_dummy_secret https://rss.example.com sensitive response body",
+        )
+        .create_async()
+        .await;
+        let mut provider = access_provider(&server);
+
+        authenticate_access_provider(&mut provider).await;
+        let error = provider
+            .verify_api_access()
+            .await
+            .expect_err("protected read authorization failure should fail the probe");
+        assert!(matches!(error, DomainError::Auth(_)));
+        let message = error.to_string();
+        assert!(message.contains("tag-list"));
+        assert!(message.contains(&format!("HTTP {status}")));
+        assert_eq!(
+            message,
+            format!(
+                "Auth error: tag-list HTTP {status} {}",
+                if status == 401 {
+                    "Unauthorized"
+                } else {
+                    "Forbidden"
+                }
+            )
+        );
+        for sensitive_value in [
+            "alice",
+            "dummy-auth",
+            "cfast_dummy_secret",
+            "https://rss.example.com",
+            "sensitive response body",
+            "Cloudflare",
+            "FreshRSS",
+        ] {
+            assert!(!message.contains(sensitive_value));
+        }
+
+        login.assert_async().await;
+        tag_list.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn api_access_probe_rejects_html_without_echoing_body() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .match_header(CLIENT_ID_HEADER, "dummy-id")
+        .match_header(CLIENT_SECRET_HEADER, "cfast_dummy_secret")
+        .with_body("Auth=dummy-auth\n")
+        .create_async()
+        .await;
+    let tag_list = authenticated_mock(server.mock("GET", "/api/greader.php/reader/api/0/tag/list"))
+        .match_query("output=json")
+        .with_header("content-type", "text/html")
+        .with_body("<html>alice dummy-auth cfast_dummy_secret private page</html>")
+        .create_async()
+        .await;
+    let mut provider = access_provider(&server);
+
+    authenticate_access_provider(&mut provider).await;
+    let error = provider
+        .verify_api_access()
+        .await
+        .expect_err("HTML response must fail verification");
+    assert!(matches!(error, DomainError::Auth(_)));
+    assert_eq!(
+        error.to_string(),
+        "Auth error: tag-list returned an HTML page"
+    );
+    assert!(!error.to_string().contains("alice"));
+    assert!(!error.to_string().contains("dummy-auth"));
+    tag_list.assert_async().await;
+}
+
+#[tokio::test]
+async fn api_access_probe_keeps_json_response_body_limit() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .match_header(CLIENT_ID_HEADER, "dummy-id")
+        .match_header(CLIENT_SECRET_HEADER, "cfast_dummy_secret")
+        .with_body("Auth=dummy-auth\n")
+        .create_async()
+        .await;
+    let tag_list = authenticated_mock(server.mock("GET", "/api/greader.php/reader/api/0/tag/list"))
+        .match_query("output=json")
+        .with_header("content-type", "application/json")
+        .with_body(format!(
+            r#"{{"tags":[],"padding":"{}"}}"#,
+            "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize)
+        ))
+        .create_async()
+        .await;
+    let mut provider = access_provider(&server);
+
+    authenticate_access_provider(&mut provider).await;
+    let error = provider
+        .verify_api_access()
+        .await
+        .expect_err("oversized protected response must fail within the shared cap");
+
+    assert!(matches!(error, DomainError::Network(_)));
+    assert_eq!(
+        error.to_string(),
+        format!(
+            "Network error: GReader JSON response body exceeds {} bytes",
+            http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
+        )
+    );
+    tag_list.assert_async().await;
 }
 
 #[tokio::test]
@@ -311,10 +552,15 @@ async fn cloudflare_access_html_is_rejected_for_reads_and_mutations_without_cont
         .await;
     let mut provider = access_provider(&server);
     provider.auth_token = Some("dummy-auth".into());
-    assert!(matches!(
-        provider.get_subscriptions().await,
-        Err(DomainError::Auth(_))
-    ));
+    let read_error = provider
+        .get_subscriptions()
+        .await
+        .expect_err("HTML response prefix should remain an authentication error");
+    assert!(matches!(read_error, DomainError::Auth(_)));
+    assert_eq!(
+        read_error.to_string(),
+        "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings."
+    );
     assert!(matches!(
         provider
             .push_mutations(&[Mutation::MarkRead {
