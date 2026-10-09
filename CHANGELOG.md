@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- 設定画面の詳細説明を情報ボタンにまとめ、ラベル横の説明と右端の操作を揃えた。ツールバー表示の説明は列見出しにまとめた。
+
 ## [0.65.0] - 2026-10-09
 
 ### Features

@@ -15,8 +15,12 @@ const meta = {
   args: {
     title: "Mute",
     addHeading: "Add keyword",
-    intro: "Hide articles that match words you do not want to see.",
+    intro: "Hide matching articles from lists, tags, and search results.",
     keywordLabel: "Keyword",
+    keywordHint: "At least 3 characters",
+    keywordHelp:
+      "Muted keywords are hidden from article lists, tag views, and search results immediately after saving. Use at least 3 characters. Case-insensitive matching applies to ASCII letters only.",
+    keywordInfoAriaLabel: "Show keyword rules",
     keywordValue: "spoiler",
     keywordPlaceholder: "Keyword or phrase",
     scopeAriaLabel: "Mute scope",
@@ -41,7 +45,10 @@ const meta = {
     autoMarkReadLabel: "Mark muted articles as read",
     autoMarkReadChecked: true,
     autoMarkReadDisabled: false,
-    autoMarkReadHint: "Muted articles can be removed from unread counts automatically.",
+    autoMarkReadHint:
+      "Turning this on marks existing muted matches as read immediately. Turning it off does not restore unread state.",
+    autoMarkReadSummary: "Existing matches become read; turning this off will not restore unread state.",
+    autoMarkReadInfoAriaLabel: "Show auto mark as read details",
     onAutoMarkReadChange: fn(),
     confirmOpen: false,
     confirmMessage: "Delete this muted keyword?",
@@ -77,4 +84,20 @@ export const ConfirmingDelete: Story = {
   args: {
     confirmOpen: true,
   },
+};
+
+export const KeywordHelpOpen: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Show keyword rules" }));
+  },
+};
+
+export const Narrow: Story = {
+  decorators: [
+    (Story) => (
+      <div className="w-full max-w-[320px] bg-background p-3">
+        <Story />
+      </div>
+    ),
+  ],
 };

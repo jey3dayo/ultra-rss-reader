@@ -2,7 +2,7 @@ import { type ChangeEvent, useRef } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledControlRow } from "@/design-system";
+import { LabeledControlRow, SettingsInfoPopover } from "@/design-system";
 import type { DatabaseSizeStatus } from "./hooks/use-data-settings-controller";
 
 type DataSettingsViewProps = {
@@ -14,14 +14,20 @@ type DataSettingsViewProps = {
   databaseSizeLoadingLabel: string;
   databaseSizeErrorLabel: string;
   safetyHeading: string;
+  safetySummary: string;
   safetyDescription: string;
   safetyChecklist: readonly string[];
+  safetyInfoAriaLabel: string;
   backupLabel: string;
+  backupSummary: string;
   backupDescription: string;
+  backupInfoAriaLabel: string;
   backupActionLabel?: string;
   backingUp: boolean;
   settingsProfileHeading: string;
   settingsProfileDescription: string;
+  settingsProfilePrivacyWarning: string;
+  settingsProfileInfoAriaLabel: string;
   settingsProfileImportLabel: string;
   settingsProfileImportActionLabel?: string;
   settingsProfileExportLabel: string;
@@ -30,7 +36,9 @@ type DataSettingsViewProps = {
   importingSettingsProfile: boolean;
   exportingSettingsProfile: boolean;
   optimizationHeading: string;
+  vacuumSummary: string;
   vacuumDescription: string;
+  vacuumInfoAriaLabel: string;
   vacuumLabel: string;
   vacuumActionLabel?: string;
   vacuuming: boolean;
@@ -58,14 +66,20 @@ export function DataSettingsView({
   databaseSizeLoadingLabel,
   databaseSizeErrorLabel,
   safetyHeading,
+  safetySummary,
   safetyDescription,
   safetyChecklist,
+  safetyInfoAriaLabel,
   backupLabel,
+  backupSummary,
   backupDescription,
+  backupInfoAriaLabel,
   backupActionLabel,
   backingUp,
   settingsProfileHeading,
   settingsProfileDescription,
+  settingsProfilePrivacyWarning,
+  settingsProfileInfoAriaLabel,
   settingsProfileImportLabel,
   settingsProfileImportActionLabel,
   settingsProfileExportLabel,
@@ -74,7 +88,9 @@ export function DataSettingsView({
   importingSettingsProfile,
   exportingSettingsProfile,
   optimizationHeading: _optimizationHeading,
+  vacuumSummary,
   vacuumDescription,
+  vacuumInfoAriaLabel,
   vacuumLabel,
   vacuumActionLabel,
   vacuuming,
@@ -98,7 +114,7 @@ export function DataSettingsView({
         : databaseSizeErrorLabel;
   const vacuumUnavailable = databaseSizeStatus !== "ready";
   const vacuumDescriptionText =
-    databaseSizeStatus === "ready" ? vacuumDescription : `${vacuumDescription} ${databaseSizeDisplayValue}`;
+    databaseSizeStatus === "ready" ? vacuumSummary : `${vacuumSummary} ${databaseSizeDisplayValue}`;
   const settingsProfileActionUnavailable =
     backingUp || vacuuming || openingLogDir || importingSettingsProfile || exportingSettingsProfile;
   const vacuumActionUnavailable = backingUp || vacuuming || openingLogDir || vacuumUnavailable;
@@ -138,6 +154,9 @@ export function DataSettingsView({
           <LabeledControlRow
             label={vacuumLabel}
             description={vacuumDescriptionText}
+            labelAccessory={
+              <SettingsInfoPopover title={vacuumLabel} content={vacuumDescription} ariaLabel={vacuumInfoAriaLabel} />
+            }
             className={DATA_ACTION_ROW_CLASS_NAME}
           >
             {({ descriptionId }) => (
@@ -157,30 +176,37 @@ export function DataSettingsView({
 
         <SettingsSection
           heading={safetyHeading}
+          headingAccessory={
+            <SettingsInfoPopover
+              title={safetyHeading}
+              content={
+                <div className="space-y-2">
+                  <p>{safetyDescription}</p>
+                  <ol className="list-decimal space-y-1 pl-5">
+                    {safetyChecklist.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ol>
+                </div>
+              }
+              ariaLabel={safetyInfoAriaLabel}
+            />
+          }
           surface="flat"
           className="px-3 py-2.5 sm:px-4 sm:py-3"
           contentClassName="[&>*:last-child]:pb-0"
         >
-          <p className="border-b border-[var(--settings-shell-divider-border)] pb-2 text-[13px] leading-5 text-foreground">
-            {safetyDescription}
+          <p className="mb-2 border-b border-[var(--settings-shell-divider-border)] pb-2 text-[13px] leading-5 text-foreground">
+            {safetySummary}
           </p>
-          <ol className="text-[13px] leading-5 text-foreground-soft">
-            {safetyChecklist.map((item, index) => (
-              <li
-                key={item}
-                className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 border-b border-[var(--settings-shell-divider-border)] py-2"
-              >
-                <span
-                  className="mt-0.5 inline-flex size-5 items-center justify-center rounded-md bg-surface-2 font-mono text-[11px] leading-none text-foreground-soft"
-                  aria-hidden="true"
-                >
-                  {index + 1}
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ol>
-          <LabeledControlRow label={backupLabel} description={backupDescription} className={DATA_ACTION_ROW_CLASS_NAME}>
+          <LabeledControlRow
+            label={backupLabel}
+            description={backupSummary}
+            labelAccessory={
+              <SettingsInfoPopover title={backupLabel} content={backupDescription} ariaLabel={backupInfoAriaLabel} />
+            }
+            className={DATA_ACTION_ROW_CLASS_NAME}
+          >
             {({ descriptionId }) => (
               <SettingsLoadingActionButton
                 aria-describedby={descriptionId}
@@ -199,7 +225,14 @@ export function DataSettingsView({
         <SettingsSection heading={settingsProfileHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
           <LabeledControlRow
             label={settingsProfileExportLabel}
-            description={settingsProfileDescription}
+            description={settingsProfilePrivacyWarning}
+            labelAccessory={
+              <SettingsInfoPopover
+                title={settingsProfileExportLabel}
+                content={settingsProfileDescription}
+                ariaLabel={settingsProfileInfoAriaLabel}
+              />
+            }
             className={DATA_ACTION_ROW_CLASS_NAME}
           >
             <SettingsLoadingActionButton

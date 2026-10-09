@@ -46,6 +46,7 @@ export * from "@/components/shared/overlay-stage-surface";
 export * from "@/components/shared/section-heading";
 export * from "@/components/shared/select-option-content";
 export * from "@/components/shared/select-value-change-handler";
+export * from "@/components/shared/settings-info-popover";
 export * from "@/components/shared/sidebar-footer-action-button";
 export * from "@/components/shared/sidebar-right-rail";
 export * from "@/components/shared/sidebar-section-shell";

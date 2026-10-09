@@ -169,6 +169,9 @@ Elevation scale:
 - Desktop settings forms should use a stable two-column grid: a fixed or semifixed label column on the left and a right control column with a shared endpoint.
 - In settings-style forms, the control column should feel like one rail. Wide controls may stop short with a max width, but compact controls should still align to that same rail.
 - Settings form rows should switch to the two-column label/control rail only when the row's container has enough room. Narrow settings cards and constrained Storybook fixtures should keep controls stacked instead of forcing a desktop rail from viewport width alone.
+- In settings rows, place an info control immediately after its label on the same title line, keep a short summary visible below, and reserve the trailing rail for the setting control. Put longer static help in a portal popover so opening it does not move form fields or action footers.
+- Keep errors, status, validation, and essential irreversible-action or security warnings visible in the form even when a help popover explains them in more detail.
+- When several toolbar settings share one explanation, show that label once in the trailing column or group heading instead of repeating it beside every switch.
 - Icon-led action rows in settings should use the shared settings row primitive for label, icon, divider, and control alignment. Destructive compact actions should use a labeled icon-only danger button rather than a local text button when adjacent settings surfaces already use icon actions.
 
 ### Whitespace Philosophy
@@ -362,6 +365,8 @@ Manual/a11y smoke:
 - Horizontal navigation may collapse to compact controls on mobile
 - Multi-column cards collapse to single column cleanly
 - Timeline or preview layouts can switch from horizontal emphasis to vertical stacking
+- Anchored help popovers cap their height to the positioner's available viewport space and scroll internally. Keep the
+  scroll region keyboard reachable so users can read final instructions on short displays.
 - Mobile settings navigation may collapse into more compact controls, but settings content should keep priority over navigation chrome so the first editable rows remain visible without excessive scrolling.
 - Settings navigation density should preserve readable labels without stretching the rail. Keep selected, idle, and focused rows on the same outer geometry, and tune gaps or inset emphasis before increasing row padding.
 

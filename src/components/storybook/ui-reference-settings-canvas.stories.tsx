@@ -1,11 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import {
   AnnotatedNote,
   DisabledSwitchSpecimen,
   FormRowsSpecimen,
+  LabelHelpSwitchSpecimen,
   PrimitiveControlMatrixSpecimen,
   ReferencePage,
+  SettingsInfoPopoverViewportSpecimen,
   ValidationRowSpecimen,
 } from "@/components/storybook/ui-reference-settings-specimens";
 
@@ -20,9 +23,24 @@ export function InputControlsCanvas() {
           body="Form rows, validation states, and disabled controls live here. Shell examples stay in Shell & Overlay Canvas."
         />
         <FormRowsSpecimen livePreview={livePreview} onLivePreviewChange={setLivePreview} />
+        <LabelHelpSwitchSpecimen />
         <PrimitiveControlMatrixSpecimen />
         <ValidationRowSpecimen />
         <DisabledSwitchSpecimen />
+      </div>
+    </ReferencePage>
+  );
+}
+
+function LongHelpViewportCanvas() {
+  return (
+    <ReferencePage maxWidthClassName="max-w-sm">
+      <div className="space-y-4">
+        <AnnotatedNote
+          title="Long settings help"
+          body="A narrow, enlarged, low-height viewport keeps the full instructions inside the popover."
+        />
+        <SettingsInfoPopoverViewportSpecimen />
       </div>
     </ReferencePage>
   );
@@ -40,4 +58,13 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "About app passwords" }));
+    await expect(within(document.body).getByRole("dialog", { name: "App password details" })).toBeVisible();
+  },
+};
+
+export const LongHelpViewport: Story = {
+  render: () => <LongHelpViewportCanvas />,
+};

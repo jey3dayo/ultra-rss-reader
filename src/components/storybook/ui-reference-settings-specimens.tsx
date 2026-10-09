@@ -18,6 +18,7 @@ import {
   SelectPopup,
   SelectTrigger,
   SelectValue,
+  SettingsInfoPopover,
   SurfaceCard,
   Switch,
 } from "@/design-system";
@@ -148,6 +149,97 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
       />
       <ReferenceRadioGroup />
     </SettingsSection>
+  );
+}
+
+export function LabelHelpSwitchSpecimen() {
+  const [enabled, setEnabled] = useState(false);
+
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Label-adjacent help</SectionHeading>
+      <div className="space-y-0">
+        <LabeledSwitchRow
+          label="Use an app password"
+          description="Adds account-specific access for this server."
+          checked={enabled}
+          onChange={setEnabled}
+          labelAccessory={
+            <SettingsInfoPopover
+              title="App password details"
+              ariaLabel="About app passwords"
+              content="Create an app-specific password on the server and store it with this account."
+            />
+          }
+        />
+        <div className="max-w-[18rem]">
+          <LabeledSwitchRow
+            label="Keep the currently selected article visible when switching between feeds"
+            description="This preference applies to the current reading session."
+            checked={false}
+            onChange={() => {}}
+            labelAccessory={
+              <SettingsInfoPopover
+                title="Article selection"
+                ariaLabel="About article selection"
+                content="When this is enabled, switching feeds keeps the selected article in view when it is still available."
+              />
+            }
+          />
+        </div>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+        Keep the short summary with its label, reserve the trailing rail for the setting, and open longer help in a
+        portal popover.
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function SettingsInfoPopoverViewportSpecimen() {
+  const [enabled, setEnabled] = useState(false);
+
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Long settings help</SectionHeading>
+      <LabeledSwitchRow
+        label="Use original publication dates"
+        description="Show the timestamp supplied by each feed when it is available."
+        checked={enabled}
+        onChange={setEnabled}
+        labelAccessory={
+          <SettingsInfoPopover
+            title="Publication date details"
+            ariaLabel="About publication dates"
+            content={
+              <div className="space-y-3">
+                <p>
+                  The reader normally uses each feed's original publication timestamp to place an article in the list.
+                  This keeps the ordering supplied by the publisher when that value is present.
+                </p>
+                <p>
+                  Some feeds omit the timestamp or provide one that cannot be parsed. For those entries, the reader uses
+                  the time when it first received the article, so older items do not appear as newly published just
+                  because the feed was refreshed.
+                </p>
+                <p>
+                  Dates are shown in your local time zone. Changing this preference updates the date labels in the
+                  article list after the next render, but it does not trigger a sync or change account data.
+                </p>
+                <p>
+                  When comparing items from different feeds, the displayed time may differ from the value shown on the
+                  publisher's site if the feed uses a different time zone or changes its dates after publication.
+                </p>
+                <p data-testid="settings-info-popover-final-instructions">
+                  This setting changes only the article list's date label. It does not modify the original feed, article
+                  body, or stored publication value.
+                </p>
+              </div>
+            }
+          />
+        }
+      />
+    </SurfaceCard>
   );
 }
 

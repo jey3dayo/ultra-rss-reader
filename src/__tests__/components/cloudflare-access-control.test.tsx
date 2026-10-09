@@ -10,6 +10,7 @@ describe("CloudflareAccessControl", () => {
     async (mode) => {
       const user = userEvent.setup();
       const submit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault());
+      const onChange = vi.fn();
       render(
         <form onSubmit={submit}>
           <CloudflareAccessControl
@@ -17,18 +18,22 @@ describe("CloudflareAccessControl", () => {
             label="Cloudflare Access"
             description="Add Access authentication"
             checked={false}
-            onChange={vi.fn()}
+            onChange={onChange}
           />
         </form>,
       );
       const info = screen.getByRole("button", { name: "About Cloudflare Access" });
+      const toggle = screen.getByRole("switch", { name: "Cloudflare Access" });
       await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cloudflare Access" })).not.toBeInTheDocument());
       expect(info).toHaveAttribute("aria-expanded", "false");
+      expect(toggle).toHaveAttribute("aria-checked", "false");
       await user.click(info);
       const popup = screen.getByRole("dialog", { name: "Cloudflare Access" });
       expect(popup).toBeVisible();
       expect(info).toHaveAttribute("aria-controls", popup.id);
       expect(info).toHaveAttribute("aria-expanded", "true");
+      expect(onChange).not.toHaveBeenCalled();
+      expect(toggle).toHaveAttribute("aria-checked", "false");
       expect(popup).toHaveTextContent(mode === "add" ? "OS keyring" : "Turn Access off and save");
       expect(info.closest("form")).not.toContainElement(popup);
       await user.keyboard("{Enter}");
@@ -42,7 +47,34 @@ describe("CloudflareAccessControl", () => {
       expect(screen.getByRole("dialog")).toBeVisible();
       await user.click(info);
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(onChange).not.toHaveBeenCalled();
+      expect(submit).not.toHaveBeenCalled();
+      await user.click(toggle);
+      expect(onChange).toHaveBeenCalledWith(true);
       expect(submit).not.toHaveBeenCalled();
     },
   );
+
+  it("keeps explanatory help available while the switch is disabled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <CloudflareAccessControl
+        mode="detail"
+        label="Cloudflare Access"
+        description="Add Access authentication"
+        checked={false}
+        onChange={onChange}
+        disabled
+      />,
+    );
+
+    const toggle = screen.getByRole("switch", { name: "Cloudflare Access" });
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    await user.click(screen.getByRole("button", { name: "About Cloudflare Access" }));
+    expect(screen.getByRole("dialog", { name: "Cloudflare Access" })).toBeVisible();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });

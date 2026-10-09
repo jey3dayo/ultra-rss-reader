@@ -16,6 +16,7 @@ type LabeledControlRowProps = {
   descriptionId?: string;
   className?: string;
   leading?: ReactNode;
+  labelAccessory?: ReactNode;
   labelClassName?: string;
 };
 
@@ -28,6 +29,7 @@ export function LabeledControlRow({
   descriptionId,
   className,
   leading,
+  labelAccessory,
   labelClassName,
 }: LabeledControlRowProps) {
   const generatedDescriptionId = useId();
@@ -38,17 +40,39 @@ export function LabeledControlRow({
   );
   const resolvedChildren =
     typeof children === "function" ? children({ descriptionId: resolvedDescriptionId }) : children;
-  const labelTextContent = (
+  const descriptionContent = description ? (
+    <span
+      id={resolvedDescriptionId}
+      className={cn("font-sans text-[13px] leading-[1.5] text-foreground-soft", PHRASE_AWARE_TEXT_CLASS_NAME)}
+    >
+      {description}
+    </span>
+  ) : null;
+  const titleContent = htmlFor ? (
+    <label htmlFor={htmlFor}>
+      <span id={labelId} className={labelClasses}>
+        {label}
+      </span>
+    </label>
+  ) : (
+    <span id={labelId} className={labelClasses}>
+      {label}
+    </span>
+  );
+  const labelTextContent = labelAccessory ? (
     <span className="flex min-w-0 flex-col gap-1.5">
-      <span className={labelClasses}>{label}</span>
-      {description ? (
-        <span
-          id={resolvedDescriptionId}
-          className={cn("font-sans text-[13px] leading-[1.5] text-foreground-soft", PHRASE_AWARE_TEXT_CLASS_NAME)}
-        >
-          {description}
-        </span>
-      ) : null}
+      <span className="block leading-[1.35]">
+        {titleContent}
+        <span className="ml-1 inline-flex align-middle">{labelAccessory}</span>
+      </span>
+      {descriptionContent}
+    </span>
+  ) : (
+    <span className="flex min-w-0 flex-col gap-1.5">
+      <span id={labelId} className={labelClasses}>
+        {label}
+      </span>
+      {descriptionContent}
     </span>
   );
   const labelContent = leading ? (
@@ -61,6 +85,15 @@ export function LabeledControlRow({
   ) : (
     labelTextContent
   );
+  const rowLabel = labelAccessory ? (
+    labelContent
+  ) : htmlFor ? (
+    <label htmlFor={htmlFor} className="min-w-0">
+      {labelContent}
+    </label>
+  ) : (
+    <span className="min-w-0">{labelContent}</span>
+  );
 
   return (
     <div
@@ -70,15 +103,7 @@ export function LabeledControlRow({
         className,
       )}
     >
-      {htmlFor ? (
-        <label id={labelId} htmlFor={htmlFor} className="min-w-0">
-          {labelContent}
-        </label>
-      ) : (
-        <span id={labelId} className="min-w-0">
-          {labelContent}
-        </span>
-      )}
+      {rowLabel}
       <div className="min-w-0 overflow-visible lg:flex lg:items-center lg:justify-end lg:pr-2">{resolvedChildren}</div>
     </div>
   );

@@ -7,7 +7,14 @@ import { SettingsContentLayout } from "@/components/settings/shared/settings-con
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import { ActionSelectControl, ConfirmDialogView, GradientSwitch, Input, LabeledControlRow } from "@/design-system";
+import {
+  ActionSelectControl,
+  ConfirmDialogView,
+  GradientSwitch,
+  Input,
+  LabeledControlRow,
+  SettingsInfoPopover,
+} from "@/design-system";
 import { cn } from "@/lib/utils";
 import { handleMuteKeywordScopeSelectValue } from "./mute-keyword-scope-select";
 
@@ -27,6 +34,9 @@ export type MuteSettingsViewProps = {
   addHeading: string;
   intro: string;
   keywordLabel: string;
+  keywordHint: string;
+  keywordHelp: string;
+  keywordInfoAriaLabel: string;
   keywordValue: string;
   keywordPlaceholder: string;
   scopeAriaLabel: string;
@@ -51,6 +61,8 @@ export type MuteSettingsViewProps = {
   autoMarkReadChecked: boolean;
   autoMarkReadDisabled: boolean;
   autoMarkReadHint: string;
+  autoMarkReadSummary: string;
+  autoMarkReadInfoAriaLabel: string;
   onAutoMarkReadChange: (checked: boolean) => void;
   confirmOpen: boolean;
   confirmMessage: string;
@@ -66,6 +78,9 @@ export function MuteSettingsView({
   addHeading,
   intro,
   keywordLabel,
+  keywordHint,
+  keywordHelp,
+  keywordInfoAriaLabel,
   keywordValue,
   keywordPlaceholder,
   scopeAriaLabel,
@@ -90,6 +105,8 @@ export function MuteSettingsView({
   autoMarkReadChecked,
   autoMarkReadDisabled,
   autoMarkReadHint,
+  autoMarkReadSummary,
+  autoMarkReadInfoAriaLabel,
   onAutoMarkReadChange,
   confirmOpen,
   confirmMessage,
@@ -113,22 +130,28 @@ export function MuteSettingsView({
           <div className="grid gap-4">
             <SettingsSection heading={addHeading} note={intro} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
               <form data-testid="mute-settings-add-row" onSubmit={handleAddSubmit} className="space-y-2.5">
-                <div className="space-y-1.5">
-                  <label
-                    className="block text-[12px] font-medium text-[color:var(--form-row-label)]"
-                    htmlFor="mute-keyword"
-                  >
-                    {keywordLabel}
-                  </label>
-                  <Input
-                    id="mute-keyword"
-                    name="mute_keyword"
-                    value={keywordValue}
-                    onChange={(event) => onKeywordChange(event.currentTarget.value)}
-                    placeholder={keywordPlaceholder}
-                    className={cn("h-9", SETTINGS_CONTROL_SURFACE_CLASS)}
-                  />
-                </div>
+                <LabeledControlRow
+                  label={keywordLabel}
+                  htmlFor="mute-keyword"
+                  description={keywordHint}
+                  labelAccessory={
+                    <SettingsInfoPopover title={keywordLabel} content={keywordHelp} ariaLabel={keywordInfoAriaLabel} />
+                  }
+                  className="min-h-0 border-b-0 py-0 lg:grid-cols-1 lg:gap-y-1.5"
+                  labelClassName="text-[12px]"
+                >
+                  {({ descriptionId }) => (
+                    <Input
+                      id="mute-keyword"
+                      name="mute_keyword"
+                      value={keywordValue}
+                      onChange={(event) => onKeywordChange(event.currentTarget.value)}
+                      placeholder={keywordPlaceholder}
+                      aria-describedby={descriptionId}
+                      className={cn("h-9", SETTINGS_CONTROL_SURFACE_CLASS)}
+                    />
+                  )}
+                </LabeledControlRow>
                 <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
                   <ActionSelectControl
                     label={scopeAriaLabel}
@@ -156,13 +179,18 @@ export function MuteSettingsView({
               </form>
             </SettingsSection>
 
-            <SettingsSection
-              heading={autoMarkReadHeading}
-              note={autoMarkReadHint}
-              surface="flat"
-              className="px-3 py-2.5 sm:px-4 sm:py-3"
-            >
-              <LabeledControlRow label={autoMarkReadLabel}>
+            <SettingsSection heading={autoMarkReadHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+              <LabeledControlRow
+                label={autoMarkReadLabel}
+                description={autoMarkReadSummary}
+                labelAccessory={
+                  <SettingsInfoPopover
+                    title={autoMarkReadLabel}
+                    content={autoMarkReadHint}
+                    ariaLabel={autoMarkReadInfoAriaLabel}
+                  />
+                }
+              >
                 <GradientSwitch
                   checked={autoMarkReadChecked}
                   disabled={autoMarkReadDisabled}

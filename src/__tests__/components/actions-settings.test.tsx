@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import i18n from "@/lib/i18n";
@@ -10,7 +11,8 @@ describe("ActionsSettings", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
   });
 
-  it("only presents Copy Link as a configurable toolbar share action", () => {
+  it("shows the toolbar label once above the switches and keeps switches named", async () => {
+    const user = userEvent.setup();
     render(<ActionsSettings />);
 
     const copyLinkLabel = screen.getByText("Copy Link");
@@ -19,8 +21,14 @@ describe("ActionsSettings", () => {
     expect(copyLinkLabel).toBeInTheDocument();
     expect(copyLinkLabel).toHaveClass("text-[color:var(--form-row-label)]");
     expect(copyLinkLabel.closest(".grid")).toHaveClass("lg:grid-cols-[minmax(180px,220px)_minmax(0,1fr)]");
-    expect(screen.getByRole("switch", { name: "Show in toolbar: Copy Link" })).toBeInTheDocument();
+    expect(screen.getAllByText("Show in toolbar")).toHaveLength(1);
+    const toggle = screen.getByRole("switch", { name: "Show in toolbar: Copy Link" });
+    expect(toggle).toBeInTheDocument();
     expect(screen.queryByText("Open in External Browser")).not.toBeInTheDocument();
     expect(screen.queryByText("Share Menu")).not.toBeInTheDocument();
+
+    await user.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
   });
 });

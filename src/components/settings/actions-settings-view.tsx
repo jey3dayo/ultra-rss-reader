@@ -22,7 +22,12 @@ export type ActionsSettingsViewProps = Omit<ActionsSettingsViewModel, "services"
 export function ActionsSettingsView({ title, heading, toggleLabel, services }: ActionsSettingsViewProps) {
   return (
     <SettingsContentLayout title={title} titleLayout="stacked-left" outerTestId="actions-settings-root">
-      <SettingsSection heading={heading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+      <SettingsSection
+        heading={heading}
+        headingAccessory={<span className="text-xs text-foreground-soft">{toggleLabel}</span>}
+        surface="flat"
+        className="px-3 py-2.5 sm:px-4 sm:py-3"
+      >
         {services.map((service) => (
           <LabeledControlRow
             key={service.id}
@@ -31,14 +36,11 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
             className={MOTION_CONTENT_SWAP_CLASS_NAME}
           >
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="text-xs text-foreground-soft">{toggleLabel}</span>
-              <GradientSwitch
-                checked={service.checked}
-                onCheckedChange={(checked) => service.onCheckedChange(checked)}
-                aria-label={service.toggleAriaLabel}
-              />
-            </div>
+            <GradientSwitch
+              checked={service.checked}
+              onCheckedChange={(checked) => service.onCheckedChange(checked)}
+              aria-label={service.toggleAriaLabel}
+            />
           </LabeledControlRow>
         ))}
       </SettingsSection>
