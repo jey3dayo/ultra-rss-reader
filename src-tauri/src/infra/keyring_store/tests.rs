@@ -77,7 +77,7 @@ async fn timed_out_credential_queue_does_not_start_a_read_after_release() {
     let read_calls = std::sync::Arc::clone(&calls);
     let error = super::read_for_sync_with_gate(
         std::sync::Arc::clone(&gate),
-        std::time::Duration::from_millis(5),
+        Some(std::time::Duration::from_millis(5)),
         move || {
             read_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             Ok(())
@@ -86,7 +86,7 @@ async fn timed_out_credential_queue_does_not_start_a_read_after_release() {
     .await
     .expect_err("queue deadline should expire before a blocking read is scheduled");
     drop(permit);
-    super::read_for_sync_with_gate(gate, std::time::Duration::from_millis(100), || Ok(()))
+    super::read_for_sync_with_gate(gate, Some(std::time::Duration::from_millis(100)), || Ok(()))
         .await
         .expect("a fresh lookup should succeed after the expired caller releases the queue");
 
@@ -94,6 +94,60 @@ async fn timed_out_credential_queue_does_not_start_a_read_after_release() {
         .to_string()
         .contains("Timed out waiting for credential lookup"));
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn interactive_credential_queue_waits_beyond_background_deadline_until_release() {
+    let gate = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+    let permit = gate
+        .acquire()
+        .await
+        .expect("test should hold the lookup gate");
+    let background_queue_timeout = std::time::Duration::from_millis(100);
+    let (started_tx, mut started_rx) = tokio::sync::oneshot::channel();
+    let interactive =
+        super::read_for_sync_with_gate(std::sync::Arc::clone(&gate), None, move || {
+            let _ = started_tx.send(());
+            Ok("interactive read")
+        });
+    tokio::pin!(interactive);
+
+    let error = tokio::select! {
+        biased;
+        result = &mut interactive => {
+            panic!("interactive lookup should remain queued while the gate is held: {result:?}");
+        }
+        result = super::read_for_sync_with_gate(
+            std::sync::Arc::clone(&gate),
+            Some(background_queue_timeout),
+            || -> crate::domain::error::DomainResult<()> {
+                panic!("expired background lookup must not start a read");
+            },
+        ) => result.expect_err("background queue deadline should expire while the gate is held"),
+    };
+    assert!(error
+        .to_string()
+        .contains("Timed out waiting for credential lookup"));
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_secs(1), &mut interactive)
+            .await
+            .is_err(),
+        "interactive lookup should remain queued beyond the background deadline"
+    );
+    assert!(matches!(
+        started_rx.try_recv(),
+        Err(tokio::sync::oneshot::error::TryRecvError::Empty)
+    ));
+
+    drop(permit);
+    let result = tokio::time::timeout(std::time::Duration::from_secs(1), &mut interactive)
+        .await
+        .expect("released interactive lookup should complete")
+        .expect("interactive lookup should succeed after waiting for the gate");
+    assert_eq!(result, "interactive read");
+    started_rx
+        .await
+        .expect("interactive read should start after the gate is released");
 }
 
 #[tokio::test]
@@ -105,7 +159,7 @@ async fn cancelled_running_credential_read_retains_gate_until_cleanup() {
     let lookup = tokio::spawn(async move {
         super::read_for_sync_with_gate(
             read_gate,
-            std::time::Duration::from_millis(100),
+            Some(std::time::Duration::from_millis(100)),
             move || {
                 let _ = started_tx.send(());
                 finish_rx
@@ -123,11 +177,13 @@ async fn cancelled_running_credential_read_retains_gate_until_cleanup() {
     finish_tx
         .send(())
         .expect("dummy read should still own its completion receiver");
-    assert!(
-        super::read_for_sync_with_gate(gate, std::time::Duration::from_millis(100), || Ok(()))
-            .await
-            .is_ok()
-    );
+    assert!(super::read_for_sync_with_gate(
+        gate,
+        Some(std::time::Duration::from_millis(100)),
+        || Ok(())
+    )
+    .await
+    .is_ok());
 }
 
 #[test]
@@ -156,7 +212,7 @@ fn cancelled_lookup_in_blocking_pool_queue_does_not_start_permission_work() {
         let lookup = tokio::spawn(async move {
             super::read_for_sync_with_gate(
                 read_gate,
-                std::time::Duration::from_millis(100),
+                Some(std::time::Duration::from_millis(100)),
                 move || {
                     read_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                     Ok(())
@@ -179,7 +235,7 @@ fn cancelled_lookup_in_blocking_pool_queue_does_not_start_permission_work() {
         blocker.await.expect("blocking pool fixture should finish");
         assert!(super::read_for_sync_with_gate(
             gate,
-            std::time::Duration::from_millis(100),
+            Some(std::time::Duration::from_millis(100)),
             || Ok(())
         )
         .await
@@ -194,7 +250,7 @@ async fn unavailable_credential_gate_does_not_run_the_read() {
     gate.close();
     let error = super::read_for_sync_with_gate(
         gate,
-        std::time::Duration::from_millis(5),
+        Some(std::time::Duration::from_millis(5)),
         || -> crate::domain::error::DomainResult<()> {
             panic!("closed lookup gate must not run native work");
         },

@@ -36,6 +36,14 @@ impl CredentialLookupMode {
             Self::Interactive => Duration::from_secs(60),
         }
     }
+
+    #[cfg(target_os = "macos")]
+    fn queue_timeout(self) -> Option<Duration> {
+        match self {
+            Self::Background => Some(Duration::from_secs(5)),
+            Self::Interactive => None,
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -61,7 +69,7 @@ where
     {
         read_for_sync_with_gate(
             Arc::clone(&SYNC_CREDENTIAL_LOOKUP_GATE),
-            mode.timeout(),
+            mode.queue_timeout(),
             read,
         )
         .await
@@ -78,18 +86,21 @@ where
 #[cfg(any(target_os = "macos", test))]
 async fn read_for_sync_with_gate<T, F>(
     gate: Arc<tokio::sync::Semaphore>,
-    queue_timeout: Duration,
+    queue_timeout: Option<Duration>,
     read: F,
 ) -> DomainResult<T>
 where
     T: Send + 'static,
     F: FnOnce() -> DomainResult<T> + Send + 'static,
 {
-    // Only the queue wait can be cancelled by a Tokio timeout. The child owns its deadline.
-    let permit = tokio::time::timeout(queue_timeout, gate.acquire_owned())
-        .await
-        .map_err(|_| DomainError::Keychain("Timed out waiting for credential lookup".into()))?
-        .map_err(|_| DomainError::Keychain("Credential lookup is unavailable".into()))?;
+    // Interactive callers wait cancellably for earlier reads; each child owns its deadline.
+    let permit = match queue_timeout {
+        Some(timeout) => tokio::time::timeout(timeout, gate.acquire_owned())
+            .await
+            .map_err(|_| DomainError::Keychain("Timed out waiting for credential lookup".into()))?,
+        None => gate.acquire_owned().await,
+    }
+    .map_err(|_| DomainError::Keychain("Credential lookup is unavailable".into()))?;
     let cancelled = Arc::new(AtomicBool::new(false));
     let _pending = PendingLookup(Arc::clone(&cancelled));
     tokio::task::spawn_blocking(move || {

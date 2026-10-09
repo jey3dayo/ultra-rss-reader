@@ -15,6 +15,106 @@ use super::super::http_defaults::{self, http_client_builder};
 use super::super::traits::{Credentials as ProviderCredentials, FeedProvider};
 use super::{urlencoded, GReaderProvider, LABEL_PREFIX, STATE_READ, STATE_STARRED};
 
+#[derive(Clone, Copy)]
+enum SafeGReaderEndpoint {
+    ClientLogin,
+    TagList,
+    Subscriptions,
+    Stream,
+    ApiOther,
+}
+
+impl SafeGReaderEndpoint {
+    fn from_path(path: &str) -> Self {
+        if path.ends_with("/accounts/ClientLogin") {
+            Self::ClientLogin
+        } else if path.ends_with("/reader/api/0/tag/list") {
+            Self::TagList
+        } else if [
+            "/reader/api/0/subscription/list",
+            "/reader/api/0/subscription/edit",
+            "/reader/api/0/subscription/quickadd",
+        ]
+        .iter()
+        .any(|suffix| path.ends_with(suffix))
+        {
+            Self::Subscriptions
+        } else if path.contains("/reader/api/0/stream/contents/")
+            || path.ends_with("/reader/api/0/stream/items/ids")
+        {
+            Self::Stream
+        } else {
+            Self::ApiOther
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ClientLogin => "client-login",
+            Self::TagList => "tag-list",
+            Self::Subscriptions => "subscriptions",
+            Self::Stream => "stream",
+            Self::ApiOther => "api-other",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum SafeGReaderFailureReason {
+    HttpAuth,
+    Html,
+}
+
+impl SafeGReaderFailureReason {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::HttpAuth => "http-auth",
+            Self::Html => "html",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct SafeGReaderFailureContext {
+    endpoint: SafeGReaderEndpoint,
+    status: u16,
+}
+
+impl SafeGReaderFailureContext {
+    fn from_response(response: &reqwest::Response) -> Self {
+        Self::from_path_and_status(response.url().path(), response.status().as_u16())
+    }
+
+    fn from_path_and_status(path: &str, status: u16) -> Self {
+        Self {
+            endpoint: SafeGReaderEndpoint::from_path(path),
+            status,
+        }
+    }
+
+    fn format(self, reason: SafeGReaderFailureReason) -> String {
+        format!(
+            "endpoint={} status={} reason={}",
+            self.endpoint.as_str(),
+            self.status,
+            reason.as_str()
+        )
+    }
+}
+
+#[cfg(test)]
+pub(super) fn safe_greader_failure_diagnostic(
+    path: &str,
+    status: u16,
+    reason: SafeGReaderFailureReason,
+) -> String {
+    SafeGReaderFailureContext::from_path_and_status(path, status).format(reason)
+}
+
+fn log_greader_api_failure(context: SafeGReaderFailureContext, reason: SafeGReaderFailureReason) {
+    log::warn!("{}", context.format(reason));
+}
+
 pub(super) fn freshrss_api_base(server_url: &str) -> String {
     let normalized_url = match reqwest::Url::parse(server_url.trim()) {
         Ok(mut url) if url.scheme() == "http" || url.scheme() == "https" => {
@@ -291,6 +391,10 @@ impl GReaderProvider {
     ) -> DomainResult<reqwest::Response> {
         let status = response.status();
         if matches!(status.as_u16(), 401 | 403) {
+            log_greader_api_failure(
+                SafeGReaderFailureContext::from_response(&response),
+                SafeGReaderFailureReason::HttpAuth,
+            );
             return Err(DomainError::Auth(format!(
                 "HTTP {status}. Check FreshRSS API credentials and any access gateway settings."
             )));
@@ -306,6 +410,10 @@ impl GReaderProvider {
                         || content_type.eq_ignore_ascii_case("application/xhtml+xml")
                 })
         {
+            log_greader_api_failure(
+                SafeGReaderFailureContext::from_response(&response),
+                SafeGReaderFailureReason::Html,
+            );
             return Err(access_html_error());
         }
         if status.is_success() {
@@ -328,6 +436,7 @@ impl GReaderProvider {
     }
 
     async fn read_response_body(response: reqwest::Response) -> DomainResult<Vec<u8>> {
+        let failure_context = SafeGReaderFailureContext::from_response(&response);
         let body = http_defaults::response_bytes_with_decoded_cap(
             response,
             http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES,
@@ -341,6 +450,7 @@ impl GReaderProvider {
             .trim_start()
             .to_ascii_lowercase();
         if prefix.starts_with("<!doctype html") || prefix.starts_with("<html") {
+            log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
             return Err(access_html_error());
         }
         Ok(body)

@@ -3,6 +3,77 @@ use crate::infra::keyring_store::cloudflare_access::{
     CloudflareAccess, CLIENT_ID_HEADER, CLIENT_SECRET_HEADER,
 };
 
+#[test]
+fn safe_greader_failure_diagnostic_formats_only_allowlisted_values() {
+    let endpoint_cases = [
+        (
+            "/tenant/alice/account-123/api/greader.php/accounts/ClientLogin",
+            "client-login",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/tag/list",
+            "tag-list",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/subscription/list",
+            "subscriptions",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/stream/contents/user%2Fsecret",
+            "stream",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/edit-tag",
+            "api-other",
+        ),
+    ];
+
+    for (path, endpoint) in endpoint_cases {
+        assert_eq!(
+            http::safe_greader_failure_diagnostic(
+                path,
+                403,
+                http::SafeGReaderFailureReason::HttpAuth,
+            ),
+            format!("endpoint={endpoint} status=403 reason=http-auth")
+        );
+    }
+
+    assert_eq!(
+        http::safe_greader_failure_diagnostic(
+            "/api/greader.php/reader/api/0/tag/list",
+            200,
+            http::SafeGReaderFailureReason::Html,
+        ),
+        "endpoint=tag-list status=200 reason=html"
+    );
+
+    let url = reqwest::Url::parse(
+        "https://host-secret.invalid/alice/account-123?query-secret#fragment-secret",
+    )
+    .expect("test URL should parse");
+    let diagnostic = http::safe_greader_failure_diagnostic(
+        url.path(),
+        401,
+        http::SafeGReaderFailureReason::HttpAuth,
+    );
+    for sensitive_value in [
+        "https://",
+        "host-secret",
+        "alice",
+        "account-123",
+        "query-secret",
+        "fragment-secret",
+        "client-id",
+        "secret",
+        "header",
+        "body",
+        "raw error",
+    ] {
+        assert!(!diagnostic.contains(sensitive_value));
+    }
+}
+
 fn access_provider(server: &mockito::Server) -> GReaderProvider {
     let origin = server.url().replacen("http://", "https://", 1);
     let access = CloudflareAccess::new("dummy-id", "cfast_dummy_secret", &origin).unwrap();
@@ -90,6 +161,17 @@ async fn api_access_probe_reports_only_endpoint_class_and_status_for_auth_failur
         let message = error.to_string();
         assert!(message.contains("tag-list"));
         assert!(message.contains(&format!("HTTP {status}")));
+        assert_eq!(
+            message,
+            format!(
+                "Auth error: tag-list HTTP {status} {}",
+                if status == 401 {
+                    "Unauthorized"
+                } else {
+                    "Forbidden"
+                }
+            )
+        );
         for sensitive_value in [
             "alice",
             "dummy-auth",
@@ -131,7 +213,10 @@ async fn api_access_probe_rejects_html_without_echoing_body() {
         .await
         .expect_err("HTML response must fail verification");
     assert!(matches!(error, DomainError::Auth(_)));
-    assert!(error.to_string().contains("tag-list"));
+    assert_eq!(
+        error.to_string(),
+        "Auth error: tag-list returned an HTML page"
+    );
     assert!(!error.to_string().contains("alice"));
     assert!(!error.to_string().contains("dummy-auth"));
     tag_list.assert_async().await;
@@ -467,10 +552,15 @@ async fn cloudflare_access_html_is_rejected_for_reads_and_mutations_without_cont
         .await;
     let mut provider = access_provider(&server);
     provider.auth_token = Some("dummy-auth".into());
-    assert!(matches!(
-        provider.get_subscriptions().await,
-        Err(DomainError::Auth(_))
-    ));
+    let read_error = provider
+        .get_subscriptions()
+        .await
+        .expect_err("HTML response prefix should remain an authentication error");
+    assert!(matches!(read_error, DomainError::Auth(_)));
+    assert_eq!(
+        read_error.to_string(),
+        "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings."
+    );
     assert!(matches!(
         provider
             .push_mutations(&[Mutation::MarkRead {
