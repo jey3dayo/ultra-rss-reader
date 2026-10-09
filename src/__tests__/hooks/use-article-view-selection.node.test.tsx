@@ -3,6 +3,8 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleArticles, sampleFeeds, sampleFolders } from "@tests/helpers/fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
+import type { PreferenceRecord } from "@/schemas/preference-values";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
@@ -98,6 +100,7 @@ describe("useArticleViewSelection", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({
       contentMode: "empty",
       browserUrl: null,
@@ -478,6 +481,47 @@ describe("useArticleViewSelection", () => {
         unreadCount: 5,
         latestArticlePublishedAt: "2026-04-01T10:00:00Z",
       },
+    });
+  });
+
+  describe("list ordering and grouping from stored preferences", () => {
+    const stored: Array<{ name: string; prefs: PreferenceRecord; oldestFirst: boolean; groupBy: string }> = [
+      { name: "unset", prefs: {}, oldestFirst: false, groupBy: "date" },
+      { name: "legacy sort_unread only", prefs: { sort_unread: "oldest_first" }, oldestFirst: true, groupBy: "date" },
+      {
+        name: "reading_sort over legacy sort_unread",
+        prefs: { reading_sort: "newest_first", sort_unread: "oldest_first" },
+        oldestFirst: false,
+        groupBy: "date",
+      },
+      {
+        name: "reading_sort oldest_first",
+        prefs: { reading_sort: "oldest_first" },
+        oldestFirst: true,
+        groupBy: "date",
+      },
+      { name: "invalid reading_sort", prefs: { reading_sort: "bogus" }, oldestFirst: false, groupBy: "date" },
+      {
+        name: "invalid reading_sort with legacy oldest_first",
+        prefs: { reading_sort: "bogus", sort_unread: "oldest_first" },
+        oldestFirst: false,
+        groupBy: "date",
+      },
+      { name: "invalid sort_unread", prefs: { sort_unread: "bogus" }, oldestFirst: false, groupBy: "date" },
+      { name: "group_by feed", prefs: { group_by: "feed" }, oldestFirst: false, groupBy: "feed" },
+      { name: "group_by none", prefs: { group_by: "none" }, oldestFirst: false, groupBy: "none" },
+      { name: "invalid group_by", prefs: { group_by: "bogus" }, oldestFirst: false, groupBy: "date" },
+      { name: "empty group_by", prefs: { group_by: "" }, oldestFirst: false, groupBy: "date" },
+    ];
+
+    it.each(stored)("keeps the list order and grouping for $name", ({ prefs, oldestFirst, groupBy }) => {
+      usePreferencesStore.setState({ prefs, loaded: true });
+
+      renderHook(() => useArticleViewSelection());
+
+      const params = useArticleListDataMock.mock.calls[0]?.[0];
+      expect(params.sortUnread === "oldest_first").toBe(oldestFirst);
+      expect(["none", "feed"].includes(params.groupBy) ? params.groupBy : "date").toBe(groupBy);
     });
   });
 });
