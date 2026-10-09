@@ -283,6 +283,41 @@ function requestApplicationRestart(): void {
   });
 }
 
+function navigateUnlessBrowserCloseQueued(
+  action: BufferedBrowserCloseAction,
+  eventName: string,
+  direction: 1 | -1,
+): void {
+  if (queueBrowserCloseActionIfNeeded(action)) {
+    return;
+  }
+  emitNavigationEvent(eventName, direction);
+}
+
+function handleMouseBack(store: ReturnType<typeof useUiStore.getState>): void {
+  if (store.contentMode === "browser") {
+    void navigateBrowserBackOrClose();
+    return;
+  }
+  if (store.selectedArticleId) {
+    const previousArticleId = store.selectedArticleId;
+    store.clearArticle();
+    focusArticleListAfterClearingArticle(previousArticleId);
+    return;
+  }
+  if (store.selection.type === "feed") {
+    const folderId = getFeedFolderId(store.selection.feedId, store.selectedAccountId);
+    if (folderId) {
+      store.selectFolderFromCurrentContext(folderId);
+      focusSidebarSelection();
+      return;
+    }
+  }
+  if (store.focusedPane === "list") {
+    focusSidebarSelection();
+  }
+}
+
 /**
  * Central action dispatcher.
  * Both keyboard shortcuts and native menu events call into this function.
@@ -405,30 +440,18 @@ export function executeAction(action: AppAction): void {
 
     // --- Article navigation ---
     case "prev-article":
-      if (queueBrowserCloseActionIfNeeded("prev-article")) {
-        break;
-      }
-      emitNavigationEvent(APP_EVENTS.navigateArticle, -1);
+      navigateUnlessBrowserCloseQueued("prev-article", APP_EVENTS.navigateArticle, -1);
       break;
     case "next-article":
-      if (queueBrowserCloseActionIfNeeded("next-article")) {
-        break;
-      }
-      emitNavigationEvent(APP_EVENTS.navigateArticle, 1);
+      navigateUnlessBrowserCloseQueued("next-article", APP_EVENTS.navigateArticle, 1);
       break;
 
     // --- Feed navigation ---
     case "prev-feed":
-      if (queueBrowserCloseActionIfNeeded("prev-feed")) {
-        break;
-      }
-      emitNavigationEvent(APP_EVENTS.navigateFeed, -1);
+      navigateUnlessBrowserCloseQueued("prev-feed", APP_EVENTS.navigateFeed, -1);
       break;
     case "next-feed":
-      if (queueBrowserCloseActionIfNeeded("next-feed")) {
-        break;
-      }
-      emitNavigationEvent(APP_EVENTS.navigateFeed, 1);
+      navigateUnlessBrowserCloseQueued("next-feed", APP_EVENTS.navigateFeed, 1);
       break;
 
     // --- Browser ---
@@ -451,27 +474,7 @@ export function executeAction(action: AppAction): void {
       }
       break;
     case "mouse-back":
-      if (store.contentMode === "browser") {
-        void navigateBrowserBackOrClose();
-        break;
-      }
-      if (store.selectedArticleId) {
-        const previousArticleId = store.selectedArticleId;
-        store.clearArticle();
-        focusArticleListAfterClearingArticle(previousArticleId);
-        break;
-      }
-      if (store.selection.type === "feed") {
-        const folderId = getFeedFolderId(store.selection.feedId, store.selectedAccountId);
-        if (folderId) {
-          store.selectFolderFromCurrentContext(folderId);
-          focusSidebarSelection();
-          break;
-        }
-      }
-      if (store.focusedPane === "list") {
-        focusSidebarSelection();
-      }
+      handleMouseBack(store);
       break;
     case "mouse-forward":
       if (store.contentMode === "browser") {
