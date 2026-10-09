@@ -226,7 +226,7 @@ App data namespace migration contract:
 - Atomic writes must use a temporary file in the target directory followed by rename for export, database backup/restore, and the dev credential store. A stale temporary file is not a successful artifact and must be ignored or cleaned before retry.
 - If OS sleep, app restart, permission denial, or disk full interrupts an updater download, export, or backup, preserve logs and treat any partial artifact as untrusted until the flow reports a clean retry or cleanup.
 - The per-surface baseline sleep/resume stance (updater download, OPML export, database backup) is recorded in the stance table in the "Sleep And Long-Running Native Operation Cancellation" section of [feed-content-privacy.md](./feed-content-privacy.md); do not re-derive or restate it here.
-- App settings export/import ships as a versioned settings profile, but it is not a supported recovery promise: it carries preferences, account skeletons, tags, and mute keywords only, with no articles, feeds, folders, or history. Version and content type are checked strictly on import, and passwords, tokens, cookies, and OS keyring references are excluded from the artifact. There is no conflict preview, and the file is plaintext JSON.
+- App settings export/import ships as a versioned settings profile, but it is not a supported recovery promise: it carries preferences, account skeletons, tags, and mute keywords only, with no articles, feeds, folders, or history. Version and content type are checked strictly on import, and passwords, tokens, Cloudflare Access Client IDs and Client Secrets, cookies, and OS keyring references are excluded from the artifact. There is no conflict preview, and the file is plaintext JSON.
 - Do not recommend exporting settings as an uninstall/reinstall backup. Point the user at a database backup plus re-entering credentials in the OS keyring; the settings profile restores neither the article library nor secrets.
 - An exported settings profile still contains `server_url` and `username` per account. They are not secrets, but they are private identifiers: treat a shared profile like a support artifact and confirm the user intended to share it.
 - If import/export cancellation is reported, record whether the user confirmed before canceling, which phase was running, and whether a partial artifact or partial feed/folder mutation may remain.
@@ -344,9 +344,10 @@ Use this path when a Rust integration test cannot remove its temporary database,
    - saving credentials
    - reloading credentials after restart
    - deleting or replacing stored credentials
-2. Check whether the build is using `DEV_CREDENTIALS=1`.
+2. For FreshRSS account credentials, check whether the build is using `DEV_CREDENTIALS=1`. Cloudflare Access Service Token credentials always use the OS keyring, regardless of that setting.
 3. For packaged builds, verify behavior against the OS-native keyring, not the dev credential file path.
-4. Save logs before removing and re-adding the account.
+4. If Cloudflare Access is configured, confirm the FreshRSS URL is HTTPS and matches the stored origin; redirects to another origin are rejected.
+5. Save logs before removing and re-adding the account.
 
 ### 5. Sync Failure
 

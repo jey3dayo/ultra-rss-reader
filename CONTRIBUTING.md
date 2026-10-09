@@ -37,7 +37,7 @@ mise run app:dev
 `mise run app:dev` is the default development entry point. It wraps the Tauri dev configuration used by this repository.
 Under the hood, Tauri starts the Vite dev server with `beforeDevCommand` and loads the frontend from `devUrl`
 (`http://localhost:1420`).
-By default, `mise run app:dev` uses `DEV_CREDENTIALS=1`, so credentials go to the dev file store instead of the native OS keyring.
+By default, `mise run app:dev` uses `DEV_CREDENTIALS=1`, so FreshRSS account credentials go to the dev file store instead of the native OS keyring.
 Use `mise run app:dev:native-keyring` when you need to verify Keychain or Credential Manager behavior in development.
 
 ## Development Modes
@@ -56,6 +56,7 @@ Use `mise run app:dev:native-keyring` when you need to verify Keychain or Creden
   Copies the packaged app database into the development app data location when you need to reproduce behavior against production-like local data.
 - Web-only frontend debugging: `mise run app:dev:browser`
   Starts the browser-mode dev server on `http://127.0.0.1:4173/` without the Tauri shell.
+  Account commands use UI mocks in this mode; it does not verify Cloudflare Access authentication or native keyring storage.
 - Preview the production frontend build: `pnpm build && pnpm preview`
   Serves the current `dist/` output. Rebuild before previewing new changes.
 
@@ -247,6 +248,7 @@ Keep labels short enough for dense controls, prefer natural Japanese over litera
 - Tightening CSP further requires checking article rendering, thumbnail loading, and embedded browser behavior across the supported providers.
 - Credentials (FreshRSS passwords, tokens) are stored in the OS keyring, never in SQLite.
 - Setting `DEV_CREDENTIALS=1` switches development builds to a file-based credential store; production builds continue to use the OS keyring.
+- Cloudflare Access Service Token credentials always use the OS keyring, including in development; `DEV_CREDENTIALS=1` never routes them to the dev file store.
 - `.env` is encrypted with dotenvx and safe to commit; only encrypted `encrypted:` values ever land in git. Never commit plaintext secrets, `.env.keys` (the decryption key), or `.env.local`.
 
 ## Release
