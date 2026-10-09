@@ -6,7 +6,7 @@ use crate::commands::feed_commands::lock_db;
 use crate::domain::account::Account;
 use crate::domain::article::Article;
 use crate::domain::feed::Feed;
-use crate::domain::provider::SyncCursor;
+use crate::domain::provider::{RemoteEntry, SyncCursor};
 use crate::domain::types::FeedId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_conn;
@@ -401,6 +401,17 @@ async fn fetch_greader_unread_entries_for_feed(
     Ok(UnreadSnapshot::Complete(second_snapshot))
 }
 
+struct IncompleteSnapshot {
+    reason: &'static str,
+    page: usize,
+    entries: usize,
+}
+
+enum PageScan {
+    Complete(CompleteUnreadSnapshot),
+    Incomplete(IncompleteSnapshot),
+}
+
 async fn fetch_greader_unread_snapshot_once(
     provider: &GReaderProvider,
     account: &Account,
@@ -416,12 +427,34 @@ async fn fetch_greader_unread_snapshot_once(
         }));
     };
 
+    match scan_greader_unread_pages(provider, account, feed, remote_id, server_unread_count).await?
+    {
+        PageScan::Complete(snapshot) => Ok(Some(snapshot)),
+        PageScan::Incomplete(incomplete) => {
+            incomplete_unread_snapshot_warning(
+                account,
+                feed,
+                incomplete.reason,
+                incomplete.page,
+                incomplete.entries,
+            );
+            Ok(None)
+        }
+    }
+}
+
+async fn scan_greader_unread_pages(
+    provider: &GReaderProvider,
+    account: &Account,
+    feed: &Feed,
+    remote_id: &str,
+    server_unread_count: i32,
+) -> Result<PageScan, AppError> {
     let mut unread_remote_ids = HashSet::new();
     let mut articles = Vec::new();
     let mut fetched_entry_count = 0usize;
     let mut cursor: Option<SyncCursor> = None;
-    for page_number in 0..MAX_UNREAD_RECONCILE_PAGES {
-        let page = page_number + 1;
+    for page in 1..=MAX_UNREAD_RECONCILE_PAGES {
         let result = provider
             .pull_unread_entries_for_feed(remote_id, cursor.clone())
             .await
@@ -439,67 +472,30 @@ async fn fetch_greader_unread_snapshot_once(
             })?;
 
         fetched_entry_count = fetched_entry_count.saturating_add(result.entries.len());
-        if fetched_entry_count > MAX_UNREAD_RECONCILE_ENTRIES {
-            incomplete_unread_snapshot_warning(
-                account,
-                feed,
-                "entry_limit",
+        let incomplete = |reason| {
+            Ok(PageScan::Incomplete(IncompleteSnapshot {
+                reason,
                 page,
-                fetched_entry_count,
-            );
-            return Ok(None);
-        }
-
-        let termination_reason = match result.termination {
-            UnreadPullTermination::Normal => None,
-            UnreadPullTermination::EmptyPageWithContinuation => {
-                Some("empty_page_with_continuation")
-            }
-            UnreadPullTermination::RepeatedContinuation => Some("repeated_continuation"),
-            UnreadPullTermination::FullPageWithoutContinuation => {
-                Some("full_page_without_continuation")
-            }
+                entries: fetched_entry_count,
+            }))
         };
-        if let Some(reason) = termination_reason {
-            incomplete_unread_snapshot_warning(account, feed, reason, page, fetched_entry_count);
-            return Ok(None);
+
+        if let Some(reason) = page_incomplete_reason(fetched_entry_count, result.termination) {
+            return incomplete(reason);
         }
 
-        let mut duplicate_entry_id = false;
-        let mut page_articles = Vec::with_capacity(result.entries.len());
-        for entry in &result.entries {
-            if let Some(remote_id) = entry.id.as_ref() {
-                if !unread_remote_ids.insert(remote_id.clone()) {
-                    duplicate_entry_id = true;
-                }
-            }
-            page_articles.push(article_from_remote_entry(&account.id, feed, entry));
-        }
-        if duplicate_entry_id {
-            incomplete_unread_snapshot_warning(
-                account,
-                feed,
-                "duplicate_entry_id",
-                page,
-                fetched_entry_count,
-            );
-            return Ok(None);
-        }
+        let Some(page_articles) =
+            collect_page_articles(account, feed, &result.entries, &mut unread_remote_ids)
+        else {
+            return incomplete("duplicate_entry_id");
+        };
         articles.extend(page_articles);
 
         if !result.has_more {
-            let expected_unread_count = usize::try_from(server_unread_count).ok();
-            if expected_unread_count != Some(unread_remote_ids.len()) {
-                incomplete_unread_snapshot_warning(
-                    account,
-                    feed,
-                    "unread_count_mismatch",
-                    page,
-                    fetched_entry_count,
-                );
-                return Ok(None);
+            if usize::try_from(server_unread_count).ok() != Some(unread_remote_ids.len()) {
+                return incomplete("unread_count_mismatch");
             }
-            return Ok(Some(CompleteUnreadSnapshot {
+            return Ok(PageScan::Complete(CompleteUnreadSnapshot {
                 ids: unread_remote_ids,
                 articles,
                 pages: page,
@@ -507,48 +503,65 @@ async fn fetch_greader_unread_snapshot_once(
             }));
         }
 
-        if page == MAX_UNREAD_RECONCILE_PAGES {
-            incomplete_unread_snapshot_warning(
-                account,
-                feed,
-                "page_limit",
-                page,
-                fetched_entry_count,
-            );
-            return Ok(None);
+        match next_unread_cursor(page, result.next_cursor) {
+            Ok(next_cursor) => cursor = Some(next_cursor),
+            Err(reason) => return incomplete(reason),
         }
-
-        let Some(next_cursor) = result.next_cursor else {
-            incomplete_unread_snapshot_warning(
-                account,
-                feed,
-                "missing_continuation",
-                page,
-                fetched_entry_count,
-            );
-            return Ok(None);
-        };
-        if next_cursor.continuation.is_none() {
-            incomplete_unread_snapshot_warning(
-                account,
-                feed,
-                "missing_continuation",
-                page,
-                fetched_entry_count,
-            );
-            return Ok(None);
-        }
-        cursor = Some(next_cursor);
     }
 
-    incomplete_unread_snapshot_warning(
-        account,
-        feed,
-        "page_loop_exhausted",
-        MAX_UNREAD_RECONCILE_PAGES,
-        fetched_entry_count,
-    );
-    Ok(None)
+    Ok(PageScan::Incomplete(IncompleteSnapshot {
+        reason: "page_loop_exhausted",
+        page: MAX_UNREAD_RECONCILE_PAGES,
+        entries: fetched_entry_count,
+    }))
+}
+
+fn page_incomplete_reason(
+    fetched_entry_count: usize,
+    termination: UnreadPullTermination,
+) -> Option<&'static str> {
+    if fetched_entry_count > MAX_UNREAD_RECONCILE_ENTRIES {
+        return Some("entry_limit");
+    }
+    match termination {
+        UnreadPullTermination::Normal => None,
+        UnreadPullTermination::EmptyPageWithContinuation => Some("empty_page_with_continuation"),
+        UnreadPullTermination::RepeatedContinuation => Some("repeated_continuation"),
+        UnreadPullTermination::FullPageWithoutContinuation => {
+            Some("full_page_without_continuation")
+        }
+    }
+}
+
+fn collect_page_articles(
+    account: &Account,
+    feed: &Feed,
+    entries: &[RemoteEntry],
+    unread_remote_ids: &mut HashSet<String>,
+) -> Option<Vec<Article>> {
+    let mut has_duplicate = false;
+    let articles = entries
+        .iter()
+        .map(|entry| {
+            if let Some(remote_id) = entry.id.as_ref() {
+                has_duplicate |= !unread_remote_ids.insert(remote_id.clone());
+            }
+            article_from_remote_entry(&account.id, feed, entry)
+        })
+        .collect();
+    (!has_duplicate).then_some(articles)
+}
+
+fn next_unread_cursor(
+    page: usize,
+    next_cursor: Option<SyncCursor>,
+) -> Result<SyncCursor, &'static str> {
+    if page == MAX_UNREAD_RECONCILE_PAGES {
+        return Err("page_limit");
+    }
+    next_cursor
+        .filter(|cursor| cursor.continuation.is_some())
+        .ok_or("missing_continuation")
 }
 
 fn incomplete_unread_snapshot_warning(
