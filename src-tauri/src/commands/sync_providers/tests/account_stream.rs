@@ -469,6 +469,86 @@ async fn sync_greader_account_entries_stops_on_continuation_cycle_after_persisti
     assert_eq!(state.last_success_at, None);
 }
 
+const ACCOUNT_MAX_ENTRY_PAGES: usize = crate::infra::provider::greader::G_READER_MAX_ENTRY_PAGES;
+
+#[tokio::test]
+async fn sync_greader_account_entries_stops_at_page_cap_after_persisting_entries() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=tok\n")
+        .create_async()
+        .await;
+
+    let page_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let response_calls = std::sync::Arc::clone(&page_calls);
+    let stream_mock = server
+        .mock(
+            "GET",
+            Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+        )
+        .match_query(Matcher::Any)
+        .match_header("Authorization", "GoogleLogin auth=tok")
+        .expect(ACCOUNT_MAX_ENTRY_PAGES)
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body_from_request(move |_| {
+            let page = response_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) as i64;
+            let timestamp_usec = 1_700_000_000_000_000_i64 + page * 1_000_000;
+            let published = 1_700_000_000_i64 + page;
+            format!(
+                r#"{{"items":[{{"id":"entry-{page}","title":"Page {page}","alternate":[{{"href":"https://example.com/{page}"}}],"timestampUsec":"{timestamp_usec}","published":{published},"origin":{{"streamId":"{FEED_REMOTE_ID}","title":"Example"}},"categories":[]}}],"continuation":"page-{}"}}"#,
+                page + 1
+            )
+            .into_bytes()
+        })
+        .create_async()
+        .await;
+
+    let db = test_db();
+    let (account, feed) = insert_account_and_feed(&db, &server.url());
+    let provider = authenticated_provider(&server.url()).await;
+    let feeds_by_remote_id = HashMap::from([(FEED_REMOTE_ID.to_string(), feed.clone())]);
+
+    sync_greader_account_entries(&db, &provider, &account, &feeds_by_remote_id)
+        .await
+        .expect("reaching the page cap should return a partial outcome with failure state");
+
+    stream_mock.assert_async().await;
+    assert_eq!(
+        page_calls.load(std::sync::atomic::Ordering::SeqCst),
+        ACCOUNT_MAX_ENTRY_PAGES
+    );
+
+    let db_guard = db.lock().unwrap();
+    let article_repo = SqliteArticleRepository::new(db_guard.reader());
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+    let articles = article_repo
+        .find_by_feed(
+            &feed.id,
+            &Pagination {
+                offset: 0,
+                limit: ACCOUNT_MAX_ENTRY_PAGES,
+            },
+        )
+        .unwrap();
+    let state = sync_state_repo
+        .get(&account.id, &SyncStateScopeKey::greader_account_all())
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(articles.len(), ACCOUNT_MAX_ENTRY_PAGES);
+    assert_eq!(state.timestamp_usec, None);
+    assert_eq!(state.continuation, None);
+    assert!(state
+        .last_error
+        .as_deref()
+        .is_some_and(|message| message == "GReader entry pagination incomplete (reason=page_cap)"));
+    assert_eq!(state.error_count, 1);
+    assert_eq!(state.last_success_at, None);
+}
+
 #[tokio::test]
 async fn sync_greader_account_entries_preserves_saved_timestamp_when_later_page_fails() {
     let mut server = mockito::Server::new_async().await;
