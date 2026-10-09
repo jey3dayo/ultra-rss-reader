@@ -63,8 +63,13 @@ const ARTICLE_LIST_FAILURE_EMPTY_STATES = {
   Pick<ArticleListBodyEmptyStateProps, "emptyMessage" | "emptyDescription">
 >;
 
-function isArticleListFailureState(setupEmptyState: ArticleListSetupState): setupEmptyState is ArticleListFailureState {
-  return setupEmptyState in ARTICLE_LIST_FAILURE_EMPTY_STATES;
+type ArticleListBodyEmptyStateKind = "search" | ArticleListSetupState;
+
+function resolveArticleListBodyEmptyStateKind(
+  isSearchEmptyState: boolean,
+  setupEmptyState: ArticleListSetupState,
+): ArticleListBodyEmptyStateKind {
+  return isSearchEmptyState ? "search" : setupEmptyState;
 }
 
 export function buildArticleListBodyEmptyState({
@@ -75,49 +80,52 @@ export function buildArticleListBodyEmptyState({
   handleCloseSearch,
   onManageSelectedFeed = null,
 }: BuildArticleListBodyEmptyStateParams): ArticleListBodyEmptyStateProps {
-  const emptyStateVariant = isSearchEmptyState
-    ? "default"
-    : setupEmptyState === "no-accounts"
-      ? "hidden"
-      : isArticleListFailureState(setupEmptyState)
-        ? "setup"
-        : setupEmptyState === "none"
-          ? "default"
-          : "setup";
-  const emptyMessage = isSearchEmptyState
-    ? t("search_no_results_title", { query: trimmedDebouncedQuery })
-    : setupEmptyState === "no-accounts"
-      ? t("article_list_setup_no_accounts_title")
-      : isArticleListFailureState(setupEmptyState)
-        ? ARTICLE_LIST_FAILURE_EMPTY_STATES[setupEmptyState].emptyMessage
-        : setupEmptyState === "no-feeds"
-          ? t("article_list_setup_no_feeds_title")
-          : t("no_articles");
-  const emptyDescription = isSearchEmptyState
-    ? t("search_no_results_description")
-    : setupEmptyState === "no-accounts"
-      ? t("article_list_setup_no_accounts_description")
-      : isArticleListFailureState(setupEmptyState)
-        ? ARTICLE_LIST_FAILURE_EMPTY_STATES[setupEmptyState].emptyDescription
-        : setupEmptyState === "no-feeds"
-          ? t("article_list_setup_no_feeds_description")
-          : t("no_articles_description");
+  const kind = resolveArticleListBodyEmptyStateKind(isSearchEmptyState, setupEmptyState);
 
-  return {
-    emptyStateVariant,
-    emptyMessage,
-    emptyDescription,
-    emptyActionLabel: isSearchEmptyState
-      ? t("clear_search_action")
-      : setupEmptyState === "none" && onManageSelectedFeed
-        ? t("manage_subscription")
-        : undefined,
-    onEmptyAction: isSearchEmptyState
-      ? handleCloseSearch
-      : setupEmptyState === "none"
-        ? (onManageSelectedFeed ?? undefined)
-        : undefined,
-  };
+  switch (kind) {
+    case "search":
+      return {
+        emptyStateVariant: "default",
+        emptyMessage: t("search_no_results_title", { query: trimmedDebouncedQuery }),
+        emptyDescription: t("search_no_results_description"),
+        emptyActionLabel: t("clear_search_action"),
+        onEmptyAction: handleCloseSearch,
+      };
+    case "no-accounts":
+      return {
+        emptyStateVariant: "hidden",
+        emptyMessage: t("article_list_setup_no_accounts_title"),
+        emptyDescription: t("article_list_setup_no_accounts_description"),
+        emptyActionLabel: undefined,
+        onEmptyAction: undefined,
+      };
+    case "no-feeds":
+      return {
+        emptyStateVariant: "setup",
+        emptyMessage: t("article_list_setup_no_feeds_title"),
+        emptyDescription: t("article_list_setup_no_feeds_description"),
+        emptyActionLabel: undefined,
+        onEmptyAction: undefined,
+      };
+    case "none":
+      return {
+        emptyStateVariant: "default",
+        emptyMessage: t("no_articles"),
+        emptyDescription: t("no_articles_description"),
+        emptyActionLabel: onManageSelectedFeed ? t("manage_subscription") : undefined,
+        onEmptyAction: onManageSelectedFeed ?? undefined,
+      };
+    case "permission":
+    case "auth":
+    case "network":
+    case "schema":
+      return {
+        emptyStateVariant: "setup",
+        ...ARTICLE_LIST_FAILURE_EMPTY_STATES[kind],
+        emptyActionLabel: undefined,
+        onEmptyAction: undefined,
+      };
+  }
 }
 
 export function useArticleListBodyProps({

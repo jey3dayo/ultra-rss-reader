@@ -181,6 +181,164 @@ function mergeOrder(
   return result;
 }
 
+function diffLeavingFeeds(
+  prevState: PresenceState,
+  prevLogical: LogicalMaps,
+  nextLogical: LogicalMaps,
+  retentionEnabled: boolean,
+): { leaving: Map<string, LeavingFeedEntry>; instructions: TimerInstruction[] } {
+  const instructions: TimerInstruction[] = [];
+  const leaving = new Map<string, LeavingFeedEntry>();
+  // `prevLogical` must be included: an id that was logical last pass and has
+  // just disappeared is in neither `nextLogical` nor `prevState.leavingFeeds`.
+  const allFeedIds = new Set<string>([
+    ...nextLogical.feeds.keys(),
+    ...prevState.leavingFeeds.keys(),
+    ...prevLogical.feeds.keys(),
+  ]);
+  for (const id of allFeedIds) {
+    const wasLeaving = prevState.leavingFeeds.get(id);
+    if (nextLogical.feeds.has(id) || !retentionEnabled) {
+      if (wasLeaving) {
+        instructions.push({ action: "cancel", kind: "feed", id });
+      }
+      continue;
+    }
+    if (wasLeaving) {
+      leaving.set(id, wasLeaving);
+      continue;
+    }
+    const lastKnown = prevLogical.feeds.get(id);
+    if (!lastKnown) {
+      continue;
+    }
+    leaving.set(id, { viewModel: lastKnown.viewModel, parentKey: lastKnown.parentKey });
+    instructions.push({ action: "schedule", kind: "feed", id });
+  }
+  return { leaving, instructions };
+}
+
+/**
+ * Collapse-owner handoff: children still leaving alongside a folder deferred
+ * their collapse to the folder's wrapper. When the folder returns they own
+ * their collapse again, so their exit timers must restart from now.
+ */
+function restartChildFeedTimers(
+  folderId: string,
+  nextLeavingFeeds: ReadonlyMap<string, LeavingFeedEntry>,
+): TimerInstruction[] {
+  const instructions: TimerInstruction[] = [];
+  for (const [feedId, entry] of nextLeavingFeeds) {
+    if (entry.parentKey === folderId) {
+      instructions.push({ action: "schedule", kind: "feed", id: feedId });
+    }
+  }
+  return instructions;
+}
+
+function diffLeavingFolders(
+  prevState: PresenceState,
+  prevLogical: LogicalMaps,
+  nextLogical: LogicalMaps,
+  retentionEnabled: boolean,
+  nextLeavingFeeds: ReadonlyMap<string, LeavingFeedEntry>,
+): { leaving: Map<string, LeavingFolderEntry>; instructions: TimerInstruction[] } {
+  const instructions: TimerInstruction[] = [];
+  const leaving = new Map<string, LeavingFolderEntry>();
+  const allFolderIds = new Set<string>([
+    ...nextLogical.folders.keys(),
+    ...prevState.leavingFolders.keys(),
+    ...prevLogical.folders.keys(),
+  ]);
+  for (const id of allFolderIds) {
+    const wasLeaving = prevState.leavingFolders.get(id);
+    if (nextLogical.folders.has(id)) {
+      if (wasLeaving) {
+        instructions.push({ action: "cancel", kind: "folder", id }, ...restartChildFeedTimers(id, nextLeavingFeeds));
+      }
+      continue;
+    }
+    if (!retentionEnabled) {
+      if (wasLeaving) {
+        instructions.push({ action: "cancel", kind: "folder", id });
+      }
+      continue;
+    }
+    if (wasLeaving) {
+      leaving.set(id, wasLeaving);
+      continue;
+    }
+    const lastKnown = prevLogical.folders.get(id);
+    if (!lastKnown) {
+      continue;
+    }
+    leaving.set(id, { source: lastKnown });
+    instructions.push({ action: "schedule", kind: "folder", id });
+  }
+  return { leaving, instructions };
+}
+
+function groupLeavingFeedIdsByParent(
+  leavingFeeds: ReadonlyMap<string, LeavingFeedEntry>,
+): Map<string | null, Set<string>> {
+  const byParent = new Map<string | null, Set<string>>();
+  for (const [feedId, entry] of leavingFeeds) {
+    const bucket = byParent.get(entry.parentKey);
+    if (bucket) {
+      bucket.add(feedId);
+    } else {
+      byParent.set(entry.parentKey, new Set([feedId]));
+    }
+  }
+  return byParent;
+}
+
+function mergeOrderIf(
+  retentionEnabled: boolean,
+  prevOrder: readonly string[],
+  logicalOrder: readonly string[],
+  leavingIds: ReadonlySet<string>,
+): string[] {
+  return retentionEnabled ? mergeOrder(prevOrder, logicalOrder, leavingIds) : [...logicalOrder];
+}
+
+function computePresenceOrders(
+  prevState: PresenceState,
+  nextLogical: LogicalMaps,
+  retentionEnabled: boolean,
+  nextLeavingFolders: ReadonlyMap<string, LeavingFolderEntry>,
+  nextLeavingFeeds: ReadonlyMap<string, LeavingFeedEntry>,
+): Pick<PresenceState, "folderOrder" | "perFolderFeedOrder" | "unfolderedOrder"> {
+  const folderOrder = mergeOrderIf(
+    retentionEnabled,
+    prevState.folderOrder,
+    nextLogical.folderOrder,
+    new Set(nextLeavingFolders.keys()),
+  );
+  const leavingFeedIdsByParent = groupLeavingFeedIdsByParent(nextLeavingFeeds);
+
+  const perFolderFeedOrder = new Map<string, string[]>();
+  for (const folderId of folderOrder) {
+    perFolderFeedOrder.set(
+      folderId,
+      mergeOrderIf(
+        retentionEnabled,
+        prevState.perFolderFeedOrder.get(folderId) ?? [],
+        nextLogical.childOrderByFolder.get(folderId) ?? [],
+        leavingFeedIdsByParent.get(folderId) ?? EMPTY_STRING_SET,
+      ),
+    );
+  }
+
+  const unfolderedOrder = mergeOrderIf(
+    retentionEnabled,
+    prevState.unfolderedOrder,
+    nextLogical.unfolderedOrder,
+    leavingFeedIdsByParent.get(null) ?? EMPTY_STRING_SET,
+  );
+  return { folderOrder, perFolderFeedOrder, unfolderedOrder };
+}
+
 /**
  * Pure diff: given the previous presence state, the logical tree as it was
  * last time this ran (`prevLogical`), the logical tree now (`nextLogical`),
@@ -198,144 +356,18 @@ export function computeNextState(
   retentionEnabled: boolean,
   scopeKey: string = prevState.scopeKey,
 ): { nextState: PresenceState; instructions: TimerInstruction[] } {
-  const instructions: TimerInstruction[] = [];
-
-  // --- Feeds: global identity. Alive anywhere means "not leaving anywhere". ---
-  // `allFeedIds` must include `prevLogical.feeds` too: an id that was logical
-  // last pass and has just disappeared this pass is neither in
-  // `nextLogical.feeds` (it's gone) nor in `prevState.leavingFeeds` (it was
-  // never leaving before) — without `prevLogical` here, such an id would
-  // never be considered for "just started leaving" at all.
-  const nextLeavingFeeds = new Map<string, LeavingFeedEntry>();
-  const allFeedIds = new Set<string>([
-    ...nextLogical.feeds.keys(),
-    ...prevState.leavingFeeds.keys(),
-    ...prevLogical.feeds.keys(),
-  ]);
-  for (const id of allFeedIds) {
-    const logical = nextLogical.feeds.get(id);
-    const wasLeaving = prevState.leavingFeeds.get(id);
-    if (logical) {
-      if (wasLeaving) {
-        instructions.push({ action: "cancel", kind: "feed", id });
-      }
-      continue;
-    }
-    if (!retentionEnabled) {
-      if (wasLeaving) {
-        instructions.push({ action: "cancel", kind: "feed", id });
-      }
-      continue;
-    }
-    if (wasLeaving) {
-      nextLeavingFeeds.set(id, wasLeaving);
-      continue;
-    }
-    const lastKnown = prevLogical.feeds.get(id);
-    if (!lastKnown) {
-      // Never actually seen as logical before (e.g. a stale id from a
-      // different scope); nothing to retain.
-      continue;
-    }
-    nextLeavingFeeds.set(id, { viewModel: lastKnown.viewModel, parentKey: lastKnown.parentKey });
-    instructions.push({ action: "schedule", kind: "feed", id });
-  }
-
-  // --- Folders: top-level identity only; children are handled entirely via the feed diff above. ---
-  // Same reasoning as `allFeedIds` above: `prevLogical.folders` must be
-  // included so a folder that just disappeared this pass is considered.
-  const nextLeavingFolders = new Map<string, LeavingFolderEntry>();
-  const allFolderIds = new Set<string>([
-    ...nextLogical.folders.keys(),
-    ...prevState.leavingFolders.keys(),
-    ...prevLogical.folders.keys(),
-  ]);
-  for (const id of allFolderIds) {
-    const logical = nextLogical.folders.get(id);
-    const wasLeaving = prevState.leavingFolders.get(id);
-    if (logical) {
-      if (wasLeaving) {
-        instructions.push({ action: "cancel", kind: "folder", id });
-        // Collapse-owner handoff: while this folder was leaving, any of its
-        // children still leaving deferred their own collapse to the folder's
-        // wrapper (feed-tree-folder-section.tsx: `collapsing={feed.isLeaving
-        // && !folder.isLeaving}`), because the folder's own collapse already
-        // shrinks its whole subtree to zero height. Now that the folder is
-        // back in the logical tree, those children resume owning their own
-        // collapse from this render onward, so their exit timer must restart
-        // from now. Without this, a child's timer -- armed back when it
-        // started leaving alongside the folder -- can still be near its
-        // original deadline and fire mid-animation, unmounting the row before
-        // its own (just-started) collapse transition has run for its full
-        // duration.
-        for (const [feedId, entry] of nextLeavingFeeds) {
-          if (entry.parentKey === id) {
-            instructions.push({ action: "schedule", kind: "feed", id: feedId });
-          }
-        }
-      }
-      continue;
-    }
-    if (!retentionEnabled) {
-      if (wasLeaving) {
-        instructions.push({ action: "cancel", kind: "folder", id });
-      }
-      continue;
-    }
-    if (wasLeaving) {
-      nextLeavingFolders.set(id, wasLeaving);
-      continue;
-    }
-    const lastKnown = prevLogical.folders.get(id);
-    if (!lastKnown) {
-      continue;
-    }
-    nextLeavingFolders.set(id, { source: lastKnown });
-    instructions.push({ action: "schedule", kind: "folder", id });
-  }
-
-  // --- Orders. ---
-  const leavingFolderIds = new Set(nextLeavingFolders.keys());
-  const folderOrder = retentionEnabled
-    ? mergeOrder(prevState.folderOrder, nextLogical.folderOrder, leavingFolderIds)
-    : [...nextLogical.folderOrder];
-
-  const leavingFeedIdsByParent = new Map<string | null, Set<string>>();
-  for (const [feedId, entry] of nextLeavingFeeds) {
-    const bucket = leavingFeedIdsByParent.get(entry.parentKey);
-    if (bucket) {
-      bucket.add(feedId);
-    } else {
-      leavingFeedIdsByParent.set(entry.parentKey, new Set([feedId]));
-    }
-  }
-
-  const perFolderFeedOrder = new Map<string, string[]>();
-  for (const folderId of folderOrder) {
-    const logicalChildIds = nextLogical.childOrderByFolder.get(folderId) ?? [];
-    const leavingChildIds = leavingFeedIdsByParent.get(folderId) ?? EMPTY_STRING_SET;
-    const prevChildOrder = prevState.perFolderFeedOrder.get(folderId) ?? [];
-    const order = retentionEnabled
-      ? mergeOrder(prevChildOrder, logicalChildIds, leavingChildIds)
-      : [...logicalChildIds];
-    perFolderFeedOrder.set(folderId, order);
-  }
-
-  const unfolderedLeavingIds = leavingFeedIdsByParent.get(null) ?? EMPTY_STRING_SET;
-  const unfolderedOrder = retentionEnabled
-    ? mergeOrder(prevState.unfolderedOrder, nextLogical.unfolderedOrder, unfolderedLeavingIds)
-    : [...nextLogical.unfolderedOrder];
+  const feeds = diffLeavingFeeds(prevState, prevLogical, nextLogical, retentionEnabled);
+  const folders = diffLeavingFolders(prevState, prevLogical, nextLogical, retentionEnabled, feeds.leaving);
+  const orders = computePresenceOrders(prevState, nextLogical, retentionEnabled, folders.leaving, feeds.leaving);
 
   return {
     nextState: {
       scopeKey,
-      folderOrder,
-      leavingFolders: nextLeavingFolders,
-      perFolderFeedOrder,
-      unfolderedOrder,
-      leavingFeeds: nextLeavingFeeds,
+      ...orders,
+      leavingFolders: folders.leaving,
+      leavingFeeds: feeds.leaving,
     },
-    instructions,
+    instructions: [...feeds.instructions, ...folders.instructions],
   };
 }
 
