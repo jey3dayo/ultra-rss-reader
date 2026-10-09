@@ -196,6 +196,53 @@ export function LabelHelpSwitchSpecimen() {
   );
 }
 
+export function SettingsInfoPopoverViewportSpecimen() {
+  const [enabled, setEnabled] = useState(false);
+
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Long settings help</SectionHeading>
+      <LabeledSwitchRow
+        label="Use original publication dates"
+        description="Show the timestamp supplied by each feed when it is available."
+        checked={enabled}
+        onChange={setEnabled}
+        labelAccessory={
+          <SettingsInfoPopover
+            title="Publication date details"
+            ariaLabel="About publication dates"
+            content={
+              <div className="space-y-3">
+                <p>
+                  The reader normally uses each feed's original publication timestamp to place an article in the list.
+                  This keeps the ordering supplied by the publisher when that value is present.
+                </p>
+                <p>
+                  Some feeds omit the timestamp or provide one that cannot be parsed. For those entries, the reader uses
+                  the time when it first received the article, so older items do not appear as newly published just
+                  because the feed was refreshed.
+                </p>
+                <p>
+                  Dates are shown in your local time zone. Changing this preference updates the date labels in the
+                  article list after the next render, but it does not trigger a sync or change account data.
+                </p>
+                <p>
+                  When comparing items from different feeds, the displayed time may differ from the value shown on the
+                  publisher's site if the feed uses a different time zone or changes its dates after publication.
+                </p>
+                <p data-testid="settings-info-popover-final-instructions">
+                  This setting changes only the article list's date label. It does not modify the original feed, article
+                  body, or stored publication value.
+                </p>
+              </div>
+            }
+          />
+        }
+      />
+    </SurfaceCard>
+  );
+}
+
 export function PrimitiveControlMatrixSpecimen() {
   return (
     <SurfaceCard variant="section">

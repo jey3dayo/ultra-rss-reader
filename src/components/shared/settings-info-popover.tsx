@@ -51,7 +51,13 @@ export function SettingsInfoPopover({ title, content, ariaLabel }: SettingsInfoP
             initialFocus={false}
             className={cn(MOTION_POPUP_SURFACE_CLASS_NAME, "w-80 max-w-[calc(100vw-2rem)] outline-none")}
           >
-            <SurfaceCard variant="info" tone="subtle" padding="default" className="shadow-elevation-2">
+            <SurfaceCard
+              variant="info"
+              tone="subtle"
+              padding="default"
+              tabIndex={0}
+              className="max-h-[var(--available-height)] overflow-y-auto shadow-elevation-2 focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
               <Popover.Title className="sr-only">{title}</Popover.Title>
               <Popover.Description
                 id={descriptionId}

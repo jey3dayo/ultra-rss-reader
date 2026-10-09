@@ -8,6 +8,7 @@ import {
   LabelHelpSwitchSpecimen,
   PrimitiveControlMatrixSpecimen,
   ReferencePage,
+  SettingsInfoPopoverViewportSpecimen,
   ValidationRowSpecimen,
 } from "@/components/storybook/ui-reference-settings-specimens";
 
@@ -31,6 +32,20 @@ export function InputControlsCanvas() {
   );
 }
 
+function LongHelpViewportCanvas() {
+  return (
+    <ReferencePage maxWidthClassName="max-w-sm">
+      <div className="space-y-4">
+        <AnnotatedNote
+          title="Long settings help"
+          body="A narrow, enlarged, low-height viewport keeps the full instructions inside the popover."
+        />
+        <SettingsInfoPopoverViewportSpecimen />
+      </div>
+    </ReferencePage>
+  );
+}
+
 const meta = {
   title: "UI Reference/Input Controls Canvas",
   component: InputControlsCanvas,
@@ -48,4 +63,8 @@ export const Default: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "About app passwords" }));
     await expect(within(document.body).getByRole("dialog", { name: "App password details" })).toBeVisible();
   },
+};
+
+export const LongHelpViewport: Story = {
+  render: () => <LongHelpViewportCanvas />,
 };

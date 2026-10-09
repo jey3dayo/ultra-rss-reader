@@ -365,6 +365,8 @@ Manual/a11y smoke:
 - Horizontal navigation may collapse to compact controls on mobile
 - Multi-column cards collapse to single column cleanly
 - Timeline or preview layouts can switch from horizontal emphasis to vertical stacking
+- Anchored help popovers cap their height to the positioner's available viewport space and scroll internally. Keep the
+  scroll region keyboard reachable so users can read final instructions on short displays.
 - Mobile settings navigation may collapse into more compact controls, but settings content should keep priority over navigation chrome so the first editable rows remain visible without excessive scrolling.
 - Settings navigation density should preserve readable labels without stretching the rail. Keep selected, idle, and focused rows on the same outer geometry, and tune gaps or inset emphasis before increasing row padding.
 
