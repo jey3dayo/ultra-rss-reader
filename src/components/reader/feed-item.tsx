@@ -1,6 +1,6 @@
+import { cva } from "class-variance-authority";
 import type { FeedDto } from "@/api/tauri-commands";
 import { FeedFavicon, MotionNumber, NavRowButton } from "@/design-system";
-import { cn } from "@/lib/utils";
 
 type FeedItemViewProps = {
   feed: FeedDto;
@@ -16,14 +16,17 @@ type FeedItemContentProps = {
   grayscaleFavicons: boolean;
 };
 
-function getFeedItemClassName(isSelected: boolean) {
-  return cn(
-    "motion-feed-selection-marker relative min-h-11 items-center overflow-hidden rounded-md px-2 py-1 text-sm before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:origin-center before:rounded-full before:bg-border-strong hover:bg-[var(--sidebar-hover-surface)]",
-    isSelected
-      ? "border border-border-strong bg-surface-selected text-sidebar-accent-foreground shadow-none"
-      : "text-sidebar-foreground",
-  );
-}
+const feedItemVariants = cva(
+  "motion-feed-selection-marker relative min-h-11 items-center overflow-hidden rounded-md px-2 py-1 text-sm before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:origin-center before:rounded-full before:bg-border-strong hover:bg-[var(--sidebar-hover-surface)]",
+  {
+    variants: {
+      selected: {
+        true: "border border-border-strong bg-surface-selected text-sidebar-accent-foreground shadow-none",
+        false: "text-sidebar-foreground",
+      },
+    },
+  },
+);
 
 function getFeedItemButtonProps({ feed, displayFavicons, grayscaleFavicons }: FeedItemContentProps) {
   return {
@@ -59,7 +62,7 @@ export function FeedItemView({
       tone="sidebar"
       selected={isSelected}
       onClick={() => onSelect(feed.id)}
-      className={getFeedItemClassName(isSelected)}
+      className={feedItemVariants({ selected: isSelected })}
       {...buttonProps}
     />
   );

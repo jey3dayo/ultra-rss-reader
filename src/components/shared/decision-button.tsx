@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { stateSurfaceButtonClassName } from "@/components/shared/state-surface-button";
+import { stateSurfaceButtonVariants } from "@/components/shared/state-surface-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -8,10 +8,10 @@ type DecisionButtonProps = ComponentProps<typeof Button> & {
 };
 
 const decisionIntentClassName: Record<DecisionButtonProps["intent"], string> = {
-  keep: stateSurfaceButtonClassName("success"),
+  keep: stateSurfaceButtonVariants({ tone: "success" }),
   defer:
     "border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
-  delete: stateSurfaceButtonClassName("danger"),
+  delete: stateSurfaceButtonVariants({ tone: "danger" }),
 };
 
 export const workspaceCompactActionButtonClassName =
