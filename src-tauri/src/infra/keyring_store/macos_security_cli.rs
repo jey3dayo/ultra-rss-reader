@@ -559,34 +559,75 @@ impl CredentialOutputFailure {
 
 #[cfg(all(test, target_os = "macos"))]
 mod tests {
+    use std::io::{Read, Write};
     use std::time::Duration;
 
-    fn delayed_child() -> std::process::Child {
-        std::process::Command::new("/bin/sleep")
-            .arg("0.15")
+    fn permission_child() -> (std::process::Child, std::process::ChildStdin) {
+        let mut child = std::process::Command::new("/bin/sh")
+            .args([
+                "-c",
+                "printf R; IFS= read -r permission && test \"$permission\" = allow",
+            ])
+            .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
-            .expect("dummy permission child should start")
+            .expect("dummy permission child should start");
+        let mut ready = [0];
+        child
+            .stdout
+            .as_mut()
+            .expect("dummy child should have a readiness pipe")
+            .read_exact(&mut ready)
+            .expect("dummy child should signal readiness before the deadline starts");
+        assert_eq!(ready, [b'R']);
+        let permission = child
+            .stdin
+            .take()
+            .expect("dummy child should have a permission pipe");
+        (child, permission)
+    }
+
+    fn release_permission_after(
+        mut permission: std::process::ChildStdin,
+        delay: Duration,
+    ) -> std::thread::JoinHandle<()> {
+        std::thread::spawn(move || {
+            std::thread::sleep(delay);
+            writeln!(permission, "allow").expect("dummy child should receive permission");
+        })
     }
 
     #[test]
     fn interactive_lookup_allows_permission_delay_beyond_background_deadline() {
         use crate::infra::keyring_store::CredentialLookupMode;
-        let background_timeout = CredentialLookupMode::Background.timeout().div_f64(100.0);
-        let interactive_timeout = CredentialLookupMode::Interactive.timeout().div_f64(100.0);
+        let background_timeout = CredentialLookupMode::Background.timeout();
+        let interactive_timeout = CredentialLookupMode::Interactive.timeout();
+        assert!(
+            interactive_timeout > background_timeout,
+            "interactive permission budget must exceed the background budget"
+        );
+        let (background_child, _background_permission) = permission_child();
         let background_error =
-            super::wait_for_security_cli_output(delayed_child(), background_timeout)
+            super::wait_for_security_cli_output(background_child, background_timeout)
                 .expect_err("background lookup should retain its shorter deadline");
         assert!(background_error.to_string().contains("Timed out"));
-        let interactive = super::wait_for_security_cli_output(delayed_child(), interactive_timeout)
-            .expect("interactive lookup should wait long enough for permission success");
+        let (interactive_child, interactive_permission) = permission_child();
+        let release = release_permission_after(
+            interactive_permission,
+            background_timeout + Duration::from_millis(25),
+        );
+        let interactive =
+            super::wait_for_security_cli_output(interactive_child, interactive_timeout);
+        release.join().expect("permission release should finish");
+        let interactive =
+            interactive.expect("interactive lookup should wait long enough for permission success");
         assert!(interactive.status.success());
     }
 
     #[test]
     fn deadline_reaps_child_and_allows_a_fresh_retry() {
-        let child = delayed_child();
+        let (child, _permission) = permission_child();
         let child_id = child.id().to_string();
         let error =
             super::wait_for_security_cli_output(child, std::time::Duration::from_millis(10))
@@ -602,13 +643,19 @@ mod tests {
             !still_exists.success(),
             "deadline must leave no live or unreaped child"
         );
-        assert!(super::wait_for_security_cli_output(
-            delayed_child(),
-            std::time::Duration::from_millis(600)
-        )
-        .expect("fresh retry should not inherit the first child's deadline")
-        .status
-        .success());
+        let (retry_child, retry_permission) = permission_child();
+        let release = release_permission_after(retry_permission, Duration::from_secs(1));
+        let retry = super::wait_for_security_cli_output(
+            retry_child,
+            super::super::CredentialLookupMode::Interactive.timeout(),
+        );
+        release
+            .join()
+            .expect("retry permission release should finish");
+        assert!(retry
+            .expect("fresh retry should not inherit the first child's deadline")
+            .status
+            .success());
     }
 
     fn parse(stderr: &str) -> Option<String> {
