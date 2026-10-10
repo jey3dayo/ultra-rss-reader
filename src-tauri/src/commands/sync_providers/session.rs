@@ -10,6 +10,8 @@ use crate::infra::provider::traits::{Credentials, FeedProvider};
 #[derive(Debug)]
 pub(crate) struct GReaderSession {
     provider: GReaderProvider,
+    #[cfg(any(target_os = "macos", test))]
+    lease_generation: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -43,21 +45,56 @@ impl GReaderSession {
             .map(str::trim)
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
+        #[cfg(target_os = "macos")]
+        if mode == CredentialLookupMode::Background && !keyring_store::uses_dev_credential_store() {
+            let (cached, lease_generation) = keyring_store::session_cache::get_leased(account)
+                .map_err(|error| SessionError::Auth(error.into()))?;
+            let provider = Self::provider_with_access(server_url, Ok(cached.access))?;
+            let result = Self::authenticate(provider, username, cached.password.to_string()).await;
+            if matches!(&result, Err(SessionError::Auth(error)) if error.diagnostic_kind() == "auth")
+            {
+                if let Err(error) = keyring_store::session_cache::invalidate_if_generation(
+                    account.id.as_ref(),
+                    lease_generation,
+                ) {
+                    warn!(
+                        account_id = %account.id.as_ref(),
+                        "Could not invalidate rejected credential lease: {error}"
+                    );
+                }
+            }
+            return result;
+        }
+        #[cfg(target_os = "macos")]
+        let generation = keyring_store::session_cache::invalidate(account.id.as_ref())
+            .map_err(|error| SessionError::Auth(error.into()))?;
         let account_id = account.id.as_ref().to_string();
+        // Dev builds only: Cloudflare Access is not in the dev file store, so it still reads the
+        // OS Keychain and may prompt, as before leases existed.
+        #[cfg(target_os = "macos")]
+        let access_mode = if keyring_store::uses_dev_credential_store() {
+            CredentialLookupMode::Interactive
+        } else {
+            mode
+        };
+        #[cfg(not(target_os = "macos"))]
+        let access_mode = mode;
         let access =
             keyring_store::read_for_sync(CredentialKind::CloudflareAccess, mode, move || {
-                match mode {
+                match access_mode {
                     CredentialLookupMode::Background => {
                         cloudflare_access::load_for_sync(&account_id)
                     }
                     CredentialLookupMode::Interactive => {
-                        cloudflare_access::load_for_sync_with_mode(&account_id, mode)
+                        cloudflare_access::load_for_sync_with_mode(&account_id, access_mode)
                     }
                 }
                 .map_err(crate::domain::error::DomainError::from)
             })
             .await
             .map_err(|error| SessionError::Auth(error.into()))?;
+        #[cfg(target_os = "macos")]
+        let cached_access = access.clone();
         let provider = Self::provider_with_access(server_url, Ok(access))?;
         let password = match mode {
             CredentialLookupMode::Background => super::get_greader_password(account).await,
@@ -67,7 +104,15 @@ impl GReaderSession {
         }
         .map_err(SessionError::Auth)?;
 
-        Self::authenticate(provider, username, password).await
+        #[cfg(target_os = "macos")]
+        let credentials = keyring_store::session_cache::SessionCredentials {
+            password: zeroize::Zeroizing::new(password.clone()),
+            access: cached_access,
+        };
+        let session = Self::authenticate(provider, username, password).await?;
+        #[cfg(target_os = "macos")]
+        let session = session.grant_lease(account, generation, credentials)?;
+        Ok(session)
     }
 
     fn provider_with_access(
@@ -86,6 +131,27 @@ impl GReaderSession {
 
     pub(crate) fn provider(&self) -> &GReaderProvider {
         &self.provider
+    }
+
+    /// Generation this session attempted to grant; `None` when it never reached a grant.
+    #[cfg(any(target_os = "macos", test))]
+    pub(crate) fn lease_generation(&self) -> Option<u64> {
+        self.lease_generation
+    }
+
+    #[cfg(any(target_os = "macos", test))]
+    pub(crate) fn grant_lease(
+        self,
+        account: &Account,
+        generation: u64,
+        credentials: keyring_store::session_cache::SessionCredentials,
+    ) -> Result<Self, SessionError> {
+        keyring_store::session_cache::grant(account, generation, credentials)
+            .map_err(|error| SessionError::Auth(error.into()))?;
+        Ok(Self {
+            lease_generation: Some(generation),
+            ..self
+        })
     }
 }
 
@@ -134,7 +200,11 @@ impl SessionError {
 impl GReaderSession {
     #[cfg(test)]
     pub(crate) fn from_provider_for_tests(provider: GReaderProvider) -> Self {
-        Self { provider }
+        Self {
+            provider,
+            #[cfg(any(target_os = "macos", test))]
+            lease_generation: None,
+        }
     }
 
     async fn authenticate(
@@ -149,7 +219,11 @@ impl GReaderSession {
             })
             .await
             .map_err(|error| SessionError::Auth(error.into()))?;
-        Ok(Self { provider })
+        Ok(Self {
+            provider,
+            #[cfg(any(target_os = "macos", test))]
+            lease_generation: None,
+        })
     }
 
     #[cfg(test)]
@@ -269,5 +343,31 @@ mod tests {
             Err(SessionError::Auth(_))
         ));
         assert!(GReaderSession::provider_with_access("http://localhost", Ok(None)).is_ok());
+    }
+
+    #[test]
+    fn granting_a_lease_records_the_generation_it_attempted() {
+        use crate::infra::keyring_store::session_cache::{
+            get_leased, invalidate, SessionCredentials,
+        };
+        use crate::infra::provider::greader::GReaderProvider;
+        let account = test_account(Some("https://example.com"), Some("user"));
+        let generation = invalidate(account.id.as_ref()).unwrap();
+        let session = GReaderSession::from_provider_for_tests(GReaderProvider::for_freshrss(
+            "https://example.com",
+        ));
+        let session = session
+            .grant_lease(
+                &account,
+                generation,
+                SessionCredentials {
+                    password: zeroize::Zeroizing::new("dummy-password".into()),
+                    access: None,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(session.lease_generation(), Some(generation));
+        assert_eq!(get_leased(&account).unwrap().1, generation);
     }
 }

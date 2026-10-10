@@ -2,6 +2,7 @@
 // remain in scheduler.rs.
 use std::sync::atomic::Ordering;
 
+use serde::Deserialize;
 use tauri::State;
 use tracing::warn;
 
@@ -34,6 +35,23 @@ use super::scheduler::{
     purge_old_articles,
 };
 
+/// Explicit credential access for a single-account sync. `Interactive` is reserved for
+/// user-initiated account setup, where it may read the OS store once and grant a lease.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SyncCredentialAccess {
+    Background,
+    Interactive,
+}
+
+fn account_sync_mode(access: Option<SyncCredentialAccess>) -> CredentialLookupMode {
+    match access {
+        Some(SyncCredentialAccess::Background) => CredentialLookupMode::Background,
+        Some(SyncCredentialAccess::Interactive) => CredentialLookupMode::Interactive,
+        None => CredentialLookupMode::for_user_sync(),
+    }
+}
+
 #[tauri::command]
 pub async fn trigger_sync(
     app_handle: tauri::AppHandle,
@@ -50,7 +68,7 @@ pub async fn trigger_sync(
         &state.syncing,
         accounts,
         Some(reporter),
-        CredentialLookupMode::Interactive,
+        CredentialLookupMode::for_user_sync(),
         SyncTrigger::ManualAll,
         |result| {
             let plan = plan_finish(&FinishInput::from_result(result), SyncEntry::ManualAll);
@@ -95,6 +113,7 @@ pub async fn trigger_sync_account(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
     account_id: String,
+    credential_access: Option<SyncCredentialAccess>,
 ) -> Result<SyncResult, AppError> {
     if state
         .syncing
@@ -131,7 +150,8 @@ pub async fn trigger_sync_account(
         failed: Vec::new(),
         warnings: Vec::new(),
     };
-    match sync_account_with_mode(&state.db, &account, CredentialLookupMode::Interactive).await {
+    let mode = account_sync_mode(credential_access);
+    match sync_account_with_mode(&state.db, &account, mode).await {
         Ok(outcome) => {
             result.succeeded = 1;
             if let Err(error) = clear_scheduler_sync_status(&state.db, &account.id) {
@@ -251,7 +271,7 @@ pub async fn trigger_sync_feed(
         &state.db,
         &account,
         &feed,
-        CredentialLookupMode::Interactive,
+        CredentialLookupMode::for_user_sync(),
     )
     .await
     {
@@ -308,4 +328,16 @@ pub async fn trigger_sync_feed(
         emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
     }
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn credential_access_is_a_lowercase_wire_value() {
+        let access: SyncCredentialAccess = serde_json::from_str(r#""interactive""#).unwrap();
+        assert_eq!(access, SyncCredentialAccess::Interactive);
+        assert!(serde_json::from_str::<SyncCredentialAccess>(r#""true""#).is_err());
+    }
 }

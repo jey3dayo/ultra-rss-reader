@@ -21,8 +21,12 @@ export const triggerStartupSync = (preferredAccountId?: string) =>
 
 export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: SyncResultSchema });
 
-export const syncAccount = (accountId: string) =>
-  safeInvoke("trigger_sync_account", { response: SyncResultSchema, args: syncAccountArgs }, { accountId });
+export const syncAccount = (accountId: string, credentialAccess?: "background" | "interactive") =>
+  safeInvoke(
+    "trigger_sync_account",
+    { response: SyncResultSchema, args: syncAccountArgs },
+    credentialAccess === undefined ? { accountId } : { accountId, credentialAccess },
+  );
 
 export const syncFeed = (feedId: string) =>
   safeInvoke("trigger_sync_feed", { response: SyncResultSchema, args: syncFeedArgs }, { feedId });

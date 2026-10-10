@@ -16,6 +16,7 @@ import {
   type SchemaOutput,
   type SchemaParseError,
 } from "@/schemas/parse";
+import type { InvokableCommandName } from "./command-names";
 
 export type InvokeArgsRecord = Record<string, unknown>;
 type InvokeArgsSchema = RuntimeSchema<InvokeArgsRecord>;
@@ -97,7 +98,7 @@ function isRetryableRuntimeErrorMessage(message: string): boolean {
   return RETRYABLE_RUNTIME_ERROR_PATTERNS.some((pattern) => pattern.test(message));
 }
 
-function toAppError(cmd: string, error: unknown): AppError {
+function toAppError(cmd: InvokableCommandName, error: unknown): AppError {
   if (error instanceof ResponseValidationError) {
     const detail = formatSchemaIssues(error.cause);
     console.error(`[tauri-commands] ${cmd} response validation failed:`, detail);
@@ -155,7 +156,7 @@ function hasResponseSchema<R extends RuntimeSchema>(
 }
 
 async function invokeWithResponseSchema<R extends RuntimeSchema>(
-  cmd: string,
+  cmd: InvokableCommandName,
   options: SchemaBackedInvokeOptions<R>,
   args?: InvokeArgsRecord,
 ): Promise<SchemaOutput<R>> {
@@ -173,7 +174,7 @@ async function invokeWithResponseSchema<R extends RuntimeSchema>(
 }
 
 async function invokeWithoutResponseSchema<T>(
-  cmd: string,
+  cmd: InvokableCommandName,
   options: GenericInvokeOptions,
   args?: InvokeArgsRecord,
 ): Promise<T> {
@@ -182,19 +183,19 @@ async function invokeWithoutResponseSchema<T>(
 }
 
 export function safeInvoke<R extends RuntimeSchema>(
-  cmd: string,
+  cmd: InvokableCommandName,
   options: SchemaBackedInvokeOptions<R>,
   args?: InvokeArgsRecord,
 ): Result.ResultAsync<SchemaOutput<R>, AppError>;
 
 export function safeInvoke<T = unknown>(
-  cmd: string,
+  cmd: InvokableCommandName,
   options?: GenericInvokeOptions,
   args?: InvokeArgsRecord,
 ): Result.ResultAsync<T, AppError>;
 
 export function safeInvoke<R extends RuntimeSchema, T = unknown>(
-  cmd: string,
+  cmd: InvokableCommandName,
   options: GenericInvokeOptions | SchemaBackedInvokeOptions<R> = {},
   args?: InvokeArgsRecord,
 ): Result.ResultAsync<unknown, AppError> {

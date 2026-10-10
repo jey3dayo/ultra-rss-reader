@@ -6,6 +6,51 @@ import { AccountsNavView } from "./accounts-nav-view";
 import { SettingsModalView } from "./settings-modal-view";
 import { SettingsNavView } from "./settings-nav-view";
 
+function DefaultNavigation({ disabled = false }: { disabled?: boolean }) {
+  return (
+    <SettingsNavView
+      items={[
+        {
+          id: "general",
+          label: "General",
+          icon: <Settings className="size-5" />,
+          isActive: true,
+        },
+        {
+          id: "appearance",
+          label: "Appearance",
+          icon: <Palette className="size-5" />,
+          isActive: false,
+        },
+        {
+          id: "reading",
+          label: "Reading",
+          icon: <BookOpen className="size-5" />,
+          isActive: false,
+        },
+      ]}
+      onSelectCategory={fn()}
+      disabled={disabled}
+    />
+  );
+}
+
+function DefaultAccountsNavigation({ disabled = false }: { disabled?: boolean }) {
+  return (
+    <AccountsNavView
+      accounts={[
+        { id: "acc-1", name: "Local", kind: "local", isActive: true },
+        { id: "acc-2", name: "FreshRSS", kind: "freshrss", isActive: false },
+      ]}
+      addAccountLabel="Add account…"
+      isAddAccountActive={false}
+      onSelectAccount={fn()}
+      onAddAccount={fn()}
+      disabled={disabled}
+    />
+  );
+}
+
 const meta = {
   title: "Settings/Shell/SettingsModalView",
   component: SettingsModalView,
@@ -18,43 +63,8 @@ const meta = {
     title: "Settings",
     closeLabel: "Close settings",
     accountsHeading: "Accounts",
-    navigation: (
-      <SettingsNavView
-        items={[
-          {
-            id: "general",
-            label: "General",
-            icon: <Settings className="size-5" />,
-            isActive: true,
-          },
-          {
-            id: "appearance",
-            label: "Appearance",
-            icon: <Palette className="size-5" />,
-            isActive: false,
-          },
-          {
-            id: "reading",
-            label: "Reading",
-            icon: <BookOpen className="size-5" />,
-            isActive: false,
-          },
-        ]}
-        onSelectCategory={fn()}
-      />
-    ),
-    accountsNavigation: (
-      <AccountsNavView
-        accounts={[
-          { id: "acc-1", name: "Local", kind: "local", isActive: true },
-          { id: "acc-2", name: "FreshRSS", kind: "freshrss", isActive: false },
-        ]}
-        addAccountLabel="Add account…"
-        isAddAccountActive={false}
-        onSelectAccount={fn()}
-        onAddAccount={fn()}
-      />
-    ),
+    navigation: <DefaultNavigation />,
+    accountsNavigation: <DefaultAccountsNavigation />,
     content: (
       <div className="p-6">
         <h2 className="text-lg font-semibold">General settings</h2>
@@ -82,6 +92,17 @@ export const Default: Story = {};
 export const Loading: Story = {
   args: {
     isLoading: true,
+  },
+};
+
+export const SaveLocked: Story = {
+  args: {
+    title: "環境設定",
+    closeLabel: "環境設定を閉じる",
+    isCloseDisabled: true,
+    navigation: <DefaultNavigation disabled />,
+    accountsNavigation: <DefaultAccountsNavigation disabled />,
+    lockMessage: "変更を保存しています。設定を閉じる前にお待ちください。",
   },
 };
 

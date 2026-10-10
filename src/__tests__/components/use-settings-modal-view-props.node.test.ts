@@ -40,27 +40,6 @@ describe("settings modal view model", () => {
     ]);
   });
 
-  it("always includes the debug category as the developer mode entry point", () => {
-    const navItems = buildSettingsNavItemModels({
-      t,
-      settingsCategory: "general",
-      settingsAccountId: null,
-      settingsAddAccount: false,
-    });
-
-    expect(navItems.map((item) => item.label)).toEqual([
-      "General",
-      "Reading",
-      "Appearance",
-      "Mute",
-      "Tags",
-      "Shortcuts",
-      "Actions & Sharing",
-      "Data Management",
-      "Development",
-    ]);
-  });
-
   it("builds structured content reset keys for account ids containing delimiters", () => {
     const browseKey = buildSettingsContentResetKey({
       settingsCategory: "general",

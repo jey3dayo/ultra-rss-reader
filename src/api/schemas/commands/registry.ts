@@ -1,4 +1,5 @@
 import type { BaseIssue, BaseSchema } from "valibot";
+import type { InvokableCommandName } from "@/api/tauri-commands/command-names";
 import {
   addAccountArgs,
   deleteAccountArgs,
@@ -161,7 +162,7 @@ export const commandArgsSchemas = {
   export_local_account_sync_operations: exportLocalAccountSyncOperationsArgs,
   import_local_account_sync_operations: importLocalAccountSyncOperationsArgs,
   record_read_diagnostics_batch: recordReadDiagnosticsBatchArgs,
-} as const satisfies Record<string, CommandArgsSchema>;
+} as const satisfies Partial<Record<InvokableCommandName, CommandArgsSchema>>;
 
 export type CommandArgsSchemaRegistry = typeof commandArgsSchemas;
 export type CommandWithArgs = keyof CommandArgsSchemaRegistry;

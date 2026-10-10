@@ -162,20 +162,32 @@ describe("setupDevMocks", () => {
         clientSecret: "dummy-secret",
       }),
     );
-    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "preview-client" });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({
+      status: "loaded",
+      client_id: "preview-client",
+    });
     expect(account).not.toHaveProperty("cloudflareAccess");
     await updateAccountCredentials(account.id, undefined, "new-reader");
-    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "preview-client" });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({
+      status: "loaded",
+      client_id: "preview-client",
+    });
     await updateAccountCredentials(account.id, undefined, undefined, undefined, { action: "keep" });
-    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "preview-client" });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({
+      status: "loaded",
+      client_id: "preview-client",
+    });
     await updateAccountCredentials(account.id, "https://preview.example.com", undefined, undefined, {
       action: "replace",
       clientId: "next-client",
       clientSecret: "next-dummy-secret",
     });
-    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: "next-client" });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({
+      status: "loaded",
+      client_id: "next-client",
+    });
     await updateAccountCredentials(account.id, undefined, undefined, undefined, { action: "remove" });
-    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ client_id: null });
+    expect(Result.unwrap(await getAccountCloudflareAccess(account.id))).toEqual({ status: "loaded", client_id: null });
     await updateAccountCredentials(account.id, "https://preview.example.com", undefined, undefined, {
       action: "replace",
       clientId: "last-client",

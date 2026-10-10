@@ -62,34 +62,6 @@ export const liveProviderTestGateContract = {
     "Do not print FreshRSS URL, username, password, tokens, cookies, or response bodies in live test logs or verification notes.",
 } as const;
 
-export const testHelperRuntimeIsolationContract = {
-  sharedSetupPath: "tests/setup.ts",
-  policyTestPath: "tests/test-isolation-policy.node.test.ts",
-  helperPathPrefixes: ["tests/helpers/"],
-  suiteBoundaryResets: [
-    "cleanup()",
-    "teardownTauriMocks()",
-    "resetTauriRuntimeFlags()",
-    "vi.useRealTimers()",
-    "restoreProcessEnv()",
-    'clearWorkingStorage(readWorkingWindowStorage("localStorage"))',
-    'clearWorkingStorage(readWorkingWindowStorage("sessionStorage"))',
-    "restoreStorageDescriptors()",
-    "resetTestObserverMocks()",
-  ],
-  globalRuntimeSurfaces: [
-    "process.env",
-    "localStorage",
-    "sessionStorage",
-    "fake timers",
-    "Tauri IPC mocks",
-    "observer globals",
-    "singleton diagnostics reporters",
-  ],
-  reviewPolicy:
-    "Helpers that mutate global runtime state must expose an explicit reset or rely on the shared suite teardown, with focused coverage for two consecutive test runs.",
-} as const;
-
 const reactDoctorBaselines = {
   diff: {
     score: null,

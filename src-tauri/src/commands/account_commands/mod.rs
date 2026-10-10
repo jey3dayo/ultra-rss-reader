@@ -11,7 +11,9 @@ use crate::repository::account::AccountRepository;
 
 mod access_credentials;
 mod credentials;
-use access_credentials::{access_metadata, persist_account_credentials, OsAccountCredentialStore};
+use access_credentials::{
+    persist_account_credentials, settings_access_metadata, OsAccountCredentialStore,
+};
 pub use access_credentials::{CloudflareAccessArg, CloudflareAccessMetadata};
 mod validation;
 
@@ -113,7 +115,7 @@ pub fn get_account_cloudflare_access(
                 message: "Account not found".into(),
             })?
     };
-    access_metadata(&account, &OsAccountCredentialStore)
+    settings_access_metadata(&account, &OsAccountCredentialStore)
 }
 
 #[tauri::command]
@@ -226,6 +228,11 @@ pub async fn test_account_connection(
     }
 
     let session = GReaderSession::establish_interactive(&account).await;
+    #[cfg(target_os = "macos")]
+    let lease_generation = session
+        .as_ref()
+        .ok()
+        .and_then(GReaderSession::lease_generation);
     let verification = verify_authenticated_freshrss_session(session).await;
     let verification = match verification {
         Err(error @ (SessionError::MissingUsername | SessionError::MissingServerUrl)) => {
@@ -233,14 +240,38 @@ pub async fn test_account_connection(
         }
         result => result,
     };
+    #[cfg(target_os = "macos")]
+    if verification.is_ok() {
+        crate::commands::sync_commands::clear_credential_wait(&state.db, &id)?;
+    }
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
+    #[cfg(target_os = "macos")]
+    release_lease_after_connection_test(&id, verification.is_err(), lease_generation);
     persist_connection_verification_result(&repo, &id, verification)?;
     let updated = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
 
     Ok(AccountDto::from(updated))
+}
+
+/// A failed test drops only the lease it attempted to grant; a newer test's lease must survive.
+#[cfg(any(target_os = "macos", test))]
+pub(crate) fn release_lease_after_connection_test(
+    id: &AccountId,
+    verification_failed: bool,
+    lease_generation: Option<u64>,
+) {
+    let (true, Some(generation)) = (verification_failed, lease_generation) else {
+        return;
+    };
+    if let Err(error) = crate::infra::keyring_store::session_cache::invalidate_if_generation(
+        id.as_ref(),
+        generation,
+    ) {
+        tracing::warn!(%error, "Session credential lease could not be cleared after a failed connection test");
+    }
 }
 
 async fn verify_authenticated_freshrss_session(

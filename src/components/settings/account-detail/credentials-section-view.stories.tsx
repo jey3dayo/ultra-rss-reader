@@ -78,6 +78,7 @@ export const CloudflareAccessConfigured: Story = {
       loadingMessage: "Checking Cloudflare Access settings…",
       readErrorMessage: "Cloudflare Access settings could not be read. Existing credentials will be kept unchanged.",
       unavailableMessage: "Cloudflare Access settings can only be managed in the desktop app.",
+      authorizationRequiredMessage: "Choose Save and test connection to load Cloudflare Access settings.",
       label: "Cloudflare Access",
       description: "Add Access authentication",
       enabled: true,

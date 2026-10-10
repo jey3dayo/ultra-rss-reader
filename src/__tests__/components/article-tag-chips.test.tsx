@@ -9,6 +9,18 @@ import { ArticleTagChips } from "@/components/reader/article-tag-chips";
 import { buildArticleTagPickerLists, findArticleTagByName } from "@/components/reader/article-tag-chips-model";
 import { useUiStore } from "@/stores/ui-store";
 
+async function expectErrorInInlineAndToast(message: string): Promise<HTMLElement> {
+  const toastHost = await screen.findByTestId("test-toast-host");
+  expect(within(toastHost).getByText(message)).toBeInTheDocument();
+  return waitFor(() => {
+    const inlineError = screen.getAllByText(message).find((element) => !toastHost.contains(element));
+    if (!inlineError) {
+      throw new Error(`Inline error "${message}" not rendered`);
+    }
+    return inlineError;
+  });
+}
+
 describe("ArticleTagChips", () => {
   it("builds assigned and available tag picker lists without changing tag order", () => {
     expect(
@@ -337,7 +349,7 @@ describe("ArticleTagChips", () => {
     await user.type(input, "later");
     await user.keyboard("{Enter}");
 
-    expect(await screen.findByText("Assign failed")).toBeInTheDocument();
+    await expectErrorInInlineAndToast("Assign failed");
     expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("textbox")).toHaveValue("later");
     expectTauriCommandError(consoleError, "tag_article", appError);
@@ -370,7 +382,7 @@ describe("ArticleTagChips", () => {
     await user.click(await screen.findByRole("button", { name: "Add tag" }));
     await user.click(await screen.findByRole("option", { name: "Later" }));
 
-    expect(await screen.findByText("Assign failed")).toBeInTheDocument();
+    await expectErrorInInlineAndToast("Assign failed");
     expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Later" })).toBeInTheDocument();
     expectTauriCommandError(consoleError, "tag_article", appError);
@@ -409,7 +421,7 @@ describe("ArticleTagChips", () => {
     await user.type(input, "Review");
     await user.keyboard("{Enter}");
 
-    expect(await screen.findByText("Assign failed")).toBeInTheDocument();
+    await expectErrorInInlineAndToast("Assign failed");
     expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("textbox")).toHaveValue("Review");
     expect(commands).toContainEqual({
@@ -470,7 +482,7 @@ describe("ArticleTagChips", () => {
       await user.type(input, "Review");
       await user.keyboard("{Enter}");
 
-      const inlineError = await screen.findByText(error.message);
+      const inlineError = await expectErrorInInlineAndToast(error.message);
       const newTagInput = screen.getByRole("textbox");
       expect(inlineError).toBeInTheDocument();
       expect(newTagInput).toHaveAttribute("aria-invalid", "true");

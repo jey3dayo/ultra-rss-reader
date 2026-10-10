@@ -16,6 +16,7 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
+import { isInvokableCommandName } from "@/api/tauri-commands/command-names";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "@/dev/mock-data";
@@ -273,6 +274,9 @@ export function setupDevMocks(): RestoreDevMocks {
 
   mockWindows("main");
   mockIPC(async (cmd, rawIpcPayload) => {
+    if (!isInvokableCommandName(cmd)) {
+      throw recordDevMockUnknownCommand(cmd);
+    }
     switch (cmd) {
       case "plugin:window|set_badge_count":
         return null;
@@ -320,7 +324,7 @@ export function setupDevMocks(): RestoreDevMocks {
         if (!mockAccounts.some((account) => account.id === accountId)) {
           throw new Error("Account not found");
         }
-        return { client_id: mockCloudflareAccessClientIds.get(accountId) ?? null };
+        return { status: "loaded", client_id: mockCloudflareAccessClientIds.get(accountId) ?? null };
       }
 
       case "update_account_credentials": {

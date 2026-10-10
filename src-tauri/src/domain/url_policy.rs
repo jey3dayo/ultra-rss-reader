@@ -9,10 +9,31 @@ pub const CREDENTIAL_URL_VALIDATION_MESSAGE: &str =
 pub const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 pub const MISSING_HOST_URL_VALIDATION_MESSAGE: &str = "URLs must include a host";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HostPolicy {
+    /// The user explicitly opens or sends the URL.
+    UserNavigation,
+    /// The app contacts or discloses the URL without a click.
+    AutomaticRequest,
+}
+
+/// Validates a URL the app contacts or discloses on its own.
 pub fn validate_public_http_url(url: &reqwest::Url) -> DomainResult<()> {
+    validate_http_url_for_policy(url, HostPolicy::AutomaticRequest)
+}
+
+/// Validates a URL the user explicitly opens or sends to another app.
+pub fn validate_user_navigation_url(url: &reqwest::Url) -> DomainResult<()> {
+    validate_http_url_for_policy(url, HostPolicy::UserNavigation)
+}
+
+fn validate_http_url_for_policy(url: &reqwest::Url, policy: HostPolicy) -> DomainResult<()> {
     validate_http_url_without_credentials(url)?;
 
-    if url.host_str().is_some_and(is_private_host) {
+    if url
+        .host_str()
+        .is_some_and(|host| is_blocked_host(host, policy))
+    {
         return Err(DomainError::Validation(
             PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
         ));
@@ -58,6 +79,14 @@ pub fn has_url_credentials(url: &reqwest::Url) -> bool {
 }
 
 pub fn is_private_host(host: &str) -> bool {
+    is_blocked_host(host, HostPolicy::AutomaticRequest)
+}
+
+pub fn is_private_ip(ip: IpAddr) -> bool {
+    is_blocked_ip(ip, HostPolicy::AutomaticRequest)
+}
+
+pub fn is_blocked_host(host: &str, policy: HostPolicy) -> bool {
     let host_lower = host.to_lowercase();
     let host_without_trailing_dot = host_lower.trim_end_matches('.');
 
@@ -66,22 +95,32 @@ pub fn is_private_host(host: &str) -> bool {
         .trim_end_matches(']');
     let ip_str = ip_str.split_once('%').map_or(ip_str, |(addr, _zone)| addr);
     if let Ok(ip) = ip_str.parse::<IpAddr>() {
-        return is_private_ip(ip);
+        return is_blocked_ip(ip, policy);
     }
 
-    host_without_trailing_dot == "localhost"
-        || host_without_trailing_dot.ends_with(".local")
-        || !host_without_trailing_dot.contains('.')
+    if host_without_trailing_dot == "localhost" || host_without_trailing_dot.ends_with(".localhost")
+    {
+        return true;
+    }
+
+    policy == HostPolicy::AutomaticRequest
+        && (host_without_trailing_dot.ends_with(".local")
+            || !host_without_trailing_dot.contains('.'))
 }
 
-pub fn is_private_ip(ip: IpAddr) -> bool {
+pub fn is_blocked_ip(ip: IpAddr, policy: HostPolicy) -> bool {
     match ip {
         IpAddr::V4(v4) => {
-            v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
+            v4.is_loopback()
+                || v4.is_private()
+                || v4.is_unspecified()
+                || v4.is_link_local()
+                || v4.octets()[0] == 0
+                || (policy == HostPolicy::AutomaticRequest && is_shared_address_space(v4))
         }
         IpAddr::V6(v6) => {
             if let Some(v4) = v6.to_ipv4_mapped() {
-                return is_private_ip(IpAddr::V4(v4));
+                return is_blocked_ip(IpAddr::V4(v4), policy);
             }
 
             v6.is_loopback()
@@ -90,6 +129,11 @@ pub fn is_private_ip(ip: IpAddr) -> bool {
                 || (v6.segments()[0] & 0xffc0) == 0xfe80
         }
     }
+}
+
+fn is_shared_address_space(v4: std::net::Ipv4Addr) -> bool {
+    let [first, second, ..] = v4.octets();
+    first == 100 && (second & 0xc0) == 0x40
 }
 
 #[cfg(test)]
@@ -158,5 +202,69 @@ mod tests {
                 Err(DomainError::Validation(message)) if message == CREDENTIAL_URL_VALIDATION_MESSAGE
             ));
         }
+    }
+
+    #[derive(serde::Deserialize)]
+    struct PolicyCases {
+        cases: Vec<PolicyCase>,
+    }
+
+    #[derive(serde::Deserialize)]
+    struct PolicyCase {
+        url: String,
+        #[serde(rename = "userNavigation")]
+        user_navigation: Verdict,
+        #[serde(rename = "automaticRequest")]
+        automatic_request: Verdict,
+    }
+
+    #[derive(serde::Deserialize, Debug, PartialEq, Eq)]
+    #[serde(rename_all = "lowercase")]
+    enum Verdict {
+        Allow,
+        Reject,
+    }
+
+    #[test]
+    fn host_privacy_policy_matches_shared_fixture() {
+        let fixture: PolicyCases = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/host-privacy/policy-cases.json"
+        ))
+        .expect("host privacy fixture should parse");
+        assert!(!fixture.cases.is_empty());
+
+        let verdict = |result: DomainResult<()>| {
+            if result.is_ok() {
+                Verdict::Allow
+            } else {
+                Verdict::Reject
+            }
+        };
+        let mut failures = Vec::new();
+        for case in &fixture.cases {
+            let url = reqwest::Url::parse(&case.url)
+                .unwrap_or_else(|error| panic!("fixture URL {} should parse: {error}", case.url));
+            let user = verdict(validate_user_navigation_url(&url));
+            let automatic = verdict(validate_public_http_url(&url));
+            if user != case.user_navigation {
+                failures.push(format!(
+                    "{} userNavigation: expected {:?}, got {user:?}",
+                    case.url, case.user_navigation
+                ));
+            }
+            if automatic != case.automatic_request {
+                failures.push(format!(
+                    "{} automaticRequest: expected {:?}, got {automatic:?}",
+                    case.url, case.automatic_request
+                ));
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+    }
+
+    #[test]
+    fn user_provided_server_url_policy_allows_shared_address_space() {
+        let url = reqwest::Url::parse("http://100.64.0.1:8080/api/greader.php").unwrap();
+        assert!(validate_user_provided_server_url(&url).is_ok());
     }
 }

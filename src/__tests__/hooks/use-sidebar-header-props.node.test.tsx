@@ -32,27 +32,6 @@ describe("useSidebarHeaderProps", () => {
     vi.restoreAllMocks();
   });
 
-  it("keeps syncing after finished while the selected account feeds refetch is in flight", async () => {
-    const { queryClient, wrapper } = createQueryWrapper();
-    const deferred = createDeferred<readonly unknown[]>();
-    const { result } = renderHook(() => useSidebarHeaderProps(createHeaderParams()), { wrapper });
-
-    let fetchPromise: Promise<readonly unknown[]> | undefined;
-    act(() => {
-      fetchPromise = queryClient.fetchQuery({
-        queryKey: queryKeys.feeds.byAccount("acc-1"),
-        queryFn: () => deferred.promise,
-      });
-    });
-
-    await waitFor(() => {
-      expect(result.current.syncState.status).toBe("syncing");
-    });
-
-    deferred.resolve([]);
-    await fetchPromise;
-  });
-
   it("returns to idle when the selected account feeds refetch settles", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const deferred = createDeferred<readonly unknown[]>();

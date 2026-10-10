@@ -4,7 +4,11 @@ import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledInputRow, SurfaceCard } from "@/design-system";
-import type { CloudflareAccessDraftError } from "@/lib/account/cloudflare-access";
+import {
+  type CloudflareAccessDraftError,
+  type CloudflareAccessStatus,
+  isCloudflareAccessRecoveryStatus,
+} from "@/lib/account/cloudflare-access";
 
 export type AccountCredentialInputRow = {
   label: string;
@@ -19,12 +23,13 @@ export type AccountCredentialInputRow = {
 };
 
 export type AccountCloudflareAccessSection = {
-  status: "loading" | "ready" | "error" | "unavailable";
+  status: CloudflareAccessStatus;
   recoveryAction?: "replace" | "remove" | null;
   onRecoveryActionChange?: (action: "replace" | "remove") => void;
   loadingMessage: string;
   readErrorMessage: string;
   unavailableMessage: string;
+  authorizationRequiredMessage: string;
   label: string;
   description: string;
   enabled: boolean;
@@ -42,19 +47,28 @@ type CloudflareAccessCredentialFieldsProps = {
   labelClassName: string;
 };
 
+const RECOVERY_CARD_PRESENTATION = {
+  error: { tone: "danger", role: "alert" },
+  authorization_required: { tone: "subtle", role: "status" },
+} as const;
+
 function CloudflareAccessRecoveryCard({
   section,
+  status,
   disabled,
 }: {
   section: AccountCloudflareAccessSection;
+  status: keyof typeof RECOVERY_CARD_PRESENTATION;
   disabled: boolean;
 }) {
   const { t } = useTranslation("settings");
   const { onRecoveryActionChange, recoveryAction } = section;
+  const { tone, role } = RECOVERY_CARD_PRESENTATION[status];
+  const message = status === "error" ? section.readErrorMessage : section.authorizationRequiredMessage;
 
   return (
-    <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
-      <p className="text-sm leading-[1.5]">{section.readErrorMessage}</p>
+    <SurfaceCard variant="info" tone={tone} padding="compact" role={role}>
+      <p className="text-sm leading-[1.5]">{message}</p>
       {onRecoveryActionChange && (
         <div className="mt-3 flex flex-wrap gap-2">
           <SettingsActionButton
@@ -148,7 +162,9 @@ export function CloudflareAccessCredentialFields({
 
   return (
     <>
-      {status === "error" && <CloudflareAccessRecoveryCard section={section} disabled={disabled} />}
+      {isCloudflareAccessRecoveryStatus(status) && (
+        <CloudflareAccessRecoveryCard section={section} status={status} disabled={disabled} />
+      )}
       {status === "ready" && (
         <CloudflareAccessControl
           mode="detail"

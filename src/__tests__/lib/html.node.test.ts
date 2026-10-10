@@ -34,10 +34,6 @@ describe("stripHtmlTags", () => {
     expect(stripHtmlTags("")).toBe("");
   });
 
-  it("returns plain text unchanged", () => {
-    expect(stripHtmlTags("Hello world")).toBe("Hello world");
-  });
-
   it("strips simple HTML tags", () => {
     expect(stripHtmlTags("<p>Hello</p>")).toBe("Hello");
   });
@@ -77,6 +73,9 @@ describe("stripHtmlTags", () => {
       '<div><img width="800" height="534" src="https://example.com/photo.jpg"><p>This is the article summary with <a href="https://example.com">a link</a>.</p></div>';
     const result = stripHtmlTags(html);
     expect(result).toBe("This is the article summary with a link.");
+    expect(stripHtmlTags(`<p>${"Body paragraph text. ".repeat(2_000)}</p>`).startsWith("Body paragraph text.")).toBe(
+      true,
+    );
   });
 
   it("trims leading and trailing whitespace", () => {
@@ -107,27 +106,6 @@ describe("stripHtmlTags", () => {
     expect(stripHtmlTags("Hello world   there")).toBe("Hello world there");
     expect(stripHtmlTags("  leading and trailing  ")).toBe("leading and trailing");
     expect(stripHtmlTags("Hello world")).toBe("Hello world");
-  });
-
-  it("caches the result so a repeated call with the same input returns an equal (not just referentially fresh) value", () => {
-    const html = "<p>Hello <strong>world</strong></p>";
-
-    const first = stripHtmlTags(html);
-    const second = stripHtmlTags(html);
-
-    expect(second).toBe(first);
-    expect(second).toBe("Hello world");
-  });
-
-  it("strips article-body-sized HTML correctly and identically on repeat calls (input larger than the per-entry cache size guard)", () => {
-    const largeArticleBody = `<p>${"Body paragraph text. ".repeat(2_000)}</p>`;
-
-    const first = stripHtmlTags(largeArticleBody);
-    const second = stripHtmlTags(largeArticleBody);
-
-    expect(first).toBe(second);
-    expect(first.startsWith("Body paragraph text.")).toBe(true);
-    expect(first).not.toContain("<p>");
   });
 
   it("keeps regex fallback safe for malformed entities and large malformed HTML", () => {
@@ -210,6 +188,67 @@ describe("applyReaderContentPrivacyPolicy", () => {
     expect(normalized).toContain('srcset="https://cdn.example.com/hero.webp 1x"');
     expect(normalized).toContain('loading="lazy"');
     expect(normalized).toContain('decoding="async"');
+  });
+
+  it("drops blocked img srcset candidates and removes the attribute when none remain", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      [
+        '<img src="https://cdn.example.com/a.jpg" srcset="https://cdn.example.com/a.jpg 1x, http://100.64.0.1/a.jpg 2x, http://nas.local/a.jpg 3x" alt="Mixed">',
+        '<img src="https://cdn.example.com/b.jpg" srcset="http://app.localhost/b.jpg 1x" alt="Blocked">',
+      ].join(""),
+    );
+
+    expect(normalized).toContain('srcset="https://cdn.example.com/a.jpg 1x"');
+    expect(normalized).not.toContain("100.64.0.1");
+    expect(normalized).not.toContain("nas.local");
+    expect(normalized).not.toContain("app.localhost");
+    expect(normalized).not.toContain('alt="Blocked" srcset');
+    expect(normalized.match(/srcset=/g)).toHaveLength(1);
+  });
+
+  it("keeps commas inside srcset URLs and drops only the private candidate", () => {
+    const intact = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/a.jpg" srcset="https://example.com/image,name.jpg 1x">',
+    );
+    expect(intact).toContain('srcset="https://example.com/image,name.jpg 1x"');
+
+    const mixed = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/a.jpg" srcset="https://example.com/image,name.jpg 1x, http://100.64.0.1/p.jpg 2x">',
+    );
+    expect(mixed).toContain('srcset="https://example.com/image,name.jpg 1x"');
+    expect(mixed).not.toContain("100.64.0.1");
+  });
+
+  it("parses srcset candidates per the WHATWG rules for commas without surrounding spaces", () => {
+    const single = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/x.jpg" srcset="https://example.com/a.jpg,b.jpg">',
+    );
+    expect(single).toContain('srcset="https://example.com/a.jpg,b.jpg"');
+
+    const trailing = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/x.jpg" srcset="https://example.com/a.jpg, http://nas.local/b.jpg">',
+    );
+    expect(trailing).toContain('srcset="https://example.com/a.jpg"');
+    expect(trailing).not.toContain("nas.local");
+  });
+
+  it("ends a srcset candidate at the first closing parenthesis, as the non-nested WHATWG in-parens state does", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/x.jpg" srcset="https://example.com/a.jpg ((x),http://127.0.0.1/p.jpg 2x">',
+    );
+
+    expect(normalized).not.toContain("127.0.0.1");
+  });
+
+  it("treats only ASCII whitespace as srcset separators and keeps a NBSP URL intact", () => {
+    const url = "https://example.com/a\u00a0b.jpg";
+    const normalized = applyReaderContentPrivacyPolicy(`<img src="https://example.com/x.jpg" srcset="${url} 2x">`);
+
+    const srcset = new DOMParser()
+      .parseFromString(normalized, "text/html")
+      .querySelector("img")
+      ?.getAttribute("srcset");
+    expect(srcset).toBe(`${url} 2x`);
   });
 
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
@@ -336,6 +375,12 @@ describe("normalizeReaderContentImageUrl", () => {
     expect(normalizeReaderContentImageUrl("http://a.localhost./hero.jpg")).toBeNull();
   });
 
+  it("blocks hosts the Rust sanitizer rejects: unspecified IPv6, fe90::/10 link-local, .local, single-label, CGNAT", () => {
+    for (const host of ["[::]", "[fe90::1]", "[febf::1]", "nas.local", "freshrss", "100.64.0.1"]) {
+      expect(normalizeReaderContentImageUrl(`http://${host}/hero.jpg`)).toBeNull();
+    }
+  });
+
   it("allows a trailing-dot public FQDN, matching the Rust url_policy trim_end_matches('.') contract", () => {
     expect(normalizeReaderContentImageUrl("http://example.com./hero.jpg")).toBe("http://example.com./hero.jpg");
   });
@@ -369,6 +414,7 @@ describe("normalizeArticleBodyHtml", () => {
     expect(normalizeArticleBodyHtml("<p>Tech Blog:</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
     expect(normalizeArticleBodyHtml("<p>Tech Blog｜</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
     expect(normalizeArticleBodyHtml("<p>Tech Blog -</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
+    expect(normalizeArticleBodyHtml("<p>Tech Blog：</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
   });
 
   it("keeps leading nodes that only start with the feed label text", () => {
@@ -420,11 +466,6 @@ describe("normalizeArticleBodyHtml", () => {
     expect(normalizeArticleBodyHtml(imageOnly, "Tech Blog")).toBe(imageOnly);
     expect(normalizeArticleBodyHtml(pictureOnly, "Tech Blog")).toBe(pictureOnly);
     expect(normalizeArticleBodyHtml(videoOnly, "Tech Blog")).toBe(videoOnly);
-  });
-
-  it("removes only duplicated feed labels before real article content", () => {
-    expect(normalizeArticleBodyHtml("<p>Tech Blog：</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
-    expect(normalizeArticleBodyHtml("<p>Tech Blog｜</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
   });
 
   it("normalizes null body text to an empty string", () => {

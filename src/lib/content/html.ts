@@ -1,4 +1,5 @@
 import type { SanitizedArticleHtmlDto } from "@/api/schemas/article";
+import { isHostBlockedByPolicy } from "@/lib/runtime/host-privacy";
 
 declare const sanitizedArticleHtmlBrand: unique symbol;
 
@@ -212,108 +213,6 @@ export function normalizeArticleBodyHtml(html: string, label?: string | null): s
 const REDACTED_URL_TITLE = "External link";
 const REDACTED_IMAGE_TITLE = "External image";
 
-function parseIpv4Address(hostname: string): number[] | null {
-  const parts = hostname.split(".");
-  if (parts.length !== 4) {
-    return null;
-  }
-
-  const octets = parts.map((part) => {
-    if (!/^\d{1,3}$/.test(part)) {
-      return null;
-    }
-
-    const octet = Number(part);
-    return Number.isInteger(octet) && octet >= 0 && octet <= 255 ? octet : null;
-  });
-
-  return octets.every((octet): octet is number => octet !== null) ? octets : null;
-}
-
-function isPrivateIpv4Address(octets: number[]): boolean {
-  const [first, second] = octets;
-  return (
-    first === 10 ||
-    first === 127 ||
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168) ||
-    (first === 0 && second === 0) ||
-    first >= 224
-  );
-}
-
-function extractIpv4MappedAddress(hostname: string): string | null {
-  if (!hostname.includes(":")) {
-    return null;
-  }
-
-  const lastColonIndex = hostname.lastIndexOf(":");
-  const tail = hostname.slice(lastColonIndex + 1);
-  const head = hostname.slice(0, lastColonIndex);
-
-  // Dotted-quad form, e.g. "::ffff:127.0.0.1" -> head "::ffff", tail "127.0.0.1"
-  if (tail.includes(".")) {
-    if (!/^(::ffff:|::ffff:0:)$/i.test(`${head}:`)) {
-      return null;
-    }
-    return tail;
-  }
-
-  // Hextet form, e.g. "::ffff:7f00:1" -> groups ["ffff", "7f00", "1"]
-  const groups = hostname.split(":");
-  if (groups.length < 4) {
-    return null;
-  }
-  const [hiHex, loHex] = groups.slice(-2);
-  const prefixGroups = groups.slice(0, -3);
-  const mappedMarker = groups.at(-3);
-  if (mappedMarker?.toLowerCase() !== "ffff" || !prefixGroups.every((group) => group === "")) {
-    return null;
-  }
-  if (!hiHex || !loHex || !/^[0-9a-f]{1,4}$/i.test(hiHex) || !/^[0-9a-f]{1,4}$/i.test(loHex)) {
-    return null;
-  }
-
-  const hi = Number.parseInt(hiHex, 16);
-  const lo = Number.parseInt(loHex, 16);
-  return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-}
-
-function isPrivateHostname(hostname: string): boolean {
-  // Strip a trailing dot (or dots) before the private-host checks below so a
-  // DNS root label like "localhost." or "127.0.0.1." cannot bypass the
-  // "localhost" / ".localhost" / IPv4 checks. This mirrors the Rust
-  // sanitizer's trim_end_matches('.') normalization
-  // (src-tauri/src/domain/url_policy.rs). The URL href returned to callers is
-  // left untouched; only this private-host comparison is normalized.
-  const normalizedHostname = hostname
-    .toLowerCase()
-    .replace(/^\[|\]$/g, "")
-    .replace(/\.+$/, "");
-  if (
-    normalizedHostname === "localhost" ||
-    normalizedHostname.endsWith(".localhost") ||
-    normalizedHostname === "::1" ||
-    (normalizedHostname.includes(":") &&
-      (normalizedHostname.startsWith("fc") || normalizedHostname.startsWith("fd"))) ||
-    normalizedHostname.startsWith("fe80:")
-  ) {
-    return true;
-  }
-
-  const mappedIpv4 = extractIpv4MappedAddress(normalizedHostname);
-  if (mappedIpv4 !== null) {
-    const mappedOctets = parseIpv4Address(mappedIpv4);
-    if (mappedOctets !== null && isPrivateIpv4Address(mappedOctets)) {
-      return true;
-    }
-  }
-
-  const ipv4Address = parseIpv4Address(normalizedHostname);
-  return ipv4Address !== null && isPrivateIpv4Address(ipv4Address);
-}
-
 function parseReaderContentUrl(value: string): URL | null {
   try {
     return new URL(value);
@@ -323,7 +222,12 @@ function parseReaderContentUrl(value: string): URL | null {
 }
 
 function isSafeReaderContentUrl(url: URL, allowedProtocols: ReadonlySet<string>): boolean {
-  return allowedProtocols.has(url.protocol) && !url.username && !url.password && !isPrivateHostname(url.hostname);
+  return (
+    allowedProtocols.has(url.protocol) &&
+    !url.username &&
+    !url.password &&
+    !isHostBlockedByPolicy(url.hostname, "automaticRequest")
+  );
 }
 
 const ARTICLE_LINK_PROTOCOLS = new Set(["http:", "https:"]);
@@ -371,14 +275,65 @@ function isSafeReaderContentLinkUrl(value: string): boolean {
   return url !== null && isSafeReaderContentUrl(url, ARTICLE_LINK_PROTOCOLS);
 }
 
+const SRCSET_ASCII_WHITESPACE = /^[\t\n\f\r ]$/;
+const SRCSET_EDGE_WHITESPACE = /^[\t\n\f\r ]+|[\t\n\f\r ]+$/g;
+
+type SrcsetCandidate = { url: string; descriptors: string };
+
+// WHATWG "parse a srcset attribute": URLs may contain commas, and a comma
+// only ends a candidate when it trails the URL or sits outside parentheses.
+function parseSrcsetCandidates(value: string): SrcsetCandidate[] {
+  const candidates: SrcsetCandidate[] = [];
+  const isAsciiWhitespace = (char: string | undefined) => char !== undefined && SRCSET_ASCII_WHITESPACE.test(char);
+  const isSeparator = (char: string | undefined) => char === "," || isAsciiWhitespace(char);
+  let position = 0;
+
+  while (position < value.length) {
+    while (position < value.length && isSeparator(value[position])) {
+      position += 1;
+    }
+    if (position >= value.length) {
+      break;
+    }
+
+    const urlStart = position;
+    while (position < value.length && !isAsciiWhitespace(value[position])) {
+      position += 1;
+    }
+    let url = value.slice(urlStart, position);
+    let descriptors = "";
+
+    if (url.endsWith(",")) {
+      url = url.replace(/,+$/, "");
+    } else {
+      const descriptorStart = position;
+      let inParens = false;
+      while (position < value.length) {
+        const char = value[position];
+        if (inParens) {
+          inParens = char !== ")";
+        } else if (char === "(") {
+          inParens = true;
+        } else if (char === ",") {
+          break;
+        }
+        position += 1;
+      }
+      descriptors = value.slice(descriptorStart, position).replace(SRCSET_EDGE_WHITESPACE, "");
+    }
+
+    if (url) {
+      candidates.push({ url, descriptors });
+    }
+  }
+
+  return candidates;
+}
+
 function safeSrcsetCandidates(value: string): string {
-  return value
-    .split(",")
-    .map((candidate) => candidate.trim())
-    .filter((candidate) => {
-      const [url] = candidate.split(/\s+/, 1);
-      return normalizeReaderContentImageUrl(url) !== null;
-    })
+  return parseSrcsetCandidates(value)
+    .filter(({ url }) => normalizeReaderContentImageUrl(url) !== null)
+    .map(({ url, descriptors }) => (descriptors ? `${url} ${descriptors}` : url))
     .join(", ");
 }
 
@@ -400,7 +355,7 @@ export function applyReaderContentPrivacyPolicy(html: string): string {
   }
 
   const doc = new DOMParser().parseFromString(html, "text/html");
-  doc.body.querySelectorAll("source[srcset]").forEach((source) => {
+  doc.body.querySelectorAll("img[srcset], source[srcset]").forEach((source) => {
     const srcset = source.getAttribute("srcset");
     if (!srcset) {
       return;

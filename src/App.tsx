@@ -118,7 +118,7 @@ function AppInner() {
       const syncResults = await Promise.allSettled(
         syncOnWakeAccountIds.map(async (accountId) => ({
           accountId,
-          result: await syncAccount(accountId),
+          result: await syncAccount(accountId, "background"),
         })),
       );
 

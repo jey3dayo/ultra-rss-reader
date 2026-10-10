@@ -98,20 +98,19 @@ export function SettingsModalView({
             >
               <X className="size-4" />
             </SettingsActionButton>
-            <div className="min-w-0 max-w-[11rem] px-8 text-center">
-              <DialogTitle className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">
-                {title}
-              </DialogTitle>
-              {lockMessage ? (
-                <p
-                  className="mt-1 text-xs leading-[1.4] text-sidebar-foreground/56"
-                  data-testid="settings-lock-message"
-                >
-                  {lockMessage}
-                </p>
-              ) : null}
-            </div>
+            <DialogTitle className="min-w-0 truncate px-10 text-center font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">
+              {title}
+            </DialogTitle>
           </DialogHeader>
+          {lockMessage ? (
+            <p
+              role="status"
+              className="-mt-1 px-5 pb-3 text-center text-xs leading-[1.5] text-balance text-sidebar-foreground/56"
+              data-testid="settings-lock-message"
+            >
+              {lockMessage}
+            </p>
+          ) : null}
 
           <div className="relative min-h-0 flex-1">
             {navigationOverflow.hasOverflow ? (

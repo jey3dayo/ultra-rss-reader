@@ -7,6 +7,14 @@ export type CloudflareAccessDraft = {
   clientSecret: string;
 };
 
+export type CloudflareAccessStatus = "loading" | "ready" | "error" | "unavailable" | "authorization_required";
+
+export function isCloudflareAccessRecoveryStatus(
+  status: CloudflareAccessStatus,
+): status is "error" | "authorization_required" {
+  return status === "error" || status === "authorization_required";
+}
+
 export type CloudflareAccessDraftError = "client_id_required" | "client_secret_required" | "https_required";
 
 export function getHttpsOrigin(serverUrl: string): string | null {
@@ -76,7 +84,7 @@ export function matchCloudflareAccessUpdate<T>(
 }
 
 export type CloudflareAccessDraftStateInput = {
-  status: "loading" | "ready" | "error" | "unavailable";
+  status: CloudflareAccessStatus;
   enabled: boolean;
   removalRequested: boolean;
   recoveryAction: "replace" | "remove" | null;
@@ -120,7 +128,7 @@ function resolveCloudflareAccessDraft(input: CloudflareAccessDraftStateInput): C
   if (input.status === "ready") {
     return resolveReadyCloudflareAccess(input);
   }
-  if (input.status === "error" && input.recoveryAction === "replace") {
+  if (isCloudflareAccessRecoveryStatus(input.status) && input.recoveryAction === "replace") {
     return resolveRecoveryCloudflareAccess(input);
   }
   return null;
@@ -138,7 +146,7 @@ function isReadyCloudflareAccessDirty(input: CloudflareAccessDraftStateInput): b
 }
 
 function isCloudflareAccessDraftDirty(input: CloudflareAccessDraftStateInput): boolean {
-  if (input.status === "error") {
+  if (isCloudflareAccessRecoveryStatus(input.status)) {
     return input.recoveryAction !== null;
   }
   return input.status === "ready" && isReadyCloudflareAccessDirty(input);
@@ -146,7 +154,7 @@ function isCloudflareAccessDraftDirty(input: CloudflareAccessDraftStateInput): b
 
 export function deriveCloudflareAccessDraftState(input: CloudflareAccessDraftStateInput): CloudflareAccessDraftState {
   const dirty = isCloudflareAccessDraftDirty(input);
-  if (input.status === "error" && input.recoveryAction === "remove") {
+  if (isCloudflareAccessRecoveryStatus(input.status) && input.recoveryAction === "remove") {
     return { validationError: null, update: { action: "remove" }, dirty };
   }
   const resolution = resolveCloudflareAccessDraft(input);

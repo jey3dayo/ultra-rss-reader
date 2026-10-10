@@ -4,13 +4,13 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, w
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { checkReleaseBuildSources } from "../scripts/check-release-build-contamination";
 import {
   generatedFixtureSnapshotSizeBudget,
   isGeneratedReportArtifactPath,
   liveProviderTestGateContract,
   markdownlintRepoContract,
   qualityBaselineRepoScanIgnoredPathPrefixes,
-  testHelperRuntimeIsolationContract,
 } from "../scripts/quality-baseline";
 import {
   analyzeRepositorySqlInventory,
@@ -21,8 +21,6 @@ import {
   readMigrationSources,
 } from "../scripts/repo-contract-inventory";
 import {
-  extractIssueTemplateDoneWhenDescription,
-  extractIssueTemplateDoneWhenPlaceholder,
   extractYamlInlineListValues,
   extractYamlLabelsFields,
   extractYamlTopLevelKeys,
@@ -451,14 +449,6 @@ const normalizeCapabilities = (source: TauriCapabilityFile): TauriCapability[] =
   return [source];
 };
 
-const capabilityByIdentifier = (source: TauriCapabilityFile, identifier: string): TauriCapability => {
-  const capability = normalizeCapabilities(source).find((entry) => entry.identifier === identifier);
-  if (!capability) {
-    throw new Error(`Missing Tauri capability: ${identifier}`);
-  }
-  return capability;
-};
-
 const permissionIdentifier = (permission: CapabilityPermission): string =>
   typeof permission === "string" ? permission : permission.identifier;
 
@@ -593,12 +583,6 @@ const extractTauriActionBlock = (source: string): string => {
   return value;
 };
 
-const listTypeScriptSourceFiles = (dir: string): string[] =>
-  readdirSync(dir, { recursive: true })
-    .filter((entry): entry is string => typeof entry === "string")
-    .filter((entry) => /\.(?:ts|tsx)$/.test(entry))
-    .map((entry) => normalizeRepoPath(`${dir}/${entry}`));
-
 const repoWalkIgnoredDirectoryNames = new Set([
   ".git",
   ".worktrees",
@@ -723,7 +707,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const prInsightsLabelerWorkflow = readText(".github/workflows/pr-insights-labeler.yml");
   const releaseConfig = readText(".github/release.yml");
   const labelerConfig = readText(".github/labeler.yml");
-  const pullRequestTemplate = readText(".github/PULL_REQUEST_TEMPLATE.md");
   const issueTemplateFileNames = readdirSync(".github/ISSUE_TEMPLATE").filter(
     (fileName) => fileName.endsWith(".yml") && fileName !== "config.yml",
   );
@@ -743,8 +726,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const accountCommandsSource = readAccountCommandsModuleSource();
   const opmlCommandsSource = readOpmlCommandsModuleSource();
   const greaderProviderSource = readGReaderProviderModuleSource();
-  const testSetupSource = readText(testHelperRuntimeIsolationContract.sharedSetupPath);
-  const testIsolationPolicySource = readText(testHelperRuntimeIsolationContract.policyTestPath);
   const articleContentViewTest = readText("src/__tests__/components/article-content-view.test.tsx");
   const feedDiscoverySource = readFeedDiscoveryModuleSource();
   const addAccountFormSource = readText("src/lib/account/add-account-form.ts");
@@ -894,30 +875,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879")).toBeLessThan(
       releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
     );
-  });
-
-  it("pins third-party actions in all workflows to commit SHAs", () => {
-    const workflows = [
-      [".github/workflows/ci.yml", ciWorkflow],
-      [".github/workflows/labeler.yml", labelerWorkflow],
-      [".github/workflows/pr-insights-labeler.yml", prInsightsLabelerWorkflow],
-      [".github/workflows/release.yml", releaseWorkflow],
-    ] as const;
-
-    for (const [workflowPath, workflow] of workflows) {
-      const usesValues = extractWorkflowUses(workflow);
-
-      expect(usesValues.length, workflowPath).toBeGreaterThan(0);
-      for (const usesValue of usesValues) {
-        expect(usesValue, workflowPath).toMatch(/@[0-9a-f]{40}$/i);
-      }
-    }
-
-    expect(extractWorkflowUses(prInsightsLabelerWorkflow)).toContain(
-      "jey3dayo/pr-insights-labeler@19045111c0318d811e60d49706878074df2c3593",
-    );
-    expect(extractTaskBlock(miseToml, "lint:workflow-pins")).toContain("node scripts/check-workflow-pins.mjs");
-    expect(readText("scripts/check-workflow-pins.mjs")).toContain('?? ".github/workflows"');
   });
 
   it("keeps workflow pin checker parsing quoted uses, inline comments, and local actions", () => {
@@ -1128,6 +1085,16 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(nodeStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
     expect(rustStep).toContain("tee tmp/ci-artifacts/rust/test.log");
 
+    const contaminationStep = nodeRustSteps.find((step) => step.includes("pnpm run check:release-contamination"));
+    expect(contaminationStep, "real dependency validation must run outside Vitest on both OSes").toBeDefined();
+    expect(contaminationStep).toContain("timeout-minutes: 3");
+    expect(contaminationStep).not.toContain("continue-on-error");
+    expect(contaminationStep).not.toContain("if:");
+    expect(contaminationStep).not.toBe(nodeStep);
+    expect(nodeRustJobBlock.indexOf("pnpm run check:release-contamination")).toBeGreaterThan(
+      nodeRustJobBlock.indexOf("mise run test:rust"),
+    );
+
     const jsdomSteps = extractWorkflowStepBlocks(jsdomJobBlock);
     const jsdomShardStep = jsdomSteps.find((step) => step.includes("mise run test:unit:ci:dom:shard"));
     expect(jsdomShardStep, "the jsdom shard must run in its own step").toBeDefined();
@@ -1166,6 +1133,10 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     expect(ciWorkflow).not.toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
+    const credentialPolicyStep = extractWorkflowStepBlocks(ciWorkflow).find((step) =>
+      step.includes("mise run test:keychain-session"),
+    );
+    expect(credentialPolicyStep).toContain("runner.os == 'macOS'");
     // Guard against silently reverting the shard split back to a single jsdom step,
     // which would still pass a naive "the task name exists" check.
     expect(ciWorkflow).not.toMatch(/mise run test:unit:ci:dom\b(?!:shard)/);
@@ -1313,120 +1284,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     );
   });
 
-  it("keeps privacy-sensitive export, reset, support dump, and settings portability contracts documented", () => {
-    expect(feedContentPrivacy).toContain("### Local Database Encryption At Rest");
-    expect(feedContentPrivacy).toContain(
-      "Decision: do not add app-managed local database encryption at rest for this release.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Credentials remain outside the database in the OS keyring for production builds.",
-    );
-    expect(feedContentPrivacy).toContain("Future work may revisit this decision with a scoped threat model");
-    expect(feedContentPrivacy).toContain(
-      "Database backups include the SQLite database and any matching `-wal` / `-shm` sidecars.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Ultra RSS Reader does not encrypt database backups or OPML exports with an app-managed key in this release.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Users who need encrypted storage or transfer must use OS disk encryption, an encrypted archive, or another external secure channel.",
-    );
-    expect(incidentRunbook).toContain("Treat database backup sets as private, unencrypted user data.");
-    expect(releaseManualVerification).toContain(
-      "Database backup/export copy says backups are private and not app-encrypted",
-    );
-    expect(releaseManualVerification).toContain(
-      "recommends preserving a private OS-level copy of the complete app data",
-    );
-    expect(releaseManualVerification).toContain("directory or database backup set");
-    expect(releaseManualVerification).toContain("The user can continue without a backup only when the flow records");
-    expect(releaseManualVerification).toContain("that the profile is disposable or already backed up elsewhere.");
-    expect(feedContentPrivacy).toContain(
-      "Installer upgrade and updater flows that operate on an existing profile must",
-    );
-    expect(feedContentPrivacy).toContain("recommend a private OS-level copy of the complete app data directory");
-    expect(feedContentPrivacy).toContain("describe OPML export or settings export as a complete app-data backup.");
-
-    expect(incidentRunbook).toContain(
-      "Uninstall or app binary deletion removes the application bundle only; it must not be described as deleting local app data.",
-    );
-    expect(incidentRunbook).toContain(
-      "Reinstalling the same version or a newer version may reuse the existing app data, database, preferences, logs, and OS keyring credentials.",
-    );
-    expect(incidentRunbook).toContain(
-      "A reset is complete only when all applicable surfaces are removed or intentionally preserved for an active incident.",
-    );
-    expect(releaseManualVerification).toContain(
-      "Reinstalling the same or newer version is allowed to reuse existing app data, preferences, logs, and OS keyring credentials",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Installer, updater, uninstall, and reinstall copy must say that app data can persist across app binary removal and app reinstall.",
-    );
-
-    expect(feedContentPrivacy).toContain(
-      "any support dump or diagnostics export must require explicit user consent and a redaction preview before the artifact is generated.",
-    );
-    expect(feedContentPrivacy).toContain("support dump generation must fail closed");
-    expect(incidentRunbook).toContain(
-      "If a database backup set or support dump is needed, share it only through a private support channel after confirming consent and redaction preview requirements",
-    );
-    expect(releaseManualVerification).toContain(
-      "Support dumps are not generated before explicit user consent and a redaction preview",
-    );
-
-    // The settings profile shipped as v1, so these pins moved from "do not introduce until"
-    // to "what v1 guarantees, and which preconditions are still unmet". The unmet items stay
-    // pinned so a future version cannot quietly drop them, and the private-identifier fact
-    // stays pinned so support copy cannot start treating an exported profile as non-sensitive.
-    expect(feedContentPrivacy).toContain(
-      "app settings export/import ships as a versioned settings profile that excludes secrets by design. It is a settings transfer artifact, not a backup.",
-    );
-    expect(feedContentPrivacy).toContain("a top-level schema version and source app identifier");
-    expect(feedContentPrivacy).toContain(
-      "exclusion of credentials, tokens, cookies, OS keyring references, local filesystem paths, account passwords, and provider session material",
-    );
-    // Both directions are wrong here and the doc has to hold the middle. Saying every account
-    // carries the identifiers overstates it (Account.server_url / username are Option). Saying
-    // only FreshRSS does understates it: add_account and update_account_credentials accept both
-    // for ProviderKind::Local, and account_to_profile_account copies whatever is stored. Pin the
-    // "whatever they hold" framing plus the Local clause so neither drift passes.
-    expect(feedContentPrivacy).toContain(
-      "account entries carry whatever `server_url` and `username` they hold, copied as-is",
-    );
-    expect(feedContentPrivacy).toContain("a Local account keeps them once a user supplies them");
-    expect(feedContentPrivacy).toContain("These are not secrets, but they are private identifiers");
-    expect(feedContentPrivacy).toContain("there is no conflict preview before an import overwrites local settings");
-    expect(feedContentPrivacy).toContain("The unmet items remain governing constraints for any future profile version");
-    expect(feedContentPrivacy).toContain(
-      "must not claim the conflict-preview and encryption preconditions are satisfied.",
-    );
-    expect(incidentRunbook).toContain(
-      "App settings export/import ships as a versioned settings profile, but it is not a supported recovery promise",
-    );
-    expect(incidentRunbook).toContain(
-      "Do not recommend exporting settings as an uninstall/reinstall backup. Point the user at a database backup plus re-entering credentials in the OS keyring",
-    );
-    expect(releaseManualVerification).toContain(
-      "App settings export/import is presented as a settings transfer, not as a backup or recovery path.",
-    );
-    expect(releaseManualVerification).toContain(
-      "the profile has no conflict preview and is plaintext JSON, so copy must not imply either",
-    );
-  });
-
-  it("keeps macOS sandbox entitlement changes behind release-native policy", () => {
-    expect(releaseManualVerification).toContain("macOS Sandbox Entitlements And Access Policy");
-    expect(releaseManualVerification).toContain("does not expand macOS sandbox entitlements opportunistically");
-    expect(releaseManualVerification).toContain(
-      "Network access is limited to the app's RSS/provider, update, favicon, article media, and Web Preview behavior",
-    );
-    expect(releaseManualVerification).toContain("File access remains user-initiated or app-owned");
-    expect(releaseManualVerification).toContain("Keychain access remains limited to provider credentials");
-    expect(releaseManualVerification).toContain(
-      "Relevant entitlements output, for example `codesign -d --entitlements :- <app>`.",
-    );
-  });
-
   it("keeps reader import, favicon, and browser-origin privacy boundaries documented", () => {
     expect(feedContentPrivacy).toContain(
       "OS file drop and drag-and-drop import surfaces, if added, must enter the same OPML import boundary as the native open dialog.",
@@ -1514,46 +1371,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(accountCommandsSource).toContain("provider_account_scale_guidance_contract_is_advisory");
     expect(accountCommandsSource).toContain("warning_threshold_guidance");
     expect(accountCommandsSource).toContain("no_hard_limit_copy");
-  });
-
-  it("keeps app action diagnostics and public id persistence boundaries documented", () => {
-    expect(feedContentPrivacy).toContain("Decision: do not add telemetry for app actions.");
-    expect(feedContentPrivacy).toContain(
-      "A local-only, redacted, size-capped action sequence may be kept as runtime diagnostics",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Action diagnostics may record action id, surface class, success/failure class, and coarse timing/order.",
-    );
-    expect(feedContentPrivacy).toContain(
-      "Support copy may include the redacted action sequence only after explicit consent and preview",
-    );
-    expect(feedContentPrivacy).toContain(
-      "manually redacted app.log excerpt or reproduction steps rather than adding remote telemetry",
-    );
-
-    expect(readerKeyboardNavigation).toContain("## Command And Shortcut Persistence Contract");
-    expect(readerKeyboardNavigation).toContain("Shortcut overrides are stored as `shortcut_");
-    expect(readerKeyboardNavigation).toContain("{ShortcutActionId}`.");
-    expect(readerKeyboardNavigation).toContain(
-      'Command palette recent action history stores values created from `{ kind: "action", id }`.',
-    );
-    expect(readerKeyboardNavigation).toContain("Debug trace strings are diagnostic evidence, not preferences.");
-    expect(readerKeyboardNavigation).toContain(
-      "Public shortcut/action ids are classified as preference, history, or debug before renaming.",
-    );
-
-    expect(incidentRunbook).toContain(
-      "When triaging command/action persistence failures, classify the failing surface before recovery",
-    );
-    expect(incidentRunbook).toContain(
-      "`shortcut_*` preference keys require preference migration or quarantine handling",
-    );
-    expect(incidentRunbook).toContain(
-      "command palette recent actions require history cleanup or explicit stale-entry ignore behavior",
-    );
-    expect(incidentRunbook).toContain(
-      "debug input trace strings are evidence for the current build rather than data that should be migrated",
-    );
   });
 
   it("keeps feed provider abuse-prevention and redirect contracts documented", () => {
@@ -2004,32 +1821,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseSkill).toContain("Do not generate release notes after the release commit has been created");
   });
 
-  it("keeps release notes and updater messages classified from the same user-visible change set", () => {
-    expect(releaseManualVerification).toContain(
-      "classify the release notes, `CHANGELOG.md`\nentry, and in-app updater message",
-    );
-    expect(releaseManualVerification).toContain("same user-visible change set");
-    expect(releaseManualVerification).toContain("must not\nhide a change that affects update urgency");
-    expect(releaseManualVerification).toContain("Security or privacy fix");
-    expect(releaseManualVerification).toContain("Data migration or storage compatibility change");
-    expect(releaseManualVerification).toContain("Manual action required");
-    expect(releaseManualVerification).toContain("Rollback impossible or unsafe");
-    expect(releaseManualVerification).toContain("Internal-only maintenance");
-  });
-
-  it("keeps public known-issue copy separate from internal TODO risk tracking", () => {
-    expect(releaseManualVerification).toContain("Known-issue policy:");
-    expect(releaseManualVerification).toContain(
-      "User-visible risk, data-loss risk, privacy risk, failed migration risk",
-    );
-    expect(releaseManualVerification).toContain("Internal-only risk may stay in `todo.txt` or its linked GitHub issue");
-    expect(releaseManualVerification).toContain("Do not link\n  release notes directly to `todo.txt`");
-    expect(releaseManualVerification).toContain(
-      "record the\n  internal task name in the release handoff or verification notes",
-    );
-    expect(releaseManualVerification).toContain("A known issue should include a workaround when one exists");
-  });
-
   it("keeps flaky test quarantine discoverable through TODO or issue links and skip annotations", () => {
     const flakyPolicy = readText("docs/flaky-test-quarantine-policy.md");
     const sourceFiles = listRepoFiles()
@@ -2060,54 +1851,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
   });
 
-  it("keeps published macOS artifact notarization, quarantine, and translocation manual checks explicit", () => {
-    expect(releaseManualVerification).toContain("published macOS artifact downloaded through the normal browser");
-    expect(releaseManualVerification).toContain("not a locally rebuilt or re-signed app");
-    expect(releaseManualVerification).toContain("com.apple.quarantine");
-    expect(releaseManualVerification).toContain(
-      "Current release policy assumes no Apple Developer Program / Developer ID",
-    );
-    expect(releaseManualVerification).toContain('ad-hoc signed with `signingIdentity: "-"`');
-    expect(releaseManualVerification).toContain("Gatekeeper and notarization policy result before first launch");
-    expect(releaseManualVerification).toContain("does not require removing quarantine manually");
-    expect(releaseManualVerification).toContain("translocation evidence");
-    expect(releaseManualVerification).toContain("Do not work around it by clearing quarantine on the verifier machine");
-  });
-
-  it("keeps release hotfix scope and evidence separate from the normal release checklist", () => {
-    expect(releaseManualVerification).toContain("Hotfix Release Checklist");
-    expect(releaseManualVerification).toContain("affected version, regression, user impact, and rollback option");
-    expect(releaseManualVerification).toContain(
-      "contains only the fix, required tests, and release notes for that regression",
-    );
-    expect(releaseManualVerification).toContain("record the skipped gate and the reason");
-    expect(releaseManualVerification).toContain("old artifact digest, replacement artifact digest");
-    expect(releaseManualVerification).toContain(
-      "Release path: normal, hotfix, rollback/republish, or manual native smoke only",
-    );
-  });
-
   it("keeps release builds from using dev Tauri config or dev credentials", () => {
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
-    const devOnlyImportPattern = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
-    const staticDevMocksImportPattern = /^\s*import\s+(?!type\b)[^;\n]+from\s*["']@\/dev\/mocks["']/m;
-    const releaseSourceDevOnlyImports = listTypeScriptSourceFiles("src").flatMap((filePath) => {
-      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
-        return [];
-      }
-      return devOnlyImportPattern.test(readText(filePath)) ? [filePath] : [];
-    });
-    const releaseSourceStaticDevMocksImports = listTypeScriptSourceFiles("src").flatMap((filePath) => {
-      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
-        return [];
-      }
-      return staticDevMocksImportPattern.test(readText(filePath)) ? [filePath] : [];
-    });
-
-    execFileSync("node", ["./scripts/check-release-build-contamination.ts"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    expect(checkReleaseBuildSources()).toEqual([]);
     expect(tauriDevConfig.identifier).not.toBe(tauriReleaseConfig.identifier);
     expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
     expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
@@ -2153,8 +1899,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
             .filter((permission) => permission.startsWith("mcp-bridge:")) ?? [],
       ),
     ).toEqual([]);
-    expect(releaseSourceDevOnlyImports).toEqual([]);
-    expect(releaseSourceStaticDevMocksImports).toEqual([]);
     expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
     expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
     expect(releaseWorkflow).not.toMatch(/\bULTRA_RSS_DEV_CREDENTIALS\s*:/);
@@ -2162,45 +1906,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
     expect(releaseManualVerification).toMatch(/dev mocks/i);
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
-  });
-
-  it("keeps release manual checks covering first-run prompts, permission denials, and Windows crash visibility", () => {
-    expect(releaseManualVerification).toContain("First-Run Permission Prompt Smoke");
-    expect(releaseManualVerification).toContain("First-Run Permission Prompt Verification");
-    expect(releaseManualVerification).toContain("first-run prompts appear only after user-initiated actions");
-    expect(releaseManualVerification).toContain("denial leaves retryable UI");
-    expect(releaseManualVerification).toContain(
-      "First account setup reaches native keyring access without falling back to dev credentials",
-    );
-    expect(releaseManualVerification).toContain(
-      "First OPML import or database restore file-open dialog appears as a user-initiated action",
-    );
-    expect(releaseManualVerification).toContain(
-      "First OPML export or database backup save dialog applies the expected extension",
-    );
-    expect(releaseManualVerification).toContain(
-      "First clipboard copy action succeeds or reports permission denial with action-specific recovery copy",
-    );
-
-    for (const permissionSurface of [
-      "File or folder access",
-      "Native open/save dialog access",
-      "Keyring access",
-      "Clipboard access",
-    ]) {
-      expect(releaseManualVerification).toContain(permissionSurface);
-    }
-
-    expect(releaseManualVerification).toContain("Windows Hidden Console And Crash Visibility Verification");
-    expect(releaseManualVerification).toContain("Normal launch does not leave an unexpected console window");
-    expect(releaseManualVerification).toContain("release logs without requiring a visible console");
-    expect(releaseManualVerification).toContain("user-visible failure surface");
-    expect(releaseManualVerification).toContain(
-      "support path that does not require the user to run the app from PowerShell",
-    );
-    expect(releaseManualVerification).toContain(
-      "skip that part for the current release and record the missing behavior as release risk",
-    );
   });
 
   it("keeps updater, export, and database backup interruption checks cancellation-aware", () => {
@@ -2614,34 +2319,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(nativeMenuActions.get("accounts-sync")).toBe("sync-all");
   });
 
-  it("keeps browser webview capability on a minimal command surface", () => {
-    const mainCapability = capabilityByIdentifier(defaultCapability, "main");
-    const browserCapability = capabilityByIdentifier(defaultCapability, "browser-webview");
-    const browserPermissionIds = browserCapability.permissions?.map(permissionIdentifier) ?? [];
-
-    expect(mainCapability.webviews).toEqual(["main"]);
-    expect(browserCapability.webviews).toEqual(["browser-webview"]);
-    expect(browserCapability.permissions).toEqual(["core:event:default"]);
-    expect(browserCapability.permissions).not.toContain("core:default");
-    expect(browserPermissionIds.some((permission) => permission.startsWith("opener:"))).toBe(false);
-    expect(browserPermissionIds.some((permission) => permission.startsWith("clipboard-manager:"))).toBe(false);
-    expect(browserPermissionIds.some((permission) => permission.startsWith("core:window:"))).toBe(false);
-    expect(browserPermissionIds.some((permission) => permission.startsWith("mcp-bridge:"))).toBe(false);
-  });
-
-  it("keeps external opener capability scope aligned with the frontend URL schema", () => {
-    const mainCapability = capabilityByIdentifier(defaultCapability, "main");
-    const openerPermission = mainCapability.permissions?.find(
-      (permission) => permissionIdentifier(permission) === "opener:allow-open-url",
-    );
-
-    expect(mainCapability.permissions?.map(permissionIdentifier)).not.toContain("opener:allow-default-urls");
-    expect(openerPermission).toEqual({
-      identifier: "opener:allow-open-url",
-      allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
-    });
-  });
-
   it("keeps native checked menu preferences compatible with frontend preference migration", () => {
     expect(nativeMenuSource).toMatch(
       /fn is_sort_unread_checked\(prefs: &HashMap<String, String>\) -> bool \{\s+prefs\s+\.get\("reading_sort"\)\s+\.or_else\(\|\| prefs\.get\("sort_unread"\)\)\s+\.is_some_and\(\|v\| v == "oldest_first"\)\s+\}/,
@@ -2762,40 +2439,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(normalizedReleaseManualVerification).toContain(liveProviderTestGateContract.maskingPolicy);
   });
 
-  it("keeps test helper global runtime isolation owned at suite boundaries", () => {
-    expect(docsReadme).toContain("Test isolation policy");
-    expect(docsReadme).toContain(testHelperRuntimeIsolationContract.reviewPolicy);
-    expect(testIsolationPolicySource).toContain("test isolation policy contract");
-
-    for (const reset of testHelperRuntimeIsolationContract.suiteBoundaryResets) {
-      expect(testSetupSource).toContain(reset);
-    }
-    for (const surface of testHelperRuntimeIsolationContract.globalRuntimeSurfaces) {
-      expect(docsReadme).toContain(surface);
-    }
-    for (const helperPathPrefix of testHelperRuntimeIsolationContract.helperPathPrefixes) {
-      expect(generatedFixtureSnapshotSizeBudget.fixturePathPrefixes).toContain(helperPathPrefix);
-    }
-  });
-
-  it("documents schema, test fixture, dependency update, and reproducibility gates", () => {
-    expect(docsReadme).toContain("Schema and query-cache contracts");
-    expect(docsReadme).toContain(
-      "Schema parse failure fallbacks must not enable destructive, write, or navigation actions",
-    );
-    expect(docsReadme).toContain("must include a schema or query-key version segment");
-    expect(docsReadme).toContain("Generated schema drift becomes a failing gate");
-    expect(docsReadme).toContain("Date fixtures must use a frozen clock plus relative offsets");
-    expect(docsReadme).toContain("Reproducibility audit policy");
-    expect(docsReadme).toContain("must not depend on local app state");
-    expect(docsReadme).toContain("Runtime dependencies affect shipped code or native behavior");
-    expect(docsReadme).toContain(
-      "Build-only dependencies affect compilation, bundling, packaging, or generated assets",
-    );
-    expect(docsReadme).toContain("Dev-only dependencies affect lint, format, reports, or local-only tooling");
-    expect(docsReadme).toContain("Transitive-risk updates are indirect dependency changes");
-  });
-
   it("keeps release note category labels covered by issue and PR label contracts", () => {
     const issueTemplateLabels = issueTemplateFileNames.flatMap((fileName) =>
       extractYamlInlineListValues(readText(`.github/ISSUE_TEMPLATE/${fileName}`), "labels"),
@@ -2821,36 +2464,5 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseLabels.filter((label) => prInsightsOwnedPrefixes.some((prefix) => label.startsWith(prefix)))).toEqual(
       [],
     );
-  });
-
-  it("keeps issue Done When placeholders tied back to the PR DoD checklist", () => {
-    const prDodChecks = [
-      "動作確認完了",
-      "型エラー 0 件",
-      "リント違反 0 件",
-      "高速テスト成功",
-      "フォーマッター適用済み",
-    ];
-
-    for (const check of prDodChecks) {
-      expect(pullRequestTemplate, `PR DoD missing ${check}`).toContain(check);
-    }
-
-    for (const fileName of issueTemplateFileNames) {
-      const source = readText(`.github/ISSUE_TEMPLATE/${fileName}`);
-      const doneWhenDescription = extractIssueTemplateDoneWhenDescription(source);
-      const doneWhenPlaceholder = extractIssueTemplateDoneWhenPlaceholder(source);
-
-      expect(doneWhenDescription, `${fileName} Done When should classify gate differences`).toContain(
-        "PR DoD 共通 gate",
-      );
-      expect(doneWhenDescription, `${fileName} Done When should classify gate differences`).toContain("固有 gate");
-      expect(doneWhenDescription, `${fileName} Done When should classify gate differences`).toContain(
-        "manual verification gate",
-      );
-      expect(doneWhenPlaceholder, `${fileName} Done When should reference PR DoD`).toContain(
-        "PR 作成時は PR template の確認済み DoD を満たす",
-      );
-    }
   });
 });

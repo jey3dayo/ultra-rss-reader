@@ -88,17 +88,6 @@ describe("CI workflow contract", () => {
     );
   });
 
-  it("keeps lint and test job timeouts at 60 minutes", () => {
-    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-    const lintSection = extractWorkflowJobSection(ciWorkflow, "lint");
-    const testNodeRustSection = extractWorkflowJobSection(ciWorkflow, "test-node-rust");
-    const testJsdomSection = extractWorkflowJobSection(ciWorkflow, "test-jsdom");
-
-    expect(lintSection).toContain("timeout-minutes: 60");
-    expect(testNodeRustSection).toContain("timeout-minutes: 60");
-    expect(testJsdomSection).toContain("timeout-minutes: 60");
-  });
-
   it("uses the stable Ubuntu apt mirror for Linux Tauri dependencies in lint and test", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 

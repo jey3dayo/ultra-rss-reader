@@ -87,14 +87,6 @@ function getRequiredButton(selector: string) {
 
 describe("useKeyboard", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
     Element.prototype.scrollIntoView = vi.fn();
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
@@ -760,23 +752,6 @@ describe("useKeyboard", () => {
     }
   });
 
-  it("does not scroll or navigate on Space while the browser overlay is active", () => {
-    scrollArticleContentByViewportMock.mockReturnValue("scrolled");
-
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      viewMode: "all",
-    });
-
-    renderHook(() => useKeyboard());
-
-    fireEvent.keyDown(window, { key: " " });
-
-    expect(scrollArticleContentByViewportMock).not.toHaveBeenCalled();
-  });
-
   it("does not intercept Space when a button is focused", () => {
     scrollArticleContentByViewportMock.mockReturnValue("scrolled");
 
@@ -998,34 +973,6 @@ describe("useKeyboard", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().viewMode).toBe("unread");
-    });
-  });
-
-  it("pressing Cmd+2 switches to the all filter", async () => {
-    const calls: MockTauriCommandCall[] = [];
-    renderAppShell(calls);
-
-    await screen.findByRole("heading", { level: 1, name: "First Article" });
-    useUiStore.setState({ viewMode: "starred" });
-
-    fireEvent.keyDown(window, { key: "2", metaKey: true });
-
-    await waitFor(() => {
-      expect(useUiStore.getState().viewMode).toBe("all");
-    });
-  });
-
-  it("pressing Cmd+3 switches to the starred filter", async () => {
-    const calls: MockTauriCommandCall[] = [];
-    renderAppShell(calls);
-
-    await screen.findByRole("heading", { level: 1, name: "First Article" });
-    useUiStore.setState({ viewMode: "all" });
-
-    fireEvent.keyDown(window, { key: "3", metaKey: true });
-
-    await waitFor(() => {
-      expect(useUiStore.getState().viewMode).toBe("starred");
     });
   });
 

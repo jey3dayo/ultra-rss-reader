@@ -11,6 +11,7 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   addToReadingListArgs,
+  checkBrowserEmbedSupportArgs,
   copyToClipboardArgs,
   createFolderArgs,
   createTagArgs,
@@ -391,6 +392,22 @@ describe("command args validation parity", () => {
           expect(parse).toThrow();
         }
       }
+    }
+  });
+
+  it("lets users open LAN-style hosts but blocks them for automatic requests (host privacy policy)", () => {
+    const lanUrls = ["http://nas.local/", "http://100.64.0.1/"];
+
+    for (const url of lanUrls) {
+      expect(parse(openInBrowserArgs, { url }).url).toBe(url);
+      expect(parse(addToReadingListArgs, { url }).url).toBe(url);
+      expect(() => parse(discoverFeedsArgs, { url })).toThrow();
+      expect(() => parse(addLocalFeedArgs, { accountId: "acc-1", url })).toThrow();
+      expect(() => parse(checkBrowserEmbedSupportArgs, { url })).toThrow();
+    }
+
+    for (const schema of [openInBrowserArgs, addToReadingListArgs, discoverFeedsArgs]) {
+      expect(() => parse(schema, { url: "http://app.localhost/" })).toThrow();
     }
   });
 

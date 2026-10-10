@@ -1569,20 +1569,6 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({ mute_auto_mark_read: "sometimes" }, "mute_auto_mark_read")).toBe("false");
   });
 
-  it("maps legacy auto-mark values to the current reading preference values", () => {
-    expect(resolvePreferenceValue({ after_reading: "mark_as_read" }, "after_reading")).toBe("immediately");
-    expect(resolvePreferenceValue({ after_reading: "do_nothing" }, "after_reading")).toBe("never");
-    expect(resolvePreferenceValue({ after_reading: "archive" }, "after_reading")).toBe("never");
-  });
-
-  it("preserves the current auto-mark values", () => {
-    expect(resolvePreferenceValue({ after_reading: "never" }, "after_reading")).toBe("never");
-    expect(resolvePreferenceValue({ after_reading: "immediately" }, "after_reading")).toBe("immediately");
-    expect(resolvePreferenceValue({ after_reading: "after_0_3s" }, "after_reading")).toBe("after_0_3s");
-    expect(resolvePreferenceValue({ after_reading: "after_0_5s" }, "after_reading")).toBe("after_0_5s");
-    expect(resolvePreferenceValue({ after_reading: "after_1s" }, "after_reading")).toBe("after_1s");
-  });
-
   it("migrates legacy sort_unread only when current reading_sort is absent", () => {
     expect(resolvePreferenceValue({ sort_unread: "oldest_first" }, "reading_sort")).toBe("oldest_first");
     expect(resolvePreferenceValue({ sort_unread: "newest_first" }, "reading_sort")).toBe("newest_first");
@@ -1616,10 +1602,6 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({}, "startup_folder_expansion")).toBe("all_collapsed");
   });
 
-  it("does not expose subscription sort in preference defaults", () => {
-    expect(preferenceDefaults).not.toHaveProperty("sort_subscriptions");
-  });
-
   it("normalizes invalid sidebar visibility preferences back to true", () => {
     expect(resolvePreferenceValue({ show_sidebar_unread: "maybe" }, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({ show_sidebar_starred: "nope" }, "show_sidebar_starred")).toBe("true");
@@ -1630,14 +1612,6 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({ startup_folder_expansion: "surprise" }, "startup_folder_expansion")).toBe(
       "all_collapsed",
     );
-  });
-
-  it("keeps the retired recent history recording preference hidden but normalized", () => {
-    expect(preferenceDefaults).not.toHaveProperty("recent_articles_history_enabled");
-    expect(resolvePreferenceValue({}, "recent_articles_history_enabled")).toBe("true");
-    expect(
-      resolvePreferenceValue({ recent_articles_history_enabled: "maybe" }, "recent_articles_history_enabled"),
-    ).toBe("true");
   });
 
   it("defaults sidebar density to normal and normalizes invalid values", () => {

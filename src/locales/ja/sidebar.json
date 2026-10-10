@@ -65,6 +65,7 @@
     "startup_repair_marker_failed": "起動時の修復完了マーカーを保存できませんでした: {{message}}",
     "scheduler_load_failed": "スケジュール同期でアカウントを読み込めませんでした: {{message}}",
     "backoff_persist_failed": "「{{accountName}}」の再試行状態を保存できませんでした: {{message}}",
+    "credential_access_required": "「{{accountName}}」の認証情報へのアクセスが必要です。アカウント設定で「保存して接続確認」を押してください。許可要求の自動再試行は停止しています。",
     "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます",
     "mutation_labels": {
       "mark_read": "記事の既読化",

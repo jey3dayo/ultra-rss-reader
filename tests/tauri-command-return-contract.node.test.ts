@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { collectRustFiles } from "@tests/helpers/rust-source-files";
 import { describe, expect, it } from "vitest";
 import { commandArgsSchemas } from "../src/api/schemas/commands";
+import { TAURI_COMMAND_NAMES } from "../src/api/tauri-commands/command-names";
 import { commandArgsSchemaKeys } from "./helpers/command-args-schema-keys";
 import {
   extractCommandDbLockPolicyCases,
@@ -155,6 +156,12 @@ describe("tauri command return contract", () => {
         ])
       `),
     ).toEqual(["mark_feed_read", "trigger_sync"]);
+  });
+
+  it("lists every registered Rust command in the typed frontend command name table", () => {
+    expect([...TAURI_COMMAND_NAMES].toSorted()).toEqual(
+      extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")),
+    );
   });
 
   it("keeps registered Rust commands classified by DB lock policy", () => {

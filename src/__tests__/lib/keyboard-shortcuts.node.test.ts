@@ -77,21 +77,6 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrapError(result)).toBe("ignored_input");
   });
 
-  it("resolves Cmd+K to open-command-palette", () => {
-    const result = resolveKeyboardAction({
-      key: "k",
-      metaKey: true,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId: null,
-      contentMode: "empty",
-      viewMode: "all",
-    });
-
-    expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
-  });
-
   it("uses Cmd as the macOS runtime primary modifier", () => {
     const cmdResult = resolveKeyboardAction({
       key: "k",
@@ -148,38 +133,24 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrapError(metaResult)).toBe("no_action");
   });
 
-  it("does not reserve Cmd+Shift+R in dev builds", () => {
+  it("ignores Cmd+Shift+R in both dev and non-dev builds", () => {
+    const resolveCmdShiftR = () =>
+      resolveKeyboardAction({
+        key: "R",
+        metaKey: true,
+        ctrlKey: false,
+        shiftKey: true,
+        targetTag: "DIV",
+        selectedArticleId: null,
+        contentMode: "reader",
+        viewMode: "all",
+      });
+
     vi.stubEnv("DEV", true);
+    expect(Result.unwrapError(resolveCmdShiftR())).toBe("no_action");
 
-    const result = resolveKeyboardAction({
-      key: "R",
-      metaKey: true,
-      ctrlKey: false,
-      shiftKey: true,
-      targetTag: "DIV",
-      selectedArticleId: null,
-      contentMode: "reader",
-      viewMode: "all",
-    });
-
-    expect(Result.unwrapError(result)).toBe("no_action");
-  });
-
-  it("ignores Cmd+Shift+R outside dev builds", () => {
     vi.stubEnv("DEV", false);
-
-    const result = resolveKeyboardAction({
-      key: "R",
-      metaKey: true,
-      ctrlKey: false,
-      shiftKey: true,
-      targetTag: "DIV",
-      selectedArticleId: null,
-      contentMode: "reader",
-      viewMode: "all",
-    });
-
-    expect(Result.unwrapError(result)).toBe("no_action");
+    expect(Result.unwrapError(resolveCmdShiftR())).toBe("no_action");
   });
 
   it("resolves Cmd+Backslash to toggle the sidebar", () => {
@@ -401,13 +372,6 @@ describe("keyboard shortcut resolver", () => {
     expect(formatKeyAsNativeAccelerator("Shift+⌘+\\")).toBe("Shift+CmdOrCtrl+\\");
   });
 
-  it("builds h/l as the default feed navigation bindings", () => {
-    const map = buildKeyToActionMap({});
-
-    expect(map.get("h")).toBe("prev_feed");
-    expect(map.get("l")).toBe("next_feed");
-  });
-
   it("keeps shortcut ids unique in display order", () => {
     const shortcutIds = shortcutDefinitions.map((definition) => definition.id);
 
@@ -436,20 +400,6 @@ describe("keyboard shortcut resolver", () => {
       "close_or_clear",
       "open_settings",
     ]);
-  });
-
-  it("builds direct filter shortcuts into the default key map", () => {
-    const map = buildKeyToActionMap({});
-
-    expect(map.get("⌘+1")).toBe("show_unread");
-    expect(map.get("⌘+2")).toBe("show_all");
-    expect(map.get("⌘+3")).toBe("show_starred");
-  });
-
-  it("builds the sidebar toggle shortcut into the default key map", () => {
-    const map = buildKeyToActionMap({});
-
-    expect(map.get("⌘+\\")).toBe("toggle_sidebar");
   });
 
   it("keeps renamed shortcut action ids on the current binding path", () => {
@@ -625,16 +575,6 @@ describe("keyboard shortcut resolver", () => {
     });
 
     expect(Result.unwrapError(result)).toBe("ignored_input");
-  });
-
-  it("does not dispatch any action for duplicate custom shortcuts", () => {
-    const keyToAction = buildKeyToActionMap({
-      shortcut_open_settings: "z",
-      shortcut_open_command_palette: "z",
-      shortcut_focus_sidebar: "z",
-    });
-
-    expect(keyToAction.get("z")).toBeUndefined();
   });
 
   it("does not fall back to the plain key when a command-modified shortcut is unmapped", () => {

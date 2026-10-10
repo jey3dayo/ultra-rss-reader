@@ -15,6 +15,11 @@ import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
+vi.mock("@/constants", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/constants")>()),
+  MOTION_HOLD_CONFIRM_DURATION_MS: 5,
+}));
+
 vi.mock("@/components/settings/settings-modal-view", () => ({
   SettingsModalView: ({
     open,

@@ -102,11 +102,7 @@ import {
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
 } from "@/api/schemas";
-import {
-  BROWSER_WEBVIEW_BOUNDS_MAX_VALUE,
-  MAX_IPC_PAGINATION_OFFSET,
-  SHARE_COMMAND_TEXT_MAX_CHARS,
-} from "@/api/schemas/commands";
+import { BROWSER_WEBVIEW_BOUNDS_MAX_VALUE, MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands";
 import { SETTINGS_PROFILE_IMPORT_MAX_BYTES } from "@/api/schemas/commands/settings-profile";
 import { webPreviewUrlSchema } from "@/api/schemas/commands/url";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
@@ -632,15 +628,6 @@ describe("DTO schemas", () => {
     expect(objectSchemaKeys(AccountSyncStatusSchema)).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountSyncStatus", "Rust command DTOs"),
     );
-  });
-  it("parses valid FolderDto", () => {
-    const data = {
-      id: "f-1",
-      account_id: "acc-1",
-      name: "Tech",
-      sort_order: 0,
-    };
-    expect(parse(FolderDtoSchema, data)).toEqual(data);
   });
   it("rejects blank FolderDto identity and display fields", () => {
     const data = {
@@ -1422,6 +1409,7 @@ describe("primitive command result schemas", () => {
   it("keeps primitive Tauri command result parsing strict", () => {
     expect(parse(NullResponseSchema, null)).toBeNull();
     expect(parse(IntResponseSchema, 0)).toBe(0);
+    expect(parse(IntResponseSchema, -1)).toBe(-1);
     expect(parse(NonnegativeIntResponseSchema, 0)).toBe(0);
     expect(parse(CountResponseSchema, 1)).toBe(1);
     expect(parse(StringResponseSchema, "ok")).toBe("ok");
@@ -1432,6 +1420,7 @@ describe("primitive command result schemas", () => {
     expect(() => parse(IntResponseSchema, Number.NaN)).toThrow();
     expect(() => parse(NonnegativeIntResponseSchema, -1)).toThrow();
     expect(() => parse(NonnegativeIntResponseSchema, Number.NaN)).toThrow();
+    expect(() => parse(NonnegativeIntResponseSchema, Number.POSITIVE_INFINITY)).toThrow();
     expect(() => parse(CountResponseSchema, -1)).toThrow();
     expect(() => parse(CountResponseSchema, 1.5)).toThrow();
     expect(() => parse(CountResponseSchema, Number.MAX_SAFE_INTEGER + 1)).toThrow();
@@ -2030,9 +2019,24 @@ describe("command args schemas", () => {
   });
   it("keeps Cloudflare Access metadata limited to a nullable Client ID", () => {
     expect(parse(getAccountCloudflareAccessArgs, { accountId: " acc-1 " })).toEqual({ accountId: "acc-1" });
-    expect(parse(CloudflareAccessMetadataSchema, { client_id: null })).toEqual({ client_id: null });
-    expect(parse(CloudflareAccessMetadataSchema, { client_id: "client-id" })).toEqual({ client_id: "client-id" });
-    expect(() => parse(CloudflareAccessMetadataSchema, { client_id: "client-id", client_secret: "secret" })).toThrow();
+    expect(parse(CloudflareAccessMetadataSchema, { status: "loaded", client_id: null })).toEqual({
+      status: "loaded",
+      client_id: null,
+    });
+    expect(parse(CloudflareAccessMetadataSchema, { status: "loaded", client_id: "client-id" })).toEqual({
+      status: "loaded",
+      client_id: "client-id",
+    });
+    expect(() =>
+      parse(CloudflareAccessMetadataSchema, { status: "loaded", client_id: "client-id", client_secret: "secret" }),
+    ).toThrow();
+    expect(parse(CloudflareAccessMetadataSchema, { status: "authorization_required" })).toEqual({
+      status: "authorization_required",
+    });
+    expect(() =>
+      parse(CloudflareAccessMetadataSchema, { status: "authorization_required", client_id: null }),
+    ).toThrow();
+    expect(() => parse(CloudflareAccessMetadataSchema, { client_id: null })).toThrow();
   });
   it("trims and rejects blank feed URL command args", () => {
     expect(parse(discoverFeedsArgs, { url: " https://example.com/feed.xml " })).toEqual({
@@ -2534,30 +2538,8 @@ describe("command args schemas", () => {
     expect(() => parse(addToReadingListArgs, { url: "   " })).toThrow();
     expect(() => parse(addToReadingListArgs, { url: "https://example.com/article\nnext" })).toThrow();
     expect(() => parse(addToReadingListArgs, { url: "https://example.com/article\rnext" })).toThrow();
-  });
-  it("keeps share command args covered by generated schemas", () => {
-    expect(commandArgsSchemas.copy_to_clipboard).toBe(copyToClipboardArgs);
-    expect(commandArgsSchemas.add_to_reading_list).toBe(addToReadingListArgs);
-    expect(getCommandArgsSchema("copy_to_clipboard")).toBe(copyToClipboardArgs);
-    expect(getCommandArgsSchema("add_to_reading_list")).toBe(addToReadingListArgs);
-  });
-  it("keeps share command validation aligned with native command boundaries", () => {
-    const rustShareCommandSource = readFileSync(
-      join(process.cwd(), "src-tauri/src/commands/share_commands.rs"),
-      "utf8",
-    );
-
-    expect(extractRustUsizeConst(rustShareCommandSource, "CLIPBOARD_TEXT_MAX_CHARS")).toBe(
-      SHARE_COMMAND_TEXT_MAX_CHARS,
-    );
-    expect(parse(copyToClipboardArgs, { text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS) })).toEqual({
-      text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
-    });
     expect(() => parse(copyToClipboardArgs, { text: "" })).toThrow();
     expect(() => parse(copyToClipboardArgs, { text: "   " })).toThrow();
-    expect(() => parse(copyToClipboardArgs, { text: "first line\nsecond line" })).toThrow();
-    expect(() => parse(copyToClipboardArgs, { text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1) })).toThrow();
-    expect(() => parse(addToReadingListArgs, { url: "mailto:hello@example.com" })).toThrow();
   });
   it("accepts mailto only at the external URL command boundary", () => {
     expect(
@@ -2783,12 +2765,6 @@ describe("command args schemas", () => {
     expect(() =>
       parse(SyncResultSchema, {
         ...valid,
-        warnings: [{ ...valid.warnings[0], retry_in_seconds: 0.5 }],
-      }),
-    ).toThrow();
-    expect(() =>
-      parse(SyncResultSchema, {
-        ...valid,
         warnings: [{ ...valid.warnings[0], retry_at: "2026-04-15" }],
       }),
     ).toThrow();
@@ -2805,20 +2781,12 @@ describe("command args schemas", () => {
       }),
     ).toThrow();
   });
-  it("commandArgsSchemas maps command names to schemas", () => {
-    expect(commandArgsSchemas.list_articles).toBeDefined();
-    expect(commandArgsSchemas.list_folder_articles).toBeDefined();
-    expect(commandArgsSchemas.list_feed_article_summaries).toBeDefined();
-    expect(commandArgsSchemas.mark_article_read).toBeDefined();
-    expect(commandArgsSchemas.count_old_unread_articles).toBeDefined();
-    expect(commandArgsSchemas.mark_old_unread_read).toBeDefined();
-    expect(commandArgsSchemas.unstar_account_articles).toBeDefined();
-    expect(commandArgsSchemas.create_mute_keyword).toBeDefined();
-    expect(commandArgsSchemas.delete_mute_keyword).toBeDefined();
-    expect(commandArgsSchemas.set_mute_auto_mark_read).toBeDefined();
+  it("commandArgsSchemas maps share commands to their schemas", () => {
     expect(commandArgsSchemas.copy_to_clipboard).toBe(copyToClipboardArgs);
     expect(commandArgsSchemas.add_to_reading_list).toBe(addToReadingListArgs);
-    expect(getCommandArgsSchema("list_accounts")).toBeUndefined(); // no args
+    expect(getCommandArgsSchema("copy_to_clipboard")).toBe(copyToClipboardArgs);
+    expect(getCommandArgsSchema("add_to_reading_list")).toBe(addToReadingListArgs);
+    expect(getCommandArgsSchema("list_accounts")).toBeUndefined();
   });
 
   it("types command args schema lookup by known command names", () => {

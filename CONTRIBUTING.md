@@ -120,6 +120,7 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 - `mise run check:wsl` is the WSL-backed static-analysis gate for formatter/linter stability. On Windows, install a WSL distribution visible to the current Windows user, then set `WSL_REPO_DIR` to that WSL checkout path before running it.
 - `mise run test` runs the full repository test set (Rust + Vitest).
 - `mise run test:ci` runs the quieter CI test gate with Vitest first, then Rust tests.
+- `pnpm run check:release-contamination` validates release sources and the actual Cargo dependency graph. Node unit tests exercise the source checks and injected dependency-runner failures without resolving Cargo dependencies. CI runs the full command separately on Linux and Windows after Rust tests; release builds and local release preflight also run it. Cargo uses `--locked`, may populate its registry cache, and fails closed on missing tools, resolution errors, or its 120-second subprocess timeout. Source and dependency stages report separate timings.
 - `mise run test:unit:dom` runs the jsdom Vitest suite for DOM, React rendering, Testing Library, and browser global coverage.
 - `mise run test:e2e` runs Playwright against the browser-mode UI flow.
 - `mise run test:storybook:e2e` runs the Storybook Playwright smoke suite against the UI reference canvases. Use it after changing Storybook stories, shared visual reference canvases, or Storybook-only decorators.

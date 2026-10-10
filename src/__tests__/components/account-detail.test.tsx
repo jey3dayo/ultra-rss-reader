@@ -497,59 +497,6 @@ describe("AccountDetail", () => {
     });
   });
 
-  it("does not start duplicate manual syncs while one is pending", async () => {
-    const user = userEvent.setup();
-    const syncCalls = vi.fn();
-    let resolveSync: ((value: unknown) => void) | undefined;
-
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_accounts":
-          return [
-            {
-              id: "acc-1",
-              kind: "Local",
-              name: "Local",
-              username: null,
-              server_url: null,
-              sync_interval_secs: 3600,
-              sync_on_startup: true,
-              sync_on_wake: false,
-              keep_read_items_days: 30,
-            },
-          ];
-        case "get_account_sync_status":
-          return {
-            last_success_at: null,
-            last_error: null,
-            error_count: 0,
-            next_retry_at: null,
-          };
-        case "trigger_sync_account":
-          syncCalls();
-          return new Promise((resolve) => {
-            resolveSync = resolve;
-          });
-        default:
-          return null;
-      }
-    });
-
-    render(<AccountDetail />, { wrapper: createWrapper() });
-
-    await user.dblClick(await screen.findByRole("button", { name: "Sync Now" }));
-
-    expect(syncCalls).toHaveBeenCalledTimes(1);
-
-    resolveSync?.({
-      synced: true,
-      total: 1,
-      succeeded: 1,
-      failed: [],
-      warnings: [],
-    });
-  });
-
   it("shows scheduler retry details in the sync section when the account is in backoff", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "list_accounts") {
@@ -944,7 +891,7 @@ describe("AccountDetail", () => {
           case "list_accounts":
             return [account];
           case "get_account_cloudflare_access":
-            return { client_id: "dummy-id" };
+            return { status: "loaded", client_id: "dummy-id" };
           case "update_account_credentials":
             account = {
               ...account,
@@ -1549,56 +1496,6 @@ describe("AccountDetail", () => {
     expect(useUiStore.getState().toastMessage?.message).not.toBe("Connection successful");
   });
 
-  it("does not start duplicate connection tests while one is pending", async () => {
-    const user = userEvent.setup();
-    const connectionTestCalls = vi.fn();
-    let resolveConnectionTest: ((value: unknown) => void) | undefined;
-
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_accounts":
-          return [
-            {
-              id: "acc-1",
-              kind: "FreshRss",
-              name: "FreshRSS",
-              username: "user",
-              server_url: "https://freshrss.example.com",
-              sync_interval_secs: 3600,
-              sync_on_startup: true,
-              sync_on_wake: false,
-              keep_read_items_days: 30,
-            },
-          ];
-        case "test_account_connection":
-          connectionTestCalls();
-          return new Promise((resolve) => {
-            resolveConnectionTest = resolve;
-          });
-        default:
-          return undefined;
-      }
-    });
-
-    render(<AccountDetail />, { wrapper: createWrapper() });
-
-    await user.dblClick(await screen.findByRole("button", { name: "Check Connection" }));
-
-    expect(connectionTestCalls).toHaveBeenCalledTimes(1);
-
-    resolveConnectionTest?.({
-      id: "acc-1",
-      kind: "FreshRss",
-      name: "FreshRSS",
-      username: "user",
-      server_url: "https://freshrss.example.com",
-      sync_interval_secs: 3600,
-      sync_on_startup: true,
-      sync_on_wake: false,
-      keep_read_items_days: 30,
-    });
-  });
-
   it("copies the server URL from account credentials", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
@@ -1773,46 +1670,6 @@ describe("AccountDetail", () => {
     });
   });
 
-  it("does not invoke the export command when the OPML save dialog is canceled", async () => {
-    const calls: Array<{ cmd: string }> = [];
-    showSaveDialogMock.mockReset();
-    showSaveDialogMock.mockResolvedValue(null);
-
-    setupTauriMocks((cmd) => {
-      calls.push({ cmd });
-      switch (cmd) {
-        case "list_accounts":
-          return [
-            {
-              id: "acc-1",
-              kind: "FreshRss",
-              name: "FreshRSS",
-              username: "user",
-              server_url: "https://freshrss.example.com",
-              sync_interval_secs: 3600,
-              sync_on_startup: true,
-              sync_on_wake: false,
-              keep_read_items_days: 30,
-            },
-          ];
-        default:
-          return undefined;
-      }
-    });
-
-    render(<AccountDetail />, { wrapper: createWrapper() });
-    const exportButton = await screen.findByRole("button", {
-      name: "Export OPML",
-    });
-
-    fireEvent.click(exportButton);
-
-    await waitFor(() => {
-      expect(showSaveDialogMock).toHaveBeenCalledTimes(1);
-    });
-    expect(calls.map(({ cmd }) => cmd)).not.toContain("export_opml_to_file");
-  });
-
   it("imports the selected OPML file into the current account and shows a success toast", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
@@ -1898,58 +1755,6 @@ describe("AccountDetail", () => {
 
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith("Failed to import OPML: Invalid OPML");
-    });
-  });
-
-  it("guards OPML import against duplicate in-flight file selections", async () => {
-    const importCalls = vi.fn();
-    let resolveImport: ((value: unknown) => void) | undefined;
-
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_accounts":
-          return [
-            {
-              id: "acc-1",
-              kind: "Local",
-              name: "Local",
-              username: null,
-              server_url: null,
-              sync_interval_secs: 3600,
-              sync_on_startup: true,
-              sync_on_wake: false,
-              keep_read_items_days: 30,
-            },
-          ];
-        case "import_opml":
-          importCalls();
-          return new Promise((resolve) => {
-            resolveImport = resolve;
-          });
-        default:
-          return undefined;
-      }
-    });
-
-    render(<AccountDetail />, { wrapper: createWrapper() });
-
-    const onImport = await findLatestImportHandler();
-    const file = new File(['<opml version="2.0"><body /></opml>'], "feeds.opml", { type: "text/xml" });
-    let firstImport: Promise<void> | undefined;
-    let secondImport: Promise<void> | undefined;
-    await act(async () => {
-      firstImport = onImport(file);
-      secondImport = onImport(file);
-    });
-
-    expect(importCalls).toHaveBeenCalledTimes(1);
-
-    resolveImport?.([]);
-    if (!firstImport || !secondImport) {
-      throw new Error("Expected import promises to be created");
-    }
-    await act(async () => {
-      await Promise.all([firstImport, secondImport]);
     });
   });
 

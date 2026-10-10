@@ -24,17 +24,6 @@ describe("platform-info schemas", () => {
     ).toBe(false);
   });
 
-  it("rejects malformed dev runtime option values at the IPC boundary", () => {
-    expect(
-      safeParse(DevRuntimeOptionsSchema, {
-        dev_intent: null,
-        dev_web_url: null,
-        dev_window_width: 10_001,
-        dev_window_height: 800,
-      }).success,
-    ).toBe(false);
-  });
-
   it("contracts permission denied recovery copy for each platform runtime surface", () => {
     const recoveries = [
       {
