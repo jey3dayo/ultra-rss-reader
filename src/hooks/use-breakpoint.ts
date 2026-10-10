@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { bindWindowEvents } from "@/lib/window/window-events";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { type PreferredLayoutMode, resolveResponsiveLayoutMode } from "./use-layout";
@@ -10,7 +11,7 @@ export function resolvePreferredLayoutMode(layoutPref: string): PreferredLayoutM
 
 export function useBreakpoint() {
   const setLayoutMode = useUiStore((s) => s.setLayoutMode);
-  const layoutPref = usePreferencesStore((s) => s.prefs.layout ?? "automatic");
+  const layoutPref = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "layout"));
 
   useEffect(() => {
     const update = () => {

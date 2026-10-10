@@ -2,6 +2,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
+import { useArticleListUiState } from "@/components/reader/hooks/article-list/use-article-list-ui-state";
 import { useCommandPaletteUiState } from "@/components/reader/hooks/command-palette/use-command-palette-ui-state";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -48,6 +49,19 @@ describe("reader UI state hooks", () => {
 
     expect(result.current.contentMode).toBe("empty");
     expect(result.current.browserUrl).toBeNull();
+  });
+
+  it("falls back to defaults for invalid article list preference values", () => {
+    usePreferencesStore.setState({
+      prefs: { image_previews: "huge", reading_sort: "sideways", group_by: "week" },
+      loaded: true,
+    });
+
+    const { result } = renderHook(() => useArticleListUiState());
+
+    expect(result.current.imagePreviews).toBe("medium");
+    expect(result.current.sortUnread).toBe("newest_first");
+    expect(result.current.groupBy).toBe("date");
   });
 
   it("keeps command palette public return names while reading the shared UI store slice", () => {

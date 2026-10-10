@@ -6,6 +6,7 @@ import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { resolveSiteHostLabel } from "@/lib/feed/feed";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
@@ -61,7 +62,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const handleOpenSite = useCallback(async () => {
     const url = feed.site_url || feed.url;
     if (url) {
-      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+      const bg = resolvePreferenceValue(usePreferencesStore.getState().prefs, "open_links_background") === "true";
       await openFeedSiteInBrowser(url, bg);
     }
   }, [feed.site_url, feed.url]);
