@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { extractRegisteredRustCommandNames } from "@tests/helpers/tauri-command-contract";
 import { describe, expect, it } from "vitest";
 import { type TauriCapability, TauriCapabilityFileSchema } from "@/schemas/app-config";
 import { parseJsonWithSchema } from "@/schemas/parse";
@@ -174,13 +175,6 @@ function readWorkspaceDir(relativePath: string): string[] {
   return readdirSync(path.resolve(currentDir, "../../..", relativePath)).toSorted();
 }
 
-function extractRegisteredCommandNames(source: string): string[] {
-  const handlerBlock = source.match(/\.invoke_handler\(tauri::generate_handler!\[\s*([\s\S]*?)\s*\]\)/)?.[1] ?? "";
-  return [...handlerBlock.matchAll(/commands::[a-z_]+::([a-z_]+)/g)]
-    .map((match) => match[1])
-    .filter((command): command is string => Boolean(command));
-}
-
 function extractPermissionAllowlist(source: string): {
   identifier: string;
   commands: string[];
@@ -260,7 +254,7 @@ describe("tauri window capability contract", () => {
       }),
     );
     const allowedCommands = Object.values(permissionAllowlists).flat();
-    const registeredCommands = extractRegisteredCommandNames(readWorkspaceFile("src-tauri/src/lib.rs"));
+    const registeredCommands = extractRegisteredRustCommandNames(readWorkspaceFile("src-tauri/src/lib.rs"));
 
     expect(permissionFiles).toEqual([
       "browser-commands.toml",
