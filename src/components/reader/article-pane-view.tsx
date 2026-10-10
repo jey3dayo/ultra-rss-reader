@@ -41,6 +41,7 @@ export function ArticleToolbar({
     article,
     isBrowserOpen,
     onToggleBrowserOverlay,
+    enableKeyboardShortcuts: false,
   });
 
   if (isBrowserOpen) {

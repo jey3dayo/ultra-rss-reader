@@ -17,6 +17,7 @@ type UseArticleToolbarControlsParams = {
   isBrowserOpen: boolean;
   onToggleBrowserOverlay: () => void;
   keyboardShortcuts?: ArticleActionKeyboardShortcuts;
+  enableKeyboardShortcuts?: boolean;
 };
 
 export function useArticleToolbarControls({
@@ -24,6 +25,7 @@ export function useArticleToolbarControls({
   isBrowserOpen,
   onToggleBrowserOverlay,
   keyboardShortcuts,
+  enableKeyboardShortcuts,
 }: UseArticleToolbarControlsParams): ArticleToolbarActionStripProps {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
@@ -57,6 +59,7 @@ export function useArticleToolbarControls({
     setRead,
     toggleStar,
     keyboardShortcuts,
+    enableKeyboardShortcuts,
   });
 
   const shareMenuControl = useMemo(
