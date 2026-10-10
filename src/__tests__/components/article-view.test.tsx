@@ -3408,6 +3408,12 @@ describe("ArticleView", () => {
   it.each([
     { shortcut: "toggleStar", cmd: "toggle_article_star", args: { articleId: "art-1", starred: true } },
     { shortcut: "toggleRead", cmd: "mark_article_read", args: { articleId: "art-1", read: true } },
+    {
+      shortcut: "openExternalBrowser",
+      cmd: "open_in_browser",
+      args: { url: "https://example.com/1", background: false },
+    },
+    { shortcut: "addToReadingList", cmd: "add_to_reading_list", args: { url: "https://example.com/1" } },
   ] as const)(
     "dispatches one $cmd call per $shortcut shortcut while an article is open",
     async ({ shortcut, cmd, args: expectedArgs }) => {
@@ -3425,11 +3431,14 @@ describe("ArticleView", () => {
             return [];
           case "toggle_article_star":
           case "mark_article_read":
+          case "open_in_browser":
+          case "add_to_reading_list":
             return null;
           default:
             return undefined;
         }
       });
+      setReadingListPlatformSupport(true);
 
       render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
         wrapper: createWrapper(),
