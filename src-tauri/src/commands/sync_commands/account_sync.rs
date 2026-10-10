@@ -22,7 +22,10 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::feed::FeedRepository;
 
-use super::failure_log::{log_local_feed_fetch_failure, log_sync_failure, SyncTrigger};
+use super::failure_log::{
+    log_background_sync_outcome, log_local_feed_fetch_failure, log_sync_completion,
+    log_sync_failure, log_sync_warning, SyncTrigger,
+};
 use super::local_import_export::{
     local_feed_sync_warning, local_provider, run_local_account_auto_export,
     run_local_account_auto_import,
@@ -35,7 +38,9 @@ pub(crate) async fn sync_account(
     db: &Mutex<DbManager>,
     account: &Account,
 ) -> Result<ProviderSyncOutcome, AppError> {
-    sync_account_with_mode(db, account, CredentialLookupMode::Background).await
+    let result = sync_account_with_mode(db, account, CredentialLookupMode::Background).await;
+    log_background_sync_outcome(&account.kind, &result);
+    result
 }
 
 pub(crate) async fn sync_account_with_mode(
@@ -220,6 +225,7 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     let result =
         run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode, trigger).await?;
     finish(&result);
+    log_sync_completion(trigger, None, &result);
     Ok(result)
 }
 
@@ -270,12 +276,7 @@ async fn run_sync_for_accounts_guarded_with_mode(
                 if let Some(reporter) = reporter.as_ref() {
                     reporter.emit_account_started(&account);
                 }
-                let result = match mode {
-                    CredentialLookupMode::Background => sync_account(db, &account).await,
-                    CredentialLookupMode::Interactive => {
-                        sync_account_with_mode(db, &account, mode).await
-                    }
-                };
+                let result = sync_account_with_mode(db, &account, mode).await;
                 if let Some(reporter) = reporter.as_ref() {
                     reporter.emit_account_finished(&account, result.is_ok());
                 }
@@ -295,20 +296,18 @@ async fn run_sync_for_accounts_guarded_with_mode(
                         "Failed to clear scheduler sync status after manual sync: {error}"
                     );
                 }
-                warnings.extend(
-                    outcome
-                        .warnings
-                        .into_iter()
-                        .map(|warning| AccountSyncWarning {
-                            account_id: account.id.as_ref().to_string(),
-                            account_name: account.name.clone(),
-                            kind: warning.kind,
-                            message: warning.message,
-                            retry_at: warning.retry_at,
-                            retry_in_seconds: warning.retry_in_seconds,
-                            detail: warning.detail,
-                        }),
-                );
+                warnings.extend(outcome.warnings.into_iter().map(|warning| {
+                    log_sync_warning(trigger, &account.kind, warning.kind, &warning.detail);
+                    AccountSyncWarning {
+                        account_id: account.id.as_ref().to_string(),
+                        account_name: account.name.clone(),
+                        kind: warning.kind,
+                        message: warning.message,
+                        retry_at: warning.retry_at,
+                        retry_in_seconds: warning.retry_in_seconds,
+                        detail: warning.detail,
+                    }
+                }));
             }
             Err(e) => {
                 warn!(account_id = %account.id.as_ref(), "Sync failed for account: {e}");

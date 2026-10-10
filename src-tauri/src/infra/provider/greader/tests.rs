@@ -2164,39 +2164,270 @@ async fn get_unread_count_map_rejects_oversized_json_before_parse_without_secret
 }
 
 #[tokio::test]
-async fn pull_entries_rejects_oversized_stream_contents_json_before_parse() {
+async fn pull_entries_stops_at_one_when_stream_body_cap_persists() {
     let mut server = mockito::Server::new_async().await;
-    let stream_mock = server
-        .mock(
-            "GET",
-            mockito::Matcher::Regex(
-                r"/api/greader.php/reader/api/0/stream/contents/.*".to_string(),
-            ),
-        )
-        .match_query(mockito::Matcher::AllOf(vec![
-            mockito::Matcher::UrlEncoded("output".into(), "json".into()),
-            mockito::Matcher::UrlEncoded("n".into(), "200".into()),
-        ]))
-        .match_header("Authorization", "GoogleLogin auth=tok")
-        .with_status(200)
-        .with_body(oversized_json_body())
-        .with_header("content-type", "application/json")
-        .create_async()
-        .await;
-
+    let body = gzip_body(&oversized_json_body());
+    let path = format!(
+        "/api/greader.php/reader/api/0/stream/contents/{}",
+        urlencoded(STATE_READING_LIST)
+    );
+    let mut mocks = Vec::new();
+    for limit in [200, 100, 50, 25, 12, 6, 3, 1] {
+        mocks.push(
+            server
+                .mock("GET", path.as_str())
+                .match_query(mockito::Matcher::AllOf(vec![
+                    mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                    mockito::Matcher::UrlEncoded("n".into(), limit.to_string()),
+                ]))
+                .match_header("Authorization", "GoogleLogin auth=tok")
+                .with_header("content-type", "application/json")
+                .with_header("content-encoding", "gzip")
+                .with_body(body.clone())
+                .expect(1)
+                .create_async()
+                .await,
+        );
+    }
     let mut provider = GReaderProvider::for_freshrss(&server.url());
     provider.auth_token = Some("tok".to_string());
+    let error = tokio::time::timeout(
+        std::time::Duration::from_secs(15),
+        provider.pull_entries(PullScope::All, None),
+    )
+    .await
+    .expect("body-cap resizing must stop at one instead of retrying forever")
+    .expect_err("an oversized single entry page must preserve the body-cap error");
+    assert!(matches!(error, DomainError::Network(_)));
+    assert_eq!(
+        error.to_string(),
+        http::greader_json_body_too_large_error().to_string()
+    );
+    for mock in mocks {
+        mock.assert_async().await;
+    }
+}
 
-    let error = provider
-        .pull_entries(PullScope::All, None)
-        .await
-        .expect_err("oversized stream contents JSON should be rejected before parsing");
-
-    assert!(matches!(
-        error,
-        DomainError::Network(message) if message == greader_json_body_limit_error_message()
+#[tokio::test]
+async fn pull_entries_resizes_only_body_cap_and_preserves_scope_cursor_and_entries() {
+    let oversized = gzip_body(&format!(
+        r#"{{"items":[],"continuation":"discarded-cursor","padding":"{}"}}"#,
+        "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize)
     ));
-    stream_mock.assert_async().await;
+    for (scope, stream_id, exclude_target) in [
+        (PullScope::All, STATE_READING_LIST, None),
+        (PullScope::Unread, STATE_READING_LIST, Some(STATE_READ)),
+        (PullScope::Starred, STATE_STARRED, None),
+        (
+            PullScope::Feed(FeedIdentifier::Remote {
+                remote_id: "feed/fixture".into(),
+            }),
+            "feed/fixture",
+            None,
+        ),
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let path = format!(
+            "/api/greader.php/reader/api/0/stream/contents/{}",
+            urlencoded(stream_id)
+        );
+        let mut mocks = Vec::new();
+        for limit in [200, 100, 50] {
+            let mut query = vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), limit.to_string()),
+                mockito::Matcher::UrlEncoded("c".into(), "original/cursor +&".into()),
+                mockito::Matcher::UrlEncoded("ot".into(), "1700000100000000".into()),
+            ];
+            if let Some(target) = exclude_target {
+                query.push(mockito::Matcher::UrlEncoded("xt".into(), target.into()));
+            }
+            let mock = server
+                .mock("GET", path.as_str())
+                .match_query(mockito::Matcher::AllOf(query))
+                .match_header("Authorization", "GoogleLogin auth=tok");
+            let mock = if limit > 50 {
+                mock.with_header("content-encoding", "gzip")
+                    .with_body(oversized.clone())
+            } else {
+                mock.with_body(
+                    r#"{"items":[
+                        {"id":"first","origin":{"streamId":"feed/fixture"}},
+                        {"id":"second","origin":{"streamId":"feed/fixture"}}
+                    ],"continuation":"successful-cursor"}"#,
+                )
+            };
+            mocks.push(mock.expect(1).create_async().await);
+        }
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some("tok".into());
+        let since = DateTime::from_timestamp_micros(1_700_000_100_000_000)
+            .expect("fixed cursor fixture should parse");
+        let result = provider
+            .pull_entries(
+                scope,
+                Some(SyncCursor {
+                    continuation: Some("original/cursor +&".into()),
+                    since: Some(since),
+                    etag: Some("fixture-etag".into()),
+                    last_modified: Some("fixture-modified".into()),
+                }),
+            )
+            .await
+            .expect("smaller page should recover the same stream and cursor after body-cap errors");
+        assert_eq!(
+            result
+                .entries
+                .iter()
+                .filter_map(|entry| entry.id.as_deref())
+                .collect::<Vec<_>>(),
+            ["first", "second"]
+        );
+        assert_eq!(result.skipped_entries, 0);
+        assert!(result.has_more);
+        let cursor = result
+            .next_cursor
+            .expect("only the successful response should supply the next cursor");
+        assert_eq!(cursor.continuation.as_deref(), Some("successful-cursor"));
+        assert_eq!(cursor.since, Some(since));
+        assert_eq!(cursor.etag.as_deref(), Some("fixture-etag"));
+        assert_eq!(cursor.last_modified.as_deref(), Some("fixture-modified"));
+        for mock in mocks {
+            mock.assert_async().await;
+        }
+    }
+}
+
+#[tokio::test]
+async fn pull_entries_does_not_resize_for_other_errors() {
+    for (scenario, status, content_type, content_encoding, body) in [
+        ("network", 500, "application/json", "identity", "body cap"),
+        ("auth", 401, "text/plain", "identity", "denied"),
+        ("forbidden", 403, "text/plain", "identity", "denied"),
+        ("parse", 200, "application/json", "identity", "not JSON"),
+        ("html-mime", 200, "text/html", "identity", "{}"),
+        (
+            "html-body",
+            200,
+            "application/json",
+            "identity",
+            "<html>denied</html>",
+        ),
+        ("rate-limit", 429, "text/plain", "identity", "limited"),
+        (
+            "decoded-network",
+            200,
+            "application/json",
+            "gzip",
+            "invalid gzip",
+        ),
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let path = format!(
+            "/api/greader.php/reader/api/0/stream/contents/{}",
+            urlencoded(STATE_READING_LIST)
+        );
+        let failed = server
+            .mock("GET", path.as_str())
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "200".into()),
+            ]))
+            .with_status(status)
+            .with_header("content-type", content_type)
+            .with_header("content-encoding", content_encoding)
+            .with_body(body)
+            .expect(1)
+            .create_async()
+            .await;
+        let retry = server
+            .mock("GET", path.as_str())
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "100".into()),
+            ]))
+            .with_body(r#"{"items":[]}"#)
+            .expect(0)
+            .create_async()
+            .await;
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some("tok".into());
+        let error = provider
+            .pull_entries(PullScope::All, None)
+            .await
+            .expect_err("non-cap errors should surface without resizing or retrying");
+        let expected_category = match scenario {
+            "network" | "decoded-network" => matches!(error, DomainError::Network(_)),
+            "parse" => matches!(error, DomainError::Parse(_)),
+            "rate-limit" => matches!(error, DomainError::RateLimit(_)),
+            _ => matches!(error, DomainError::Auth(_)),
+        };
+        assert!(
+            expected_category,
+            "{scenario} should preserve its failure category"
+        );
+        failed.assert_async().await;
+        retry.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn unread_resized_full_page_without_continuation_is_incomplete() {
+    for (item_count, termination) in [
+        (49, stream::UnreadPullTermination::Normal),
+        (
+            50,
+            stream::UnreadPullTermination::FullPageWithoutContinuation,
+        ),
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let path = "/api/greader.php/reader/api/0/stream/contents/feed%2Ffixture";
+        let mut mocks = Vec::new();
+        let oversized = gzip_body(&oversized_json_body());
+        for limit in [200, 100] {
+            mocks.push(
+                server
+                    .mock("GET", path)
+                    .match_query(mockito::Matcher::AllOf(vec![
+                        mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                        mockito::Matcher::UrlEncoded("n".into(), limit.to_string()),
+                        mockito::Matcher::UrlEncoded("xt".into(), STATE_READ.into()),
+                    ]))
+                    .with_header("content-encoding", "gzip")
+                    .with_body(oversized.clone())
+                    .expect(1)
+                    .create_async()
+                    .await,
+            );
+        }
+        let items = (0..item_count)
+            .map(|index| serde_json::json!({"id": format!("entry-{index}")}))
+            .collect::<Vec<_>>();
+        let reduced = server
+            .mock("GET", path)
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "50".into()),
+                mockito::Matcher::UrlEncoded("xt".into(), STATE_READ.into()),
+            ]))
+            .with_body(serde_json::json!({"items": items}).to_string())
+            .expect(1)
+            .create_async()
+            .await;
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some("tok".into());
+        let result = provider
+            .pull_unread_entries_for_feed("feed/fixture", None)
+            .await
+            .expect("resized unread page should preserve all entries and classify completeness");
+        assert_eq!(result.termination, termination);
+        assert_eq!(result.entries.len(), item_count);
+        assert!(!result.has_more);
+        for mock in mocks {
+            mock.assert_async().await;
+        }
+        reduced.assert_async().await;
+    }
 }
 
 #[tokio::test]

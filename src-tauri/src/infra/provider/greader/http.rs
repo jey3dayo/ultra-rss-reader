@@ -20,7 +20,8 @@ enum SafeGReaderEndpoint {
     ClientLogin,
     TagList,
     Subscriptions,
-    Stream,
+    StreamContents,
+    StreamItemsIds,
     EditTag,
     UnreadCount,
     ApiOther,
@@ -41,10 +42,10 @@ impl SafeGReaderEndpoint {
         .any(|suffix| path.ends_with(suffix))
         {
             Self::Subscriptions
-        } else if path.contains("/reader/api/0/stream/contents/")
-            || path.ends_with("/reader/api/0/stream/items/ids")
-        {
-            Self::Stream
+        } else if path.contains("/reader/api/0/stream/contents/") {
+            Self::StreamContents
+        } else if path.ends_with("/reader/api/0/stream/items/ids") {
+            Self::StreamItemsIds
         } else if path.ends_with("/reader/api/0/edit-tag") {
             Self::EditTag
         } else if path.ends_with("/reader/api/0/unread-count") {
@@ -59,7 +60,8 @@ impl SafeGReaderEndpoint {
             Self::ClientLogin => "client-login",
             Self::TagList => "tag-list",
             Self::Subscriptions => "subscriptions",
-            Self::Stream => "stream",
+            Self::StreamContents => "stream-contents",
+            Self::StreamItemsIds => "stream-items-ids",
             Self::EditTag => "edit-tag",
             Self::UnreadCount => "unread-count",
             Self::ApiOther => "api-other",
@@ -72,6 +74,7 @@ pub(super) enum SafeGReaderFailureReason {
     HttpAuth,
     HtmlContentType,
     HtmlBody,
+    BodyCap,
 }
 
 impl SafeGReaderFailureReason {
@@ -80,6 +83,7 @@ impl SafeGReaderFailureReason {
             Self::HttpAuth => "http-auth",
             Self::HtmlContentType => "html-content-type",
             Self::HtmlBody => "html-body",
+            Self::BodyCap => "body-cap",
         }
     }
 }
@@ -477,7 +481,14 @@ impl GReaderProvider {
         let body = http_defaults::response_bytes_with_decoded_cap(
             response,
             http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES,
-            greader_json_body_too_large_error,
+            || {
+                log::warn!(
+                    "{} limit_bytes={}",
+                    failure_context.format(SafeGReaderFailureReason::BodyCap),
+                    http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
+                );
+                greader_json_body_too_large_error()
+            },
             DomainError::from_provider_http_error,
         )
         .await?;

@@ -20,7 +20,11 @@ fn safe_greader_failure_diagnostic_formats_only_allowlisted_values() {
         ),
         (
             "/tenant/alice/account-123/api/greader.php/reader/api/0/stream/contents/user%2Fsecret",
-            "stream",
+            "stream-contents",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/stream/items/ids",
+            "stream-items-ids",
         ),
         (
             "/tenant/alice/account-123/api/greader.php/reader/api/0/edit-tag",
@@ -527,6 +531,106 @@ async fn normal_text_response_bytes_are_preserved() {
             .expect("normal text response behavior should remain unchanged");
         assert_eq!(result, body);
         response.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn body_cap_logs_distinguish_stream_endpoints_without_sensitive_values() {
+    use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_process};
+    use std::io::Write;
+
+    if let Some(scenario) = child_scenario() {
+        let mut server = mockito::Server::new_async().await;
+        let (path, content_type, status) = match scenario.as_str() {
+            "contents" => (
+                "/tenant/username-secret-sentinel/reader/api/0/stream/contents/feed%2Fid-secret-sentinel",
+                "application/json",
+                200,
+            ),
+            "ids-gzip" => (
+                "/tenant/username-secret-sentinel/reader/api/0/stream/items/ids",
+                "text/html",
+                206,
+            ),
+            _ => panic!("unexpected body-cap diagnostic scenario"),
+        };
+        let body = format!(
+            r#"{{"body-secret-sentinel":"{}"}}"#,
+            "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize)
+        );
+        let response = server
+            .mock("GET", path)
+            .match_query(mockito::Matcher::Any)
+            .with_status(status)
+            .with_header("content-type", content_type);
+        let response = if scenario == "ids-gzip" {
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+            encoder
+                .write_all(body.as_bytes())
+                .expect("gzip diagnostic fixture should encode");
+            let compressed = encoder
+                .finish()
+                .expect("gzip diagnostic fixture should finish");
+            assert!(compressed.len() < http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize);
+            response
+                .with_header("content-encoding", "gzip")
+                .with_body(compressed)
+        } else {
+            response.with_body(body)
+        }
+        .create_async()
+        .await;
+        let raw = reqwest::Client::new()
+            .get(format!("{}{path}?i=query-id-secret-sentinel", server.url()))
+            .header("Authorization", "token-secret-sentinel")
+            .header(CLIENT_ID_HEADER, "client-id-secret-sentinel")
+            .header(CLIENT_SECRET_HEADER, "access-secret-sentinel")
+            .send()
+            .await
+            .expect("local body-cap diagnostic fixture should start");
+        let error = GReaderProvider::read_json_response::<serde_json::Value>(raw)
+            .await
+            .expect_err("oversized stream response must preserve the network cap error");
+        assert!(matches!(error, DomainError::Network(_)));
+        assert_eq!(
+            error.to_string(),
+            http::greader_json_body_too_large_error().to_string()
+        );
+        response.assert_async().await;
+        return;
+    }
+
+    for (scenario, endpoint, status) in [
+        ("contents", "stream-contents", 200),
+        ("ids-gzip", "stream-items-ids", 206),
+    ] {
+        let lines = run_in_isolated_process(
+            module_path!(),
+            "body_cap_logs_distinguish_stream_endpoints_without_sensitive_values",
+            scenario,
+        );
+        for sentinel in [
+            "body-secret-sentinel",
+            "username-secret-sentinel",
+            "id-secret-sentinel",
+            "query-id-secret-sentinel",
+            "token-secret-sentinel",
+            "client-id-secret-sentinel",
+            "access-secret-sentinel",
+            "http://",
+            "Network error",
+        ] {
+            assert!(lines.iter().all(|line| !line.contains(sentinel)));
+        }
+        assert_eq!(
+            lines,
+            [format!(
+                "endpoint={endpoint} status={status} reason=body-cap limit_bytes={}",
+                http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
+            )],
+            "body-cap rejection should emit only the safe diagnostic"
+        );
     }
 }
 

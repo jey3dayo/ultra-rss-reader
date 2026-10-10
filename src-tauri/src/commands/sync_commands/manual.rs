@@ -23,7 +23,7 @@ use crate::repository::sync_state::{SyncStateRepository, SyncStateScopeKey};
 use super::account_sync::{
     run_sync_for_accounts_with_mode, sync_account_with_mode, sync_feed_with_mode,
 };
-use super::failure_log::{log_sync_failure, SyncTrigger};
+use super::failure_log::{log_sync_completion, log_sync_failure, log_sync_warning, SyncTrigger};
 use super::finish_plan::{plan_finish, FinishInput, SyncEntry};
 use super::progress::{
     emit_sync_event_log_only, emit_sync_warnings, SyncGuard, SyncProgressReporter,
@@ -142,20 +142,23 @@ pub async fn trigger_sync_account(
             }
             result
                 .warnings
-                .extend(
-                    outcome
-                        .warnings
-                        .into_iter()
-                        .map(|warning| AccountSyncWarning {
-                            account_id: account.id.as_ref().to_string(),
-                            account_name: account.name.clone(),
-                            kind: warning.kind,
-                            message: warning.message,
-                            retry_at: warning.retry_at,
-                            retry_in_seconds: warning.retry_in_seconds,
-                            detail: warning.detail,
-                        }),
-                );
+                .extend(outcome.warnings.into_iter().map(|warning| {
+                    log_sync_warning(
+                        SyncTrigger::ManualAccount,
+                        &account.kind,
+                        warning.kind,
+                        &warning.detail,
+                    );
+                    AccountSyncWarning {
+                        account_id: account.id.as_ref().to_string(),
+                        account_name: account.name.clone(),
+                        kind: warning.kind,
+                        message: warning.message,
+                        retry_at: warning.retry_at,
+                        retry_in_seconds: warning.retry_in_seconds,
+                        detail: warning.detail,
+                    }
+                }));
             reporter.emit_account_finished(&account, true);
         }
         Err(e) => {
@@ -170,6 +173,7 @@ pub async fn trigger_sync_account(
             reporter.emit_account_finished(&account, false);
         }
     }
+    log_sync_completion(SyncTrigger::ManualAccount, Some(&account.kind), &result);
     reporter.emit_finished(result.failed.is_empty());
     let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::ManualAccount);
     if plan.enable_automatic {
@@ -255,20 +259,23 @@ pub async fn trigger_sync_feed(
             result.succeeded = 1;
             result
                 .warnings
-                .extend(
-                    outcome
-                        .warnings
-                        .into_iter()
-                        .map(|warning| AccountSyncWarning {
-                            account_id: account.id.as_ref().to_string(),
-                            account_name: account.name.clone(),
-                            kind: warning.kind,
-                            message: warning.message,
-                            retry_at: warning.retry_at,
-                            retry_in_seconds: warning.retry_in_seconds,
-                            detail: warning.detail,
-                        }),
-                );
+                .extend(outcome.warnings.into_iter().map(|warning| {
+                    log_sync_warning(
+                        SyncTrigger::ManualFeed,
+                        &account.kind,
+                        warning.kind,
+                        &warning.detail,
+                    );
+                    AccountSyncWarning {
+                        account_id: account.id.as_ref().to_string(),
+                        account_name: account.name.clone(),
+                        kind: warning.kind,
+                        message: warning.message,
+                        retry_at: warning.retry_at,
+                        retry_in_seconds: warning.retry_in_seconds,
+                        detail: warning.detail,
+                    }
+                }));
             reporter.emit_account_finished(&account, true);
         }
         Err(e) => {
@@ -288,6 +295,7 @@ pub async fn trigger_sync_feed(
         }
     }
 
+    log_sync_completion(SyncTrigger::ManualFeed, Some(&account.kind), &result);
     reporter.emit_finished(result.failed.is_empty());
     let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::ManualFeed);
     if plan.emit_warning {

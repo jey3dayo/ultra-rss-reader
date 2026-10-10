@@ -58,7 +58,6 @@ const MAIN_WINDOW_STATE_FLAGS: tauri_plugin_window_state::StateFlags =
     tauri_plugin_window_state::StateFlags::SIZE;
 const MAIN_WINDOW_MIN_WIDTH: u64 = 520;
 const MAIN_WINDOW_MIN_HEIGHT: u64 = 420;
-#[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u128 = 5_000_000;
 #[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_RETENTION_DAYS: u64 = 7;
@@ -208,15 +207,17 @@ fn tracing_init_status(installed: bool) -> TracingInitStatus {
     }
 }
 
-#[cfg(not(test))]
 #[cfg(debug_assertions)]
 fn init_debug_tracing_subscriber() -> TracingInitStatus {
-    let result = tracing_subscriber::fmt()
+    let subscriber = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn")),
         )
-        .try_init();
+        .finish();
+
+    // The log plugin owns the global logger; try_init also installs LogTracer.
+    let result = tracing::subscriber::set_global_default(subscriber);
 
     tracing_init_status(result.is_ok())
 }
@@ -828,7 +829,6 @@ pub fn run() {
             .build(),
     );
 
-    #[cfg(not(debug_assertions))]
     let builder = builder.plugin(
         tauri_plugin_log::Builder::new()
             .target(tauri_plugin_log::Target::new(
@@ -1411,6 +1411,50 @@ mod tests {
                 TracingInitStatus::Installed | TracingInitStatus::AlreadyInstalled
             ),
             "test-global subscriber state should never force a panic"
+        );
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn debug_tracing_leaves_the_persisted_logger_slot_available() {
+        use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_process};
+
+        if let Ok(scenario) = std::env::var("URR_LOG_CAPTURE_SCENARIO") {
+            if scenario == "legacy" {
+                tracing_subscriber::fmt()
+                    .try_init()
+                    .expect("legacy subscriber fixture should initialize");
+                assert!(log::set_logger(log::logger()).is_err());
+                return;
+            }
+
+            assert_eq!(
+                super::init_debug_tracing_subscriber(),
+                TracingInitStatus::Installed
+            );
+            assert_eq!(
+                super::init_debug_tracing_subscriber(),
+                TracingInitStatus::AlreadyInstalled
+            );
+            child_scenario().expect("isolated child should install the log logger after tracing");
+            tracing::warn!("tracing-only-sentinel");
+            log::warn!(target: "sync", "safe-log-record");
+            return;
+        }
+
+        assert!(run_in_isolated_process(
+            module_path!(),
+            "debug_tracing_leaves_the_persisted_logger_slot_available",
+            "legacy",
+        )
+        .is_empty());
+        assert_eq!(
+            run_in_isolated_process(
+                module_path!(),
+                "debug_tracing_leaves_the_persisted_logger_slot_available",
+                "fixed",
+            ),
+            ["safe-log-record"]
         );
     }
 
