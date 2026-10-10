@@ -63,6 +63,12 @@ fn partial_completion_and_warning_lines_exclude_user_strings() {
                     message: SENTINEL.to_string(),
                 },
             ),
+            (
+                AccountSyncWarningKind::Generic,
+                AccountSyncWarningDetail::CredentialAccessRequired {
+                    account_name: SENTINEL.to_string(),
+                },
+            ),
         ];
         let warnings = details
             .into_iter()
@@ -113,8 +119,10 @@ fn partial_completion_and_warning_lines_exclude_user_strings() {
         "event=sync-warning trigger=manual-account provider=freshrss warning_kind=retry_pending warning_detail=pending_mutation_retry",
         "event=sync-warning trigger=manual-account provider=freshrss warning_kind=retry_scheduled warning_detail=background_sync_retry_scheduled",
         "event=sync-warning trigger=manual-account provider=freshrss warning_kind=generic warning_detail=local_feed_sync_failed",
-        "event=sync-completed trigger=manual-account provider=freshrss total=2 succeeded=1 failed=1 warnings=4",
+        "event=sync-warning trigger=manual-account provider=freshrss warning_kind=generic warning_detail=credential_access_required",
+        "event=sync-completed trigger=manual-account provider=freshrss total=2 succeeded=1 failed=1 warnings=5",
     ]);
+    assert!(lines.iter().all(|line| !line.contains(SENTINEL)));
 }
 
 #[tokio::test]

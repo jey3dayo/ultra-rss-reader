@@ -141,6 +141,7 @@ pub(crate) fn log_sync_warning(
         }
         AccountSyncWarningDetail::SchedulerLoadFailed { .. } => "scheduler_load_failed",
         AccountSyncWarningDetail::BackoffPersistFailed { .. } => "backoff_persist_failed",
+        AccountSyncWarningDetail::CredentialAccessRequired { .. } => "credential_access_required",
         AccountSyncWarningDetail::BackgroundSyncRetryScheduled { .. } => {
             "background_sync_retry_scheduled"
         }
