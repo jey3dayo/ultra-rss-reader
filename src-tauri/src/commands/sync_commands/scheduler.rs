@@ -27,14 +27,14 @@ use super::account_sync::{
     run_full_sync_with_progress, run_local_account_startup_import_supplement,
     run_startup_sync_and_repair, run_sync_for_accounts_with_progress, StartupSyncAndRepairOutcome,
 };
+use super::finish_plan::{plan_finish, FinishInput, SyncEntry};
 use super::progress::{
-    emit_sync_event_log_only, emit_sync_warning_event, should_purge_old_articles_after_sync,
-    SyncProgressReporter, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
+    emit_sync_event_log_only, emit_sync_warnings, SyncProgressReporter, SYNC_COMPLETED_EVENT,
+    SYNC_SUCCEEDED_EVENT,
 };
 
 pub(crate) const STARTUP_REMOTE_STATE_REPAIR_KEY: &str = "startup_remote_state_repair_v1";
 pub(crate) const STARTUP_REMOTE_STATE_REPAIR_VALUE: &str = "done";
-use super::should_emit_sync_succeeded;
 
 pub(crate) fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> bool {
     automatic_sync_enabled.load(Ordering::SeqCst)
@@ -177,7 +177,11 @@ pub(crate) fn should_enable_automatic_sync_after_startup(
     startup_sync_accounts: &[Account],
     _repair_only_accounts: &[Account],
 ) -> bool {
-    sync_result.synced && !startup_sync_accounts.is_empty()
+    let input = FinishInput {
+        has_startup_targets: !startup_sync_accounts.is_empty(),
+        ..FinishInput::from_result(sync_result)
+    };
+    plan_finish(&input, SyncEntry::Startup).enable_automatic
 }
 
 #[tauri::command]
@@ -260,11 +264,14 @@ pub async fn trigger_startup_sync(
             state.automatic_sync_notify.as_ref(),
         );
     }
-    if should_purge_old_articles_after_sync(sync_result.synced) {
+    let plan = plan_finish(&FinishInput::from_result(&sync_result), SyncEntry::Startup);
+    if plan.emit_completed {
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-        if should_emit_sync_succeeded(&sync_result) {
-            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-        }
+    }
+    if plan.emit_succeeded {
+        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
+    }
+    if plan.purge {
         purge_old_articles(&state.db);
     }
     Ok(sync_result)
@@ -413,12 +420,17 @@ pub async fn trigger_automatic_sync(
         Some(reporter),
     )
     .await?;
-    if should_purge_old_articles_after_sync(result.synced) {
-        emit_sync_warning_event(&app_handle, &result);
+    let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::Automatic);
+    if plan.emit_warning {
+        emit_sync_warnings(&app_handle, &result);
+    }
+    if plan.emit_completed {
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-        if should_emit_sync_succeeded(&result) {
-            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-        }
+    }
+    if plan.emit_succeeded {
+        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
+    }
+    if plan.purge {
         purge_old_articles(&state.db);
     }
     Ok(result)

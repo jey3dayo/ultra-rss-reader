@@ -24,15 +24,15 @@ use super::account_sync::{
     run_sync_for_accounts_with_mode, sync_account_with_mode, sync_feed_with_mode,
 };
 use super::failure_log::{log_sync_failure, SyncTrigger};
+use super::finish_plan::{plan_finish, FinishInput, SyncEntry};
 use super::progress::{
-    emit_sync_event_log_only, emit_sync_warning_event, should_emit_manual_single_sync_completion,
-    SyncGuard, SyncProgressReporter, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
+    emit_sync_event_log_only, emit_sync_warnings, SyncGuard, SyncProgressReporter,
+    SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
 };
 use super::scheduler::{
     clear_scheduler_sync_status, enable_automatic_sync, load_all_accounts, map_account_sync_status,
     purge_old_articles,
 };
-use super::should_emit_sync_succeeded;
 
 #[tauri::command]
 pub async fn trigger_sync(
@@ -54,16 +54,23 @@ pub async fn trigger_sync(
         SyncTrigger::ManualAll,
     )
     .await?;
-    if super::should_purge_old_articles_after_sync(result.synced) {
+    let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::ManualAll);
+    if plan.enable_automatic {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
         );
-        emit_sync_warning_event(&app_handle, &result);
+    }
+    if plan.emit_warning {
+        emit_sync_warnings(&app_handle, &result);
+    }
+    if plan.emit_completed {
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-        if should_emit_sync_succeeded(&result) {
-            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-        }
+    }
+    if plan.emit_succeeded {
+        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
+    }
+    if plan.purge {
         purge_old_articles(&state.db);
     }
     Ok(result)
@@ -162,16 +169,21 @@ pub async fn trigger_sync_account(
         }
     }
     reporter.emit_finished(result.failed.is_empty());
-    if should_emit_manual_single_sync_completion(&result) {
+    let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::ManualAccount);
+    if plan.enable_automatic {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
         );
-        emit_sync_warning_event(&app_handle, &result);
+    }
+    if plan.emit_warning {
+        emit_sync_warnings(&app_handle, &result);
+    }
+    if plan.emit_completed {
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-        if should_emit_sync_succeeded(&result) {
-            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-        }
+    }
+    if plan.emit_succeeded {
+        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
     }
     Ok(result)
 }
@@ -275,12 +287,15 @@ pub async fn trigger_sync_feed(
     }
 
     reporter.emit_finished(result.failed.is_empty());
-    if should_emit_manual_single_sync_completion(&result) {
-        emit_sync_warning_event(&app_handle, &result);
+    let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::ManualFeed);
+    if plan.emit_warning {
+        emit_sync_warnings(&app_handle, &result);
+    }
+    if plan.emit_completed {
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-        if should_emit_sync_succeeded(&result) {
-            emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-        }
+    }
+    if plan.emit_succeeded {
+        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
     }
     Ok(result)
 }

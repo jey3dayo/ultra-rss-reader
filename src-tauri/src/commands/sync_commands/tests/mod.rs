@@ -1,3 +1,4 @@
+mod finish_plan;
 mod local_sync;
 mod progress;
 mod scheduler_purge;

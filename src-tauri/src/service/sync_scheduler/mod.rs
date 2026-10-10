@@ -13,8 +13,8 @@ use crate::commands::dto::{
     SyncProgressKind,
 };
 use crate::commands::sync_commands::{
-    log_sync_failure, log_sync_panic, purge_old_articles, should_purge_old_articles_after_sync,
-    sync_account, SyncProgressReporter, SyncTrigger, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
+    log_sync_failure, log_sync_panic, plan_finish, purge_old_articles, sync_account, FinishInput,
+    SyncEntry, SyncProgressReporter, SyncTrigger, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
     SYNC_WARNING_EVENT,
 };
 use crate::domain::account::Account;
@@ -462,22 +462,35 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
 
             reporter.emit_finished(any_synced);
 
-            if !warnings_to_emit.is_empty() {
+            let plan = plan_finish(
+                &FinishInput {
+                    synced: any_synced,
+                    succeeded: 0,
+                    has_failures: false,
+                    has_warnings: !warnings_to_emit.is_empty(),
+                    all_succeeded,
+                    has_startup_targets: false,
+                },
+                SyncEntry::SchedulerLoop,
+            );
+
+            if plan.emit_warning {
                 if let Err(e) = app_handle.emit(SYNC_WARNING_EVENT, warnings_to_emit.clone()) {
                     tracing::warn!("Failed to emit sync-warning event: {e}");
                 }
-                all_succeeded = false;
             }
 
-            if should_purge_old_articles_after_sync(any_synced) {
+            if plan.emit_completed {
                 if let Err(e) = app_handle.emit(SYNC_COMPLETED_EVENT, ()) {
                     tracing::warn!("Failed to emit sync-completed event: {e}");
                 }
-                if all_succeeded {
-                    if let Err(e) = app_handle.emit(SYNC_SUCCEEDED_EVENT, ()) {
-                        tracing::warn!("Failed to emit sync-succeeded event: {e}");
-                    }
+            }
+            if plan.emit_succeeded {
+                if let Err(e) = app_handle.emit(SYNC_SUCCEEDED_EVENT, ()) {
+                    tracing::warn!("Failed to emit sync-succeeded event: {e}");
                 }
+            }
+            if plan.purge {
                 purge_old_articles(&state.db);
             }
         }
