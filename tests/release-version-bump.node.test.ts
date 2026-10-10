@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -12,7 +12,8 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { writeChanges } from "../scripts/release/bump-version.ts";
+import { run, writeChanges } from "../scripts/release/bump-version.ts";
+import { validateReleaseConfig } from "../scripts/release/validate-release-config.ts";
 
 const VERSION_FILES = [
   "package.json",
@@ -57,30 +58,46 @@ const createFixture = (): string => {
   return fixtureRoot;
 };
 
-const runScript = (fixtureRoot: string, relativeScript: string, args: readonly string[] = []): string =>
-  execFileSync(process.execPath, [relativeScript, ...args], {
-    cwd: fixtureRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+const runBump = (fixtureRoot: string, version: string): string[] => run([version], fixtureRoot);
 
-const runBump = (fixtureRoot: string, version: string): string =>
-  runScript(fixtureRoot, "scripts/release/bump-version.ts", [version]);
+const runParity = (fixtureRoot: string, version: string): void => {
+  const errors = validateReleaseConfig({ root: fixtureRoot, releaseTag: `v${version}` });
+  if (errors.length > 0) {
+    throw new Error(errors.join("\n"));
+  }
+};
 
-const runParity = (fixtureRoot: string, version: string): string =>
-  execFileSync(process.execPath, ["scripts/release/validate-release-config.ts"], {
-    cwd: fixtureRoot,
-    encoding: "utf8",
-    env: { ...process.env, RELEASE_TAG: `v${version}` },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+const PYTHON_PARITY_DRIVER = `
+import contextlib, importlib.util, io, json, sys
 
-const runPythonParity = (fixtureRoot: string, version: string): string =>
-  execFileSync("python3", [".codex/skills/release/scripts/release_checks.py", "verify-version", version], {
-    cwd: fixtureRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+exit_codes = []
+for root, version in zip(sys.argv[1::2], sys.argv[2::2]):
+    spec = importlib.util.spec_from_file_location(
+        "release_checks", root + "/.codex/skills/release/scripts/release_checks.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    sys.argv = ["release_checks.py", "verify-version", version]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            exit_codes.append(module.main())
+    except Exception:
+        exit_codes.append(1)
+print(json.dumps(exit_codes))
+`;
+
+const runPythonParity = (cases: readonly { fixtureRoot: string; version: string }[]): number[] => {
+  const output = execFileSync(
+    "python3",
+    ["-I", "-c", PYTHON_PARITY_DRIVER, ...cases.flatMap(({ fixtureRoot, version }) => [fixtureRoot, version])],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const exitCodes: unknown = JSON.parse(output);
+  if (!Array.isArray(exitCodes) || !exitCodes.every((code): code is number => typeof code === "number")) {
+    throw new Error(`unexpected python parity output: ${output}`);
+  }
+  return exitCodes;
+};
 
 const readVersionFiles = (fixtureRoot: string): Record<string, string> =>
   Object.fromEntries(
@@ -104,10 +121,90 @@ const withFixture = (callback: (fixtureRoot: string) => void): void => {
   }
 };
 
-// Widened past the suite-wide 15s testTimeout for this file only: each case builds a tmp fixture
-// and shells out to child node/python processes, and Windows CI runners hit 15s under load
-// (release-version-bump timed out there on a green rerun). Keep the global budget at 15s.
-describe("release version bump contract", { timeout: 30_000 }, () => {
+const replaceInFixture = (fixtureRoot: string, relativePath: string, transform: (source: string) => string): void => {
+  const path = join(fixtureRoot, relativePath);
+  writeFileSync(path, transform(readFileSync(path, "utf8")), "utf8");
+};
+
+const duplicateJsonOwnerCases = [
+  {
+    name: "package.json",
+    relativePath: "package.json",
+    ownerPattern: /^ {2}"version": "[^"]+",$/m,
+  },
+  {
+    name: "Cargo.toml",
+    relativePath: "src-tauri/Cargo.toml",
+    ownerPattern: /^version = "[^"]+"$/m,
+  },
+  {
+    name: "tauri.conf.json",
+    relativePath: "src-tauri/tauri.conf.json",
+    ownerPattern: /^ {2}"version": "[^"]+",$/m,
+  },
+];
+
+const noncanonicalJsonKeyFiles = ["package.json", "src-tauri/tauri.conf.json"] as const;
+
+const rejectedOwnerMutations: readonly { name: string; mutate: (fixtureRoot: string) => void }[] = [
+  {
+    name: "duplicate Cargo.lock owner",
+    mutate: (fixtureRoot) =>
+      replaceInFixture(fixtureRoot, "src-tauri/Cargo.lock", (cargoLock) => {
+        const version = cargoLock.match(/\[\[package\]\]\nname = "ultra-rss-reader"\nversion = "([^"]+)"/)?.[1];
+        if (!version) {
+          throw new Error("Cargo.lock owner version is missing");
+        }
+        return `${cargoLock}\n[[package]]\nversion = "${version}"\nname = "ultra-rss-reader"\n`;
+      }),
+  },
+  ...duplicateJsonOwnerCases.map(({ name, relativePath, ownerPattern }) => ({
+    name: `duplicate ${name} owner`,
+    mutate: (fixtureRoot: string) =>
+      replaceInFixture(fixtureRoot, relativePath, (source) => {
+        const owner = source.match(ownerPattern)?.[0];
+        if (!owner) {
+          throw new Error(`${relativePath} owner is missing`);
+        }
+        return source.replace(owner, `${owner}\n${owner}`);
+      }),
+  })),
+  ...noncanonicalJsonKeyFiles.map((relativePath) => ({
+    name: `noncanonical duplicate JSON version key in ${relativePath}`,
+    mutate: (fixtureRoot: string) =>
+      replaceInFixture(fixtureRoot, relativePath, (source) => {
+        const canonicalOwner = `  "version": "${BASE_VERSION}",`;
+        if (!source.includes(canonicalOwner)) {
+          throw new Error(`${relativePath} owner is missing`);
+        }
+        return source.replace(canonicalOwner, `\t"version":"${BASE_VERSION}",\n${canonicalOwner}`);
+      }),
+  })),
+  {
+    name: "escaped duplicate JSON version key",
+    mutate: (fixtureRoot) =>
+      replaceInFixture(fixtureRoot, "package.json", (source) => {
+        const canonicalOwner = `  "version": "${BASE_VERSION}",`;
+        return source.replace(canonicalOwner, `  "vers\\u0069on": "${BASE_VERSION}",\n${canonicalOwner}`);
+      }),
+  },
+  {
+    name: "Cargo.toml metadata version without a package owner",
+    mutate: (fixtureRoot) =>
+      replaceInFixture(fixtureRoot, "src-tauri/Cargo.toml", (source) => {
+        const packageVersion = source.match(/^version = "[^"]+"$/m)?.[0];
+        if (!packageVersion) {
+          throw new Error("Cargo.toml package version is missing");
+        }
+        return (
+          source.replace(packageVersion, "# package version owner removed") +
+          `\n[package.metadata.release]\nversion = "${BASE_VERSION}"\n`
+        );
+      }),
+  },
+];
+
+describe("release version bump contract", () => {
   it("updates all five owners, passes parity, and is byte-idempotent", () => {
     withFixture((fixtureRoot) => {
       runBump(fixtureRoot, TARGET_VERSION);
@@ -128,7 +225,7 @@ describe("release version bump contract", { timeout: 30_000 }, () => {
   it("previews all five owners without writing", () => {
     withFixture((fixtureRoot) => {
       const before = readVersionFiles(fixtureRoot);
-      const output = runScript(fixtureRoot, "scripts/release/bump-version.ts", [TARGET_VERSION, "--check"]);
+      const output = run([TARGET_VERSION, "--check"], fixtureRoot).join("\n");
 
       expect(output).toContain("Would update 5 version files");
       for (const relativePath of VERSION_FILES) {
@@ -138,26 +235,72 @@ describe("release version bump contract", { timeout: 30_000 }, () => {
     });
   });
 
-  it("rejects duplicate Cargo.lock owners before writing", () => {
+  it("runs the bump and validate-release-config CLIs with their exit codes and messages", () => {
     withFixture((fixtureRoot) => {
-      const lockPath = join(fixtureRoot, "src-tauri/Cargo.lock");
-      const cargoLock = readFileSync(lockPath, "utf8");
-      const owner = cargoLock.match(/\[\[package\]\]\nname = "ultra-rss-reader"\nversion = "[^"]+"/);
-      if (!owner) {
-        throw new Error("Cargo.lock owner is missing");
-      }
-      const version = owner[0].match(/version = "([^"]+)"/)?.[1];
-      if (!version) {
-        throw new Error("Cargo.lock owner version is missing");
-      }
-      writeFileSync(lockPath, `${cargoLock}\n[[package]]\nversion = "${version}"\nname = "ultra-rss-reader"\n`, "utf8");
+      const bump = spawnSync(process.execPath, ["scripts/release/bump-version.ts", TARGET_VERSION], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+      });
+      expect(bump.status).toBe(0);
+      expect(bump.stdout).toContain(`Updated 5 version files: ${BASE_VERSION} -> ${TARGET_VERSION}`);
+
+      const invalidBump = spawnSync(process.execPath, ["scripts/release/bump-version.ts", "not-a-version"], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+      });
+      expect(invalidBump.status).toBe(1);
+      expect(invalidBump.stderr).toContain("invalid stable semantic version: not-a-version");
+
+      const validate = (releaseTag: string) =>
+        spawnSync(process.execPath, ["scripts/release/validate-release-config.ts"], {
+          cwd: fixtureRoot,
+          encoding: "utf8",
+          env: { ...process.env, RELEASE_TAG: releaseTag },
+        });
+      expect(validate(`v${TARGET_VERSION}`).status).toBe(0);
+
+      const mismatched = validate(`v${BASE_VERSION}`);
+      expect(mismatched.status).toBe(1);
+      expect(mismatched.stderr).toContain(
+        `::error::release tag v${BASE_VERSION} does not match package.json version v${TARGET_VERSION}`,
+      );
+    });
+  }, 60_000);
+
+  it.each(rejectedOwnerMutations)("rejects $name before writing and in TS parity", ({ mutate }) => {
+    withFixture((fixtureRoot) => {
+      mutate(fixtureRoot);
       const before = readVersionFiles(fixtureRoot);
 
       expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
       expect(readVersionFiles(fixtureRoot)).toEqual(before);
       expect(() => runParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
-      expect(() => runPythonParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
     });
+  });
+
+  it("python verify-version agrees with TS parity on every rejected owner mutation", () => {
+    const fixtures: string[] = [];
+    try {
+      const cleanFixture = createFixture();
+      fixtures.push(cleanFixture);
+      const mutatedFixtures = rejectedOwnerMutations.map(({ mutate }) => {
+        const fixtureRoot = createFixture();
+        fixtures.push(fixtureRoot);
+        mutate(fixtureRoot);
+        return fixtureRoot;
+      });
+
+      const exitCodes = runPythonParity([
+        { fixtureRoot: cleanFixture, version: BASE_VERSION },
+        ...mutatedFixtures.map((fixtureRoot) => ({ fixtureRoot, version: BASE_VERSION })),
+      ]);
+
+      expect(exitCodes).toEqual([0, ...mutatedFixtures.map(() => 1)]);
+    } finally {
+      for (const fixtureRoot of fixtures) {
+        rmSync(fixtureRoot, { recursive: true, force: true });
+      }
+    }
   });
 
   it.each([
@@ -311,107 +454,6 @@ describe("release version bump contract", { timeout: 30_000 }, () => {
       writeFileSync(manifestPath, duplicateVersionManifest, "utf8");
 
       expect(() => runParity(fixtureRoot, version)).toThrow();
-    });
-  });
-
-  it.each([
-    {
-      name: "package.json",
-      relativePath: "package.json",
-      ownerPattern: /^ {2}"version": "[^"]+",$/m,
-    },
-    {
-      name: "Cargo.toml",
-      relativePath: "src-tauri/Cargo.toml",
-      ownerPattern: /^version = "[^"]+"$/m,
-    },
-    {
-      name: "tauri.conf.json",
-      relativePath: "src-tauri/tauri.conf.json",
-      ownerPattern: /^ {2}"version": "[^"]+",$/m,
-    },
-  ])("rejects duplicate $name owners before writing and in parity", ({ relativePath, ownerPattern }) => {
-    withFixture((fixtureRoot) => {
-      const ownerPath = join(fixtureRoot, relativePath);
-      const source = readFileSync(ownerPath, "utf8");
-      const owner = source.match(ownerPattern)?.[0];
-      if (!owner) {
-        throw new Error(`${relativePath} owner is missing`);
-      }
-      writeFileSync(ownerPath, source.replace(owner, `${owner}\n${owner}`), "utf8");
-      const before = readVersionFiles(fixtureRoot);
-
-      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
-      expect(readVersionFiles(fixtureRoot)).toEqual(before);
-      expect(() => runParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
-      expect(() => runPythonParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
-    });
-  });
-
-  it.each(["package.json", "src-tauri/tauri.conf.json"])(
-    "rejects noncanonical duplicate JSON version keys in %s",
-    (relativePath) => {
-      withFixture((fixtureRoot) => {
-        const ownerPath = join(fixtureRoot, relativePath);
-        const version = readPackageVersion(fixtureRoot);
-        const source = readFileSync(ownerPath, "utf8");
-        const canonicalOwner = `  "version": "${version}",`;
-        if (!source.includes(canonicalOwner)) {
-          throw new Error(`${relativePath} owner is missing`);
-        }
-        writeFileSync(
-          ownerPath,
-          source.replace(canonicalOwner, `\t"version":"${version}",\n${canonicalOwner}`),
-          "utf8",
-        );
-        const before = readVersionFiles(fixtureRoot);
-
-        expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
-        expect(readVersionFiles(fixtureRoot)).toEqual(before);
-        expect(() => runParity(fixtureRoot, version)).toThrow();
-        expect(() => runPythonParity(fixtureRoot, version)).toThrow();
-      });
-    },
-  );
-
-  it("rejects an escaped duplicate JSON version key", () => {
-    withFixture((fixtureRoot) => {
-      const ownerPath = join(fixtureRoot, "package.json");
-      const version = readPackageVersion(fixtureRoot);
-      const source = readFileSync(ownerPath, "utf8");
-      const canonicalOwner = `  "version": "${version}",`;
-      writeFileSync(
-        ownerPath,
-        source.replace(canonicalOwner, `  "vers\\u0069on": "${version}",\n${canonicalOwner}`),
-        "utf8",
-      );
-      const before = readVersionFiles(fixtureRoot);
-
-      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
-      expect(readVersionFiles(fixtureRoot)).toEqual(before);
-      expect(() => runParity(fixtureRoot, version)).toThrow();
-      expect(() => runPythonParity(fixtureRoot, version)).toThrow();
-    });
-  });
-
-  it("rejects a Cargo.toml metadata version when the package owner is missing", () => {
-    withFixture((fixtureRoot) => {
-      const cargoPath = join(fixtureRoot, "src-tauri/Cargo.toml");
-      const source = readFileSync(cargoPath, "utf8");
-      const packageVersion = source.match(/^version = "[^"]+"$/m)?.[0];
-      if (!packageVersion) {
-        throw new Error("Cargo.toml package version is missing");
-      }
-      writeFileSync(
-        cargoPath,
-        source.replace(packageVersion, "# package version owner removed") +
-          `\n[package.metadata.release]\nversion = "${BASE_VERSION}"\n`,
-        "utf8",
-      );
-
-      expect(() => runBump(fixtureRoot, TARGET_VERSION)).toThrow();
-      expect(() => runParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
-      expect(() => runPythonParity(fixtureRoot, readPackageVersion(fixtureRoot))).toThrow();
     });
   });
 });

@@ -267,9 +267,9 @@ const parseArguments = (args: readonly string[]): { targetVersion: string; check
   return { targetVersion, checkOnly };
 };
 
-const readVersionChanges = (targetVersion: string): VersionChange[] => {
+const readVersionChanges = (targetVersion: string, root = "."): VersionChange[] => {
   const changes = versionFiles.map((versionFile) => {
-    const original = readFileSync(versionFile.path, "utf8");
+    const original = readFileSync(join(root, versionFile.path), "utf8");
     const currentVersion = versionFile.readVersion(original);
     const updated = versionFile.update(original, targetVersion);
     const updatedVersion = versionFile.readVersion(updated);
@@ -348,9 +348,9 @@ export const writeChanges = (changes: readonly WriteChange[], renameFile: Rename
   }
 };
 
-const run = (args: readonly string[]): void => {
+export const run = (args: readonly string[], root = "."): string[] => {
   const { targetVersion, checkOnly } = parseArguments(args);
-  const changes = readVersionChanges(targetVersion);
+  const changes = readVersionChanges(targetVersion, root);
   const currentVersion = changes.find(({ path }) => path === "package.json")?.currentVersion;
 
   if (!currentVersion) {
@@ -358,27 +358,27 @@ const run = (args: readonly string[]): void => {
   }
 
   if (currentVersion === targetVersion) {
-    console.log(`All version files already use ${targetVersion}.`);
-    return;
+    return [`All version files already use ${targetVersion}.`];
   }
 
   if (checkOnly) {
-    console.log(`Would update ${changes.length} version files: ${currentVersion} -> ${targetVersion}`);
-    for (const change of changes) {
-      console.log(`- ${change.path}: ${change.currentVersion} -> ${change.formatTarget(targetVersion)}`);
-    }
-    return;
+    return [
+      `Would update ${changes.length} version files: ${currentVersion} -> ${targetVersion}`,
+      ...changes.map((change) => `- ${change.path}: ${change.currentVersion} -> ${change.formatTarget(targetVersion)}`),
+    ];
   }
 
-  writeChanges(changes);
-  console.log(`Updated ${changes.length} version files: ${currentVersion} -> ${targetVersion}`);
+  writeChanges(changes.map((change) => ({ ...change, path: join(root, change.path) })));
+  return [`Updated ${changes.length} version files: ${currentVersion} -> ${targetVersion}`];
 };
 
 const isMainModule = process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url;
 
 if (isMainModule) {
   try {
-    run(process.argv.slice(2));
+    for (const line of run(process.argv.slice(2))) {
+      console.log(line);
+    }
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

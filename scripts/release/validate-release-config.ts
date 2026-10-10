@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 type PackageJson = {
   version?: string;
@@ -129,148 +131,167 @@ const normalizeCapabilities = (source: TauriCapabilityFile): TauriCapability[] =
 const permissionIdentifier = (permission: string | { identifier: string }): string =>
   typeof permission === "string" ? permission : permission.identifier;
 
-const releaseTag = process.env.RELEASE_TAG;
-const packageJson = readJson<PackageJson>("package.json");
-const tauriConfig = readJson<TauriConfig>("src-tauri/tauri.conf.json");
-const tauriReleaseConfig = readJson<TauriConfig>(RELEASE_TAURI_CONFIG_PATH);
-const tauriDevConfig = readJson<TauriConfig>(DEV_TAURI_CONFIG_PATH);
-const defaultCapability = readJson<TauriCapabilityFile>("src-tauri/capabilities/default.json");
-const packageJsonSource = readFileSync("package.json", "utf8");
-const tauriConfigSource = readFileSync("src-tauri/tauri.conf.json", "utf8");
-const cargoToml = readFileSync("src-tauri/Cargo.toml", "utf8");
-const cargoLock = readFileSync("src-tauri/Cargo.lock", "utf8");
-const releaseWorkflow = readFileSync(".github/workflows/release.yml", "utf8");
-const msixManifest = readFileSync("msix/Package.appxmanifest", "utf8");
-const packageVersionMatches = readTopLevelJsonVersionOwners(packageJsonSource);
-const tauriVersionMatches = readTopLevelJsonVersionOwners(tauriConfigSource);
-const cargoVersionOwners = readCargoTomlVersionOwners(cargoToml);
-const cargoVersion =
-  cargoVersionOwners.sectionCount === 1 && cargoVersionOwners.versions.length === 1
-    ? cargoVersionOwners.versions[0]
-    : undefined;
-const cargoLockPackageMatches = readCargoLockVersionOwners(cargoLock);
-const msixIdentityMatches = [...msixManifest.matchAll(MSIX_IDENTITY_PATTERN)];
-const msixManifestIdentityBlock = msixIdentityMatches.length === 1 ? msixIdentityMatches[0][0] : undefined;
-const msixIdentityVersionMatches = msixManifestIdentityBlock
-  ? [...msixManifestIdentityBlock.matchAll(MSIX_IDENTITY_VERSION_PATTERN)]
-  : [];
-const msixManifestVersion = msixIdentityVersionMatches.length === 1 ? msixIdentityVersionMatches[0][1] : undefined;
-const expectedTag = `v${packageJson.version}`;
-const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
-const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
-const capabilities = normalizeCapabilities(defaultCapability);
-const mainCapability = capabilities.find((capability) => capability.identifier === "main");
-const browserWebviewCapability = capabilities.find((capability) => capability.identifier === "browser-webview");
+export const validateReleaseConfig = ({
+  root,
+  releaseTag,
+}: {
+  root: string;
+  releaseTag: string | undefined;
+}): string[] => {
+  const packageJson = readJson<PackageJson>(join(root, "package.json"));
+  const tauriConfig = readJson<TauriConfig>(join(root, "src-tauri/tauri.conf.json"));
+  const tauriReleaseConfig = readJson<TauriConfig>(join(root, RELEASE_TAURI_CONFIG_PATH));
+  const tauriDevConfig = readJson<TauriConfig>(join(root, DEV_TAURI_CONFIG_PATH));
+  const defaultCapability = readJson<TauriCapabilityFile>(join(root, "src-tauri/capabilities/default.json"));
+  const packageJsonSource = readFileSync(join(root, "package.json"), "utf8");
+  const tauriConfigSource = readFileSync(join(root, "src-tauri/tauri.conf.json"), "utf8");
+  const cargoToml = readFileSync(join(root, "src-tauri/Cargo.toml"), "utf8");
+  const cargoLock = readFileSync(join(root, "src-tauri/Cargo.lock"), "utf8");
+  const releaseWorkflow = readFileSync(join(root, ".github/workflows/release.yml"), "utf8");
+  const msixManifest = readFileSync(join(root, "msix/Package.appxmanifest"), "utf8");
+  const packageVersionMatches = readTopLevelJsonVersionOwners(packageJsonSource);
+  const tauriVersionMatches = readTopLevelJsonVersionOwners(tauriConfigSource);
+  const cargoVersionOwners = readCargoTomlVersionOwners(cargoToml);
+  const cargoVersion =
+    cargoVersionOwners.sectionCount === 1 && cargoVersionOwners.versions.length === 1
+      ? cargoVersionOwners.versions[0]
+      : undefined;
+  const cargoLockPackageMatches = readCargoLockVersionOwners(cargoLock);
+  const msixIdentityMatches = [...msixManifest.matchAll(MSIX_IDENTITY_PATTERN)];
+  const msixManifestIdentityBlock = msixIdentityMatches.length === 1 ? msixIdentityMatches[0][0] : undefined;
+  const msixIdentityVersionMatches = msixManifestIdentityBlock
+    ? [...msixManifestIdentityBlock.matchAll(MSIX_IDENTITY_VERSION_PATTERN)]
+    : [];
+  const msixManifestVersion = msixIdentityVersionMatches.length === 1 ? msixIdentityVersionMatches[0][1] : undefined;
+  const expectedTag = `v${packageJson.version}`;
+  const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
+  const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
+  const capabilities = normalizeCapabilities(defaultCapability);
+  const mainCapability = capabilities.find((capability) => capability.identifier === "main");
+  const browserWebviewCapability = capabilities.find((capability) => capability.identifier === "browser-webview");
 
-const errors: string[] = [];
-if (packageVersionMatches.length !== 1) {
-  errors.push(`package.json must contain exactly one version owner, found ${packageVersionMatches.length}`);
-}
-if (tauriVersionMatches.length !== 1) {
-  errors.push(`src-tauri/tauri.conf.json must contain exactly one version owner, found ${tauriVersionMatches.length}`);
-}
-if (cargoVersionOwners.sectionCount !== 1 || cargoVersionOwners.versions.length !== 1) {
-  errors.push(
-    `src-tauri/Cargo.toml must contain exactly one [package] section and version owner, found ${cargoVersionOwners.sectionCount} sections and ${cargoVersionOwners.versions.length} versions`,
-  );
-}
-const versionMatch = packageJson.version?.match(STABLE_VERSION_PATTERN);
-if (!versionMatch) {
-  errors.push(`package.json version ${packageJson.version ?? "(missing)"} must be a stable X.Y.Z version`);
-} else if (versionMatch.slice(1).some((component) => Number(component) > MSIX_VERSION_COMPONENT_MAX)) {
-  errors.push(`package.json version components must not exceed ${MSIX_VERSION_COMPONENT_MAX} for MSIX`);
-}
-if (releaseTag !== expectedTag) {
-  errors.push(`release tag ${releaseTag} does not match package.json version ${expectedTag}`);
-}
-if (tauriConfig.version !== packageJson.version) {
-  errors.push(
-    `src-tauri/tauri.conf.json version ${tauriConfig.version} does not match package.json version ${packageJson.version}`,
-  );
-}
-if (cargoVersion !== packageJson.version) {
-  errors.push(
-    `src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`,
-  );
-}
-if (cargoLockPackageMatches.length !== 1 || !cargoLockPackageMatches[0]) {
-  errors.push(
-    `src-tauri/Cargo.lock must contain exactly one ultra-rss-reader package entry, found ${cargoLockPackageMatches.length}`,
-  );
-} else if (cargoLockPackageMatches[0] !== packageJson.version) {
-  errors.push(
-    `src-tauri/Cargo.lock ultra-rss-reader version ${cargoLockPackageMatches[0]} does not match package.json version ${packageJson.version}`,
-  );
-}
-if (msixIdentityMatches.length !== 1) {
-  errors.push(
-    `msix/Package.appxmanifest must contain exactly one Identity element, found ${msixIdentityMatches.length}`,
-  );
-} else if (msixIdentityVersionMatches.length !== 1) {
-  errors.push(
-    `msix/Package.appxmanifest Identity must contain exactly one Version attribute, found ${msixIdentityVersionMatches.length}`,
-  );
-} else if (msixManifestVersion !== `${packageJson.version}.0`) {
-  errors.push(
-    `msix/Package.appxmanifest Identity version ${msixManifestVersion ?? "(missing)"} does not match package.json version ${packageJson.version}.0`,
-  );
-}
-if (tauriReleaseConfig.identifier !== tauriConfig.identifier) {
-  errors.push(
-    `src-tauri/tauri.release.conf.json identifier ${tauriReleaseConfig.identifier} does not match src-tauri/tauri.conf.json identifier ${tauriConfig.identifier}`,
-  );
-}
-if (tauriConfig.bundle?.createUpdaterArtifacts !== false) {
-  errors.push("src-tauri/tauri.conf.json must keep updater artifacts disabled for dev builds");
-}
-if (tauriReleaseConfig.bundle?.createUpdaterArtifacts !== true) {
-  errors.push("src-tauri/tauri.release.conf.json must enable updater artifacts for release builds");
-}
-if (tauriReleaseConfig.identifier === tauriDevConfig.identifier) {
-  errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
-}
-if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
-  errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
-}
-if (updaterEndpoint !== RELEASE_UPDATER_ENDPOINT) {
-  errors.push(
-    `src-tauri/tauri.conf.json updater endpoint ${updaterEndpoint ?? "(missing)"} does not match the GitHub release latest.json endpoint`,
-  );
-}
-if (!updaterPubkey || UPDATER_PUBKEY_PLACEHOLDER_PATTERN.test(updaterPubkey)) {
-  errors.push("src-tauri/tauri.conf.json updater pubkey must be configured and must not be a placeholder");
-}
-if (!releaseWorkflow.includes(`--config ${RELEASE_TAURI_CONFIG_PATH}`)) {
-  errors.push("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
-}
-if (releaseWorkflow.includes(`--config ${DEV_TAURI_CONFIG_PATH}`)) {
-  errors.push("release workflow must not pass src-tauri/tauri.dev.conf.json to tauri-action");
-}
-if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
-  errors.push("release workflow must not set dev credential environment variables");
-}
-if (!Array.isArray(mainCapability?.permissions)) {
-  errors.push("src-tauri/capabilities/default.json must declare main release permissions explicitly");
-} else if (
-  capabilities
-    .flatMap((capability) => (capability.permissions ?? []).flatMap((permission) => [permissionIdentifier(permission)]))
-    .some((permission) => permission.startsWith("mcp-bridge:"))
-) {
-  errors.push("release capability must not include debug-only MCP bridge permissions");
-}
-if (!browserWebviewCapability) {
-  errors.push("src-tauri/capabilities/default.json must declare a browser-webview capability");
-} else if (
-  JSON.stringify(browserWebviewCapability.webviews) !== JSON.stringify(["browser-webview"]) ||
-  JSON.stringify(browserWebviewCapability.permissions?.map(permissionIdentifier)) !==
-    JSON.stringify(["core:event:default"])
-) {
-  errors.push("browser-webview capability must stay on the minimal core event permission snapshot");
-}
-
-if (errors.length > 0) {
-  for (const error of errors) {
-    console.error(`::error::${error}`);
+  const errors: string[] = [];
+  if (packageVersionMatches.length !== 1) {
+    errors.push(`package.json must contain exactly one version owner, found ${packageVersionMatches.length}`);
   }
-  process.exit(1);
+  if (tauriVersionMatches.length !== 1) {
+    errors.push(
+      `src-tauri/tauri.conf.json must contain exactly one version owner, found ${tauriVersionMatches.length}`,
+    );
+  }
+  if (cargoVersionOwners.sectionCount !== 1 || cargoVersionOwners.versions.length !== 1) {
+    errors.push(
+      `src-tauri/Cargo.toml must contain exactly one [package] section and version owner, found ${cargoVersionOwners.sectionCount} sections and ${cargoVersionOwners.versions.length} versions`,
+    );
+  }
+  const versionMatch = packageJson.version?.match(STABLE_VERSION_PATTERN);
+  if (!versionMatch) {
+    errors.push(`package.json version ${packageJson.version ?? "(missing)"} must be a stable X.Y.Z version`);
+  } else if (versionMatch.slice(1).some((component) => Number(component) > MSIX_VERSION_COMPONENT_MAX)) {
+    errors.push(`package.json version components must not exceed ${MSIX_VERSION_COMPONENT_MAX} for MSIX`);
+  }
+  if (releaseTag !== expectedTag) {
+    errors.push(`release tag ${releaseTag} does not match package.json version ${expectedTag}`);
+  }
+  if (tauriConfig.version !== packageJson.version) {
+    errors.push(
+      `src-tauri/tauri.conf.json version ${tauriConfig.version} does not match package.json version ${packageJson.version}`,
+    );
+  }
+  if (cargoVersion !== packageJson.version) {
+    errors.push(
+      `src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`,
+    );
+  }
+  if (cargoLockPackageMatches.length !== 1 || !cargoLockPackageMatches[0]) {
+    errors.push(
+      `src-tauri/Cargo.lock must contain exactly one ultra-rss-reader package entry, found ${cargoLockPackageMatches.length}`,
+    );
+  } else if (cargoLockPackageMatches[0] !== packageJson.version) {
+    errors.push(
+      `src-tauri/Cargo.lock ultra-rss-reader version ${cargoLockPackageMatches[0]} does not match package.json version ${packageJson.version}`,
+    );
+  }
+  if (msixIdentityMatches.length !== 1) {
+    errors.push(
+      `msix/Package.appxmanifest must contain exactly one Identity element, found ${msixIdentityMatches.length}`,
+    );
+  } else if (msixIdentityVersionMatches.length !== 1) {
+    errors.push(
+      `msix/Package.appxmanifest Identity must contain exactly one Version attribute, found ${msixIdentityVersionMatches.length}`,
+    );
+  } else if (msixManifestVersion !== `${packageJson.version}.0`) {
+    errors.push(
+      `msix/Package.appxmanifest Identity version ${msixManifestVersion ?? "(missing)"} does not match package.json version ${packageJson.version}.0`,
+    );
+  }
+  if (tauriReleaseConfig.identifier !== tauriConfig.identifier) {
+    errors.push(
+      `src-tauri/tauri.release.conf.json identifier ${tauriReleaseConfig.identifier} does not match src-tauri/tauri.conf.json identifier ${tauriConfig.identifier}`,
+    );
+  }
+  if (tauriConfig.bundle?.createUpdaterArtifacts !== false) {
+    errors.push("src-tauri/tauri.conf.json must keep updater artifacts disabled for dev builds");
+  }
+  if (tauriReleaseConfig.bundle?.createUpdaterArtifacts !== true) {
+    errors.push("src-tauri/tauri.release.conf.json must enable updater artifacts for release builds");
+  }
+  if (tauriReleaseConfig.identifier === tauriDevConfig.identifier) {
+    errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
+  }
+  if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
+    errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
+  }
+  if (updaterEndpoint !== RELEASE_UPDATER_ENDPOINT) {
+    errors.push(
+      `src-tauri/tauri.conf.json updater endpoint ${updaterEndpoint ?? "(missing)"} does not match the GitHub release latest.json endpoint`,
+    );
+  }
+  if (!updaterPubkey || UPDATER_PUBKEY_PLACEHOLDER_PATTERN.test(updaterPubkey)) {
+    errors.push("src-tauri/tauri.conf.json updater pubkey must be configured and must not be a placeholder");
+  }
+  if (!releaseWorkflow.includes(`--config ${RELEASE_TAURI_CONFIG_PATH}`)) {
+    errors.push("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
+  }
+  if (releaseWorkflow.includes(`--config ${DEV_TAURI_CONFIG_PATH}`)) {
+    errors.push("release workflow must not pass src-tauri/tauri.dev.conf.json to tauri-action");
+  }
+  if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
+    errors.push("release workflow must not set dev credential environment variables");
+  }
+  if (!Array.isArray(mainCapability?.permissions)) {
+    errors.push("src-tauri/capabilities/default.json must declare main release permissions explicitly");
+  } else if (
+    capabilities
+      .flatMap((capability) =>
+        (capability.permissions ?? []).flatMap((permission) => [permissionIdentifier(permission)]),
+      )
+      .some((permission) => permission.startsWith("mcp-bridge:"))
+  ) {
+    errors.push("release capability must not include debug-only MCP bridge permissions");
+  }
+  if (!browserWebviewCapability) {
+    errors.push("src-tauri/capabilities/default.json must declare a browser-webview capability");
+  } else if (
+    JSON.stringify(browserWebviewCapability.webviews) !== JSON.stringify(["browser-webview"]) ||
+    JSON.stringify(browserWebviewCapability.permissions?.map(permissionIdentifier)) !==
+      JSON.stringify(["core:event:default"])
+  ) {
+    errors.push("browser-webview capability must stay on the minimal core event permission snapshot");
+  }
+
+  return errors;
+};
+
+const isMainModule =
+  typeof process.argv[1] === "string" && fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
+
+if (isMainModule) {
+  const errors = validateReleaseConfig({ root: ".", releaseTag: process.env.RELEASE_TAG });
+  if (errors.length > 0) {
+    for (const error of errors) {
+      console.error(`::error::${error}`);
+    }
+    process.exit(1);
+  }
 }

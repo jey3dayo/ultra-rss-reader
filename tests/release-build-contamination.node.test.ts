@@ -141,23 +141,7 @@ describe("release dependency graph verification", () => {
     expect(errors).toEqual([expect.stringContaining("dependency resolution failed")]);
   });
 
-  it("makes the CLI exit nonzero when Cargo is unavailable", () => {
-    const result = spawnSync(process.execPath, [join(process.cwd(), "scripts/check-release-build-contamination.ts")], {
-      cwd: fixture(),
-      env: { ...process.env, PATH: "", Path: "" },
-      encoding: "utf8",
-      timeout: 10_000,
-    });
-    expect(result.error).toBeUndefined();
-    expect(result.status).toBe(1);
-    expect(result.stdout).toContain("Release source validation:");
-    expect(result.stdout).toContain("Release dependency graph validation:");
-    expect(result.stdout).not.toContain("Release build contamination contract passed");
-    expect(result.stderr).toContain("unable to verify the release dependency graph");
-    expect(result.stderr).toContain("ENOENT");
-  });
-
-  it("still runs the checks when the CLI is invoked through a symlinked path", () => {
+  it("makes the CLI exit nonzero when Cargo is unavailable, even when invoked through a symlinked path", () => {
     const linkRoot = mkdtempSync(join(tmpdir(), "release-contamination-link-"));
     try {
       symlinkSync(
@@ -173,7 +157,11 @@ describe("release dependency graph verification", () => {
       });
       expect(result.error).toBeUndefined();
       expect(result.status).toBe(1);
+      expect(result.stdout).toContain("Release source validation:");
       expect(result.stdout).toContain("Release dependency graph validation:");
+      expect(result.stdout).not.toContain("Release build contamination contract passed");
+      expect(result.stderr).toContain("unable to verify the release dependency graph");
+      expect(result.stderr).toContain("ENOENT");
     } finally {
       rmSync(linkRoot, { recursive: true, force: true });
     }

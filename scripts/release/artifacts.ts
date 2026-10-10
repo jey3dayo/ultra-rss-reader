@@ -1,7 +1,8 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseUpdaterChecksum } from "./updater-checksum.ts";
 
 type ReleaseAssetContract = {
@@ -13,10 +14,6 @@ type ReleaseAssetContract = {
   matrixPlatform: string;
   platformKey: string;
   signaturePattern: string;
-};
-
-type PackageJson = {
-  version?: string;
 };
 
 type GitHubReleaseAsset = {
@@ -96,12 +93,17 @@ const validateStaticAssetContract = (): void => {
   }
 };
 
-const requiredEnv = (key: string): string => {
-  const value = process.env[key];
-  return value || fail(`missing required environment variable ${key}`);
-};
+type Reject = (message: string) => never;
 
-const readList = (filePath: string): string[] => readFileSync(filePath, "utf8").trim().split("\n").filter(Boolean);
+const requiredEnv = (
+  key: string,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  reject: Reject = fail,
+): string => env[key] || reject(`missing required environment variable ${key}`);
+
+const parseList = (content: string): string[] => content.trim().split("\n").filter(Boolean);
+
+const readList = (filePath: string): string[] => parseList(readFileSync(filePath, "utf8"));
 
 const listFiles = (directory: string): string[] => {
   if (!existsSync(directory)) {
@@ -131,10 +133,13 @@ const currentContract = (): ReleaseAssetContract => {
   return contract ?? fail(`missing updater asset contract for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
 };
 
-const currentAssetPlatform = (label: string): string => {
-  const assetPlatform = RUNNER_TO_ASSET_PLATFORM[process.env.RUNNER_OS ?? ""];
-  return assetPlatform || fail(`missing ${label} platform for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
-};
+const currentAssetPlatform = (
+  label: string,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  reject: Reject = fail,
+): string =>
+  RUNNER_TO_ASSET_PLATFORM[env.RUNNER_OS ?? ""] ||
+  reject(`missing ${label} platform for runner ${env.RUNNER_OS ?? "(unknown)"}`);
 
 const bundleRoots = (contract: ReleaseAssetContract): string[] => {
   const targetTriple = contract.matrixArgs.startsWith("--target ")
@@ -261,73 +266,118 @@ const generateDependencyProvenance = (): void => {
   writeFileSync(DEPENDENCY_PROVENANCE_ASSETS_LIST, `${assets.map(([, destination]) => destination).join("\n")}\n`);
 };
 
-const git = (args: readonly string[]): string =>
+const defaultGit = (args: readonly string[]): string =>
   execFileSync("git", [...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 
-const generateReleaseProvenance = (): void => {
-  const matrixPlatform = RUNNER_TO_MATRIX_PLATFORM[process.env.RUNNER_OS ?? ""];
-  const assetPlatform = currentAssetPlatform("release provenance");
-  if (!matrixPlatform) {
-    fail(`missing release provenance matrix platform for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
-  }
+export class ReleaseProvenanceError extends Error {}
 
-  const checksumAssets = readList(CHECKSUM_ASSETS_LIST);
-  const dependencyAssets = readList(DEPENDENCY_PROVENANCE_ASSETS_LIST);
+const rejectProvenance = (message: string): never => {
+  throw new ReleaseProvenanceError(message);
+};
+
+type ReleaseProvenanceDependencies = {
+  env: Readonly<Record<string, string | undefined>>;
+  git: (args: readonly string[]) => string;
+  readFile: (filePath: string) => string;
+};
+
+const readPackageVersion = (packageJsonContent: string): string | undefined => {
+  const parsed: unknown = JSON.parse(packageJsonContent);
+  if (typeof parsed !== "object" || parsed === null || !("version" in parsed)) {
+    return undefined;
+  }
+  return typeof parsed.version === "string" ? parsed.version : undefined;
+};
+
+export const buildReleaseProvenanceRecord = ({ env, git, readFile }: ReleaseProvenanceDependencies) => {
+  const runnerOs = env.RUNNER_OS ?? "";
+  const matrixPlatform = RUNNER_TO_MATRIX_PLATFORM[runnerOs];
+  const assetPlatform = currentAssetPlatform("release provenance", env, rejectProvenance);
+  if (!matrixPlatform) {
+    rejectProvenance(`missing release provenance matrix platform for runner ${env.RUNNER_OS ?? "(unknown)"}`);
+  }
+  const requireEnv = (key: string): string => requiredEnv(key, env, rejectProvenance);
+
+  const checksumAssets = parseList(readFile(CHECKSUM_ASSETS_LIST));
+  const dependencyAssets = parseList(readFile(DEPENDENCY_PROVENANCE_ASSETS_LIST));
   if (checksumAssets.length !== 1) {
-    fail(`expected exactly one updater checksum asset, found ${checksumAssets.length}`);
+    rejectProvenance(`expected exactly one updater checksum asset, found ${checksumAssets.length}`);
   }
   if (dependencyAssets.length !== 2) {
-    fail(`expected exactly two dependency provenance assets, found ${dependencyAssets.length}`);
+    rejectProvenance(`expected exactly two dependency provenance assets, found ${dependencyAssets.length}`);
   }
 
   const checksumAsset = checksumAssets[0];
-  const checksumContent = readFileSync(checksumAsset, "utf8");
-  const parsedChecksum = parseUpdaterChecksum(checksumContent);
-  const checksum = parsedChecksum.ok ? parsedChecksum.value : fail(parsedChecksum.error);
+  const parsedChecksum = parseUpdaterChecksum(readFile(checksumAsset));
+  const checksum = parsedChecksum.ok ? parsedChecksum.value : rejectProvenance(parsedChecksum.error);
 
-  const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as PackageJson;
-  const releaseTag = requiredEnv("RELEASE_TAG");
+  const packageVersion = readPackageVersion(readFile("package.json"));
+  const releaseTag = requireEnv("RELEASE_TAG");
   const sourceSha = git(["rev-parse", "HEAD"]);
   const tagTargetSha = git(["rev-parse", `refs/tags/${releaseTag}^{}`]);
   const mergeCommitSubject = git(["log", "-1", "--format=%s", sourceSha]);
   const pullRequestNumber = mergeCommitSubject.match(/\(#(?<number>\d+)\)$/)?.groups?.number ?? null;
-  const workflowRunUrl = `${requiredEnv("GITHUB_SERVER_URL")}/${requiredEnv("GITHUB_REPOSITORY")}/actions/runs/${requiredEnv("GITHUB_RUN_ID")}`;
-  const record = {
-    artifact: {
-      checksumAssetName: path.basename(checksumAsset),
-      name: checksum.artifactName,
-      sha256: checksum.sha256,
-    },
-    dependencyProvenanceAssets: dependencyAssets.map((asset) => path.basename(asset)),
-    packageVersion: packageJson.version,
-    releaseTag,
-    runner: {
-      assetPlatform,
-      matrixPlatform,
-      os: process.env.RUNNER_OS,
-    },
-    pullRequest: {
-      mergeCommitSubject,
-      number: pullRequestNumber,
-    },
-    source: {
-      commitSha: sourceSha,
-      tagTargetSha,
-    },
-    workflow: {
-      eventName: process.env.GITHUB_EVENT_NAME,
-      ref: process.env.GITHUB_REF,
-      refName: process.env.GITHUB_REF_NAME,
-      runAttempt: process.env.GITHUB_RUN_ATTEMPT,
-      runId: process.env.GITHUB_RUN_ID,
-      runUrl: workflowRunUrl,
-      workflow: process.env.GITHUB_WORKFLOW,
+  const workflowRunUrl = `${requireEnv("GITHUB_SERVER_URL")}/${requireEnv("GITHUB_REPOSITORY")}/actions/runs/${requireEnv("GITHUB_RUN_ID")}`;
+  return {
+    assetPlatform,
+    record: {
+      artifact: {
+        checksumAssetName: path.basename(checksumAsset),
+        name: checksum.artifactName,
+        sha256: checksum.sha256,
+      },
+      dependencyProvenanceAssets: dependencyAssets.map((asset) => path.basename(asset)),
+      packageVersion,
+      releaseTag,
+      runner: {
+        assetPlatform,
+        matrixPlatform,
+        os: env.RUNNER_OS,
+      },
+      pullRequest: {
+        mergeCommitSubject,
+        number: pullRequestNumber,
+      },
+      source: {
+        commitSha: sourceSha,
+        tagTargetSha,
+      },
+      workflow: {
+        eventName: env.GITHUB_EVENT_NAME,
+        ref: env.GITHUB_REF,
+        refName: env.GITHUB_REF_NAME,
+        runAttempt: env.GITHUB_RUN_ATTEMPT,
+        runId: env.GITHUB_RUN_ID,
+        runUrl: workflowRunUrl,
+        workflow: env.GITHUB_WORKFLOW,
+      },
     },
   };
+};
+
+const buildReleaseProvenanceOrFail = (): ReturnType<typeof buildReleaseProvenanceRecord> => {
+  try {
+    return buildReleaseProvenanceRecord({
+      env: process.env,
+      git: defaultGit,
+      readFile: (filePath) => readFileSync(filePath, "utf8"),
+    });
+  } catch (error) {
+    if (error instanceof ReleaseProvenanceError) {
+      return fail(error.message);
+    }
+    throw error;
+  }
+};
+
+const generateReleaseProvenance = (): void => {
+  const built = buildReleaseProvenanceOrFail();
+  const { assetPlatform, record } = built;
   const recordPath = `${RELEASE_PROVENANCE_DIR}/release-provenance-${assetPlatform}.json`;
   writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`);
   writeFileSync(RELEASE_PROVENANCE_ASSETS_LIST, `${recordPath}\n`);
 
+  const { commitSha: sourceSha, tagTargetSha } = record.source;
   if (sourceSha !== tagTargetSha) {
     fail(`release provenance source ${sourceSha} does not match tag target ${tagTargetSha}`);
   }
@@ -446,36 +496,45 @@ const validateExistingReleaseAssets = (): void => {
   );
 };
 
-const command = process.argv[2];
-validateStaticAssetContract();
+const main = (): void => {
+  const command = process.argv[2];
+  validateStaticAssetContract();
 
-switch (command) {
-  case "validate-updater-assets":
-    validateUpdaterAssets();
-    break;
-  case "validate-macos-app-signature":
-    validateMacosAppSignature();
-    break;
-  case "generate-updater-checksums":
-    generateUpdaterChecksums();
-    break;
-  case "generate-dependency-provenance":
-    generateDependencyProvenance();
-    break;
-  case "generate-release-provenance":
-    generateReleaseProvenance();
-    break;
-  case "upload-updater-checksums":
-    uploadUpdaterChecksums();
-    break;
-  case "upload-release-provenance":
-    uploadReleaseProvenance();
-    break;
-  case "validate-existing-release-assets":
-    validateExistingReleaseAssets();
-    break;
-  default:
-    fail(
-      `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, validate-macos-app-signature, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, upload-release-provenance, or validate-existing-release-assets`,
-    );
+  switch (command) {
+    case "validate-updater-assets":
+      validateUpdaterAssets();
+      break;
+    case "validate-macos-app-signature":
+      validateMacosAppSignature();
+      break;
+    case "generate-updater-checksums":
+      generateUpdaterChecksums();
+      break;
+    case "generate-dependency-provenance":
+      generateDependencyProvenance();
+      break;
+    case "generate-release-provenance":
+      generateReleaseProvenance();
+      break;
+    case "upload-updater-checksums":
+      uploadUpdaterChecksums();
+      break;
+    case "upload-release-provenance":
+      uploadReleaseProvenance();
+      break;
+    case "validate-existing-release-assets":
+      validateExistingReleaseAssets();
+      break;
+    default:
+      fail(
+        `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, validate-macos-app-signature, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, upload-release-provenance, or validate-existing-release-assets`,
+      );
+  }
+};
+
+const isMainModule =
+  typeof process.argv[1] === "string" && fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
+
+if (isMainModule) {
+  main();
 }
