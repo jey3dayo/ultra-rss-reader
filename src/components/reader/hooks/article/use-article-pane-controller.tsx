@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleAutoMark } from "@/components/reader/hooks/article/use-article-auto-mark";
 import { useArticleBrowserOverlay } from "@/components/reader/hooks/article/use-article-browser-overlay";
-import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
+import { useArticleCommands } from "@/components/reader/hooks/article/use-article-commands";
+import { useArticlePaneShortcuts } from "@/components/reader/hooks/article/use-article-pane-shortcuts";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
 import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
@@ -60,15 +61,13 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     contentMode,
     feed,
   });
-  const actionStripProps = useArticleToolbarControls({
-    article,
-    isBrowserOpen,
-    onToggleBrowserOverlay: handleToggleBrowserOverlay,
-    keyboardShortcuts: {
-      onToggleBrowserOverlay: handleToggleBrowserOverlay,
-      onCloseBrowserOverlay: handleCloseBrowserOverlay,
-    },
+  const commands = useArticleCommands(article);
+  useArticlePaneShortcuts({
+    commands,
+    articleUrl: article.url,
+    overlay: { onToggle: handleToggleBrowserOverlay, onClose: handleCloseBrowserOverlay },
   });
+  const canCopyLink = Boolean(article.url);
   const setRead = useSetRead();
   const recordArticleView = useRecordArticleView();
   const isRecentSmartView = selection.type === "smart" && selection.kind === "recent";
@@ -127,13 +126,13 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
       onBrowserWebviewClosed: handleBrowserWebviewClosed,
       showBrowserView: isBrowserOpen,
     },
-    browserOverlayToolbarActions: actionStripProps.actionOptions.canCopyLink
+    browserOverlayToolbarActions: canCopyLink
       ? [
           {
             key: "copy-link",
-            label: actionStripProps.labels.copyLink,
-            onClick: actionStripProps.onCopyLink,
-            disabled: !actionStripProps.actionOptions.canCopyLink,
+            label: t("copy_link"),
+            onClick: commands.copyLink,
+            disabled: !canCopyLink,
             icon: <Copy aria-hidden="true" className="size-4" />,
           },
         ]

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -126,6 +127,39 @@ describe("ArticleContextMenu", () => {
     window.dispatchEvent(new Event(keyboardEvents.openExternalBrowser));
 
     expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(0);
+  });
+
+  it("row context menus do not handle toggleRead/toggleStar shortcuts", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "mark_article_read":
+        case "toggle_article_star":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <>
+        <ArticleContextMenu article={sampleArticles[0]}>
+          <button type="button">First article row</button>
+        </ArticleContextMenu>
+        <ArticleContextMenu article={sampleArticles[1]}>
+          <button type="button">Second article row</button>
+        </ArticleContextMenu>
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    window.dispatchEvent(new Event(keyboardEvents.toggleRead));
+    window.dispatchEvent(new Event(keyboardEvents.toggleStar));
+    await flushMicrotasksAndRealTimer();
+
+    expect(calls.filter(({ cmd }) => cmd === "mark_article_read" || cmd === "toggle_article_star")).toEqual([]);
   });
 
   it("copies the article URL from the context menu", async () => {
