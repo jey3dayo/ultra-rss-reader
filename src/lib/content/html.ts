@@ -275,14 +275,61 @@ function isSafeReaderContentLinkUrl(value: string): boolean {
   return url !== null && isSafeReaderContentUrl(url, ARTICLE_LINK_PROTOCOLS);
 }
 
+type SrcsetCandidate = { url: string; descriptors: string };
+
+// WHATWG "parse a srcset attribute": URLs may contain commas, and a comma
+// only ends a candidate when it trails the URL or sits outside parentheses.
+function parseSrcsetCandidates(value: string): SrcsetCandidate[] {
+  const candidates: SrcsetCandidate[] = [];
+  const isSeparator = (char: string | undefined) => char === "," || (char !== undefined && /\s/.test(char));
+  let position = 0;
+
+  while (position < value.length) {
+    while (position < value.length && isSeparator(value[position])) {
+      position += 1;
+    }
+    if (position >= value.length) {
+      break;
+    }
+
+    const urlStart = position;
+    while (position < value.length && !/\s/.test(value[position] ?? "")) {
+      position += 1;
+    }
+    let url = value.slice(urlStart, position);
+    let descriptors = "";
+
+    if (url.endsWith(",")) {
+      url = url.replace(/,+$/, "");
+    } else {
+      const descriptorStart = position;
+      let depth = 0;
+      while (position < value.length) {
+        const char = value[position];
+        if (char === "(") {
+          depth += 1;
+        } else if (char === ")") {
+          depth = Math.max(0, depth - 1);
+        } else if (char === "," && depth === 0) {
+          break;
+        }
+        position += 1;
+      }
+      descriptors = value.slice(descriptorStart, position).trim();
+    }
+
+    if (url) {
+      candidates.push({ url, descriptors });
+    }
+  }
+
+  return candidates;
+}
+
 function safeSrcsetCandidates(value: string): string {
-  return value
-    .split(",")
-    .map((candidate) => candidate.trim())
-    .filter((candidate) => {
-      const [url] = candidate.split(/\s+/, 1);
-      return normalizeReaderContentImageUrl(url) !== null;
-    })
+  return parseSrcsetCandidates(value)
+    .filter(({ url }) => normalizeReaderContentImageUrl(url) !== null)
+    .map(({ url, descriptors }) => (descriptors ? `${url} ${descriptors}` : url))
     .join(", ");
 }
 
