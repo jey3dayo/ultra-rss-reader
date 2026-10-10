@@ -15,7 +15,9 @@ pub use account_sync::run_full_sync;
 pub(crate) use account_sync::sync_account;
 #[cfg(test)]
 pub(crate) use account_sync::sync_feed;
-pub(crate) use failure_log::{log_sync_failure, log_sync_panic, SyncTrigger};
+pub(crate) use failure_log::{
+    log_background_sync_outcome, log_sync_failure, log_sync_panic, SyncTrigger,
+};
 
 #[cfg(not(test))]
 pub(crate) use manual::{

@@ -130,6 +130,41 @@ async fn sync_greader_account_skips_pull_state_when_recent_remote_state_sync_exi
 
 #[tokio::test]
 async fn sync_greader_account_guards_pushed_and_retrying_pending_state() {
+    use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_process};
+
+    let scenario = child_scenario();
+    if scenario.is_none() {
+        for (scenario, expected_kind) in [("retry-http", "retryable"), ("retry-html", "auth")] {
+            let lines = run_in_isolated_process(
+                module_path!(),
+                "sync_greader_account_guards_pushed_and_retrying_pending_state",
+                scenario,
+            );
+            if scenario == "retry-html" {
+                assert!(lines
+                    .iter()
+                    .any(|line| line == "endpoint=edit-tag status=200 reason=html-content-type"));
+            }
+            let events = lines
+                .iter()
+                .filter(|line| line.starts_with("event=pending-mutation-retry"))
+                .collect::<Vec<_>>();
+            assert_eq!(events.len(), 1);
+            assert_eq!(
+                events[0],
+                &format!("event=pending-mutation-retry provider=freshrss mutation_type=mark_read error_kind={expected_kind}")
+            );
+            for sentinel in [
+                "body-secret-sentinel",
+                "entry-retry",
+                "account-1",
+                "https://",
+            ] {
+                assert!(lines.iter().all(|line| !line.contains(sentinel)));
+            }
+        }
+        return;
+    }
     let mut server = mockito::Server::new_async().await;
     server
         .mock("POST", "/api/greader.php/accounts/ClientLogin")
@@ -184,6 +219,7 @@ async fn sync_greader_account_guards_pushed_and_retrying_pending_state() {
         .match_header("Authorization", "GoogleLogin auth=tok")
         .match_body("i=entry-pushed&a=user%2F-%2Fstate%2Fcom.google%2Fread")
         .with_status(200)
+        .with_header("content-type", "text/html")
         .with_body("OK")
         .create_async()
         .await;
@@ -191,8 +227,20 @@ async fn sync_greader_account_guards_pushed_and_retrying_pending_state() {
         .mock("POST", "/api/greader.php/reader/api/0/edit-tag")
         .match_header("Authorization", "GoogleLogin auth=tok")
         .match_body("i=entry-retry&a=user%2F-%2Fstate%2Fcom.google%2Fread")
-        .with_status(500)
-        .with_body("failed")
+        .with_status(if scenario.as_deref() == Some("retry-html") {
+            200
+        } else {
+            500
+        })
+        .with_header(
+            "content-type",
+            if scenario.as_deref() == Some("retry-html") {
+                "text/html"
+            } else {
+                "text/plain"
+            },
+        )
+        .with_body("body-secret-sentinel https://private.invalid/account-private")
         .create_async()
         .await;
 
