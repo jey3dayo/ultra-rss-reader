@@ -13,8 +13,8 @@ use crate::commands::dto::{
     SyncProgressKind,
 };
 use crate::commands::sync_commands::{
-    log_sync_failure, purge_old_articles, should_purge_old_articles_after_sync, sync_account,
-    SyncProgressReporter, SyncTrigger, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
+    log_sync_failure, log_sync_panic, purge_old_articles, should_purge_old_articles_after_sync,
+    sync_account, SyncProgressReporter, SyncTrigger, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
     SYNC_WARNING_EVENT,
 };
 use crate::domain::account::Account;
@@ -423,6 +423,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                         tracing::error!(
                             "Background sync panicked for account [redacted account], scheduler continues"
                         );
+                        log_sync_panic(SyncTrigger::Background, &account.kind);
                         reporter.emit_account_finished(account, false);
                         let panic_error = AppError::UserVisible {
                             message: "Background sync panicked".to_string(),

@@ -11,6 +11,7 @@ fn sync_and_feed_failure_lines_carry_only_fixed_fields() {
         ));
         log_sync_failure(SyncTrigger::StartupRepair, &ProviderKind::FreshRss, &error);
         log_local_feed_fetch_failure("public", &error);
+        log_sync_panic(SyncTrigger::Background, &ProviderKind::FreshRss);
         return;
     }
 
@@ -24,6 +25,7 @@ fn sync_and_feed_failure_lines_carry_only_fixed_fields() {
         [
             "event=sync-failed trigger=startup-repair provider=freshrss error_kind=keychain",
             "event=feed-fetch-failed provider=local host_class=public error_kind=keychain",
+            "event=sync-failed trigger=background provider=freshrss error_kind=panic",
         ]
     );
     assert!(lines.iter().all(|line| !line.contains("sentinel")));

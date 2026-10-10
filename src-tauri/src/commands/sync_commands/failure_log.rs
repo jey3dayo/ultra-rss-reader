@@ -27,19 +27,23 @@ impl SyncTrigger {
 fn sync_failure_diagnostic(
     trigger: SyncTrigger,
     provider: &ProviderKind,
-    error: &AppError,
+    error_kind: &str,
 ) -> String {
     format!(
         "event=sync-failed trigger={} provider={} error_kind={}",
         trigger.label(),
         provider.diagnostic_label(),
-        error.diagnostic_kind()
+        error_kind
     )
 }
 
 /// Release builds only keep `log` records, so this is the sole persisted trace of a failed sync.
 pub(crate) fn log_sync_failure(trigger: SyncTrigger, provider: &ProviderKind, error: &AppError) {
-    log::warn!(target: "sync", "{}", sync_failure_diagnostic(trigger, provider, error));
+    log::warn!(target: "sync", "{}", sync_failure_diagnostic(trigger, provider, error.diagnostic_kind()));
+}
+
+pub(crate) fn log_sync_panic(trigger: SyncTrigger, provider: &ProviderKind) {
+    log::warn!(target: "sync", "{}", sync_failure_diagnostic(trigger, provider, "panic"));
 }
 
 pub(crate) fn log_local_feed_fetch_failure(host_class: &str, error: &AppError) {
