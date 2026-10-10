@@ -186,10 +186,13 @@ pub(crate) async fn run_sync_for_accounts_with_progress(
         reporter,
         CredentialLookupMode::Background,
         SyncTrigger::Background,
+        |_| {},
     )
     .await
 }
 
+/// `finish` runs while the `syncing` guard is still held, so post-sync work
+/// such as purging cannot overlap database maintenance.
 pub(crate) async fn run_sync_for_accounts_with_mode(
     db: &Mutex<DbManager>,
     syncing: &AtomicBool,
@@ -197,6 +200,7 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     reporter: Option<SyncProgressReporter>,
     mode: CredentialLookupMode,
     trigger: SyncTrigger,
+    finish: impl FnOnce(&SyncResult),
 ) -> Result<SyncResult, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -213,7 +217,10 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     }
     let _guard = SyncGuard(syncing);
 
-    run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode, trigger).await
+    let result =
+        run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode, trigger).await?;
+    finish(&result);
+    Ok(result)
 }
 
 /// Runs the account-sync body assuming the `syncing` flag/[`SyncGuard`] is
@@ -381,6 +388,9 @@ pub(crate) struct StartupSyncAndRepairOutcome {
 /// remote-state apply. See
 /// `.claude/rules/remote-state-reconciliation.md`.
 ///
+/// `finish` runs once the outcome is complete and, when the guard was
+/// acquired, while it is still held.
+///
 /// `app_handle` is only required when `startup_sync_accounts` is non-empty
 /// (it feeds the `SyncProgressReporter`); callers driving a repair-only
 /// startup pass may omit it.
@@ -391,13 +401,14 @@ pub(crate) async fn run_startup_sync_and_repair(
     startup_sync_accounts: Vec<Account>,
     repair_only_accounts: Vec<Account>,
     local_startup_import_warnings: Vec<AccountSyncWarning>,
+    finish: impl FnOnce(&mut StartupSyncAndRepairOutcome),
 ) -> Result<StartupSyncAndRepairOutcome, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
     {
         tracing::info!("Sync already in progress, skipping startup sync");
-        return Ok(StartupSyncAndRepairOutcome {
+        let mut outcome = StartupSyncAndRepairOutcome {
             sync_result: SyncResult {
                 synced: false,
                 total: 0,
@@ -406,7 +417,9 @@ pub(crate) async fn run_startup_sync_and_repair(
                 warnings: local_startup_import_warnings,
             },
             repaired_account_ids: Vec::new(),
-        });
+        };
+        finish(&mut outcome);
+        return Ok(outcome);
     }
     let _guard = SyncGuard(syncing);
 
@@ -488,8 +501,10 @@ pub(crate) async fn run_startup_sync_and_repair(
     };
     sync_result.warnings.extend(local_startup_import_warnings);
 
-    Ok(StartupSyncAndRepairOutcome {
+    let mut outcome = StartupSyncAndRepairOutcome {
         sync_result,
         repaired_account_ids,
-    })
+    };
+    finish(&mut outcome);
+    Ok(outcome)
 }

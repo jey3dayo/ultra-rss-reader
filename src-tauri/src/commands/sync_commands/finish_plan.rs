@@ -46,17 +46,20 @@ pub(crate) struct FinishPlan {
     pub(crate) enable_automatic: bool,
 }
 
-// Mirrors each entry's historical decisions, including their differences.
+// Manual entries report completion only after a succeeded account; the other entries follow `synced`.
 pub(crate) fn plan_finish(input: &FinishInput, entry: SyncEntry) -> FinishPlan {
     let synced = input.synced;
     match entry {
-        SyncEntry::ManualAll => FinishPlan {
-            emit_warning: synced && input.has_warnings,
-            emit_completed: synced,
-            emit_succeeded: synced && input.completed_cleanly(),
-            purge: synced,
-            enable_automatic: synced,
-        },
+        SyncEntry::ManualAll => {
+            let reported = synced && input.succeeded > 0;
+            FinishPlan {
+                emit_warning: synced && input.has_warnings,
+                emit_completed: reported,
+                emit_succeeded: synced && input.completed_cleanly(),
+                purge: reported,
+                enable_automatic: reported,
+            }
+        }
         SyncEntry::ManualAccount | SyncEntry::ManualFeed => {
             let reported = synced && input.succeeded > 0;
             FinishPlan {
@@ -75,7 +78,7 @@ pub(crate) fn plan_finish(input: &FinishInput, entry: SyncEntry) -> FinishPlan {
             enable_automatic: false,
         },
         SyncEntry::Startup => FinishPlan {
-            emit_warning: false,
+            emit_warning: synced && input.has_warnings,
             emit_completed: synced,
             emit_succeeded: synced && input.completed_cleanly(),
             purge: synced,

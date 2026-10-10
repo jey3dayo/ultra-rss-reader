@@ -38,20 +38,17 @@ fn assert_cases(entry: SyncEntry, cases: &[(&str, FinishInput, FinishPlan)]) {
 }
 
 #[test]
-fn manual_all_plan_follows_synced_flag_not_account_results() {
+fn manual_all_plan_requires_a_successful_account_to_complete_purge_and_enable_automatic_sync() {
     assert_cases(
         SyncEntry::ManualAll,
         &[
             ("guard rejected", input(false, 0, false, false), NOTHING),
+            ("zero succeeded", input(true, 0, false, false), NOTHING),
+            ("all failed", input(true, 0, true, false), NOTHING),
             (
-                "zero succeeded still completes and purges",
-                input(true, 0, false, false),
-                plan(false, true, false, true, true),
-            ),
-            (
-                "all failed still completes and purges",
-                input(true, 0, true, false),
-                plan(false, true, false, true, true),
+                "all failed with warnings still warns",
+                input(true, 0, true, true),
+                plan(true, false, false, false, false),
             ),
             (
                 "partial success",
@@ -147,7 +144,7 @@ fn automatic_plan_purges_when_synced_and_never_enables_automatic_sync() {
 }
 
 #[test]
-fn startup_plan_never_emits_warning_even_when_result_has_warnings() {
+fn startup_plan_emits_warning_when_synced_and_result_has_warnings() {
     let with_targets = |case: FinishInput| FinishInput {
         has_startup_targets: true,
         ..case
@@ -168,7 +165,7 @@ fn startup_plan_never_emits_warning_even_when_result_has_warnings() {
             (
                 "succeeded with warnings",
                 with_targets(input(true, 2, false, true)),
-                plan(false, true, false, true, true),
+                plan(true, true, false, true, true),
             ),
             (
                 "partial success",

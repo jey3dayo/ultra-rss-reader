@@ -43,6 +43,7 @@ async fn run_startup_sync_and_repair_skips_repair_when_sync_already_in_progress(
         Vec::new(),
         vec![repair_only_account],
         warnings.clone(),
+        |_| {},
     )
     .await
     .expect("startup sync/repair helper should not error when guard is contended");
@@ -91,6 +92,7 @@ async fn run_startup_sync_and_repair_holds_guard_during_repair_and_releases_afte
         Vec::new(),
         vec![repair_only_account.clone()],
         Vec::new(),
+        |_| {},
     )
     .await
     .expect("repair-only startup pass should succeed");
@@ -134,10 +136,17 @@ async fn startup_repair_reports_missing_freshrss_server_url_as_failure() {
         test_sync_command_account("missing-server-url-repair", ProviderKind::FreshRss, false);
     account.server_url = None;
 
-    let outcome =
-        run_startup_sync_and_repair(&db, &syncing, None, Vec::new(), vec![account], Vec::new())
-            .await
-            .expect("missing server URL should be reported in the repair result");
+    let outcome = run_startup_sync_and_repair(
+        &db,
+        &syncing,
+        None,
+        Vec::new(),
+        vec![account],
+        Vec::new(),
+        |_| {},
+    )
+    .await
+    .expect("missing server URL should be reported in the repair result");
 
     assert!(outcome.repaired_account_ids.is_empty());
     assert_eq!(outcome.sync_result.failed.len(), 1);
@@ -363,6 +372,32 @@ fn startup_remote_state_repair_complete_allows_startup_freshrss_success_with_loc
         &[],
         &[],
         &sync_result,
+    ));
+}
+
+#[tokio::test]
+async fn startup_remote_state_repair_is_not_complete_when_the_sync_guard_was_contended() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let syncing = AtomicBool::new(true);
+    let startup_account = test_sync_command_account("startup-fresh", ProviderKind::FreshRss, true);
+
+    let outcome = run_startup_sync_and_repair(
+        &db,
+        &syncing,
+        None,
+        vec![startup_account.clone()],
+        Vec::new(),
+        Vec::new(),
+        |_| {},
+    )
+    .await
+    .unwrap();
+
+    assert!(!startup_remote_state_repair_succeeded(
+        &[startup_account],
+        &[],
+        &outcome.repaired_account_ids,
+        &outcome.sync_result,
     ));
 }
 

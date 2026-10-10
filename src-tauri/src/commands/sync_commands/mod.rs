@@ -52,7 +52,7 @@ use crate::repository::sync_state::SyncStateScopeKey;
 #[cfg(test)]
 use account_sync::{
     run_local_account_startup_import_supplement, run_startup_sync_and_repair,
-    run_sync_for_accounts_with_progress,
+    run_sync_for_accounts_with_mode, run_sync_for_accounts_with_progress,
 };
 pub use manual::{get_account_sync_status, trigger_sync, trigger_sync_account, trigger_sync_feed};
 #[cfg(test)]
