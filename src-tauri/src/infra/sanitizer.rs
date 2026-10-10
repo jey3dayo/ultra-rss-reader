@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::domain::url_policy;
 
-pub const SANITIZER_VERSION: u32 = 4;
+pub const SANITIZER_VERSION: u32 = 5;
 const SANITIZER_ADDED_TAGS: &[&str] = &[
     "img",
     "picture",
@@ -98,31 +98,44 @@ fn filter_srcset(srcset: &str) -> Option<String> {
 }
 
 fn srcset_candidates(srcset: &str) -> impl Iterator<Item = &str> {
-    let mut candidate_start = 0;
-    let mut has_descriptor = false;
-    let mut has_url = false;
     let mut candidates = Vec::new();
+    let mut rest = srcset;
 
-    for (index, character) in srcset.char_indices() {
-        if character.is_ascii_whitespace() {
-            if has_url {
-                has_descriptor = true;
+    loop {
+        rest = rest.trim_start_matches(|character: char| {
+            character.is_ascii_whitespace() || character == ','
+        });
+        if rest.is_empty() {
+            break;
+        }
+
+        let url_end = rest
+            .find(|character: char| character.is_ascii_whitespace())
+            .unwrap_or(rest.len());
+        let url = rest[..url_end].trim_end_matches(',');
+        if url.len() != url_end {
+            candidates.push(url);
+            rest = &rest[url_end..];
+            continue;
+        }
+
+        let mut in_parens = false;
+        let mut candidate_end = rest.len();
+        for (offset, character) in rest[url_end..].char_indices() {
+            match character {
+                ')' if in_parens => in_parens = false,
+                '(' => in_parens = true,
+                ',' if !in_parens => {
+                    candidate_end = url_end + offset;
+                    break;
+                }
+                _ => {}
             }
-            continue;
         }
-
-        if character == ',' && has_descriptor {
-            candidates.push(&srcset[candidate_start..index]);
-            candidate_start = index + character.len_utf8();
-            has_descriptor = false;
-            has_url = false;
-            continue;
-        }
-
-        has_url = true;
+        candidates.push(&rest[..candidate_end]);
+        rest = &rest[candidate_end..];
     }
 
-    candidates.push(&srcset[candidate_start..]);
     candidates.into_iter()
 }
 

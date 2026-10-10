@@ -246,3 +246,29 @@ fn from_result_maps_sync_result_fields() {
     assert!(mapped.has_failures);
     assert!(!mapped.has_warnings);
 }
+
+#[test]
+fn manual_all_sync_result_with_warnings_emits_warning_instead_of_succeeded() {
+    let result = SyncResult {
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: Vec::new(),
+        warnings: vec![AccountSyncWarning {
+            account_id: "acc-1".to_string(),
+            account_name: "FreshRSS".to_string(),
+            kind: AccountSyncWarningKind::Generic,
+            message: "retry pending".to_string(),
+            retry_at: None,
+            retry_in_seconds: None,
+            detail: AccountSyncWarningDetail::PendingMutationRetry {
+                mutation: "mark_read".to_string(),
+            },
+        }],
+    };
+
+    let planned = plan_finish(&FinishInput::from_result(&result), SyncEntry::ManualAll);
+
+    assert!(planned.emit_warning);
+    assert!(!planned.emit_succeeded);
+}
