@@ -59,11 +59,11 @@
     ]
   },
   "dependencies": {
-    "@base-ui/react": "^1.8.0",
+    "@base-ui/react": "^1.9.0",
     "@praha/byethrow": "^0.12.0",
-    "@sentry/react": "^11.5.0",
+    "@sentry/react": "^11.6.0",
     "@tanstack/react-query": "^5.104.1",
-    "@tauri-apps/api": "^2.12.1",
+    "@tauri-apps/api": "^2.12.2",
     "@tauri-apps/plugin-dialog": "^2.8.1",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
@@ -71,7 +71,7 @@
     "date-fns": "^4.4.0",
     "i18next": "^26.4.2",
     "i18next-browser-languagedetector": "^8.2.1",
-    "lucide-react": "^1.52.0",
+    "lucide-react": "^1.54.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.16",
@@ -97,8 +97,8 @@
     "@vitejs/plugin-react": "^6.1.2",
     "agentation": "^3.1.2",
     "jsdom": "^30.1.2",
-    "knip": "6.40.0",
-    "lefthook": "2.2.0",
+    "knip": "6.41.0",
+    "lefthook": "2.2.1",
     "markdownlint-cli2": "^0.23.3",
     "portless": "^0.15.7",
     "react-doctor": "0.9.17",
@@ -106,8 +106,8 @@
     "storybook": "^10.6.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.3.3",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3",
-    "wrangler": "4.148.0"
+    "wrangler": "4.149.0"
   }
 }
