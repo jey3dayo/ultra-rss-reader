@@ -7,7 +7,7 @@ use thiserror::Error;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::validate_user_provided_server_url;
 
-const SERVICE: &str = "ultra-rss-reader-cloudflare-access";
+pub(super) const SERVICE: &str = "ultra-rss-reader-cloudflare-access";
 pub(crate) const CLIENT_ID_HEADER: &str = "cf-access-client-id";
 pub(crate) const CLIENT_SECRET_HEADER: &str = "cf-access-client-secret";
 
@@ -182,12 +182,9 @@ pub(crate) fn load_for_sync_with_mode(
     }
     #[cfg(target_os = "macos")]
     {
-        let raw = super::macos_security_cli::get_credential_from_security_cli(
-            SERVICE,
-            account_id,
-            mode.timeout(),
-        )
-        .map_err(|_| AccessStoreError::Unavailable)?;
+        let raw =
+            super::macos_security_cli::get_credential_from_security_cli(SERVICE, account_id, mode)
+                .map_err(|_| AccessStoreError::Unavailable)?;
         raw.map(|raw| decode_bundle(&raw)).transpose()
     }
     #[cfg(not(target_os = "macos"))]
