@@ -145,7 +145,9 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
         Self::entry(account_id, KeyringOp::Save)?
             .set_password(&value)
             .map_err(|error| unavailable(KeyringOp::Save, &error))?;
-        verify_saved_access(self, account_id, Some(access))
+        verify_saved_access(self, account_id, Some(access))?;
+        #[cfg(target_os = "macos")]
+        invalidate_leases(account_id)
     }
 
     fn remove(&self, account_id: &str) -> Result<(), AccessStoreError> {
@@ -155,7 +157,9 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
             Ok(()) | Err(keyring::Error::NoEntry) => {}
             Err(error) => return Err(unavailable(KeyringOp::Remove, &error)),
         }
-        verify_saved_access(self, account_id, None)
+        verify_saved_access(self, account_id, None)?;
+        #[cfg(target_os = "macos")]
+        invalidate_leases(account_id)
     }
     fn snapshot(&self, account_id: &str) -> Result<AccessSnapshot, AccessStoreError> {
         Ok(match self.raw(account_id)? {
@@ -178,6 +182,8 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
                     .set_password(raw)
                     .map_err(|error| unavailable(KeyringOp::Restore, &error))?;
                 if self.raw(account_id)?.as_ref() == Some(raw) {
+                    #[cfg(target_os = "macos")]
+                    invalidate_leases(account_id)?;
                     Ok(())
                 } else {
                     log_verification_mismatch();
@@ -186,6 +192,13 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
             }
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+fn invalidate_leases(account_id: &str) -> Result<(), AccessStoreError> {
+    super::session_cache::invalidate(account_id)
+        .map(|_| ())
+        .map_err(|_| AccessStoreError::Unavailable)
 }
 
 pub(crate) fn load_for_sync(

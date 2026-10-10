@@ -28,6 +28,8 @@ pub(crate) use diagnostics::CredentialKind;
 #[cfg(not(target_os = "macos"))]
 const CALLER_READ_TIMEOUT: Duration = Duration::from_secs(10);
 
+pub(crate) const NEEDS_AUTH: &str = "Credential access needs attention. Open account settings and choose Save and test connection to allow access for this app session (up to 8 hours). Automatic sync will not open Keychain dialogs.";
+
 pub(super) const SERVICE: &str = "ultra-rss-reader";
 pub(super) const DEV_CREDENTIALS_RECOVERY_HINT: &str =
     "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent temporary/lock files, then restart the application.";
@@ -242,9 +244,23 @@ fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainRes
     verify_saved_password_with_reader(account_id, expected_password, get_password)
 }
 
+/// True when credentials live in the dev file store instead of the OS Keychain.
+#[cfg(target_os = "macos")]
+pub(crate) fn uses_dev_credential_store() -> bool {
+    dev_credentials_path().is_some()
+}
+
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
     #[cfg(target_os = "macos")]
     session_cache::invalidate(account_id)?;
+    write_password(account_id, password)?;
+    // A connection test started before the write must not leave a lease holding the old secret.
+    #[cfg(target_os = "macos")]
+    session_cache::invalidate(account_id)?;
+    Ok(())
+}
+
+fn write_password(account_id: &str, password: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
         validate_dev_credential_account_id(account_id)?;
         with_dev_store_lock(&path, || {
@@ -336,6 +352,13 @@ pub(crate) fn get_password_for_sync_with_mode(
 pub fn delete_password(account_id: &str) -> DomainResult<()> {
     #[cfg(target_os = "macos")]
     session_cache::invalidate(account_id)?;
+    remove_password(account_id)?;
+    #[cfg(target_os = "macos")]
+    session_cache::invalidate(account_id)?;
+    Ok(())
+}
+
+fn remove_password(account_id: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
         return with_dev_store_lock(&path, || delete_dev_password_at_path(&path, account_id));
     }

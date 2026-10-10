@@ -10,6 +10,7 @@ use crate::domain::error::{DomainError, DomainResult, PROVIDER_RETRY_AFTER_MAX_S
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
+use crate::infra::keyring_store::NEEDS_AUTH;
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
 
 use super::scheduling::account_interval;
@@ -131,45 +132,15 @@ pub(super) fn complete_failed_account_sync(
     };
     let backoff = calculate_backoff(account, backoff_state.error_count)
         .max(Duration::from_secs(backoff_state.retry_in_seconds));
-    #[cfg(target_os = "macos")]
-    if error
-        .to_string()
-        .contains(crate::infra::keyring_store::session_cache::NEEDS_AUTH)
-    {
-        push_scheduler_warning(
-            warnings_to_emit,
-            AccountSyncWarning {
-                account_id: account.id.as_ref().to_string(),
-                account_name: account.name.clone(),
-                kind: AccountSyncWarningKind::Generic,
-                message: error.to_string(),
-                retry_at: None,
-                retry_in_seconds: None,
-                detail: AccountSyncWarningDetail::CredentialAccessRequired {
-                    account_name: account.name.clone(),
-                },
-            },
-        );
-        return backoff;
-    }
-    if backoff_state.retry_warning_changed {
-        push_scheduler_warning(
-            warnings_to_emit,
-            AccountSyncWarning {
-                account_id: account.id.as_ref().to_string(),
-                account_name: account.name.clone(),
-                kind: AccountSyncWarningKind::RetryScheduled,
-                message: format!(
-                    "Background sync failed and will retry automatically for '{}'.",
-                    account.name
-                ),
-                retry_at: backoff_state.next_retry_at.clone(),
-                retry_in_seconds: Some(backoff_state.retry_in_seconds),
-                detail: AccountSyncWarningDetail::BackgroundSyncRetryScheduled {
-                    account_name: account.name.clone(),
-                },
-            },
-        );
+    match failure_notice(account, error, &backoff_state, cfg!(target_os = "macos")) {
+        FailureNotice::CredentialAccessRequired(warning) => {
+            push_scheduler_warning(warnings_to_emit, warning);
+            return backoff;
+        }
+        FailureNotice::RetryScheduled(warning) => {
+            push_scheduler_warning(warnings_to_emit, warning);
+        }
+        FailureNotice::Quiet => {}
     }
     tracing::info!(
         account_id = %account.id.as_ref(),
@@ -178,6 +149,54 @@ pub(super) fn complete_failed_account_sync(
         "Background sync backoff scheduled"
     );
     backoff
+}
+
+enum FailureNotice {
+    CredentialAccessRequired(AccountSyncWarning),
+    RetryScheduled(AccountSyncWarning),
+    Quiet,
+}
+
+fn is_credential_access_required(message: &str) -> bool {
+    message.contains(NEEDS_AUTH)
+}
+
+fn failure_notice(
+    account: &Account,
+    error: &AppError,
+    backoff_state: &RetryBackoffState,
+    credential_gate_enabled: bool,
+) -> FailureNotice {
+    if credential_gate_enabled && is_credential_access_required(&error.to_string()) {
+        return FailureNotice::CredentialAccessRequired(AccountSyncWarning {
+            account_id: account.id.as_ref().to_string(),
+            account_name: account.name.clone(),
+            kind: AccountSyncWarningKind::Generic,
+            message: error.to_string(),
+            retry_at: None,
+            retry_in_seconds: None,
+            detail: AccountSyncWarningDetail::CredentialAccessRequired {
+                account_name: account.name.clone(),
+            },
+        });
+    }
+    if !backoff_state.retry_warning_changed {
+        return FailureNotice::Quiet;
+    }
+    FailureNotice::RetryScheduled(AccountSyncWarning {
+        account_id: account.id.as_ref().to_string(),
+        account_name: account.name.clone(),
+        kind: AccountSyncWarningKind::RetryScheduled,
+        message: format!(
+            "Background sync failed and will retry automatically for '{}'.",
+            account.name
+        ),
+        retry_at: backoff_state.next_retry_at.clone(),
+        retry_in_seconds: Some(backoff_state.retry_in_seconds),
+        detail: AccountSyncWarningDetail::BackgroundSyncRetryScheduled {
+            account_name: account.name.clone(),
+        },
+    })
 }
 
 pub(super) fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
@@ -355,27 +374,132 @@ pub(super) fn retry_after_seconds_from_app_error(error: &AppError) -> Option<u64
     }
 }
 
+#[cfg(any(target_os = "macos", test))]
+fn credential_access_pending(has_lease: bool, last_error: Option<&str>) -> bool {
+    !has_lease && last_error.is_some_and(is_credential_access_required)
+}
+
 /// Once authorization is required, only an explicit connection can resume macOS scheduling.
 pub(super) fn waiting_for_credential_access(db: &Mutex<DbManager>, account: &Account) -> bool {
     #[cfg(target_os = "macos")]
     {
-        use crate::infra::keyring_store::session_cache;
-        if session_cache::get(account).is_ok() {
-            return false;
-        }
+        let has_lease = crate::infra::keyring_store::session_cache::has_lease(account.id.as_ref());
         let Ok(db) = db.lock() else {
             return false;
         };
         let repo = SqliteSyncStateRepository::new(db.reader());
-        repo.get(&account.id, SyncStateScopeKey::scheduler())
+        let last_error = repo
+            .get(&account.id, SyncStateScopeKey::scheduler())
             .ok()
             .flatten()
-            .and_then(|state| state.last_error)
-            .is_some_and(|error| error.contains(session_cache::NEEDS_AUTH))
+            .and_then(|state| state.last_error);
+        credential_access_pending(has_lease, last_error.as_deref())
     }
     #[cfg(not(target_os = "macos"))]
     {
         let _ = (db, account);
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::account::ConnectionVerificationStatus;
+    use crate::domain::provider::ProviderKind;
+
+    fn account() -> Account {
+        Account {
+            id: AccountId("credential-gate".to_string()),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 60,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        }
+    }
+
+    fn backoff_state(retry_warning_changed: bool) -> RetryBackoffState {
+        RetryBackoffState {
+            error_count: 1,
+            next_retry_at: None,
+            retry_in_seconds: 120,
+            retry_warning_changed,
+        }
+    }
+
+    // The error crosses the command boundary as text; this pins the marker the scheduler matches.
+    fn needs_auth_error() -> AppError {
+        crate::infra::keyring_store::session_cache::needs_auth().into()
+    }
+
+    #[test]
+    fn needs_auth_marker_survives_the_app_error_conversion() {
+        assert!(is_credential_access_required(
+            &needs_auth_error().to_string()
+        ));
+        assert!(!is_credential_access_required(
+            "Auth error: HTTP 401 Unauthorized"
+        ));
+    }
+
+    #[test]
+    fn needs_auth_failure_requests_credential_access_instead_of_scheduling_retry() {
+        for retry_warning_changed in [true, false] {
+            let notice = failure_notice(
+                &account(),
+                &needs_auth_error(),
+                &backoff_state(retry_warning_changed),
+                true,
+            );
+            assert!(matches!(
+                notice,
+                FailureNotice::CredentialAccessRequired(AccountSyncWarning {
+                    detail: AccountSyncWarningDetail::CredentialAccessRequired { .. },
+                    retry_at: None,
+                    retry_in_seconds: None,
+                    ..
+                })
+            ));
+        }
+    }
+
+    #[test]
+    fn needs_auth_failure_keeps_retry_warning_when_the_credential_gate_is_disabled() {
+        let notice = failure_notice(&account(), &needs_auth_error(), &backoff_state(true), false);
+        assert!(matches!(notice, FailureNotice::RetryScheduled(_)));
+    }
+
+    #[test]
+    fn other_failures_schedule_a_retry_only_when_the_warning_changed() {
+        let error = AppError::UserVisible {
+            message: "Auth error: HTTP 401 Unauthorized".to_string(),
+        };
+        assert!(matches!(
+            failure_notice(&account(), &error, &backoff_state(true), true),
+            FailureNotice::RetryScheduled(_)
+        ));
+        assert!(matches!(
+            failure_notice(&account(), &error, &backoff_state(false), true),
+            FailureNotice::Quiet
+        ));
+    }
+
+    #[test]
+    fn waiting_for_credential_access_ends_once_a_lease_exists() {
+        let last_error = needs_auth_error().to_string();
+        assert!(credential_access_pending(false, Some(&last_error)));
+        assert!(!credential_access_pending(true, Some(&last_error)));
+        assert!(!credential_access_pending(false, None));
+        assert!(!credential_access_pending(
+            false,
+            Some("Auth error: HTTP 401 Unauthorized")
+        ));
     }
 }

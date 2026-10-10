@@ -944,7 +944,7 @@ describe("AccountDetail", () => {
           case "list_accounts":
             return [account];
           case "get_account_cloudflare_access":
-            return { client_id: "dummy-id" };
+            return { status: "loaded", client_id: "dummy-id" };
           case "update_account_credentials":
             account = {
               ...account,

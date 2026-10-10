@@ -11,9 +11,9 @@ use crate::repository::account::AccountRepository;
 
 mod access_credentials;
 mod credentials;
-#[cfg(not(target_os = "macos"))]
-use access_credentials::access_metadata;
-use access_credentials::{persist_account_credentials, OsAccountCredentialStore};
+use access_credentials::{
+    persist_account_credentials, settings_access_metadata, OsAccountCredentialStore,
+};
 pub use access_credentials::{CloudflareAccessArg, CloudflareAccessMetadata};
 mod validation;
 
@@ -115,12 +115,7 @@ pub fn get_account_cloudflare_access(
                 message: "Account not found".into(),
             })?
     };
-    #[cfg(target_os = "macos")]
-    {
-        access_credentials::cached_access_metadata(&account)
-    }
-    #[cfg(not(target_os = "macos"))]
-    access_metadata(&account, &OsAccountCredentialStore)
+    settings_access_metadata(&account, &OsAccountCredentialStore)
 }
 
 #[tauri::command]
@@ -248,7 +243,9 @@ pub async fn test_account_connection(
     let repo = SqliteAccountRepository::new(db.writer());
     #[cfg(target_os = "macos")]
     if verification.is_err() {
-        let _ = crate::infra::keyring_store::session_cache::invalidate(id.as_ref());
+        if let Err(error) = crate::infra::keyring_store::session_cache::invalidate(id.as_ref()) {
+            tracing::warn!(%error, "Session credential lease could not be cleared after a failed connection test");
+        }
     }
     persist_connection_verification_result(&repo, &id, verification)?;
     let updated = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {

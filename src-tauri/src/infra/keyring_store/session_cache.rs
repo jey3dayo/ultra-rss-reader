@@ -7,12 +7,12 @@ use std::time::{Duration, Instant};
 use zeroize::Zeroizing;
 
 use super::cloudflare_access::CloudflareAccess;
+pub(crate) use super::NEEDS_AUTH;
 use crate::domain::account::Account;
 use crate::domain::error::{DomainError, DomainResult};
 
 const MAX_ACCOUNTS: usize = 16;
 const LEASE: Duration = Duration::from_secs(8 * 60 * 60);
-pub(crate) const NEEDS_AUTH: &str = "Credential access needs attention. Open account settings and choose Save and test connection to allow access for this app session (up to 8 hours). Automatic sync will not open Keychain dialogs.";
 
 #[derive(Clone)]
 pub(crate) struct SessionCredentials {
@@ -21,6 +21,7 @@ pub(crate) struct SessionCredentials {
 }
 
 struct Lease {
+    generation: u64,
     server_url: Option<String>,
     username: Option<String>,
     expires: Instant,
@@ -54,13 +55,34 @@ impl SessionCache {
     }
 
     fn get(&mut self, account: &Account, now: Instant) -> Option<SessionCredentials> {
+        self.get_leased(account, now)
+            .map(|(credentials, _)| credentials)
+    }
+
+    // A mismatch only refuses this caller: its account snapshot may be older than a newer lease.
+    fn get_leased(&mut self, account: &Account, now: Instant) -> Option<(SessionCredentials, u64)> {
         self.leases.retain(|_, lease| lease.expires > now);
         let lease = self.leases.get(account.id.as_ref())?;
         if lease.server_url != account.server_url || lease.username != account.username {
-            self.invalidate(account.id.as_ref());
             return None;
         }
-        Some(lease.credentials.clone())
+        Some((lease.credentials.clone(), lease.generation))
+    }
+
+    fn has_lease(&mut self, id: &str, now: Instant) -> bool {
+        self.leases.retain(|_, lease| lease.expires > now);
+        self.leases.contains_key(id)
+    }
+
+    fn invalidate_if_generation(&mut self, id: &str, generation: u64) -> bool {
+        let current = self
+            .leases
+            .get(id)
+            .is_some_and(|lease| lease.generation == generation);
+        if current {
+            self.invalidate(id);
+        }
+        current
     }
 
     fn grant(
@@ -94,6 +116,7 @@ impl SessionCache {
         self.leases.insert(
             account.id.as_ref().to_string(),
             Lease {
+                generation,
                 server_url: account.server_url.clone(),
                 username: account.username.clone(),
                 expires: now + LEASE,
@@ -122,6 +145,29 @@ pub(crate) fn get(account: &Account) -> DomainResult<SessionCredentials> {
         .map_err(|_| needs_auth())?
         .get(account, Instant::now())
         .ok_or_else(needs_auth)
+}
+
+/// Returns the credentials with the generation of the lease that produced them.
+pub(crate) fn get_leased(account: &Account) -> DomainResult<(SessionCredentials, u64)> {
+    CACHE
+        .lock()
+        .map_err(|_| needs_auth())?
+        .get_leased(account, Instant::now())
+        .ok_or_else(needs_auth)
+}
+
+pub(crate) fn has_lease(id: &str) -> bool {
+    CACHE
+        .lock()
+        .is_ok_and(|mut cache| cache.has_lease(id, Instant::now()))
+}
+
+/// Drops the lease only if it is still the one read at `generation`.
+pub(crate) fn invalidate_if_generation(id: &str, generation: u64) -> DomainResult<bool> {
+    CACHE
+        .lock()
+        .map_err(|_| needs_auth())
+        .map(|mut cache| cache.invalidate_if_generation(id, generation))
 }
 
 pub(crate) fn grant(

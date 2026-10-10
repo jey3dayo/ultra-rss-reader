@@ -38,7 +38,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     setTauriRuntimeMissing();
     copyToClipboardMock.mockReset();
     getAccountCloudflareAccessMock.mockReset();
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: null }));
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ status: "loaded", client_id: null }));
     testAccountConnectionMock.mockReset();
     updateAccountCredentialsMock.mockReset();
     testAccountConnectionMock.mockImplementation((accountId: string) =>
@@ -60,16 +60,16 @@ describe("useAccountDetailCredentialsEditor", () => {
     resetTauriRuntimeFlags();
   });
 
-  it("waits for an explicit connection after locked metadata and does not retry a denial", async () => {
+  it("waits for an explicit connection after an authorization-required lease and does not retry a denial", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
     const denied = { type: "UserVisible" as const, message: "Credential access needs attention" };
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.fail(denied));
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ status: "authorization_required" }));
     testAccountConnectionMock.mockResolvedValueOnce(Result.fail(denied));
     const { result } = renderHook(() =>
       useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
     );
-    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("error"));
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("authorization_required"));
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
     expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
     await act(async () => {
@@ -77,7 +77,9 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
     expect(getAccountCloudflareAccessMock).toHaveBeenCalledTimes(1);
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "dummy-restored-id" }));
+    getAccountCloudflareAccessMock.mockResolvedValue(
+      Result.succeed({ status: "loaded", client_id: "dummy-restored-id" }),
+    );
     await act(async () => {
       await result.current.handleTestConnection();
     });
@@ -85,6 +87,35 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.cloudflareAccessClientId).toBe("dummy-restored-id");
     expect(result.current.cloudflareAccessSecret).toBe("");
     expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps origin changes available and sends no Access operation while authorization is required", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ status: "authorization_required" }));
+    updateAccountCredentialsMock.mockResolvedValue(
+      Result.succeed({ ...account, server_url: "https://different.example.com" }),
+    );
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("authorization_required"));
+
+    act(() => {
+      result.current.setCredServerUrl("https://different.example.com");
+    });
+    await act(async () => {
+      await result.current.commitCredentials();
+    });
+    expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
+      account.id,
+      "https://different.example.com",
+      account.username,
+      undefined,
+    );
+    expect(useUiStore.getState().toastMessage?.message).not.toBe(
+      t("account.cloudflare_access_metadata_required_for_origin_change"),
+    );
   });
 
   it("focuses and selects the first available credential input", () => {
@@ -183,7 +214,9 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("loads only the saved Access Client ID and keeps a blank Secret unchanged", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "saved-client-id" }));
+    getAccountCloudflareAccessMock.mockResolvedValue(
+      Result.succeed({ status: "loaded", client_id: "saved-client-id" }),
+    );
     updateAccountCredentialsMock.mockResolvedValue(Result.succeed({ ...account, username: "reader" }));
 
     const { result } = renderHook(() =>
@@ -213,7 +246,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     async (field) => {
       setTauriRuntimePresent();
       const account = sampleAccounts[1];
-      const metadata = createDeferred<Result.Result<{ client_id: string }, never>>();
+      const metadata = createDeferred<Result.Result<{ status: "loaded"; client_id: string }, never>>();
       getAccountCloudflareAccessMock.mockReturnValue(metadata.promise);
       updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
       const { result } = renderHook(() =>
@@ -225,7 +258,7 @@ describe("useAccountDetailCredentialsEditor", () => {
         if (field === "password") result.current.setCredPassword("dummy-password");
         if (field === "server URL") result.current.setCredServerUrl(`${account.server_url}/changed-path`);
       });
-      await act(async () => metadata.resolve(Result.succeed({ client_id: "saved-dummy-id" })));
+      await act(async () => metadata.resolve(Result.succeed({ status: "loaded", client_id: "saved-dummy-id" })));
       await act(async () => {
         await result.current.commitCredentials();
       });
@@ -244,14 +277,14 @@ describe("useAccountDetailCredentialsEditor", () => {
 
   it("does not remove Access after password focus while metadata is pending", async () => {
     setTauriRuntimePresent();
-    const metadata = createDeferred<Result.Result<{ client_id: string }, never>>();
+    const metadata = createDeferred<Result.Result<{ status: "loaded"; client_id: string }, never>>();
     getAccountCloudflareAccessMock.mockReturnValue(metadata.promise);
     updateAccountCredentialsMock.mockResolvedValue(Result.succeed(sampleAccounts[1]));
     const { result } = renderHook(() =>
       useAccountDetailCredentialsEditor({ account: sampleAccounts[1], queryClient: createTestQueryClient(), t }),
     );
     act(() => result.current.onPasswordFocus());
-    await act(async () => metadata.resolve(Result.succeed({ client_id: "saved-dummy-id" })));
+    await act(async () => metadata.resolve(Result.succeed({ status: "loaded", client_id: "saved-dummy-id" })));
     await act(async () => {
       await result.current.commitCredentials();
     });
@@ -279,7 +312,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("preserves explicit Access replacement edits made before metadata resolves", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
-    const metadata = createDeferred<Result.Result<{ client_id: string }, never>>();
+    const metadata = createDeferred<Result.Result<{ status: "loaded"; client_id: string }, never>>();
     getAccountCloudflareAccessMock.mockReturnValue(metadata.promise);
     updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
     const { result } = renderHook(() =>
@@ -290,7 +323,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       result.current.setCloudflareAccessClientId("new-dummy-id");
       result.current.setCloudflareAccessSecret("new-dummy-secret");
     });
-    await act(async () => metadata.resolve(Result.succeed({ client_id: "saved-dummy-id" })));
+    await act(async () => metadata.resolve(Result.succeed({ status: "loaded", client_id: "saved-dummy-id" })));
     expect(result.current.cloudflareAccessClientId).toBe("new-dummy-id");
     expect(result.current.cloudflareAccessSecret).toBe("new-dummy-secret");
     await act(async () => {
@@ -308,14 +341,14 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("preserves explicit removal selected while metadata is pending", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
-    const metadata = createDeferred<Result.Result<{ client_id: string }, never>>();
+    const metadata = createDeferred<Result.Result<{ status: "loaded"; client_id: string }, never>>();
     getAccountCloudflareAccessMock.mockReturnValue(metadata.promise);
     updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
     const { result } = renderHook(() =>
       useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
     );
     act(() => result.current.setCloudflareAccessEnabled(false));
-    await act(async () => metadata.resolve(Result.succeed({ client_id: "saved-dummy-id" })));
+    await act(async () => metadata.resolve(Result.succeed({ status: "loaded", client_id: "saved-dummy-id" })));
     await act(async () => {
       await result.current.commitCredentials();
     });
@@ -330,13 +363,13 @@ describe("useAccountDetailCredentialsEditor", () => {
 
   it("requires Secret reentry after an origin edit made before metadata resolves", async () => {
     setTauriRuntimePresent();
-    const metadata = createDeferred<Result.Result<{ client_id: string }, never>>();
+    const metadata = createDeferred<Result.Result<{ status: "loaded"; client_id: string }, never>>();
     getAccountCloudflareAccessMock.mockReturnValue(metadata.promise);
     const { result } = renderHook(() =>
       useAccountDetailCredentialsEditor({ account: sampleAccounts[1], queryClient: createTestQueryClient(), t }),
     );
     act(() => result.current.setCredServerUrl("https://different.example.com"));
-    await act(async () => metadata.resolve(Result.succeed({ client_id: "saved-dummy-id" })));
+    await act(async () => metadata.resolve(Result.succeed({ status: "loaded", client_id: "saved-dummy-id" })));
     await act(async () => {
       expect(await result.current.commitCredentials()).toBe(false);
     });
@@ -357,9 +390,11 @@ describe("useAccountDetailCredentialsEditor", () => {
       setTauriRuntimePresent();
       const account = sampleAccounts[1];
       const queryClient = createTestQueryClient();
-      const metadata = createDeferred<Result.Result<{ client_id: string }, never>>();
+      const metadata = createDeferred<Result.Result<{ status: "loaded"; client_id: string }, never>>();
       const save = createDeferred<Result.Result<typeof account, never>>();
-      getAccountCloudflareAccessMock.mockResolvedValueOnce(Result.succeed({ client_id: "old-dummy-id" }));
+      getAccountCloudflareAccessMock.mockResolvedValueOnce(
+        Result.succeed({ status: "loaded", client_id: "old-dummy-id" }),
+      );
       updateAccountCredentialsMock.mockReturnValueOnce(save.promise).mockResolvedValue(Result.succeed(account));
       const { result, rerender } = renderHook(
         ({ account }) => useAccountDetailCredentialsEditor({ account, queryClient, t }),
@@ -385,7 +420,7 @@ describe("useAccountDetailCredentialsEditor", () => {
         save.resolve(Result.succeed(account));
         expect(await pendingSave).toBe(true);
       });
-      await act(async () => metadata.resolve(Result.succeed({ client_id: "old-dummy-id" })));
+      await act(async () => metadata.resolve(Result.succeed({ status: "loaded", client_id: "old-dummy-id" })));
       expect(result.current.cloudflareAccessStatus).toBe("ready");
       expect(result.current.cloudflareAccessEnabled).toBe(action === "replace");
       expect(result.current.cloudflareAccessClientId).toBe(action === "replace" ? "new-dummy-id" : "");
@@ -406,7 +441,9 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("requires a replacement Secret for ID or origin changes and sends the full replacement", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "saved-client-id" }));
+    getAccountCloudflareAccessMock.mockResolvedValue(
+      Result.succeed({ status: "loaded", client_id: "saved-client-id" }),
+    );
     updateAccountCredentialsMock.mockResolvedValue(
       Result.succeed({ ...account, server_url: "https://other.example.com" }),
     );
@@ -454,7 +491,9 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("removes saved Access only after the switch is explicitly turned off", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "saved-client-id" }));
+    getAccountCloudflareAccessMock.mockResolvedValue(
+      Result.succeed({ status: "loaded", client_id: "saved-client-id" }),
+    );
     updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
     const { result } = renderHook(() =>
       useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
@@ -619,7 +658,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     window.__DEV_BROWSER_MOCKS__ = true;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
     window.__TAURI_INTERNALS__ = { invoke: vi.fn() };
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "preview-client" }));
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ status: "loaded", client_id: "preview-client" }));
     const { result } = renderHook(() =>
       useAccountDetailCredentialsEditor({ account: sampleAccounts[1], queryClient: createTestQueryClient(), t }),
     );
@@ -658,7 +697,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       const account = sampleAccounts[1];
       getAccountCloudflareAccessMock.mockResolvedValue(
         metadataStatus === "ready"
-          ? Result.succeed({ client_id: "saved-client-id" })
+          ? Result.succeed({ status: "loaded", client_id: "saved-client-id" })
           : Result.fail({ type: "UserVisible", message: "invalid bundle" }),
       );
       const staleSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
@@ -976,7 +1015,9 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("does not rewrite saved Access credentials when retrying a failed connection check", async () => {
     setTauriRuntimePresent();
     const account = sampleAccounts[1];
-    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "saved-client-id" }));
+    getAccountCloudflareAccessMock.mockResolvedValue(
+      Result.succeed({ status: "loaded", client_id: "saved-client-id" }),
+    );
     updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
     testAccountConnectionMock.mockResolvedValueOnce(Result.fail({ message: "invalid credentials" }));
     const { result } = renderHook(() =>

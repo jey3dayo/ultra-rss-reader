@@ -2030,9 +2030,24 @@ describe("command args schemas", () => {
   });
   it("keeps Cloudflare Access metadata limited to a nullable Client ID", () => {
     expect(parse(getAccountCloudflareAccessArgs, { accountId: " acc-1 " })).toEqual({ accountId: "acc-1" });
-    expect(parse(CloudflareAccessMetadataSchema, { client_id: null })).toEqual({ client_id: null });
-    expect(parse(CloudflareAccessMetadataSchema, { client_id: "client-id" })).toEqual({ client_id: "client-id" });
-    expect(() => parse(CloudflareAccessMetadataSchema, { client_id: "client-id", client_secret: "secret" })).toThrow();
+    expect(parse(CloudflareAccessMetadataSchema, { status: "loaded", client_id: null })).toEqual({
+      status: "loaded",
+      client_id: null,
+    });
+    expect(parse(CloudflareAccessMetadataSchema, { status: "loaded", client_id: "client-id" })).toEqual({
+      status: "loaded",
+      client_id: "client-id",
+    });
+    expect(() =>
+      parse(CloudflareAccessMetadataSchema, { status: "loaded", client_id: "client-id", client_secret: "secret" }),
+    ).toThrow();
+    expect(parse(CloudflareAccessMetadataSchema, { status: "authorization_required" })).toEqual({
+      status: "authorization_required",
+    });
+    expect(() =>
+      parse(CloudflareAccessMetadataSchema, { status: "authorization_required", client_id: null }),
+    ).toThrow();
+    expect(() => parse(CloudflareAccessMetadataSchema, { client_id: null })).toThrow();
   });
   it("trims and rejects blank feed URL command args", () => {
     expect(parse(discoverFeedsArgs, { url: " https://example.com/feed.xml " })).toEqual({

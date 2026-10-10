@@ -313,7 +313,7 @@ fn cloudflare_access_ipc_partial_inputs_and_redaction() {
     let metadata = access_metadata(&account(), &configured()).unwrap();
     assert_eq!(
         serde_json::to_string(&metadata).unwrap(),
-        r#"{"client_id":"dummy-id"}"#
+        r#"{"status":"loaded","client_id":"dummy-id"}"#
     );
     let exported =
         serde_json::to_string(&crate::commands::dto::AccountDto::from(account())).unwrap();
@@ -596,7 +596,7 @@ fn cloudflare_access_metadata_only_reports_id_and_missing_or_unavailable_states(
     let store = FakeStore::default();
     assert_eq!(
         serde_json::to_string(&access_metadata(&account(), &store).unwrap()).unwrap(),
-        r#"{"client_id":null}"#
+        r#"{"status":"loaded","client_id":null}"#
     );
     *store.failures.borrow_mut() = vec!["load"];
     assert!(access_metadata(&account(), &store).is_err());
@@ -660,12 +660,15 @@ fn panic_db() -> Result<(), AppError> {
 }
 
 #[test]
-fn session_cache_settings_metadata_does_not_unlock_the_os_store() {
+fn cached_access_metadata_reports_authorization_required_until_a_lease_is_granted() {
     use crate::infra::keyring_store::session_cache;
     let mut account = account();
-    account.id = AccountId("metadata-without-os-dummy".into());
+    account.id = AccountId("cached-metadata-dummy".into());
     let generation = session_cache::invalidate(account.id.as_ref()).unwrap();
-    assert!(cached_access_metadata(&account).is_err());
+    assert_eq!(
+        cached_access_metadata(&account).unwrap(),
+        CloudflareAccessMetadata::AuthorizationRequired
+    );
     session_cache::grant(
         &account,
         generation,
@@ -676,12 +679,48 @@ fn session_cache_settings_metadata_does_not_unlock_the_os_store() {
     )
     .unwrap();
     assert_eq!(
-        cached_access_metadata(&account)
-            .unwrap()
-            .client_id
-            .as_deref(),
-        Some("dummy-id")
+        cached_access_metadata(&account).unwrap(),
+        CloudflareAccessMetadata::Loaded {
+            client_id: Some("dummy-id".into())
+        }
     );
     session_cache::invalidate(account.id.as_ref()).unwrap();
-    assert!(cached_access_metadata(&account).is_err());
+    assert_eq!(
+        cached_access_metadata(&account).unwrap(),
+        CloudflareAccessMetadata::AuthorizationRequired
+    );
+}
+
+#[test]
+fn authorization_required_metadata_is_a_typed_state_on_the_wire() {
+    assert_eq!(
+        serde_json::to_string(&CloudflareAccessMetadata::AuthorizationRequired).unwrap(),
+        r#"{"status":"authorization_required"}"#
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn settings_metadata_without_a_lease_never_reads_the_os_store_on_macos() {
+    let mut account = account();
+    account.id = AccountId("dispatch-without-lease-dummy".into());
+    crate::infra::keyring_store::session_cache::invalidate(account.id.as_ref()).unwrap();
+    let store = configured();
+    *store.failures.borrow_mut() = vec!["load"];
+    assert_eq!(
+        settings_access_metadata(&account, &store).unwrap(),
+        CloudflareAccessMetadata::AuthorizationRequired
+    );
+    assert_eq!(*store.failures.borrow(), vec!["load"]);
+}
+
+#[cfg(not(target_os = "macos"))]
+#[test]
+fn settings_metadata_reads_the_credential_store_off_macos() {
+    assert_eq!(
+        settings_access_metadata(&account(), &configured()).unwrap(),
+        CloudflareAccessMetadata::Loaded {
+            client_id: Some("dummy-id".into())
+        }
+    );
 }

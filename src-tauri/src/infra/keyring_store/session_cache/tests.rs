@@ -28,15 +28,6 @@ fn credentials() -> SessionCredentials {
 }
 
 #[test]
-fn background_startup_and_wake_need_explicit_authorization_after_restart() {
-    let mut cache = SessionCache::default();
-    let account = account("restart");
-    for _ in 0..3 {
-        assert!(cache.get(&account, Instant::now()).is_none());
-    }
-}
-
-#[test]
 fn cancellation_removes_previous_grant_until_successful_explicit_retry() {
     let mut cache = SessionCache::default();
     let account = account("cancel");
@@ -84,6 +75,50 @@ fn changed_identity_and_failed_mutations_invalidate_cached_credentials() {
 }
 
 #[test]
+fn stale_invalidation_keeps_a_lease_granted_after_it_was_read() {
+    let mut cache = SessionCache::default();
+    let account = account("stale-invalidate");
+    let now = Instant::now();
+    let first = cache.invalidate(account.id.as_ref());
+    cache.grant(&account, first, credentials(), now);
+    let (_, read_generation) = cache.get_leased(&account, now).unwrap();
+    assert_eq!(read_generation, first);
+
+    let second = cache.invalidate(account.id.as_ref());
+    cache.grant(&account, second, credentials(), now);
+
+    assert!(!cache.invalidate_if_generation(account.id.as_ref(), read_generation));
+    assert_eq!(cache.get_leased(&account, now).unwrap().1, second);
+    assert!(cache.invalidate_if_generation(account.id.as_ref(), second));
+    assert!(cache.get(&account, now).is_none());
+}
+
+#[test]
+fn identity_mismatch_refuses_the_caller_without_dropping_a_newer_lease() {
+    let mut cache = SessionCache::default();
+    let mut account = account("stale-snapshot");
+    let now = Instant::now();
+    let generation = cache.invalidate(account.id.as_ref());
+    cache.grant(&account, generation, credentials(), now);
+    let current = account.clone();
+    account.server_url = Some("https://old.example.test".into());
+
+    assert!(cache.get_leased(&account, now).is_none());
+    assert!(cache.get(&current, now).is_some());
+}
+
+#[test]
+fn has_lease_reports_unexpired_leases_without_identity() {
+    let mut cache = SessionCache::default();
+    let account = account("has-lease");
+    let now = Instant::now();
+    assert!(!cache.has_lease(account.id.as_ref(), now));
+    cache.grant(&account, 0, credentials(), now);
+    assert!(cache.has_lease(account.id.as_ref(), now));
+    assert!(!cache.has_lease(account.id.as_ref(), now + LEASE));
+}
+
+#[test]
 fn bounded_cache_evicts_oldest_account() {
     let mut cache = SessionCache::default();
     let now = Instant::now();
@@ -117,18 +152,18 @@ fn settings_metadata_uses_only_the_in_memory_lease() {
 #[test]
 fn unattended_raw_reads_fail_before_starting_any_keychain_process() {
     use crate::infra::keyring_store::{macos_security_cli, CredentialKind, CredentialLookupMode};
-    assert!(macos_security_cli::get_password_from_security_cli(
+    let password = macos_security_cli::get_password_from_security_cli(
         "dummy-never-read",
-        CredentialLookupMode::Background
-    )
-    .is_err());
-    assert!(macos_security_cli::get_credential_from_security_cli(
+        CredentialLookupMode::Background,
+    );
+    assert!(matches!(password, Err(DomainError::Keychain(message)) if message == NEEDS_AUTH));
+    let access = macos_security_cli::get_credential_from_security_cli(
         CredentialKind::CloudflareAccess,
         "dummy-never-read",
         "dummy-never-read",
-        CredentialLookupMode::Background
-    )
-    .is_err());
+        CredentialLookupMode::Background,
+    );
+    assert!(matches!(access, Err(DomainError::Keychain(message)) if message == NEEDS_AUTH));
     assert_eq!(
         CredentialLookupMode::for_user_sync(),
         CredentialLookupMode::Background

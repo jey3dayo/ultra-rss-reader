@@ -42,9 +42,11 @@ impl fmt::Debug for CloudflareAccessArg {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct CloudflareAccessMetadata {
-    pub client_id: Option<String>,
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum CloudflareAccessMetadata {
+    Loaded { client_id: Option<String> },
+    AuthorizationRequired,
 }
 
 pub(super) trait AccountCredentialStore: CloudflareAccessStore {
@@ -103,16 +105,33 @@ fn account_url(account: &Account) -> Result<&str, AppError> {
 }
 
 #[cfg(any(target_os = "macos", test))]
-pub(super) fn cached_access_metadata(
+fn cached_access_metadata(account: &Account) -> Result<CloudflareAccessMetadata, AppError> {
+    match keyring_store::session_cache::get(account) {
+        Ok(cached) => Ok(CloudflareAccessMetadata::Loaded {
+            client_id: cached
+                .access
+                .as_ref()
+                .map(|access| access.client_id().to_string()),
+        }),
+        Err(DomainError::Keychain(message)) if message == keyring_store::NEEDS_AUTH => {
+            Ok(CloudflareAccessMetadata::AuthorizationRequired)
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+/// macOS reads only the in-memory lease so that opening settings never prompts for Keychain access.
+pub(super) fn settings_access_metadata(
     account: &Account,
+    store: &impl CloudflareAccessStore,
 ) -> Result<CloudflareAccessMetadata, AppError> {
-    let cached = keyring_store::session_cache::get(account)?;
-    Ok(CloudflareAccessMetadata {
-        client_id: cached
-            .access
-            .as_ref()
-            .map(|access| access.client_id().to_string()),
-    })
+    #[cfg(target_os = "macos")]
+    {
+        let _ = store;
+        cached_access_metadata(account)
+    }
+    #[cfg(not(target_os = "macos"))]
+    access_metadata(account, store)
 }
 
 #[cfg(any(not(target_os = "macos"), test))]
@@ -127,7 +146,7 @@ pub(super) fn access_metadata(
     }
     let access = store.load(account.id.as_ref()).map_err(store_error)?;
     // Metadata permits settings recovery after a URL import changed the origin.
-    Ok(CloudflareAccessMetadata {
+    Ok(CloudflareAccessMetadata::Loaded {
         client_id: access.map(|access| access.client_id().to_string()),
     })
 }

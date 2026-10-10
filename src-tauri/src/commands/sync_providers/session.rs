@@ -44,14 +44,22 @@ impl GReaderSession {
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
         #[cfg(target_os = "macos")]
-        if mode == CredentialLookupMode::Background {
-            let cached = keyring_store::session_cache::get(account)
+        if mode == CredentialLookupMode::Background && !keyring_store::uses_dev_credential_store() {
+            let (cached, lease_generation) = keyring_store::session_cache::get_leased(account)
                 .map_err(|error| SessionError::Auth(error.into()))?;
             let provider = Self::provider_with_access(server_url, Ok(cached.access))?;
             let result = Self::authenticate(provider, username, cached.password.to_string()).await;
             if matches!(&result, Err(SessionError::Auth(error)) if error.diagnostic_kind() == "auth")
             {
-                let _ = keyring_store::session_cache::invalidate(account.id.as_ref());
+                if let Err(error) = keyring_store::session_cache::invalidate_if_generation(
+                    account.id.as_ref(),
+                    lease_generation,
+                ) {
+                    warn!(
+                        account_id = %account.id.as_ref(),
+                        "Could not invalidate rejected credential lease: {error}"
+                    );
+                }
             }
             return result;
         }
@@ -59,14 +67,23 @@ impl GReaderSession {
         let generation = keyring_store::session_cache::invalidate(account.id.as_ref())
             .map_err(|error| SessionError::Auth(error.into()))?;
         let account_id = account.id.as_ref().to_string();
+        // The dev file store never prompts, so its Cloudflare Access lookup is not cache-only.
+        #[cfg(target_os = "macos")]
+        let access_mode = if keyring_store::uses_dev_credential_store() {
+            CredentialLookupMode::Interactive
+        } else {
+            mode
+        };
+        #[cfg(not(target_os = "macos"))]
+        let access_mode = mode;
         let access =
             keyring_store::read_for_sync(CredentialKind::CloudflareAccess, mode, move || {
-                match mode {
+                match access_mode {
                     CredentialLookupMode::Background => {
                         cloudflare_access::load_for_sync(&account_id)
                     }
                     CredentialLookupMode::Interactive => {
-                        cloudflare_access::load_for_sync_with_mode(&account_id, mode)
+                        cloudflare_access::load_for_sync_with_mode(&account_id, access_mode)
                     }
                 }
                 .map_err(crate::domain::error::DomainError::from)
