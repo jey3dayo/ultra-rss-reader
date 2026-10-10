@@ -3404,4 +3404,43 @@ describe("ArticleView", () => {
     },
     readingListTestTimeout,
   );
+
+  it.each([
+    { shortcut: "toggleStar", cmd: "toggle_article_star", args: { articleId: "art-1", starred: true } },
+    { shortcut: "toggleRead", cmd: "mark_article_read", args: { articleId: "art-1", read: true } },
+  ] as const)(
+    "dispatches one $cmd call per $shortcut shortcut while an article is open",
+    async ({ shortcut, cmd, args: expectedArgs }) => {
+      const calls: MockTauriCommandCall[] = [];
+      setupTauriMocks((command, args) => {
+        calls.push({ cmd: command, args });
+
+        switch (command) {
+          case "list_articles":
+            return listSampleArticlesByFeedId(args.feedId);
+          case "list_feeds":
+            return listSampleFeedsByAccountId(args.accountId);
+          case "list_tags":
+          case "get_article_tags":
+            return [];
+          case "toggle_article_star":
+          case "mark_article_read":
+            return null;
+          default:
+            return undefined;
+        }
+      });
+
+      render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
+        wrapper: createWrapper(),
+      });
+
+      await flushMicrotasksAndRealTimer();
+      calls.length = 0;
+      fireEvent(window, new Event(keyboardEvents[shortcut]));
+      await flushMicrotasksAndRealTimer();
+
+      expect(calls.filter((call) => call.cmd === cmd)).toEqual([{ cmd, args: expectedArgs }]);
+    },
+  );
 });
