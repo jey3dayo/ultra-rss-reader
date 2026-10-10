@@ -6,6 +6,7 @@ import { commandArgsSchemas } from "../src/api/schemas/commands";
 import { commandArgsSchemaKeys } from "./helpers/command-args-schema-keys";
 import {
   extractCommandDbLockPolicyCases,
+  extractCommandNames,
   extractRegisteredRustCommandNames,
   extractRustTauriAsyncCommandNames,
 } from "./helpers/tauri-command-contract";
@@ -47,6 +48,8 @@ const RUST_FRAMEWORK_ARG_NAMES = new Set(["app", "app_handle", "state", "window"
 const FRONTEND_ONLY_OPTIONAL_ARGS: Readonly<Record<string, readonly string[]>> = {
   add_account: ["appId", "appKey"],
 };
+
+const RUST_COMMANDS_WITHOUT_FRONTEND_WRAPPER: ReadonlySet<string> = new Set(["create_tag_and_assign_article"]);
 
 const COUNT_RESPONSE_SCHEMA_NAMES = [
   "CountResponseSchema",
@@ -155,6 +158,22 @@ describe("tauri command return contract", () => {
         ])
       `),
     ).toEqual(["mark_feed_read", "trigger_sync"]);
+  });
+
+  it("keeps frontend safeInvoke command names identical to registered Rust commands", () => {
+    const frontendCommands = new Set(
+      extractCommandNames(readTauriCommandsSource(), /safeInvoke\(\s*"([^"]+)"/g).filter(
+        (command) => !command.startsWith("plugin:"),
+      ),
+    );
+    const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
+
+    expect({
+      missingInRust: [...frontendCommands].filter((command) => !registeredCommands.has(command)).toSorted(),
+      missingInFrontend: [...registeredCommands]
+        .filter((command) => !frontendCommands.has(command) && !RUST_COMMANDS_WITHOUT_FRONTEND_WRAPPER.has(command))
+        .toSorted(),
+    }).toEqual({ missingInRust: [], missingInFrontend: [] });
   });
 
   it("keeps registered Rust commands classified by DB lock policy", () => {
