@@ -132,9 +132,18 @@ fn read_failure_events_are_emitted_safely_in_isolated_subprocesses() {
             assert_eq!(events.len(), 1, "scenario {scenario} should log once");
             let event = events[0];
             assert!(event.contains("event=keyring-read-failed"));
-            assert!(event.contains(&format!("credential_kind={expected_kind}")));
-            assert!(event.contains(&format!("mode={expected_mode}")));
-            assert!(event.contains(&format!("failure_reason={expected_reason}")));
+            assert!(
+                event.contains(&format!("credential_kind={expected_kind}")),
+                "scenario {scenario} expected credential_kind={expected_kind}: {event}"
+            );
+            assert!(
+                event.contains(&format!("mode={expected_mode}")),
+                "scenario {scenario} expected mode={expected_mode}: {event}"
+            );
+            assert!(
+                event.contains(&format!("failure_reason={expected_reason}")),
+                "scenario {scenario} expected failure_reason={expected_reason}: {event}"
+            );
             assert!(event.contains("elapsed_ms="));
             assert!(event.contains("timeout_ms="));
             for field in ["elapsed_ms", "timeout_ms"] {
@@ -175,7 +184,7 @@ fn read_failure_events_are_emitted_safely_in_isolated_subprocesses() {
 fn exercise_read_failure_scenario(scenario: &str) {
     let timeout = match scenario {
         "timeout" | "interactive-timeout" => Duration::from_millis(30),
-        _ => Duration::from_millis(250),
+        _ => super::super::CredentialLookupMode::Background.timeout(),
     };
     let command = match scenario {
         "spawn" => std::process::Command::new("/missing/keyring-cli-sentinel"),
