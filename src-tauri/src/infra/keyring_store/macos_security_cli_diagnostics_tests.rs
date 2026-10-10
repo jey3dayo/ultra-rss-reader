@@ -1,3 +1,4 @@
+use super::CredentialKind;
 use super::{read_credential_from_security_cli_command, read_password_from_security_cli_command};
 use std::time::Duration;
 
@@ -84,6 +85,27 @@ fn read_failure_events_are_emitted_safely_in_isolated_subprocesses() {
             None,
         ),
         (
+            "parse-output",
+            Some("parse-output"),
+            "cloudflare-access",
+            "background",
+            None,
+        ),
+        (
+            "fresh-parse-output",
+            Some("parse-output"),
+            "freshrss-password",
+            "background",
+            None,
+        ),
+        (
+            "fresh-missing",
+            None,
+            "freshrss-password",
+            "background",
+            None,
+        ),
+        (
             "fresh-cli-exit",
             Some("cli-exit"),
             "freshrss-password",
@@ -93,7 +115,7 @@ fn read_failure_events_are_emitted_safely_in_isolated_subprocesses() {
         (
             "other-cli-exit",
             Some("cli-exit"),
-            "other",
+            "cloudflare-access",
             "background",
             Some(23),
         ),
@@ -188,12 +210,21 @@ fn exercise_read_failure_scenario(scenario: &str) {
             let mut command = std::process::Command::new("/bin/sh");
             command.args([
                 "-c",
-                "printf 'stdout-sentinel\\377'; printf 'stderr-sentinel' >&2",
+                "printf 'stdout-sentinel'; printf 'password: 0xFF' >&2",
                 "test-command",
             ]);
             command
         }
-        "missing" => {
+        "parse-output" | "fresh-parse-output" => {
+            let mut command = std::process::Command::new("/bin/sh");
+            command.args([
+                "-c",
+                "printf 'stdout-sentinel'; printf 'stderr-sentinel secret-sentinel' >&2",
+                "test-command",
+            ]);
+            command
+        }
+        "missing" | "fresh-missing" => {
             let mut command = std::process::Command::new("/bin/sh");
             command.args(["-c", "exit 44", "test-command"]);
             command
@@ -210,9 +241,10 @@ fn exercise_read_failure_scenario(scenario: &str) {
         _ => panic!("unexpected diagnostic test scenario: {scenario}"),
     };
 
-    let result = if scenario == "fresh-cli-exit" {
+    let result = if scenario.starts_with("fresh-") {
         read_password_from_security_cli_command(
             command,
+            super::super::SERVICE,
             ACCOUNT_SENTINEL,
             super::super::CredentialLookupMode::Background,
             timeout,
@@ -229,15 +261,32 @@ fn exercise_read_failure_scenario(scenario: &str) {
         } else {
             super::super::cloudflare_access::SERVICE
         };
-        read_credential_from_security_cli_command(command, service, ACCOUNT_SENTINEL, mode, timeout)
+        read_credential_from_security_cli_command(
+            command,
+            CredentialKind::CloudflareAccess,
+            service,
+            ACCOUNT_SENTINEL,
+            mode,
+            timeout,
+        )
     };
 
-    if scenario == "missing" {
+    if scenario == "fresh-missing" {
+        let error = result.expect_err("exit 44 should report a missing password");
+        assert!(error.to_string().contains("Password is not configured"));
+    } else if scenario == "missing" {
         assert_eq!(
             result.expect("exit 44 should remain normal missing optional Access"),
             None
         );
     } else {
-        assert!(result.is_err(), "scenario {scenario} should fail");
+        let error = result.expect_err("scenario should fail");
+        let message = format!("{error:?} {error}");
+        for sentinel in [STDERR_SENTINEL, SECRET_SENTINEL, STDOUT_SENTINEL] {
+            assert!(
+                !message.contains(sentinel),
+                "scenario {scenario} error leaked {sentinel}: {message}"
+            );
+        }
     }
 }

@@ -981,3 +981,24 @@ fn desktop_builds_use_persistent_keyring_backends() {
         "desktop builds must use a persistent keyring backend; got non-persistent storage"
     );
 }
+
+#[tokio::test]
+async fn stalled_credential_read_times_out_at_the_caller() {
+    let (finished_tx, finished_rx) = tokio::sync::oneshot::channel();
+    let error = super::read_with_caller_timeout(
+        super::CredentialKind::CloudflareAccess,
+        super::CredentialLookupMode::Background,
+        std::time::Duration::from_millis(10),
+        move || {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            let _ = finished_tx.send(());
+            Ok(())
+        },
+    )
+    .await
+    .expect_err("a stalled read should hit the caller timeout");
+    assert!(error.to_string().contains("Timed out reading credentials"));
+    finished_rx
+        .await
+        .expect("the caller timeout must not cancel the blocking read");
+}
