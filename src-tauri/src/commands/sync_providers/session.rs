@@ -67,7 +67,8 @@ impl GReaderSession {
         let generation = keyring_store::session_cache::invalidate(account.id.as_ref())
             .map_err(|error| SessionError::Auth(error.into()))?;
         let account_id = account.id.as_ref().to_string();
-        // The dev file store never prompts, so its Cloudflare Access lookup is not cache-only.
+        // Dev builds only: Cloudflare Access is not in the dev file store, so it still reads the
+        // OS Keychain and may prompt, as before leases existed.
         #[cfg(target_os = "macos")]
         let access_mode = if keyring_store::uses_dev_credential_store() {
             CredentialLookupMode::Interactive
