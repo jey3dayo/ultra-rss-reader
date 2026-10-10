@@ -90,7 +90,7 @@ mise run check        # fast format + lint + Rust + node Vitest  (day-to-day loc
 mise run check:wsl    # WSL-backed static-analysis gate  (Windows delegates to WSL_REPO_DIR)
 mise run ci           # unit-first format + lint + test + build  (full CI gate)
 mise run format       # Biome + cargo fmt + taplo
-mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings) + actionlint + yamllint
+mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings) + jactionlint + yamllint
 mise run test         # Vitest + cargo test
 mise run test:ci      # quiet unit-first CI test gate
 mise run test:unit:dom # jsdom Vitest for DOM/rendering changes

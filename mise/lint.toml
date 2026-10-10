@@ -24,12 +24,12 @@ description = "YAML lint check"
 run = "yamllint -c .yamllint .github/ .yamllint apm.lock.yaml apm.yml jev-lint.yaml lefthook.yml pnpm-workspace.yaml"
 
 ["lint:actions"]
-description = "GitHub Actions workflow check (actionlint)"
-run = "actionlint -shellcheck="
+description = "GitHub Actions workflow check (jactionlint)"
+run = "jactionlint --shellcheck="
 
 ["lint:actions-shell"]
-description = "GitHub Actions shell script check (actionlint with shellcheck)"
-run = "actionlint"
+description = "GitHub Actions shell script check (jactionlint with shellcheck)"
+run = "jactionlint"
 
 ["lint:workflow-pins"]
 description = "Workflow action references must be pinned to commit SHAs"
