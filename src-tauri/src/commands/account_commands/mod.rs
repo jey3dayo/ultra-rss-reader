@@ -228,6 +228,11 @@ pub async fn test_account_connection(
     }
 
     let session = GReaderSession::establish_interactive(&account).await;
+    #[cfg(target_os = "macos")]
+    let lease_generation = session
+        .as_ref()
+        .ok()
+        .and_then(GReaderSession::lease_generation);
     let verification = verify_authenticated_freshrss_session(session).await;
     let verification = match verification {
         Err(error @ (SessionError::MissingUsername | SessionError::MissingServerUrl)) => {
@@ -242,10 +247,8 @@ pub async fn test_account_connection(
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     #[cfg(target_os = "macos")]
-    if verification.is_err() {
-        if let Err(error) = crate::infra::keyring_store::session_cache::invalidate(id.as_ref()) {
-            tracing::warn!(%error, "Session credential lease could not be cleared after a failed connection test");
-        }
+    if let (Err(_), Some(generation)) = (&verification, lease_generation) {
+        clear_failed_test_lease(&id, generation);
     }
     persist_connection_verification_result(&repo, &id, verification)?;
     let updated = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
@@ -253,6 +256,17 @@ pub async fn test_account_connection(
     })?;
 
     Ok(AccountDto::from(updated))
+}
+
+/// Drops only the lease this test granted; a newer test's lease must survive a stale failure.
+#[cfg(any(target_os = "macos", test))]
+fn clear_failed_test_lease(id: &AccountId, generation: u64) {
+    if let Err(error) = crate::infra::keyring_store::session_cache::invalidate_if_generation(
+        id.as_ref(),
+        generation,
+    ) {
+        tracing::warn!(%error, "Session credential lease could not be cleared after a failed connection test");
+    }
 }
 
 async fn verify_authenticated_freshrss_session(

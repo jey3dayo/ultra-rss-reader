@@ -11,6 +11,7 @@ import {
   type CloudflareAccessStatus,
   deriveCloudflareAccessDraftState,
   getHttpsOrigin,
+  isCloudflareAccessRecoveryStatus,
 } from "@/lib/account/cloudflare-access";
 import { isCloudflareAccessRecoveryRequired } from "@/lib/account/cloudflare-access-error";
 import { isValidRequiredHttpServerUrl } from "@/lib/account/server-url";
@@ -223,7 +224,7 @@ function accountDetailCredentialsEditorReducer(
         draftRevision: state.draftRevision + 1,
       };
     case "set-cloudflare-access-recovery-action":
-      if (state.cloudflareAccessStatus !== "error") {
+      if (!isCloudflareAccessRecoveryStatus(state.cloudflareAccessStatus)) {
         return state;
       }
       return {

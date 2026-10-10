@@ -99,7 +99,11 @@ export const renameAccountArgs = s.object({
   name: accountNameSchema,
 });
 
-export const syncAccountArgs = s.object({ accountId: nonBlankTrimmedIdSchema, background: v.optional(v.boolean()) });
+const syncCredentialAccessSchema = v.picklist(["background", "interactive"]);
+export const syncAccountArgs = s.object({
+  accountId: nonBlankTrimmedIdSchema,
+  credentialAccess: v.optional(syncCredentialAccessSchema),
+});
 export const getAccountSyncStatusArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const startupSyncArgs = s.object({
   preferredAccountId: optionalBlankStringToUndefinedSchema,

@@ -953,6 +953,10 @@ describe("AddAccountForm", () => {
         owner: "add-account",
         state: "syncing",
       });
+      expect(calls.find((call) => call.cmd === "trigger_sync_account")?.args).toEqual({
+        accountId: "acc-new",
+        credentialAccess: "interactive",
+      });
     });
 
     unmount();

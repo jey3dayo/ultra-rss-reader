@@ -10,6 +10,8 @@ use crate::infra::provider::traits::{Credentials, FeedProvider};
 #[derive(Debug)]
 pub(crate) struct GReaderSession {
     provider: GReaderProvider,
+    #[cfg(target_os = "macos")]
+    lease_generation: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -109,8 +111,14 @@ impl GReaderSession {
         };
         let session = Self::authenticate(provider, username, password).await?;
         #[cfg(target_os = "macos")]
-        keyring_store::session_cache::grant(account, generation, credentials)
-            .map_err(|error| SessionError::Auth(error.into()))?;
+        let session = {
+            keyring_store::session_cache::grant(account, generation, credentials)
+                .map_err(|error| SessionError::Auth(error.into()))?;
+            Self {
+                lease_generation: Some(generation),
+                ..session
+            }
+        };
         Ok(session)
     }
 
@@ -130,6 +138,12 @@ impl GReaderSession {
 
     pub(crate) fn provider(&self) -> &GReaderProvider {
         &self.provider
+    }
+
+    /// Generation of the lease this session granted; `None` when it did not grant one.
+    #[cfg(target_os = "macos")]
+    pub(crate) fn lease_generation(&self) -> Option<u64> {
+        self.lease_generation
     }
 }
 
@@ -178,7 +192,11 @@ impl SessionError {
 impl GReaderSession {
     #[cfg(test)]
     pub(crate) fn from_provider_for_tests(provider: GReaderProvider) -> Self {
-        Self { provider }
+        Self {
+            provider,
+            #[cfg(target_os = "macos")]
+            lease_generation: None,
+        }
     }
 
     async fn authenticate(
@@ -193,7 +211,11 @@ impl GReaderSession {
             })
             .await
             .map_err(|error| SessionError::Auth(error.into()))?;
-        Ok(Self { provider })
+        Ok(Self {
+            provider,
+            #[cfg(target_os = "macos")]
+            lease_generation: None,
+        })
     }
 
     #[cfg(test)]

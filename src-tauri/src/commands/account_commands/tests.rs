@@ -1,7 +1,7 @@
 use super::{
-    delete_account_then_password, delete_account_with_sync_boundary_with_keyring,
-    normalize_new_freshrss_server_url, normalize_updated_account_server_url,
-    save_account_after_optional_password_with_keyring,
+    clear_failed_test_lease, delete_account_then_password,
+    delete_account_with_sync_boundary_with_keyring, normalize_new_freshrss_server_url,
+    normalize_updated_account_server_url, save_account_after_optional_password_with_keyring,
     update_account_credentials_after_optional_password_with_keyring, validate_account_name,
     validate_account_name_with_excluded_id, validate_account_sync_settings,
     validate_add_account_args,
@@ -1017,4 +1017,25 @@ fn account_create_update_do_not_request_provider_credential_verification() {
         contract.mutation_status_after_create_or_update,
         ConnectionVerificationStatus::Unverified
     );
+}
+
+#[test]
+fn stale_failed_connection_test_keeps_the_newer_tests_lease() {
+    use crate::infra::keyring_store::session_cache::{get, grant, invalidate, SessionCredentials};
+    let mut account = fresh_rss_account();
+    account.id = AccountId("stale-failure-dummy".into());
+    let credentials = || SessionCredentials {
+        password: zeroize::Zeroizing::new("dummy-password".into()),
+        access: None,
+    };
+    let generation_a = invalidate(account.id.as_ref()).unwrap();
+    grant(&account, generation_a, credentials()).unwrap();
+    let generation_b = invalidate(account.id.as_ref()).unwrap();
+    grant(&account, generation_b, credentials()).unwrap();
+
+    clear_failed_test_lease(&account.id, generation_a);
+    assert!(get(&account).is_ok());
+
+    clear_failed_test_lease(&account.id, generation_b);
+    assert!(get(&account).is_err());
 }

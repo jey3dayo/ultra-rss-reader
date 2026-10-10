@@ -233,7 +233,7 @@ describe("useAccountDetailSyncControls", () => {
 
     expect(queryClient.getQueryData(["account-sync-status", account.id])).toBeUndefined();
     expect(queryClient.getQueryData(queryKeys.feeds.byAccount(account.id))).toBeUndefined();
-    expect(syncAccountMock).toHaveBeenCalledWith(account.id);
+    expect(syncAccountMock).toHaveBeenCalledWith(account.id, "interactive");
   });
 
   it("recovers account setup sync when the native sync promise rejects", async () => {
