@@ -215,15 +215,17 @@ async fn sync_entrypoints_log_partial_results_without_account_or_feed_details() 
             "sync_entrypoints_log_partial_results_without_account_or_feed_details",
             scenario,
         );
-        let (trigger, provider, counts) = if scenario == "periodic" {
-            (
-                "background",
-                "local",
-                "total=1 succeeded=1 failed=0 warnings=1",
-            )
-        } else {
-            (scenario, "all", "total=2 succeeded=1 failed=1 warnings=1")
-        };
+        if scenario == "periodic" {
+            assert!(
+                lines
+                    .iter()
+                    .all(|line| !line.starts_with("event=sync-completed")),
+                "sync_account must not emit a premature completion summary: {lines:?}"
+            );
+            continue;
+        }
+        let (trigger, provider, counts) =
+            (scenario, "all", "total=2 succeeded=1 failed=1 warnings=1");
         assert!(
             lines.contains(&format!(
                 "event=sync-completed trigger={trigger} provider={provider} {counts}"

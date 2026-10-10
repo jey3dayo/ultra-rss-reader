@@ -1,7 +1,6 @@
 use crate::commands::dto::{
-    AccountSyncWarningDetail, AccountSyncWarningKind, AppError, SyncResult,
+    AccountSyncWarning, AccountSyncWarningDetail, AccountSyncWarningKind, AppError, SyncResult,
 };
-use crate::commands::sync_providers::ProviderSyncOutcome;
 use crate::domain::provider::ProviderKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,29 +60,25 @@ pub(crate) fn log_sync_completion(
 
 pub(crate) fn log_background_sync_outcome(
     provider: &ProviderKind,
-    result: &Result<ProviderSyncOutcome, AppError>,
+    result: Result<(), &AppError>,
+    warnings: &[AccountSyncWarning],
 ) {
-    let (succeeded, failed, warnings) = match result {
-        Ok(outcome) => {
-            for warning in &outcome.warnings {
-                log_sync_warning(
-                    SyncTrigger::Background,
-                    provider,
-                    warning.kind,
-                    &warning.detail,
-                );
-            }
-            (1, 0, outcome.warnings.len())
-        }
-        Err(_) => (0, 1, 0),
-    };
+    for warning in warnings {
+        log_sync_warning(
+            SyncTrigger::Background,
+            provider,
+            warning.kind,
+            &warning.detail,
+        );
+    }
+    let (succeeded, failed) = if result.is_ok() { (1, 0) } else { (0, 1) };
     log_sync_counts(
         SyncTrigger::Background,
         Some(provider),
         1,
         succeeded,
         failed,
-        warnings,
+        warnings.len(),
     );
 }
 
