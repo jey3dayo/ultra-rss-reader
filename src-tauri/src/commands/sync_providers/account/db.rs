@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
 use crate::commands::dto::AppError;
-use crate::commands::feed_commands::lock_db;
+use crate::commands::lock_db;
 use crate::domain::account::Account;
 use crate::domain::article::Article;
 use crate::domain::feed::Feed;

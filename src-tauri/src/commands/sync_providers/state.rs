@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use crate::commands::dto::AppError;
-use crate::commands::feed_commands::lock_db;
+use crate::commands::lock_db;
 use crate::domain::provider::{RemoteEntry, SyncCursor};
 use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::connection::DbManager;

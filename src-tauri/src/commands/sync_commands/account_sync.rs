@@ -9,7 +9,7 @@ use crate::commands::dto::{
     sync_issue_owner_for_app_error, AccountSyncError, AccountSyncWarning, AppError,
     SyncProgressKind, SyncResult,
 };
-use crate::commands::feed_commands::lock_db;
+use crate::commands::lock_db;
 use crate::commands::sync_providers::{
     redacted_feed_host_class, repair_greader_remote_state, sync_greader_account, sync_greader_feed,
     sync_local_feed, GReaderSession, ProviderSyncOutcome, SessionError,

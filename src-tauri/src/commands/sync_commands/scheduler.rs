@@ -8,7 +8,7 @@ use crate::commands::dto::{
     AccountSyncStatus, AccountSyncWarning, AccountSyncWarningDetail, AppError, SyncProgressKind,
     SyncResult,
 };
-use crate::commands::feed_commands::lock_db;
+use crate::commands::lock_db;
 use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::provider::ProviderKind;
