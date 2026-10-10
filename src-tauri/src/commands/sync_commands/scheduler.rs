@@ -18,6 +18,7 @@ use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
+use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleMaintenanceRepository;
 use crate::repository::preference::PreferenceRepository;
@@ -25,8 +26,9 @@ use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateSco
 
 use super::account_sync::{
     run_full_sync_with_progress, run_local_account_startup_import_supplement,
-    run_startup_sync_and_repair, run_sync_for_accounts_with_progress, StartupSyncAndRepairOutcome,
+    run_startup_sync_and_repair, run_sync_for_accounts_with_mode,
 };
+use super::failure_log::SyncTrigger;
 use super::finish_plan::{plan_finish, FinishInput, SyncEntry};
 use super::progress::{
     emit_sync_event_log_only, emit_sync_warnings, SyncProgressReporter, SYNC_COMPLETED_EVENT,
@@ -149,6 +151,10 @@ pub(crate) fn startup_remote_state_repair_succeeded(
     repaired_account_ids: &[String],
     sync_result: &SyncResult,
 ) -> bool {
+    if !sync_result.synced {
+        return false;
+    }
+
     let repaired_account_ids = repaired_account_ids
         .iter()
         .map(String::as_str)
@@ -230,51 +236,55 @@ pub async fn trigger_startup_sync(
         });
     }
 
-    let StartupSyncAndRepairOutcome {
-        mut sync_result,
-        repaired_account_ids,
-    } = run_startup_sync_and_repair(
+    let outcome = run_startup_sync_and_repair(
         &state.db,
         &state.syncing,
         Some(app_handle.clone()),
         startup_sync_accounts.clone(),
         repair_only_accounts.clone(),
         local_startup_import_warnings,
+        |outcome| {
+            if repair_pending
+                && startup_remote_state_repair_succeeded(
+                    &startup_sync_accounts,
+                    &repair_only_accounts,
+                    &outcome.repaired_account_ids,
+                    &outcome.sync_result,
+                )
+            {
+                record_startup_remote_state_repair_complete(&state.db, &mut outcome.sync_result);
+            }
+
+            if should_enable_automatic_sync_after_startup(
+                &outcome.sync_result,
+                &startup_sync_accounts,
+                &repair_only_accounts,
+            ) {
+                enable_automatic_sync(
+                    state.automatic_sync_enabled.as_ref(),
+                    state.automatic_sync_notify.as_ref(),
+                );
+            }
+            let plan = plan_finish(
+                &FinishInput::from_result(&outcome.sync_result),
+                SyncEntry::Startup,
+            );
+            if plan.purge {
+                purge_old_articles(&state.db);
+            }
+            if plan.emit_warning {
+                emit_sync_warnings(&app_handle, &outcome.sync_result);
+            }
+            if plan.emit_completed {
+                emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
+            }
+            if plan.emit_succeeded {
+                emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
+            }
+        },
     )
     .await?;
-
-    if repair_pending
-        && startup_remote_state_repair_succeeded(
-            &startup_sync_accounts,
-            &repair_only_accounts,
-            &repaired_account_ids,
-            &sync_result,
-        )
-    {
-        record_startup_remote_state_repair_complete(&state.db, &mut sync_result);
-    }
-
-    if should_enable_automatic_sync_after_startup(
-        &sync_result,
-        &startup_sync_accounts,
-        &repair_only_accounts,
-    ) {
-        enable_automatic_sync(
-            state.automatic_sync_enabled.as_ref(),
-            state.automatic_sync_notify.as_ref(),
-        );
-    }
-    let plan = plan_finish(&FinishInput::from_result(&sync_result), SyncEntry::Startup);
-    if plan.emit_completed {
-        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-    }
-    if plan.emit_succeeded {
-        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-    }
-    if plan.purge {
-        purge_old_articles(&state.db);
-    }
-    Ok(sync_result)
+    Ok(outcome.sync_result)
 }
 
 pub(crate) fn clear_scheduler_sync_status(
@@ -340,6 +350,7 @@ pub(crate) async fn run_automatic_sync_for_accounts_with_progress(
     automatic_sync_enabled: &AtomicBool,
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
+    finish: impl FnOnce(&SyncResult),
 ) -> Result<SyncResult, AppError> {
     if !is_automatic_sync_enabled(automatic_sync_enabled) {
         tracing::info!("Automatic sync is disabled until the first manual sync completes");
@@ -352,7 +363,16 @@ pub(crate) async fn run_automatic_sync_for_accounts_with_progress(
         });
     }
 
-    run_sync_for_accounts_with_progress(db, syncing, accounts, reporter).await
+    run_sync_for_accounts_with_mode(
+        db,
+        syncing,
+        accounts,
+        reporter,
+        CredentialLookupMode::Background,
+        SyncTrigger::Background,
+        finish,
+    )
+    .await
 }
 
 /// Purge old read articles based on each account's `keep_read_items_days` setting.
@@ -412,26 +432,27 @@ pub async fn trigger_automatic_sync(
         SyncProgressKind::Automatic,
         accounts.len(),
     );
-    let result = run_automatic_sync_for_accounts_with_progress(
+    run_automatic_sync_for_accounts_with_progress(
         &state.db,
         &state.syncing,
         state.automatic_sync_enabled.as_ref(),
         accounts,
         Some(reporter),
+        |result| {
+            let plan = plan_finish(&FinishInput::from_result(result), SyncEntry::Automatic);
+            if plan.purge {
+                purge_old_articles(&state.db);
+            }
+            if plan.emit_warning {
+                emit_sync_warnings(&app_handle, result);
+            }
+            if plan.emit_completed {
+                emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
+            }
+            if plan.emit_succeeded {
+                emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
+            }
+        },
     )
-    .await?;
-    let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::Automatic);
-    if plan.emit_warning {
-        emit_sync_warnings(&app_handle, &result);
-    }
-    if plan.emit_completed {
-        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-    }
-    if plan.emit_succeeded {
-        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-    }
-    if plan.purge {
-        purge_old_articles(&state.db);
-    }
-    Ok(result)
+    .await
 }

@@ -380,3 +380,47 @@ fn purge_old_articles_failure_does_not_change_sync_result_contract() {
 
     purge_old_articles(&db);
 }
+
+#[tokio::test]
+async fn account_sync_finish_step_runs_while_the_syncing_guard_is_held() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let syncing = AtomicBool::new(false);
+    let mut held_during_finish = None;
+
+    run_sync_for_accounts_with_mode(
+        &db,
+        &syncing,
+        Vec::new(),
+        None,
+        crate::infra::keyring_store::CredentialLookupMode::Background,
+        SyncTrigger::Background,
+        |_| held_during_finish = Some(syncing.load(Ordering::SeqCst)),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(held_during_finish, Some(true));
+    assert!(!syncing.load(Ordering::SeqCst));
+}
+
+#[tokio::test]
+async fn startup_finish_step_runs_while_the_syncing_guard_is_held() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let syncing = AtomicBool::new(false);
+    let mut held_during_finish = None;
+
+    run_startup_sync_and_repair(
+        &db,
+        &syncing,
+        None,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        |_| held_during_finish = Some(syncing.load(Ordering::SeqCst)),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(held_during_finish, Some(true));
+    assert!(!syncing.load(Ordering::SeqCst));
+}

@@ -52,27 +52,29 @@ pub async fn trigger_sync(
         Some(reporter),
         CredentialLookupMode::Interactive,
         SyncTrigger::ManualAll,
+        |result| {
+            let plan = plan_finish(&FinishInput::from_result(result), SyncEntry::ManualAll);
+            if plan.enable_automatic {
+                enable_automatic_sync(
+                    state.automatic_sync_enabled.as_ref(),
+                    state.automatic_sync_notify.as_ref(),
+                );
+            }
+            if plan.purge {
+                purge_old_articles(&state.db);
+            }
+            if plan.emit_warning {
+                emit_sync_warnings(&app_handle, result);
+            }
+            if plan.emit_completed {
+                emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
+            }
+            if plan.emit_succeeded {
+                emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
+            }
+        },
     )
     .await?;
-    let plan = plan_finish(&FinishInput::from_result(&result), SyncEntry::ManualAll);
-    if plan.enable_automatic {
-        enable_automatic_sync(
-            state.automatic_sync_enabled.as_ref(),
-            state.automatic_sync_notify.as_ref(),
-        );
-    }
-    if plan.emit_warning {
-        emit_sync_warnings(&app_handle, &result);
-    }
-    if plan.emit_completed {
-        emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
-    }
-    if plan.emit_succeeded {
-        emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
-    }
-    if plan.purge {
-        purge_old_articles(&state.db);
-    }
     Ok(result)
 }
 
