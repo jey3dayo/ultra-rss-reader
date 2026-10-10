@@ -336,6 +336,12 @@ describe("normalizeReaderContentImageUrl", () => {
     expect(normalizeReaderContentImageUrl("http://a.localhost./hero.jpg")).toBeNull();
   });
 
+  it("blocks hosts the Rust sanitizer rejects: unspecified IPv6, fe90::/10 link-local, .local, single-label, CGNAT", () => {
+    for (const host of ["[::]", "[fe90::1]", "[febf::1]", "nas.local", "freshrss", "100.64.0.1"]) {
+      expect(normalizeReaderContentImageUrl(`http://${host}/hero.jpg`)).toBeNull();
+    }
+  });
+
   it("allows a trailing-dot public FQDN, matching the Rust url_policy trim_end_matches('.') contract", () => {
     expect(normalizeReaderContentImageUrl("http://example.com./hero.jpg")).toBe("http://example.com./hero.jpg");
   });

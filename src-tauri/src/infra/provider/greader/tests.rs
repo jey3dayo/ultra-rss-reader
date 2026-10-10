@@ -208,6 +208,27 @@ fn try_for_freshrss_accepts_ipv6_literal_endpoints() {
 }
 
 #[test]
+fn try_for_freshrss_accepts_shared_address_space_endpoint() {
+    for server_url in ["http://100.64.0.1:8080", "https://100.127.255.254"] {
+        assert!(
+            GReaderProvider::try_for_freshrss(server_url).is_ok(),
+            "{server_url} should stay usable as a user-selected FreshRSS endpoint"
+        );
+    }
+
+    let previous =
+        [reqwest::Url::parse("http://100.64.0.1/feed.xml").expect("fixture URL should parse")];
+    let same_host_https =
+        reqwest::Url::parse("https://100.64.0.1/feed.xml").expect("fixture URL should parse");
+    assert!(GReaderProvider::validate_redirect_for_initial_private_host(
+        &previous,
+        &same_host_https,
+        "100.64.0.1",
+    )
+    .is_ok());
+}
+
+#[test]
 fn for_freshrss_strips_url_credentials_before_building_auth_base() {
     let provider = GReaderProvider::for_freshrss("https://alice:secret@freshrss.example.com/");
 

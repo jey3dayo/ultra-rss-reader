@@ -137,6 +137,7 @@ describe("extractSiteHost", () => {
     ["single-label LAN host", "freshrss", false],
     ["single-label LAN host with trailing dot", "nas.", false],
     ["loopback IPv4", "127.0.0.1", false],
+    ["CGNAT IPv4", "100.64.0.1", false],
     ["private IPv4", "192.168.1.2", false],
     ["link-local IPv4", "169.254.1.2", false],
     ["unique-local IPv6", "fd00::1", false],

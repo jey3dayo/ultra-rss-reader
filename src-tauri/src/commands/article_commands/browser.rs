@@ -6,8 +6,8 @@ use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use crate::commands::dto::AppError;
-use crate::domain::error::DomainError;
-use crate::domain::url_policy::validate_public_http_url;
+use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::url_policy::{validate_public_http_url, validate_user_navigation_url};
 
 pub(crate) const BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 pub(crate) const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str =
@@ -44,7 +44,7 @@ impl Drop for BrowserOpenQueueGuard<'_> {
 
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
-    let parsed_url = parse_public_browser_http_url(&url)?;
+    let parsed_url = parse_user_navigation_browser_http_url(&url)?;
     let platform_info = crate::platform::PlatformInfo::current();
     let background =
         should_use_background_browser_open(background.unwrap_or(false), &platform_info);
@@ -68,17 +68,28 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
     Ok(())
 }
 
+pub(crate) fn parse_user_navigation_browser_http_url(url: &str) -> Result<reqwest::Url, AppError> {
+    // External-browser open only hands the URL to the OS browser (no app-side
+    // fetch), so it applies the user-navigation host policy to the literal URL.
+    let parsed_url = crate::commands::parse_browser_http_url(url)?;
+    validate_browser_url(&parsed_url, validate_user_navigation_url)?;
+    Ok(parsed_url)
+}
+
 pub(crate) fn parse_public_browser_http_url(url: &str) -> Result<reqwest::Url, AppError> {
     let parsed_url = crate::commands::parse_browser_http_url(url)?;
-    // External-browser open only hands the URL to the OS browser (no app-side
-    // fetch), so it keeps literal-IP validation and must not incur DNS resolution
-    // or fail-closed behavior. The app-side fetch entry (check_browser_embed_support)
-    // resolves and pins separately via resolve_validated_public_addrs.
-    validate_public_http_url(&parsed_url).map_err(|error| match error {
+    validate_browser_url(&parsed_url, validate_public_http_url)?;
+    Ok(parsed_url)
+}
+
+fn validate_browser_url(
+    url: &reqwest::Url,
+    validate: fn(&reqwest::Url) -> DomainResult<()>,
+) -> Result<(), AppError> {
+    validate(url).map_err(|error| match error {
         DomainError::Validation(message) => AppError::UserVisible { message },
         other => AppError::from(other),
-    })?;
-    Ok(parsed_url)
+    })
 }
 
 pub(crate) fn acquire_browser_open_queue_guard(

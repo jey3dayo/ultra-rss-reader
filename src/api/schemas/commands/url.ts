@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { isPrivateIpv4Host } from "@/lib/runtime/host-privacy";
+import { type HostPrivacyPolicy, isHostBlockedByPolicy } from "@/lib/runtime/host-privacy";
 import { controlCharPattern, READING_LIST_URL_MAX_BYTES, textEncoder, whitespacePattern } from "./shared";
 
 export function hasHttpUrlCredentials(value: string): boolean {
@@ -37,40 +37,9 @@ export function isValidSupportedExternalUrl(value: string): boolean {
   }
 }
 
-function isPrivateIpv6Host(host: string): boolean {
-  const normalized = host.replace(/^\[/u, "").replace(/\]$/u, "").split("%", 1)[0]?.toLowerCase() ?? "";
-  if (!normalized.includes(":")) {
-    return false;
-  }
-  return (
-    normalized === "::" ||
-    normalized === "::1" ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe80:") ||
-    normalized.startsWith("fe8") ||
-    normalized.startsWith("fe9") ||
-    normalized.startsWith("fea") ||
-    normalized.startsWith("feb") ||
-    normalized.startsWith("::ffff:127.") ||
-    normalized.startsWith("::ffff:7f") ||
-    normalized.startsWith("::ffff:10.") ||
-    normalized.startsWith("::ffff:a") ||
-    normalized.startsWith("::ffff:169.254.") ||
-    normalized.startsWith("::ffff:a9fe:") ||
-    /^::ffff:ac1[0-9a-f]:/u.test(normalized) ||
-    normalized.startsWith("::ffff:192.168.") ||
-    normalized.startsWith("::ffff:c0a8:")
-  );
-}
-
-export function hasPrivateHttpHost(value: string): boolean {
+export function hasBlockedHttpHost(value: string, policy: HostPrivacyPolicy): boolean {
   const url = parseHttpUrl(value);
-  if (url == null) {
-    return false;
-  }
-  const host = url.hostname.toLowerCase().replace(/\.+$/u, "");
-  return host === "localhost" || isPrivateIpv4Host(host) || isPrivateIpv6Host(host);
+  return url != null && isHostBlockedByPolicy(url.hostname, policy);
 }
 
 const httpUrlSchema = v.pipe(
@@ -89,13 +58,24 @@ export const webPreviewUrlSchema = v.pipe(
   v.check((url) => !hasHttpUrlCredentials(url), "Web Preview URLs must not contain credentials"),
 );
 
-export const httpCommandUrlSchema = v.pipe(
+export const userNavigationUrlSchema = v.pipe(
   httpUrlSchema,
-  v.check((url) => !hasPrivateHttpHost(url), "Requests to private/loopback addresses are not allowed"),
+  v.check(
+    (url) => !hasBlockedHttpHost(url, "userNavigation"),
+    "Requests to private/loopback addresses are not allowed",
+  ),
+);
+
+export const automaticRequestUrlSchema = v.pipe(
+  httpUrlSchema,
+  v.check(
+    (url) => !hasBlockedHttpHost(url, "automaticRequest"),
+    "Requests to private/loopback addresses are not allowed",
+  ),
 );
 
 export const safariReadingListUrlSchema = v.pipe(
-  httpCommandUrlSchema,
+  userNavigationUrlSchema,
   v.check(
     (url) => textEncoder.encode(url).length <= READING_LIST_URL_MAX_BYTES,
     `Reading List URL must be ${READING_LIST_URL_MAX_BYTES} UTF-8 bytes or less`,
@@ -105,10 +85,8 @@ export const safariReadingListUrlSchema = v.pipe(
   v.check((url) => !hasHttpUrlCredentials(url), "Reading List URL must not contain credentials"),
 );
 
-export const readingListUrlSchema = httpCommandUrlSchema;
-
 export function normalizeHttpCommandUrl(value: string): string | null {
-  const result = v.safeParse(httpCommandUrlSchema, value);
+  const result = v.safeParse(userNavigationUrlSchema, value);
 
   return result.success ? result.output : null;
 }
