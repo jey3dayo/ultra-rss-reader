@@ -228,6 +228,15 @@ describe("applyReaderContentPrivacyPolicy", () => {
     expect(normalized.match(/srcset=/g)).toHaveLength(1);
   });
 
+  it("keeps img srcset URLs that contain commas intact while dropping blocked candidates", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      '<img src="https://cdn.example.com/a.jpg" srcset="https://example.com/image,name.jpg 1x, http://100.64.0.1/a.jpg 2x" alt="Comma">',
+    );
+
+    expect(normalized).toContain('srcset="https://example.com/image,name.jpg 1x"');
+    expect(normalized).not.toContain("100.64.0.1");
+  });
+
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
     const corpus: readonly PrivacyPolicyCorpusFixture[] = [
       {

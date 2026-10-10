@@ -275,9 +275,32 @@ function isSafeReaderContentLinkUrl(value: string): boolean {
   return url !== null && isSafeReaderContentUrl(url, ARTICLE_LINK_PROTOCOLS);
 }
 
+function splitSrcsetCandidates(value: string): string[] {
+  const candidates: string[] = [];
+  let candidateStart = 0;
+  let hasUrl = false;
+  let hasDescriptor = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (/\s/.test(character)) {
+      hasDescriptor ||= hasUrl;
+    } else if (character === "," && hasDescriptor) {
+      candidates.push(value.slice(candidateStart, index));
+      candidateStart = index + 1;
+      hasUrl = false;
+      hasDescriptor = false;
+    } else {
+      hasUrl = true;
+    }
+  }
+
+  candidates.push(value.slice(candidateStart));
+  return candidates;
+}
+
 function safeSrcsetCandidates(value: string): string {
-  return value
-    .split(",")
+  return splitSrcsetCandidates(value)
     .map((candidate) => candidate.trim())
     .filter((candidate) => {
       const [url] = candidate.split(/\s+/, 1);
