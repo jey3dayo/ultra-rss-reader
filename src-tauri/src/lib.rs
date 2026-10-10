@@ -59,7 +59,6 @@ const MAIN_WINDOW_STATE_FLAGS: tauri_plugin_window_state::StateFlags =
 const MAIN_WINDOW_MIN_WIDTH: u64 = 520;
 const MAIN_WINDOW_MIN_HEIGHT: u64 = 420;
 const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u128 = 5_000_000;
-#[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_RETENTION_DAYS: u64 = 7;
 #[cfg(test)]
 const RELEASE_LOG_ROTATION_STRATEGY: &str = "KeepAll";
@@ -703,7 +702,6 @@ fn enforce_main_window_min_size_after_window_resize<R: tauri::Runtime>(
     }
 }
 
-#[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
     use std::time::{Duration, SystemTime};
 
@@ -755,7 +753,10 @@ fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
     }
 }
 
-#[cfg(any(not(debug_assertions), test))]
+fn cleanup_startup_logs(log_dir: &std::path::Path) {
+    cleanup_old_logs(log_dir, RELEASE_LOG_RETENTION_DAYS);
+}
+
 fn cleanup_old_logs_read_dir_warning(log_dir: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to read log directory {} during cleanup: {error}",
@@ -763,7 +764,6 @@ fn cleanup_old_logs_read_dir_warning(log_dir: &std::path::Path, error: &std::io:
     )
 }
 
-#[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs_entry_debug(log_dir: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to inspect log directory entry in {}: {error}",
@@ -771,7 +771,6 @@ fn cleanup_old_logs_entry_debug(log_dir: &std::path::Path, error: &std::io::Erro
     )
 }
 
-#[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs_metadata_debug(path: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to read log file metadata for {}: {error}",
@@ -779,7 +778,6 @@ fn cleanup_old_logs_metadata_debug(path: &std::path::Path, error: &std::io::Erro
     )
 }
 
-#[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs_modified_debug(path: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to read log file modified time for {}: {error}",
@@ -787,7 +785,6 @@ fn cleanup_old_logs_modified_debug(path: &std::path::Path, error: &std::io::Erro
     )
 }
 
-#[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs_remove_warning(path: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to remove old log file {}: {error}",
@@ -1030,12 +1027,8 @@ pub fn run() {
             let state = app.state::<AppState>();
             service::sync_scheduler::start_sync_scheduler(&state.db, app.handle().clone());
 
-            // Clean up old log files (release only)
-            #[cfg(not(debug_assertions))]
-            {
-                if let Ok(log_dir) = app.path().app_log_dir() {
-                    cleanup_old_logs(&log_dir, RELEASE_LOG_RETENTION_DAYS);
-                }
+            if let Ok(log_dir) = app.path().app_log_dir() {
+                cleanup_startup_logs(&log_dir);
             }
 
             Ok(())
@@ -1155,7 +1148,7 @@ mod tests {
         centered_main_window_physical_position, clamped_main_window_physical_inner_size,
         cleanup_old_logs, cleanup_old_logs_entry_debug, cleanup_old_logs_metadata_debug,
         cleanup_old_logs_modified_debug, cleanup_old_logs_read_dir_warning,
-        cleanup_old_logs_remove_warning, database_init_error_message,
+        cleanup_old_logs_remove_warning, cleanup_startup_logs, database_init_error_message,
         database_init_startup_error_message, drain_mutex_lock_for_shutdown,
         main_window_close_decision, main_window_title_bar_uses_overlay,
         mark_startup_focus_restore_stopped, panic_payload_text, redact_sensitive_panic_text,
@@ -1556,14 +1549,20 @@ mod tests {
     }
 
     #[test]
-    fn cleanup_old_logs_removes_expired_files_and_preserves_current_app_log() {
+    fn startup_log_cleanup_removes_expired_files_and_preserves_current_app_log() {
         let temp_dir = tempfile::tempdir().expect("log tempdir should be created");
         let old_log = temp_dir.path().join("app.log.1");
         let current_log = temp_dir.path().join("app.log");
         std::fs::write(&old_log, "old").expect("old rotated log should be written");
         std::fs::write(&current_log, "current").expect("current app log should be written");
+        let old_modified = std::time::SystemTime::now()
+            - Duration::from_secs((RELEASE_LOG_RETENTION_DAYS + 1) * 86_400);
+        std::fs::File::open(&old_log)
+            .expect("old rotated log should be opened")
+            .set_times(std::fs::FileTimes::new().set_modified(old_modified))
+            .expect("old rotated log timestamp should be updated");
 
-        cleanup_old_logs(temp_dir.path(), 0);
+        cleanup_startup_logs(temp_dir.path());
 
         assert!(!old_log.exists(), "expired rotated log should be removed");
         assert!(
@@ -1586,7 +1585,15 @@ mod tests {
         assert!(lib_rs.contains(".max_file_size(RELEASE_LOG_MAX_FILE_SIZE_BYTES)"));
         assert!(lib_rs.contains("RotationStrategy::KeepAll"));
         assert!(lib_rs.contains("TimezoneStrategy::UseLocal"));
-        assert!(lib_rs.contains("cleanup_old_logs(&log_dir, RELEASE_LOG_RETENTION_DAYS)"));
+        let startup_cleanup = lib_rs
+            .split(
+                "service::sync_scheduler::start_sync_scheduler(&state.db, app.handle().clone());",
+            )
+            .nth(1)
+            .and_then(|setup| setup.split("            Ok(())").next())
+            .expect("startup cleanup should follow scheduler startup");
+        assert!(startup_cleanup.contains("cleanup_startup_logs(&log_dir);"));
+        assert!(!startup_cleanup.contains("#[cfg(not(debug_assertions))]"));
         assert!(file_logging_design.contains("max_file_size = 5_000_000"));
         assert!(file_logging_design.contains("7 days"));
         assert!(file_logging_design.contains("KeepAll"));
