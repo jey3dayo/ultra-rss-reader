@@ -42,6 +42,18 @@ describe("useArticlePaneShortcuts", () => {
     expect(commands.addToReadingList).not.toHaveBeenCalled();
   });
 
+  it("ignores URL shortcuts while Web Preview has a selected article without a URL", () => {
+    useUiStore.setState({ contentMode: "browser", selectedArticleId: "art-1" });
+    const commands = createCommands();
+    renderHook(() => useArticlePaneShortcuts({ commands, articleUrl: null, overlay }));
+
+    dispatchUrlShortcuts();
+
+    expect(commands.openInExternalBrowser).not.toHaveBeenCalled();
+    expect(commands.copyLink).not.toHaveBeenCalled();
+    expect(commands.addToReadingList).not.toHaveBeenCalled();
+  });
+
   it("runs URL shortcuts in Web Preview when an article is selected", () => {
     useUiStore.setState({ contentMode: "browser", selectedArticleId: "art-1" });
     const commands = createCommands();
