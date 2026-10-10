@@ -36,6 +36,7 @@ import { sampleAccounts, sampleArticles, sampleFeeds, sampleFolders } from "./fi
 import {
   createCommandIndex,
   extractCommandNames,
+  extractRegisteredRustCommandNames,
   extractSafeInvokeCommandsWithArgs,
   orderedCommandDifference,
 } from "./tauri-command-contract";
@@ -78,13 +79,6 @@ function extractDefaultMockCommands(): string[] {
 
 function extractFrontendTauriCommands(): string[] {
   return extractCommandNames(readTauriCommandsSource(), /safeInvoke\(\s*"([^"]+)"/g);
-}
-
-function extractRustInvokeRegistryCommands(): string[] {
-  const rustLib = readWorkspaceFile("src-tauri/src/lib.rs");
-  const registry = rustLib.match(/\.invoke_handler\(tauri::generate_handler!\[\s*([\s\S]*?)\s*\]\)/)?.[1] ?? "";
-
-  return extractCommandNames(registry, /commands::[a-z_]+::([a-zA-Z0-9_]+)/g);
 }
 
 describe("setupTauriMocks fixture isolation", () => {
@@ -415,7 +409,7 @@ describe("setupTauriMocks fixture isolation", () => {
   });
 
   it("keeps command args schema registry aligned with frontend commands registered by Rust", () => {
-    const rustRegistryCommands = new Set(extractRustInvokeRegistryCommands());
+    const rustRegistryCommands = new Set(extractRegisteredRustCommandNames(readWorkspaceFile("src-tauri/src/lib.rs")));
     const frontendCommandsWithArgs = extractSafeInvokeCommandsWithArgs(readTauriCommandsSource());
     const rustBackedFrontendCommandsWithArgs = frontendCommandsWithArgs.filter((command) =>
       rustRegistryCommands.has(command),
