@@ -85,6 +85,15 @@ export const Loading: Story = {
   },
 };
 
+export const SaveLocked: Story = {
+  args: {
+    title: "環境設定",
+    closeLabel: "環境設定を閉じる",
+    isCloseDisabled: true,
+    lockMessage: "変更を保存しています。設定を閉じる前にお待ちください。",
+  },
+};
+
 export const DenseNarrowViewport: Story = {
   parameters: denseNarrowViewportParameters,
   decorators: [
