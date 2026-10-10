@@ -277,25 +277,38 @@ function isSafeReaderContentLinkUrl(value: string): boolean {
 
 function splitSrcsetCandidates(value: string): string[] {
   const candidates: string[] = [];
-  let candidateStart = 0;
-  let hasUrl = false;
-  let hasDescriptor = false;
+  let index = 0;
 
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index];
-    if (/\s/.test(character)) {
-      hasDescriptor ||= hasUrl;
-    } else if (character === "," && hasDescriptor) {
-      candidates.push(value.slice(candidateStart, index));
-      candidateStart = index + 1;
-      hasUrl = false;
-      hasDescriptor = false;
-    } else {
-      hasUrl = true;
+  while (index < value.length) {
+    while (index < value.length && /[\t\n\f\r ,]/.test(value[index])) {
+      index += 1;
     }
+    if (index >= value.length) {
+      break;
+    }
+
+    const urlStart = index;
+    while (index < value.length && !/[\t\n\f\r ]/.test(value[index])) {
+      index += 1;
+    }
+    const url = value.slice(urlStart, index).replace(/,+$/, "");
+    if (url.length !== index - urlStart) {
+      candidates.push(url);
+      continue;
+    }
+
+    let depth = 0;
+    while (index < value.length && !(value[index] === "," && depth === 0)) {
+      if (value[index] === "(") {
+        depth += 1;
+      } else if (value[index] === ")" && depth > 0) {
+        depth -= 1;
+      }
+      index += 1;
+    }
+    candidates.push(value.slice(urlStart, index));
   }
 
-  candidates.push(value.slice(candidateStart));
   return candidates;
 }
 

@@ -237,6 +237,16 @@ describe("applyReaderContentPrivacyPolicy", () => {
     expect(normalized).not.toContain("100.64.0.1");
   });
 
+  it.each([
+    "https://cdn.example.com/a.jpg, http://127.0.0.1/pixel.jpg",
+    "https://cdn.example.com/a.jpg, http://100.64.0.1/a.jpg 2x",
+  ])("drops a blocked candidate that follows a descriptor-less candidate: %s", (srcset) => {
+    const normalized = applyReaderContentPrivacyPolicy(`<img srcset="${srcset}" alt="Bare">`);
+
+    expect(normalized).toContain('srcset="https://cdn.example.com/a.jpg"');
+    expect(normalized).not.toMatch(/127\.0\.0\.1|100\.64\.0\.1/);
+  });
+
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
     const corpus: readonly PrivacyPolicyCorpusFixture[] = [
       {

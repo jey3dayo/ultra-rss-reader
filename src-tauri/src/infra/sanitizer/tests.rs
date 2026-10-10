@@ -14,7 +14,7 @@ struct SrcsetContractCase {
     expected: Option<&'static str>,
 }
 
-const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 4;
+const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 5;
 
 const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
     SanitizerCorpusCase {
@@ -185,7 +185,7 @@ fn fixes_reader_media_and_link_privacy_attributes() {
 
 #[test]
 fn records_current_sanitizer_contract_version() {
-    assert_eq!(SANITIZER_VERSION, 4);
+    assert_eq!(SANITIZER_VERSION, 5);
 }
 
 #[test]
@@ -384,6 +384,16 @@ fn filters_srcset_parser_edge_case_corpus_by_url_safety_boundary() {
             expected: Some(
                 "https://example.com/image,name.jpg 1x, https://example.com/next.jpg 2x",
             ),
+        },
+        SrcsetContractCase {
+            label: "descriptor-less leading candidate does not hide a blocked loopback candidate",
+            srcset: "https://example.com/a.jpg, http://127.0.0.1/pixel.jpg",
+            expected: Some("https://example.com/a.jpg"),
+        },
+        SrcsetContractCase {
+            label: "descriptor-less leading candidate does not hide a blocked private candidate",
+            srcset: "https://example.com/a.jpg, http://100.64.0.1/a.jpg 2x",
+            expected: Some("https://example.com/a.jpg"),
         },
         SrcsetContractCase {
             label: "empty descriptor keeps safe url because descriptor validation is not enforced",
