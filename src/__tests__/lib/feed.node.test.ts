@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canUseExternalFaviconEndpoint,
   extractSiteHost,
+  resolveExternalFaviconHost,
   resolveFeedWebsiteHref,
   resolveSiteHostLabel,
 } from "@/lib/feed/feed";
@@ -133,15 +134,31 @@ describe("extractSiteHost", () => {
     ["localhost", "localhost", false],
     ["localhost subdomain", "reader.localhost", false],
     ["local mDNS domain", "reader.local", false],
+    ["single-label LAN host", "freshrss", false],
+    ["single-label LAN host with trailing dot", "nas.", false],
     ["loopback IPv4", "127.0.0.1", false],
     ["private IPv4", "192.168.1.2", false],
     ["link-local IPv4", "169.254.1.2", false],
     ["unique-local IPv6", "fd00::1", false],
     ["loopback IPv6", "::1", false],
+    ["IPv4-mapped loopback in WHATWG form", "[::ffff:7f00:1]", false],
+    ["IPv4-mapped 10/8 in WHATWG form", "[::ffff:a00:1]", false],
+    ["IPv4-mapped 192.168/16 in WHATWG form", "[::ffff:c0a8:101]", false],
+    ["IPv4-mapped link-local in WHATWG form", "[::ffff:a9fe:101]", false],
+    ["IPv4-mapped loopback without brackets", "::ffff:7f00:1", false],
+    ["IPv4-mapped loopback in dotted form", "::ffff:127.0.0.1", false],
+    ["unspecified IPv6 with brackets", "[::]", false],
+    ["unspecified IPv6", "::", false],
+    ["IPv4-mapped public address", "[::ffff:808:808]", true],
     ["localhost with repeated trailing dots", "localhost..", false],
     ["local mDNS domain with repeated trailing dots", "reader.local..", false],
   ])("keeps the external favicon endpoint host policy privacy-safe for %s", (_name, host, expectedAllowed) => {
     expect(canUseExternalFaviconEndpoint(host)).toBe(expectedAllowed);
+  });
+
+  it("does not resolve an external favicon host for a feed URL with an IPv4-mapped loopback host", () => {
+    expect(resolveExternalFaviconHost("", "http://[::ffff:127.0.0.1]/feed")).toBeNull();
+    expect(resolveExternalFaviconHost("", "http://[::ffff:8.8.8.8]/feed")).toBe("[::ffff:808:808]");
   });
 
   it.each([

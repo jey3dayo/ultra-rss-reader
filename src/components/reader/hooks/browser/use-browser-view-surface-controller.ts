@@ -3,7 +3,7 @@ import {
   type UseBrowserViewSurfaceStateResult,
   useBrowserViewSurfaceState,
 } from "@/components/reader/hooks/browser/use-browser-view-surface-state";
-import { isBrowserRuntimeUnavailable } from "@/lib/browser/browser-runtime-availability";
+import { hasTauriRuntime } from "@/lib/window/window-chrome";
 import type { BrowserWebviewStateBinding } from "../../browser-view.types";
 
 type UseBrowserViewSurfaceControllerParams = BrowserWebviewStateBinding & {
@@ -19,7 +19,7 @@ export function useBrowserViewSurfaceController({
   setBrowserState,
 }: UseBrowserViewSurfaceControllerParams): UseBrowserViewSurfaceStateResult {
   const { t } = useTranslation("reader");
-  const runtimeUnavailable = isBrowserRuntimeUnavailable();
+  const runtimeUnavailable = !hasTauriRuntime();
 
   return useBrowserViewSurfaceState({
     browserStateRef,

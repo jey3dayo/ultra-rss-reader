@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use crate::commands::dto::{AccountSyncWarningDetail, AccountSyncWarningKind, AppError};
-use crate::commands::feed_commands::lock_db;
+use crate::commands::lock_db;
 use crate::commands::sync_providers::ProviderSyncWarning;
 use crate::domain::feed::Feed;
 use crate::domain::types::AccountId;

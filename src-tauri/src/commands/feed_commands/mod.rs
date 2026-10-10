@@ -1,9 +1,7 @@
-use std::sync::Mutex;
-
 use tauri::State;
 
 use crate::commands::dto::{AppError, DiscoveredFeedDto, FeedDto, FolderDto};
-use crate::commands::AppState;
+use crate::commands::{lock_db, AppState};
 use crate::domain::error::DomainError;
 use crate::domain::folder::normalize_folder_name as normalize_folder_domain_name;
 use crate::domain::types::{AccountId, FeedId};
@@ -37,12 +35,6 @@ const UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE: &str =
 const FOLDER_NAME_UNIQUE_INDEX: &str = "idx_folders_account_name_nocase_unique";
 const FOLDER_LOCAL_NAME_UNIQUE_INDEX: &str = "idx_folders_account_local_name_nocase_unique";
 const FOLDER_SORT_ORDER_UNIQUE_INDEX: &str = "idx_folders_account_sort_order_unique";
-
-pub(super) fn lock_db(
-    db: &Mutex<DbManager>,
-) -> Result<std::sync::MutexGuard<'_, DbManager>, AppError> {
-    crate::commands::lock_db(db)
-}
 
 pub(super) fn validate_feed_title(title: &str) -> Result<String, AppError> {
     let title = title.trim();

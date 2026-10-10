@@ -1,7 +1,7 @@
 use tauri::State;
 
 use crate::commands::dto::{AppError, MuteKeywordDto};
-use crate::commands::AppState;
+use crate::commands::{lock_db, AppState};
 use crate::domain::error::DomainError;
 use crate::domain::mute_keyword::MuteKeywordScope;
 use crate::domain::types::AccountId;
@@ -10,12 +10,6 @@ use crate::infra::db::sqlite_mute_keyword::SqliteMuteKeywordRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::repository::mute_keyword::MuteKeywordRepository;
 use crate::repository::preference::PreferenceRepository;
-
-fn lock_db(
-    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
-) -> Result<std::sync::MutexGuard<'_, crate::infra::db::connection::DbManager>, AppError> {
-    crate::commands::lock_db(db)
-}
 
 fn maybe_mark_existing_muted_articles_as_read(conn: &rusqlite::Connection) -> Result<(), AppError> {
     if !is_mute_auto_mark_read_enabled(conn)? {

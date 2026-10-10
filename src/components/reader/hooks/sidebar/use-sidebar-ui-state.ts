@@ -41,8 +41,8 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const clearSyncProgress = useUiStore((s) => s.clearSyncProgress);
 
   const preferencesLoaded = usePreferencesStore((s) => s.loaded);
-  const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
-  const showStarredCount = usePreferencesStore((s) => (s.prefs.show_starred_count ?? "true") === "true");
+  const showUnreadCount = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_unread_count") === "true");
+  const showStarredCount = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_starred_count") === "true");
   const showSidebarUnread = usePreferencesStore(
     (s) => resolvePreferenceValue(s.prefs, "show_sidebar_unread") === "true",
   );
@@ -53,14 +53,16 @@ export function useSidebarUiState(): SidebarUiStateResult {
     (s) => resolvePreferenceValue(s.prefs, "show_sidebar_recent_articles") === "true",
   );
   const showSidebarTags = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_tags") === "true");
-  const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
-  const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
+  const displayFavicons = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "display_favicons") === "true");
+  const grayscaleFavicons = usePreferencesStore(
+    (s) => resolvePreferenceValue(s.prefs, "grayscale_favicons") === "true",
+  );
   const sortSubscriptions = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "sort_subscriptions"));
   const startupFolderExpansion = usePreferencesStore((s) =>
     resolvePreferenceValue(s.prefs, "startup_folder_expansion"),
   );
   const sidebarDensity = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "sidebar_density"));
-  const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
+  const opaqueSidebars = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "opaque_sidebars") === "true");
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((s) => s.setPref);
 
