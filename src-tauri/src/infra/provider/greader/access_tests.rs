@@ -24,6 +24,14 @@ fn safe_greader_failure_diagnostic_formats_only_allowlisted_values() {
         ),
         (
             "/tenant/alice/account-123/api/greader.php/reader/api/0/edit-tag",
+            "edit-tag",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/unread-count",
+            "unread-count",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/unknown",
             "api-other",
         ),
     ];
@@ -43,9 +51,9 @@ fn safe_greader_failure_diagnostic_formats_only_allowlisted_values() {
         http::safe_greader_failure_diagnostic(
             "/api/greader.php/reader/api/0/tag/list",
             200,
-            http::SafeGReaderFailureReason::Html,
+            http::SafeGReaderFailureReason::HtmlContentType,
         ),
-        "endpoint=tag-list status=200 reason=html"
+        "endpoint=tag-list status=200 reason=html-content-type"
     );
 
     let url = reqwest::Url::parse(
@@ -368,8 +376,8 @@ async fn protected_article_ids_keep_body_cap_with_html_content_type() {
 }
 
 #[tokio::test]
-async fn cloudflare_access_text_endpoints_reject_html_mime_even_with_valid_text() {
-    for content_type in ["text/html", "application/xhtml+xml"] {
+async fn cloudflare_access_html_text_compatibility_is_limited_to_edit_tag_ok() {
+    for (content_type, body) in [("text/html", "OK"), ("application/xhtml+xml", " \tOK\r\n")] {
         let mut server = mockito::Server::new_async().await;
         let login = server
             .mock("POST", "/api/greader.php/accounts/ClientLogin")
@@ -380,7 +388,7 @@ async fn cloudflare_access_text_endpoints_reject_html_mime_even_with_valid_text(
         let mutation =
             authenticated_mock(server.mock("POST", "/api/greader.php/reader/api/0/edit-tag"))
                 .with_header("content-type", content_type)
-                .with_body("OK")
+                .with_body(body)
                 .create_async()
                 .await;
         let mut provider = access_provider(&server);
@@ -395,15 +403,203 @@ async fn cloudflare_access_text_endpoints_reject_html_mime_even_with_valid_text(
         assert!(provider.auth_token.is_none());
 
         provider.auth_token = Some("dummy-auth".into());
-        let mutation_error = provider
+        let mutation_result = provider
             .push_mutations(&[Mutation::MarkRead {
                 remote_entry_id: "123".into(),
             }])
-            .await
-            .expect_err("HTML MIME must still reject a valid mutation text body");
-        assert!(matches!(mutation_error, DomainError::Auth(_)));
+            .await;
+        assert!(
+            mutation_result.is_ok(),
+            "edit-tag OK should accept HTML MIME"
+        );
         login.assert_async().await;
         mutation.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn edit_tag_html_mime_rejects_non_ok_bodies_and_auth_statuses() {
+    for (status, body) in [
+        (200, b"".as_slice()),
+        (200, b" \n".as_slice()),
+        (200, b"ERROR".as_slice()),
+        (200, b"OK ERROR".as_slice()),
+        (200, b"ok".as_slice()),
+        (200, b"<html>secret-sentinel</html>".as_slice()),
+        (200, b"\xff".as_slice()),
+        (401, b"OK".as_slice()),
+        (403, b"OK".as_slice()),
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let mutation =
+            authenticated_mock(server.mock("POST", "/api/greader.php/reader/api/0/edit-tag"))
+                .with_status(status)
+                .with_header("content-type", "text/html")
+                .with_body(body)
+                .create_async()
+                .await;
+        let mut provider = access_provider(&server);
+        provider.auth_token = Some("dummy-auth".into());
+        let error = provider
+            .push_mutations(&[Mutation::MarkRead {
+                remote_entry_id: "entry-secret-sentinel".into(),
+            }])
+            .await
+            .expect_err("edit-tag HTML MIME must accept only successful exact OK");
+        assert!(
+            matches!(error, DomainError::Auth(_)),
+            "status={status} error={error}"
+        );
+        mutation.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn edit_tag_html_ok_compatibility_keeps_decoded_body_cap() {
+    let mut server = mockito::Server::new_async().await;
+    let mutation =
+        authenticated_mock(server.mock("POST", "/api/greader.php/reader/api/0/edit-tag"))
+            .with_header("content-type", "text/html")
+            .with_body(format!(
+                "{}OK",
+                " ".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize)
+            ))
+            .create_async()
+            .await;
+    let mut provider = access_provider(&server);
+    provider.auth_token = Some("dummy-auth".into());
+    let error = provider
+        .push_mutations(&[Mutation::MarkRead {
+            remote_entry_id: "123".into(),
+        }])
+        .await
+        .expect_err("whitespace surrounding OK must not bypass the response cap");
+    assert!(matches!(error, DomainError::Network(_)));
+    assert!(error.to_string().contains("response body exceeds"));
+    mutation.assert_async().await;
+}
+
+#[tokio::test]
+async fn html_ok_compatibility_does_not_apply_to_other_text_paths() {
+    for path in [
+        "/accounts/ClientLogin",
+        "/reader/api/0/subscription/edit",
+        "/reader/api/0/token",
+        "/reader/api/0/edit-tag-extra",
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let response = server
+            .mock("GET", path)
+            .with_header("content-type", "text/html")
+            .with_body("OK")
+            .create_async()
+            .await;
+        let raw = reqwest::Client::new()
+            .get(format!("{}{path}", server.url()))
+            .send()
+            .await
+            .expect("local response fixture should start");
+        let error = GReaderProvider::read_text_response(raw)
+            .await
+            .expect_err("HTML OK compatibility must remain scoped to edit-tag");
+        assert!(matches!(error, DomainError::Auth(_)), "path={path}");
+        response.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn normal_text_response_bytes_are_preserved() {
+    for body in ["", "ERROR", " \tOK\r\n", "Auth=dummy-auth\n"] {
+        let mut server = mockito::Server::new_async().await;
+        let response = server
+            .mock("GET", "/reader/api/0/edit-tag")
+            .with_header("content-type", "text/plain")
+            .with_body(body)
+            .create_async()
+            .await;
+        let raw = reqwest::Client::new()
+            .get(format!("{}/reader/api/0/edit-tag", server.url()))
+            .send()
+            .await
+            .expect("local response fixture should start");
+        let result = GReaderProvider::read_text_response(raw)
+            .await
+            .expect("normal text response behavior should remain unchanged");
+        assert_eq!(result, body);
+        response.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn html_rejection_logs_distinguish_mime_and_body_without_sensitive_values() {
+    use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_process};
+    if let Some(scenario) = child_scenario() {
+        let mut server = mockito::Server::new_async().await;
+        let (path, content_type, body) = match scenario.as_str() {
+            "mime" => (
+                "/reader/api/0/unread-count",
+                "text/html",
+                "body-secret-sentinel",
+            ),
+            "json-body" => (
+                "/reader/api/0/unread-count",
+                "application/json",
+                "\u{feff} \n<!DOCTYPE HTML><html>body-secret-sentinel</html>",
+            ),
+            "edit-body" => (
+                "/reader/api/0/edit-tag",
+                "text/html",
+                "<html>body-secret-sentinel</html>",
+            ),
+            _ => panic!("unexpected diagnostic scenario"),
+        };
+        let response = server
+            .mock("GET", path)
+            .with_header("content-type", content_type)
+            .with_body(body)
+            .create_async()
+            .await;
+        let raw = reqwest::Client::new()
+            .get(format!("{}{path}", server.url()))
+            .header("Authorization", "token-secret-sentinel")
+            .header(CLIENT_SECRET_HEADER, "access-secret-sentinel")
+            .send()
+            .await
+            .expect("local diagnostic fixture should start");
+        let result = if path.ends_with("edit-tag") {
+            GReaderProvider::read_text_response(raw).await.map(|_| ())
+        } else {
+            GReaderProvider::read_json_response::<stream_types::UnreadCountsResponse>(raw)
+                .await
+                .map(|_| ())
+        };
+        assert!(matches!(result, Err(DomainError::Auth(_))));
+        response.assert_async().await;
+        return;
+    }
+    for (scenario, endpoint, reason) in [
+        ("mime", "unread-count", "html-content-type"),
+        ("json-body", "unread-count", "html-body"),
+        ("edit-body", "edit-tag", "html-body"),
+    ] {
+        let lines = run_in_isolated_process(
+            module_path!(),
+            "html_rejection_logs_distinguish_mime_and_body_without_sensitive_values",
+            scenario,
+        );
+        assert_eq!(
+            lines,
+            [format!("endpoint={endpoint} status=200 reason={reason}")]
+        );
+        for sentinel in [
+            "body-secret-sentinel",
+            "token-secret-sentinel",
+            "access-secret-sentinel",
+            "http://",
+            "Authorization",
+        ] {
+            assert!(lines.iter().all(|line| !line.contains(sentinel)));
+        }
     }
 }
 

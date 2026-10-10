@@ -21,6 +21,8 @@ enum SafeGReaderEndpoint {
     TagList,
     Subscriptions,
     Stream,
+    EditTag,
+    UnreadCount,
     ApiOther,
 }
 
@@ -43,6 +45,10 @@ impl SafeGReaderEndpoint {
             || path.ends_with("/reader/api/0/stream/items/ids")
         {
             Self::Stream
+        } else if path.ends_with("/reader/api/0/edit-tag") {
+            Self::EditTag
+        } else if path.ends_with("/reader/api/0/unread-count") {
+            Self::UnreadCount
         } else {
             Self::ApiOther
         }
@@ -54,6 +60,8 @@ impl SafeGReaderEndpoint {
             Self::TagList => "tag-list",
             Self::Subscriptions => "subscriptions",
             Self::Stream => "stream",
+            Self::EditTag => "edit-tag",
+            Self::UnreadCount => "unread-count",
             Self::ApiOther => "api-other",
         }
     }
@@ -62,14 +70,16 @@ impl SafeGReaderEndpoint {
 #[derive(Clone, Copy)]
 pub(super) enum SafeGReaderFailureReason {
     HttpAuth,
-    Html,
+    HtmlContentType,
+    HtmlBody,
 }
 
 impl SafeGReaderFailureReason {
     fn as_str(self) -> &'static str {
         match self {
             Self::HttpAuth => "http-auth",
-            Self::Html => "html",
+            Self::HtmlContentType => "html-content-type",
+            Self::HtmlBody => "html-body",
         }
     }
 }
@@ -444,17 +454,17 @@ impl GReaderProvider {
                 .path()
                 .ends_with("/reader/api/0/stream/items/ids")
         {
-            log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
+            log_greader_api_failure(failure_context, SafeGReaderFailureReason::HtmlContentType);
             return Err(access_html_error());
         }
         let body = Self::read_response_body(response).await?;
         if is_html && !has_item_ids_response_shape(&body) {
-            log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
+            log_greader_api_failure(failure_context, SafeGReaderFailureReason::HtmlContentType);
             return Err(access_html_error());
         }
         serde_json::from_slice::<T>(&body).map_err(|_| {
             if is_html {
-                log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
+                log_greader_api_failure(failure_context, SafeGReaderFailureReason::HtmlContentType);
                 access_html_error()
             } else {
                 DomainError::Parse("Invalid GReader JSON response".into())
@@ -477,7 +487,7 @@ impl GReaderProvider {
             .trim_start()
             .to_ascii_lowercase();
         if prefix.starts_with("<!doctype html") || prefix.starts_with("<html") {
-            log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
+            log_greader_api_failure(failure_context, SafeGReaderFailureReason::HtmlBody);
             return Err(access_html_error());
         }
         Ok(body)
@@ -485,10 +495,16 @@ impl GReaderProvider {
 
     pub(super) async fn read_text_response(response: reqwest::Response) -> DomainResult<String> {
         if has_html_content_type(&response) {
-            log_greader_api_failure(
-                SafeGReaderFailureContext::from_response(&response),
-                SafeGReaderFailureReason::Html,
-            );
+            let failure_context = SafeGReaderFailureContext::from_response(&response);
+            if response.url().path().ends_with("/reader/api/0/edit-tag") {
+                let body = Self::read_response_body(response).await?;
+                if let Ok(text) = String::from_utf8(body) {
+                    if text.trim() == "OK" {
+                        return Ok(text);
+                    }
+                }
+            }
+            log_greader_api_failure(failure_context, SafeGReaderFailureReason::HtmlContentType);
             return Err(access_html_error());
         }
         String::from_utf8(Self::read_response_body(response).await?)
