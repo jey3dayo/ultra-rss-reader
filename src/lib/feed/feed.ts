@@ -61,7 +61,7 @@ export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result
 }
 
 function normalizeHostForPrivacyPolicy(host: string): string {
-  return host.trim().toLowerCase().replace(/^\[/, "").replace(/\]$/, "").replace(/\.$/, "");
+  return host.trim().toLowerCase().replace(/^\[/, "").replace(/\]$/, "").replace(/\.+$/, "");
 }
 
 export function canUseExternalFaviconEndpoint(host: string): boolean {
