@@ -118,6 +118,69 @@ describe("useAccountDetailCredentialsEditor", () => {
     );
   });
 
+  it("sends the replace payload from authorization-required without loading the old value", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ status: "authorization_required" }));
+    updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("authorization_required"));
+
+    act(() => {
+      result.current.setCloudflareAccessRecoveryAction("replace");
+    });
+    act(() => {
+      result.current.setCloudflareAccessClientId("new-client-id");
+      result.current.setCloudflareAccessSecret("new-client-secret");
+    });
+    await act(async () => {
+      await result.current.commitCredentials();
+    });
+
+    expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
+      account.id,
+      account.server_url,
+      account.username,
+      undefined,
+      {
+        action: "replace",
+        clientId: "new-client-id",
+        clientSecret: "new-client-secret",
+      },
+    );
+    expect(getAccountCloudflareAccessMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the remove payload from authorization-required", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ status: "authorization_required" }));
+    updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("authorization_required"));
+
+    act(() => {
+      result.current.setCloudflareAccessRecoveryAction("remove");
+    });
+    await act(async () => {
+      await result.current.commitCredentials();
+    });
+
+    expect(updateAccountCredentialsMock).toHaveBeenCalledWith(
+      account.id,
+      account.server_url,
+      account.username,
+      undefined,
+      {
+        action: "remove",
+      },
+    );
+  });
+
   it("focuses and selects the first available credential input", () => {
     const account = sampleAccounts[1];
     const serverUrlInput = document.createElement("input");

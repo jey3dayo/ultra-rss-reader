@@ -21,11 +21,11 @@ export const triggerStartupSync = (preferredAccountId?: string) =>
 
 export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: SyncResultSchema });
 
-export const syncAccount = (accountId: string, background?: boolean) =>
+export const syncAccount = (accountId: string, credentialAccess?: "background" | "interactive") =>
   safeInvoke(
     "trigger_sync_account",
     { response: SyncResultSchema, args: syncAccountArgs },
-    background === undefined ? { accountId } : { accountId, background },
+    credentialAccess === undefined ? { accountId } : { accountId, credentialAccess },
   );
 
 export const syncFeed = (feedId: string) =>

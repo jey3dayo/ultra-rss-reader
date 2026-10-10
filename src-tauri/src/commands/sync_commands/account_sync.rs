@@ -97,12 +97,30 @@ pub(crate) async fn sync_account_with_mode(
                 elapsed_ms = auth_started_at.elapsed().as_millis() as u64,
                 "FreshRSS sync phase completed"
             );
-            sync_greader_account(db, account, &session).await
+            let outcome = sync_greader_account(db, account, &session).await;
+            #[cfg(target_os = "macos")]
+            release_lease_after_failed_interactive_sync(mode, account, &session, &outcome);
+            outcome
         }
         ProviderKind::Quarantined => Err(AppError::UserVisible {
             message: "Account configuration is quarantined".into(),
         }),
     }
+}
+
+/// An explicit setup sync that fails must not leave behind the lease it granted, matching a failed connection test.
+#[cfg(any(target_os = "macos", test))]
+pub(super) fn release_lease_after_failed_interactive_sync<T>(
+    mode: CredentialLookupMode,
+    account: &Account,
+    session: &GReaderSession,
+    outcome: &Result<T, AppError>,
+) {
+    crate::commands::account_commands::release_lease_after_connection_test(
+        &account.id,
+        mode == CredentialLookupMode::Interactive && outcome.is_err(),
+        session.lease_generation(),
+    );
 }
 
 #[cfg(test)]
