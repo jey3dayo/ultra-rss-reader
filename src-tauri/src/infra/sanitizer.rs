@@ -119,13 +119,13 @@ fn srcset_candidates(srcset: &str) -> impl Iterator<Item = &str> {
             continue;
         }
 
-        let mut depth = 0usize;
+        let mut in_parens = false;
         let mut candidate_end = rest.len();
         for (offset, character) in rest[url_end..].char_indices() {
             match character {
-                '(' => depth += 1,
-                ')' => depth = depth.saturating_sub(1),
-                ',' if depth == 0 => {
+                ')' if in_parens => in_parens = false,
+                '(' => in_parens = true,
+                ',' if !in_parens => {
                     candidate_end = url_end + offset;
                     break;
                 }

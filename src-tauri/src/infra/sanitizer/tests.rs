@@ -396,6 +396,11 @@ fn filters_srcset_parser_edge_case_corpus_by_url_safety_boundary() {
             expected: Some("https://example.com/a.jpg"),
         },
         SrcsetContractCase {
+            label: "first closing parenthesis ends the in-parens state",
+            srcset: "https://example.com/a.jpg ((x),http://127.0.0.1/p.jpg 2x",
+            expected: Some("https://example.com/a.jpg ((x)"),
+        },
+        SrcsetContractCase {
             label: "empty descriptor keeps safe url because descriptor validation is not enforced",
             srcset: "https://example.com/empty.jpg , https://example.com/valid.jpg 2x",
             expected: Some("https://example.com/empty.jpg, https://example.com/valid.jpg 2x"),
