@@ -25,6 +25,7 @@ import {
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/tauri-window";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -341,15 +342,14 @@ export function executeAction(action: AppAction): void {
 
     // --- Preference toggles ---
     case "toggle-sort-unread": {
-      const prefs = usePreferencesStore.getState().prefs;
-      const current = prefs.reading_sort ?? prefs.sort_unread ?? "newest_first";
+      const current = resolvePreferenceValue(usePreferencesStore.getState().prefs, "reading_sort");
       usePreferencesStore
         .getState()
         .setPref("reading_sort", current === "newest_first" ? "oldest_first" : "newest_first");
       break;
     }
     case "toggle-group-by-feed": {
-      const current = usePreferencesStore.getState().prefs.group_by ?? "date";
+      const current = resolvePreferenceValue(usePreferencesStore.getState().prefs, "group_by");
       usePreferencesStore.getState().setPref("group_by", current === "date" ? "feed" : "date");
       break;
     }

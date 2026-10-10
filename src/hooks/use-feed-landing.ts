@@ -11,6 +11,7 @@ import {
 import { useFeeds } from "@/hooks/use-feeds";
 import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { queryKeys } from "@/lib/query/query-invalidation";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -82,9 +83,7 @@ export function useFeedLanding() {
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const prefs = usePreferencesStore((state) => state.prefs);
-  const sortUnread = usePreferencesStore(
-    (state) => state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
-  );
+  const sortUnread = usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "reading_sort"));
   const latestRequestIdRef = useRef(0);
 
   return useCallback(

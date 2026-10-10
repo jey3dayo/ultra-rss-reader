@@ -1,3 +1,4 @@
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -21,13 +22,13 @@ export function useArticleListUiState() {
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
 
   const keyboardPrefs = usePreferencesStore((s) => s.prefs);
-  const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
-  const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
-  const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
-  const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
-  const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
-  const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
-  const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
+  const sortUnread = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reading_sort"));
+  const groupBy = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "group_by"));
+  const dimArchived = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "dim_archived"));
+  const textPreview = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "text_preview"));
+  const imagePreviews = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "image_previews"));
+  const selectionStyle = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "list_selection_style"));
+  const scrollToTopOnChange = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "scroll_to_top_on_change"));
 
   return {
     selection,
