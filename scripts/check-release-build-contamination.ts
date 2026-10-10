@@ -1,7 +1,7 @@
 import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 type TauriConfig = {
   identifier?: string;
@@ -341,7 +341,8 @@ export const checkReleaseDependencyGraph = (
   }
 };
 
-const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule =
+  typeof process.argv[1] === "string" && fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
 if (isMainModule) {
   try {
     console.time("Release source validation");

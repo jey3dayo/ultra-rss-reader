@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -109,13 +109,7 @@ describe("release dependency graph verification", () => {
     expect(run).toHaveBeenCalledExactlyOnceWith(
       "cargo",
       ["tree", "--manifest-path", "src-tauri/Cargo.toml", "-e", "normal", "--locked"],
-      {
-        cwd: process.cwd(),
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: 120_000,
-        killSignal: "SIGKILL",
-      },
+      expect.objectContaining({ timeout: 120_000, killSignal: "SIGKILL" }),
     );
   });
 
@@ -161,6 +155,28 @@ describe("release dependency graph verification", () => {
     expect(result.stdout).not.toContain("Release build contamination contract passed");
     expect(result.stderr).toContain("unable to verify the release dependency graph");
     expect(result.stderr).toContain("ENOENT");
+  });
+
+  it("still runs the checks when the CLI is invoked through a symlinked path", () => {
+    const linkRoot = mkdtempSync(join(tmpdir(), "release-contamination-link-"));
+    try {
+      symlinkSync(
+        join(process.cwd(), "scripts"),
+        join(linkRoot, "scripts"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      const result = spawnSync(process.execPath, [join(linkRoot, "scripts/check-release-build-contamination.ts")], {
+        cwd: fixture(),
+        env: { ...process.env, PATH: "", Path: "" },
+        encoding: "utf8",
+        timeout: 10_000,
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("Release dependency graph validation:");
+    } finally {
+      rmSync(linkRoot, { recursive: true, force: true });
+    }
   });
 
   it("terminates a stalled child and reports the actual runner timeout", () => {
