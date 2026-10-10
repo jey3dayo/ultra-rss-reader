@@ -4,7 +4,7 @@ use std::net::{IpAddr, SocketAddr};
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{
-    is_private_ip, validate_public_http_url, PRIVATE_URL_VALIDATION_MESSAGE,
+    is_blocked_ip, validate_public_http_url, HostPolicy, PRIVATE_URL_VALIDATION_MESSAGE,
     UNSUPPORTED_URL_VALIDATION_MESSAGE,
 };
 use crate::infra::provider::http_defaults;
@@ -117,6 +117,15 @@ pub(crate) fn resolve_validated_public_addrs(url: &reqwest::Url) -> DomainResult
     validate_and_resolve_discovery_request_url(url)
 }
 
+/// Like [`resolve_validated_public_addrs`] for the initial user-provided server
+/// host: resolved addresses may fall in shared address space (100.64.0.0/10).
+pub(crate) fn resolve_user_server_public_addrs(
+    url: &reqwest::Url,
+) -> DomainResult<Vec<SocketAddr>> {
+    validate_discovery_url(url)?;
+    validate_resolved_host(url, HostPolicy::UserNavigation)
+}
+
 pub(crate) fn validated_public_dns_resolver() -> http_defaults::ValidatedPublicDnsResolver {
     http_defaults::ValidatedPublicDnsResolver::new(|host| resolve_host_addresses(host, 0))
 }
@@ -127,6 +136,10 @@ fn validate_and_resolve_discovery_request_url(url: &reqwest::Url) -> DomainResul
 }
 
 fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
+    validate_resolved_host(url, HostPolicy::AutomaticRequest)
+}
+
+fn validate_resolved_host(url: &reqwest::Url, policy: HostPolicy) -> DomainResult<Vec<SocketAddr>> {
     let Some(host) = url.host_str() else {
         return Ok(Vec::new());
     };
@@ -139,7 +152,7 @@ fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<Vec<Sock
         .collect::<Vec<_>>();
 
     for address in &addresses {
-        if is_private_ip(address.ip()) {
+        if is_blocked_ip(address.ip(), policy) {
             return Err(DomainError::Validation(
                 PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
             ));
@@ -166,6 +179,7 @@ fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<SocketAddr>
             Ok(vec![SocketAddr::from(([93, 184, 216, 34], port))])
         }
         "private.test.invalid" => Ok(vec![SocketAddr::from(([127, 0, 0, 1], port))]),
+        "shared.test.invalid" => Ok(vec![SocketAddr::from(([100, 64, 0, 1], port))]),
         "public.test.invalid" => Ok(vec![SocketAddr::from(([93, 184, 216, 34], port))]),
         _ => Err(DomainError::Network(format!(
             "failed to resolve test host: {host}"

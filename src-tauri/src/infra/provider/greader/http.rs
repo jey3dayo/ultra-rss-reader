@@ -8,7 +8,7 @@ use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::{FeedIdentifier, Mutation, ProviderKind};
 use crate::domain::url_policy::{is_private_host, validate_user_provided_server_url};
 use crate::infra::feed_discovery::{
-    resolve_validated_public_addrs, validate_discovery_url, validated_public_dns_resolver,
+    resolve_user_server_public_addrs, validate_discovery_url, validated_public_dns_resolver,
 };
 
 use super::super::http_defaults::{self, http_client_builder};
@@ -179,7 +179,7 @@ pub(super) fn resolve_greader_base_addrs(url: &reqwest::Url) -> DomainResult<Vec
         return Ok(Vec::new());
     }
 
-    resolve_validated_public_addrs(url)
+    resolve_user_server_public_addrs(url)
 }
 
 pub(super) fn explicit_greader_base_addr(url: &reqwest::Url) -> Option<SocketAddr> {
@@ -279,7 +279,7 @@ impl GReaderProvider {
                     resolver.seed_user_selected(host, resolved_addresses.clone())?;
                 }
             } else {
-                resolver.seed(host, resolved_addresses.clone())?;
+                resolver.seed_user_server(host, resolved_addresses.clone())?;
             }
         }
 

@@ -356,6 +356,11 @@ fn try_for_freshrss_rejects_public_hostname_resolving_to_private_address() {
     ));
 }
 
+#[test]
+fn try_for_freshrss_accepts_hostname_resolving_to_shared_address_space() {
+    assert!(GReaderProvider::try_for_freshrss("https://shared.test.invalid").is_ok());
+}
+
 #[tokio::test]
 async fn legacy_constructor_returns_private_dns_setup_failure_from_authenticate() {
     let mut provider = GReaderProvider::for_freshrss("https://private.test.invalid");

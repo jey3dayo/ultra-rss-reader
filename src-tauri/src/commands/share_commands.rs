@@ -364,7 +364,7 @@ mod tests {
         ] {
             assert!(
                 normalize_reading_list_url(url).is_some(),
-                "{url} should stay allowed to match frontend hasPrivateHttpHost"
+                "{url} should stay allowed under the user-navigation host policy"
             );
             reading_list_script(url)
                 .expect("public, .local, and single-label hosts should build a script");

@@ -7,7 +7,8 @@ use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{
-    is_private_ip, validate_http_url_without_credentials, PRIVATE_URL_VALIDATION_MESSAGE,
+    is_blocked_ip, validate_http_url_without_credentials, HostPolicy,
+    PRIVATE_URL_VALIDATION_MESSAGE,
 };
 use reqwest::header::{HeaderMap, HeaderValue, CACHE_CONTROL, PRAGMA};
 use serde::de::DeserializeOwned;
@@ -69,8 +70,28 @@ impl ValidatedPublicDnsResolver {
     }
 
     pub(crate) fn seed(&self, host: &str, addresses: Vec<SocketAddr>) -> DomainResult<()> {
+        self.seed_with_policy(host, addresses, HostPolicy::AutomaticRequest)
+    }
+
+    /// Seeds the initial user-provided server host, which may resolve into
+    /// shared address space (e.g. a Tailscale MagicDNS name) but never into
+    /// loopback, private, or link-local ranges.
+    pub(crate) fn seed_user_server(
+        &self,
+        host: &str,
+        addresses: Vec<SocketAddr>,
+    ) -> DomainResult<()> {
+        self.seed_with_policy(host, addresses, HostPolicy::UserNavigation)
+    }
+
+    fn seed_with_policy(
+        &self,
+        host: &str,
+        addresses: Vec<SocketAddr>,
+        policy: HostPolicy,
+    ) -> DomainResult<()> {
         let addresses = normalize_dns_socket_addrs(addresses);
-        validate_public_socket_addrs(&addresses)?;
+        validate_socket_addrs(&addresses, policy)?;
         let normalized_host = normalize_dns_host(host);
         self.user_selected_hosts
             .lock()
@@ -198,7 +219,14 @@ fn normalize_dns_socket_addrs(addresses: Vec<SocketAddr>) -> Vec<SocketAddr> {
 }
 
 fn validate_public_socket_addrs(addresses: &[SocketAddr]) -> DomainResult<()> {
-    if addresses.iter().any(|address| is_private_ip(address.ip())) {
+    validate_socket_addrs(addresses, HostPolicy::AutomaticRequest)
+}
+
+fn validate_socket_addrs(addresses: &[SocketAddr], policy: HostPolicy) -> DomainResult<()> {
+    if addresses
+        .iter()
+        .any(|address| is_blocked_ip(address.ip(), policy))
+    {
         return Err(DomainError::Validation(
             PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
         ));
