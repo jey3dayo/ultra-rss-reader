@@ -541,12 +541,15 @@ fn keyring_force_delete_fallback_warning_redacts_control_characters() {
 #[cfg(target_os = "macos")]
 #[test]
 fn security_cli_wait_returns_completed_output() {
-    let child = std::process::Command::new("sh")
+    let mut child = std::process::Command::new("/bin/sh")
         .args(["-c", "printf ok"])
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .unwrap();
+        .expect("dummy output child should start");
+    child
+        .wait()
+        .expect("dummy output child should finish before the deadline starts");
 
     let output = super::macos_security_cli::wait_for_security_cli_output(
         child,
