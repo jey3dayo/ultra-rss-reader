@@ -1004,11 +1004,11 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(ciWorkflow).not.toContain("sudo apt-get install -y $" + "{{ env.TAURI_SYSTEM_DEPS }}");
   });
 
-  it("keeps actionlint shellcheck disabled only with a paired shell gate", () => {
+  it("keeps jactionlint shellcheck disabled only with a paired shell gate", () => {
     expect(miseToml).toContain('shellcheck = "latest"');
     expect(miseToml).toContain('"lint:actions-shell"');
-    expect(extractTaskBlock(miseToml, "lint:actions")).toContain("actionlint -shellcheck=");
-    expect(extractTaskBlock(miseToml, "lint:actions-shell")).toContain('run = "actionlint"');
+    expect(extractTaskBlock(miseToml, "lint:actions")).toContain("jactionlint --shellcheck=");
+    expect(extractTaskBlock(miseToml, "lint:actions-shell")).toContain('run = "jactionlint"');
   });
 
   it("documents the intentionally narrow Windows Rust test scope", () => {

@@ -14,7 +14,7 @@ pre-commit:
       run: yamllint -c .yamllint {staged_files}
     - name: actions
       glob: ".github/workflows/*.{yml,yaml}"
-      run: actionlint -shellcheck= {staged_files}
+      run: jactionlint --shellcheck= {staged_files}
     - name: workflow-pins
       glob: ".github/workflows/*.{yml,yaml}"
       run: node scripts/check-workflow-pins.mjs
@@ -38,7 +38,7 @@ pre-push:
         - "*.{ts,tsx,js,jsx,mjs,json,jsonc}"
         - "pnpm-lock.yaml"
       run: mise run test:unit:ci
-    # lint は tsc/biome/clippy/markdownlint/yamllint/actionlint/workflow-pins を含むため広め
+    # lint は tsc/biome/clippy/markdownlint/yamllint/jactionlint/workflow-pins を含むため広め
     - name: lint
       glob: "*.{ts,tsx,js,jsx,mjs,json,jsonc,css,rs,toml,md,yml,yaml}"
       run: mise run lint
