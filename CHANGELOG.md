@@ -7,6 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 ### Bug Fixes
 
 - FreshRSSのセットアップ再試行を、未保存または接続確認中の認証情報では実行しないようにしました。(#389)
+- macOSのKeychain読み取り失敗を、認証情報やCLI出力を含めずapp.logに記録します。
 
 ## [0.65.2] - 2026-10-09
 
