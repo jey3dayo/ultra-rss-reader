@@ -2,6 +2,7 @@
 // remain in scheduler.rs.
 use std::sync::atomic::Ordering;
 
+use serde::Deserialize;
 use tauri::State;
 use tracing::warn;
 
@@ -33,6 +34,23 @@ use super::scheduler::{
     clear_scheduler_sync_status, enable_automatic_sync, load_all_accounts, map_account_sync_status,
     purge_old_articles,
 };
+
+/// Explicit credential access for a single-account sync. `Interactive` is reserved for
+/// user-initiated account setup, where it may read the OS store once and grant a lease.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SyncCredentialAccess {
+    Background,
+    Interactive,
+}
+
+fn account_sync_mode(access: Option<SyncCredentialAccess>) -> CredentialLookupMode {
+    match access {
+        Some(SyncCredentialAccess::Background) => CredentialLookupMode::Background,
+        Some(SyncCredentialAccess::Interactive) => CredentialLookupMode::Interactive,
+        None => CredentialLookupMode::for_user_sync(),
+    }
+}
 
 #[tauri::command]
 pub async fn trigger_sync(
@@ -95,7 +113,7 @@ pub async fn trigger_sync_account(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
     account_id: String,
-    background: Option<bool>,
+    credential_access: Option<SyncCredentialAccess>,
 ) -> Result<SyncResult, AppError> {
     if state
         .syncing
@@ -132,11 +150,7 @@ pub async fn trigger_sync_account(
         failed: Vec::new(),
         warnings: Vec::new(),
     };
-    let mode = if background.unwrap_or(false) {
-        CredentialLookupMode::Background
-    } else {
-        CredentialLookupMode::for_user_sync()
-    };
+    let mode = account_sync_mode(credential_access);
     match sync_account_with_mode(&state.db, &account, mode).await {
         Ok(outcome) => {
             result.succeeded = 1;
@@ -306,4 +320,16 @@ pub async fn trigger_sync_feed(
         emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
     }
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn credential_access_is_a_lowercase_wire_value() {
+        let access: SyncCredentialAccess = serde_json::from_str(r#""interactive""#).unwrap();
+        assert_eq!(access, SyncCredentialAccess::Interactive);
+        assert!(serde_json::from_str::<SyncCredentialAccess>(r#""true""#).is_err());
+    }
 }

@@ -102,7 +102,7 @@ export async function runAccountSetupSync({
 
   let syncResult: Awaited<ReturnType<typeof syncAccount>>;
   try {
-    syncResult = await syncAccount(accountId);
+    syncResult = await syncAccount(accountId, "interactive");
   } catch (error) {
     onSyncStatusChanged?.();
     invalidateQueryKeysLogOnly(queryClient, [["account-sync-status"]]);

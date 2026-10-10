@@ -228,23 +228,49 @@ describe("applyReaderContentPrivacyPolicy", () => {
     expect(normalized.match(/srcset=/g)).toHaveLength(1);
   });
 
-  it("keeps img srcset URLs that contain commas intact while dropping blocked candidates", () => {
-    const normalized = applyReaderContentPrivacyPolicy(
-      '<img src="https://cdn.example.com/a.jpg" srcset="https://example.com/image,name.jpg 1x, http://100.64.0.1/a.jpg 2x" alt="Comma">',
+  it("keeps commas inside srcset URLs and drops only the private candidate", () => {
+    const intact = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/a.jpg" srcset="https://example.com/image,name.jpg 1x">',
     );
+    expect(intact).toContain('srcset="https://example.com/image,name.jpg 1x"');
 
-    expect(normalized).toContain('srcset="https://example.com/image,name.jpg 1x"');
-    expect(normalized).not.toContain("100.64.0.1");
+    const mixed = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/a.jpg" srcset="https://example.com/image,name.jpg 1x, http://100.64.0.1/p.jpg 2x">',
+    );
+    expect(mixed).toContain('srcset="https://example.com/image,name.jpg 1x"');
+    expect(mixed).not.toContain("100.64.0.1");
   });
 
-  it.each([
-    "https://cdn.example.com/a.jpg, http://127.0.0.1/pixel.jpg",
-    "https://cdn.example.com/a.jpg, http://100.64.0.1/a.jpg 2x",
-  ])("drops a blocked candidate that follows a descriptor-less candidate: %s", (srcset) => {
-    const normalized = applyReaderContentPrivacyPolicy(`<img srcset="${srcset}" alt="Bare">`);
+  it("parses srcset candidates per the WHATWG rules for commas without surrounding spaces", () => {
+    const single = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/x.jpg" srcset="https://example.com/a.jpg,b.jpg">',
+    );
+    expect(single).toContain('srcset="https://example.com/a.jpg,b.jpg"');
 
-    expect(normalized).toContain('srcset="https://cdn.example.com/a.jpg"');
-    expect(normalized).not.toMatch(/127\.0\.0\.1|100\.64\.0\.1/);
+    const trailing = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/x.jpg" srcset="https://example.com/a.jpg, http://nas.local/b.jpg">',
+    );
+    expect(trailing).toContain('srcset="https://example.com/a.jpg"');
+    expect(trailing).not.toContain("nas.local");
+  });
+
+  it("ends a srcset candidate at the first closing parenthesis, as the non-nested WHATWG in-parens state does", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/x.jpg" srcset="https://example.com/a.jpg ((x),http://127.0.0.1/p.jpg 2x">',
+    );
+
+    expect(normalized).not.toContain("127.0.0.1");
+  });
+
+  it("treats only ASCII whitespace as srcset separators and keeps a NBSP URL intact", () => {
+    const url = "https://example.com/a\u00a0b.jpg";
+    const normalized = applyReaderContentPrivacyPolicy(`<img src="https://example.com/x.jpg" srcset="${url} 2x">`);
+
+    const srcset = new DOMParser()
+      .parseFromString(normalized, "text/html")
+      .querySelector("img")
+      ?.getAttribute("srcset");
+    expect(srcset).toBe(`${url} 2x`);
   });
 
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {

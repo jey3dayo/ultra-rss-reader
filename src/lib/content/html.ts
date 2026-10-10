@@ -275,50 +275,65 @@ function isSafeReaderContentLinkUrl(value: string): boolean {
   return url !== null && isSafeReaderContentUrl(url, ARTICLE_LINK_PROTOCOLS);
 }
 
-function splitSrcsetCandidates(value: string): string[] {
-  const candidates: string[] = [];
-  let index = 0;
+const SRCSET_ASCII_WHITESPACE = /^[\t\n\f\r ]$/;
+const SRCSET_EDGE_WHITESPACE = /^[\t\n\f\r ]+|[\t\n\f\r ]+$/g;
 
-  while (index < value.length) {
-    while (index < value.length && /[\t\n\f\r ,]/.test(value[index])) {
-      index += 1;
+type SrcsetCandidate = { url: string; descriptors: string };
+
+// WHATWG "parse a srcset attribute": URLs may contain commas, and a comma
+// only ends a candidate when it trails the URL or sits outside parentheses.
+function parseSrcsetCandidates(value: string): SrcsetCandidate[] {
+  const candidates: SrcsetCandidate[] = [];
+  const isAsciiWhitespace = (char: string | undefined) => char !== undefined && SRCSET_ASCII_WHITESPACE.test(char);
+  const isSeparator = (char: string | undefined) => char === "," || isAsciiWhitespace(char);
+  let position = 0;
+
+  while (position < value.length) {
+    while (position < value.length && isSeparator(value[position])) {
+      position += 1;
     }
-    if (index >= value.length) {
+    if (position >= value.length) {
       break;
     }
 
-    const urlStart = index;
-    while (index < value.length && !/[\t\n\f\r ]/.test(value[index])) {
-      index += 1;
+    const urlStart = position;
+    while (position < value.length && !isAsciiWhitespace(value[position])) {
+      position += 1;
     }
-    const url = value.slice(urlStart, index).replace(/,+$/, "");
-    if (url.length !== index - urlStart) {
-      candidates.push(url);
-      continue;
+    let url = value.slice(urlStart, position);
+    let descriptors = "";
+
+    if (url.endsWith(",")) {
+      url = url.replace(/,+$/, "");
+    } else {
+      const descriptorStart = position;
+      let inParens = false;
+      while (position < value.length) {
+        const char = value[position];
+        if (inParens) {
+          inParens = char !== ")";
+        } else if (char === "(") {
+          inParens = true;
+        } else if (char === ",") {
+          break;
+        }
+        position += 1;
+      }
+      descriptors = value.slice(descriptorStart, position).replace(SRCSET_EDGE_WHITESPACE, "");
     }
 
-    let depth = 0;
-    while (index < value.length && !(value[index] === "," && depth === 0)) {
-      if (value[index] === "(") {
-        depth += 1;
-      } else if (value[index] === ")" && depth > 0) {
-        depth -= 1;
-      }
-      index += 1;
+    if (url) {
+      candidates.push({ url, descriptors });
     }
-    candidates.push(value.slice(urlStart, index));
   }
 
   return candidates;
 }
 
 function safeSrcsetCandidates(value: string): string {
-  return splitSrcsetCandidates(value)
-    .map((candidate) => candidate.trim())
-    .filter((candidate) => {
-      const [url] = candidate.split(/\s+/, 1);
-      return normalizeReaderContentImageUrl(url) !== null;
-    })
+  return parseSrcsetCandidates(value)
+    .filter(({ url }) => normalizeReaderContentImageUrl(url) !== null)
+    .map(({ url, descriptors }) => (descriptors ? `${url} ${descriptors}` : url))
     .join(", ");
 }
 
