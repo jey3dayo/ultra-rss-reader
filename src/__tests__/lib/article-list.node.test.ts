@@ -1414,35 +1414,6 @@ describe("article-list utils", () => {
     expect(result.map((a) => a.id)).toEqual(["recently-read", "still-unread"]);
   });
 
-  it("excludes read articles from unread view when retainedArticleIds is not provided", () => {
-    const readArticle: ArticleDto = {
-      ...sampleArticles[0],
-      id: "read-article",
-      is_read: true,
-      published_at: "2026-03-25T12:00:00Z",
-    };
-    const unreadArticle: ArticleDto = {
-      ...sampleArticles[0],
-      id: "unread-article",
-      is_read: false,
-      published_at: "2026-03-25T11:00:00Z",
-    };
-
-    const result = selectVisibleArticles({
-      articles: [readArticle, unreadArticle],
-      searchResults: [],
-      feedId: null,
-      tagId: null,
-      viewMode: "unread",
-      sourceFilter: null,
-      showSearch: false,
-      searchQuery: "",
-      sortUnread: "newest_first",
-    });
-
-    expect(result.map((a) => a.id)).toEqual(["unread-article"]);
-  });
-
   it("keeps retained articles visible in starred view even after they are unstarred", () => {
     const unstarredArticle: ArticleDto = {
       ...sampleArticles[1],

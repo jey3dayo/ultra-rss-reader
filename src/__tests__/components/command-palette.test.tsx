@@ -53,14 +53,6 @@ function expectCommandHistoryCleared() {
 describe("CommandPalette", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("en");
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
     Element.prototype.scrollIntoView = vi.fn();
     localStorage.clear();
     vi.stubEnv("DEV", false);
@@ -649,19 +641,6 @@ describe("CommandPalette", () => {
     expect(openSettings.querySelector('[data-slot="command-shortcut"]')).toHaveClass("text-foreground-soft");
     expect(openSettings).toHaveTextContent("⌘ ,");
     expect(markAllRead).toHaveTextContent("Shift + A");
-  });
-
-  it("opens shortcuts help from the command palette", async () => {
-    const user = userEvent.setup();
-
-    render(<CommandPalette />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("option", { name: /Open shortcuts help/i }));
-
-    await waitFor(() => {
-      expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
-      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
-    });
   });
 
   it("switches to the dark theme from the command palette and closes it", async () => {

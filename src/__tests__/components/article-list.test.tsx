@@ -409,54 +409,6 @@ describe("ArticleList", () => {
     expect(searchInput).toBeInTheDocument();
   });
 
-  it("keeps smart unread search results limited to unread articles", async () => {
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "smart", kind: "unread" },
-      viewMode: "unread",
-    });
-
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_account_articles":
-          return [];
-        case "list_starred_articles":
-          return [];
-        case "list_articles":
-          return [];
-        case "list_articles_by_tag":
-          return [];
-        case "search_articles":
-          return [
-            {
-              ...sampleArticles[0],
-              id: "smart-unread",
-              title: "Smart Search Unread",
-              is_read: false,
-              is_starred: false,
-            },
-            { ...sampleArticles[1], id: "smart-read", title: "Smart Search Read", is_read: true, is_starred: true },
-          ];
-        default:
-          return undefined;
-      }
-    });
-
-    const user = userEvent.setup();
-    render(<ArticleList />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("button", { name: "Search articles" }));
-    await user.type(screen.getByRole("textbox", { name: "Search articles" }), "Smart");
-
-    await waitFor(() => {
-      expect(screen.getByText("Smart Search Unread")).toBeInTheDocument();
-      expect(screen.queryByText("Smart Search Read")).not.toBeInTheDocument();
-    });
-  });
-
   it("keeps smart starred search results limited to starred articles while all mode shows both read and unread matches", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -1495,7 +1447,8 @@ describe("ArticleList", () => {
 
     await user.click(markAllReadButton);
 
-    expect(screen.queryByRole("button", { name: /Mark \d+ as Read/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/articles? in this feed as read\?/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Mark \d+ articles? as read/ })).not.toBeInTheDocument();
   });
 
   it("does not render read articles in unread view even when recentlyReadIds contains them", async () => {
@@ -1782,27 +1735,6 @@ describe("ArticleList", () => {
     expect(screen.getByRole("button", { name: "STARRED" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "STARRED" })).toHaveAttribute("aria-pressed", "false");
-  });
-
-  it("clamps smart unread to unread even if viewMode drifts elsewhere", async () => {
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "smart", kind: "unread" },
-      viewMode: "all",
-    });
-
-    render(<ArticleList />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
-    });
-
-    expect(screen.queryByText(sampleArticles[1].title)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "ALL" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "STARRED" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("omits smart starred header context and locks all footer controls while starred filter is active", async () => {

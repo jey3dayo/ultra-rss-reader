@@ -21,14 +21,6 @@ describe("ShortcutsHelpModal", () => {
 
   beforeEach(async () => {
     await i18n.changeLanguage("en");
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
     Element.prototype.scrollIntoView = vi.fn();
     usePlatformStore.setState({
       platform: {

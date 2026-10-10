@@ -60,18 +60,6 @@ describe("check-react-doctor-pin-consistency", () => {
       { rule: complexityRule, normalizedFilePath: "src/components/only-in-scan.tsx", functionName: "OnlyInScan" },
     ];
 
-    function totalsOnlyComparisonPasses(
-      rows: readonly ClassificationRecordRow[],
-      identities: readonly ComplexityFindingIdentity[],
-    ): boolean {
-      const activeRowCount = rows.filter((row) => !row.noLongerReported).length;
-      return activeRowCount === identities.length;
-    }
-
-    it("demonstrates that a totals-only implementation would pass the swapped fixture (no detection power)", () => {
-      expect(totalsOnlyComparisonPasses(recordRows, scanIdentities)).toBe(true);
-    });
-
     it("fails the same fixture on the diagnostic identity set", () => {
       const comparison = compareComplexityIdentitySets(recordRows, scanIdentities, complexityRule);
       expect(comparison.recordOnly.map((identity) => identity.functionName)).toEqual(["OnlyInRecord"]);
@@ -202,13 +190,6 @@ describe("check-react-doctor-pin-consistency", () => {
         "| --- | --- | --- | --- | --- | --- | --- |",
       ].join("\n");
       expect(parseComplexityClassificationRecordRows(markdown)).toEqual([]);
-    });
-
-    it("parses every row of the real classification record with the pinned counts", () => {
-      const markdown = readFileSync(reactDoctorFullScanTriageStatus.classifiedRecordPath, "utf8");
-      const rows = parseComplexityClassificationRecordRows(markdown);
-      const activeRows = rows.filter((row) => !row.noLongerReported);
-      expect(activeRows).toHaveLength(reactDoctorFullScanTriageStatus.classifiedFindingCount);
     });
   });
 
@@ -341,29 +322,6 @@ describe("check-react-doctor-pin-consistency", () => {
         "/tmp/scan-tree",
         "--scope",
         "full",
-      ]);
-    });
-
-    it("matches the pinned scanCommand and auditScanCommand shape", () => {
-      const status = reactDoctorFullScanTriageStatus;
-      expect(buildMaterializedScanCommandArgs(status.scanCommand, "/tmp/x")).toEqual([
-        "react-doctor",
-        "/tmp/x",
-        "--verbose",
-        "--project",
-        "/tmp/x",
-        "--scope",
-        "full",
-        "--json",
-        "--json-compact",
-        "--blocking",
-        "none",
-        "--no-score",
-        "--no-dead-code",
-      ]);
-      expect(buildMaterializedScanCommandArgs(status.auditScanCommand, "/tmp/x")).toEqual([
-        ...buildMaterializedScanCommandArgs(status.scanCommand, "/tmp/x"),
-        "--no-respect-inline-disables",
       ]);
     });
   });

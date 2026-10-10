@@ -71,14 +71,6 @@ function renderResourceGroups(overrides: CommandPaletteResourceGroupsOverrides =
 describe("CommandPaletteResourceGroups", () => {
   beforeEach(() => {
     Element.prototype.scrollIntoView = vi.fn();
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
   });
 
   it("renders recent resource entries while recent actions are visible", () => {

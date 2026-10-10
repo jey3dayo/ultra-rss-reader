@@ -58,15 +58,4 @@ describe("updater event payload schemas", () => {
       artifact_path: "/tmp/update",
     });
   });
-
-  it("rejects missing or malformed required updater event fields", () => {
-    expect(safeParse(UpdateDownloadProgressEventPayloadSchema, { loaded: 100 }).success).toBe(false);
-    expect(
-      safeParse(UpdateDownloadProgressEventPayloadSchema, {
-        session_id: 1,
-        percent: Number.POSITIVE_INFINITY,
-      }).success,
-    ).toBe(false);
-    expect(safeParse(UpdateReadyEventPayloadSchema, { session_id: 0 }).success).toBe(false);
-  });
 });

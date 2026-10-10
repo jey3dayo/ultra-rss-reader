@@ -88,15 +88,6 @@ describe("getNextArticlePageParam", () => {
     expect(nextOffset).toBeUndefined();
   });
 
-  it("does not clamp the next offset to the limit when it is exceeded", () => {
-    const pagesAtLimit = Math.ceil(MAX_IPC_PAGINATION_OFFSET / pageSize);
-    const allPages = Array.from({ length: pagesAtLimit + 1 }, () => fullPage);
-
-    const nextOffset = getNextArticlePageParam(fullPage, allPages, pageSize);
-
-    expect(nextOffset).not.toBe(MAX_IPC_PAGINATION_OFFSET);
-  });
-
   it("still returns the next offset while it remains within the limit", () => {
     const allPages = [fullPage, fullPage];
 

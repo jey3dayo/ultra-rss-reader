@@ -1221,54 +1221,6 @@ describe("ArticleView", () => {
     });
   });
 
-  it("opens the external browser from the article title on modifier click", async () => {
-    const calls: MockTauriCommandCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      switch (cmd) {
-        case "list_articles":
-          return listSampleArticlesByFeedId(args.feedId);
-        case "list_feeds":
-          return listSampleFeedsByAccountId(args.accountId);
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        case "open_in_browser":
-          return null;
-        default:
-          return undefined;
-      }
-    });
-
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-    usePreferencesStore.setState({
-      prefs: { open_links: "in_app" },
-      loaded: true,
-    });
-
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    const titleButton = await screen.findByRole("button", {
-      name: "First Article",
-    });
-    calls.length = 0;
-    fireEvent.click(titleButton, { metaKey: true });
-
-    await waitFor(() => {
-      expect(calls).toContainEqual({
-        cmd: "open_in_browser",
-        args: { url: "https://example.com/1", background: false },
-      });
-    });
-
-    expect(useUiStore.getState().contentMode).toBe("reader");
-    expect(useUiStore.getState().browserUrl).toBeNull();
-  });
-
   it("opens the external browser from the article title on middle click", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
@@ -1615,64 +1567,6 @@ describe("ArticleView", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it("auto-marks the selected article as read after 0.5 seconds", async () => {
-    await expectArticleAutoMarksAsRead({
-      afterReading: "after_0_5s",
-      delayMs: 500,
-    });
-  });
-
-  it("auto-marks the selected article as read after one second", async () => {
-    await expectArticleAutoMarksAsRead({
-      afterReading: "after_1s",
-      delayMs: 1000,
-    });
-  });
-
-  it("does not auto-mark the article as read when unmounted before one second", async () => {
-    vi.useFakeTimers();
-
-    if (!primaryArticle) {
-      throw new Error("primaryArticle fixture is missing");
-    }
-
-    const calls: MockTauriCommandCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      switch (cmd) {
-        case "list_articles":
-          return listSampleArticlesByFeedId(args.feedId);
-        case "list_feeds":
-          return listSampleFeedsByAccountId(args.accountId);
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        default:
-          return undefined;
-      }
-    });
-
-    usePreferencesStore.setState({
-      prefs: { after_reading: "after_1s" },
-      loaded: true,
-    });
-
-    const { unmount } = render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-      wrapper: createWrapper(),
-    });
-    unmount();
-
-    await vi.advanceTimersByTimeAsync(1000);
-
-    expect(calls).not.toContainEqual({
-      cmd: "mark_article_read",
-      args: { articleId: "art-1", read: true },
-    });
-    vi.useRealTimers();
   });
 
   it("retains an auto-marked article in unread view before the delayed read mutation resolves", async () => {

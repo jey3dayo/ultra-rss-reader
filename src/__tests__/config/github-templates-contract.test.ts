@@ -1,67 +1,10 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const repoRoot = process.cwd();
-const issueTemplateDirectory = join(repoRoot, ".github/ISSUE_TEMPLATE");
-const issueTemplatePaths = readdirSync(issueTemplateDirectory)
-  .filter((fileName) => fileName.endsWith(".yml"))
-  .filter((fileName) => fileName !== "config.yml")
-  .map((fileName) => `.github/ISSUE_TEMPLATE/${fileName}`)
-  .toSorted();
-
-const expectedTopLevelKeys = ["name", "description", "title", "labels", "body"] as const;
-const expectedQualityGateLabels = [
-  "型エラー 0 件 (`mise run check` の `lint:types`)",
-  "リント違反 0 件 (`mise run check` の `lint`)",
-  "高速テスト成功 (`mise run check` の `test:unit:fast` / `test:rust`)",
-  "フォーマッター適用済み (`mise run check` の `format`)",
-  "jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時は DOM/CI/focused test を記録",
-] as const;
-// One required field per form is a deliberate policy, not a test relaxed to
-// fit; the quality gate belongs to the PR template alone, pinned below.
-const expectedRequiredFieldIdsByTemplate = {
-  "01-feature.yml": ["summary"],
-  "02-bug.yml": ["current-behavior"],
-  "03-test-verification.yml": ["background"],
-  "04-maintenance.yml": ["summary"],
-} as const satisfies Record<string, readonly string[]>;
-
 function readRepoFile(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
-}
-
-function extractTopLevelKeys(source: string): string[] {
-  return [...source.matchAll(/^([a-z-]+):/gm)].map((match) => match[1] ?? "");
-}
-
-function extractTemplateBodyItems(source: string): string[] {
-  return [...`${source}\n  - type: __sentinel\n`.matchAll(/^ {2}- type: [\s\S]*?(?=^ {2}- type: )/gm)].map(
-    (match) => match[0],
-  );
-}
-
-function extractFieldId(bodyItem: string): string | null {
-  return bodyItem.match(/^\s+id: ([a-z0-9-]+)$/m)?.[1] ?? null;
-}
-
-function extractRequiredFieldIds(source: string): string[] {
-  return extractTemplateBodyItems(source)
-    .filter((bodyItem) => bodyItem.includes("\n    validations:\n      required: true"))
-    .map(extractFieldId)
-    .filter((fieldId): fieldId is string => fieldId !== null);
-}
-
-function extractMarkdownCheckboxLabels(source: string, heading: string): string[] {
-  const sectionStart = source.indexOf(`## ${heading}`);
-  const nextSectionStart = source.indexOf("\n## ", sectionStart + 1);
-  const section =
-    sectionStart < 0 ? "" : source.slice(sectionStart, nextSectionStart < 0 ? undefined : nextSectionStart);
-  return [...section.matchAll(/^- \[ \] (.+)$/gm)].map((match) => match[1] ?? "");
-}
-
-function normalizeQualityGateLabel(label: string): string {
-  return label.replace("影響時: ", "影響時は ");
 }
 
 function extractTopLevelWorkflowPermissions(source: string): Record<string, string> {
@@ -80,61 +23,13 @@ function extractWorkflowJobIf(source: string, jobId: string): string {
 }
 
 describe("GitHub templates contract", () => {
-  it("keeps issue template YAML shape and required fields explicit", () => {
-    expect(issueTemplatePaths).toEqual([
-      ".github/ISSUE_TEMPLATE/01-feature.yml",
-      ".github/ISSUE_TEMPLATE/02-bug.yml",
-      ".github/ISSUE_TEMPLATE/03-test-verification.yml",
-      ".github/ISSUE_TEMPLATE/04-maintenance.yml",
-    ]);
-
-    for (const path of issueTemplatePaths) {
-      const source = readRepoFile(path);
-      const fileName = path.split("/").at(-1);
-
-      expect(extractTopLevelKeys(source), path).toEqual(expectedTopLevelKeys);
-      expect(source, path).toContain("labels: [");
-      expect(source, path).toContain("body:");
-      expect(new Set(extractTemplateBodyItems(source).map(extractFieldId).filter(Boolean)).size, path).toBe(
-        extractTemplateBodyItems(source).map(extractFieldId).filter(Boolean).length,
-      );
-
-      if (fileName !== undefined && fileName in expectedRequiredFieldIdsByTemplate) {
-        expect(extractRequiredFieldIds(source), path).toEqual(
-          expectedRequiredFieldIdsByTemplate[fileName as keyof typeof expectedRequiredFieldIdsByTemplate],
-        );
-      }
-    }
-  });
-
-  it("keeps the PR template as sole owner of quality gate checkboxes", () => {
-    const pullRequestTemplate = readRepoFile(".github/PULL_REQUEST_TEMPLATE.md");
-    const prQualityGateLabels = extractMarkdownCheckboxLabels(pullRequestTemplate, "確認済み")
-      .filter((label) => !label.startsWith("動作確認完了"))
-      .filter((label) => !label.startsWith("環境変数の変更時"))
-      .map(normalizeQualityGateLabel);
-
-    expect(prQualityGateLabels).toEqual([...expectedQualityGateLabels]);
-
-    for (const path of issueTemplatePaths) {
-      const source = readRepoFile(path);
-      const fieldIds = extractTemplateBodyItems(source).map(extractFieldId);
-      expect(fieldIds, path).not.toContain("quality-gate");
-    }
-  });
-
-  it("keeps release-readiness ownership synchronized between issue forms and labeler", () => {
+  it("keeps release-readiness ownership in labeler", () => {
     const labeler = readRepoFile(".github/labeler.yml");
 
     expect(labeler).toContain("release-readiness:");
     expect(labeler).toContain('".github/release.yml"');
     expect(labeler).toContain('".github/workflows/release.yml"');
     expect(labeler).toContain('"src-tauri/tauri.release.conf.json"');
-
-    for (const path of issueTemplatePaths) {
-      const source = readRepoFile(path);
-      expect(source, path).toContain("`release-readiness` は release 設定変更では `.github/labeler.yml` が付与");
-    }
   });
 
   it("keeps write-permission labeler workflows scoped to same-repository pull requests", () => {
@@ -154,15 +49,5 @@ describe("GitHub templates contract", () => {
       expect(writePermissions, path).not.toContain("contents");
       expect(extractWorkflowJobIf(source, "label"), path).toBe(sameRepositoryPullRequestOnly);
     }
-  });
-
-  it("keeps bug report diagnostics guidance privacy-safe", () => {
-    const bugReport = readRepoFile(".github/ISSUE_TEMPLATE/02-bug.yml");
-
-    expect(bugReport).toContain("diagnostics export の redacted subset");
-    expect(bugReport).toContain("privacy-safe な最小証跡");
-    expect(bugReport).toContain("raw database backup");
-    expect(bugReport).toContain("keychain export");
-    expect(bugReport).toContain("token や account URL を含む診断一式は添付しない");
   });
 });

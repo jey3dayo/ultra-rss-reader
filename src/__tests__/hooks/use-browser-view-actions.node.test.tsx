@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { createDeferred } from "@tests/helpers/deferred";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
@@ -53,20 +54,6 @@ function createInitialBrowserState(url: string): BrowserWebviewState {
     can_go_forward: false,
     is_loading: true,
     load_generation: 0,
-  };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve;
-    reject = promiseReject;
-  });
-  return {
-    promise,
-    resolve: (value: T) => resolve(value),
-    reject: (reason?: unknown) => reject(reason),
   };
 }
 
@@ -385,7 +372,7 @@ describe("useBrowserViewActions", () => {
   });
 
   it("ignores stale browser navigation command results after a newer command settles", async () => {
-    const slowBack = deferred<Awaited<ReturnType<typeof goBackBrowserWebviewMock>>>();
+    const slowBack = createDeferred<Awaited<ReturnType<typeof goBackBrowserWebviewMock>>>();
     const fastBackState = createBrowserState({
       url: "https://example.com/fast-back",
       can_go_back: true,
@@ -626,7 +613,7 @@ describe("useBrowserViewActions", () => {
 
   it("ignores late retry rejections after the overlay URL changes", async () => {
     const error = new Error("late retry rejected");
-    const retrySync = deferred<void>();
+    const retrySync = createDeferred<void>();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const showToast = vi.fn();
     const syncBrowserWebview = vi.fn(() => retrySync.promise);

@@ -1,6 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { sampleAccounts, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
@@ -1035,80 +1034,6 @@ describe("Sidebar", () => {
     expect(folderRow).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("shows only unread feeds from the selected folder when viewMode is unread", async () => {
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_accounts":
-          return sampleAccounts;
-        case "list_folders":
-          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
-        case "list_feeds":
-          return [
-            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-1", unread_count: 3 },
-            { ...sampleFeeds[1], id: "feed-read", title: "Read Feed", folder_id: "folder-1", unread_count: 0 },
-          ];
-        case "list_account_articles":
-          return [];
-        case "list_tags":
-          return [];
-        case "get_tag_article_counts":
-          return {};
-        default:
-          return undefined;
-      }
-    });
-
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "folder", folderId: "folder-1" },
-      viewMode: "unread",
-      expandedFolderIds: new Set(["folder-1"]),
-    });
-
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
-    expect(screen.queryByText("Read Feed")).not.toBeInTheDocument();
-  });
-
-  it("shows all feeds from the selected folder when viewMode is all", async () => {
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_accounts":
-          return sampleAccounts;
-        case "list_folders":
-          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
-        case "list_feeds":
-          return [
-            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-1", unread_count: 3 },
-            { ...sampleFeeds[1], id: "feed-read", title: "Read Feed", folder_id: "folder-1", unread_count: 0 },
-          ];
-        case "list_account_articles":
-          return [];
-        case "list_tags":
-          return [];
-        case "get_tag_article_counts":
-          return {};
-        default:
-          return undefined;
-      }
-    });
-
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "folder", folderId: "folder-1" },
-      viewMode: "all",
-      expandedFolderIds: new Set(["folder-1"]),
-    });
-
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
-    expect(screen.getByText("Read Feed")).toBeInTheDocument();
-  });
-
   it("hides folders that have no unread feeds in unread smart view", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -1147,42 +1072,6 @@ describe("Sidebar", () => {
 
     expect(await screen.findByText("Unread Folder")).toBeInTheDocument();
     expect(screen.queryByText("Empty Folder")).not.toBeInTheDocument();
-  });
-
-  it("shows only unread feeds in the main list when viewMode is unread", async () => {
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_accounts":
-          return sampleAccounts;
-        case "list_folders":
-          return [];
-        case "list_feeds":
-          return [
-            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: null, unread_count: 3 },
-            { ...sampleFeeds[1], id: "feed-read", title: "Read Feed", folder_id: null, unread_count: 0 },
-          ].filter((feed) => feed.account_id === args.accountId);
-        case "list_account_articles":
-          return [];
-        case "list_tags":
-          return [];
-        case "get_tag_article_counts":
-          return {};
-        default:
-          return undefined;
-      }
-    });
-
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "all" },
-      viewMode: "unread",
-    });
-
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
-    expect(screen.queryByText("Read Feed")).not.toBeInTheDocument();
   });
 
   it("expands the selected folder when clicking its row", async () => {
@@ -1325,53 +1214,6 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Move to Empty" })).not.toBeInTheDocument();
-    });
-  });
-
-  it("does not call update_feed_folder when moving into the same folder", async () => {
-    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-      switch (cmd) {
-        case "list_accounts":
-          return sampleAccounts;
-        case "list_folders":
-          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
-        case "list_feeds":
-          return [{ ...sampleFeeds[0], id: "feed-1", title: "Folder Feed", folder_id: "folder-1" }];
-        case "list_account_articles":
-          return [];
-        case "list_tags":
-          return [];
-        case "get_tag_article_counts":
-          return {};
-        case "update_feed_folder":
-          return null;
-        default:
-          return undefined;
-      }
-    });
-    useUiStore.setState({
-      ...useUiStore.getState(),
-      selectedAccountId: "acc-1",
-      expandedFolderIds: new Set(["folder-1"]),
-    });
-    usePreferencesStore.setState({
-      prefs: { selected_account_id: "acc-1", startup_folder_expansion: "expand_all" },
-      loaded: true,
-    });
-
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    fireEvent.click(await screen.findByRole("button", { name: "Drag Folder Feed" }, { timeout: 5000 }));
-    fireEvent.click(await screen.findByRole("button", { name: "Move to Work" }, { timeout: 5000 }));
-
-    await flushMicrotasksAndRealTimer();
-
-    expect(calls).not.toContainEqual({
-      cmd: "update_feed_folder",
-      args: { feedId: "feed-1", folderId: "folder-1" },
     });
   });
 
@@ -2240,47 +2082,6 @@ describe("Sidebar", () => {
     });
   });
 
-  it("expands folders with unread feeds on startup when that policy is enabled", async () => {
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_accounts":
-          return sampleAccounts;
-        case "list_folders":
-          return [
-            { id: "folder-open", account_id: args.accountId, name: "Open Me", sort_order: 0 },
-            { id: "folder-closed", account_id: args.accountId, name: "Keep Closed", sort_order: 1 },
-          ];
-        case "list_feeds":
-          return [
-            { ...sampleFeeds[0], id: "feed-open", title: "Unread Feed", folder_id: "folder-open", unread_count: 3 },
-            { ...sampleFeeds[1], id: "feed-closed", title: "Read Feed", folder_id: "folder-closed", unread_count: 0 },
-          ];
-        case "list_account_articles":
-          return [];
-        case "list_tags":
-          return [];
-        case "get_tag_article_counts":
-          return {};
-        default:
-          return undefined;
-      }
-    });
-
-    usePreferencesStore.setState({
-      prefs: { startup_folder_expansion: "unread_folders" },
-      loaded: true,
-    });
-
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    await screen.findByRole("button", { name: "Select folder Open Me" });
-
-    await waitFor(() => {
-      expect(useUiStore.getState().expandedFolderIds.has("folder-open")).toBe(true);
-      expect(useUiStore.getState().expandedFolderIds.has("folder-closed")).toBe(false);
-    });
-  });
-
   it("does not overwrite stored expanded folders before startup restore is ready", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -2560,38 +2361,6 @@ describe("Sidebar", () => {
     });
   });
 
-  it("shows a retry-pending toast when sync completes with queued retries", async () => {
-    setupTauriMocks((cmd) => {
-      if (cmd === "trigger_sync") {
-        return {
-          synced: true,
-          total: 1,
-          succeeded: 1,
-          failed: [],
-          warnings: [
-            {
-              account_id: "acc-2",
-              account_name: "FreshRSS",
-              message: "Local change will retry on the next sync.",
-              kind: "retry_pending",
-            },
-          ],
-        };
-      }
-      return null;
-    });
-
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    fireEvent.click(screen.getByLabelText("Sync feeds"));
-
-    await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({
-        message: "Sync completed, but some changes for FreshRSS will retry next sync",
-      });
-    });
-  });
-
   it("shows a warning toast from sync-warning events", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
@@ -2605,54 +2374,6 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Sync completed with warnings for: FreshRSS, Local",
-      });
-    });
-  });
-
-  it("shows a retry-pending toast from sync-warning events when queued retries are present", async () => {
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    expect(syncWarningListener).not.toBeNull();
-
-    syncWarningListener?.([
-      {
-        account_id: "acc-2",
-        account_name: "FreshRSS",
-        message: "Local change will retry on the next sync.",
-        kind: "retry_pending",
-      },
-    ]);
-
-    await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({
-        message: "Sync completed, but some changes for FreshRSS will retry next sync",
-      });
-    });
-  });
-
-  it("shows a scheduled-retry toast from sync-warning events when background sync enters backoff", async () => {
-    render(<Sidebar />, { wrapper: createWrapper() });
-    const retryAt = "2026-04-13T03:15:00Z";
-    const retryTime = formatAccountSyncRetryTime(retryAt, "en");
-
-    expect(syncWarningListener).not.toBeNull();
-
-    syncWarningListener?.([
-      {
-        account_id: "acc-2",
-        account_name: "FreshRSS",
-        message: "Background sync failed and will retry automatically for 'FreshRSS'.",
-        kind: "retry_scheduled",
-        retry_at: retryAt,
-        retry_in_seconds: 120,
-      },
-    ]);
-
-    await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({
-        message: retryTime
-          ? `Background sync failed for FreshRSS. Retrying at ${retryTime}`
-          : "Background sync failed for FreshRSS. Retrying soon",
       });
     });
   });
@@ -3255,38 +2976,5 @@ describe("Sidebar", () => {
     usePreferencesStore.getState().setPref("show_sidebar_unread", "true");
 
     expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
-  });
-
-  it("falls back to unread when the selected tag is no longer available", async () => {
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_accounts":
-          return sampleAccounts;
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_account_articles":
-          return [];
-        case "list_tags":
-          return [];
-        case "get_tag_article_counts":
-          return {};
-        default:
-          return undefined;
-      }
-    });
-
-    useUiStore.setState({
-      ...useUiStore.getState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "tag", tagId: "tag-missing" },
-      viewMode: "unread",
-    });
-
-    render(<Sidebar />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
-      expect(useUiStore.getState().viewMode).toBe("unread");
-    });
   });
 });

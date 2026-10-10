@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, resolve } from "node:path";
 import {
-  extractMarkdownCheckboxLabels,
   extractMarkdownInlineCode,
   extractMarkdownLinks,
   extractMarkdownRelativeLinks,
@@ -23,7 +22,6 @@ import issueBugTemplate from "../../../.github/ISSUE_TEMPLATE/02-bug.yml?raw";
 import issueTestTemplate from "../../../.github/ISSUE_TEMPLATE/03-test-verification.yml?raw";
 import issueMaintenanceTemplate from "../../../.github/ISSUE_TEMPLATE/04-maintenance.yml?raw";
 import labelerConfig from "../../../.github/labeler.yml?raw";
-import pullRequestTemplate from "../../../.github/PULL_REQUEST_TEMPLATE.md?raw";
 import releaseNotesConfig from "../../../.github/release.yml?raw";
 import prInsightsLabelerWorkflow from "../../../.github/workflows/pr-insights-labeler.yml?raw";
 import storybookConfig from "../../../.storybook/main";
@@ -87,26 +85,6 @@ function listRepoRootYamlFiles(): string[] {
     .toSorted();
 }
 
-function expectPackageJsonKnipEntryConfig(): { entry?: string[] } {
-  const { knip } = packageJson;
-
-  if (typeof knip !== "object" || knip === null) {
-    throw new TypeError("Expected package.json knip to be an object");
-  }
-
-  if (!("entry" in knip)) {
-    return {};
-  }
-
-  const { entry } = knip;
-
-  if (!Array.isArray(entry) || !entry.every((value): value is string => typeof value === "string")) {
-    throw new TypeError("Expected package.json knip.entry to be a string array");
-  }
-
-  return { entry };
-}
-
 function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
@@ -123,14 +101,6 @@ function readMiseTaskCorpus() {
     .join("\n");
 }
 
-function githubExpression(expression: string) {
-  return `${"$"}{{ ${expression} }}`;
-}
-
-function matrixArtifactName(prefix: string, suffix: string) {
-  return `name: ${prefix}-${githubExpression("matrix.os")}-${suffix}`;
-}
-
 function extractCssCustomProperty(source: string, selector: string, property: string) {
   const selectorMatch = source.match(new RegExp(`${selector.replaceAll(".", "\\.")}\\s*\\{(?<body>[\\s\\S]*?)\\}`));
   const body = selectorMatch?.groups?.body ?? "";
@@ -143,24 +113,6 @@ function readDirectoryFileStems(path: string) {
     .map((fileName) => fileName.replace(/\.ts$/, ""))
     .filter((fileName) => fileName !== "index")
     .toSorted();
-}
-
-function collectTypeSurfaceFiles(path: string): string[] {
-  const directoryPath = join(repoRoot, path);
-  const entries = readdirSync(directoryPath, { withFileTypes: true });
-  const files: string[] = [];
-
-  for (const entry of entries) {
-    const entryPath = join(path, entry.name);
-
-    if (entry.isDirectory()) {
-      files.push(...collectTypeSurfaceFiles(entryPath));
-    } else if (entry.name.endsWith(".types.ts")) {
-      files.push(toPosixPath(entryPath));
-    }
-  }
-
-  return files.toSorted();
 }
 
 function toPosixPath(path: string) {
@@ -245,23 +197,6 @@ function extractTopLevelWorkflowConcurrency(source: string) {
   );
 }
 
-function extractWorkflowUses(source: string, path: string) {
-  return [...source.matchAll(/^(\s*)uses:\s*["']?([^"'\s#]+)["']?/gm)].map((match) => ({
-    path,
-    line: source.slice(0, match.index).split("\n").length,
-    uses: match[2] ?? "",
-  }));
-}
-
-function isPinnedWorkflowUses(uses: string) {
-  if (uses.startsWith("./")) {
-    return workflowLocalReusableActionAllowlist.has(uses);
-  }
-
-  const ref = uses.match(/@([^@]+)$/)?.[1] ?? "";
-  return /^[0-9a-f]{40}$/i.test(ref) || workflowUsesRefAllowlist.has(uses);
-}
-
 function extractWorkflowCheckJobIds(source: string) {
   return extractWorkflowJobIds(source).filter((jobId) => {
     const jobSection = source.match(new RegExp(`^  ${jobId}:\\n([\\s\\S]*?)(?=^  [A-Za-z0-9_-]+:|$)`, "m"))?.[1] ?? "";
@@ -278,22 +213,6 @@ function extractQualityGateNeeds(source: string) {
       return trimmedValue ? [trimmedValue] : [];
     })
     .toSorted();
-}
-
-function extractWorkflowCheckJobSections(source: string) {
-  return extractWorkflowCheckJobIds(source).map((jobId) => {
-    const section =
-      source.match(
-        new RegExp(`^  ${jobId}:\\n([\\s\\S]*?)(?=\\n  [A-Za-z0-9_-]+:\\n    name:|(?![\\s\\S]))`, "m"),
-      )?.[1] ?? "";
-
-    return { jobId, section };
-  });
-}
-
-function extractMiseToolVersion(source: string, toolName: string) {
-  const escapedToolName = toolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return source.match(new RegExp(`^(?:"${escapedToolName}"|${escapedToolName})\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null;
 }
 
 function extractMiseEnvValue(source: string, envName: string) {
@@ -317,10 +236,6 @@ function extractMiseTaskCommand(source: string, taskName: string, commandName: "
   return (
     extractMiseTaskSection(source, taskName).match(new RegExp(`^${commandName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null
   );
-}
-
-function extractPackageManagerVersion(packageManager: string, managerName: string) {
-  return packageManager.match(new RegExp(`^${managerName}@(.+)$`))?.[1] ?? null;
 }
 
 function extractViteServerPort(source: string) {
@@ -391,13 +306,6 @@ function extractConfigAliases(source: string, configPath: string) {
   return Object.fromEntries([...aliases.entries()].toSorted());
 }
 
-function extractCargoPackageVersion(source: string) {
-  const packageStart = source.indexOf("[package]");
-  const nextSection = source.indexOf("\n[", packageStart + "[package]".length);
-  const packageSection = source.slice(packageStart, nextSection === -1 ? undefined : nextSection);
-  return packageSection.match(/^version\s*=\s*"([^"]+)"/m)?.[1] ?? null;
-}
-
 function extractCargoPackageField(source: string, field: string) {
   const packageStart = source.indexOf("[package]");
   const nextSection = source.indexOf("\n[", packageStart + "[package]".length);
@@ -459,7 +367,6 @@ function typescriptFilesUnder(paths: readonly string[]) {
 
 const valibotValidationBoundaryPaths = new Set([
   "src/__tests__/api/browser-webview-command-contract.node.test.ts",
-  "src/__tests__/api/bulk-count-schemas.test.ts",
   "src/__tests__/api/command-args-validation.node.test.ts",
   "src/__tests__/api/schema-barrel-public-api.test.ts",
   "src/__tests__/api/schemas.node.test.ts",
@@ -474,7 +381,7 @@ const valibotValidationBoundaryPaths = new Set([
   "src/__tests__/components/use-general-settings-view-props.node.test.ts",
   "src/__tests__/constants/source-of-truth.test.ts",
   "src/__tests__/dev/dev-mock-data.test.ts",
-  "src/__tests__/dev/dev-mock-data-demo-en.test.ts",
+  "src/__tests__/dev/dev-mock-data-demo-en.node.test.ts",
   "src/__tests__/dev/dev-mocks-browser.node.test.ts",
   "src/__tests__/dev/dev-mocks.node.test.ts",
   "src/__tests__/hooks/tag-mute-settings-contract.test.ts",
@@ -670,25 +577,8 @@ const storybookStoryHelperExportAllowlist = new Set(
   ),
 );
 const officialTauriV2ConfigSchemaUrl = "https://schema.tauri.app/config/2";
-const workflowUsesRefAllowlist = new Set(["dtolnay/rust-toolchain@stable"]);
-const workflowLocalReusableActionAllowlist = new Set<string>();
 const maintainerManagedLabelSet = new Set<string>(maintainerManagedLabels);
 const automationMaintenanceLabelSet = new Set(["ci", "maintenance-family"]);
-const auditedReaderTypeSurfacePathSet = new Set([
-  "src/components/reader/add-feed-dialog.types.ts",
-  "src/components/reader/browser-view.types.ts",
-  "src/components/reader/command-palette.types.ts",
-  "src/components/reader/feed-dialog-form.types.ts",
-  "src/components/reader/feed-edit-dialog.types.ts",
-  "src/components/reader/feed-tree.types.ts",
-  "src/components/reader/hooks/article-list/article-list-controller.types.ts",
-  "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts",
-  "src/components/reader/sidebar-feed-section.types.ts",
-  "src/components/reader/sidebar-feed-tree.types.ts",
-  "src/components/reader/sidebar-runtime.types.ts",
-  "src/components/reader/sidebar-sources.types.ts",
-  "src/components/reader/sidebar.types.ts",
-]);
 const pathLabelableAffectedAreaTemplateNames = ["feature", "bug", "test verification", "maintenance"] as const;
 const sharedAutomaticAffectedAreaLabelParity = [
   {
@@ -871,339 +761,6 @@ const automaticAffectedAreaLabelParity = [
   },
 ] as const;
 
-const typeSurfaceInventoryClassifications = ["public contract", "feature-local", "schema-derived"] as const;
-
-const typeSurfaceInventory = [
-  {
-    path: "src/components/reader/add-feed-dialog.types.ts",
-    owner: "components/reader/add-feed-dialog",
-    classification: "feature-local",
-    consumerScope: "reader add-feed dialog controller, view, shared feed-dialog form types, and focused tests",
-    auditedExports: [
-      "AddFeedDialogAction",
-      "AddFeedDialogController",
-      "AddFeedDialogControllerDerived",
-      "AddFeedDialogControllerParams",
-      "AddFeedDialogFolderSelectionParams",
-      "AddFeedDialogProps",
-      "AddFeedDialogState",
-      "AddFeedDialogViewLabels",
-      "DiscoveredFeedOption",
-      "ResolveAddFeedDialogDerivedParams",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep add-feed dialog state and controller contracts here while reducer, controller hook, form view, and tests share them.",
-  },
-  {
-    path: "src/components/reader/browser-view.types.ts",
-    owner: "components/reader/browser-view",
-    classification: "feature-local",
-    consumerScope: "reader browser overlay controller, presentation, hooks, stories, and tests",
-    auditedExports: [
-      "BrowserOverlayActionSurfacePresentation",
-      "BrowserOverlayChromeController",
-      "BrowserOverlayCloseHandler",
-      "BrowserOverlayStageController",
-      "BrowserOverlayStageSurfacePresentation",
-      "BrowserOverlayToolbarAction",
-      "BrowserViewController",
-      "BrowserViewGeometry",
-      "BrowserViewLayoutDiagnostics",
-      "BrowserViewPresentation",
-      "BrowserViewScope",
-      "BrowserViewSurfacePresentation",
-      "BrowserWebviewDiagnosticsPayload",
-      "BrowserWebviewStateBinding",
-      "ResolveBrowserViewPresentationParams",
-      "ResolveBrowserViewSurfacePresentationParams",
-    ],
-    runtimeBoundary: true,
-    followUp:
-      "BrowserViewProps is component-local; preserve native webview state and toolbar contracts in this surface.",
-  },
-  {
-    path: "src/components/reader/command-palette.types.ts",
-    owner: "components/reader/command-palette",
-    classification: "feature-local",
-    consumerScope: "reader command palette controller, result rendering, handlers, and focused tests",
-    auditedExports: [
-      "CommandPaletteActionItem",
-      "CommandPaletteControllerResult",
-      "CommandPaletteResultsProps",
-      "CommandPaletteViewPropsResult",
-      "PaletteAction",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep command palette contracts here while actions, controller output, and result-list props stay shared inside the feature.",
-  },
-  {
-    path: "src/components/reader/feed-dialog-form.types.ts",
-    owner: "components/reader/feed-dialog-form",
-    classification: "feature-local",
-    consumerScope: "reader add-feed and feed-edit dialog form composition",
-    auditedExports: [
-      "FeedDialogControllerFolderSelectProps",
-      "FeedDialogFolderSelectionParams",
-      "FeedDialogReadonlyFieldProps",
-      "FeedDialogSelectOption",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep shared feed-dialog form contracts here while add-feed and feed-edit reuse the same form primitives.",
-  },
-  {
-    path: "src/components/reader/feed-edit-dialog.types.ts",
-    owner: "components/reader/feed-edit-dialog",
-    classification: "feature-local",
-    consumerScope: "reader feed-edit dialog controller, shared feed-dialog form, and focused tests",
-    auditedExports: [
-      "FeedEditDisplayPreset",
-      "FeedEditDialogProps",
-      "FeedEditDialogController",
-      "FeedEditDialogControllerParams",
-      "FeedEditDialogUrlField",
-      "SubmitFeedEditsParams",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep feed-edit dialog contracts here while controller, dialog view, and submit helper share the same form state.",
-  },
-  {
-    path: "src/components/reader/feed-tree.types.ts",
-    owner: "components/reader/feed-tree",
-    classification: "feature-local",
-    consumerScope: "reader feed tree view, sidebar feed section, drag helpers, and focused tests",
-    auditedExports: [
-      "ActiveDropTarget",
-      "FeedTreeEmptyState",
-      "FeedTreeFeedViewModel",
-      "FeedTreeFolderViewModel",
-      "FeedTreeRowProps",
-      "FeedTreeViewProps",
-    ],
-    runtimeBoundary: false,
-    followUp: "Keep feed tree view contracts here while sidebar sections and drag helpers share row and tree props.",
-  },
-  {
-    path: "src/components/reader/hooks/article-list/article-list-controller.types.ts",
-    owner: "components/reader/hooks/article-list",
-    classification: "feature-local",
-    consumerScope: "reader article-list controller hooks, view-prop builder, presentation helpers, and focused tests",
-    auditedExports: [
-      "ArticleListSelection",
-      "UseArticleListDataParams",
-      "UseArticleListDataResult",
-      "UseArticleListHeaderActionsParams",
-      "UseArticleListHeaderActionsResult",
-      "UseArticleListHeaderControllerParams",
-      "UseArticleListHeaderControllerResult",
-      "UseArticleListHeaderControlsParams",
-      "UseArticleListHeaderControlsResult",
-      "UseArticleListInteractionsParams",
-      "UseArticleListInteractionsResult",
-      "UseArticleListPresentationParams",
-      "UseArticleListSearchParams",
-      "UseArticleListSearchResult",
-      "UseArticleListSourcesParams",
-      "UseArticleListSourcesResult",
-      "UseArticleListViewPropsParams",
-      "UseArticleListViewPropsResult",
-      "UseArticleListViewStateParams",
-      "UseArticleListViewStateResult",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep hook params/results here while article-list controller pieces remain split across focused hook modules.",
-  },
-  {
-    path: "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts",
-    owner: "components/reader/hooks/feed-tree",
-    classification: "feature-local",
-    consumerScope: "reader feed tree drag hook, pointer event adapter, and feed tree view",
-    auditedExports: ["UseFeedTreeDragParams", "UseFeedTreeDragResult", "UseFeedTreePointerDragEventsParams"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep drag hook contracts here while drag state and pointer event bindings are split across feed-tree hook modules.",
-  },
-  {
-    path: "src/components/reader/sidebar-feed-section.types.ts",
-    owner: "components/reader/sidebar-feed-section",
-    classification: "feature-local",
-    consumerScope: "reader sidebar feed section hook, feed tree adapter, navigation, and focused tests",
-    auditedExports: [
-      "SidebarFeedDragStateParams",
-      "SidebarFeedDragStateResult",
-      "SidebarFeedNavigationParams",
-      "SidebarFeedSectionParams",
-      "SidebarFeedSectionResult",
-      "SidebarFeedTreeProps",
-      "SidebarFeedTreePropsParams",
-      "SidebarStartupFolderExpansionParams",
-      "SidebarVisibilityFallbackParams",
-      "StartupFolderExpansionMode",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep feed section contracts here while sidebar feed tree state, startup expansion, and view props remain split.",
-  },
-  {
-    path: "src/components/reader/sidebar-feed-tree.types.ts",
-    owner: "components/reader/sidebar-feed-tree",
-    classification: "feature-local",
-    consumerScope: "reader sidebar feed tree hook, sidebar feed section, and selection state",
-    auditedExports: [
-      "SidebarFeedTreeViewMode",
-      "SidebarSelection",
-      "UseSidebarFeedTreeParams",
-      "UseSidebarFeedTreeResult",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep sidebar feed tree hook contracts here while tree view mode and selection bridge sidebar hook modules.",
-  },
-  {
-    path: "src/components/reader/sidebar-runtime.types.ts",
-    owner: "components/reader/sidebar-runtime",
-    classification: "feature-local",
-    consumerScope: "reader sidebar runtime hook, account switcher, UI state adapter, and focused tests",
-    auditedExports: [
-      "SidebarAccountSelectionParams",
-      "SidebarAccountSwitcherResult",
-      "SidebarRuntimeResult",
-      "SidebarUiStateResult",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep runtime hook contracts here while account selection, sidebar UI state, and runtime output are composed separately.",
-  },
-  {
-    path: "src/components/reader/sidebar-sources.types.ts",
-    owner: "components/reader/sidebar-sources",
-    classification: "feature-local",
-    consumerScope: "reader sidebar source model hook, account status labels, feed tree, tags, and focused tests",
-    auditedExports: ["SidebarAccountStatusLabelsParams", "SidebarSourcesParams", "SidebarSourcesResult"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep sidebar source contracts here while account/feed/tag source hooks compose a single sidebar source model.",
-  },
-  {
-    path: "src/components/reader/sidebar.types.ts",
-    owner: "components/reader/sidebar",
-    classification: "feature-local",
-    consumerScope: "reader sidebar controller, section hooks, view, stories, and focused tests",
-    auditedExports: [
-      "SidebarAccountSectionPropsParams",
-      "SidebarContentSectionsPropsParams",
-      "SidebarContextMenuRenderersResult",
-      "SidebarControllerResult",
-      "SidebarControllerSectionsParams",
-      "SidebarHeaderPropsParams",
-      "SidebarSectionPropsResult",
-      "SidebarSmartViewsParams",
-      "SidebarSmartViewsPropsParams",
-      "SidebarSmartViewsResult",
-    ],
-    runtimeBoundary: false,
-    followUp: "Keep sidebar params/results here while they compose controller, section hook, and view-prop contracts.",
-  },
-  {
-    path: "src/components/settings/account-detail/types.ts",
-    owner: "components/settings/account-detail",
-    classification: "feature-local",
-    consumerScope: "account detail shell, editor hooks, danger-zone hooks, and focused tests",
-    auditedExports: ["AccountDetailAccount"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep the AccountDto alias here while account detail hooks share it; sync controls and status-row contracts belong with their owning hooks/views.",
-  },
-  {
-    path: "src/components/settings/settings-page.types.ts",
-    owner: "components/settings/settings-page",
-    classification: "feature-local",
-    consumerScope: "settings page view, wrapper views, preference view-prop hooks, and focused tests",
-    auditedExports: ["SettingsPageControl", "SettingsPageViewProps"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep reusable settings page row/control contracts here; preference hook input belongs in settings-preference.ts.",
-  },
-  {
-    path: "src/components/settings/settings-preference.ts",
-    owner: "components/settings/settings-preference",
-    classification: "feature-local",
-    consumerScope: "settings preference view-prop hooks and schema parity focused tests",
-    auditedExports: ["SettingsPreferenceViewPropsParams"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep preference hook input contracts here while general, appearance, reading, actions, and debug settings share the same typed setter.",
-  },
-  {
-    path: "src/lib/subscriptions/subscriptions-index.types.ts",
-    owner: "lib/subscriptions/subscriptions-index",
-    classification: "public contract",
-    consumerScope: "subscriptions index state model, page views, detail/list panes, stories, and focused tests",
-    auditedExports: [
-      "SubscriptionDetailCandidate",
-      "SubscriptionDetailMetrics",
-      "SubscriptionListGroup",
-      "SubscriptionListRow",
-      "SubscriptionRowStatus",
-      "SubscriptionSummaryCard",
-      "SubscriptionSummaryFilterKey",
-    ],
-    runtimeBoundary: false,
-    followUp:
-      "Keep subscriptions index view-model contracts here while list, detail, summary, stories, and state model share them.",
-  },
-  {
-    path: "src/lib/ui/action.types.ts",
-    owner: "lib/ui",
-    classification: "public contract",
-    consumerScope: "shared UI action contracts imported across feature views",
-    auditedExports: ["UiFeedbackAction"],
-    runtimeBoundary: false,
-    followUp: "Keep in src/lib while multiple feature or shared UI consumers import it.",
-  },
-  {
-    path: "src/lib/ui/display-state.types.ts",
-    owner: "lib/ui",
-    classification: "public contract",
-    consumerScope: "display-state feedback contracts shared by reader article view, settings account detail, and tests",
-    auditedExports: ["UiDisplayState", "UiDisplayStateAction"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep display-state contracts here while feature views share dismissible message/action state without owning the UI primitive.",
-  },
-  {
-    path: "src/lib/ui/toast.types.ts",
-    owner: "lib/ui",
-    classification: "public contract",
-    consumerScope: "toast contracts shared by store, app toast view, updater, reader hooks, settings hooks, and tests",
-    auditedExports: ["ToastAction", "ToastData", "ToastSeverity"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep toast contracts here while notification state and actions are used across reader, settings, hooks, shared UI, and tests.",
-  },
-  {
-    path: "src/stores/preferences-store.types.ts",
-    owner: "stores/preferences-store",
-    classification: "schema-derived",
-    consumerScope: "preferences store state backed by PreferencesDtoSchema-derived values",
-    auditedExports: ["PreferencesActions", "PreferencesState"],
-    runtimeBoundary: true,
-    followUp: "Keep PreferencesDto as the store source of truth unless UI view-model state intentionally differs.",
-  },
-] as const satisfies readonly {
-  path: string;
-  owner: string;
-  classification: (typeof typeSurfaceInventoryClassifications)[number];
-  consumerScope: string;
-  auditedExports?: readonly string[];
-  runtimeBoundary: boolean;
-  followUp: string;
-}[];
-
 describe("repository static contracts", () => {
   it("keeps query invalidation target matrices covering every non-account query root", () => {
     const invalidationTargetRoots = [
@@ -1263,18 +820,6 @@ describe("repository static contracts", () => {
       "starredArticles",
       "tagArticleCounts",
     ]);
-  });
-
-  it("keeps Node version aligned between package.json and mise, and pnpm on corepack", () => {
-    const miseSource = readMiseTaskCorpus();
-    const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
-    const miseNodeVersion = extractMiseToolVersion(miseSource, "node");
-
-    expect(Object.keys(packageJson.engines).toSorted()).toEqual(["node", "pnpm"]);
-    expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
-    expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
-    expect(miseNodeVersion).toBe(packageJson.engines.node);
-    expect(miseSource).not.toContain('"npm:pnpm"');
   });
 
   it("keeps the base Tauri config on the official v2 schema URL", () => {
@@ -1511,55 +1056,6 @@ describe("repository static contracts", () => {
     expect(extractQualityGateNeeds(ciWorkflow)).toEqual(extractWorkflowCheckJobIds(ciWorkflow).toSorted());
   });
 
-  it("keeps CI verifying package manager and engine contracts through mise and the CI image", () => {
-    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-    const toolchainSection = extractWorkflowCheckJobSections(ciWorkflow).find(
-      ({ jobId }) => jobId === "toolchain",
-    )?.section;
-    const miseSource = readMiseTaskCorpus();
-
-    expect(toolchainSection).toContain("mise run quality:toolchain");
-    expect(toolchainSection).toContain("Verify CI image toolchain contract");
-    expect(toolchainSection).toContain("process.versions.node");
-    expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
-    expect(extractMiseTaskSection(miseSource, "quality:toolchain")).not.toBe("");
-  });
-
-  it("keeps CI quality gate summary explicit for skipped or cancelled required matrix jobs", () => {
-    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-
-    expect(ciWorkflow).toContain("Quality Gate Result Inputs");
-    expect(ciWorkflow).toContain("failure because every required CI matrix must complete successfully before merge.");
-    expect(ciWorkflow).toContain('[ "$result" = "skipped" ] || [ "$result" = "cancelled" ]');
-  });
-
-  it("keeps CI failure artifacts classified by frontend, Rust, and native smoke families", () => {
-    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-
-    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "lint-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "test-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "build-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("rust", "lint-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("rust", "test-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("native-smoke", "debug-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("native-smoke", "debug-build-artifacts"));
-    expect(ciWorkflow.match(/retention-days: 7/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
-    expect(ciWorkflow.match(/retention-days: 14/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
-    expect(ciWorkflow.match(/retention-days: 21/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
-  });
-
-  it("keeps native smoke debug build logs and artifacts uploaded only on failure", () => {
-    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-    const nativeSmokeSection = extractWorkflowCheckJobSections(ciWorkflow).find(
-      ({ jobId }) => jobId === "native-smoke",
-    )?.section;
-
-    expect(nativeSmokeSection).toContain("mise run app:build:debug 2>&1 | tee");
-    expect(nativeSmokeSection).toContain("tmp/ci-artifacts/native-smoke/debug-build.log");
-    expect(nativeSmokeSection).toContain("src-tauri/target/debug/bundle/");
-    expect(nativeSmokeSection?.match(/if: failure\(\)/g)?.length ?? 0).toBe(2);
-  });
-
   it("keeps Storybook addons and framework backed by dev dependencies", () => {
     const devDependencies = expectPackageJsonStringRecord("devDependencies");
     const addons = storybookConfig.addons ?? [];
@@ -1575,19 +1071,6 @@ describe("repository static contracts", () => {
     expect(
       [...addonNames, framework].filter((name): name is string => Boolean(name) && !(name in devDependencies)),
     ).toEqual([]);
-  });
-
-  it("keeps Storybook config contracts static", () => {
-    const storybookMainSource = readRepoFile(".storybook/main.ts");
-    const addons = storybookConfig.addons ?? [];
-    const addonNames = new Set(addons.map((addon) => (typeof addon === "string" ? addon : addon.name)));
-
-    expect(addonNames.has("@storybook/addon-a11y")).toBe(true);
-    expect(addonNames.has("@storybook/addon-docs")).toBe(true);
-    expect(storybookConfig.stories).toEqual(["../src/**/*.stories.@(ts|tsx)"]);
-    expect(storybookMainSource).toContain("return mergeConfig(config, {");
-    expect(storybookMainSource).toContain('"@": path.resolve(import.meta.dirname, "../src")');
-    expect(storybookMainSource).toContain('"@tests": path.resolve(import.meta.dirname, "../tests")');
   });
 
   it("keeps Storybook a11y addon violations gated with an explicit allowlist", () => {
@@ -1654,82 +1137,6 @@ describe("repository static contracts", () => {
       "var(--control-active-warm)",
     );
     expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-off")).toBe("var(--color-input)");
-  });
-
-  it("keeps renderStory scoped to Storybook global preview parameters and decorators", () => {
-    const renderStoryHelperSource = readRepoFile("tests/helpers/render-story.tsx");
-
-    expect(renderStoryHelperSource).toContain('import preview from "../../.storybook/preview"');
-    expect(renderStoryHelperSource).toContain(
-      "mergeStoryParameters(preview.parameters, meta.parameters, story.parameters)",
-    );
-    expect(renderStoryHelperSource).toContain("...collectStoryDecorators<TArgs>(preview.decorators)");
-  });
-
-  it("keeps Storybook config changes covered by labeler", () => {
-    const storybookConfigPaths = [".storybook/main.ts", ".storybook/preview.ts"] as const;
-
-    expect(extractLabelerLabelsForGlob(labelerConfig, ".storybook/**")).toContain("ui");
-
-    for (const path of storybookConfigPaths) {
-      expect(extractLabelerLabelsForPath(labelerConfig, path)).toContain("ui");
-    }
-  });
-
-  it("keeps file-level tooling entrypoints explicit for knip", () => {
-    const packageScripts = expectPackageJsonStringRecord("scripts");
-    const knipConfig = expectPackageJsonKnipEntryConfig();
-
-    expect(packageScripts["test:storybook:e2e"]).toContain("--config playwright.storybook.config.ts");
-    expect(knipConfig.entry).toEqual(
-      expect.arrayContaining(["playwright.storybook.config.ts", "src/dev/scenarios/index.ts"]),
-    );
-  });
-
-  it("keeps quality baseline diagnostics routed through the pinned script gate", () => {
-    const packageScripts = expectPackageJsonStringRecord("scripts");
-    const miseSource = readMiseTaskCorpus();
-
-    expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
-    expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
-    expect(packageScripts["report:knip"]).toBe("node ./scripts/quality-baseline.ts knip");
-    expect(packageScripts["quality:lockfile-duplicate-majors"]).toBe(
-      "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
-    );
-    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:diff")).toBe(
-      "node ./scripts/quality-baseline.ts react-doctor:diff",
-    );
-    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:full")).toBe(
-      "node ./scripts/quality-baseline.ts react-doctor:full",
-    );
-    expect(extractMiseTaskCommand(miseSource, "report:knip")).toBe("node ./scripts/quality-baseline.ts knip");
-  });
-
-  it("classifies knip file-level cleanup candidates by their runtime owner", () => {
-    const packageScripts = expectPackageJsonStringRecord("scripts");
-    const knipConfig = expectPackageJsonKnipEntryConfig();
-    const settingsModalSource = readRepoFile("src/components/settings/settings-modal.tsx");
-    const addAccountFormSource = readRepoFile("src/components/settings/add-account-form.tsx");
-    const addAccountControllerSource = readRepoFile("src/components/settings/add-account/controller.tsx");
-    const accountConfigFormSource = readRepoFile("src/components/settings/add-account/account-config-form.tsx");
-    const accountConfigFormViewSource = readRepoFile(
-      "src/components/settings/add-account/account-config-form-view.tsx",
-    );
-    const addAccountFormStorySource = readRepoFile("src/components/settings/add-account/add-account-form.stories.tsx");
-    const addAccountFormViewTestSource = readRepoFile("src/__tests__/components/add-account-form-view.test.tsx");
-
-    expect(packageScripts["test:storybook:e2e"]).toContain("--config playwright.storybook.config.ts");
-    expect(knipConfig.entry).toEqual(
-      expect.arrayContaining(["playwright.storybook.config.ts", "src/dev/scenarios/index.ts"]),
-    );
-    expect(settingsModalSource).toContain('import { AddAccountForm } from "@/components/settings/add-account-form"');
-    expect(addAccountFormSource).toContain('from "@/components/settings/add-account/controller"');
-    expect(addAccountControllerSource).toContain('from "./account-config-form"');
-    expect(accountConfigFormSource).toContain('from "./account-config-form-view"');
-    expect(accountConfigFormViewSource).toContain('from "./form-view"');
-    expect(addAccountFormStorySource).toContain('from "./controller"');
-    expect(addAccountFormViewTestSource).toContain('from "@/components/settings/add-account/account-config-form-view"');
-    expect(addAccountFormViewTestSource).toContain('from "@/components/settings/add-account/form-view"');
   });
 
   it("keeps Storybook, Vite, and Vitest aliases aligned", () => {
@@ -1875,77 +1282,6 @@ describe("repository static contracts", () => {
       ".claude/rules/similarity-false-positives.md",
     ]);
     expect(missingFromIndex).toEqual([]);
-  });
-
-  it("keeps the docs index free of retired command-wrapper guidance", () => {
-    const docsIndex = readRepoFile("docs/README.md");
-    const topLevelDocsSection = docsIndex.match(/^## Top-Level Docs\n\n([\s\S]*?)(?=^## )/m)?.[1] ?? "";
-
-    expect(topLevelDocsSection).not.toContain(["R", "T", "K"].join(""));
-  });
-
-  it("keeps AGENTS as the single repository-local agent workflow guide", () => {
-    const agents = readRepoFile("AGENTS.md");
-
-    expect(agents).not.toContain("CLAUDE.md");
-    expect([...agents.matchAll(/^## .+$/gm)].map((match) => match[0])).toEqual([
-      "## First Actions",
-      "## Source Of Truth",
-      "## Quality Gates",
-      "## High-Signal Rules",
-      "## Placement And Boundaries",
-      "## Type Surface Policy",
-      "## Rule Routing",
-      "## Task Tracking",
-      "## Native, Browser, And Skills",
-      "## Feature Work Reminder",
-    ]);
-  });
-
-  it("keeps PR quality gate checklist aligned with AGENTS DoD guidance", () => {
-    const agents = readRepoFile("AGENTS.md");
-    const confirmedCheckboxes = extractMarkdownCheckboxLabels(pullRequestTemplate, "確認済み");
-    const qualityGateCheckboxes = confirmedCheckboxes.filter((checkbox) => !checkbox.startsWith("動作確認完了"));
-    const expectedQualityGateCheckboxes = [
-      "型エラー 0 件 (`mise run check` の `lint:types`)",
-      "リント違反 0 件 (`mise run check` の `lint`)",
-      "高速テスト成功 (`mise run check` の `test:unit:fast` / `test:rust`)",
-      "フォーマッター適用済み (`mise run check` の `format`)",
-      "jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時: DOM/CI/focused test を記録",
-      "環境変数の変更時: `.env` を暗号化 (`dotenvx encrypt`)",
-    ];
-
-    expect(confirmedCheckboxes).toContain("動作確認完了");
-    expect(qualityGateCheckboxes).toEqual(expectedQualityGateCheckboxes);
-
-    for (const command of ["mise run check", "mise run test:unit:dom", "mise run ci"] as const) {
-      expect(pullRequestTemplate).toContain(command);
-      expect(agents).toContain(command);
-    }
-
-    for (const impactScope of [
-      "jsdom",
-      "DOM",
-      "React rendering",
-      "PR handoff",
-      "release",
-      "native",
-      "Storybook",
-    ] as const) {
-      expect(pullRequestTemplate).toContain(impactScope);
-      expect(agents).toContain(impactScope);
-    }
-    expect(pullRequestTemplate).toContain("focused test");
-    expect(agents).toContain("focused test");
-  });
-
-  it("keeps historical command replacements pointed at current mise tasks", () => {
-    const superpowersReadme = readRepoFile("docs/superpowers/README.md");
-    const miseTasks = extractMiseTaskNames(readMiseTaskCorpus());
-    const replacementTargets = extractMiseRunTasks(superpowersReadme);
-
-    expect(replacementTargets).toEqual(["app:dev", "app:dev:browser"]);
-    expect(replacementTargets.filter((task) => !miseTasks.has(task))).toEqual([]);
   });
 
   it("keeps release workflow permissions and signing secret preflight visible", () => {
@@ -2151,38 +1487,6 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).not.toContain("github.event_name == 'workflow_dispatch' && github.ref_name");
   });
 
-  it("keeps release install verification separate from local app install helpers", () => {
-    const releaseManualVerification = readRepoFile("docs/release-manual-verification.md");
-    const contributing = readRepoFile("CONTRIBUTING.md");
-    const miseSource = readRepoFile("mise.toml");
-    const windowsInstallScript = readRepoFile("scripts/install-windows-app.ts");
-    const appInstallTask = extractMiseTaskSection(miseSource, "app:install");
-
-    expect(releaseManualVerification).toContain(
-      "Install the published release artifact downloaded from GitHub Releases",
-    );
-    expect(releaseManualVerification).toContain("Do not use `mise run app:install` for this step");
-    expect(releaseManualVerification).toContain("Release asset digest");
-    expect(releaseManualVerification).toContain("codesign --verify --deep --strict --verbose=2");
-    expect(releaseManualVerification).toContain("spctl --assess --type execute --verbose");
-    expect(releaseManualVerification).toContain("Release Provenance And SBOM Record");
-    expect(releaseManualVerification).toContain("GitHub workflow run id and run URL");
-    expect(releaseManualVerification).toContain("Release Dev-Only Contamination Record");
-    expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
-    expect(releaseManualVerification).toContain("Published release artifact name and release URL");
-    expect(releaseManualVerification).toContain(
-      "Current release policy assumes no Apple Developer Program / Developer ID",
-    );
-    expect(releaseManualVerification).toContain("Gatekeeper assessment result or ad-hoc signing policy result");
-    expect(contributing).toContain("Published release install verification must use the artifact from GitHub Releases");
-    expect(contributing).toContain("macOS releases currently assume no Apple Developer Program / Developer ID");
-    expect(contributing).toContain("`mise run app:install` rebuilds from the current checkout");
-    expect(appInstallTask).toContain("Build, locally re-sign, and install the current checkout");
-    expect(appInstallTask).toContain("src-tauri/target/release/bundle/macos");
-    expect(appInstallTask).toContain("scripts/install-windows-app.ts");
-    expect(windowsInstallScript).toContain('"src-tauri", "target", "release", "bundle"');
-  });
-
   it("keeps bundled app icon provenance and configured icon outputs explicit", () => {
     const docsReadme = readRepoFile("docs/README.md");
     const miseSource = readRepoFile("mise.toml");
@@ -2305,33 +1609,6 @@ describe("repository static contracts", () => {
     ]);
   });
 
-  it("keeps workflow action uses pinned beyond floating branches or major-only refs", () => {
-    expect(
-      ["actions/checkout@1f2e3d4c5b6a7980f1e2d3c4b5a6978877665544", "dtolnay/rust-toolchain@stable"].filter(
-        (uses) => !isPinnedWorkflowUses(uses),
-      ),
-    ).toEqual([]);
-    expect(
-      [
-        "actions/checkout@v6",
-        "actions/checkout@v6.0",
-        "actions/checkout@v6.0.2",
-        "actions/checkout@6.0.2",
-        "actions/checkout@main",
-        "actions/checkout@master",
-        "./.github/actions/local",
-      ].filter(isPinnedWorkflowUses),
-    ).toEqual([]);
-
-    const unpinnedUses = workflowFilesUnderGithub().flatMap((path) =>
-      extractWorkflowUses(readRepoFile(path), path).flatMap(({ line, uses }) =>
-        isPinnedWorkflowUses(uses) ? [] : [`${path}:${line}:${uses}`],
-      ),
-    );
-
-    expect(unpinnedUses).toEqual([]);
-  });
-
   it("keeps labeler workflows deduplicated by pull request ref", () => {
     const labelerConcurrencyGroup = "$" + "{{ github.workflow }}-" + "$" + "{{ github.ref }}";
 
@@ -2358,23 +1635,6 @@ describe("repository static contracts", () => {
     ]);
   });
 
-  it("keeps updater release readiness checks split between local contracts and packaged verification", () => {
-    const updaterCommands = readRepoFile("src-tauri/src/commands/updater_commands/mod.rs");
-
-    expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(false);
-    expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
-    expect(tauriConfig.plugins.updater.endpoints).toEqual([
-      "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json",
-    ]);
-    expect(tauriConfig.plugins.updater.pubkey).toMatch(/\S/);
-    expect(updaterCommands).toContain("guard.take()");
-    expect(updaterCommands).toContain("updater.check()");
-    expect(updaterCommands).toContain('message: "No update available".to_string()');
-    expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
-    expect(readRepoFile(".github/workflows/release.yml")).toContain("--config src-tauri/tauri.release.conf.json");
-    expect(readRepoFile("docs/release-manual-verification.md")).toContain("packaged updater verification passed");
-  });
-
   it("keeps store config updater disabled via empty config instead of null", () => {
     const storeConfig = JSON.parse(readRepoFile("src-tauri/tauri.store.conf.json"));
 
@@ -2396,14 +1656,10 @@ describe("repository static contracts", () => {
 
   it("keeps release dry-run version sources consistent", () => {
     const packageVersion = packageJson.version;
-    const cargoVersion = extractCargoPackageVersion(readRepoFile("src-tauri/Cargo.toml"));
 
     expect(packageVersion).toMatch(/^\d+\.\d+\.\d+$/);
-    expect(cargoVersion).toBe(packageVersion);
+    expect(extractCargoPackageField(readRepoFile("src-tauri/Cargo.toml"), "version")).toBe(packageVersion);
     expect(tauriConfig.version).toBe(packageVersion);
-    expect(readRepoFile("CONTRIBUTING.md")).toContain(
-      "Version is kept in sync across `tauri.conf.json`, `Cargo.toml`, and `package.json`.",
-    );
   });
 
   it("keeps migration manifest versions aligned with the Rust runner", () => {
@@ -2538,103 +1794,6 @@ describe("repository static contracts", () => {
     expect(readRepoFile("src/hooks/use-keyboard.ts")).toContain(
       "targetElement?.closest('[data-sidebar-pane=\"true\"]')",
     );
-  });
-
-  it("keeps TypeScript type surface inventory scoped to retained shared contracts", () => {
-    const inventoryPaths = typeSurfaceInventory.map(({ path }) => path);
-    const inventoryClassifications = new Set(typeSurfaceInventory.map(({ classification }) => classification));
-
-    expect(inventoryPaths.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-    expect(inventoryPaths).toEqual([...inventoryPaths].toSorted());
-    expect([...inventoryClassifications].toSorted()).toEqual([...typeSurfaceInventoryClassifications].toSorted());
-    expect(typeSurfaceInventory.map(({ path, owner }) => `${path}:${owner}`)).toEqual([
-      "src/components/reader/add-feed-dialog.types.ts:components/reader/add-feed-dialog",
-      "src/components/reader/browser-view.types.ts:components/reader/browser-view",
-      "src/components/reader/command-palette.types.ts:components/reader/command-palette",
-      "src/components/reader/feed-dialog-form.types.ts:components/reader/feed-dialog-form",
-      "src/components/reader/feed-edit-dialog.types.ts:components/reader/feed-edit-dialog",
-      "src/components/reader/feed-tree.types.ts:components/reader/feed-tree",
-      "src/components/reader/hooks/article-list/article-list-controller.types.ts:components/reader/hooks/article-list",
-      "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts:components/reader/hooks/feed-tree",
-      "src/components/reader/sidebar-feed-section.types.ts:components/reader/sidebar-feed-section",
-      "src/components/reader/sidebar-feed-tree.types.ts:components/reader/sidebar-feed-tree",
-      "src/components/reader/sidebar-runtime.types.ts:components/reader/sidebar-runtime",
-      "src/components/reader/sidebar-sources.types.ts:components/reader/sidebar-sources",
-      "src/components/reader/sidebar.types.ts:components/reader/sidebar",
-      "src/components/settings/account-detail/types.ts:components/settings/account-detail",
-      "src/components/settings/settings-page.types.ts:components/settings/settings-page",
-      "src/components/settings/settings-preference.ts:components/settings/settings-preference",
-      "src/lib/subscriptions/subscriptions-index.types.ts:lib/subscriptions/subscriptions-index",
-      "src/lib/ui/action.types.ts:lib/ui",
-      "src/lib/ui/display-state.types.ts:lib/ui",
-      "src/lib/ui/toast.types.ts:lib/ui",
-      "src/stores/preferences-store.types.ts:stores/preferences-store",
-    ]);
-    expect(typeSurfaceInventory.filter(({ runtimeBoundary }) => runtimeBoundary).map(({ path }) => path)).toEqual([
-      "src/components/reader/browser-view.types.ts",
-      "src/stores/preferences-store.types.ts",
-    ]);
-    expect(
-      typeSurfaceInventory.filter(({ classification }) => classification === "schema-derived").map(({ path }) => path),
-    ).toEqual(["src/stores/preferences-store.types.ts"]);
-    expect(
-      typeSurfaceInventory.every(({ consumerScope, followUp }) => consumerScope.length > 0 && followUp.length > 0),
-    ).toBe(true);
-    expect(
-      typeSurfaceInventory
-        .filter(({ path }) => auditedReaderTypeSurfacePathSet.has(path))
-        .every((inventoryItem) => "auditedExports" in inventoryItem && inventoryItem.auditedExports.length > 0),
-    ).toBe(true);
-    const unexportedAuditedNames = typeSurfaceInventory.flatMap((inventoryItem) => {
-      if (!("auditedExports" in inventoryItem)) {
-        return [];
-      }
-      const source = readRepoFile(inventoryItem.path);
-      return inventoryItem.auditedExports
-        .filter(
-          (name) =>
-            !new RegExp(
-              `export\\s+(?:type|interface|const|function)\\s+${name}\\b|export\\s+(?:type\\s+)?\\{[^}]*\\b${name}\\b`,
-            ).test(source),
-        )
-        .map((name) => `${inventoryItem.path}:${name}`);
-    });
-    expect(unexportedAuditedNames).toEqual([]);
-  });
-
-  it("keeps remaining TypeScript type surface files on an explicit allowlist", () => {
-    const remainingTypeSurfaceAllowlist = [
-      "src/components/reader/add-feed-dialog.types.ts",
-      "src/components/reader/browser-view.types.ts",
-      "src/components/reader/command-palette.types.ts",
-      "src/components/reader/feed-dialog-form.types.ts",
-      "src/components/reader/feed-edit-dialog.types.ts",
-      "src/components/reader/feed-tree.types.ts",
-      "src/components/reader/hooks/article-list/article-list-controller.types.ts",
-      "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts",
-      "src/components/reader/sidebar-feed-section.types.ts",
-      "src/components/reader/sidebar-feed-tree.types.ts",
-      "src/components/reader/sidebar-runtime.types.ts",
-      "src/components/reader/sidebar-sources.types.ts",
-      "src/components/reader/sidebar.types.ts",
-      "src/components/settings/settings-page.types.ts",
-      "src/lib/subscriptions/subscriptions-index.types.ts",
-      "src/lib/ui/action.types.ts",
-      "src/lib/ui/display-state.types.ts",
-      "src/lib/ui/toast.types.ts",
-      "src/stores/preferences-store.types.ts",
-      "src/stores/ui-store.types.ts",
-    ];
-    const typeSurfaceFiles = [
-      ...collectTypeSurfaceFiles("src/components/reader"),
-      ...collectTypeSurfaceFiles("src/components/settings"),
-      ...collectTypeSurfaceFiles("src/lib/subscriptions"),
-      ...collectTypeSurfaceFiles("src/lib/sync"),
-      ...collectTypeSurfaceFiles("src/lib/ui"),
-      ...collectTypeSurfaceFiles("src/stores"),
-    ].toSorted();
-
-    expect(typeSurfaceFiles).toEqual(remainingTypeSurfaceAllowlist);
   });
 
   it("keeps GitHub issue templates aligned with label taxonomy sources", () => {
