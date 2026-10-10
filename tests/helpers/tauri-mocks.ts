@@ -8,6 +8,7 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
+import { isInvokableCommandName } from "@/api/tauri-commands/command-names";
 import { installStoryRuntimeTauriInternals } from "@/components/storybook/story-tauri-runtime";
 import { parseWithSchema } from "@/schemas/parse";
 import {
@@ -118,6 +119,9 @@ function createDefaultHandler(): MockHandler {
   >();
 
   return (cmd, args) => {
+    if (!isInvokableCommandName(cmd)) {
+      throw new Error(`Unhandled Tauri mock command: ${cmd}`);
+    }
     switch (cmd) {
       case "list_accounts":
         return createSampleAccounts();
