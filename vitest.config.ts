@@ -37,7 +37,6 @@ const nodeNamedTestGlobs = ["src/**/*.node.test.{ts,tsx}", "tests/**/*.node.test
 // Migration-only exceptions for mixed folders. New tests should prefer a
 // node-first folder or the *.node.test.* naming convention.
 const legacyNodeEnvironmentTestFiles = [
-  "src/__tests__/api/bulk-count-schemas.test.ts",
   "src/__tests__/api/schema-barrel-public-api.test.ts",
   "src/__tests__/hooks/tag-mute-settings-contract.test.ts",
   "src/__tests__/hooks/use-breakpoint.test.ts",

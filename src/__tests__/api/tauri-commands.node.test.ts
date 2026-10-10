@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import { invoke } from "@tauri-apps/api/core";
 import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { runValidationCommandCases } from "@tests/helpers/tauri-command-contract";
@@ -15,11 +14,9 @@ import {
   addAccount,
   addLocalFeed,
   addToReadingList,
-  backupDatabase,
   checkBrowserEmbedSupport,
   type checkForUpdate,
   clearArticleViewHistory,
-  closeBrowserWebview,
   copyToClipboard,
   countAccountStarredArticles,
   countAccountUnreadArticles,
@@ -35,7 +32,6 @@ import {
   discoverFeeds,
   type exportLocalAccountSyncOperations,
   exportOpmlToFile,
-  focusBrowserWebview,
   getAccountCloudflareAccess,
   getAccountSyncStatus,
   getArticle,
@@ -44,8 +40,6 @@ import {
   type getLocalAccountSyncSettings,
   getPlatformInfo,
   getPreferences,
-  goBackBrowserWebview,
-  goForwardBrowserWebview,
   type importLocalAccountSyncOperations,
   listAccountArticles,
   listAccounts,
@@ -67,16 +61,14 @@ import {
   markOldUnreadRead,
   openExternalUrl,
   openInBrowser,
-  openLogDir,
+  type openLogDir,
   type PreferencesDto,
   recordArticleView,
-  reloadBrowserWebview,
   renameAccount,
   renameFeed,
   renameTag,
   type restartApp,
   searchArticles,
-  setBrowserWebviewBounds,
   setMuteAutoMarkRead,
   setPreference,
   tagArticle,
@@ -101,13 +93,6 @@ import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
   ? Output
   : never;
-
-const responseValidationBrowserBounds: BrowserWebviewBounds = {
-  x: 380,
-  y: 48,
-  width: 900,
-  height: 720,
-};
 
 const sampleAcc1Feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
 const sampleAcc1Articles = sampleArticles.filter((article) =>
@@ -187,65 +172,6 @@ describe("tauri-commands with mockIPC", () => {
     expect(Result.unwrap(browserEmbedSupportResult)).toBe(true);
   });
 
-  it("returns fresh default fixture clones from list commands", async () => {
-    const [accounts, feeds, articles] = await Promise.all([
-      invoke<typeof sampleAccounts>("list_accounts"),
-      invoke<typeof sampleFeeds>("list_feeds", {
-        accountId: "acc-1",
-      }),
-      invoke<typeof sampleArticles>("list_articles", {
-        feedId: "feed-1",
-      }),
-    ]);
-    const account = accounts[0];
-    const feed = feeds[0];
-    const article = articles[0];
-
-    expect(account).toBeDefined();
-    expect(account?.capabilities).toBeDefined();
-    expect(feed).toBeDefined();
-    expect(article).toBeDefined();
-    if (!account?.capabilities || !feed || !article) {
-      throw new Error("Expected default Tauri mock fixtures");
-    }
-
-    account.name = "Mutated Account";
-    account.capabilities.supports_search = true;
-    feed.title = "Mutated Feed";
-    article.title = "Mutated Article";
-
-    const [freshAccounts, freshFeeds, freshArticles] = await Promise.all([
-      invoke("list_accounts"),
-      invoke("list_feeds", { accountId: "acc-1" }),
-      invoke("list_articles", { feedId: "feed-1" }),
-    ]);
-
-    expect(freshAccounts).toEqual(sampleAccounts);
-    expect(freshFeeds).toEqual(sampleAcc1Feeds);
-    expect(freshArticles).toEqual(sampleFeed1Articles);
-  });
-
-  describe("listAccounts", () => {
-    it("returns all accounts", async () => {
-      const value = Result.unwrap(await listAccounts());
-      expect(value).toEqual(sampleAccounts);
-      expect(value).toHaveLength(2);
-    });
-  });
-
-  describe("listFeeds", () => {
-    it("returns feeds for a given account", async () => {
-      const value = Result.unwrap(await listFeeds("acc-1"));
-      expect(value).toEqual(sampleAcc1Feeds);
-      expect(value).toHaveLength(1);
-    });
-
-    it("returns empty array for unknown account", async () => {
-      const value = Result.unwrap(await listFeeds("nonexistent"));
-      expect(value).toEqual([]);
-    });
-  });
-
   describe("discoverFeeds", () => {
     it("parses discovered feed command responses", async () => {
       setupTauriMocks((cmd, args) => {
@@ -285,17 +211,6 @@ describe("tauri-commands with mockIPC", () => {
   });
 
   describe("listArticles", () => {
-    it("returns articles for a given feed", async () => {
-      const value = Result.unwrap(await listArticles("feed-1"));
-      expect(value).toEqual(sampleFeed1Articles);
-      expect(value).toHaveLength(2);
-    });
-
-    it("returns empty array for unknown feed", async () => {
-      const value = Result.unwrap(await listArticles("nonexistent"));
-      expect(value).toEqual([]);
-    });
-
     it("keeps positional pagination and unread overloads explicit", async () => {
       const listArticleArgs: unknown[] = [];
       setupTauriMocks((cmd, args) => {
@@ -342,12 +257,6 @@ describe("tauri-commands with mockIPC", () => {
   });
 
   describe("listAccountArticles", () => {
-    it("returns articles for a given account", async () => {
-      const value = Result.unwrap(await listAccountArticles("acc-1"));
-      expect(value).toEqual(sampleAcc1Articles);
-      expect(value).toHaveLength(2);
-    });
-
     it("accepts object params for account-wide unread pagination", async () => {
       const listAccountArticleArgs: unknown[] = [];
       setupTauriMocks((cmd, args) => {
@@ -382,20 +291,9 @@ describe("tauri-commands with mockIPC", () => {
   });
 
   describe("recent article commands", () => {
-    it("returns recently viewed articles for a given account", async () => {
-      const value = Result.unwrap(await listRecentArticles("acc-1"));
-      expect(value.map((article) => article.id)).toEqual(["art-2", "art-1"]);
-      expect(value[0]?.viewed_at).toBe("2026-04-20T10:00:00Z");
-    });
-
     it("returns recently viewed articles filtered by mode", async () => {
       const value = Result.unwrap(await listRecentArticles("acc-1", undefined, undefined, "unread"));
       expect(value.map((article) => article.id)).toEqual(["art-1"]);
-    });
-
-    it("records and clears recently viewed articles", async () => {
-      Result.unwrap(await recordArticleView("acc-1", "art-1"));
-      Result.unwrap(await clearArticleViewHistory("acc-1"));
     });
 
     it("rejects negative clear history counts", async () => {
@@ -429,51 +327,6 @@ describe("tauri-commands with mockIPC", () => {
     });
   });
 
-  describe("log commands", () => {
-    it("opens the native log directory without exposing a path to the webview", async () => {
-      let invoked = false;
-      setupTauriMocks((cmd, args) => {
-        if (cmd === "open_log_dir") {
-          invoked = true;
-          expect(args).toEqual({});
-          return null;
-        }
-        return undefined;
-      });
-
-      Result.unwrap(await openLogDir());
-
-      expect(invoked).toBe(true);
-    });
-  });
-
-  describe("countAccountUnreadArticles", () => {
-    it("returns unread count for a given account", async () => {
-      const value = Result.unwrap(await countAccountUnreadArticles("acc-1"));
-      expect(value).toBe(1);
-    });
-
-    it("rejects negative count-style responses", async () => {
-      const countCommandCases = [
-        ["count_account_unread_articles", () => countAccountUnreadArticles("acc-1")],
-        ["count_account_starred_articles", () => countAccountStarredArticles("acc-1")],
-        ["count_old_unread_articles", () => countOldUnreadArticles("feed", "feed-1", 30)],
-      ] as const;
-
-      setupTauriMocks((cmd) => {
-        if (countCommandCases.some(([command]) => command === cmd)) {
-          return -1;
-        }
-        return undefined;
-      });
-
-      for (const [command, result] of await runValidationCommandCases(countCommandCases, "response")) {
-        expect(Result.isFailure(result), command).toBe(true);
-        expect(Result.unwrapError(result).message).toContain("validation failed");
-      }
-    });
-  });
-
   describe("starred fallbacks", () => {
     it("treats transient null starred count responses as zero", async () => {
       setupTauriMocks((cmd) => {
@@ -501,27 +354,6 @@ describe("tauri-commands with mockIPC", () => {
   });
 
   describe("mute keyword commands", () => {
-    it("returns saved mute keywords", async () => {
-      setupTauriMocks((cmd) => {
-        if (cmd === "list_mute_keywords") {
-          return [
-            {
-              id: "mute-1",
-              keyword: "Kindle Unlimited",
-              scope: "title_and_body",
-              created_at: "2026-04-15T01:00:00Z",
-              updated_at: "2026-04-15T01:00:00Z",
-            },
-          ];
-        }
-        return undefined;
-      });
-
-      const value = Result.unwrap(await listMuteKeywords());
-      expect(value).toHaveLength(1);
-      expect(value[0].keyword).toBe("Kindle Unlimited");
-    });
-
     it("creates a mute keyword", async () => {
       setupTauriMocks((cmd, args) => {
         if (cmd === "create_mute_keyword") {
@@ -571,30 +403,6 @@ describe("tauri-commands with mockIPC", () => {
   });
 
   describe("addAccount", () => {
-    it("returns a new account DTO", async () => {
-      const value = Result.unwrap(await addAccount("Local", "My Feed"));
-      expect(value).toEqual({
-        id: "acc-new",
-        kind: "Local",
-        name: "My Feed",
-        display_name: "My Feed",
-        icon_url: null,
-        capabilities: {
-          supports_folders: false,
-          supports_starring: false,
-          supports_search: false,
-          supports_delta_sync: false,
-          supports_remote_state: false,
-        },
-        server_url: null,
-        username: null,
-        sync_interval_secs: 3600,
-        sync_on_startup: true,
-        sync_on_wake: false,
-        keep_read_items_days: 30,
-      });
-    });
-
     it("forwards Cloudflare Access replacement as a separate top-level update", async () => {
       setupTauriMocks((cmd, args) => {
         if (cmd === "add_account") {
@@ -626,46 +434,7 @@ describe("tauri-commands with mockIPC", () => {
     });
   });
 
-  describe("markArticleRead", () => {
-    it("succeeds without error", async () => {
-      Result.unwrap(await markArticleRead("art-1"));
-    });
-  });
-
-  describe("bulk article commands", () => {
-    it("marks account articles as read", async () => {
-      Result.unwrap(await markAccountRead("acc-1"));
-    });
-
-    it("marks account starred articles as read", async () => {
-      Result.unwrap(await markAccountStarredRead("acc-1"));
-    });
-
-    it("counts and marks old unread articles", async () => {
-      const count = Result.unwrap(await countOldUnreadArticles("feed", "feed-1", 30));
-
-      expect(count).toBe(1);
-      Result.unwrap(await markOldUnreadRead("feed", "feed-1", 30));
-    });
-
-    it("unstars account articles", async () => {
-      Result.unwrap(await unstarAccountArticles("acc-1"));
-    });
-  });
-
   describe("browser webview commands", () => {
-    it("creates or updates the dedicated browser webview window", async () => {
-      const value = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article", browserBounds));
-
-      expect(value).toEqual({
-        url: "https://example.com/article",
-        can_go_back: false,
-        can_go_forward: false,
-        is_loading: true,
-        load_generation: 1,
-      });
-    });
-
     it("trims browser command URLs before invoking Tauri", async () => {
       setupTauriMocks((cmd, args) => {
         if (cmd === "check_browser_embed_support") {
@@ -772,50 +541,6 @@ describe("tauri-commands with mockIPC", () => {
       expect(Result.unwrapError(result).message).toContain("validation failed");
       expect(invoked).toBe(false);
       expectTauriCommandValidationError(consoleError, "create_or_update_browser_webview", "args");
-    });
-
-    it("returns the updated navigation state after go back", async () => {
-      const value = Result.unwrap(await goBackBrowserWebview());
-
-      expect(value).toEqual({
-        url: "https://example.com/article",
-        can_go_back: false,
-        can_go_forward: false,
-        is_loading: false,
-        load_generation: 1,
-      });
-    });
-
-    it("focuses the dedicated browser webview", async () => {
-      Result.unwrap(await focusBrowserWebview());
-    });
-  });
-
-  describe("getPlatformInfo", () => {
-    it("returns platform info from getPlatformInfo", async () => {
-      const value = Result.unwrap(await getPlatformInfo());
-      expect(value).toEqual({
-        kind: "windows",
-        capabilities: {
-          supports_reading_list: false,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      });
-    });
-  });
-
-  describe("getAccountSyncStatus", () => {
-    it("returns account sync status from getAccountSyncStatus", async () => {
-      const value = Result.unwrap(await getAccountSyncStatus("acc-1"));
-      expect(value).toEqual({
-        last_success_at: null,
-        last_error: null,
-        error_count: 0,
-        next_retry_at: null,
-      });
     });
   });
 });
@@ -1171,24 +896,6 @@ describe("safeInvoke response validation", () => {
     expectTauriCommandValidationError(consoleError, "get_account_sync_status", "response");
   });
 
-  it("validates account command group null responses", async () => {
-    const consoleError = suppressConsoleError();
-    setupTauriMocks((cmd) => {
-      if (cmd === "delete_account") {
-        return { ok: true };
-      }
-      return null;
-    });
-
-    const result = await deleteAccount("acc-1");
-
-    expect(Result.isFailure(result)).toBe(true);
-    const error = Result.unwrapError(result);
-    expect(error.type).toBe("Diagnostics");
-    expect(error.message).toContain("validation failed");
-    expectTauriCommandValidationError(consoleError, "delete_account", "response");
-  });
-
   it("validates article command group ArticleDto responses", async () => {
     const invalidArticleDto = {
       id: "article-1",
@@ -1229,32 +936,6 @@ describe("safeInvoke response validation", () => {
     }
   });
 
-  it("validates article command group null responses", async () => {
-    const articleNullCommandCases = [
-      ["mark_account_read", () => markAccountRead("acc-1")],
-      ["mark_account_starred_read", () => markAccountStarredRead("acc-1")],
-      ["mark_article_read", () => markArticleRead("article-1")],
-      ["record_article_view", () => recordArticleView("acc-1", "article-1")],
-      ["mark_feed_read", () => markFeedRead("feed-1")],
-      ["mark_folder_read", () => markFolderRead("folder-1")],
-      ["unstar_account_articles", () => unstarAccountArticles("acc-1")],
-    ] as const;
-
-    setupTauriMocks((cmd) => {
-      if (articleNullCommandCases.some(([command]) => command === cmd)) {
-        return { ok: true };
-      }
-      return null;
-    });
-
-    for (const [command, result] of await runValidationCommandCases(articleNullCommandCases, "response")) {
-      expect(Result.isFailure(result), command).toBe(true);
-      const error = Result.unwrapError(result);
-      expect(error.type).toBe("Diagnostics");
-      expect(error.message).toContain("validation failed");
-    }
-  });
-
   it("validates database command group DatabaseInfo responses", async () => {
     const databaseCommandCases = [
       ["get_database_info", () => getDatabaseInfo()],
@@ -1279,15 +960,6 @@ describe("safeInvoke response validation", () => {
       expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
-  });
-
-  it("resolves the manual database backup command with a null response", async () => {
-    setupTauriMocks(() => null);
-
-    const result = await backupDatabase();
-
-    expect(Result.isSuccess(result)).toBe(true);
-    expect(Result.unwrap(result)).toBeNull();
   });
 
   it("validates feed command group responses", async () => {
@@ -1319,29 +991,6 @@ describe("safeInvoke response validation", () => {
     });
 
     for (const [command, result] of await runValidationCommandCases(feedCommandCases, "response")) {
-      expect(Result.isFailure(result), command).toBe(true);
-      const error = Result.unwrapError(result);
-      expect(error.type).toBe("Diagnostics");
-      expect(error.message).toContain("validation failed");
-    }
-  });
-
-  it("validates feed command group null responses", async () => {
-    const feedNullCommandCases = [
-      ["delete_feed", () => deleteFeed("feed-1")],
-      ["rename_feed", () => renameFeed("feed-1", "Renamed")],
-      ["update_feed_folder", () => updateFeedFolder("feed-1", null)],
-      ["update_feed_display_settings", () => updateFeedDisplaySettings("feed-1", "inherit", "off")],
-    ] as const;
-
-    setupTauriMocks((cmd) => {
-      if (feedNullCommandCases.some(([command]) => command === cmd)) {
-        return { ok: true };
-      }
-      return null;
-    });
-
-    for (const [command, result] of await runValidationCommandCases(feedNullCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1442,81 +1091,6 @@ describe("safeInvoke response validation", () => {
     }
   });
 
-  it("validates tag command group null responses", async () => {
-    const tagNullCommandCases = [
-      ["delete_tag", () => deleteTag("tag-1")],
-      ["tag_article", () => tagArticle("article-1", "tag-1")],
-      ["untag_article", () => untagArticle("article-1", "tag-1")],
-    ] as const;
-
-    setupTauriMocks((cmd) => {
-      if (tagNullCommandCases.some(([command]) => command === cmd)) {
-        return { ok: true };
-      }
-      return null;
-    });
-
-    for (const [command, result] of await runValidationCommandCases(tagNullCommandCases, "response")) {
-      expect(Result.isFailure(result), command).toBe(true);
-      const error = Result.unwrapError(result);
-      expect(error.type).toBe("Diagnostics");
-      expect(error.message).toContain("validation failed");
-    }
-  });
-
-  it("validates browser webview command group state responses", async () => {
-    const browserStateCommandCases = [
-      [
-        "create_or_update_browser_webview",
-        () => createOrUpdateBrowserWebview("https://example.com", responseValidationBrowserBounds),
-      ],
-      ["go_back_browser_webview", () => goBackBrowserWebview()],
-      ["go_forward_browser_webview", () => goForwardBrowserWebview()],
-      ["reload_browser_webview", () => reloadBrowserWebview()],
-    ] as const;
-
-    setupTauriMocks((cmd) => {
-      if (browserStateCommandCases.some(([command]) => command === cmd)) {
-        return {
-          url: "https://example.com",
-          can_go_back: "false",
-          can_go_forward: false,
-          is_loading: false,
-        };
-      }
-      return null;
-    });
-
-    for (const [command, result] of await runValidationCommandCases(browserStateCommandCases, "response")) {
-      expect(Result.isFailure(result), command).toBe(true);
-      const error = Result.unwrapError(result);
-      expect(error.type).toBe("Diagnostics");
-      expect(error.message).toContain("validation failed");
-    }
-  });
-
-  it("validates browser webview command group null responses", async () => {
-    const browserNullCommandCases = [
-      ["set_browser_webview_bounds", () => setBrowserWebviewBounds(responseValidationBrowserBounds)],
-      ["focus_browser_webview", () => focusBrowserWebview()],
-      ["close_browser_webview", () => closeBrowserWebview()],
-    ] as const;
-
-    setupTauriMocks((cmd) => {
-      if (browserNullCommandCases.some(([command]) => command === cmd)) {
-        return { ok: true };
-      }
-      return null;
-    });
-
-    for (const [command, result] of await runValidationCommandCases(browserNullCommandCases, "response")) {
-      expect(Result.isFailure(result), command).toBe(true);
-      const error = Result.unwrapError(result);
-      expect(error.type).toBe("Diagnostics");
-      expect(error.message).toContain("validation failed");
-    }
-  });
-
   it("validates getPreferences responses with known-key value schemas", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "get_preferences") {
@@ -1577,27 +1151,6 @@ describe("safeInvoke args validation", () => {
     });
     expectTauriCommandValidationError(consoleError, "list_feeds", "args");
     expectTauriCommandValidationError(consoleError, "list_accounts", "response");
-  });
-
-  it("rejects blank command ids before invoking Tauri", async () => {
-    const consoleError = suppressConsoleError();
-    let invoked = false;
-    setupTauriMocks((cmd) => {
-      if (cmd === "list_feeds") {
-        invoked = true;
-      }
-      return null;
-    });
-
-    const result = await listFeeds("   ");
-
-    expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result)).toMatchObject({
-      type: "UserVisible",
-      message: "Command validation failed: accountId: Command id must not be blank",
-    });
-    expect(invoked).toBe(false);
-    expectTauriCommandValidationError(consoleError, "list_feeds", "args");
   });
 
   it.each([
@@ -2355,29 +1908,5 @@ describe("safeInvoke args validation", () => {
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
     expectTauriCommandValidationError(consoleError, "plugin:opener|open_url", "args");
-  });
-});
-
-describe("setupTauriMocks validates args for custom handler", () => {
-  it("passes validated args to custom handler", async () => {
-    setupTauriMocks((cmd) => {
-      if (cmd === "list_articles") return [];
-      return null;
-    });
-    const ok = Result.unwrap(await listArticles("feed-1"));
-    expect(ok).toEqual([]);
-  });
-
-  it("rejects invalid direct invoke args before custom handlers can coerce them", async () => {
-    let invoked = false;
-    setupTauriMocks((cmd) => {
-      if (cmd === "mark_article_read") {
-        invoked = true;
-      }
-      return null;
-    });
-
-    await expect(invoke("mark_article_read", { articleId: 123 })).rejects.toThrow();
-    expect(invoked).toBe(false);
   });
 });

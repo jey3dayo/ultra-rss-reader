@@ -34,10 +34,6 @@ describe("stripHtmlTags", () => {
     expect(stripHtmlTags("")).toBe("");
   });
 
-  it("returns plain text unchanged", () => {
-    expect(stripHtmlTags("Hello world")).toBe("Hello world");
-  });
-
   it("strips simple HTML tags", () => {
     expect(stripHtmlTags("<p>Hello</p>")).toBe("Hello");
   });
@@ -77,6 +73,9 @@ describe("stripHtmlTags", () => {
       '<div><img width="800" height="534" src="https://example.com/photo.jpg"><p>This is the article summary with <a href="https://example.com">a link</a>.</p></div>';
     const result = stripHtmlTags(html);
     expect(result).toBe("This is the article summary with a link.");
+    expect(stripHtmlTags(`<p>${"Body paragraph text. ".repeat(2_000)}</p>`).startsWith("Body paragraph text.")).toBe(
+      true,
+    );
   });
 
   it("trims leading and trailing whitespace", () => {
@@ -107,27 +106,6 @@ describe("stripHtmlTags", () => {
     expect(stripHtmlTags("Hello world   there")).toBe("Hello world there");
     expect(stripHtmlTags("  leading and trailing  ")).toBe("leading and trailing");
     expect(stripHtmlTags("Hello world")).toBe("Hello world");
-  });
-
-  it("caches the result so a repeated call with the same input returns an equal (not just referentially fresh) value", () => {
-    const html = "<p>Hello <strong>world</strong></p>";
-
-    const first = stripHtmlTags(html);
-    const second = stripHtmlTags(html);
-
-    expect(second).toBe(first);
-    expect(second).toBe("Hello world");
-  });
-
-  it("strips article-body-sized HTML correctly and identically on repeat calls (input larger than the per-entry cache size guard)", () => {
-    const largeArticleBody = `<p>${"Body paragraph text. ".repeat(2_000)}</p>`;
-
-    const first = stripHtmlTags(largeArticleBody);
-    const second = stripHtmlTags(largeArticleBody);
-
-    expect(first).toBe(second);
-    expect(first.startsWith("Body paragraph text.")).toBe(true);
-    expect(first).not.toContain("<p>");
   });
 
   it("keeps regex fallback safe for malformed entities and large malformed HTML", () => {
@@ -436,6 +414,7 @@ describe("normalizeArticleBodyHtml", () => {
     expect(normalizeArticleBodyHtml("<p>Tech Blog:</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
     expect(normalizeArticleBodyHtml("<p>Tech Blog｜</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
     expect(normalizeArticleBodyHtml("<p>Tech Blog -</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
+    expect(normalizeArticleBodyHtml("<p>Tech Blog：</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
   });
 
   it("keeps leading nodes that only start with the feed label text", () => {
@@ -487,11 +466,6 @@ describe("normalizeArticleBodyHtml", () => {
     expect(normalizeArticleBodyHtml(imageOnly, "Tech Blog")).toBe(imageOnly);
     expect(normalizeArticleBodyHtml(pictureOnly, "Tech Blog")).toBe(pictureOnly);
     expect(normalizeArticleBodyHtml(videoOnly, "Tech Blog")).toBe(videoOnly);
-  });
-
-  it("removes only duplicated feed labels before real article content", () => {
-    expect(normalizeArticleBodyHtml("<p>Tech Blog：</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
-    expect(normalizeArticleBodyHtml("<p>Tech Blog｜</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
   });
 
   it("normalizes null body text to an empty string", () => {

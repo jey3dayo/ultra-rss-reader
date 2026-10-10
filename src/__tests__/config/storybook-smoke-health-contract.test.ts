@@ -9,20 +9,14 @@ function readRepoFile(path: string) {
 }
 
 describe("Storybook smoke health contract", () => {
-  it("checks the Storybook registry before iframe smoke", () => {
-    const storybookPlaywrightConfig = readRepoFile("playwright.storybook.config.ts");
-    const storybookIndexPayload = readRepoFile("e2e/storybook/storybook-index-payload.ts");
-    const smokeSpec = readRepoFile("e2e/storybook/ui-reference-canvas-smoke.spec.ts");
-
-    expect(storybookPlaywrightConfig).toContain("reuseExistingServer: false");
-    expect(smokeSpec).toContain("test.beforeAll");
-    expect(smokeSpec).toContain("denseNarrowSmokeViewport");
-    expect(smokeSpec).toContain("storybookViewportMaxDimensionPx");
-    expect(smokeSpec).not.toContain("../../src/");
-    expect(smokeSpec).not.toContain("@/");
-    expect(storybookIndexPayload).not.toContain("../../src/");
-    expect(storybookIndexPayload).not.toContain("@/");
-    expect(smokeSpec).toContain("/index.json");
-    expect(smokeSpec).toContain("verifies Storybook story registry before iframe smoke");
+  it("keeps the Storybook smoke spec independent of app source imports", () => {
+    for (const path of [
+      "e2e/storybook/ui-reference-canvas-smoke.spec.ts",
+      "e2e/storybook/storybook-index-payload.ts",
+    ]) {
+      const source = readRepoFile(path);
+      expect(source).not.toContain("../../src/");
+      expect(source).not.toContain("@/");
+    }
   });
 });

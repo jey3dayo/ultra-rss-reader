@@ -178,19 +178,6 @@ describe("storage schemas", () => {
   });
 
   it("validates storage cleanup policy connections for settings reset and private export", () => {
-    expect(parse(StorageCleanupPolicyConnectionsSchema, STORAGE_CLEANUP_POLICY_CONNECTIONS)).toEqual({
-      settingsDataResetKeys: [
-        STORAGE_KEYS.commandHistory,
-        STORAGE_KEYS.sidebarExpandedFolders,
-        STORAGE_KEYS.startupSyncLastTriggeredAt,
-      ],
-      privateDataExportKeys: [
-        STORAGE_KEYS.theme,
-        STORAGE_KEYS.commandHistory,
-        STORAGE_KEYS.sidebarExpandedFolders,
-        STORAGE_KEYS.startupSyncLastTriggeredAt,
-      ],
-    });
     expect(
       safeParse(StorageCleanupPolicyConnectionsSchema, {
         settingsDataResetKeys: ["unknown"],

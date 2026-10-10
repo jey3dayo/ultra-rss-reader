@@ -719,9 +719,15 @@ describe("useUiStore", () => {
     });
   });
 
-  it("openCommandPalette sets true", () => {
+  it("opens, closes, and toggles the command palette", () => {
     useUiStore.getState().openCommandPalette();
     expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+    useUiStore.getState().closeCommandPalette();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    useUiStore.getState().toggleCommandPalette();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+    useUiStore.getState().toggleCommandPalette();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
   });
 
   it("closes the command palette when the selected account context changes", () => {
@@ -935,19 +941,6 @@ describe("useUiStore", () => {
       state: "failed",
       errorMessage: "detail sync failed",
     });
-  });
-
-  it("closeCommandPalette sets false", () => {
-    useUiStore.getState().openCommandPalette();
-    useUiStore.getState().closeCommandPalette();
-    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
-  });
-
-  it("toggleCommandPalette toggles open state", () => {
-    useUiStore.getState().toggleCommandPalette();
-    expect(useUiStore.getState().commandPaletteOpen).toBe(true);
-    useUiStore.getState().toggleCommandPalette();
-    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
   });
 
   it("opens and closes the subscriptions index workspace", () => {

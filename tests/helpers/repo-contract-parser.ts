@@ -8,20 +8,6 @@ export function expectSortedKeysForTarget(
   expect([...actualKeys].toSorted(), `${target} sorted keys`).toEqual([...expectedKeys].toSorted());
 }
 
-export function extractMarkdownSection(source: string, heading: string): string {
-  const sectionStart = source.indexOf(`## ${heading}`);
-  if (sectionStart === -1) {
-    return "";
-  }
-
-  const nextSectionStart = source.indexOf("\n## ", sectionStart + 1);
-  return source.slice(sectionStart, nextSectionStart === -1 ? undefined : nextSectionStart);
-}
-
-export function extractMarkdownCheckboxLabels(source: string, heading: string): string[] {
-  return [...extractMarkdownSection(source, heading).matchAll(/^- \[ \] (.+)$/gm)].map((match) => match[1] ?? "");
-}
-
 export function extractMarkdownInlineCode(source: string): string[] {
   return [...source.matchAll(/`([^`]+)`/g)].map((match) => match[1] ?? "");
 }
@@ -128,27 +114,4 @@ export function extractYamlLabelsFields(source: string): string[] {
   return [...source.matchAll(/^\s+labels:\s*\[(?<labels>.*)\]\s*(?:#.*)?$/gm)]
     .flatMap((match) => splitYamlInlineListValues(stripYamlComment(match.groups?.labels ?? "")))
     .filter((label) => label.length > 0 && label !== "*");
-}
-
-function extractIssueTemplateDoneWhenSection(source: string): string {
-  const lines = source.split("\n");
-  const sectionStart = lines.findIndex(
-    (line, index) => line.trim() === "- type: textarea" && lines[index + 1]?.trim() === "id: done-when",
-  );
-  if (sectionStart < 0) {
-    return "";
-  }
-
-  const nextSectionStart = lines.findIndex((line, index) => index > sectionStart && line.startsWith("  - type:"));
-  return lines.slice(sectionStart, nextSectionStart < 0 ? undefined : nextSectionStart).join("\n");
-}
-
-export function extractIssueTemplateDoneWhenPlaceholder(source: string): string {
-  const doneWhenSection = extractIssueTemplateDoneWhenSection(source);
-  return doneWhenSection.match(/^\s+placeholder: \|\n(?<placeholder>(?: {8}.+\n?)*)/m)?.groups?.placeholder ?? "";
-}
-
-export function extractIssueTemplateDoneWhenDescription(source: string): string {
-  const doneWhenSection = extractIssueTemplateDoneWhenSection(source);
-  return doneWhenSection.match(/^\s+description: (?<description>.+)$/m)?.groups?.description ?? "";
 }

@@ -200,6 +200,9 @@ describe("preference contract", () => {
   it("excludes hidden defaults while still resolving their fallback values", () => {
     expect(preferenceDefaults).not.toHaveProperty("recent_articles_history_enabled");
     expect(resolvePreferenceValue({}, "recent_articles_history_enabled")).toBe("true");
+    expect(
+      resolvePreferenceValue({ recent_articles_history_enabled: "maybe" }, "recent_articles_history_enabled"),
+    ).toBe("true");
     expect(preferenceDefaults).not.toHaveProperty("sort_subscriptions");
     expect(resolvePreferenceValue({}, "sort_subscriptions")).toBe("folders_first");
     expect(resolvePreferenceValue({ sort_subscriptions: "unexpected" }, "sort_subscriptions")).toBe("folders_first");
