@@ -247,9 +247,7 @@ pub async fn test_account_connection(
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     #[cfg(target_os = "macos")]
-    if let (Err(_), Some(generation)) = (&verification, lease_generation) {
-        clear_failed_test_lease(&id, generation);
-    }
+    release_lease_after_connection_test(&id, verification.is_err(), lease_generation);
     persist_connection_verification_result(&repo, &id, verification)?;
     let updated = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
@@ -258,9 +256,16 @@ pub async fn test_account_connection(
     Ok(AccountDto::from(updated))
 }
 
-/// Drops only the lease this test granted; a newer test's lease must survive a stale failure.
+/// A failed test drops only the lease it attempted to grant; a newer test's lease must survive.
 #[cfg(any(target_os = "macos", test))]
-fn clear_failed_test_lease(id: &AccountId, generation: u64) {
+fn release_lease_after_connection_test(
+    id: &AccountId,
+    verification_failed: bool,
+    lease_generation: Option<u64>,
+) {
+    let (true, Some(generation)) = (verification_failed, lease_generation) else {
+        return;
+    };
     if let Err(error) = crate::infra::keyring_store::session_cache::invalidate_if_generation(
         id.as_ref(),
         generation,

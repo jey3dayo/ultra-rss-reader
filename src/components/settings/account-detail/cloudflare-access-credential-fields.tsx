@@ -4,7 +4,11 @@ import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledInputRow, SurfaceCard } from "@/design-system";
-import type { CloudflareAccessDraftError, CloudflareAccessStatus } from "@/lib/account/cloudflare-access";
+import {
+  type CloudflareAccessDraftError,
+  type CloudflareAccessStatus,
+  isCloudflareAccessRecoveryStatus,
+} from "@/lib/account/cloudflare-access";
 
 export type AccountCredentialInputRow = {
   label: string;
@@ -158,7 +162,7 @@ export function CloudflareAccessCredentialFields({
 
   return (
     <>
-      {(status === "error" || status === "authorization_required") && (
+      {isCloudflareAccessRecoveryStatus(status) && (
         <CloudflareAccessRecoveryCard section={section} status={status} disabled={disabled} />
       )}
       {status === "ready" && (

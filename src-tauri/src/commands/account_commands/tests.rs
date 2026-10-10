@@ -1,7 +1,7 @@
 use super::{
-    clear_failed_test_lease, delete_account_then_password,
-    delete_account_with_sync_boundary_with_keyring, normalize_new_freshrss_server_url,
-    normalize_updated_account_server_url, save_account_after_optional_password_with_keyring,
+    delete_account_then_password, delete_account_with_sync_boundary_with_keyring,
+    normalize_new_freshrss_server_url, normalize_updated_account_server_url,
+    release_lease_after_connection_test, save_account_after_optional_password_with_keyring,
     update_account_credentials_after_optional_password_with_keyring, validate_account_name,
     validate_account_name_with_excluded_id, validate_account_sync_settings,
     validate_add_account_args,
@@ -1020,7 +1020,7 @@ fn account_create_update_do_not_request_provider_credential_verification() {
 }
 
 #[test]
-fn stale_failed_connection_test_keeps_the_newer_tests_lease() {
+fn failed_connection_test_drops_only_the_lease_it_attempted_to_grant() {
     use crate::infra::keyring_store::session_cache::{get, grant, invalidate, SessionCredentials};
     let mut account = fresh_rss_account();
     account.id = AccountId("stale-failure-dummy".into());
@@ -1033,9 +1033,18 @@ fn stale_failed_connection_test_keeps_the_newer_tests_lease() {
     let generation_b = invalidate(account.id.as_ref()).unwrap();
     grant(&account, generation_b, credentials()).unwrap();
 
-    clear_failed_test_lease(&account.id, generation_a);
-    assert!(get(&account).is_ok());
+    release_lease_after_connection_test(&account.id, true, Some(generation_a));
+    assert!(get(&account).is_ok(), "stale failure dropped a newer lease");
 
-    clear_failed_test_lease(&account.id, generation_b);
+    release_lease_after_connection_test(&account.id, false, Some(generation_b));
+    assert!(get(&account).is_ok(), "successful test dropped its lease");
+
+    release_lease_after_connection_test(&account.id, true, None);
+    assert!(
+        get(&account).is_ok(),
+        "failure without a grant dropped a lease"
+    );
+
+    release_lease_after_connection_test(&account.id, true, Some(generation_b));
     assert!(get(&account).is_err());
 }

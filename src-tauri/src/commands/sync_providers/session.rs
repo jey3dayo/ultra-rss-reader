@@ -10,7 +10,7 @@ use crate::infra::provider::traits::{Credentials, FeedProvider};
 #[derive(Debug)]
 pub(crate) struct GReaderSession {
     provider: GReaderProvider,
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", test))]
     lease_generation: Option<u64>,
 }
 
@@ -111,14 +111,7 @@ impl GReaderSession {
         };
         let session = Self::authenticate(provider, username, password).await?;
         #[cfg(target_os = "macos")]
-        let session = {
-            keyring_store::session_cache::grant(account, generation, credentials)
-                .map_err(|error| SessionError::Auth(error.into()))?;
-            Self {
-                lease_generation: Some(generation),
-                ..session
-            }
-        };
+        let session = session.grant_lease(account, generation, credentials)?;
         Ok(session)
     }
 
@@ -140,10 +133,25 @@ impl GReaderSession {
         &self.provider
     }
 
-    /// Generation of the lease this session granted; `None` when it did not grant one.
-    #[cfg(target_os = "macos")]
+    /// Generation this session attempted to grant; `None` when it never reached a grant.
+    #[cfg(any(target_os = "macos", test))]
     pub(crate) fn lease_generation(&self) -> Option<u64> {
         self.lease_generation
+    }
+
+    #[cfg(any(target_os = "macos", test))]
+    fn grant_lease(
+        self,
+        account: &Account,
+        generation: u64,
+        credentials: keyring_store::session_cache::SessionCredentials,
+    ) -> Result<Self, SessionError> {
+        keyring_store::session_cache::grant(account, generation, credentials)
+            .map_err(|error| SessionError::Auth(error.into()))?;
+        Ok(Self {
+            lease_generation: Some(generation),
+            ..self
+        })
     }
 }
 
@@ -194,7 +202,7 @@ impl GReaderSession {
     pub(crate) fn from_provider_for_tests(provider: GReaderProvider) -> Self {
         Self {
             provider,
-            #[cfg(target_os = "macos")]
+            #[cfg(any(target_os = "macos", test))]
             lease_generation: None,
         }
     }
@@ -213,7 +221,7 @@ impl GReaderSession {
             .map_err(|error| SessionError::Auth(error.into()))?;
         Ok(Self {
             provider,
-            #[cfg(target_os = "macos")]
+            #[cfg(any(target_os = "macos", test))]
             lease_generation: None,
         })
     }
@@ -335,5 +343,31 @@ mod tests {
             Err(SessionError::Auth(_))
         ));
         assert!(GReaderSession::provider_with_access("http://localhost", Ok(None)).is_ok());
+    }
+
+    #[test]
+    fn granting_a_lease_records_the_generation_it_attempted() {
+        use crate::infra::keyring_store::session_cache::{
+            get_leased, invalidate, SessionCredentials,
+        };
+        use crate::infra::provider::greader::GReaderProvider;
+        let account = test_account(Some("https://example.com"), Some("user"));
+        let generation = invalidate(account.id.as_ref()).unwrap();
+        let session = GReaderSession::from_provider_for_tests(GReaderProvider::for_freshrss(
+            "https://example.com",
+        ));
+        let session = session
+            .grant_lease(
+                &account,
+                generation,
+                SessionCredentials {
+                    password: zeroize::Zeroizing::new("dummy-password".into()),
+                    access: None,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(session.lease_generation(), Some(generation));
+        assert_eq!(get_leased(&account).unwrap().1, generation);
     }
 }

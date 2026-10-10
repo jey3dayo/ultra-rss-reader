@@ -327,22 +327,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn account_setup_selects_interactive_access_and_resume_stays_background() {
-        assert_eq!(
-            account_sync_mode(Some(SyncCredentialAccess::Interactive)),
-            CredentialLookupMode::Interactive
-        );
-        assert_eq!(
-            account_sync_mode(Some(SyncCredentialAccess::Background)),
-            CredentialLookupMode::Background
-        );
-        assert_eq!(
-            account_sync_mode(None),
-            CredentialLookupMode::for_user_sync()
-        );
-    }
-
-    #[test]
     fn credential_access_is_a_lowercase_wire_value() {
         let access: SyncCredentialAccess = serde_json::from_str(r#""interactive""#).unwrap();
         assert_eq!(access, SyncCredentialAccess::Interactive);

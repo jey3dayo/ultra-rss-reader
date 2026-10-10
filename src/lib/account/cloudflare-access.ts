@@ -9,7 +9,9 @@ export type CloudflareAccessDraft = {
 
 export type CloudflareAccessStatus = "loading" | "ready" | "error" | "unavailable" | "authorization_required";
 
-export function isCloudflareAccessRecoveryStatus(status: CloudflareAccessStatus): boolean {
+export function isCloudflareAccessRecoveryStatus(
+  status: CloudflareAccessStatus,
+): status is "error" | "authorization_required" {
   return status === "error" || status === "authorization_required";
 }
 
