@@ -1,15 +1,15 @@
 import * as s from "@/api/schemas/validation";
 import { FeedDisplayModeSchema } from "../feed";
 import { feedTitleSchema, folderNameSchema, nonBlankTrimmedIdSchema, nullableBlankStringToNullSchema } from "./shared";
-import { httpCommandUrlSchema } from "./url";
+import { automaticRequestUrlSchema } from "./url";
 
 export const listFoldersArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const listFeedsArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const syncFeedArgs = s.object({ feedId: nonBlankTrimmedIdSchema });
-export const discoverFeedsArgs = s.object({ url: httpCommandUrlSchema });
+export const discoverFeedsArgs = s.object({ url: automaticRequestUrlSchema });
 export const addLocalFeedArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
-  url: httpCommandUrlSchema,
+  url: automaticRequestUrlSchema,
 });
 export const createFolderArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,

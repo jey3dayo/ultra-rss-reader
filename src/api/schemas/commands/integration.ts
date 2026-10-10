@@ -13,12 +13,12 @@ import {
   whitespacePattern,
 } from "./shared";
 import {
+  hasBlockedHttpHost,
   hasEncodedNewline,
   hasHttpUrlCredentials,
-  hasPrivateHttpHost,
   isValidSupportedExternalUrl,
-  readingListUrlSchema,
   safariReadingListUrlSchema,
+  userNavigationUrlSchema,
 } from "./url";
 
 const externalUrlSchema = v.pipe(
@@ -37,7 +37,10 @@ const externalUrlSchema = v.pipe(
   v.check((url) => !controlCharPattern.test(url), "External URLs must not contain control characters"),
   v.check((url) => !whitespacePattern.test(url), "External URLs must not contain whitespace"),
   v.check((url) => !hasHttpUrlCredentials(url), "External URLs must not contain credentials"),
-  v.check((url) => !hasPrivateHttpHost(url), "External URLs must not target private/loopback addresses"),
+  v.check(
+    (url) => !hasBlockedHttpHost(url, "userNavigation"),
+    "External URLs must not target private/loopback addresses",
+  ),
 );
 export const openExternalUrlArgs = s.object({ url: externalUrlSchema });
 
@@ -118,7 +121,7 @@ export const copyToClipboardArgs = s.object({
 });
 
 export const openInBrowserArgs = s.object({
-  url: readingListUrlSchema,
+  url: userNavigationUrlSchema,
   background: v.optional(v.boolean()),
 });
 

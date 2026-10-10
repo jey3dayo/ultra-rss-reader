@@ -212,6 +212,22 @@ describe("applyReaderContentPrivacyPolicy", () => {
     expect(normalized).toContain('decoding="async"');
   });
 
+  it("drops blocked img srcset candidates and removes the attribute when none remain", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      [
+        '<img src="https://cdn.example.com/a.jpg" srcset="https://cdn.example.com/a.jpg 1x, http://100.64.0.1/a.jpg 2x, http://nas.local/a.jpg 3x" alt="Mixed">',
+        '<img src="https://cdn.example.com/b.jpg" srcset="http://app.localhost/b.jpg 1x" alt="Blocked">',
+      ].join(""),
+    );
+
+    expect(normalized).toContain('srcset="https://cdn.example.com/a.jpg 1x"');
+    expect(normalized).not.toContain("100.64.0.1");
+    expect(normalized).not.toContain("nas.local");
+    expect(normalized).not.toContain("app.localhost");
+    expect(normalized).not.toContain('alt="Blocked" srcset');
+    expect(normalized.match(/srcset=/g)).toHaveLength(1);
+  });
+
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
     const corpus: readonly PrivacyPolicyCorpusFixture[] = [
       {
@@ -334,6 +350,12 @@ describe("normalizeReaderContentImageUrl", () => {
     expect(normalizeReaderContentImageUrl("http://127.0.0.1./hero.jpg")).toBeNull();
     expect(normalizeReaderContentImageUrl("http://LOCALHOST./hero.jpg")).toBeNull();
     expect(normalizeReaderContentImageUrl("http://a.localhost./hero.jpg")).toBeNull();
+  });
+
+  it("blocks hosts the Rust sanitizer rejects: unspecified IPv6, fe90::/10 link-local, .local, single-label, CGNAT", () => {
+    for (const host of ["[::]", "[fe90::1]", "[febf::1]", "nas.local", "freshrss", "100.64.0.1"]) {
+      expect(normalizeReaderContentImageUrl(`http://${host}/hero.jpg`)).toBeNull();
+    }
   });
 
   it("allows a trailing-dot public FQDN, matching the Rust url_policy trim_end_matches('.') contract", () => {

@@ -1,0 +1,185 @@
+{
+  "$schema-note": "Shared host privacy policy cases. `userNavigation` = a URL the user explicitly opens or sends (open in browser, reading list). `automaticRequest` = a URL the app contacts or discloses without a click (external favicon service, reader content images/links, feed fetch). Both the frontend (src/lib/runtime/host-privacy.ts) and the backend (src-tauri/src/domain/url_policy.rs) must classify every case identically.",
+  "cases": [
+    {
+      "url": "http://localhost/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://LOCALHOST./",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://app.localhost/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://nas.local/",
+      "userNavigation": "allow",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://nas.local./",
+      "userNavigation": "allow",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://freshrss/",
+      "userNavigation": "allow",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "https://example.com/",
+      "userNavigation": "allow",
+      "automaticRequest": "allow"
+    },
+    {
+      "url": "https://example.com./",
+      "userNavigation": "allow",
+      "automaticRequest": "allow"
+    },
+    {
+      "url": "http://127.0.0.1/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://10.0.0.1/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://172.16.0.1/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://172.31.255.255/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://172.32.0.1/",
+      "userNavigation": "allow",
+      "automaticRequest": "allow"
+    },
+    {
+      "url": "http://192.168.1.1/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://169.254.1.1/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://0.0.0.0/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://0.1.2.3/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://100.64.0.1/",
+      "userNavigation": "allow",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://100.127.255.254/",
+      "userNavigation": "allow",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://100.63.255.255/",
+      "userNavigation": "allow",
+      "automaticRequest": "allow"
+    },
+    {
+      "url": "http://100.128.0.1/",
+      "userNavigation": "allow",
+      "automaticRequest": "allow"
+    },
+    {
+      "url": "http://[::]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[::1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[fc00::1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[fd12:3456::1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[fe80::1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[fe90::1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[febf::1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[::ffff:127.0.0.1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[::ffff:7f00:1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[::ffff:a00:1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[::ffff:ac10:1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[::ffff:0:1]/",
+      "userNavigation": "reject",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[::ffff:a000:1]/",
+      "userNavigation": "allow",
+      "automaticRequest": "allow"
+    },
+    {
+      "url": "http://[::ffff:6440:1]/",
+      "userNavigation": "allow",
+      "automaticRequest": "reject"
+    },
+    {
+      "url": "http://[2606:4700::1111]/",
+      "userNavigation": "allow",
+      "automaticRequest": "allow"
+    }
+  ]
+}

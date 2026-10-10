@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { isPrivateIpv4Host, isPrivateIpv4MappedIpv6Host, isUnspecifiedIpv6Host } from "@/lib/runtime/host-privacy";
+import { isHostBlockedByPolicy } from "@/lib/runtime/host-privacy";
 
 /**
  * Returns the preferred link target for a feed website action.
@@ -60,48 +60,8 @@ export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result
   return Result.fail({ type: "invalid_url", value: invalidUrl });
 }
 
-function normalizeHostForPrivacyPolicy(host: string): string {
-  return host.trim().toLowerCase().replace(/^\[/, "").replace(/\]$/, "").replace(/\.+$/, "");
-}
-
 export function canUseExternalFaviconEndpoint(host: string): boolean {
-  const normalizedHost = normalizeHostForPrivacyPolicy(host);
-  if (normalizedHost.length === 0) {
-    return false;
-  }
-
-  const isSingleLabelName = !normalizedHost.includes(".") && !normalizedHost.includes(":");
-  if (
-    isSingleLabelName ||
-    normalizedHost === "localhost" ||
-    normalizedHost.endsWith(".localhost") ||
-    normalizedHost.endsWith(".local")
-  ) {
-    return false;
-  }
-
-  if (
-    isPrivateIpv4Host(normalizedHost) ||
-    isPrivateIpv4MappedIpv6Host(normalizedHost) ||
-    isUnspecifiedIpv6Host(normalizedHost)
-  ) {
-    return false;
-  }
-
-  if (
-    normalizedHost.includes(":") &&
-    (normalizedHost === "::1" ||
-      normalizedHost.startsWith("fc") ||
-      normalizedHost.startsWith("fd") ||
-      normalizedHost.startsWith("fe8") ||
-      normalizedHost.startsWith("fe9") ||
-      normalizedHost.startsWith("fea") ||
-      normalizedHost.startsWith("feb"))
-  ) {
-    return false;
-  }
-
-  return true;
+  return !isHostBlockedByPolicy(host, "automaticRequest");
 }
 
 export function resolveSiteHostLabel(siteUrl: string, feedUrl: string): string {

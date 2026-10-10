@@ -737,6 +737,51 @@ fn security_privacy_new_repairs_one_startup_sanitizer_version_batch() {
 }
 
 #[test]
+fn startup_reconcile_strips_private_srcset_hosts_from_articles_saved_at_version_3() {
+    let dir = tempfile::tempdir().unwrap();
+    let db_path = dir.path().join("startup-private-srcset-repair.db");
+    let saved_html = r#"<img src="https://example.com/a.jpg" srcset="https://example.com/a.jpg 1x, http://100.64.0.1/a.jpg 2x, http://nas.local/a.jpg 3x, http://app.localhost/a.jpg 4x">"#;
+
+    {
+        let db = DbManager::new(&db_path).unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url, unread_count) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 0)",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, content_text, sanitizer_version, published_at, fetched_at, is_read)
+                 VALUES ('saved-v3', 'f1', 'Saved v3', ?1, ?1, '', 3, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0)",
+                [saved_html],
+            )
+            .unwrap();
+    }
+
+    let repaired = DbManager::new(&db_path).unwrap();
+    let content_sanitized: String = repaired
+        .reader()
+        .query_row(
+            "SELECT content_sanitized FROM articles WHERE id = 'saved-v3'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+
+    assert!(content_sanitized.contains("https://example.com/a.jpg"));
+    assert!(!content_sanitized.contains("100.64.0.1"));
+    assert!(!content_sanitized.contains("nas.local"));
+    assert!(!content_sanitized.contains("app.localhost"));
+}
+
+#[test]
 fn new_reconciles_stale_feed_unread_counts_excluding_muted_articles() {
     let dir = tempfile::tempdir().unwrap();
     let db_path = dir.path().join("stale-muted-unread-counts.db");
