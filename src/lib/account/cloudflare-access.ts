@@ -7,6 +7,8 @@ export type CloudflareAccessDraft = {
   clientSecret: string;
 };
 
+export type CloudflareAccessStatus = "loading" | "ready" | "error" | "unavailable" | "authorization_required";
+
 export type CloudflareAccessDraftError = "client_id_required" | "client_secret_required" | "https_required";
 
 export function getHttpsOrigin(serverUrl: string): string | null {
@@ -76,7 +78,7 @@ export function matchCloudflareAccessUpdate<T>(
 }
 
 export type CloudflareAccessDraftStateInput = {
-  status: "loading" | "ready" | "error" | "unavailable";
+  status: CloudflareAccessStatus;
   enabled: boolean;
   removalRequested: boolean;
   recoveryAction: "replace" | "remove" | null;

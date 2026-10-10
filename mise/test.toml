@@ -75,3 +75,7 @@ depends = ["test:rust", "test:unit", "test:e2e", "test:storybook:e2e"]
 ["test:live"]
 description = "Run FreshRSS live integration tests (requires .env with credentials)"
 run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored --nocapture"
+
+["test:keychain-session"]
+description = "Verify credential lease policy using dummy values only"
+run = "cargo test --manifest-path src-tauri/Cargo.toml --lib session_cache"

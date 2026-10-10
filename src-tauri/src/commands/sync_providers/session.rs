@@ -43,21 +43,56 @@ impl GReaderSession {
             .map(str::trim)
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
+        #[cfg(target_os = "macos")]
+        if mode == CredentialLookupMode::Background && !keyring_store::uses_dev_credential_store() {
+            let (cached, lease_generation) = keyring_store::session_cache::get_leased(account)
+                .map_err(|error| SessionError::Auth(error.into()))?;
+            let provider = Self::provider_with_access(server_url, Ok(cached.access))?;
+            let result = Self::authenticate(provider, username, cached.password.to_string()).await;
+            if matches!(&result, Err(SessionError::Auth(error)) if error.diagnostic_kind() == "auth")
+            {
+                if let Err(error) = keyring_store::session_cache::invalidate_if_generation(
+                    account.id.as_ref(),
+                    lease_generation,
+                ) {
+                    warn!(
+                        account_id = %account.id.as_ref(),
+                        "Could not invalidate rejected credential lease: {error}"
+                    );
+                }
+            }
+            return result;
+        }
+        #[cfg(target_os = "macos")]
+        let generation = keyring_store::session_cache::invalidate(account.id.as_ref())
+            .map_err(|error| SessionError::Auth(error.into()))?;
         let account_id = account.id.as_ref().to_string();
+        // Dev builds only: Cloudflare Access is not in the dev file store, so it still reads the
+        // OS Keychain and may prompt, as before leases existed.
+        #[cfg(target_os = "macos")]
+        let access_mode = if keyring_store::uses_dev_credential_store() {
+            CredentialLookupMode::Interactive
+        } else {
+            mode
+        };
+        #[cfg(not(target_os = "macos"))]
+        let access_mode = mode;
         let access =
             keyring_store::read_for_sync(CredentialKind::CloudflareAccess, mode, move || {
-                match mode {
+                match access_mode {
                     CredentialLookupMode::Background => {
                         cloudflare_access::load_for_sync(&account_id)
                     }
                     CredentialLookupMode::Interactive => {
-                        cloudflare_access::load_for_sync_with_mode(&account_id, mode)
+                        cloudflare_access::load_for_sync_with_mode(&account_id, access_mode)
                     }
                 }
                 .map_err(crate::domain::error::DomainError::from)
             })
             .await
             .map_err(|error| SessionError::Auth(error.into()))?;
+        #[cfg(target_os = "macos")]
+        let cached_access = access.clone();
         let provider = Self::provider_with_access(server_url, Ok(access))?;
         let password = match mode {
             CredentialLookupMode::Background => super::get_greader_password(account).await,
@@ -67,7 +102,16 @@ impl GReaderSession {
         }
         .map_err(SessionError::Auth)?;
 
-        Self::authenticate(provider, username, password).await
+        #[cfg(target_os = "macos")]
+        let credentials = keyring_store::session_cache::SessionCredentials {
+            password: zeroize::Zeroizing::new(password.clone()),
+            access: cached_access,
+        };
+        let session = Self::authenticate(provider, username, password).await?;
+        #[cfg(target_os = "macos")]
+        keyring_store::session_cache::grant(account, generation, credentials)
+            .map_err(|error| SessionError::Auth(error.into()))?;
+        Ok(session)
     }
 
     fn provider_with_access(

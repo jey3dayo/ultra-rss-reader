@@ -50,7 +50,7 @@ describe("Cloudflare Access recovery through native command wrappers", () => {
       setupTauriMocks((cmd) => {
         if (cmd === "get_account_cloudflare_access") {
           if (metadataFailed) throw { type: "UserVisible", message: "Metadata unavailable" };
-          return { client_id: "saved-dummy-id" };
+          return { status: "loaded", client_id: "saved-dummy-id" };
         }
         if (cmd === "update_account_credentials") throwRollbackFailure();
         return undefined;

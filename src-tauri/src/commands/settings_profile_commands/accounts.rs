@@ -144,6 +144,8 @@ fn validate_profile_account_sync_settings(
 }
 
 fn upsert_imported_account(conn: &rusqlite::Connection, account: &Account) -> Result<(), AppError> {
+    #[cfg(target_os = "macos")]
+    crate::infra::keyring_store::session_cache::invalidate(account.id.as_ref())?;
     conn.execute(
         "INSERT INTO accounts (
             id,

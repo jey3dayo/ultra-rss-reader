@@ -50,7 +50,7 @@ pub async fn trigger_sync(
         &state.syncing,
         accounts,
         Some(reporter),
-        CredentialLookupMode::Interactive,
+        CredentialLookupMode::for_user_sync(),
         SyncTrigger::ManualAll,
         |result| {
             let plan = plan_finish(&FinishInput::from_result(result), SyncEntry::ManualAll);
@@ -95,6 +95,7 @@ pub async fn trigger_sync_account(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
     account_id: String,
+    background: Option<bool>,
 ) -> Result<SyncResult, AppError> {
     if state
         .syncing
@@ -131,7 +132,12 @@ pub async fn trigger_sync_account(
         failed: Vec::new(),
         warnings: Vec::new(),
     };
-    match sync_account_with_mode(&state.db, &account, CredentialLookupMode::Interactive).await {
+    let mode = if background.unwrap_or(false) {
+        CredentialLookupMode::Background
+    } else {
+        CredentialLookupMode::for_user_sync()
+    };
+    match sync_account_with_mode(&state.db, &account, mode).await {
         Ok(outcome) => {
             result.succeeded = 1;
             if let Err(error) = clear_scheduler_sync_status(&state.db, &account.id) {
@@ -247,7 +253,7 @@ pub async fn trigger_sync_feed(
         &state.db,
         &account,
         &feed,
-        CredentialLookupMode::Interactive,
+        CredentialLookupMode::for_user_sync(),
     )
     .await
     {

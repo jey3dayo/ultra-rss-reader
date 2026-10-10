@@ -221,6 +221,7 @@ describe("AccountCredentialsSectionView", () => {
           loadingMessage: "Checking…",
           readErrorMessage: "Access metadata could not be read. Existing credentials will be kept unchanged.",
           unavailableMessage: "Manage Access in the desktop app.",
+          authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
           label: "Cloudflare Access",
           description: "Add Access authentication",
           enabled: true,
@@ -294,6 +295,7 @@ describe("AccountCredentialsSectionView", () => {
             readErrorMessage:
               "Cloudflare Access settings could not be read. Existing credentials will be kept unchanged.",
             unavailableMessage: "Manage Access in the desktop app.",
+            authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
             label: "Cloudflare Access",
             description: "Add Access authentication",
             enabled: false,
@@ -322,5 +324,43 @@ describe("AccountCredentialsSectionView", () => {
     expect(screen.queryByLabelText("Client ID")).not.toBeInTheDocument();
     expect(screen.getByText("Saved Access credentials will be removed when you save.")).toBeVisible();
     expect(screen.getByRole("alert")).toBeVisible();
+  });
+
+  it("shows neutral guidance without the destructive recovery card while authorization is required", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Server"
+        usernameLabel="Username"
+        usernameValue="alice"
+        onUsernameChange={() => {}}
+        onUsernameBlur={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter new password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+        cloudflareAccess={{
+          status: "authorization_required",
+          loadingMessage: "Checking…",
+          readErrorMessage: "Access metadata could not be read.",
+          unavailableMessage: "Manage Access in the desktop app.",
+          authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
+          label: "Cloudflare Access",
+          description: "Add Access authentication",
+          enabled: false,
+          onEnabledChange: () => {},
+          clientId: { label: "Client ID", value: "", onChange: () => {}, onBlur: () => {} },
+          clientSecret: { label: "Client Secret", value: "", onChange: () => {}, onBlur: () => {} },
+          clientIdError: "Enter a Client ID",
+          clientSecretError: "Enter a Client Secret",
+          validationError: null,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Use Save and test connection to load Access settings.");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove Access" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Cloudflare Access" })).not.toBeInTheDocument();
   });
 });

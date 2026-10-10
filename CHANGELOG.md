@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- macOSの起動・復帰・手動・自動同期ではKeychainを開かず、設定の「保存して接続確認」で許可した認証情報をアプリ内で最長8時間利用します。再起動・期限切れ時は設定での接続確認が必要です。設定を開いただけでは秘密情報を読み出しません。配布版の実機検証は #404 で追跡します。
+
 ## [0.65.3] - 2026-10-10
 
 ### Bug Fixes
