@@ -147,7 +147,8 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
             .map_err(|error| unavailable(KeyringOp::Save, &error))?;
         verify_saved_access(self, account_id, Some(access))?;
         #[cfg(target_os = "macos")]
-        invalidate_leases(account_id)
+        invalidate_leases(account_id)?;
+        Ok(())
     }
 
     fn remove(&self, account_id: &str) -> Result<(), AccessStoreError> {
@@ -159,7 +160,8 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
         }
         verify_saved_access(self, account_id, None)?;
         #[cfg(target_os = "macos")]
-        invalidate_leases(account_id)
+        invalidate_leases(account_id)?;
+        Ok(())
     }
     fn snapshot(&self, account_id: &str) -> Result<AccessSnapshot, AccessStoreError> {
         Ok(match self.raw(account_id)? {
