@@ -304,7 +304,7 @@ export function applyReaderContentPrivacyPolicy(html: string): string {
   }
 
   const doc = new DOMParser().parseFromString(html, "text/html");
-  doc.body.querySelectorAll("source[srcset]").forEach((source) => {
+  doc.body.querySelectorAll("img[srcset], source[srcset]").forEach((source) => {
     const srcset = source.getAttribute("srcset");
     if (!srcset) {
       return;

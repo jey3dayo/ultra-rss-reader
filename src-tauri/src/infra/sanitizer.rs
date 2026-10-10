@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::domain::url_policy;
 
-pub const SANITIZER_VERSION: u32 = 3;
+pub const SANITIZER_VERSION: u32 = 4;
 const SANITIZER_ADDED_TAGS: &[&str] = &[
     "img",
     "picture",

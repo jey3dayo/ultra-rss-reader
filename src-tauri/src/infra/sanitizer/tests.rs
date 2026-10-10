@@ -14,7 +14,7 @@ struct SrcsetContractCase {
     expected: Option<&'static str>,
 }
 
-const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 3;
+const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 4;
 
 const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
     SanitizerCorpusCase {
@@ -185,7 +185,7 @@ fn fixes_reader_media_and_link_privacy_attributes() {
 
 #[test]
 fn records_current_sanitizer_contract_version() {
-    assert_eq!(SANITIZER_VERSION, 3);
+    assert_eq!(SANITIZER_VERSION, 4);
 }
 
 #[test]
