@@ -254,6 +254,21 @@ describe("applyReaderContentPrivacyPolicy", () => {
     expect(trailing).not.toContain("nas.local");
   });
 
+  it("ends a srcset candidate at the first closing parenthesis, as the non-nested WHATWG in-parens state does", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      '<img src="https://example.com/x.jpg" srcset="https://example.com/a.jpg ((x),http://127.0.0.1/p.jpg 2x">',
+    );
+
+    expect(normalized).not.toContain("127.0.0.1");
+  });
+
+  it("treats only ASCII whitespace as srcset separators and keeps a NBSP URL intact", () => {
+    const url = "https://example.com/a\u00a0b.jpg";
+    const normalized = applyReaderContentPrivacyPolicy(`<img src="https://example.com/x.jpg" srcset="${url} 2x">`);
+
+    expect(normalized).toContain(`srcset="${url} 2x"`);
+  });
+
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
     const corpus: readonly PrivacyPolicyCorpusFixture[] = [
       {
