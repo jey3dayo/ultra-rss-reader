@@ -1,3 +1,6 @@
+# lefthook が見つからないと生成 hook は既定で gate 無しに通すため、hard fail させる
+assert_lefthook_installed: true
+
 pre-commit:
   parallel: true
   jobs:
