@@ -54,6 +54,13 @@ describe("host privacy policy shared fixture", () => {
   }
 });
 
+describe("isHostBlockedByPolicy unparseable IPv6", () => {
+  it.each(["not:an:ipv6", "fe80::1%25eth0", "1:2:3:4:5:6:7:8:9"])("blocks %s for both policies", (host) => {
+    expect(isHostBlockedByPolicy(host, "userNavigation")).toBe(true);
+    expect(isHostBlockedByPolicy(host, "automaticRequest")).toBe(true);
+  });
+});
+
 describe("isHostBlockedByPolicy host spellings", () => {
   it.each([
     ["bracketed IPv6", "[::1]", true],

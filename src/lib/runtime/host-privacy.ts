@@ -92,7 +92,7 @@ export function isHostBlockedByPolicy(host: string, policy: HostPrivacyPolicy): 
   }
   if (normalized.includes(":")) {
     const ipv6 = parseIpv6(normalized);
-    return ipv6 !== null && isBlockedIpv6(ipv6, policy);
+    return ipv6 === null || isBlockedIpv6(ipv6, policy);
   }
 
   return policy === "automaticRequest" && (!normalized.includes(".") || normalized.endsWith(".local"));
