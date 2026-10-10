@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, w
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { checkReleaseBuildSources } from "../scripts/check-release-build-contamination";
 import {
   generatedFixtureSnapshotSizeBudget,
   isGeneratedReportArtifactPath,
@@ -593,12 +594,6 @@ const extractTauriActionBlock = (source: string): string => {
   return value;
 };
 
-const listTypeScriptSourceFiles = (dir: string): string[] =>
-  readdirSync(dir, { recursive: true })
-    .filter((entry): entry is string => typeof entry === "string")
-    .filter((entry) => /\.(?:ts|tsx)$/.test(entry))
-    .map((entry) => normalizeRepoPath(`${dir}/${entry}`));
-
 const repoWalkIgnoredDirectoryNames = new Set([
   ".git",
   ".worktrees",
@@ -1127,6 +1122,16 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(rustStep).toContain("set -o pipefail");
     expect(nodeStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
     expect(rustStep).toContain("tee tmp/ci-artifacts/rust/test.log");
+
+    const contaminationStep = nodeRustSteps.find((step) => step.includes("pnpm run check:release-contamination"));
+    expect(contaminationStep, "real dependency validation must run outside Vitest on both OSes").toBeDefined();
+    expect(contaminationStep).toContain("timeout-minutes: 3");
+    expect(contaminationStep).not.toContain("continue-on-error");
+    expect(contaminationStep).not.toContain("if:");
+    expect(contaminationStep).not.toBe(nodeStep);
+    expect(nodeRustJobBlock.indexOf("pnpm run check:release-contamination")).toBeGreaterThan(
+      nodeRustJobBlock.indexOf("mise run test:rust"),
+    );
 
     const jsdomSteps = extractWorkflowStepBlocks(jsdomJobBlock);
     const jsdomShardStep = jsdomSteps.find((step) => step.includes("mise run test:unit:ci:dom:shard"));
@@ -2093,25 +2098,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
   it("keeps release builds from using dev Tauri config or dev credentials", () => {
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
-    const devOnlyImportPattern = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
-    const staticDevMocksImportPattern = /^\s*import\s+(?!type\b)[^;\n]+from\s*["']@\/dev\/mocks["']/m;
-    const releaseSourceDevOnlyImports = listTypeScriptSourceFiles("src").flatMap((filePath) => {
-      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
-        return [];
-      }
-      return devOnlyImportPattern.test(readText(filePath)) ? [filePath] : [];
-    });
-    const releaseSourceStaticDevMocksImports = listTypeScriptSourceFiles("src").flatMap((filePath) => {
-      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
-        return [];
-      }
-      return staticDevMocksImportPattern.test(readText(filePath)) ? [filePath] : [];
-    });
-
-    execFileSync("node", ["./scripts/check-release-build-contamination.ts"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    expect(checkReleaseBuildSources()).toEqual([]);
     expect(tauriDevConfig.identifier).not.toBe(tauriReleaseConfig.identifier);
     expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
     expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
@@ -2157,8 +2144,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
             .filter((permission) => permission.startsWith("mcp-bridge:")) ?? [],
       ),
     ).toEqual([]);
-    expect(releaseSourceDevOnlyImports).toEqual([]);
-    expect(releaseSourceStaticDevMocksImports).toEqual([]);
     expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
     expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
     expect(releaseWorkflow).not.toMatch(/\bULTRA_RSS_DEV_CREDENTIALS\s*:/);

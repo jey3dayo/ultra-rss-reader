@@ -240,6 +240,10 @@ jobs:
           set -o pipefail
           mise run test:rust 2>&1 | tee tmp/ci-artifacts/rust/test.log
 
+      - name: Validate release build contamination contract
+        timeout-minutes: 3
+        run: pnpm run check:release-contamination
+
       - name: Upload frontend failure diagnostics
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
