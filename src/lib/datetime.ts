@@ -1,13 +1,11 @@
 import { Result } from "@praha/byethrow";
-import {
-  addHours as addDateFnsHours,
-  addDays,
-  compareAsc,
-  differenceInDays as differenceInDateFnsDays,
-  isSameDay,
-  set,
-  startOfDay,
-} from "date-fns";
+import { addDays } from "date-fns/addDays";
+import { addHours as addDateFnsHours } from "date-fns/addHours";
+import { compareAsc } from "date-fns/compareAsc";
+import { differenceInDays as differenceInDateFnsDays } from "date-fns/differenceInDays";
+import { isSameDay } from "date-fns/isSameDay";
+import { set } from "date-fns/set";
+import { startOfDay } from "date-fns/startOfDay";
 
 export type DateInput = string | Date | null | undefined;
 export type ParseDateInputError = "missing_value" | "invalid_date";
