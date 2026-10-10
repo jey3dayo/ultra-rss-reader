@@ -266,7 +266,11 @@ describe("applyReaderContentPrivacyPolicy", () => {
     const url = "https://example.com/a\u00a0b.jpg";
     const normalized = applyReaderContentPrivacyPolicy(`<img src="https://example.com/x.jpg" srcset="${url} 2x">`);
 
-    expect(normalized).toContain(`srcset="${url} 2x"`);
+    const srcset = new DOMParser()
+      .parseFromString(normalized, "text/html")
+      .querySelector("img")
+      ?.getAttribute("srcset");
+    expect(srcset).toBe(`${url} 2x`);
   });
 
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
