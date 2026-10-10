@@ -120,9 +120,7 @@ describe("release provenance artifact filename", () => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const createCliFixture = (artifactName: string) => {
-  mkdirSync(SCRATCH_ROOT, { recursive: true });
-  const fixtureRoot = mkdtempSync(join(SCRATCH_ROOT, "cli-"));
+const populateCliFixture = (fixtureRoot: string, artifactName: string) => {
   const emptyGlobalGitConfig = join(fixtureRoot, "empty-git-global.config");
   writeFileSync(emptyGlobalGitConfig, "");
   const hooksDirectory = join(fixtureRoot, "empty-hooks");
@@ -196,6 +194,17 @@ const createCliFixture = (artifactName: string) => {
         env,
       }),
   };
+};
+
+const createCliFixture = (artifactName: string) => {
+  mkdirSync(SCRATCH_ROOT, { recursive: true });
+  const fixtureRoot = mkdtempSync(join(SCRATCH_ROOT, "cli-"));
+  try {
+    return populateCliFixture(fixtureRoot, artifactName);
+  } catch (error) {
+    rmSync(fixtureRoot, { recursive: true, force: true });
+    throw error;
+  }
 };
 
 describe("release provenance CLI", () => {
