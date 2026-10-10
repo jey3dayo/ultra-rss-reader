@@ -115,6 +115,29 @@ fn log_greader_api_failure(context: SafeGReaderFailureContext, reason: SafeGRead
     log::warn!("{}", context.format(reason));
 }
 
+fn has_html_content_type(response: &reqwest::Response) -> bool {
+    response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| {
+            let content_type = value.split(';').next().unwrap_or_default().trim();
+            content_type.eq_ignore_ascii_case("text/html")
+                || content_type.eq_ignore_ascii_case("application/xhtml+xml")
+        })
+}
+
+fn has_item_ids_response_shape(body: &[u8]) -> bool {
+    let Ok(serde_json::Value::Object(root)) = serde_json::from_slice(body) else {
+        return false;
+    };
+    root.get("itemRefs")
+        .is_some_and(serde_json::Value::is_array)
+        && root
+            .keys()
+            .all(|key| matches!(key.as_str(), "itemRefs" | "continuation"))
+}
+
 pub(super) fn freshrss_api_base(server_url: &str) -> String {
     let normalized_url = match reqwest::Url::parse(server_url.trim()) {
         Ok(mut url) if url.scheme() == "http" || url.scheme() == "https" => {
@@ -399,23 +422,6 @@ impl GReaderProvider {
                 "HTTP {status}. Check FreshRSS API credentials and any access gateway settings."
             )));
         }
-        if status.is_success()
-            && response
-                .headers()
-                .get(reqwest::header::CONTENT_TYPE)
-                .and_then(|value| value.to_str().ok())
-                .is_some_and(|value| {
-                    let content_type = value.split(';').next().unwrap_or_default().trim();
-                    content_type.eq_ignore_ascii_case("text/html")
-                        || content_type.eq_ignore_ascii_case("application/xhtml+xml")
-                })
-        {
-            log_greader_api_failure(
-                SafeGReaderFailureContext::from_response(&response),
-                SafeGReaderFailureReason::Html,
-            );
-            return Err(access_html_error());
-        }
         if status.is_success() {
             return Ok(response);
         }
@@ -430,9 +436,30 @@ impl GReaderProvider {
     where
         T: DeserializeOwned,
     {
+        let is_html = has_html_content_type(&response);
+        let failure_context = SafeGReaderFailureContext::from_response(&response);
+        if is_html
+            && !response
+                .url()
+                .path()
+                .ends_with("/reader/api/0/stream/items/ids")
+        {
+            log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
+            return Err(access_html_error());
+        }
         let body = Self::read_response_body(response).await?;
-        serde_json::from_slice(&body)
-            .map_err(|_| DomainError::Parse("Invalid GReader JSON response".into()))
+        if is_html && !has_item_ids_response_shape(&body) {
+            log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
+            return Err(access_html_error());
+        }
+        serde_json::from_slice::<T>(&body).map_err(|_| {
+            if is_html {
+                log_greader_api_failure(failure_context, SafeGReaderFailureReason::Html);
+                access_html_error()
+            } else {
+                DomainError::Parse("Invalid GReader JSON response".into())
+            }
+        })
     }
 
     async fn read_response_body(response: reqwest::Response) -> DomainResult<Vec<u8>> {
@@ -457,6 +484,13 @@ impl GReaderProvider {
     }
 
     pub(super) async fn read_text_response(response: reqwest::Response) -> DomainResult<String> {
+        if has_html_content_type(&response) {
+            log_greader_api_failure(
+                SafeGReaderFailureContext::from_response(&response),
+                SafeGReaderFailureReason::Html,
+            );
+            return Err(access_html_error());
+        }
         String::from_utf8(Self::read_response_body(response).await?)
             .map_err(|_| DomainError::Parse("Invalid GReader text response".into()))
     }

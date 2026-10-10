@@ -101,6 +101,313 @@ async fn authenticate_access_provider(provider: &mut GReaderProvider) {
 }
 
 #[tokio::test]
+async fn protected_article_ids_accept_expected_json_with_html_content_type() {
+    for content_type in [
+        "text/html",
+        "Text/HTML; charset=UTF-8",
+        "application/xhtml+xml",
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let ids = authenticated_mock(
+            server.mock("GET", "/api/greader.php/reader/api/0/stream/items/ids"),
+        )
+        .match_query(mockito::Matcher::Any)
+        .with_header("content-type", content_type)
+        .with_body(r#"{"itemRefs":[{"id":"123"}],"continuation":"next-page"}"#)
+        .create_async()
+        .await;
+        let mut provider = access_provider(&server);
+        provider.auth_token = Some("dummy-auth".into());
+
+        let page = provider
+            .pull_item_ids_page(STATE_READING_LIST, None)
+            .await
+            .expect("expected article IDs JSON should parse despite an HTML MIME type");
+
+        assert_eq!(
+            page.item_refs
+                .unwrap_or_default()
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+            ["123"]
+        );
+        assert_eq!(page.continuation.as_deref(), Some("next-page"));
+        ids.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn protected_article_ids_reject_unknown_html_json_before_state_propagation() {
+    for body in [
+        r#"{"error":"access denied cfast_dummy_secret"}"#,
+        r#"{}"#,
+        r#"{"items":[]}"#,
+        r#"{"itemRefs":null}"#,
+        r#"{"itemRefs":{}}"#,
+        r#"{"itemRefs":[],"error":"access denied"}"#,
+        r#"{"itemRefs":[],"errors":[]}"#,
+        r#"{"itemRefs":[],"metadata":{}}"#,
+        r#"{"continuation":"next-page"}"#,
+        r#"[]"#,
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let ids = authenticated_mock(
+            server.mock("GET", "/api/greader.php/reader/api/0/stream/items/ids"),
+        )
+        .match_query(mockito::Matcher::Any)
+        .with_header("content-type", "text/html")
+        .with_body(body)
+        .create_async()
+        .await;
+        let mut provider = access_provider(&server);
+        provider.auth_token = Some("dummy-auth".into());
+
+        let error = provider
+            .pull_all_item_ids(STATE_READ)
+            .await
+            .expect_err("unknown HTML JSON must not propagate as an empty item ID snapshot");
+
+        assert!(matches!(error, DomainError::Auth(_)));
+        assert_eq!(
+            error.to_string(),
+            "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings."
+        );
+        assert!(!error.to_string().contains("cfast_dummy_secret"));
+        ids.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn protected_article_ids_accept_empty_html_json_snapshot() {
+    let mut server = mockito::Server::new_async().await;
+    let ids =
+        authenticated_mock(server.mock("GET", "/api/greader.php/reader/api/0/stream/items/ids"))
+            .match_query(mockito::Matcher::Any)
+            .with_header("content-type", "text/html")
+            .with_body(r#"{"itemRefs":[]}"#)
+            .create_async()
+            .await;
+    let mut provider = access_provider(&server);
+    provider.auth_token = Some("dummy-auth".into());
+
+    let result = provider
+        .pull_all_item_ids(STATE_READ)
+        .await
+        .expect("an explicit empty itemRefs array should remain a valid snapshot");
+    assert!(result.is_empty());
+    ids.assert_async().await;
+}
+
+#[tokio::test]
+async fn other_protected_json_endpoints_reject_html_mime_with_valid_dtos() {
+    for (path, body) in [
+        ("/reader/api/0/tag/list", r#"{"tags":[]}"#),
+        ("/reader/api/0/subscription/list", r#"{"subscriptions":[]}"#),
+        ("/reader/api/0/unread-count", r#"{"unreadcounts":[]}"#),
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let response =
+            authenticated_mock(server.mock("GET", format!("/api/greader.php{path}").as_str()))
+                .match_query(mockito::Matcher::Any)
+                .with_header("content-type", "text/html")
+                .with_body(body)
+                .create_async()
+                .await;
+        let mut provider = access_provider(&server);
+        provider.auth_token = Some("dummy-auth".into());
+
+        let result = match path {
+            "/reader/api/0/tag/list" => provider.get_folders().await.map(|_| ()),
+            "/reader/api/0/subscription/list" => provider.get_subscriptions().await.map(|_| ()),
+            _ => provider.get_unread_count_map().await.map(|_| ()),
+        };
+        let error = result.expect_err("HTML MIME compatibility must be limited to item IDs");
+        assert!(matches!(error, DomainError::Auth(_)));
+        assert_eq!(
+            error.to_string(),
+            "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings."
+        );
+        response.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn protected_article_ids_classify_invalid_json_by_content_type() {
+    for content_type in ["text/html", "application/xhtml+xml", "application/json"] {
+        for body in [
+            "not JSON cfast_dummy_secret",
+            r#"{"itemRefs":[{"id":123}]}"#,
+            r#"{"itemRefs":[],"continuation":123}"#,
+        ] {
+            let mut server = mockito::Server::new_async().await;
+            let ids = authenticated_mock(
+                server.mock("GET", "/api/greader.php/reader/api/0/stream/items/ids"),
+            )
+            .match_query(mockito::Matcher::Any)
+            .with_header("content-type", content_type)
+            .with_body(body)
+            .create_async()
+            .await;
+            let mut provider = access_provider(&server);
+            provider.auth_token = Some("dummy-auth".into());
+
+            let error = match provider.pull_item_ids_page(STATE_READING_LIST, None).await {
+                Err(error) => error,
+                Ok(_) => panic!("invalid article IDs JSON must fail expected DTO parsing"),
+            };
+            if content_type == "application/json" {
+                assert!(matches!(error, DomainError::Parse(_)));
+                assert_eq!(
+                    error.to_string(),
+                    "Parse error: Invalid GReader JSON response"
+                );
+            } else {
+                assert!(matches!(error, DomainError::Auth(_)));
+                assert_eq!(
+                    error.to_string(),
+                    "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings."
+                );
+            }
+            assert!(!error.to_string().contains("cfast_dummy_secret"));
+            ids.assert_async().await;
+        }
+    }
+}
+
+#[tokio::test]
+async fn protected_article_ids_keep_normal_json_metadata_compatibility() {
+    let mut server = mockito::Server::new_async().await;
+    let ids =
+        authenticated_mock(server.mock("GET", "/api/greader.php/reader/api/0/stream/items/ids"))
+            .match_query(mockito::Matcher::Any)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"itemRefs":[{"id":"123"}],"metadata":{}}"#)
+            .create_async()
+            .await;
+    let mut provider = access_provider(&server);
+    provider.auth_token = Some("dummy-auth".into());
+
+    let result = provider
+        .pull_all_item_ids(STATE_READ)
+        .await
+        .expect("normal JSON should retain the existing DTO's metadata compatibility");
+    assert_eq!(result, ["tag:google.com,2005:reader/item/000000000000007b"]);
+    ids.assert_async().await;
+}
+
+#[tokio::test]
+async fn protected_article_ids_reject_html_prefixes_and_auth_statuses() {
+    for (status, content_type, body) in [
+        (200, "text/html", "<html>cfast_dummy_secret</html>"),
+        (
+            200,
+            "application/json",
+            "\u{feff} \n<!DOCTYPE HTML><html>private page</html>",
+        ),
+        (401, "text/html", r#"{"itemRefs":[{"id":"123"}]}"#),
+        (403, "text/html", r#"{"itemRefs":[{"id":"123"}]}"#),
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let ids = authenticated_mock(
+            server.mock("GET", "/api/greader.php/reader/api/0/stream/items/ids"),
+        )
+        .match_query(mockito::Matcher::Any)
+        .with_status(status)
+        .with_header("content-type", content_type)
+        .with_body(body)
+        .create_async()
+        .await;
+        let mut provider = access_provider(&server);
+        provider.auth_token = Some("dummy-auth".into());
+
+        let error = match provider.pull_item_ids_page(STATE_READING_LIST, None).await {
+            Err(error) => error,
+            Ok(_) => panic!("HTML pages and HTTP auth statuses must reject article IDs"),
+        };
+        assert!(matches!(error, DomainError::Auth(_)));
+        if status == 200 {
+            assert!(error.to_string().contains("returned an HTML page"));
+        } else {
+            assert!(error.to_string().contains(&format!("HTTP {status}")));
+        }
+        assert!(!error.to_string().contains("cfast_dummy_secret"));
+        ids.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn protected_article_ids_keep_body_cap_with_html_content_type() {
+    let mut server = mockito::Server::new_async().await;
+    let ids =
+        authenticated_mock(server.mock("GET", "/api/greader.php/reader/api/0/stream/items/ids"))
+            .match_query(mockito::Matcher::Any)
+            .with_header("content-type", "text/html")
+            .with_body(format!(
+                r#"{{"itemRefs":[],"padding":"{}"}}"#,
+                "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize)
+            ))
+            .create_async()
+            .await;
+    let mut provider = access_provider(&server);
+    provider.auth_token = Some("dummy-auth".into());
+
+    let error = match provider.pull_item_ids_page(STATE_READING_LIST, None).await {
+        Err(error) => error,
+        Ok(_) => panic!("oversized article IDs JSON must fail within the shared cap"),
+    };
+    assert!(matches!(error, DomainError::Network(_)));
+    assert_eq!(
+        error.to_string(),
+        format!(
+            "Network error: GReader JSON response body exceeds {} bytes",
+            http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
+        )
+    );
+    ids.assert_async().await;
+}
+
+#[tokio::test]
+async fn cloudflare_access_text_endpoints_reject_html_mime_even_with_valid_text() {
+    for content_type in ["text/html", "application/xhtml+xml"] {
+        let mut server = mockito::Server::new_async().await;
+        let login = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_header("content-type", content_type)
+            .with_body("Auth=dummy-auth\n")
+            .create_async()
+            .await;
+        let mutation =
+            authenticated_mock(server.mock("POST", "/api/greader.php/reader/api/0/edit-tag"))
+                .with_header("content-type", content_type)
+                .with_body("OK")
+                .create_async()
+                .await;
+        let mut provider = access_provider(&server);
+        let login_error = provider
+            .authenticate(&Credentials {
+                token: Some("dummy-user".into()),
+                password: Some("dummy-password".into()),
+            })
+            .await
+            .expect_err("HTML MIME must still reject a valid ClientLogin text body");
+        assert!(matches!(login_error, DomainError::Auth(_)));
+        assert!(provider.auth_token.is_none());
+
+        provider.auth_token = Some("dummy-auth".into());
+        let mutation_error = provider
+            .push_mutations(&[Mutation::MarkRead {
+                remote_entry_id: "123".into(),
+            }])
+            .await
+            .expect_err("HTML MIME must still reject a valid mutation text body");
+        assert!(matches!(mutation_error, DomainError::Auth(_)));
+        login.assert_async().await;
+        mutation.assert_async().await;
+    }
+}
+
+#[tokio::test]
 async fn api_access_probe_authenticates_and_reads_tag_list_with_access_headers() {
     let mut server = mockito::Server::new_async().await;
     let login = server
