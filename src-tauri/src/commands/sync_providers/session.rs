@@ -43,6 +43,21 @@ impl GReaderSession {
             .map(str::trim)
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
+        #[cfg(target_os = "macos")]
+        if mode == CredentialLookupMode::Background {
+            let cached = keyring_store::session_cache::get(account)
+                .map_err(|error| SessionError::Auth(error.into()))?;
+            let provider = Self::provider_with_access(server_url, Ok(cached.access))?;
+            let result = Self::authenticate(provider, username, cached.password.to_string()).await;
+            if matches!(&result, Err(SessionError::Auth(error)) if error.diagnostic_kind() == "auth")
+            {
+                let _ = keyring_store::session_cache::invalidate(account.id.as_ref());
+            }
+            return result;
+        }
+        #[cfg(target_os = "macos")]
+        let generation = keyring_store::session_cache::invalidate(account.id.as_ref())
+            .map_err(|error| SessionError::Auth(error.into()))?;
         let account_id = account.id.as_ref().to_string();
         let access =
             keyring_store::read_for_sync(CredentialKind::CloudflareAccess, mode, move || {
@@ -58,6 +73,8 @@ impl GReaderSession {
             })
             .await
             .map_err(|error| SessionError::Auth(error.into()))?;
+        #[cfg(target_os = "macos")]
+        let cached_access = access.clone();
         let provider = Self::provider_with_access(server_url, Ok(access))?;
         let password = match mode {
             CredentialLookupMode::Background => super::get_greader_password(account).await,
@@ -67,7 +84,16 @@ impl GReaderSession {
         }
         .map_err(SessionError::Auth)?;
 
-        Self::authenticate(provider, username, password).await
+        #[cfg(target_os = "macos")]
+        let credentials = keyring_store::session_cache::SessionCredentials {
+            password: zeroize::Zeroizing::new(password.clone()),
+            access: cached_access,
+        };
+        let session = Self::authenticate(provider, username, password).await?;
+        #[cfg(target_os = "macos")]
+        keyring_store::session_cache::grant(account, generation, credentials)
+            .map_err(|error| SessionError::Auth(error.into()))?;
+        Ok(session)
     }
 
     fn provider_with_access(

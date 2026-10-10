@@ -220,7 +220,7 @@
     "cloudflare_access_secret": "Client Secret",
     "cloudflare_access_secret_placeholder": "Leave blank to keep the saved Secret",
     "cloudflare_access_loading": "Checking Cloudflare Access settings…",
-    "cloudflare_access_read_failed": "Cloudflare Access settings could not be read. Saved settings are unknown and will be kept unless you reconfigure or remove them.",
+    "cloudflare_access_read_failed": "Cloudflare Access settings could not be read. Saved settings are unknown and will be kept unless you reconfigure or remove them. On macOS, use Save and test connection to allow Keychain access for this app session (up to 8 hours). Sync will not open permission dialogs. Saved Access settings stay unchanged unless you replace or remove them.",
     "cloudflare_access_unavailable": "Cloudflare Access settings can only be managed in the desktop app.",
     "cloudflare_access_metadata_required_for_origin_change": "Cloudflare Access settings could not be read. Reload this account before changing its server origin.",
     "cloudflare_access_save_failed": "Cloudflare Access credentials could not be saved. Check keyring access and try again.",
@@ -498,6 +498,7 @@
     "startup_repair_marker_failed": "Startup repair marker could not be saved: {{message}}",
     "scheduler_load_failed": "Scheduled sync could not load accounts: {{message}}",
     "backoff_persist_failed": "Could not save retry state for '{{accountName}}': {{message}}",
+    "credential_access_required": "'{{accountName}}' needs credential access. Open account settings and choose Save & Test Connection. Automatic authorization retries are paused.",
     "background_sync_retry_scheduled": "'{{accountName}}' will retry automatically",
     "mutation_labels": {
       "mark_read": "mark as read",

@@ -24,6 +24,14 @@ pub(crate) struct CloudflareAccess {
     https_origin: String,
 }
 
+impl Drop for CloudflareAccess {
+    fn drop(&mut self) {
+        use zeroize::Zeroize;
+        self.client_id.zeroize();
+        self.client_secret.zeroize();
+    }
+}
+
 impl fmt::Debug for CloudflareAccess {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("CloudflareAccess([redacted])")
@@ -92,6 +100,8 @@ pub(crate) trait CloudflareAccessStore {
         })
     }
     fn restore(&self, account_id: &str, snapshot: &AccessSnapshot) -> Result<(), AccessStoreError> {
+        #[cfg(target_os = "macos")]
+        super::session_cache::invalidate(account_id).map_err(|_| AccessStoreError::Unavailable)?;
         match snapshot {
             AccessSnapshot::Missing => self.remove(account_id),
             AccessSnapshot::Configured(access) => self.save(account_id, access),
@@ -124,6 +134,8 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
     }
 
     fn save(&self, account_id: &str, access: &CloudflareAccess) -> Result<(), AccessStoreError> {
+        #[cfg(target_os = "macos")]
+        super::session_cache::invalidate(account_id).map_err(|_| AccessStoreError::Unavailable)?;
         let value = serde_json::to_string(&StoredBundle {
             client_id: access.client_id.clone(),
             client_secret: access.client_secret.clone(),
@@ -137,6 +149,8 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
     }
 
     fn remove(&self, account_id: &str) -> Result<(), AccessStoreError> {
+        #[cfg(target_os = "macos")]
+        super::session_cache::invalidate(account_id).map_err(|_| AccessStoreError::Unavailable)?;
         match Self::entry(account_id, KeyringOp::Remove)?.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => {}
             Err(error) => return Err(unavailable(KeyringOp::Remove, &error)),
@@ -154,6 +168,8 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
     }
 
     fn restore(&self, account_id: &str, snapshot: &AccessSnapshot) -> Result<(), AccessStoreError> {
+        #[cfg(target_os = "macos")]
+        super::session_cache::invalidate(account_id).map_err(|_| AccessStoreError::Unavailable)?;
         match snapshot {
             AccessSnapshot::Missing => self.remove(account_id),
             AccessSnapshot::Configured(access) => self.save(account_id, access),

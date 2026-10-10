@@ -292,6 +292,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             let due_accounts = select_due_accounts_for_tick(&accounts, &schedules, now, usize::MAX)
                 .into_iter()
                 .filter(|account| !is_in_backoff(&state.db, &account.id))
+                .filter(|account| !backoff::waiting_for_credential_access(&state.db, account))
                 .take(MAX_ACCOUNTS_PER_SCHEDULER_TICK)
                 .collect::<Vec<_>>();
 

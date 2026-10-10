@@ -479,6 +479,27 @@ export function useAccountDetailCredentialsEditor({
       return false;
     }
 
+    const metadata = await getAccountCloudflareAccess(requestAccountId).catch(() => null);
+    if (
+      metadata &&
+      Result.isSuccess(metadata) &&
+      mountedRef.current &&
+      activeAccountIdRef.current === requestAccountId &&
+      draftRevisionRef.current === requestDraftRevision
+    ) {
+      dispatch({
+        type: "cloudflare-access-loaded",
+        clientId: Result.unwrap(metadata).client_id,
+        serverUrl: (verifiedAccountBase ?? account).server_url ?? "",
+      });
+    }
+    if (
+      !mountedRef.current ||
+      activeAccountIdRef.current !== requestAccountId ||
+      draftRevisionRef.current !== requestDraftRevision
+    ) {
+      return false;
+    }
     const verifiedAccount = Result.unwrap(result);
     updateCachedAccount(
       queryClient,

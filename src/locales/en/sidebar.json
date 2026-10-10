@@ -65,6 +65,7 @@
     "startup_repair_marker_failed": "Startup repair marker could not be saved: {{message}}",
     "scheduler_load_failed": "Scheduled sync could not load accounts: {{message}}",
     "backoff_persist_failed": "Could not save retry state for '{{accountName}}': {{message}}",
+    "credential_access_required": "'{{accountName}}' needs credential access. Open account settings and choose Save & Test Connection. Automatic authorization retries are paused.",
     "background_sync_retry_scheduled": "'{{accountName}}' will retry automatically",
     "mutation_labels": {
       "mark_read": "mark as read",

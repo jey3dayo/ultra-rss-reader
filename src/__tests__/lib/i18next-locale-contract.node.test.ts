@@ -784,7 +784,7 @@ describe("i18next locale contract", () => {
     }
   });
 
-  it("pins the AccountSyncWarningDetail Rust enum to exactly 13 variants under the serde tag attribute", () => {
+  it("pins the AccountSyncWarningDetail Rust enum to exactly 14 variants under the serde tag attribute", () => {
     const { hasSerdeTagAttributeDirectlyAbove, variantNames } = extractAccountSyncWarningDetailVariants(dtoSyncSource);
 
     expect(hasSerdeTagAttributeDirectlyAbove).toBe(true);
@@ -803,6 +803,7 @@ describe("i18next locale contract", () => {
       "StartupRepairMarkerFailed",
       "SchedulerLoadFailed",
       "BackoffPersistFailed",
+      "CredentialAccessRequired",
       "BackgroundSyncRetryScheduled",
     ]);
   });

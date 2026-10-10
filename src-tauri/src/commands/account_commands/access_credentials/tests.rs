@@ -658,3 +658,30 @@ fn cloudflare_access_removal_readback_failure_restores_both_credentials() {
 fn panic_db() -> Result<(), AppError> {
     panic!("failed keyring verification must preserve DB account")
 }
+
+#[test]
+fn session_cache_settings_metadata_does_not_unlock_the_os_store() {
+    use crate::infra::keyring_store::session_cache;
+    let mut account = account();
+    account.id = AccountId("metadata-without-os-dummy".into());
+    let generation = session_cache::invalidate(account.id.as_ref()).unwrap();
+    assert!(cached_access_metadata(&account).is_err());
+    session_cache::grant(
+        &account,
+        generation,
+        session_cache::SessionCredentials {
+            password: zeroize::Zeroizing::new("dummy-password".into()),
+            access: Some(bundle()),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        cached_access_metadata(&account)
+            .unwrap()
+            .client_id
+            .as_deref(),
+        Some("dummy-id")
+    );
+    session_cache::invalidate(account.id.as_ref()).unwrap();
+    assert!(cached_access_metadata(&account).is_err());
+}

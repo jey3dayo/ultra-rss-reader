@@ -158,6 +158,9 @@ pub(super) fn get_password_from_security_cli(
     account_id: &str,
     mode: super::CredentialLookupMode,
 ) -> DomainResult<String> {
+    if mode == super::CredentialLookupMode::Background {
+        return Err(super::session_cache::needs_auth());
+    }
     read_password_from_security_cli_command(
         std::process::Command::new(SECURITY_CLI_PATH),
         super::SERVICE,
@@ -234,6 +237,9 @@ pub(super) fn get_credential_from_security_cli(
     account_id: &str,
     mode: super::CredentialLookupMode,
 ) -> DomainResult<Option<String>> {
+    if mode == super::CredentialLookupMode::Background {
+        return Err(super::session_cache::needs_auth());
+    }
     read_credential_from_security_cli_command(
         std::process::Command::new(SECURITY_CLI_PATH),
         credential_kind,

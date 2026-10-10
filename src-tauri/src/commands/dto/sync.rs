@@ -113,6 +113,9 @@ pub enum AccountSyncWarningDetail {
         account_name: String,
         message: String,
     },
+    CredentialAccessRequired {
+        account_name: String,
+    },
     BackgroundSyncRetryScheduled {
         account_name: String,
     },

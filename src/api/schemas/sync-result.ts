@@ -94,6 +94,12 @@ export const AccountSyncWarningDetailSchema = v.variant("type", [
   ),
   s.unwrapStrictObjectSchema(
     s.strictObject({
+      type: v.literal("credential_access_required"),
+      account_name: accountNameSchema,
+    }),
+  ),
+  s.unwrapStrictObjectSchema(
+    s.strictObject({
       type: v.literal("background_sync_retry_scheduled"),
       account_name: accountNameSchema,
     }),

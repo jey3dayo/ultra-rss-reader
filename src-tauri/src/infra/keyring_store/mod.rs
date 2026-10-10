@@ -18,6 +18,8 @@ mod dev_store_path;
 mod diagnostics;
 mod macos_security_cli;
 mod redaction;
+#[cfg(any(target_os = "macos", test))]
+pub(crate) mod session_cache;
 #[cfg(test)]
 mod tests;
 
@@ -37,6 +39,14 @@ pub(crate) enum CredentialLookupMode {
 }
 
 impl CredentialLookupMode {
+    pub(crate) fn for_user_sync() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::Background
+        } else {
+            Self::Interactive
+        }
+    }
+
     #[cfg(target_os = "macos")]
     pub(crate) fn timeout(self) -> Duration {
         match self {
@@ -233,6 +243,8 @@ fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainRes
 }
 
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
+    #[cfg(target_os = "macos")]
+    session_cache::invalidate(account_id)?;
     if let Some(path) = dev_credentials_path() {
         validate_dev_credential_account_id(account_id)?;
         with_dev_store_lock(&path, || {
@@ -322,6 +334,8 @@ pub(crate) fn get_password_for_sync_with_mode(
 }
 
 pub fn delete_password(account_id: &str) -> DomainResult<()> {
+    #[cfg(target_os = "macos")]
+    session_cache::invalidate(account_id)?;
     if let Some(path) = dev_credentials_path() {
         return with_dev_store_lock(&path, || delete_dev_password_at_path(&path, account_id));
     }

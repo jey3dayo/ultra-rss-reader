@@ -102,6 +102,20 @@ fn account_url(account: &Account) -> Result<&str, AppError> {
         })
 }
 
+#[cfg(any(target_os = "macos", test))]
+pub(super) fn cached_access_metadata(
+    account: &Account,
+) -> Result<CloudflareAccessMetadata, AppError> {
+    let cached = keyring_store::session_cache::get(account)?;
+    Ok(CloudflareAccessMetadata {
+        client_id: cached
+            .access
+            .as_ref()
+            .map(|access| access.client_id().to_string()),
+    })
+}
+
+#[cfg(any(not(target_os = "macos"), test))]
 pub(super) fn access_metadata(
     account: &Account,
     store: &impl CloudflareAccessStore,
@@ -202,6 +216,8 @@ pub(super) fn persist_account_credentials<T>(
     persist_account: impl FnOnce() -> Result<T, AppError>,
 ) -> Result<T, AppError> {
     let id = account.id.as_ref();
+    #[cfg(target_os = "macos")]
+    keyring_store::session_cache::invalidate(id)?;
     let validated_replacement = if matches!(action, CloudflareAccessArg::Keep {}) {
         None
     } else {
@@ -291,6 +307,8 @@ pub(super) fn delete_account_credentials(
     store: &impl AccountCredentialStore,
     delete_account: impl FnOnce() -> Result<(), AppError>,
 ) -> Result<(), AppError> {
+    #[cfg(target_os = "macos")]
+    keyring_store::session_cache::invalidate(id)?;
     let previous = store.snapshot(id).map_err(store_error)?;
     if let Err(error) = write_access(store, id, None) {
         let access_failed = restore_access(store, id, &previous).is_err();

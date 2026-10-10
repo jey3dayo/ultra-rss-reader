@@ -60,6 +60,33 @@ describe("useAccountDetailCredentialsEditor", () => {
     resetTauriRuntimeFlags();
   });
 
+  it("waits for an explicit connection after locked metadata and does not retry a denial", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    const denied = { type: "UserVisible" as const, message: "Credential access needs attention" };
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.fail(denied));
+    testAccountConnectionMock.mockResolvedValueOnce(Result.fail(denied));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("error"));
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
+    expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
+    expect(getAccountCloudflareAccessMock).toHaveBeenCalledTimes(1);
+    getAccountCloudflareAccessMock.mockResolvedValue(Result.succeed({ client_id: "dummy-restored-id" }));
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
+    expect(result.current.cloudflareAccessClientId).toBe("dummy-restored-id");
+    expect(result.current.cloudflareAccessSecret).toBe("");
+    expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+  });
+
   it("focuses and selects the first available credential input", () => {
     const account = sampleAccounts[1];
     const serverUrlInput = document.createElement("input");

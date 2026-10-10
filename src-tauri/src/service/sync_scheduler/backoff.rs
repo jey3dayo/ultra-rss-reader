@@ -131,6 +131,27 @@ pub(super) fn complete_failed_account_sync(
     };
     let backoff = calculate_backoff(account, backoff_state.error_count)
         .max(Duration::from_secs(backoff_state.retry_in_seconds));
+    #[cfg(target_os = "macos")]
+    if error
+        .to_string()
+        .contains(crate::infra::keyring_store::session_cache::NEEDS_AUTH)
+    {
+        push_scheduler_warning(
+            warnings_to_emit,
+            AccountSyncWarning {
+                account_id: account.id.as_ref().to_string(),
+                account_name: account.name.clone(),
+                kind: AccountSyncWarningKind::Generic,
+                message: error.to_string(),
+                retry_at: None,
+                retry_in_seconds: None,
+                detail: AccountSyncWarningDetail::CredentialAccessRequired {
+                    account_name: account.name.clone(),
+                },
+            },
+        );
+        return backoff;
+    }
     if backoff_state.retry_warning_changed {
         push_scheduler_warning(
             warnings_to_emit,
@@ -331,5 +352,30 @@ pub(super) fn retry_after_seconds_from_app_error(error: &AppError) -> Option<u64
         AppError::Retryable { .. }
         | AppError::RetryableWithMetadata { .. }
         | AppError::UserVisible { .. } => None,
+    }
+}
+
+/// Once authorization is required, only an explicit connection can resume macOS scheduling.
+pub(super) fn waiting_for_credential_access(db: &Mutex<DbManager>, account: &Account) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        use crate::infra::keyring_store::session_cache;
+        if session_cache::get(account).is_ok() {
+            return false;
+        }
+        let Ok(db) = db.lock() else {
+            return false;
+        };
+        let repo = SqliteSyncStateRepository::new(db.reader());
+        repo.get(&account.id, SyncStateScopeKey::scheduler())
+            .ok()
+            .flatten()
+            .and_then(|state| state.last_error)
+            .is_some_and(|error| error.contains(session_cache::NEEDS_AUTH))
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (db, account);
+        false
     }
 }

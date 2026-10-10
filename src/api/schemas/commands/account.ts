@@ -96,7 +96,7 @@ export const renameAccountArgs = s.object({
   name: accountNameSchema,
 });
 
-export const syncAccountArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const syncAccountArgs = s.object({ accountId: nonBlankTrimmedIdSchema, background: v.optional(v.boolean()) });
 export const getAccountSyncStatusArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const startupSyncArgs = s.object({
   preferredAccountId: optionalBlankStringToUndefinedSchema,

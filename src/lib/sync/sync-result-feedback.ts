@@ -124,6 +124,7 @@ export function getSyncWarningDetailTranslationKey(
       return { key: detail.type, params: { message: detail.message } };
     case "backoff_persist_failed":
       return { key: detail.type, params: { accountName: detail.account_name, message: detail.message } };
+    case "credential_access_required":
     case "background_sync_retry_scheduled":
       return { key: detail.type, params: { accountName: detail.account_name } };
   }

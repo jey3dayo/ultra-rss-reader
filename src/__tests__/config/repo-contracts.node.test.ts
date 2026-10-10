@@ -1478,6 +1478,7 @@ describe("repository static contracts", () => {
       "lint",
       "quality:react-doctor-pin",
       "quality:toolchain",
+      "test:keychain-session",
       "test:rust",
       "test:unit:ci:dom:shard1",
       "test:unit:ci:dom:shard2",
