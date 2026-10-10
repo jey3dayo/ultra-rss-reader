@@ -69,6 +69,7 @@ export function buildCredentialsSection({
         loadingMessage: t("account.cloudflare_access_loading"),
         readErrorMessage: t("account.cloudflare_access_read_failed"),
         unavailableMessage: t("account.cloudflare_access_unavailable"),
+        authorizationRequiredMessage: t("account.cloudflare_access_authorization_required"),
         label: t("account.cloudflare_access"),
         description: t("account.cloudflare_access_description"),
         enabled: controller.cloudflareAccessEnabled,

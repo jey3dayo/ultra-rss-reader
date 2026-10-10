@@ -36,7 +36,7 @@ const {
     triggerStartupSyncMock: vi.fn<(accountId?: string) => Promise<Result.Result<boolean, AppError>>>(() =>
       Promise.resolve(Result.succeed(true)),
     ),
-    syncAccountMock: vi.fn<(accountId: string) => Promise<Result.Result<boolean, AppError>>>(() =>
+    syncAccountMock: vi.fn<(accountId: string, background?: boolean) => Promise<Result.Result<boolean, AppError>>>(() =>
       Promise.resolve(Result.succeed(true)),
     ),
     listAccountsMock: vi.fn<() => Promise<Result.Result<AccountDto[], AppError>>>(() =>
@@ -351,9 +351,9 @@ describe("App", () => {
       expect(syncAccountMock).toHaveBeenCalledTimes(2);
     });
     expect(listAccountsMock).toHaveBeenCalledTimes(1);
-    expect(syncAccountMock).toHaveBeenCalledWith("acc-active");
-    expect(syncAccountMock).toHaveBeenCalledWith("acc-background");
-    expect(syncAccountMock).not.toHaveBeenCalledWith("acc-disabled");
+    expect(syncAccountMock).toHaveBeenCalledWith("acc-active", true);
+    expect(syncAccountMock).toHaveBeenCalledWith("acc-background", true);
+    expect(syncAccountMock).not.toHaveBeenCalledWith("acc-disabled", true);
     dateNowSpy.mockRestore();
   });
 
@@ -441,7 +441,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(syncAccountMock).toHaveBeenCalledTimes(1);
     });
-    expect(syncAccountMock).toHaveBeenCalledWith("acc-wake");
+    expect(syncAccountMock).toHaveBeenCalledWith("acc-wake", true);
     dateNowSpy.mockRestore();
   });
 
@@ -620,7 +620,7 @@ describe("App", () => {
     });
 
     await waitFor(() => {
-      expect(syncAccountMock).toHaveBeenCalledWith("acc-retry");
+      expect(syncAccountMock).toHaveBeenCalledWith("acc-retry", true);
     });
     dateNowSpy.mockRestore();
     consoleWarnSpy.mockRestore();

@@ -324,7 +324,7 @@ export function setupDevMocks(): RestoreDevMocks {
         if (!mockAccounts.some((account) => account.id === accountId)) {
           throw new Error("Account not found");
         }
-        return { client_id: mockCloudflareAccessClientIds.get(accountId) ?? null };
+        return { status: "loaded", client_id: mockCloudflareAccessClientIds.get(accountId) ?? null };
       }
 
       case "update_account_credentials": {

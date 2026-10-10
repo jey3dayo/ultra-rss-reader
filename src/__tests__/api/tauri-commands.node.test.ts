@@ -1923,7 +1923,7 @@ describe("safeInvoke args validation", () => {
       }
       if (cmd === "get_account_cloudflare_access") {
         expect(args).toEqual({ accountId: "acc-1" });
-        return { client_id: "client-id" };
+        return { status: "loaded", client_id: "client-id" };
       }
       return undefined;
     });
@@ -1934,7 +1934,10 @@ describe("safeInvoke args validation", () => {
       clientSecret: "dummy-secret",
     });
     expect(Result.isSuccess(updated)).toBe(true);
-    expect(Result.unwrap(await getAccountCloudflareAccess("acc-1"))).toEqual({ client_id: "client-id" });
+    expect(Result.unwrap(await getAccountCloudflareAccess("acc-1"))).toEqual({
+      status: "loaded",
+      client_id: "client-id",
+    });
   });
 
   it.each(["replace", "remove"] satisfies Array<"replace" | "remove">)(

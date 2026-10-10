@@ -71,3 +71,6 @@ pub use scheduler::{
 };
 #[cfg(test)]
 mod tests;
+
+#[cfg(target_os = "macos")]
+pub(crate) use scheduler::clear_scheduler_sync_status as clear_credential_wait;

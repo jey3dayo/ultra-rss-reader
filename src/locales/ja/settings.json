@@ -220,7 +220,8 @@
     "cloudflare_access_secret": "Client Secret",
     "cloudflare_access_secret_placeholder": "空欄のままにすると保存済みの Secret を使います",
     "cloudflare_access_loading": "Cloudflare Access の設定を確認しています…",
-    "cloudflare_access_read_failed": "Cloudflare Access の設定を読み込めませんでした。保存状態は不明です。再設定または削除を選ばない限り、保存済みの設定を保持します。",
+    "cloudflare_access_read_failed": "Cloudflare Access の設定を読み込めませんでした。保存状態は不明です。再設定または削除を選ばない限り、保存済みの設定を保持します。macOSでは「保存して接続確認」で、この起動中（最大8時間）のKeychain利用を許可します。同期から許可画面は開きません。",
+    "cloudflare_access_authorization_required": "Cloudflare Access の設定は「保存して接続確認」で読み込めます。保存済みの設定は変更するまで保持されます。",
     "cloudflare_access_unavailable": "Cloudflare Access の設定はデスクトップアプリで管理できます。",
     "cloudflare_access_metadata_required_for_origin_change": "Cloudflare Access の設定を読み込めません。サーバーの接続先を変更する前に、このアカウントを開き直してください。",
     "cloudflare_access_save_failed": "Cloudflare Access の認証情報を保存できませんでした。キーリングを確認して再試行してください。",
@@ -498,6 +499,7 @@
     "startup_repair_marker_failed": "起動時の修復完了マーカーを保存できませんでした: {{message}}",
     "scheduler_load_failed": "スケジュール同期でアカウントを読み込めませんでした: {{message}}",
     "backoff_persist_failed": "「{{accountName}}」の再試行状態を保存できませんでした: {{message}}",
+    "credential_access_required": "「{{accountName}}」の認証情報へのアクセスが必要です。アカウント設定で「保存して接続確認」を押してください。許可要求の自動再試行は停止しています。",
     "background_sync_retry_scheduled": "「{{accountName}}」は自動的に再試行されます",
     "mutation_labels": {
       "mark_read": "記事の既読化",

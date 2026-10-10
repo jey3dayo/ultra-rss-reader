@@ -1166,6 +1166,10 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     expect(ciWorkflow).not.toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
+    const credentialPolicyStep = extractWorkflowStepBlocks(ciWorkflow).find((step) =>
+      step.includes("mise run test:keychain-session"),
+    );
+    expect(credentialPolicyStep).toContain("runner.os == 'macOS'");
     // Guard against silently reverting the shard split back to a single jsdom step,
     // which would still pass a naive "the task name exists" check.
     expect(ciWorkflow).not.toMatch(/mise run test:unit:ci:dom\b(?!:shard)/);

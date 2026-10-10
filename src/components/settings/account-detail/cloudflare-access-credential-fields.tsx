@@ -4,7 +4,7 @@ import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledInputRow, SurfaceCard } from "@/design-system";
-import type { CloudflareAccessDraftError } from "@/lib/account/cloudflare-access";
+import type { CloudflareAccessDraftError, CloudflareAccessStatus } from "@/lib/account/cloudflare-access";
 
 export type AccountCredentialInputRow = {
   label: string;
@@ -19,12 +19,13 @@ export type AccountCredentialInputRow = {
 };
 
 export type AccountCloudflareAccessSection = {
-  status: "loading" | "ready" | "error" | "unavailable";
+  status: CloudflareAccessStatus;
   recoveryAction?: "replace" | "remove" | null;
   onRecoveryActionChange?: (action: "replace" | "remove") => void;
   loadingMessage: string;
   readErrorMessage: string;
   unavailableMessage: string;
+  authorizationRequiredMessage: string;
   label: string;
   description: string;
   enabled: boolean;
@@ -140,6 +141,14 @@ export function CloudflareAccessCredentialFields({
     return (
       <SurfaceCard variant="info" tone="subtle" padding="compact" role="status">
         <p className="text-sm leading-[1.5]">{section.unavailableMessage}</p>
+      </SurfaceCard>
+    );
+  }
+
+  if (status === "authorization_required") {
+    return (
+      <SurfaceCard variant="info" tone="subtle" padding="compact" role="status">
+        <p className="text-sm leading-[1.5]">{section.authorizationRequiredMessage}</p>
       </SurfaceCard>
     );
   }

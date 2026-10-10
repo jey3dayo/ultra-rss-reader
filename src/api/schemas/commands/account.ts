@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
-import { unwrapObjectSchema } from "@/api/schemas/validation";
+import { unwrapObjectSchema, unwrapStrictObjectSchema } from "@/api/schemas/validation";
 import {
   accountNameSchema,
   nonBlankTrimmedIdSchema,
@@ -25,7 +25,10 @@ export const cloudflareAccessUpdateSchema = v.union([
 export type CloudflareAccessUpdate = v.InferOutput<typeof cloudflareAccessUpdateSchema>;
 
 export const getAccountCloudflareAccessArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
-export const CloudflareAccessMetadataSchema = s.strictObject({ client_id: v.nullable(v.string()) });
+export const CloudflareAccessMetadataSchema = v.variant("status", [
+  unwrapStrictObjectSchema(s.strictObject({ status: v.literal("loaded"), client_id: v.nullable(v.string()) })),
+  unwrapStrictObjectSchema(s.strictObject({ status: v.literal("authorization_required") })),
+]);
 
 function isHttpsUrl(value: string): boolean {
   try {
@@ -96,7 +99,7 @@ export const renameAccountArgs = s.object({
   name: accountNameSchema,
 });
 
-export const syncAccountArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const syncAccountArgs = s.object({ accountId: nonBlankTrimmedIdSchema, background: v.optional(v.boolean()) });
 export const getAccountSyncStatusArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const startupSyncArgs = s.object({
   preferredAccountId: optionalBlankStringToUndefinedSchema,
