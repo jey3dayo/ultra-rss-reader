@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
-import { useSetRead, useToggleStar } from "@/hooks/use-articles";
+import { useArticleCommands } from "@/components/reader/hooks/article/use-article-commands";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -10,33 +9,21 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleShareMenu } from "../../article-share-menu";
 import { resolveArticleToolbarActions } from "../../article-toolbar-actions";
 import type { ArticleToolbarActionStripProps } from "../../article-toolbar-view";
-import type { ArticleActionKeyboardShortcuts } from "./use-article-action-shortcuts";
 
 type UseArticleToolbarControlsParams = {
   article: ArticleDto | null;
   isBrowserOpen: boolean;
   onToggleBrowserOverlay: () => void;
-  keyboardShortcuts?: ArticleActionKeyboardShortcuts;
-  enableKeyboardShortcuts?: boolean;
 };
 
 export function useArticleToolbarControls({
   article,
   isBrowserOpen,
   onToggleBrowserOverlay,
-  keyboardShortcuts,
-  enableKeyboardShortcuts,
 }: UseArticleToolbarControlsParams): ArticleToolbarActionStripProps {
   const { t } = useTranslation("reader");
-  const setRead = useSetRead();
-  const toggleStar = useToggleStar();
   const showToast = useUiStore((s) => s.showToast);
-  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
-  const removeRecentlyRead = useUiStore((s) => s.removeRecentlyRead);
-  const retainArticle = useUiStore((s) => s.retainArticle);
-  const selection = useUiStore((s) => s.selection);
-  const viewMode = useUiStore((s) => s.viewMode);
-  const retainOnUnstar = viewMode === "starred" || (selection.type === "smart" && selection.kind === "starred");
+  const commands = useArticleCommands(article);
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const layoutMode = useUiStore((s) => s.layoutMode);
@@ -46,20 +33,6 @@ export function useArticleToolbarControls({
     showCopyLinkPreference: actionCopyLink === "true",
     hideBrowserOverlayActions: false,
     layoutMode,
-  });
-  const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticleActions({
-    article,
-    viewMode,
-    retainOnUnstar,
-    supportsReadingList,
-    showToast,
-    addRecentlyRead,
-    removeRecentlyRead,
-    retainArticle,
-    setRead,
-    toggleStar,
-    keyboardShortcuts,
-    enableKeyboardShortcuts,
   });
 
   const shareMenuControl = useMemo(
@@ -105,10 +78,10 @@ export function useArticleToolbarControls({
       openInExternalBrowser: t("open_in_external_browser"),
       moreActions: t("more_actions"),
     },
-    onToggleRead: setReadStatus,
-    onToggleStar: setStarStatus,
-    onCopyLink: handleCopyLink,
+    onToggleRead: commands.setRead,
+    onToggleStar: commands.setStarred,
+    onCopyLink: commands.copyLink,
     onOpenInBrowser: onToggleBrowserOverlay,
-    onOpenInExternalBrowser: handleOpenExternalBrowser,
+    onOpenInExternalBrowser: commands.openInExternalBrowser,
   };
 }

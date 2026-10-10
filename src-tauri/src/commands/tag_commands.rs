@@ -5,19 +5,13 @@ use tauri::State;
 
 use crate::commands::article_commands::{article_command_pagination, DEFAULT_ARTICLE_LIST_LIMIT};
 use crate::commands::dto::{AppError, ArticleDto, TagDto};
-use crate::commands::AppState;
+use crate::commands::{lock_db, AppState};
 use crate::domain::error::DomainError;
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, ArticleId, TagId};
 use crate::infra::db::sqlite_tag::SqliteTagRepository;
 use crate::repository::article::ArticleListMode;
 use crate::repository::tag::TagRepository;
-
-fn lock_db(
-    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
-) -> Result<std::sync::MutexGuard<'_, crate::infra::db::connection::DbManager>, AppError> {
-    crate::commands::lock_db(db)
-}
 
 #[tauri::command]
 pub fn list_tags(state: State<'_, AppState>) -> Result<Vec<TagDto>, AppError> {

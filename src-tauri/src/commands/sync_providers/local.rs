@@ -20,7 +20,7 @@ use crate::repository::sync_state::{
 };
 use crate::service::article_materializer::article_from_remote_entry;
 
-use crate::commands::feed_commands::lock_db;
+use crate::commands::lock_db;
 
 /// Delegates to `infra::db::sqlite_article::upsert_articles_with_conn`, which
 /// does not open its own transaction, so this rides on the caller's existing

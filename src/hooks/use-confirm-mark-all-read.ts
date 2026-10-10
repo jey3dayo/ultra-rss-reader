@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { closeBrowserWebviewBeforeReaderMode } from "@/lib/browser/close-browser-webview-before-reader-mode";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -27,7 +28,7 @@ function resolveConfirmMessageKey(scope: MarkAllReadConfirmationScope): ConfirmM
 export function useConfirmMarkAllRead() {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
-  const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
+  const askBeforeMarkAll = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "ask_before_mark_all"));
   const browserUrl = useUiStore((s) => s.browserUrl);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
   const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);

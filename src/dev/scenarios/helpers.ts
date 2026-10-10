@@ -16,6 +16,7 @@ import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { tagQueryKeys } from "@/hooks/use-tags";
 import { resolveFeedLandingArticle } from "@/lib/feed/feed-landing";
 import { queryKeys } from "@/lib/query/query-invalidation";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -197,8 +198,7 @@ function selectFeedArticle(
 }
 
 function getSortUnreadPreference(): string {
-  const prefs = usePreferencesStore.getState().prefs;
-  return prefs.reading_sort ?? prefs.sort_unread ?? "newest_first";
+  return resolvePreferenceValue(usePreferencesStore.getState().prefs, "reading_sort");
 }
 
 function pickFeedLandingArticle(articles: ArticleDto[]): ArticleDto | null {

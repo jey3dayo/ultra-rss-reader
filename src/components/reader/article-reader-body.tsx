@@ -10,6 +10,7 @@ import {
   shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/articles/article-view";
 import { fromSanitizedArticleHtml } from "@/lib/content/html";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { openArticleInExternalBrowser } from "./article-browser-actions";
@@ -87,7 +88,7 @@ export function ArticleReaderBody({
   hasNextArticle = true,
 }: ArticleReaderBodyProps) {
   const { t, i18n } = useTranslation("reader");
-  const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
+  const openLinks = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "open_links"));
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
   const setArticleReaderScrollPosition = useUiStore((s) => s.setArticleReaderScrollPosition);
   const viewportRef = useRef<HTMLDivElement | null>(null);
