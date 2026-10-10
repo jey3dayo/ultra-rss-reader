@@ -138,6 +138,8 @@ describe("extractSiteHost", () => {
     ["link-local IPv4", "169.254.1.2", false],
     ["unique-local IPv6", "fd00::1", false],
     ["loopback IPv6", "::1", false],
+    ["localhost with repeated trailing dots", "localhost..", false],
+    ["local mDNS domain with repeated trailing dots", "reader.local..", false],
   ])("keeps the external favicon endpoint host policy privacy-safe for %s", (_name, host, expectedAllowed) => {
     expect(canUseExternalFaviconEndpoint(host)).toBe(expectedAllowed);
   });
