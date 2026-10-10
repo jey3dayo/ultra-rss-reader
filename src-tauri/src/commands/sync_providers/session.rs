@@ -140,7 +140,7 @@ impl GReaderSession {
     }
 
     #[cfg(any(target_os = "macos", test))]
-    fn grant_lease(
+    pub(crate) fn grant_lease(
         self,
         account: &Account,
         generation: u64,

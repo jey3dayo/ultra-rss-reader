@@ -258,7 +258,7 @@ pub async fn test_account_connection(
 
 /// A failed test drops only the lease it attempted to grant; a newer test's lease must survive.
 #[cfg(any(target_os = "macos", test))]
-fn release_lease_after_connection_test(
+pub(crate) fn release_lease_after_connection_test(
     id: &AccountId,
     verification_failed: bool,
     lease_generation: Option<u64>,

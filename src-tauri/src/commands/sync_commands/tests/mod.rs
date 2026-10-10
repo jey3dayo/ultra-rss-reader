@@ -1,4 +1,5 @@
 mod finish_plan;
+mod interactive_lease;
 mod local_sync;
 mod progress;
 mod scheduler_purge;
