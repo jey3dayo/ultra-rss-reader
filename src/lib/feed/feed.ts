@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { isPrivateIpv4Host } from "@/lib/runtime/host-privacy";
+import { isPrivateIpv4Host, isPrivateIpv4MappedIpv6Host, isUnspecifiedIpv6Host } from "@/lib/runtime/host-privacy";
 
 /**
  * Returns the preferred link target for a feed website action.
@@ -70,11 +70,21 @@ export function canUseExternalFaviconEndpoint(host: string): boolean {
     return false;
   }
 
-  if (normalizedHost === "localhost" || normalizedHost.endsWith(".localhost") || normalizedHost.endsWith(".local")) {
+  const isSingleLabelName = !normalizedHost.includes(".") && !normalizedHost.includes(":");
+  if (
+    isSingleLabelName ||
+    normalizedHost === "localhost" ||
+    normalizedHost.endsWith(".localhost") ||
+    normalizedHost.endsWith(".local")
+  ) {
     return false;
   }
 
-  if (isPrivateIpv4Host(normalizedHost)) {
+  if (
+    isPrivateIpv4Host(normalizedHost) ||
+    isPrivateIpv4MappedIpv6Host(normalizedHost) ||
+    isUnspecifiedIpv6Host(normalizedHost)
+  ) {
     return false;
   }
 
