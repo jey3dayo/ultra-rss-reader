@@ -116,26 +116,8 @@ pub(crate) fn next_sync_progress_completed(completed: &AtomicUsize, total: usize
     }
 }
 
-pub(crate) fn should_emit_sync_succeeded(result: &SyncResult) -> bool {
-    result.synced && result.succeeded > 0 && result.failed.is_empty() && result.warnings.is_empty()
-}
-
-pub(crate) fn should_emit_sync_warning(result: &SyncResult) -> bool {
-    result.synced && !result.warnings.is_empty()
-}
-
-pub(crate) fn should_emit_manual_single_sync_completion(result: &SyncResult) -> bool {
-    result.synced && result.succeeded > 0
-}
-
-pub(crate) fn should_purge_old_articles_after_sync(sync_ran: bool) -> bool {
-    sync_ran
-}
-
-pub(crate) fn emit_sync_warning_event(app_handle: &tauri::AppHandle, result: &SyncResult) {
-    if super::should_emit_sync_warning(result) {
-        emit_sync_event_log_only(app_handle, SYNC_WARNING_EVENT, result.warnings.clone());
-    }
+pub(crate) fn emit_sync_warnings(app_handle: &tauri::AppHandle, result: &SyncResult) {
+    emit_sync_event_log_only(app_handle, SYNC_WARNING_EVENT, result.warnings.clone());
 }
 
 pub(crate) fn sync_event_emit_warning(event: &str, error: &impl std::fmt::Display) -> String {

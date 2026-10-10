@@ -1,12 +1,13 @@
 mod account_sync;
 mod failure_log;
+mod finish_plan;
 mod local_import_export;
 mod manual;
 mod progress;
 mod scheduler;
 
+pub(crate) use finish_plan::{plan_finish, FinishInput, SyncEntry};
 pub(crate) use progress::{
-    should_emit_sync_succeeded, should_emit_sync_warning, should_purge_old_articles_after_sync,
     SyncProgressReporter, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
 };
 
@@ -56,9 +57,8 @@ use account_sync::{
 pub use manual::{get_account_sync_status, trigger_sync, trigger_sync_account, trigger_sync_feed};
 #[cfg(test)]
 use progress::{
-    next_sync_progress_completed, next_sync_progress_session_id,
-    should_emit_manual_single_sync_completion, sync_event_emit_warning, SyncGuard,
-    SYNC_PROGRESS_SESSION_ID,
+    next_sync_progress_completed, next_sync_progress_session_id, sync_event_emit_warning,
+    SyncGuard, SYNC_PROGRESS_SESSION_ID,
 };
 #[cfg(test)]
 use scheduler::{

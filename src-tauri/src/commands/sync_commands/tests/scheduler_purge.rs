@@ -379,5 +379,4 @@ fn purge_old_articles_failure_does_not_change_sync_result_contract() {
     assert!(poison_result.is_err());
 
     purge_old_articles(&db);
-    assert!(should_purge_old_articles_after_sync(true));
 }
