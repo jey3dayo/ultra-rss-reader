@@ -22,7 +22,10 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::feed::FeedRepository;
 
-use super::failure_log::{log_local_feed_fetch_failure, log_sync_failure, SyncTrigger};
+use super::failure_log::{
+    log_local_feed_fetch_failure, log_sync_completion, log_sync_failure, log_sync_warning,
+    SyncTrigger,
+};
 use super::local_import_export::{
     local_feed_sync_warning, local_provider, run_local_account_auto_export,
     run_local_account_auto_import,
@@ -238,6 +241,7 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     let result =
         run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode, trigger).await?;
     finish(&result);
+    log_sync_completion(trigger, None, &result);
     Ok(result)
 }
 
@@ -288,12 +292,7 @@ async fn run_sync_for_accounts_guarded_with_mode(
                 if let Some(reporter) = reporter.as_ref() {
                     reporter.emit_account_started(&account);
                 }
-                let result = match mode {
-                    CredentialLookupMode::Background => sync_account(db, &account).await,
-                    CredentialLookupMode::Interactive => {
-                        sync_account_with_mode(db, &account, mode).await
-                    }
-                };
+                let result = sync_account_with_mode(db, &account, mode).await;
                 if let Some(reporter) = reporter.as_ref() {
                     reporter.emit_account_finished(&account, result.is_ok());
                 }
@@ -313,20 +312,18 @@ async fn run_sync_for_accounts_guarded_with_mode(
                         "Failed to clear scheduler sync status after manual sync: {error}"
                     );
                 }
-                warnings.extend(
-                    outcome
-                        .warnings
-                        .into_iter()
-                        .map(|warning| AccountSyncWarning {
-                            account_id: account.id.as_ref().to_string(),
-                            account_name: account.name.clone(),
-                            kind: warning.kind,
-                            message: warning.message,
-                            retry_at: warning.retry_at,
-                            retry_in_seconds: warning.retry_in_seconds,
-                            detail: warning.detail,
-                        }),
-                );
+                warnings.extend(outcome.warnings.into_iter().map(|warning| {
+                    log_sync_warning(trigger, &account.kind, warning.kind, &warning.detail);
+                    AccountSyncWarning {
+                        account_id: account.id.as_ref().to_string(),
+                        account_name: account.name.clone(),
+                        kind: warning.kind,
+                        message: warning.message,
+                        retry_at: warning.retry_at,
+                        retry_in_seconds: warning.retry_in_seconds,
+                        detail: warning.detail,
+                    }
+                }));
             }
             Err(e) => {
                 warn!(account_id = %account.id.as_ref(), "Sync failed for account: {e}");
@@ -395,6 +392,23 @@ pub(crate) struct StartupSyncAndRepairOutcome {
     pub(crate) repaired_account_ids: Vec<String>,
 }
 
+fn log_startup_finish_result(outcome: &StartupSyncAndRepairOutcome, finish_warning_start: usize) {
+    for warning in outcome
+        .sync_result
+        .warnings
+        .iter()
+        .skip(finish_warning_start)
+    {
+        log_sync_warning(
+            SyncTrigger::Startup,
+            &ProviderKind::FreshRss,
+            warning.kind,
+            &warning.detail,
+        );
+    }
+    log_sync_completion(SyncTrigger::Startup, None, &outcome.sync_result);
+}
+
 /// Runs the startup remote-state repair loop and (if any) the startup
 /// account sync under a single `syncing` guard acquired up front.
 ///
@@ -436,7 +450,9 @@ pub(crate) async fn run_startup_sync_and_repair(
             },
             repaired_account_ids: Vec::new(),
         };
+        let finish_warning_start = outcome.sync_result.warnings.len();
         finish(&mut outcome);
+        log_startup_finish_result(&outcome, finish_warning_start);
         return Ok(outcome);
     }
     let _guard = SyncGuard(syncing);
@@ -523,6 +539,8 @@ pub(crate) async fn run_startup_sync_and_repair(
         sync_result,
         repaired_account_ids,
     };
+    let finish_warning_start = outcome.sync_result.warnings.len();
     finish(&mut outcome);
+    log_startup_finish_result(&outcome, finish_warning_start);
     Ok(outcome)
 }

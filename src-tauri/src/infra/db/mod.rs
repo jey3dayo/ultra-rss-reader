@@ -138,8 +138,8 @@ mod tests {
                 "service::sync_scheduler::start_sync_scheduler",
             ),
             (
-                "release log cleanup owner",
-                "cleanup_old_logs(&log_dir, RELEASE_LOG_RETENTION_DAYS)",
+                "startup log cleanup owner",
+                "cleanup_startup_logs(&log_dir)",
             ),
         ];
 

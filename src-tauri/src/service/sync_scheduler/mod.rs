@@ -13,9 +13,9 @@ use crate::commands::dto::{
     SyncProgressKind,
 };
 use crate::commands::sync_commands::{
-    log_sync_failure, log_sync_panic, plan_finish, purge_old_articles, sync_account, FinishInput,
-    SyncEntry, SyncProgressReporter, SyncTrigger, SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT,
-    SYNC_WARNING_EVENT,
+    log_background_sync_outcome, log_sync_failure, log_sync_panic, plan_finish, purge_old_articles,
+    sync_account, FinishInput, SyncEntry, SyncProgressReporter, SyncTrigger, SYNC_COMPLETED_EVENT,
+    SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
 };
 use crate::domain::account::Account;
 #[cfg(test)]
@@ -63,6 +63,38 @@ static INVALID_NEXT_RETRY_CLEANUP_FAILURES: OnceLock<Mutex<HashSet<String>>> = O
 static SCHEDULER_LIFECYCLE: OnceLock<Mutex<SchedulerLifecycle>> = OnceLock::new();
 
 const RETRY_AFTER_MESSAGE_PREFIX: &str = "Rate limit error: HTTP 429 ";
+
+fn finalize_successful_background_account_sync(
+    account: &Account,
+    diagnostic_warnings: Vec<AccountSyncWarning>,
+    warnings_to_emit: &mut Vec<AccountSyncWarning>,
+) {
+    tracing::info!(account_id = %account.id.as_ref(), "Background sync completed");
+    for warning in &diagnostic_warnings {
+        tracing::warn!(
+            account_id = %account.id.as_ref(),
+            kind = ?warning.kind,
+            "Background sync warning"
+        );
+        push_scheduler_warning(warnings_to_emit, warning.clone());
+    }
+    log_background_sync_outcome(&account.kind, Ok(()), &diagnostic_warnings);
+}
+
+fn finalize_failed_background_account_sync(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    error: &AppError,
+    warnings_to_emit: &mut Vec<AccountSyncWarning>,
+) -> Duration {
+    let mut diagnostic_warnings = Vec::new();
+    let backoff = complete_failed_account_sync(db, account, error, &mut diagnostic_warnings);
+    log_background_sync_outcome(&account.kind, Err(error), &diagnostic_warnings);
+    for warning in diagnostic_warnings {
+        push_scheduler_warning(warnings_to_emit, warning);
+    }
+    backoff
+}
 
 #[derive(Clone)]
 struct SchedulerShutdown {
@@ -329,29 +361,6 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
 
                 match result {
                     Ok(Ok(outcome)) => {
-                        tracing::info!(account_id = %account.id.as_ref(), "Background sync completed");
-                        for warning in &outcome.warnings {
-                            // Log only the warning kind: `warning.message` is user-facing copy
-                            // that can embed feed titles and account names
-                            // (docs/feed-content-privacy.md).
-                            tracing::warn!(
-                                account_id = %account.id.as_ref(),
-                                kind = ?warning.kind,
-                                "Background sync warning"
-                            );
-                            push_scheduler_warning(
-                                &mut warnings_to_emit,
-                                AccountSyncWarning {
-                                    account_id: account.id.as_ref().to_string(),
-                                    account_name: account.name.clone(),
-                                    kind: warning.kind,
-                                    message: warning.message.clone(),
-                                    retry_at: warning.retry_at.clone(),
-                                    retry_in_seconds: warning.retry_in_seconds,
-                                    detail: warning.detail.clone(),
-                                },
-                            );
-                        }
                         reporter.emit_account_finished(account, true);
                         match load_scheduler_account(&state.db, &account.id) {
                             Ok(Some(latest_account)) => {
@@ -384,19 +393,39 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             }
                         }
                         any_synced = true;
+                        let diagnostic_warnings = outcome
+                            .warnings
+                            .iter()
+                            .map(|warning| AccountSyncWarning {
+                                account_id: account.id.as_ref().to_string(),
+                                account_name: account.name.clone(),
+                                kind: warning.kind,
+                                message: warning.message.clone(),
+                                retry_at: warning.retry_at.clone(),
+                                retry_in_seconds: warning.retry_in_seconds,
+                                detail: warning.detail.clone(),
+                            })
+                            .collect();
+                        finalize_successful_background_account_sync(
+                            account,
+                            diagnostic_warnings,
+                            &mut warnings_to_emit,
+                        );
                     }
                     Ok(Err(e)) => {
                         tracing::warn!(account_id = %account.id.as_ref(), "Background sync failed: {e}");
                         log_sync_failure(SyncTrigger::Background, &account.kind, &e);
                         reporter.emit_account_finished(account, false);
+                        let mut finalized_with_backoff = false;
                         match load_scheduler_account(&state.db, &account.id) {
                             Ok(Some(latest_account)) => {
-                                let backoff = complete_failed_account_sync(
+                                let backoff = finalize_failed_background_account_sync(
                                     &state.db,
                                     &latest_account,
                                     &e,
                                     &mut warnings_to_emit,
                                 );
+                                finalized_with_backoff = true;
                                 schedule_failed_account_sync(
                                     &mut schedules,
                                     &latest_account,
@@ -419,6 +448,9 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             }
                         }
                         all_succeeded = false;
+                        if !finalized_with_backoff {
+                            log_background_sync_outcome(&account.kind, Err(&e), &[]);
+                        }
                     }
                     Err(_) => {
                         tracing::error!(
@@ -429,14 +461,16 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                         let panic_error = AppError::UserVisible {
                             message: "Background sync panicked".to_string(),
                         };
+                        let mut finalized_with_backoff = false;
                         match load_scheduler_account(&state.db, &account.id) {
                             Ok(Some(latest_account)) => {
-                                let backoff = complete_failed_account_sync(
+                                let backoff = finalize_failed_background_account_sync(
                                     &state.db,
                                     &latest_account,
                                     &panic_error,
                                     &mut warnings_to_emit,
                                 );
+                                finalized_with_backoff = true;
                                 schedule_failed_account_sync(
                                     &mut schedules,
                                     &latest_account,
@@ -457,6 +491,9 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             }
                         }
                         all_succeeded = false;
+                        if !finalized_with_backoff {
+                            log_background_sync_outcome(&account.kind, Err(&panic_error), &[]);
+                        }
                     }
                 }
             }
@@ -1721,6 +1758,129 @@ mod tests {
             }
         );
         assert!(is_in_backoff(&db, &account.id));
+    }
+
+    #[test]
+    fn finalized_background_log_includes_retry_warning_from_backoff() {
+        use crate::commands::dto::AccountSyncWarningDetail;
+        use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_process};
+
+        if child_scenario().is_some() {
+            let db = std::sync::Mutex::new(test_db());
+            let mut account = test_account(60);
+            account.id = AccountId("private-account-sentinel".to_string());
+            account.name = "private-name-sentinel".to_string();
+            {
+                let db_guard = db.lock().unwrap();
+                insert_test_account(&db_guard, &account.id);
+            }
+            let mut warnings_to_emit = (0..16)
+                .map(|index| AccountSyncWarning {
+                    account_id: format!("ui-warning-{index}"),
+                    account_name: "private-name-sentinel".to_string(),
+                    kind: AccountSyncWarningKind::Generic,
+                    message: format!("ui-warning-{index}"),
+                    retry_at: None,
+                    retry_in_seconds: None,
+                    detail: AccountSyncWarningDetail::AccountSkippedEntries {
+                        account_name: "private-name-sentinel".to_string(),
+                        count: 1,
+                    },
+                })
+                .collect::<Vec<_>>();
+            let error = AppError::UserVisible {
+                message: "private-error-sentinel".to_string(),
+            };
+            let backoff = finalize_failed_background_account_sync(
+                &db,
+                &account,
+                &error,
+                &mut warnings_to_emit,
+            );
+            assert_eq!(warnings_to_emit.len(), 16);
+            assert!(backoff > Duration::ZERO);
+            return;
+        }
+
+        let lines = run_in_isolated_process(
+            module_path!(),
+            "finalized_background_log_includes_retry_warning_from_backoff",
+            "emit",
+        );
+        assert_eq!(
+            lines,
+            [
+                "event=sync-warning trigger=background provider=local warning_kind=retry_scheduled warning_detail=background_sync_retry_scheduled",
+                "event=sync-completed trigger=background provider=local total=1 succeeded=0 failed=1 warnings=1",
+            ]
+        );
+        assert!(lines.iter().all(|line| !line.contains("sentinel")));
+    }
+
+    #[test]
+    fn finalized_background_log_keeps_provider_warnings_when_ui_list_is_full() {
+        use crate::commands::dto::AccountSyncWarningDetail;
+        use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_process};
+
+        if child_scenario().is_some() {
+            let account = test_account(60);
+            let mut warnings_to_emit = (0..16)
+                .map(|index| AccountSyncWarning {
+                    account_id: format!("ui-warning-{index}"),
+                    account_name: "private-name-sentinel".to_string(),
+                    kind: AccountSyncWarningKind::Generic,
+                    message: format!("ui-warning-{index}"),
+                    retry_at: None,
+                    retry_in_seconds: None,
+                    detail: AccountSyncWarningDetail::AccountSkippedEntries {
+                        account_name: "private-name-sentinel".to_string(),
+                        count: 1,
+                    },
+                })
+                .collect::<Vec<_>>();
+            let diagnostic_warnings = (0..17)
+                .map(|index| AccountSyncWarning {
+                    account_id: "private-account-sentinel".to_string(),
+                    account_name: "private-name-sentinel".to_string(),
+                    kind: AccountSyncWarningKind::Generic,
+                    message: format!("private-warning-sentinel-{index}"),
+                    retry_at: None,
+                    retry_in_seconds: None,
+                    detail: AccountSyncWarningDetail::FeedSkippedEntries {
+                        feed_title: format!("private-feed-sentinel-{index}"),
+                        count: 1,
+                    },
+                })
+                .collect();
+            finalize_successful_background_account_sync(
+                &account,
+                diagnostic_warnings,
+                &mut warnings_to_emit,
+            );
+            assert_eq!(warnings_to_emit.len(), 16);
+            return;
+        }
+
+        let lines = run_in_isolated_process(
+            module_path!(),
+            "finalized_background_log_keeps_provider_warnings_when_ui_list_is_full",
+            "emit",
+        );
+        assert_eq!(
+            lines
+                .iter()
+                .filter(|line| line.starts_with("event=sync-warning"))
+                .count(),
+            17
+        );
+        assert_eq!(
+            lines
+                .iter()
+                .filter(|line| line.starts_with("event=sync-completed"))
+                .collect::<Vec<_>>(),
+            ["event=sync-completed trigger=background provider=local total=1 succeeded=1 failed=0 warnings=17"]
+        );
+        assert!(lines.iter().all(|line| !line.contains("sentinel")));
     }
 
     #[test]

@@ -33,6 +33,7 @@ pub(super) struct PullEntriesPage {
     pub(super) result: PullResult,
     pub(super) raw_item_count: usize,
     pub(super) repeated_continuation: bool,
+    requested_limit: u32,
 }
 
 impl GReaderProvider {
@@ -67,35 +68,56 @@ impl GReaderProvider {
         cursor: Option<SyncCursor>,
         fallback_stream_id: Option<&str>,
     ) -> DomainResult<PullEntriesPage> {
-        let mut url = format!(
-            "{}?output=json&n={STREAM_CONTENTS_LIMIT}",
-            self.api_url(&format!(
-                "/reader/api/0/stream/contents/{}",
-                urlencoded(stream_id)
-            ))
-        );
+        let stream_url = self.api_url(&format!(
+            "/reader/api/0/stream/contents/{}",
+            urlencoded(stream_id)
+        ));
+        let mut query = String::new();
 
         if let Some(xt) = exclude_target {
-            url.push_str(&format!("&xt={}", urlencoded(xt)));
+            query.push_str(&format!("&xt={}", urlencoded(xt)));
         }
 
         if let Some(ref c) = cursor {
             if let Some(ref cont) = c.continuation {
-                url.push_str(&format!("&c={}", urlencoded(cont)));
+                query.push_str(&format!("&c={}", urlencoded(cont)));
             }
             if let Some(since) = c.since {
-                url.push_str(&format!("&ot={}", since.timestamp_micros()));
+                query.push_str(&format!("&ot={}", since.timestamp_micros()));
             }
         }
 
-        let resp = self
-            .request(reqwest::Method::GET, &url)?
-            .header("Authorization", self.auth_header()?)
-            .send()
-            .await
-            .map_err(|error| self.map_request_error(error))
-            .and_then(Self::ensure_success_response)?;
-        let resp: StreamContentsResponse = Self::read_json_response(resp).await?;
+        let mut requested_limit = STREAM_CONTENTS_LIMIT;
+        let resp: StreamContentsResponse = loop {
+            let url = format!("{stream_url}?output=json&n={requested_limit}{query}");
+            let resp = self
+                .request(reqwest::Method::GET, &url)?
+                .header("Authorization", self.auth_header()?)
+                .send()
+                .await
+                .map_err(|error| self.map_request_error(error))
+                .and_then(Self::ensure_success_response)?;
+            match Self::read_json_response(resp).await {
+                Ok(resp) => break resp,
+                Err(error) => {
+                    let is_body_cap = matches!(
+                        (&error, super::http::greader_json_body_too_large_error()),
+                        (DomainError::Network(message), DomainError::Network(expected))
+                            if message == &expected
+                    );
+                    if !is_body_cap || requested_limit == 1 {
+                        return Err(error);
+                    }
+                    let next_limit = (requested_limit / 2).max(1);
+                    log::info!(
+                        "event=stream-page-resized from_limit={} to_limit={}",
+                        requested_limit,
+                        next_limit
+                    );
+                    requested_limit = next_limit;
+                }
+            }
+        };
 
         let raw_item_count = resp.items.len();
         let item_timestamps = resp
@@ -148,6 +170,7 @@ impl GReaderProvider {
             },
             raw_item_count,
             repeated_continuation,
+            requested_limit,
         })
     }
 
@@ -168,7 +191,7 @@ pub(super) async fn pull_unread_entries_for_feed(
         UnreadPullTermination::RepeatedContinuation
     } else if page.result.entries.is_empty() && page.result.has_more {
         UnreadPullTermination::EmptyPageWithContinuation
-    } else if page.raw_item_count >= STREAM_CONTENTS_LIMIT as usize && !page.result.has_more {
+    } else if page.raw_item_count >= page.requested_limit as usize && !page.result.has_more {
         UnreadPullTermination::FullPageWithoutContinuation
     } else {
         UnreadPullTermination::Normal

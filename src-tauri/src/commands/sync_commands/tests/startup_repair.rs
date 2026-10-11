@@ -1,4 +1,65 @@
 use super::*;
+use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_process};
+
+const STARTUP_LOG_SENTINEL: &str = "startup-log-secret-sentinel";
+
+#[tokio::test]
+async fn startup_completion_log_includes_finish_callback_warning() {
+    if child_scenario().is_some() {
+        let db =
+            Mutex::new(DbManager::new_in_memory().expect("startup log database should initialize"));
+        let poison_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = db.lock().expect("startup log database should lock");
+            panic!("poison startup log database lock");
+        }));
+        assert!(poison_result.is_err());
+
+        let mut repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        repair_only_account.username = None;
+        let outcome = run_startup_sync_and_repair(
+            &db,
+            &AtomicBool::new(false),
+            None,
+            Vec::new(),
+            vec![repair_only_account],
+            Vec::new(),
+            |outcome| {
+                record_startup_remote_state_repair_complete(&db, &mut outcome.sync_result);
+                if let Some(warning) = outcome.sync_result.warnings.last_mut() {
+                    warning.account_id = STARTUP_LOG_SENTINEL.to_string();
+                    warning.account_name = STARTUP_LOG_SENTINEL.to_string();
+                    warning.message = STARTUP_LOG_SENTINEL.to_string();
+                    warning.detail = AccountSyncWarningDetail::StartupRepairMarkerFailed {
+                        message: STARTUP_LOG_SENTINEL.to_string(),
+                    };
+                }
+            },
+        )
+        .await
+        .expect("repair-only startup run should finish");
+
+        assert_eq!(outcome.sync_result.warnings.len(), 1);
+        assert!(outcome.sync_result.synced);
+        return;
+    }
+
+    let lines = run_in_isolated_process(
+        module_path!(),
+        "startup_completion_log_includes_finish_callback_warning",
+        "emit",
+    );
+    assert_eq!(
+        lines,
+        [
+            "event=sync-warning trigger=startup provider=freshrss warning_kind=generic warning_detail=startup_repair_marker_failed",
+            "event=sync-completed trigger=startup provider=all total=1 succeeded=1 failed=0 warnings=1",
+        ]
+    );
+    assert!(lines
+        .iter()
+        .all(|line| !line.contains(STARTUP_LOG_SENTINEL)));
+}
 
 #[tokio::test]
 async fn run_full_sync_skips_when_already_syncing() {

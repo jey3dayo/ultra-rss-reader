@@ -263,7 +263,13 @@ pub(crate) async fn sync_greader_feeds(
                 }
                 delete_pending_mutation(db, pending_mutation_id)?;
             }
-            Err(_) => {
+            Err(error) => {
+                log::warn!(
+                    target: "sync",
+                    "event=pending-mutation-retry provider=freshrss mutation_type={} error_kind={}",
+                    pm.mutation_type.as_str(),
+                    AppError::from(error).diagnostic_kind()
+                );
                 warn!(
                     account_id = %account.id.as_ref(),
                     feed_id,
