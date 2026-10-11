@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub const COUNT_RESPONSE_MAX_VALUE: i64 = 9_007_199_254_740_991;
 
@@ -26,6 +26,40 @@ pub struct AccountSyncStatus {
     pub last_error: Option<String>,
     pub error_count: i32,
     pub next_retry_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+pub struct LocalFeedSyncStatus {
+    pub feed_id: String,
+    pub last_attempt_at: Option<String>,
+    pub last_success_at: Option<String>,
+    pub error_kind: Option<LocalFeedSyncErrorKind>,
+    pub error_count: i32,
+    pub diagnostic_id: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LocalFeedSyncErrorKind {
+    PrivateAddressBlocked,
+    Validation,
+    Network,
+    Parse,
+    Persistence,
+    Other,
+}
+
+impl LocalFeedSyncErrorKind {
+    pub const fn diagnostic_label(self) -> &'static str {
+        match self {
+            Self::PrivateAddressBlocked => "private_address_blocked",
+            Self::Validation => "validation",
+            Self::Network => "network",
+            Self::Parse => "parse",
+            Self::Persistence => "persistence",
+            Self::Other => "other",
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Clone)]

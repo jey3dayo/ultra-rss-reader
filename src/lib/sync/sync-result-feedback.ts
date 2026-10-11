@@ -6,7 +6,7 @@ import type {
   SyncResultDto,
 } from "@/api/schemas/sync-result";
 
-export type SyncFeedback =
+export type SyncFeedback = (
   | { kind: "already-in-progress" }
   | { kind: "partial-failure"; accounts: string }
   | {
@@ -29,7 +29,12 @@ export type SyncFeedback =
       detail: AccountSyncWarningDetail | null;
       remainingWarningCount: number;
     }
-  | { kind: "success" };
+  | { kind: "success" }
+) & {
+  localFeedSyncFailureCount?: number;
+  localFeedSyncFailureAccountId?: string;
+  otherWarningCount?: number;
+};
 
 export type SyncFeedbackMessages = {
   alreadyInProgress: string;
@@ -37,6 +42,7 @@ export type SyncFeedbackMessages = {
   retryScheduled: (accounts: string, retryAt?: string, retryInSeconds?: number) => string;
   retryPending: (accounts: string) => string;
   warnings: (accounts: string) => string;
+  localFeedSyncFailures?: (count: number) => string;
   success: string;
   /**
    * Renders one representative, localized warning-detail line appended after
@@ -222,6 +228,10 @@ function getEarliestRetryWarning(warnings: AccountSyncWarning[]): AccountSyncWar
   return scheduledWarnings.find((warning) => getRetryWarningSeconds(warning) === earliestRetrySeconds);
 }
 
+function isLocalFeedSyncFailureWarning(warning: AccountSyncWarning): boolean {
+  return warning.detail?.type === "local_feed_sync_failed";
+}
+
 /**
  * Picks one representative warning detail to surface alongside the
  * kind/message summary, regardless of which sub-kind (warnings-only,
@@ -237,13 +247,46 @@ function getRepresentativeWarningDetail(warnings: AccountSyncWarning[]): {
   detail: AccountSyncWarningDetail | null;
   remainingWarningCount: number;
 } {
-  const withDetail = warnings.find((warning) => warning.detail !== null);
+  const withDetail = warnings.find(
+    (warning) => warning.detail !== null && warning.detail !== undefined && !isLocalFeedSyncFailureWarning(warning),
+  );
   if (!withDetail || withDetail.detail === null) {
     return { detail: null, remainingWarningCount: 0 };
   }
   return {
     detail: withDetail.detail,
-    remainingWarningCount: Math.max(warnings.length - 1, 0),
+    remainingWarningCount: Math.max(
+      warnings.filter((warning) => !isLocalFeedSyncFailureWarning(warning)).length - 1,
+      0,
+    ),
+  };
+}
+
+function getLocalFeedSyncFailureCount(warnings: AccountSyncWarning[]): number {
+  return warnings.filter(isLocalFeedSyncFailureWarning).length;
+}
+
+function getLocalFeedSyncFailureAccountId(warnings: AccountSyncWarning[]): string | undefined {
+  const accountIds = new Set(warnings.filter(isLocalFeedSyncFailureWarning).map((warning) => warning.account_id));
+  return accountIds.size === 1 ? accountIds.values().next().value : undefined;
+}
+
+type LocalFeedSyncFailureSummary = {
+  localFeedSyncFailureCount?: number;
+  localFeedSyncFailureAccountId?: string;
+  otherWarningCount?: number;
+};
+
+function getLocalFeedSyncFailureSummary(warnings: AccountSyncWarning[]): LocalFeedSyncFailureSummary {
+  const localFeedSyncFailureCount = getLocalFeedSyncFailureCount(warnings);
+  if (localFeedSyncFailureCount === 0) return {};
+
+  const localFeedSyncFailureAccountId = getLocalFeedSyncFailureAccountId(warnings);
+  const otherWarningCount = warnings.length - localFeedSyncFailureCount;
+  return {
+    localFeedSyncFailureCount,
+    ...(localFeedSyncFailureAccountId ? { localFeedSyncFailureAccountId } : {}),
+    ...(otherWarningCount > 0 ? { otherWarningCount } : {}),
   };
 }
 
@@ -259,6 +302,7 @@ export function summarizeSyncResult(
     return {
       kind: "partial-failure",
       accounts: getDistinctAccountNames(result.failed, copy),
+      ...getLocalFeedSyncFailureSummary(result.warnings),
     };
   }
 
@@ -281,6 +325,7 @@ export function summarizeSyncWarnings(
   copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
 ): Extract<SyncFeedback, { kind: "retry-scheduled" | "retry-pending" | "warnings" }> {
   const { detail, remainingWarningCount } = getRepresentativeWarningDetail(warnings);
+  const localFeedFailureSummary = getLocalFeedSyncFailureSummary(warnings);
   const scheduledRetry = getEarliestRetryWarning(warnings);
   if (scheduledRetry) {
     return {
@@ -290,6 +335,7 @@ export function summarizeSyncWarnings(
       retryInSeconds: scheduledRetry.retry_in_seconds ?? undefined,
       detail,
       remainingWarningCount,
+      ...localFeedFailureSummary,
     };
   }
 
@@ -298,6 +344,7 @@ export function summarizeSyncWarnings(
     accounts: getDistinctAccountNames(warnings, copy),
     detail,
     remainingWarningCount,
+    ...localFeedFailureSummary,
   };
 }
 
@@ -313,34 +360,57 @@ function appendDetailLine(
   return `${base} ${detailLine(detail, remainingWarningCount)}`;
 }
 
+function appendLocalFeedSyncFailureSummary(
+  message: string,
+  feedback: SyncFeedback,
+  messages: SyncFeedbackMessages,
+): string {
+  if (!feedback.localFeedSyncFailureCount || !messages.localFeedSyncFailures) {
+    return message;
+  }
+  const summary = messages.localFeedSyncFailures(feedback.localFeedSyncFailureCount);
+  if (feedback.kind === "warnings" && feedback.otherWarningCount === undefined) {
+    return summary;
+  }
+  return `${message} ${summary}`;
+}
+
 export function resolveSyncFeedbackMessage(feedback: SyncFeedback, messages: SyncFeedbackMessages): string {
+  let message: string;
   switch (feedback.kind) {
     case "already-in-progress":
-      return messages.alreadyInProgress;
+      message = messages.alreadyInProgress;
+      break;
     case "partial-failure":
-      return messages.partialFailure(feedback.accounts);
+      message = messages.partialFailure(feedback.accounts);
+      break;
     case "retry-scheduled":
-      return appendDetailLine(
+      message = appendDetailLine(
         messages.retryScheduled(feedback.accounts, feedback.retryAt, feedback.retryInSeconds),
         feedback.detail,
         feedback.remainingWarningCount,
         messages.detailLine,
       );
+      break;
     case "retry-pending":
-      return appendDetailLine(
+      message = appendDetailLine(
         messages.retryPending(feedback.accounts),
         feedback.detail,
         feedback.remainingWarningCount,
         messages.detailLine,
       );
+      break;
     case "warnings":
-      return appendDetailLine(
+      message = appendDetailLine(
         messages.warnings(feedback.accounts),
         feedback.detail,
         feedback.remainingWarningCount,
         messages.detailLine,
       );
+      break;
     case "success":
-      return messages.success;
+      message = messages.success;
+      break;
   }
+  return appendLocalFeedSyncFailureSummary(message, feedback, messages);
 }

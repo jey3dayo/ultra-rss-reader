@@ -105,6 +105,7 @@ export const syncAccountArgs = s.object({
   credentialAccess: v.optional(syncCredentialAccessSchema),
 });
 export const getAccountSyncStatusArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
+export const getLocalFeedSyncStatusesArgs = s.object({ accountId: nonBlankTrimmedIdSchema });
 export const startupSyncArgs = s.object({
   preferredAccountId: optionalBlankStringToUndefinedSchema,
 });

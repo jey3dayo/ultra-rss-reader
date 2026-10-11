@@ -32,7 +32,8 @@ type SubscriptionsListPaneProps = {
   searchPlaceholder: string;
   searchClearLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
-  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
+  reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
+  fetchErrorLabel?: string;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   isGroupExpanded: (groupKey: string) => boolean;
@@ -105,6 +106,7 @@ export function SubscriptionsListPane({
   searchClearLabel,
   statusLabels,
   reasonTooltipLabels,
+  fetchErrorLabel = "Fetch error",
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   isGroupExpanded,
@@ -319,8 +321,11 @@ export function SubscriptionsListPane({
                             }
                             description={
                               <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
-                                <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
-                                  {statusLabels[row.status.labelKey]}
+                                <LabelChip
+                                  tone={row.fetchError ? "danger" : resolveStatusTone(row.status.labelKey)}
+                                  size="compact"
+                                >
+                                  {row.fetchError ? fetchErrorLabel : statusLabels[row.status.labelKey]}
                                 </LabelChip>
                                 <span
                                   aria-hidden="true"
@@ -344,10 +349,13 @@ export function SubscriptionsListPane({
                             }
                           />
                         );
+                        const reasonTooltipLabel = row.reasonTooltipKey
+                          ? (reasonTooltipLabels[row.reasonTooltipKey] ?? (row.fetchError ? fetchErrorLabel : null))
+                          : null;
 
-                        return row.reasonTooltipKey ? (
+                        return reasonTooltipLabel ? (
                           <TooltipProvider key={row.feed.id}>
-                            <AppTooltip label={reasonTooltipLabels[row.reasonTooltipKey]} side="top" align="start">
+                            <AppTooltip label={reasonTooltipLabel} side="top" align="start">
                               {rowButton}
                             </AppTooltip>
                           </TooltipProvider>

@@ -122,6 +122,16 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     [resetListScrollState],
   );
 
+  const navigateToSummaryFilter = useCallback(
+    (filterKey: SubscriptionSummaryFilterKey) => {
+      setActiveSummaryFilter(filterKey);
+      setSearchQuery("");
+      setSelectedFeedId(null);
+      resetListScrollState();
+    },
+    [resetListScrollState],
+  );
+
   const updateSearchQuery = useCallback(
     (query: string) => {
       setSearchQuery(query);
@@ -217,6 +227,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
         setSecondary: setDeferredFeedIds,
       });
     },
+    navigateToSummaryFilter,
     toggleGroup: (groupKey: string) => setExpandedGroups((current) => toggleExpandedGroup(current, groupKey)),
   };
 }

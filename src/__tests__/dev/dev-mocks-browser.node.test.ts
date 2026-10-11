@@ -23,6 +23,7 @@ import {
   FeedIntegrityReportDtoSchema,
   FolderDtoListSchema,
   FolderDtoSchema,
+  LocalFeedSyncStatusListSchema,
   MuteKeywordDtoListSchema,
   MuteKeywordDtoSchema,
   PlatformInfoSchema,
@@ -60,6 +61,7 @@ import {
   getDatabaseInfo,
   getDevRuntimeOptions,
   getFeedIntegrityReport,
+  getLocalFeedSyncStatuses,
   getPlatformInfo,
   getPreferences,
   getTagArticleCounts,
@@ -455,6 +457,21 @@ describe("setupDevMocks", () => {
     expect(parse(FeedDtoListSchema, feeds)).toEqual(feeds);
     const addedFeed = Result.unwrap(await addLocalFeed("acc-local", "https://schema.example.com/feed.xml"));
     expect(parse(FeedDtoSchema, addedFeed)).toEqual(addedFeed);
+    const localStatuses = Result.unwrap(await getLocalFeedSyncStatuses("acc-local"));
+    expect(parse(LocalFeedSyncStatusListSchema, localStatuses)).toEqual(localStatuses);
+    expect(localStatuses).toMatchObject([
+      {
+        feed_id: addedFeed.id,
+        error_kind: "network",
+        error_count: 1,
+        diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+      },
+    ]);
+    expect(Result.unwrap(await getLocalFeedSyncStatuses("acc-freshrss"))).toEqual([]);
+    Result.unwrap(await syncFeed(addedFeed.id));
+    expect(Result.unwrap(await getLocalFeedSyncStatuses("acc-local"))).toMatchObject([
+      { feed_id: addedFeed.id, error_kind: null, error_count: 0, diagnostic_id: null },
+    ]);
 
     expect(parse(ArticleDtoListSchema, Result.unwrap(await listArticles("feed-automaton", 0, 10)))).toBeDefined();
     expect(parse(ArticleDtoListSchema, Result.unwrap(await listAccountArticles("acc-freshrss", 0, 10)))).toBeDefined();

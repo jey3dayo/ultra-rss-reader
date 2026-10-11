@@ -7,6 +7,7 @@ type InvalidateFeedQueriesOptions = {
   includeFeeds?: boolean;
   includeFolders?: boolean;
   includeAccountUnreadCount?: boolean;
+  includeLocalFeedSyncStatuses?: boolean;
 };
 
 type InvalidateArticleQueriesOptions = {
@@ -35,6 +36,7 @@ type QueryInvalidationActionOwner =
   | "feed-display-update"
   | "feed-edit"
   | "feed-folder-move"
+  | "feed-sync-retry"
   | "local-account-sync-import"
   | "manual-sync-completed"
   | "mute-keyword-mutation"
@@ -51,6 +53,7 @@ type QueryInvalidationFailure = {
 
 type InvalidateQueryKeysLogOnlyOptions = {
   actionOwner?: QueryInvalidationActionOwner;
+  throwOnError?: boolean;
 };
 
 type InvalidateFeedMutationQueriesOptions = {
@@ -143,6 +146,7 @@ export const QUERY_KEY_ROOTS = {
   search: createSchemaVersionedQueryKey("search"),
   feedIntegrityReport: createSchemaVersionedQueryKey("feedIntegrityReport"),
   feedArticleSummaries: createSchemaVersionedQueryKey("feedArticleSummaries"),
+  localFeedSyncStatuses: createSchemaVersionedQueryKey("localFeedSyncStatuses"),
 } as const satisfies Record<string, QueryInvalidationKey>;
 
 export const queryKeys = {
@@ -224,6 +228,11 @@ export const queryKeys = {
     subscriptionsIndex: (accountId: string | null) =>
       [...QUERY_KEY_ROOTS.feedArticleSummaries, normalizeQueryAccountId(accountId)] as const,
   },
+  localFeedSyncStatuses: {
+    root: QUERY_KEY_ROOTS.localFeedSyncStatuses,
+    byAccount: (accountId: string | null) =>
+      [...QUERY_KEY_ROOTS.localFeedSyncStatuses, normalizeQueryAccountId(accountId)] as const,
+  },
 } as const;
 
 export function normalizeQueryAccountId(accountId: string | null | undefined): string | null {
@@ -276,6 +285,11 @@ const FEED_INVALIDATION_TARGETS = [
     option: "includeAccountUnreadCount",
     defaultEnabled: false,
     queryKeys: [queryKeys.accountUnreadCount.root],
+  },
+  {
+    option: "includeLocalFeedSyncStatuses",
+    defaultEnabled: false,
+    queryKeys: [queryKeys.localFeedSyncStatuses.root],
   },
 ] as const satisfies ReadonlyArray<InvalidationTarget<keyof InvalidateFeedQueriesOptions>>;
 
@@ -481,7 +495,7 @@ const QUERY_INVALIDATION_INTENT_MATRIX: Record<QueryInvalidationIntent, QueryInv
   },
   "account-sync-now-articles": {
     actionOwner: "account-sync-now",
-    queryKeys: [queryKeys.feeds.root, queryKeys.articles.root],
+    queryKeys: [queryKeys.feeds.root, queryKeys.articles.root, queryKeys.localFeedSyncStatuses.root],
   },
   "feed-edit-changed": {
     actionOwner: "feed-edit",
@@ -585,13 +599,15 @@ export function invalidateQueryKeysLogOnly(
   queryClient: QueryClient,
   queryKeys: ReadonlyArray<QueryKey>,
   options: InvalidateQueryKeysLogOnlyOptions = {},
-) {
+): Promise<boolean> {
   const actionOwner = options.actionOwner ?? "unknown";
 
-  void Promise.all(
+  return Promise.all(
     queryKeys.map((queryKey) =>
-      queryClient
-        .invalidateQueries({ queryKey })
+      (options.throwOnError
+        ? queryClient.invalidateQueries({ queryKey }, { throwOnError: true })
+        : queryClient.invalidateQueries({ queryKey })
+      )
         .then(() => null)
         .catch(
           (error: unknown): QueryInvalidationFailure => ({
@@ -606,7 +622,22 @@ export function invalidateQueryKeysLogOnly(
     if (failures.length > 0) {
       queryInvalidationFailureReporter(failures);
     }
+    return failures.length === 0;
   });
+}
+
+export function invalidateFeedRetryQueries(queryClient: QueryClient, accountId: string, feedId: string) {
+  return invalidateQueryKeysLogOnly(
+    queryClient,
+    [
+      queryKeys.localFeedSyncStatuses.byAccount(accountId),
+      queryKeys.feeds.byAccount(accountId),
+      queryKeys.feedArticleSummaries.byAccount(accountId),
+      queryKeys.accountArticles.byAccountPrefix(accountId),
+      queryKeys.articles.byFeed(feedId, "all"),
+    ],
+    { actionOwner: "feed-sync-retry", throwOnError: true },
+  );
 }
 
 export function invalidateFeedQueries(
@@ -694,6 +725,7 @@ export function invalidateSyncCompletedQueries(
   invalidateFeedQueries(queryClient, {
     actionOwner,
     includeAccountUnreadCount: true,
+    includeLocalFeedSyncStatuses: true,
   });
   invalidateArticleQueries(queryClient, {
     actionOwner,

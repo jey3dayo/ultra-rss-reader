@@ -82,6 +82,7 @@ const SYNC_PROVIDERS_LOCK_DB_ALLOWLIST: ReadonlyArray<readonly [string, string]>
   ["commands/sync_providers/account/remote_state.rs", "apply_remote_state_with_protection"],
   ["commands/sync_providers/local.rs", "commit_local_feed_sync_result"],
   ["commands/sync_providers/local.rs", "load_local_feed_sync_state"],
+  ["commands/sync_providers/local.rs", "persist_local_feed_fetch_failure"],
   ["commands/sync_providers/state.rs", "article_count_for_feed"],
   ["commands/sync_providers/state.rs", "load_sync_state"],
   ["commands/sync_providers/state.rs", "save_sync_state"],

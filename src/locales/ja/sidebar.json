@@ -28,6 +28,8 @@
   "add_short": "追加",
   "press_plus_to_add_feed": "+ でフィードを追加",
   "sync_completed": "同期完了",
+  "sync_local_feed_failures_details": "詳細を見る",
+  "sync_local_feed_failures": "同期が完了しました。{{count}}件のフィードを更新できませんでした",
   "sync_completed_with_retry_pending": "同期は完了しましたが、{{accounts}} の一部変更は次回に再試行されます",
   "sync_completed_with_warnings": "同期は完了しましたが、{{accounts}} で問題が見つかりました",
   "sync_retry_scheduled": "{{accounts}} のバックグラウンド同期に失敗しました。{{time}} に再試行します",

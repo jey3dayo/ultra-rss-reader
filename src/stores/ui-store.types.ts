@@ -16,6 +16,7 @@ import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type { ToastData } from "@/lib/ui/toast.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 
@@ -28,9 +29,15 @@ type ToastAnnouncement = {
   message: string;
 };
 
+export type SubscriptionsIndexNavigationRequest = Readonly<{
+  accountId: string | null;
+  summaryFilter: SubscriptionSummaryFilterKey;
+}>;
+
 type SubscriptionsWorkspace = {
   kind: "index";
   returnState?: SubscriptionsWorkspaceReturnState;
+  navigationRequest?: SubscriptionsIndexNavigationRequest;
 };
 
 export type NativeLifecycleBlockerOwner = "settings" | "add-feed" | "sync" | "updater" | "export" | "backup";
@@ -175,7 +182,10 @@ export type UiActions = {
     initialKind?: AddAccountProviderKind,
   ) => void;
   setSettingsLoading: (loading: boolean) => void;
-  openSubscriptionsIndex: (state?: SubscriptionsWorkspaceReturnState) => void;
+  openSubscriptionsIndex: (
+    state?: SubscriptionsWorkspaceReturnState,
+    navigationRequest?: SubscriptionsIndexNavigationRequest,
+  ) => void;
   closeSubscriptionsWorkspace: () => void;
   applySyncProgress: (event: SyncProgressEventDto) => void;
   clearSyncProgress: () => void;

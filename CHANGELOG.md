@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Features
+
+- ローカルフィードの取得エラーを購読一覧で確認・再取得できるようにしました。失敗理由と、`app.log` と照合でき再起動後も追跡できる診断番号を保存しました。
+
 ## [0.65.4] - 2026-10-11
 
 ### Bug Fixes

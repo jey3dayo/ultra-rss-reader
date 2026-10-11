@@ -11,6 +11,7 @@ export type {
   FeedArticleSummaryDto,
   FeedDto,
   FolderDto,
+  LocalFeedSyncStatusDto,
   MuteKeywordDto,
   OldUnreadDays,
   OldUnreadScopeKind,

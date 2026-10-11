@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { sampleAccounts } from "@tests/helpers/fixtures";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resolveSidebarSyncFeedbackMessage } from "@/components/reader/sidebar-sync-feedback";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
+import { createFetchErrorsToastAction } from "@/lib/actions";
 import i18n from "@/lib/i18n";
+import { queryClient } from "@/lib/query/query-client";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import type { SyncFeedback } from "@/lib/sync/sync-result-feedback";
 
 function getSidebarT() {
@@ -11,6 +15,10 @@ function getSidebarT() {
 describe("sidebar-sync-feedback", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("en");
+  });
+
+  afterEach(() => {
+    queryClient.clear();
   });
 
   it("formats scheduled retry feedback with the localized retry time", () => {
@@ -41,6 +49,45 @@ describe("sidebar-sync-feedback", () => {
     expect(resolveSidebarSyncFeedbackMessage(getSidebarT(), feedback)).toBe(
       "Sync completed with warnings for: FreshRSS, Local",
     );
+  });
+
+  it("shows a concise localized summary for local feed failures", async () => {
+    await i18n.changeLanguage("ja");
+    const feedback: SyncFeedback = {
+      kind: "warnings",
+      accounts: "ローカル",
+      detail: null,
+      remainingWarningCount: 0,
+      localFeedSyncFailureCount: 3,
+      localFeedSyncFailureAccountId: "local-account",
+    };
+
+    expect(resolveSidebarSyncFeedbackMessage(getSidebarT(), feedback)).toBe(
+      "同期が完了しました。3件のフィードを更新できませんでした",
+    );
+  });
+
+  it("keeps other warning feedback and adds the failed feed count", () => {
+    const feedback: SyncFeedback = {
+      kind: "warnings",
+      accounts: "Local",
+      detail: { type: "feed_skipped_entries", feed_title: "News", count: 2 },
+      remainingWarningCount: 0,
+      localFeedSyncFailureCount: 9,
+      localFeedSyncFailureAccountId: "local-account",
+      otherWarningCount: 1,
+    };
+
+    expect(resolveSidebarSyncFeedbackMessage(getSidebarT(), feedback)).toBe(
+      "Sync completed with warnings for: Local 'News' skipped 2 entries during sync Sync completed. Some feeds could not be updated (9).",
+    );
+  });
+
+  it("does not offer the fetch-error action for a remote account", () => {
+    const account = { ...sampleAccounts[1], kind: "FreshRss" };
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
+
+    expect(createFetchErrorsToastAction(account.id, "View details")).toBeNull();
   });
 
   it("formats partial failure feedback with the affected account list", () => {

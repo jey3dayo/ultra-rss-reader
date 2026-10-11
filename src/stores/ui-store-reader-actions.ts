@@ -8,7 +8,13 @@ import {
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
-import type { UiState, UiStoreReaderActions, UiStoreReaderSelection, UiStoreState } from "@/stores/ui-store.types";
+import type {
+  SubscriptionsIndexNavigationRequest,
+  UiState,
+  UiStoreReaderActions,
+  UiStoreReaderSelection,
+  UiStoreState,
+} from "@/stores/ui-store.types";
 import { getSettingsAccountsViewState } from "@/stores/ui-store-settings-actions";
 import { getIdleSyncProgress } from "@/stores/ui-store-sync-actions";
 
@@ -371,15 +377,16 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
       set((state) => ({
         isTagsSectionOpen: typeof open === "function" ? open(state.isTagsSectionOpen) : open,
       })),
-    openSubscriptionsIndex: (returnState) =>
+    openSubscriptionsIndex: (returnState, navigationRequest) =>
       set({
         accountPaneOpen: false,
-        subscriptionsWorkspace: returnState
-          ? {
-              kind: "index",
-              returnState: runtime.parseSubscriptionsWorkspaceReturnState(returnState),
-            }
-          : { kind: "index" },
+        subscriptionsWorkspace: {
+          kind: "index",
+          ...(returnState ? { returnState: runtime.parseSubscriptionsWorkspaceReturnState(returnState) } : {}),
+          ...(navigationRequest
+            ? { navigationRequest: { ...navigationRequest } satisfies SubscriptionsIndexNavigationRequest }
+            : {}),
+        },
         focusedPane: "content",
       }),
     closeSubscriptionsWorkspace: () =>

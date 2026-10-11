@@ -1,10 +1,10 @@
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import type {
   SubscriptionReviewCandidate,
   SubscriptionReviewTone,
 } from "@/lib/subscriptions/subscription-review-candidates";
 
-export type SubscriptionSummaryFilterKey = "all" | "review" | "stale" | "frequent";
+export type SubscriptionSummaryFilterKey = "all" | "review" | "stale" | "frequent" | "fetch_errors";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
@@ -19,7 +19,7 @@ export type SubscriptionSummaryCard = {
   label: string;
   value: string;
   caption?: string;
-  tone?: "neutral" | "review" | "stale";
+  tone?: "neutral" | "review" | "stale" | "danger";
   isActive?: boolean;
   isActionable?: boolean;
 };
@@ -31,7 +31,8 @@ export type SubscriptionListRow = {
   latestArticleAt: string | null;
   recentArticleCount: number;
   status: SubscriptionRowStatus;
-  reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | null;
+  reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | "fetch_error" | null;
+  fetchError?: LocalFeedSyncStatusDto;
 };
 
 export type SubscriptionListGroup = {

@@ -1,3 +1,4 @@
+import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import {
   WORKSPACE_CANVAS_CLASS,
   WORKSPACE_CHROME_SPACING_CLASS,
@@ -34,6 +35,20 @@ type SubscriptionsIndexPageViewProps = {
   selectedRow: SubscriptionListRow | null;
   selectedMetrics: SubscriptionDetailMetrics | null;
   selectedDetailCandidate: SubscriptionDetailCandidate | null;
+  selectedFetchError: LocalFeedSyncStatusDto | null;
+  fetchErrorLabels: {
+    heading: string;
+    lastAttempt: string;
+    copyDiagnosticId: string;
+    retry: string;
+    retrying: string;
+    editFeedUrl: string;
+    reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => string;
+  };
+  onRetryFeed: (feedId: string) => void;
+  onEditFeed: () => void;
+  isRetryingFeed: (feedId: string) => boolean;
+  onCopyDiagnosticId: (diagnosticId: string) => void;
   emptyLabel: string;
   searchQuery: string;
   searchLabel: string;
@@ -41,7 +56,8 @@ type SubscriptionsIndexPageViewProps = {
   searchClearLabel: string;
   detailEmptyLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
-  reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
+  reasonTooltipLabels: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
+  fetchErrorLabel: string;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   dateLocale: string;
@@ -87,6 +103,12 @@ export function SubscriptionsIndexPageView({
   selectedRow,
   selectedMetrics,
   selectedDetailCandidate,
+  selectedFetchError,
+  fetchErrorLabels,
+  onRetryFeed,
+  onEditFeed,
+  isRetryingFeed,
+  onCopyDiagnosticId,
   emptyLabel,
   searchQuery,
   searchLabel,
@@ -95,6 +117,7 @@ export function SubscriptionsIndexPageView({
   detailEmptyLabel,
   statusLabels,
   reasonTooltipLabels,
+  fetchErrorLabel,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   dateLocale,
@@ -163,6 +186,7 @@ export function SubscriptionsIndexPageView({
               searchClearLabel={searchClearLabel}
               statusLabels={statusLabels}
               reasonTooltipLabels={reasonTooltipLabels}
+              fetchErrorLabel={fetchErrorLabel}
               formatUnreadCountLabel={formatUnreadCountLabel}
               formatLatestArticleLabel={formatLatestArticleLabel}
               isGroupExpanded={isGroupExpanded}
@@ -178,6 +202,12 @@ export function SubscriptionsIndexPageView({
               row={selectedRow}
               metrics={selectedMetrics}
               detailCandidate={selectedDetailCandidate}
+              fetchError={selectedFetchError}
+              fetchErrorLabels={fetchErrorLabels}
+              onRetryFeed={onRetryFeed}
+              onEditFeed={onEditFeed}
+              isRetryingFeed={isRetryingFeed}
+              onCopyDiagnosticId={onCopyDiagnosticId}
               emptyLabel={detailEmptyLabel}
               folderLabel={folderLabel}
               latestArticleLabel={latestArticleLabel}

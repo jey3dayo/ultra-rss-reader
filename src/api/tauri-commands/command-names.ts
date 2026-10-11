@@ -37,6 +37,7 @@ export const TAURI_COMMAND_NAMES = [
   "get_dev_runtime_options",
   "get_feed_integrity_report",
   "get_local_account_sync_settings",
+  "get_local_feed_sync_statuses",
   "get_platform_info",
   "get_platform_permission_denied_recovery",
   "get_preferences",

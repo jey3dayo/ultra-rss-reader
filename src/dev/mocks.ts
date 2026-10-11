@@ -38,13 +38,16 @@ import {
   countStarredByAccount,
   countUnreadByAccount,
   deleteDevMockAccount,
+  failDevMockLocalFeedOnce,
   findLatestPublishedAt,
   findOldUnreadArticles,
   mockArticleViewHistory,
   mockMuteKeywords,
   mockPreferences,
+  readDevMockLocalFeedSyncStatus,
   recalcUnread,
   resetDevMockDataState,
+  succeedDevMockLocalFeed,
   takeNextDevMockAccountId,
   takeNextDevMockFeedId,
   takeNextDevMockFolderId,
@@ -393,6 +396,17 @@ export function setupDevMocks(): RestoreDevMocks {
         } satisfies AccountSyncStatusDto;
       }
 
+      case "get_local_feed_sync_statuses": {
+        const { accountId } = parseBrowserMockArgs("get_local_feed_sync_statuses", rawIpcPayload);
+        const account = mockAccounts.find((item) => item.id === accountId);
+        if (account?.kind.toLowerCase() !== "local") return [];
+        return cloneMockResponse(
+          mockFeeds
+            .filter((feed) => feed.account_id === accountId)
+            .map((feed) => readDevMockLocalFeedSyncStatus(feed.id)),
+        );
+      }
+
       case "list_folders": {
         const { accountId } = parseBrowserMockArgs("list_folders", rawIpcPayload);
         return cloneMockResponse(mockFolders.filter((f) => f.account_id === accountId));
@@ -432,6 +446,9 @@ export function setupDevMocks(): RestoreDevMocks {
           web_preview_mode: "inherit",
         };
         mockFeeds.push(feed);
+        if (mockAccounts.find((account) => account.id === accountId)?.kind.toLowerCase() === "local") {
+          failDevMockLocalFeedOnce(feedId, getCurrentIsoTimestamp());
+        }
         // Generate sample articles for the new feed
         const now = getCurrentDate();
         for (let i = 0; i < 3; i++) {
@@ -1254,7 +1271,13 @@ export function setupDevMocks(): RestoreDevMocks {
         };
 
       case "trigger_sync_feed":
-        parseBrowserMockArgs("trigger_sync_feed", rawIpcPayload);
+        {
+          const { feedId } = parseBrowserMockArgs("trigger_sync_feed", rawIpcPayload);
+          const feed = mockFeeds.find((item) => item.id === feedId);
+          if (feed && mockAccounts.find((account) => account.id === feed.account_id)?.kind === "Local") {
+            succeedDevMockLocalFeed(feedId, getCurrentIsoTimestamp());
+          }
+        }
         return {
           synced: true,
           total: 1,

@@ -12,6 +12,7 @@ import {
 } from "@/api/schemas/sync-result";
 import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
+import { createFetchErrorsToastAction } from "@/lib/actions";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
 import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
@@ -23,6 +24,7 @@ import {
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
+import type { ToastData } from "@/lib/ui/toast.types";
 import type { SyncProgressUiState } from "@/stores/ui-store";
 import { resolveSidebarSyncFeedbackMessage } from "../../sidebar-sync-feedback";
 
@@ -44,7 +46,7 @@ type SidebarSyncParams = {
   syncProgress: SyncProgressUiState;
   applySyncProgress: (event: SyncProgressEventDto) => void;
   clearSyncProgress: () => void;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
 };
 
 type SidebarSyncState = {
@@ -320,7 +322,15 @@ export function useSidebarSync({
         }
         if (payload.length > 0) {
           invalidateAccountSyncStatuses("background-sync-completed");
-          showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
+          const feedback = summarizeSyncWarnings(payload);
+          const message = resolveSidebarSyncFeedbackMessage(t, feedback);
+          const action = feedback.localFeedSyncFailureAccountId
+            ? createFetchErrorsToastAction(
+                feedback.localFeedSyncFailureAccountId,
+                t("sync_local_feed_failures_details"),
+              )
+            : null;
+          showToast(action ? { message, actions: [action] } : message);
         }
       }),
     ]);
@@ -357,7 +367,12 @@ export function useSidebarSync({
         // stale right after the spinner stops — is handled by keeping the sync
         // button spinning until the feed list refetch settles, not here. See
         // buildSidebarHeaderProps.
-        showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
+        const feedback = summarizeSyncResult(syncResult);
+        const message = resolveSidebarSyncFeedbackMessage(t, feedback);
+        const action = feedback.localFeedSyncFailureAccountId
+          ? createFetchErrorsToastAction(feedback.localFeedSyncFailureAccountId, t("sync_local_feed_failures_details"))
+          : null;
+        showToast(action ? { message, actions: [action] } : message);
       },
       onError: (error) => {
         invalidateAccountSyncStatuses("manual-sync-completed");

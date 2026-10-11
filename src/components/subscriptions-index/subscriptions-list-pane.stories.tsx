@@ -157,7 +157,7 @@ const reasonTooltipLabels = {
   review: "Review signal",
   stale_90d: "Latest article is older than 90 days",
   quiet_no_unread: "Latest article is older than 60 days and the feed has no unread items",
-} satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
+} satisfies Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
 
 function isEveryGroupExpanded(_groupKey?: string) {
   return true;

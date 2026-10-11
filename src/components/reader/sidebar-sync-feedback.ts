@@ -19,6 +19,7 @@ export function resolveSidebarSyncFeedbackMessage(t: TFunction<"sidebar">, feedb
     },
     retryPending: (accounts) => t("sync_completed_with_retry_pending", { accounts }),
     warnings: (accounts) => t("sync_completed_with_warnings", { accounts }),
+    localFeedSyncFailures: (count) => t("sync_local_feed_failures", { count }),
     success: t("sync_completed"),
     detailLine: (detail, remainingCount) => {
       const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>

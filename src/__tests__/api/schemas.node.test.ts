@@ -52,6 +52,7 @@ import {
   IntResponseSchema,
   importSettingsProfileArgs,
   isCommandWithArgs,
+  LocalFeedSyncStatusListSchema,
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
@@ -176,6 +177,7 @@ function readRustCommandSources() {
     "sync_commands/account_sync.rs",
     "sync_commands/manual.rs",
     "sync_commands/scheduler.rs",
+    "sync_commands/local_feed_health.rs",
     "sync_commands/tests/mod.rs",
     "sync_commands/tests/progress.rs",
     "sync_commands/tests/startup_repair.rs",
@@ -442,6 +444,21 @@ describe("DTO schemas", () => {
         next_retry_at: "not-a-date",
       }),
     ).toThrow();
+  });
+  it("validates local feed sync status failure details", () => {
+    const status = {
+      feed_id: "feed-1",
+      last_attempt_at: "2026-04-15T01:00:00Z",
+      last_success_at: null,
+      error_kind: "private_address_blocked",
+      error_count: 2,
+      diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+    };
+
+    expect(parse(LocalFeedSyncStatusListSchema, [status])).toEqual([status]);
+    expect(() => parse(LocalFeedSyncStatusListSchema, [{ ...status, error_kind: "unknown" }])).toThrow();
+    expect(() => parse(LocalFeedSyncStatusListSchema, [{ ...status, error_count: -1 }])).toThrow();
+    expect(() => parse(LocalFeedSyncStatusListSchema, [{ ...status, diagnostic_id: "not-a-uuid" }])).toThrow();
   });
   it("rejects AccountDto with missing fields", () => {
     expect(() => parse(AccountDtoSchema, { id: "acc-1" })).toThrow();
