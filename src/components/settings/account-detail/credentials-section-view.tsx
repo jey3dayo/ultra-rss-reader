@@ -39,6 +39,8 @@ type AccountCredentialsSectionViewProps = {
   onTestConnection?: () => void;
   isTestingConnection?: boolean;
   testConnectionTone?: ComponentProps<typeof SettingsLoadingActionButton>["tone"];
+  connectionTestSucceeded?: boolean;
+  testConnectionSuccessLabel?: string;
   extraRows?: AccountCredentialInputRow[];
   cloudflareAccess?: AccountCloudflareAccessSection;
 };
@@ -72,6 +74,8 @@ export function AccountCredentialsSectionView({
   onTestConnection,
   isTestingConnection,
   testConnectionTone,
+  connectionTestSucceeded,
+  testConnectionSuccessLabel,
   extraRows,
   cloudflareAccess,
 }: AccountCredentialsSectionViewProps) {
@@ -159,6 +163,8 @@ export function AccountCredentialsSectionView({
               onClick={onTestConnection}
               loading={isTestingConnection}
               loadingLabel={testingConnectionLabel}
+              success={connectionTestSucceeded}
+              successLabel={testConnectionSuccessLabel}
               disabled={disabled}
             >
               {testConnectionLabel}

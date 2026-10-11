@@ -45,6 +45,7 @@ export type AccountDetailSyncControlsResult = {
   handleSetupRetry: () => Promise<void>;
   handleResetDevCredentials: () => Promise<void>;
   syncActionInFlight: boolean;
+  syncNowSucceeded: boolean;
   devCredentialsRecoveryInFlight: boolean;
   syncIntervalOptions: OptionWithLabel[];
   keepReadItemsOptions: OptionWithLabel[];
@@ -170,6 +171,7 @@ export function useAccountDetailSyncControls({
   const selectedAccountIdRef = useRef(account.id);
   const mountedRef = useRef(true);
   const [syncActionInFlight, setSyncActionInFlight] = useState(false);
+  const [syncNowSuccess, setSyncNowSuccess] = useState<{ accountId: string; generation: number } | null>(null);
   const [devCredentialsRecoveryInFlight, setDevCredentialsRecoveryInFlight] = useState(false);
 
   useEffect(() => {
@@ -185,6 +187,8 @@ export function useAccountDetailSyncControls({
     syncActionInFlightRef.current = false;
     // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:228（判定）
     setSyncActionInFlight(false);
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:228（判定）
+    setSyncNowSuccess(null);
     // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:228（判定）
     setDevCredentialsRecoveryInFlight(false);
   }, [account.id]);
@@ -228,6 +232,7 @@ export function useAccountDetailSyncControls({
 
     const requestAccountId = account.id;
     const requestGeneration = selectedAccountGenerationRef.current;
+    setSyncNowSuccess(null);
     syncActionInFlightRef.current = true;
     setSyncActionInFlight(true);
     try {
@@ -241,6 +246,9 @@ export function useAccountDetailSyncControls({
           invalidateAccountSyncNowQueries(queryClient);
           onSyncStatusChanged?.();
           const feedback = summarizeSyncResult(syncResult);
+          setSyncNowSuccess(
+            feedback.kind === "success" ? { accountId: requestAccountId, generation: requestGeneration } : null,
+          );
           const message = resolveSyncFeedbackMessage(feedback, {
             alreadyInProgress: t("account.syncing_now"),
             partialFailure: (accounts) => t("account.sync_failed", { message: accounts }),
@@ -276,6 +284,7 @@ export function useAccountDetailSyncControls({
 
     const requestAccountId = account.id;
     const requestGeneration = selectedAccountGenerationRef.current;
+    setSyncNowSuccess(null);
     syncActionInFlightRef.current = true;
     setSyncActionInFlight(true);
     queryClient.removeQueries({
@@ -335,6 +344,11 @@ export function useAccountDetailSyncControls({
     handleSetupRetry,
     handleResetDevCredentials,
     syncActionInFlight,
+    syncNowSucceeded: Boolean(
+      syncNowSuccess &&
+        syncNowSuccess.accountId === account.id &&
+        syncNowSuccess.generation === selectedAccountGenerationRef.current,
+    ),
     devCredentialsRecoveryInFlight,
     syncIntervalOptions: [
       { value: "900", label: t("account.every_15_minutes") },

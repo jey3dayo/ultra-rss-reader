@@ -88,4 +88,45 @@ describe("SettingsLoadingActionButton", () => {
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeInTheDocument();
     expect(screen.getByTestId("custom-spinner")).toBeInTheDocument();
   });
+
+  it("shows a labeled success state without disabling the next action", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <SettingsLoadingActionButton success={true} successLabel="Connection verified" onClick={onClick}>
+        Check Connection
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Connection verified" });
+
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveClass(
+      "border-state-success-border",
+      "bg-state-success-surface",
+      "text-state-success-foreground",
+    );
+    expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(button.querySelector("[aria-live='polite']")).toHaveAttribute("aria-atomic", "true");
+
+    await user.click(button);
+
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("keeps loading feedback dominant when success is also requested", () => {
+    render(
+      <SettingsLoadingActionButton loading={true} loadingLabel="Checking" success={true} successLabel="Verified">
+        Check Connection
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Checking" });
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+    expect(button).not.toHaveClass("border-state-success-border");
+  });
 });

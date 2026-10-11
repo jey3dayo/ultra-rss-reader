@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type RefObject, useEffect, useLayoutEffect, useReducer, useRef } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import {
   copyToClipboard,
   getAccountCloudflareAccess,
@@ -43,6 +43,7 @@ export type AccountDetailCredentialsEditorResult = {
   cloudflareAccessSecretVisible: boolean;
   cloudflareAccessValidationError: CloudflareAccessDraftError | null;
   testingConnection: boolean;
+  connectionTestSucceeded: boolean;
   dirtyState: SettingsDirtyStateEntry;
   serverUrlInputRef: RefObject<HTMLInputElement | null>;
   usernameInputRef: RefObject<HTMLInputElement | null>;
@@ -115,6 +116,26 @@ type CredentialCommitOutcome = {
   saved: boolean;
   updatedAccount: AccountDetailCredentialsEditorParams["account"] | null;
 };
+
+type SuccessfulConnectionTest = {
+  accountId: string;
+  accountGeneration: number;
+  draftRevision: number;
+};
+
+function isCurrentSuccessfulConnectionTest(
+  successfulTest: SuccessfulConnectionTest | null,
+  accountId: string,
+  accountGeneration: number,
+  draftRevision: number,
+): boolean {
+  return (
+    successfulTest !== null &&
+    successfulTest.accountId === accountId &&
+    successfulTest.accountGeneration === accountGeneration &&
+    successfulTest.draftRevision === draftRevision
+  );
+}
 
 type AccountDetailCredentialsEditorAction =
   | { type: "set-cred-server-url"; value: string | null }
@@ -366,6 +387,7 @@ export function useAccountDetailCredentialsEditor({
     account,
     createInitialAccountDetailCredentialsEditorState,
   );
+  const [successfulConnectionTest, setSuccessfulConnectionTest] = useState<SuccessfulConnectionTest | null>(null);
   const { credServerUrl, credUsername, credPassword, hasSavedPassword, testingConnection, credentialSavePending } =
     state;
   const pendingCredentialSaveRef = useRef<Promise<CredentialCommitOutcome> | null>(null);
@@ -373,6 +395,8 @@ export function useAccountDetailCredentialsEditor({
   const pendingConnectionTestRef = useRef(false);
   const cloudflareAccessRequestIdRef = useRef(0);
   const activeAccountIdRef = useRef(account.id);
+  const connectionTestAccountIdRef = useRef(account.id);
+  const connectionTestAccountGenerationRef = useRef(0);
   const draftRevisionRef = useRef(state.draftRevision);
   const mountedRef = useRef(true);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
@@ -412,7 +436,17 @@ export function useAccountDetailCredentialsEditor({
           ? "account-credentials-dirty"
           : null,
   };
+  const connectionTestSucceeded = isCurrentSuccessfulConnectionTest(
+    successfulConnectionTest,
+    account.id,
+    connectionTestAccountGenerationRef.current,
+    state.draftRevision,
+  );
   useLayoutEffect(() => {
+    if (connectionTestAccountIdRef.current !== account.id) {
+      connectionTestAccountIdRef.current = account.id;
+      connectionTestAccountGenerationRef.current += 1;
+    }
     activeAccountIdRef.current = account.id;
     draftRevisionRef.current = state.draftRevision;
   });
@@ -731,9 +765,11 @@ export function useAccountDetailCredentialsEditor({
       return;
     }
 
+    setSuccessfulConnectionTest(null);
     pendingConnectionTestRef.current = true;
     dispatch({ type: "set-testing-connection", value: true });
     const requestAccountId = account.id;
+    const requestAccountGeneration = connectionTestAccountGenerationRef.current;
     const requestDraftRevision = state.draftRevision;
     try {
       const credentialCommit = await commitCredentialDraft(null);
@@ -753,10 +789,15 @@ export function useAccountDetailCredentialsEditor({
         requestDraftRevision,
         credentialCommit.updatedAccount ?? undefined,
       );
-      if (!verified) {
+      if (!verified || connectionTestAccountGenerationRef.current !== requestAccountGeneration) {
         return;
       }
 
+      setSuccessfulConnectionTest({
+        accountId: requestAccountId,
+        accountGeneration: requestAccountGeneration,
+        draftRevision: requestDraftRevision,
+      });
       useUiStore.getState().showToast(t("account.connection_success"));
     } finally {
       pendingConnectionTestRef.current = false;
@@ -818,6 +859,7 @@ export function useAccountDetailCredentialsEditor({
     cloudflareAccessSecretVisible: state.cloudflareAccessSecretVisible,
     cloudflareAccessValidationError,
     testingConnection,
+    connectionTestSucceeded,
     dirtyState,
     serverUrlInputRef,
     usernameInputRef,

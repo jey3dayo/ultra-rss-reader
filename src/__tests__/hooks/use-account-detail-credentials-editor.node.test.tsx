@@ -272,6 +272,61 @@ describe("useAccountDetailCredentialsEditor", () => {
       undefined,
     );
     expect(testAccountConnectionMock).toHaveBeenCalledWith("acc-2");
+    expect(result.current.dirtyState.dirty).toBe(false);
+    expect(result.current.connectionTestSucceeded).toBe(true);
+  });
+
+  it("shows connection success only for the current clean credential draft", async () => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    const verification = createDeferred<ReturnType<typeof testAccountConnectionMock>>();
+    testAccountConnectionMock.mockReturnValueOnce(verification.promise);
+    const { result, rerender } = renderHook(
+      ({ selectedAccount }) =>
+        useAccountDetailCredentialsEditor({
+          account: selectedAccount,
+          queryClient,
+          t,
+        }),
+      { initialProps: { selectedAccount: account } },
+    );
+
+    let connectionTest: Promise<void> = Promise.resolve();
+    act(() => {
+      connectionTest = result.current.handleTestConnection();
+    });
+    await waitFor(() => expect(testAccountConnectionMock).toHaveBeenCalledOnce());
+
+    expect(result.current.testingConnection).toBe(true);
+    expect(result.current.connectionTestSucceeded).toBe(false);
+
+    await act(async () => {
+      verification.resolve(
+        Result.succeed({
+          ...account,
+          connection_verification_status: "verified",
+          connection_verified_at: "2026-04-19T05:32:00Z",
+          connection_verification_error: null,
+        }),
+      );
+      await connectionTest;
+    });
+
+    expect(result.current.testingConnection).toBe(false);
+    expect(result.current.dirtyState.dirty).toBe(false);
+    expect(result.current.connectionTestSucceeded).toBe(true);
+
+    rerender({ selectedAccount: { ...account, id: "acc-next" } });
+    expect(result.current.connectionTestSucceeded).toBe(false);
+    rerender({ selectedAccount: account });
+    expect(result.current.connectionTestSucceeded).toBe(false);
+
+    act(() => {
+      result.current.setCredUsername("edited-user");
+    });
+
+    expect(result.current.dirtyState.dirty).toBe(true);
+    expect(result.current.connectionTestSucceeded).toBe(false);
   });
 
   it("loads only the saved Access Client ID and keeps a blank Secret unchanged", async () => {

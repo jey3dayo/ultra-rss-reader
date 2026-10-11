@@ -983,7 +983,7 @@ describe("AccountDetail", () => {
       expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveFocus();
 
       await act(async () => verification.resolve({ ...account, connection_verification_status: "verified" }));
-      await screen.findByRole("button", { name: "Check Connection" });
+      await screen.findByRole("button", { name: "Connection verified" });
       await user.click(screen.getByRole("button", { name: "Retry setup" }));
       await waitFor(() => expect(calls).toContain("trigger_sync_account"));
       expect(calls.indexOf("update_account_credentials")).toBeLessThan(calls.indexOf("trigger_sync_account"));

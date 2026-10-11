@@ -30,6 +30,8 @@ export function buildCredentialsSection({
   }
 
   const cloudflareAccessError = controller.cloudflareAccessValidationError;
+  const connectionTestSucceeded =
+    controller.connectionTestSucceeded && !controller.dirtyState.dirty && !controller.testingConnection;
 
   return (
     <AccountCredentialsSectionView
@@ -110,6 +112,8 @@ export function buildCredentialsSection({
             : t("account.test_connection")
       }
       testingConnectionLabel={isSetupSyncing || isQuarantined ? undefined : t("account.testing_connection")}
+      connectionTestSucceeded={connectionTestSucceeded}
+      testConnectionSuccessLabel={t("account.test_connection_succeeded")}
       testConnectionTone={verificationStatus === "verified" ? "subtle" : "content"}
       onTestConnection={isSetupSyncing || isQuarantined ? undefined : controller.handleTestConnection}
       isTestingConnection={controller.testingConnection}
