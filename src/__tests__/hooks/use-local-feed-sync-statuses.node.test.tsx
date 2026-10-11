@@ -192,4 +192,93 @@ describe("useLocalFeedSyncStatuses", () => {
     expect(queryClient.getQueryState(localFeedSyncStatusesQueryKey("acc-2"))?.isInvalidated).toBe(false);
     expect(toastSpy).not.toHaveBeenCalled();
   });
+
+  it("prevents duplicate requests for one pending account/feed pair", async () => {
+    const retryResolvers = new Map<string, (result: Awaited<ReturnType<typeof tauriCommands.syncFeed>>) => void>();
+    const syncFeedSpy = vi.spyOn(tauriCommands, "syncFeed").mockImplementation(
+      (feedId) =>
+        new Promise<Awaited<ReturnType<typeof tauriCommands.syncFeed>>>((resolve) => {
+          retryResolvers.set(feedId, resolve);
+        }),
+    );
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));
+    const { result } = renderHook(({ accountId }) => useLocalFeedSyncStatuses(accountId), {
+      initialProps: { accountId: "acc-1" },
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => {
+      result.current.retryFeed("feed-1");
+      result.current.retryFeed("feed-1");
+    });
+    await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledTimes(1));
+    expect(result.current.isRetryingFeed("feed-1")).toBe(true);
+
+    await act(async () => {
+      retryResolvers.get("feed-1")?.(Result.succeed(successfulSync));
+    });
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+  });
+
+  it("keeps the first account retry pending when an overlapping second-account retry settles", async () => {
+    const retryResolvers = new Map<string, (result: Awaited<ReturnType<typeof tauriCommands.syncFeed>>) => void>();
+    const syncFeedSpy = vi.spyOn(tauriCommands, "syncFeed").mockImplementation(
+      (feedId) =>
+        new Promise<Awaited<ReturnType<typeof tauriCommands.syncFeed>>>((resolve) => {
+          retryResolvers.set(feedId, resolve);
+        }),
+    );
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));
+    const { result, rerender } = renderHook(({ accountId }) => useLocalFeedSyncStatuses(accountId), {
+      initialProps: { accountId: "acc-1" },
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-1"));
+    await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledTimes(1));
+    expect(result.current.isRetryingFeed("feed-1")).toBe(true);
+
+    useUiStore.setState({ selectedAccountId: "acc-2" });
+    rerender({ accountId: "acc-2" });
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-2"));
+    await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledTimes(2));
+    expect(result.current.isRetryingFeed("feed-2")).toBe(true);
+
+    await act(async () => {
+      retryResolvers.get("feed-2")?.(Result.succeed(successfulSync));
+    });
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-2")).toBe(false));
+
+    useUiStore.setState({ selectedAccountId: "acc-1" });
+    rerender({ accountId: "acc-1" });
+    expect(result.current.isRetryingFeed("feed-1")).toBe(true);
+    await act(async () => {
+      retryResolvers.get("feed-1")?.(Result.succeed(successfulSync));
+    });
+    await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+  });
+
+  it("clears pending state after sync and status-refresh failures", async () => {
+    let statusReads = 0;
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockImplementation(async () => {
+      statusReads += 1;
+      return statusReads === 1
+        ? Result.succeed([])
+        : Result.fail({ type: "UserVisible", message: "status refresh failed" });
+    });
+    vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "sync failed" }));
+    const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-1"));
+
+    await waitFor(() => {
+      expect(result.current.statusQuery.isError).toBe(true);
+      expect(result.current.isRetryingFeed("feed-1")).toBe(false);
+    });
+    expect(statusReads).toBe(2);
+  });
 });

@@ -231,6 +231,22 @@ describe("fetch error toast navigation", () => {
     expect(useUiStore.getState().selectedAccountId).toBe("acc-b");
   });
 
+  it("shows a translated error toast when the account lookup fails", async () => {
+    const user = userEvent.setup();
+    const { wrapper } = createPageEnvironment();
+    render(<div />, { wrapper });
+    vi.spyOn(accountCommands, "listAccounts").mockRejectedValueOnce(new Error("lookup failed"));
+
+    showFetchErrorsAction("acc-a");
+    await clickFetchErrorsAction(user);
+
+    expect(await screen.findByText("取得エラーの詳細を開けませんでした。もう一度お試しください。")).toBeInTheDocument();
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "取得エラーの詳細を開けませんでした。もう一度お試しください。",
+      severity: "error",
+    });
+  });
+
   it("keeps a pending toast request until the subscriptions page mounts", async () => {
     const user = userEvent.setup();
     let resolveAccounts: ((value: Awaited<ReturnType<typeof accountCommands.listAccounts>>) => void) | undefined;

@@ -26,6 +26,7 @@
   "summary_fetch_errors_none": "取得エラーなし",
   "summary_fetch_errors_empty": "取得エラーのあるフィードはありません",
   "summary_fetch_errors_unknown": "取得状態を確認できません",
+  "fetch_error_navigation_failed": "取得エラーの詳細を開けませんでした。もう一度お試しください。",
   "summary_status_loading": "確認中",
   "summary_status_unavailable": "未取得",
   "fetch_error_reason_private_address_blocked": "安全のため、ローカルネットワークへのアクセスをブロックしました。",

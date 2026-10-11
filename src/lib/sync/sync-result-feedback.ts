@@ -271,6 +271,25 @@ function getLocalFeedSyncFailureAccountId(warnings: AccountSyncWarning[]): strin
   return accountIds.size === 1 ? accountIds.values().next().value : undefined;
 }
 
+type LocalFeedSyncFailureSummary = {
+  localFeedSyncFailureCount?: number;
+  localFeedSyncFailureAccountId?: string;
+  otherWarningCount?: number;
+};
+
+function getLocalFeedSyncFailureSummary(warnings: AccountSyncWarning[]): LocalFeedSyncFailureSummary {
+  const localFeedSyncFailureCount = getLocalFeedSyncFailureCount(warnings);
+  if (localFeedSyncFailureCount === 0) return {};
+
+  const localFeedSyncFailureAccountId = getLocalFeedSyncFailureAccountId(warnings);
+  const otherWarningCount = warnings.length - localFeedSyncFailureCount;
+  return {
+    localFeedSyncFailureCount,
+    ...(localFeedSyncFailureAccountId ? { localFeedSyncFailureAccountId } : {}),
+    ...(otherWarningCount > 0 ? { otherWarningCount } : {}),
+  };
+}
+
 export function summarizeSyncResult(
   result: SyncResultDto,
   copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
@@ -283,6 +302,7 @@ export function summarizeSyncResult(
     return {
       kind: "partial-failure",
       accounts: getDistinctAccountNames(result.failed, copy),
+      ...getLocalFeedSyncFailureSummary(result.warnings),
     };
   }
 
@@ -305,17 +325,7 @@ export function summarizeSyncWarnings(
   copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
 ): Extract<SyncFeedback, { kind: "retry-scheduled" | "retry-pending" | "warnings" }> {
   const { detail, remainingWarningCount } = getRepresentativeWarningDetail(warnings);
-  const localFeedSyncFailureCount = getLocalFeedSyncFailureCount(warnings);
-  const localFeedSyncFailureAccountId = getLocalFeedSyncFailureAccountId(warnings);
-  const otherWarningCount = warnings.length - localFeedSyncFailureCount;
-  const localFeedFailureSummary =
-    localFeedSyncFailureCount > 0
-      ? {
-          localFeedSyncFailureCount,
-          ...(localFeedSyncFailureAccountId ? { localFeedSyncFailureAccountId } : {}),
-          ...(otherWarningCount > 0 ? { otherWarningCount } : {}),
-        }
-      : {};
+  const localFeedFailureSummary = getLocalFeedSyncFailureSummary(warnings);
   const scheduledRetry = getEarliestRetryWarning(warnings);
   if (scheduledRetry) {
     return {

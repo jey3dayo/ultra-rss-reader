@@ -359,7 +359,28 @@ pub(in crate::commands) async fn sync_local_feed(
         next_retry_at: None,
     };
     let next_states = local_feed_validator_states_for_scope_keys(next_state, &scope_key);
-    commit_local_feed_sync_result(db, account_id, feed, &articles, &next_states)?;
+    if let Err(error) = commit_local_feed_sync_result(db, account_id, feed, &articles, &next_states)
+    {
+        let error_kind = LocalFeedSyncErrorKind::Persistence;
+        let attempted_at = chrono::Utc::now().to_rfc3339();
+        let diagnostic_id = Uuid::new_v4().to_string();
+        log_local_feed_fetch_failure(
+            crate::commands::sync_providers::redacted_feed_host_class(&feed.url),
+            &error,
+            error_kind,
+            &diagnostic_id,
+        );
+        let failure_state = failed_local_feed_sync_state(
+            account_id,
+            &scope_key,
+            saved_state,
+            error_kind,
+            attempted_at,
+            diagnostic_id.clone(),
+        )?;
+        persist_local_feed_fetch_failure(db, &failure_state, error_kind, &diagnostic_id)?;
+        return Err(error);
+    }
 
     Ok(())
 }

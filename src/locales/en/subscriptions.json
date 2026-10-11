@@ -26,6 +26,7 @@
   "summary_fetch_errors_none": "No fetch errors",
   "summary_fetch_errors_empty": "No feeds have fetch errors",
   "summary_fetch_errors_unknown": "Fetch status is unavailable",
+  "fetch_error_navigation_failed": "Could not open fetch error details. Please try again.",
   "summary_status_loading": "Checking",
   "summary_status_unavailable": "Unavailable",
   "fetch_error_reason_private_address_blocked": "Access to a local network address was blocked for safety.",

@@ -53,6 +53,54 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "partial-failure", accounts: "FreshRSS" });
   });
 
+  it("keeps failed accounts primary while adding mixed local feed warning metadata", () => {
+    const feedback = summarizeSyncResult({
+      synced: true,
+      total: 2,
+      succeeded: 0,
+      failed: [{ account_id: "remote-1", account_name: "FreshRSS", message: "authentication failed" }],
+      warnings: [
+        {
+          account_id: "local-1",
+          account_name: "Local",
+          message: "feed fetch failed",
+          detail: { type: "local_feed_sync_failed", feed_title: "News", message: "feed fetch failed" },
+        },
+        {
+          account_id: "local-1",
+          account_name: "Local",
+          message: "another feed fetch failed",
+          detail: { type: "local_feed_sync_failed", feed_title: "Tech", message: "another feed fetch failed" },
+        },
+        {
+          account_id: "other-1",
+          account_name: "Other Reader",
+          message: "some entries were skipped",
+          detail: { type: "account_skipped_entries", account_name: "Other Reader", count: 1 },
+        },
+      ],
+    });
+
+    expect(feedback).toEqual({
+      kind: "partial-failure",
+      accounts: "FreshRSS",
+      localFeedSyncFailureCount: 2,
+      localFeedSyncFailureAccountId: "local-1",
+      otherWarningCount: 1,
+    });
+    expect(
+      resolveSyncFeedbackMessage(feedback, {
+        alreadyInProgress: "already running",
+        partialFailure: (accounts) => `partial:${accounts}`,
+        retryScheduled: (accounts) => `scheduled:${accounts}`,
+        retryPending: (accounts) => `pending:${accounts}`,
+        warnings: (accounts) => `warnings:${accounts}`,
+        localFeedSyncFailures: (count) => `local-feed-failures:${count}`,
+        success: "done",
+      }),
+    ).toBe("partial:FreshRSS local-feed-failures:2");
+  });
+
   it("shows duplicate failed account names once", () => {
     expect(
       summarizeSyncResult({
