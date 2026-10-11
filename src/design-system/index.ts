@@ -53,6 +53,7 @@ export * from "@/components/shared/sidebar-section-shell";
 export * from "@/components/shared/sidebar-section-toggle";
 export * from "@/components/shared/stacked-input-field";
 export * from "@/components/shared/stacked-select-field";
+export * from "@/components/shared/state-surface-button";
 export * from "@/components/shared/surface-card";
 export * from "@/components/shared/tag-chip";
 export * from "@/components/shared/tag-color-picker";

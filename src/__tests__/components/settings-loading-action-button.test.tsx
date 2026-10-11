@@ -88,4 +88,59 @@ describe("SettingsLoadingActionButton", () => {
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeInTheDocument();
     expect(screen.getByTestId("custom-spinner")).toBeInTheDocument();
   });
+
+  it("updates a persistent success announcement without duplicating the button name", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    const { container, rerender } = render(
+      <SettingsLoadingActionButton success={false} successLabel="Connection verified" onClick={onClick}>
+        Check Connection
+      </SettingsLoadingActionButton>,
+    );
+
+    const successAnnouncement = container.querySelector("[aria-live='polite']");
+    expect(successAnnouncement).not.toBeNull();
+    expect(successAnnouncement?.closest("button")).toBeNull();
+    expect(successAnnouncement).toBeEmptyDOMElement();
+    expect(screen.getByRole("button", { name: "Check Connection" })).toHaveAccessibleName("Check Connection");
+
+    rerender(
+      <SettingsLoadingActionButton success={true} successLabel="Connection verified" onClick={onClick}>
+        Check Connection
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Connection verified" });
+
+    expect(button).toHaveAccessibleName("Connection verified");
+    expect(screen.getAllByRole("button", { name: "Connection verified" })).toHaveLength(1);
+    expect(successAnnouncement).toHaveTextContent("Connection verified");
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveClass(
+      "border-state-success-border",
+      "bg-state-success-surface",
+      "text-state-success-foreground",
+    );
+    expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+
+    await user.click(button);
+
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("keeps loading feedback dominant when success is also requested", () => {
+    render(
+      <SettingsLoadingActionButton loading={true} loadingLabel="Checking" success={true} successLabel="Verified">
+        Check Connection
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Checking" });
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+    expect(button).not.toHaveClass("border-state-success-border");
+  });
 });

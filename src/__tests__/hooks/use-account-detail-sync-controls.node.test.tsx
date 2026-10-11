@@ -236,6 +236,126 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
+  it("shows only the current manual sync success and clears it when the next run starts", async () => {
+    const account = sampleAccounts[1];
+    const otherAccount = { ...account, id: "another-account" };
+    const queryClient = createTestQueryClient();
+    const warningSync = {
+      ...successfulSyncResult,
+      warnings: [
+        { account_id: account.id, account_name: account.name, kind: "generic" as const, message: "Feed warning" },
+      ],
+    };
+    const warningResult = createDeferred<ReturnType<typeof Result.succeed<typeof warningSync>>>();
+    syncAccountMock
+      .mockResolvedValueOnce(Result.succeed(successfulSyncResult))
+      .mockReturnValueOnce(warningResult.promise)
+      .mockResolvedValueOnce(Result.succeed(successfulSyncResult));
+
+    const { result, rerender } = renderHook(
+      ({ selectedAccount }) =>
+        useAccountDetailSyncControls({
+          account: selectedAccount,
+          queryClient,
+          t,
+        }),
+      { initialProps: { selectedAccount: account } },
+    );
+
+    await act(async () => {
+      await result.current.handleSyncNow();
+    });
+    expect(result.current.syncNowSucceeded).toBe(true);
+
+    let secondRun: Promise<void> = Promise.resolve();
+    await act(async () => {
+      secondRun = result.current.handleSyncNow();
+      await Promise.resolve();
+    });
+    expect(result.current.syncNowSucceeded).toBe(false);
+    expect(result.current.syncActionInFlight).toBe(true);
+
+    await act(async () => {
+      warningResult.resolve(Result.succeed(warningSync));
+      await secondRun;
+    });
+    expect(result.current.syncNowSucceeded).toBe(false);
+
+    await act(async () => {
+      await result.current.handleSyncNow();
+    });
+    expect(result.current.syncNowSucceeded).toBe(true);
+
+    rerender({ selectedAccount: otherAccount });
+    expect(result.current.syncNowSucceeded).toBe(false);
+    rerender({ selectedAccount: account });
+    expect(result.current.syncNowSucceeded).toBe(false);
+  });
+
+  it.each([
+    {
+      label: "an already-running result",
+      result: Result.succeed({ synced: false, total: 0, succeeded: 0, failed: [], warnings: [] }),
+    },
+    {
+      label: "a partial failure",
+      result: Result.succeed({
+        ...successfulSyncResult,
+        failed: [{ account_id: "other-account", account_name: "Other", message: "Unavailable" }],
+      }),
+    },
+    {
+      label: "a pending retry",
+      result: Result.succeed({
+        ...successfulSyncResult,
+        warnings: [
+          {
+            account_id: "other-account",
+            account_name: "Other",
+            kind: "retry_pending" as const,
+            message: "Retry later",
+          },
+        ],
+      }),
+    },
+    {
+      label: "a scheduled retry",
+      result: Result.succeed({
+        ...successfulSyncResult,
+        warnings: [
+          {
+            account_id: "other-account",
+            account_name: "Other",
+            kind: "retry_scheduled" as const,
+            message: "Retry later",
+          },
+        ],
+      }),
+    },
+    {
+      label: "an operation failure",
+      result: Result.fail(new Error("sync unavailable")),
+    },
+  ])("does not show success for $label", async ({ result: syncResult }) => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    syncAccountMock.mockResolvedValue(syncResult);
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleSyncNow();
+    });
+
+    expect(result.current.syncNowSucceeded).toBe(false);
+  });
+
   it("shows the local feed count and opens fetch errors while preserving in-progress review decisions", async () => {
     const account = { ...sampleAccounts[0], id: "local-account", kind: "Local" };
     const queryClient = createTestQueryClient();
