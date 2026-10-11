@@ -30,23 +30,30 @@ export function SettingsLoadingActionButton({
   const showSuccess = success && !loading && !disabled;
 
   return (
-    <SettingsActionButton
-      {...props}
-      className={cn("gap-2", className)}
-      tone={showSuccess ? "success" : tone}
-      disabled={disabled || (loading && disabledWhenLoading)}
-      aria-busy={loading || undefined}
-    >
-      <LoadingActionContent loading={loading} loadingLabel={loadingLabel} spinner={spinner}>
-        {showSuccess ? (
-          <span className="inline-flex items-center gap-2" aria-live="polite" aria-atomic="true">
-            <Check className="size-3.5 shrink-0" aria-hidden="true" />
-            {successLabel ?? children}
-          </span>
-        ) : (
-          children
-        )}
-      </LoadingActionContent>
-    </SettingsActionButton>
+    <>
+      <SettingsActionButton
+        {...props}
+        className={cn("gap-2", className)}
+        tone={showSuccess ? "success" : tone}
+        disabled={disabled || (loading && disabledWhenLoading)}
+        aria-busy={loading || undefined}
+      >
+        <LoadingActionContent loading={loading} loadingLabel={loadingLabel} spinner={spinner}>
+          {showSuccess ? (
+            <span className="inline-flex items-center gap-2">
+              <Check className="size-3.5 shrink-0" aria-hidden="true" />
+              {successLabel ?? children}
+            </span>
+          ) : (
+            children
+          )}
+        </LoadingActionContent>
+      </SettingsActionButton>
+      {successLabel !== undefined ? (
+        <span className="sr-only" aria-live="polite" aria-atomic="true">
+          {showSuccess ? successLabel : null}
+        </span>
+      ) : null}
+    </>
   );
 }

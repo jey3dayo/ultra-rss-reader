@@ -134,11 +134,14 @@ export const Default: Story = {};
 
 export const ActionSuccessFeedback: Story = {
   decorators: [
-    (Story) => (
-      <DarkStorybookTheme>
+    (Story, context) =>
+      context.viewMode === "story" ? (
+        <DarkStorybookTheme>
+          <Story />
+        </DarkStorybookTheme>
+      ) : (
         <Story />
-      </DarkStorybookTheme>
-    ),
+      ),
   ],
   args: {
     title: "個人用FreshRSS",
