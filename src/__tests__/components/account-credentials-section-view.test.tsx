@@ -204,51 +204,106 @@ describe("AccountCredentialsSectionView", () => {
     const onClientSecretChange = vi.fn();
     const onBlur = vi.fn();
 
-    render(
-      <AccountCredentialsSectionView
-        heading="Server"
-        usernameLabel="Username"
-        usernameValue="alice"
-        onUsernameChange={() => {}}
-        onUsernameBlur={() => {}}
-        passwordLabel="Password"
-        passwordValue="••••••••"
-        passwordPlaceholder="Enter new password"
-        onPasswordChange={() => {}}
-        onPasswordBlur={() => {}}
-        cloudflareAccess={{
-          status: "ready",
-          loadingMessage: "Checking…",
-          readErrorMessage: "Access metadata could not be read. Existing credentials will be kept unchanged.",
-          unavailableMessage: "Manage Access in the desktop app.",
-          authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
-          label: "Cloudflare Access",
-          description: "Add Access authentication",
-          enabled: true,
-          onEnabledChange,
-          clientId: {
-            label: "Client ID",
-            value: "saved-client-id",
-            onChange: onClientIdChange,
-            onBlur,
-          },
-          clientSecret: {
-            label: "Client Secret",
-            value: "",
-            placeholder: "Leave blank to keep the saved Secret",
-            onChange: onClientSecretChange,
-            onBlur,
-          },
-          clientIdError: "Enter a Client ID",
-          clientSecretError: "Enter a Client Secret",
-          validationError: null,
-        }}
-      />,
-    );
+    function ConfiguredAccessView() {
+      const [secretEditing, setSecretEditing] = useState(false);
+      const [secretVisible, setSecretVisible] = useState(false);
+      const [secret, setSecret] = useState("");
+      return (
+        <AccountCredentialsSectionView
+          heading="Server"
+          usernameLabel="Username"
+          usernameValue="alice"
+          onUsernameChange={() => {}}
+          onUsernameBlur={() => {}}
+          passwordLabel="Password"
+          passwordValue="••••••••"
+          passwordPlaceholder="Enter new password"
+          onPasswordChange={() => {}}
+          onPasswordBlur={() => {}}
+          cloudflareAccess={{
+            status: "ready",
+            hasSavedSecret: true,
+            secretEditing,
+            secretVisible,
+            secretDescription:
+              "Leave blank to keep the saved Secret. Changing the Client ID or server origin requires a new Secret.",
+            secretSavedLabel: "Saved",
+            secretChangeLabel: "Change",
+            secretChangeAriaLabel: "Change saved Client Secret",
+            secretCancelLabel: "Cancel",
+            secretShowLabel: "Show new Secret",
+            secretHideLabel: "Hide new Secret",
+            onSecretEditingChange: (editing) => {
+              setSecretEditing(editing);
+              if (!editing) {
+                setSecret("");
+                setSecretVisible(false);
+              }
+            },
+            onSecretVisibilityChange: setSecretVisible,
+            loadingMessage: "Checking…",
+            readErrorMessage: "Access metadata could not be read. Existing credentials will be kept unchanged.",
+            unavailableMessage: "Manage Access in the desktop app.",
+            authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
+            label: "Cloudflare Access",
+            description: "Add Access authentication",
+            enabled: true,
+            onEnabledChange,
+            clientId: {
+              label: "Client ID",
+              value: "saved-client-id",
+              onChange: onClientIdChange,
+              onBlur,
+            },
+            clientSecret: {
+              label: "Client Secret",
+              value: secret,
+              placeholder: "New Client Secret",
+              onChange: (value) => {
+                onClientSecretChange(value);
+                setSecret(value);
+              },
+              onBlur,
+            },
+            clientIdError: "Enter a Client ID",
+            clientSecretError: "Enter a Client Secret",
+            validationError: null,
+          }}
+        />
+      );
+    }
+
+    render(<ConfiguredAccessView />);
 
     expect(screen.getByRole("switch", { name: "Cloudflare Access" })).toBeChecked();
     expect(screen.getByLabelText("Client ID")).toHaveValue("saved-client-id");
-    expect(screen.getByLabelText("Client Secret")).toHaveValue("");
+    expect(screen.getByText("Saved")).toBeVisible();
+    expect(screen.queryByLabelText("Client Secret")).not.toBeInTheDocument();
+    expect(screen.getByText("••••••••")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Change saved Client Secret" }));
+    const secretInput = screen.getByLabelText("Client Secret");
+    expect(secretInput).toHaveValue("");
+    expect(secretInput).toHaveAttribute("type", "password");
+    expect(secretInput).toHaveFocus();
+    const descriptionId = secretInput.getAttribute("aria-describedby");
+    expect(descriptionId).not.toBeNull();
+    if (descriptionId) {
+      expect(document.getElementById(descriptionId)).toHaveTextContent("Leave blank to keep the saved Secret");
+    }
+    await user.click(screen.getByRole("button", { name: "Show new Secret" }));
+    expect(secretInput).toHaveAttribute("type", "text");
+    expect(secretInput).toHaveValue("");
+    await user.type(secretInput, "new-dummy-secret");
+    expect(secretInput).toHaveValue("new-dummy-secret");
+    await user.click(screen.getByRole("button", { name: "Hide new Secret" }));
+    expect(secretInput).toHaveAttribute("type", "password");
+    expect(secretInput).toHaveValue("new-dummy-secret");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("Client Secret")).not.toBeInTheDocument();
+    expect(screen.getByText("••••••••")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Change saved Client Secret" })).toHaveFocus();
+    onBlur.mockClear();
+    onClientSecretChange.mockClear();
     const info = screen.getByRole("button", { name: "About Cloudflare Access" });
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cloudflare Access" })).not.toBeInTheDocument());
     await user.click(info);
@@ -265,6 +320,95 @@ describe("AccountCredentialsSectionView", () => {
     expect(onBlur).not.toHaveBeenCalled();
     await user.click(screen.getByRole("switch", { name: "Cloudflare Access" }));
     expect(onEnabledChange).toHaveBeenCalledWith(false);
+  });
+
+  it("keeps a required Secret draft cancelable and focuses its empty field after cancel", async () => {
+    const user = userEvent.setup();
+
+    function RequiredSecretView() {
+      const [secretEditing, setSecretEditing] = useState(false);
+      const [secretVisible, setSecretVisible] = useState(false);
+      const [secret, setSecret] = useState("");
+      const [clientId, setClientId] = useState("saved-client-id");
+      const validationError = clientId !== "saved-client-id" && secret.length === 0 ? "client_secret_required" : null;
+
+      return (
+        <AccountCredentialsSectionView
+          heading="Server"
+          usernameLabel="Username"
+          usernameValue="alice"
+          onUsernameChange={() => {}}
+          onUsernameBlur={() => {}}
+          passwordLabel="Password"
+          passwordValue=""
+          passwordPlaceholder="Enter new password"
+          onPasswordChange={() => {}}
+          onPasswordBlur={() => {}}
+          cloudflareAccess={{
+            status: "ready",
+            hasSavedSecret: true,
+            secretEditing,
+            secretVisible,
+            secretDescription: "Leave blank to keep the saved Secret.",
+            secretSavedLabel: "Saved",
+            secretChangeLabel: "Change",
+            secretChangeAriaLabel: "Change saved Client Secret",
+            secretCancelLabel: "Cancel",
+            secretShowLabel: "Show new Secret",
+            secretHideLabel: "Hide new Secret",
+            onSecretEditingChange: (editing) => {
+              setSecretEditing(editing);
+              if (!editing) {
+                setSecret("");
+                setSecretVisible(false);
+              }
+            },
+            onSecretVisibilityChange: setSecretVisible,
+            loadingMessage: "Checking…",
+            readErrorMessage: "Access metadata could not be read.",
+            unavailableMessage: "Manage Access in the desktop app.",
+            authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
+            label: "Cloudflare Access",
+            description: "Add Access authentication",
+            enabled: true,
+            onEnabledChange: () => {},
+            clientId: {
+              label: "Client ID",
+              value: clientId,
+              onChange: setClientId,
+            },
+            clientSecret: {
+              label: "Client Secret",
+              value: secret,
+              placeholder: "New Client Secret",
+              onChange: setSecret,
+            },
+            clientIdError: "Enter a Client ID",
+            clientSecretError: "Enter a Client Secret",
+            validationError,
+          }}
+        />
+      );
+    }
+
+    render(<RequiredSecretView />);
+
+    await user.click(screen.getByRole("button", { name: "Change saved Client Secret" }));
+    await user.type(screen.getByLabelText("Client Secret"), "new-dummy-secret");
+    await user.clear(screen.getByLabelText("Client ID"));
+    await user.type(screen.getByLabelText("Client ID"), "changed-client-id");
+    expect(screen.queryByText("Enter a Client Secret")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    const secretInput = screen.getByLabelText("Client Secret");
+    expect(screen.getByLabelText("Client ID")).toHaveValue("changed-client-id");
+    expect(secretInput).toHaveValue("");
+    expect(secretInput).toHaveAttribute("type", "password");
+    expect(screen.getByText("Enter a Client Secret")).toBeVisible();
+    expect(screen.queryByText("••••••••")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change saved Client Secret" })).not.toBeInTheDocument();
+    expect(secretInput).toHaveFocus();
   });
 
   it("offers explicit recovery while keeping metadata unknown and hiding the saved-state switch", async () => {
@@ -286,6 +430,18 @@ describe("AccountCredentialsSectionView", () => {
           onPasswordBlur={() => {}}
           cloudflareAccess={{
             status: "error",
+            hasSavedSecret: false,
+            secretEditing: false,
+            secretVisible: false,
+            secretDescription: "Leave blank to keep the saved Secret.",
+            secretSavedLabel: "Saved",
+            secretChangeLabel: "Change",
+            secretChangeAriaLabel: "Change saved Client Secret",
+            secretCancelLabel: "Cancel",
+            secretShowLabel: "Show new Secret",
+            secretHideLabel: "Hide new Secret",
+            onSecretEditingChange: () => {},
+            onSecretVisibilityChange: () => {},
             recoveryAction: action,
             onRecoveryActionChange: (nextAction) => {
               recovery(nextAction);
@@ -345,6 +501,18 @@ describe("AccountCredentialsSectionView", () => {
           onPasswordBlur={() => {}}
           cloudflareAccess={{
             status: "authorization_required",
+            hasSavedSecret: false,
+            secretEditing: false,
+            secretVisible: false,
+            secretDescription: "Leave blank to keep the saved Secret.",
+            secretSavedLabel: "Saved",
+            secretChangeLabel: "Change",
+            secretChangeAriaLabel: "Change saved Client Secret",
+            secretCancelLabel: "Cancel",
+            secretShowLabel: "Show new Secret",
+            secretHideLabel: "Hide new Secret",
+            onSecretEditingChange: () => {},
+            onSecretVisibilityChange: () => {},
             recoveryAction: action,
             onRecoveryActionChange: (nextAction) => {
               recovery(nextAction);

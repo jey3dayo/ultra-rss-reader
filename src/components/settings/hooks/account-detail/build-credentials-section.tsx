@@ -64,6 +64,18 @@ export function buildCredentialsSection({
       onPasswordBlur={controller.onPasswordBlur}
       cloudflareAccess={{
         status: controller.cloudflareAccessStatus,
+        hasSavedSecret: controller.cloudflareAccessHasSavedSecret,
+        secretEditing: controller.cloudflareAccessSecretEditing,
+        secretVisible: controller.cloudflareAccessSecretVisible,
+        secretDescription: t("account.cloudflare_access_secret_description"),
+        secretSavedLabel: t("account.cloudflare_access_secret_saved"),
+        secretChangeLabel: t("account.cloudflare_access_secret_change"),
+        secretChangeAriaLabel: t("account.cloudflare_access_secret_change_aria"),
+        secretCancelLabel: t("account.cloudflare_access_secret_cancel"),
+        secretShowLabel: t("account.cloudflare_access_secret_show"),
+        secretHideLabel: t("account.cloudflare_access_secret_hide"),
+        onSecretEditingChange: controller.setCloudflareAccessSecretEditing,
+        onSecretVisibilityChange: controller.setCloudflareAccessSecretVisible,
         recoveryAction: controller.cloudflareAccessRecoveryAction,
         onRecoveryActionChange: controller.setCloudflareAccessRecoveryAction,
         loadingMessage: t("account.cloudflare_access_loading"),

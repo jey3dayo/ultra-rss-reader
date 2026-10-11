@@ -1,9 +1,11 @@
+import { Eye, EyeOff } from "lucide-react";
 import type { RefObject } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
-import { LabeledInputRow, SurfaceCard } from "@/design-system";
+import { LabeledControlRow, LabeledInputRow, SurfaceCard } from "@/design-system";
 import {
   type CloudflareAccessDraftError,
   type CloudflareAccessStatus,
@@ -24,6 +26,18 @@ export type AccountCredentialInputRow = {
 
 export type AccountCloudflareAccessSection = {
   status: CloudflareAccessStatus;
+  hasSavedSecret: boolean;
+  secretEditing: boolean;
+  secretVisible: boolean;
+  secretDescription: string;
+  secretSavedLabel: string;
+  secretChangeLabel: string;
+  secretChangeAriaLabel: string;
+  secretCancelLabel: string;
+  secretShowLabel: string;
+  secretHideLabel: string;
+  onSecretEditingChange: (editing: boolean) => void;
+  onSecretVisibilityChange: (visible: boolean) => void;
   recoveryAction?: "replace" | "remove" | null;
   onRecoveryActionChange?: (action: "replace" | "remove") => void;
   loadingMessage: string;
@@ -99,8 +113,142 @@ function CloudflareAccessRecoveryCard({
   );
 }
 
+function CloudflareAccessSecretEditor({
+  section,
+  disabled,
+  labelClassName,
+  requiresReplacement,
+  descriptionId,
+  inputRef,
+  onCancel,
+}: {
+  section: AccountCloudflareAccessSection;
+  disabled: boolean;
+  labelClassName: string;
+  requiresReplacement: boolean;
+  descriptionId: string;
+  inputRef: RefObject<HTMLInputElement | null>;
+  onCancel: () => void;
+}) {
+  const { clientSecret } = section;
+  return (
+    <>
+      <LabeledInputRow
+        label={clientSecret.label}
+        name="cloudflare-access-client-secret"
+        type={section.secretVisible ? "text" : "password"}
+        value={clientSecret.value}
+        inputRef={inputRef}
+        onChange={clientSecret.onChange}
+        onBlur={!disabled ? clientSecret.onBlur : undefined}
+        onFocus={!disabled ? clientSecret.onFocus : undefined}
+        placeholder={clientSecret.placeholder}
+        ariaDescribedBy={section.hasSavedSecret ? descriptionId : undefined}
+        labelClassName={labelClassName}
+        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        disabled={disabled}
+        errorText={requiresReplacement ? section.clientSecretError : undefined}
+        actionLabel={section.secretVisible ? section.secretHideLabel : section.secretShowLabel}
+        actionAriaLabel={section.secretVisible ? section.secretHideLabel : section.secretShowLabel}
+        actionTooltipLabel={section.secretVisible ? section.secretHideLabel : section.secretShowLabel}
+        actionIcon={section.secretVisible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+        actionPlacement="inside"
+        actionVariant="ghost"
+        actionSize="icon-sm"
+        actionDisabled={disabled}
+        onAction={() => section.onSecretVisibilityChange(!section.secretVisible)}
+      />
+      {section.hasSavedSecret ? (
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(180px,220px)_minmax(0,1fr)] lg:gap-x-8">
+          <span aria-hidden="true" className="hidden lg:block" />
+          <p
+            id={descriptionId}
+            className="w-full text-sm leading-[1.5] text-foreground-soft sm:max-w-[30rem] lg:ml-auto lg:mr-2"
+          >
+            {section.secretDescription}
+          </p>
+        </div>
+      ) : null}
+      {section.secretEditing && !requiresReplacement ? (
+        <div className="flex justify-end">
+          <SettingsActionButton type="button" tone="subtle" size="standalone" disabled={disabled} onClick={onCancel}>
+            {section.secretCancelLabel}
+          </SettingsActionButton>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function CloudflareAccessSavedSecret({
+  section,
+  disabled,
+  labelClassName,
+  buttonRef,
+  onChange,
+}: {
+  section: AccountCloudflareAccessSection;
+  disabled: boolean;
+  labelClassName: string;
+  buttonRef: RefObject<HTMLButtonElement | null>;
+  onChange: () => void;
+}) {
+  return (
+    <LabeledControlRow label={section.clientSecret.label} labelClassName={labelClassName}>
+      <div className="flex w-full items-center justify-between gap-3 sm:max-w-[30rem]">
+        <span className="flex items-center gap-3 text-sm text-foreground-soft">
+          <span>{section.secretSavedLabel}</span>
+          <span aria-hidden="true" className="font-mono tracking-[0.2em]">
+            ••••••••
+          </span>
+        </span>
+        <SettingsActionButton
+          type="button"
+          tone="subtle"
+          size="standalone"
+          disabled={disabled}
+          aria-label={section.secretChangeAriaLabel}
+          ref={buttonRef}
+          onClick={onChange}
+        >
+          {section.secretChangeLabel}
+        </SettingsActionButton>
+      </div>
+    </LabeledControlRow>
+  );
+}
+
 function CloudflareAccessInputRows({ section, disabled, labelClassName }: CloudflareAccessCredentialFieldsProps) {
   const { clientId, clientSecret, validationError } = section;
+  const secretDescriptionId = useId();
+  const secretInputRef = useRef<HTMLInputElement>(null);
+  const changeSecretButtonRef = useRef<HTMLButtonElement>(null);
+  const requestedSecretFocus = useRef<"input" | "change" | null>(null);
+  const requiresReplacement = validationError === "client_secret_required";
+  const showSecretEditor =
+    !section.hasSavedSecret || section.secretEditing || requiresReplacement || clientSecret.value.length > 0;
+
+  useLayoutEffect(() => {
+    const target = requestedSecretFocus.current;
+    if (!target) return;
+    requestedSecretFocus.current = null;
+    if (section.secretEditing !== (target === "input")) return;
+
+    const element =
+      target === "input"
+        ? secretInputRef.current
+        : (changeSecretButtonRef.current ?? (requiresReplacement ? secretInputRef.current : null));
+    element?.focus();
+  }, [requiresReplacement, section.secretEditing]);
+
+  const handleChangeSecret = () => {
+    requestedSecretFocus.current = "input";
+    section.onSecretEditingChange(true);
+  };
+  const handleCancelSecretChange = () => {
+    requestedSecretFocus.current = "change";
+    section.onSecretEditingChange(false);
+  };
 
   return (
     <>
@@ -117,20 +265,25 @@ function CloudflareAccessInputRows({ section, disabled, labelClassName }: Cloudf
         disabled={disabled}
         errorText={validationError === "client_id_required" ? section.clientIdError : undefined}
       />
-      <LabeledInputRow
-        label={clientSecret.label}
-        name="cloudflare-access-client-secret"
-        type="password"
-        value={clientSecret.value}
-        onChange={clientSecret.onChange}
-        onBlur={!disabled ? clientSecret.onBlur : undefined}
-        onFocus={!disabled ? clientSecret.onFocus : undefined}
-        placeholder={clientSecret.placeholder}
-        labelClassName={labelClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
-        disabled={disabled}
-        errorText={validationError === "client_secret_required" ? section.clientSecretError : undefined}
-      />
+      {showSecretEditor ? (
+        <CloudflareAccessSecretEditor
+          section={section}
+          disabled={disabled}
+          labelClassName={labelClassName}
+          requiresReplacement={requiresReplacement}
+          descriptionId={secretDescriptionId}
+          inputRef={secretInputRef}
+          onCancel={handleCancelSecretChange}
+        />
+      ) : (
+        <CloudflareAccessSavedSecret
+          section={section}
+          disabled={disabled}
+          labelClassName={labelClassName}
+          buttonRef={changeSecretButtonRef}
+          onChange={handleChangeSecret}
+        />
+      )}
     </>
   );
 }

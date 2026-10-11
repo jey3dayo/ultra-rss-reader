@@ -304,6 +304,65 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.cloudflareAccessSecret).toBe("");
   });
 
+  it("enters, reveals, cancels, and saves a new Secret without reading the saved Secret back", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValue(
+      Result.succeed({ status: "loaded", client_id: "saved-client-id" }),
+    );
+    updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+
+    expect(result.current.cloudflareAccessHasSavedSecret).toBe(true);
+    expect(result.current.cloudflareAccessSecret).toBe("");
+    act(() => {
+      result.current.setCloudflareAccessSecretEditing(true);
+      result.current.setCloudflareAccessSecretVisible(true);
+      result.current.setCloudflareAccessSecret("replacement-dummy-secret");
+    });
+    expect(result.current.cloudflareAccessSecret).toBe("replacement-dummy-secret");
+    expect(result.current.cloudflareAccessSecretVisible).toBe(true);
+
+    act(() => result.current.setCloudflareAccessSecretEditing(false));
+    expect(result.current.cloudflareAccessSecret).toBe("");
+    expect(result.current.cloudflareAccessSecretEditing).toBe(false);
+    expect(result.current.cloudflareAccessSecretVisible).toBe(false);
+    expect(getAccountCloudflareAccessMock).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.setCloudflareAccessSecretEditing(true));
+    await act(async () => {
+      await result.current.commitCredentials();
+    });
+    expect(updateAccountCredentialsMock).not.toHaveBeenCalled();
+    expect(result.current.cloudflareAccessSecretEditing).toBe(false);
+
+    act(() => {
+      result.current.setCloudflareAccessSecretEditing(true);
+      result.current.setCloudflareAccessSecret("replacement-dummy-secret");
+    });
+    await act(async () => {
+      await result.current.commitCredentials();
+    });
+
+    expect(updateAccountCredentialsMock).toHaveBeenLastCalledWith(
+      account.id,
+      account.server_url,
+      account.username,
+      undefined,
+      {
+        action: "replace",
+        clientId: "saved-client-id",
+        clientSecret: "replacement-dummy-secret",
+      },
+    );
+    expect(result.current.cloudflareAccessSecret).toBe("");
+    expect(result.current.cloudflareAccessSecretEditing).toBe(false);
+    expect(getAccountCloudflareAccessMock).toHaveBeenCalledTimes(1);
+  });
+
   it.each(["username", "password", "server URL"])(
     "keeps saved Access when %s changes before metadata resolves",
     async (field) => {
