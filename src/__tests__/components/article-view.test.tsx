@@ -2074,6 +2074,64 @@ describe("ArticleView", () => {
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
+  it("opens the feed website in-app on click and externally on meta-click, with a host-only tooltip", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return [
+            {
+              id: "feed-1",
+              account_id: args.accountId,
+              folder_id: null,
+              remote_id: null,
+              title: "Tech Blog",
+              url: "https://example.com/feed.xml",
+              site_url: "https://www.example.com/blog/page?token=secret",
+              icon_url: null,
+              unread_count: 0,
+              reader_mode: "inherit",
+              web_preview_mode: "inherit",
+            },
+          ];
+        case "list_articles":
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    const hostLink = within(summary).getByRole("link", { name: "www.example.com" });
+    expect(hostLink).toHaveAttribute("title", "Open in app — www.example.com");
+
+    fireEvent.click(hostLink, { metaKey: true });
+    await waitFor(() => {
+      expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(1);
+    });
+    expect(useUiStore.getState().browserUrl).toBeNull();
+
+    fireEvent.click(hostLink);
+    await waitFor(() => {
+      expect(useUiStore.getState().browserUrl).toContain("www.example.com");
+    });
+    expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(1);
+  });
+
   it("renders a folder identity summary without history metadata when the selected folder has no articles", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

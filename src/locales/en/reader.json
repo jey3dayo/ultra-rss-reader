@@ -154,6 +154,8 @@
   "add_feed": "Add Feed",
   "add_feed_description": "Enter a feed URL or site URL to discover feeds automatically.",
   "feed_or_site_url": "Feed",
+  "site_link_open_in_app": "Open in app — {{host}}",
+  "site_link_open_external": "Open in external browser — {{host}}",
   "feed_url_placeholder": "https://example.com/feed.xml",
   "feed_url_help_example": "Use a full URL like https://example.com",
   "feed_url_help_invalid": "Use a full URL like https://example.com",

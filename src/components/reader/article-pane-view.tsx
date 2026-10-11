@@ -117,6 +117,7 @@ export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: 
             >
               <ArticleReaderBody
                 article={article}
+                feed={feed}
                 feedName={feedName}
                 onOpenArticleTitleInWebPreview={onOpenArticleTitleInWebPreview}
                 hasNextArticle={hasNextArticle}

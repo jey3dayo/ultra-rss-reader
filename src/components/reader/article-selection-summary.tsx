@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { Clock3, Folder, Hash, Inbox, Star } from "lucide-react";
+import { Clock3, Folder, Globe, Hash, Inbox, Star } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@/lib/articles/article-view";
 import { focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
+import { openArticleInExternalBrowser } from "./article-browser-actions";
 import { ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell } from "./article-view-state";
 import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
@@ -37,10 +38,15 @@ type SummaryIdentityProps = {
   value: ReactNode;
 };
 
+type SummaryWebsiteLink = {
+  href: string;
+  label: string;
+};
+
 type SummaryScopeProps = {
   motionKey: string;
   title: string;
-  titleHref?: string | null;
+  websiteLink?: SummaryWebsiteLink | null;
   subtitle: ReactNode;
   visual: ReactNode;
   metrics: SummaryIdentityProps[];
@@ -119,7 +125,7 @@ function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSel
 function SummaryEmptyState({
   motionKey,
   title,
-  titleHref,
+  websiteLink,
   subtitle,
   visual,
   metrics,
@@ -144,8 +150,25 @@ function SummaryEmptyState({
 
   function handleWebsiteLinkClick(event: ReactMouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
-    openBrowser(event.currentTarget.href);
+    if (!websiteLink) {
+      return;
+    }
+    if (event.metaKey || event.ctrlKey) {
+      void openArticleInExternalBrowser(websiteLink.href);
+      return;
+    }
+    openBrowser(websiteLink.href);
   }
+
+  function handleWebsiteLinkAuxClick(event: ReactMouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 1 || !websiteLink) {
+      return;
+    }
+    event.preventDefault();
+    void openArticleInExternalBrowser(websiteLink.href);
+  }
+
+  const websiteLinkTitle = websiteLink ? t("site_link_open_in_app", { host: websiteLink.label }) : undefined;
 
   return (
     <ArticleEmptyStateShell
@@ -195,10 +218,12 @@ function SummaryEmptyState({
                     {visual}
                   </span>
                   <div className="min-w-0">
-                    {titleHref ? (
+                    {websiteLink ? (
                       <a
-                        href={titleHref}
+                        href={websiteLink.href}
+                        title={websiteLinkTitle}
                         onClick={handleWebsiteLinkClick}
+                        onAuxClick={handleWebsiteLinkAuxClick}
                         className="block truncate font-sans text-xl font-semibold leading-tight text-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
                         dir="auto"
                       >
@@ -209,7 +234,22 @@ function SummaryEmptyState({
                         {title}
                       </p>
                     )}
-                    <p className="mt-1 text-xs leading-tight text-foreground-soft">{subtitle}</p>
+                    <p className="mt-1 text-xs leading-tight text-foreground-soft">
+                      {websiteLink ? (
+                        <a
+                          href={websiteLink.href}
+                          title={websiteLinkTitle}
+                          onClick={handleWebsiteLinkClick}
+                          onAuxClick={handleWebsiteLinkAuxClick}
+                          className="inline-flex items-center gap-1 underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+                        >
+                          <Globe aria-hidden="true" className="size-3 shrink-0" />
+                          {websiteLink.label}
+                        </a>
+                      ) : (
+                        subtitle
+                      )}
+                    </p>
                   </div>
                 </div>
                 <div className="shrink-0 pl-3 text-right">
@@ -322,23 +362,8 @@ function buildSummaryIdentityProps(
     return {
       motionKey: `feed:${summary.feed.id}`,
       title: summary.feed.title,
-      titleHref: websiteHref,
-      subtitle:
-        websiteHref && websiteLabel ? (
-          // react-doctor-disable-next-line react-doctor/no-prevent-default -- Intentional in-app browser navigation for the sanitized feed website URL; re-evaluate if routing becomes declarative.
-          <a
-            href={websiteHref}
-            onClick={(event) => {
-              event.preventDefault();
-              useUiStore.getState().openBrowser(event.currentTarget.href);
-            }}
-            className="underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
-          >
-            {websiteLabel}
-          </a>
-        ) : (
-          readerT("feed_or_site_url")
-        ),
+      websiteLink: websiteHref && websiteLabel ? { href: websiteHref, label: websiteLabel } : null,
+      subtitle: readerT("feed_or_site_url"),
       visual: (
         <FeedFavicon
           title={summary.feed.title}

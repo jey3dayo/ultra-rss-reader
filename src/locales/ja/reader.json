@@ -154,6 +154,8 @@
   "add_feed": "フィードを追加",
   "add_feed_description": "フィードURLまたはサイトURLからフィードを自動検出します。",
   "feed_or_site_url": "フィード",
+  "site_link_open_in_app": "アプリ内で開く — {{host}}",
+  "site_link_open_external": "外部ブラウザで開く — {{host}}",
   "feed_url_placeholder": "https://example.com/feed.xml",
   "feed_url_help_example": "https://example.com のように入力してください",
   "feed_url_help_invalid": "https://example.com のように入力してください",
