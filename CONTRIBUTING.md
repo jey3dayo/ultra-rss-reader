@@ -122,7 +122,7 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 - `mise run test:ci` runs the quieter CI test gate with Vitest first, then Rust tests.
 - `pnpm run check:release-contamination` validates release sources and the actual Cargo dependency graph. Node unit tests exercise the source checks and injected dependency-runner failures without resolving Cargo dependencies. CI runs the full command separately on Linux and Windows after Rust tests; release builds and local release preflight also run it. Cargo uses `--locked`, may populate its registry cache, and fails closed on missing tools, resolution errors, or its 120-second subprocess timeout. Source and dependency stages report separate timings.
 - `mise run test:unit:dom` runs the jsdom Vitest suite for DOM, React rendering, Testing Library, and browser global coverage.
-- `mise run test:e2e` runs Playwright against the browser-mode UI flow.
+- `mise run test:e2e` runs Playwright against the browser-mode UI flow. Its default config also collects `e2e/storybook/`, whose specs need the Storybook server; run `mise exec -- pnpm exec playwright test e2e/app.spec.ts` for the app flow only.
 - `mise run test:storybook:e2e` runs the Storybook Playwright smoke suite against the UI reference canvases. Use it after changing Storybook stories, shared visual reference canvases, or Storybook-only decorators.
 - `mise run build:storybook` is the static Storybook build gate. Run it with `mise run test:storybook:e2e` before relying on a Storybook fixture in a review or release note.
 - `mise run test:live` is opt-in and requires real FreshRSS credentials from `.env`.
@@ -146,6 +146,17 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 > **Windows Rust scope:** Windows CI's `mise run test:rust` runs `cargo test --test integration_test` only. Full Rust library tests run in Linux CI and on macOS/Linux with `mise run check`.
 
 `mise run ci` intentionally covers format, lint, repository tests, and frontend build. It runs the quiet Vitest unit gate before lint, Rust tests, and build so unit failures surface before heavier checks. It does not run Playwright, Storybook static build, live-service tests, or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
+
+### Cloud UI Verification
+
+Execution steps for headless browser checks when no dedicated browser tool is available. When to run them and how to report unverified items is owned by [.claude/rules/ui-browser-prep.md](.claude/rules/ui-browser-prep.md).
+
+1. Run the standard setup (`mise install` and `pnpm install`) with the pinned versions; do not change pins to fit the host. If `mise install` fails on a tool that browser checks do not need (for example `rust` on a read-only `~/.rustup`), run `mise install node`, record the failure, and continue. The repository `mise.toml` does not provide pnpm; use the `packageManager` version from `package.json`, for example `mise exec pnpm@<version> -- pnpm install`.
+2. Install Chromium and its Linux system dependencies with `mise exec -- pnpm exec playwright install --with-deps chromium`. If system installation is unavailable, try `mise exec -- pnpm exec playwright install chromium` when the host already provides the required libraries. Record failures and continue checks that do not need a browser.
+3. Run the browser-mode flow with `mise exec -- pnpm exec playwright test e2e/app.spec.ts`, or another relevant spec outside `e2e/storybook/`. Bare `mise run test:e2e` also collects the `e2e/storybook/` specs, which need the Storybook server from `mise run test:storybook:e2e`. `playwright.config.ts` starts its own Vite through `pnpm dev:tauri:vite`, waits on the fixed URL `http://localhost:1420` (leave `TAURI_DEV_PORT` unset), and refuses server reuse.
+4. Port 1420 is also the `mise run app:dev` port. Confirm it is free before running, and do not run E2E while another session's `mise run app:dev` is active: when the Vite manager finds this checkout's Vite already listening there, it stops that process (SIGTERM, then SIGKILL).
+5. The config saves screenshots only on failure. For a visual check of a passing state, start `mise run app:dev:browser` (port 4173, independent of 1420) and capture it with `mise exec -- pnpm exec playwright screenshot --viewport-size=1280,800 --wait-for-timeout=1000 http://127.0.0.1:4173/ tmp/screenshots/<name>.png`, changing `--viewport-size` for each width relevant to the change. For states reached through interaction, rerun the spec with `--trace on`; open the trace under `test-results/e2e` with `mise exec -- pnpm exec playwright show-trace <trace.zip>` to view step screenshots. Inspect captured images with an available image viewer.
+6. Keep temporary screenshots under `tmp/screenshots/`; E2E failure artifacts and reports stay under `test-results/e2e` and `playwright-report/e2e`. Do not commit them or include real credentials in them.
 
 ## Architecture
 
