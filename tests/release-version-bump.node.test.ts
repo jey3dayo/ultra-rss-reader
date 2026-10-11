@@ -30,6 +30,10 @@ const SUPPORT_FILES = [
   "src-tauri/capabilities/default.json",
   "scripts/release/bump-version.ts",
   "scripts/release/validate-release-config.ts",
+  "scripts/release/lib/version-owners.ts",
+  "scripts/release/lib/version-bump.ts",
+  "scripts/release/lib/config-validation.ts",
+  "scripts/release/workflows/bump-version.ts",
   ".codex/skills/release/scripts/release_checks.py",
 ] as const;
 
@@ -250,6 +254,7 @@ describe("release version bump contract", () => {
       });
       expect(invalidBump.status).toBe(1);
       expect(invalidBump.stderr).toContain("invalid stable semantic version: not-a-version");
+      expect(invalidBump.stderr).toContain("Usage: node scripts/release/bump-version.ts <X.Y.Z> [--check]");
 
       const validate = (releaseTag: string) =>
         spawnSync(process.execPath, ["scripts/release/validate-release-config.ts"], {

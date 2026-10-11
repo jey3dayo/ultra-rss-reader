@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseBuildReleases,
+  parseBuildRuns,
+  parseCommit,
+  parseCreatedDraft,
+  parseCreatedTag,
+  parseGitRef,
+  parseGitTag,
+  parseRelease,
+  parseReleaseQuery,
+  parseReleaseTarget,
+  parseWorkflowRuns,
+} from "../scripts/release/lib/release-start-policy";
+import {
   extractReleaseNotes,
   requireAnnotatedTag,
   requireExpectedMain,
@@ -66,5 +79,78 @@ describe("release starter", () => {
     ).toThrow();
     expect(() => requireAnnotatedTag(ref, { ...tag, object: { type: "tag", sha } }, "v0.65.0", sha)).toThrow();
     expect(() => requireAnnotatedTag(ref, { ...tag, tag: "v0.65.1" }, "v0.65.0", sha)).toThrow();
+  });
+});
+
+describe("cold GitHub response validation", () => {
+  const draft = { id: 12, tag_name: "v0.65.0", draft: true, body: null, html_url: "draft", assets: [] };
+  const query = {
+    data: {
+      repository: {
+        releases: {
+          nodes: [{ databaseId: 12, tagName: "v0.65.0", tagCommit: null, url: "draft" }],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+    },
+  };
+
+  it("preserves nullable release metadata and unresolved GraphQL targets", () => {
+    expect(parseRelease(draft)).toEqual(draft);
+    expect(parseWorkflowRuns({ workflow_runs: [{ ...run, head_branch: null, conclusion: null }] })).toEqual({
+      workflow_runs: [{ ...run, head_branch: null, conclusion: null }],
+    });
+    expect(parseReleaseQuery(query)).toEqual(query);
+    expect(parseReleaseQuery({ errors: ["denied"], data: null })).toEqual({ errors: ["denied"], data: null });
+    expect(parseReleaseQuery({ data: { repository: null } })).toEqual({ data: { repository: null } });
+    expect(parseReleaseTarget({})).toEqual({});
+    expect(parseReleaseTarget({ target_commitish: 42 })).toEqual({ target_commitish: 42 });
+  });
+
+  it.each([
+    ["main ref", parseGitRef, { object: { type: "commit", sha: 42 } }],
+    ["annotated tag", parseGitTag, { tag: "v0.65.0", object: null }],
+    ["resolved commit", parseCommit, {}],
+    ["draft inventory", parseBuildReleases, [{ ...draft, assets: null }]],
+    ["draft status", parseBuildReleases, [{ ...draft, draft: "true" }]],
+    ["build run ID", parseBuildRuns, { workflow_runs: [{ id: "1", head_sha: sha }] }],
+    ["build run collection", parseBuildRuns, { workflow_runs: null }],
+    ["CI SHA", parseWorkflowRuns, { workflow_runs: [{ ...run, head_sha: 42 }] }],
+    ["CI conclusion", parseWorkflowRuns, { workflow_runs: [{ ...run, conclusion: undefined }] }],
+    ["draft notes", parseRelease, { ...draft, body: 42 }],
+    ["draft ID", parseRelease, { ...draft, id: Number.NaN }],
+    ["GraphQL errors", parseReleaseQuery, { errors: "denied" }],
+    ["GraphQL data", parseReleaseQuery, { data: {} }],
+    ["release target", parseReleaseTarget, null],
+    [
+      "GraphQL pagination",
+      parseReleaseQuery,
+      { data: { repository: { releases: { nodes: [], pageInfo: { hasNextPage: "false", endCursor: null } } } } },
+    ],
+    [
+      "GraphQL tag commit",
+      parseReleaseQuery,
+      {
+        data: {
+          repository: {
+            releases: {
+              ...query.data.repository.releases,
+              nodes: [{ databaseId: 12, tagName: "v0.65.0", tagCommit: { oid: 42 }, url: "draft" }],
+            },
+          },
+        },
+      },
+    ],
+  ])("rejects malformed %s before it can inform release writes", (_name, parse, value) => {
+    expect(() => parse(value)).toThrow("Invalid GitHub response:");
+  });
+
+  it("keeps the created-tag and created-draft failure messages", () => {
+    for (const value of [{}, { sha: "" }, { sha: 42 }]) {
+      expect(() => parseCreatedTag(value)).toThrow("GitHub did not return the annotated tag object");
+    }
+    for (const value of [{}, { ...draft, id: 0 }, { ...draft, assets: null }]) {
+      expect(() => parseCreatedDraft(value)).toThrow("GitHub did not return the created draft");
+    }
   });
 });
