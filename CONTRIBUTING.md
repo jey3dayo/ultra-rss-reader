@@ -60,6 +60,18 @@ Use `mise run app:dev:native-keyring` when you need to verify Keychain or Creden
 - Preview the production frontend build: `pnpm build && pnpm preview`
   Serves the current `dist/` output. Rebuild before previewing new changes.
 
+### Cloud UI Verification
+
+Dedicated browser tools or skills are optional. Repository Playwright supports headless browser rendering and interaction in cloud environments. Follow [.claude/rules/ui-browser-prep.md](.claude/rules/ui-browser-prep.md) for the review policy; use the setup below for execution.
+
+1. Complete the standard setup (`mise install` and `pnpm install`). Use the versions pinned in `mise.toml` and `package.json`; do not change those pins just to fit the host.
+2. Install the browser and Linux system dependencies with `mise exec -- pnpm exec playwright install --with-deps chromium`. If system installation is unavailable, try `mise exec -- pnpm exec playwright install chromium` when the host already provides the required libraries. Record installation failures and continue checks that do not need a browser.
+3. Run browser-mode E2E with `mise run test:e2e`. The existing `playwright.config.ts` runs headless, starts its own Vite server at `http://localhost:1420`, and refuses server reuse. This differs from the interactive `mise run app:dev:browser` server at `http://127.0.0.1:4173/`; do not start both for the same check or assume their ports are interchangeable. Resolve an occupied port without stopping another owner's process.
+4. For a focused flow, use `mise exec -- pnpm exec playwright test e2e/app.spec.ts`, or substitute another relevant repository test path. Use role/label locators, assert the resulting state, and check the widths and keyboard/focus behavior relevant to the change. Capture screenshots for visual inspection; headless execution alone does not establish that the layout looks correct.
+5. Inspect screenshots with an available image viewer. Keep temporary review screenshots under `tmp/screenshots/`. Existing E2E failure screenshots/traces and reports remain under `test-results/e2e` and `playwright-report/e2e` as configured; do not commit temporary artifacts or include real credentials in them.
+
+If setup or rendering is blocked, use provided images, existing design-system patterns, and design rules to ground the implementation. Run relevant DOM/interaction tests and other available checks, and create a draft PR with the exact failure and remaining verification items. Report automated test results, browser rendering/visual inspection, and native-device checks separately. Required visual or native checks remain review/merge checklist items; they do not block implementation or draft PR creation. Browser mocks and jsdom cannot verify OS Keychain prompts or native WebView geometry.
+
 ### Development Mode Comparison
 
 Use this table when you need to decide whether you are optimizing for iteration speed, credential realism, or macOS-native behavior.
