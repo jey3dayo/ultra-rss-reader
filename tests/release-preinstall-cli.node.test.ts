@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const coldSources = [
@@ -23,6 +23,9 @@ const coldSources = [
 const fixtureParent = join(root, "tmp/refactoring/release-cold-fixture");
 mkdirSync(fixtureParent, { recursive: true });
 const fixture = mkdtempSync(join(fixtureParent, "snapshot-"));
+afterAll(() => {
+  rmSync(fixture, { recursive: true, force: true });
+});
 for (const source of coldSources) {
   const target = join(fixture, source);
   mkdirSync(dirname(target), { recursive: true });
