@@ -3,7 +3,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createDeferred } from "@tests/helpers/deferred";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import {
   getAddFeedDialogRestartBlockerSnapshot,
@@ -20,6 +20,10 @@ vi.mock("@/api/tauri-commands", () => ({
 }));
 
 const t = i18n.getFixedT("en", "reader");
+const apiHtmlAuthErrorMessage =
+  "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings.";
+const localizedApiHtmlAuthErrorMessage =
+  "認証エラー: サーバーから想定外の応答が返されました。サーバーURLとアクセス認証の設定を確認してください。";
 
 setupBrowserTestDom();
 
@@ -28,6 +32,11 @@ describe("useAddFeedDialogActions", () => {
     vi.mocked(addLocalFeed).mockReset();
     vi.mocked(discoverFeeds).mockReset();
     vi.mocked(updateFeedFolder).mockReset();
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await i18n.changeLanguage("en");
   });
 
   it.each([
@@ -390,8 +399,9 @@ describe("useAddFeedDialogActions", () => {
     );
   });
 
-  it("clears discovering with an error when the latest discovery request rejects", async () => {
-    vi.mocked(discoverFeeds).mockRejectedValue(new Error("network down"));
+  it("localizes the known API HTML auth error when discovery rejects", async () => {
+    await i18n.changeLanguage("ja");
+    vi.mocked(discoverFeeds).mockRejectedValue(new Error(apiHtmlAuthErrorMessage));
 
     const dispatch = vi.fn();
     const { result } = renderHook(() =>
@@ -426,7 +436,7 @@ describe("useAddFeedDialogActions", () => {
         queryClient: new QueryClient(),
         onOpenChange: vi.fn(),
         showToast: vi.fn(),
-        t,
+        t: i18n.getFixedT("ja", "reader"),
       }),
     );
 
@@ -441,7 +451,7 @@ describe("useAddFeedDialogActions", () => {
     });
     expect(dispatch).toHaveBeenLastCalledWith({
       type: "discover-error",
-      error: t("discovery_failed", { message: "network down" }),
+      error: i18n.getFixedT("ja", "reader")("discovery_failed", { message: localizedApiHtmlAuthErrorMessage }),
       requestId: 1,
     });
   });
@@ -524,6 +534,7 @@ describe("useAddFeedDialogActions", () => {
   });
 
   it("keeps add feed successful when selected folder assignment fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.mocked(addLocalFeed).mockResolvedValue(
       Result.succeed({
         id: "feed-new",
@@ -593,6 +604,7 @@ describe("useAddFeedDialogActions", () => {
     expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/feed.xml");
     expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
     expect(showToast).toHaveBeenCalledWith(t("feed_added_folder_failed", { message: "folder was deleted" }));
+    expect(consoleError).toHaveBeenCalledWith("Failed to assign folder:", "UserVisible");
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

@@ -8,13 +8,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
+import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
 
+const apiHtmlAuthErrorMessage =
+  "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings.";
+const localizedApiHtmlAuthErrorMessage =
+  "認証エラー: サーバーから想定外の応答が返されました。サーバーURLとアクセス認証の設定を確認してください。";
+
 afterEach(async () => {
+  await i18n.changeLanguage("en");
   cleanup();
   await new Promise<void>((resolve) => setImmediate(resolve));
 });
@@ -90,11 +97,12 @@ describe("useUpdateFeedDisplaySettings", () => {
     });
   });
 
-  it("rolls back display settings and shows a toast on failure", async () => {
+  it("localizes API HTML auth errors while rolling back display settings", async () => {
+    await i18n.changeLanguage("ja");
     seedFeeds();
     const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
     vi.spyOn(tauriCommands, "updateFeedDisplaySettings").mockResolvedValue(
-      Result.fail({ type: "UserVisible", message: "boom" }),
+      Result.fail({ type: "UserVisible", message: apiHtmlAuthErrorMessage }),
     );
     const { result } = createHook();
 
@@ -109,7 +117,7 @@ describe("useUpdateFeedDisplaySettings", () => {
     ]);
     expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
     expect(cancelQueriesSpy.mock.calls[0]?.[0]?.queryKey).toStrictEqual(queryKeys.feeds.root);
-    expect(showToastMock).toHaveBeenCalledWith("failed_to_update_display_settings:boom");
+    expect(showToastMock).toHaveBeenCalledWith(`failed_to_update_display_settings:${localizedApiHtmlAuthErrorMessage}`);
   });
 
   it("stops before optimistic update when feed query cancellation rejects", async () => {
