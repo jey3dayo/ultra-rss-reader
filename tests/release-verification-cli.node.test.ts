@@ -8,6 +8,9 @@ import {
   updaterKeyAtSource,
 } from "../scripts/release/release-verification-cli.ts";
 
+import { parseRun } from "../scripts/release/release-verification-helpers.ts";
+import { createFixture } from "./helpers/release-verification-fixture.ts";
+
 const TAG = "v0.66.0";
 const SOURCE_SHA = "4a11ce85afec51ea8eda4f7f47b1c7b45ce25230";
 const releaseId = 409523579;
@@ -52,6 +55,15 @@ describe("release verification CLI transport", () => {
     const fields = new Set(releaseView?.find((arg) => arg.includes("databaseId"))?.split(","));
     expect(fields).toEqual(new Set(["databaseId", "isDraft", "isPrerelease", "tagName", "url"]));
     expect(calls.some((args) => args.includes(`repos/{owner}/{repo}/releases/${releaseId}`))).toBe(true);
+  });
+
+  it("validates job and step metadata while keeping old core-only runs compatible", () => {
+    const run = createFixture().run;
+    expect(parseRun(run).jobs).toBeUndefined();
+    expect(() =>
+      parseRun({ ...run, jobs: [{ conclusion: "success", steps: [{ name: 1, conclusion: "success" }] }] }),
+    ).toThrow();
+    expect(() => parseRun({ ...run, jobs: [{ conclusion: 1, steps: [] }] })).toThrow();
   });
 
   it("reads the updater key from the expected source commit", () => {

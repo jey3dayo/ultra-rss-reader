@@ -82,6 +82,14 @@ const runSchema = v.object({
   event: v.string(),
   headBranch: v.string(),
   headSha: v.string(),
+  jobs: v.optional(
+    v.array(
+      v.object({
+        conclusion: v.string(),
+        steps: v.array(v.object({ name: v.string(), conclusion: v.string() })),
+      }),
+    ),
+  ),
   status: v.string(),
   url: v.string(),
   workflowName: v.string(),
