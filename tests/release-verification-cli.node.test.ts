@@ -67,7 +67,7 @@ describe("release verification CLI transport", () => {
   });
 
   it("keeps download output under repository tmp and rejects symlink escapes or existing paths", () => {
-    const temporaryRoot = path.resolve("tmp");
+    const temporaryRoot = path.resolve("tmp/release-cli-refactor");
     mkdirSync(temporaryRoot, { recursive: true });
     const fixtureRoot = mkdtempSync(path.join(temporaryRoot, "release-verification-cli-"));
     const repositoryRoot = path.join(fixtureRoot, "repo");
