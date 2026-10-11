@@ -159,6 +159,8 @@ Follow the verification/publication section of `docs/release-actions-start.md` f
 
 After identifying the original artifact-building run ID and attempt, read `references/artifact-verification.md` and run its read-only verifier before publication. A verification-only or dry-run attempt cannot stand in for the run named by the artifacts' provenance.
 
+For asynchronous checks during Phase 4, inspect compact structured status for the exact original run and its active step. Start with a 30-second wait; after an unchanged poll, back off to 60 seconds. After a meaningful phase change, report it and restart at 30 seconds. Keep unchanged polls status-only, fetching asset inventories or logs after a phase change or failure. Report meaningful phase changes and completion or failure, and keep every wait at or below 60 seconds.
+
 Keep the applicable checks in `docs/release-manual-verification.md`. Record passed, failed, not-in-scope, and explicitly waived checks accurately. A release-specific exception is not a standing waiver. Asset presence alone is not cryptographic signature verification.
 
 When the required checks are satisfied and publication is authorized, publish through the authenticated GitHub Release UI or existing `gh` credentials. Re-read the Release and verify tag, published state, prerelease/latest policy, notes, and assets. Report its URL, source SHA, original build run URL/conclusion, asset summary, and verification exceptions.

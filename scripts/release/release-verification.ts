@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import * as v from "valibot";
 import { verifyMinisignSignature } from "./minisign-verification.ts";
-import { expectedReleaseAssetNames, releaseVersion } from "./release-artifact-contract.ts";
+import {
+  optionalLinuxReleaseAssetNames,
+  releaseVersion,
+  validateReleaseAssetInventory,
+} from "./release-artifact-contract.ts";
 import { parseUpdaterChecksum } from "./updater-checksum.ts";
 
 export type ReleaseVerificationAsset = {
@@ -125,12 +129,11 @@ const validateReleaseAssets = (
   release: ReleaseVerificationRelease,
   tag: string,
 ): Map<string, ReleaseVerificationAsset> => {
-  const expectedNames = expectedReleaseAssetNames(tag);
+  const expectedNames = validateReleaseAssetInventory(
+    tag,
+    release.assets.map((asset) => asset.name),
+  );
   const expected = new Set(expectedNames);
-  if (release.assets.length !== expectedNames.length) {
-    fail(`release ${tag} must contain exactly ${expectedNames.length} assets`);
-  }
-
   const assets = new Map<string, ReleaseVerificationAsset>();
   for (const asset of release.assets) {
     if (!expected.has(asset.name) || assets.has(asset.name)) {
@@ -207,7 +210,7 @@ export const verifyReleaseIdentity = (
   ) {
     fail(`release ${identity.tag} does not match the expected draft tag policy`);
   }
-  validateReleaseAssets(release, identity.tag);
+  const assets = validateReleaseAssets(release, identity.tag);
   if (
     String(run.databaseId) !== identity.runId ||
     run.attempt !== identity.attempt ||
@@ -219,6 +222,10 @@ export const verifyReleaseIdentity = (
     run.workflowName !== "Release"
   ) {
     fail("the selected Release run attempt is not the successful exact-tag build");
+  }
+  const linuxNames = optionalLinuxReleaseAssetNames(identity.tag);
+  if (assets.has(linuxNames[0]) && run.event !== "workflow_dispatch") {
+    fail("optional Linux release assets require the selected workflow_dispatch build run");
   }
   normalizeWorkflowRunUrl(run.url, release.url, identity, "GitHub workflow run URL");
   return version;
@@ -349,7 +356,7 @@ const verifyManifestTarget = (
   }
 };
 
-export const verifyReleaseArtifacts = (
+const verifyReleaseArtifacts = (
   input: Pick<ReleaseVerificationInput, "files" | "identity" | "release" | "updaterPublicKey"> & {
     runEvent?: string;
     runUrl?: string;
@@ -365,9 +372,14 @@ export const verifyReleaseArtifacts = (
     fail(`release ${identity.tag} does not match the expected draft tag policy`);
   }
   const assets = validateReleaseAssets(release, identity.tag);
-  const expectedNames = expectedReleaseAssetNames(identity.tag);
-  if (files.size !== expectedNames.length || expectedNames.some((name) => !files.has(name))) {
-    fail("downloaded release files do not match the exact expected asset inventory");
+  const expectedNames = validateReleaseAssetInventory(identity.tag, [...files.keys()]);
+  const downloadedNames = new Set(expectedNames);
+  if (assets.size !== downloadedNames.size || [...assets.keys()].some((name) => !downloadedNames.has(name))) {
+    fail("GitHub asset metadata and downloaded filenames do not match exactly");
+  }
+  const linuxNames = optionalLinuxReleaseAssetNames(identity.tag);
+  if (assets.has(linuxNames[0]) && input.runEvent !== "workflow_dispatch") {
+    fail("optional Linux release assets require the selected workflow_dispatch build run");
   }
   for (const asset of assets.values()) {
     const bytes = bytesOf(files, asset.name);

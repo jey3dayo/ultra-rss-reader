@@ -1,7 +1,10 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { decodeConfiguredUpdaterPublicKey, verifyMinisignSignature } from "../scripts/release/minisign-verification.ts";
-import { expectedReleaseAssetNames } from "../scripts/release/release-artifact-contract.ts";
+import {
+  expectedReleaseAssetNames,
+  optionalLinuxReleaseAssetNames,
+} from "../scripts/release/release-artifact-contract.ts";
 import {
   type ReleaseVerificationIdentity,
   type ReleaseVerificationRelease,
@@ -75,15 +78,12 @@ const writeLatest = (fixture: Fixture): void => {
 const refreshRelease = (fixture: Fixture): void => {
   fixture.release = {
     ...fixture.release,
-    assets: expectedReleaseAssetNames(TAG).map((name) => {
-      const bytes = bytesOf(fixture.files, name);
-      return {
-        browserDownloadUrl: releaseAssetUrl(name),
-        digest: `sha256:${sha256(bytes)}`,
-        name,
-        size: bytes.byteLength,
-      };
-    }),
+    assets: [...fixture.files].map(([name, bytes]) => ({
+      browserDownloadUrl: releaseAssetUrl(name),
+      digest: `sha256:${sha256(bytes)}`,
+      name,
+      size: bytes.byteLength,
+    })),
   };
 };
 
@@ -113,6 +113,17 @@ const setProvenanceValue = (
   }
   section[key] = value;
   fixture.files.set(name, Buffer.from(JSON.stringify(record)));
+  refreshRelease(fixture);
+};
+
+const addOptionalLinuxReleaseAssets = (fixture: Fixture, names = optionalLinuxReleaseAssetNames(TAG)): void => {
+  for (const name of names) {
+    fixture.files.set(name, Buffer.from(`linux fixture ${name}\n`));
+  }
+  fixture.run = { ...fixture.run, event: "workflow_dispatch" };
+  for (const platform of ["darwin-aarch64", "windows-x86_64"]) {
+    setProvenanceValue(fixture, platform, "workflow", "eventName", "workflow_dispatch");
+  }
   refreshRelease(fixture);
 };
 
@@ -232,13 +243,87 @@ const verify = (fixture: Fixture) =>
   });
 
 describe("release artifact verification", () => {
-  it("validates all 16 assets, producer-name checksums and the current platform aliases", () => {
+  it("accepts the 16 core assets when the optional Linux pair is absent", () => {
     const fixture = createFixture();
     expect(expectedReleaseAssetNames(TAG)).toHaveLength(16);
     expect(Buffer.from(bytesOf(fixture.files, "Ultra.RSS.Reader.app.tar.gz.sha256")).toString()).toContain(
       "  Ultra RSS Reader.app.tar.gz",
     );
     expect(verify(fixture)).toEqual({ assetCount: 16, signatureCount: 3, version: VERSION });
+  });
+
+  it("accepts the optional versioned Linux .deb and AppImage pair from the exact dispatch run", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    expect(verify(fixture)).toEqual({ assetCount: 18, signatureCount: 3, version: VERSION });
+    expect(Object.keys(fixture.manifestPlatforms)).not.toContain("linux-x86_64");
+  });
+
+  it("rejects optional downloaded files absent from GitHub release metadata", () => {
+    const fixture = createFixture();
+    for (const name of optionalLinuxReleaseAssetNames(TAG)) {
+      fixture.files.set(name, Buffer.from(`unlisted fixture ${name}\n`));
+    }
+    expect(() => verify(fixture)).toThrow("GitHub asset metadata and downloaded filenames do not match exactly");
+  });
+
+  it("rejects GitHub assets missing from the downloaded file set", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    for (const name of optionalLinuxReleaseAssetNames(TAG)) {
+      fixture.files.delete(name);
+    }
+    expect(() => verify(fixture)).toThrow("GitHub asset metadata and downloaded filenames do not match exactly");
+  });
+
+  it("rejects a missing half of the optional Linux asset pair", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture, optionalLinuxReleaseAssetNames(TAG).slice(0, 1));
+    expect(() => verify(fixture)).toThrow("optional Linux release assets must include both the .deb and AppImage");
+  });
+
+  it("rejects Linux assets not bound to a workflow_dispatch build run", () => {
+    const fixture = createFixture();
+    fixture.files.set(optionalLinuxReleaseAssetNames(TAG)[0] ?? "", Buffer.from("linux package\n"));
+    fixture.files.set(optionalLinuxReleaseAssetNames(TAG)[1] ?? "", Buffer.from("linux image\n"));
+    refreshRelease(fixture);
+    expect(() => verify(fixture)).toThrow(
+      "optional Linux release assets require the selected workflow_dispatch build run",
+    );
+  });
+
+  it("checks downloaded optional Linux bytes against GitHub digest and size metadata", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    const linuxName = optionalLinuxReleaseAssetNames(TAG)[0];
+    if (!linuxName) {
+      throw new Error("missing optional Linux package name");
+    }
+    fixture.release = {
+      ...fixture.release,
+      assets: fixture.release.assets.map((asset) =>
+        asset.name === linuxName ? { ...asset, digest: `sha256:${"0".repeat(64)}` } : asset,
+      ),
+    };
+    expect(() => verify(fixture)).toThrow(`downloaded bytes do not match GitHub digest and size for ${linuxName}`);
+  });
+
+  it("rejects unsupported Linux RPM assets", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    fixture.files.set(`Ultra RSS Reader_${VERSION}_amd64.rpm`, Buffer.from("unsupported rpm\n"));
+    refreshRelease(fixture);
+    expect(() => verify(fixture)).toThrow("release asset inventory must contain the 16 core assets");
+  });
+
+  it("rejects duplicate release asset names", () => {
+    const fixture = createFixture();
+    const duplicate = fixture.release.assets[0];
+    if (!duplicate) {
+      throw new Error("missing fixture release asset");
+    }
+    fixture.release = { ...fixture.release, assets: [...fixture.release.assets, duplicate] };
+    expect(() => verify(fixture)).toThrow("release asset inventory contains duplicate names");
   });
 
   it("maps the API untagged draft URL to the same release's canonical tag URL", () => {
@@ -323,6 +408,35 @@ describe("release artifact verification", () => {
     writeLatest(fixture);
     refreshRelease(fixture);
     expect(() => verify(fixture)).toThrow("Minisign artifact signature is invalid");
+  });
+
+  it("rejects trusted-comment and global signature tampering with the primary signature unchanged", () => {
+    const data = Buffer.from("fixture payload");
+    const lines = Buffer.from(minisign(data), "base64").toString("utf8").trimEnd().split("\n");
+    const originalPrimary = lines[1];
+    const tamperedComment = [...lines];
+    tamperedComment[2] = "trusted comment: changed";
+    expect(tamperedComment[1]).toBe(originalPrimary);
+    expect(() =>
+      verifyMinisignSignature(
+        data,
+        Buffer.from(`${tamperedComment.join("\n")}\n`).toString("base64"),
+        UPDATER_PUBLIC_KEY,
+      ),
+    ).toThrow("Minisign trusted-comment signature is invalid");
+
+    const tamperedGlobal = [...lines];
+    const globalSignature = Buffer.from(tamperedGlobal[3] ?? "", "base64");
+    globalSignature[0] = (globalSignature[0] ?? 0) ^ 1;
+    tamperedGlobal[3] = globalSignature.toString("base64");
+    expect(tamperedGlobal[1]).toBe(originalPrimary);
+    expect(() =>
+      verifyMinisignSignature(
+        data,
+        Buffer.from(`${tamperedGlobal.join("\n")}\n`).toString("base64"),
+        UPDATER_PUBLIC_KEY,
+      ),
+    ).toThrow("Minisign trusted-comment signature is invalid");
   });
 
   it("rejects malformed signatures and legacy Ed signatures", () => {

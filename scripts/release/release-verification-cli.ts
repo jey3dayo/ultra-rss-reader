@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSy
 import path from "node:path";
 import * as v from "valibot";
 import { decodeConfiguredUpdaterPublicKey } from "./minisign-verification.ts";
-import { expectedReleaseAssetNames } from "./release-artifact-contract.ts";
+import { expectedReleaseAssetNames, validateReleaseAssetInventory } from "./release-artifact-contract.ts";
 import {
   type ReleaseVerificationRelease,
   type ReleaseVerificationRun,
@@ -278,10 +278,7 @@ const downloadFiles = (outputRoot: string, tag: string): Map<string, Uint8Array>
     }
     files.set(entry.name, readFileSync(path.join(outputRoot, entry.name)));
   }
-  const expected = expectedReleaseAssetNames(tag);
-  if (files.size !== expected.length || expected.some((name) => !files.has(name))) {
-    throw new Error("downloaded release files do not match the exact expected asset inventory");
-  }
+  validateReleaseAssetInventory(tag, [...files.keys()]);
   return files;
 };
 

@@ -26,6 +26,21 @@ For an urgent patch that only fixes a released regression, use the [Hotfix Relea
   other long-running native operation progress, cancellation, retry, or
   partial-artifact behavior
 
+## Affected-Surface Entry Points
+
+Use these links to find the existing checks for each changed surface.
+
+| Surface | Existing checklist sections |
+| --- | --- |
+| Every release | [Published install](#2-published-release-install-verification), [provenance](#2a-release-provenance-and-sbom-record), [development-only contamination](#2b-release-dev-only-contamination-record), [packaged startup](#5-packaged-startup-verification), [logs](#8-log-and-recovery-sanity-check) |
+| Authentication or secrets | [FreshRSS live verification](#1-freshrss-live-verification), [native keyring](#3-native-keyring-verification), [macOS Keychain diagnostics](#3a-macos-keychain-re-prompt-signature-diagnostics) |
+| Updater or installation | [published install](#2-published-release-install-verification), [updater](#4-packaged-updater-verification), [packaged startup](#5-packaged-startup-verification), [Windows trust](#2c-windows-installer-signing-and-smartscreen-verification), [macOS quarantine](#2d-macos-quarantine-and-app-translocation-verification) |
+| Diagnostics or data handling | [logs](#8-log-and-recovery-sanity-check), [uninstall, reset, and support artifacts](#9-uninstall-private-data-reset-and-support-artifact-retention) |
+| Long-running operation behavior | [import/export cancellation](#9a-importexport-cancellation-verification) |
+| Optional Linux packaging | [Linux packaging](#2g-optional-linux-packaging-verification) |
+
+This table routes reading only. Record scope and outcomes in the owning sections; a route alone marks no check out of scope and grants no waiver.
+
 ## Prerequisites
 
 1. `mise run ci` passes on the release commit.
@@ -348,8 +363,12 @@ When the optional job is enabled, verify:
   `libxdo-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, and
   `librsvg2-dev` (plus `patchelf` for AppImage bundling).
 - The release contains one `.deb` and one `.AppImage` artifact, and does not
-  contain an `.rpm` artifact.
-- The Linux job remains excluded from the updater manifest in this change.
+  contain an `.rpm` artifact. The read-only release verifier accepts this pair
+  only together, with versioned `amd64` filenames, GitHub digest and size
+  matches, and the exact successful `workflow_dispatch` Release run.
+- The Linux job remains excluded from the updater manifest in this change. The
+  verifier continues to validate only the existing macOS and Windows updater
+  signatures and aliases.
   Tauri 2 supports a Linux AppImage updater artifact using the
   `linux-x86_64` platform key with `.AppImage` and `.AppImage.sig`, but this
   workflow keeps `latest.json` limited to macOS and Windows until Linux updater
