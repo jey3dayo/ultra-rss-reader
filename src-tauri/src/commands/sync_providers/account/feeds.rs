@@ -171,13 +171,9 @@ pub(crate) async fn sync_greader_feeds(
             continue;
         }
         if let Err(error) = sync_local_feed(db, &local_provider, &account.id, feed).await {
-            warn!(
-                account_id = %account.id.as_ref(),
-                feed_id = %feed.id.as_ref(),
-                host_class = redacted_feed_host_class(&feed.url),
-                reason = "provider_error",
-                "Failed to pull entries for local feed"
-            );
+            if error.diagnostic_kind() == "persistence" {
+                return Err(error);
+            }
             warnings.push(ProviderSyncWarning {
                 kind: AccountSyncWarningKind::Generic,
                 message: format!(

@@ -77,7 +77,8 @@ mod session;
 
 pub(super) use local::sync_local_feed;
 #[cfg(test)]
-use local::{local_feed_scope_key, upsert_articles_in_current_transaction};
+use local::upsert_articles_in_current_transaction;
+pub(crate) use local::{local_feed_scope_key, local_feed_sync_status};
 pub(crate) use session::{GReaderSession, SessionError};
 
 mod state;

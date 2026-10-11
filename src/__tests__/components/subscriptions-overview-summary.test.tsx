@@ -99,6 +99,27 @@ describe("SubscriptionsOverviewSummary", () => {
     );
   });
 
+  it("keeps the fifth fetch-error card in the responsive summary grid", async () => {
+    const user = userEvent.setup();
+    const onSelectFilter = vi.fn();
+    const cards = [
+      { filterKey: "all", label: "Total", value: "42" },
+      { filterKey: "fetch_errors", label: "Fetch errors", value: "2", tone: "review" },
+      { filterKey: "review", label: "Review", value: "3", tone: "review" },
+      { filterKey: "stale", label: "Stale", value: "8", tone: "stale" },
+      { filterKey: "frequent", label: "Frequent", value: "6" },
+    ] satisfies React.ComponentProps<typeof SubscriptionsOverviewSummary>["cards"];
+
+    render(<SubscriptionsOverviewSummary cards={cards} labels={englishLabels} onSelectFilter={onSelectFilter} />);
+
+    const grid = screen.getByRole("button", { name: "Show Fetch errors" }).closest(".grid");
+    expect(grid).toHaveClass("sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]");
+    expect(screen.getAllByTestId("subscriptions-summary-card-badge-slot")).toHaveLength(5);
+    expect(screen.getByRole("button", { name: "Show Fetch errors" })).not.toHaveClass("sm:col-span-2");
+    await user.click(screen.getByRole("button", { name: "Show Fetch errors" }));
+    expect(onSelectFilter).toHaveBeenCalledWith("fetch_errors");
+  });
+
   it("uses localized accessible names for summary filter cards", () => {
     render(
       <SubscriptionsOverviewSummary

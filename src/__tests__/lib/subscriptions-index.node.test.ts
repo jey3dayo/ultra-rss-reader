@@ -852,6 +852,83 @@ describe("subscriptions index helpers", () => {
     ).toEqual(["feed-stale"]);
   });
 
+  it("keeps a failed stale feed in activity filters and visible after a review decision", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      feedArticleSummaries,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      feedArticleSummaryMap,
+      folderNameById: new Map([["folder-work", "Work"]]),
+    }).map((row) =>
+      row.feed.id === "feed-stale"
+        ? {
+            ...row,
+            fetchError: {
+              feed_id: row.feed.id,
+              last_attempt_at: "2026-04-04T12:00:00Z",
+              last_success_at: null,
+              error_kind: "network" as const,
+              error_count: 2,
+              diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+            },
+            reasonTooltipKey: "fetch_error" as const,
+          }
+        : row,
+    );
+
+    const visibleIdsFor = (activeSummaryFilter: "stale" | "review" | "fetch_errors") =>
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter,
+        keptFeedIds: new Set(["feed-stale"]),
+        deferredFeedIds: new Set(),
+        searchQuery: "",
+        sortKey: "title",
+      }).map((row) => row.feed.id);
+
+    expect(rows.find((row) => row.feed.id === "feed-stale")?.status.labelKey).toBe("stale_90d");
+    expect(visibleIdsFor("stale")).toContain("feed-stale");
+    expect(visibleIdsFor("review")).toContain("feed-stale");
+    expect(visibleIdsFor("fetch_errors")).toEqual(["feed-stale"]);
+  });
+
+  it("treats a legacy other error with a clamped zero count as a fetch failure", () => {
+    const rows = buildSubscriptionListRows({
+      feeds: feeds.filter((feed) => feed.id === "feed-active"),
+      candidateMap: new Map(),
+      feedArticleSummaryMap,
+      folderNameById: new Map(),
+    }).map((row) => ({
+      ...row,
+      reasonTooltipKey: "fetch_error" as const,
+      fetchError: {
+        feed_id: row.feed.id,
+        last_attempt_at: "2026-04-04T12:00:00Z",
+        last_success_at: null,
+        error_kind: "other" as const,
+        error_count: 0,
+        diagnostic_id: null,
+      },
+    }));
+
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "fetch_errors",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(),
+        searchQuery: "",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-active"]);
+  });
+
   it("keeps visible row sorting from mutating the caller-owned rows", () => {
     const rows = buildSubscriptionListRows({
       feeds,

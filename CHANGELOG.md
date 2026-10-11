@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Features
+
+- ローカルフィードの取得エラーを購読一覧で確認・再取得できるようにしました。失敗理由と、`app.log` と照合でき再起動後も追跡できる診断番号を保存しました。
+
 ### Bug Fixes
 
 - Cloudflare Accessの保存済みClient Secretを「保存済み」と表示し、「変更」時は空欄の入力欄で編集できるようにしました。入力中のみ表示を切り替えられ、説明文も折り返して表示されます。(#418)

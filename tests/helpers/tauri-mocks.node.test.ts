@@ -18,6 +18,7 @@ import {
   countAccountStarredArticles,
   countAccountUnreadArticles,
   getDatabaseInfo,
+  getLocalFeedSyncStatuses,
   getPlatformInfo,
   getPreferences,
   listAccountArticles,
@@ -162,6 +163,10 @@ describe("setupTauriMocks fixture isolation", () => {
     expect(otherAccountFolders).toEqual([]);
     expect(sampleFolder.name).toBe("Reading");
     expect(sampleFolder.sort_order).toBe(0);
+  });
+
+  it("returns no local feed sync statuses from the default mock", async () => {
+    expect(Result.unwrap(await getLocalFeedSyncStatuses("acc-1"))).toEqual([]);
   });
 
   it("returns fresh article clones from default mocks", async () => {

@@ -6,21 +6,27 @@ import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AccountDto } from "@/api/tauri-commands";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import {
   runAccountSetupSync,
   type UpdateAccountSyncParams,
   useAccountDetailSyncControls,
 } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
+import { createFetchErrorsToastAction } from "@/lib/actions";
+import { queryClient as appQueryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
+import { createSettingsDirtyStateRegistry } from "@/lib/settings/settings-dirty-state-registry";
 import { useUiStore } from "@/stores/ui-store";
 
-const { syncAccountMock, updateAccountSyncMock } = vi.hoisted(() => ({
+const { listAccountsMock, syncAccountMock, updateAccountSyncMock } = vi.hoisted(() => ({
+  listAccountsMock: vi.fn(),
   syncAccountMock: vi.fn(),
   updateAccountSyncMock: vi.fn(),
 }));
 
 vi.mock("@/api/tauri-commands", () => ({
+  listAccounts: listAccountsMock,
   syncAccount: syncAccountMock,
   updateAccountSync: updateAccountSyncMock,
 }));
@@ -34,6 +40,26 @@ const successfulSyncResult = {
   failed: [],
   warnings: [],
 };
+
+const settingsDirtyStateRegistry = createSettingsDirtyStateRegistry();
+
+function clearSettingsDirtyState(): void {
+  for (const owner of ["account", "tag", "shortcut", "preferences", "data"] as const) {
+    settingsDirtyStateRegistry.deleteEntry(owner);
+  }
+}
+
+function makeLocalAccount(id: string): AccountDto {
+  return { ...sampleAccounts[0], id, kind: "Local" };
+}
+
+async function waitForAccountLookup(): Promise<void> {
+  await vi.waitFor(() => expect(appQueryClient.getQueryState(queryKeys.accounts.root)?.fetchStatus).toBe("fetching"));
+}
+
+async function finishPendingAccountLookup(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 function makeUpdatedAccount(account: AccountDetailAccount, partial: UpdateAccountSyncParams): AccountDetailAccount {
   return {
@@ -49,13 +75,17 @@ describe("useAccountDetailSyncControls", () => {
   const t = i18n.getFixedT("en", "settings");
 
   beforeEach(() => {
+    listAccountsMock.mockReset();
     syncAccountMock.mockReset();
     updateAccountSyncMock.mockReset();
     useUiStore.setState(useUiStore.getInitialState());
+    clearSettingsDirtyState();
   });
 
   afterEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+    clearSettingsDirtyState();
+    appQueryClient.clear();
   });
 
   it.each<{
@@ -204,6 +234,305 @@ describe("useAccountDetailSyncControls", () => {
     expect(onSyncStatusChanged).not.toHaveBeenCalled();
     expect(invalidateSpy).not.toHaveBeenCalled();
     expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("shows the local feed count and opens fetch errors while preserving in-progress review decisions", async () => {
+    const account = { ...sampleAccounts[0], id: "local-account", kind: "Local" };
+    const queryClient = createTestQueryClient();
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    useUiStore.setState({
+      selectedAccountId: account.id,
+      selection: { type: "feed", feedId: "reader-feed" },
+      selectedArticleId: "reader-article",
+      subscriptionsWorkspace: {
+        kind: "index",
+        returnState: {
+          accountId: account.id,
+          activeSummaryFilter: "review",
+          selectedFeedId: "kept-feed",
+          expandedGroups: { "group:news": false },
+          listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },
+          keptFeedIds: ["kept-feed"],
+          deferredFeedIds: ["deferred-feed"],
+        },
+      },
+    });
+    syncAccountMock.mockResolvedValue(
+      Result.succeed({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [
+          {
+            account_id: account.id,
+            account_name: account.name,
+            message: "large backend diagnostic",
+            detail: {
+              type: "local_feed_sync_failed",
+              feed_title: "News",
+              message: "large backend diagnostic",
+            },
+          },
+        ],
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleSyncNow();
+    });
+
+    const toast = useUiStore.getState().toastMessage;
+    expect(toast).toMatchObject({
+      message: "Sync completed. Some feeds could not be updated (1).",
+      actions: [{ label: "View details" }],
+    });
+    listAccountsMock.mockResolvedValue(Result.succeed([account]));
+
+    await act(async () => {
+      toast?.actions?.[0]?.onClick();
+      await vi.waitFor(() =>
+        expect(useUiStore.getState().subscriptionsWorkspace?.navigationRequest).toEqual({
+          accountId: account.id,
+          summaryFilter: "fetch_errors",
+        }),
+      );
+    });
+
+    expect(useUiStore.getState().selectedArticleId).toBe("reader-article");
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "reader-feed" });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+      returnState: {
+        accountId: account.id,
+        activeSummaryFilter: "review",
+        selectedFeedId: "kept-feed",
+        expandedGroups: { "group:news": false },
+        listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },
+        keptFeedIds: ["kept-feed"],
+        deferredFeedIds: ["deferred-feed"],
+      },
+      navigationRequest: {
+        accountId: account.id,
+        summaryFilter: "fetch_errors",
+      },
+    });
+  });
+
+  it("does not navigate when the cached Local account was deleted before the toast action is clicked", async () => {
+    const deletedAccount = { ...sampleAccounts[0], id: "deleted-local-account", kind: "Local" };
+    appQueryClient.setQueryData(queryKeys.accounts.root, [deletedAccount]);
+    useUiStore.getState().selectAccount("other-account");
+    const action = createFetchErrorsToastAction(deletedAccount.id, "View details");
+    expect(action).not.toBeNull();
+    const remainingRemoteAccount = { ...sampleAccounts[1], kind: "FreshRss" };
+    listAccountsMock.mockResolvedValue(Result.succeed([remainingRemoteAccount]));
+
+    await act(async () => {
+      action?.onClick();
+      await vi.waitFor(() =>
+        expect(appQueryClient.getQueryData(queryKeys.accounts.root)).toEqual([remainingRemoteAccount]),
+      );
+    });
+
+    expect(useUiStore.getState().selectedAccountId).toBe("other-account");
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+  });
+
+  it("uses the latest toast action when account lookups overlap", async () => {
+    const firstAccount = makeLocalAccount("local-first");
+    const latestAccount = makeLocalAccount("local-latest");
+    appQueryClient.setQueryData(queryKeys.accounts.root, [firstAccount, latestAccount]);
+    const pendingAccounts = createDeferred<ReturnType<typeof Result.succeed<AccountDto[]>>>();
+    listAccountsMock.mockReturnValue(pendingAccounts.promise);
+    const firstAction = createFetchErrorsToastAction(firstAccount.id, "View first details");
+    const latestAction = createFetchErrorsToastAction(latestAccount.id, "View latest details");
+
+    act(() => {
+      firstAction?.onClick();
+      latestAction?.onClick();
+    });
+    await waitForAccountLookup();
+
+    await act(async () => {
+      pendingAccounts.resolve(Result.succeed([firstAccount, latestAccount]));
+      await finishPendingAccountLookup();
+    });
+
+    expect(useUiStore.getState().selectedAccountId).toBe(latestAccount.id);
+    expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
+      navigationRequest: { accountId: latestAccount.id, summaryFilter: "fetch_errors" },
+    });
+  });
+
+  it.each<{
+    label: string;
+    updateScreen: () => void;
+  }>([
+    {
+      label: "account selection",
+      updateScreen: () => useUiStore.setState({ selectedAccountId: "newer-account" }),
+    },
+    {
+      label: "settings",
+      updateScreen: () => useUiStore.setState({ settingsOpen: true }),
+    },
+    {
+      label: "reader selection",
+      updateScreen: () => useUiStore.setState({ selectedArticleId: "newer-article" }),
+    },
+    {
+      label: "subscriptions workspace",
+      updateScreen: () => useUiStore.setState({ subscriptionsWorkspace: { kind: "index" } }),
+    },
+    {
+      label: "reader selection that returns to its original value",
+      updateScreen: () => {
+        useUiStore.setState({ selectedArticleId: "newer-article" });
+        useUiStore.setState({ selectedArticleId: "article-before-lookup" });
+      },
+    },
+  ])("preserves a newer $label while the account lookup is pending", async ({ updateScreen }) => {
+    const account = makeLocalAccount("local-account");
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    useUiStore.setState({ selectedAccountId: "current-account", selectedArticleId: "article-before-lookup" });
+    const pendingAccounts = createDeferred<ReturnType<typeof Result.succeed<AccountDto[]>>>();
+    listAccountsMock.mockReturnValue(pendingAccounts.promise);
+    const action = createFetchErrorsToastAction(account.id, "View details");
+
+    act(() => action?.onClick());
+    await waitForAccountLookup();
+    updateScreen();
+    const workspaceAfterUserChange = useUiStore.getState().subscriptionsWorkspace;
+
+    await act(async () => {
+      pendingAccounts.resolve(Result.succeed([account]));
+      await finishPendingAccountLookup();
+    });
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toBe(workspaceAfterUserChange);
+    expect(useUiStore.getState().selectedAccountId).not.toBe(account.id);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("does not show a stale lookup failure after settings change during the request", async () => {
+    const account = makeLocalAccount("local-account");
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    const pendingAccounts = createDeferred<ReturnType<typeof Result.fail<Error>>>();
+    listAccountsMock.mockReturnValue(pendingAccounts.promise);
+    const action = createFetchErrorsToastAction(account.id, "View details");
+
+    act(() => action?.onClick());
+    await waitForAccountLookup();
+    useUiStore.setState({ settingsOpen: true, settingsCategory: "accounts" });
+
+    await act(async () => {
+      pendingAccounts.resolve(Result.fail(new Error("lookup failed")));
+      await finishPendingAccountLookup();
+    });
+
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+  });
+
+  it.each([
+    { label: "dirty", dirty: true, pending: false },
+    { label: "pending", dirty: false, pending: true },
+  ])("keeps settings open when a $label settings change would be abandoned", async ({ dirty, pending }) => {
+    const account = makeLocalAccount("local-account");
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    useUiStore.setState({ selectedAccountId: "current-account", settingsOpen: true });
+    settingsDirtyStateRegistry.setEntry({ owner: "account", dirty, pending, blockingReason: null });
+    const pendingAccounts = createDeferred<ReturnType<typeof Result.succeed<AccountDto[]>>>();
+    listAccountsMock.mockReturnValue(pendingAccounts.promise);
+    const action = createFetchErrorsToastAction(account.id, "View details");
+
+    act(() => action?.onClick());
+    await waitForAccountLookup();
+    await act(async () => {
+      pendingAccounts.resolve(Result.succeed([account]));
+      await finishPendingAccountLookup();
+    });
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().selectedAccountId).toBe("current-account");
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+  });
+
+  it("keeps settings open when the settings dirty state appears during account lookup", async () => {
+    const account = makeLocalAccount("local-account");
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    useUiStore.setState({ selectedAccountId: "current-account", settingsOpen: true });
+    const pendingAccounts = createDeferred<ReturnType<typeof Result.succeed<AccountDto[]>>>();
+    listAccountsMock.mockReturnValue(pendingAccounts.promise);
+    const action = createFetchErrorsToastAction(account.id, "View details");
+
+    act(() => action?.onClick());
+    await waitForAccountLookup();
+    settingsDirtyStateRegistry.setEntry({ owner: "account", dirty: false, pending: true, blockingReason: null });
+    await act(async () => {
+      pendingAccounts.resolve(Result.succeed([account]));
+      await finishPendingAccountLookup();
+    });
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().selectedAccountId).toBe("current-account");
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+  });
+
+  it("does not navigate when closeSettings is blocked by account setup", async () => {
+    const account = makeLocalAccount("local-account");
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    useUiStore.setState({
+      selectedAccountId: "current-account",
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: account.id,
+      accountSetupSession: { accountId: account.id, owner: "account-detail", state: "syncing" },
+    });
+    listAccountsMock.mockResolvedValue(Result.succeed([account]));
+    const action = createFetchErrorsToastAction(account.id, "View details");
+
+    act(() => action?.onClick());
+    await vi.waitFor(() => expect(appQueryClient.getQueryState(queryKeys.accounts.root)?.status).toBe("success"));
+    await finishPendingAccountLookup();
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().selectedAccountId).toBe("current-account");
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+  });
+
+  it("allows toast and sync progress updates while the account lookup is pending", async () => {
+    const account = makeLocalAccount("local-account");
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    useUiStore.setState({ selection: { type: "feed", feedId: "same-feed" } });
+    const pendingAccounts = createDeferred<ReturnType<typeof Result.succeed<AccountDto[]>>>();
+    listAccountsMock.mockReturnValue(pendingAccounts.promise);
+    const action = createFetchErrorsToastAction(account.id, "View details");
+
+    act(() => action?.onClick());
+    await waitForAccountLookup();
+    useUiStore.getState().showToast({ message: "Sync is still running", progress: 0.5 });
+    useUiStore.setState((state) => ({ syncProgress: { ...state.syncProgress, total: 1 } }));
+    useUiStore.setState({ selection: { type: "feed", feedId: "same-feed" } });
+    await act(async () => {
+      pendingAccounts.resolve(Result.succeed([account]));
+      await finishPendingAccountLookup();
+    });
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
+      navigationRequest: { accountId: account.id, summaryFilter: "fetch_errors" },
+    });
+    expect(useUiStore.getState().toastMessage).toMatchObject({ message: "Sync is still running", progress: 0.5 });
+    expect(useUiStore.getState().syncProgress.total).toBe(1);
   });
 
   it("clears stale account status and feed caches before retrying setup", async () => {

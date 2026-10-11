@@ -28,6 +28,8 @@
   "add_short": "Add",
   "press_plus_to_add_feed": "Press + to add a feed",
   "sync_completed": "Sync completed",
+  "sync_local_feed_failures_details": "View details",
+  "sync_local_feed_failures": "Sync completed. Some feeds could not be updated ({{count}}).",
   "sync_completed_with_retry_pending": "Sync completed, but some changes for {{accounts}} will retry next sync",
   "sync_completed_with_warnings": "Sync completed with warnings for: {{accounts}}",
   "sync_retry_scheduled": "Background sync failed for {{accounts}}. Retrying at {{time}}",

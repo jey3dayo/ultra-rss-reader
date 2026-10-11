@@ -26,6 +26,6 @@ pub use read_diagnostics::{
 };
 pub use sync::{
     AccountSyncError, AccountSyncStatus, AccountSyncWarning, AccountSyncWarningDetail,
-    AccountSyncWarningKind, FeedArticleSummaryDto, SyncProgressEvent, SyncProgressKind,
-    SyncProgressStage, SyncResult, COUNT_RESPONSE_MAX_VALUE,
+    AccountSyncWarningKind, FeedArticleSummaryDto, LocalFeedSyncErrorKind, LocalFeedSyncStatus,
+    SyncProgressEvent, SyncProgressKind, SyncProgressStage, SyncResult, COUNT_RESPONSE_MAX_VALUE,
 };

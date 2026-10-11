@@ -10,7 +10,12 @@ fn sync_and_feed_failure_lines_carry_only_fixed_fields() {
             SENTINEL.to_string(),
         ));
         log_sync_failure(SyncTrigger::StartupRepair, &ProviderKind::FreshRss, &error);
-        log_local_feed_fetch_failure("public", &error);
+        log_local_feed_fetch_failure(
+            "public",
+            &error,
+            crate::commands::dto::LocalFeedSyncErrorKind::Other,
+            "8cb8465f-9d0c-429e-83f8-a7d511597be6",
+        );
         log_sync_panic(SyncTrigger::Background, &ProviderKind::FreshRss);
         return;
     }
@@ -24,7 +29,7 @@ fn sync_and_feed_failure_lines_carry_only_fixed_fields() {
         lines,
         [
             "event=sync-failed trigger=startup-repair provider=freshrss error_kind=keychain",
-            "event=feed-fetch-failed provider=local host_class=public error_kind=keychain",
+            "event=feed-fetch-failed provider=local host_class=public error_kind=keychain reason=other diagnostic_id=8cb8465f-9d0c-429e-83f8-a7d511597be6",
             "event=sync-failed trigger=background provider=freshrss error_kind=panic",
         ]
     );

@@ -82,6 +82,220 @@ describe("SubscriptionDetailPane", () => {
     expect(screen.getByRole("region", { name: "Details" })).toBeInTheDocument();
   });
 
+  it("shows fetch failure context and retry and diagnostic actions", () => {
+    const onRetryFeed = vi.fn();
+    const onCopyDiagnosticId = vi.fn();
+    const onEditFeed = vi.fn();
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "private_address_blocked",
+          error_count: 1,
+          diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+        }}
+        fetchErrorLabels={{
+          heading: "Fetch error",
+          lastAttempt: "Last failed",
+          copyDiagnosticId: "Copy diagnostic number",
+          retry: "Retry",
+          retrying: "Retrying",
+          editFeedUrl: "Review feed destination",
+          reason: () => "Access to a local address was blocked.",
+        }}
+        onRetryFeed={onRetryFeed}
+        onCopyDiagnosticId={onCopyDiagnosticId}
+        onEditFeed={onEditFeed}
+      />,
+    );
+
+    expect(screen.getByTestId("subscriptions-fetch-error-detail")).toHaveTextContent(
+      "Access to a local address was blocked.",
+    );
+    expect(screen.getByText(/Last failed: Apr 4, \d{2}:\d{2}/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy diagnostic number" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review feed destination" }));
+
+    expect(onRetryFeed).toHaveBeenCalledWith("feed-1");
+    expect(onCopyDiagnosticId).toHaveBeenCalledWith("b52e8e15-b8c0-46d3-9949-44a6e5aab0b1");
+    expect(onEditFeed).toHaveBeenCalledOnce();
+  });
+
+  it("omits an invalid last-attempt timestamp instead of rendering it as raw text", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "not-a-timestamp",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "Fetch error",
+          lastAttempt: "Last failed",
+          copyDiagnosticId: "Copy diagnostic number",
+          retry: "Retry",
+          retrying: "Retrying",
+          editFeedUrl: "Review feed destination",
+          reason: () => "Communication failed.",
+        }}
+      />,
+    );
+
+    expect(screen.queryByText(/Last failed:/)).not.toBeInTheDocument();
+    expect(screen.queryByText("not-a-timestamp")).not.toBeInTheDocument();
+  });
+
+  it("replaces healthy detail status when a normal feed has a fetch error", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        detailCandidate={{
+          candidate: null,
+          tone: "neutral",
+          statusLabel: "対応不要",
+          summary: "最近も動きがあります。今はそのままでよさそうです。",
+          reasonBoxBody: "最近も動きがあります。今はそのままでよさそうです。",
+          reasonLabels: ["最近も更新"],
+        }}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "取得エラー",
+          lastAttempt: "失敗日時",
+          copyDiagnosticId: "診断番号をコピー",
+          retry: "再取得",
+          retrying: "再取得中",
+          editFeedUrl: "取得先を確認",
+          reason: () => "通信に失敗しました。",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-status")).toHaveTextContent("取得エラー");
+    expect(screen.getByTestId("feed-detail-status")).toHaveAttribute("data-label-chip", "danger");
+    expect(screen.queryByText("対応不要")).not.toBeInTheDocument();
+    expect(screen.queryByText("最近も動きがあります。今はそのままでよさそうです。")).not.toBeInTheDocument();
+    expect(screen.queryByText("最近も更新")).not.toBeInTheDocument();
+  });
+
+  it("does not treat a healthy status DTO as a fetch failure", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        detailCandidate={{
+          candidate: null,
+          tone: "neutral",
+          statusLabel: "対応不要",
+          summary: "最近も動きがあります。今はそのままでよさそうです。",
+          reasonBoxBody: "最近も動きがあります。今はそのままでよさそうです。",
+          reasonLabels: [],
+        }}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: "2026-04-04T12:00:00Z",
+          error_kind: null,
+          error_count: 0,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "取得エラー",
+          lastAttempt: "失敗日時",
+          copyDiagnosticId: "診断番号をコピー",
+          retry: "再取得",
+          retrying: "再取得中",
+          editFeedUrl: "取得先を確認",
+          reason: () => "通信に失敗しました。",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-status")).toHaveTextContent("対応不要");
+    expect(screen.getByText("最近も動きがあります。今はそのままでよさそうです。")).toBeInTheDocument();
+    expect(screen.queryByTestId("subscriptions-fetch-error-detail")).not.toBeInTheDocument();
+  });
+
+  it("retains stale review context alongside an independent fetch error", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        row={{ ...buildRow(), status: { tone: "medium", labelKey: "stale_90d" } }}
+        detailCandidate={{
+          candidate: null,
+          tone: "medium",
+          statusLabel: "90日以上未更新",
+          summary: "更新が止まっています。",
+          reasonBoxBody: "最終更新から120日です。",
+          reasonLabels: ["90日以上"],
+        }}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "取得エラー",
+          lastAttempt: "失敗日時",
+          copyDiagnosticId: "診断番号をコピー",
+          retry: "再取得",
+          retrying: "再取得中",
+          editFeedUrl: "取得先を確認",
+          reason: () => "通信に失敗しました。",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-status")).toHaveTextContent("取得エラー");
+    expect(screen.getByText("最終更新から120日です。")).toBeInTheDocument();
+    expect(screen.getByText("通信に失敗しました。")).toBeInTheDocument();
+  });
+
+  it("disables a feed retry while its request is in flight", () => {
+    render(
+      <SubscriptionDetailPane
+        {...baseProps}
+        fetchError={{
+          feed_id: "feed-1",
+          last_attempt_at: "2026-04-04T12:00:00Z",
+          last_success_at: null,
+          error_kind: "network",
+          error_count: 1,
+          diagnostic_id: null,
+        }}
+        fetchErrorLabels={{
+          heading: "Fetch error",
+          lastAttempt: "Last failed",
+          copyDiagnosticId: "Copy diagnostic number",
+          retry: "Retry",
+          retrying: "Retrying",
+          editFeedUrl: "Edit feed URL",
+          reason: () => "The request failed.",
+        }}
+        isRetryingFeed={() => true}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Retrying" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Retrying" })).toHaveAttribute("aria-busy", "true");
+  });
+
   it("places the RSS and content links between the metrics and recent articles", () => {
     render(<SubscriptionDetailPane {...baseProps} />);
 

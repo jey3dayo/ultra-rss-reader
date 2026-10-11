@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
@@ -37,7 +37,7 @@ const reasonTooltipLabels = {
   review: "見直しの判断材料があります",
   stale_90d: "最後に取得した記事から90日以上経過しています",
   quiet_no_unread: "更新停止が続いていて、未読もありません",
-} satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
+} satisfies Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
 
 function renderListPane(
   rows: SubscriptionListRow[],
@@ -48,6 +48,7 @@ function renderListPane(
     isGroupExpanded?: (groupKey: string) => boolean;
     onSelectFeed?: (feedId: string) => void;
     onListScrollTopChange?: (scrollTop: number) => void;
+    reasonTooltipLabels?: Partial<Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>>;
   },
 ) {
   const groups: SubscriptionListGroup[] = options?.groups ?? [
@@ -65,7 +66,7 @@ function renderListPane(
       searchPlaceholder="検索"
       searchClearLabel="検索をクリア"
       statusLabels={statusLabels}
-      reasonTooltipLabels={reasonTooltipLabels}
+      reasonTooltipLabels={options?.reasonTooltipLabels ?? reasonTooltipLabels}
       formatUnreadCountLabel={(count) => `未読 ${count}件`}
       formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
       isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
@@ -227,6 +228,43 @@ describe("SubscriptionsListPane", () => {
     await user.tab();
 
     expect(await screen.findByText("更新停止が続いていて、未読もありません")).toHaveClass("motion-popup-surface");
+  });
+
+  it("falls back to fetch-error tooltip copy only for a failed row", async () => {
+    const user = userEvent.setup();
+    const normalRow = {
+      feed: buildFeed({ title: "Healthy Feed" }),
+      folderId: null,
+      folderName: null,
+      latestArticleAt: null,
+      recentArticleCount: 0,
+      status: { tone: "neutral", labelKey: "normal" },
+      reasonTooltipKey: "normal",
+    } satisfies SubscriptionListRow;
+
+    const { unmount } = renderListPane([normalRow], { reasonTooltipLabels: {} });
+    await user.hover(screen.getByRole("button", { name: /Healthy Feed/ }));
+    expect(screen.queryByText("Fetch error")).not.toBeInTheDocument();
+    unmount();
+
+    const failedRow: SubscriptionListRow = {
+      ...normalRow,
+      reasonTooltipKey: "fetch_error",
+      fetchError: {
+        feed_id: normalRow.feed.id,
+        last_attempt_at: "2026-04-04T12:00:00Z",
+        last_success_at: null,
+        error_kind: "other",
+        error_count: 0,
+        diagnostic_id: null,
+      },
+    };
+    renderListPane([failedRow], { reasonTooltipLabels: {} });
+    await userEvent.setup().hover(screen.getByRole("button", { name: /Healthy Feed/ }));
+    await waitFor(() => {
+      const fetchErrorText = screen.getAllByText("Fetch error");
+      expect(fetchErrorText.some((element) => element.classList.contains("motion-popup-surface"))).toBe(true);
+    });
   });
 
   it("renders folder disclosure rows as an indented section with count", () => {

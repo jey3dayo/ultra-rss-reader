@@ -1,7 +1,13 @@
 import type { ComponentProps } from "react";
-import { useMemo } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto, FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type {
+  ArticleDto,
+  FeedArticleSummaryDto,
+  FeedDto,
+  FolderDto,
+  LocalFeedSyncStatusDto,
+} from "@/api/tauri-commands";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
@@ -34,9 +40,11 @@ import type {
   SubscriptionDetailCandidate,
   SubscriptionListRow,
   SubscriptionSummaryCard,
+  SubscriptionSummaryFilterKey,
 } from "@/lib/subscriptions/subscriptions-index.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import { useUiStore } from "@/stores/ui-store";
+import type { SubscriptionsIndexNavigationRequest } from "@/stores/ui-store.types";
 import type { SubscriptionsIndexPageView } from "../subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "../use-subscriptions-index-state";
 
@@ -50,11 +58,124 @@ type UseSubscriptionsIndexViewPropsParams = {
   reviewClock: Date;
   viewportHeight: number;
   scopedIndexReturnState: SubscriptionsWorkspaceReturnState | null;
+  scopedNavigationRequest: SubscriptionsIndexNavigationRequest | null;
   selectedAccountId: string | null;
+  isLocalAccount: boolean;
+  feedSyncStatuses: LocalFeedSyncStatusDto[] | undefined;
+  feedSyncStatusesPending: boolean;
+  feedSyncStatusesError: boolean;
+  feedListPending: boolean;
+  feedListError: boolean;
+  onRetryFeed: (feedId: string) => void;
+  onEditFeed: (feedId: string) => void;
+  isRetryingFeed: (feedId: string) => boolean;
+  onCopyDiagnosticId: (diagnosticId: string) => void;
   closeSubscriptionsWorkspace: () => void;
   setDeleteTargetFeed: (feed: FeedDto | null) => void;
   setEditTargetFeed: (feed: FeedDto | null) => void;
 };
+
+function attachLocalFeedFetchErrors(
+  rows: SubscriptionListRow[],
+  feeds: FeedDto[],
+  statuses: LocalFeedSyncStatusDto[] | undefined,
+  isLocalAccount: boolean,
+): SubscriptionListRow[] {
+  if (!isLocalAccount || !statuses) return rows;
+  const feedIds = new Set(feeds.map((feed) => feed.id));
+  const statusesByFeedId = new Map(
+    statuses
+      .filter((status) => feedIds.has(status.feed_id) && status.error_kind !== null)
+      .map((status) => [status.feed_id, status]),
+  );
+  return rows.map((row) => {
+    const fetchError = statusesByFeedId.get(row.feed.id);
+    return fetchError ? { ...row, reasonTooltipKey: "fetch_error", fetchError } : row;
+  });
+}
+
+type FetchErrorSummaryLabels = {
+  label: string;
+  loading: string;
+  unavailable: string;
+  unknown: string;
+  none: string;
+  caption: (count: number) => string;
+};
+
+function buildLocalFetchErrorSummary(params: {
+  isLocalAccount: boolean;
+  feeds: FeedDto[];
+  statuses: LocalFeedSyncStatusDto[] | undefined;
+  statusesPending: boolean;
+  statusesError: boolean;
+  feedListPending: boolean;
+  feedListError: boolean;
+  activeSummaryFilter: SubscriptionSummaryFilterKey;
+  labels: FetchErrorSummaryLabels;
+}): { card: SubscriptionSummaryCard | null; failedFeedCount: number | null } {
+  const {
+    isLocalAccount,
+    feeds,
+    statuses,
+    statusesPending,
+    statusesError,
+    feedListPending,
+    feedListError,
+    activeSummaryFilter,
+    labels,
+  } = params;
+  if (!isLocalAccount) return { card: null, failedFeedCount: null };
+
+  const feedIds = new Set(feeds.map((feed) => feed.id));
+  const statusesResolved =
+    Boolean(statuses) && !statusesPending && !statusesError && !feedListPending && !feedListError;
+  const failedFeedCount = statusesResolved
+    ? new Set(
+        statuses
+          ?.filter((status) => feedIds.has(status.feed_id) && status.error_kind !== null)
+          .map((status) => status.feed_id),
+      ).size
+    : null;
+  const value =
+    failedFeedCount === null
+      ? statusesPending || feedListPending
+        ? labels.loading
+        : labels.unavailable
+      : String(failedFeedCount);
+  const caption =
+    failedFeedCount === null
+      ? statusesPending || feedListPending
+        ? ""
+        : labels.unknown
+      : failedFeedCount === 0
+        ? labels.none
+        : labels.caption(failedFeedCount);
+
+  return {
+    failedFeedCount,
+    card: {
+      filterKey: "fetch_errors",
+      label: labels.label,
+      value,
+      caption,
+      tone: failedFeedCount !== null && failedFeedCount > 0 ? "danger" : "neutral",
+      isActive: activeSummaryFilter === "fetch_errors",
+      isActionable: statusesResolved && failedFeedCount !== null && failedFeedCount > 0,
+    },
+  };
+}
+
+function resolveSubscriptionsEmptyLabel(
+  activeSummaryFilter: SubscriptionSummaryFilterKey,
+  failedFeedCount: number | null,
+  labels: { default: string; fetchErrorsUnknown: string; fetchErrorsEmpty: string },
+): string {
+  if (activeSummaryFilter !== "fetch_errors") return labels.default;
+  if (failedFeedCount === null) return labels.fetchErrorsUnknown;
+  if (failedFeedCount === 0) return labels.fetchErrorsEmpty;
+  return labels.default;
+}
 
 export function useSubscriptionsIndexViewProps({
   feeds,
@@ -64,7 +185,18 @@ export function useSubscriptionsIndexViewProps({
   reviewClock,
   viewportHeight,
   scopedIndexReturnState,
+  scopedNavigationRequest,
   selectedAccountId,
+  isLocalAccount,
+  feedSyncStatuses,
+  feedSyncStatusesPending,
+  feedSyncStatusesError,
+  feedListPending,
+  feedListError,
+  onRetryFeed,
+  onEditFeed,
+  isRetryingFeed,
+  onCopyDiagnosticId,
   closeSubscriptionsWorkspace,
   setDeleteTargetFeed,
   setEditTargetFeed,
@@ -89,21 +221,51 @@ export function useSubscriptionsIndexViewProps({
   const candidateMap = useMemo(() => buildSubscriptionReviewCandidateMap(candidates), [candidates]);
   const feedArticleSummaryMap = useMemo(() => buildFeedArticleSummaryMap(feedArticleSummaries), [feedArticleSummaries]);
   const folderNameById = useMemo(() => buildFolderNameByIdMap(folders), [folders]);
-  const rows = useMemo<SubscriptionListRow[]>(
-    () => buildSubscriptionListRows({ feeds, candidateMap, feedArticleSummaryMap, folderNameById }),
-    [candidateMap, feedArticleSummaryMap, feeds, folderNameById],
+  const rows = useMemo(
+    () =>
+      attachLocalFeedFetchErrors(
+        buildSubscriptionListRows({ feeds, candidateMap, feedArticleSummaryMap, folderNameById }),
+        feeds,
+        feedSyncStatuses,
+        isLocalAccount,
+      ),
+    [candidateMap, feedArticleSummaryMap, feedSyncStatuses, feeds, folderNameById, isLocalAccount],
   );
 
   const state = useSubscriptionsIndexState(rows, {
     accountId: selectedAccountId,
-    initialSummaryFilter: scopedIndexReturnState?.activeSummaryFilter,
-    initialSelectedFeedId: scopedIndexReturnState?.selectedFeedId,
+    initialSummaryFilter: scopedNavigationRequest?.summaryFilter ?? scopedIndexReturnState?.activeSummaryFilter,
+    initialSelectedFeedId: scopedNavigationRequest ? null : scopedIndexReturnState?.selectedFeedId,
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
-    initialListScrollState: scopedIndexReturnState?.listScrollTop,
+    initialListScrollState: scopedNavigationRequest ? undefined : scopedIndexReturnState?.listScrollTop,
     viewportHeight,
   });
+  const consumedNavigationRequest = useRef(scopedNavigationRequest);
+  const consumeNavigationRequest = useEffectEvent(() => {
+    const currentStore = useUiStore.getState();
+    const request =
+      currentStore.subscriptionsWorkspace?.kind === "index"
+        ? currentStore.subscriptionsWorkspace.navigationRequest
+        : undefined;
+    if (
+      !request ||
+      request === consumedNavigationRequest.current ||
+      request.accountId !== selectedAccountId ||
+      currentStore.selectedAccountId !== selectedAccountId
+    ) {
+      return;
+    }
+    consumedNavigationRequest.current = request;
+    state.navigateToSummaryFilter(request.summaryFilter);
+  });
+
+  useEffect(() => {
+    const unsubscribe = useUiStore.subscribe(() => consumeNavigationRequest());
+    consumeNavigationRequest();
+    return unsubscribe;
+  }, []);
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
     selectedRow: state.selectedRow,
     articles: accountArticles,
@@ -160,6 +322,25 @@ export function useSubscriptionsIndexViewProps({
         }),
     },
   }) satisfies SubscriptionSummaryCard[];
+  const fetchErrorSummary = buildLocalFetchErrorSummary({
+    isLocalAccount,
+    feeds,
+    statuses: feedSyncStatuses,
+    statusesPending: feedSyncStatusesPending,
+    statusesError: feedSyncStatusesError,
+    feedListPending,
+    feedListError,
+    activeSummaryFilter: state.activeSummaryFilter,
+    labels: {
+      label: t("summary_fetch_errors"),
+      loading: t("summary_status_loading"),
+      unavailable: t("summary_status_unavailable"),
+      unknown: t("summary_fetch_errors_unknown"),
+      none: t("summary_fetch_errors_none"),
+      caption: (count) => t("summary_fetch_errors_caption", { count }),
+    },
+  });
+  if (fetchErrorSummary.card) summaryCards.unshift(fetchErrorSummary.card);
 
   const inventoryHeading = resolveSubscriptionsInventoryHeading({
     activeSummaryFilter: state.activeSummaryFilter,
@@ -228,7 +409,27 @@ export function useSubscriptionsIndexViewProps({
     selectedRow: state.selectedRow,
     selectedMetrics,
     selectedDetailCandidate,
-    emptyLabel: t("empty"),
+    selectedFetchError: state.selectedRow?.fetchError ?? null,
+    fetchErrorLabels: {
+      heading: t("detail_fetch_error_heading"),
+      lastAttempt: t("detail_fetch_error_last_failed"),
+      copyDiagnosticId: t("detail_fetch_error_copy_diagnostic_id"),
+      retry: t("detail_fetch_error_retry"),
+      retrying: t("detail_fetch_error_retrying"),
+      editFeedUrl: t("detail_fetch_error_edit_feed_url"),
+      reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => t(`fetch_error_reason_${kind}`),
+    },
+    onRetryFeed,
+    onEditFeed: () => {
+      if (state.selectedRow) onEditFeed(state.selectedRow.feed.id);
+    },
+    isRetryingFeed,
+    onCopyDiagnosticId,
+    emptyLabel: resolveSubscriptionsEmptyLabel(state.activeSummaryFilter, fetchErrorSummary.failedFeedCount, {
+      default: t("empty"),
+      fetchErrorsUnknown: t("summary_fetch_errors_unknown"),
+      fetchErrorsEmpty: t("summary_fetch_errors_empty"),
+    }),
     searchQuery: state.searchQuery,
     searchLabel: t("search_label"),
     searchPlaceholder: t("search_placeholder"),
@@ -248,7 +449,9 @@ export function useSubscriptionsIndexViewProps({
       review: t("tooltip_reason_review"),
       stale_90d: t("tooltip_reason_stale_90d"),
       quiet_no_unread: t("tooltip_reason_quiet_no_unread"),
+      fetch_error: t("status_fetch_error"),
     },
+    fetchErrorLabel: t("status_fetch_error"),
     formatUnreadCountLabel: (count) => t("meta_unread_count", { count }),
     formatLatestArticleLabel: (value) =>
       value

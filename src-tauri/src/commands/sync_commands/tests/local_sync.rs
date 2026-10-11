@@ -180,6 +180,52 @@ async fn local_account_sync_continues_after_one_feed_fails() {
     assert_eq!(saved_article_count, 1);
 }
 
+#[tokio::test]
+async fn local_account_sync_propagates_failure_status_persistence_error() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let account = test_sync_command_account("local-persistence-failure", ProviderKind::Local, true);
+    insert_local_account_row(&db, &account);
+    {
+        let db_guard = db.lock().unwrap();
+        SqliteFeedRepository::new(db_guard.writer())
+            .save(&Feed {
+                id: FeedId::new(),
+                account_id: account.id.clone(),
+                folder_id: None,
+                remote_id: None,
+                title: "Invalid feed".to_string(),
+                url: "not-a-url".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon: None,
+                icon_url: None,
+                unread_count: 0,
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
+            })
+            .unwrap();
+        db_guard
+            .writer()
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_local_feed_failure_status
+                     BEFORE INSERT ON sync_state
+                     WHEN NEW.scope_key LIKE 'local_feed:%'
+                     BEGIN
+                       SELECT RAISE(ABORT, 'forced failure status write error');
+                     END;",
+            )
+            .unwrap();
+    }
+
+    let error = sync_account(&db, &account)
+        .await
+        .expect_err("unrecorded feed failures should fail the account sync");
+
+    assert_eq!(error.diagnostic_kind(), "persistence");
+    assert!(error
+        .to_string()
+        .contains("forced failure status write error"));
+}
+
 fn insert_local_account_row(db: &Mutex<DbManager>, account: &Account) {
     let db_guard = db.lock().unwrap();
     db_guard

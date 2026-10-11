@@ -8,7 +8,7 @@ export type SubscriptionsWorkspaceExpandedGroupKey = `group:${string}`;
 // otherwise restoring a returnState whose activeSummaryFilter uses the missing
 // key throws at parse time. The type guard below fails to compile if a new
 // filter key is added to the union but not to this enum.
-const subscriptionSummaryFilterStateSchema = v.picklist(["all", "review", "stale", "frequent"]);
+const subscriptionSummaryFilterStateSchema = v.picklist(["all", "review", "stale", "frequent", "fetch_errors"]);
 type PersistedSummaryFilterDriftGuard = Exclude<
   SubscriptionSummaryFilterKey,
   v.InferOutput<typeof subscriptionSummaryFilterStateSchema>

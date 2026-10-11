@@ -4,7 +4,7 @@ import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
-import type { FeedDto } from "@/api/tauri-commands";
+import type { FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
 import type { SubscriptionsIndexPageView } from "@/components/subscriptions-index/subscriptions-index-page-view";
 import i18n from "@/lib/i18n";
@@ -237,6 +237,90 @@ describe("SubscriptionsIndexPage", () => {
       "motion-content-swap",
       "rounded-md",
     );
+  });
+
+  it("puts recorded fetch errors first with the danger tone", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "get_local_feed_sync_statuses") {
+        return [
+          {
+            feed_id: "feed-1",
+            last_attempt_at: "2026-10-10T12:00:00Z",
+            last_success_at: null,
+            error_kind: "network",
+            error_count: 1,
+            diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+          },
+        ];
+      }
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const fetchErrors = await screen.findByRole("button", { name: "取得エラー を表示" });
+    const summaryActions = screen.getAllByRole("button", { name: /を表示$/ });
+    expect(summaryActions[0]).toBe(fetchErrors);
+    expect(fetchErrors).toHaveClass("border-state-danger-border/72");
+  });
+
+  it("keeps zero fetch errors first as a neutral non-actionable card", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "get_local_feed_sync_statuses") return [];
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const caption = await screen.findByText("取得エラーなし");
+    const staticCard = caption.closest("[data-subscriptions-summary-static-card]");
+    expect(staticCard).toBeInTheDocument();
+    expect(staticCard?.parentElement?.firstElementChild).toBe(staticCard);
+    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
+    expect(staticCard).not.toHaveClass("border-state-danger-border/72");
+  });
+
+  it("keeps pending fetch status free of failure copy before showing unavailable status", async () => {
+    let rejectStatusRead: ((reason: Error) => void) | undefined;
+    const pendingStatuses = new Promise<LocalFeedSyncStatusDto[]>((_resolve, reject) => {
+      rejectStatusRead = reject;
+    });
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "get_local_feed_sync_statuses") return pendingStatuses;
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const loadingValue = await screen.findByText("確認中");
+    const pendingCard = getRequiredHTMLElement(
+      loadingValue.closest("[data-subscriptions-summary-static-card]"),
+      "pending fetch error summary card",
+    );
+    expect(within(pendingCard).queryByText("取得状態を確認できません")).not.toBeInTheDocument();
+    expect(within(pendingCard).queryByText("0")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
+
+    const rejectStatus = rejectStatusRead;
+    if (!rejectStatus) {
+      throw new Error("Expected the local feed status request to remain pending.");
+    }
+    await act(async () => {
+      rejectStatus(new Error("Could not load local feed statuses"));
+      await Promise.resolve();
+    });
+
+    const unavailableValue = await screen.findByText("未取得");
+    const unavailableCard = getRequiredHTMLElement(
+      unavailableValue.closest("[data-subscriptions-summary-static-card]"),
+      "unavailable fetch error summary card",
+    );
+    expect(within(unavailableCard).getByText("取得状態を確認できません")).toBeInTheDocument();
+    expect(within(unavailableCard).queryByText("0")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
   });
 
   it("keeps the page view props aligned with the shared subscriptions index models", () => {
@@ -580,6 +664,39 @@ describe("SubscriptionsIndexPage", () => {
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
     });
+  });
+
+  it("shows scoped no-error copy after retry clears the last failure while its filter stays active", async () => {
+    const user = userEvent.setup();
+    let statusReads = 0;
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") return feedRows;
+      if (cmd === "get_local_feed_sync_statuses") {
+        statusReads += 1;
+        return feedRows.map((feed, index) => ({
+          feed_id: feed.id,
+          last_attempt_at: index === 0 ? "2026-04-04T12:00:00Z" : null,
+          last_success_at: null,
+          error_kind: statusReads === 1 && index === 0 ? "network" : null,
+          error_count: statusReads === 1 && index === 0 ? 1 : 0,
+          diagnostic_id: statusReads === 1 && index === 0 ? "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1" : null,
+        }));
+      }
+      if (cmd === "trigger_sync_feed") {
+        return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };
+      }
+      return undefined;
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "取得エラー を表示" }));
+    expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "再取得" }));
+
+    expect(await screen.findByText("取得エラーのあるフィードはありません")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "総購読数 を表示" })).toBeInTheDocument();
   });
 
   it("restores a returned stale filter, collapsed group state, and list scroll position", async () => {

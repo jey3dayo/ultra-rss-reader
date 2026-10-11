@@ -358,6 +358,8 @@
     "setup_complete": "Setup complete",
     "sync_completed_with_retry_pending": "Sync completed, but some changes will retry next sync",
     "sync_completed_with_warnings": "Sync completed with warnings",
+    "sync_local_feed_failures_details": "View details",
+    "sync_local_feed_failures": "Sync completed. Some feeds could not be updated ({{count}}).",
     "next_automatic_retry": "Next automatic retry",
     "consecutive_sync_failures": "Consecutive sync failures",
     "consecutive_sync_failures_value": "{{count}} failures",
