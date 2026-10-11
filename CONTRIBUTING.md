@@ -60,18 +60,6 @@ Use `mise run app:dev:native-keyring` when you need to verify Keychain or Creden
 - Preview the production frontend build: `pnpm build && pnpm preview`
   Serves the current `dist/` output. Rebuild before previewing new changes.
 
-### Cloud UI Verification
-
-Dedicated browser tools or skills are optional. Repository Playwright supports headless browser rendering and interaction in cloud environments. Follow [.claude/rules/ui-browser-prep.md](.claude/rules/ui-browser-prep.md) for the review policy; use the setup below for execution.
-
-1. Complete the standard setup (`mise install` and `pnpm install`). Use the versions pinned in `mise.toml` and `package.json`; do not change those pins just to fit the host.
-2. Install the browser and Linux system dependencies with `mise exec -- pnpm exec playwright install --with-deps chromium`. If system installation is unavailable, try `mise exec -- pnpm exec playwright install chromium` when the host already provides the required libraries. Record installation failures and continue checks that do not need a browser.
-3. Run browser-mode E2E with `mise run test:e2e`. The existing `playwright.config.ts` runs headless, starts its own Vite server at `http://localhost:1420`, and refuses server reuse. This differs from the interactive `mise run app:dev:browser` server at `http://127.0.0.1:4173/`; do not start both for the same check or assume their ports are interchangeable. Resolve an occupied port without stopping another owner's process.
-4. For a focused flow, use `mise exec -- pnpm exec playwright test e2e/app.spec.ts`, or substitute another relevant repository test path. Use role/label locators, assert the resulting state, and check the widths and keyboard/focus behavior relevant to the change. Capture screenshots for visual inspection; headless execution alone does not establish that the layout looks correct.
-5. Inspect screenshots with an available image viewer. Keep temporary review screenshots under `tmp/screenshots/`. Existing E2E failure screenshots/traces and reports remain under `test-results/e2e` and `playwright-report/e2e` as configured; do not commit temporary artifacts or include real credentials in them.
-
-If setup or rendering is blocked, use provided images, existing design-system patterns, and design rules to ground the implementation. Run relevant DOM/interaction tests and other available checks, and create a draft PR with the exact failure and remaining verification items. Report automated test results, browser rendering/visual inspection, and native-device checks separately. Required visual or native checks remain review/merge checklist items; they do not block implementation or draft PR creation. Browser mocks and jsdom cannot verify OS Keychain prompts or native WebView geometry.
-
 ### Development Mode Comparison
 
 Use this table when you need to decide whether you are optimizing for iteration speed, credential realism, or macOS-native behavior.
@@ -158,6 +146,17 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 > **Windows Rust scope:** Windows CI's `mise run test:rust` runs `cargo test --test integration_test` only. Full Rust library tests run in Linux CI and on macOS/Linux with `mise run check`.
 
 `mise run ci` intentionally covers format, lint, repository tests, and frontend build. It runs the quiet Vitest unit gate before lint, Rust tests, and build so unit failures surface before heavier checks. It does not run Playwright, Storybook static build, live-service tests, or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
+
+### Cloud UI Verification
+
+Execution steps for headless browser checks when no dedicated browser tool is available. When to run them and how to report unverified items is owned by [.claude/rules/ui-browser-prep.md](.claude/rules/ui-browser-prep.md).
+
+1. Run the standard setup (`mise install` and `pnpm install`) with the pinned versions; do not change pins to fit the host. If `mise install` fails on a tool that browser checks do not need (for example `rust` on a read-only `~/.rustup`), run `mise install node`, record the failure, and continue.
+2. Install Chromium and its Linux system dependencies with `mise exec -- pnpm exec playwright install --with-deps chromium`. If system installation is unavailable, try `mise exec -- pnpm exec playwright install chromium` when the host already provides the required libraries. Record failures and continue checks that do not need a browser.
+3. Run the browser-mode flow with `mise exec -- pnpm exec playwright test e2e/app.spec.ts`, or another relevant spec outside `e2e/storybook/`. Bare `mise run test:e2e` also collects the `e2e/storybook/` specs, which need the Storybook server from `mise run test:storybook:e2e`. `playwright.config.ts` starts its own Vite through `pnpm dev:tauri:vite`, waits on the fixed URL `http://localhost:1420` (leave `TAURI_DEV_PORT` unset), and refuses server reuse.
+4. Port 1420 is also the `mise run app:dev` port. Confirm it is free before running, and do not run E2E while another session's `mise run app:dev` is active: when the Vite manager finds this checkout's Vite already listening there, it stops that process (SIGTERM, then SIGKILL).
+5. The config saves screenshots only on failure. For a visual check of a passing state, start `mise run app:dev:browser` (port 4173, independent of 1420) and capture it with `mise exec -- pnpm exec playwright screenshot --viewport-size=1280,800 --wait-for-timeout=1000 http://127.0.0.1:4173/ tmp/screenshots/<name>.png`, changing `--viewport-size` for each width relevant to the change. For states reached through interaction, rerun the spec with `--trace on`; the trace under `test-results/e2e` records step screenshots. Inspect images with an available image viewer.
+6. Keep temporary screenshots under `tmp/screenshots/`; E2E failure artifacts and reports stay under `test-results/e2e` and `playwright-report/e2e`. Do not commit them or include real credentials in them.
 
 ## Architecture
 
