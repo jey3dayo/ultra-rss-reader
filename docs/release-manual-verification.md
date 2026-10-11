@@ -215,6 +215,12 @@ Confirm and record:
 
 Record this for every release before publishing the draft release.
 
+For the machine-checkable draft pass over the exact asset inventory, GitHub
+digests, updater signatures, `latest.json` aliases, checksums, and build
+provenance, use the [release artifact verifier guide](../.codex/skills/release/references/artifact-verification.md).
+This pass complements the OS and packaged-app checks below; it does not replace
+codesign, Gatekeeper, installer, or device verification.
+
 Confirm and record:
 
 - Release tag and tag target SHA.

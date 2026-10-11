@@ -435,29 +435,7 @@ const uploadReleaseProvenance = (): void => {
   uploadAssets("provenance upload", "provenance upload failure recovery", provenanceAssets);
 };
 
-const expectedReleaseAssetNames = (releaseTag: string): string[] => {
-  const releaseVersion = releaseTag.replace(/^v/, "");
-  return [
-    `Ultra.RSS.Reader_${releaseVersion}_aarch64.dmg`,
-    "Ultra.RSS.Reader_aarch64.app.tar.gz",
-    "Ultra.RSS.Reader_aarch64.app.tar.gz.sig",
-    "Ultra.RSS.Reader.app.tar.gz.sha256",
-    "cargo-licenses-darwin-aarch64.json",
-    "pnpm-licenses-darwin-aarch64.json",
-    "release-provenance-darwin-aarch64.json",
-    `Ultra.RSS.Reader_${releaseVersion}_x64-setup.exe`,
-    `Ultra.RSS.Reader_${releaseVersion}_x64-setup.exe.sig`,
-    `Ultra.RSS.Reader_${releaseVersion}_x64-setup.exe.sha256`,
-    `Ultra.RSS.Reader_${releaseVersion}_x64_en-US.msi`,
-    `Ultra.RSS.Reader_${releaseVersion}_x64_en-US.msi.sig`,
-    "latest.json",
-    "cargo-licenses-windows-x86_64.json",
-    "pnpm-licenses-windows-x86_64.json",
-    "release-provenance-windows-x86_64.json",
-  ];
-};
-
-const validateExistingReleaseAssets = (): void => {
+const validateExistingReleaseAssets = (getExpectedAssetNames: (tag: string) => string[]): void => {
   const releaseTag = requiredEnv("RELEASE_TAG");
   const view = spawnSync("gh", ["release", "view", releaseTag, "--json", "assets,isDraft,isPrerelease,tagName,url"], {
     encoding: "utf8",
@@ -468,7 +446,7 @@ const validateExistingReleaseAssets = (): void => {
   }
 
   const release = JSON.parse(view.stdout) as GitHubReleaseView;
-  const expectedAssetNames = expectedReleaseAssetNames(releaseTag);
+  const expectedAssetNames = getExpectedAssetNames(releaseTag);
   const uploadedNames = release.assets.map((asset) => asset.name);
   const uploadedNameSet = new Set(uploadedNames);
   const duplicateNames = uploadedNames.filter((name, index) => uploadedNames.indexOf(name) !== index);
@@ -496,8 +474,13 @@ const validateExistingReleaseAssets = (): void => {
   );
 };
 
-const main = (): void => {
+const main = async (): Promise<void> => {
   const command = process.argv[2];
+  if (command === "--help" || command === "help") {
+    const { printDraftReleaseVerificationHelp } = await import("./release-verification-cli.ts");
+    printDraftReleaseVerificationHelp();
+    return;
+  }
   validateStaticAssetContract();
 
   switch (command) {
@@ -523,11 +506,22 @@ const main = (): void => {
       uploadReleaseProvenance();
       break;
     case "validate-existing-release-assets":
-      validateExistingReleaseAssets();
+      {
+        const { expectedReleaseAssetNames } = await import("./release-artifact-contract.ts");
+        validateExistingReleaseAssets(expectedReleaseAssetNames);
+      }
+      break;
+    case "verify-draft-release":
+      try {
+        const { runDraftReleaseVerification } = await import("./release-verification-cli.ts");
+        runDraftReleaseVerification(process.argv.slice(3));
+      } catch (error) {
+        fail(error instanceof Error ? error.message : "draft release verification failed");
+      }
       break;
     default:
       fail(
-        `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, validate-macos-app-signature, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, upload-release-provenance, or validate-existing-release-assets`,
+        `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, validate-macos-app-signature, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, upload-release-provenance, validate-existing-release-assets, or verify-draft-release`,
       );
   }
 };
@@ -536,5 +530,7 @@ const isMainModule =
   typeof process.argv[1] === "string" && fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
 
 if (isMainModule) {
-  main();
+  void main().catch((error: unknown) =>
+    fail(error instanceof Error ? error.message : "release artifacts command failed"),
+  );
 }
