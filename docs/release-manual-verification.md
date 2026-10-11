@@ -26,6 +26,21 @@ For an urgent patch that only fixes a released regression, use the [Hotfix Relea
   other long-running native operation progress, cancellation, retry, or
   partial-artifact behavior
 
+## Affected-Surface Entry Points
+
+Use these links to find the existing checks for each changed surface.
+
+| Surface | Existing checklist sections |
+| --- | --- |
+| Every release | [Published install](#2-published-release-install-verification), [provenance](#2a-release-provenance-and-sbom-record), [development-only contamination](#2b-release-dev-only-contamination-record), [packaged startup](#5-packaged-startup-verification), [logs](#8-log-and-recovery-sanity-check) |
+| Authentication or secrets | [FreshRSS live verification](#1-freshrss-live-verification), [native keyring](#3-native-keyring-verification), [macOS Keychain diagnostics](#3a-macos-keychain-re-prompt-signature-diagnostics) |
+| Updater or installation | [published install](#2-published-release-install-verification), [updater](#4-packaged-updater-verification), [packaged startup](#5-packaged-startup-verification), [Windows trust](#2c-windows-installer-signing-and-smartscreen-verification), [macOS quarantine](#2d-macos-quarantine-and-app-translocation-verification) |
+| Diagnostics or data handling | [logs](#8-log-and-recovery-sanity-check), [uninstall, reset, and support artifacts](#9-uninstall-private-data-reset-and-support-artifact-retention) |
+| Long-running operation behavior | [import/export cancellation](#9a-importexport-cancellation-verification) |
+| Optional Linux packaging | [Linux packaging](#2g-optional-linux-packaging-verification) |
+
+This table routes reading only. Record scope and outcomes in the owning sections; a route alone marks no check out of scope and grants no waiver.
+
 ## Prerequisites
 
 1. `mise run ci` passes on the release commit.
@@ -215,6 +230,12 @@ Confirm and record:
 
 Record this for every release before publishing the draft release.
 
+For the machine-checkable draft pass over the exact asset inventory, GitHub
+digests, updater signatures, `latest.json` aliases, checksums, and build
+provenance, use the [release artifact verifier guide](../.codex/skills/release/references/artifact-verification.md).
+This pass complements the OS and packaged-app checks below; it does not replace
+codesign, Gatekeeper, installer, or device verification.
+
 Confirm and record:
 
 - Release tag and tag target SHA.
@@ -342,8 +363,23 @@ When the optional job is enabled, verify:
   `libxdo-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, and
   `librsvg2-dev` (plus `patchelf` for AppImage bundling).
 - The release contains one `.deb` and one `.AppImage` artifact, and does not
-  contain an `.rpm` artifact.
-- The Linux job remains excluded from the updater manifest in this change.
+  contain an `.rpm` artifact. The read-only release verifier requires both
+  versioned `amd64` binaries together with `release-provenance-linux-x86_64.json`
+  (19 assets including the 16 core assets). It compares both binary hashes
+  against downloaded bytes and GitHub digest/size metadata, and binds the
+  proof to the exact source, tag target, release tag, dispatch run, attempt,
+  ref, Linux platform, and the Release ID returned by the original Tauri build.
+  The producer records that ID from `LINUX_RELEASE_ID`; upload checks its
+  draft/tag through the fixed-ID API and posts only to that ID's upload URL.
+  A deleted/recreated draft cannot receive the old proof. Existing proof assets
+  cause a failure for manual inspection; no automatic deletion or retry occurs.
+  The selected attempt's jobs must include a
+  successful `Generate Linux release provenance` step in a successful job;
+  absent, skipped, or failed generation rejects Linux assets even when the
+  supplied proof matches. A core-only release still requires 16 assets.
+- The Linux job remains excluded from the updater manifest in this change. The
+  verifier continues to validate only the existing macOS and Windows updater
+  signatures and aliases.
   Tauri 2 supports a Linux AppImage updater artifact using the
   `linux-x86_64` platform key with `.AppImage` and `.AppImage.sig`, but this
   workflow keeps `latest.json` limited to macOS and Windows until Linux updater

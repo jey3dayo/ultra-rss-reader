@@ -33,6 +33,7 @@ Load only the reference needed for the current phase:
 - `references/phase-1-prechecks.md`: branch, sync, clean tree, preflight check, and bump selection.
 - `references/phase-2-generate.md`: version file updates, Cargo metadata refresh, commit-derived Japanese notes, CHANGELOG/TODO update.
 - `references/phase-3-publish.md`: release commit, annotated tag, push, remote tag verification, workflow/Release verification.
+- `references/artifact-verification.md`: machine-check the original build run, draft assets, updater signatures, checksums, manifest aliases, and provenance.
 - `references/subagents.md`: safe delegation prompts and ownership boundaries.
 
 Use `scripts/release_checks.py` for deterministic helper checks when useful. During an actual release, do not patch helper scripts; if a helper is wrong or missing behavior, stop the release and fix the helper in a separate non-release change.
@@ -155,6 +156,10 @@ Final report must include:
 ## Phase 4: Verify And Publish
 
 Follow the verification/publication section of `docs/release-actions-start.md` for both routes. The parent verifies the original build run's exact tag/ref and SHA, required job conclusions, draft identity/body, and expected artifact inventory. Starter success, a dry run, or inventory-only recovery is not proof of a successful release build.
+
+After identifying the original artifact-building run ID and attempt, read `references/artifact-verification.md` and run its read-only verifier before publication. A verification-only or dry-run attempt cannot stand in for the run named by the artifacts' provenance.
+
+For asynchronous checks during Phase 4, inspect compact structured status for the exact original run and its active step. Start with a 30-second wait; after an unchanged poll, back off to 60 seconds. After a meaningful phase change, report it and restart at 30 seconds. Keep unchanged polls status-only, fetching asset inventories or logs after a phase change or failure. Report meaningful phase changes and completion or failure, and keep every wait at or below 60 seconds.
 
 Keep the applicable checks in `docs/release-manual-verification.md`. Record passed, failed, not-in-scope, and explicitly waived checks accurately. A release-specific exception is not a standing waiver. Asset presence alone is not cryptographic signature verification.
 

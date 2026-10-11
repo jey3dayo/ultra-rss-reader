@@ -583,6 +583,42 @@ const extractTauriActionBlock = (source: string): string => {
   return value;
 };
 
+const assertReleaseTokenUseScope = (source: string): void => {
+  const bindings = new Map([
+    ["name: Reject duplicate or published release builds", "GH_TOKEN: $" + "{{ github.token }}"],
+    [
+      "uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
+      "GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+    ],
+    ...[
+      "Upload Linux release provenance",
+      "Upload updater asset checksums",
+      "Upload release provenance assets",
+      "Validate existing draft release assets",
+    ].map((name): [string, string] => [`name: ${name}`, "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}"]),
+  ]);
+  const seen = new Set<string>();
+  for (const step of source.split(/(?=^ {6}- )/m)) {
+    const tokenUses = step.match(/secrets\.GITHUB_TOKEN|github\.token/g) ?? [];
+    if (tokenUses.length === 0) continue;
+    const header = step
+      .split("\n")[0]
+      .trim()
+      .replace(/^- /, "")
+      .replace(/\s+#.*$/, "");
+    const binding = bindings.get(header);
+    if (!binding || seen.has(header)) throw new Error(`GitHub token use is not allowed in step ${header}`);
+    const envBlock = step.match(/^ {8}env:\r?\n(?<block>(?: {10}.*(?:\r?\n|$))*)/m)?.groups?.block ?? "";
+    const envEntries = extractYamlScalarBlockEntries(envBlock.replace(/^ {8}/gm, ""));
+    const separator = binding.indexOf(": ");
+    if (tokenUses.length !== 1 || envEntries[binding.slice(0, separator)] !== binding.slice(separator + 2)) {
+      throw new Error(`GitHub token binding does not match the allowed env use in step ${header}`);
+    }
+    seen.add(header);
+  }
+  expect(seen).toEqual(new Set(bindings.keys()));
+};
+
 const repoWalkIgnoredDirectoryNames = new Set([
   ".git",
   ".worktrees",
@@ -969,7 +1005,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       expect(usesValue).toMatch(/@[0-9a-f]{40}$/i);
     }
     expect(releaseWorkflow).not.toContain("actions/upload-artifact");
-    expect(releaseWorkflow.match(/secrets\.GITHUB_TOKEN/g)).toHaveLength(4);
+    assertReleaseTokenUseScope(releaseWorkflow);
     expect(extractTauriActionBlock(releaseWorkflow)).toContain("GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}");
     expect(extractReleaseStepBlock(releaseWorkflow, "Validate release signing preflight")).toContain(
       "TAURI_SIGNING_PRIVATE_KEY_SET: $" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}",
@@ -990,6 +1026,61 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
     expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
+  });
+
+  it("rejects release token use outside the permitted steps and env bindings", () => {
+    const unauthorized = releaseWorkflow.replace(
+      "      - name: Generate Linux release provenance\n",
+      "      - name: Generate Linux release provenance\n        unexpected: $" + "{{ secrets.GITHUB_TOKEN }}\n",
+    );
+    expect(() => assertReleaseTokenUseScope(unauthorized)).toThrow("GitHub token use is not allowed");
+    const duplicate = releaseWorkflow.replace(
+      "      - name: Upload Linux release provenance\n",
+      "      - name: Upload Linux release provenance\n        unexpected: $" + "{{ secrets.GITHUB_TOKEN }}\n",
+    );
+    expect(() => assertReleaseTokenUseScope(duplicate)).toThrow("GitHub token binding does not match");
+    const wrongBinding = releaseWorkflow.replace(
+      "GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+      "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+    );
+    expect(() => assertReleaseTokenUseScope(wrongBinding)).toThrow("GitHub token binding does not match");
+  });
+
+  it("rejects release token bindings relocated to with, run literals or nested env mappings", () => {
+    const expression = "$" + "{{ secrets.GITHUB_TOKEN }}";
+    const tauriStep = extractTauriActionBlock(releaseWorkflow);
+    const tauriWithoutToken = tauriStep.replace(`          GITHUB_TOKEN: ${expression}\n`, "");
+    const linuxStep = extractReleaseStepBlock(releaseWorkflow, "Upload Linux release provenance");
+    const linuxWithoutToken = linuxStep.replace(`          GH_TOKEN: ${expression}\n`, "");
+    const relocatedSteps = [
+      {
+        original: tauriStep,
+        relocated: tauriWithoutToken.replace(
+          "        with:\n",
+          `        with:\n          GITHUB_TOKEN: ${expression}\n`,
+        ),
+      },
+      {
+        original: linuxStep,
+        relocated: linuxWithoutToken.replace(
+          "        run: node ./scripts/release/linux-provenance.ts upload",
+          `        run: |\n          GH_TOKEN: ${expression}\n          node ./scripts/release/linux-provenance.ts upload`,
+        ),
+      },
+      {
+        original: linuxStep,
+        relocated: linuxWithoutToken.replace(
+          "        env:\n",
+          `        env:\n          forwarded:\n            GH_TOKEN: ${expression}\n`,
+        ),
+      },
+    ];
+    for (const { original, relocated } of relocatedSteps) {
+      expect(relocated).not.toBe(original);
+      expect(() => assertReleaseTokenUseScope(releaseWorkflow.replace(original, relocated))).toThrow(
+        "GitHub token binding does not match",
+      );
+    }
   });
 
   it("keeps CI apt mirror failures bounded with a fallback mirror", () => {

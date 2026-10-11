@@ -364,6 +364,7 @@ jobs:
           security find-identity -v -p codesigning "$keychain_path"
 
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
+        id: tauri-build
         if: steps.signing-preflight.outputs.should_build == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -384,6 +385,25 @@ jobs:
             --config src-tauri/tauri.release.conf.json
             ${{ matrix.args }}
             --ci
+
+      - name: Generate Linux release provenance
+        if: runner.os == 'Linux' && steps.tauri-build.outcome == 'success'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          LINUX_ARTIFACT_PATHS: ${{ steps.tauri-build.outputs.artifactPaths }}
+          LINUX_RELEASE_ID: ${{ steps.tauri-build.outputs.releaseId }}
+        run: node ./scripts/release/linux-provenance.ts generate
+
+      - name: Upload Linux release provenance
+        if: runner.os == 'Linux' && steps.tauri-build.outcome == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          LINUX_ARTIFACT_PATHS: ${{ steps.tauri-build.outputs.artifactPaths }}
+          LINUX_RELEASE_ID: ${{ steps.tauri-build.outputs.releaseId }}
+        run: node ./scripts/release/linux-provenance.ts upload
 
       - name: Validate macOS app signing
         if: steps.signing-preflight.outputs.should_build == 'true' && runner.os == 'macOS'
