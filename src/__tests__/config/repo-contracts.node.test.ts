@@ -764,7 +764,7 @@ const automaticAffectedAreaLabelParity = [
 describe("repository static contracts", () => {
   it("keeps query invalidation target matrices covering every non-account query root", () => {
     const invalidationTargetRoots = [
-      ...resolveFeedInvalidationQueryKeys({ includeAccountUnreadCount: true }),
+      ...resolveFeedInvalidationQueryKeys({ includeAccountUnreadCount: true, includeLocalFeedSyncStatuses: true }),
       ...resolveArticleInvalidationQueryKeys({
         includeTagArticleCounts: true,
         includeFeedIntegrityReport: true,
@@ -799,6 +799,7 @@ describe("repository static contracts", () => {
       "feeds",
       "folderArticles",
       "folders",
+      "localFeedSyncStatuses",
       "recentArticles",
       "search",
       "starredArticles",
@@ -815,6 +816,7 @@ describe("repository static contracts", () => {
       "feeds",
       "folderArticles",
       "folders",
+      "localFeedSyncStatuses",
       "recentArticles",
       "search",
       "starredArticles",
@@ -884,6 +886,7 @@ describe("repository static contracts", () => {
       "feed-integrity",
       "folder",
       "local-account-sync",
+      "local-feed-sync-status",
       "mute-keyword",
       "platform-info",
       "preferences",

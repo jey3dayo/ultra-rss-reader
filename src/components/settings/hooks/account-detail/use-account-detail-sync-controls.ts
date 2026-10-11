@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { resetOversizedDevCredentialsStore, syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
+import { createFetchErrorsToastAction } from "@/lib/actions";
 import {
   invalidateAccountSetupQueries,
   invalidateAccountSyncNowQueries,
@@ -83,6 +84,7 @@ function resolveSetupFailureMessage(t: TFunction<"settings">, syncResult: Awaite
     retryScheduled: () => t("account.sync_completed_with_retry_pending"),
     retryPending: () => t("account.sync_completed_with_retry_pending"),
     warnings: () => t("account.sync_completed_with_warnings"),
+    localFeedSyncFailures: (count) => t("account.sync_local_feed_failures", { count }),
     success: t("account.sync_complete"),
     detailLine: resolveAccountDetailSyncWarningDetailLine(t),
   });
@@ -238,17 +240,24 @@ export function useAccountDetailSyncControls({
         Result.inspect((syncResult) => {
           invalidateAccountSyncNowQueries(queryClient);
           onSyncStatusChanged?.();
-          useUiStore.getState().showToast(
-            resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
-              alreadyInProgress: t("account.syncing_now"),
-              partialFailure: (accounts) => t("account.sync_failed", { message: accounts }),
-              retryScheduled: () => t("account.sync_completed_with_retry_pending"),
-              retryPending: () => t("account.sync_completed_with_retry_pending"),
-              warnings: () => t("account.sync_completed_with_warnings"),
-              success: t("account.sync_complete"),
-              detailLine: resolveAccountDetailSyncWarningDetailLine(t),
-            }),
-          );
+          const feedback = summarizeSyncResult(syncResult);
+          const message = resolveSyncFeedbackMessage(feedback, {
+            alreadyInProgress: t("account.syncing_now"),
+            partialFailure: (accounts) => t("account.sync_failed", { message: accounts }),
+            retryScheduled: () => t("account.sync_completed_with_retry_pending"),
+            retryPending: () => t("account.sync_completed_with_retry_pending"),
+            warnings: () => t("account.sync_completed_with_warnings"),
+            localFeedSyncFailures: (count) => t("account.sync_local_feed_failures", { count }),
+            success: t("account.sync_complete"),
+            detailLine: resolveAccountDetailSyncWarningDetailLine(t),
+          });
+          const action = feedback.localFeedSyncFailureAccountId
+            ? createFetchErrorsToastAction(
+                feedback.localFeedSyncFailureAccountId,
+                t("account.sync_local_feed_failures_details"),
+              )
+            : null;
+          useUiStore.getState().showToast(action ? { message, actions: [action] } : message);
         }),
         Result.inspectError(showSyncError),
       );

@@ -1,12 +1,15 @@
-import { Check, Clock3, Globe, Pencil, Rss, Trash2 } from "lucide-react";
+import { Check, Clock3, Copy, Globe, Pencil, RefreshCw, Rss, Trash2 } from "lucide-react";
+import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import {
+  Button,
   DecisionButton,
   FeedDetailPanel,
   FeedFavicon,
   SurfaceCard,
   WorkspaceManagementActionButton,
 } from "@/design-system";
+import { formatShortDateTime } from "@/lib/datetime";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
@@ -46,6 +49,20 @@ type SubscriptionDetailPaneProps = {
   dateLocale: string;
   decisionActions: SubscriptionDecisionActions | null;
   managementActions: SubscriptionManagementActions | null;
+  fetchError?: LocalFeedSyncStatusDto | null;
+  fetchErrorLabels?: {
+    heading: string;
+    lastAttempt: string;
+    copyDiagnosticId: string;
+    retry: string;
+    retrying: string;
+    editFeedUrl: string;
+    reason: (kind: NonNullable<LocalFeedSyncStatusDto["error_kind"]>) => string;
+  };
+  onRetryFeed?: (feedId: string) => void;
+  onEditFeed?: () => void;
+  isRetryingFeed?: (feedId: string) => boolean;
+  onCopyDiagnosticId?: (diagnosticId: string) => void;
 };
 
 type DecisionActionConfig = {
@@ -110,9 +127,29 @@ export function SubscriptionDetailPane({
   dateLocale,
   decisionActions,
   managementActions,
+  fetchError,
+  fetchErrorLabels = {
+    heading: "Fetch error",
+    lastAttempt: "Last attempt",
+    copyDiagnosticId: "Copy diagnostic number",
+    retry: "Retry",
+    retrying: "Retrying",
+    editFeedUrl: "Review feed destination",
+    reason: (kind) => kind,
+  },
+  onRetryFeed = () => undefined,
+  onEditFeed = () => undefined,
+  isRetryingFeed = () => false,
+  onCopyDiagnosticId = () => undefined,
 }: SubscriptionDetailPaneProps) {
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
+  const hasFetchError = Boolean(fetchError?.error_kind);
+  const showReviewContext = !hasFetchError || (row !== null && row.status.labelKey !== "normal");
+  const formattedLastAttempt = fetchError?.last_attempt_at
+    ? formatShortDateTime(fetchError.last_attempt_at, dateLocale)
+    : null;
+  const diagnosticId = fetchError?.diagnostic_id;
   const detailLinks = [
     ...(contentUrlHref && contentUrlHref !== feedUrlHref
       ? [{ href: contentUrlHref, label: contentUrlLabel, icon: Globe }]
@@ -147,6 +184,52 @@ export function SubscriptionDetailPane({
             className={`${MOTION_CONTENT_SWAP_CLASS_NAME} lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
           >
             <div className="flex w-full flex-col gap-3.5 pb-4 pt-0.5 lg:min-h-full">
+              {fetchError?.error_kind ? (
+                <SurfaceCard
+                  data-testid="subscriptions-fetch-error-detail"
+                  variant="section"
+                  tone="default"
+                  padding="compact"
+                  className="flex flex-col gap-3 rounded-md border border-state-danger-border/70 bg-state-danger-surface/70 p-3.5 shadow-none sm:p-4"
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-state-danger-foreground">{fetchErrorLabels.heading}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground">
+                      {fetchErrorLabels.reason(fetchError.error_kind)}
+                    </p>
+                    {formattedLastAttempt ? (
+                      <p className="mt-1 text-xs text-foreground-soft">
+                        {fetchErrorLabels.lastAttempt}: {formattedLastAttempt}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {fetchError.error_kind === "private_address_blocked" ? (
+                      <Button type="button" size="sm" variant="ghost" onClick={onEditFeed}>
+                        <Pencil className="size-4" />
+                        {fetchErrorLabels.editFeedUrl}
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={isRetryingFeed(row.feed.id)}
+                      aria-busy={isRetryingFeed(row.feed.id)}
+                      onClick={() => onRetryFeed(row.feed.id)}
+                    >
+                      <RefreshCw className="size-4" />
+                      {isRetryingFeed(row.feed.id) ? fetchErrorLabels.retrying : fetchErrorLabels.retry}
+                    </Button>
+                    {diagnosticId ? (
+                      <Button type="button" size="sm" variant="ghost" onClick={() => onCopyDiagnosticId(diagnosticId)}>
+                        <Copy className="size-4" />
+                        {fetchErrorLabels.copyDiagnosticId}
+                      </Button>
+                    ) : null}
+                  </div>
+                </SurfaceCard>
+              ) : null}
               <FeedDetailPanel
                 surface="low-wire"
                 title={row.feed.title}
@@ -160,11 +243,17 @@ export function SubscriptionDetailPane({
                     size="lg"
                   />
                 }
-                badgeLabel={detailCandidate?.statusLabel}
-                badgeTone={detailCandidate?.tone ?? "neutral"}
-                summaryText={detailCandidate?.reasonBoxBody ? undefined : (detailCandidate?.summary ?? reasonHint)}
+                badgeLabel={hasFetchError ? fetchErrorLabels.heading : detailCandidate?.statusLabel}
+                badgeTone={hasFetchError ? "high" : (detailCandidate?.tone ?? "neutral")}
+                summaryText={
+                  showReviewContext
+                    ? detailCandidate?.reasonBoxBody
+                      ? undefined
+                      : (detailCandidate?.summary ?? reasonHint)
+                    : undefined
+                }
                 reasonBox={
-                  detailCandidate?.reasonBoxBody
+                  showReviewContext && detailCandidate?.reasonBoxBody
                     ? {
                         title: reasonHeading,
                         body: detailCandidate.reasonBoxBody,
@@ -172,7 +261,7 @@ export function SubscriptionDetailPane({
                       }
                     : null
                 }
-                reasonChips={detailCandidate?.reasonLabels ?? []}
+                reasonChips={showReviewContext ? (detailCandidate?.reasonLabels ?? []) : []}
                 metrics={[
                   { label: folderLabel, value: row.folderName ?? "—" },
                   {

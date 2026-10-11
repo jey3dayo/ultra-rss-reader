@@ -145,6 +145,98 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "warnings", accounts: "FreshRSS, Local", detail: null, remainingWarningCount: 0 });
   });
 
+  it("counts failed local feeds without exposing their raw detail as the warning summary", () => {
+    const feedback = summarizeSyncWarnings([
+      {
+        account_id: "local",
+        account_name: "Local",
+        message: "large raw backend diagnostic",
+        detail: {
+          type: "local_feed_sync_failed",
+          feed_title: "News",
+          message: "large raw backend diagnostic",
+        },
+      },
+      {
+        account_id: "local",
+        account_name: "Local",
+        message: "another backend diagnostic",
+        detail: {
+          type: "local_feed_sync_failed",
+          feed_title: "Tech",
+          message: "another backend diagnostic",
+        },
+      },
+    ]);
+
+    expect(feedback).toMatchObject({
+      kind: "warnings",
+      localFeedSyncFailureCount: 2,
+      localFeedSyncFailureAccountId: "local",
+      detail: null,
+      remainingWarningCount: 0,
+    });
+  });
+
+  it("preserves retry warning semantics and detail alongside failed local feeds", () => {
+    const feedback = summarizeSyncWarnings([
+      {
+        account_id: "local",
+        account_name: "Local",
+        message: "large raw backend diagnostic",
+        detail: {
+          type: "local_feed_sync_failed",
+          feed_title: "News",
+          message: "large raw backend diagnostic",
+        },
+      },
+      {
+        account_id: "remote",
+        account_name: "FreshRSS",
+        message: "will retry next sync",
+        kind: "retry_pending",
+        detail: { type: "pending_mutation_retry", mutation: "mark_read" },
+      },
+    ]);
+
+    expect(feedback).toMatchObject({
+      kind: "retry-pending",
+      localFeedSyncFailureCount: 1,
+      detail: { type: "pending_mutation_retry", mutation: "mark_read" },
+      remainingWarningCount: 0,
+    });
+  });
+
+  it("excludes failed local feeds from the remaining count for another warning detail", () => {
+    const failedFeeds: AccountSyncWarning[] = Array.from({ length: 9 }, (_, index) => ({
+      account_id: "local",
+      account_name: "Local",
+      message: `feed failure ${index}`,
+      detail: {
+        type: "local_feed_sync_failed",
+        feed_title: `Feed ${index}`,
+        message: `feed failure ${index}`,
+      },
+    }));
+    const feedback = summarizeSyncWarnings([
+      ...failedFeeds,
+      {
+        account_id: "remote",
+        account_name: "FreshRSS",
+        message: "skipped entries",
+        detail: { type: "feed_skipped_entries", feed_title: "News", count: 2 },
+      },
+    ]);
+
+    expect(feedback).toMatchObject({
+      kind: "warnings",
+      localFeedSyncFailureCount: 9,
+      otherWarningCount: 1,
+      detail: { type: "feed_skipped_entries", feed_title: "News", count: 2 },
+      remainingWarningCount: 0,
+    });
+  });
+
   it("deduplicates account names for warning-only sync results", () => {
     expect(
       summarizeSyncResult({

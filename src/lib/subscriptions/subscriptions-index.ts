@@ -73,6 +73,10 @@ function rowMatchesSubscriptionSummaryFilter(
     return resolveSubscriptionUpdateFrequencyTier(row.recentArticleCount) === "high";
   }
 
+  if (filterKey === "fetch_errors") {
+    return Boolean(row.fetchError);
+  }
+
   if (filterKey === "review") {
     return (
       row.status.labelKey === "review" ||
@@ -98,6 +102,10 @@ function rowMatchesSubscriptionDecisionVisibility(params: {
   // the visible list stay consistent.
   const isCleanupDecisionFilter = activeSummaryFilter === "review" || activeSummaryFilter === "stale";
   if (!isCleanupDecisionFilter) {
+    return true;
+  }
+
+  if (row.fetchError) {
     return true;
   }
 

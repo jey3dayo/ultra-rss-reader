@@ -1054,6 +1054,7 @@ pub fn run() {
             commands::sync_commands::trigger_sync,
             commands::sync_commands::trigger_startup_sync,
             commands::sync_commands::get_account_sync_status,
+            commands::sync_commands::get_local_feed_sync_statuses,
             commands::sync_commands::trigger_sync_account,
             commands::sync_commands::trigger_sync_feed,
             commands::sync_commands::trigger_automatic_sync,

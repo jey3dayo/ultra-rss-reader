@@ -12,15 +12,19 @@ import {
   type UpdateAccountSyncParams,
   useAccountDetailSyncControls,
 } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
+import { createFetchErrorsToastAction } from "@/lib/actions";
+import { queryClient as appQueryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
-const { syncAccountMock, updateAccountSyncMock } = vi.hoisted(() => ({
+const { listAccountsMock, syncAccountMock, updateAccountSyncMock } = vi.hoisted(() => ({
+  listAccountsMock: vi.fn(),
   syncAccountMock: vi.fn(),
   updateAccountSyncMock: vi.fn(),
 }));
 
 vi.mock("@/api/tauri-commands", () => ({
+  listAccounts: listAccountsMock,
   syncAccount: syncAccountMock,
   updateAccountSync: updateAccountSyncMock,
 }));
@@ -49,6 +53,7 @@ describe("useAccountDetailSyncControls", () => {
   const t = i18n.getFixedT("en", "settings");
 
   beforeEach(() => {
+    listAccountsMock.mockReset();
     syncAccountMock.mockReset();
     updateAccountSyncMock.mockReset();
     useUiStore.setState(useUiStore.getInitialState());
@@ -56,6 +61,7 @@ describe("useAccountDetailSyncControls", () => {
 
   afterEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+    appQueryClient.clear();
   });
 
   it.each<{
@@ -204,6 +210,118 @@ describe("useAccountDetailSyncControls", () => {
     expect(onSyncStatusChanged).not.toHaveBeenCalled();
     expect(invalidateSpy).not.toHaveBeenCalled();
     expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("shows the local feed count and opens fetch errors while preserving in-progress review decisions", async () => {
+    const account = { ...sampleAccounts[0], id: "local-account", kind: "Local" };
+    const queryClient = createTestQueryClient();
+    appQueryClient.setQueryData(queryKeys.accounts.root, [account]);
+    useUiStore.setState({
+      selectedAccountId: account.id,
+      selection: { type: "feed", feedId: "reader-feed" },
+      selectedArticleId: "reader-article",
+      subscriptionsWorkspace: {
+        kind: "index",
+        returnState: {
+          accountId: account.id,
+          activeSummaryFilter: "review",
+          selectedFeedId: "kept-feed",
+          expandedGroups: { "group:news": false },
+          listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },
+          keptFeedIds: ["kept-feed"],
+          deferredFeedIds: ["deferred-feed"],
+        },
+      },
+    });
+    syncAccountMock.mockResolvedValue(
+      Result.succeed({
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [
+          {
+            account_id: account.id,
+            account_name: account.name,
+            message: "large backend diagnostic",
+            detail: {
+              type: "local_feed_sync_failed",
+              feed_title: "News",
+              message: "large backend diagnostic",
+            },
+          },
+        ],
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleSyncNow();
+    });
+
+    const toast = useUiStore.getState().toastMessage;
+    expect(toast).toMatchObject({
+      message: "Sync completed. Some feeds could not be updated (1).",
+      actions: [{ label: "View details" }],
+    });
+    listAccountsMock.mockResolvedValue(Result.succeed([account]));
+
+    await act(async () => {
+      toast?.actions?.[0]?.onClick();
+      await vi.waitFor(() =>
+        expect(useUiStore.getState().subscriptionsWorkspace?.navigationRequest).toEqual({
+          accountId: account.id,
+          summaryFilter: "fetch_errors",
+        }),
+      );
+    });
+
+    expect(listAccountsMock).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().selectedArticleId).toBe("reader-article");
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "reader-feed" });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+      returnState: {
+        accountId: account.id,
+        activeSummaryFilter: "review",
+        selectedFeedId: "kept-feed",
+        expandedGroups: { "group:news": false },
+        listScrollTop: { scrollTop: 320, layoutGeneration: "reviews", viewportHeight: 600 },
+        keptFeedIds: ["kept-feed"],
+        deferredFeedIds: ["deferred-feed"],
+      },
+      navigationRequest: {
+        accountId: account.id,
+        summaryFilter: "fetch_errors",
+      },
+    });
+  });
+
+  it("does not navigate when the cached Local account was deleted before the toast action is clicked", async () => {
+    const deletedAccount = { ...sampleAccounts[0], id: "deleted-local-account", kind: "Local" };
+    appQueryClient.setQueryData(queryKeys.accounts.root, [deletedAccount]);
+    useUiStore.getState().selectAccount("other-account");
+    const action = createFetchErrorsToastAction(deletedAccount.id, "View details");
+    expect(action).not.toBeNull();
+    const remainingRemoteAccount = { ...sampleAccounts[1], kind: "FreshRss" };
+    listAccountsMock.mockResolvedValue(Result.succeed([remainingRemoteAccount]));
+
+    await act(async () => {
+      action?.onClick();
+      await vi.waitFor(() =>
+        expect(appQueryClient.getQueryData(queryKeys.accounts.root)).toEqual([remainingRemoteAccount]),
+      );
+    });
+
+    expect(useUiStore.getState().selectedAccountId).toBe("other-account");
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
   });
 
   it("clears stale account status and feed caches before retrying setup", async () => {

@@ -1,6 +1,7 @@
 mod account_sync;
 mod failure_log;
 mod finish_plan;
+mod local_feed_health;
 mod local_import_export;
 mod manual;
 mod progress;
@@ -16,9 +17,14 @@ pub(crate) use account_sync::sync_account;
 #[cfg(test)]
 pub(crate) use account_sync::sync_feed;
 pub(crate) use failure_log::{
-    log_background_sync_outcome, log_sync_failure, log_sync_panic, SyncTrigger,
+    log_background_sync_outcome, log_local_feed_fetch_failure, log_sync_failure, log_sync_panic,
+    SyncTrigger,
 };
 
+#[cfg(not(test))]
+pub(crate) use local_feed_health::{
+    __cmd__get_local_feed_sync_statuses, __tauri_command_name_get_local_feed_sync_statuses,
+};
 #[cfg(not(test))]
 pub(crate) use manual::{
     __cmd__get_account_sync_status, __cmd__trigger_sync, __cmd__trigger_sync_account,
@@ -56,6 +62,7 @@ use account_sync::{
     run_local_account_startup_import_supplement, run_startup_sync_and_repair,
     run_sync_for_accounts_with_mode, run_sync_for_accounts_with_progress,
 };
+pub use local_feed_health::get_local_feed_sync_statuses;
 pub use manual::{get_account_sync_status, trigger_sync, trigger_sync_account, trigger_sync_feed};
 #[cfg(test)]
 use progress::{

@@ -1,4 +1,4 @@
-import { hashKey } from "@tanstack/react-query";
+import { hashKey, QueryObserver } from "@tanstack/react-query";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { resetDiagnosticsReporterModuleGlobalsForTests } from "@tests/helpers/diagnostics-reporters";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +15,7 @@ import {
   invalidateDeleteFeedQueries,
   invalidateFeedEditQueries,
   invalidateFeedQueries,
+  invalidateFeedRetryQueries,
   invalidateFeedRootQueries,
   invalidateLocalAccountSyncImportArticleQueries,
   invalidateSyncCompletedQueries,
@@ -87,6 +88,11 @@ describe("query-invalidation", () => {
     ]);
     expect(queryKeys.accountArticles.byAccountPrefix(" ")).toEqual([QUERY_CACHE_KEY_VERSION, "accountArticles", null]);
     expect(queryKeys.feedArticleSummaries.root).toEqual([QUERY_CACHE_KEY_VERSION, "feedArticleSummaries"]);
+    expect(queryKeys.localFeedSyncStatuses.byAccount(" acc-1 ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "localFeedSyncStatuses",
+      "acc-1",
+    ]);
     expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual([
       QUERY_CACHE_KEY_VERSION,
       "feedArticleSummaries",
@@ -442,7 +448,7 @@ describe("query-invalidation", () => {
     );
     expectQueryKeys(
       () => invalidateAccountSyncNowQueries(queryClient),
-      [queryKeys.feeds.root, queryKeys.articles.root],
+      [queryKeys.feeds.root, queryKeys.articles.root, queryKeys.localFeedSyncStatuses.root],
     );
     expectQueryKeys(
       () => invalidateLocalAccountSyncImportArticleQueries(queryClient),
@@ -875,6 +881,7 @@ describe("query-invalidation", () => {
       { queryKey: queryKeys.feeds.root },
       { queryKey: queryKeys.folders.root },
       { queryKey: queryKeys.accountUnreadCount.root },
+      { queryKey: queryKeys.localFeedSyncStatuses.root },
       { queryKey: queryKeys.articles.root },
       { queryKey: queryKeys.accountArticles.root },
       { queryKey: queryKeys.folderArticles.root },
@@ -887,6 +894,44 @@ describe("query-invalidation", () => {
       { queryKey: queryKeys.recentArticles.root },
       { queryKey: queryKeys.feedArticleSummaries.root },
     ]);
+  });
+
+  it("refreshes only the retried account's feed, article, and health caches", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+
+    await expect(invalidateFeedRetryQueries(queryClient, "acc-1", "feed-1")).resolves.toBe(true);
+    expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
+      { queryKey: queryKeys.localFeedSyncStatuses.byAccount("acc-1") },
+      { queryKey: queryKeys.feeds.byAccount("acc-1") },
+      { queryKey: queryKeys.feedArticleSummaries.byAccount("acc-1") },
+      { queryKey: queryKeys.accountArticles.byAccountPrefix("acc-1") },
+      { queryKey: queryKeys.articles.byFeed("feed-1", "all") },
+    ]);
+  });
+
+  it("returns false when an active retry query fails to refresh", async () => {
+    const queryClient = createTestQueryClient();
+    const queryKey = queryKeys.localFeedSyncStatuses.byAccount("acc-1");
+    await queryClient.fetchQuery({
+      queryKey,
+      queryFn: () => Promise.resolve(["healthy"]),
+      staleTime: Number.POSITIVE_INFINITY,
+    });
+    const rejection = new Error("health refresh failed");
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+    const observer = new QueryObserver(queryClient, {
+      queryKey,
+      queryFn: () => Promise.reject(rejection),
+      retry: false,
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+
+    await expect(invalidateFeedRetryQueries(queryClient, "acc-1", "feed-1")).resolves.toBe(false);
+    expect(diagnosticsReporter).toHaveBeenCalledWith([{ actionOwner: "feed-sync-retry", queryKey, error: rejection }]);
+
+    unsubscribe();
+    restoreDiagnosticsReporter();
   });
 
   it("tags sync completed invalidation failures by background and manual owner", async () => {

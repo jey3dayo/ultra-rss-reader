@@ -7,6 +7,15 @@ import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-
 
 type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
 
+const dangerToneClassNames = {
+  card: "border-state-danger-border/72 bg-state-danger-surface/82",
+  activeCard:
+    "border-state-danger-border/90 bg-state-danger-surface shadow-[var(--subscriptions-summary-active-shadow-stale)]",
+  activeAccent: "bg-state-danger-border",
+  activeBadge: "border-state-danger-border/75 bg-state-danger-surface/92 text-state-danger-foreground",
+  activeValue: "text-state-danger-foreground",
+} as const;
+
 const summaryToneClassNames = {
   neutral: {
     card: "border-[color:color-mix(in_srgb,var(--ring)_22%,var(--border))] bg-[color:color-mix(in_srgb,var(--ring)_6%,var(--surface-1))]",
@@ -17,14 +26,8 @@ const summaryToneClassNames = {
       "border-[color:color-mix(in_srgb,var(--ring)_42%,var(--border-strong))] bg-[color:color-mix(in_srgb,var(--ring)_10%,var(--surface-1))] text-foreground",
     activeValue: "text-foreground",
   },
-  stale: {
-    card: "border-state-danger-border/72 bg-state-danger-surface/82",
-    activeCard:
-      "border-state-danger-border/90 bg-state-danger-surface shadow-[var(--subscriptions-summary-active-shadow-stale)]",
-    activeAccent: "bg-state-danger-border",
-    activeBadge: "border-state-danger-border/75 bg-state-danger-surface/92 text-state-danger-foreground",
-    activeValue: "text-state-danger-foreground",
-  },
+  stale: dangerToneClassNames,
+  danger: dangerToneClassNames,
   review: {
     card: "border-state-warning-border/78 bg-state-warning-surface/86",
     activeCard:
@@ -156,7 +159,7 @@ function resolveSummaryCardViewState(card: SubscriptionSummaryCard): SummaryCard
   const isActionable = canSelectSummaryFilterCard(card);
   const isActiveActionable = isActionable && Boolean(card.isActive);
   const displayTone = isZeroCountAttentionCard(card) ? "neutral" : card.tone;
-  const isProminent = card.tone === "review" && !isZeroCountAttentionCard(card);
+  const isProminent = card.filterKey === "review" && card.tone === "review" && !isZeroCountAttentionCard(card);
   const toneClasses = resolveSummaryToneClasses(displayTone);
 
   return {

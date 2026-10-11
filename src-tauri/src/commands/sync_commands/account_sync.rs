@@ -11,8 +11,8 @@ use crate::commands::dto::{
 };
 use crate::commands::lock_db;
 use crate::commands::sync_providers::{
-    redacted_feed_host_class, repair_greader_remote_state, sync_greader_account, sync_greader_feed,
-    sync_local_feed, GReaderSession, ProviderSyncOutcome, SessionError,
+    repair_greader_remote_state, sync_greader_account, sync_greader_feed, sync_local_feed,
+    GReaderSession, ProviderSyncOutcome, SessionError,
 };
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
@@ -22,10 +22,7 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::feed::FeedRepository;
 
-use super::failure_log::{
-    log_local_feed_fetch_failure, log_sync_completion, log_sync_failure, log_sync_warning,
-    SyncTrigger,
-};
+use super::failure_log::{log_sync_completion, log_sync_failure, log_sync_warning, SyncTrigger};
 use super::local_import_export::{
     local_feed_sync_warning, local_provider, run_local_account_auto_export,
     run_local_account_auto_import,
@@ -60,13 +57,9 @@ pub(crate) async fn sync_account_with_mode(
             };
             for feed in &feeds {
                 if let Err(error) = sync_local_feed(db, &provider, &account.id, feed).await {
-                    warn!(
-                        account_id = %account.id.as_ref(),
-                        feed_id = %feed.id.as_ref(),
-                        host_class = redacted_feed_host_class(&feed.url),
-                        "Failed to pull entries for local feed: {error}"
-                    );
-                    log_local_feed_fetch_failure(redacted_feed_host_class(&feed.url), &error);
+                    if error.diagnostic_kind() == "persistence" {
+                        return Err(error);
+                    }
                     warnings.push(local_feed_sync_warning(feed, &error));
                 }
             }

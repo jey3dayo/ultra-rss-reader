@@ -1,5 +1,6 @@
 use crate::commands::dto::{
-    AccountSyncWarning, AccountSyncWarningDetail, AccountSyncWarningKind, AppError, SyncResult,
+    AccountSyncWarning, AccountSyncWarningDetail, AccountSyncWarningKind, AppError,
+    LocalFeedSyncErrorKind, SyncResult,
 };
 use crate::domain::provider::ProviderKind;
 
@@ -155,13 +156,20 @@ pub(crate) fn log_sync_panic(trigger: SyncTrigger, provider: &ProviderKind) {
     log::warn!(target: "sync", "{}", sync_failure_diagnostic(trigger, provider, "panic"));
 }
 
-pub(crate) fn log_local_feed_fetch_failure(host_class: &str, error: &AppError) {
+pub(crate) fn log_local_feed_fetch_failure(
+    host_class: &str,
+    error: &AppError,
+    reason: LocalFeedSyncErrorKind,
+    diagnostic_id: &str,
+) {
     log::warn!(
         target: "sync",
-        "event=feed-fetch-failed provider={} host_class={} error_kind={}",
+        "event=feed-fetch-failed provider={} host_class={} error_kind={} reason={} diagnostic_id={}",
         ProviderKind::Local.diagnostic_label(),
         host_class,
-        error.diagnostic_kind()
+        error.diagnostic_kind(),
+        reason.diagnostic_label(),
+        diagnostic_id
     );
 }
 

@@ -6,6 +6,8 @@ import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeedArticleSummaries } from "@/hooks/use-feed-article-summaries";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
+import { useLocalFeedSyncStatuses } from "@/hooks/use-local-feed-sync-statuses";
+import { copyValueToClipboard } from "@/lib/runtime/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { useSubscriptionsFeedDialogs } from "./hooks/use-subscriptions-feed-dialogs";
 import { useSubscriptionsIndexEscape } from "./hooks/use-subscriptions-index-escape";
@@ -25,14 +27,22 @@ function subscribeToViewportHeight(onStoreChange: () => void): () => void {
 }
 
 export function SubscriptionsIndexPage() {
+  const selectedAccountId = useUiStore((state) => state.selectedAccountId);
+  return <SubscriptionsIndexPageForAccount key={selectedAccountId ?? "no-account"} />;
+}
+
+function SubscriptionsIndexPageForAccount() {
   const { t } = useTranslation("subscriptions");
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
+  const showToast = useUiStore((state) => state.showToast);
   const closeSubscriptionsWorkspace = useUiStore((state) => state.closeSubscriptionsWorkspace);
   const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
-  const { data: feeds = [] } = useFeeds(selectedAccountId);
+  const feedQuery = useFeeds(selectedAccountId);
+  const feeds = feedQuery.data ?? [];
   const { data: folders = [] } = useFolders(selectedAccountId);
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
   const { data: feedArticleSummaries = [] } = useFeedArticleSummaries(selectedAccountId);
+  const localFeedSync = useLocalFeedSyncStatuses(selectedAccountId);
   const {
     deleteTargetFeed,
     editTargetFeed,
@@ -45,6 +55,10 @@ export function SubscriptionsIndexPage() {
   const indexReturnState = subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState : null;
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
+  const indexNavigationRequest =
+    subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.navigationRequest : null;
+  const scopedNavigationRequest =
+    indexNavigationRequest && indexNavigationRequest.accountId === selectedAccountId ? indexNavigationRequest : null;
   const reviewClock = useSubscriptionsReviewClock();
   const viewportHeight = useSyncExternalStore(subscribeToViewportHeight, getViewportHeight);
 
@@ -56,7 +70,26 @@ export function SubscriptionsIndexPage() {
     reviewClock,
     viewportHeight,
     scopedIndexReturnState,
+    scopedNavigationRequest,
     selectedAccountId,
+    isLocalAccount: localFeedSync.isLocalAccount,
+    feedSyncStatuses: localFeedSync.statusQuery.data,
+    feedSyncStatusesPending: localFeedSync.statusQuery.isPending,
+    feedSyncStatusesError: localFeedSync.statusQuery.isError,
+    feedListPending: feedQuery.isPending,
+    feedListError: feedQuery.isError,
+    onRetryFeed: localFeedSync.retryFeed,
+    onEditFeed: (feedId) => {
+      const feed = feeds.find((item) => item.id === feedId);
+      if (feed) setEditTargetFeed(feed);
+    },
+    isRetryingFeed: localFeedSync.isRetryingFeed,
+    onCopyDiagnosticId: (diagnosticId) => {
+      void copyValueToClipboard(diagnosticId, {
+        onSuccess: () => showToast(t("detail_fetch_error_diagnostic_copied")),
+        onError: () => showToast(t("detail_fetch_error_diagnostic_copy_failed")),
+      });
+    },
     closeSubscriptionsWorkspace,
     setDeleteTargetFeed,
     setEditTargetFeed,

@@ -1,8 +1,10 @@
 import { Result } from "@praha/byethrow";
 import {
+  type AccountDto,
   type FeedDto,
   goBackBrowserWebview,
   goForwardBrowserWebview,
+  listAccounts,
   reloadBrowserWebview,
   restartApp,
 } from "@/api/tauri-commands";
@@ -23,6 +25,7 @@ import {
   summarizeSyncResult,
 } from "@/lib/sync/sync-result-feedback";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastAction } from "@/lib/ui/toast.types";
 import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/tauri-window";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
@@ -31,6 +34,54 @@ import { useUiStore } from "@/stores/ui-store";
 
 export type { AppAction } from "@/lib/app-actions";
 export { isAppAction } from "@/lib/app-actions";
+
+export function createFetchErrorsToastAction(accountId: string, label: string): ToastAction | null {
+  const account = getFetchErrorsAccount(accountId);
+  if (!isLocalFetchErrorsAccount(account)) {
+    return null;
+  }
+  return {
+    label,
+    onClick: () => {
+      void openFetchErrorsWorkspace(accountId).catch((error: unknown) => {
+        logRuntimeDiagnostic(
+          actionDiagnosticPolicyByCategory.sync,
+          "[actions:sync] Failed to verify the account before opening feed errors.",
+          error,
+        );
+      });
+    },
+  };
+}
+
+function getFetchErrorsAccount(accountId: string): AccountDto | undefined {
+  return queryClient.getQueryData<AccountDto[]>(queryKeys.accounts.root)?.find((account) => account.id === accountId);
+}
+
+function isLocalFetchErrorsAccount(account: AccountDto | undefined): boolean {
+  return account?.kind.toLowerCase() === "local";
+}
+
+async function openFetchErrorsWorkspace(accountId: string): Promise<void> {
+  const accounts = await queryClient.fetchQuery({
+    queryKey: queryKeys.accounts.root,
+    queryFn: () => listAccounts().then(Result.unwrap()),
+    staleTime: 0,
+  });
+  if (!accounts.some((account) => account.id === accountId && isLocalFetchErrorsAccount(account))) {
+    return;
+  }
+  const store = useUiStore.getState();
+  const currentReturnState =
+    store.subscriptionsWorkspace?.kind === "index" && store.subscriptionsWorkspace.returnState?.accountId === accountId
+      ? store.subscriptionsWorkspace.returnState
+      : undefined;
+  store.closeSettings();
+  if (store.selectedAccountId !== accountId) {
+    store.selectAccount(accountId);
+  }
+  store.openSubscriptionsIndex(currentReturnState, { accountId, summaryFilter: "fetch_errors" });
+}
 
 type BufferedBrowserCloseAction = Extract<AppAction, "prev-article" | "next-article" | "prev-feed" | "next-feed">;
 type GlobalActionDiagnosticCategory = "window" | "sync" | "browser" | "updates";
@@ -376,25 +427,32 @@ export function executeAction(action: AppAction): void {
             store.showToast(i18n.t("sidebar:sync_cooldown_active"));
           },
           onSuccess: (syncResult) => {
-            store.showToast(
-              resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
-                alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
-                partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
-                retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-                retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-                warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
-                success: i18n.t("sidebar:sync_completed"),
-                detailLine: (detail, remainingCount) => {
-                  const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
-                    i18n.t(`sidebar:sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
-                  );
-                  const detailText = i18n.t(`sidebar:sync_warning_detail.${key}`, params);
-                  return remainingCount > 0
-                    ? `${detailText} ${i18n.t("sidebar:sync_warning_detail_more", { count: remainingCount })}`
-                    : detailText;
-                },
-              }),
-            );
+            const feedback = summarizeSyncResult(syncResult);
+            const message = resolveSyncFeedbackMessage(feedback, {
+              alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
+              partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
+              retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+              retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+              warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
+              localFeedSyncFailures: (count) => i18n.t("sidebar:sync_local_feed_failures", { count }),
+              success: i18n.t("sidebar:sync_completed"),
+              detailLine: (detail, remainingCount) => {
+                const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
+                  i18n.t(`sidebar:sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
+                );
+                const detailText = i18n.t(`sidebar:sync_warning_detail.${key}`, params);
+                return remainingCount > 0
+                  ? `${detailText} ${i18n.t("sidebar:sync_warning_detail_more", { count: remainingCount })}`
+                  : detailText;
+              },
+            });
+            const action = feedback.localFeedSyncFailureAccountId
+              ? createFetchErrorsToastAction(
+                  feedback.localFeedSyncFailureAccountId,
+                  i18n.t("sidebar:sync_local_feed_failures_details"),
+                )
+              : null;
+            store.showToast(action ? { message, actions: [action] } : message);
           },
           onError: (e) => {
             logGlobalActionFailure(action, "sync", e);

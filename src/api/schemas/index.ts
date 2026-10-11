@@ -57,6 +57,7 @@ export {
   getArticleTagsArgs,
   getCommandArgsSchema,
   getLocalAccountSyncSettingsArgs,
+  getLocalFeedSyncStatusesArgs,
   getTagArticleCountsArgs,
   importLocalAccountSyncOperationsArgs,
   importOpmlArgs,
@@ -148,6 +149,11 @@ export {
   type LocalAccountSyncSettingsDto,
   LocalAccountSyncSettingsDtoSchema,
 } from "./local-account-sync";
+export {
+  type LocalFeedSyncStatusDto,
+  LocalFeedSyncStatusListSchema,
+  LocalFeedSyncStatusSchema,
+} from "./local-feed-sync-status";
 export {
   type MuteKeywordDto,
   MuteKeywordDtoListSchema,

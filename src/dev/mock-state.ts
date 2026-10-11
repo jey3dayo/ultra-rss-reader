@@ -1,4 +1,4 @@
-import type { ArticleDto, MuteKeywordDto } from "@/api/tauri-commands";
+import type { ArticleDto, LocalFeedSyncStatusDto, MuteKeywordDto } from "@/api/tauri-commands";
 import {
   mockAccounts,
   mockArticles,
@@ -38,6 +38,43 @@ export const mockArticleViewHistory: {
   articleId: string;
   viewedAt: string;
 }[] = [];
+
+const mockLocalFeedSyncStatuses = new Map<string, LocalFeedSyncStatusDto>();
+
+export function readDevMockLocalFeedSyncStatus(feedId: string): LocalFeedSyncStatusDto {
+  return (
+    mockLocalFeedSyncStatuses.get(feedId) ?? {
+      feed_id: feedId,
+      last_attempt_at: null,
+      last_success_at: null,
+      error_kind: null,
+      error_count: 0,
+      diagnostic_id: null,
+    }
+  );
+}
+
+export function failDevMockLocalFeedOnce(feedId: string, attemptedAt: string): void {
+  mockLocalFeedSyncStatuses.set(feedId, {
+    feed_id: feedId,
+    last_attempt_at: attemptedAt,
+    last_success_at: null,
+    error_kind: "network",
+    error_count: 1,
+    diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
+  });
+}
+
+export function succeedDevMockLocalFeed(feedId: string, attemptedAt: string): void {
+  mockLocalFeedSyncStatuses.set(feedId, {
+    feed_id: feedId,
+    last_attempt_at: attemptedAt,
+    last_success_at: attemptedAt,
+    error_kind: null,
+    error_count: 0,
+    diagnostic_id: null,
+  });
+}
 
 const initialMockMuteKeywordsJa: MuteKeywordDto[] = [
   {
@@ -127,6 +164,7 @@ export function resetDevMockDataState() {
     mockArticleViewHistory.length,
     ...initialMockArticleViewHistory.map((item) => structuredClone(item)),
   );
+  mockLocalFeedSyncStatuses.clear();
   resetMockDataForDevMocks();
 }
 
