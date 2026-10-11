@@ -38,6 +38,9 @@ export type AccountDetailCredentialsEditorResult = {
   cloudflareAccessEnabled: boolean;
   cloudflareAccessClientId: string;
   cloudflareAccessSecret: string;
+  cloudflareAccessHasSavedSecret: boolean;
+  cloudflareAccessSecretEditing: boolean;
+  cloudflareAccessSecretVisible: boolean;
   cloudflareAccessValidationError: CloudflareAccessDraftError | null;
   testingConnection: boolean;
   dirtyState: SettingsDirtyStateEntry;
@@ -50,6 +53,8 @@ export type AccountDetailCredentialsEditorResult = {
   setCloudflareAccessEnabled: (value: boolean) => void;
   setCloudflareAccessClientId: (value: string) => void;
   setCloudflareAccessSecret: (value: string) => void;
+  setCloudflareAccessSecretEditing: (value: boolean) => void;
+  setCloudflareAccessSecretVisible: (value: boolean) => void;
   commitCredentials: () => Promise<boolean>;
   handleTestConnection: () => Promise<void>;
   handleCopyServerUrl: () => Promise<void>;
@@ -79,6 +84,8 @@ type AccountDetailCredentialsEditorState = {
   cloudflareAccessEnabled: boolean;
   cloudflareAccessClientId: string;
   cloudflareAccessSecret: string;
+  cloudflareAccessSecretEditing: boolean;
+  cloudflareAccessSecretVisible: boolean;
   cloudflareAccessDraftTouched: boolean;
   cloudflareAccessRemovalRequested: boolean;
   testingConnection: boolean;
@@ -92,6 +99,7 @@ type CloudflareAccessDraftSnapshot = Pick<
   | "cloudflareAccessEnabled"
   | "cloudflareAccessClientId"
   | "cloudflareAccessSecret"
+  | "cloudflareAccessSecretEditing"
   | "cloudflareAccessDraftTouched"
   | "cloudflareAccessRemovalRequested"
 >;
@@ -116,6 +124,8 @@ type AccountDetailCredentialsEditorAction =
   | { type: "set-cloudflare-access-enabled"; value: boolean }
   | { type: "set-cloudflare-access-client-id"; value: string }
   | { type: "set-cloudflare-access-secret"; value: string }
+  | { type: "set-cloudflare-access-secret-editing"; value: boolean }
+  | { type: "set-cloudflare-access-secret-visible"; value: boolean }
   | { type: "set-cloudflare-access-status"; value: "loading" | "error" | "unavailable" | "authorization_required" }
   | { type: "cloudflare-access-loaded"; clientId: string | null; serverUrl: string }
   | {
@@ -131,6 +141,7 @@ type AccountDetailCredentialsEditorAction =
       type: "clear-credential-drafts";
       passwordWasSaved: boolean;
       draft: CredentialDraftSnapshot;
+      cloudflareAccessDraft: CloudflareAccessDraftSnapshot;
     };
 
 function getCloudflareAccessDraftSnapshot(state: AccountDetailCredentialsEditorState): CloudflareAccessDraftSnapshot {
@@ -139,6 +150,7 @@ function getCloudflareAccessDraftSnapshot(state: AccountDetailCredentialsEditorS
     cloudflareAccessEnabled: state.cloudflareAccessEnabled,
     cloudflareAccessClientId: state.cloudflareAccessClientId,
     cloudflareAccessSecret: state.cloudflareAccessSecret,
+    cloudflareAccessSecretEditing: state.cloudflareAccessSecretEditing,
     cloudflareAccessDraftTouched: state.cloudflareAccessDraftTouched,
     cloudflareAccessRemovalRequested: state.cloudflareAccessRemovalRequested,
   };
@@ -153,6 +165,7 @@ function cloudflareAccessDraftMatches(
     state.cloudflareAccessEnabled === draft.cloudflareAccessEnabled &&
     state.cloudflareAccessClientId === draft.cloudflareAccessClientId &&
     state.cloudflareAccessSecret === draft.cloudflareAccessSecret &&
+    state.cloudflareAccessSecretEditing === draft.cloudflareAccessSecretEditing &&
     state.cloudflareAccessDraftTouched === draft.cloudflareAccessDraftTouched &&
     state.cloudflareAccessRemovalRequested === draft.cloudflareAccessRemovalRequested
   );
@@ -192,6 +205,8 @@ function createInitialAccountDetailCredentialsEditorState(
     cloudflareAccessEnabled: false,
     cloudflareAccessClientId: "",
     cloudflareAccessSecret: "",
+    cloudflareAccessSecretEditing: false,
+    cloudflareAccessSecretVisible: false,
     cloudflareAccessDraftTouched: false,
     cloudflareAccessRemovalRequested: false,
     testingConnection: false,
@@ -240,6 +255,8 @@ function accountDetailCredentialsEditorReducer(
         cloudflareAccessDraftTouched: true,
         cloudflareAccessRemovalRequested: !action.value,
         cloudflareAccessSecret: action.value ? state.cloudflareAccessSecret : "",
+        cloudflareAccessSecretEditing: action.value ? state.cloudflareAccessSecretEditing : false,
+        cloudflareAccessSecretVisible: action.value ? state.cloudflareAccessSecretVisible : false,
         cloudflareAccessClientId:
           action.value || state.savedCloudflareAccessClientId !== null ? state.cloudflareAccessClientId : "",
         draftRevision: state.draftRevision + 1,
@@ -258,6 +275,16 @@ function accountDetailCredentialsEditorReducer(
         cloudflareAccessDraftTouched: true,
         draftRevision: state.draftRevision + 1,
       };
+    case "set-cloudflare-access-secret-editing":
+      return {
+        ...state,
+        cloudflareAccessSecret: action.value ? state.cloudflareAccessSecret : "",
+        cloudflareAccessSecretEditing: action.value,
+        cloudflareAccessSecretVisible: false,
+        draftRevision: state.draftRevision + 1,
+      };
+    case "set-cloudflare-access-secret-visible":
+      return { ...state, cloudflareAccessSecretVisible: action.value };
     case "set-cloudflare-access-status":
       return { ...state, cloudflareAccessStatus: action.value };
     case "cloudflare-access-loaded":
@@ -271,6 +298,8 @@ function accountDetailCredentialsEditorReducer(
             cloudflareAccessEnabled: action.clientId !== null,
             cloudflareAccessClientId: action.clientId ?? "",
             cloudflareAccessSecret: "",
+            cloudflareAccessSecretEditing: false,
+            cloudflareAccessSecretVisible: false,
           }
         : {
             ...state,
@@ -299,6 +328,8 @@ function accountDetailCredentialsEditorReducer(
         cloudflareAccessEnabled: savedClientId !== null,
         cloudflareAccessClientId: savedClientId ?? "",
         cloudflareAccessSecret: "",
+        cloudflareAccessSecretEditing: false,
+        cloudflareAccessSecretVisible: false,
         cloudflareAccessDraftTouched: false,
         cloudflareAccessRemovalRequested: false,
       };
@@ -316,6 +347,9 @@ function accountDetailCredentialsEditorReducer(
         credUsername: state.credUsername === action.draft.credUsername ? null : state.credUsername,
         credPassword: state.credPassword === action.draft.credPassword ? null : state.credPassword,
         hasSavedPassword: state.hasSavedPassword || action.passwordWasSaved,
+        ...(cloudflareAccessDraftMatches(state, action.cloudflareAccessDraft)
+          ? { cloudflareAccessSecretEditing: false, cloudflareAccessSecretVisible: false }
+          : {}),
       };
     default:
       return state;
@@ -603,6 +637,7 @@ export function useAccountDetailCredentialsEditor({
           type: "clear-credential-drafts",
           passwordWasSaved: false,
           draft: credentialDraft,
+          cloudflareAccessDraft,
         });
         return { saved: true, updatedAccount: null };
       }
@@ -666,6 +701,7 @@ export function useAccountDetailCredentialsEditor({
         type: "clear-credential-drafts",
         passwordWasSaved: passwordChanged,
         draft: credentialDraft,
+        cloudflareAccessDraft,
       });
       if (successToastKey !== null && draftRevisionRef.current === draftRevision) {
         useUiStore.getState().showToast(t(successToastKey));
@@ -777,6 +813,9 @@ export function useAccountDetailCredentialsEditor({
     cloudflareAccessEnabled: state.cloudflareAccessEnabled,
     cloudflareAccessClientId: state.cloudflareAccessClientId,
     cloudflareAccessSecret: state.cloudflareAccessSecret,
+    cloudflareAccessHasSavedSecret: state.savedCloudflareAccessClientId !== null,
+    cloudflareAccessSecretEditing: state.cloudflareAccessSecretEditing,
+    cloudflareAccessSecretVisible: state.cloudflareAccessSecretVisible,
     cloudflareAccessValidationError,
     testingConnection,
     dirtyState,
@@ -789,6 +828,8 @@ export function useAccountDetailCredentialsEditor({
     setCloudflareAccessEnabled: (value) => dispatch({ type: "set-cloudflare-access-enabled", value }),
     setCloudflareAccessClientId: (value) => dispatch({ type: "set-cloudflare-access-client-id", value }),
     setCloudflareAccessSecret: (value) => dispatch({ type: "set-cloudflare-access-secret", value }),
+    setCloudflareAccessSecretEditing: (value) => dispatch({ type: "set-cloudflare-access-secret-editing", value }),
+    setCloudflareAccessSecretVisible: (value) => dispatch({ type: "set-cloudflare-access-secret-visible", value }),
     commitCredentials,
     handleTestConnection,
     handleCopyServerUrl,

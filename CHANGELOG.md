@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- Cloudflare Accessの保存済みClient Secretを「保存済み」と表示し、「変更」時は空欄の入力欄で編集できるようにしました。入力中のみ表示を切り替えられ、説明文も折り返して表示されます。(#418)
+
 ## [0.65.4] - 2026-10-11
 
 ### Bug Fixes

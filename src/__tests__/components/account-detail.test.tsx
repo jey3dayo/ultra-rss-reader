@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
+import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
@@ -211,6 +212,38 @@ describe("AccountDetail", () => {
 
   it("keeps the account detail account contract schema-derived", () => {
     expectTypeOf<AccountDetailAccount>().toEqualTypeOf<AccountDto>();
+  });
+
+  it("resets Secret edit and reveal state when switching FreshRSS accounts", async () => {
+    const user = userEvent.setup();
+    const accounts = [
+      { ...sampleAccounts[1], id: "acc-1", name: "First FreshRSS", kind: "FreshRss" },
+      { ...sampleAccounts[1], id: "acc-2", name: "Second FreshRSS", kind: "FreshRss" },
+    ];
+    const metadataReads: string[] = [];
+    setupTauriMocks((command, args) => {
+      if (command === "list_accounts") return accounts;
+      if (command === "get_account_cloudflare_access") {
+        metadataReads.push(String(args.accountId));
+        return { status: "loaded", client_id: `${String(args.accountId)}-client-id` };
+      }
+      return undefined;
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+    expect(await screen.findByRole("heading", { name: "First FreshRSS" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Change saved Client Secret" }));
+    const secretInput = screen.getByLabelText("Client Secret");
+    await user.type(secretInput, "new-dummy-secret");
+    await user.click(screen.getByRole("button", { name: "Show new Secret" }));
+    expect(secretInput).toHaveAttribute("type", "text");
+
+    act(() => useUiStore.setState({ settingsAccountId: "acc-2" }));
+
+    expect(await screen.findByRole("heading", { name: "Second FreshRSS" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Change saved Client Secret" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Client Secret")).not.toBeInTheDocument();
+    expect(metadataReads).toContain("acc-2");
   });
 
   it("offers a 60 day retention option and persists it through update_account_sync", async () => {
@@ -928,6 +961,7 @@ describe("AccountDetail", () => {
         await user.clear(input);
         await user.type(input, "https://freshrss.example.com/reader");
       } else if (field === "client-secret") {
+        await user.click(await screen.findByRole("button", { name: "Change saved Client Secret" }));
         await user.type(await screen.findByLabelText("Client Secret"), "dummy-new-secret");
       } else {
         await user.click(await screen.findByRole("switch", { name: "Cloudflare Access" }));
