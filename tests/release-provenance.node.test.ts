@@ -17,6 +17,15 @@ import { buildReleaseProvenanceRecord, ReleaseProvenanceError } from "../scripts
 
 const SCRATCH_ROOT = resolve("tmp/provenance-fixture-1009");
 const RELEASE_PROVENANCE_DIR = "src-tauri/target/release-provenance";
+const CLI_MODULES = [
+  "scripts/release/artifacts.ts",
+  "scripts/release/lib/artifact-contract.ts",
+  "scripts/release/lib/artifact-inventory.ts",
+  "scripts/release/lib/release-provenance.ts",
+  "scripts/release/release-artifact-contract.ts",
+  "scripts/release/updater-checksum.ts",
+  "scripts/release/workflows/artifacts.ts",
+] as const;
 const SOURCE_SHA = "a".repeat(40);
 
 const RELEASE_ENV = {
@@ -115,6 +124,23 @@ describe("release provenance artifact filename", () => {
     expect(build.result).toThrow(ReleaseProvenanceError);
     expect(build.result).toThrow(`invalid updater checksum digest for ${artifactName}`);
   });
+
+  it.each([
+    { env: RELEASE_ENV, runner: "missing", runnerLabel: "(unknown)" },
+    { env: { ...RELEASE_ENV, RUNNER_OS: "Linux" }, runner: "unknown", runnerLabel: "Linux" },
+  ])("preserves provenance error classification for a $runner runner", ({ env, runnerLabel }) => {
+    const build = () =>
+      buildReleaseProvenanceRecord({
+        env,
+        git: fakeGit,
+        readFile: (filePath) => {
+          throw new Error(`unexpected read: ${filePath}`);
+        },
+      });
+
+    expect(build).toThrow(ReleaseProvenanceError);
+    expect(build).toThrow(`missing release provenance platform for runner ${runnerLabel}`);
+  });
 });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -155,13 +181,12 @@ const populateCliFixture = (fixtureRoot: string, artifactName: string) => {
     execFileSync("git", args, { cwd: fixtureRoot, env });
   }
 
+  for (const sourcePath of CLI_MODULES) {
+    const fixturePath = join(fixtureRoot, sourcePath);
+    mkdirSync(dirname(fixturePath), { recursive: true });
+    copyFileSync(resolve(sourcePath), fixturePath);
+  }
   const scriptPath = join(fixtureRoot, "scripts/release/artifacts.ts");
-  mkdirSync(dirname(scriptPath), { recursive: true });
-  copyFileSync(resolve("scripts/release/artifacts.ts"), scriptPath);
-  copyFileSync(
-    resolve("scripts/release/updater-checksum.ts"),
-    join(fixtureRoot, "scripts/release/updater-checksum.ts"),
-  );
   writeFileSync(join(fixtureRoot, "package.json"), '{"type":"module","version":"1.2.3"}\n');
 
   const targetDirectory = join(fixtureRoot, "src-tauri/target");

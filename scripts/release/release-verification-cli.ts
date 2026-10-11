@@ -1,10 +1,10 @@
 import { Result } from "@praha/byethrow";
+import { resolveDraftReleaseFromResponse, updaterKeyAtSourceFromConfig } from "./lib/verification-helpers.ts";
+import { createOutputRoot, ghJson, gitShow, resolveOutputRoot } from "./lib/verification-io.ts";
 import type { ReleaseVerificationRelease } from "./release-verification.ts";
-import { resolveDraftReleaseFromResponse, updaterKeyAtSourceFromConfig } from "./release-verification-helpers.ts";
-import { ghJson, gitShow } from "./release-verification-io.ts";
-import { runDraftReleaseVerificationWorkflow } from "./release-verification-workflow.ts";
+import { runDraftReleaseVerificationWorkflow } from "./workflows/verify-draft-release.ts";
 
-export { createOutputRoot, resolveOutputRoot } from "./release-verification-io.ts";
+export { createOutputRoot, resolveOutputRoot };
 
 export const resolveDraftRelease = (
   tag: string,

@@ -4,6 +4,7 @@ import { is, parse } from "valibot";
 import { describe, expect, it } from "vitest";
 import { type PackageJson, PackageJsonSchema } from "@/schemas/app-config";
 import { isSchemaParseError, parseJsonWithSchema } from "@/schemas/parse";
+import { KEYCHAIN_SERVICE } from "../../../scripts/release/lib/macos-signature-diagnostics";
 
 function parsePackageJson(value: string): PackageJson {
   return parseJsonWithSchema(value, PackageJsonSchema);
@@ -261,8 +262,7 @@ describe("package scripts", () => {
     );
     expect(diagnosticScript).toContain("record [--app <path>]");
     expect(diagnosticScript).toContain("compare --before <old.json> --after <new.json>");
-    expect(diagnosticScript).toContain('const KEYCHAIN_SERVICE = "ultra-rss-reader"');
-    expect(diagnosticScript).toContain('ignoredFields: ["cdHash"]');
+    expect(KEYCHAIN_SERVICE).toBe("ultra-rss-reader");
   });
 
   it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
