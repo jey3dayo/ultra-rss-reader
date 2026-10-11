@@ -105,7 +105,7 @@ export function SettingsModalView({
           {lockMessage ? (
             <p
               role="status"
-              className="-mt-1 px-5 pb-3 text-center text-xs leading-[1.5] text-balance text-sidebar-foreground/56"
+              className="mt-1 px-5 pb-3 text-center text-xs leading-[1.5] text-balance text-sidebar-foreground/56"
               data-testid="settings-lock-message"
             >
               {lockMessage}
