@@ -2,6 +2,9 @@ import { createHash } from "node:crypto";
 import * as v from "valibot";
 import { verifyMinisignSignature } from "./minisign-verification.ts";
 import {
+  LINUX_PROVENANCE_ASSET_NAME,
+  LINUX_PROVENANCE_GENERATION_STEP,
+  linuxReleaseBinaryNames,
   optionalLinuxReleaseAssetNames,
   releaseVersion,
   validateReleaseAssetInventory,
@@ -31,6 +34,10 @@ export type ReleaseVerificationRun = {
   event: string;
   headBranch: string;
   headSha: string;
+  jobs?: readonly {
+    conclusion: string;
+    steps: readonly { name: string; conclusion: string }[];
+  }[];
   status: string;
   url: string;
   workflowName: string;
@@ -224,8 +231,21 @@ export const verifyReleaseIdentity = (
     fail("the selected Release run attempt is not the successful exact-tag build");
   }
   const linuxNames = optionalLinuxReleaseAssetNames(identity.tag);
-  if (assets.has(linuxNames[0]) && run.event !== "workflow_dispatch") {
-    fail("optional Linux release assets require the selected workflow_dispatch build run");
+  if (assets.has(linuxNames[0])) {
+    if (run.event !== "workflow_dispatch") {
+      fail("optional Linux release assets require the selected workflow_dispatch build run");
+    }
+    if (
+      !run.jobs?.some(
+        (job) =>
+          job.conclusion === "success" &&
+          job.steps.some((step) => step.name === LINUX_PROVENANCE_GENERATION_STEP && step.conclusion === "success"),
+      )
+    ) {
+      fail(
+        "optional Linux release assets require a successful Linux provenance generation step in the selected run attempt",
+      );
+    }
   }
   normalizeWorkflowRunUrl(run.url, release.url, identity, "GitHub workflow run URL");
   return version;
@@ -327,6 +347,61 @@ const verifyProvenance = (
   return digest;
 };
 
+const verifyLinuxProvenance = (
+  files: ReadonlyMap<string, Uint8Array>,
+  identity: ReleaseVerificationIdentity,
+  release: ReleaseVerificationRelease,
+  runUrl: string,
+  runEvent: string,
+): void => {
+  const label = LINUX_PROVENANCE_ASSET_NAME;
+  const record = parseJsonRecord(bytesOf(files, label), label);
+  const source = recordOf(record.source, `${label}.source`);
+  const workflow = recordOf(record.workflow, `${label}.workflow`);
+  const runner = recordOf(record.runner, `${label}.runner`);
+  if (record.releaseId !== release.id) {
+    fail(`${label}.releaseId does not match the selected release ID`);
+  }
+  if (
+    record.releaseTag !== identity.tag ||
+    record.packageVersion !== releaseVersion(identity.tag) ||
+    source.commitSha !== identity.sourceSha ||
+    source.tagTargetSha !== identity.sourceSha ||
+    workflow.runId !== identity.runId ||
+    workflow.runAttempt !== String(identity.attempt) ||
+    workflow.ref !== `refs/tags/${identity.tag}` ||
+    workflow.refName !== identity.tag ||
+    workflow.eventName !== runEvent ||
+    workflow.eventName !== "workflow_dispatch" ||
+    workflow.workflow !== "Release" ||
+    runner.assetPlatform !== "linux-x86_64" ||
+    runner.os !== "Linux" ||
+    runner.matrixPlatform !== "ubuntu-24.04"
+  ) {
+    fail(`${label} does not match the expected tag, source, run, attempt, ref, and Linux platform`);
+  }
+  if (
+    normalizeWorkflowRunUrl(stringAt(workflow, "runUrl", label), release.url, identity, `${label}.workflow.runUrl`) !==
+    normalizeWorkflowRunUrl(runUrl, release.url, identity, "GitHub workflow run URL")
+  ) {
+    fail(`${label}.workflow.runUrl does not match the selected GitHub run URL`);
+  }
+  const artifacts = v.parse(v.array(v.object({ name: v.string(), sha256: v.string() })), record.artifacts);
+  const names = linuxReleaseBinaryNames(identity.tag);
+  if (
+    artifacts.length !== names.length ||
+    new Set(artifacts.map((artifact) => artifact.name)).size !== names.length ||
+    artifacts.some((artifact) => !names.includes(artifact.name))
+  ) {
+    fail(`${label} must name both unique canonical Linux release binaries`);
+  }
+  for (const artifact of artifacts) {
+    if (!/^[a-f0-9]{64}$/.test(artifact.sha256) || artifact.sha256 !== sha256Of(bytesOf(files, artifact.name))) {
+      fail(`${label} hash does not match downloaded bytes for ${artifact.name}`);
+    }
+  }
+};
+
 const normalizeSignatureText = (text: string): string => text.replace(/\r\n/g, "\n").replace(/\n+$/, "");
 
 const verifySignatureSidecar = (
@@ -358,8 +433,8 @@ const verifyManifestTarget = (
 
 const verifyReleaseArtifacts = (
   input: Pick<ReleaseVerificationInput, "files" | "identity" | "release" | "updaterPublicKey"> & {
-    runEvent?: string;
-    runUrl?: string;
+    runEvent: string;
+    runUrl: string;
   },
 ): { assetCount: number; signatureCount: number; version: string } => {
   const { files, identity, release, updaterPublicKey } = input;
@@ -386,6 +461,10 @@ const verifyReleaseArtifacts = (
     if (bytes.byteLength !== asset.size || sha256Of(bytes) !== asset.digest.slice("sha256:".length).toLowerCase()) {
       fail(`downloaded bytes do not match GitHub digest and size for ${asset.name}`);
     }
+  }
+
+  if (assets.has(linuxNames[0])) {
+    verifyLinuxProvenance(files, identity, release, input.runUrl, input.runEvent);
   }
 
   const macArtifactName = "Ultra RSS Reader.app.tar.gz";

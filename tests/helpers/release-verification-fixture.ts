@@ -1,6 +1,9 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import {
   expectedReleaseAssetNames,
+  LINUX_PROVENANCE_ASSET_NAME,
+  LINUX_PROVENANCE_GENERATION_STEP,
+  linuxReleaseBinaryNames,
   optionalLinuxReleaseAssetNames,
 } from "../../scripts/release/release-artifact-contract.ts";
 import type {
@@ -14,7 +17,7 @@ export const VERSION = "0.66.0";
 export const SOURCE_SHA = "4a11ce85afec51ea8eda4f7f47b1c7b45ce25230";
 export const RUN_ID = "38123539831";
 export const ATTEMPT = 1;
-const RELEASE_ID = 409523579;
+export const RELEASE_ID = 409523579;
 export const RUN_URL = `https://github.com/jey3dayo/ultra-rss-reader/actions/runs/${RUN_ID}`;
 export const DRAFT_ALIAS = "untagged-2e97d1b316e7d3ef9e81";
 const RUN_ID_BYTES = Buffer.from("keyid001");
@@ -117,7 +120,38 @@ export const addOptionalLinuxReleaseAssets = (fixture: Fixture, names = optional
   for (const name of names) {
     fixture.files.set(name, Buffer.from(`linux fixture ${name}\n`));
   }
-  fixture.run = { ...fixture.run, event: "workflow_dispatch" };
+  fixture.run = {
+    ...fixture.run,
+    event: "workflow_dispatch",
+    jobs: [{ conclusion: "success", steps: [{ name: LINUX_PROVENANCE_GENERATION_STEP, conclusion: "success" }] }],
+  };
+  if (names.includes(LINUX_PROVENANCE_ASSET_NAME)) {
+    fixture.files.set(
+      LINUX_PROVENANCE_ASSET_NAME,
+      Buffer.from(
+        JSON.stringify({
+          artifacts: linuxReleaseBinaryNames(TAG).map((name) => ({
+            name,
+            sha256: sha256(bytesOf(fixture.files, name)),
+          })),
+          packageVersion: VERSION,
+          releaseTag: TAG,
+          releaseId: fixture.release.id,
+          runner: { assetPlatform: "linux-x86_64", matrixPlatform: "ubuntu-24.04", os: "Linux" },
+          source: { commitSha: SOURCE_SHA, tagTargetSha: SOURCE_SHA },
+          workflow: {
+            eventName: "workflow_dispatch",
+            ref: `refs/tags/${TAG}`,
+            refName: TAG,
+            runAttempt: String(ATTEMPT),
+            runId: RUN_ID,
+            runUrl: RUN_URL,
+            workflow: "Release",
+          },
+        }),
+      ),
+    );
+  }
   for (const platform of ["darwin-aarch64", "windows-x86_64"]) {
     setProvenanceValue(fixture, platform, "workflow", "eventName", "workflow_dispatch");
   }

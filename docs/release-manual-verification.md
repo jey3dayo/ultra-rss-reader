@@ -363,9 +363,20 @@ When the optional job is enabled, verify:
   `libxdo-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, and
   `librsvg2-dev` (plus `patchelf` for AppImage bundling).
 - The release contains one `.deb` and one `.AppImage` artifact, and does not
-  contain an `.rpm` artifact. The read-only release verifier accepts this pair
-  only together, with versioned `amd64` filenames, GitHub digest and size
-  matches, and the exact successful `workflow_dispatch` Release run.
+  contain an `.rpm` artifact. The read-only release verifier requires both
+  versioned `amd64` binaries together with `release-provenance-linux-x86_64.json`
+  (19 assets including the 16 core assets). It compares both binary hashes
+  against downloaded bytes and GitHub digest/size metadata, and binds the
+  proof to the exact source, tag target, release tag, dispatch run, attempt,
+  ref, Linux platform, and the Release ID returned by the original Tauri build.
+  The producer records that ID from `LINUX_RELEASE_ID`; upload checks its
+  draft/tag through the fixed-ID API and posts only to that ID's upload URL.
+  A deleted/recreated draft cannot receive the old proof. Existing proof assets
+  cause a failure for manual inspection; no automatic deletion or retry occurs.
+  The selected attempt's jobs must include a
+  successful `Generate Linux release provenance` step in a successful job;
+  absent, skipped, or failed generation rejects Linux assets even when the
+  supplied proof matches. A core-only release still requires 16 assets.
 - The Linux job remains excluded from the updater manifest in this change. The
   verifier continues to validate only the existing macOS and Windows updater
   signatures and aliases.

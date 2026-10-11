@@ -6,7 +6,13 @@ import {
   type DraftVerificationSuccess,
   runDraftReleaseVerificationWorkflow,
 } from "../scripts/release/release-verification-workflow.ts";
-import { createFixture, isRecord, refreshRelease, writeLatest } from "./helpers/release-verification-fixture.ts";
+import {
+  addOptionalLinuxReleaseAssets,
+  createFixture,
+  isRecord,
+  refreshRelease,
+  writeLatest,
+} from "./helpers/release-verification-fixture.ts";
 
 const argsFor = (fixture: ReturnType<typeof createFixture>): string[] => [
   "--expected-tag",
@@ -22,6 +28,7 @@ const argsFor = (fixture: ReturnType<typeof createFixture>): string[] => [
 ];
 
 const createDependencies = (fixture: ReturnType<typeof createFixture>) => {
+  const runRequests: string[][] = [];
   const state = {
     createOutputRootCalls: 0,
     downloadCalls: 0,
@@ -33,6 +40,7 @@ const createDependencies = (fixture: ReturnType<typeof createFixture>) => {
     malformedSourceKey: false,
     failSourceKeyRead: false,
     remoteTagTargetSha: fixture.identity.sourceSha,
+    runRequests,
   };
 
   const requestJson: DraftVerificationDependencies["requestJson"] = (args) => {
@@ -64,6 +72,7 @@ const createDependencies = (fixture: ReturnType<typeof createFixture>) => {
       };
     }
     if (args[0] === "run") {
+      runRequests.push([...args]);
       if (state.failRunRequest) {
         throw new Error("gh run view failed (exit 1)");
       }
@@ -134,6 +143,35 @@ describe("draft release verification workflow", () => {
     const result = runDraftReleaseVerificationWorkflow(argsFor(fixture), dependencies);
 
     expect(unwrapSuccess(result).verification).toEqual({ assetCount: 16, signatureCount: 3, version: "0.66.0" });
+  });
+
+  it("loads jobs from the selected run attempt and verifies the complete Linux family", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    const { dependencies, state } = createDependencies(fixture);
+    expect(
+      unwrapSuccess(runDraftReleaseVerificationWorkflow(argsFor(fixture), dependencies)).verification.assetCount,
+    ).toBe(19);
+    const request = state.runRequests[0];
+    expect(request?.slice(0, 5)).toEqual([
+      "run",
+      "view",
+      fixture.identity.runId,
+      "--attempt",
+      String(fixture.identity.attempt),
+    ]);
+    expect(request?.[6].split(",")).toContain("jobs");
+  });
+
+  it("rejects skipped Linux generation before downloading fabricated matching Linux evidence", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    fixture.run = { ...fixture.run, jobs: [] };
+    const { dependencies, state } = createDependencies(fixture);
+    const failure = unwrapFailure(runDraftReleaseVerificationWorkflow(argsFor(fixture), dependencies));
+    expect(failure.stage).toBe("release identity");
+    expect(failure.message).toContain("successful Linux provenance generation step");
+    expect(state.downloadCalls).toBe(0);
   });
 
   it("rejects malformed arguments before repository or release side effects", () => {

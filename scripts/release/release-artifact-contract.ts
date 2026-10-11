@@ -31,10 +31,18 @@ export const expectedReleaseAssetNames = (tag: string): string[] => {
   ];
 };
 
-export const optionalLinuxReleaseAssetNames = (tag: string): string[] => {
+export const LINUX_PROVENANCE_ASSET_NAME = "release-provenance-linux-x86_64.json";
+export const LINUX_PROVENANCE_GENERATION_STEP = "Generate Linux release provenance";
+
+export const linuxReleaseBinaryNames = (tag: string): string[] => {
   const version = releaseVersion(tag);
   return [`Ultra.RSS.Reader_${version}_amd64.deb`, `Ultra.RSS.Reader_${version}_amd64.AppImage`];
 };
+
+export const optionalLinuxReleaseAssetNames = (tag: string): string[] => [
+  ...linuxReleaseBinaryNames(tag),
+  LINUX_PROVENANCE_ASSET_NAME,
+];
 
 export const validateReleaseAssetInventory = (tag: string, observedNames: readonly string[]): string[] => {
   const coreNames = expectedReleaseAssetNames(tag);
@@ -44,17 +52,19 @@ export const validateReleaseAssetInventory = (tag: string, observedNames: readon
     fail("release asset inventory contains duplicate names");
   }
   const linuxCount = linuxNames.filter((name) => observed.has(name)).length;
-  if (linuxCount === 1) {
-    fail("optional Linux release assets must include both the .deb and AppImage for this tag");
+  if (linuxCount > 0 && linuxCount !== linuxNames.length) {
+    fail("optional Linux release assets must include both the .deb and AppImage and their provenance for this tag");
   }
-  const expectedNames = linuxCount === 2 ? [...coreNames, ...linuxNames] : coreNames;
+  const expectedNames = linuxCount === linuxNames.length ? [...coreNames, ...linuxNames] : coreNames;
   const expected = new Set(expectedNames);
   if (
     observedNames.length !== expectedNames.length ||
     expectedNames.some((name) => !observed.has(name)) ||
     observedNames.some((name) => !expected.has(name))
   ) {
-    fail("release asset inventory must contain the 16 core assets and either both optional Linux assets or neither");
+    fail(
+      "release asset inventory must contain the 16 core assets and either the complete optional Linux family or none",
+    );
   }
   return expectedNames;
 };

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { decodeConfiguredUpdaterPublicKey, verifyMinisignSignature } from "../scripts/release/minisign-verification.ts";
 import {
   expectedReleaseAssetNames,
+  LINUX_PROVENANCE_ASSET_NAME,
+  LINUX_PROVENANCE_GENERATION_STEP,
   optionalLinuxReleaseAssetNames,
 } from "../scripts/release/release-artifact-contract.ts";
 import { verifyReleaseEvidence } from "../scripts/release/release-verification.ts";
@@ -38,7 +40,7 @@ const verify = (fixture: Fixture) =>
   });
 
 describe("release artifact verification", () => {
-  it("accepts the 16 core assets when the optional Linux pair is absent", () => {
+  it("accepts the 16 core assets when the optional Linux family is absent", () => {
     const fixture = createFixture();
     expect(expectedReleaseAssetNames(TAG)).toHaveLength(16);
     expect(Buffer.from(bytesOf(fixture.files, "Ultra.RSS.Reader.app.tar.gz.sha256")).toString()).toContain(
@@ -47,11 +49,13 @@ describe("release artifact verification", () => {
     expect(verify(fixture)).toEqual({ assetCount: 16, signatureCount: 3, version: VERSION });
   });
 
-  it("accepts the optional versioned Linux .deb and AppImage pair from the exact dispatch run", () => {
+  it("accepts the optional Linux binaries and proof from the exact dispatch run and successful generation step", () => {
     const fixture = createFixture();
     addOptionalLinuxReleaseAssets(fixture);
-    expect(verify(fixture)).toEqual({ assetCount: 18, signatureCount: 3, version: VERSION });
+    expect(verify(fixture)).toEqual({ assetCount: 19, signatureCount: 3, version: VERSION });
     expect(Object.keys(fixture.manifestPlatforms)).not.toContain("linux-x86_64");
+    fixture.run = { ...fixture.run, url: `${RUN_URL}/attempts/${ATTEMPT}` };
+    expect(verify(fixture).assetCount).toBe(19);
   });
 
   it("rejects optional downloaded files absent from GitHub release metadata", () => {
@@ -79,9 +83,8 @@ describe("release artifact verification", () => {
 
   it("rejects Linux assets not bound to a workflow_dispatch build run", () => {
     const fixture = createFixture();
-    fixture.files.set(optionalLinuxReleaseAssetNames(TAG)[0] ?? "", Buffer.from("linux package\n"));
-    fixture.files.set(optionalLinuxReleaseAssetNames(TAG)[1] ?? "", Buffer.from("linux image\n"));
-    refreshRelease(fixture);
+    addOptionalLinuxReleaseAssets(fixture);
+    fixture.run = { ...fixture.run, event: "push" };
     expect(() => verify(fixture)).toThrow(
       "optional Linux release assets require the selected workflow_dispatch build run",
     );
@@ -101,6 +104,131 @@ describe("release artifact verification", () => {
       ),
     };
     expect(() => verify(fixture)).toThrow(`downloaded bytes do not match GitHub digest and size for ${linuxName}`);
+  });
+
+  it("rejects a Linux pair without its proof even with successful dispatch metadata", () => {
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    fixture.files.delete(LINUX_PROVENANCE_ASSET_NAME);
+    refreshRelease(fixture);
+    expect(() => verify(fixture)).toThrow("and their provenance");
+  });
+
+  it("rejects every partial Linux family, including a proof without both binaries", () => {
+    const names = optionalLinuxReleaseAssetNames(TAG);
+    for (const removedNames of names
+      .map((name) => [name])
+      .concat(names.map((name) => names.filter((other) => other !== name)))) {
+      const fixture = createFixture();
+      addOptionalLinuxReleaseAssets(fixture);
+      for (const name of removedNames) fixture.files.delete(name);
+      refreshRelease(fixture);
+      expect(() => verify(fixture)).toThrow("and their provenance");
+    }
+  });
+
+  it("rejects Linux proof from a different or recreated release ID", () => {
+    for (const releaseId of [undefined, 0, "409523579", 409523580]) {
+      const fixture = createFixture();
+      addOptionalLinuxReleaseAssets(fixture);
+      const proof = parseRecord(bytesOf(fixture.files, LINUX_PROVENANCE_ASSET_NAME));
+      proof.releaseId = releaseId;
+      fixture.files.set(LINUX_PROVENANCE_ASSET_NAME, Buffer.from(JSON.stringify(proof)));
+      refreshRelease(fixture);
+      expect(() => verify(fixture)).toThrow("releaseId does not match the selected release ID");
+    }
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    fixture.release = { ...fixture.release, id: fixture.release.id + 1 };
+    expect(() => verify(fixture)).toThrow("releaseId does not match the selected release ID");
+  });
+
+  it("rejects matching Linux proof without a successful selected-attempt generation job step", () => {
+    const jobCases = [
+      undefined,
+      [],
+      [{ conclusion: "success", steps: [{ name: LINUX_PROVENANCE_GENERATION_STEP, conclusion: "skipped" }] }],
+      [{ conclusion: "success", steps: [{ name: LINUX_PROVENANCE_GENERATION_STEP, conclusion: "failure" }] }],
+      [{ conclusion: "failure", steps: [{ name: LINUX_PROVENANCE_GENERATION_STEP, conclusion: "success" }] }],
+      [{ conclusion: "success", steps: [{ name: "Generate release provenance record", conclusion: "success" }] }],
+    ];
+    for (const jobs of jobCases) {
+      const fixture = createFixture();
+      addOptionalLinuxReleaseAssets(fixture);
+      fixture.run = { ...fixture.run, jobs };
+      expect(() => verify(fixture)).toThrow("successful Linux provenance generation step");
+    }
+  });
+
+  it("rejects Linux proof with a different tag, source, run, attempt, ref or platform", () => {
+    const mismatches = [
+      ["source", "commitSha", "b".repeat(40)],
+      ["source", "tagTargetSha", "b".repeat(40)],
+      ["workflow", "runId", "38123539832"],
+      ["workflow", "runAttempt", "2"],
+      ["workflow", "ref", "refs/heads/main"],
+      ["workflow", "refName", "main"],
+      ["workflow", "eventName", "push"],
+      ["workflow", "workflow", "Other"],
+      ["runner", "assetPlatform", "linux-aarch64"],
+      ["runner", "os", "macOS"],
+      ["runner", "matrixPlatform", "macos-latest"],
+    ];
+    for (const [section, key, value] of mismatches) {
+      const fixture = createFixture();
+      addOptionalLinuxReleaseAssets(fixture);
+      setProvenanceValue(fixture, "linux-x86_64", section, key, value);
+      expect(() => verify(fixture)).toThrow("expected tag, source, run, attempt, ref, and Linux platform");
+    }
+    for (const [key, value] of [
+      ["releaseTag", "v0.66.1"],
+      ["packageVersion", "0.66.1"],
+    ]) {
+      const fixture = createFixture();
+      addOptionalLinuxReleaseAssets(fixture);
+      const proof = parseRecord(bytesOf(fixture.files, LINUX_PROVENANCE_ASSET_NAME));
+      proof[key] = value;
+      fixture.files.set(LINUX_PROVENANCE_ASSET_NAME, Buffer.from(JSON.stringify(proof)));
+      refreshRelease(fixture);
+      expect(() => verify(fixture)).toThrow("expected tag, source, run, attempt, ref, and Linux platform");
+    }
+    const fixture = createFixture();
+    addOptionalLinuxReleaseAssets(fixture);
+    setProvenanceValue(fixture, "linux-x86_64", "workflow", "runUrl", `${RUN_URL}/attempts/2`);
+    expect(() => verify(fixture)).toThrow("workflow.runUrl does not match this release's run ID and attempt");
+  });
+
+  it("rejects either Linux binary hash mismatch even when GitHub digests agree with the bytes", () => {
+    for (const name of optionalLinuxReleaseAssetNames(TAG).slice(0, 2)) {
+      const fixture = createFixture();
+      addOptionalLinuxReleaseAssets(fixture);
+      fixture.files.set(name, Buffer.from("changed after provenance generation"));
+      refreshRelease(fixture);
+      expect(() => verify(fixture)).toThrow(`hash does not match downloaded bytes for ${name}`);
+    }
+  });
+
+  it("rejects Linux proof with missing, duplicated or noncanonical artifact entries", () => {
+    const binaryName = optionalLinuxReleaseAssetNames(TAG)[0];
+    for (const artifacts of [
+      [],
+      [
+        { name: binaryName, sha256: "0".repeat(64) },
+        { name: binaryName, sha256: "0".repeat(64) },
+      ],
+      [
+        { name: "wrong.deb", sha256: "0".repeat(64) },
+        { name: "wrong.AppImage", sha256: "0".repeat(64) },
+      ],
+    ]) {
+      const fixture = createFixture();
+      addOptionalLinuxReleaseAssets(fixture);
+      const proof = parseRecord(bytesOf(fixture.files, LINUX_PROVENANCE_ASSET_NAME));
+      proof.artifacts = artifacts;
+      fixture.files.set(LINUX_PROVENANCE_ASSET_NAME, Buffer.from(JSON.stringify(proof)));
+      refreshRelease(fixture);
+      expect(() => verify(fixture)).toThrow("both unique canonical Linux release binaries");
+    }
   });
 
   it("rejects unsupported Linux RPM assets", () => {

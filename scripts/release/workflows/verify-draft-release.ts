@@ -94,7 +94,7 @@ const loadReleaseMetadata = (
             "--attempt",
             String(args.attempt),
             "--json",
-            "attempt,conclusion,databaseId,event,headBranch,headSha,status,url,workflowName",
+            "attempt,conclusion,databaseId,event,headBranch,headSha,jobs,status,url,workflowName",
           ]),
         );
         const tagTargetSha = remoteTagTarget(args.tag, dependencies.requestJson);
