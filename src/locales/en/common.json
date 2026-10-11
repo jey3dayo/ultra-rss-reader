@@ -17,7 +17,8 @@
   "failed_to_save_setting": "Failed to save setting: {{message}}",
   "connection_testing": "Testing connection…",
   "errors": {
-    "database_maintenance_busy": "Database maintenance is unavailable while syncing. Try again after sync completes."
+    "database_maintenance_busy": "Database maintenance is unavailable while syncing. Try again after sync completes.",
+    "api_html_auth": "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings."
   },
   "updater": {
     "later": "Later",

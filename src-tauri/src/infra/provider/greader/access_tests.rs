@@ -16,7 +16,15 @@ fn safe_greader_failure_diagnostic_formats_only_allowlisted_values() {
         ),
         (
             "/tenant/alice/account-123/api/greader.php/reader/api/0/subscription/list",
-            "subscriptions",
+            "subscription-list",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/subscription/quickadd",
+            "subscription-quickadd",
+        ),
+        (
+            "/tenant/alice/account-123/api/greader.php/reader/api/0/subscription/edit",
+            "subscription-edit",
         ),
         (
             "/tenant/alice/account-123/api/greader.php/reader/api/0/stream/contents/user%2Fsecret",
@@ -380,7 +388,7 @@ async fn protected_article_ids_keep_body_cap_with_html_content_type() {
 }
 
 #[tokio::test]
-async fn cloudflare_access_html_text_compatibility_is_limited_to_edit_tag_ok() {
+async fn cloudflare_access_html_text_compatibility_keeps_client_login_rejected_and_edit_tag_ok() {
     for (content_type, body) in [("text/html", "OK"), ("application/xhtml+xml", " \tOK\r\n")] {
         let mut server = mockito::Server::new_async().await;
         let login = server
@@ -487,7 +495,8 @@ async fn edit_tag_html_ok_compatibility_keeps_decoded_body_cap() {
 async fn html_ok_compatibility_does_not_apply_to_other_text_paths() {
     for path in [
         "/accounts/ClientLogin",
-        "/reader/api/0/subscription/edit",
+        "/reader/api/0/subscription/list",
+        "/reader/api/0/subscription/edit-extra",
         "/reader/api/0/token",
         "/reader/api/0/edit-tag-extra",
     ] {
@@ -505,7 +514,7 @@ async fn html_ok_compatibility_does_not_apply_to_other_text_paths() {
             .expect("local response fixture should start");
         let error = GReaderProvider::read_text_response(raw)
             .await
-            .expect_err("HTML OK compatibility must remain scoped to edit-tag");
+            .expect_err("HTML OK compatibility must remain scoped to known mutation endpoints");
         assert!(matches!(error, DomainError::Auth(_)), "path={path}");
         response.assert_async().await;
     }
@@ -655,6 +664,31 @@ async fn html_rejection_logs_distinguish_mime_and_body_without_sensitive_values(
                 "text/html",
                 "<html>body-secret-sentinel</html>",
             ),
+            "quickadd-shape" => (
+                "/tenant/username-secret-sentinel/reader/api/0/subscription/quickadd",
+                "text/html",
+                r#"{"error":"body-secret-sentinel"}"#,
+            ),
+            "quickadd-body" => (
+                "/tenant/username-secret-sentinel/reader/api/0/subscription/quickadd",
+                "text/html",
+                "<!DOCTYPE HTML><html>body-secret-sentinel</html>",
+            ),
+            "subscription-edit-shape" => (
+                "/tenant/username-secret-sentinel/reader/api/0/subscription/edit",
+                "text/html",
+                "ERROR body-secret-sentinel",
+            ),
+            "subscription-edit-body" => (
+                "/tenant/username-secret-sentinel/reader/api/0/subscription/edit",
+                "text/html",
+                "<html>body-secret-sentinel</html>",
+            ),
+            "subscription-list-mime" => (
+                "/tenant/username-secret-sentinel/reader/api/0/subscription/list",
+                "text/html",
+                "body-secret-sentinel",
+            ),
             _ => panic!("unexpected diagnostic scenario"),
         };
         let response = server
@@ -670,7 +704,10 @@ async fn html_rejection_logs_distinguish_mime_and_body_without_sensitive_values(
             .send()
             .await
             .expect("local diagnostic fixture should start");
-        let result = if path.ends_with("edit-tag") {
+        let result = if path.ends_with("edit-tag")
+            || path.ends_with("subscription/quickadd")
+            || path.ends_with("subscription/edit")
+        {
             GReaderProvider::read_text_response(raw).await.map(|_| ())
         } else {
             GReaderProvider::read_json_response::<stream_types::UnreadCountsResponse>(raw)
@@ -685,6 +722,23 @@ async fn html_rejection_logs_distinguish_mime_and_body_without_sensitive_values(
         ("mime", "unread-count", "html-content-type"),
         ("json-body", "unread-count", "html-body"),
         ("edit-body", "edit-tag", "html-body"),
+        (
+            "quickadd-shape",
+            "subscription-quickadd",
+            "invalid-mutation-shape",
+        ),
+        ("quickadd-body", "subscription-quickadd", "html-body"),
+        (
+            "subscription-edit-shape",
+            "subscription-edit",
+            "invalid-mutation-shape",
+        ),
+        ("subscription-edit-body", "subscription-edit", "html-body"),
+        (
+            "subscription-list-mime",
+            "subscription-list",
+            "html-content-type",
+        ),
     ] {
         let lines = run_in_isolated_process(
             module_path!(),
@@ -697,6 +751,7 @@ async fn html_rejection_logs_distinguish_mime_and_body_without_sensitive_values(
         );
         for sentinel in [
             "body-secret-sentinel",
+            "username-secret-sentinel",
             "token-secret-sentinel",
             "access-secret-sentinel",
             "http://",
@@ -1208,4 +1263,176 @@ async fn cloudflare_access_html_error_status_preserves_retry_category() {
     ));
     assert!(!error.to_string().contains("cfast_dummy_secret"));
     mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn protected_subscription_add_accepts_expected_html_mime_responses() {
+    for (content_type, body) in [
+        ("text/html", "OK"),
+        (
+            "Text/HTML; charset=UTF-8",
+            r#"{"streamId":"feed/1","query":"Comic","numResults":1}"#,
+        ),
+        (
+            "application/xhtml+xml",
+            r#"{"streamId":"feed/1","query":"Comic"}"#,
+        ),
+    ] {
+        let mut server = mockito::Server::new_async().await;
+        let add = authenticated_mock(server.mock(
+            "POST",
+            "/api/greader.php/reader/api/0/subscription/quickadd",
+        ))
+        .match_body("quickadd=https%3A%2F%2Ffeed.example%2Frss")
+        .with_header("content-type", content_type)
+        .with_body(body)
+        .create_async()
+        .await;
+        let list = authenticated_mock(server.mock("GET", "/api/greader.php/reader/api/0/subscription/list"))
+            .match_query(mockito::Matcher::Any)
+            .with_body(r#"{"subscriptions":[{"id":"feed/1","title":"Comic","url":"https://feed.example/rss"}]}"#)
+            .create_async().await;
+        let mut provider = access_provider(&server);
+        provider.auth_token = Some("dummy-auth".into());
+        let subscription = provider
+            .create_subscription("https://feed.example/rss", None)
+            .await
+            .expect("quickadd success body must be accepted despite HTML MIME");
+        assert_eq!(subscription.remote_id, "feed/1");
+        assert_eq!(subscription.url, "https://feed.example/rss");
+        add.assert_async().await;
+        list.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn protected_subscription_edit_accepts_html_mime_ok() {
+    let mut server = mockito::Server::new_async().await;
+    let edit =
+        authenticated_mock(server.mock("POST", "/api/greader.php/reader/api/0/subscription/edit"))
+            .match_body(
+                "ac=edit&s=feed%2F1&t=Comic&a=user%2F-%2Flabel%2FComics&r=user%2F-%2Flabel%2FOld",
+            )
+            .with_header("content-type", "text/html")
+            .with_body(" \tOK\r\n")
+            .create_async()
+            .await;
+    let mut provider = access_provider(&server);
+    provider.auth_token = Some("dummy-auth".into());
+    assert!(
+        provider
+            .edit_subscription("feed/1", Some("Comic"), Some("Comics"), Some("Old"))
+            .await
+            .is_ok(),
+        "subscription edit OK must accept HTML MIME"
+    );
+    edit.assert_async().await;
+}
+
+#[tokio::test]
+async fn protected_subscription_delete_accepts_html_mime_ok() {
+    let mut server = mockito::Server::new_async().await;
+    let delete =
+        authenticated_mock(server.mock("POST", "/api/greader.php/reader/api/0/subscription/edit"))
+            .match_body("ac=unsubscribe&s=feed%2F1")
+            .with_header("content-type", "application/xhtml+xml")
+            .with_body("OK")
+            .create_async()
+            .await;
+    let mut provider = access_provider(&server);
+    provider.auth_token = Some("dummy-auth".into());
+    assert!(
+        provider
+            .delete_subscription(&FeedIdentifier::Remote {
+                remote_id: "feed/1".into()
+            })
+            .await
+            .is_ok(),
+        "subscription unsubscribe OK must accept HTML MIME"
+    );
+    delete.assert_async().await;
+}
+
+#[tokio::test]
+async fn protected_subscription_mutations_reject_html_errors_and_auth_statuses() {
+    for operation in ["add", "edit", "delete"] {
+        for (status, body) in [
+            (200, "<html>secret-sentinel</html>"),
+            (200, "ERROR"),
+            (200, "OK ERROR"),
+            (200, ""),
+            (200, r#"{}"#),
+            (200, r#"{"streamId":null}"#),
+            (200, r#"{"streamId":"feed/"}"#),
+            (200, r#"{"streamId":"feed/1","error":"secret-sentinel"}"#),
+            (401, "OK"),
+            (403, "OK"),
+        ] {
+            let mut server = mockito::Server::new_async().await;
+            let endpoint = if operation == "add" {
+                "/api/greader.php/reader/api/0/subscription/quickadd"
+            } else {
+                "/api/greader.php/reader/api/0/subscription/edit"
+            };
+            let mutation = authenticated_mock(server.mock("POST", endpoint))
+                .with_status(status)
+                .with_header("content-type", "text/html")
+                .with_body(body)
+                .create_async()
+                .await;
+            let mut provider = access_provider(&server);
+            provider.auth_token = Some("dummy-auth".into());
+            let result = match operation {
+                "add" => provider
+                    .create_subscription("https://feed.example/rss", None)
+                    .await
+                    .map(|_| ()),
+                "edit" => {
+                    provider
+                        .edit_subscription("feed/1", Some("Comic"), None, None)
+                        .await
+                }
+                _ => {
+                    provider
+                        .delete_subscription(&FeedIdentifier::Remote {
+                            remote_id: "feed/1".into(),
+                        })
+                        .await
+                }
+            };
+            let error = result.expect_err("invalid mutation response must remain an auth failure");
+            assert!(
+                matches!(error, DomainError::Auth(_)),
+                "operation={operation} status={status}: {error}"
+            );
+            assert!(!error.to_string().contains("secret-sentinel"));
+            mutation.assert_async().await;
+        }
+    }
+}
+
+#[tokio::test]
+async fn protected_subscription_mutation_html_mime_keeps_decoded_body_cap() {
+    let mut server = mockito::Server::new_async().await;
+    let mutation =
+        authenticated_mock(server.mock("POST", "/api/greader.php/reader/api/0/subscription/edit"))
+            .with_header("content-type", "text/html")
+            .with_body(
+                "O".repeat(
+                    usize::try_from(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES)
+                        .expect("fixture body cap fits usize")
+                        + 1,
+                ),
+            )
+            .create_async()
+            .await;
+    let mut provider = access_provider(&server);
+    provider.auth_token = Some("dummy-auth".into());
+    let error = provider
+        .edit_subscription("feed/1", Some("Comic"), None, None)
+        .await
+        .expect_err("HTML MIME mutation responses must retain the decoded body cap");
+    assert!(matches!(error, DomainError::Network(_)));
+    assert!(error.to_string().contains("exceeds"));
+    mutation.assert_async().await;
 }

@@ -141,9 +141,9 @@ async fn sync_greader_account_guards_pushed_and_retrying_pending_state() {
                 scenario,
             );
             if scenario == "retry-html" {
-                assert!(lines
-                    .iter()
-                    .any(|line| line == "endpoint=edit-tag status=200 reason=html-content-type"));
+                assert!(lines.iter().any(
+                    |line| line == "endpoint=edit-tag status=200 reason=invalid-mutation-shape"
+                ));
             }
             let events = lines
                 .iter()
