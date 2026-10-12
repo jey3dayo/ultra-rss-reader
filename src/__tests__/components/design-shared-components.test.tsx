@@ -7,6 +7,7 @@ import {
   ControlChipButton,
   GradientSwitch,
   LabelChip,
+  Link,
   NavRowButton,
   SectionHeading,
   WorkspaceHeader,
@@ -164,6 +165,29 @@ describe("Design-themed shared components", () => {
       "bg-state-warning-surface",
       "text-state-warning-foreground",
     );
+  });
+
+  it("renders link as an anchor with the default subtle variant and merges caller classes", () => {
+    render(
+      <Link href="https://example.com" className="custom-link">
+        Example
+      </Link>,
+    );
+
+    const anchor = screen.getByRole("link", { name: "Example" });
+    expect(anchor).toHaveAttribute("href", "https://example.com");
+    expect(anchor).toHaveAttribute("data-link", "subtle");
+    expect(anchor).toHaveClass("custom-link");
+  });
+
+  it("exposes the detail link variant", () => {
+    render(
+      <Link variant="detail" href="https://example.com">
+        Detail
+      </Link>,
+    );
+
+    expect(screen.getByRole("link", { name: "Detail" })).toHaveAttribute("data-link", "detail");
   });
 
   it("centralizes colored article filter toggle buttons", () => {

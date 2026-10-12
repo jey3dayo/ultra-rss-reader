@@ -3,6 +3,7 @@ import { ExternalLink, List, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
 import { LabelChip } from "@/components/shared/label-chip";
+import { Link } from "@/components/shared/link";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
@@ -60,9 +61,6 @@ type FeedDetailPanelProps = {
     onClick: () => void;
   };
 };
-
-const detailLinkClassName =
-  "inline-flex items-center gap-1 cursor-pointer text-foreground-soft underline decoration-border underline-offset-4 transition-colors duration-150 ease-standard hover:text-foreground motion-reduce:transition-none";
 
 const lowWireAccentClassNames: Record<
   FeedDetailAccentTone,
@@ -199,16 +197,17 @@ export function FeedDetailPanel({
           <div data-testid="feed-detail-main-column" className="min-w-0">
             <div className={cn("flex min-w-0 items-start justify-between gap-2.5", leadingVisual && "min-h-10")}>
               {resolvedTitleHref ? (
-                <a
+                <Link
+                  variant="detail"
                   href={resolvedTitleHref}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(detailLinkClassName, "inline-flex min-w-0 flex-1 no-underline")}
+                  className="min-w-0 flex-1 no-underline"
                 >
                   <h3 className="min-w-0 font-sans text-[1.12rem] font-semibold leading-snug tracking-[-0.025em] text-foreground">
                     {title}
                   </h3>
-                </a>
+                </Link>
               ) : (
                 <h3 className="min-w-0 flex-1 font-sans text-[1.12rem] font-semibold leading-snug tracking-[-0.025em] text-foreground">
                   {title}
@@ -313,10 +312,10 @@ export function FeedDetailPanel({
               {links.map((link) => {
                 const LinkIcon = link.icon ?? ExternalLink;
                 return (
-                  <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className={detailLinkClassName}>
+                  <Link key={link.href} variant="detail" href={link.href} target="_blank" rel="noreferrer">
                     <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
                     <span className="underline decoration-border underline-offset-4">{link.label}</span>
-                  </a>
+                  </Link>
                 );
               })}
             </div>
@@ -343,21 +342,18 @@ export function FeedDetailPanel({
                   >
                     <div className={cn("min-w-0", isLowWire ? "space-y-1" : "flex items-center justify-between gap-3")}>
                       {article.url ? (
-                        <a
+                        <Link
+                          variant="detail"
                           href={article.url}
                           target="_blank"
                           rel="noreferrer"
-                          className={cn(
-                            detailLinkClassName,
-                            "min-w-0 items-start gap-1.5 no-underline",
-                            isLowWire && "flex w-full",
-                          )}
+                          className={cn("min-w-0 items-start gap-1.5 no-underline", isLowWire && "flex w-full")}
                         >
                           <span className="line-clamp-2 min-w-0 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                             {article.title}
                           </span>
                           <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-                        </a>
+                        </Link>
                       ) : (
                         <span className="line-clamp-2 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                           {article.title}

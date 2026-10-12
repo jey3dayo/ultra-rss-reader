@@ -1,6 +1,6 @@
-import { cn } from "cn";
 import { Globe } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
+import { Link } from "@/design-system";
 
 type FeedSiteLinkProps = {
   href: string;
@@ -27,19 +27,9 @@ export function FeedSiteLink({ href, title, onOpen, className, dir, icon = false
   }
 
   return (
-    <a
-      href={href}
-      title={title}
-      dir={dir}
-      onClick={handleClick}
-      onAuxClick={handleAuxClick}
-      className={cn(
-        "underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
-        className,
-      )}
-    >
+    <Link href={href} title={title} dir={dir} onClick={handleClick} onAuxClick={handleAuxClick} className={className}>
       {icon ? <Globe aria-hidden="true" className="size-[1.1em] shrink-0" /> : null}
       {children}
-    </a>
+    </Link>
   );
 }

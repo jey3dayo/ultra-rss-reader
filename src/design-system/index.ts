@@ -37,6 +37,7 @@ export * from "@/components/shared/labeled-control-row";
 export * from "@/components/shared/labeled-input-row";
 export * from "@/components/shared/labeled-select-row";
 export * from "@/components/shared/labeled-switch-row";
+export * from "@/components/shared/link";
 export * from "@/components/shared/loading-action-content";
 export * from "@/components/shared/motion-icon-swap";
 export * from "@/components/shared/motion-number";
