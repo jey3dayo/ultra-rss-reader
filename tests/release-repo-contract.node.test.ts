@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -282,30 +282,6 @@ const runWorkflowPinChecker = (workflowsDir: string, actionsDir = ".github/actio
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
-
-const runNodeRuntimeResolver = (manifest: object) => {
-  const fixtureDir = mkdtempSync(join(tmpdir(), "ultra-rss-node-runtime-"));
-  const outputFile = join(fixtureDir, "github-output");
-  try {
-    writeFileSync(join(fixtureDir, "package.json"), JSON.stringify(manifest), "utf8");
-    writeFileSync(outputFile, "", "utf8");
-    const result = spawnSync("node", ["scripts/ci/resolve-node-runtime.mjs"], {
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GITHUB_WORKSPACE: fixtureDir,
-        GITHUB_OUTPUT: outputFile,
-      },
-    });
-    return {
-      status: result.status,
-      stderr: result.stderr,
-      output: readFileSync(outputFile, "utf8"),
-    };
-  } finally {
-    rmSync(fixtureDir, { force: true, recursive: true });
-  }
-};
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -918,9 +894,11 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     ].map((match) => match[1] ?? "");
 
     for (const section of jobSections.filter((job) => job.includes("pnpm install --frozen-lockfile"))) {
+      const miseIndex = section.indexOf("uses: jdx/mise-action@");
       const setupIndex = section.indexOf("uses: ./.github/actions/setup-pnpm");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
-      expect(setupIndex).toBeGreaterThanOrEqual(0);
+      expect(miseIndex).toBeGreaterThanOrEqual(0);
+      expect(miseIndex).toBeLessThan(setupIndex);
       expect(setupIndex).toBeLessThan(installIndex);
     }
     const sourceValidationIndex = releaseWorkflow.indexOf("run: node ./scripts/release/validate-source.ts");
@@ -929,24 +907,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(setupAction).toContain("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
     expect(setupAction).toContain("cache: true");
     expect(setupAction).toContain("install: false");
-  });
-
-  it("writes the exact Node runtime from the package manifest", () => {
-    const result = runNodeRuntimeResolver({ engines: { node: "22.17.1" } });
-
-    expect(result.status, result.stderr).toBe(0);
-    expect(result.output).toBe("runtime=node@22.17.1\n");
-  });
-
-  it("rejects missing, ranged, and malformed engines.node without writing output", () => {
-    const manifests = [{}, { engines: {} }, { engines: { node: ">=26" } }, { engines: { node: "v26.4.0" } }];
-
-    for (const manifest of manifests) {
-      const result = runNodeRuntimeResolver(manifest);
-
-      expect(result.status, result.stderr).not.toBe(0);
-      expect(result.output).toBe("");
-    }
   });
 
   it("keeps workflow pin checker parsing quoted uses, inline comments, and local actions", () => {

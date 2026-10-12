@@ -41,25 +41,25 @@ function extractCheckJobSections(source: string) {
 }
 
 describe("CI workflow contract", () => {
-  it("sets up pnpm and Node through the pinned pnpm setup action before frozen installs", () => {
+  it("sets up Node through mise and pnpm through the pinned pnpm setup action before frozen installs", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const setupAction = readRepoFile(".github/actions/setup-pnpm/action.yml");
     const checkJobSections = extractCheckJobSections(ciWorkflow);
 
     for (const { jobId, section } of checkJobSections) {
+      const miseIndex = section.indexOf("uses: jdx/mise-action@");
       const setupIndex = section.indexOf("uses: ./.github/actions/setup-pnpm");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
-      expect(setupIndex, `${jobId} should use the shared pnpm setup action`).toBeGreaterThanOrEqual(0);
+      expect(miseIndex, `${jobId} should install Node through mise`).toBeGreaterThanOrEqual(0);
+      expect(setupIndex, `${jobId} should set up pnpm after mise`).toBeGreaterThan(miseIndex);
       expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
     }
 
     expect(setupAction).toContain("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
-    expect(setupAction).toContain("runtime: $" + "{{ steps.node-runtime.outputs.runtime }}");
+    expect(setupAction).not.toContain("runtime:");
     expect(setupAction).toContain("cache: true");
     expect(setupAction).toContain("install: false");
-    expect(setupAction).toContain('run: node "$GITHUB_WORKSPACE/scripts/ci/resolve-node-runtime.mjs"');
-    expect(setupAction.match(/^\s+run:.*$/gm)?.join("\n")).not.toContain("${{");
     expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(checkJobSections.length);
     expect(ciWorkflow).not.toContain("node_modules");
   });

@@ -1,13 +1,9 @@
 name: Setup pnpm from package.json
-description: Set up the repository's exact Node.js and pnpm versions
+description: Set up the repository's exact pnpm version; Node.js comes from mise
 runs:
   using: composite
   steps:
-    - id: node-runtime
-      shell: bash
-      run: node "$GITHUB_WORKSPACE/scripts/ci/resolve-node-runtime.mjs"
     - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
       with:
-        runtime: ${{ steps.node-runtime.outputs.runtime }}
         cache: true
         install: false
