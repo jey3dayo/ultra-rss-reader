@@ -56,6 +56,33 @@ describe("ArticleMetaView", () => {
     expect(onFeedClick).toHaveBeenCalledTimes(1);
   });
 
+  it("renders a self-describing site link that delegates clicks, and omits it without a href", () => {
+    const onSiteClick = vi.fn();
+
+    const { rerender } = render(
+      <ArticleMetaView
+        title="First Article"
+        author="Alice"
+        feedName="Tech Blog"
+        publishedLabel="2026年3月25日 10:00"
+        siteLink={{
+          href: "https://example.com/",
+          label: "example.com",
+          title: "Open in external browser — example.com",
+          onOpen: onSiteClick,
+        }}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: /example\.com/ });
+    expect(link).toHaveAttribute("title", "Open in external browser — example.com");
+    expect(fireEvent.click(link)).toBe(false);
+    expect(onSiteClick).toHaveBeenCalledWith("https://example.com/");
+
+    rerender(<ArticleMetaView title="First Article" feedName="Tech Blog" publishedLabel="2026年3月25日 10:00" />);
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("renders a static title when no title callback is provided", () => {
     render(<ArticleMetaView title="Offline Article" publishedLabel="2026年3月25日 10:00" />);
 

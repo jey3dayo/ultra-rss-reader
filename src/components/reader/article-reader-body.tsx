@@ -1,12 +1,14 @@
 import { ChevronDownIcon } from "lucide-react";
 import { type KeyboardEvent, useCallback, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { IconToolbarSurfaceButton, ScrollArea } from "@/design-system";
 import { executeAction } from "@/lib/actions";
 import {
   formatArticleDate,
   resolveArticleDateLocale,
+  resolveArticleSummaryWebsiteHref,
+  resolveArticleSummaryWebsiteLabel,
   shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/articles/article-view";
 import { fromSanitizedArticleHtml } from "@/lib/content/html";
@@ -20,6 +22,7 @@ import { ArticleTagChips } from "./article-tag-chips";
 
 type ArticleReaderBodyProps = {
   article: ArticleDto;
+  feed?: FeedDto;
   feedName?: string;
   onOpenArticleTitleInWebPreview?: () => void;
   hasNextArticle?: boolean;
@@ -83,6 +86,7 @@ function normalizeWheelDeltaY(event: globalThis.WheelEvent, viewport: HTMLDivEle
 
 export function ArticleReaderBody({
   article,
+  feed,
   feedName,
   onOpenArticleTitleInWebPreview,
   hasNextArticle = true,
@@ -103,6 +107,19 @@ export function ArticleReaderBody({
   const pendingScrollPositionRef = useRef<{ articleId: string; scrollTop: number } | null>(null);
   const scrollPositionCommitTimerRef = useRef<number | null>(null);
   const articleUrl = article.url;
+  const siteHref = feed ? resolveArticleSummaryWebsiteHref(feed) : null;
+  const siteLabel = feed ? resolveArticleSummaryWebsiteLabel(feed) : null;
+  const siteLink =
+    siteHref && siteLabel
+      ? {
+          href: siteHref,
+          label: siteLabel,
+          title: t("site_link_open_external", { host: siteLabel }),
+          onOpen: (href: string) => {
+            void openArticleInExternalBrowser(href);
+          },
+        }
+      : null;
   const articleContentHtml = fromSanitizedArticleHtml(article.content_sanitized);
 
   const clearPendingScrollPositionCommit = useCallback(() => {
@@ -319,6 +336,7 @@ export function ArticleReaderBody({
           title={article.title}
           author={article.author}
           feedName={feedName}
+          siteLink={siteLink}
           publishedLabel={formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language))}
           onTitleClick={
             articleUrl

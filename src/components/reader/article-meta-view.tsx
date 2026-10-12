@@ -1,11 +1,20 @@
 import type { MouseEventHandler } from "react";
+import { FeedSiteLink } from "./feed-site-link";
 import { ReaderInlineActionButton } from "./reader-inline-action-button";
+
+type ArticleMetaSiteLink = {
+  href: string;
+  label: string;
+  title: string;
+  onOpen: (href: string) => void;
+};
 
 type ArticleMetaViewProps = {
   title: string;
   author?: string | null;
   feedName?: string | null;
   publishedLabel: string;
+  siteLink?: ArticleMetaSiteLink | null;
   onTitleClick?: MouseEventHandler<HTMLButtonElement>;
   onTitleAuxClick?: MouseEventHandler<HTMLButtonElement>;
   onFeedClick?: () => void;
@@ -16,6 +25,7 @@ export function ArticleMetaView({
   author,
   feedName,
   publishedLabel,
+  siteLink,
   onTitleClick,
   onTitleAuxClick,
   onFeedClick,
@@ -34,7 +44,7 @@ export function ArticleMetaView({
           title
         )}
       </h1>
-      {(feedName || author) && (
+      {(feedName || siteLink || author) && (
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-serif text-[0.95rem] leading-[1.7] text-foreground-soft">
           {feedName &&
             (onFeedClick ? (
@@ -44,14 +54,30 @@ export function ArticleMetaView({
             ) : (
               <span>{feedName}</span>
             ))}
-          {feedName && author ? (
-            <span aria-hidden="true" className="text-[var(--reader-context-border)]">
-              /
-            </span>
+          {feedName && siteLink ? <MetaSeparator /> : null}
+          {siteLink ? (
+            <FeedSiteLink
+              href={siteLink.href}
+              title={siteLink.title}
+              onOpen={(href) => siteLink.onOpen(href)}
+              icon
+              className="inline-flex items-center gap-1"
+            >
+              {siteLink.label}
+            </FeedSiteLink>
           ) : null}
+          {(feedName || siteLink) && author ? <MetaSeparator /> : null}
           {author && <p>{author}</p>}
         </div>
       )}
     </div>
+  );
+}
+
+function MetaSeparator() {
+  return (
+    <span aria-hidden="true" className="text-[var(--reader-context-border)]">
+      /
+    </span>
   );
 }

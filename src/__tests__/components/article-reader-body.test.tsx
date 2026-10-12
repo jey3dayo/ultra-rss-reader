@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { ArticleReaderBody } from "@/components/reader/article-reader-body";
 
 const openArticleInExternalBrowserMock = vi.fn();
@@ -27,6 +27,20 @@ const baseArticle: ArticleDto = {
   is_starred: false,
 };
 
+const baseFeed: FeedDto = {
+  id: "feed-1",
+  account_id: "acc-1",
+  folder_id: null,
+  remote_id: null,
+  title: "Tech Blog",
+  url: "https://example.com/feed.xml",
+  site_url: "https://example.com/blog?token=secret",
+  icon_url: null,
+  unread_count: 0,
+  reader_mode: "inherit",
+  web_preview_mode: "inherit",
+};
+
 describe("ArticleReaderBody", () => {
   beforeEach(() => {
     openArticleInExternalBrowserMock.mockClear();
@@ -38,6 +52,21 @@ describe("ArticleReaderBody", () => {
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
 
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/1");
+  });
+
+  it("opens the feed site link in the external browser on click and middle-click with a host-only tooltip", () => {
+    render(<ArticleReaderBody article={baseArticle} feed={baseFeed} feedName="Tech Blog" hasNextArticle={true} />);
+
+    const link = screen.getByRole("link", { name: /example\.com/ });
+    expect(link).toHaveAttribute("title", "Open in external browser — example.com");
+
+    fireEvent.click(link);
+    expect(openArticleInExternalBrowserMock).toHaveBeenCalledTimes(1);
+    expect(openArticleInExternalBrowserMock).toHaveBeenLastCalledWith("https://example.com/blog?token=secret");
+
+    fireEvent(link, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+    expect(openArticleInExternalBrowserMock).toHaveBeenCalledTimes(2);
+    expect(openArticleInExternalBrowserMock).toHaveBeenLastCalledWith("https://example.com/blog?token=secret");
   });
 
   it("lets the reader content expand across the right pane with viewport-responsive padding", () => {
