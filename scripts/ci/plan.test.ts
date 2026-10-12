@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
 import { parsePlan, validateGate } from "./gate.ts";
@@ -311,4 +311,103 @@ test("automated CI shell lint detects a faulty external script body and accepts 
   writeFileSync(body, '#!/usr/bin/env bash\nprintf "%s\\n" "$HOME"\n');
   const green = scan();
   assert.equal(green.status, 0, green.stdout + green.stderr);
+});
+
+test("Quality Gate CLI reports invalid inputs safely before exiting with failure", (context) => {
+  const dir = temporaryDirectory(context);
+  const sentinel = "CI_INPUT_SENTINEL_DO_NOT_EXPOSE";
+  const validPlan = JSON.stringify(fullPlan());
+  const validNeeds = JSON.stringify(results(fullPlan()));
+  const cases = [
+    { name: "empty plan", plan: "", needs: validNeeds },
+    { name: "malformed plan JSON", plan: `{${sentinel}`, needs: validNeeds },
+    { name: "invalid plan shape", plan: JSON.stringify({ sentinel }), needs: validNeeds },
+    { name: "inconsistent plan", plan: JSON.stringify({ ...fullPlan(), credentials: false }), needs: validNeeds },
+    { name: "empty needs", plan: validPlan, needs: "" },
+    { name: "malformed needs JSON", plan: validPlan, needs: `{${sentinel}` },
+    { name: "invalid needs shape", plan: validPlan, needs: JSON.stringify(sentinel) },
+    {
+      name: "unplanned needs key",
+      plan: validPlan,
+      needs: JSON.stringify({ ...results(fullPlan()), [sentinel]: { result: "skipped" } }),
+    },
+    {
+      name: "invalid needs result",
+      plan: validPlan,
+      needs: JSON.stringify({ ...results(fullPlan()), build: { result: sentinel } }),
+    },
+  ];
+  for (const [index, input] of cases.entries()) {
+    const summaryPath = join(dir, `summary-${index}`);
+    const result = spawnSync(process.execPath, [resolve("scripts/ci/quality-gate.ts")], {
+      cwd: dir,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GITHUB_EVENT_NAME: "pull_request",
+        CI_PLAN: input.plan,
+        CI_NEEDS: input.needs,
+        GITHUB_STEP_SUMMARY: summaryPath,
+      },
+    });
+    assert.equal(result.status, 1, input.name);
+    assert.equal(existsSync(summaryPath), true, `${input.name} must write a failure summary`);
+    const summary = readFileSync(summaryPath, "utf8");
+    assert.ok(summary.includes("Quality Gate: FAILED"), input.name);
+    assert.match(
+      summary,
+      /CI plan or job results are missing or invalid\.|Required CI jobs did not complete successfully\./,
+    );
+    const output = result.stdout + result.stderr + summary;
+    assert.ok(!output.includes(sentinel), input.name);
+    assert.ok(!output.includes("SyntaxError"), input.name);
+    assert.ok(!output.includes("Unexpected token"), input.name);
+  }
+});
+
+test("Quality Gate CLI retains only fixed job names and whitelisted results", (context) => {
+  const dir = temporaryDirectory(context);
+  const summaryPath = join(dir, "summary");
+  const sentinel = "CI_RESULT_SENTINEL_DO_NOT_EXPOSE";
+  const needs: Record<string, { result: string }> = {
+    ...results(fullPlan()),
+    "change-plan": { result: "cancelled" },
+    "test-node": { result: "failure" },
+    "rust-clippy": { result: "skipped" },
+    build: { result: sentinel },
+    [sentinel]: { result: sentinel },
+  };
+  delete needs.audit;
+  const result = spawnSync(process.execPath, [resolve("scripts/ci/quality-gate.ts")], {
+    cwd: dir,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GITHUB_EVENT_NAME: "pull_request",
+      CI_PLAN: JSON.stringify(fullPlan()),
+      CI_NEEDS: JSON.stringify(needs),
+      GITHUB_STEP_SUMMARY: summaryPath,
+    },
+  });
+  assert.equal(result.status, 1);
+  const summary = readFileSync(summaryPath, "utf8");
+  for (const line of [
+    "- change-plan: cancelled",
+    "- test-node: failure",
+    "- rust-clippy: skipped",
+    "- build: invalid",
+    "- audit: missing",
+    "- format: success",
+  ]) {
+    assert.ok(summary.includes(line), line);
+  }
+  const expectedJobs = ["change-plan", ...checkJobs];
+  const resultLines = summary.split("\n").filter((line) => line.startsWith("- "));
+  assert.deepEqual(
+    resultLines.map((line) => line.split(":")[0]?.slice(2)),
+    expectedJobs,
+  );
+  for (const line of resultLines) assert.match(line, /: (?:success|failure|cancelled|skipped|missing|invalid)$/);
+  assert.ok(summary.includes("Quality Gate: FAILED"));
+  assert.ok(!(result.stdout + result.stderr + summary).includes(sentinel));
 });

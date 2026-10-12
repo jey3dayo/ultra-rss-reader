@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { describe, expect, it } from "vitest";
 import packageJson from "../../../package.json";
 
@@ -85,9 +86,13 @@ describe("CI workflow contract", () => {
     const command = readRepoFile(".github/workflows/ci.yml").match(/mise run (lint:types[^\n]*)/)?.[1];
     expect(command).toBeDefined();
     const args = command?.trim().split(/\s+/) ?? [];
-    const dryRun = spawnSync("mise", ["run", "--dry-run", ...args], { encoding: "utf8" });
+    const env: NodeJS.ProcessEnv = { ...process.env, FORCE_COLOR: "1", CLICOLOR_FORCE: "1" };
+    delete env.NO_COLOR;
+    const dryRun = spawnSync("mise", ["run", "--dry-run", ...args], { encoding: "utf8", env });
     expect(dryRun.status, dryRun.stderr).toBe(0);
-    const output = dryRun.stdout + dryRun.stderr;
+    const rawOutput = dryRun.stdout + dryRun.stderr;
+    const output = stripVTControlCharacters(rawOutput);
+    expect(rawOutput).not.toBe(output);
     for (const task of [
       "lint:types",
       "lint:biome",
