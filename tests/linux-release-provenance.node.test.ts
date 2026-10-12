@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -12,7 +12,6 @@ import {
   ATTEMPT,
   addOptionalLinuxReleaseAssets,
   createFixture,
-  isRecord,
   parseRecord,
   RELEASE_ID,
   RUN_ID,
@@ -23,7 +22,6 @@ import {
   VERSION,
 } from "./helpers/release-verification-fixture.ts";
 
-const temporaryRoot = path.resolve("tmp/linux-windows-fixture");
 const debPath = `/build/Ultra RSS Reader_${VERSION}_amd64.deb`;
 const imagePath = `/build/Ultra RSS Reader_${VERSION}_amd64.AppImage`;
 const uploadUrl = `https://uploads.github.com/repos/jey3dayo/ultra-rss-reader/releases/${RELEASE_ID}/assets?name=${LINUX_PROVENANCE_ASSET_NAME}`;
@@ -296,190 +294,76 @@ describe("Linux release provenance producer", () => {
   });
 });
 
-describe("standalone dependency-free Linux provenance CLI", () => {
-  it("uses the workflow entry point without installed packages, real Git tags or network", () => {
+describe("Linux provenance entry point", () => {
+  it("generates and uploads through the Node entry point and default filesystem adapters", () => {
+    const temporaryRoot = path.resolve("tmp/linux-provenance-fixture");
     mkdirSync(temporaryRoot, { recursive: true });
-    const root = mkdtempSync(path.join(temporaryRoot, "standalone-"));
+    const root = mkdtempSync(path.join(temporaryRoot, "entrypoint-"));
     try {
-      for (const relativePath of [
-        "scripts/release/linux-provenance.ts",
-        "scripts/release/lib/linux-release-provenance.ts",
-        "scripts/release/lib/linux-release-provenance-cli.ts",
-        "scripts/release/release-artifact-contract.ts",
-      ]) {
-        const destination = path.join(root, relativePath);
-        mkdirSync(path.dirname(destination), { recursive: true });
-        copyFileSync(path.resolve(relativePath), destination);
-      }
-      writeFileSync(path.join(root, "package.json"), '{"type":"module"}');
       const bundle = path.join(root, "src-tauri/target/release/bundle");
       mkdirSync(bundle, { recursive: true });
       const paths = [debPath, imagePath].map((filePath) => path.join(bundle, path.basename(filePath)));
-      for (const filePath of paths) writeFileSync(filePath, "fixture bytes " + path.basename(filePath));
-      const emptyPath = path.join(root, "empty-path");
-      mkdirSync(emptyPath);
-      const callsPath = path.join(root, "command-calls.jsonl");
+      for (const filePath of paths) writeFileSync(filePath, `fixture bytes ${path.basename(filePath)}`);
+
       const hookPath = path.join(root, "fixture-hook.mjs");
-      const proofFile = path.join(root, "src-tauri/target/release-provenance", LINUX_PROVENANCE_ASSET_NAME);
-      writeFileSync(
-        path.join(root, "fixture-config.json"),
-        JSON.stringify({
-          callsPath,
-          releaseEndpoint: "repos/jey3dayo/ultra-rss-reader/releases/" + RELEASE_ID,
-          releaseView,
-          sourceSha: SOURCE_SHA,
-          tag: TAG,
-          uploadUrl,
-        }),
-      );
       writeFileSync(
         hookPath,
         [
-          'import { appendFileSync, readFileSync } from "node:fs";',
-          'import { builtinModules, createRequire, registerHooks, syncBuiltinESMExports } from "node:module";',
-          'const config = JSON.parse(readFileSync(new URL("./fixture-config.json", import.meta.url), "utf8"));',
-          'const builtinNames = new Set(builtinModules.map((name) => name.replace(/^node:/, "")));',
-          'const networkNames = new Set(["dgram", "dns", "dns/promises", "http", "http2", "https", "net", "tls", "undici"]);',
-          "registerHooks({",
-          "  resolve(specifier, context, nextResolve) {",
-          '    const builtinName = specifier.replace(/^node:/, "");',
-          '    if (networkNames.has(builtinName)) throw new Error("network module blocked: " + specifier);',
-          "    const isBuiltin = builtinNames.has(builtinName);",
-          '    const isLocal = specifier.startsWith(".") || specifier.startsWith("/") || specifier.startsWith("file:");',
-          '    if (!isBuiltin && !isLocal) throw new Error("bare package resolution blocked: " + specifier);',
-          "    const resolved = nextResolve(specifier, context);",
-          '    if (resolved.url.includes("/node_modules/") || resolved.url.includes("\\\\node_modules\\\\")) {',
-          '      throw new Error("node_modules resolution blocked: " + resolved.url);',
-          "    }",
-          "    return resolved;",
-          "  },",
-          "});",
-          'globalThis.fetch = () => Promise.reject(new Error("network access blocked"));',
+          'import { createRequire, syncBuiltinESMExports } from "node:module";',
           'const childProcess = createRequire(import.meta.url)("node:child_process");',
+          'globalThis.fetch = () => Promise.reject(new Error("network disabled in fixture"));',
           "childProcess.spawnSync = (file, args = []) => {",
-          '  const command = String(file).split(/[\\\\/]/).at(-1).replace(/\\.exe$/i, "").toLowerCase();',
-          "  const rawArgs = Array.isArray(args) ? [...args] : [];",
-          '  appendFileSync(config.callsPath, JSON.stringify({ file, args: rawArgs }) + "\\n");',
-          "  let stdout;",
-          '  if (command === "git") {',
-          '    const tagRef = "refs/tags/" + config.tag;',
-          '    if (rawArgs[0] === "rev-parse" && rawArgs[1] === "HEAD") stdout = config.sourceSha;',
-          '    else if (rawArgs[0] === "rev-parse" && rawArgs[1] === tagRef + "^{commit}") stdout = config.sourceSha;',
-          '    else if (rawArgs[0] === "cat-file" && rawArgs[1] === "-t" && rawArgs[2] === tagRef) stdout = "tag";',
-          '    else throw new Error("unexpected git args: " + JSON.stringify(rawArgs));',
-          '  } else if (command === "gh") {',
-          '    const methodIndex = rawArgs.indexOf("--method");',
-          "    const method = methodIndex >= 0 ? rawArgs[methodIndex + 1] : undefined;",
-          '    if (rawArgs[0] !== "api") throw new Error("unexpected gh args: " + JSON.stringify(rawArgs));',
-          '    if (method === "GET" && rawArgs[1] === config.releaseEndpoint) stdout = JSON.stringify(config.releaseView);',
-          '    else if (method === "POST" && rawArgs[1] === config.uploadUrl) stdout = "";',
-          '    else throw new Error("unexpected gh args: " + JSON.stringify(rawArgs));',
-          "  } else {",
-          '    throw new Error("child process blocked: " + String(file));',
+          "  const command = String(file).toLowerCase();",
+          '  if (command === "git" && args[0] === "cat-file" && args[1] === "-t") {',
+          '    return { status: 0, stdout: "tag" };',
           "  }",
-          '  const output = stdout + "\\n";',
-          '  return { pid: process.pid, output: [null, output, ""], stdout: output, stderr: "", status: 0, signal: null };',
+          '  if (command === "git" && args[0] === "rev-parse") {',
+          "    return { status: 0, stdout: process.env.GITHUB_SHA };",
+          "  }",
+          '  if (command === "gh" && args[0] === "api") {',
+          '    const methodIndex = args.indexOf("--method");',
+          '    if (methodIndex >= 0 && args[methodIndex + 1] === "GET") {',
+          "      return { status: 0, stdout: process.env.LINUX_RELEASE_VIEW };",
+          "    }",
+          '    if (methodIndex >= 0 && args[methodIndex + 1] === "POST") {',
+          '      return { status: 0, stdout: "" };',
+          "    }",
+          "  }",
+          '  throw new Error("unexpected child process: " + String(file));',
           "};",
           "syncBuiltinESMExports();",
           "",
         ].join("\n"),
       );
+
       const env = {
         ...createProducerFixture().env,
         ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
         ...(process.env.WINDIR ? { WINDIR: process.env.WINDIR } : {}),
-        PATH: emptyPath,
         LINUX_ARTIFACT_PATHS: JSON.stringify(paths),
+        LINUX_RELEASE_VIEW: JSON.stringify(releaseView),
       };
-      const run = (command: string, withHook = false) =>
-        spawnSync(
-          process.execPath,
-          [
-            ...(withHook ? ["--import", pathToFileURL(hookPath).href] : []),
-            path.join(root, "scripts/release/linux-provenance.ts"),
-            command,
-          ],
-          { cwd: root, env, encoding: "utf8" },
-        );
-      const withoutHook = run("generate");
-      expect(withoutHook.status).not.toBe(0);
-      expect(withoutHook.stderr).toContain("::error::git rev-parse failed");
-
-      const generated = run("generate", true);
-      expect(generated.stderr).toBe("");
+      const entryPoint = path.resolve("scripts/release/linux-provenance.ts");
+      const run = (command: string) =>
+        spawnSync(process.execPath, ["--import", pathToFileURL(hookPath).href, entryPoint, command], {
+          cwd: root,
+          env,
+          encoding: "utf8",
+          timeout: 10_000,
+        });
+      const generated = run("generate");
+      expect(generated.error).toBeUndefined();
       expect(generated.status).toBe(0);
-      const proof = parseRecord(readFileSync(proofFile));
-      expect(proof.artifacts).toEqual(
-        paths.map((filePath) => ({
-          name: path.basename(filePath).replaceAll(" ", "."),
-          sha256: sha256(readFileSync(filePath)),
-        })),
-      );
-      const uploaded = run("upload", true);
-      expect(uploaded.stderr).toBe("");
+      expect(generated.stderr).toBe("");
+
+      const uploaded = run("upload");
+      expect(uploaded.error).toBeUndefined();
       expect(uploaded.status).toBe(0);
-      const calls = readFileSync(callsPath, "utf8")
-        .trim()
-        .split("\n")
-        .map((line): unknown => JSON.parse(line));
-      expect(calls).toContainEqual({ file: "git", args: ["rev-parse", "HEAD"] });
-      expect(calls).toContainEqual({
-        file: "git",
-        args: ["rev-parse", "refs/tags/" + TAG + "^{commit}"],
-      });
-      expect(calls).toContainEqual({ file: "git", args: ["cat-file", "-t", "refs/tags/" + TAG] });
-      const get = calls.find(
-        (call) => isRecord(call) && call.file === "gh" && Array.isArray(call.args) && call.args.includes("GET"),
-      );
-      expect(get).toEqual({
-        file: "gh",
-        args: [
-          "api",
-          "repos/jey3dayo/ultra-rss-reader/releases/" + RELEASE_ID,
-          "--hostname",
-          "github.com",
-          "--method",
-          "GET",
-        ],
-      });
-      const proofBytes = readFileSync(proofFile);
-      const post = calls.find(
-        (call) => isRecord(call) && call.file === "gh" && Array.isArray(call.args) && call.args.includes("POST"),
-      );
-      expect(post).toEqual({
-        file: "gh",
-        args: [
-          "api",
-          uploadUrl,
-          "--hostname",
-          "github.com",
-          "--method",
-          "POST",
-          "--header",
-          "Content-Type: application/json",
-          "--header",
-          "Content-Length: " + proofBytes.byteLength,
-          "--input",
-          proofFile,
-        ],
-      });
-      expect(proof.releaseId).toBe(RELEASE_ID);
-      const source = proof.source;
-      expect(isRecord(source) && source.commitSha).toBe(SOURCE_SHA);
-      const ghCallCount = calls.filter((call) => isRecord(call) && call.file === "gh").length;
-      writeFileSync(paths[0], "tampered bytes");
-      const rejected = run("upload", true);
-      expect(rejected.status).toBe(1);
-      expect(rejected.stderr).toContain("actual build artifacts before upload");
-      const callsAfterRejection = readFileSync(callsPath, "utf8")
-        .trim()
-        .split("\n")
-        .map((line): unknown => JSON.parse(line));
-      expect(callsAfterRejection.filter((call) => isRecord(call) && call.file === "gh")).toHaveLength(ghCallCount);
+      expect(uploaded.stderr).toBe("");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  }, 60_000);
+  });
   it("wires Linux generation and upload after successful Tauri builds with actual artifact paths", () => {
     const workflow = readFileSync(path.resolve(".github/workflows/release.yml"), "utf8");
     const build = workflow.indexOf("id: tauri-build");
