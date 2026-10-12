@@ -1,6 +1,6 @@
 import { cn } from "cn";
-import { Clock3, Folder, Globe, Hash, Inbox, Star } from "lucide-react";
-import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { Clock3, Folder, Hash, Inbox, Star } from "lucide-react";
+import type { CSSProperties, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -21,6 +21,7 @@ import { openArticleInExternalBrowser } from "./article-browser-actions";
 import { ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell } from "./article-view-state";
 import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
+import { FeedSiteLink } from "./feed-site-link";
 import { useReaderPassiveLayoutBodyRef, useReaderPassiveLayoutCard } from "./hooks/use-reader-passive-layout-context";
 import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "./reader-passive-card";
 
@@ -148,27 +149,15 @@ function SummaryEmptyState({
     });
   }
 
-  function handleWebsiteLinkClick(event: ReactMouseEvent<HTMLAnchorElement>) {
-    event.preventDefault();
-    if (!websiteLink) {
+  function handleWebsiteLinkOpen(href: string, { external }: { external: boolean }) {
+    if (external) {
+      void openArticleInExternalBrowser(href);
       return;
     }
-    if (event.metaKey || event.ctrlKey) {
-      void openArticleInExternalBrowser(websiteLink.href);
-      return;
-    }
-    openBrowser(websiteLink.href);
+    openBrowser(href);
   }
 
-  function handleWebsiteLinkAuxClick(event: ReactMouseEvent<HTMLAnchorElement>) {
-    if (event.button !== 1 || !websiteLink) {
-      return;
-    }
-    event.preventDefault();
-    void openArticleInExternalBrowser(websiteLink.href);
-  }
-
-  const websiteLinkTitle = websiteLink ? t("site_link_open_in_app", { host: websiteLink.label }) : undefined;
+  const websiteLinkTitle = websiteLink ? t("site_link_open_in_app", { host: websiteLink.label }) : "";
 
   return (
     <ArticleEmptyStateShell
@@ -219,16 +208,15 @@ function SummaryEmptyState({
                   </span>
                   <div className="min-w-0">
                     {websiteLink ? (
-                      <a
+                      <FeedSiteLink
                         href={websiteLink.href}
                         title={websiteLinkTitle}
-                        onClick={handleWebsiteLinkClick}
-                        onAuxClick={handleWebsiteLinkAuxClick}
-                        className="block truncate font-sans text-xl font-semibold leading-tight text-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+                        onOpen={handleWebsiteLinkOpen}
+                        className="block truncate font-sans text-xl font-semibold leading-tight text-foreground"
                         dir="auto"
                       >
                         {title}
-                      </a>
+                      </FeedSiteLink>
                     ) : (
                       <p className="truncate font-sans text-xl font-semibold leading-tight text-foreground" dir="auto">
                         {title}
@@ -236,16 +224,15 @@ function SummaryEmptyState({
                     )}
                     <p className="mt-1 text-xs leading-tight text-foreground-soft">
                       {websiteLink ? (
-                        <a
+                        <FeedSiteLink
                           href={websiteLink.href}
                           title={websiteLinkTitle}
-                          onClick={handleWebsiteLinkClick}
-                          onAuxClick={handleWebsiteLinkAuxClick}
-                          className="inline-flex items-center gap-1 underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+                          onOpen={handleWebsiteLinkOpen}
+                          icon
+                          className="inline-flex items-center gap-1"
                         >
-                          <Globe aria-hidden="true" className="size-3 shrink-0" />
                           {websiteLink.label}
-                        </a>
+                        </FeedSiteLink>
                       ) : (
                         subtitle
                       )}

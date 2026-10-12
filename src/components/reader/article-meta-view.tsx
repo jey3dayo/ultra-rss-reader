@@ -1,5 +1,5 @@
-import { Globe } from "lucide-react";
-import type { MouseEvent, MouseEventHandler } from "react";
+import type { MouseEventHandler } from "react";
+import { FeedSiteLink } from "./feed-site-link";
 import { ReaderInlineActionButton } from "./reader-inline-action-button";
 
 type ArticleMetaSiteLink = {
@@ -30,19 +30,6 @@ export function ArticleMetaView({
   onTitleAuxClick,
   onFeedClick,
 }: ArticleMetaViewProps) {
-  function handleSiteClick(event: MouseEvent<HTMLAnchorElement>) {
-    event.preventDefault();
-    siteLink?.onOpen(siteLink.href);
-  }
-
-  function handleSiteAuxClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (event.button !== 1) {
-      return;
-    }
-    event.preventDefault();
-    siteLink?.onOpen(siteLink.href);
-  }
-
   return (
     <div className="space-y-4">
       <div className="font-sans text-[0.8rem] font-medium leading-none tracking-[0.08em] tabular-nums text-foreground-soft">
@@ -69,16 +56,15 @@ export function ArticleMetaView({
             ))}
           {feedName && siteLink ? <MetaSeparator /> : null}
           {siteLink ? (
-            <a
+            <FeedSiteLink
               href={siteLink.href}
               title={siteLink.title}
-              onClick={handleSiteClick}
-              onAuxClick={handleSiteAuxClick}
-              className="inline-flex items-center gap-1 underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+              onOpen={(href) => siteLink.onOpen(href)}
+              icon
+              className="inline-flex items-center gap-1"
             >
-              <Globe aria-hidden="true" className="size-3.5 shrink-0" />
               {siteLink.label}
-            </a>
+            </FeedSiteLink>
           ) : null}
           {(feedName || siteLink) && author ? <MetaSeparator /> : null}
           {author && <p>{author}</p>}
