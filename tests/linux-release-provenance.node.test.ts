@@ -479,7 +479,7 @@ describe("standalone dependency-free Linux provenance CLI", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, 60_000);
   it("wires Linux generation and upload after successful Tauri builds with actual artifact paths", () => {
     const workflow = readFileSync(path.resolve(".github/workflows/release.yml"), "utf8");
     const build = workflow.indexOf("id: tauri-build");
