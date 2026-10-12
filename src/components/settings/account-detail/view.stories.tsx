@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { type ReactNode, useEffect } from "react";
 import { fn } from "storybook/test";
 import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import { AccountConnectionSummary } from "../account-connection-summary";
+import { AccountCredentialsSectionView } from "./credentials-section-view";
 import { AccountDetailView } from "./view";
 
 const syncIntervalOptions = [
@@ -15,6 +17,34 @@ const keepReadItemsOptions = [
   { value: "90", label: "Three months" },
   { value: "0", label: "Forever" },
 ];
+
+const actionSuccessSyncIntervalOptions = [
+  { value: "900", label: "15分ごと" },
+  { value: "3600", label: "1時間ごと" },
+  { value: "7200", label: "2時間ごと" },
+];
+
+const actionSuccessKeepReadItemsOptions = [
+  { value: "30", label: "1か月間" },
+  { value: "90", label: "3か月間" },
+  { value: "0", label: "無期限" },
+];
+
+function DarkStorybookTheme({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    const alreadyDark = root.classList.contains("dark");
+    root.classList.add("dark");
+
+    return () => {
+      if (!alreadyDark) {
+        root.classList.remove("dark");
+      }
+    };
+  }, []);
+
+  return children;
+}
 
 const meta = {
   title: "Settings/Account/AccountDetailView",
@@ -101,6 +131,90 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const ActionSuccessFeedback: Story = {
+  decorators: [
+    (Story, context) =>
+      context.viewMode === "story" ? (
+        <DarkStorybookTheme>
+          <Story />
+        </DarkStorybookTheme>
+      ) : (
+        <Story />
+      ),
+  ],
+  args: {
+    title: "個人用FreshRSS",
+    subtitle: "FreshRSS",
+    headerSummary: <AccountConnectionSummary statusLabel="接続確認済み" statusTone="success" detail="今日 01:06" />,
+    generalSection: {
+      ...meta.args.generalSection,
+      heading: "基本情報",
+      nameLabel: "アカウント名",
+      nameValue: "個人用FreshRSS",
+      editNameTitle: "クリックして編集",
+      nameDraft: "個人用FreshRSS",
+      infoRows: [
+        { label: "種類", value: "FreshRSS" },
+        { label: "サーバー", value: "https://freshrss.example.com", truncate: true },
+      ],
+    },
+    credentialsSection: (
+      <AccountCredentialsSectionView
+        heading="サーバー"
+        serverUrlLabel="サーバーURL"
+        serverUrlValue="https://freshrss.example.com/api/greader.php"
+        usernameLabel="ユーザー名"
+        usernameValue="reader"
+        onUsernameChange={fn()}
+        passwordLabel="パスワード"
+        passwordValue="••••••••"
+        passwordPlaceholder="新しいパスワードを入力"
+        onPasswordChange={fn()}
+        testConnectionLabel="接続確認"
+        testConnectionSuccessLabel="接続確認済み"
+        connectionTestSucceeded={true}
+        onTestConnection={fn()}
+      />
+    ),
+    syncSection: {
+      ...meta.args.syncSection,
+      heading: "同期設定",
+      syncInterval: {
+        ...meta.args.syncSection.syncInterval,
+        label: "自動同期の間隔",
+        options: actionSuccessSyncIntervalOptions,
+      },
+      syncOnStartup: {
+        ...meta.args.syncSection.syncOnStartup,
+        label: "アプリ起動時に同期",
+      },
+      syncOnWake: {
+        ...meta.args.syncSection.syncOnWake,
+        label: "スリープ解除時に同期",
+      },
+      keepReadItems: {
+        ...meta.args.syncSection.keepReadItems,
+        label: "既読記事を保持する期間",
+        options: actionSuccessKeepReadItemsOptions,
+      },
+      statusRows: [],
+      syncNowLabel: "今すぐ同期",
+      syncNowSuccessLabel: "同期完了",
+      syncNowSucceeded: true,
+      syncingLabel: "同期中…",
+      onSyncNow: fn(),
+    },
+    dangerZone: {
+      ...meta.args.dangerZone,
+      dataHeading: "データ",
+      dangerHeading: "危険な操作",
+      importLabel: "OPMLを取り込む",
+      exportLabel: "OPMLを書き出す",
+      deleteLabel: "アカウントを削除",
+    },
+  },
+};
 
 export const ConfirmingDelete: Story = {
   args: {

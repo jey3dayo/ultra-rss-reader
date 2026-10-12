@@ -40,6 +40,8 @@ type AccountSyncSectionViewProps = {
   keepReadItems: AccountSelectControl;
   statusRows?: AccountSyncStatusRow[];
   syncNowLabel?: string;
+  syncNowSuccessLabel?: string;
+  syncNowSucceeded?: boolean;
   syncingLabel?: string;
   onSyncNow?: () => void;
   isSyncing?: boolean;
@@ -71,6 +73,8 @@ export function AccountSyncSectionView({
   progressValue,
   progressCurrentLabel,
   syncNowLabel,
+  syncNowSuccessLabel,
+  syncNowSucceeded,
   syncingLabel,
   onSyncNow,
   isSyncing,
@@ -147,7 +151,7 @@ export function AccountSyncSectionView({
         </div>
       ) : null}
       {(onSyncNow || onSecondaryAction || onDevCredentialsRecoveryAction) && (
-        <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end")}>
+        <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end lg:pr-2")}>
           {onSecondaryAction && secondaryActionLabel ? (
             <SettingsActionButton size="standalone" onClick={onSecondaryAction} disabled={syncActionDisabled}>
               {secondaryActionLabel}
@@ -170,6 +174,8 @@ export function AccountSyncSectionView({
               onClick={onSyncNow}
               loading={isSyncing}
               loadingLabel={syncingLabel}
+              success={syncNowSucceeded}
+              successLabel={syncNowSuccessLabel}
               disabled={syncActionDisabled}
             >
               {syncNowLabel}

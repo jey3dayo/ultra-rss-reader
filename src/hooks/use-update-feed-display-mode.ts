@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { type FeedDto, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import type { TriStateDisplayMode } from "@/lib/articles/article-display";
 import { invalidateFeedRootQueries, queryKeys } from "@/lib/query/query-invalidation";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useUpdateFeedDisplaySettings() {
@@ -34,7 +35,11 @@ export function useUpdateFeedDisplaySettings() {
         for (const [queryKey, previousFeeds] of previousFeedsQueries) {
           qc.setQueryData(queryKey, previousFeeds);
         }
-        showToast(t("failed_to_update_display_settings", { message: Result.unwrapError(result).message }));
+        showToast(
+          t("failed_to_update_display_settings", {
+            message: localizeUserVisibleAppErrorMessage(Result.unwrapError(result).message),
+          }),
+        );
         return false;
       }
 

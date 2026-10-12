@@ -7,6 +7,7 @@ import type { DiscoveredFeedDto } from "@/api/tauri-commands";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { invalidateAddFeedQueries } from "@/lib/query/query-invalidation";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import type {
   AddFeedDialogAction,
@@ -151,7 +152,7 @@ export function useAddFeedDialogActions({
 
       dispatch({
         type: "discover-error",
-        error: t("discovery_failed", { message }),
+        error: t("discovery_failed", { message: localizeUserVisibleAppErrorMessage(message) }),
         requestId,
       });
     };
@@ -160,7 +161,7 @@ export function useAddFeedDialogActions({
     try {
       discoveryResult = await discoverFeeds(requestUrl);
     } catch (error) {
-      handleDiscoveryError(error instanceof Error ? error.message : String(error));
+      handleDiscoveryError(getErrorMessage(error));
       discoveryRun.finish();
       return;
     }
@@ -256,7 +257,7 @@ export function useAddFeedDialogActions({
           Result.pipe(
             await updateFeedFolder(feedId, folderId),
             Result.inspectError((error) => {
-              console.error("Failed to assign folder:", error);
+              console.error("Failed to assign folder:", error.type);
               if (isLatestSubmit()) {
                 showToast(
                   t("feed_added_folder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }),

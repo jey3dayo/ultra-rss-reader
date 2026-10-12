@@ -138,6 +138,8 @@ export function buildSyncSection({
     },
     statusRows: syncStatusRows,
     syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),
+    syncNowSuccessLabel: t("account.sync_now_succeeded"),
+    syncNowSucceeded: !isSetupActive && controller.syncNowSucceeded,
     syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
     onSyncNow: isQuarantined ? undefined : isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow,
     isSyncing: isSyncing || controller.syncActionInFlight,

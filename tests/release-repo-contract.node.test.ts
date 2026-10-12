@@ -13,6 +13,11 @@ import {
   qualityBaselineRepoScanIgnoredPathPrefixes,
 } from "../scripts/quality-baseline";
 import {
+  RELEASE_UPDATER_ASSET_CONTRACT as actualReleaseUpdaterAssetContract,
+  UNSUPPORTED_UPDATER_PLATFORM_KEYS as actualUnsupportedUpdaterPlatformKeys,
+} from "../scripts/release/lib/artifact-contract";
+import { type ReleaseConfigSources, validateReleaseConfigSources } from "../scripts/release/lib/config-validation";
+import {
   analyzeRepositorySqlInventory,
   buildEnumDriftRows,
   type EnumDriftContract,
@@ -583,6 +588,42 @@ const extractTauriActionBlock = (source: string): string => {
   return value;
 };
 
+const assertReleaseTokenUseScope = (source: string): void => {
+  const bindings = new Map([
+    ["name: Reject duplicate or published release builds", "GH_TOKEN: $" + "{{ github.token }}"],
+    [
+      "uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
+      "GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+    ],
+    ...[
+      "Upload Linux release provenance",
+      "Upload updater asset checksums",
+      "Upload release provenance assets",
+      "Validate existing draft release assets",
+    ].map((name): [string, string] => [`name: ${name}`, "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}"]),
+  ]);
+  const seen = new Set<string>();
+  for (const step of source.split(/(?=^ {6}- )/m)) {
+    const tokenUses = step.match(/secrets\.GITHUB_TOKEN|github\.token/g) ?? [];
+    if (tokenUses.length === 0) continue;
+    const header = step
+      .split("\n")[0]
+      .trim()
+      .replace(/^- /, "")
+      .replace(/\s+#.*$/, "");
+    const binding = bindings.get(header);
+    if (!binding || seen.has(header)) throw new Error(`GitHub token use is not allowed in step ${header}`);
+    const envBlock = step.match(/^ {8}env:\r?\n(?<block>(?: {10}.*(?:\r?\n|$))*)/m)?.groups?.block ?? "";
+    const envEntries = extractYamlScalarBlockEntries(envBlock.replace(/^ {8}/gm, ""));
+    const separator = binding.indexOf(": ");
+    if (tokenUses.length !== 1 || envEntries[binding.slice(0, separator)] !== binding.slice(separator + 2)) {
+      throw new Error(`GitHub token binding does not match the allowed env use in step ${header}`);
+    }
+    seen.add(header);
+  }
+  expect(seen).toEqual(new Set(bindings.keys()));
+};
+
 const repoWalkIgnoredDirectoryNames = new Set([
   ".git",
   ".worktrees",
@@ -683,15 +724,27 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const cargoToml = readText("src-tauri/Cargo.toml");
   const cargoLock = readText("src-tauri/Cargo.lock");
   const releaseWorkflow = readText(".github/workflows/release.yml");
-  const releaseSourceValidator = readText("scripts/release/validate-source.ts");
-  const releaseConfigValidator = readText("scripts/release/validate-release-config.ts");
-  const releaseVersionBumpScript = readText("scripts/release/bump-version.ts");
+  const releaseSourceCli = readText("scripts/release/validate-source.ts");
+  const releaseSourceWorkflow = readText("scripts/release/workflows/validate-source.ts");
+  const releaseConfigCli = readText("scripts/release/validate-release-config.ts");
+  const releaseConfigSources: ReleaseConfigSources = {
+    packageJson: readText("package.json"),
+    tauriConfig: readText("src-tauri/tauri.conf.json"),
+    releaseTauriConfig: readText("src-tauri/tauri.release.conf.json"),
+    devTauriConfig: readText("src-tauri/tauri.dev.conf.json"),
+    defaultCapability: readText("src-tauri/capabilities/default.json"),
+    cargoToml,
+    cargoLock,
+    releaseWorkflow,
+    msixManifest: readText("msix/Package.appxmanifest"),
+  };
   const releaseCommand = readText(".claude/commands/release.md");
   const codexReleaseSkill = readText(".codex/skills/release/SKILL.md");
   const codexPhase2Reference = readText(".codex/skills/release/references/phase-2-generate.md");
   const codexReleaseChecks = readText(".codex/skills/release/scripts/release_checks.py");
   const dependencyLicenseReportScript = readText("scripts/report-dependency-licenses.ts");
-  const releaseArtifactsScript = readText("scripts/release/artifacts.ts");
+  const releaseArtifactsCli = readText("scripts/release/artifacts.ts");
+  const releaseArtifactWorkflow = readText("scripts/release/workflows/artifacts.ts");
   const releaseContaminationChecker = readText("scripts/check-release-build-contamination.ts");
   const tauriLib = readText("src-tauri/src/lib.rs");
   const updaterCommandsSource = readUpdaterModuleSource();
@@ -755,14 +808,10 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow).not.toContain("node <<'NODE'");
     expect(releaseWorkflow).toContain("Validate release configuration");
     expect(releaseWorkflow).toContain("node ./scripts/release/validate-release-config.ts");
-    expect(releaseConfigValidator).toContain("release tag $" + "{releaseTag}");
-    expect(releaseConfigValidator).toContain("src-tauri/tauri.conf.json version");
-    expect(releaseConfigValidator).toContain("src-tauri/Cargo.toml version");
-    expect(releaseConfigValidator).toContain("src-tauri/Cargo.lock");
-    expect(releaseConfigValidator).toContain("MSIX_VERSION_COMPONENT_MAX");
-    expect(releaseVersionBumpScript).toContain("src-tauri/Cargo.lock");
-    expect(releaseVersionBumpScript).toContain("msix/Package.appxmanifest");
-    expect(releaseVersionBumpScript).toContain("MSIX_VERSION_COMPONENT_MAX");
+    expect(
+      validateReleaseConfigSources({ releaseTag: `v${packageJson.version}`, sources: releaseConfigSources }),
+    ).toEqual([]);
+    expect(releaseConfigCli).toContain('from "./lib/config-validation.ts"');
     expect(releaseCommand).toContain("node scripts/release/bump-version.ts <new_version>");
     expect(codexReleaseSkill).toContain("scripts/release/bump-version.ts <new_version>");
     expect(codexPhase2Reference).toContain("scripts/release/bump-version.ts <new_version>");
@@ -787,34 +836,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow).toContain(["ref: $", "{{ github.ref }}"].join(""));
     expect(releaseWorkflow).not.toContain("format('refs/tags/{0}', inputs.release_tag)");
     expect(releaseWorkflow).toContain("node ./scripts/release/validate-source.ts");
-    expect(releaseSourceValidator).toContain('eventName === "push"');
-    expect(releaseSourceValidator).toContain('eventName === "workflow_dispatch"');
-    expect(releaseSourceValidator).toContain(
-      "tag push ref $" + "{workflowRef} does not match release tag $" + "{releaseTag}",
-    );
-    expect(releaseSourceValidator).toContain(
-      "manual dispatch ref $" + "{workflowRef} does not match release tag $" + "{releaseTag}",
-    );
-    expect(releaseSourceValidator).toContain(
-      '["fetch", "--force", "--tags", "origin", `refs/tags/$' + "{releaseTag}:refs/tags/$" + "{releaseTag}`]",
-    );
-    expect(releaseSourceValidator).toContain(
-      '["ls-remote", "--exit-code", "--tags", "origin", `refs/tags/$' + "{releaseTag}`]",
-    );
-    expect(releaseSourceValidator).toContain('["fetch", "--force", "origin", "main:refs/remotes/origin/main"]');
-    expect(releaseSourceValidator).toContain('["cat-file", "-t", `refs/tags/$' + "{releaseTag}`]");
-    expect(releaseSourceValidator).toContain("must be an annotated tag object");
-    expect(releaseSourceValidator).toContain('["rev-parse", `refs/tags/$' + "{releaseTag}`]");
-    expect(releaseSourceValidator).toContain('["rev-parse", `refs/tags/$' + "{releaseTag}^{}`]");
-    expect(releaseSourceValidator).toContain('["checkout", "--detach", tagTargetSha]');
-    expect(releaseSourceValidator).toContain('["rev-parse", "HEAD"]');
-    expect(releaseSourceValidator).toContain("expected annotated tag metadata");
-    expect(releaseSourceValidator).toContain(
-      '["merge-base", "--is-ancestor", tagTargetSha, "refs/remotes/origin/main"]',
-    );
-    expect(releaseSourceValidator).toContain("is not reachable from origin/main");
-    expect(releaseSourceValidator).toContain('process.env.REUSE_EXISTING_ASSETS === "true"');
-    expect(releaseSourceValidator).toContain("release recovery is validating existing assets");
+    expect(releaseSourceCli).toContain('from "./workflows/validate-source.ts"');
+    expect(releaseSourceCli).toContain("runReleaseSourceValidationWorkflow(process.env)");
+    expect(releaseSourceWorkflow).toContain('from "../lib/release-source-policy.ts"');
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
       releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
     );
@@ -969,7 +993,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       expect(usesValue).toMatch(/@[0-9a-f]{40}$/i);
     }
     expect(releaseWorkflow).not.toContain("actions/upload-artifact");
-    expect(releaseWorkflow.match(/secrets\.GITHUB_TOKEN/g)).toHaveLength(4);
+    assertReleaseTokenUseScope(releaseWorkflow);
     expect(extractTauriActionBlock(releaseWorkflow)).toContain("GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}");
     expect(extractReleaseStepBlock(releaseWorkflow, "Validate release signing preflight")).toContain(
       "TAURI_SIGNING_PRIVATE_KEY_SET: $" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}",
@@ -990,6 +1014,61 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
     expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
+  });
+
+  it("rejects release token use outside the permitted steps and env bindings", () => {
+    const unauthorized = releaseWorkflow.replace(
+      "      - name: Generate Linux release provenance\n",
+      "      - name: Generate Linux release provenance\n        unexpected: $" + "{{ secrets.GITHUB_TOKEN }}\n",
+    );
+    expect(() => assertReleaseTokenUseScope(unauthorized)).toThrow("GitHub token use is not allowed");
+    const duplicate = releaseWorkflow.replace(
+      "      - name: Upload Linux release provenance\n",
+      "      - name: Upload Linux release provenance\n        unexpected: $" + "{{ secrets.GITHUB_TOKEN }}\n",
+    );
+    expect(() => assertReleaseTokenUseScope(duplicate)).toThrow("GitHub token binding does not match");
+    const wrongBinding = releaseWorkflow.replace(
+      "GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+      "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+    );
+    expect(() => assertReleaseTokenUseScope(wrongBinding)).toThrow("GitHub token binding does not match");
+  });
+
+  it("rejects release token bindings relocated to with, run literals or nested env mappings", () => {
+    const expression = "$" + "{{ secrets.GITHUB_TOKEN }}";
+    const tauriStep = extractTauriActionBlock(releaseWorkflow);
+    const tauriWithoutToken = tauriStep.replace(`          GITHUB_TOKEN: ${expression}\n`, "");
+    const linuxStep = extractReleaseStepBlock(releaseWorkflow, "Upload Linux release provenance");
+    const linuxWithoutToken = linuxStep.replace(`          GH_TOKEN: ${expression}\n`, "");
+    const relocatedSteps = [
+      {
+        original: tauriStep,
+        relocated: tauriWithoutToken.replace(
+          "        with:\n",
+          `        with:\n          GITHUB_TOKEN: ${expression}\n`,
+        ),
+      },
+      {
+        original: linuxStep,
+        relocated: linuxWithoutToken.replace(
+          "        run: node ./scripts/release/linux-provenance.ts upload",
+          `        run: |\n          GH_TOKEN: ${expression}\n          node ./scripts/release/linux-provenance.ts upload`,
+        ),
+      },
+      {
+        original: linuxStep,
+        relocated: linuxWithoutToken.replace(
+          "        env:\n",
+          `        env:\n          forwarded:\n            GH_TOKEN: ${expression}\n`,
+        ),
+      },
+    ];
+    for (const { original, relocated } of relocatedSteps) {
+      expect(relocated).not.toBe(original);
+      expect(() => assertReleaseTokenUseScope(releaseWorkflow.replace(original, relocated))).toThrow(
+        "GitHub token binding does not match",
+      );
+    }
   });
 
   it("keeps CI apt mirror failures bounded with a fallback mirror", () => {
@@ -1177,12 +1256,31 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriActionBlock).toContain(`--config ${RELEASE_TAURI_CONFIG_PATH}`);
     expect(tauriActionBlock).not.toContain(`--config ${DEV_TAURI_CONFIG_PATH}`);
     expect(tauriActionBlock).not.toContain('--config \'{"identifier"');
-    expect(releaseConfigValidator).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${RELEASE_TAURI_CONFIG_PATH}";`);
-    expect(releaseConfigValidator).toContain(`const DEV_TAURI_CONFIG_PATH = "${DEV_TAURI_CONFIG_PATH}";`);
-    expect(releaseConfigValidator).toContain("src-tauri/tauri.release.conf.json must enable updater artifacts");
-    expect(releaseConfigValidator).toContain(
-      "release workflow must pass src-tauri/tauri.release.conf.json to tauri-action",
+    expect(releaseConfigCli).toContain(
+      'releaseTauriConfig: readFileSync(join(root, "src-tauri/tauri.release.conf.json")',
     );
+    expect(releaseConfigCli).toContain('devTauriConfig: readFileSync(join(root, "src-tauri/tauri.dev.conf.json")');
+    expect(
+      validateReleaseConfigSources({
+        releaseTag: `v${packageJson.version}`,
+        sources: {
+          ...releaseConfigSources,
+          releaseTauriConfig: JSON.stringify({
+            ...tauriReleaseConfig,
+            bundle: { ...tauriReleaseConfig.bundle, createUpdaterArtifacts: false },
+          }),
+        },
+      }),
+    ).toContain("src-tauri/tauri.release.conf.json must enable updater artifacts for release builds");
+    expect(
+      validateReleaseConfigSources({
+        releaseTag: `v${packageJson.version}`,
+        sources: {
+          ...releaseConfigSources,
+          releaseWorkflow: releaseWorkflow.replaceAll(RELEASE_TAURI_CONFIG_PATH, DEV_TAURI_CONFIG_PATH),
+        },
+      }),
+    ).toContain("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
     expect(releaseWorkflow.indexOf("Validate release configuration")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
@@ -1256,8 +1354,18 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriConfig.plugins?.updater?.endpoints).toEqual([RELEASE_UPDATER_ENDPOINT]);
     expect(tauriConfig.plugins?.updater?.pubkey).toBeTruthy();
     expect(tauriConfig.plugins?.updater?.pubkey).not.toMatch(UPDATER_PUBKEY_PLACEHOLDER_PATTERN);
-    expect(releaseConfigValidator).toContain(RELEASE_UPDATER_ENDPOINT);
-    expect(releaseConfigValidator).toContain("src-tauri/tauri.conf.json updater pubkey must be configured");
+    expect(
+      validateReleaseConfigSources({
+        releaseTag: `v${packageJson.version}`,
+        sources: {
+          ...releaseConfigSources,
+          tauriConfig: JSON.stringify({
+            ...tauriConfig,
+            plugins: { ...tauriConfig.plugins, updater: { ...tauriConfig.plugins?.updater, pubkey: "placeholder" } },
+          }),
+        },
+      }),
+    ).toContain("src-tauri/tauri.conf.json updater pubkey must be configured and must not be a placeholder");
   });
 
   it("documents the production app data namespace migration path before any bundle identifier change", () => {
@@ -1602,20 +1710,21 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow).toContain("node ./scripts/release/artifacts.ts validate-updater-assets");
     expect(releaseWorkflow).toContain("node ./scripts/release/artifacts.ts generate-updater-checksums");
     expect(releaseWorkflow).toContain("node ./scripts/release/artifacts.ts upload-updater-checksums");
-    expect(releaseArtifactsScript).toContain(
-      "latest.json updater manifest must map exactly to the release asset contract",
-    );
+    expect(releaseArtifactsCli).toContain('from "./lib/artifact-contract.ts"');
+    expect(releaseArtifactWorkflow).toContain('from "../lib/artifact-contract.ts"');
+    expect(actualReleaseUpdaterAssetContract).toHaveLength(RELEASE_UPDATER_ASSET_CONTRACT.length);
 
     for (const contract of RELEASE_UPDATER_ASSET_CONTRACT) {
-      expect(releaseArtifactsScript).toContain(`platformKey: "${contract.platformKey}"`);
-      expect(releaseArtifactsScript).toContain(`artifactPlatform: "${contract.artifactPlatform}"`);
-      expect(releaseArtifactsScript).toContain(`artifactArch: "${contract.artifactArch}"`);
-      expect(releaseArtifactsScript).toContain(`matrixPlatform: "${contract.matrixPlatform}"`);
-      const matrixArgsLiteral = contract.matrixArgs === '""' ? "'\"\"'" : JSON.stringify(contract.matrixArgs);
-      expect(releaseArtifactsScript).toContain(`matrixArgs: ${matrixArgsLiteral}`);
-      expect(releaseArtifactsScript).toContain(`assetPattern: "${contract.assetPattern}"`);
-      expect(releaseArtifactsScript).toContain(`signaturePattern: "${contract.signaturePattern}"`);
-      expect(releaseArtifactsScript).toContain(`checksumPattern: "${contract.checksumPattern}"`);
+      expect(actualReleaseUpdaterAssetContract).toContainEqual({
+        assetPattern: contract.assetPattern,
+        artifactArch: contract.artifactArch,
+        artifactPlatform: contract.artifactPlatform,
+        checksumPattern: contract.checksumPattern,
+        matrixArgs: contract.matrixArgs,
+        matrixPlatform: contract.matrixPlatform,
+        platformKey: contract.platformKey,
+        signaturePattern: contract.signaturePattern,
+      });
       expect(releaseWorkflow).toContain(`"platform":"${contract.matrixPlatform}"`);
       expect(releaseWorkflow).toContain(`"artifact_platform":"${contract.artifactPlatform}"`);
       expect(releaseWorkflow).toContain(`"artifact_arch":"${contract.artifactArch}"`);
@@ -1668,17 +1777,17 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const dependencyProvenanceStep = extractReleaseStepBlock(releaseWorkflow, "Generate release dependency provenance");
     expect(dependencyProvenanceStep).toContain("CARGO_LICENSE_TARGET: $" + "{{ matrix.cargo_target }}");
 
-    for (const unsupportedPlatformKey of UNSUPPORTED_UPDATER_PLATFORM_KEYS) {
-      expect(releaseArtifactsScript).toContain('UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"]');
-      expect(releaseArtifactsScript).not.toContain(`platformKey: "${unsupportedPlatformKey}"`);
+    expect(actualUnsupportedUpdaterPlatformKeys).toEqual(UNSUPPORTED_UPDATER_PLATFORM_KEYS);
+    for (const unsupportedPlatformKey of actualUnsupportedUpdaterPlatformKeys) {
+      expect(actualReleaseUpdaterAssetContract.map((contract) => contract.platformKey)).not.toContain(
+        unsupportedPlatformKey,
+      );
     }
   });
 
   it("keeps release artifact provenance evidence tied to tag, workflow, checksum, and SBOM records", () => {
     expect(releaseWorkflow).toContain("Validate release source");
-    expect(releaseSourceValidator).toContain("const tagObjectSha = git");
-    expect(releaseSourceValidator).toContain("const tagTargetSha = git");
-    expect(releaseSourceValidator).toContain("const checkoutSha = git");
+    expect(releaseWorkflow).toContain("node ./scripts/release/validate-source.ts");
     expect(releaseWorkflow).toContain("Generate updater asset checksums");
     expect(releaseWorkflow).toContain("Upload updater asset checksums");
     expect(releaseWorkflow).toContain("Generate release dependency provenance");
@@ -1687,21 +1796,8 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseWorkflow).toContain("mise run report:licenses");
     expect(dependencyLicenseReportScript).toContain("CARGO_LICENSE_TARGET");
     expect(dependencyLicenseReportScript).toContain('"--filter-platform"');
-    expect(releaseArtifactsScript).toContain("pnpm-licenses-$" + "{assetPlatform}.json");
-    expect(releaseArtifactsScript).toContain("cargo-licenses-$" + "{assetPlatform}.json");
-    expect(releaseArtifactsScript).toContain("release-provenance-$" + "{assetPlatform}.json");
-    expect(releaseArtifactsScript).toContain("workflowRunUrl");
-    expect(releaseArtifactsScript).toContain("tagTargetSha");
-    expect(releaseArtifactsScript).toContain('git(["log", "-1", "--format=%s", sourceSha])');
-    expect(releaseArtifactsScript).toContain("pullRequestNumber");
-    expect(releaseArtifactsScript).toContain("mergeCommitSubject");
-    expect(releaseArtifactsScript).toContain('git(["rev-parse", "HEAD"])');
-    expect(releaseArtifactsScript).toContain('git(["rev-parse", `refs/tags/$' + "{releaseTag}^{}`])");
-    expect(releaseArtifactsScript).toContain("checksumAssetName");
-    expect(releaseArtifactsScript).toContain("expected three release provenance assets");
-    expect(releaseArtifactsScript).toContain(
-      "release provenance source $" + "{sourceSha} does not match tag target $" + "{tagTargetSha}",
-    );
+    expect(releaseArtifactsCli).toContain('from "./workflows/artifacts.ts"');
+    expect(releaseArtifactsCli).toContain("runArtifactWorkflow(command, process.env, productionArtifactWorkflowIO)");
     expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
     expect(releaseWorkflow.indexOf("Generate updater asset checksums")).toBeLessThan(
       releaseWorkflow.indexOf("Generate release provenance record"),
@@ -1857,10 +1953,19 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(tauriDevConfig.identifier).not.toBe(tauriReleaseConfig.identifier);
     expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
     expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
-    expect(releaseConfigValidator).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
-    expect(releaseConfigValidator).toContain(
-      "src-tauri/tauri.release.conf.json must not use the dev Tauri product name",
-    );
+    const devConfigErrors = validateReleaseConfigSources({
+      releaseTag: `v${packageJson.version}`,
+      sources: {
+        ...releaseConfigSources,
+        releaseTauriConfig: JSON.stringify({
+          ...tauriReleaseConfig,
+          identifier: tauriDevConfig.identifier,
+          productName: tauriDevConfig.productName,
+        }),
+      },
+    });
+    expect(devConfigErrors).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
+    expect(devConfigErrors).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
     expect(releaseWorkflow).toContain("Validate release build contamination contract");
     expect(releaseWorkflow).toContain("pnpm run check:release-contamination");
     expect(releaseContaminationChecker).toContain(

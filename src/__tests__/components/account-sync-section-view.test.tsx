@@ -44,6 +44,10 @@ describe("AccountSyncSectionView", () => {
           ],
           onChange: () => {},
         }}
+        syncNowLabel="Sync Now"
+        syncNowSuccessLabel="Sync completed"
+        syncNowSucceeded={true}
+        onSyncNow={() => {}}
       />,
     );
 
@@ -52,6 +56,7 @@ describe("AccountSyncSectionView", () => {
     expect(screen.getByRole("switch", { name: "Sync on wake" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Sync on startup" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Keep read items" })).toHaveTextContent("Forever");
+    expect(screen.getByRole("button", { name: "Sync completed" })).not.toBeDisabled();
   });
 
   it("delegates sync control changes", async () => {

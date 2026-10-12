@@ -37,8 +37,20 @@ import runtimeErrorGuardHelper from "../../../e2e/helpers/runtime-error-guard.ts
 import { uiReferenceCanvasStoryIds } from "../../../e2e/storybook/storybook-index-payload";
 import packageJson from "../../../package.json";
 import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../../../scripts/quality-baseline";
+import {
+  DEPENDENCY_PROVENANCE_ASSETS_LIST,
+  RELEASE_PROVENANCE_ASSETS_LIST,
+  RELEASE_PROVENANCE_DIR,
+} from "../../../scripts/release/lib/release-provenance.ts";
+import { parseReleaseSourceInputs } from "../../../scripts/release/lib/release-source-policy.ts";
+import { runArtifactWorkflow } from "../../../scripts/release/workflows/artifacts.ts";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
 import tauriReleaseConfig from "../../../src-tauri/tauri.release.conf.json";
+import {
+  addFile as addArtifactFixtureFile,
+  createFakeArtifactWorkflowIO,
+  expectProcessExit,
+} from "../../../tests/helpers/artifact-workflow-fixture.ts";
 import { SENTRY_INGEST_ORIGIN } from "../../lib/runtime/monitoring";
 
 const repoRoot = process.cwd();
@@ -1378,21 +1390,40 @@ describe("repository static contracts", () => {
   });
 
   it("keeps release provenance uploads recoverable after partial asset failures", () => {
-    const releaseArtifactsScript = readRepoFile("scripts/release/artifacts.ts");
+    const tag = "v0.66.0";
+    const provenanceAssets = [
+      `${RELEASE_PROVENANCE_DIR}/pnpm-licenses-darwin-aarch64.json`,
+      `${RELEASE_PROVENANCE_DIR}/cargo-licenses-darwin-aarch64.json`,
+      `${RELEASE_PROVENANCE_DIR}/release-provenance-darwin-aarch64.json`,
+    ];
+    const assetNames = provenanceAssets.map((asset) => asset.split("/").at(-1) ?? asset);
+    const releaseView = (names: readonly string[]) =>
+      JSON.stringify({
+        assets: names.map((name) => ({ name })),
+        isDraft: true,
+        isPrerelease: false,
+        tagName: tag,
+        url: `https://github.com/fixture/ultra-rss-reader/releases/tag/${tag}`,
+      });
+    const fake = createFakeArtifactWorkflowIO();
+    addArtifactFixtureFile(fake, DEPENDENCY_PROVENANCE_ASSETS_LIST, `${provenanceAssets.slice(0, 2).join("\n")}\n`);
+    addArtifactFixtureFile(fake, RELEASE_PROVENANCE_ASSETS_LIST, `${provenanceAssets[2]}\n`);
+    fake.releaseViews.push(
+      { status: 0, stderr: "", stdout: releaseView([assetNames[0] ?? ""]) },
+      { status: 0, stderr: "", stdout: releaseView([assetNames[0] ?? "", assetNames[1] ?? ""]) },
+    );
+    fake.uploadResults.push({ status: 1 });
 
-    expect(releaseArtifactsScript).toContain(
-      '["release", "view", requiredEnv("RELEASE_TAG"), "--json", "assets,isDraft,isPrerelease,tagName,url"]',
+    const exitStatus = expectProcessExit(() =>
+      runArtifactWorkflow("upload-release-provenance", { RELEASE_TAG: tag }, fake.io),
     );
-    expect(releaseArtifactsScript).toContain('"assets,isDraft,isPrerelease,tagName,url"');
-    expect(releaseArtifactsScript).toContain("clobber_targets=");
-    expect(releaseArtifactsScript).toContain("missing_assets=");
-    expect(releaseArtifactsScript).toContain("draft=$" + "{release.isDraft}");
-    expect(releaseArtifactsScript).toContain("prerelease=$" + "{release.isPrerelease}");
-    expect(releaseArtifactsScript).toContain('uploadAssets("checksum upload", "checksum upload failure recovery"');
-    expect(releaseArtifactsScript).toContain('uploadAssets("provenance upload", "provenance upload failure recovery"');
-    expect(releaseArtifactsScript).toContain(
-      '"gh", ["release", "upload", requiredEnv("RELEASE_TAG"), ...assets, "--clobber"]',
-    );
+
+    expect(exitStatus).toBe(1);
+    expect(fake.events).toEqual([`view:${tag}`, `upload:${tag}`, `view:${tag}`]);
+    expect(fake.uploads).toEqual([{ assets: provenanceAssets, tag }]);
+    expect(fake.logs[0]).toContain(`clobber_targets=${assetNames[0]} missing_assets=${assetNames[1]},${assetNames[2]}`);
+    expect(fake.logs[1]).toContain("provenance upload failure recovery");
+    expect(fake.logs[1]).toContain(`clobber_targets=${assetNames[0]},${assetNames[1]} missing_assets=${assetNames[2]}`);
   });
 
   it("allows the embedded browser child webview to invoke its native commands", () => {
@@ -1464,7 +1495,6 @@ describe("repository static contracts", () => {
 
   it("keeps manual release dispatch pinned to explicit version tags", () => {
     const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
-    const releaseSourceValidator = readRepoFile("scripts/release/validate-source.ts");
     const workflowDispatchReleaseNameExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}";
 
@@ -1478,12 +1508,27 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).not.toContain("format('refs/tags/{0}', inputs.release_tag)");
     expect(releaseWorkflow).toContain("name: Validate release source");
     expect(releaseWorkflow).toContain("node ./scripts/release/validate-source.ts");
-    expect(releaseSourceValidator).toContain(
-      "const RELEASE_TAG_PATTERN = /^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$/;",
-    );
-    expect(releaseSourceValidator).toContain(
+    const releaseTag = "v0.66.0-rc.2+build.4";
+    const validInputs = {
+      EVENT_NAME: "push",
+      RELEASE_TAG: releaseTag,
+      WORKFLOW_REF: `refs/tags/${releaseTag}`,
+      WORKFLOW_REF_NAME: releaseTag,
+    };
+    expect(parseReleaseSourceInputs(validInputs)).toMatchObject({
+      eventName: "push",
+      releaseTag,
+      reuseExistingAssets: false,
+    });
+    expect(() => parseReleaseSourceInputs({ ...validInputs, RELEASE_TAG: "v0.66" })).toThrow(
       "release tag must match vX.Y.Z, optionally with prerelease or build metadata",
     );
+    expect(() =>
+      parseReleaseSourceInputs({
+        ...validInputs,
+        RELEASE_TAG: "v0.66.1",
+      }),
+    ).toThrow(`tag push ref refs/tags/${releaseTag} does not match release tag v0.66.1`);
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).not.toContain("github.event_name == 'workflow_dispatch' && github.ref");

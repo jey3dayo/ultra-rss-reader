@@ -8,7 +8,11 @@ import {
 import { parseJsonWithSchema } from "@/schemas/parse";
 import releaseWorkflowSource from "../../../.github/workflows/release.yml?raw";
 import releaseContaminationCheckerSource from "../../../scripts/check-release-build-contamination.ts?raw";
-import releaseArtifactsSource from "../../../scripts/release/artifacts.ts?raw";
+import releaseArtifactsCliSource from "../../../scripts/release/artifacts.ts?raw";
+import {
+  RELEASE_UPDATER_ASSET_CONTRACT as actualReleaseUpdaterAssetContract,
+  UNSUPPORTED_UPDATER_PLATFORM_KEYS,
+} from "../../../scripts/release/lib/artifact-contract";
 import releaseConfigValidatorSource from "../../../scripts/release/validate-release-config.ts?raw";
 import releaseSourceValidatorSource from "../../../scripts/release/validate-source.ts?raw";
 import tauriConfigSource from "../../../src-tauri/tauri.conf.json?raw";
@@ -112,8 +116,12 @@ test("release workflow exports updater signing secrets", async () => {
   expect(releaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   expect(tauriActionBlock).toContain(`--config ${releaseTauriConfigPath}`);
   expect(tauriActionBlock).not.toContain(`--config ${devTauriConfigPath}`);
-  expect(releaseConfigValidatorSource).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${releaseTauriConfigPath}";`);
-  expect(releaseConfigValidatorSource).toContain(`const DEV_TAURI_CONFIG_PATH = "${devTauriConfigPath}";`);
+  expect(releaseConfigValidatorSource).toContain(
+    'releaseTauriConfig: readFileSync(join(root, "src-tauri/tauri.release.conf.json")',
+  );
+  expect(releaseConfigValidatorSource).toContain(
+    'devTauriConfig: readFileSync(join(root, "src-tauri/tauri.dev.conf.json")',
+  );
 });
 
 test("release workflow keeps the supported artifact matrix", async () => {
@@ -133,21 +141,14 @@ test("release workflow maps updater manifest platforms to asset signatures and c
   expect(workflow).toContain("Validate macOS app signing");
   expect(workflow).toContain("Generate updater asset checksums");
   expect(workflow).toContain("Upload updater asset checksums");
-  expect(releaseArtifactsSource).toContain("validate-macos-app-signature");
-  expect(releaseArtifactsSource).toContain('"codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]');
-  expect(releaseArtifactsSource).toContain("Skipping Gatekeeper notarization assessment");
-  expect(releaseArtifactsSource).toContain("hasNotarizationCredentials");
-  expect(releaseArtifactsSource).toContain('"spctl", ["--assess", "--type", "execute", "--verbose=4", appBundle]');
-  expect(releaseArtifactsSource).toContain('UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"]');
+  expect(workflow).toContain("node ./scripts/release/artifacts.ts validate-macos-app-signature");
+  expect(releaseArtifactsCliSource).toContain('from "./workflows/artifacts.ts"');
+  expect(UNSUPPORTED_UPDATER_PLATFORM_KEYS).toEqual(["linux-x86_64", "linux-aarch64"]);
+  expect(actualReleaseUpdaterAssetContract).toHaveLength(releaseUpdaterAssetContract.length);
 
   for (const contract of releaseUpdaterAssetContract) {
-    const matrixArgsLiteral = contract.matrixArgs === '""' ? "'\"\"'" : JSON.stringify(contract.matrixArgs);
-    expect(releaseArtifactsSource).toContain(`platformKey: "${contract.platformKey}"`);
-    expect(releaseArtifactsSource).toContain(`matrixPlatform: "${contract.matrixPlatform}"`);
-    expect(releaseArtifactsSource).toContain(`matrixArgs: ${matrixArgsLiteral}`);
-    expect(releaseArtifactsSource).toContain(`assetPattern: "${contract.assetPattern}"`);
-    expect(releaseArtifactsSource).toContain(`signaturePattern: "${contract.signaturePattern}"`);
-    expect(releaseArtifactsSource).toContain(`checksumPattern: "${contract.checksumPattern}"`);
+    expect(actualReleaseUpdaterAssetContract).toContainEqual(expect.objectContaining(contract));
+    expect(UNSUPPORTED_UPDATER_PLATFORM_KEYS).not.toContain(contract.platformKey);
     expect(workflow).toContain(`platform: ${contract.matrixPlatform}`);
     expect(workflow).toContain(`args: ${contract.matrixArgs}`);
   }
@@ -158,8 +159,9 @@ test("release workflow keeps provenance and dev-only contamination gates before 
 
   expect(workflow).toContain("Validate release source");
   expect(workflow).toContain("Validate release build contamination contract");
-  expect(releaseSourceValidatorSource).toContain("const tagTargetSha = git");
-  expect(releaseSourceValidatorSource).toContain("const checkoutSha = git");
+  expect(workflow).toContain("node ./scripts/release/validate-source.ts");
+  expect(releaseSourceValidatorSource).toContain('from "./workflows/validate-source.ts"');
+  expect(releaseSourceValidatorSource).toContain("runReleaseSourceValidationWorkflow(process.env)");
   expect(releaseContaminationCheckerSource).toContain(
     "release capability must not include debug-only MCP bridge permissions",
   );

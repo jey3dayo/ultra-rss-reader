@@ -13,13 +13,16 @@ use crate::infra::feed_discovery::{
 
 use super::super::http_defaults::{self, http_client_builder};
 use super::super::traits::{Credentials as ProviderCredentials, FeedProvider};
+use super::stream_types::QuickAddResponse;
 use super::{urlencoded, GReaderProvider, LABEL_PREFIX, STATE_READ, STATE_STARRED};
 
 #[derive(Clone, Copy)]
 enum SafeGReaderEndpoint {
     ClientLogin,
     TagList,
-    Subscriptions,
+    SubscriptionList,
+    SubscriptionQuickadd,
+    SubscriptionEdit,
     StreamContents,
     StreamItemsIds,
     EditTag,
@@ -33,15 +36,12 @@ impl SafeGReaderEndpoint {
             Self::ClientLogin
         } else if path.ends_with("/reader/api/0/tag/list") {
             Self::TagList
-        } else if [
-            "/reader/api/0/subscription/list",
-            "/reader/api/0/subscription/edit",
-            "/reader/api/0/subscription/quickadd",
-        ]
-        .iter()
-        .any(|suffix| path.ends_with(suffix))
-        {
-            Self::Subscriptions
+        } else if path.ends_with("/reader/api/0/subscription/list") {
+            Self::SubscriptionList
+        } else if path.ends_with("/reader/api/0/subscription/quickadd") {
+            Self::SubscriptionQuickadd
+        } else if path.ends_with("/reader/api/0/subscription/edit") {
+            Self::SubscriptionEdit
         } else if path.contains("/reader/api/0/stream/contents/") {
             Self::StreamContents
         } else if path.ends_with("/reader/api/0/stream/items/ids") {
@@ -59,7 +59,9 @@ impl SafeGReaderEndpoint {
         match self {
             Self::ClientLogin => "client-login",
             Self::TagList => "tag-list",
-            Self::Subscriptions => "subscriptions",
+            Self::SubscriptionList => "subscription-list",
+            Self::SubscriptionQuickadd => "subscription-quickadd",
+            Self::SubscriptionEdit => "subscription-edit",
             Self::StreamContents => "stream-contents",
             Self::StreamItemsIds => "stream-items-ids",
             Self::EditTag => "edit-tag",
@@ -74,6 +76,7 @@ pub(super) enum SafeGReaderFailureReason {
     HttpAuth,
     HtmlContentType,
     HtmlBody,
+    InvalidMutationShape,
     BodyCap,
 }
 
@@ -83,6 +86,7 @@ impl SafeGReaderFailureReason {
             Self::HttpAuth => "http-auth",
             Self::HtmlContentType => "html-content-type",
             Self::HtmlBody => "html-body",
+            Self::InvalidMutationShape => "invalid-mutation-shape",
             Self::BodyCap => "body-cap",
         }
     }
@@ -150,6 +154,32 @@ fn has_item_ids_response_shape(body: &[u8]) -> bool {
         && root
             .keys()
             .all(|key| matches!(key.as_str(), "itemRefs" | "continuation"))
+}
+
+fn html_mime_mutation_success(path: &str, text: &str) -> bool {
+    let quickadd = path.ends_with("/reader/api/0/subscription/quickadd");
+    if text.trim() == "OK" {
+        return quickadd
+            || path.ends_with("/reader/api/0/edit-tag")
+            || path.ends_with("/reader/api/0/subscription/edit");
+    }
+    if !quickadd {
+        return false;
+    }
+    let Ok(serde_json::Value::Object(root)) = serde_json::from_str(text) else {
+        return false;
+    };
+    if root.contains_key("error") || root.contains_key("errors") {
+        return false;
+    }
+    let Ok(response) = serde_json::from_value::<QuickAddResponse>(serde_json::Value::Object(root))
+    else {
+        return false;
+    };
+    response.stream_id.is_some_and(|id| {
+        id.strip_prefix("feed/")
+            .is_some_and(|suffix| !suffix.trim().is_empty())
+    })
 }
 
 pub(super) fn freshrss_api_base(server_url: &str) -> String {
@@ -507,15 +537,24 @@ impl GReaderProvider {
     pub(super) async fn read_text_response(response: reqwest::Response) -> DomainResult<String> {
         if has_html_content_type(&response) {
             let failure_context = SafeGReaderFailureContext::from_response(&response);
-            if response.url().path().ends_with("/reader/api/0/edit-tag") {
-                let body = Self::read_response_body(response).await?;
-                if let Ok(text) = String::from_utf8(body) {
-                    if text.trim() == "OK" {
-                        return Ok(text);
-                    }
+            let path = response.url().path().to_owned();
+            let body = Self::read_response_body(response).await?;
+            if let Ok(text) = String::from_utf8(body) {
+                if html_mime_mutation_success(&path, &text) {
+                    return Ok(text);
                 }
             }
-            log_greader_api_failure(failure_context, SafeGReaderFailureReason::HtmlContentType);
+            let reason = if matches!(
+                failure_context.endpoint,
+                SafeGReaderEndpoint::SubscriptionQuickadd
+                    | SafeGReaderEndpoint::SubscriptionEdit
+                    | SafeGReaderEndpoint::EditTag
+            ) {
+                SafeGReaderFailureReason::InvalidMutationShape
+            } else {
+                SafeGReaderFailureReason::HtmlContentType
+            };
+            log_greader_api_failure(failure_context, reason);
             return Err(access_html_error());
         }
         String::from_utf8(Self::read_response_body(response).await?)

@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "cn";
 import type { ComponentProps } from "react";
-import { HeadlessButton } from "@/design-system";
+import { HeadlessButton, stateSurfaceButtonVariants } from "@/design-system";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "./settings-surface";
 
 const settingsActionButtonVariants = cva(
@@ -22,6 +22,7 @@ const settingsActionButtonVariants = cva(
           "text-foreground-soft hover:bg-surface-2/58 hover:text-foreground focus-visible:bg-surface-2/58 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45",
         danger:
           "text-state-danger-foreground/72 hover:bg-state-danger-surface hover:text-state-danger-foreground focus-visible:bg-state-danger-surface focus-visible:text-state-danger-foreground focus-visible:ring-2 focus-visible:ring-destructive/20",
+        success: cn(stateSurfaceButtonVariants({ tone: "success" }), "focus-visible:ring-2 focus-visible:ring-ring/45"),
       },
       size: {
         icon: "size-11 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
