@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { describe, expect, it } from "vitest";
-import packageJson from "../../../package.json";
 
 const repoRoot = process.cwd();
 
@@ -15,10 +14,6 @@ function readMiseTaskCorpus() {
   return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
     .map(readRepoFile)
     .join("\n");
-}
-
-function enginesNodeVersion() {
-  return packageJson.engines.node;
 }
 
 function githubExpression(expression: string) {
@@ -48,21 +43,23 @@ function extractCheckJobSections(source: string) {
 describe("CI workflow contract", () => {
   it("sets up pnpm and Node through the pinned pnpm setup action before frozen installs", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const setupAction = readRepoFile(".github/actions/setup-pnpm/action.yml");
     const checkJobSections = extractCheckJobSections(ciWorkflow);
 
     for (const { jobId, section } of checkJobSections) {
-      const setupIndex = section.indexOf("uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
+      const setupIndex = section.indexOf("uses: ./.github/actions/setup-pnpm");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
-      expect(setupIndex, `${jobId} should use pinned pnpm/setup`).toBeGreaterThanOrEqual(0);
-      expect(section, `${jobId} should install the engines.node version through pnpm runtime`).toContain(
-        `runtime: node@${enginesNodeVersion()}`,
-      );
-      expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
-      expect(section, `${jobId} should keep frozen-lockfile install explicit`).toContain("install: false");
+      expect(setupIndex, `${jobId} should use the shared pnpm setup action`).toBeGreaterThanOrEqual(0);
       expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
     }
 
+    expect(setupAction).toContain("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
+    expect(setupAction).toContain("runtime: $" + "{{ steps.node-runtime.outputs.runtime }}");
+    expect(setupAction).toContain("cache: true");
+    expect(setupAction).toContain("install: false");
+    expect(setupAction).toContain('run: node "$GITHUB_WORKSPACE/scripts/ci/resolve-node-runtime.mjs"');
+    expect(setupAction.match(/^\s+run:.*$/gm)?.join("\n")).not.toContain("${{");
     expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(checkJobSections.length);
     expect(ciWorkflow).not.toContain("node_modules");
   });

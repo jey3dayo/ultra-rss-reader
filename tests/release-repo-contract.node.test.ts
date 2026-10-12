@@ -1,6 +1,15 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -262,16 +271,41 @@ const readReleaseSkillCorpus = (): string =>
     .join("\n");
 const readSha256 = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
 
-const runWorkflowPinChecker = (workflowsDir: string): string =>
+const runWorkflowPinChecker = (workflowsDir: string, actionsDir = ".github/actions"): string =>
   execFileSync("node", ["scripts/check-workflow-pins.mjs"], {
     cwd: process.cwd(),
     encoding: "utf8",
     env: {
       ...process.env,
       WORKFLOW_PINS_WORKFLOWS_DIR: workflowsDir,
+      WORKFLOW_PINS_ACTIONS_DIR: actionsDir,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
+
+const runNodeRuntimeResolver = (manifest: object) => {
+  const fixtureDir = mkdtempSync(join(tmpdir(), "ultra-rss-node-runtime-"));
+  const outputFile = join(fixtureDir, "github-output");
+  try {
+    writeFileSync(join(fixtureDir, "package.json"), JSON.stringify(manifest), "utf8");
+    writeFileSync(outputFile, "", "utf8");
+    const result = spawnSync("node", ["scripts/ci/resolve-node-runtime.mjs"], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GITHUB_WORKSPACE: fixtureDir,
+        GITHUB_OUTPUT: outputFile,
+      },
+    });
+    return {
+      status: result.status,
+      stderr: result.stderr,
+      output: readFileSync(outputFile, "utf8"),
+    };
+  } finally {
+    rmSync(fixtureDir, { force: true, recursive: true });
+  }
+};
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -376,16 +410,6 @@ const parseCspDirectives = (csp: string): Map<string, string[]> => {
   }
 
   return directives;
-};
-
-const extractPnpmSetupBlock = (source: string): string => {
-  const value = source.match(
-    /- uses: pnpm\/setup@5d160c5bc68a09337ad0d5654e237e03253b5879[^\n]*\n(?<block>(?: {8}.+\n?)*)/,
-  )?.groups?.block;
-  if (!value) {
-    throw new Error("Missing pnpm setup block");
-  }
-  return value;
 };
 
 /**
@@ -887,18 +911,42 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     );
   });
 
-  it("keeps release dependency cache handled by pinned pnpm setup", () => {
-    const releasePnpmSetupBlock = extractPnpmSetupBlock(releaseWorkflow);
+  it("keeps release jobs on the shared pnpm setup before frozen installs", () => {
+    const setupAction = readText(".github/actions/setup-pnpm/action.yml");
+    const jobSections = [
+      ...releaseWorkflow.matchAll(/^ {2}[A-Za-z0-9_-]+:\n([\s\S]*?)(?=^ {2}[A-Za-z0-9_-]+:\n|(?![\s\S]))/gm),
+    ].map((match) => match[1] ?? "");
 
-    expect(releasePnpmSetupBlock).toContain(`runtime: node@${packageJson.engines.node}`);
-    expect(releasePnpmSetupBlock).toContain("cache: true");
-    expect(releasePnpmSetupBlock).toContain("install: false");
-    expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
-      releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879"),
-    );
-    expect(releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879")).toBeLessThan(
-      releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
-    );
+    for (const section of jobSections.filter((job) => job.includes("pnpm install --frozen-lockfile"))) {
+      const setupIndex = section.indexOf("uses: ./.github/actions/setup-pnpm");
+      const installIndex = section.indexOf("pnpm install --frozen-lockfile");
+      expect(setupIndex).toBeGreaterThanOrEqual(0);
+      expect(setupIndex).toBeLessThan(installIndex);
+    }
+    const sourceValidationIndex = releaseWorkflow.indexOf("run: node ./scripts/release/validate-source.ts");
+    const firstSetupIndex = releaseWorkflow.indexOf("uses: ./.github/actions/setup-pnpm");
+    expect(sourceValidationIndex).toBeLessThan(firstSetupIndex);
+    expect(setupAction).toContain("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
+    expect(setupAction).toContain("cache: true");
+    expect(setupAction).toContain("install: false");
+  });
+
+  it("writes the exact Node runtime from the package manifest", () => {
+    const result = runNodeRuntimeResolver({ engines: { node: "22.17.1" } });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.output).toBe("runtime=node@22.17.1\n");
+  });
+
+  it("rejects missing, ranged, and malformed engines.node without writing output", () => {
+    const manifests = [{}, { engines: {} }, { engines: { node: ">=26" } }, { engines: { node: "v26.4.0" } }];
+
+    for (const manifest of manifests) {
+      const result = runNodeRuntimeResolver(manifest);
+
+      expect(result.status, result.stderr).not.toBe(0);
+      expect(result.output).toBe("");
+    }
   });
 
   it("keeps workflow pin checker parsing quoted uses, inline comments, and local actions", () => {
@@ -948,6 +996,49 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
   });
 
+  it("requires composite action references to use pinned commit SHAs", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-action-pins-"));
+    const workflowsDir = join(tempDir, "workflows");
+    const actionsDir = join(tempDir, "actions");
+    const actionDir = join(actionsDir, "setup");
+    const actionFile = join(actionDir, "action.yml");
+    try {
+      mkdirSync(workflowsDir);
+      mkdirSync(actionDir, { recursive: true });
+      writeFileSync(
+        join(workflowsDir, "valid.yml"),
+        ["name: valid", "jobs:", "  check:", "    steps:", "      - uses: ./.github/actions/setup"].join("\n"),
+      );
+      writeFileSync(
+        actionFile,
+        ["name: setup", "runs:", "  using: composite", "  steps:", "    - uses: vendor/tool@v1"].join("\n"),
+      );
+
+      expect(() => runWorkflowPinChecker(workflowsDir, actionsDir)).toThrow(
+        /vendor\/tool@v1 must use a 40-character commit SHA/,
+      );
+      writeFileSync(
+        actionFile,
+        [
+          "name: setup",
+          "runs:",
+          "  using: composite",
+          "  steps:",
+          "    - uses: vendor/tool@1234567890abcdef1234567890abcdef12345678",
+        ].join("\n"),
+      );
+      expect(runWorkflowPinChecker(workflowsDir, actionsDir)).toBe("");
+      expect(() => runWorkflowPinChecker(join(tempDir, "missing-workflows"), actionsDir)).toThrow(
+        /Required directory does not exist/,
+      );
+      expect(() => runWorkflowPinChecker(workflowsDir, join(tempDir, "missing-actions"))).toThrow(
+        /Required directory does not exist/,
+      );
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
   it("limits release writes to contents and preflight run-history access to read", () => {
     const releasePermissions = extractYamlScalarBlockEntries(extractTopLevelYamlBlock(releaseWorkflow, "permissions"));
 
@@ -974,15 +1065,15 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       // preflight job: source/version/signing preflight
       "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
       "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      "./.github/actions/setup-pnpm",
       // quality job: parallel format/lint/test preflight (gated by should_build)
       "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
       "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      "./.github/actions/setup-pnpm",
       // release job: matrix artifact build + draft upload
       "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
       "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      "./.github/actions/setup-pnpm",
       "dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9",
       "Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
       "tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
@@ -990,6 +1081,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     expect(releaseUsesValues).toEqual(expectedReleaseActions);
     for (const usesValue of releaseUsesValues) {
+      if (usesValue.startsWith("./")) continue;
       expect(usesValue).toMatch(/@[0-9a-f]{40}$/i);
     }
     expect(releaseWorkflow).not.toContain("actions/upload-artifact");
@@ -1013,7 +1105,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(extractReleaseStepBlock(releaseWorkflow, "Validate existing draft release assets")).toContain(
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
-    expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
   });
 
   it("rejects release token use outside the permitted steps and env bindings", () => {
