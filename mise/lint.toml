@@ -28,8 +28,13 @@ description = "GitHub Actions workflow check (jactionlint)"
 run = "jactionlint --shellcheck="
 
 ["lint:actions-shell"]
+depends = ["lint:ci-shell"]
 description = "GitHub Actions shell script check (jactionlint with shellcheck)"
 run = "jactionlint"
+
+["lint:ci-shell"]
+description = "ShellCheck CI script bodies on all platforms"
+run = "node scripts/ci/check-shell.ts"
 
 ["lint:workflow-pins"]
 description = "Workflow action references must be pinned to commit SHAs"

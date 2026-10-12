@@ -1,0 +1,9 @@
+name: Setup pnpm from package.json
+description: Set up the repository's exact pnpm version; Node.js comes from mise
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1.0.0
+      with:
+        cache: true
+        install: false

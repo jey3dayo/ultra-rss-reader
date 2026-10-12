@@ -1,6 +1,15 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -262,13 +271,14 @@ const readReleaseSkillCorpus = (): string =>
     .join("\n");
 const readSha256 = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
 
-const runWorkflowPinChecker = (workflowsDir: string): string =>
+const runWorkflowPinChecker = (workflowsDir: string, actionsDir = ".github/actions"): string =>
   execFileSync("node", ["scripts/check-workflow-pins.mjs"], {
     cwd: process.cwd(),
     encoding: "utf8",
     env: {
       ...process.env,
       WORKFLOW_PINS_WORKFLOWS_DIR: workflowsDir,
+      WORKFLOW_PINS_ACTIONS_DIR: actionsDir,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -376,16 +386,6 @@ const parseCspDirectives = (csp: string): Map<string, string[]> => {
   }
 
   return directives;
-};
-
-const extractPnpmSetupBlock = (source: string): string => {
-  const value = source.match(
-    /- uses: pnpm\/setup@5d160c5bc68a09337ad0d5654e237e03253b5879[^\n]*\n(?<block>(?: {8}.+\n?)*)/,
-  )?.groups?.block;
-  if (!value) {
-    throw new Error("Missing pnpm setup block");
-  }
-  return value;
 };
 
 /**
@@ -887,18 +887,26 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     );
   });
 
-  it("keeps release dependency cache handled by pinned pnpm setup", () => {
-    const releasePnpmSetupBlock = extractPnpmSetupBlock(releaseWorkflow);
+  it("keeps release jobs on the shared pnpm setup before frozen installs", () => {
+    const setupAction = readText(".github/actions/setup-pnpm/action.yml");
+    const jobSections = [
+      ...releaseWorkflow.matchAll(/^ {2}[A-Za-z0-9_-]+:\n([\s\S]*?)(?=^ {2}[A-Za-z0-9_-]+:\n|(?![\s\S]))/gm),
+    ].map((match) => match[1] ?? "");
 
-    expect(releasePnpmSetupBlock).toContain(`runtime: node@${packageJson.engines.node}`);
-    expect(releasePnpmSetupBlock).toContain("cache: true");
-    expect(releasePnpmSetupBlock).toContain("install: false");
-    expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
-      releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879"),
-    );
-    expect(releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879")).toBeLessThan(
-      releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
-    );
+    for (const section of jobSections.filter((job) => job.includes("pnpm install --frozen-lockfile"))) {
+      const miseIndex = section.indexOf("uses: jdx/mise-action@");
+      const setupIndex = section.indexOf("uses: ./.github/actions/setup-pnpm");
+      const installIndex = section.indexOf("pnpm install --frozen-lockfile");
+      expect(miseIndex).toBeGreaterThanOrEqual(0);
+      expect(miseIndex).toBeLessThan(setupIndex);
+      expect(setupIndex).toBeLessThan(installIndex);
+    }
+    const sourceValidationIndex = releaseWorkflow.indexOf("run: node ./scripts/release/validate-source.ts");
+    const firstSetupIndex = releaseWorkflow.indexOf("uses: ./.github/actions/setup-pnpm");
+    expect(sourceValidationIndex).toBeLessThan(firstSetupIndex);
+    expect(setupAction).toContain("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
+    expect(setupAction).toContain("cache: true");
+    expect(setupAction).toContain("install: false");
   });
 
   it("keeps workflow pin checker parsing quoted uses, inline comments, and local actions", () => {
@@ -948,6 +956,49 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
   });
 
+  it("requires composite action references to use pinned commit SHAs", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-action-pins-"));
+    const workflowsDir = join(tempDir, "workflows");
+    const actionsDir = join(tempDir, "actions");
+    const actionDir = join(actionsDir, "setup");
+    const actionFile = join(actionDir, "action.yml");
+    try {
+      mkdirSync(workflowsDir);
+      mkdirSync(actionDir, { recursive: true });
+      writeFileSync(
+        join(workflowsDir, "valid.yml"),
+        ["name: valid", "jobs:", "  check:", "    steps:", "      - uses: ./.github/actions/setup"].join("\n"),
+      );
+      writeFileSync(
+        actionFile,
+        ["name: setup", "runs:", "  using: composite", "  steps:", "    - uses: vendor/tool@v1"].join("\n"),
+      );
+
+      expect(() => runWorkflowPinChecker(workflowsDir, actionsDir)).toThrow(
+        /vendor\/tool@v1 must use a 40-character commit SHA/,
+      );
+      writeFileSync(
+        actionFile,
+        [
+          "name: setup",
+          "runs:",
+          "  using: composite",
+          "  steps:",
+          "    - uses: vendor/tool@1234567890abcdef1234567890abcdef12345678",
+        ].join("\n"),
+      );
+      expect(runWorkflowPinChecker(workflowsDir, actionsDir)).toBe("");
+      expect(() => runWorkflowPinChecker(join(tempDir, "missing-workflows"), actionsDir)).toThrow(
+        /Required directory does not exist/,
+      );
+      expect(() => runWorkflowPinChecker(workflowsDir, join(tempDir, "missing-actions"))).toThrow(
+        /Required directory does not exist/,
+      );
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
   it("limits release writes to contents and preflight run-history access to read", () => {
     const releasePermissions = extractYamlScalarBlockEntries(extractTopLevelYamlBlock(releaseWorkflow, "permissions"));
 
@@ -974,15 +1025,15 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       // preflight job: source/version/signing preflight
       "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
       "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      "./.github/actions/setup-pnpm",
       // quality job: parallel format/lint/test preflight (gated by should_build)
       "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
       "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      "./.github/actions/setup-pnpm",
       // release job: matrix artifact build + draft upload
       "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
       "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      "./.github/actions/setup-pnpm",
       "dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9",
       "Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
       "tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
@@ -990,6 +1041,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     expect(releaseUsesValues).toEqual(expectedReleaseActions);
     for (const usesValue of releaseUsesValues) {
+      if (usesValue.startsWith("./")) continue;
       expect(usesValue).toMatch(/@[0-9a-f]{40}$/i);
     }
     expect(releaseWorkflow).not.toContain("actions/upload-artifact");
@@ -1013,7 +1065,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(extractReleaseStepBlock(releaseWorkflow, "Validate existing draft release assets")).toContain(
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
-    expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
   });
 
   it("rejects release token use outside the permitted steps and env bindings", () => {
@@ -1072,15 +1123,15 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("keeps CI apt mirror failures bounded with a fallback mirror", () => {
-    expect(ciWorkflow.match(/apt_options=\(-o Acquire::Retries=3/g)).toHaveLength(2);
-    expect(ciWorkflow.match(/if ! timeout 300s sudo apt-get update/g)).toHaveLength(2);
-    expect(ciWorkflow.match(/mirror\.math\.princeton\.edu\/pub\/ubuntu/g)).toHaveLength(2);
-    expect(
-      ciWorkflow.match(
-        /timeout 300s sudo apt-get install -y --no-install-recommends "\$\{apt_options\[@\]\}" \$\{\{ env\.TAURI_SYSTEM_DEPS \}\}/g,
-      ),
-    ).toHaveLength(2);
-    expect(ciWorkflow).not.toContain("sudo apt-get install -y $" + "{{ env.TAURI_SYSTEM_DEPS }}");
+    const dependencyScript = readText("scripts/ci/install-tauri-deps.sh");
+    expect(ciWorkflow.match(/bash scripts\/ci\/install-tauri-deps.sh/g)).toHaveLength(2);
+    expect(dependencyScript).toContain("apt_options=(-o Acquire::Retries=3");
+    expect(dependencyScript).toContain("if ! timeout 300s sudo apt-get update");
+    expect(dependencyScript).toContain("mirror.math.princeton.edu/pub/ubuntu");
+    const shellDollar = String.fromCharCode(36);
+    expect(dependencyScript).toContain(
+      `timeout 300s sudo apt-get install -y --no-install-recommends "${shellDollar}{apt_options[@]}" "${shellDollar}{tauri_deps[@]}"`,
+    );
   });
 
   it("keeps jactionlint shellcheck disabled only with a paired shell gate", () => {
@@ -1106,118 +1157,61 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const ciTestTask = extractTaskBlock(miseToml, "test:ci");
     expect(ciTestTask).toContain("mise run test:unit:ci\nmise run test:rust");
     expect(ciTestTask).toContain('run_windows = "mise run test:unit:ci && mise run test:rust"');
-    // ci.yml runs the node+Rust stage and the jsdom shard stage as separate *jobs* (not
-    // steps within one job, and not the combined test:ci/test:unit:ci tasks) so the two
-    // run on independent runners in parallel instead of paying their fixed cost
-    // sequentially. Asserting only that the task names appear somewhere would still
-    // pass if they were folded back into one job, which is exactly the regression this
-    // pins against, so this asserts on job boundaries.
-    //
-    // The jsdom stage is split into two shards (test:unit:ci:dom:shard1/2), expressed as
-    // a `shard: [1, 2]` matrix axis on the jsdom job so each shard runs as its own job
-    // instance in parallel, rather than as sequential steps sharing one runner.
-    const nodeRustJobBlock = ciWorkflow.slice(
-      ciWorkflow.indexOf("\n  test-node-rust:"),
-      ciWorkflow.indexOf("\n  test-jsdom:"),
+    const jobBlock = (id: string) =>
+      ciWorkflow.match(new RegExp(`^  ${id}:\\n([\\s\\S]*?)(?=^  [\\w-]+:|(?![\\s\\S]))`, "m"))?.[1] ?? "";
+    const nodeJob = jobBlock("test-node");
+    const rustJob = jobBlock("test-rust");
+    const jsdomJob = jobBlock("test-jsdom");
+    const gateJob = ciWorkflow.slice(ciWorkflow.indexOf("\n  quality-gate:"));
+    for (const block of [nodeJob, rustJob, jsdomJob]) expect(block).toContain("needs: change-plan");
+    expect(nodeJob).toContain("mise run test:unit:ci:node");
+    expect(nodeJob).not.toContain("mise run test:rust");
+    expect(nodeJob).not.toContain("dtolnay/rust-toolchain");
+    expect(rustJob).toContain("mise run test:rust");
+    expect(rustJob).toContain("dtolnay/rust-toolchain");
+    expect(rustJob).toContain("Swatinem/rust-cache");
+    expect(rustJob).toContain("Install Tauri system dependencies");
+    for (const block of [nodeJob, jsdomJob]) {
+      expect(block).not.toContain("Swatinem/rust-cache");
+      expect(block).not.toContain("Install Tauri system dependencies");
+    }
+    expect(jsdomJob).toContain("shard: [1, 2]");
+    expect(jsdomJob).toContain("fail-fast: false");
+    expect(jsdomJob).toContain(`mise run test:unit:ci:dom:shard${githubExpressionOpen} matrix.shard }}`);
+    const loggedScript = readText("scripts/ci/run-logged.sh");
+    expect(loggedScript).toContain("set -euo pipefail");
+    expect(loggedScript).toContain('"$@" 2>&1 | tee "$log_path"');
+    expect(nodeJob).toContain("bash scripts/ci/run-logged.sh tmp/ci-artifacts/frontend/test.log");
+    expect(rustJob).toContain("bash scripts/ci/run-logged.sh tmp/ci-artifacts/rust/test.log");
+    expect(jsdomJob).toContain("bash scripts/ci/run-logged.sh tmp/ci-artifacts/frontend/test.log");
+    const contaminationStep = extractWorkflowStepBlocks(rustJob).find((step) =>
+      step.includes("pnpm run check:release-contamination"),
     );
-    const jsdomJobBlock = ciWorkflow.slice(ciWorkflow.indexOf("\n  test-jsdom:"), ciWorkflow.indexOf("\n  build:"));
-    const qualityGateJobBlock = ciWorkflow.slice(ciWorkflow.indexOf("\n  quality-gate:"));
-
-    // The node+Rust job and the jsdom shard job must not depend on each other: a
-    // `needs:` link here would serialize what is meant to run in parallel.
-    expect(nodeRustJobBlock).not.toContain("needs:");
-    expect(jsdomJobBlock).not.toContain("needs:");
-
-    // node and Rust share the one-time native setup (Tauri system deps, Rust
-    // toolchain/cache) in a single job so it is paid once, not once per shard.
-    expect(nodeRustJobBlock).toContain("mise run test:unit:ci:node");
-    expect(nodeRustJobBlock).toContain("mise run test:rust");
-    expect(nodeRustJobBlock).toContain("dtolnay/rust-toolchain");
-    expect(nodeRustJobBlock).toContain("Swatinem/rust-cache");
-    expect(nodeRustJobBlock).toContain("Install Tauri system dependencies");
-
-    // jsdom is pure TypeScript/Vitest and must not repeat node/Rust, and must not carry
-    // native-only setup (Rust toolchain/cache, Tauri system deps) it does not need —
-    // mirroring the frontend-only "Check: Build" job, which already runs without them.
-    expect(jsdomJobBlock).not.toContain("mise run test:unit:ci:node");
-    expect(jsdomJobBlock).not.toContain("mise run test:rust");
-    expect(jsdomJobBlock).not.toContain("dtolnay/rust-toolchain");
-    expect(jsdomJobBlock).not.toContain("Swatinem/rust-cache");
-    expect(jsdomJobBlock).not.toContain("Install Tauri system dependencies");
-
-    // The jsdom job is matrix-parameterized by shard (plus os) with fail-fast disabled,
-    // so one shard failing still reports the other shard's result.
-    expect(jsdomJobBlock).toContain("shard: [1, 2]");
-    expect(jsdomJobBlock).toContain("fail-fast: false");
-    expect(jsdomJobBlock).toContain(`mise run test:unit:ci:dom:shard${githubExpressionOpen} matrix.shard }}`);
-
-    // Without pipefail a failing stage is masked by the tee that follows it. Each stage
-    // must also be its own step so a stage failure is attributable to that stage.
-    const nodeRustSteps = extractWorkflowStepBlocks(nodeRustJobBlock);
-    const nodeStep = nodeRustSteps.find((step) => step.includes("mise run test:unit:ci:node"));
-    const rustStep = nodeRustSteps.find((step) => step.includes("mise run test:rust"));
-    expect(nodeStep, "test:unit:ci:node must run in its own step").toBeDefined();
-    expect(rustStep, "test:rust must run in its own step").toBeDefined();
-    expect(nodeStep).not.toBe(rustStep);
-    expect(nodeStep).toContain("set -o pipefail");
-    expect(rustStep).toContain("set -o pipefail");
-    expect(nodeStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
-    expect(rustStep).toContain("tee tmp/ci-artifacts/rust/test.log");
-
-    const contaminationStep = nodeRustSteps.find((step) => step.includes("pnpm run check:release-contamination"));
-    expect(contaminationStep, "real dependency validation must run outside Vitest on both OSes").toBeDefined();
     expect(contaminationStep).toContain("timeout-minutes: 3");
     expect(contaminationStep).not.toContain("continue-on-error");
     expect(contaminationStep).not.toContain("if:");
-    expect(contaminationStep).not.toBe(nodeStep);
-    expect(nodeRustJobBlock.indexOf("pnpm run check:release-contamination")).toBeGreaterThan(
-      nodeRustJobBlock.indexOf("mise run test:rust"),
+    expect(rustJob.indexOf("pnpm run check:release-contamination")).toBeGreaterThan(
+      rustJob.indexOf("mise run test:rust"),
     );
-
-    const jsdomSteps = extractWorkflowStepBlocks(jsdomJobBlock);
-    const jsdomShardStep = jsdomSteps.find((step) => step.includes("mise run test:unit:ci:dom:shard"));
-    expect(jsdomShardStep, "the jsdom shard must run in its own step").toBeDefined();
-    expect(jsdomShardStep).toContain("set -o pipefail");
-    expect(jsdomShardStep).toContain("tee tmp/ci-artifacts/frontend/test.log");
-
-    // node and Rust must each run exactly once per matrix combination: re-running them
-    // per jsdom shard would silently duplicate those suites instead of only
-    // parallelizing jsdom, and duplicating the jsdom shard invocation would double-run
-    // (or skip) a shard.
     expect(ciWorkflow.match(/mise run test:unit:ci:node\b/g)).toHaveLength(1);
     expect(ciWorkflow.match(/mise run test:rust\b/g)).toHaveLength(1);
     expect(ciWorkflow.match(/mise run test:unit:ci:dom:shard\$\{\{ matrix\.shard \}\}/g)).toHaveLength(1);
-
-    // Artifact names must disambiguate by OS and, for jsdom, by shard as well, or the
-    // two shards' (and two OSes') failure diagnostics collide on upload.
-    expect(jsdomJobBlock).toContain(
+    expect(jsdomJob).toContain(
       `name: frontend-${githubExpressionOpen} matrix.os }}-jsdom-shard${githubExpressionOpen} matrix.shard }}-test-log`,
     );
-
-    // The shard pairing itself is pinned in mise/test.toml (not ci.yml), so a job-only
-    // check here would miss a regression to unequal or overlapping shard indices.
-    const domShard1Task = extractTaskBlock(miseToml, "test:unit:ci:dom:shard1");
-    const domShard2Task = extractTaskBlock(miseToml, "test:unit:ci:dom:shard2");
-    expect(domShard1Task).toContain("--project jsdom --shard=1/2");
-    expect(domShard2Task).toContain("--project jsdom --shard=2/2");
-
-    // The quality gate must wait on both the node+Rust job and the jsdom job (across all
-    // of their matrix combinations), so a jsdom-only or node/Rust-only failure still
-    // fails the gate.
-    expect(qualityGateJobBlock).toContain(
-      "needs: [toolchain, format, lint, test-node-rust, test-jsdom, build, native-smoke, audit]",
+    expect(extractTaskBlock(miseToml, "test:unit:ci:dom:shard1")).toContain("--project jsdom --shard=1/2");
+    expect(extractTaskBlock(miseToml, "test:unit:ci:dom:shard2")).toContain("--project jsdom --shard=2/2");
+    expect(gateJob).toContain(
+      "needs: [change-plan, toolchain, format, lint, rust-clippy, test-node, test-rust, test-jsdom, build, native-smoke, audit]",
     );
-    expect(qualityGateJobBlock).toContain("needs.test-node-rust.result");
-    expect(qualityGateJobBlock).toContain("needs.test-jsdom.result");
-
+    expect(gateJob).toContain("node scripts/ci/quality-gate.ts");
     expect(ciWorkflow).not.toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
     const credentialPolicyStep = extractWorkflowStepBlocks(ciWorkflow).find((step) =>
       step.includes("mise run test:keychain-session"),
     );
     expect(credentialPolicyStep).toContain("runner.os == 'macOS'");
-    // Guard against silently reverting the shard split back to a single jsdom step,
-    // which would still pass a naive "the task name exists" check.
+    expect(credentialPolicyStep).toContain("needs.change-plan.outputs.credentials == 'true'");
     expect(ciWorkflow).not.toMatch(/mise run test:unit:ci:dom\b(?!:shard)/);
   });
 

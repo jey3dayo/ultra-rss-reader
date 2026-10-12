@@ -165,16 +165,20 @@ function extractMiseRunTasks(source: string) {
     (match[1] ?? "").split(",").map((value) => value.trim()),
   );
 
-  return [...source.matchAll(/\bmise\s+run\s+([A-Za-z0-9:_-]+)(\$\{\{\s*matrix\.shard\s*\}\})?/g)].flatMap((match) => {
-    const task = match[1] ?? "";
-    if (!match[2]) {
-      return [task];
-    }
-    if (shardMatrixValues.length === 0) {
-      throw new Error(`mise run ${task}${shardTemplate} has no matching \`shard: [...]\` matrix values`);
-    }
-    return shardMatrixValues.map((value) => `${task}${value}`);
-  });
+  return [...source.matchAll(/\bmise\s+run\s+([^\n]+)/g)].flatMap((command) =>
+    [...(command[1] ?? "").matchAll(/(?:^|:::)\s*([A-Za-z0-9:_-]+)(\$\{\{\s*matrix\.shard\s*\}\})?/g)].flatMap(
+      (match) => {
+        const task = match[1] ?? "";
+        if (!match[2]) {
+          return [task];
+        }
+        if (shardMatrixValues.length === 0) {
+          throw new Error(`mise run ${task}${shardTemplate} has no matching \`shard: [...]\` matrix values`);
+        }
+        return shardMatrixValues.map((value) => `${task}${value}`);
+      },
+    ),
+  );
 }
 
 function extractWorkflowJobIds(source: string) {
@@ -1035,7 +1039,14 @@ describe("repository static contracts", () => {
       "audit:deps:rust",
       "build",
       "format:check",
-      "lint",
+      "lint:actions",
+      "lint:actions-shell",
+      "lint:biome",
+      "lint:clippy",
+      "lint:md",
+      "lint:types",
+      "lint:workflow-pins",
+      "lint:yaml",
       "quality:react-doctor-pin",
       "quality:toolchain",
       "test:keychain-session",
@@ -1068,7 +1079,10 @@ describe("repository static contracts", () => {
   it("keeps CI quality gate waiting on every check job", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
-    expect(extractQualityGateNeeds(ciWorkflow)).toEqual(extractWorkflowCheckJobIds(ciWorkflow).toSorted());
+    expect(extractWorkflowJobIds(ciWorkflow)).toContain("change-plan");
+    expect(extractQualityGateNeeds(ciWorkflow)).toEqual(
+      ["change-plan", ...extractWorkflowCheckJobIds(ciWorkflow)].toSorted(),
+    );
   });
 
   it("keeps Storybook addons and framework backed by dev dependencies", () => {

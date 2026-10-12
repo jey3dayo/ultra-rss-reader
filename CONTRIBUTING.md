@@ -147,6 +147,12 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 
 `mise run ci` intentionally covers format, lint, repository tests, and frontend build. It runs the quiet Vitest unit gate before lint, Rust tests, and build so unit failures surface before heavier checks. It does not run Playwright, Storybook static build, live-service tests, or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
+### Change-scoped Pull Request CI
+
+CI computes PR changes with a complete-history, NUL-delimited `git diff` of the PR base/head merge base, including deletions and both rename paths. Known UI components/styles/design-system JS/TS/TSX/CSS, UI tests, and locale JSON changes run the complete Ubuntu TypeScript/lint, Node, jsdom shard, and frontend build lanes. Rust, IPC, native resources, capabilities, and Tauri build changes retain the complete frontend baseline on Linux/Windows and add Linux/Windows Clippy and Rust tests plus macOS/Windows native smoke. Native smoke verifies a debug build; it does not launch the GUI or verify desktop interactions. Credential/account/session changes enable the macOS dummy-value credential session test.
+
+Shared frontend libraries/hooks/stores/schemas/constants, platform/updater boundaries, unknown paths, shared configuration, dependency manifests/locks, and CI/process/release scripts select all lanes. Main pushes and manual dispatch always select all lanes, including dependency audits and credential verification. Toolchain and format checks always run. Quality Gate requires a successful planner and every selected job; only explicitly unneeded jobs may be skipped. Failed, cancelled, missing, or unexpected results fail the gate. Release workflows and full local/release verification remain unchanged.
+
 ### Cloud UI Verification
 
 Execution steps for headless browser checks when no dedicated browser tool is available. When to run them and how to report unverified items is owned by [.claude/rules/ui-browser-prep.md](.claude/rules/ui-browser-prep.md).
