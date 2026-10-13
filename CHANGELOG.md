@@ -4,9 +4,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.66.3] - 2026-10-14
+
 ### Bug Fixes
 
 - リーダーのタイトル・本文・サイトリンクを「リンクを開く」設定に統一しました。アプリ内で開いた別のURLを記事URLへ戻さず、ローカル・プライベートホストへのリンクは確認後に開きます。⌘/Ctrl+クリックと中クリックは外部ブラウザで開けます。 (#426)
+
+### Maintenance
+
+- Rust 依存を semver 範囲内で更新し、ammonia の advisory を解消しました。 (#436)
+- npm 依存を `ncu -u` で更新し、i18next を 26.4.4 にしました。 (#440)
+- Windows の frontend build を Native Smoke と重複させないようにしました。 (#439)
+- CHANGELOG.md と todo.txt のみの変更で全 CI レーンを起動しないようにしました。 (#438)
+- PR Insights の計測対象から Rust テストファイルを除外しました。 (#435)
+- setup-pnpm ステップに timeout を設定し、ハング時に長時間待たないようにしました。 (#437)
+- change-plan のレビュー指摘を反映しました。 (#433)
 
 ## [0.66.2] - 2026-10-12
 
