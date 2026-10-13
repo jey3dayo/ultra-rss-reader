@@ -4,6 +4,7 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { ArticleReaderBody } from "@/components/reader/article-reader-body";
 
 const openArticleInExternalBrowserMock = vi.fn();
+const openLinkInWebPreviewMock = vi.fn();
 
 vi.mock("@/components/reader/article-browser-actions", () => ({
   openArticleInExternalBrowser: (url: string) => openArticleInExternalBrowserMock(url),
@@ -44,18 +45,34 @@ const baseFeed: FeedDto = {
 describe("ArticleReaderBody", () => {
   beforeEach(() => {
     openArticleInExternalBrowserMock.mockClear();
+    openLinkInWebPreviewMock.mockClear();
   });
 
-  it("resolves relative content links against the article URL", () => {
-    render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+  it("opens resolved content links in the in-app browser by default", () => {
+    render(
+      <ArticleReaderBody
+        article={baseArticle}
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
 
-    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/1");
+    expect(openLinkInWebPreviewMock).toHaveBeenCalledWith("https://example.com/posts/1");
+    expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
   });
 
   it("opens the feed site link in the external browser on click and middle-click with a host-only tooltip", () => {
-    render(<ArticleReaderBody article={baseArticle} feed={baseFeed} feedName="Tech Blog" hasNextArticle={true} />);
+    render(
+      <ArticleReaderBody
+        article={baseArticle}
+        feed={baseFeed}
+        feedName="Tech Blog"
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
+    );
 
     const link = screen.getByRole("link", { name: /example\.com/ });
     expect(link).toHaveAttribute("title", "Open in external browser — example.com");
@@ -70,7 +87,13 @@ describe("ArticleReaderBody", () => {
   });
 
   it("lets the reader content expand across the right pane with viewport-responsive padding", () => {
-    const { container } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    const { container } = render(
+      <ArticleReaderBody
+        article={baseArticle}
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
+    );
 
     const readerContent = container.querySelector("[data-article-slide-content]");
 
@@ -81,7 +104,11 @@ describe("ArticleReaderBody", () => {
 
   it("delegates content link clicks added after the article body renders", () => {
     const { container } = render(
-      <ArticleReaderBody article={{ ...baseArticle, content_sanitized: "<p>Body</p>" }} hasNextArticle={true} />,
+      <ArticleReaderBody
+        article={{ ...baseArticle, content_sanitized: "<p>Body</p>" }}
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
     );
     const contentContainer = container.querySelector("[data-article-content-container]");
     const dynamicLink = document.createElement("a");
@@ -91,7 +118,7 @@ describe("ArticleReaderBody", () => {
 
     fireEvent.click(dynamicLink);
 
-    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/dynamic");
+    expect(openLinkInWebPreviewMock).toHaveBeenCalledWith("https://example.com/posts/dynamic");
   });
 
   it("delegates nested element clicks to the owning content link", () => {
@@ -102,31 +129,56 @@ describe("ArticleReaderBody", () => {
           content_sanitized: '<p><a href="/posts/nested"><span>Nested link</span></a></p>',
         }}
         hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
       />,
     );
 
     fireEvent.click(screen.getByText("Nested link"));
 
-    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/nested");
+    expect(openLinkInWebPreviewMock).toHaveBeenCalledWith("https://example.com/posts/nested");
   });
 
-  it("does not intercept modified content link clicks", () => {
+  it("opens Cmd/Ctrl-clicked content links in the external browser", () => {
     render(
       <ArticleReaderBody
-        article={{ ...baseArticle, content_sanitized: '<p><a href="#email">Email</a></p>' }}
+        article={baseArticle}
         hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
       />,
     );
     const event = new MouseEvent("click", { bubbles: true, cancelable: true, metaKey: true });
 
-    const defaultAllowed = screen.getByRole("link", { name: "Email" }).dispatchEvent(event);
+    screen.getByRole("link", { name: "Read more" }).dispatchEvent(event);
+
+    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/1");
+    expect(openLinkInWebPreviewMock).not.toHaveBeenCalled();
+  });
+
+  it("does not intercept Alt/Shift-clicked content links", () => {
+    render(
+      <ArticleReaderBody
+        article={baseArticle}
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
+    );
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true });
+
+    const defaultAllowed = screen.getByRole("link", { name: "Read more" }).dispatchEvent(event);
 
     expect(defaultAllowed).toBe(true);
+    expect(openLinkInWebPreviewMock).not.toHaveBeenCalled();
     expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
   });
 
   it("does not open relative content links without an article URL base", () => {
-    render(<ArticleReaderBody article={{ ...baseArticle, url: "" }} hasNextArticle={true} />);
+    render(
+      <ArticleReaderBody
+        article={{ ...baseArticle, url: "" }}
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
 
@@ -134,7 +186,13 @@ describe("ArticleReaderBody", () => {
   });
 
   it("shows the floating next-article button when a next article exists", () => {
-    render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    render(
+      <ArticleReaderBody
+        article={baseArticle}
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: "Next article" })).toBeInTheDocument();
   });
@@ -146,7 +204,13 @@ describe("ArticleReaderBody", () => {
   });
 
   it("cleans up delegated content link clicks when switching articles", () => {
-    const { rerender } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    const { rerender } = render(
+      <ArticleReaderBody
+        article={baseArticle}
+        hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
+      />,
+    );
     const oldLink = screen.getByRole("link", { name: "Read more" });
     oldLink.addEventListener("click", (event) => {
       event.preventDefault();
@@ -160,13 +224,14 @@ describe("ArticleReaderBody", () => {
           content_sanitized: '<p><a href="/posts/2">Second article</a></p>',
         }}
         hasNextArticle={true}
+        onOpenArticleLinkInWebPreview={openLinkInWebPreviewMock}
       />,
     );
 
     fireEvent.click(oldLink);
     fireEvent.click(screen.getByRole("link", { name: "Second article" }));
 
-    expect(openArticleInExternalBrowserMock).toHaveBeenCalledTimes(1);
-    expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/2");
+    expect(openLinkInWebPreviewMock).toHaveBeenCalledTimes(1);
+    expect(openLinkInWebPreviewMock).toHaveBeenCalledWith("https://example.com/posts/2");
   });
 });

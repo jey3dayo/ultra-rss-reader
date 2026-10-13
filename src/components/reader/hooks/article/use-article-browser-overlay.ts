@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useArticleBrowserOverlayClose } from "@/components/reader/hooks/article/use-article-browser-overlay-close";
 import { useArticleBrowserOverlayDisplay } from "@/components/reader/hooks/article/use-article-browser-overlay-display";
@@ -22,6 +22,7 @@ type UseArticleBrowserOverlayResult = {
   handleCloseBrowserOverlay: () => void;
   handleBrowserWebviewClosed: () => void;
   handleToggleBrowserOverlay: () => void;
+  handleOpenLinkInBrowser: (url: string) => void;
 };
 
 export function useArticleBrowserOverlay({
@@ -36,6 +37,9 @@ export function useArticleBrowserOverlay({
   const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const isBrowserOpen = contentMode === "browser";
   const suppressBrowserReopenRef = useRef(false);
+  const [linkBrowserTarget, setLinkBrowserTarget] = useState<{ articleId: string; url: string } | null>(null);
+  const linkBrowserUrl = linkBrowserTarget?.articleId === articleId ? linkBrowserTarget.url : null;
+  const isLinkBrowserActive = Boolean(linkBrowserUrl && isBrowserOpen && browserUrl === linkBrowserUrl);
   const {
     requestedDisplay,
     resolvedDisplay,
@@ -53,6 +57,10 @@ export function useArticleBrowserOverlay({
   });
 
   useEffect(() => {
+    if (isLinkBrowserActive) {
+      return;
+    }
+
     if (!articleUrl) {
       if (isBrowserOpen) {
         closeBrowser();
@@ -85,6 +93,7 @@ export function useArticleBrowserOverlay({
     browserUrl,
     closeBrowser,
     isBrowserOpen,
+    isLinkBrowserActive,
     openBrowser,
     rememberOverlayFocusReturnTarget,
     shouldShowBrowserOverlay,
@@ -92,6 +101,7 @@ export function useArticleBrowserOverlay({
 
   const handleOpenBrowserOverlay = useCallback(() => {
     suppressBrowserReopenRef.current = false;
+    setLinkBrowserTarget(null);
     rememberOverlayFocusReturnTarget();
     setBrowserOverlayOpenPreference();
   }, [rememberOverlayFocusReturnTarget, setBrowserOverlayOpenPreference]);
@@ -109,16 +119,25 @@ export function useArticleBrowserOverlay({
       setBrowserOverlayClosedPreference: handleClosedBrowserOverlayPreference,
     });
 
+  const handleOpenLinkInBrowser = useCallback(
+    (url: string) => {
+      setLinkBrowserTarget({ articleId, url });
+      openBrowser(url);
+    },
+    [articleId, openBrowser],
+  );
+
   const handleToggleBrowserOverlay = useCallback(() => {
-    if (requestedDisplay.webPreviewMode) {
+    if (isLinkBrowserActive || requestedDisplay.webPreviewMode) {
       handleCloseBrowserOverlay();
       return;
     }
 
     handleOpenBrowserOverlay();
-  }, [handleCloseBrowserOverlay, handleOpenBrowserOverlay, requestedDisplay.webPreviewMode]);
+  }, [handleCloseBrowserOverlay, handleOpenBrowserOverlay, isLinkBrowserActive, requestedDisplay.webPreviewMode]);
 
   return {
+    handleOpenLinkInBrowser,
     isBrowserOpen,
     resolvedDisplay,
     handleOpenBrowserOverlay,

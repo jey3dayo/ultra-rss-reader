@@ -26,6 +26,7 @@ type ArticlePaneControllerResult = {
   showReaderBody: boolean;
   readerBodyProps: {
     onOpenArticleTitleInWebPreview: () => void;
+    onOpenArticleLinkInWebPreview: (url: string) => void;
     "aria-hidden": boolean;
     inert?: true;
   };
@@ -54,6 +55,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     handleCloseBrowserOverlay,
     handleBrowserWebviewClosed,
     handleToggleBrowserOverlay,
+    handleOpenLinkInBrowser,
   } = useArticleBrowserOverlay({
     articleId: article.id,
     articleUrl: article.url,
@@ -142,6 +144,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     showReaderBody: resolvedDisplay.readerMode,
     readerBodyProps: {
       onOpenArticleTitleInWebPreview: handleOpenBrowserOverlay,
+      onOpenArticleLinkInWebPreview: handleOpenLinkInBrowser,
       "aria-hidden": isBrowserOpen,
       ...(isBrowserOpen ? { inert: true } : {}),
     },

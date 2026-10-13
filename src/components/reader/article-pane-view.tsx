@@ -79,7 +79,7 @@ export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: 
     showReaderBody,
     readerBodyProps,
   } = useArticlePaneController({ article, feed, feedName });
-  const { onOpenArticleTitleInWebPreview, ...readerBodyStateProps } = readerBodyProps;
+  const { onOpenArticleTitleInWebPreview, onOpenArticleLinkInWebPreview, ...readerBodyStateProps } = readerBodyProps;
   const bodyRef = useReaderPassiveLayoutBodyRef("content");
 
   return (
@@ -120,6 +120,7 @@ export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: 
                 feed={feed}
                 feedName={feedName}
                 onOpenArticleTitleInWebPreview={onOpenArticleTitleInWebPreview}
+                onOpenArticleLinkInWebPreview={onOpenArticleLinkInWebPreview}
                 hasNextArticle={hasNextArticle}
               />
             </div>

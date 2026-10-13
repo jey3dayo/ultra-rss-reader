@@ -25,6 +25,7 @@ type ArticleReaderBodyProps = {
   feed?: FeedDto;
   feedName?: string;
   onOpenArticleTitleInWebPreview?: () => void;
+  onOpenArticleLinkInWebPreview?: (url: string) => void;
   hasNextArticle?: boolean;
 };
 
@@ -89,6 +90,7 @@ export function ArticleReaderBody({
   feed,
   feedName,
   onOpenArticleTitleInWebPreview,
+  onOpenArticleLinkInWebPreview,
   hasNextArticle = true,
 }: ArticleReaderBodyProps) {
   const { t, i18n } = useTranslation("reader");
@@ -250,7 +252,7 @@ export function ArticleReaderBody({
         return;
       }
 
-      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+      if (event.altKey || event.shiftKey) {
         return;
       }
 
@@ -270,7 +272,17 @@ export function ArticleReaderBody({
         return;
       }
 
-      void openArticleInExternalBrowser(resolvedUrl);
+      const useExternalBrowser = shouldOpenArticleTitleInExternalBrowser({
+        openLinks,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+      });
+      if (useExternalBrowser || !onOpenArticleLinkInWebPreview) {
+        void openArticleInExternalBrowser(resolvedUrl);
+        return;
+      }
+
+      onOpenArticleLinkInWebPreview(resolvedUrl);
     };
   });
 

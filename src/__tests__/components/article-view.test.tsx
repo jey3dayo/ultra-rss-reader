@@ -449,8 +449,9 @@ describe("ArticleView", () => {
     expect(calls.filter(({ cmd }) => cmd === "update_feed_display_settings")).toHaveLength(0);
   });
 
-  it("opens sanitized article links in the external browser", async () => {
+  it("opens sanitized article links in the external browser when open_links is default_browser", async () => {
     const calls: MockTauriCommandCall[] = [];
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" }, loaded: true });
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -493,6 +494,7 @@ describe("ArticleView", () => {
 
   it("resolves relative sanitized article links against the article URL before opening externally", async () => {
     const calls: MockTauriCommandCall[] = [];
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" }, loaded: true });
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
