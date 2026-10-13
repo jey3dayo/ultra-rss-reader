@@ -112,10 +112,25 @@ test("credential matching uses whole path tokens, not substrings", () => {
   }
 });
 
+test("root task-tracking files run only the frontend lane and never widen a Rust change", () => {
+  for (const path of ["CHANGELOG.md", "todo.txt", "done.txt"])
+    assert.deepEqual(planChanges("pull_request", [path]), ui, path);
+  assert.deepEqual(planChanges("pull_request", ["src/components/reader/article.tsx", "CHANGELOG.md", "todo.txt"]), ui);
+  assert.deepEqual(planChanges("pull_request", ["src-tauri/src/domain/article.rs", "CHANGELOG.md"]), {
+    full: false,
+    frontend: true,
+    native: true,
+    credentials: false,
+    windows: true,
+  });
+});
+
 test("unknown paths, shared configuration, locks, CI and process/release scripts fail conservatively to full", () => {
   for (const path of [
     "unknown.ts",
     "docs/guide.md",
+    "README.md",
+    "src/CHANGELOG.md",
     "package.json",
     "pnpm-lock.yaml",
     "tsconfig.json",
