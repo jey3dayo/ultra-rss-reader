@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
-import { parsePlan, validateGate } from "./gate.ts";
+import { formatJobResults, parsePlan, validateGate } from "./gate.ts";
 import { checkJobs, detectPlan, fullPlan, type Plan, parseChangedPaths, planChanges, requiredJobs } from "./plan.ts";
 
 function temporaryDirectory(context: TestContext): string {
@@ -93,6 +93,23 @@ test("credential changes add macOS session-cache verification", () => {
     assert.equal(plan.credentials, true, path);
     assert.equal(plan.native, true, path);
   }
+  for (const path of [
+    "src-tauri/src/commands/sync_providers/session.rs",
+    "src-tauri/src/infra/sessions.rs",
+    "src-tauri/src/infra/authentication.rs",
+    "src/components/settings/AuthDialog.tsx",
+    "src/components/settings/useAccountStore.ts",
+  ])
+    assert.equal(planChanges("pull_request", [path]).credentials, true, path);
+});
+
+test("credential matching uses whole path tokens, not substrings", () => {
+  for (const path of [
+    "src/components/reader/article-author.tsx",
+    "src/__tests__/components/feed-tree-drag-session.node.test.ts",
+  ]) {
+    assert.equal(planChanges("pull_request", [path]).credentials, false, path);
+  }
 });
 
 test("unknown paths, shared configuration, locks, CI and process/release scripts fail conservatively to full", () => {
@@ -131,23 +148,35 @@ test("unknown paths, shared configuration, locks, CI and process/release scripts
 });
 
 test("NUL diff keeps deleted paths and both rename sides, including whitespace", () => {
-  assert.deepEqual(parseChangedPaths("D\0src/old.ts\0R100\0src/api/old.ts\0src/components/new name.tsx\0"), [
-    "src/old.ts",
-    "src/api/old.ts",
-    "src/components/new name.tsx",
-  ]);
+  assert.deepEqual(parseChangedPaths("D\0src/old.ts\0R100\0src/api/old.ts\0src/components/new name.tsx\0"), {
+    paths: ["src/old.ts", "src/api/old.ts", "src/components/new name.tsx"],
+    unclassifiable: false,
+  });
   assert.equal(detectPlan("pull_request", () => "R100\0src/api/old.ts\0src/components/new.tsx\0").native, true);
   assert.deepEqual(
     detectPlan("pull_request", () => "D\0pnpm-lock.yaml\0"),
     fullPlan(),
   );
-  for (const diff of [
-    "M\0src/a.ts",
-    "R100\0src/a.ts\0",
-    "?\0src/a.ts\0",
-    ...["T", "U", "X", "B"].map((status) => `${status}\0src/a.ts\0`),
-  ])
+  for (const diff of ["M\0src/a.ts", "R100\0src/a.ts\0", "?\0src/a.ts\0", "M\0\0", "garbage\0src/a.ts\0"])
     assert.throws(() => parseChangedPaths(diff));
+});
+
+test("typechange is a normal change; statuses git defines but we cannot classify plan full", () => {
+  assert.deepEqual(parseChangedPaths("T\0src/components/a.tsx\0"), {
+    paths: ["src/components/a.tsx"],
+    unclassifiable: false,
+  });
+  assert.deepEqual(
+    detectPlan("pull_request", () => "T\0src/components/a.tsx\0"),
+    ui,
+  );
+  for (const status of ["U", "X", "B"])
+    assert.deepEqual(
+      detectPlan("pull_request", () => `${status}\0src/components/a.tsx\0`),
+      fullPlan(),
+      status,
+    );
+  assert.throws(() => detectPlan("pull_request", () => "?\0src/components/a.tsx\0"));
 });
 
 test("failed file detection fails the planner instead of permitting skipped checks", () => {
@@ -211,7 +240,7 @@ test("real git diff detects deletion and rename beyond the API first-page limit"
   for (const file of files) writeFileSync(join(dir, file), "export {};\n");
   git("add", ...files);
   git("commit", "-qm", "head");
-  const paths = parseChangedPaths(git("diff", "--name-status", "-z", "--find-renames", `${base}...HEAD`, "--"));
+  const { paths } = parseChangedPaths(git("diff", "--name-status", "-z", "--find-renames", `${base}...HEAD`, "--"));
   assert.equal(paths.length, 353);
   assert.ok(paths.includes("src/api/old.ts"));
   assert.ok(paths.includes("src/new.ts"));
@@ -239,7 +268,7 @@ test("workflow connects every planned lane to the gate and keeps Windows/full re
   assert.ok(workflow.includes("fetch-depth: 0"));
   assert.ok(workflow.includes("run: node scripts/ci/change-plan.ts"));
   assert.ok(gate.includes("run: node scripts/ci/quality-gate.ts"));
-  assert.ok(workflow.includes("run: node --test scripts/ci/plan.test.ts"));
+  assert.ok(workflow.includes("run: mise run test:change-plan"));
   assert.ok(workflow.includes(`PR_BASE_SHA: ${expression("github.event.pull_request.base.sha")}`));
   assert.ok(workflow.includes(`PR_HEAD_SHA: ${expression("github.event.pull_request.head.sha")}`));
   assert.ok(workflow.includes(`CI_NEEDS: ${expression("toJSON(needs)")}`));
@@ -365,6 +394,26 @@ test("Quality Gate CLI reports invalid inputs safely before exiting with failure
   }
 });
 
+test("Quality Gate CLI still lists job results when the plan is invalid", (context) => {
+  const dir = temporaryDirectory(context);
+  const summaryPath = join(dir, "summary");
+  const result = spawnSync(process.execPath, [resolve("scripts/ci/quality-gate.ts")], {
+    cwd: dir,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GITHUB_EVENT_NAME: "pull_request",
+      CI_PLAN: "",
+      CI_NEEDS: JSON.stringify(results(fullPlan())),
+      GITHUB_STEP_SUMMARY: summaryPath,
+    },
+  });
+  assert.equal(result.status, 1);
+  const summary = readFileSync(summaryPath, "utf8");
+  assert.ok(summary.includes("- toolchain: success"));
+  assert.ok(summary.includes("Quality Gate: FAILED"));
+});
+
 test("Quality Gate CLI retains only fixed job names and whitelisted results", (context) => {
   const dir = temporaryDirectory(context);
   const summaryPath = join(dir, "summary");
@@ -410,4 +459,27 @@ test("Quality Gate CLI retains only fixed job names and whitelisted results", (c
   for (const line of resultLines) assert.match(line, /: (?:success|failure|cancelled|skipped|missing|invalid)$/);
   assert.ok(summary.includes("Quality Gate: FAILED"));
   assert.ok(!(result.stdout + result.stderr + summary).includes(sentinel));
+});
+
+test("formatJobResults lists change-plan and every check job in order", () => {
+  const lines = formatJobResults(results(ui)).trimEnd().split("\n");
+  assert.deepEqual(
+    lines.map((line) => line.split(":")[0]),
+    ["- change-plan", ...checkJobs.map((job) => `- ${job}`)],
+  );
+});
+
+test("formatJobResults marks unknown result strings invalid and absent jobs missing", () => {
+  const output = formatJobResults({ "change-plan": { result: "success" }, [checkJobs[0]]: { result: "weird" } });
+  assert.match(output, /^- change-plan: success$/m);
+  assert.match(output, new RegExp(`^- ${checkJobs[0]}: invalid$`, "m"));
+  assert.match(output, new RegExp(`^- ${checkJobs[1]}: missing$`, "m"));
+});
+
+test("formatJobResults reports every job missing when needs is not an object", () => {
+  for (const needs of [null, [], "x", 1]) {
+    const statuses = formatJobResults(needs).trimEnd().split("\n");
+    assert.equal(statuses.length, checkJobs.length + 1);
+    assert.ok(statuses.every((line) => line.endsWith(": missing")));
+  }
 });
