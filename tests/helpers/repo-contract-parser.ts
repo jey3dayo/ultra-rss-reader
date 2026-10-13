@@ -115,3 +115,27 @@ export function extractYamlLabelsFields(source: string): string[] {
     .flatMap((match) => splitYamlInlineListValues(stripYamlComment(match.groups?.labels ?? "")))
     .filter((label) => label.length > 0 && label !== "*");
 }
+
+export function extractMiseRunTasks(source: string): string[] {
+  // `${{ matrix.shard }}` is not a mise task name; expand it against the source's own `shard: [...]` values.
+  // Built with fromCharCode to avoid lint/suspicious/noTemplateCurlyInString.
+  const shardTemplate = `${String.fromCharCode(36)}{{ matrix.shard }}`;
+  const shardMatrixValues = [...source.matchAll(/shard:\s*\[([^\]]+)\]/g)].flatMap((match) =>
+    (match[1] ?? "").split(",").map((value) => value.trim()),
+  );
+
+  return [...source.matchAll(/\bmise\s+run\s+((?:(?!\bmise\s+run\b)[^\n])+)/g)].flatMap((command) =>
+    [...(command[1] ?? "").matchAll(/(?:^|:::)\s*([A-Za-z0-9:_-]+)(\$\{\{\s*matrix\.shard\s*\}\})?/g)].flatMap(
+      (match) => {
+        const task = match[1] ?? "";
+        if (!match[2]) {
+          return [task];
+        }
+        if (shardMatrixValues.length === 0) {
+          throw new Error(`mise run ${task}${shardTemplate} has no matching \`shard: [...]\` matrix values`);
+        }
+        return shardMatrixValues.map((value) => `${task}${value}`);
+      },
+    ),
+  );
+}

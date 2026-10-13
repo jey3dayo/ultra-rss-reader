@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { extractYamlInlineListValues, extractYamlLabelsFields, extractYamlTopLevelKeys } from "./repo-contract-parser";
+import {
+  extractMiseRunTasks,
+  extractYamlInlineListValues,
+  extractYamlLabelsFields,
+  extractYamlTopLevelKeys,
+} from "./repo-contract-parser";
 
 describe("repo contract parser helpers", () => {
   it("extracts YAML-ish labels from fixtures", () => {
@@ -33,5 +38,27 @@ describe("repo contract parser helpers", () => {
     expect(extractYamlInlineListValues(fixture, "assignees")).toEqual(["octo-user", "release[bot]"]);
     expect(extractYamlTopLevelKeys(fixture)).toEqual(["assignees", "bug", "category/tests", "categories"]);
     expect(extractYamlLabelsFields(fixture)).toEqual(["bug", "category/tests"]);
+  });
+
+  describe("extractMiseRunTasks", () => {
+    const shardTemplate = `${String.fromCharCode(36)}{{ matrix.shard }}`;
+
+    it("extracts every `mise run` on one line", () => {
+      expect(extractMiseRunTasks("run: mise run a && mise run b")).toEqual(["a", "b"]);
+    });
+
+    it("splits `:::`-separated tasks", () => {
+      expect(extractMiseRunTasks("run: mise run lint:types ::: lint:biome")).toEqual(["lint:types", "lint:biome"]);
+    });
+
+    it("expands the shard matrix suffix against the same source", () => {
+      const source = ["shard: [1, 2]", `run: mise run test:dom:shard${shardTemplate}`].join("\n");
+
+      expect(extractMiseRunTasks(source)).toEqual(["test:dom:shard1", "test:dom:shard2"]);
+    });
+
+    it("throws when a shard template has no shard matrix", () => {
+      expect(() => extractMiseRunTasks(`run: mise run test:dom:shard${shardTemplate}`)).toThrow(/shard: \[\.\.\.\]/);
+    });
   });
 });

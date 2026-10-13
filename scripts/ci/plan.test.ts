@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
-import { parsePlan, validateGate } from "./gate.ts";
+import { formatJobResults, parsePlan, validateGate } from "./gate.ts";
 import { checkJobs, detectPlan, fullPlan, type Plan, parseChangedPaths, planChanges, requiredJobs } from "./plan.ts";
 
 function temporaryDirectory(context: TestContext): string {
@@ -459,4 +459,27 @@ test("Quality Gate CLI retains only fixed job names and whitelisted results", (c
   for (const line of resultLines) assert.match(line, /: (?:success|failure|cancelled|skipped|missing|invalid)$/);
   assert.ok(summary.includes("Quality Gate: FAILED"));
   assert.ok(!(result.stdout + result.stderr + summary).includes(sentinel));
+});
+
+test("formatJobResults lists change-plan and every check job in order", () => {
+  const lines = formatJobResults(results(ui)).trimEnd().split("\n");
+  assert.deepEqual(
+    lines.map((line) => line.split(":")[0]),
+    ["- change-plan", ...checkJobs.map((job) => `- ${job}`)],
+  );
+});
+
+test("formatJobResults marks unknown result strings invalid and absent jobs missing", () => {
+  const output = formatJobResults({ "change-plan": { result: "success" }, [checkJobs[0]]: { result: "weird" } });
+  assert.match(output, /^- change-plan: success$/m);
+  assert.match(output, new RegExp(`^- ${checkJobs[0]}: invalid$`, "m"));
+  assert.match(output, new RegExp(`^- ${checkJobs[1]}: missing$`, "m"));
+});
+
+test("formatJobResults reports every job missing when needs is not an object", () => {
+  for (const needs of [null, [], "x", 1]) {
+    const statuses = formatJobResults(needs).trimEnd().split("\n");
+    assert.equal(statuses.length, checkJobs.length + 1);
+    assert.ok(statuses.every((line) => line.endsWith(": missing")));
+  }
 });

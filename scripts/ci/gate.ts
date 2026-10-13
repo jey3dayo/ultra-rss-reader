@@ -54,3 +54,18 @@ export function validateGate(planValue: unknown, needsValue: unknown, event: str
   }
   return failures;
 }
+
+export function formatJobResults(needs: unknown): string {
+  const entries: [string, unknown][] =
+    typeof needs === "object" && needs !== null && !Array.isArray(needs) ? Object.entries(needs) : [];
+  const allowed = new Set(["success", "failure", "cancelled", "skipped", "missing", "invalid"]);
+  return ["change-plan", ...checkJobs]
+    .map((job) => {
+      const entry = entries.find(([name]) => name === job)?.[1];
+      const result = typeof entry === "object" && entry !== null && "result" in entry ? entry.result : undefined;
+      const status =
+        typeof result === "string" && allowed.has(result) ? result : result === undefined ? "missing" : "invalid";
+      return `- ${job}: ${status}\n`;
+    })
+    .join("");
+}
