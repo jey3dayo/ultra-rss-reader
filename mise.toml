@@ -237,7 +237,7 @@ run_windows = "echo 'app:icon:liquid is macOS-only (requires Xcode actool and si
 
 [tasks.check]
 description = "Fast local verification (format + lint + Rust tests + node Vitest)"
-depends = ["format", "lint", "test:rust", "test:unit:fast"]
+depends = ["format", "lint", "test:rust", "test:change-plan", "test:unit:fast"]
 
 [tasks."check:wsl"]
 description = "WSL-backed static-analysis gate; Windows delegates to WSL_REPO_DIR"

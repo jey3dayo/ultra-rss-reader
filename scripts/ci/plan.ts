@@ -17,18 +17,30 @@ export function fullPlan(): Plan {
   return { full: true, frontend: true, native: true, credentials: true, windows: true };
 }
 
+const credentialTokens = new Set([
+  "auth",
+  "oauth",
+  "credential",
+  "credentials",
+  "keyring",
+  "keychain",
+  "account",
+  "accounts",
+  "secret",
+  "secrets",
+  "security",
+]);
+
 function credentialPath(path: string): boolean {
   if (path.startsWith("src/locales/")) return false;
-  return /(?:auth|credential|keyring|keychain|session|account|secret|security)/i.test(path);
+  return path
+    .toLowerCase()
+    .split(/[/_.-]/)
+    .some((token) => credentialTokens.has(token) || (token === "session" && path.startsWith("src-tauri/")));
 }
 
 function nativePath(path: string): boolean {
-  return (
-    path.startsWith("src-tauri/") ||
-    path.startsWith("src/api/") ||
-    path.startsWith("src/lib/runtime/") ||
-    path.startsWith("src/lib/window/")
-  );
+  return path.startsWith("src-tauri/") || path.startsWith("src/api/");
 }
 
 function sharedOrPlatformPath(path: string): boolean {
@@ -100,14 +112,18 @@ export function requiredJobs(plan: Plan): Record<string, boolean> {
   };
 }
 
-export function parseChangedPaths(diff: string): string[] {
+export type ChangedPaths = { paths: string[]; unclassifiable: boolean };
+
+export function parseChangedPaths(diff: string): ChangedPaths {
   if (!diff.endsWith("\0") && diff !== "") throw new Error("Incomplete NUL-delimited git diff");
   const tokens = diff.split("\0");
   tokens.pop();
   const paths: string[] = [];
+  let unclassifiable = false;
   for (let index = 0; index < tokens.length; ) {
     const status = tokens[index++];
-    if (!status || !/^(?:[ADM]|[RC]\d{1,3})$/.test(status)) throw new Error("Unknown git diff status");
+    if (!status || !/^(?:[ADMTUXB]|[RC]\d{1,3})$/.test(status)) throw new Error("Unknown git diff status");
+    if (/^[UXB]$/.test(status)) unclassifiable = true;
     const count = /^[RC]/.test(status) ? 2 : 1;
     for (let pathIndex = 0; pathIndex < count; pathIndex++) {
       const path = tokens[index++];
@@ -115,11 +131,12 @@ export function parseChangedPaths(diff: string): string[] {
       paths.push(path);
     }
   }
-  return paths;
+  return { paths, unclassifiable };
 }
 
 export function detectPlan(event: string, readDiff: () => string): Plan {
   if (event !== "pull_request") return fullPlan();
   // Detection errors fail the planner; they must never turn an incomplete diff into a smaller plan.
-  return planChanges(event, parseChangedPaths(readDiff()));
+  const { paths, unclassifiable } = parseChangedPaths(readDiff());
+  return unclassifiable ? fullPlan() : planChanges(event, paths);
 }

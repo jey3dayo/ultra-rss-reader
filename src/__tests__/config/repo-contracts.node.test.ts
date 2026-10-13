@@ -165,7 +165,7 @@ function extractMiseRunTasks(source: string) {
     (match[1] ?? "").split(",").map((value) => value.trim()),
   );
 
-  return [...source.matchAll(/\bmise\s+run\s+([^\n]+)/g)].flatMap((command) =>
+  return [...source.matchAll(/\bmise\s+run\s+((?:(?!\bmise\s+run\b)[^\n])+)/g)].flatMap((command) =>
     [...(command[1] ?? "").matchAll(/(?:^|:::)\s*([A-Za-z0-9:_-]+)(\$\{\{\s*matrix\.shard\s*\}\})?/g)].flatMap(
       (match) => {
         const task = match[1] ?? "";
@@ -1049,6 +1049,7 @@ describe("repository static contracts", () => {
       "lint:yaml",
       "quality:react-doctor-pin",
       "quality:toolchain",
+      "test:change-plan",
       "test:keychain-session",
       "test:rust",
       "test:unit:ci:dom:shard1",

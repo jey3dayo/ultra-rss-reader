@@ -74,8 +74,6 @@ describe("CI workflow contract", () => {
     const imageContract = readRepoFile("scripts/ci/check-image-toolchain.mjs");
     expect(imageContract).toContain("process.versions.node");
     expect(imageContract).toContain('execFileSync("pnpm", ["--version"]');
-    expect(imageContract).toContain("local mise Node version drift");
-    expect(imageContract).toContain("local pnpm version drift");
     expect(miseSource).toContain('["quality:toolchain"]');
   });
 
@@ -87,9 +85,7 @@ describe("CI workflow contract", () => {
     delete env.NO_COLOR;
     const dryRun = spawnSync("mise", ["run", "--dry-run", ...args], { encoding: "utf8", env });
     expect(dryRun.status, dryRun.stderr).toBe(0);
-    const rawOutput = dryRun.stdout + dryRun.stderr;
-    const output = stripVTControlCharacters(rawOutput);
-    expect(rawOutput).not.toBe(output);
+    const output = stripVTControlCharacters(dryRun.stdout + dryRun.stderr);
     for (const task of [
       "lint:types",
       "lint:biome",

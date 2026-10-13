@@ -21,8 +21,8 @@ let failureReason: string | undefined;
 let details = "";
 try {
   const needs: unknown = JSON.parse(process.env.CI_NEEDS ?? "null");
-  const failures = validateGate(JSON.parse(process.env.CI_PLAN ?? "null"), needs, process.env.GITHUB_EVENT_NAME ?? "");
   details = jobResults(needs);
+  const failures = validateGate(JSON.parse(process.env.CI_PLAN ?? "null"), needs, process.env.GITHUB_EVENT_NAME ?? "");
   if (failures.length) failureReason = "Required CI jobs did not complete successfully.";
 } catch {
   failureReason = "CI plan or job results are missing or invalid.";

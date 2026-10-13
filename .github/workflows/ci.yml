@@ -51,7 +51,6 @@ jobs:
 
   toolchain:
     name: "Check: Toolchain"
-    needs: change-plan
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -68,7 +67,7 @@ jobs:
 
       - run: mise run quality:react-doctor-pin
 
-      - run: node --test scripts/ci/plan.test.ts
+      - run: mise run test:change-plan
 
       - name: Verify CI image toolchain contract
         shell: bash
@@ -76,7 +75,6 @@ jobs:
 
   format:
     name: "Check: Format"
-    needs: change-plan
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
