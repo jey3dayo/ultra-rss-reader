@@ -19,6 +19,9 @@ export function fullPlan(): Plan {
 
 const credentialTokens = new Set([
   "auth",
+  "authentication",
+  "authorization",
+  "authorize",
   "oauth",
   "credential",
   "credentials",
@@ -34,9 +37,9 @@ const credentialTokens = new Set([
 function credentialPath(path: string): boolean {
   if (path.startsWith("src/locales/")) return false;
   return path
-    .toLowerCase()
-    .split(/[/_.-]/)
-    .some((token) => credentialTokens.has(token) || (token === "session" && path.startsWith("src-tauri/")));
+    .split(/[/_.-]|(?<=[a-z0-9])(?=[A-Z])/)
+    .map((token) => token.toLowerCase())
+    .some((token) => credentialTokens.has(token) || (/^sessions?$/.test(token) && path.startsWith("src-tauri/")));
 }
 
 function nativePath(path: string): boolean {

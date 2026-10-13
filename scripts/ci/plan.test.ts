@@ -93,7 +93,14 @@ test("credential changes add macOS session-cache verification", () => {
     assert.equal(plan.credentials, true, path);
     assert.equal(plan.native, true, path);
   }
-  assert.equal(planChanges("pull_request", ["src-tauri/src/commands/sync_providers/session.rs"]).credentials, true);
+  for (const path of [
+    "src-tauri/src/commands/sync_providers/session.rs",
+    "src-tauri/src/infra/sessions.rs",
+    "src-tauri/src/infra/authentication.rs",
+    "src/components/settings/AuthDialog.tsx",
+    "src/components/settings/useAccountStore.ts",
+  ])
+    assert.equal(planChanges("pull_request", [path]).credentials, true, path);
 });
 
 test("credential matching uses whole path tokens, not substrings", () => {
