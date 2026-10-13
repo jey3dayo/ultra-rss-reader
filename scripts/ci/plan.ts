@@ -76,6 +76,7 @@ export function planChanges(event: string, paths: readonly string[]): Plan {
       ].some((prefix) => path.startsWith(prefix)) &&
         /\.(?:[cm]?js|jsx|ts|tsx|css)$/.test(path)) ||
       (path.startsWith("src/locales/") && path.endsWith(".json"));
+    const trackingFile = ["CHANGELOG.md", "todo.txt", "done.txt"].includes(path);
     const rustFile = (path.startsWith("src-tauri/src/") || path.startsWith("src-tauri/tests/")) && path.endsWith(".rs");
     const nativeAsset =
       ["src-tauri/icons/", "src-tauri/resources/", "src-tauri/capabilities/"].some((prefix) =>
@@ -84,12 +85,12 @@ export function planChanges(event: string, paths: readonly string[]): Plan {
       path === "src-tauri/tauri.conf.json" ||
       path === "src-tauri/build.rs";
     if (
-      !(frontendFile || rustFile || nativeAsset) ||
+      !(frontendFile || trackingFile || rustFile || nativeAsset) ||
       /(?:^|\/)(?:scripts|release|cli|fs|filesystem|process|bin)(?:\/|[.-])/.test(path) ||
       path.includes("windows-dispatch")
     )
       return fullPlan();
-    if (frontendFile || nativeAsset) plan.frontend = true;
+    if (frontendFile || trackingFile || nativeAsset) plan.frontend = true;
     if (nativePath(path) || credentialPath(path)) {
       plan.frontend = true;
       plan.native = true;
