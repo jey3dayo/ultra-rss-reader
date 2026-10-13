@@ -51,7 +51,6 @@ jobs:
 
   toolchain:
     name: "Check: Toolchain"
-    needs: change-plan
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -61,6 +60,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - run: pnpm install --frozen-lockfile
 
@@ -68,7 +68,7 @@ jobs:
 
       - run: mise run quality:react-doctor-pin
 
-      - run: node --test scripts/ci/plan.test.ts
+      - run: mise run test:change-plan
 
       - name: Verify CI image toolchain contract
         shell: bash
@@ -76,7 +76,6 @@ jobs:
 
   format:
     name: "Check: Format"
-    needs: change-plan
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -86,6 +85,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable branch: toolchain input defaults to stable
         with:
@@ -112,6 +112,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - run: pnpm install --frozen-lockfile
 
@@ -150,6 +151,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable branch: toolchain input defaults to stable
         with:
@@ -191,6 +193,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - run: pnpm install --frozen-lockfile
 
@@ -228,6 +231,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable branch: toolchain input defaults to stable
 
@@ -272,6 +276,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - run: pnpm install --frozen-lockfile
 
@@ -305,6 +310,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - run: pnpm install --frozen-lockfile
 
@@ -338,6 +344,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable branch: toolchain input defaults to stable
 
@@ -394,6 +401,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - uses: ./.github/actions/setup-pnpm
+        timeout-minutes: 10
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable branch: toolchain input defaults to stable
 

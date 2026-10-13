@@ -11,6 +11,10 @@ description = "Run Rust tests; Windows CI is scoped to integration_test for nati
 run = "cargo test --manifest-path src-tauri/Cargo.toml"
 run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
 
+["test:change-plan"]
+description = "Run CI change-plan script tests"
+run = "node --test scripts/ci/plan.test.ts"
+
 ["test:unit"]
 description = "Run Vitest unit tests"
 run = "vitest run --project node && vitest run --project jsdom"

@@ -91,3 +91,4 @@ x 2026-09-18 2026-09-18 SubscriptionsIndexPage 359 行を分割: effect 3 本と
 x 2026-09-19 2026-09-18 React Doctor baseline の再ピン時に減算だけでなく診断 identity 集合を照合する PR gate を実装(検証: 合計一致・集合不一致の fixture で落ちることを先に確認) +quality note:https://github.com/jey3dayo/ultra-rss-reader/issues/324
 x 2026-09-29 2026-09-28 サイドバー行・folder の退場モーション（presence 層, Task 2b）: 設計判断が多く保留 +ui note:plans/find-animation-opportunities/sidebar-unread-zero-exit.md @hold
 x 2026-10-10 2026-09-28 macOS Reading List Rust 経路の private host 拒否: validate_public_http_url と frontend hasPrivateHttpHost の .local/単一ラベル差の方針決定待ち +security note:plans/improve/README.md @decision
+x 2026-10-13 2026-10-12 記事表示中もアプリ内ブラウザで任意URLを開けるようにしリンクの開き方を統一する(focused jsdom test+macOS実機) +reader note:https://github.com/jey3dayo/ultra-rss-reader/issues/426
