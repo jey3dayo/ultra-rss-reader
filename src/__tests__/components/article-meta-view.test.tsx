@@ -77,7 +77,11 @@ describe("ArticleMetaView", () => {
     const link = screen.getByRole("link", { name: /example\.com/ });
     expect(link).toHaveAttribute("title", "Open in external browser — example.com");
     expect(fireEvent.click(link)).toBe(false);
-    expect(onSiteClick).toHaveBeenCalledWith("https://example.com/");
+    expect(onSiteClick).toHaveBeenCalledWith("https://example.com/", { external: false });
+    fireEvent.click(link, { metaKey: true });
+    expect(onSiteClick).toHaveBeenLastCalledWith("https://example.com/", { external: true });
+    fireEvent(link, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+    expect(onSiteClick).toHaveBeenLastCalledWith("https://example.com/", { external: true });
 
     rerender(<ArticleMetaView title="First Article" feedName="Tech Blog" publishedLabel="2026年3月25日 10:00" />);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();

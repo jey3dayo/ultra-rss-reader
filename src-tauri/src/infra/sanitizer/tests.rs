@@ -14,7 +14,7 @@ struct SrcsetContractCase {
     expected: Option<&'static str>,
 }
 
-const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 5;
+const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 6;
 
 const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
     SanitizerCorpusCase {
@@ -185,7 +185,7 @@ fn fixes_reader_media_and_link_privacy_attributes() {
 
 #[test]
 fn records_current_sanitizer_contract_version() {
-    assert_eq!(SANITIZER_VERSION, 5);
+    assert_eq!(SANITIZER_VERSION, 6);
 }
 
 #[test]
@@ -570,4 +570,110 @@ fn malformed_article_html_sanitizes_before_text_extraction() {
     assert!(sanitized.contains("Lead"));
     assert!(sanitized.contains("body"));
     assert_eq!(extract_visible_text(&sanitized), "Lead body Trailing");
+}
+
+#[test]
+fn preserves_private_http_links_for_confirmed_reader_navigation_but_blocks_private_media() {
+    for host in ["localhost", "192.168.1.20", "publisher.local", "[::1]"] {
+        let raw = format!(
+            r#"<a href="http://{host}/article">Open</a><img src="http://{host}/image"><source srcset="http://{host}/image 1x">"#
+        );
+        let output = sanitize_html(&raw);
+        assert!(output.contains(&format!(r#"href="http://{host}/article""#)));
+        assert!(!output.contains("/image"));
+        assert!(output.contains(r#"rel="noopener noreferrer""#));
+    }
+}
+
+#[test]
+fn rejects_credentials_controls_and_non_http_reader_links_before_the_confirmation_boundary() {
+    for url in [
+        "https://user:secret@localhost/article",
+        "javascript:alert(1)",
+        "file:///private",
+        "http://localhost/\tcontrol",
+        "http://localhost/\ncontrol",
+    ] {
+        let output = sanitize_html(&format!(r#"<a href="{url}">Open</a>"#));
+        assert!(
+            !output.contains("href="),
+            "invalid reader link should lose its navigation target"
+        );
+        assert!(output.contains("Open"));
+    }
+}
+
+#[test]
+fn preserves_relative_reader_links_for_resolution_against_the_article_url() {
+    for href in [
+        "/posts/1", "../next", "#section", "?page=2", "next", "./next",
+    ] {
+        let output = sanitize_untrusted_feed_html(&format!(r#"<a href="{href}">Open</a>"#));
+        assert!(
+            output.contains(&format!(r#"href="{href}""#)),
+            "safe relative href {href:?} should survive for article URL resolution: {output}"
+        );
+        assert!(output.contains(r#"rel="noopener noreferrer""#));
+    }
+}
+
+#[test]
+fn preserves_protocol_relative_reader_links_but_blocks_the_same_media_targets() {
+    for host in [
+        "example.com",
+        "localhost",
+        "192.168.1.20",
+        "publisher.local",
+        "[::1]",
+    ] {
+        let href = format!("//{host}/article");
+        let raw = format!(
+            r#"<a href="{href}">Open</a><img src="//{host}/image"><source srcset="//{host}/image 1x">"#
+        );
+        let output = sanitize_untrusted_feed_html(&raw);
+        assert!(
+            output.contains(&format!(r#"href="{href}""#)),
+            "protocol-relative href should survive for reader navigation: {output}"
+        );
+        assert!(!output.contains("/image"));
+    }
+}
+
+#[test]
+fn rejects_unsafe_relative_and_absolute_reader_links_after_html_decoding() {
+    for href in [
+        "",
+        "   ",
+        "//user:secret@example.com/article",
+        "//user@localhost/article",
+        "//:secret@192.168.1.20/article",
+        "//user:secret@[::1]/article",
+        r"\\user:secret@localhost/article",
+        "//[invalid]/article",
+        "javascript:alert(1)",
+        "javascript&#58;alert(1)",
+        "data:text/html,evil",
+        "mailto:reader@example.com",
+        "file:///private",
+        "custom:next",
+        "/posts/\tcontrol",
+        "../\nnext",
+        "#section\rcontrol",
+        "/posts/&#9;control",
+        "../&#10;next",
+        "#section&#13;control",
+        "/posts/%0acontrol",
+        "../%0Dnext",
+        "#section%0Acontrol",
+        "?next=%0dcontrol",
+        "https://example.com/%0Acontrol",
+        "//localhost/%0dcontrol",
+    ] {
+        let output = sanitize_untrusted_feed_html(&format!(r#"<a href="{href}">Open</a>"#));
+        assert!(
+            !output.contains("href="),
+            "unsafe href {href:?} should lose its navigation target: {output}"
+        );
+        assert!(output.contains("Open"));
+    }
 }

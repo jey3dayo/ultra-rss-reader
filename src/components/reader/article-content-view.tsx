@@ -11,15 +11,23 @@ type ArticleContentViewProps = {
   thumbnailUrl?: string | null;
   contentHtml: SanitizedArticleHtml;
   feedName?: string | null;
+  confirmPrivateLinks?: boolean;
 };
 
-export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: ArticleContentViewProps) {
+export function ArticleContentView({
+  thumbnailUrl,
+  contentHtml,
+  feedName,
+  confirmPrivateLinks = false,
+}: ArticleContentViewProps) {
   // React 19 resets innerHTML whenever the dangerouslySetInnerHTML object identity
   // changes, even for equal markup, which reloads every <img> on unrelated re-renders.
   // Keep the {__html} object itself memoized so re-renders leave the DOM untouched.
   const displayHtmlProp = useMemo(
-    () => ({ __html: applyReaderContentPrivacyPolicy(normalizeArticleBodyHtml(contentHtml, feedName)) }),
-    [contentHtml, feedName],
+    () => ({
+      __html: applyReaderContentPrivacyPolicy(normalizeArticleBodyHtml(contentHtml, feedName), confirmPrivateLinks),
+    }),
+    [contentHtml, feedName, confirmPrivateLinks],
   );
   const normalizedThumbnailUrl = useMemo(() => normalizeReaderContentImageUrl(thumbnailUrl), [thumbnailUrl]);
 

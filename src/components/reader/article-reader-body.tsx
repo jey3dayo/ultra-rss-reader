@@ -9,16 +9,13 @@ import {
   resolveArticleDateLocale,
   resolveArticleSummaryWebsiteHref,
   resolveArticleSummaryWebsiteLabel,
-  shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/articles/article-view";
 import { fromSanitizedArticleHtml } from "@/lib/content/html";
-import { resolvePreferenceValue } from "@/schemas/preference-values";
-import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { openArticleInExternalBrowser } from "./article-browser-actions";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { ArticleTagChips } from "./article-tag-chips";
+import { useReaderLinkRouting } from "./hooks/use-reader-link-routing";
 
 type ArticleReaderBodyProps = {
   article: ArticleDto;
@@ -30,27 +27,6 @@ type ArticleReaderBodyProps = {
 
 const ARTICLE_READER_SCROLL_POSITION_COMMIT_DELAY_MS = 120;
 const WHEEL_DELTA_LINE_HEIGHT_PX = 40;
-
-function resolveArticleContentLinkUrl(href: string, articleUrl: string | null | undefined): string | null {
-  const trimmedHref = href.trim();
-  if (!trimmedHref) {
-    return null;
-  }
-
-  try {
-    return new URL(trimmedHref).toString();
-  } catch {
-    if (!articleUrl?.trim()) {
-      return null;
-    }
-  }
-
-  try {
-    return new URL(trimmedHref, articleUrl).toString();
-  } catch {
-    return null;
-  }
-}
 
 function getReaderScrollDirection(event: KeyboardEvent<HTMLDivElement>): 1 | -1 | null {
   if (event.metaKey || event.ctrlKey || event.altKey) {
@@ -92,7 +68,7 @@ export function ArticleReaderBody({
   hasNextArticle = true,
 }: ArticleReaderBodyProps) {
   const { t, i18n } = useTranslation("reader");
-  const openLinks = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "open_links"));
+  const { openReaderLink, readerLinkTitle } = useReaderLinkRouting(article.id);
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
   const setArticleReaderScrollPosition = useUiStore((s) => s.setArticleReaderScrollPosition);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -114,10 +90,8 @@ export function ArticleReaderBody({
       ? {
           href: siteHref,
           label: siteLabel,
-          title: t("site_link_open_external", { host: siteLabel }),
-          onOpen: (href: string) => {
-            void openArticleInExternalBrowser(href);
-          },
+          title: readerLinkTitle(siteHref),
+          onOpen: openReaderLink,
         }
       : null;
   const articleContentHtml = fromSanitizedArticleHtml(article.content_sanitized);
@@ -225,24 +199,6 @@ export function ArticleReaderBody({
     };
   }, [flushPendingScrollPosition, handleReaderWheel, scheduleScrollPositionCommit, setArticleReaderScrollPosition]);
 
-  const openArticleTitle = useCallback(
-    (url: string, metaKey = false, ctrlKey = false) => {
-      const useExternalBrowser = shouldOpenArticleTitleInExternalBrowser({
-        openLinks,
-        metaKey,
-        ctrlKey,
-      });
-
-      if (useExternalBrowser || !onOpenArticleTitleInWebPreview) {
-        void openArticleInExternalBrowser(url);
-        return;
-      }
-
-      onOpenArticleTitleInWebPreview();
-    },
-    [onOpenArticleTitleInWebPreview, openLinks],
-  );
-
   useLayoutEffect(() => {
     contentContainerClickListenerRef.current = (event: globalThis.MouseEvent) => {
       const contentContainer = contentContainerRef.current;
@@ -250,7 +206,7 @@ export function ArticleReaderBody({
         return;
       }
 
-      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+      if (event.type === "auxclick" && event.button !== 1) {
         return;
       }
 
@@ -265,12 +221,11 @@ export function ArticleReaderBody({
       }
 
       event.preventDefault();
-      const resolvedUrl = resolveArticleContentLinkUrl(anchor.getAttribute("href") ?? "", articleUrl);
-      if (!resolvedUrl) {
-        return;
-      }
-
-      void openArticleInExternalBrowser(resolvedUrl);
+      openReaderLink(
+        anchor.getAttribute("href") ?? "",
+        { external: event.metaKey || event.ctrlKey || event.button === 1 },
+        articleUrl,
+      );
     };
   });
 
@@ -280,11 +235,13 @@ export function ArticleReaderBody({
     const previousNode = contentContainerRef.current;
     if (previousNode) {
       previousNode.removeEventListener("click", listener, true);
+      previousNode.removeEventListener("auxclick", listener, true);
     }
 
     contentContainerRef.current = node;
     if (node) {
       node.addEventListener("click", listener, true);
+      node.addEventListener("auxclick", listener, true);
     }
   }, []);
 
@@ -296,6 +253,7 @@ export function ArticleReaderBody({
       }
 
       contentContainer.removeEventListener("click", contentContainerEventHandlerRef.current, true);
+      contentContainer.removeEventListener("auxclick", contentContainerEventHandlerRef.current, true);
     };
   }, []);
 
@@ -341,7 +299,11 @@ export function ArticleReaderBody({
           onTitleClick={
             articleUrl
               ? (e) => {
-                  openArticleTitle(articleUrl, e.metaKey, e.ctrlKey);
+                  e.preventDefault();
+                  openReaderLink(articleUrl, {
+                    external: e.metaKey || e.ctrlKey,
+                    onOpenInApp: onOpenArticleTitleInWebPreview,
+                  });
                 }
               : undefined
           }
@@ -350,7 +312,7 @@ export function ArticleReaderBody({
               ? (e) => {
                   if (e.button === 1) {
                     e.preventDefault();
-                    void openArticleInExternalBrowser(articleUrl);
+                    openReaderLink(articleUrl, { external: true });
                   }
                 }
               : undefined
@@ -369,7 +331,12 @@ export function ArticleReaderBody({
         </div>
 
         <div className="mt-7" data-article-content-container="true" ref={setContentContainerElement}>
-          <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
+          <ArticleContentView
+            thumbnailUrl={article.thumbnail}
+            contentHtml={articleContentHtml}
+            feedName={feedName}
+            confirmPrivateLinks
+          />
         </div>
       </article>
     </ScrollArea>

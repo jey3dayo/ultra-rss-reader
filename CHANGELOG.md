@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- リーダーのタイトル・本文・サイトリンクを「リンクを開く」設定に統一しました。アプリ内で開いた別のURLを記事URLへ戻さず、ローカル・プライベートホストへのリンクは確認後に開きます。⌘/Ctrl+クリックと中クリックは外部ブラウザで開けます。 (#426)
+
 ## [0.66.2] - 2026-10-12
 
 ### Features

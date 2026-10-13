@@ -10,7 +10,6 @@ import { useUiStore } from "@/stores/ui-store";
 type UseArticleBrowserOverlayParams = {
   articleId: string;
   articleUrl: string | null;
-  browserUrl: string | null;
   contentMode: ContentMode;
   feed?: FeedDto;
 };
@@ -27,17 +26,17 @@ type UseArticleBrowserOverlayResult = {
 export function useArticleBrowserOverlay({
   articleId,
   articleUrl,
-  browserUrl,
   contentMode,
   feed,
 }: UseArticleBrowserOverlayParams): UseArticleBrowserOverlayResult {
   const openBrowser = useUiStore((s) => s.openBrowser);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const browserArticleId = useUiStore((s) => s.browserArticleId);
   const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const isBrowserOpen = contentMode === "browser";
   const suppressBrowserReopenRef = useRef(false);
+  const previousSyncRef = useRef<{ articleId: string; articleUrl: string | null; show: boolean } | null>(null);
   const {
-    requestedDisplay,
     resolvedDisplay,
     shouldShowBrowserOverlay,
     setBrowserOverlayOpenPreference,
@@ -53,36 +52,39 @@ export function useArticleBrowserOverlay({
   });
 
   useEffect(() => {
-    if (!articleUrl) {
-      if (isBrowserOpen) {
-        closeBrowser();
-      }
+    const previous = previousSyncRef.current;
+    const articleChanged =
+      (previous !== null && (previous.articleId !== articleId || previous.articleUrl !== articleUrl)) ||
+      (previous === null && isBrowserOpen && browserArticleId !== articleId);
+    const displayChanged = previous !== null && previous.show !== shouldShowBrowserOverlay;
+    previousSyncRef.current = { articleId, articleUrl, show: shouldShowBrowserOverlay };
+
+    if (previous !== null && !articleChanged && !displayChanged) {
       return;
     }
 
     if (!shouldShowBrowserOverlay) {
       suppressBrowserReopenRef.current = false;
-    }
-
-    if (shouldShowBrowserOverlay) {
-      if (suppressBrowserReopenRef.current && !isBrowserOpen) {
-        return;
-      }
-      if (!isBrowserOpen || browserUrl !== articleUrl) {
-        if (!isBrowserOpen) {
-          rememberOverlayFocusReturnTarget();
-        }
-        openBrowser(articleUrl);
+      if (isBrowserOpen && (articleChanged || displayChanged)) {
+        closeBrowser();
       }
       return;
     }
 
-    if (isBrowserOpen) {
-      closeBrowser();
+    if (!articleUrl || (suppressBrowserReopenRef.current && !isBrowserOpen)) {
+      return;
+    }
+
+    if (articleChanged || !isBrowserOpen) {
+      if (!isBrowserOpen) {
+        rememberOverlayFocusReturnTarget();
+      }
+      openBrowser(articleUrl);
     }
   }, [
+    articleId,
     articleUrl,
-    browserUrl,
+    browserArticleId,
     closeBrowser,
     isBrowserOpen,
     openBrowser,
@@ -94,7 +96,10 @@ export function useArticleBrowserOverlay({
     suppressBrowserReopenRef.current = false;
     rememberOverlayFocusReturnTarget();
     setBrowserOverlayOpenPreference();
-  }, [rememberOverlayFocusReturnTarget, setBrowserOverlayOpenPreference]);
+    if (articleUrl) {
+      openBrowser(articleUrl);
+    }
+  }, [articleUrl, openBrowser, rememberOverlayFocusReturnTarget, setBrowserOverlayOpenPreference]);
 
   const handleClosedBrowserOverlayPreference = useCallback(() => {
     suppressBrowserReopenRef.current = true;
@@ -110,13 +115,13 @@ export function useArticleBrowserOverlay({
     });
 
   const handleToggleBrowserOverlay = useCallback(() => {
-    if (requestedDisplay.webPreviewMode) {
+    if (isBrowserOpen) {
       handleCloseBrowserOverlay();
       return;
     }
 
     handleOpenBrowserOverlay();
-  }, [handleCloseBrowserOverlay, handleOpenBrowserOverlay, requestedDisplay.webPreviewMode]);
+  }, [handleCloseBrowserOverlay, handleOpenBrowserOverlay, isBrowserOpen]);
 
   return {
     isBrowserOpen,

@@ -83,6 +83,7 @@ export type UiState = {
   viewMode: ViewMode;
   searchQuery: string;
   browserUrl: string | null;
+  browserArticleId: string | null;
   webPreviewSessionMode: WebPreviewSessionMode;
   browserNavigationState: BrowserNavigationState | null;
   browserCloseInFlight: boolean;
@@ -252,6 +253,7 @@ export type UiStoreReaderState = Pick<
   | "viewMode"
   | "contentMode"
   | "browserUrl"
+  | "browserArticleId"
   | "webPreviewSessionMode"
   | "browserNavigationState"
   | "browserCloseInFlight"

@@ -102,6 +102,7 @@ const initialState: UiState = {
   viewMode: "unread",
   searchQuery: "",
   browserUrl: null,
+  browserArticleId: null,
   webPreviewSessionMode: "auto",
   browserNavigationState: null,
   browserCloseInFlight: false,

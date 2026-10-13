@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { ArticleReaderBody } from "@/components/reader/article-reader-body";
+import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 const openArticleInExternalBrowserMock = vi.fn();
 
@@ -44,6 +46,8 @@ const baseFeed: FeedDto = {
 describe("ArticleReaderBody", () => {
   beforeEach(() => {
     openArticleInExternalBrowserMock.mockClear();
+    useUiStore.setState({ ...useUiStore.getInitialState(), selectedArticleId: baseArticle.id, contentMode: "reader" });
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" } });
   });
 
   it("resolves relative content links against the article URL", () => {
@@ -110,19 +114,61 @@ describe("ArticleReaderBody", () => {
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/nested");
   });
 
-  it("does not intercept modified content link clicks", () => {
+  it.each([{ metaKey: true }, { ctrlKey: true }, { button: 1 }])(
+    "routes modified content clicks externally through the reader opener: %j",
+    (modifiers) => {
+      usePreferencesStore.setState({ prefs: { open_links: "in_app" } });
+      render(<ArticleReaderBody article={baseArticle} />);
+      const event = new MouseEvent(modifiers.button ? "auxclick" : "click", {
+        bubbles: true,
+        cancelable: true,
+        ...modifiers,
+      });
+      const defaultAllowed = screen.getByRole("link", { name: "Read more" }).dispatchEvent(event);
+      expect(defaultAllowed).toBe(false);
+      expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/1");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    },
+  );
+
+  it("routes title, content, and detail site links in-app by preference", () => {
+    usePreferencesStore.setState({ prefs: { open_links: "in_app" } });
+    render(<ArticleReaderBody article={baseArticle} feed={baseFeed} />);
+    fireEvent.click(screen.getByRole("button", { name: "Article title" }));
+    expect(useUiStore.getState().browserUrl).toBe(baseArticle.url);
+    fireEvent.click(screen.getByRole("link", { name: "Read more" }));
+    expect(useUiStore.getState().browserUrl).toBe("https://example.com/posts/1");
+    const site = screen.getByRole("link", { name: /example\.com/ });
+    expect(site).toHaveAttribute("title", "Open in app — example.com");
+    fireEvent.click(site);
+    expect(useUiStore.getState().browserUrl).toBe(baseFeed.site_url);
+    expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
+  });
+
+  it("requires confirmation for private content and detail site links without exposing URL secrets", () => {
+    usePreferencesStore.setState({ prefs: { open_links: "in_app" } });
     render(
       <ArticleReaderBody
-        article={{ ...baseArticle, content_sanitized: '<p><a href="#email">Email</a></p>' }}
-        hasNextArticle={true}
+        article={{
+          ...baseArticle,
+          content_sanitized: '<p><a href="http://localhost/private?token=secret">Private content</a></p>',
+        }}
+        feed={{ ...baseFeed, site_url: "http://localhost/private?token=secret" }}
       />,
     );
-    const event = new MouseEvent("click", { bubbles: true, cancelable: true, metaKey: true });
-
-    const defaultAllowed = screen.getByRole("link", { name: "Email" }).dispatchEvent(event);
-
-    expect(defaultAllowed).toBe(true);
-    expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("link", { name: "Private content" }));
+    expect(useUiStore.getState().browserUrl).toBeNull();
+    const firstConfirm = useUiStore.getState().confirmDialog;
+    expect(firstConfirm.message).toContain("localhost");
+    expect(firstConfirm.message).not.toMatch(/private\?|token=|secret/);
+    useUiStore.getState().closeConfirm();
+    firstConfirm.onConfirm?.();
+    expect(useUiStore.getState().browserUrl).toBeNull();
+    const site = screen.getByRole("link", { name: "localhost" });
+    expect(site).toHaveAttribute("title", "Confirmation required for a private host — localhost");
+    fireEvent.click(site);
+    useUiStore.getState().confirmDialog.onConfirm?.();
+    expect(useUiStore.getState().browserUrl).toBe("http://localhost/private?token=secret");
   });
 
   it("does not open relative content links without an article URL base", () => {

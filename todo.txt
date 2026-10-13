@@ -2,4 +2,3 @@
 (D) 2026-09-28 アップデート失敗時フォールバックの手動検証 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/18 @manual
 (C) 2026-10-10 macOS配布版で明示許可・再起動・期限切れ・拒否後の再試行・非ASCII認証情報をダミー値で実機検証 +keychain note:https://github.com/jey3dayo/ultra-rss-reader/issues/404 @manual
 (D) 2026-10-10 配布版app.logにsync-failed/keyring-*行が出ることと実FreshRSSアカウントでの同期を手動検証 +keychain note:https://github.com/jey3dayo/ultra-rss-reader/pull/394 @manual
-(C) 2026-10-12 記事表示中もアプリ内ブラウザで任意URLを開けるようにしリンクの開き方を統一する(focused jsdom test+macOS実機) +reader note:https://github.com/jey3dayo/ultra-rss-reader/issues/426
