@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
 import {
   listSampleArticlesByAccountId,
@@ -449,7 +450,8 @@ describe("ArticleView", () => {
     expect(calls.filter(({ cmd }) => cmd === "update_feed_display_settings")).toHaveLength(0);
   });
 
-  it("opens sanitized article links in the external browser", async () => {
+  it("opens sanitized article links in the external browser by preference", async () => {
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" } });
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -492,6 +494,7 @@ describe("ArticleView", () => {
   });
 
   it("resolves relative sanitized article links against the article URL before opening externally", async () => {
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" } });
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -2074,63 +2077,74 @@ describe("ArticleView", () => {
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
-  it("opens the feed website in-app on click and externally on meta-click, with a host-only tooltip", async () => {
-    const calls: MockTauriCommandCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-      switch (cmd) {
-        case "list_accounts":
-          return sampleAccounts;
-        case "list_feeds":
-          return [
-            {
-              id: "feed-1",
-              account_id: args.accountId,
-              folder_id: null,
-              remote_id: null,
-              title: "Tech Blog",
-              url: "https://example.com/feed.xml",
-              site_url: "https://www.example.com/blog/page?token=secret",
-              icon_url: null,
-              unread_count: 0,
-              reader_mode: "inherit",
-              web_preview_mode: "inherit",
-            },
-          ];
-        case "list_articles":
-        case "list_tags":
-        case "get_article_tags":
-          return [];
-        default:
-          return undefined;
-      }
-    });
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "feed", feedId: "feed-1" },
-      selectedArticleId: null,
-      contentMode: "empty",
-    });
+  it.each(["in_app", "default_browser"] as const)(
+    "opens the feed website by %s preference and externally on meta-click, with a host-only tooltip",
+    async (openLinks) => {
+      usePreferencesStore.setState({ prefs: { open_links: openLinks } });
+      const calls: MockTauriCommandCall[] = [];
+      setupTauriMocks((cmd, args) => {
+        calls.push({ cmd, args });
+        switch (cmd) {
+          case "list_accounts":
+            return sampleAccounts;
+          case "list_feeds":
+            return [
+              {
+                id: "feed-1",
+                account_id: args.accountId,
+                folder_id: null,
+                remote_id: null,
+                title: "Tech Blog",
+                url: "https://example.com/feed.xml",
+                site_url: "https://www.example.com/blog/page?token=secret",
+                icon_url: null,
+                unread_count: 0,
+                reader_mode: "inherit",
+                web_preview_mode: "inherit",
+              },
+            ];
+          case "list_articles":
+          case "list_tags":
+          case "get_article_tags":
+            return [];
+          default:
+            return undefined;
+        }
+      });
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedAccountId: "acc-1",
+        selection: { type: "feed", feedId: "feed-1" },
+        selectedArticleId: null,
+        contentMode: "empty",
+      });
 
-    render(<ArticleView />, { wrapper: createWrapper() });
+      render(<ArticleView />, { wrapper: createWrapper() });
 
-    const summary = await screen.findByTestId("article-selection-summary");
-    const hostLink = within(summary).getByRole("link", { name: "www.example.com" });
-    expect(hostLink).toHaveAttribute("title", "Open in app — www.example.com");
+      const summary = await screen.findByTestId("article-selection-summary");
+      const hostLink = within(summary).getByRole("link", { name: "www.example.com" });
+      expect(hostLink).toHaveAttribute(
+        "title",
+        openLinks === "in_app" ? "Open in app — www.example.com" : "Open in external browser — www.example.com",
+      );
 
-    fireEvent.click(hostLink, { metaKey: true });
-    await waitFor(() => {
-      expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(1);
-    });
-    expect(useUiStore.getState().browserUrl).toBeNull();
+      fireEvent.click(hostLink, { metaKey: true });
+      await waitFor(() => {
+        expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(1);
+      });
+      expect(useUiStore.getState().browserUrl).toBeNull();
 
-    fireEvent.click(hostLink);
-    await waitFor(() => {
-      expect(useUiStore.getState().browserUrl).toContain("www.example.com");
-    });
-    expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(1);
-  });
+      fireEvent.click(hostLink);
+      await waitFor(() => {
+        if (openLinks === "in_app") {
+          expect(useUiStore.getState().browserUrl).toContain("www.example.com");
+        } else {
+          expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(2);
+          expect(useUiStore.getState().browserUrl).toBeNull();
+        }
+      });
+    },
+  );
 
   it("renders a folder identity summary without history metadata when the selected folder has no articles", async () => {
     setupTauriMocks((cmd, args) => {
@@ -2660,6 +2674,59 @@ describe("ArticleView", () => {
     expect(await screen.findByTestId("browser-overlay-shell")).toBeInTheDocument();
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
   });
+
+  it.each(["true", "false"])(
+    "applies preview default %s after an uncached article unmounts and remounts the pane",
+    async (preview) => {
+      const nextArticle = {
+        ...primaryArticle,
+        id: "article-cache-miss",
+        title: "Deferred article",
+        url: "https://example.com/deferred",
+      };
+      const pendingArticle = createDeferred<typeof nextArticle>();
+      setupTauriMocks((cmd, args) => {
+        switch (cmd) {
+          case "list_articles":
+            return [primaryArticle];
+          case "list_feeds":
+            return [primaryFeed];
+          case "list_tags":
+          case "get_article_tags":
+            return [];
+          case "get_article":
+            return args.articleId === nextArticle.id ? pendingArticle.promise : primaryArticle;
+          default:
+            return undefined;
+        }
+      });
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedAccountId: "acc-1",
+        selection: { type: "feed", feedId: "feed-1" },
+        selectedArticleId: primaryArticle.id,
+        contentMode: "reader",
+      });
+      usePreferencesStore.setState({
+        prefs: { reader_mode_default: "true", web_preview_mode_default: preview },
+        loaded: true,
+      });
+      render(<ArticleView />, { wrapper: createWrapper() });
+      await screen.findByTestId("article-pane");
+      act(() => useUiStore.getState().openBrowser("https://other.example.com/intentional"));
+      await waitFor(() => expect(useUiStore.getState().browserUrl).toBe("https://other.example.com/intentional"));
+
+      act(() => useUiStore.getState().selectArticle(nextArticle.id));
+      await waitFor(() => expect(screen.queryByTestId("article-pane")).not.toBeInTheDocument());
+      expect(useUiStore.getState().browserUrl).toBe("https://other.example.com/intentional");
+      await act(async () => pendingArticle.resolve(nextArticle));
+      await screen.findByTestId("article-pane");
+      await waitFor(() => {
+        expect(useUiStore.getState().browserUrl).toBe(preview === "true" ? nextArticle.url : null);
+        expect(useUiStore.getState().contentMode).toBe(preview === "true" ? "browser" : "reader");
+      });
+    },
+  );
 
   it("keeps explicit reader-only feeds in reader mode even when the global default enables web preview", async () => {
     setupTauriMocks((cmd, args) => {

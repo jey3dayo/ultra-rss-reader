@@ -17,11 +17,11 @@ import {
 } from "@/lib/articles/article-view";
 import { focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
-import { openArticleInExternalBrowser } from "./article-browser-actions";
 import { ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell } from "./article-view-state";
 import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
 import { FeedSiteLink } from "./feed-site-link";
+import { useReaderLinkRouting } from "./hooks/use-reader-link-routing";
 import { useReaderPassiveLayoutBodyRef, useReaderPassiveLayoutCard } from "./hooks/use-reader-passive-layout-context";
 import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "./reader-passive-card";
 
@@ -137,7 +137,7 @@ function SummaryEmptyState({
 }: SummaryScopeProps) {
   const { t } = useTranslation("reader");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
-  const openBrowser = useUiStore((s) => s.openBrowser);
+  const { openReaderLink, readerLinkTitle } = useReaderLinkRouting(motionKey);
   const bodyRef = useReaderPassiveLayoutBodyRef("content");
   const passiveCard = useReaderPassiveLayoutCard("content", motionKey);
 
@@ -149,15 +149,7 @@ function SummaryEmptyState({
     });
   }
 
-  function handleWebsiteLinkOpen(href: string, { external }: { external: boolean }) {
-    if (external) {
-      void openArticleInExternalBrowser(href);
-      return;
-    }
-    openBrowser(href);
-  }
-
-  const websiteLinkTitle = websiteLink ? t("site_link_open_in_app", { host: websiteLink.label }) : "";
+  const websiteLinkTitle = websiteLink ? readerLinkTitle(websiteLink.href) : "";
 
   return (
     <ArticleEmptyStateShell
@@ -211,7 +203,7 @@ function SummaryEmptyState({
                       <FeedSiteLink
                         href={websiteLink.href}
                         title={websiteLinkTitle}
-                        onOpen={handleWebsiteLinkOpen}
+                        onOpen={openReaderLink}
                         className="block truncate font-sans text-xl font-semibold leading-tight text-foreground"
                         dir="auto"
                       >
@@ -227,7 +219,7 @@ function SummaryEmptyState({
                         <FeedSiteLink
                           href={websiteLink.href}
                           title={websiteLinkTitle}
-                          onOpen={handleWebsiteLinkOpen}
+                          onOpen={openReaderLink}
                           icon
                           className="inline-flex items-center gap-1"
                         >

@@ -1,4 +1,6 @@
 import type { SanitizedArticleHtmlDto } from "@/api/schemas/article";
+import { controlCharPattern } from "@/api/schemas/commands/shared";
+import { hasEncodedNewline, isValidWebPreviewUrl } from "@/api/schemas/commands/url";
 import { isHostBlockedByPolicy } from "@/lib/runtime/host-privacy";
 
 declare const sanitizedArticleHtmlBrand: unique symbol;
@@ -230,9 +232,6 @@ function isSafeReaderContentUrl(url: URL, allowedProtocols: ReadonlySet<string>)
   );
 }
 
-const ARTICLE_LINK_PROTOCOLS = new Set(["http:", "https:"]);
-// Kept as a separate set from ARTICLE_LINK_PROTOCOLS (even though the values
-// currently match) so images can be scoped independently of links later.
 // http: must stay allowed here to match the documented compatibility
 // contract (docs/feed-content-privacy.md:23,756) and the Rust sanitizer's
 // url_schemes allowlist (src-tauri/src/infra/sanitizer.rs:54), which both
@@ -253,26 +252,20 @@ export function normalizeReaderContentImageUrl(value: string | null | undefined)
   return url && isSafeReaderContentUrl(url, ARTICLE_IMAGE_PROTOCOLS) ? url.href : null;
 }
 
-function isSafeReaderContentLinkUrl(value: string): boolean {
-  const normalizedValue = value.trim();
-  if (!normalizedValue) {
+function isSafeReaderContentLinkUrl(value: string, confirmPrivateLinks: boolean): boolean {
+  if (!value.trim() || controlCharPattern.test(value) || hasEncodedNewline(value)) {
     return false;
   }
 
-  // Browsers strip ASCII tab/newline/carriage-return from a URL before
-  // parsing it, so a scheme like "java\tscript:" is interpreted as an
-  // absolute "javascript:" URL rather than a relative path. Strip the same
-  // control characters before the relative/absolute scheme check so a value
-  // like that is classified as absolute and rejected below instead of being
-  // misread as relative and left in place.
-  const schemeCheckValue = normalizedValue.replace(/[\t\n\r]/g, "");
-
-  if (!normalizedValue.startsWith("//") && !/^[a-z][a-z\d+.-]*:/i.test(schemeCheckValue)) {
-    return true;
+  try {
+    const url = new URL(value, "https://reader.invalid");
+    return (
+      isValidWebPreviewUrl(url.href) &&
+      (confirmPrivateLinks || !isHostBlockedByPolicy(url.hostname, "automaticRequest"))
+    );
+  } catch {
+    return false;
   }
-
-  const url = parseReaderContentUrl(normalizedValue);
-  return url !== null && isSafeReaderContentUrl(url, ARTICLE_LINK_PROTOCOLS);
 }
 
 const SRCSET_ASCII_WHITESPACE = /^[\t\n\f\r ]$/;
@@ -349,7 +342,7 @@ function redactTitleAttribute(element: Element, fallbackTitle: string): void {
   }
 }
 
-export function applyReaderContentPrivacyPolicy(html: string): string {
+export function applyReaderContentPrivacyPolicy(html: string, confirmPrivateLinks = false): string {
   if (!html || typeof DOMParser === "undefined") {
     return html;
   }
@@ -382,7 +375,7 @@ export function applyReaderContentPrivacyPolicy(html: string): string {
   });
   doc.body.querySelectorAll("a[href]").forEach((anchor) => {
     const href = anchor.getAttribute("href");
-    if (!href || !isSafeReaderContentLinkUrl(href)) {
+    if (!href || !isSafeReaderContentLinkUrl(href, confirmPrivateLinks)) {
       anchor.removeAttribute("href");
     }
     anchor.setAttribute("rel", "noopener noreferrer");

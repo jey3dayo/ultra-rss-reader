@@ -27,6 +27,7 @@ type UiStoreReaderRuntime = {
 function getResetBrowserState() {
   return {
     browserUrl: null,
+    browserArticleId: null,
     browserNavigationState: null,
     browserCloseInFlight: false,
     pendingBrowserCloseAction: null,
@@ -41,6 +42,7 @@ type ClosedBrowserReaderState = Pick<
   | "sidebarOpen"
   | "focusedPane"
   | "browserUrl"
+  | "browserArticleId"
   | "browserNavigationState"
   | "browserCloseInFlight"
   | "pendingBrowserCloseAction"
@@ -71,6 +73,7 @@ type ReaderScopeResetState = Pick<
   | "contentMode"
   | "focusedPane"
   | "browserUrl"
+  | "browserArticleId"
   | "browserNavigationState"
   | "browserCloseInFlight"
   | "pendingBrowserCloseAction"
@@ -122,6 +125,7 @@ type AccountSelectionResetState = Pick<
   | "focusedPane"
   | "expandedFolderIds"
   | "browserUrl"
+  | "browserArticleId"
   | "webPreviewSessionMode"
   | "browserNavigationState"
   | "browserCloseInFlight"
@@ -322,16 +326,17 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
       ),
     clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
     openBrowser: (url) =>
-      set({
+      set((state) => ({
         accountPaneOpen: false,
         contentMode: "browser",
         browserUrl: url,
+        browserArticleId: state.selectedArticleId,
         browserNavigationState: { canGoBack: false, canGoForward: false },
         focusedPane: "content",
         browserCloseInFlight: false,
         pendingBrowserCloseAction: null,
         pendingBrowserCloseActionQueue: [],
-      }),
+      })),
     closeBrowser: () => set((state) => getClosedBrowserReaderState(state)),
     setWebPreviewSessionMode: (mode) =>
       set((state) => ({

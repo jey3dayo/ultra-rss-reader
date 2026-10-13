@@ -190,6 +190,26 @@ describe("applyReaderContentPrivacyPolicy", () => {
     expect(normalized).toContain('decoding="async"');
   });
 
+  it("retains private anchors only at the reader confirmation boundary while blocking private media", () => {
+    const html =
+      '<a href="http://localhost/admin?token=hidden">Private link</a><img src="http://localhost/private.jpg"><source srcset="http://localhost/private.jpg 1x">';
+    expect(applyReaderContentPrivacyPolicy(html)).not.toContain("href=");
+    const confirmedReader = applyReaderContentPrivacyPolicy(html, true);
+    expect(confirmedReader).toContain('href="http://localhost/admin?token=hidden"');
+    expect(confirmedReader).toContain('rel="noopener noreferrer"');
+    expect(confirmedReader).not.toContain("/private.jpg");
+  });
+
+  it.each([
+    "https://user:pass@localhost/private",
+    "javascript:alert(1)",
+    "file:///private",
+    "http://localhost/\tcontrol",
+    "http://localhost/\ncontrol",
+  ])("does not permit invalid anchor URLs through the confirmation override: %j", (href) => {
+    expect(applyReaderContentPrivacyPolicy(`<a href="${href}">Open</a>`, true)).not.toContain("href=");
+  });
+
   it("drops blocked img srcset candidates and removes the attribute when none remain", () => {
     const normalized = applyReaderContentPrivacyPolicy(
       [

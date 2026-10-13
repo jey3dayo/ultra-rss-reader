@@ -58,6 +58,10 @@ export const webPreviewUrlSchema = v.pipe(
   v.check((url) => !hasHttpUrlCredentials(url), "Web Preview URLs must not contain credentials"),
 );
 
+export function isValidWebPreviewUrl(value: string): boolean {
+  return v.safeParse(webPreviewUrlSchema, value).success;
+}
+
 export const userNavigationUrlSchema = v.pipe(
   httpUrlSchema,
   v.check(

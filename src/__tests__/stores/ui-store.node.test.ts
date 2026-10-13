@@ -63,6 +63,7 @@ function setStaleBrowserState() {
   useUiStore.setState({
     contentMode: "browser",
     browserUrl: "https://example.com/preview",
+    browserArticleId: "stale-article",
     browserNavigationState: { canGoBack: true, canGoForward: true },
     browserCloseInFlight: true,
     pendingBrowserCloseAction: "next-article",
@@ -75,6 +76,7 @@ function expectBrowserStateReset() {
     expect.objectContaining({
       contentMode: "empty",
       browserUrl: null,
+      browserArticleId: null,
       browserNavigationState: null,
       browserCloseInFlight: false,
       pendingBrowserCloseAction: null,
@@ -99,6 +101,7 @@ function expectInitialUiStateDefaults() {
     viewMode: "unread",
     searchQuery: "",
     browserUrl: null,
+    browserArticleId: null,
     webPreviewSessionMode: "auto",
     browserNavigationState: null,
     browserCloseInFlight: false,
@@ -270,6 +273,7 @@ describe("useUiStore", () => {
         | "viewMode"
         | "contentMode"
         | "browserUrl"
+        | "browserArticleId"
         | "webPreviewSessionMode"
         | "browserNavigationState"
         | "browserCloseInFlight"
@@ -1359,6 +1363,21 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().browserUrl).toBe("https://ex.com");
     expect(useUiStore.getState().focusedPane).toBe("content");
+  });
+
+  it("retains the browser article owner across selection until navigation or reset", () => {
+    useUiStore.getState().selectArticle("article-1");
+    useUiStore.getState().openBrowser("https://other.example.com/intentional");
+    expect(useUiStore.getState().browserArticleId).toBe("article-1");
+    useUiStore.getState().selectArticle("article-2");
+    expect(useUiStore.getState().browserArticleId).toBe("article-1");
+    useUiStore.getState().openBrowser("https://example.com/article-2");
+    expect(useUiStore.getState().browserArticleId).toBe("article-2");
+    useUiStore.getState().closeBrowser();
+    expect(useUiStore.getState().browserArticleId).toBeNull();
+    useUiStore.getState().clearArticle();
+    useUiStore.getState().openBrowser("https://example.com/site");
+    expect(useUiStore.getState().browserArticleId).toBeNull();
   });
 
   it("keeps browser navigation and buffered close actions as a store contract", () => {

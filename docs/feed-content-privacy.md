@@ -693,13 +693,17 @@ out of public issue attachments.
 
 ### Article Link Opener Policy
 
-Decision: article links are untrusted publisher-controlled URLs and must be opened without granting an opener relationship, leaking full private URLs through diagnostics, or bypassing the same private-host policy used by feed discovery and feed fetch.
+Decision: article links are untrusted publisher-controlled URLs and must be opened without granting an opener relationship, leaking full private URLs through diagnostics, or navigating to local/private hosts inside the app without confirmation.
 
 Link opener contract:
 
 - Reader-mode article links must use `rel="noopener noreferrer"` when rendered as anchors. If opened through a native command instead of normal anchor navigation, the native opener must behave as an external navigation with no app-action dispatch, no script bridge, and no opener-style callback into the app.
 - Article URLs, feed URLs, server URLs, and link tooltips must use redacted display and redacted diagnostics. Query strings, fragments, userinfo, credentials, tokens, cookies, and private path segments must not appear in logs, support copy, `title` attributes, or error toasts.
-- Private, loopback, link-local, unspecified, credentialed, malformed, and unsupported-scheme article links must not be auto-opened from reader content. If a future UI allows the user to override a blocked article link, it must show a distinct warning state before navigation and must not store the raw blocked URL in diagnostics.
+- Reader title, content, and site links (summary and detail) follow `open_links`. Meta/Ctrl-click and middle-click use the existing external opener and its `open_links_background` preference.
+- Reader-controlled in-app navigation validates HTTP(S) URLs without userinfo or control characters, then applies the existing `automaticRequest` host-privacy classification to the normalized hostname. Local/private destinations require the existing warning confirmation dialog before navigation. The warning and tooltip show only the hostname. Cancel, selection changes, dismissal, and newer navigation invalidate the pending action.
+- Credentialed, malformed, unsupported-scheme, and control-character links are rejected, including before relative URL resolution. Confirmation never overrides URL validation.
+- Rust sanitizer version 6 preserves valid credential-free HTTP(S) anchor targets for explicit navigation. The existing version-keyed read/startup repair regenerates saved `content_sanitized` from `content_raw`; no schema migration is needed. Frontend rendering retains private anchor targets only in the Reader body with confirmation routing installed. Image, `src`, `srcset`, and automatic-request host restrictions remain unchanged.
+- The external opener retains UserNavigation policy: it permits LAN hostnames and Tailscale addresses, while rejecting literal private/loopback addresses. The in-app confirmation does not grant an external-policy override.
 - Link policy changes must be verified against sanitized article content and external opener behavior separately from embedded Web Preview navigation.
 
 ### Web Preview Navigation Contract
@@ -708,8 +712,8 @@ Decision: Web Preview (the embedded browser child webview) is a separate
 category from the Article Link Opener above — opening Web Preview is treated
 as visiting the publisher page in an embedded browser, not as auto-opening an
 untrusted link. Its navigation policy is deliberately narrower on scheme and
-deliberately does **not** copy the Article Link Opener's private-host
-rejection.
+deliberately preserves LAN publisher support. Reader-controlled links apply
+the confirmation contract above before invoking Web Preview.
 
 Web Preview navigation contract:
 
@@ -720,13 +724,14 @@ Web Preview navigation contract:
 - The Windows-only `about:blank` placeholder used while the child webview is
   being created is an explicit exception to the scheme check above.
 - Private, loopback, and link-local hosts are **not** rejected for Web
-  Preview. Publishers self-hosted on a LAN must remain previewable; this is
-  the opposite of the Article Link Opener contract and must stay that way
-  until a separate product decision retires LAN self-hosted Preview support.
-- The Article Link Opener (`open_in_browser`) keeps using
-  `validate_public_http_url`. Do not point Web Preview navigation at that
-  function, and do not treat a Web Preview regression as evidence against the
-  Article Link Opener's private-host rejection or vice versa.
+  Preview. Publishers self-hosted on a LAN remain previewable through the
+  direct publisher preview. The Reader link confirmation is applied at its
+  feature entry point, not to every webview navigation.
+- The external Article Link Opener (`open_in_browser`) uses
+  `parse_user_navigation_browser_http_url` and `validate_user_navigation_url`
+  in `src-tauri/src/commands/article_commands/browser.rs`. It does not use
+  `validate_public_http_url`; that validator owns public/automatic requests.
+  Web Preview keeps its separate scheme/userinfo validation and LAN support.
 - Unifying `src-tauri/src/domain/url_policy.rs` into one function shared by
   both call sites is out of scope until an operator decides to drop LAN
   self-hosted Web Preview support; see the audit issue for that tracked

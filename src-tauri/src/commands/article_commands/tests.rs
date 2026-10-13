@@ -931,7 +931,7 @@ fn security_privacy_article_render_read_path_repairs_stale_sanitizer_version_bef
                 "stale-render",
                 "feed-a",
                 "Stale Render",
-                r#"<p onclick="evil()">Safe body</p><script>alert(1)</script>"#,
+                r#"<p onclick="evil()">Safe body</p><a href="http://localhost/article">Private publisher</a><img src="http://localhost/private.jpg"><script>alert(1)</script>"#,
                 r#"<script>stale rendered html</script>"#,
                 sanitizer::SANITIZER_VERSION - 1,
                 "2026-04-01T00:00:00Z",
@@ -950,6 +950,10 @@ fn security_privacy_article_render_read_path_repairs_stale_sanitizer_version_bef
     assert_eq!(repaired.len(), 1);
     assert_eq!(repaired[0].sanitizer_version, sanitizer::SANITIZER_VERSION);
     assert!(repaired[0].content_sanitized.contains("Safe body"));
+    assert!(repaired[0]
+        .content_sanitized
+        .contains(r#"href="http://localhost/article""#));
+    assert!(!repaired[0].content_sanitized.contains("/private.jpg"));
     assert!(!repaired[0].content_sanitized.contains("<script"));
     assert!(!repaired[0].content_sanitized.contains("onclick"));
 

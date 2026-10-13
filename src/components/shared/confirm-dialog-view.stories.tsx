@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { AlertTriangle, CheckCheck } from "lucide-react";
 import { fn } from "storybook/test";
+import enReader from "@/locales/en/reader.json";
+import jaReader from "@/locales/ja/reader.json";
 import { ConfirmDialogView } from "./confirm-dialog-view";
 
 const meta = {
@@ -72,5 +74,26 @@ export const LongCopy: Story = {
     message:
       "Apply this change to every selected article? Existing article state is kept, but the update cannot be reversed in a single step.",
     actionLabel: "Apply update",
+  },
+};
+
+export const PrivateLinkWarning: Story = {
+  args: {
+    title: enReader.reader_link_private_open,
+    message: enReader.reader_link_private_confirm.replace("{{host}}", "192.168.1.20"),
+    actionLabel: enReader.reader_link_private_open,
+    variant: "warning",
+    icon: AlertTriangle,
+  },
+};
+
+export const PrivateLinkWarningJapanese: Story = {
+  args: {
+    title: jaReader.reader_link_private_open,
+    message: jaReader.reader_link_private_confirm.replace("{{host}}", "localhost"),
+    actionLabel: jaReader.reader_link_private_open,
+    cancelLabel: "キャンセル",
+    variant: "warning",
+    icon: AlertTriangle,
   },
 };

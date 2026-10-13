@@ -14,7 +14,7 @@ struct SrcsetContractCase {
     expected: Option<&'static str>,
 }
 
-const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 5;
+const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 6;
 
 const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
     SanitizerCorpusCase {
@@ -185,7 +185,7 @@ fn fixes_reader_media_and_link_privacy_attributes() {
 
 #[test]
 fn records_current_sanitizer_contract_version() {
-    assert_eq!(SANITIZER_VERSION, 5);
+    assert_eq!(SANITIZER_VERSION, 6);
 }
 
 #[test]
@@ -570,4 +570,35 @@ fn malformed_article_html_sanitizes_before_text_extraction() {
     assert!(sanitized.contains("Lead"));
     assert!(sanitized.contains("body"));
     assert_eq!(extract_visible_text(&sanitized), "Lead body Trailing");
+}
+
+#[test]
+fn preserves_private_http_links_for_confirmed_reader_navigation_but_blocks_private_media() {
+    for host in ["localhost", "192.168.1.20", "publisher.local", "[::1]"] {
+        let raw = format!(
+            r#"<a href="http://{host}/article">Open</a><img src="http://{host}/image"><source srcset="http://{host}/image 1x">"#
+        );
+        let output = sanitize_html(&raw);
+        assert!(output.contains(&format!(r#"href="http://{host}/article""#)));
+        assert!(!output.contains("/image"));
+        assert!(output.contains(r#"rel="noopener noreferrer""#));
+    }
+}
+
+#[test]
+fn rejects_credentials_controls_and_non_http_reader_links_before_the_confirmation_boundary() {
+    for url in [
+        "https://user:secret@localhost/article",
+        "javascript:alert(1)",
+        "file:///private",
+        "http://localhost/\tcontrol",
+        "http://localhost/\ncontrol",
+    ] {
+        let output = sanitize_html(&format!(r#"<a href="{url}">Open</a>"#));
+        assert!(
+            !output.contains("href="),
+            "invalid reader link should lose its navigation target"
+        );
+        assert!(output.contains("Open"));
+    }
 }

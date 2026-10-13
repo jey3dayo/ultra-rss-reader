@@ -61,6 +61,8 @@ const requiredSharedStoryExportsByFilePath = {
     "DestructiveWithHold",
     "JapaneseFeedCount",
     "LongCopy",
+    "PrivateLinkWarning",
+    "PrivateLinkWarningJapanese",
     "SuccessTone",
     "WarningTone",
   ],

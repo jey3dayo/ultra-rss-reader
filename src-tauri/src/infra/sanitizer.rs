@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::domain::url_policy;
 
-pub const SANITIZER_VERSION: u32 = 5;
+pub const SANITIZER_VERSION: u32 = 6;
 const SANITIZER_ADDED_TAGS: &[&str] = &[
     "img",
     "picture",
@@ -54,7 +54,7 @@ fn sanitize_article_html(raw: &str) -> String {
         .url_schemes(std::collections::HashSet::from(["http", "https"]))
         .attribute_filter(|_, attribute, value| {
             if attribute.eq_ignore_ascii_case("href") {
-                return is_public_absolute_http_url(value).then_some(Cow::Borrowed(value));
+                return is_reader_navigation_http_url(value).then_some(Cow::Borrowed(value));
             }
 
             if attribute.eq_ignore_ascii_case("src") {
@@ -146,6 +146,14 @@ fn is_safe_srcset_url(url: &str) -> bool {
     }
 
     is_public_absolute_http_url(trimmed)
+}
+
+fn is_reader_navigation_http_url(url: &str) -> bool {
+    !url.chars().any(char::is_control)
+        && reqwest::Url::parse(url).is_ok_and(|parsed| {
+            parsed.host_str().is_some()
+                && url_policy::validate_http_url_without_credentials(&parsed).is_ok()
+        })
 }
 
 fn is_public_absolute_http_url(url: &str) -> bool {

@@ -6,7 +6,7 @@ type ArticleMetaSiteLink = {
   href: string;
   label: string;
   title: string;
-  onOpen: (href: string) => void;
+  onOpen: (href: string, options: { external: boolean }) => void;
 };
 
 type ArticleMetaViewProps = {
@@ -59,7 +59,7 @@ export function ArticleMetaView({
             <FeedSiteLink
               href={siteLink.href}
               title={siteLink.title}
-              onOpen={(href) => siteLink.onOpen(href)}
+              onOpen={siteLink.onOpen}
               icon
               className="inline-flex items-center gap-1"
             >
