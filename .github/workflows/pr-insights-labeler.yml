@@ -37,9 +37,12 @@ jobs:
           pr_files_limit: "50"
 
           additional_exclude_patterns: |
-            src/generated/**
-            src/components/ui/**
-            pnpm-lock.yaml
-            src-tauri/target/**
             docs/superpowers/plans/**
+            pnpm-lock.yaml
+            src-tauri/**/*_tests.rs
+            src-tauri/**/tests.rs
+            src-tauri/**/tests/**
+            src-tauri/target/**
+            src/components/ui/**
+            src/generated/**
           language: "ja"
