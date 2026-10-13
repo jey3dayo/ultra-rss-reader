@@ -42,4 +42,7 @@ jobs:
             pnpm-lock.yaml
             src-tauri/target/**
             docs/superpowers/plans/**
+            src-tauri/**/tests.rs
+            src-tauri/**/tests/**
+            src-tauri/**/*_tests.rs
           language: "ja"
