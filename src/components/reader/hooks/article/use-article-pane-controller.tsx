@@ -36,7 +36,6 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
   const {
     layoutMode,
     contentMode,
-    browserUrl,
     selection,
     clearArticle,
     showToast,
@@ -57,7 +56,6 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
   } = useArticleBrowserOverlay({
     articleId: article.id,
     articleUrl: article.url,
-    browserUrl,
     contentMode,
     feed,
   });

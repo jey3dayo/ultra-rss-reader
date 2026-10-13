@@ -10,7 +10,6 @@ import { useUiStore } from "@/stores/ui-store";
 type UseArticleBrowserOverlayParams = {
   articleId: string;
   articleUrl: string | null;
-  browserUrl: string | null;
   contentMode: ContentMode;
   feed?: FeedDto;
 };

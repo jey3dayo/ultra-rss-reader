@@ -9,9 +9,8 @@ vi.mock("@/lib/browser/close-browser-webview-before-reader-mode", () => ({
 }));
 
 function useOverlay(articleId: string, articleUrl: string | null) {
-  const browserUrl = useUiStore((state) => state.browserUrl);
   const contentMode = useUiStore((state) => state.contentMode);
-  return useArticleBrowserOverlay({ articleId, articleUrl, browserUrl, contentMode });
+  return useArticleBrowserOverlay({ articleId, articleUrl, contentMode });
 }
 
 describe("article preview navigation intent", () => {
