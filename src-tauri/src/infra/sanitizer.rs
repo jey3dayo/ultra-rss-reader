@@ -149,8 +149,21 @@ fn is_safe_srcset_url(url: &str) -> bool {
 }
 
 fn is_reader_navigation_http_url(url: &str) -> bool {
-    !url.chars().any(char::is_control)
-        && reqwest::Url::parse(url).is_ok_and(|parsed| {
+    if url.trim().is_empty()
+        || url.chars().any(char::is_control)
+        || url.as_bytes().windows(3).any(|encoded| {
+            encoded[0] == b'%'
+                && encoded[1] == b'0'
+                && matches!(encoded[2], b'a' | b'A' | b'd' | b'D')
+        })
+    {
+        return false;
+    }
+
+    // Resolve only for validation; preserve the href for the frontend's article URL base.
+    reqwest::Url::parse("https://reader.invalid/")
+        .and_then(|base| base.join(url))
+        .is_ok_and(|parsed| {
             parsed.host_str().is_some()
                 && url_policy::validate_http_url_without_credentials(&parsed).is_ok()
         })
