@@ -124,8 +124,29 @@ describe("AccountCredentialsSectionView", () => {
       "bg-surface-2/82",
       "text-foreground",
     );
-    expect(screen.getByText("Test Connection")).toHaveClass("sm:w-40");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+  });
+
+  it("shows the test-connection label once, as the button", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        testConnectionLabel="Check Connection"
+        testingConnectionLabel="Testing..."
+        onTestConnection={() => {}}
+      />,
+    );
+
+    const matches = screen.getAllByText("Check Connection");
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toBe(screen.getByRole("button", { name: "Check Connection" }));
   });
 
   it("uses a fixed desktop label column and flexible credential inputs", () => {
@@ -244,7 +265,7 @@ describe("AccountCredentialsSectionView", () => {
             loadingMessage: "Checking…",
             readErrorMessage: "Access metadata could not be read. Existing credentials will be kept unchanged.",
             unavailableMessage: "Manage Access in the desktop app.",
-            authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
+            authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
             description: "Add Access authentication",
             enabled: true,
@@ -367,7 +388,7 @@ describe("AccountCredentialsSectionView", () => {
             loadingMessage: "Checking…",
             readErrorMessage: "Access metadata could not be read.",
             unavailableMessage: "Manage Access in the desktop app.",
-            authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
+            authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
             description: "Add Access authentication",
             enabled: true,
@@ -451,7 +472,7 @@ describe("AccountCredentialsSectionView", () => {
             readErrorMessage:
               "Cloudflare Access settings could not be read. Existing credentials will be kept unchanged.",
             unavailableMessage: "Manage Access in the desktop app.",
-            authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
+            authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
             description: "Add Access authentication",
             enabled: false,
@@ -482,7 +503,7 @@ describe("AccountCredentialsSectionView", () => {
     expect(screen.getByRole("alert")).toBeVisible();
   });
 
-  it("keeps neutral guidance and offers explicit replace and remove while authorization is required", async () => {
+  it("keeps the Access row with recovery actions in place of the switch while authorization is required", async () => {
     const user = userEvent.setup();
     const recovery = vi.fn();
     function AuthorizationRequiredView() {
@@ -521,7 +542,7 @@ describe("AccountCredentialsSectionView", () => {
             loadingMessage: "Checking…",
             readErrorMessage: "Access metadata could not be read.",
             unavailableMessage: "Manage Access in the desktop app.",
-            authorizationRequiredMessage: "Use Save and test connection to load Access settings.",
+            authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
             description: "Add Access authentication",
             enabled: false,
@@ -537,9 +558,11 @@ describe("AccountCredentialsSectionView", () => {
     }
     render(<AuthorizationRequiredView />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Use Save and test connection to load Access settings.");
+    expect(screen.getByText("Cloudflare Access")).toBeVisible();
+    expect(screen.getByText("Add Access authentication")).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Run the connection test to load Access settings.");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.queryByRole("switch", { name: "Cloudflare Access" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Client ID")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reconfigure Access" }));
     expect(recovery).toHaveBeenLastCalledWith("replace");

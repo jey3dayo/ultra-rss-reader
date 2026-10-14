@@ -6,11 +6,7 @@ import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow, LabeledInputRow, SurfaceCard } from "@/design-system";
-import {
-  type CloudflareAccessDraftError,
-  type CloudflareAccessStatus,
-  isCloudflareAccessRecoveryStatus,
-} from "@/lib/account/cloudflare-access";
+import type { CloudflareAccessDraftError, CloudflareAccessStatus } from "@/lib/account/cloudflare-access";
 
 export type AccountCredentialInputRow = {
   label: string;
@@ -61,55 +57,91 @@ type CloudflareAccessCredentialFieldsProps = {
   labelClassName: string;
 };
 
-const RECOVERY_CARD_PRESENTATION = {
-  error: { tone: "danger", role: "alert" },
-  authorization_required: { tone: "subtle", role: "status" },
-} as const;
-
-function CloudflareAccessRecoveryCard({
+function CloudflareAccessRecoveryActions({
   section,
-  status,
   disabled,
 }: {
   section: AccountCloudflareAccessSection;
-  status: keyof typeof RECOVERY_CARD_PRESENTATION;
   disabled: boolean;
 }) {
   const { t } = useTranslation("settings");
   const { onRecoveryActionChange, recoveryAction } = section;
-  const { tone, role } = RECOVERY_CARD_PRESENTATION[status];
-  const message = status === "error" ? section.readErrorMessage : section.authorizationRequiredMessage;
+
+  if (!onRecoveryActionChange) return null;
 
   return (
-    <SurfaceCard variant="info" tone={tone} padding="compact" role={role}>
-      <p className="text-sm leading-[1.5]">{message}</p>
-      {onRecoveryActionChange && (
+    <>
+      <SettingsActionButton
+        type="button"
+        size="compact"
+        disabled={disabled}
+        aria-pressed={recoveryAction === "replace"}
+        onClick={() => onRecoveryActionChange("replace")}
+      >
+        {t("account.cloudflare_access_reconfigure")}
+      </SettingsActionButton>
+      <SettingsActionButton
+        type="button"
+        tone="danger"
+        size="compact"
+        disabled={disabled}
+        aria-pressed={recoveryAction === "remove"}
+        onClick={() => onRecoveryActionChange("remove")}
+      >
+        {t("account.cloudflare_access_remove")}
+      </SettingsActionButton>
+    </>
+  );
+}
+
+function CloudflareAccessRecoveryCard({
+  section,
+  disabled,
+}: {
+  section: AccountCloudflareAccessSection;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation("settings");
+
+  return (
+    <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+      <p className="text-sm leading-[1.5]">{section.readErrorMessage}</p>
+      {section.onRecoveryActionChange && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <SettingsActionButton
-            type="button"
-            size="compact"
-            disabled={disabled}
-            aria-pressed={recoveryAction === "replace"}
-            onClick={() => onRecoveryActionChange("replace")}
-          >
-            {t("account.cloudflare_access_reconfigure")}
-          </SettingsActionButton>
-          <SettingsActionButton
-            type="button"
-            tone="danger"
-            size="compact"
-            disabled={disabled}
-            aria-pressed={recoveryAction === "remove"}
-            onClick={() => onRecoveryActionChange("remove")}
-          >
-            {t("account.cloudflare_access_remove")}
-          </SettingsActionButton>
+          <CloudflareAccessRecoveryActions section={section} disabled={disabled} />
         </div>
       )}
-      {recoveryAction === "remove" && (
+      {section.recoveryAction === "remove" && (
         <p className="mt-2 text-sm leading-[1.5]">{t("account.cloudflare_access_remove_on_save")}</p>
       )}
     </SurfaceCard>
+  );
+}
+
+function CloudflareAccessAuthorizationRequired({
+  section,
+  disabled,
+  labelClassName,
+}: CloudflareAccessCredentialFieldsProps) {
+  const { t } = useTranslation("settings");
+
+  return (
+    <>
+      <CloudflareAccessControl
+        mode="detail"
+        label={section.label}
+        description={section.description}
+        trailing={<CloudflareAccessRecoveryActions section={section} disabled={disabled} />}
+        disabled={disabled}
+        labelClassName={labelClassName}
+      />
+      <p className="text-sm leading-[1.5] text-foreground-soft" role="status">
+        {section.authorizationRequiredMessage}
+      </p>
+      {section.recoveryAction === "remove" && (
+        <p className="text-sm leading-[1.5] text-foreground-soft">{t("account.cloudflare_access_remove_on_save")}</p>
+      )}
+    </>
   );
 }
 
@@ -315,8 +347,9 @@ export function CloudflareAccessCredentialFields({
 
   return (
     <>
-      {isCloudflareAccessRecoveryStatus(status) && (
-        <CloudflareAccessRecoveryCard section={section} status={status} disabled={disabled} />
+      {status === "error" && <CloudflareAccessRecoveryCard section={section} disabled={disabled} />}
+      {status === "authorization_required" && (
+        <CloudflareAccessAuthorizationRequired section={section} disabled={disabled} labelClassName={labelClassName} />
       )}
       {status === "ready" && (
         <CloudflareAccessControl

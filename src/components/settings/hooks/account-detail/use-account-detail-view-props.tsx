@@ -85,7 +85,6 @@ export function useAccountDetailViewProps({
       account,
       controller,
       t,
-      verificationStatus,
       isSetupSyncing,
       isSetupFailed,
       isSetupActive,

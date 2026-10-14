@@ -1,11 +1,22 @@
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { GradientSwitch, LabeledControlRow, SettingsInfoPopover } from "@/design-system";
 
-type CloudflareAccessControlProps = {
+type CloudflareAccessControlSlotProps =
+  | {
+      checked: boolean;
+      onChange: (checked: boolean) => void;
+      trailing?: undefined;
+    }
+  | {
+      trailing: ReactElement;
+      checked?: undefined;
+      onChange?: undefined;
+    };
+
+type CloudflareAccessControlProps = CloudflareAccessControlSlotProps & {
   label: string;
   description: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
   disabled?: boolean;
   labelClassName?: string;
   mode: "add" | "detail";
@@ -16,6 +27,7 @@ export function CloudflareAccessControl({
   description,
   checked,
   onChange,
+  trailing,
   disabled,
   labelClassName,
   mode,
@@ -35,17 +47,21 @@ export function CloudflareAccessControl({
         />
       }
     >
-      {({ descriptionId }) => (
-        <div className="flex w-full items-center justify-end">
-          <GradientSwitch
-            checked={checked}
-            onCheckedChange={(nextChecked) => onChange(nextChecked)}
-            disabled={disabled}
-            aria-label={label}
-            aria-describedby={descriptionId}
-          />
-        </div>
-      )}
+      {({ descriptionId }) =>
+        trailing !== undefined ? (
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">{trailing}</div>
+        ) : (
+          <div className="flex w-full items-center justify-end">
+            <GradientSwitch
+              checked={checked}
+              onCheckedChange={(nextChecked) => onChange(nextChecked)}
+              disabled={disabled}
+              aria-label={label}
+              aria-describedby={descriptionId}
+            />
+          </div>
+        )
+      }
     </LabeledControlRow>
   );
 }

@@ -1,5 +1,4 @@
 import { Copy } from "lucide-react";
-import type { ComponentProps } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
@@ -38,7 +37,6 @@ type AccountCredentialsSectionViewProps = {
   testingConnectionLabel?: string;
   onTestConnection?: () => void;
   isTestingConnection?: boolean;
-  testConnectionTone?: ComponentProps<typeof SettingsLoadingActionButton>["tone"];
   connectionTestSucceeded?: boolean;
   testConnectionSuccessLabel?: string;
   extraRows?: AccountCredentialInputRow[];
@@ -73,7 +71,6 @@ export function AccountCredentialsSectionView({
   testingConnectionLabel,
   onTestConnection,
   isTestingConnection,
-  testConnectionTone,
   connectionTestSucceeded,
   testConnectionSuccessLabel,
   extraRows,
@@ -155,10 +152,9 @@ export function AccountCredentialsSectionView({
         />
       )}
       {onTestConnection && (
-        <LabeledControlRow label={testConnectionLabel ?? ""} labelClassName={labelColumnClassName}>
+        <LabeledControlRow label="" labelClassName={labelColumnClassName}>
           <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
             <SettingsLoadingActionButton
-              tone={testConnectionTone}
               size="standalone"
               onClick={onTestConnection}
               loading={isTestingConnection}
