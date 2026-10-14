@@ -9,7 +9,6 @@ type BuildCredentialsSectionParams = {
   account: AccountDetailAccount;
   controller: AccountDetailControllerResult;
   t: TFunction<"settings">;
-  verificationStatus: NonNullable<AccountDetailAccount["connection_verification_status"]>;
   isSetupSyncing: boolean;
   isSetupFailed: boolean;
   isSetupActive: boolean;
@@ -20,7 +19,6 @@ export function buildCredentialsSection({
   account,
   controller,
   t,
-  verificationStatus,
   isSetupSyncing,
   isSetupFailed,
   isQuarantined,
@@ -114,7 +112,6 @@ export function buildCredentialsSection({
       testingConnectionLabel={isSetupSyncing || isQuarantined ? undefined : t("account.testing_connection")}
       connectionTestSucceeded={connectionTestSucceeded}
       testConnectionSuccessLabel={t("account.test_connection_succeeded")}
-      testConnectionTone={verificationStatus === "verified" ? "subtle" : "content"}
       onTestConnection={isSetupSyncing || isQuarantined ? undefined : controller.handleTestConnection}
       isTestingConnection={controller.testingConnection}
     />

@@ -66,6 +66,7 @@ export function SettingsContentLayout({
   const bodyContentClassName = cn(
     "w-full",
     titleLayout === "sticky-centered" ? "px-5 py-6 sm:px-8 sm:py-8" : "p-5 sm:p-6",
+    "pb-12 sm:pb-12",
     titleLayout === "stacked-left" && "mx-auto",
     maxWidthClassName,
   );
