@@ -28,6 +28,8 @@ type ReaderFocusRetryCleanup = () => void;
 type ReaderFocusFrameCleanup = () => void;
 
 const READER_FOCUS_FRAME_SCHEDULE_WARNING = "Failed to schedule reader focus frame.";
+const READER_FOCUS_RETRY_DELAY_MS = 50;
+const READER_FOCUS_RETRY_ATTEMPTS = 12;
 
 const readerFocusRetryGenerations: Record<ReaderFocusRetryGenerationKey, number> = {
   "article-list-row": 0,
@@ -170,7 +172,7 @@ function focusTargetWhenReady(params: {
     }
     timeoutId = null;
     params.retry(params.attemptsRemaining - 1);
-  }, 50);
+  }, READER_FOCUS_RETRY_DELAY_MS);
   return cleanup;
 }
 
@@ -248,7 +250,7 @@ function focusArticleListRowTarget(selectedArticleId: string | null): boolean {
 
 export function focusArticleListRowTargetWhenReady(
   selectedArticleId: string | null,
-  attemptsRemaining = 12,
+  attemptsRemaining = READER_FOCUS_RETRY_ATTEMPTS,
 ): ReaderFocusRetryCleanup {
   return focusTargetWhenReady({
     generationKey: "article-list-row",
@@ -292,7 +294,7 @@ function focusSidebarSmartViewTarget(kind: SmartViewKind): boolean {
 
 export function focusSidebarSmartViewTargetWhenReady(
   kind: SmartViewKind,
-  attemptsRemaining = 12,
+  attemptsRemaining = READER_FOCUS_RETRY_ATTEMPTS,
 ): ReaderFocusRetryCleanup {
   return focusTargetWhenReady({
     generationKey: "sidebar-smart-view",

@@ -40,7 +40,6 @@ export const sortSubscriptionsPreferenceValues = [
 export type SortSubscriptions = (typeof sortSubscriptionsPreferenceValues)[number];
 export const startupFolderExpansionPreferenceValues = ["all_collapsed", "unread_folders", "restore_previous"] as const;
 export type StartupFolderExpansionPreference = (typeof startupFolderExpansionPreferenceValues)[number];
-export const developerModePreferenceValues = booleanStringPreferenceValues;
 export const debugAgentationVisibilityPreferenceValues = ["always", "hide_in_settings", "off"] as const;
 type DebugAgentationVisibilityPreference = Exclude<
   (typeof debugAgentationVisibilityPreferenceValues)[number],
@@ -92,7 +91,7 @@ type PreferenceValueMap = {
   recent_articles_history_enabled: (typeof booleanStringPreferenceValues)[number];
   sort_subscriptions: SortSubscriptions;
   sync_on_startup: (typeof booleanStringPreferenceValues)[number];
-  developer_mode: (typeof developerModePreferenceValues)[number];
+  developer_mode: (typeof booleanStringPreferenceValues)[number];
   action_copy_link: (typeof booleanStringPreferenceValues)[number];
   action_open_browser: (typeof booleanStringPreferenceValues)[number];
   debug_browser_hud: (typeof booleanStringPreferenceValues)[number];
@@ -353,99 +352,73 @@ function isUtf8ByteLimitedString(value: string, maxBytes: number): boolean {
   return !hasControlCharacter(value) && textEncoder.encode(value).length <= maxBytes;
 }
 
+type PicklistPreferenceKey = Exclude<KnownPreferenceKey, "debug_web_preview_url" | "debug_agentation_visibility">;
+
+const picklistPreferenceValues: Record<PicklistPreferenceKey, readonly string[]> = {
+  language: languagePreferenceValues,
+  unread_badge: unreadBadgePreferenceValues,
+  open_links: openLinksPreferenceValues,
+  open_links_background: booleanStringPreferenceValues,
+  sort_unread: sortOrderPreferenceValues,
+  group_by: groupByPreferenceValues,
+  cmd_click_browser: booleanStringPreferenceValues,
+  ask_before_mark_all: booleanStringPreferenceValues,
+  list_selection_style: listSelectionStylePreferenceValues,
+  sidebar_density: sidebarDensityPreferenceValues,
+  layout: layoutPreferenceValues,
+  theme: themePreferenceValues,
+  opaque_sidebars: booleanStringPreferenceValues,
+  grayscale_favicons: booleanStringPreferenceValues,
+  font_style: fontStylePreferenceValues,
+  font_size: fontSizePreferenceValues,
+  show_starred_count: booleanStringPreferenceValues,
+  show_unread_count: booleanStringPreferenceValues,
+  show_sidebar_unread: booleanStringPreferenceValues,
+  show_sidebar_starred: booleanStringPreferenceValues,
+  show_sidebar_recent_articles: booleanStringPreferenceValues,
+  show_sidebar_tags: booleanStringPreferenceValues,
+  startup_folder_expansion: startupFolderExpansionPreferenceValues,
+  image_previews: imagePreviewsPreferenceValues,
+  display_favicons: booleanStringPreferenceValues,
+  text_preview: booleanStringPreferenceValues,
+  dim_archived: booleanStringPreferenceValues,
+  reader_mode_default: booleanStringPreferenceValues,
+  web_preview_mode_default: booleanStringPreferenceValues,
+  web_preview_keep_focus: booleanStringPreferenceValues,
+  window_always_on_top: booleanStringPreferenceValues,
+  reading_sort: sortOrderPreferenceValues,
+  after_reading: afterReadingPreferenceValues,
+  scroll_to_top_on_change: booleanStringPreferenceValues,
+  open_first_article_on_feed_selection: booleanStringPreferenceValues,
+  recent_articles_history_enabled: booleanStringPreferenceValues,
+  sort_subscriptions: sortSubscriptionsPreferenceValues,
+  sync_on_startup: booleanStringPreferenceValues,
+  developer_mode: booleanStringPreferenceValues,
+  action_copy_link: booleanStringPreferenceValues,
+  action_open_browser: booleanStringPreferenceValues,
+  debug_browser_hud: booleanStringPreferenceValues,
+  mute_auto_mark_read: booleanStringPreferenceValues,
+};
+
+function pickAllowedValue(allowed: readonly string[], value: string): string | null {
+  return allowed.includes(value) ? value : null;
+}
+
 function parseKnownPreferenceValue<K extends KnownPreferenceKey>(key: K, value: string): PreferenceValue<K> | null {
-  switch (key) {
-    case "language":
-      return languagePreferenceValues.includes(value as LanguagePreference) ? (value as PreferenceValue<K>) : null;
-    case "unread_badge":
-      return unreadBadgePreferenceValues.includes(value as UnreadBadgePreference)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "open_links":
-      return openLinksPreferenceValues.includes(value as PreferenceValue<"open_links">)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "open_links_background":
-    case "cmd_click_browser":
-    case "ask_before_mark_all":
-    case "opaque_sidebars":
-    case "grayscale_favicons":
-    case "show_starred_count":
-    case "show_unread_count":
-    case "show_sidebar_unread":
-    case "show_sidebar_starred":
-    case "show_sidebar_recent_articles":
-    case "show_sidebar_tags":
-    case "display_favicons":
-    case "text_preview":
-    case "dim_archived":
-    case "reader_mode_default":
-    case "web_preview_mode_default":
-    case "web_preview_keep_focus":
-    case "window_always_on_top":
-    case "scroll_to_top_on_change":
-    case "open_first_article_on_feed_selection":
-    case "recent_articles_history_enabled":
-    case "sync_on_startup":
-    case "developer_mode":
-    case "action_copy_link":
-    case "action_open_browser":
-    case "debug_browser_hud":
-    case "mute_auto_mark_read":
-      return booleanStringPreferenceValues.includes(value as PreferenceValue<"debug_browser_hud">)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "sort_unread":
-    case "reading_sort":
-      return sortOrderPreferenceValues.includes(value as PreferenceValue<"sort_unread">)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "group_by":
-      return groupByPreferenceValues.includes(value as PreferenceValue<"group_by">)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "list_selection_style":
-      return listSelectionStylePreferenceValues.includes(value as PreferenceValue<"list_selection_style">)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "sidebar_density":
-      return sidebarDensityPreferenceValues.includes(value as SidebarDensityPreference)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "layout":
-      return layoutPreferenceValues.includes(value as PreferenceValue<"layout">) ? (value as PreferenceValue<K>) : null;
-    case "theme":
-      return themePreferenceValues.includes(value as Theme) ? (value as PreferenceValue<K>) : null;
-    case "font_style":
-      return fontStylePreferenceValues.includes(value as FontStylePreference) ? (value as PreferenceValue<K>) : null;
-    case "font_size":
-      return fontSizePreferenceValues.includes(value as FontSizePreference) ? (value as PreferenceValue<K>) : null;
-    case "startup_folder_expansion":
-      return startupFolderExpansionPreferenceValues.includes(value as StartupFolderExpansionPreference)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "image_previews":
-      return imagePreviewsPreferenceValues.includes(value as PreferenceValue<"image_previews">)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "after_reading":
-      return afterReadingPreferenceValues.includes(value as AfterReadingPreference)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "sort_subscriptions":
-      return sortSubscriptionsPreferenceValues.includes(value as SortSubscriptions)
-        ? (value as PreferenceValue<K>)
-        : null;
-    case "debug_web_preview_url":
-      return isUtf8ByteLimitedString(value, preferenceValueMaxUtf8Bytes) ? (value as PreferenceValue<K>) : null;
-    case "debug_agentation_visibility":
-      if (value === "hide_in_settings") {
-        return "always" as PreferenceValue<K>;
-      }
-      return debugAgentationVisibilityPreferenceValues.includes(value as DebugAgentationVisibilityPreference)
-        ? (value as PreferenceValue<K>)
-        : null;
+  if (key === "debug_web_preview_url") {
+    return isUtf8ByteLimitedString(value, preferenceValueMaxUtf8Bytes) ? (value as PreferenceValue<K>) : null;
   }
+
+  if (key === "debug_agentation_visibility") {
+    if (value === "hide_in_settings") {
+      return "always" as PreferenceValue<K>;
+    }
+    return debugAgentationVisibilityPreferenceValues.includes(value as DebugAgentationVisibilityPreference)
+      ? (value as PreferenceValue<K>)
+      : null;
+  }
+
+  return pickAllowedValue(picklistPreferenceValues[key as PicklistPreferenceKey], value) as PreferenceValue<K> | null;
 }
 
 function normalizeShortcutPreferenceValue(key: ShortcutPreferenceKey, value: string): string {

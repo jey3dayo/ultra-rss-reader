@@ -4,7 +4,6 @@ import {
   afterReadingPreferenceValues,
   booleanStringPreferenceValues,
   debugAgentationVisibilityPreferenceValues,
-  developerModePreferenceValues,
   fontSizePreferenceValues,
   fontStylePreferenceValues,
   groupByPreferenceValues,
@@ -60,7 +59,7 @@ const imagePreviewsSchema = v.picklist(imagePreviewsPreferenceValues);
 const afterReadingSchema = v.picklist(afterReadingPreferenceValues);
 const sortSubscriptionsSchema = v.picklist(sortSubscriptionsPreferenceValues);
 const startupFolderExpansionSchema = v.picklist(startupFolderExpansionPreferenceValues);
-const developerModeSchema = v.picklist(developerModePreferenceValues);
+const developerModeSchema = v.picklist(booleanStringPreferenceValues);
 const debugAgentationVisibilitySchema = v.pipe(
   v.picklist(debugAgentationVisibilityPreferenceValues),
   v.transform((value) => (value === "hide_in_settings" ? "always" : value)),
