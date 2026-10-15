@@ -27,6 +27,7 @@ type ArticleReaderBodyProps = {
 
 const ARTICLE_READER_SCROLL_POSITION_COMMIT_DELAY_MS = 120;
 const WHEEL_DELTA_LINE_HEIGHT_PX = 40;
+const READER_KEYBOARD_SCROLL_MIN_PX = 72;
 
 function getReaderScrollDirection(event: KeyboardEvent<HTMLDivElement>): 1 | -1 | null {
   if (event.metaKey || event.ctrlKey || event.altKey) {
@@ -270,7 +271,7 @@ export function ArticleReaderBody({
       }
 
       event.preventDefault();
-      const scrollAmount = Math.max(72, Math.round(viewport.clientHeight * 0.8));
+      const scrollAmount = Math.max(READER_KEYBOARD_SCROLL_MIN_PX, Math.round(viewport.clientHeight * 0.8));
       viewport.scrollTop += direction * scrollAmount;
       scheduleScrollPositionCommit(article.id, viewport.scrollTop);
     },
