@@ -1,4 +1,5 @@
 import path from "node:path";
+import { isRecord } from "../../lib/type-guards.ts";
 import { parseUpdaterChecksum } from "../updater-checksum.ts";
 import { currentAssetPlatform, matrixPlatformForRunner } from "./artifact-contract.ts";
 import { parseAssetPathList } from "./artifact-inventory.ts";
@@ -24,9 +25,6 @@ const rejectProvenance: Reject = (message) => {
 
 const requiredEnv = (key: string, env: Readonly<Record<string, string | undefined>>, reject: Reject): string =>
   env[key] || reject(`missing required environment variable ${key}`);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const readPackageVersion = (packageJsonContent: string): string | undefined => {
   const parsed: unknown = JSON.parse(packageJsonContent);
