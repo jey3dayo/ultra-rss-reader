@@ -1,6 +1,7 @@
 import { cn } from "cn";
 import { ChevronLeft, X } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
+import type { PlatformInfo } from "@/api/schemas";
 import { Button } from "@/components/ui/button";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -37,6 +38,17 @@ type MotionTextProps = {
   variant: MotionTextVariant;
   className?: string;
   testId?: string;
+};
+
+type WorkspaceHeaderLayout = {
+  hasBackAction: boolean;
+  hasSubtitle: boolean;
+  isBrowserPreview: boolean;
+  isDesktopApp: boolean;
+  showEyebrowInTopRow: boolean;
+  showEyebrowInTitleGroup: boolean;
+  useCompactDesktopHeader: boolean;
+  useDesktopOverlay: boolean;
 };
 
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
@@ -90,17 +102,43 @@ function MotionText({ as: Component, children, phase, variant, className, testId
   );
 }
 
-export function WorkspaceHeader({
+type WorkspaceHeaderDragRegionProps = {
+  testId: string;
+  className?: string;
+  style?: ComponentProps<"div">["style"];
+};
+
+function WorkspaceHeaderDragRegion({ testId, className, style }: WorkspaceHeaderDragRegionProps) {
+  return <div data-testid={testId} data-tauri-drag-region aria-hidden="true" className={className} style={style} />;
+}
+
+type WorkspaceHeaderBackButtonProps = {
+  ariaLabel?: string;
+  className?: string;
+  onClick?: () => void;
+};
+
+function WorkspaceHeaderBackButton({ ariaLabel, className, onClick }: WorkspaceHeaderBackButtonProps) {
+  return (
+    <WorkspaceHeaderActionButton aria-label={ariaLabel} onClick={onClick} className={className}>
+      <ChevronLeft className="size-4" />
+    </WorkspaceHeaderActionButton>
+  );
+}
+
+function deriveWorkspaceHeaderLayout({
+  platformKind,
   eyebrow,
-  title,
   subtitle,
   backLabel,
   onBack,
-  closeLabel,
-  onClose,
-  actions = null,
-}: WorkspaceHeaderProps) {
-  const platformKind = usePlatformStore((state) => state.platform.kind);
+}: {
+  platformKind: PlatformInfo["kind"];
+  eyebrow?: string;
+  subtitle?: string;
+  backLabel?: string;
+  onBack?: () => void;
+}): WorkspaceHeaderLayout {
   const hasRuntime = hasTauriRuntime();
   const isBrowserPreview = !hasRuntime;
   const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
@@ -112,8 +150,292 @@ export function WorkspaceHeader({
   const hasSubtitle = Boolean(subtitle);
   const isDesktopApp = hasRuntime;
   const useCompactDesktopHeader = isDesktopApp && !useDesktopOverlay;
-  const showEyebrowInTopRow = hasEyebrow && (isBrowserPreview || useCompactDesktopHeader);
-  const showEyebrowInTitleGroup = hasEyebrow && isDesktopApp && !useCompactDesktopHeader;
+
+  return {
+    hasBackAction,
+    hasSubtitle,
+    isBrowserPreview,
+    isDesktopApp,
+    showEyebrowInTopRow: hasEyebrow && (isBrowserPreview || useCompactDesktopHeader),
+    showEyebrowInTitleGroup: hasEyebrow && isDesktopApp && !useCompactDesktopHeader,
+    useCompactDesktopHeader,
+    useDesktopOverlay,
+  };
+}
+
+type WorkspaceHeaderTopRowProps = {
+  actions: ReactNode;
+  backLabel?: string;
+  closeLabel: string;
+  contentMotionPhase: MotionPhase;
+  eyebrow?: string;
+  layout: WorkspaceHeaderLayout;
+  onBack?: () => void;
+  onClose: () => void;
+};
+
+function WorkspaceHeaderTopRow({
+  actions,
+  backLabel,
+  closeLabel,
+  contentMotionPhase,
+  eyebrow,
+  layout,
+  onBack,
+  onClose,
+}: WorkspaceHeaderTopRowProps) {
+  const {
+    hasBackAction,
+    isBrowserPreview,
+    isDesktopApp,
+    showEyebrowInTopRow,
+    useCompactDesktopHeader,
+    useDesktopOverlay,
+  } = layout;
+
+  return (
+    <div
+      data-testid="workspace-header-top-row"
+      className={cn(
+        "relative flex items-center justify-between gap-4",
+        useCompactDesktopHeader ? "min-h-4" : "min-h-5",
+      )}
+    >
+      {useDesktopOverlay ? (
+        // Keep one large drag surface across the visible top row and layer
+        // interactive controls above it so the empty header area stays draggable.
+        <WorkspaceHeaderDragRegion
+          testId="workspace-header-top-row-drag-region"
+          className={cn("absolute inset-0", workspaceHeaderStackingClassNames.dragRegion)}
+        />
+      ) : null}
+      <div
+        data-testid="workspace-header-leading"
+        className={cn(
+          "relative flex min-w-0 items-center gap-2",
+          workspaceHeaderStackingClassNames.passiveContent,
+          isDesktopApp && "flex-1",
+          useDesktopOverlay && layerPointerEventClassNames.inert,
+        )}
+      >
+        {hasBackAction && isBrowserPreview ? (
+          <WorkspaceHeaderBackButton ariaLabel={backLabel} onClick={onBack} />
+        ) : null}
+        {showEyebrowInTopRow ? (
+          <MotionText as="p" phase={contentMotionPhase} variant="eyebrow">
+            {eyebrow}
+          </MotionText>
+        ) : null}
+      </div>
+      <div
+        data-testid="workspace-header-actions"
+        className={cn(
+          "relative flex shrink-0 items-center gap-2",
+          workspaceHeaderStackingClassNames.interactiveControl,
+        )}
+      >
+        {actions}
+        <WorkspaceHeaderActionButton aria-label={closeLabel} onClick={onClose}>
+          <X className="size-4" />
+        </WorkspaceHeaderActionButton>
+      </div>
+    </div>
+  );
+}
+
+type WorkspaceHeaderContextRowProps = {
+  contentMotionPhase: MotionPhase;
+  eyebrow?: string;
+  useDesktopOverlay: boolean;
+};
+
+function WorkspaceHeaderContextRow({ contentMotionPhase, eyebrow, useDesktopOverlay }: WorkspaceHeaderContextRowProps) {
+  return (
+    <div
+      className={cn(
+        "relative",
+        workspaceHeaderStackingClassNames.passiveContent,
+        useDesktopOverlay && layerPointerEventClassNames.inert,
+      )}
+    >
+      <div
+        data-testid="workspace-header-context-row"
+        className={cn(
+          "flex flex-wrap items-center gap-x-2 gap-y-0.5",
+          useDesktopOverlay && layerPointerEventClassNames.inert,
+        )}
+      >
+        <MotionText as="p" phase={contentMotionPhase} variant="eyebrow">
+          {eyebrow}
+        </MotionText>
+      </div>
+    </div>
+  );
+}
+
+type WorkspaceHeaderNavigationRowProps = {
+  backLabel?: string;
+  contentMotionPhase: MotionPhase;
+  hasBackAction: boolean;
+  onBack?: () => void;
+  title: string;
+  useDesktopOverlay: boolean;
+};
+
+function WorkspaceHeaderNavigationRow({
+  backLabel,
+  contentMotionPhase,
+  hasBackAction,
+  onBack,
+  title,
+  useDesktopOverlay,
+}: WorkspaceHeaderNavigationRowProps) {
+  return (
+    <div
+      data-testid="workspace-header-navigation-row"
+      className={cn(
+        "relative flex min-w-0 items-center gap-2.5",
+        workspaceHeaderStackingClassNames.passiveContent,
+        useDesktopOverlay && layerPointerEventClassNames.inert,
+      )}
+    >
+      {hasBackAction ? (
+        <WorkspaceHeaderBackButton
+          className={cn(
+            "relative",
+            workspaceHeaderStackingClassNames.interactiveControl,
+            useDesktopOverlay && layerPointerEventClassNames.interactive,
+          )}
+          ariaLabel={backLabel}
+          onClick={onBack}
+        />
+      ) : null}
+      <div
+        data-testid="workspace-header-title-drag-content"
+        className={cn("min-w-0 flex-1", useDesktopOverlay && layerPointerEventClassNames.inert)}
+      >
+        <MotionText as="h1" phase={contentMotionPhase} variant="title">
+          {title}
+        </MotionText>
+      </div>
+    </div>
+  );
+}
+
+type WorkspaceHeaderSubtitleProps = {
+  contentMotionPhase: MotionPhase;
+  subtitle?: string;
+  useDesktopOverlay: boolean;
+};
+
+function WorkspaceHeaderSubtitle({ contentMotionPhase, subtitle, useDesktopOverlay }: WorkspaceHeaderSubtitleProps) {
+  return (
+    <div
+      className={cn(
+        "relative",
+        workspaceHeaderStackingClassNames.passiveContent,
+        useDesktopOverlay && layerPointerEventClassNames.inert,
+      )}
+    >
+      <MotionText
+        as="p"
+        phase={contentMotionPhase}
+        variant="subtitle"
+        testId="workspace-header-subtitle-content"
+        className={cn(useDesktopOverlay && layerPointerEventClassNames.inert)}
+      >
+        {subtitle}
+      </MotionText>
+    </div>
+  );
+}
+
+type WorkspaceHeaderTitleGroupProps = {
+  backLabel?: string;
+  contentMotionPhase: MotionPhase;
+  eyebrow?: string;
+  layout: WorkspaceHeaderLayout;
+  onBack?: () => void;
+  subtitle?: string;
+  title: string;
+};
+
+function WorkspaceHeaderTitleGroup({
+  backLabel,
+  contentMotionPhase,
+  eyebrow,
+  layout,
+  onBack,
+  subtitle,
+  title,
+}: WorkspaceHeaderTitleGroupProps) {
+  const {
+    hasBackAction,
+    hasSubtitle,
+    isDesktopApp,
+    showEyebrowInTitleGroup,
+    useCompactDesktopHeader,
+    useDesktopOverlay,
+  } = layout;
+
+  return (
+    <div
+      data-testid="workspace-header-title-group"
+      className={cn("relative min-w-0 pb-0.5", useCompactDesktopHeader ? "space-y-0" : "space-y-0.5")}
+      style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_TITLE_OFFSET_PX}px` } : undefined}
+    >
+      {useDesktopOverlay ? (
+        // Keep one large drag surface across the title block and lift the
+        // back button above it so the whole passive header band can be grabbed.
+        <WorkspaceHeaderDragRegion
+          testId="workspace-header-title-group-drag-region"
+          className={cn("absolute inset-0", workspaceHeaderStackingClassNames.dragRegion)}
+        />
+      ) : null}
+      {showEyebrowInTitleGroup ? (
+        <WorkspaceHeaderContextRow
+          contentMotionPhase={contentMotionPhase}
+          eyebrow={eyebrow}
+          useDesktopOverlay={useDesktopOverlay}
+        />
+      ) : null}
+      {isDesktopApp ? (
+        <WorkspaceHeaderNavigationRow
+          backLabel={backLabel}
+          contentMotionPhase={contentMotionPhase}
+          hasBackAction={hasBackAction}
+          onBack={onBack}
+          title={title}
+          useDesktopOverlay={useDesktopOverlay}
+        />
+      ) : (
+        <MotionText as="h1" phase={contentMotionPhase} variant="title">
+          {title}
+        </MotionText>
+      )}
+      {hasSubtitle ? (
+        <WorkspaceHeaderSubtitle
+          contentMotionPhase={contentMotionPhase}
+          subtitle={subtitle}
+          useDesktopOverlay={useDesktopOverlay}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+export function WorkspaceHeader({
+  eyebrow,
+  title,
+  subtitle,
+  backLabel,
+  onBack,
+  closeLabel,
+  onClose,
+  actions = null,
+}: WorkspaceHeaderProps) {
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const layout = deriveWorkspaceHeaderLayout({ platformKind, eyebrow, subtitle, backLabel, onBack });
   const contentKey = `${eyebrow ?? ""}::${title}::${subtitle ?? ""}`;
   const previousContentKeyRef = useRef(contentKey);
   const [contentMotionPhase, setContentMotionPhase] = useState<MotionPhase>(MOTION_PHASE_STEADY);
@@ -143,167 +465,40 @@ export function WorkspaceHeader({
     <div
       className={cn(
         "relative border-b border-border/70 px-5 backdrop-blur-sm sm:px-6",
-        useCompactDesktopHeader ? "py-1.5 sm:py-1.5" : "py-2 sm:py-2",
+        layout.useCompactDesktopHeader ? "py-1.5 sm:py-1.5" : "py-2 sm:py-2",
       )}
       style={{ backgroundColor: "var(--workspace-header-surface)" }}
     >
-      {useDesktopOverlay ? (
-        <div
-          data-testid="workspace-header-drag-region"
-          data-tauri-drag-region
-          aria-hidden="true"
+      {layout.useDesktopOverlay ? (
+        <WorkspaceHeaderDragRegion
+          testId="workspace-header-drag-region"
           className="absolute inset-y-0 left-0"
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
       <div
         data-testid="workspace-header-body"
-        className={cn("flex flex-col", useCompactDesktopHeader ? "gap-1" : "gap-1.5")}
+        className={cn("flex flex-col", layout.useCompactDesktopHeader ? "gap-1" : "gap-1.5")}
       >
-        <div
-          data-testid="workspace-header-top-row"
-          className={cn(
-            "relative flex items-center justify-between gap-4",
-            useCompactDesktopHeader ? "min-h-4" : "min-h-5",
-          )}
-        >
-          {useDesktopOverlay ? (
-            <div
-              // Keep one large drag surface across the visible top row and layer
-              // interactive controls above it so the empty header area stays draggable.
-              data-testid="workspace-header-top-row-drag-region"
-              data-tauri-drag-region
-              aria-hidden="true"
-              className={cn("absolute inset-0", workspaceHeaderStackingClassNames.dragRegion)}
-            />
-          ) : null}
-          <div
-            data-testid="workspace-header-leading"
-            className={cn(
-              "relative flex min-w-0 items-center gap-2",
-              workspaceHeaderStackingClassNames.passiveContent,
-              isDesktopApp && "flex-1",
-              useDesktopOverlay && layerPointerEventClassNames.inert,
-            )}
-          >
-            {hasBackAction ? (
-              isBrowserPreview ? (
-                <WorkspaceHeaderActionButton aria-label={backLabel} onClick={onBack}>
-                  <ChevronLeft className="size-4" />
-                </WorkspaceHeaderActionButton>
-              ) : null
-            ) : null}
-            {showEyebrowInTopRow ? (
-              <MotionText as="p" phase={contentMotionPhase} variant="eyebrow">
-                {eyebrow}
-              </MotionText>
-            ) : null}
-          </div>
-          <div
-            data-testid="workspace-header-actions"
-            className={cn(
-              "relative flex shrink-0 items-center gap-2",
-              workspaceHeaderStackingClassNames.interactiveControl,
-            )}
-          >
-            {actions}
-            <WorkspaceHeaderActionButton aria-label={closeLabel} onClick={onClose}>
-              <X className="size-4" />
-            </WorkspaceHeaderActionButton>
-          </div>
-        </div>
-        <div
-          data-testid="workspace-header-title-group"
-          className={cn("relative min-w-0 pb-0.5", useCompactDesktopHeader ? "space-y-0" : "space-y-0.5")}
-          style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_TITLE_OFFSET_PX}px` } : undefined}
-        >
-          {useDesktopOverlay ? (
-            <div
-              // Keep one large drag surface across the title block and lift the
-              // back button above it so the whole passive header band can be grabbed.
-              data-testid="workspace-header-title-group-drag-region"
-              data-tauri-drag-region
-              aria-hidden="true"
-              className={cn("absolute inset-0", workspaceHeaderStackingClassNames.dragRegion)}
-            />
-          ) : null}
-          {showEyebrowInTitleGroup ? (
-            <div
-              className={cn(
-                "relative",
-                workspaceHeaderStackingClassNames.passiveContent,
-                useDesktopOverlay && layerPointerEventClassNames.inert,
-              )}
-            >
-              <div
-                data-testid="workspace-header-context-row"
-                className={cn(
-                  "flex flex-wrap items-center gap-x-2 gap-y-0.5",
-                  useDesktopOverlay && layerPointerEventClassNames.inert,
-                )}
-              >
-                <MotionText as="p" phase={contentMotionPhase} variant="eyebrow">
-                  {eyebrow}
-                </MotionText>
-              </div>
-            </div>
-          ) : null}
-          {isDesktopApp ? (
-            <div
-              data-testid="workspace-header-navigation-row"
-              className={cn(
-                "relative flex min-w-0 items-center gap-2.5",
-                workspaceHeaderStackingClassNames.passiveContent,
-                useDesktopOverlay && layerPointerEventClassNames.inert,
-              )}
-            >
-              {hasBackAction ? (
-                <WorkspaceHeaderActionButton
-                  className={cn(
-                    "relative",
-                    workspaceHeaderStackingClassNames.interactiveControl,
-                    useDesktopOverlay && layerPointerEventClassNames.interactive,
-                  )}
-                  aria-label={backLabel}
-                  onClick={onBack}
-                >
-                  <ChevronLeft className="size-4" />
-                </WorkspaceHeaderActionButton>
-              ) : null}
-              <div
-                data-testid="workspace-header-title-drag-content"
-                className={cn("min-w-0 flex-1", useDesktopOverlay && layerPointerEventClassNames.inert)}
-              >
-                <MotionText as="h1" phase={contentMotionPhase} variant="title">
-                  {title}
-                </MotionText>
-              </div>
-            </div>
-          ) : (
-            <MotionText as="h1" phase={contentMotionPhase} variant="title">
-              {title}
-            </MotionText>
-          )}
-          {hasSubtitle ? (
-            <div
-              className={cn(
-                "relative",
-                workspaceHeaderStackingClassNames.passiveContent,
-                useDesktopOverlay && layerPointerEventClassNames.inert,
-              )}
-            >
-              <MotionText
-                as="p"
-                phase={contentMotionPhase}
-                variant="subtitle"
-                testId="workspace-header-subtitle-content"
-                className={cn(useDesktopOverlay && layerPointerEventClassNames.inert)}
-              >
-                {subtitle}
-              </MotionText>
-            </div>
-          ) : null}
-        </div>
+        <WorkspaceHeaderTopRow
+          actions={actions}
+          backLabel={backLabel}
+          closeLabel={closeLabel}
+          contentMotionPhase={contentMotionPhase}
+          eyebrow={eyebrow}
+          layout={layout}
+          onBack={onBack}
+          onClose={onClose}
+        />
+        <WorkspaceHeaderTitleGroup
+          backLabel={backLabel}
+          contentMotionPhase={contentMotionPhase}
+          eyebrow={eyebrow}
+          layout={layout}
+          onBack={onBack}
+          subtitle={subtitle}
+          title={title}
+        />
       </div>
     </div>
   );
