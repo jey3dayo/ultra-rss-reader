@@ -30,6 +30,22 @@ import { useRegisterSettingsDirtyState } from "../use-settings-dirty-state-regis
 
 type AccountDetailCredentialsEditorParams = AccountDetailEditorContext;
 
+function mergeVerifiedAccount(
+  verifiedAccount: AccountDetailCredentialsEditorParams["account"],
+  verifiedAccountBase?: AccountDetailCredentialsEditorParams["account"],
+): AccountDetailCredentialsEditorParams["account"] {
+  if (!verifiedAccountBase) {
+    return verifiedAccount;
+  }
+  return {
+    ...verifiedAccount,
+    ...verifiedAccountBase,
+    connection_verification_status: verifiedAccount.connection_verification_status,
+    connection_verified_at: verifiedAccount.connection_verified_at,
+    connection_verification_error: verifiedAccount.connection_verification_error,
+  };
+}
+
 export type AccountDetailCredentialsEditorResult = {
   credServerUrl: string | null;
   credUsername: string | null;
@@ -674,6 +690,11 @@ export function useAccountDetailCredentialsEditor({
     };
   }, []);
 
+  const isStaleVerificationRequest = (requestAccountId: string, requestDraftRevision: number): boolean =>
+    !mountedRef.current ||
+    activeAccountIdRef.current !== requestAccountId ||
+    draftRevisionRef.current !== requestDraftRevision;
+
   const runConnectionVerification = async (
     requestAccountId: string,
     requestDraftRevision: number,
@@ -683,11 +704,7 @@ export function useAccountDetailCredentialsEditor({
     try {
       result = await testAccountConnection(requestAccountId);
     } catch (error) {
-      if (
-        !mountedRef.current ||
-        activeAccountIdRef.current !== requestAccountId ||
-        draftRevisionRef.current !== requestDraftRevision
-      ) {
+      if (isStaleVerificationRequest(requestAccountId, requestDraftRevision)) {
         return false;
       }
       showConnectionError({ message: getErrorMessage(error) });
@@ -695,11 +712,7 @@ export function useAccountDetailCredentialsEditor({
       return false;
     }
 
-    if (
-      !mountedRef.current ||
-      activeAccountIdRef.current !== requestAccountId ||
-      draftRevisionRef.current !== requestDraftRevision
-    ) {
+    if (isStaleVerificationRequest(requestAccountId, requestDraftRevision)) {
       return false;
     }
     if (Result.isFailure(result)) {
@@ -710,38 +723,18 @@ export function useAccountDetailCredentialsEditor({
 
     const metadata = await getAccountCloudflareAccess(requestAccountId).catch(() => null);
     const loadedMetadata = metadata && Result.isSuccess(metadata) ? Result.unwrap(metadata) : null;
-    if (
-      loadedMetadata?.status === "loaded" &&
-      mountedRef.current &&
-      activeAccountIdRef.current === requestAccountId &&
-      draftRevisionRef.current === requestDraftRevision
-    ) {
+    if (loadedMetadata?.status === "loaded" && !isStaleVerificationRequest(requestAccountId, requestDraftRevision)) {
       dispatch({
         type: "cloudflare-access-loaded",
         clientId: loadedMetadata.client_id,
         serverUrl: (verifiedAccountBase ?? account).server_url ?? "",
       });
     }
-    if (
-      !mountedRef.current ||
-      activeAccountIdRef.current !== requestAccountId ||
-      draftRevisionRef.current !== requestDraftRevision
-    ) {
+    if (isStaleVerificationRequest(requestAccountId, requestDraftRevision)) {
       return false;
     }
     const verifiedAccount = Result.unwrap(result);
-    updateCachedAccount(
-      queryClient,
-      verifiedAccountBase
-        ? {
-            ...verifiedAccount,
-            ...verifiedAccountBase,
-            connection_verification_status: verifiedAccount.connection_verification_status,
-            connection_verified_at: verifiedAccount.connection_verified_at,
-            connection_verification_error: verifiedAccount.connection_verification_error,
-          }
-        : verifiedAccount,
-    );
+    updateCachedAccount(queryClient, mergeVerifiedAccount(verifiedAccount, verifiedAccountBase));
     return true;
   };
 
