@@ -12,6 +12,7 @@ import {
   DialogTitle,
   Input,
   Kbd,
+  ScrollArea,
   SectionHeading,
   SurfaceCard,
 } from "@/design-system";
@@ -136,52 +137,55 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
           </div>
         </div>
 
-        <div
+        <section
           key={normalizedQuery}
           data-testid="shortcuts-help-results"
           data-motion-phase="entering"
-          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} max-h-[min(30rem,60dvh)] overflow-y-auto p-4`}
+          aria-label={t("shortcuts_help.results_label")}
+          className={MOTION_CONTENT_SWAP_CLASS_NAME}
         >
-          {visibleCategories.length > 0 ? (
-            <div className="grid items-start gap-3 sm:grid-cols-2">
-              {[0, 1].map((columnIndex) => (
-                <div key={columnIndex} className="grid gap-3 empty:hidden">
-                  {visibleCategories
-                    .filter((_, categoryIndex) => categoryIndex % 2 === columnIndex)
-                    .map((category) => (
-                      <SurfaceCard key={category.categoryKey} variant="section" padding="compact">
-                        <SectionHeading className="mb-1">{category.heading}</SectionHeading>
-                        <table aria-label={category.heading} className="w-full border-collapse">
-                          <tbody>
-                            {category.items.map((shortcut) => (
-                              <tr
-                                key={shortcut.definition.id}
-                                className="h-10 border-b border-border/55 last:border-b-0"
-                              >
-                                <th
-                                  scope="row"
-                                  className="py-1.5 pr-4 text-left font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)]"
+          <ScrollArea keyboardScrollable className="flex max-h-[min(30rem,60dvh)] flex-col" contentClassName="p-4">
+            {visibleCategories.length > 0 ? (
+              <div className="grid items-start gap-3 sm:grid-cols-2">
+                {[0, 1].map((columnIndex) => (
+                  <div key={columnIndex} className="grid gap-3 empty:hidden">
+                    {visibleCategories
+                      .filter((_, categoryIndex) => categoryIndex % 2 === columnIndex)
+                      .map((category) => (
+                        <SurfaceCard key={category.categoryKey} variant="section" padding="compact">
+                          <SectionHeading className="mb-1">{category.heading}</SectionHeading>
+                          <table aria-label={category.heading} className="w-full border-collapse">
+                            <tbody>
+                              {category.items.map((shortcut) => (
+                                <tr
+                                  key={shortcut.definition.id}
+                                  className="h-10 border-b border-border/55 last:border-b-0"
                                 >
-                                  {shortcut.label}
-                                </th>
-                                <td className="py-1.5 text-right whitespace-nowrap">
-                                  <Kbd>{shortcut.displayKey}</Kbd>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </SurfaceCard>
-                    ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p role="status" aria-live="polite" className="py-8 text-center text-sm text-foreground-soft">
-              {t("shortcuts_help.no_results")}
-            </p>
-          )}
-        </div>
+                                  <th
+                                    scope="row"
+                                    className="py-1.5 pr-4 text-left font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)]"
+                                  >
+                                    {shortcut.label}
+                                  </th>
+                                  <td className="py-1.5 text-right whitespace-nowrap">
+                                    <Kbd>{shortcut.displayKey}</Kbd>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </SurfaceCard>
+                      ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p role="status" aria-live="polite" className="py-8 text-center text-sm text-foreground-soft">
+                {t("shortcuts_help.no_results")}
+              </p>
+            )}
+          </ScrollArea>
+        </section>
 
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t px-4 py-2.5 text-xs text-foreground-soft">
           <span className="flex items-center gap-2">

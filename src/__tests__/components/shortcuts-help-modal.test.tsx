@@ -302,6 +302,23 @@ describe("ShortcutsHelpModal", () => {
     expect(within(results).queryAllByRole("button")).toEqual([]);
   });
 
+  it("lets keyboard users focus the overflowing results viewport so it can be scrolled without a mouse", async () => {
+    vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(800);
+    vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(400);
+    const user = userEvent.setup();
+
+    renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
+
+    const input = await screen.findByRole("searchbox", { name: "Search shortcuts…" });
+    await waitFor(() => expect(input).toHaveFocus());
+
+    await user.tab();
+
+    const region = screen.getByRole("region", { name: "Keyboard shortcut results" });
+    const viewport = region.querySelector('[data-slot="scroll-area-viewport"]');
+    expect(viewport).toHaveFocus();
+  });
+
   it("shows the command palette key in the footer hint", async () => {
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
@@ -328,6 +345,7 @@ describe("ShortcutsHelpModal", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());
   });
 });
