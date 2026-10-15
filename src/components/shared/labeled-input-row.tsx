@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { type KeyboardEventHandler, type ReactNode, type RefObject, useId } from "react";
+import { type KeyboardEventHandler, type ReactElement, type ReactNode, type RefObject, useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,151 @@ type LabeledInputRowProps = {
   actionDisabled?: boolean;
 };
 
+type ActionPlacement = NonNullable<LabeledInputRowProps["actionPlacement"]>;
+type ActionVariant = NonNullable<LabeledInputRowProps["actionVariant"]>;
+type ActionSize = NonNullable<LabeledInputRowProps["actionSize"]>;
+
+function isErrorTextVisible(errorText: string | undefined): boolean {
+  return errorText != null && errorText.trim().length > 0;
+}
+
+function resolveActionPresence(
+  actionPlacement: ActionPlacement,
+  actionLabel: string | undefined,
+  actionIcon: ReactNode,
+  onAction: (() => void) | undefined,
+): { hasInsideAction: boolean; isInsideIconAction: boolean } {
+  const hasAction = Boolean(actionLabel && onAction);
+  const hasInsideAction = actionPlacement === "inside" && hasAction;
+  const isInsideIconAction = hasInsideAction && Boolean(actionIcon);
+  return { hasInsideAction, isInsideIconAction };
+}
+
+function resolveActionVariant(actionVariant: ActionVariant | undefined, hasInsideAction: boolean): ActionVariant {
+  return actionVariant ?? (hasInsideAction ? "ghost" : "outline");
+}
+
+function resolveActionSize(
+  actionSize: ActionSize | undefined,
+  hasInsideAction: boolean,
+  isInsideIconAction: boolean,
+): ActionSize {
+  if (actionSize) {
+    return actionSize;
+  }
+  if (!hasInsideAction) {
+    return "default";
+  }
+  return isInsideIconAction ? "icon" : "default";
+}
+
+function resolveActionButtonClassName(
+  actionPlacement: ActionPlacement,
+  actionIcon: ReactNode,
+  actionClassName: string | undefined,
+): string {
+  return cn(
+    actionPlacement === "inside" &&
+      "absolute top-1/2 right-1 -translate-y-1/2 text-foreground-soft transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2 motion-reduce:transition-none",
+    actionPlacement === "inside" && !actionIcon && "h-11 min-w-20 px-3 text-xs font-medium",
+    actionPlacement === "inside" && actionIcon && "size-11",
+    actionClassName,
+  );
+}
+
+function resolveInputClassName(
+  hasInsideAction: boolean,
+  isInsideIconAction: boolean,
+  inputClassName: string | undefined,
+): string {
+  return cn(hasInsideAction ? (isInsideIconAction ? "min-h-11 pr-12" : "min-h-11 pr-24") : undefined, inputClassName);
+}
+
+type InputActionButtonProps = {
+  label: string;
+  actionLabel: string;
+  actionAriaLabel?: string;
+  actionIcon?: ReactNode;
+  actionPlacement: ActionPlacement;
+  variant: ActionVariant;
+  size: ActionSize;
+  disabled?: boolean;
+  onAction: () => void;
+  className: string;
+};
+
+function InputActionButton({
+  label,
+  actionLabel,
+  actionAriaLabel,
+  actionIcon,
+  actionPlacement,
+  variant,
+  size,
+  disabled,
+  onAction,
+  className,
+}: InputActionButtonProps) {
+  return (
+    <Button
+      type="button"
+      variant={variant}
+      size={size}
+      onMouseDown={actionPlacement === "inside" ? (event) => event.preventDefault() : undefined}
+      onClick={onAction}
+      disabled={disabled}
+      aria-label={actionAriaLabel ?? `${actionLabel}: ${label}`}
+      className={className}
+    >
+      {actionIcon ?? actionLabel}
+      {actionIcon ? <span className="sr-only">{actionLabel}</span> : null}
+    </Button>
+  );
+}
+
+type InputActionConfig = {
+  label: string;
+  actionLabel?: string;
+  actionAriaLabel?: string;
+  actionIcon?: ReactNode;
+  actionPlacement: ActionPlacement;
+  actionVariant?: ActionVariant;
+  actionSize?: ActionSize;
+  actionClassName?: string;
+  actionDisabled?: boolean;
+  disabled?: boolean;
+  onAction?: () => void;
+  hasInsideAction: boolean;
+  isInsideIconAction: boolean;
+};
+
+function renderInputActionButton(config: InputActionConfig): ReactElement | null {
+  if (!config.actionLabel || !config.onAction) {
+    return null;
+  }
+  return (
+    <InputActionButton
+      label={config.label}
+      actionLabel={config.actionLabel}
+      actionAriaLabel={config.actionAriaLabel}
+      actionIcon={config.actionIcon}
+      actionPlacement={config.actionPlacement}
+      variant={resolveActionVariant(config.actionVariant, config.hasInsideAction)}
+      size={resolveActionSize(config.actionSize, config.hasInsideAction, config.isInsideIconAction)}
+      disabled={config.actionDisabled ?? config.disabled}
+      onAction={config.onAction}
+      className={resolveActionButtonClassName(config.actionPlacement, config.actionIcon, config.actionClassName)}
+    />
+  );
+}
+
+function InsideActionSlot({ tooltipLabel, children }: { tooltipLabel?: string; children: ReactElement }) {
+  if (tooltipLabel) {
+    return <AppTooltip label={tooltipLabel}>{children}</AppTooltip>;
+  }
+  return <>{children}</>;
+}
+
 export function LabeledInputRow({
   inputId,
   label,
@@ -77,34 +222,28 @@ export function LabeledInputRow({
   const generatedInputId = useId();
   const resolvedInputId = inputId ?? generatedInputId;
   const errorMessageId = `${resolvedInputId}-error`;
-  const hasErrorText = errorText != null && errorText.trim().length > 0;
-  const hasInsideAction = actionPlacement === "inside" && Boolean(actionLabel && onAction);
-  const isInsideIconAction = hasInsideAction && Boolean(actionIcon);
-  const resolvedActionVariant = actionVariant ?? (hasInsideAction ? "ghost" : "outline");
-  const resolvedActionSize = actionSize ?? (hasInsideAction ? (isInsideIconAction ? "icon" : "default") : "default");
-  const resolvedActionDisabled = actionDisabled ?? disabled;
-  const actionButton =
-    actionLabel && onAction ? (
-      <Button
-        type="button"
-        variant={resolvedActionVariant}
-        size={resolvedActionSize}
-        onMouseDown={actionPlacement === "inside" ? (event) => event.preventDefault() : undefined}
-        onClick={onAction}
-        disabled={resolvedActionDisabled}
-        aria-label={actionAriaLabel ?? `${actionLabel}: ${label}`}
-        className={cn(
-          actionPlacement === "inside" &&
-            "absolute top-1/2 right-1 -translate-y-1/2 text-foreground-soft transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2 motion-reduce:transition-none",
-          actionPlacement === "inside" && !actionIcon && "h-11 min-w-20 px-3 text-xs font-medium",
-          actionPlacement === "inside" && actionIcon && "size-11",
-          actionClassName,
-        )}
-      >
-        {actionIcon ?? actionLabel}
-        {actionIcon ? <span className="sr-only">{actionLabel}</span> : null}
-      </Button>
-    ) : null;
+  const showError = isErrorTextVisible(errorText);
+  const { hasInsideAction, isInsideIconAction } = resolveActionPresence(
+    actionPlacement,
+    actionLabel,
+    actionIcon,
+    onAction,
+  );
+  const actionButton = renderInputActionButton({
+    label,
+    actionLabel,
+    actionAriaLabel,
+    actionIcon,
+    actionPlacement,
+    actionVariant,
+    actionSize,
+    actionClassName,
+    actionDisabled,
+    disabled,
+    onAction,
+    hasInsideAction,
+    isInsideIconAction,
+  });
 
   return (
     <LabeledControlRow label={label} htmlFor={resolvedInputId} className={rowClassName} labelClassName={labelClassName}>
@@ -119,27 +258,20 @@ export function LabeledInputRow({
             readOnly={readOnly}
             title={title}
             aria-describedby={ariaDescribedBy}
-            aria-errormessage={hasErrorText ? errorMessageId : ariaErrorMessage}
-            aria-invalid={ariaInvalid || hasErrorText || undefined}
+            aria-errormessage={showError ? errorMessageId : ariaErrorMessage}
+            aria-invalid={ariaInvalid || showError || undefined}
             onChange={(event) => onChange(event.target.value)}
             onBlur={onBlur}
             onFocus={onFocus}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className={cn(
-              hasInsideAction ? (isInsideIconAction ? "min-h-11 pr-12" : "min-h-11 pr-24") : undefined,
-              inputClassName,
-            )}
+            className={resolveInputClassName(hasInsideAction, isInsideIconAction, inputClassName)}
             disabled={disabled}
           />
           {actionPlacement === "inside" && actionButton ? (
-            actionTooltipLabel ? (
-              <AppTooltip label={actionTooltipLabel}>{actionButton}</AppTooltip>
-            ) : (
-              actionButton
-            )
+            <InsideActionSlot tooltipLabel={actionTooltipLabel}>{actionButton}</InsideActionSlot>
           ) : null}
-          {hasErrorText ? (
+          {showError ? (
             <p id={errorMessageId} className="mt-1.5 font-serif text-xs leading-5 text-state-danger-foreground">
               {errorText}
             </p>
