@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
@@ -27,9 +28,11 @@ import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
+import type { AccountSetupSession } from "@/lib/account/account-setup-session.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
+import type { SettingsDirtyStateSnapshot } from "@/lib/settings/settings-dirty-state-registry";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -143,6 +146,150 @@ function getSettingsAccountsViewTransition({
   return { accountId: null, addAccount: true };
 }
 
+function getVisibleAccounts(
+  accounts: AccountDto[] | undefined,
+  accountsSnapshot: AccountDto[] | null,
+  deletedAccountIds: string[],
+): AccountDto[] | undefined {
+  const hiddenAccountIds = new Set(deletedAccountIds);
+  if (accounts && accountsSnapshot) {
+    const liveAccountIds = new Set(accounts.map((account) => account.id));
+    for (const snapshotAccount of accountsSnapshot) {
+      if (!liveAccountIds.has(snapshotAccount.id)) {
+        hiddenAccountIds.add(snapshotAccount.id);
+      }
+    }
+  }
+
+  return (accountsSnapshot ?? accounts)?.filter((account) => !hiddenAccountIds.has(account.id));
+}
+
+function getActiveSetupAccountId(accountSetupSession: AccountSetupSession | null): string | null {
+  if (accountSetupSession?.state === "syncing" || accountSetupSession?.state === "failed") {
+    return accountSetupSession.accountId;
+  }
+
+  return null;
+}
+
+function getSetupVisibleAccount(
+  activeSetupAccountId: string | null,
+  visibleAccounts: AccountDto[] | undefined,
+): AccountDto | undefined {
+  if (!activeSetupAccountId || !visibleAccounts) {
+    return undefined;
+  }
+
+  return visibleAccounts.find((account) => account.id === activeSetupAccountId);
+}
+
+function getHasSelectedVisibleAccount(
+  settingsAccountId: string | null,
+  visibleAccounts: AccountDto[] | undefined,
+): boolean {
+  if (!settingsAccountId) {
+    return false;
+  }
+
+  return visibleAccounts?.some((account) => account.id === settingsAccountId) ?? false;
+}
+
+type ResolveSettingsAccountIdParams = {
+  settingsCategory: SettingsCategory;
+  settingsAddAccount: boolean;
+  visibleAccounts: AccountDto[] | undefined;
+  activeSetupAccountId: string | null;
+  setupVisibleAccount: AccountDto | undefined;
+  hasSelectedVisibleAccount: boolean;
+  settingsAccountId: string | null;
+  savedAccountId: string;
+};
+
+function getResolvedSettingsAccountId({
+  settingsCategory,
+  settingsAddAccount,
+  visibleAccounts,
+  activeSetupAccountId,
+  setupVisibleAccount,
+  hasSelectedVisibleAccount,
+  settingsAccountId,
+  savedAccountId,
+}: ResolveSettingsAccountIdParams): string | null {
+  if (settingsCategory !== "accounts" || settingsAddAccount || !visibleAccounts) {
+    return null;
+  }
+  if (activeSetupAccountId && setupVisibleAccount) {
+    return activeSetupAccountId;
+  }
+  if (hasSelectedVisibleAccount) {
+    return settingsAccountId;
+  }
+
+  return getPreferredAccountId(visibleAccounts, savedAccountId);
+}
+
+function getSelectedVisibleAccount(
+  setupVisibleAccount: AccountDto | undefined,
+  resolvedSettingsAccountId: string | null,
+  visibleAccounts: AccountDto[] | undefined,
+): AccountDto | undefined {
+  if (setupVisibleAccount) {
+    return setupVisibleAccount;
+  }
+  if (!resolvedSettingsAccountId || !visibleAccounts) {
+    return undefined;
+  }
+
+  return visibleAccounts.find((account) => account.id === resolvedSettingsAccountId);
+}
+
+type SettingsSetupLockParams = {
+  accountSetupSession: AccountSetupSession | null;
+  settingsCategory: SettingsCategory;
+  settingsAddAccount: boolean;
+  selectedVisibleAccount: AccountDto | undefined;
+  settingsAccountId: string | null;
+};
+
+function getIsSetupLocked({
+  accountSetupSession,
+  settingsCategory,
+  settingsAddAccount,
+  selectedVisibleAccount,
+  settingsAccountId,
+}: SettingsSetupLockParams): boolean {
+  if (accountSetupSession === null) {
+    return false;
+  }
+  if (accountSetupSession.state === "verifying") {
+    return settingsCategory === "accounts" && settingsAddAccount;
+  }
+
+  return (
+    (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed") &&
+    (selectedVisibleAccount?.id === accountSetupSession.accountId ||
+      settingsAccountId === accountSetupSession.accountId)
+  );
+}
+
+function getDirtyStateLockReason(
+  dirtyStateSnapshot: SettingsDirtyStateSnapshot,
+  t: TFunction<"settings">,
+): string | null {
+  if (dirtyStateSnapshot.pending) {
+    return t("dirty_state.pending_lock_message", {
+      defaultValue: "Saving changes. Please wait before leaving settings.",
+    });
+  }
+  if (dirtyStateSnapshot.dirty) {
+    return t("dirty_state.dirty_lock_message", {
+      defaultValue: "Finish or discard the current edit before leaving settings.",
+    });
+  }
+
+  return null;
+}
+
 function SettingsContent({
   settingsAddAccount,
   settingsAddAccountInitialKind,
@@ -213,49 +360,32 @@ function SettingsModalContent() {
     accountsSnapshotCandidate,
     accountsSnapshotCandidate !== null,
   );
-  const hiddenAccountIds = new Set(deletedAccountIds);
-  if (accounts && accountsSnapshot) {
-    const liveAccountIds = new Set(accounts.map((account) => account.id));
-    for (const snapshotAccount of accountsSnapshot) {
-      if (!liveAccountIds.has(snapshotAccount.id)) {
-        hiddenAccountIds.add(snapshotAccount.id);
-      }
-    }
-  }
-  const visibleAccounts = (accountsSnapshot ?? accounts)?.filter((account) => !hiddenAccountIds.has(account.id));
-  const activeSetupAccountId =
-    accountSetupSession !== null &&
-    accountSetupSession.state !== "verifying" &&
-    (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed")
-      ? accountSetupSession.accountId
-      : null;
-  const setupVisibleAccount =
-    activeSetupAccountId && visibleAccounts
-      ? visibleAccounts.find((account) => account.id === activeSetupAccountId)
-      : undefined;
-  const hasSelectedVisibleAccount = settingsAccountId
-    ? (visibleAccounts?.some((account) => account.id === settingsAccountId) ?? false)
-    : false;
-  const resolvedSettingsAccountId =
-    settingsCategory !== "accounts" || settingsAddAccount || !visibleAccounts
-      ? null
-      : activeSetupAccountId && setupVisibleAccount
-        ? activeSetupAccountId
-        : hasSelectedVisibleAccount
-          ? settingsAccountId
-          : getPreferredAccountId(visibleAccounts, savedAccountId);
-  const selectedVisibleAccount =
-    setupVisibleAccount ??
-    (resolvedSettingsAccountId && visibleAccounts
-      ? visibleAccounts.find((account) => account.id === resolvedSettingsAccountId)
-      : undefined);
-  const isSetupLocked =
-    accountSetupSession !== null &&
-    (accountSetupSession.state === "verifying"
-      ? settingsCategory === "accounts" && settingsAddAccount
-      : (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed") &&
-        (selectedVisibleAccount?.id === accountSetupSession.accountId ||
-          settingsAccountId === accountSetupSession.accountId));
+  const visibleAccounts = getVisibleAccounts(accounts, accountsSnapshot, deletedAccountIds);
+  const activeSetupAccountId = getActiveSetupAccountId(accountSetupSession);
+  const setupVisibleAccount = getSetupVisibleAccount(activeSetupAccountId, visibleAccounts);
+  const hasSelectedVisibleAccount = getHasSelectedVisibleAccount(settingsAccountId, visibleAccounts);
+  const resolvedSettingsAccountId = getResolvedSettingsAccountId({
+    settingsCategory,
+    settingsAddAccount,
+    visibleAccounts,
+    activeSetupAccountId,
+    setupVisibleAccount,
+    hasSelectedVisibleAccount,
+    settingsAccountId,
+    savedAccountId,
+  });
+  const selectedVisibleAccount = getSelectedVisibleAccount(
+    setupVisibleAccount,
+    resolvedSettingsAccountId,
+    visibleAccounts,
+  );
+  const isSetupLocked = getIsSetupLocked({
+    accountSetupSession,
+    settingsCategory,
+    settingsAddAccount,
+    selectedVisibleAccount,
+    settingsAccountId,
+  });
   const settingsAccountsViewTransition = getSettingsAccountsViewTransition({
     activeSetupAccountId,
     hasSelectedVisibleAccount,
@@ -274,15 +404,7 @@ function SettingsModalContent() {
     pending: pendingPreferenceSaves > 0,
     blockingReason: pendingPreferenceSaves > 0 ? "preferences-save-pending" : null,
   });
-  const dirtyStateLockReason = dirtyStateSnapshot.pending
-    ? t("dirty_state.pending_lock_message", {
-        defaultValue: "Saving changes. Please wait before leaving settings.",
-      })
-    : dirtyStateSnapshot.dirty
-      ? t("dirty_state.dirty_lock_message", {
-          defaultValue: "Finish or discard the current edit before leaving settings.",
-        })
-      : null;
+  const dirtyStateLockReason = getDirtyStateLockReason(dirtyStateSnapshot, t);
 
   useEffect(() => {
     if (deletedAccountIds.length === 0 || accounts === undefined) {

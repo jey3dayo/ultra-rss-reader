@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
+import type { TFunction } from "i18next";
 import { type RefObject, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
+import type { AppError, CloudflareAccessUpdate } from "@/api/schemas";
 import {
   copyToClipboard,
   getAccountCloudflareAccess,
@@ -234,6 +236,96 @@ function createInitialAccountDetailCredentialsEditorState(
     credentialSavePending: false,
     draftRevision: 0,
   };
+}
+
+type CredentialDraftValues = {
+  serverUrl: string | undefined;
+  username: string | undefined;
+  password: string | undefined;
+  serverUrlChanged: boolean;
+  usernameChanged: boolean;
+  passwordChanged: boolean;
+};
+
+function resolveCredentialDraftValues(
+  account: AccountDetailCredentialsEditorParams["account"],
+  credServerUrl: string | null,
+  credUsername: string | null,
+  credPassword: string | null,
+): CredentialDraftValues {
+  const serverUrl = (credServerUrl ?? account.server_url ?? "").trim() || undefined;
+  const username = (credUsername ?? account.username ?? "").trim() || undefined;
+  const password = credPassword || undefined;
+  const serverUrlChanged = credServerUrl !== null && serverUrl !== ((account.server_url ?? "").trim() || undefined);
+  const usernameChanged = credUsername !== null && username !== ((account.username ?? "").trim() || undefined);
+  const passwordChanged = credPassword !== null && credPassword !== "";
+  return { serverUrl, username, password, serverUrlChanged, usernameChanged, passwordChanged };
+}
+
+function isCloudflareAccessMetadataUnavailable(status: CloudflareAccessStatus): boolean {
+  return status === "loading" || status === "error" || status === "unavailable";
+}
+
+type CredentialSaveValidationErrorKey =
+  | "account.error_server_url_required"
+  | "account.error_username_required"
+  | "account.error_server_url_invalid"
+  | (typeof CLOUDFLARE_ACCESS_ERROR_MESSAGE_KEY)[CloudflareAccessDraftError]
+  | "account.cloudflare_access_metadata_required_for_origin_change";
+
+function resolveCredentialSaveValidationErrorKey({
+  serverUrl,
+  username,
+  cloudflareAccessValidationError,
+  accessMetadataUnavailable,
+  cloudflareAccessUpdate,
+  serverUrlChanged,
+  accountServerUrl,
+}: {
+  serverUrl: string | undefined;
+  username: string | undefined;
+  cloudflareAccessValidationError: CloudflareAccessDraftError | null;
+  accessMetadataUnavailable: boolean;
+  cloudflareAccessUpdate: CloudflareAccessUpdate | undefined;
+  serverUrlChanged: boolean;
+  accountServerUrl: string | null;
+}): CredentialSaveValidationErrorKey | null {
+  if (!serverUrl) {
+    return "account.error_server_url_required";
+  }
+  if (!username) {
+    return "account.error_username_required";
+  }
+  if (!isValidRequiredHttpServerUrl(serverUrl)) {
+    return "account.error_server_url_invalid";
+  }
+  if (cloudflareAccessValidationError !== null) {
+    return CLOUDFLARE_ACCESS_ERROR_MESSAGE_KEY[cloudflareAccessValidationError];
+  }
+  if (
+    accessMetadataUnavailable &&
+    cloudflareAccessUpdate?.action !== "replace" &&
+    cloudflareAccessUpdate?.action !== "remove" &&
+    serverUrlChanged &&
+    getHttpsOrigin(serverUrl) !== getHttpsOrigin(accountServerUrl ?? "")
+  ) {
+    return "account.cloudflare_access_metadata_required_for_origin_change";
+  }
+  return null;
+}
+
+function resolveCredentialSaveFailureMessage(
+  error: AppError,
+  accessOperationPending: boolean,
+  t: TFunction<"settings">,
+): string {
+  if (isCloudflareAccessRecoveryRequired(error)) {
+    return t("account.cloudflare_access_recovery_required");
+  }
+  if (accessOperationPending) {
+    return t("account.cloudflare_access_save_failed");
+  }
+  return error.message;
 }
 
 type SetCloudflareAccessRecoveryActionAction = Extract<
@@ -677,58 +769,126 @@ export function useAccountDetailCredentialsEditor({
     const draftRevision = state.draftRevision;
     const credentialDraft = getCredentialDraftSnapshot(state);
     const cloudflareAccessDraft = getCloudflareAccessDraftSnapshot(state);
-    const saveTask = (async () => {
-      const serverUrl = (credServerUrl ?? account.server_url ?? "").trim() || undefined;
-      const username = (credUsername ?? account.username ?? "").trim() || undefined;
-      const password = credPassword || undefined;
-      const serverUrlChanged = credServerUrl !== null && serverUrl !== ((account.server_url ?? "").trim() || undefined);
-      const usernameChanged = credUsername !== null && username !== ((account.username ?? "").trim() || undefined);
-      const passwordChanged = credPassword !== null && credPassword !== "";
-      const accessMetadataUnavailable =
-        state.cloudflareAccessStatus === "loading" ||
-        state.cloudflareAccessStatus === "error" ||
-        state.cloudflareAccessStatus === "unavailable";
+
+    const isSaveContextCurrent = (): boolean =>
+      mountedRef.current && activeAccountIdRef.current === account.id && draftRevisionRef.current === draftRevision;
+    const isSaveAccountCurrent = (): boolean => mountedRef.current && activeAccountIdRef.current === account.id;
+
+    const showCredentialSaveValidationError = (
+      credentialValues: CredentialDraftValues,
+    ): CredentialCommitOutcome | null => {
+      const validationErrorKey = resolveCredentialSaveValidationErrorKey({
+        serverUrl: credentialValues.serverUrl,
+        username: credentialValues.username,
+        cloudflareAccessValidationError,
+        accessMetadataUnavailable: isCloudflareAccessMetadataUnavailable(state.cloudflareAccessStatus),
+        cloudflareAccessUpdate,
+        serverUrlChanged: credentialValues.serverUrlChanged,
+        accountServerUrl: account.server_url,
+      });
+      if (validationErrorKey === null) {
+        return null;
+      }
+      useUiStore.getState().showToast(t(validationErrorKey));
+      return { saved: false, updatedAccount: null };
+    };
+
+    const runCredentialSaveRequest = async (
+      credentialValues: CredentialDraftValues,
+      accessOperationPending: boolean,
+    ): Promise<Awaited<ReturnType<typeof updateAccountCredentials>> | null> => {
+      const accessUpdateForRequest = cloudflareAccessUpdate?.action === "keep" ? undefined : cloudflareAccessUpdate;
+      try {
+        if (accessUpdateForRequest === undefined) {
+          return await updateAccountCredentials(
+            account.id,
+            credentialValues.serverUrl,
+            credentialValues.username,
+            credentialValues.password,
+          );
+        }
+        return await updateAccountCredentials(
+          account.id,
+          credentialValues.serverUrl,
+          credentialValues.username,
+          credentialValues.password,
+          accessUpdateForRequest,
+        );
+      } catch (error) {
+        if (!isSaveContextCurrent()) {
+          return null;
+        }
+        showCredentialSaveError({
+          message: accessOperationPending ? t("account.cloudflare_access_save_failed") : getErrorMessage(error),
+        });
+        return null;
+      }
+    };
+
+    const resolveCredentialSaveFailure = (
+      saveResult: Awaited<ReturnType<typeof updateAccountCredentials>>,
+      accessOperationPending: boolean,
+    ): CredentialCommitOutcome | null => {
+      if (!isSaveAccountCurrent()) {
+        return { saved: false, updatedAccount: null };
+      }
+      if (!Result.isFailure(saveResult)) {
+        return null;
+      }
+      if (draftRevisionRef.current !== draftRevision) {
+        return { saved: false, updatedAccount: null };
+      }
+      showCredentialSaveError({
+        message: resolveCredentialSaveFailureMessage(Result.unwrapError(saveResult), accessOperationPending, t),
+      });
+      return { saved: false, updatedAccount: null };
+    };
+
+    const applyCredentialSaveSuccess = (
+      updated: AccountDetailCredentialsEditorParams["account"],
+      credentialValues: CredentialDraftValues,
+    ): CredentialCommitOutcome => {
+      if (cloudflareAccessUpdate !== undefined && cloudflareAccessUpdate.action !== "keep") {
+        cloudflareAccessRequestIdRef.current += 1;
+        dispatch({
+          type: "record-saved-cloudflare-access",
+          clientId: cloudflareAccessUpdate.action === "replace" ? cloudflareAccessUpdate.clientId : null,
+          serverUrl: credentialValues.serverUrl ?? account.server_url ?? "",
+          draft: cloudflareAccessDraft,
+        });
+      }
+      updateCachedAccount(queryClient, updated);
+      invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
+      dispatch({
+        type: "clear-credential-drafts",
+        passwordWasSaved: credentialValues.passwordChanged,
+        draft: credentialDraft,
+        cloudflareAccessDraft,
+      });
+      if (successToastKey !== null && draftRevisionRef.current === draftRevision) {
+        useUiStore.getState().showToast(t(successToastKey));
+      }
+      return { saved: true, updatedAccount: updated };
+    };
+
+    const runCredentialSave = async (): Promise<CredentialCommitOutcome> => {
+      const credentialValues = resolveCredentialDraftValues(account, credServerUrl, credUsername, credPassword);
+
+      if (!isSaveContextCurrent()) {
+        return { saved: false, updatedAccount: null };
+      }
+
+      const validationOutcome = showCredentialSaveValidationError(credentialValues);
+      if (validationOutcome !== null) {
+        return validationOutcome;
+      }
 
       if (
-        !mountedRef.current ||
-        activeAccountIdRef.current !== account.id ||
-        draftRevisionRef.current !== draftRevision
+        !credentialValues.serverUrlChanged &&
+        !credentialValues.usernameChanged &&
+        !credentialValues.passwordChanged &&
+        !cloudflareAccessDirty
       ) {
-        return { saved: false, updatedAccount: null };
-      }
-
-      if (!serverUrl) {
-        useUiStore.getState().showToast(t("account.error_server_url_required"));
-        return { saved: false, updatedAccount: null };
-      }
-
-      if (!username) {
-        useUiStore.getState().showToast(t("account.error_username_required"));
-        return { saved: false, updatedAccount: null };
-      }
-
-      if (serverUrl && !isValidRequiredHttpServerUrl(serverUrl)) {
-        useUiStore.getState().showToast(t("account.error_server_url_invalid"));
-        return { saved: false, updatedAccount: null };
-      }
-
-      if (cloudflareAccessValidationError !== null) {
-        useUiStore.getState().showToast(t(CLOUDFLARE_ACCESS_ERROR_MESSAGE_KEY[cloudflareAccessValidationError]));
-        return { saved: false, updatedAccount: null };
-      }
-
-      if (
-        accessMetadataUnavailable &&
-        cloudflareAccessUpdate?.action !== "replace" &&
-        cloudflareAccessUpdate?.action !== "remove" &&
-        serverUrlChanged &&
-        getHttpsOrigin(serverUrl ?? "") !== getHttpsOrigin(account.server_url ?? "")
-      ) {
-        useUiStore.getState().showToast(t("account.cloudflare_access_metadata_required_for_origin_change"));
-        return { saved: false, updatedAccount: null };
-      }
-
-      if (!serverUrlChanged && !usernameChanged && !passwordChanged && !cloudflareAccessDirty) {
         dispatch({
           type: "clear-credential-drafts",
           passwordWasSaved: false,
@@ -738,73 +898,22 @@ export function useAccountDetailCredentialsEditor({
         return { saved: true, updatedAccount: null };
       }
 
-      let saveResult: Awaited<ReturnType<typeof updateAccountCredentials>>;
       const accessOperationPending =
         cloudflareAccessUpdate?.action === "replace" || cloudflareAccessUpdate?.action === "remove";
-      try {
-        const accessUpdateForRequest = cloudflareAccessUpdate?.action === "keep" ? undefined : cloudflareAccessUpdate;
-        saveResult =
-          accessUpdateForRequest === undefined
-            ? await updateAccountCredentials(account.id, serverUrl, username, password)
-            : await updateAccountCredentials(account.id, serverUrl, username, password, accessUpdateForRequest);
-      } catch (error) {
-        if (
-          !mountedRef.current ||
-          activeAccountIdRef.current !== account.id ||
-          draftRevisionRef.current !== draftRevision
-        ) {
-          return { saved: false, updatedAccount: null };
-        }
-        showCredentialSaveError({
-          message: accessOperationPending ? t("account.cloudflare_access_save_failed") : getErrorMessage(error),
-        });
+      const saveResult = await runCredentialSaveRequest(credentialValues, accessOperationPending);
+      if (saveResult === null) {
         return { saved: false, updatedAccount: null };
       }
 
-      if (!mountedRef.current || activeAccountIdRef.current !== account.id) {
-        return { saved: false, updatedAccount: null };
+      const failureOutcome = resolveCredentialSaveFailure(saveResult, accessOperationPending);
+      if (failureOutcome !== null) {
+        return failureOutcome;
       }
 
-      if (Result.isFailure(saveResult)) {
-        if (draftRevisionRef.current !== draftRevision) {
-          return { saved: false, updatedAccount: null };
-        }
-        const error = Result.unwrapError(saveResult);
-        showCredentialSaveError({
-          message: isCloudflareAccessRecoveryRequired(error)
-            ? t("account.cloudflare_access_recovery_required")
-            : accessOperationPending
-              ? t("account.cloudflare_access_save_failed")
-              : error.message,
-        });
-        return { saved: false, updatedAccount: null };
-      }
+      return applyCredentialSaveSuccess(Result.unwrap(saveResult), credentialValues);
+    };
 
-      const updated = Result.unwrap(saveResult);
-      if (cloudflareAccessUpdate !== undefined && cloudflareAccessUpdate.action !== "keep") {
-        cloudflareAccessRequestIdRef.current += 1;
-        const savedClientId = cloudflareAccessUpdate.action === "replace" ? cloudflareAccessUpdate.clientId : null;
-        dispatch({
-          type: "record-saved-cloudflare-access",
-          clientId: savedClientId,
-          serverUrl: serverUrl ?? account.server_url ?? "",
-          draft: cloudflareAccessDraft,
-        });
-      }
-      updateCachedAccount(queryClient, updated);
-      invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
-      dispatch({
-        type: "clear-credential-drafts",
-        passwordWasSaved: passwordChanged,
-        draft: credentialDraft,
-        cloudflareAccessDraft,
-      });
-      if (successToastKey !== null && draftRevisionRef.current === draftRevision) {
-        useUiStore.getState().showToast(t(successToastKey));
-      }
-
-      return { saved: true, updatedAccount: updated };
-    })();
+    const saveTask = runCredentialSave();
 
     pendingCredentialSaveRevisionRef.current = draftRevision;
     dispatch({ type: "set-credential-save-pending", value: true });
