@@ -14,6 +14,7 @@ const coldSources = [
   "scripts/release/lib/release-start-policy.ts",
   "scripts/release/lib/release-source-policy.ts",
   "scripts/release/lib/config-validation.ts",
+  "scripts/lib/type-guards.ts",
   "scripts/release/lib/version-owners.ts",
   "scripts/release/workflows/start-release.ts",
   "scripts/release/workflows/guard-release-build.ts",

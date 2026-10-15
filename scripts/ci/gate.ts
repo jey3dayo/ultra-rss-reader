@@ -1,12 +1,9 @@
+import { isRecord } from "../lib/type-guards.ts";
 import { checkJobs, type Plan, requiredJobs } from "./plan.ts";
-
-function record(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 export function parsePlan(value: unknown): Plan {
   if (
-    !record(value) ||
+    !isRecord(value) ||
     Object.keys(value).length !== 5 ||
     typeof value.full !== "boolean" ||
     typeof value.frontend !== "boolean" ||
@@ -38,13 +35,13 @@ export function validateGate(planValue: unknown, needsValue: unknown, event: str
   const failures: string[] = [];
   const plan = parsePlan(planValue);
   if (event !== "pull_request" && !plan.full) failures.push("Non-PR events require the full suite");
-  if (!record(needsValue)) return ["Missing job results"];
+  if (!isRecord(needsValue)) return ["Missing job results"];
   const planner = needsValue["change-plan"];
-  if (!record(planner) || planner.result !== "success") failures.push("change-plan must succeed");
+  if (!isRecord(planner) || planner.result !== "success") failures.push("change-plan must succeed");
   const expected = requiredJobs(plan);
   for (const job of checkJobs) {
     const value = needsValue[job];
-    const result = record(value) ? value.result : undefined;
+    const result = isRecord(value) ? value.result : undefined;
     if (result !== "success" && !(result === "skipped" && expected[job] === false)) {
       failures.push(`${job}: ${String(result)} (${expected[job] ? "required" : "unneeded"})`);
     }

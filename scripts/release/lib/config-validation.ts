@@ -1,3 +1,4 @@
+import { isRecord } from "../../lib/type-guards.ts";
 import {
   findCargoLockPackageVersionOwners,
   findMsixIdentityVersionOwners,
@@ -47,9 +48,6 @@ const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/r
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 const CARGO_PACKAGE_SECTION_PATTERN = /^\[package\]\s*$/gm;
 const CARGO_TOML_VERSION_PATTERN = /^version\s*=\s*"([^"]+)"\s*$/gm;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const optionalString = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
 

@@ -22,6 +22,7 @@ const CLI_MODULES = [
   "scripts/release/lib/artifact-contract.ts",
   "scripts/release/lib/artifact-inventory.ts",
   "scripts/release/lib/release-provenance.ts",
+  "scripts/lib/type-guards.ts",
   "scripts/release/release-artifact-contract.ts",
   "scripts/release/updater-checksum.ts",
   "scripts/release/workflows/artifacts.ts",
