@@ -56,6 +56,7 @@ import {
   queryKeys,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
+import { requireEnabledQueryValue } from "@/lib/require-enabled-query-value";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -204,14 +205,6 @@ function resolveArticleQueryMode(options?: ArticleQueryOptions): ReaderFilter {
   }
 
   return options?.unreadOnly ? "unread" : "all";
-}
-
-function requireEnabledQueryValue(value: string | null, label: string): string {
-  if (!value) {
-    throw new Error(`${label} is required when the query is enabled.`);
-  }
-
-  return value;
 }
 
 export function getNextArticlePageParam(
