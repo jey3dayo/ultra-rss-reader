@@ -19,6 +19,7 @@ import {
 } from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery, unwrapReadQueryResult } from "@/hooks/create-query";
+import { requireEnabledQueryValue } from "@/hooks/require-enabled-query-value";
 import { getNextArticlePageParam, READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
 import {
   invalidateArticleMutationQueries,
@@ -125,16 +126,6 @@ function normalizeTagId(tagId: string | null): string | null {
   return trimmedTagId ? trimmedTagId : null;
 }
 
-function requireTagId(tagId: string | null): string {
-  const normalizedTagId = normalizeTagId(tagId);
-
-  if (!normalizedTagId) {
-    throw new Error("tagId is required when the query is enabled.");
-  }
-
-  return normalizedTagId;
-}
-
 export function useArticlesByTag(tagId: string | null, accountId?: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";
   const normalizedTagId = normalizeTagId(tagId);
@@ -150,7 +141,7 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
     queryKey,
     queryFn: ({ pageParam }) =>
       listArticlesByTag(
-        requireTagId(normalizedTagId),
+        requireEnabledQueryValue(normalizedTagId, "tagId"),
         pageParam,
         READER_ARTICLE_PAGE_SIZE,
         normalizedAccountId ?? undefined,

@@ -48,6 +48,7 @@ import {
   shouldInvalidateAfterRecordArticleView,
 } from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
+import { requireEnabledQueryValue } from "@/hooks/require-enabled-query-value";
 import { shouldRetainBulkMarkedRead } from "@/lib/articles/article-read-projection";
 import {
   invalidateArticleMutationQueries,
@@ -204,14 +205,6 @@ function resolveArticleQueryMode(options?: ArticleQueryOptions): ReaderFilter {
   }
 
   return options?.unreadOnly ? "unread" : "all";
-}
-
-function requireEnabledQueryValue(value: string | null, label: string): string {
-  if (!value) {
-    throw new Error(`${label} is required when the query is enabled.`);
-  }
-
-  return value;
 }
 
 export function getNextArticlePageParam(
