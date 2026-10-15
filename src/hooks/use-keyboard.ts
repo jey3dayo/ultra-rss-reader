@@ -13,7 +13,12 @@ import {
   isGlobalShortcutTextEditingTarget,
   shouldIgnoreGlobalShortcutKeyboardEvent,
 } from "@/lib/keyboard/global-shortcut-targets";
-import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
+import {
+  buildKeyToActionMap,
+  type KeyboardAction,
+  type keyboardEvents,
+  resolveKeyboardAction,
+} from "@/lib/keyboard/keyboard-shortcuts";
 import { scrollArticleContentByViewport } from "@/lib/reader/reader-content-scroll";
 import {
   focusArticleListRowTargetWhenReady,
@@ -65,6 +70,163 @@ type RepeatNavigationAction =
 
 function isRepeatNavigationAction(action: { type: string }): action is RepeatNavigationAction {
   return action.type === "navigate-article" || action.type === "navigate-feed";
+}
+
+function handleAccountPaneNavigation(
+  e: KeyboardEvent,
+  currentStore: ReturnType<typeof useUiStore.getState>,
+  targetElement: Element | null,
+): boolean {
+  const normalizedPaneKey = normalizePaneNavigationKey(e.key);
+  const targetInAccountPane = targetElement?.closest('[data-account-pane="true"]');
+  const targetInSidebarPane = targetElement?.closest('[data-sidebar-pane="true"]');
+  const targetInAccountSwitcherMenu = targetElement?.closest('[data-account-switcher-menu="true"]');
+  const shouldRouteAccountPaneKey =
+    currentStore.accountPaneOpen &&
+    currentStore.focusedPane === "sidebar" &&
+    !isGlobalShortcutTextEditingTarget(targetElement) &&
+    (!targetInSidebarPane || targetInAccountPane || targetInAccountSwitcherMenu);
+  if (!shouldRouteAccountPaneKey) {
+    return false;
+  }
+
+  if (normalizedPaneKey === "ArrowDown" || normalizedPaneKey === "ArrowUp") {
+    e.preventDefault();
+    e.stopPropagation();
+    focusAdjacentAccountPaneTarget(normalizedPaneKey === "ArrowDown" ? 1 : -1);
+    emitDebugInputTrace(`window-key ${e.key} -> focus-account-pane`);
+    return true;
+  }
+
+  if (normalizedPaneKey === "ArrowRight" || normalizedPaneKey === "Enter") {
+    e.preventDefault();
+    e.stopPropagation();
+    selectCurrentAccountPaneTargetAndFocusSidebar();
+    emitDebugInputTrace(`window-key ${e.key} -> select-account-pane`);
+    return true;
+  }
+
+  if (normalizedPaneKey === "Escape") {
+    e.preventDefault();
+    e.stopPropagation();
+    closeAccountPaneAndFocusSidebar();
+    emitDebugInputTrace(`window-key ${e.key} -> close-account-pane`);
+    return true;
+  }
+
+  return false;
+}
+
+function handleReaderFocusReturn(
+  e: KeyboardEvent,
+  currentStore: ReturnType<typeof useUiStore.getState>,
+  targetElement: Element | null,
+): boolean {
+  const readerFocusReturnAction = resolveReaderFocusReturnAction({
+    key: e.key,
+    focusedPane: currentStore.focusedPane,
+    target: targetElement,
+    targetIsTextEditing: isGlobalShortcutTextEditingTarget(targetElement),
+  });
+  if (readerFocusReturnAction === "focus-sidebar") {
+    e.preventDefault();
+    e.stopPropagation();
+    currentStore.openSidebar();
+    emitDebugInputTrace("window-key ArrowLeft -> focus-sidebar");
+    focusSelectedSidebarTarget();
+    scheduleReaderFocusFrame(() => {
+      focusSelectedSidebarTarget();
+    });
+    return true;
+  }
+
+  if (readerFocusReturnAction === "focus-list") {
+    e.preventDefault();
+    e.stopPropagation();
+    currentStore.setFocusedPane("list");
+    emitDebugInputTrace("window-key ArrowLeft -> focus-list");
+    focusArticleListRowTargetWhenReady(currentStore.selectedArticleId);
+    return true;
+  }
+
+  return false;
+}
+
+function handleRepeatNavigation(
+  e: KeyboardEvent,
+  resolvedAction: KeyboardAction,
+  queueRepeatNavigation: (action: RepeatNavigationAction) => void,
+  cancelRepeatNavigation: () => void,
+): boolean {
+  if (e.repeat && isRepeatNavigationAction(resolvedAction)) {
+    queueRepeatNavigation(resolvedAction);
+    return true;
+  }
+
+  cancelRepeatNavigation();
+  return e.repeat;
+}
+
+function executeResolvedKeyboardAction(
+  resolvedAction: KeyboardAction,
+  deps: {
+    clearArticle: () => void;
+    toggleSidebar: () => void;
+    openSidebar: () => void;
+  },
+): void {
+  switch (resolvedAction.type) {
+    case "open-settings":
+      executeAction("open-settings");
+      break;
+    case "open-command-palette":
+      executeAction("open-command-palette");
+      break;
+    case "open-shortcuts-help":
+      useUiStore.getState().openShortcutsHelp();
+      break;
+    case "restart-app":
+      executeAction("restart-app");
+      break;
+    case "emit":
+      emitKeyboardEvent(resolvedAction.eventName);
+      break;
+    case "set-view-mode":
+      executeAction(`set-filter-${resolvedAction.mode}`);
+      break;
+    case "close-browser":
+      executeAction("close-browser");
+      break;
+    case "clear-article":
+      deps.clearArticle();
+      break;
+    case "toggle-sidebar":
+      deps.toggleSidebar();
+      break;
+    case "focus-sidebar":
+      deps.openSidebar();
+      focusSelectedSidebarTarget();
+      scheduleReaderFocusFrame(() => {
+        focusSelectedSidebarTarget();
+      });
+      break;
+    case "navigate-article":
+      executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
+      break;
+    case "scroll-article": {
+      const scrollResult = scrollArticleContentByViewport(resolvedAction.direction);
+      if (scrollResult === "reached-end" && resolvedAction.direction === 1) {
+        executeAction("next-article");
+      }
+      break;
+    }
+    case "navigate-feed":
+      executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
+      break;
+    case "reload-webview":
+      executeAction("reload-webview");
+      break;
+  }
 }
 
 export function useKeyboard() {
@@ -143,39 +305,8 @@ export function useKeyboard() {
 
       const currentStore = useUiStore.getState();
 
-      const normalizedPaneKey = normalizePaneNavigationKey(e.key);
-      const targetInAccountPane = targetElement?.closest('[data-account-pane="true"]');
-      const targetInSidebarPane = targetElement?.closest('[data-sidebar-pane="true"]');
-      const targetInAccountSwitcherMenu = targetElement?.closest('[data-account-switcher-menu="true"]');
-      const shouldRouteAccountPaneKey =
-        currentStore.accountPaneOpen &&
-        currentStore.focusedPane === "sidebar" &&
-        !isGlobalShortcutTextEditingTarget(targetElement) &&
-        (!targetInSidebarPane || targetInAccountPane || targetInAccountSwitcherMenu);
-      if (shouldRouteAccountPaneKey) {
-        if (normalizedPaneKey === "ArrowDown" || normalizedPaneKey === "ArrowUp") {
-          e.preventDefault();
-          e.stopPropagation();
-          focusAdjacentAccountPaneTarget(normalizedPaneKey === "ArrowDown" ? 1 : -1);
-          emitDebugInputTrace(`window-key ${e.key} -> focus-account-pane`);
-          return;
-        }
-
-        if (normalizedPaneKey === "ArrowRight" || normalizedPaneKey === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          selectCurrentAccountPaneTargetAndFocusSidebar();
-          emitDebugInputTrace(`window-key ${e.key} -> select-account-pane`);
-          return;
-        }
-
-        if (normalizedPaneKey === "Escape") {
-          e.preventDefault();
-          e.stopPropagation();
-          closeAccountPaneAndFocusSidebar();
-          emitDebugInputTrace(`window-key ${e.key} -> close-account-pane`);
-          return;
-        }
+      if (handleAccountPaneNavigation(e, currentStore, targetElement)) {
+        return;
       }
 
       const isSidebarArrowKey =
@@ -185,30 +316,7 @@ export function useKeyboard() {
         return;
       }
 
-      const readerFocusReturnAction = resolveReaderFocusReturnAction({
-        key: e.key,
-        focusedPane: currentStore.focusedPane,
-        target: targetElement,
-        targetIsTextEditing: isGlobalShortcutTextEditingTarget(targetElement),
-      });
-      if (readerFocusReturnAction === "focus-sidebar") {
-        e.preventDefault();
-        e.stopPropagation();
-        currentStore.openSidebar();
-        emitDebugInputTrace("window-key ArrowLeft -> focus-sidebar");
-        focusSelectedSidebarTarget();
-        scheduleReaderFocusFrame(() => {
-          focusSelectedSidebarTarget();
-        });
-        return;
-      }
-
-      if (readerFocusReturnAction === "focus-list") {
-        e.preventDefault();
-        e.stopPropagation();
-        currentStore.setFocusedPane("list");
-        emitDebugInputTrace("window-key ArrowLeft -> focus-list");
-        focusArticleListRowTargetWhenReady(currentStore.selectedArticleId);
+      if (handleReaderFocusReturn(e, currentStore, targetElement)) {
         return;
       }
 
@@ -240,67 +348,11 @@ export function useKeyboard() {
       const resolvedAction = Result.unwrap(action);
       emitDebugInputTrace(`window-key ${e.key} -> ${resolvedAction.type}`);
 
-      if (e.repeat && isRepeatNavigationAction(resolvedAction)) {
-        queueRepeatNavigation(resolvedAction);
-        return;
-      }
-      cancelRepeatNavigation();
-      if (e.repeat) {
+      if (handleRepeatNavigation(e, resolvedAction, queueRepeatNavigation, cancelRepeatNavigation)) {
         return;
       }
 
-      switch (resolvedAction.type) {
-        case "open-settings":
-          executeAction("open-settings");
-          break;
-        case "open-command-palette":
-          executeAction("open-command-palette");
-          break;
-        case "open-shortcuts-help":
-          useUiStore.getState().openShortcutsHelp();
-          break;
-        case "restart-app":
-          executeAction("restart-app");
-          break;
-        case "emit":
-          emitKeyboardEvent(resolvedAction.eventName);
-          break;
-        case "set-view-mode":
-          executeAction(`set-filter-${resolvedAction.mode}`);
-          break;
-        case "close-browser":
-          executeAction("close-browser");
-          break;
-        case "clear-article":
-          clearArticle();
-          break;
-        case "toggle-sidebar":
-          toggleSidebar();
-          break;
-        case "focus-sidebar":
-          openSidebar();
-          focusSelectedSidebarTarget();
-          scheduleReaderFocusFrame(() => {
-            focusSelectedSidebarTarget();
-          });
-          break;
-        case "navigate-article":
-          executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
-          break;
-        case "scroll-article": {
-          const scrollResult = scrollArticleContentByViewport(resolvedAction.direction);
-          if (scrollResult === "reached-end" && resolvedAction.direction === 1) {
-            executeAction("next-article");
-          }
-          break;
-        }
-        case "navigate-feed":
-          executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
-          break;
-        case "reload-webview":
-          executeAction("reload-webview");
-          break;
-      }
+      executeResolvedKeyboardAction(resolvedAction, { clearArticle, toggleSidebar, openSidebar });
     });
 
     return bindWindowEvents([{ type: "keydown", listener: handler, options: true }]);
