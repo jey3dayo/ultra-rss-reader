@@ -284,253 +284,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 }
             }
 
-            if !state.automatic_sync_enabled.load(Ordering::SeqCst) {
-                continue;
-            }
-
-            let accounts: Vec<Account> = match load_scheduler_accounts(&state.db) {
-                Ok(accounts) => accounts,
-                Err(error) => {
-                    tracing::warn!("Skipping scheduled sync: failed to load accounts: {error}");
-                    if let Err(emit_error) = app_handle.emit(
-                        SYNC_WARNING_EVENT,
-                        vec![scheduler_load_failure_warning(&error)],
-                    ) {
-                        tracing::warn!("Failed to emit sync-warning event: {emit_error}");
-                    }
-                    continue;
-                }
-            };
-
-            let now = Instant::now();
-
-            prune_deleted_account_schedules(&mut schedules, &accounts);
-
-            // Ensure every account has a schedule entry and keep existing
-            // entries aligned with account setting changes.
-            for account in &accounts {
-                let id = account.id.as_ref().to_string();
-                let persisted_retry_next_sync =
-                    persisted_retry_next_sync(&state.db, &account.id, now);
-                upsert_account_schedule(
-                    &mut schedules,
-                    id,
-                    account,
-                    now,
-                    persisted_retry_next_sync,
-                );
-            }
-
-            let due_accounts = select_due_accounts_for_tick(&accounts, &schedules, now, usize::MAX)
-                .into_iter()
-                .filter(|account| !is_in_backoff(&state.db, &account.id))
-                .filter(|account| !backoff::waiting_for_credential_access(&state.db, account))
-                .take(MAX_ACCOUNTS_PER_SCHEDULER_TICK)
-                .collect::<Vec<_>>();
-
-            if due_accounts.is_empty() {
-                continue;
-            }
-
-            // Skip if another sync (manual) is already in progress
-            let sync_guard = match acquire_scheduler_sync_guard(state.syncing.as_ref()) {
-                Some(guard) => guard,
-                None => {
-                    tracing::debug!("Skipping scheduled sync: manual sync in progress");
-                    continue;
-                }
-            };
-            let _sync_guard = sync_guard;
-
-            let mut any_synced = false;
-            let mut all_succeeded = true;
-            let mut warnings_to_emit = Vec::new();
-            let reporter = SyncProgressReporter::new(
-                app_handle.clone(),
-                SyncProgressKind::Automatic,
-                due_accounts.len(),
-            );
-            reporter.emit_started(None);
-
-            for account in due_accounts {
-                let account_id_str = account.id.as_ref().to_string();
-                reporter.emit_account_started(account);
-                let result = AssertUnwindSafe(sync_account(&state.db, account))
-                    .catch_unwind()
-                    .await;
-
-                match result {
-                    Ok(Ok(outcome)) => {
-                        reporter.emit_account_finished(account, true);
-                        match load_scheduler_account(&state.db, &account.id) {
-                            Ok(Some(latest_account)) => {
-                                if let Err(error) = reset_error_count(&state.db, &account.id) {
-                                    tracing::warn!(
-                                        account_id = %account.id.as_ref(),
-                                        "Background sync could not reset backoff state: {error}"
-                                    );
-                                    all_succeeded = false;
-                                }
-                                schedule_completed_account_sync(
-                                    &mut schedules,
-                                    &latest_account,
-                                    Instant::now(),
-                                );
-                            }
-                            Ok(None) => {
-                                tracing::info!(
-                                    account_id = %account.id.as_ref(),
-                                    "Background sync completed for deleted account; pruning schedule"
-                                );
-                                schedules.remove(&account_id_str);
-                            }
-                            Err(error) => {
-                                tracing::warn!(
-                                    account_id = %account.id.as_ref(),
-                                    "Background sync could not refresh account before rescheduling: {error}"
-                                );
-                                all_succeeded = false;
-                            }
-                        }
-                        any_synced = true;
-                        let diagnostic_warnings = outcome
-                            .warnings
-                            .iter()
-                            .map(|warning| AccountSyncWarning {
-                                account_id: account.id.as_ref().to_string(),
-                                account_name: account.name.clone(),
-                                kind: warning.kind,
-                                message: warning.message.clone(),
-                                retry_at: warning.retry_at.clone(),
-                                retry_in_seconds: warning.retry_in_seconds,
-                                detail: warning.detail.clone(),
-                            })
-                            .collect();
-                        finalize_successful_background_account_sync(
-                            account,
-                            diagnostic_warnings,
-                            &mut warnings_to_emit,
-                        );
-                    }
-                    Ok(Err(e)) => {
-                        tracing::warn!(account_id = %account.id.as_ref(), "Background sync failed: {e}");
-                        log_sync_failure(SyncTrigger::Background, &account.kind, &e);
-                        reporter.emit_account_finished(account, false);
-                        let mut finalized_with_backoff = false;
-                        match load_scheduler_account(&state.db, &account.id) {
-                            Ok(Some(latest_account)) => {
-                                let backoff = finalize_failed_background_account_sync(
-                                    &state.db,
-                                    &latest_account,
-                                    &e,
-                                    &mut warnings_to_emit,
-                                );
-                                finalized_with_backoff = true;
-                                schedule_failed_account_sync(
-                                    &mut schedules,
-                                    &latest_account,
-                                    Instant::now(),
-                                    backoff,
-                                );
-                            }
-                            Ok(None) => {
-                                tracing::info!(
-                                    account_id = %account.id.as_ref(),
-                                    "Background sync failed for deleted account; pruning schedule"
-                                );
-                                schedules.remove(&account_id_str);
-                            }
-                            Err(error) => {
-                                tracing::warn!(
-                                    account_id = %account.id.as_ref(),
-                                    "Background sync could not refresh account before scheduling retry: {error}"
-                                );
-                            }
-                        }
-                        all_succeeded = false;
-                        if !finalized_with_backoff {
-                            log_background_sync_outcome(&account.kind, Err(&e), &[]);
-                        }
-                    }
-                    Err(_) => {
-                        tracing::error!(
-                            "Background sync panicked for account [redacted account], scheduler continues"
-                        );
-                        log_sync_panic(SyncTrigger::Background, &account.kind);
-                        reporter.emit_account_finished(account, false);
-                        let panic_error = AppError::UserVisible {
-                            message: "Background sync panicked".to_string(),
-                        };
-                        let mut finalized_with_backoff = false;
-                        match load_scheduler_account(&state.db, &account.id) {
-                            Ok(Some(latest_account)) => {
-                                let backoff = finalize_failed_background_account_sync(
-                                    &state.db,
-                                    &latest_account,
-                                    &panic_error,
-                                    &mut warnings_to_emit,
-                                );
-                                finalized_with_backoff = true;
-                                schedule_failed_account_sync(
-                                    &mut schedules,
-                                    &latest_account,
-                                    Instant::now(),
-                                    backoff,
-                                );
-                            }
-                            Ok(None) => {
-                                tracing::info!(
-                                    "Background sync panicked for deleted account [redacted account]; pruning schedule"
-                                );
-                                schedules.remove(&account_id_str);
-                            }
-                            Err(error) => {
-                                tracing::warn!(
-                                    "Background sync could not refresh account [redacted account] before scheduling retry after panic: {error}"
-                                );
-                            }
-                        }
-                        all_succeeded = false;
-                        if !finalized_with_backoff {
-                            log_background_sync_outcome(&account.kind, Err(&panic_error), &[]);
-                        }
-                    }
-                }
-            }
-
-            reporter.emit_finished(any_synced);
-
-            let plan = plan_finish(
-                &FinishInput {
-                    synced: any_synced,
-                    succeeded: 0,
-                    has_failures: false,
-                    has_warnings: !warnings_to_emit.is_empty(),
-                    all_succeeded,
-                    has_startup_targets: false,
-                },
-                SyncEntry::SchedulerLoop,
-            );
-
-            if plan.emit_warning {
-                if let Err(e) = app_handle.emit(SYNC_WARNING_EVENT, warnings_to_emit.clone()) {
-                    tracing::warn!("Failed to emit sync-warning event: {e}");
-                }
-            }
-
-            if plan.emit_completed {
-                if let Err(e) = app_handle.emit(SYNC_COMPLETED_EVENT, ()) {
-                    tracing::warn!("Failed to emit sync-completed event: {e}");
-                }
-            }
-            if plan.emit_succeeded {
-                if let Err(e) = app_handle.emit(SYNC_SUCCEEDED_EVENT, ()) {
-                    tracing::warn!("Failed to emit sync-succeeded event: {e}");
-                }
-            }
-            if plan.purge {
-                purge_old_articles(&state.db);
-            }
+            run_scheduler_tick(&app_handle, state.inner(), &mut schedules).await;
         }
     });
 
@@ -540,6 +294,319 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
         return;
     };
     register_scheduler_task(&mut lifecycle, task);
+}
+
+async fn run_scheduler_tick(
+    app_handle: &AppHandle,
+    state: &crate::commands::AppState,
+    schedules: &mut HashMap<String, AccountSchedule>,
+) {
+    if !state.automatic_sync_enabled.load(Ordering::SeqCst) {
+        return;
+    }
+
+    let accounts: Vec<Account> = match load_scheduler_accounts(&state.db) {
+        Ok(accounts) => accounts,
+        Err(error) => {
+            tracing::warn!("Skipping scheduled sync: failed to load accounts: {error}");
+            if let Err(emit_error) = app_handle.emit(
+                SYNC_WARNING_EVENT,
+                vec![scheduler_load_failure_warning(&error)],
+            ) {
+                tracing::warn!("Failed to emit sync-warning event: {emit_error}");
+            }
+            return;
+        }
+    };
+
+    let now = Instant::now();
+    refresh_account_schedules(&state.db, schedules, &accounts, now);
+
+    let due_accounts = select_scheduler_due_accounts(&state.db, &accounts, schedules, now);
+    if due_accounts.is_empty() {
+        return;
+    }
+
+    // Skip if another sync (manual) is already in progress
+    let _sync_guard = match acquire_scheduler_sync_guard(state.syncing.as_ref()) {
+        Some(guard) => guard,
+        None => {
+            tracing::debug!("Skipping scheduled sync: manual sync in progress");
+            return;
+        }
+    };
+
+    let mut any_synced = false;
+    let mut all_succeeded = true;
+    let mut warnings_to_emit = Vec::new();
+    let reporter = SyncProgressReporter::new(
+        app_handle.clone(),
+        SyncProgressKind::Automatic,
+        due_accounts.len(),
+    );
+    reporter.emit_started(None);
+
+    for account in due_accounts {
+        reporter.emit_account_started(account);
+        let result = AssertUnwindSafe(sync_account(&state.db, account))
+            .catch_unwind()
+            .await;
+
+        match result {
+            Ok(Ok(outcome)) => {
+                reporter.emit_account_finished(account, true);
+                let diagnostic_warnings = outcome
+                    .warnings
+                    .iter()
+                    .map(|warning| AccountSyncWarning {
+                        account_id: account.id.as_ref().to_string(),
+                        account_name: account.name.clone(),
+                        kind: warning.kind,
+                        message: warning.message.clone(),
+                        retry_at: warning.retry_at.clone(),
+                        retry_in_seconds: warning.retry_in_seconds,
+                        detail: warning.detail.clone(),
+                    })
+                    .collect();
+                let account_succeeded = handle_scheduled_sync_success(
+                    &state.db,
+                    schedules,
+                    account,
+                    diagnostic_warnings,
+                    &mut warnings_to_emit,
+                );
+                any_synced = true;
+                if !account_succeeded {
+                    all_succeeded = false;
+                }
+            }
+            Ok(Err(error)) => {
+                handle_scheduled_sync_failure(
+                    &state.db,
+                    schedules,
+                    account,
+                    &error,
+                    &reporter,
+                    &mut warnings_to_emit,
+                );
+                all_succeeded = false;
+            }
+            Err(_) => {
+                handle_scheduled_sync_panic(
+                    &state.db,
+                    schedules,
+                    account,
+                    &reporter,
+                    &mut warnings_to_emit,
+                );
+                all_succeeded = false;
+            }
+        }
+    }
+
+    reporter.emit_finished(any_synced);
+
+    emit_scheduler_tick_finish(
+        app_handle,
+        &state.db,
+        any_synced,
+        all_succeeded,
+        warnings_to_emit,
+    );
+}
+
+fn refresh_account_schedules(
+    db: &Mutex<DbManager>,
+    schedules: &mut HashMap<String, AccountSchedule>,
+    accounts: &[Account],
+    now: Instant,
+) {
+    prune_deleted_account_schedules(schedules, accounts);
+
+    // Ensure every account has a schedule entry and keep existing
+    // entries aligned with account setting changes.
+    for account in accounts {
+        let id = account.id.as_ref().to_string();
+        let persisted_retry_next_sync = persisted_retry_next_sync(db, &account.id, now);
+        upsert_account_schedule(schedules, id, account, now, persisted_retry_next_sync);
+    }
+}
+
+fn select_scheduler_due_accounts<'a>(
+    db: &Mutex<DbManager>,
+    accounts: &'a [Account],
+    schedules: &HashMap<String, AccountSchedule>,
+    now: Instant,
+) -> Vec<&'a Account> {
+    select_due_accounts_for_tick(accounts, schedules, now, usize::MAX)
+        .into_iter()
+        .filter(|account| !is_in_backoff(db, &account.id))
+        .filter(|account| !backoff::waiting_for_credential_access(db, account))
+        .take(MAX_ACCOUNTS_PER_SCHEDULER_TICK)
+        .collect()
+}
+
+fn handle_scheduled_sync_success(
+    db: &Mutex<DbManager>,
+    schedules: &mut HashMap<String, AccountSchedule>,
+    account: &Account,
+    diagnostic_warnings: Vec<AccountSyncWarning>,
+    warnings_to_emit: &mut Vec<AccountSyncWarning>,
+) -> bool {
+    let account_id_str = account.id.as_ref().to_string();
+    let mut all_succeeded = true;
+    match load_scheduler_account(db, &account.id) {
+        Ok(Some(latest_account)) => {
+            if let Err(error) = reset_error_count(db, &account.id) {
+                tracing::warn!(
+                    account_id = %account.id.as_ref(),
+                    "Background sync could not reset backoff state: {error}"
+                );
+                all_succeeded = false;
+            }
+            schedule_completed_account_sync(schedules, &latest_account, Instant::now());
+        }
+        Ok(None) => {
+            tracing::info!(
+                account_id = %account.id.as_ref(),
+                "Background sync completed for deleted account; pruning schedule"
+            );
+            schedules.remove(&account_id_str);
+        }
+        Err(error) => {
+            tracing::warn!(
+                account_id = %account.id.as_ref(),
+                "Background sync could not refresh account before rescheduling: {error}"
+            );
+            all_succeeded = false;
+        }
+    }
+    finalize_successful_background_account_sync(account, diagnostic_warnings, warnings_to_emit);
+    all_succeeded
+}
+
+fn handle_scheduled_sync_failure(
+    db: &Mutex<DbManager>,
+    schedules: &mut HashMap<String, AccountSchedule>,
+    account: &Account,
+    error: &AppError,
+    reporter: &SyncProgressReporter,
+    warnings_to_emit: &mut Vec<AccountSyncWarning>,
+) {
+    tracing::warn!(account_id = %account.id.as_ref(), "Background sync failed: {error}");
+    log_sync_failure(SyncTrigger::Background, &account.kind, error);
+    reporter.emit_account_finished(account, false);
+    let mut finalized_with_backoff = false;
+    match load_scheduler_account(db, &account.id) {
+        Ok(Some(latest_account)) => {
+            let backoff = finalize_failed_background_account_sync(
+                db,
+                &latest_account,
+                error,
+                warnings_to_emit,
+            );
+            finalized_with_backoff = true;
+            schedule_failed_account_sync(schedules, &latest_account, Instant::now(), backoff);
+        }
+        Ok(None) => {
+            tracing::info!(
+                account_id = %account.id.as_ref(),
+                "Background sync failed for deleted account; pruning schedule"
+            );
+            schedules.remove(&account.id.as_ref().to_string());
+        }
+        Err(refresh_error) => {
+            tracing::warn!(
+                account_id = %account.id.as_ref(),
+                "Background sync could not refresh account before scheduling retry: {refresh_error}"
+            );
+        }
+    }
+    if !finalized_with_backoff {
+        log_background_sync_outcome(&account.kind, Err(error), &[]);
+    }
+}
+
+fn handle_scheduled_sync_panic(
+    db: &Mutex<DbManager>,
+    schedules: &mut HashMap<String, AccountSchedule>,
+    account: &Account,
+    reporter: &SyncProgressReporter,
+    warnings_to_emit: &mut Vec<AccountSyncWarning>,
+) {
+    tracing::error!("Background sync panicked for account [redacted account], scheduler continues");
+    log_sync_panic(SyncTrigger::Background, &account.kind);
+    reporter.emit_account_finished(account, false);
+    let panic_error = AppError::UserVisible {
+        message: "Background sync panicked".to_string(),
+    };
+    let mut finalized_with_backoff = false;
+    match load_scheduler_account(db, &account.id) {
+        Ok(Some(latest_account)) => {
+            let backoff = finalize_failed_background_account_sync(
+                db,
+                &latest_account,
+                &panic_error,
+                warnings_to_emit,
+            );
+            finalized_with_backoff = true;
+            schedule_failed_account_sync(schedules, &latest_account, Instant::now(), backoff);
+        }
+        Ok(None) => {
+            tracing::info!(
+                "Background sync panicked for deleted account [redacted account]; pruning schedule"
+            );
+            schedules.remove(&account.id.as_ref().to_string());
+        }
+        Err(error) => {
+            tracing::warn!(
+                "Background sync could not refresh account [redacted account] before scheduling retry after panic: {error}"
+            );
+        }
+    }
+    if !finalized_with_backoff {
+        log_background_sync_outcome(&account.kind, Err(&panic_error), &[]);
+    }
+}
+
+fn emit_scheduler_tick_finish(
+    app_handle: &AppHandle,
+    db: &Mutex<DbManager>,
+    any_synced: bool,
+    all_succeeded: bool,
+    warnings_to_emit: Vec<AccountSyncWarning>,
+) {
+    let plan = plan_finish(
+        &FinishInput {
+            synced: any_synced,
+            succeeded: 0,
+            has_failures: false,
+            has_warnings: !warnings_to_emit.is_empty(),
+            all_succeeded,
+            has_startup_targets: false,
+        },
+        SyncEntry::SchedulerLoop,
+    );
+
+    if plan.emit_warning {
+        if let Err(e) = app_handle.emit(SYNC_WARNING_EVENT, warnings_to_emit) {
+            tracing::warn!("Failed to emit sync-warning event: {e}");
+        }
+    }
+
+    if plan.emit_completed {
+        if let Err(e) = app_handle.emit(SYNC_COMPLETED_EVENT, ()) {
+            tracing::warn!("Failed to emit sync-completed event: {e}");
+        }
+    }
+    if plan.emit_succeeded {
+        if let Err(e) = app_handle.emit(SYNC_SUCCEEDED_EVENT, ()) {
+            tracing::warn!("Failed to emit sync-succeeded event: {e}");
+        }
+    }
+    if plan.purge {
+        purge_old_articles(db);
+    }
 }
 
 fn load_scheduler_accounts(db: &Mutex<DbManager>) -> DomainResult<Vec<Account>> {
