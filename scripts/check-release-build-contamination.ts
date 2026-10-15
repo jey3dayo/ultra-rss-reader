@@ -38,6 +38,8 @@ type TauriCapabilityFile =
       capabilities: TauriCapability[];
     };
 
+type TauriConfigEntry = { path: string; config: TauriConfig };
+
 const RELEASE_WORKFLOW_PATH = ".github/workflows/release.yml";
 const BASE_TAURI_CONFIG_PATH = "src-tauri/tauri.conf.json";
 const RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.release.conf.json";
@@ -107,67 +109,43 @@ const parseCspDirectives = (csp: string): Map<string, string[]> => {
   return directives;
 };
 
-export const checkReleaseBuildSources = (root = process.cwd()): string[] => {
-  const readText = (filePath: string): string => readFileSync(path.join(root, filePath), "utf8");
-  const readJson = <T>(filePath: string): T => JSON.parse(readText(filePath)) as T;
+const extractCargoBinNames = (cargoToml: string): string[] =>
+  [...cargoToml.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*(["'])([^"']+)\1/g)].map((match) => match[2]);
+
+const collectReleaseWorkflowErrors = (releaseWorkflow: string): string[] => {
   const errors: string[] = [];
-
-  const releaseWorkflow = readText(RELEASE_WORKFLOW_PATH);
-  const baseTauriConfig = readJson<TauriConfig>(BASE_TAURI_CONFIG_PATH);
-  const tauriReleaseConfig = readJson<TauriConfig>(RELEASE_TAURI_CONFIG_PATH);
-  const tauriDevConfig = readJson<TauriConfig>(DEV_TAURI_CONFIG_PATH);
-  const defaultCapability = readJson<TauriCapabilityFile>(DEFAULT_CAPABILITY_PATH);
-  const tauriLib = readText(TAURI_LIB_PATH);
-  const devMocks = readText(DEV_MOCKS_PATH);
-  const viteConfig = readText(VITE_CONFIG_PATH);
-  const cargoToml = readText(CARGO_TOML_PATH);
-  const capabilities = normalizeCapabilities(defaultCapability);
-
   if (releaseWorkflow.includes(`--config ${DEV_TAURI_CONFIG_PATH}`)) {
     errors.push("release build must not use src-tauri/tauri.dev.conf.json");
   }
-
   if (!releaseWorkflow.includes(`--config ${RELEASE_TAURI_CONFIG_PATH}`)) {
     errors.push("release build must pass src-tauri/tauri.release.conf.json to tauri-action");
   }
-
   if (DEV_CREDENTIAL_ENV_PATTERN.test(releaseWorkflow)) {
     errors.push("release build must not set dev-only credential environment variables");
   }
+  return errors;
+};
 
+const collectTauriConfigIdentityErrors = (tauriReleaseConfig: TauriConfig, tauriDevConfig: TauriConfig): string[] => {
+  const errors: string[] = [];
   if (tauriReleaseConfig.identifier === tauriDevConfig.identifier) {
     errors.push("release build must not use the dev bundle identifier");
   }
-
   if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
     errors.push("release build must not use the dev product name");
   }
-
   if (tauriReleaseConfig.build?.devUrl) {
     errors.push("release Tauri config must not define build.devUrl");
   }
+  return errors;
+};
 
-  // Tauri's `get_binaries` already adds every Cargo `[[bin]]` to the bundle, so an
-  // `externalBin` entry that duplicates a Cargo bin name reaches WiX twice and fails
-  // `light.exe` on Windows (macOS silently overwrites the duplicate instead).
-  const cargoBinNames = [
-    ...cargoToml.matchAll(/\[\[bin\]\]\s*\n(?:[^\n[][^\n]*\n?)*?name\s*=\s*(["'])([^"']+)\1/g),
-  ].map((match) => match[2]);
-
-  const tauriConfigsToCheck: Array<{ path: string; config: TauriConfig }> = [
-    { path: BASE_TAURI_CONFIG_PATH, config: baseTauriConfig },
-    { path: DEV_TAURI_CONFIG_PATH, config: tauriDevConfig },
-    { path: RELEASE_TAURI_CONFIG_PATH, config: tauriReleaseConfig },
-  ];
-
-  if (existsSync(path.join(root, LINUX_RELEASE_TAURI_CONFIG_PATH))) {
-    tauriConfigsToCheck.push({
-      path: LINUX_RELEASE_TAURI_CONFIG_PATH,
-      config: readJson<TauriConfig>(LINUX_RELEASE_TAURI_CONFIG_PATH),
-    });
-  }
-
-  for (const { path: configPath, config } of tauriConfigsToCheck) {
+const collectExternalBinErrors = (
+  tauriConfigs: readonly TauriConfigEntry[],
+  cargoBinNames: readonly string[],
+): string[] => {
+  const errors: string[] = [];
+  for (const { path: configPath, config } of tauriConfigs) {
     for (const externalBin of config.bundle?.externalBin ?? []) {
       const basename = externalBin.split("/").pop() ?? externalBin;
       if (cargoBinNames.includes(basename)) {
@@ -177,89 +155,117 @@ export const checkReleaseBuildSources = (root = process.cwd()): string[] => {
       }
     }
   }
+  return errors;
+};
 
+const collectCargoDefaultRunErrors = (cargoToml: string, cargoBinNames: readonly string[]): string[] => {
+  if (cargoBinNames.length <= 1) return [];
   const cargoPackageName = cargoToml.match(/\[package\][^[]*?name\s*=\s*(["'])([^"']+)\1/)?.[2];
   const cargoDefaultRun = cargoToml.match(/\[package\][^[]*?default-run\s*=\s*(["'])([^"']+)\1/)?.[2];
+  if (cargoDefaultRun === cargoPackageName) return [];
+  return [
+    `Cargo.toml must declare default-run = "${cargoPackageName}" when more than one [[bin]] exists (tauri dev runs cargo run without --bin)`,
+  ];
+};
 
-  if (cargoBinNames.length > 1 && cargoDefaultRun !== cargoPackageName) {
-    errors.push(
-      `Cargo.toml must declare default-run = "${cargoPackageName}" when more than one [[bin]] exists (tauri dev runs cargo run without --bin)`,
-    );
-  }
-
-  const releaseCsp = baseTauriConfig.app?.security?.csp ?? "";
-  const releaseCspDirectives = parseCspDirectives(releaseCsp);
-
-  if (!releaseCsp) {
-    errors.push("release Tauri config must define app.security.csp");
-  }
-
+const collectCspRequiredDirectiveErrors = (directives: ReadonlyMap<string, string[]>): string[] => {
+  const errors: string[] = [];
   for (const [directive, requiredSources] of Object.entries(REQUIRED_RELEASE_CSP_DIRECTIVES)) {
-    const sources = releaseCspDirectives.get(directive) ?? [];
-    const sourceSet = new Set(sources);
+    const sourceSet = new Set(directives.get(directive) ?? []);
     for (const requiredSource of requiredSources) {
       if (!sourceSet.has(requiredSource)) {
         errors.push(`release CSP ${directive} must include ${requiredSource}`);
       }
     }
   }
+  return errors;
+};
 
-  for (const [directive, sources] of releaseCspDirectives) {
+const collectCspForbiddenDirectiveErrors = (directives: ReadonlyMap<string, string[]>): string[] => {
+  const errors: string[] = [];
+  for (const [directive, sources] of directives) {
     for (const forbiddenSource of RELEASE_CSP_FORBIDDEN_SOURCES) {
       if (sources.includes(forbiddenSource)) {
         errors.push(`release CSP ${directive} must not include ${forbiddenSource}`);
       }
     }
   }
+  return errors;
+};
 
+const collectReleaseCspErrors = (baseTauriConfig: TauriConfig, tauriDevConfig: TauriConfig): string[] => {
+  const errors: string[] = [];
+  const releaseCsp = baseTauriConfig.app?.security?.csp ?? "";
+  if (!releaseCsp) {
+    errors.push("release Tauri config must define app.security.csp");
+  }
+  const releaseCspDirectives = parseCspDirectives(releaseCsp);
+  errors.push(...collectCspRequiredDirectiveErrors(releaseCspDirectives));
+  errors.push(...collectCspForbiddenDirectiveErrors(releaseCspDirectives));
   if (tauriDevConfig.app?.security?.csp) {
     errors.push("dev Tauri config must inherit the release CSP instead of redefining app.security.csp");
   }
+  return errors;
+};
 
-  if (!viteConfig.includes("port: 1420") || !viteConfig.includes("port: 1421")) {
-    errors.push("Vite dev HMR ports must stay explicit for CSP drift review");
-  }
+const collectVitePortErrors = (viteConfig: string): string[] =>
+  !viteConfig.includes("port: 1420") || !viteConfig.includes("port: 1421")
+    ? ["Vite dev HMR ports must stay explicit for CSP drift review"]
+    : [];
 
+const collectCapabilityIdentifierErrors = (capabilities: readonly TauriCapability[]): string[] => {
   const capabilityIdentifiers = capabilities.map((capability) => capability.identifier).toSorted();
   if (capabilityIdentifiers.join("\n") !== [...EXPECTED_CAPABILITY_IDENTIFIERS].toSorted().join("\n")) {
-    errors.push("release capability identifiers must stay limited to main and browser-webview");
+    return ["release capability identifiers must stay limited to main and browser-webview"];
   }
+  return [];
+};
 
+const collectMainCapabilityErrors = (capabilities: readonly TauriCapability[]): string[] => {
+  const errors: string[] = [];
   const mainCapability = findCapability(capabilities, "main");
   if (!mainCapability) {
     errors.push("release capability must include the main webview capability");
-  } else {
-    const mainPermissionIds = mainCapability.permissions?.map(permissionIdentifier) ?? [];
-    for (const requiredPermission of REQUIRED_MAIN_WEBVIEW_PERMISSIONS) {
-      if (!mainPermissionIds.includes(requiredPermission)) {
-        errors.push(`release main webview capability must include ${requiredPermission}`);
-      }
+    return errors;
+  }
+  const mainPermissionIds = mainCapability.permissions?.map(permissionIdentifier) ?? [];
+  for (const requiredPermission of REQUIRED_MAIN_WEBVIEW_PERMISSIONS) {
+    if (!mainPermissionIds.includes(requiredPermission)) {
+      errors.push(`release main webview capability must include ${requiredPermission}`);
     }
   }
+  return errors;
+};
 
+const collectBrowserWebviewCapabilityErrors = (capabilities: readonly TauriCapability[]): string[] => {
+  const errors: string[] = [];
   const browserWebviewCapability = findCapability(capabilities, "browser-webview");
   if (!browserWebviewCapability) {
     errors.push("release capability must include the browser-webview capability");
-  } else {
-    const browserWebviewPermissionIds = browserWebviewCapability.permissions?.map(permissionIdentifier) ?? [];
-    if (browserWebviewCapability.webviews?.join("\n") !== "browser-webview") {
-      errors.push("browser-webview capability must only target the embedded browser webview");
-    }
-    if (browserWebviewPermissionIds.join("\n") !== EXPECTED_BROWSER_WEBVIEW_PERMISSIONS.join("\n")) {
-      errors.push("browser-webview capability must remain limited to core:event:default");
-    }
+    return errors;
   }
+  if (browserWebviewCapability.webviews?.join("\n") !== "browser-webview") {
+    errors.push("browser-webview capability must only target the embedded browser webview");
+  }
+  const browserWebviewPermissionIds = browserWebviewCapability.permissions?.map(permissionIdentifier) ?? [];
+  if (browserWebviewPermissionIds.join("\n") !== EXPECTED_BROWSER_WEBVIEW_PERMISSIONS.join("\n")) {
+    errors.push("browser-webview capability must remain limited to core:event:default");
+  }
+  return errors;
+};
 
+const collectBridgePermissionErrors = (capabilities: readonly TauriCapability[]): string[] => {
   const bridgePermissions = capabilities.flatMap((capability) =>
     (capability.permissions ?? []).flatMap((permission) => {
       const identifier = permissionIdentifier(permission);
       return identifier.startsWith("mcp-bridge:") ? [identifier] : [];
     }),
   );
-  if (bridgePermissions.length > 0) {
-    errors.push("release capability must not include debug-only MCP bridge permissions");
-  }
+  return bridgePermissions.length > 0 ? ["release capability must not include debug-only MCP bridge permissions"] : [];
+};
 
+const collectTauriLibErrors = (tauriLib: string): string[] => {
+  const errors: string[] = [];
   if (
     !/#\[cfg\(all\(debug_assertions, feature = "mcp-bridge"\)\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/.test(
       tauriLib,
@@ -269,33 +275,37 @@ export const checkReleaseBuildSources = (root = process.cwd()): string[] => {
       'release build must keep the MCP bridge plugin behind cfg(all(debug_assertions, feature = "mcp-bridge"))',
     );
   }
-
   for (const requiredPlugin of REQUIRED_RELEASE_PLUGINS) {
     if (!tauriLib.includes(requiredPlugin)) {
       errors.push(`release runtime must initialize ${requiredPlugin}`);
     }
   }
+  return errors;
+};
 
+const collectCargoMcpBridgeErrors = (cargoToml: string): string[] => {
+  const errors: string[] = [];
   if (!/tauri-plugin-mcp-bridge\s*=\s*\{[^}]*optional\s*=\s*true/.test(cargoToml)) {
     errors.push("tauri-plugin-mcp-bridge dependency must be declared with optional = true");
   }
-
   const mcpBridgeFeatureMatch = cargoToml.match(/mcp-bridge\s*=\s*\[([^\]]*)\]/);
   if (!mcpBridgeFeatureMatch?.[1].includes("dep:tauri-plugin-mcp-bridge")) {
     errors.push('Cargo.toml must define a "mcp-bridge" feature that enables dep:tauri-plugin-mcp-bridge');
   }
-
   const defaultFeatureMatch = cargoToml.match(/\[features\][^[]*?default\s*=\s*\[([^\]]*)\]/);
   if (defaultFeatureMatch?.[1].includes("mcp-bridge")) {
     errors.push('Cargo.toml default features must not enable "mcp-bridge"');
   }
+  return errors;
+};
 
-  if (
-    !devMocks.includes("if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;")
-  ) {
-    errors.push("release build must keep dev browser mocks disabled inside Tauri");
-  }
+const collectDevMocksErrors = (devMocks: string): string[] =>
+  devMocks.includes("if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;")
+    ? []
+    : ["release build must keep dev browser mocks disabled inside Tauri"];
 
+const collectSourceImportErrors = (root: string, readText: (filePath: string) => string): string[] => {
+  const errors: string[] = [];
   for (const entry of readdirSync(path.join(root, "src"), { recursive: true })) {
     if (typeof entry !== "string" || !/\.(?:ts|tsx)$/.test(entry)) continue;
     const sourcePath = path.posix.join("src", entry.split(path.sep).join(path.posix.sep));
@@ -309,6 +319,57 @@ export const checkReleaseBuildSources = (root = process.cwd()): string[] => {
     }
   }
   return errors;
+};
+
+export const checkReleaseBuildSources = (root = process.cwd()): string[] => {
+  const readText = (filePath: string): string => readFileSync(path.join(root, filePath), "utf8");
+  const readJson = <T>(filePath: string): T => JSON.parse(readText(filePath)) as T;
+
+  const releaseWorkflow = readText(RELEASE_WORKFLOW_PATH);
+  const baseTauriConfig = readJson<TauriConfig>(BASE_TAURI_CONFIG_PATH);
+  const tauriReleaseConfig = readJson<TauriConfig>(RELEASE_TAURI_CONFIG_PATH);
+  const tauriDevConfig = readJson<TauriConfig>(DEV_TAURI_CONFIG_PATH);
+  const defaultCapability = readJson<TauriCapabilityFile>(DEFAULT_CAPABILITY_PATH);
+  const tauriLib = readText(TAURI_LIB_PATH);
+  const devMocks = readText(DEV_MOCKS_PATH);
+  const viteConfig = readText(VITE_CONFIG_PATH);
+  const cargoToml = readText(CARGO_TOML_PATH);
+  const capabilities = normalizeCapabilities(defaultCapability);
+
+  // Tauri's `get_binaries` already adds every Cargo `[[bin]]` to the bundle, so an
+  // `externalBin` entry that duplicates a Cargo bin name reaches WiX twice and fails
+  // `light.exe` on Windows (macOS silently overwrites the duplicate instead).
+  const cargoBinNames = extractCargoBinNames(cargoToml);
+
+  const tauriConfigsToCheck: TauriConfigEntry[] = [
+    { path: BASE_TAURI_CONFIG_PATH, config: baseTauriConfig },
+    { path: DEV_TAURI_CONFIG_PATH, config: tauriDevConfig },
+    { path: RELEASE_TAURI_CONFIG_PATH, config: tauriReleaseConfig },
+  ];
+
+  if (existsSync(path.join(root, LINUX_RELEASE_TAURI_CONFIG_PATH))) {
+    tauriConfigsToCheck.push({
+      path: LINUX_RELEASE_TAURI_CONFIG_PATH,
+      config: readJson<TauriConfig>(LINUX_RELEASE_TAURI_CONFIG_PATH),
+    });
+  }
+
+  return [
+    ...collectReleaseWorkflowErrors(releaseWorkflow),
+    ...collectTauriConfigIdentityErrors(tauriReleaseConfig, tauriDevConfig),
+    ...collectExternalBinErrors(tauriConfigsToCheck, cargoBinNames),
+    ...collectCargoDefaultRunErrors(cargoToml, cargoBinNames),
+    ...collectReleaseCspErrors(baseTauriConfig, tauriDevConfig),
+    ...collectVitePortErrors(viteConfig),
+    ...collectCapabilityIdentifierErrors(capabilities),
+    ...collectMainCapabilityErrors(capabilities),
+    ...collectBrowserWebviewCapabilityErrors(capabilities),
+    ...collectBridgePermissionErrors(capabilities),
+    ...collectTauriLibErrors(tauriLib),
+    ...collectCargoMcpBridgeErrors(cargoToml),
+    ...collectDevMocksErrors(devMocks),
+    ...collectSourceImportErrors(root, readText),
+  ];
 };
 
 type DependencyTreeRunner = (command: string, args: string[], options: ExecFileSyncOptionsWithStringEncoding) => string;
