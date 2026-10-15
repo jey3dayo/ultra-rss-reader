@@ -861,6 +861,13 @@ html.vertical-wipe-transition::view-transition-new(root) {
     transform: translate(-50%, -50%) scale(1);
   }
 
+  .popup-dialog-top-anchored.motion-popup-dialog[data-open],
+  .popup-dialog-top-anchored.motion-popup-dialog[data-closed],
+  .popup-dialog-top-anchored.motion-popup-dialog[data-starting-style],
+  .popup-dialog-top-anchored.motion-popup-dialog[data-ending-style] {
+    transform: translate(-50%, 0) scale(1);
+  }
+
   .motion-popup-surface[data-open],
   .motion-popup-surface[data-closed],
   .motion-popup-surface[data-starting-style],

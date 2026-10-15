@@ -151,6 +151,14 @@ describe("CommandPalette", () => {
     expect(results).not.toHaveClass("motion-content-swap");
   });
 
+  it("caps the results list height so the top-anchored palette fits short windows", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await screen.findByPlaceholderText("Search commands…");
+
+    expect(screen.getByTestId("command-palette-results")).toHaveClass("max-h-[min(320px,calc(88dvh-9rem))]");
+  });
+
   it("executes the first keyboard-selected action after the query changes", async () => {
     const user = userEvent.setup();
     const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
