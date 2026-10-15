@@ -11,7 +11,7 @@ import {
 } from "./release-artifact-contract.ts";
 import { parseUpdaterChecksum } from "./updater-checksum.ts";
 
-export type ReleaseVerificationAsset = {
+type ReleaseVerificationAsset = {
   browserDownloadUrl: string;
   digest: string;
   name: string;
