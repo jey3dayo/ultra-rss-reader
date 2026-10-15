@@ -1,6 +1,5 @@
 use std::panic;
 
-use super::next_download_progress_percent;
 use super::policy::{
     is_prerelease_version, is_strictly_newer_version, is_updater_manual_check_configured,
     parse_semantic_version_parts, pending_update_metadata_matches_parts, update_event_emit_warning,
@@ -12,6 +11,7 @@ use super::state::{
     DownloadGuard, PendingUpdateSlot, PostDownloadInstall, SyncInstallGuard,
     ACTIVE_DOWNLOAD_SESSION_ID, DOWNLOADING, DOWNLOAD_SESSION_ID,
 };
+use super::{next_download_progress_percent, should_emit_download_progress};
 use crate::commands::dto::AppError;
 use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
 use std::sync::atomic::AtomicBool;
@@ -450,4 +450,18 @@ fn download_progress_percent_keeps_last_value_when_total_is_unknown() {
         Some(40)
     );
     assert_eq!(next_download_progress_percent(50, None, None), None);
+}
+
+#[test]
+fn download_progress_emits_first_value_even_when_percent_is_unknown() {
+    assert!(should_emit_download_progress(None, None));
+    assert!(should_emit_download_progress(None, Some(0)));
+}
+
+#[test]
+fn download_progress_skips_repeated_percent_and_emits_changes() {
+    assert!(!should_emit_download_progress(Some(None), None));
+    assert!(!should_emit_download_progress(Some(Some(40)), Some(40)));
+    assert!(should_emit_download_progress(Some(None), Some(0)));
+    assert!(should_emit_download_progress(Some(Some(40)), Some(41)));
 }

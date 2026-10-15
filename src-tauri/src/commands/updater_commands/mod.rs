@@ -172,6 +172,7 @@ async fn do_download_update(
     let app_handle = app.clone();
     let mut total_downloaded: usize = 0;
     let mut last_percent: Option<u8> = None;
+    let mut last_emitted: Option<Option<u8>> = None;
 
     let bytes = update
         .download(
@@ -180,6 +181,10 @@ async fn do_download_update(
                 let percent =
                     next_download_progress_percent(total_downloaded, content_length, last_percent);
                 last_percent = percent;
+                if !should_emit_download_progress(last_emitted, percent) {
+                    return;
+                }
+                last_emitted = Some(percent);
                 emit_update_event_log_only(
                     &app_handle,
                     "update-download-progress",
@@ -263,4 +268,8 @@ fn next_download_progress_percent(
         (Some(percent), None) => Some(percent),
         (None, last_percent) => last_percent,
     }
+}
+
+fn should_emit_download_progress(last_emitted: Option<Option<u8>>, percent: Option<u8>) -> bool {
+    last_emitted != Some(percent)
 }
