@@ -1,5 +1,17 @@
+import type { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { mergeProps } from "@base-ui/react/merge-props";
 import { cn } from "cn";
-import { type KeyboardEventHandler, type ReactElement, type ReactNode, type RefObject, useId } from "react";
+import {
+  type ComponentProps,
+  type KeyboardEventHandler,
+  type MouseEvent,
+  type MouseEventHandler,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+  type RefObject,
+  useId,
+} from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +112,10 @@ function resolveInputClassName(
   return cn(hasInsideAction ? (isInsideIconAction ? "min-h-11 pr-12" : "min-h-11 pr-24") : undefined, inputClassName);
 }
 
-type InputActionButtonProps = {
+type InputActionButtonProps = Omit<
+  ComponentProps<typeof ButtonPrimitive>,
+  "children" | "className" | "onClick" | "ref"
+> & {
   label: string;
   actionLabel: string;
   actionAriaLabel?: string;
@@ -111,6 +126,8 @@ type InputActionButtonProps = {
   disabled?: boolean;
   onAction: () => void;
   className: string;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  ref?: Ref<HTMLButtonElement>;
 };
 
 function InputActionButton({
@@ -124,17 +141,23 @@ function InputActionButton({
   disabled,
   onAction,
   className,
+  ref,
+  ...rest
 }: InputActionButtonProps) {
   return (
     <Button
-      type="button"
-      variant={variant}
-      size={size}
-      onMouseDown={actionPlacement === "inside" ? (event) => event.preventDefault() : undefined}
-      onClick={onAction}
-      disabled={disabled}
-      aria-label={actionAriaLabel ?? `${actionLabel}: ${label}`}
-      className={className}
+      ref={ref}
+      {...mergeProps(rest, {
+        type: "button",
+        variant,
+        size,
+        onMouseDown:
+          actionPlacement === "inside" ? (event: MouseEvent<HTMLButtonElement>) => event.preventDefault() : undefined,
+        onClick: onAction,
+        disabled,
+        "aria-label": actionAriaLabel ?? `${actionLabel}: ${label}`,
+        className,
+      })}
     >
       {actionIcon ?? actionLabel}
       {actionIcon ? <span className="sr-only">{actionLabel}</span> : null}
