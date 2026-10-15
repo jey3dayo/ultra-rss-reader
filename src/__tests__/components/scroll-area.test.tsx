@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { createRef } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ScrollArea, ScrollBar } from "@/design-system";
 
 function renderScrollBar({
@@ -22,7 +23,24 @@ function renderScrollBar({
   );
 }
 
+function mockOverflow(overflowing: boolean) {
+  vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(overflowing ? 400 : 100);
+  vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(100);
+}
+
+function getViewport() {
+  const viewport = screen.getByTestId("scroll-area").querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]');
+  if (!viewport) {
+    throw new Error("viewport not rendered");
+  }
+  return viewport;
+}
+
 describe("ScrollArea", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("applies shrink-safe root sizing by default", () => {
     render(
       <ScrollArea data-testid="scroll-area" className="flex-1">
@@ -119,5 +137,57 @@ describe("ScrollArea", () => {
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("h-full");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("w-2.5");
     expect(screen.getByTestId("scrollbar")).not.toHaveClass("border-l");
+  });
+
+  it("leaves tabindex off the viewport unless keyboardScrollable is set", () => {
+    mockOverflow(true);
+    render(
+      <ScrollArea data-testid="scroll-area">
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+
+    expect(getViewport()).not.toHaveAttribute("tabindex");
+  });
+
+  it("puts an overflowing keyboardScrollable viewport in the tab order", () => {
+    mockOverflow(true);
+    render(
+      <ScrollArea data-testid="scroll-area" keyboardScrollable>
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+
+    expect(getViewport()).toHaveAttribute("tabindex", "0");
+  });
+
+  it("keeps a keyboardScrollable viewport out of the tab order while its content fits", () => {
+    mockOverflow(false);
+    render(
+      <ScrollArea data-testid="scroll-area" keyboardScrollable>
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+
+    expect(getViewport()).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("still hands the viewport element to an external viewportRef", () => {
+    const objectRef = createRef<HTMLDivElement>();
+    const callbackRef = vi.fn();
+
+    const { rerender } = render(
+      <ScrollArea data-testid="scroll-area" keyboardScrollable viewportRef={objectRef}>
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+    expect(objectRef.current).toBe(getViewport());
+
+    rerender(
+      <ScrollArea data-testid="scroll-area" keyboardScrollable viewportRef={callbackRef}>
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+    expect(callbackRef).toHaveBeenLastCalledWith(getViewport());
   });
 });

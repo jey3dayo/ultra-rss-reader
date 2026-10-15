@@ -28,7 +28,6 @@ const allowedDirectCommandPrimitiveImportFiles = new Set([
   ["src", "components", "reader", "command-palette-resource-groups.tsx"].join(sep),
   ["src", "components", "reader", "command-palette-results.tsx"].join(sep),
   ["src", "components", "reader", "command-palette.tsx"].join(sep),
-  ["src", "components", "reader", "shortcuts-help-modal.tsx"].join(sep),
   ["src", "components", "storybook", "ui-reference-shell-specimens.tsx"].join(sep),
 ]);
 

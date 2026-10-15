@@ -261,7 +261,9 @@
     "description": "ショートカットを検索できます。? でこのヘルプを再表示できます。",
     "placeholder": "ショートカットを検索…",
     "results_label": "キーボードショートカットの結果",
-    "no_results": "ショートカットが見つかりません"
+    "no_results": "ショートカットが見つかりません",
+    "run_hint": "操作の実行はコマンドパレットから",
+    "edit_bindings": "キー割り当てを変更"
   },
   "shortcuts": {
     "next_article": "次の記事",

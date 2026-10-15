@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useCallback, useEffect, useRef, useState } from "react";
 import type { ScrollAreaProps } from "./scroll-area.types";
 
 type ScrollBarProps = Omit<ComponentProps<"div">, "children"> & {
@@ -17,15 +17,54 @@ function ScrollArea({
   className,
   children,
   contentClassName,
+  keyboardScrollable,
   scrollbarClassName: _scrollbarClassName,
   thumbClassName: _thumbClassName,
   viewportRef,
   ...props
 }: ScrollAreaProps) {
+  const innerViewportRef = useRef<HTMLDivElement | null>(null);
+  const [overflowing, setOverflowing] = useState(false);
+
+  const setViewport = useCallback(
+    (node: HTMLDivElement | null) => {
+      innerViewportRef.current = node;
+      if (typeof viewportRef === "function") {
+        viewportRef(node);
+      } else if (viewportRef) {
+        viewportRef.current = node;
+      }
+    },
+    [viewportRef],
+  );
+
+  useEffect(() => {
+    const viewport = innerViewportRef.current;
+    if (!keyboardScrollable || !viewport) {
+      return;
+    }
+
+    const measure = () => {
+      setOverflowing(viewport.scrollHeight > viewport.clientHeight || viewport.scrollWidth > viewport.clientWidth);
+    };
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    for (const child of viewport.children) {
+      observer.observe(child);
+    }
+    return () => observer.disconnect();
+  }, [keyboardScrollable]);
+
   return (
     <div data-slot="scroll-area" className={cn("relative min-h-0", className)} {...props}>
       <div
-        ref={viewportRef}
+        ref={setViewport}
+        {...(keyboardScrollable ? { tabIndex: overflowing ? 0 : -1 } : {})}
         data-slot="scroll-area-viewport"
         className="size-full overflow-auto rounded-[inherit] transition-[color,box-shadow,outline-color] duration-150 ease-standard outline-none focus-visible:outline-1 focus-visible:outline-border/80 focus-visible:ring-2 focus-visible:ring-border/35 motion-reduce:transition-none"
       >

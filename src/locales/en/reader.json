@@ -261,7 +261,9 @@
     "description": "Search shortcuts or press ? to reopen this overlay.",
     "placeholder": "Search shortcuts…",
     "results_label": "Keyboard shortcut results",
-    "no_results": "No shortcuts found"
+    "no_results": "No shortcuts found",
+    "run_hint": "Run actions from the command palette",
+    "edit_bindings": "Change key bindings"
   },
   "shortcuts": {
     "next_article": "Next article",

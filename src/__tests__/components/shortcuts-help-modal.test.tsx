@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import type { ReactElement } from "react";
@@ -21,7 +21,6 @@ describe("ShortcutsHelpModal", () => {
 
   beforeEach(async () => {
     await i18n.changeLanguage("en");
-    Element.prototype.scrollIntoView = vi.fn();
     usePlatformStore.setState({
       platform: {
         kind: "windows",
@@ -52,18 +51,14 @@ describe("ShortcutsHelpModal", () => {
 
     expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close dialog" })).toHaveClass("size-11");
-    expect(screen.getByRole("listbox", { name: "Keyboard shortcut results" })).toBeInTheDocument();
-    const input = screen.getByRole("combobox", { name: "Search shortcuts…" });
+    const input = screen.getByRole("searchbox", { name: "Search shortcuts…" });
     await user.type(input, "settings");
 
-    const option = await screen.findByRole("option", {
-      name: /open settings/i,
-    });
-    expect(option).toHaveTextContent("Ctrl ,");
+    const row = await screen.findByRole("row", { name: /open settings/i });
+    expect(row).toHaveTextContent("Ctrl ,");
+    expect(screen.queryByRole("row", { name: /next article/i })).not.toBeInTheDocument();
     expect(screen.getByText("?").closest("kbd")).toHaveClass("text-foreground-soft", "bg-surface-1/72");
     expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
-    expect(option).toHaveClass("min-h-11", "flex-col");
-    expect(option.querySelector("[data-slot='kbd']")).toHaveClass("ml-0");
     expect(screen.getByTestId("shortcuts-help-results")).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("shortcuts-help-results")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -88,18 +83,15 @@ describe("ShortcutsHelpModal", () => {
 
     await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
 
-    // The snapshot below is the unfiltered list in definition order, which only holds
-    // while the search box is empty. cmdk filters and re-sorts by score as soon as it is
-    // not, so a stray character turns this into a truncated, reordered snapshot that
-    // reads as "the shortcut definitions changed". Assert the premise synchronously:
-    // waiting for it to empty, or clearing it, would hide the contamination instead.
-    expect(screen.getByRole("combobox", { name: "Search shortcuts…" })).toHaveValue("");
+    expect(screen.getByRole("searchbox", { name: "Search shortcuts…" })).toHaveValue("");
 
     expect(
-      screen.getAllByRole("option").map((option) => ({
-        label: option.querySelector("span")?.textContent,
-        binding: option.querySelector("[data-slot='kbd']")?.textContent,
-      })),
+      within(screen.getByTestId("shortcuts-help-results"))
+        .getAllByRole("row")
+        .map((row) => ({
+          label: within(row).getByRole("rowheader").textContent,
+          binding: row.querySelector("[data-slot='kbd']")?.textContent,
+        })),
     ).toMatchInlineSnapshot(`
       [
         {
@@ -133,6 +125,22 @@ describe("ShortcutsHelpModal", () => {
         {
           "binding": "Ctrl \\",
           "label": "Toggle sidebar",
+        },
+        {
+          "binding": "/",
+          "label": "Search",
+        },
+        {
+          "binding": "Ctrl k",
+          "label": "Open command palette",
+        },
+        {
+          "binding": "Escape",
+          "label": "Close Web Preview / clear selection",
+        },
+        {
+          "binding": "Ctrl ,",
+          "label": "Open settings",
         },
         {
           "binding": "r",
@@ -173,22 +181,6 @@ describe("ShortcutsHelpModal", () => {
         {
           "binding": "f",
           "label": "Cycle filter (All / Unread / Starred)",
-        },
-        {
-          "binding": "/",
-          "label": "Search",
-        },
-        {
-          "binding": "Ctrl k",
-          "label": "Open command palette",
-        },
-        {
-          "binding": "Escape",
-          "label": "Close Web Preview / clear selection",
-        },
-        {
-          "binding": "Ctrl ,",
-          "label": "Open settings",
         },
       ]
     `);
@@ -241,9 +233,8 @@ describe("ShortcutsHelpModal", () => {
     expect(await screen.findByPlaceholderText("Search shortcuts…")).toHaveValue("settings");
   });
 
-  it("resets search while preserving open focus and selected shortcut behavior after reopen", async () => {
+  it("resets search and refocuses the input after reopen", async () => {
     const user = userEvent.setup();
-    const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView);
 
     function ControlledShortcutsHelpModal() {
       const [open, setOpen] = useState(true);
@@ -262,32 +253,99 @@ describe("ShortcutsHelpModal", () => {
 
     const input = await screen.findByPlaceholderText("Search shortcuts…");
     await waitFor(() => expect(input).toHaveFocus());
-    await waitFor(() =>
-      expect(screen.getByRole("option", { name: /next article/i })).toHaveAttribute("aria-selected", "true"),
-    );
-    expect(scrollIntoView).toHaveBeenCalled();
 
     await user.type(input, "settings");
-    expect(await screen.findByRole("option", { name: /open settings/i })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /next article/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole("row", { name: /open settings/i })).toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /next article/i })).not.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).not.toBeInTheDocument());
 
-    scrollIntoView.mockClear();
     await user.click(screen.getByRole("button", { name: "Open help" }));
 
     const reopenedInput = await screen.findByPlaceholderText("Search shortcuts…");
     await waitFor(() => expect(reopenedInput).toHaveFocus());
     expect(reopenedInput).toHaveValue("");
-    const selectedShortcut = await screen.findByRole("option", {
-      name: /next article/i,
-    });
-    await waitFor(() => expect(selectedShortcut).toHaveAttribute("aria-selected", "true"));
-    expect(scrollIntoView).toHaveBeenCalled();
+    expect(await screen.findByRole("row", { name: /next article/i })).toBeInTheDocument();
+  });
+
+  it("matches the search text against label, key, and category in definition order", async () => {
+    const user = userEvent.setup();
+
+    renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
+
+    const input = await screen.findByRole("searchbox", { name: "Search shortcuts…" });
+    await user.type(input, "NAVIGATION");
+
+    const results = screen.getByTestId("shortcuts-help-results");
+    const labels = within(results)
+      .getAllByRole("rowheader")
+      .map((header) => header.textContent);
+    expect(labels.slice(0, 3)).toEqual(["Next article", "Previous article", "Scroll article down"]);
+    expect(labels).not.toContain("Open settings");
+
+    await user.clear(input);
+    await user.type(input, "ctrl k");
+
+    expect(screen.getByRole("row", { name: /open command palette/i })).toBeInTheDocument();
+    expect(screen.queryByRole("row", { name: /next article/i })).not.toBeInTheDocument();
+  });
+
+  it("renders rows as read-only table content that cannot be selected or activated", async () => {
+    renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
+
+    await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+    const results = screen.getByTestId("shortcuts-help-results");
+
+    expect(within(results).getAllByRole("row").length).toBeGreaterThan(0);
+    expect(within(results).queryAllByRole("option")).toEqual([]);
+    expect(within(results).queryAllByRole("button")).toEqual([]);
+  });
+
+  it("lets keyboard users focus the overflowing results viewport so it can be scrolled without a mouse", async () => {
+    vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(800);
+    vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(400);
+    const user = userEvent.setup();
+
+    renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
+
+    const input = await screen.findByRole("searchbox", { name: "Search shortcuts…" });
+    await waitFor(() => expect(input).toHaveFocus());
+
+    await user.tab();
+
+    const region = screen.getByRole("region", { name: "Keyboard shortcut results" });
+    const viewport = region.querySelector('[data-slot="scroll-area-viewport"]');
+    expect(viewport).toHaveFocus();
+  });
+
+  it("shows the command palette key in the footer hint", async () => {
+    renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
+
+    const hint = await screen.findByText("Run actions from the command palette");
+    expect(hint.querySelector("[data-slot='kbd']")).toHaveTextContent("Ctrl k");
+  });
+
+  it("closes the help and opens the shortcuts settings from the footer button", async () => {
+    const user = userEvent.setup();
+    useUiStore.getState().openShortcutsHelp();
+
+    renderShortcutsHelpModal(
+      <ShortcutsHelpModal
+        open={true}
+        onOpenChange={(nextOpen) => !nextOpen && useUiStore.getState().closeShortcutsHelp()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Change key bindings" }));
+
+    expect(useUiStore.getState().shortcutsHelpOpen).toBe(false);
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().settingsCategory).toBe("shortcuts");
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());
   });
 });
