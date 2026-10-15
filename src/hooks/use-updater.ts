@@ -237,8 +237,13 @@ function trackDownloadProgressPercent(payload: unknown): number | null | undefin
   }
 
   const percent = normalizeDownloadProgressPercent(result.output.percent);
+  if (percent === activeDownloadProgressPercent) {
+    return undefined;
+  }
+
   if (percent === null) {
-    return percent;
+    activeDownloadProgressPercent = null;
+    return null;
   }
 
   if (activeDownloadProgressPercent !== null && percent < activeDownloadProgressPercent) {
@@ -501,7 +506,7 @@ export function useUpdater(): void {
             useUiStore.getState().showToast({
               message,
               persistent: true,
-              progress: percent,
+              progress: percent === 100 ? null : percent,
               variant: "update",
             });
           }),

@@ -977,26 +977,68 @@ describe("use-updater background download flow", () => {
       progressListeners[0]?.({ payload: { session_id: 1, percent: 100 } });
       expect(useUiStore.getState().toastMessage).toMatchObject({
         message: "インストール準備中…",
-        progress: 100,
+        progress: null,
       });
 
       progressListeners[0]?.({ payload: { session_id: 1, percent: -12 } });
       expect(useUiStore.getState().toastMessage).toMatchObject({
         message: "インストール準備中…",
-        progress: 100,
+        progress: null,
       });
 
       progressListeners[0]?.({ payload: { session_id: 1, percent: 120 } });
       expect(useUiStore.getState().toastMessage).toMatchObject({
         message: "インストール準備中…",
-        progress: 100,
+        progress: null,
       });
 
       progressListeners[0]?.({ payload: { session_id: 1, percent: 42.4 } });
       expect(useUiStore.getState().toastMessage).toMatchObject({
         message: "インストール準備中…",
-        progress: 100,
+        progress: null,
       });
+
+      deferredDownload.resolve(Result.succeed(null));
+    });
+
+    it("does not replace the toast when consecutive progress events report the same percent", async () => {
+      const deferredDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+      const progressListeners: Array<(event: { payload: unknown }) => void> = [];
+      mockCheckForUpdate.mockResolvedValue(Result.succeed(updateInfo("1.2.3")));
+      mockDownloadUpdate.mockReturnValue(deferredDownload.promise);
+      mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+        if (eventName === "update-download-progress") {
+          progressListeners.push(callback);
+        }
+        return () => {};
+      });
+
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState(useUiStore.getInitialState());
+
+      renderHook(() => updaterModule.useUpdater());
+      await flushMicrotasksAndRealTimer();
+
+      await updaterModule.runManualUpdateCheck();
+
+      progressListeners[0]?.({ payload: { session_id: 1, percent: 40 } });
+      const toastAfterFirstEvent = useUiStore.getState().toastMessage;
+      expect(toastAfterFirstEvent).toMatchObject({ message: "ダウンロード中… 40%", progress: 40 });
+
+      progressListeners[0]?.({ payload: { session_id: 1, percent: 40.2 } });
+      progressListeners[0]?.({ payload: { session_id: 1, percent: 40 } });
+      expect(useUiStore.getState().toastMessage).toBe(toastAfterFirstEvent);
+
+      progressListeners[0]?.({ payload: { session_id: 1, percent: 41 } });
+      expect(useUiStore.getState().toastMessage).not.toBe(toastAfterFirstEvent);
+      expect(useUiStore.getState().toastMessage).toMatchObject({ message: "ダウンロード中… 41%", progress: 41 });
+
+      progressListeners[0]?.({ payload: { session_id: 1, percent: null } });
+      const toastAfterIndeterminate = useUiStore.getState().toastMessage;
+      expect(toastAfterIndeterminate).toMatchObject({ message: "ダウンロード中…", progress: null });
+
+      progressListeners[0]?.({ payload: { session_id: 1, percent: null } });
+      expect(useUiStore.getState().toastMessage).toBe(toastAfterIndeterminate);
 
       deferredDownload.resolve(Result.succeed(null));
     });
