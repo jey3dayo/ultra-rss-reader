@@ -33,6 +33,7 @@ const SUPPORT_FILES = [
   "scripts/release/lib/version-owners.ts",
   "scripts/release/lib/version-bump.ts",
   "scripts/release/lib/config-validation.ts",
+  "scripts/lib/type-guards.ts",
   "scripts/release/workflows/bump-version.ts",
   ".codex/skills/release/scripts/release_checks.py",
 ] as const;

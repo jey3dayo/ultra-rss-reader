@@ -1,3 +1,4 @@
+import { isRecord } from "../../lib/type-guards.ts";
 import type { ReleaseAssetContract } from "./artifact-contract.ts";
 
 export type ArtifactBundleTree = {
@@ -25,9 +26,6 @@ export const findUpdaterAssets = (files: readonly string[], contract: ReleaseAss
 
 export const findAppBundles = (directories: readonly string[]): string[] =>
   directories.filter((directoryPath) => directoryPath.endsWith(".app"));
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const isNamedAsset = (value: unknown): value is { name: string } => isRecord(value) && typeof value.name === "string";
 
