@@ -11,7 +11,11 @@ export function CommandPaletteResults({
   getCommandItemValue,
 }: CommandPaletteResultsProps) {
   return (
-    <CommandList label={headings.resultsLabel} data-testid="command-palette-results">
+    <CommandList
+      label={headings.resultsLabel}
+      className="max-h-[min(320px,calc(88dvh-9rem))]"
+      data-testid="command-palette-results"
+    >
       <CommandPaletteActionGroups
         items={{
           recentActions: items.recentActions,

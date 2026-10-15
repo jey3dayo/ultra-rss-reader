@@ -134,6 +134,9 @@ describe("Design-themed UI primitives", () => {
     expect(reducedMotionCss).toContain("animation: motion-loading-pulse");
     expect(reducedMotionCss).toContain(".animate-indeterminate");
     expect(reducedMotionCss).toContain(".motion-popup-surface");
+    expect(reducedMotionCss).toMatch(
+      /\.popup-dialog-top-anchored\.motion-popup-dialog\[data-open\][^{]*\{[^}]*translate\(-50%, 0\)/,
+    );
     expect(reducedMotionCss).not.toContain(".motion-list-item-enter");
     expect(motionCss).toContain(".motion-filter-toggle[data-pressed]");
     expect(motionCss).toContain("transform: translateY(-1px);");

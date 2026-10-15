@@ -119,6 +119,7 @@ describe("CommandPalette", () => {
     });
 
     expect(dialog).toHaveClass("rounded-2xl");
+    expect(dialog).toHaveClass("popup-dialog-top-anchored");
     expect(dialog).toHaveClass("bg-surface-2/96", "shadow-elevation-3");
     expect(screen.getByPlaceholderText("Search commands…")).toHaveClass("placeholder:text-foreground-soft");
     expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
@@ -148,6 +149,14 @@ describe("CommandPalette", () => {
     expect(screen.getByTestId("command-palette-results")).toBe(results);
     expect(results).not.toHaveAttribute("data-motion-phase");
     expect(results).not.toHaveClass("motion-content-swap");
+  });
+
+  it("caps the results list height so the top-anchored palette fits short windows", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await screen.findByPlaceholderText("Search commands…");
+
+    expect(screen.getByTestId("command-palette-results")).toHaveClass("max-h-[min(320px,calc(88dvh-9rem))]");
   });
 
   it("executes the first keyboard-selected action after the query changes", async () => {

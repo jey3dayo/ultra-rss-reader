@@ -1,4 +1,5 @@
 import { useCommandPaletteController } from "@/components/reader/hooks/command-palette/use-command-palette-controller";
+import { POPUP_DIALOG_TOP_ANCHORED_CLASS_NAME } from "@/constants/motion";
 import {
   Command,
   CommandInput,
@@ -29,7 +30,7 @@ export function CommandPalette() {
       }}
     >
       <DialogContent
-        className="overflow-hidden rounded-2xl border border-border/70 bg-surface-2/96 p-0 shadow-elevation-3"
+        className={`${POPUP_DIALOG_TOP_ANCHORED_CLASS_NAME} top-[12dvh] overflow-hidden rounded-2xl border border-border/70 bg-surface-2/96 p-0 shadow-elevation-3`}
         overlayPreset="readable"
         showCloseButton={false}
         stackLayer="commandPalette"
