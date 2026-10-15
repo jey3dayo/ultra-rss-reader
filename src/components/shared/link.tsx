@@ -21,5 +21,3 @@ type LinkProps = ComponentProps<"a"> & VariantProps<typeof linkVariants>;
 export function Link({ variant, className, ...props }: LinkProps) {
   return <a data-link={variant ?? "subtle"} className={cn(linkVariants({ variant }), className)} {...props} />;
 }
-
-export { linkVariants };

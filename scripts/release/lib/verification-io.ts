@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSy
 import path from "node:path";
 import { validateReleaseAssetInventory } from "../release-artifact-contract.ts";
 
-export const ghOutput = (args: readonly string[]): string => {
+const ghOutput = (args: readonly string[]): string => {
   const result = spawnSync("gh", [...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
   if (result.error || result.status !== 0) {
     throw new Error(`gh ${args[0] ?? "command"} failed (exit ${result.status ?? "unavailable"})`);
