@@ -38,6 +38,8 @@ import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
 
+const TOAST_ANNOUNCEMENT_CLEAR_DELAY_MS = 1_000;
+
 const LazyFocusDebugHud = lazy(async () => {
   const mod = await import("./app-shell/focus-debug-hud");
   return { default: mod.FocusDebugHud };
@@ -188,7 +190,7 @@ function ToastLiveRegion() {
       for (const id of announcementIds) {
         clearToastAnnouncement(id);
       }
-    }, 1_000);
+    }, TOAST_ANNOUNCEMENT_CLEAR_DELAY_MS);
 
     return () => {
       window.clearTimeout(timer);
