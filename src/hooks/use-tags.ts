@@ -19,7 +19,6 @@ import {
 } from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery, unwrapReadQueryResult } from "@/hooks/create-query";
-import { requireEnabledQueryValue } from "@/hooks/require-enabled-query-value";
 import { getNextArticlePageParam, READER_ARTICLE_PAGE_SIZE } from "@/hooks/use-articles";
 import {
   invalidateArticleMutationQueries,
@@ -28,6 +27,7 @@ import {
   queryKeys,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
+import { requireEnabledQueryValue } from "@/lib/require-enabled-query-value";
 import { useUiStore } from "@/stores/ui-store";
 
 export type CreateTagMutationInput = {

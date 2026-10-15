@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requireEnabledQueryValue } from "@/hooks/require-enabled-query-value";
+import { requireEnabledQueryValue } from "@/lib/require-enabled-query-value";
 
 describe("requireEnabledQueryValue", () => {
   it("returns the value when it is present", () => {

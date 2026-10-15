@@ -48,7 +48,6 @@ import {
   shouldInvalidateAfterRecordArticleView,
 } from "@/hooks/article-cache-projection";
 import { createMutation } from "@/hooks/create-mutation";
-import { requireEnabledQueryValue } from "@/hooks/require-enabled-query-value";
 import { shouldRetainBulkMarkedRead } from "@/lib/articles/article-read-projection";
 import {
   invalidateArticleMutationQueries,
@@ -57,6 +56,7 @@ import {
   queryKeys,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
+import { requireEnabledQueryValue } from "@/lib/require-enabled-query-value";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
