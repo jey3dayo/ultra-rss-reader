@@ -49,7 +49,8 @@ describe("ShortcutsHelpModal", () => {
 
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
-    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+    expect(dialog).toHaveClass("popup-dialog-top-anchored");
     expect(screen.getByRole("button", { name: "Close dialog" })).toHaveClass("size-11");
     const input = screen.getByRole("searchbox", { name: "Search shortcuts…" });
     await user.type(input, "settings");

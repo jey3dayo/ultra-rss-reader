@@ -1,7 +1,7 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, POPUP_DIALOG_TOP_ANCHORED_CLASS_NAME } from "@/constants/motion";
 import {
   Button,
   Dialog,
@@ -96,9 +96,12 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-3xl" showCloseButton={false}>
+      <DialogContent
+        className={`${POPUP_DIALOG_TOP_ANCHORED_CLASS_NAME} top-[12dvh] gap-0 overflow-hidden p-0 sm:max-w-3xl`}
+        showCloseButton={false}
+      >
         <div className="border-b p-4">
-          <DialogHeader className="relative space-y-2 pr-12">
+          <DialogHeader className="relative space-y-2">
             <div className="flex min-h-11 items-start justify-between gap-3">
               <DialogTitle className="text-lg">{t("shortcuts_help.title")}</DialogTitle>
               <DialogClose
@@ -144,7 +147,11 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
           aria-label={t("shortcuts_help.results_label")}
           className={MOTION_CONTENT_SWAP_CLASS_NAME}
         >
-          <ScrollArea keyboardScrollable className="flex max-h-[min(30rem,60dvh)] flex-col" contentClassName="p-4">
+          <ScrollArea
+            keyboardScrollable
+            className="flex max-h-[min(30rem,calc(88dvh-13rem))] flex-col"
+            contentClassName="p-4"
+          >
             {visibleCategories.length > 0 ? (
               <div className="grid items-start gap-3 sm:grid-cols-2">
                 {[0, 1].map((columnIndex) => (

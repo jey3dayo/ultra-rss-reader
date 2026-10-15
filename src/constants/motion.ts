@@ -18,6 +18,7 @@ const MOTION_PRESSABLE_SURFACE_CLASS_NAME = "motion-pressable-surface";
 export const MOTION_POPUP_SURFACE_CLASS_NAME = "motion-popup-surface";
 export const MOTION_POPUP_OVERLAY_CLASS_NAME = "motion-popup-overlay";
 export const MOTION_POPUP_DIALOG_CLASS_NAME = "motion-popup-dialog";
+export const POPUP_DIALOG_TOP_ANCHORED_CLASS_NAME = "popup-dialog-top-anchored";
 export const MOTION_BROWSER_OVERLAY_CLASS_NAME = "motion-browser-overlay-panel";
 export const MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME = "motion-browser-theme-wipe-overlay";
 export const MOTION_SETTINGS_MODAL_CLASS_NAME = "motion-settings-modal";

@@ -119,6 +119,7 @@ describe("CommandPalette", () => {
     });
 
     expect(dialog).toHaveClass("rounded-2xl");
+    expect(dialog).toHaveClass("popup-dialog-top-anchored");
     expect(dialog).toHaveClass("bg-surface-2/96", "shadow-elevation-3");
     expect(screen.getByPlaceholderText("Search commands…")).toHaveClass("placeholder:text-foreground-soft");
     expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(

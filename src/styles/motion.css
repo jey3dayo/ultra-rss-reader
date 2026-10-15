@@ -611,6 +611,20 @@ html.vertical-wipe-transition::view-transition-new(root) {
   --motion-popup-dialog-scale: scale(var(--motion-popup-scale-closed));
 }
 
+.popup-dialog-top-anchored {
+  --motion-popup-dialog-translate-y: 0px;
+}
+
+.popup-dialog-top-anchored.motion-popup-dialog[data-open] {
+  --motion-popup-dialog-translate-y: 0px;
+}
+
+.popup-dialog-top-anchored.motion-popup-dialog[data-closed],
+.popup-dialog-top-anchored.motion-popup-dialog[data-starting-style],
+.popup-dialog-top-anchored.motion-popup-dialog[data-ending-style] {
+  --motion-popup-dialog-translate-y: calc(var(--motion-popup-offset) * -1);
+}
+
 .motion-popup-surface {
   --motion-popup-translate-x: 0px;
   --motion-popup-translate-y: calc(var(--motion-popup-offset) * -1);
