@@ -5,6 +5,8 @@ import { classifyQueryTransientFailureUx } from "@/lib/ui-errors";
 
 export const READ_QUERY_RETRY_LIMIT = 2;
 
+const QUERY_CACHE_GC_TIME_MS = 5 * 60 * 1000;
+
 function isAppError(error: unknown): error is AppError {
   return (
     error !== null &&
@@ -35,7 +37,7 @@ export const queryClientDefaultOptions = {
   queries: {
     retry: shouldRetryReadQuery,
     staleTime: 0,
-    gcTime: 5 * 60 * 1000,
+    gcTime: QUERY_CACHE_GC_TIME_MS,
     refetchOnWindowFocus: false,
   },
   mutations: {

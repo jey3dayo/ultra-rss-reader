@@ -353,6 +353,31 @@ describe("shared form controls", () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it("wires the tooltip-wrapped inside action as the tooltip trigger", async () => {
+    render(
+      <LabeledInputRow
+        label="Server URL"
+        name="server-url"
+        value="https://example.com/rss"
+        onChange={vi.fn()}
+        actionLabel="Copy"
+        actionTooltipLabel="Copy server URL"
+        actionIcon={<span aria-hidden="true">⧉</span>}
+        actionPlacement="inside"
+        actionVariant="ghost"
+        actionSize="icon-sm"
+        onAction={vi.fn()}
+      />,
+    );
+
+    const actionButton = screen.getByRole("button", { name: "Copy: Server URL" });
+
+    actionButton.focus();
+
+    expect(actionButton).toHaveFocus();
+    expect(await screen.findByText("Copy server URL")).toBeInTheDocument();
+  });
+
   it("keeps input focus after clicking an inside action once", async () => {
     const user = userEvent.setup();
     const onAction = vi.fn();
