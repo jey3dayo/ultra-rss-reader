@@ -10,9 +10,11 @@ import type {
   UseArticleListInteractionsResult,
 } from "./article-list-controller.types";
 
+const ARTICLE_LIST_NEAR_BOTTOM_THRESHOLD_PX = 200;
+
 export function isArticleListNearBottom(
   viewport: Pick<HTMLElement, "scrollHeight" | "scrollTop" | "clientHeight">,
-  threshold = 200,
+  threshold = ARTICLE_LIST_NEAR_BOTTOM_THRESHOLD_PX,
 ): boolean {
   return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= threshold;
 }
