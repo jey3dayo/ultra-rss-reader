@@ -1,115 +1,41 @@
 import { Result } from "@praha/byethrow";
-import { type PlatformKind, SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import type { PlatformKind } from "@/constants/platform";
 import { shouldIgnoreGlobalShortcutKeyboardEvent } from "@/lib/keyboard/global-shortcut-targets";
-import type { ContentMode } from "@/lib/layout/layout-state.types";
-import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { KeyboardContext } from "./keyboard-action-mapping";
+import { isTextInputTarget, resolveActionForId } from "./keyboard-action-mapping";
+import type {
+  KeyboardAction,
+  KeyboardActionSkipReason,
+  KeyToActionMap,
+  ShortcutActionId,
+  ShortcutDefinition,
+  ShortcutPreferenceKey,
+} from "./keyboard-shortcut-model";
 
-export const keyboardEvents = {
-  toggleRead: "ultra-rss:toggle-read",
-  toggleStar: "ultra-rss:toggle-star",
-  openInAppBrowser: "ultra-rss:open-in-app-browser",
-  openExternalBrowser: "ultra-rss:open-external-browser",
-  closeBrowserOverlay: "ultra-rss:close-browser-overlay",
-  markAllRead: "ultra-rss:mark-all-read",
-  focusSearch: "ultra-rss:focus-search",
-  copyLink: "ultra-rss:copy-link",
-  addToReadingList: "ultra-rss:add-to-reading-list",
-} as const;
+export type { KeyToActionMap } from "./keyboard-shortcut-model";
+export { keyboardEvents } from "./keyboard-shortcut-model";
 
-export type KeyboardAction =
-  | { type: "open-settings" }
-  | { type: "open-command-palette" }
-  | { type: "open-shortcuts-help" }
-  | { type: "restart-app" }
-  | {
-      type: "emit";
-      eventName: (typeof keyboardEvents)[keyof typeof keyboardEvents];
-    }
-  | { type: "set-view-mode"; mode: ViewMode }
-  | { type: "toggle-sidebar" }
-  | { type: "close-browser" }
-  | { type: "clear-article" }
-  | { type: "focus-sidebar" }
-  | { type: "navigate-article"; direction: 1 | -1 }
-  | { type: "navigate-feed"; direction: 1 | -1 }
-  | { type: "scroll-article"; direction: 1 | -1 }
-  | { type: "reload-webview" }
-  | { type: "noop" };
+import {
+  formatKeyForDisplay,
+  hasNonPrimaryModifier,
+  normalizeKeyFromRuntimeEvent,
+  normalizeShortcutMapKey,
+} from "./shortcut-key-normalization";
 
-export type KeyboardActionSkipReason = "ignored_input" | "missing_selected_article" | "no_action";
-
-/** All customizable shortcut action identifiers. */
-export type ShortcutActionId =
-  | "next_article"
-  | "prev_article"
-  | "scroll_article_down"
-  | "scroll_article_up"
-  | "next_feed"
-  | "prev_feed"
-  | "reload_webview"
-  | "focus_sidebar"
-  | "toggle_sidebar"
-  | "toggle_read"
-  | "toggle_star"
-  | "open_in_app_browser"
-  | "open_external_browser"
-  | "mark_all_read"
-  | "show_unread"
-  | "show_all"
-  | "show_starred"
-  | "cycle_filter"
-  | "search"
-  | "close_or_clear"
-  | "open_command_palette"
-  | "open_settings";
-
-export type ShortcutPreferenceKey = `shortcut_${ShortcutActionId}`;
-
-type ShortcutModifierEvent = {
-  metaKey: boolean;
-  ctrlKey: boolean;
-};
-
-type ShortcutKeyEvent = ShortcutModifierEvent & {
-  key: string;
-  shiftKey: boolean;
-};
-
-export type ShortcutLabelKey =
-  | "shortcuts.next_article"
-  | "shortcuts.prev_article"
-  | "shortcuts.scroll_article_down"
-  | "shortcuts.scroll_article_up"
-  | "shortcuts.next_feed"
-  | "shortcuts.prev_feed"
-  | "shortcuts.reload_webview"
-  | "shortcuts.focus_sidebar"
-  | "shortcuts.toggle_sidebar"
-  | "shortcuts.toggle_read"
-  | "shortcuts.toggle_star"
-  | "shortcuts.view_in_browser"
-  | "shortcuts.open_external_browser"
-  | "shortcuts.mark_all_read"
-  | "shortcuts.show_unread"
-  | "shortcuts.show_all"
-  | "shortcuts.show_starred"
-  | "shortcuts.cycle_filter"
-  | "shortcuts.search"
-  | "shortcuts.close_or_clear"
-  | "shortcuts.open_command_palette"
-  | "shortcuts.open_settings";
-
-export type ShortcutCategoryKey =
-  | "shortcuts.category_navigation"
-  | "shortcuts.category_actions"
-  | "shortcuts.category_global";
-
-export type ShortcutDefinition = {
-  id: ShortcutActionId;
-  labelKey: ShortcutLabelKey;
-  categoryKey: ShortcutCategoryKey;
-  defaultKey: string;
-};
+export type {
+  KeyboardAction,
+  KeyboardActionSkipReason,
+  ShortcutActionId,
+  ShortcutCategoryKey,
+  ShortcutDefinition,
+  ShortcutLabelKey,
+  ShortcutPreferenceKey,
+} from "./keyboard-shortcut-model";
+export {
+  formatKeyAsNativeAccelerator,
+  formatKeyForDisplay,
+  normalizeRecordedShortcutKey,
+} from "./shortcut-key-normalization";
 
 /** Default shortcut definitions. Order determines display order in settings. */
 export const shortcutDefinitions: ShortcutDefinition[] = [
@@ -282,7 +208,6 @@ export function getDefaultShortcutPreferenceValue(key: ShortcutPreferenceKey): s
   return isShortcutActionId(actionId) ? getDefaultShortcutKey(actionId) : "";
 }
 
-export type KeyToActionMap = Map<string, ShortcutActionId>;
 export type ShortcutConflict =
   | {
       type: "duplicate";
@@ -325,46 +250,6 @@ function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): str
     definition?.defaultKey ??
     ""
   );
-}
-
-function normalizeModifierToken(token: string): string {
-  return /^(?:cmdorctrl|command|cmd|control|ctrl)$/i.test(token) ? "\u2318" : token;
-}
-
-function normalizeShortcutKeyForContract(key: string): string {
-  const compactKey = key.trim().replace(/\s*\+\s*/g, "+");
-  if (compactKey.length === 0) {
-    return "";
-  }
-
-  const parts =
-    !compactKey.includes("+") && compactKey.startsWith("\u2318") && compactKey.length > 1
-      ? ["\u2318", compactKey.slice(1)]
-      : compactKey.includes("+")
-        ? compactKey.split("+")
-        : [compactKey];
-  return parts
-    .map((part) => {
-      const normalizedPart = normalizeModifierToken(part);
-      return normalizedPart.length === 1 && normalizedPart.toLocaleUpperCase() !== normalizedPart.toLocaleLowerCase()
-        ? normalizedPart.toLocaleLowerCase()
-        : normalizedPart;
-    })
-    .join("+");
-}
-
-function normalizeShortcutMapKey(key: string): string | null {
-  const trimmedKey = key.trim();
-  return trimmedKey.length > 0 ? normalizeShortcutKeyForContract(trimmedKey) : null;
-}
-
-export function normalizeRecordedShortcutKey(e: {
-  key: string;
-  metaKey: boolean;
-  ctrlKey: boolean;
-  shiftKey: boolean;
-}): string {
-  return normalizeShortcutKeyForContract(normalizeKeyFromEvent(e));
 }
 
 function isNativeMenuOwnedShortcut(key: string): boolean {
@@ -438,191 +323,12 @@ export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMa
   return map;
 }
 
-function isPrimaryModifierActive(platformKind: PlatformKind, e: ShortcutModifierEvent): boolean {
-  return platformKind === "macos" ? e.metaKey : e.ctrlKey;
-}
-
-function hasNonPrimaryModifier(platformKind: PlatformKind, e: ShortcutModifierEvent): boolean {
-  return (platformKind === "macos" && e.ctrlKey) || (platformKind !== "macos" && e.metaKey);
-}
-
-const SPACE_KEY_TOKEN = "Space";
-
-function normalizeKeyToken(key: string, shiftKey: boolean): string {
-  if (key === " ") {
-    return SPACE_KEY_TOKEN;
-  }
-  return key.length === 1 && shiftKey ? key.toUpperCase() : key;
-}
-
-/** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
-function normalizeKeyFromEvent(e: ShortcutKeyEvent): string {
-  const parts: string[] = [];
-  if (e.metaKey || e.ctrlKey) parts.push("\u2318");
-  if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
-  parts.push(normalizeKeyToken(e.key, e.shiftKey));
-  return parts.join("+");
-}
-
-function normalizeKeyFromRuntimeEvent(e: ShortcutKeyEvent, platformKind: PlatformKind): string {
-  const parts: string[] = [];
-  if (isPrimaryModifierActive(platformKind, e)) {
-    parts.push("\u2318");
-  } else if (e.metaKey) {
-    parts.push("Meta");
-  } else if (e.ctrlKey) {
-    parts.push("Ctrl");
-  }
-  if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
-  parts.push(normalizeKeyToken(e.key, e.shiftKey));
-  return parts.join("+");
-}
-
-/** Display-friendly format: "Shift+R" -> "Shift + R", "⌘," -> "⌘ ," */
-export function formatKeyForDisplay(key: string, platformKind: PlatformKind): string {
-  const modifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
-  const normalized = key.replace(/\u2318/g, modifier).replace(/\+/g, " + ");
-  const modifierPattern = platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
-  return normalized.replace(modifierPattern, `${modifier} `);
-}
-
-export function formatKeyAsNativeAccelerator(key: string): string {
-  return normalizeShortcutKeyForContract(key)
-    .replace(/\u2318/g, "CmdOrCtrl")
-    .split("+")
-    .map((part) =>
-      part.length === 1 && part.toLocaleUpperCase() !== part.toLocaleLowerCase() ? part.toUpperCase() : part,
-    )
-    .join("+");
-}
-
 export function getShortcutDisplay(
   id: ShortcutActionId,
   prefs: KeyboardShortcutPrefs,
   platformKind: PlatformKind,
 ): string {
   return formatKeyForDisplay(getShortcutKey(id, prefs), platformKind);
-}
-
-type KeyboardContext = {
-  key: string;
-  metaKey: boolean;
-  ctrlKey: boolean;
-  shiftKey: boolean;
-  altKey?: boolean;
-  isComposing?: boolean;
-  keyCode?: number;
-  targetTag?: string | null;
-  targetIsTextEditing?: boolean;
-  targetIsNativeActivation?: boolean;
-  selectedArticleId: string | null;
-  contentMode: ContentMode;
-  viewMode: ViewMode;
-  subscriptionsWorkspaceOpen?: boolean;
-  keyToAction?: KeyToActionMap;
-  platformKind?: PlatformKind;
-};
-
-function nextViewMode(current: ViewMode): ViewMode {
-  const modes: ViewMode[] = ["all", "unread", "starred"];
-  const currentIndex = modes.indexOf(current);
-  return modes[(currentIndex + 1) % modes.length];
-}
-
-function isTextInputTarget(targetTag?: string | null, targetIsTextEditing = false): boolean {
-  const normalizedTag = targetTag?.toUpperCase();
-  return targetIsTextEditing || normalizedTag === "INPUT" || normalizedTag === "TEXTAREA";
-}
-
-function resolveActionForId(
-  actionId: ShortcutActionId,
-  context: {
-    selectedArticleId: string | null;
-    contentMode: ContentMode;
-    viewMode: ViewMode;
-    subscriptionsWorkspaceOpen?: boolean;
-  },
-): Result.Result<KeyboardAction, KeyboardActionSkipReason> {
-  switch (actionId) {
-    case "open_settings":
-      return Result.succeed({ type: "open-settings" });
-    case "open_command_palette":
-      return Result.succeed({ type: "open-command-palette" });
-    case "toggle_read":
-      return context.selectedArticleId
-        ? Result.succeed({ type: "emit", eventName: keyboardEvents.toggleRead })
-        : Result.fail("missing_selected_article");
-    case "toggle_star":
-      return context.selectedArticleId
-        ? Result.succeed({ type: "emit", eventName: keyboardEvents.toggleStar })
-        : Result.fail("missing_selected_article");
-    case "open_in_app_browser":
-      return context.selectedArticleId
-        ? Result.succeed({
-            type: "emit",
-            eventName: keyboardEvents.openInAppBrowser,
-          })
-        : Result.fail("missing_selected_article");
-    case "open_external_browser":
-      return context.selectedArticleId
-        ? Result.succeed({
-            type: "emit",
-            eventName: keyboardEvents.openExternalBrowser,
-          })
-        : Result.fail("missing_selected_article");
-    case "cycle_filter":
-      return Result.succeed({
-        type: "set-view-mode",
-        mode: nextViewMode(context.viewMode),
-      });
-    case "show_unread":
-      return Result.succeed({ type: "set-view-mode", mode: "unread" });
-    case "show_all":
-      return Result.succeed({ type: "set-view-mode", mode: "all" });
-    case "show_starred":
-      return Result.succeed({ type: "set-view-mode", mode: "starred" });
-    case "mark_all_read":
-      return Result.succeed({
-        type: "emit",
-        eventName: keyboardEvents.markAllRead,
-      });
-    case "search":
-      return Result.succeed({
-        type: "emit",
-        eventName: keyboardEvents.focusSearch,
-      });
-    case "close_or_clear":
-      if (context.subscriptionsWorkspaceOpen) {
-        return Result.fail("no_action");
-      }
-      if (context.contentMode === "browser") return Result.succeed({ type: "close-browser" });
-      if (context.selectedArticleId) return Result.succeed({ type: "clear-article" });
-      return Result.fail("no_action");
-    case "focus_sidebar":
-      return Result.succeed({ type: "focus-sidebar" });
-    case "toggle_sidebar":
-      return Result.succeed({ type: "toggle-sidebar" });
-    case "next_article":
-      return Result.succeed({ type: "navigate-article", direction: 1 });
-    case "prev_article":
-      return Result.succeed({ type: "navigate-article", direction: -1 });
-    case "scroll_article_down":
-      if (context.contentMode === "browser") return Result.fail("no_action");
-      return context.selectedArticleId
-        ? Result.succeed({ type: "scroll-article", direction: 1 })
-        : Result.fail("missing_selected_article");
-    case "scroll_article_up":
-      if (context.contentMode === "browser") return Result.fail("no_action");
-      return context.selectedArticleId
-        ? Result.succeed({ type: "scroll-article", direction: -1 })
-        : Result.fail("missing_selected_article");
-    case "next_feed":
-      return Result.succeed({ type: "navigate-feed", direction: 1 });
-    case "prev_feed":
-      return Result.succeed({ type: "navigate-feed", direction: -1 });
-    case "reload_webview":
-      return context.contentMode === "browser" ? Result.succeed({ type: "reload-webview" }) : Result.fail("no_action");
-  }
 }
 
 export function resolveKeyboardAction(
