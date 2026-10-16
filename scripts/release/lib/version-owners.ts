@@ -40,36 +40,43 @@ const readJsonString = (source: string, start: number): { end: number; value: st
   throw new Error("unterminated JSON string");
 };
 
+const skipJsonWhitespace = (source: string, start: number): number => {
+  let index = start;
+  while (/\s/.test(source[index] ?? "")) index += 1;
+  return index;
+};
+
+// key の直後を読み、`:` が無ければ null（key として扱わない）、値が文字列でなければ throw する
+const readVersionValue = (source: string, keyEnd: number): SourceVersionOwner | null => {
+  const colon = skipJsonWhitespace(source, keyEnd);
+  if (source[colon] !== ":") return null;
+  const valueStart = skipJsonWhitespace(source, colon + 1);
+  if (source[valueStart] !== '"') {
+    throw new Error("JSON version owner must be a string");
+  }
+  const value = readJsonString(source, valueStart);
+  return { end: value.end, start: valueStart, version: value.value };
+};
+
+const depthDelta = (character: string | undefined): number => {
+  if (character === "{") return 1;
+  if (character === "}") return -1;
+  return 0;
+};
+
 export const findTopLevelJsonVersionOwners = (source: string): SourceVersionOwner[] => {
   const owners: SourceVersionOwner[] = [];
   let depth = 0;
 
   for (let index = 0; index < source.length; index += 1) {
-    const character = source[index];
-    if (character === '"') {
-      const key = readJsonString(source, index);
-      if (depth === 1 && key.value === "version") {
-        let valueStart = key.end;
-        while (/\s/.test(source[valueStart] ?? "")) valueStart += 1;
-        if (source[valueStart] !== ":") {
-          index = key.end - 1;
-          continue;
-        }
-        valueStart += 1;
-        while (/\s/.test(source[valueStart] ?? "")) valueStart += 1;
-        if (source[valueStart] !== '"') {
-          throw new Error("JSON version owner must be a string");
-        }
-        const value = readJsonString(source, valueStart);
-        owners.push({ end: value.end, start: valueStart, version: value.value });
-        index = value.end - 1;
-      } else {
-        index = key.end - 1;
-      }
+    if (source[index] !== '"') {
+      depth += depthDelta(source[index]);
       continue;
     }
-    if (character === "{") depth += 1;
-    else if (character === "}") depth -= 1;
+    const key = readJsonString(source, index);
+    const owner = depth === 1 && key.value === "version" ? readVersionValue(source, key.end) : null;
+    if (owner) owners.push(owner);
+    index = (owner?.end ?? key.end) - 1;
   }
 
   return owners;
