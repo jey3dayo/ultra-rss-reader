@@ -170,7 +170,58 @@ const confirmDialogVariantStyles = {
   },
 } satisfies Record<ConfirmDialogVariant, ConfirmDialogVariantStyle>;
 
-// react-doctor-disable-next-line react-doctor/no-high-complexity-react-function -- accepted risk (Shared primitive variant matrix), docs/react-doctor-complexity-classification.md:182
+type HoldButtonPropsInput = {
+  holdEnabled: boolean;
+  holding: boolean;
+  handlePointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
+  cancelPointerHold: (event: PointerEvent<HTMLButtonElement>) => void;
+  cancelHold: () => void;
+};
+
+function resolveHoldButtonProps({
+  holdEnabled,
+  holding,
+  handlePointerDown,
+  cancelPointerHold,
+  cancelHold,
+}: HoldButtonPropsInput) {
+  if (!holdEnabled) {
+    return {};
+  }
+  return {
+    onPointerDown: handlePointerDown,
+    onPointerUp: cancelPointerHold,
+    onPointerLeave: cancelPointerHold,
+    onPointerCancel: cancelPointerHold,
+    onBlur: cancelHold,
+    [MOTION_DATA_HOLD_ATTRIBUTE]: holding ? "true" : "false",
+  };
+}
+
+type ConfirmDialogHeaderProps = {
+  title: ConfirmDialogViewProps["title"];
+  message: ConfirmDialogViewProps["message"];
+  Icon: NonNullable<ConfirmDialogIcon>;
+  tone: ConfirmDialogVariantStyle;
+};
+
+function ConfirmDialogHeader({ title, message, Icon, tone }: ConfirmDialogHeaderProps) {
+  return (
+    <DialogHeader className="min-w-0 gap-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <div
+          data-testid="confirm-dialog-icon"
+          className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", tone.iconContainerClassName)}
+        >
+          <Icon aria-hidden="true" data-testid="confirm-dialog-icon-svg" className={cn("size-4", tone.iconClassName)} />
+        </div>
+        <DialogTitle className="min-w-0 break-words text-base leading-snug font-semibold">{title}</DialogTitle>
+      </div>
+      <DialogDescription className={cn("leading-relaxed", PHRASE_AWARE_TEXT_CLASS_NAME)}>{message}</DialogDescription>
+    </DialogHeader>
+  );
+}
+
 export function ConfirmDialogView({
   open,
   title,
@@ -216,27 +267,7 @@ export function ConfirmDialogView({
         className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-6 sm:max-w-sm"
       >
         <div className="flex min-w-0 flex-col gap-6 text-left">
-          <DialogHeader className="min-w-0 gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div
-                data-testid="confirm-dialog-icon"
-                className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-md",
-                  tone.iconContainerClassName,
-                )}
-              >
-                <Icon
-                  aria-hidden="true"
-                  data-testid="confirm-dialog-icon-svg"
-                  className={cn("size-4", tone.iconClassName)}
-                />
-              </div>
-              <DialogTitle className="min-w-0 break-words text-base leading-snug font-semibold">{title}</DialogTitle>
-            </div>
-            <DialogDescription className={cn("leading-relaxed", PHRASE_AWARE_TEXT_CLASS_NAME)}>
-              {message}
-            </DialogDescription>
-          </DialogHeader>
+          <ConfirmDialogHeader title={title} message={message} Icon={Icon} tone={tone} />
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <Button
               variant="ghost"
@@ -249,12 +280,7 @@ export function ConfirmDialogView({
             <Button
               ref={confirmButtonRef}
               onClick={handleClick}
-              onPointerDown={holdEnabled ? handlePointerDown : undefined}
-              onPointerUp={holdEnabled ? cancelPointerHold : undefined}
-              onPointerLeave={holdEnabled ? cancelPointerHold : undefined}
-              onPointerCancel={holdEnabled ? cancelPointerHold : undefined}
-              onBlur={holdEnabled ? cancelHold : undefined}
-              {...(holdEnabled ? { [MOTION_DATA_HOLD_ATTRIBUTE]: holding ? "true" : "false" } : {})}
+              {...resolveHoldButtonProps({ holdEnabled, holding, handlePointerDown, cancelPointerHold, cancelHold })}
               disabled={confirmDisabled}
               aria-label={actionAccessibleLabel}
               aria-describedby={showHoldHint ? holdHintId : undefined}
