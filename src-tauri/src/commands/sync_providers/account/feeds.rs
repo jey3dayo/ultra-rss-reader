@@ -92,6 +92,128 @@ pub(crate) async fn sync_greader_feed(
     Ok(ProviderSyncOutcome { warnings })
 }
 
+async fn sync_non_provider_local_feeds(
+    db: &Mutex<DbManager>,
+    local_provider: &LocalProvider,
+    account: &Account,
+    feeds: &[Feed],
+    warnings: &mut Vec<ProviderSyncWarning>,
+) -> Result<(), AppError> {
+    for feed in feeds {
+        if is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
+            continue;
+        }
+        if let Err(error) = sync_local_feed(db, local_provider, &account.id, feed).await {
+            if error.diagnostic_kind() == "persistence" {
+                return Err(error);
+            }
+            warnings.push(ProviderSyncWarning {
+                kind: AccountSyncWarningKind::Generic,
+                message: format!(
+                    "Local feed '{}' failed during provider sync: {error}",
+                    feed.title
+                ),
+                retry_at: None,
+                retry_in_seconds: None,
+                detail: AccountSyncWarningDetail::LocalFeedSyncFailed {
+                    feed_title: feed.title.clone(),
+                    message: error.to_string(),
+                },
+            });
+        }
+    }
+    Ok(())
+}
+
+async fn push_pending_greader_mutations(
+    db: &Mutex<DbManager>,
+    provider: &GReaderProvider,
+    account: &Account,
+    warnings: &mut Vec<ProviderSyncWarning>,
+) -> Result<(Vec<String>, Vec<String>), AppError> {
+    let pending_mutations = load_pending_mutations_for_account(db, &account.id)?;
+    let provider_managed_pending_mutation_ids =
+        pending_mutation_ids_targeting_provider_managed_greader_feeds(db, &account.id)?;
+    let pending_mutation_contexts = pending_mutation_log_contexts(db, &account.id)?;
+
+    let mut pushed_read_remote_ids: Vec<String> = Vec::new();
+    let mut pushed_starred_remote_ids: Vec<String> = Vec::new();
+    for pm in &pending_mutations {
+        let Some(pending_mutation_id) = pm.id else {
+            continue;
+        };
+        let (feed_id, host_class) = pending_mutation_contexts
+            .get(&pending_mutation_id)
+            .map(|(feed_id, host_class)| (feed_id.as_ref(), *host_class))
+            .unwrap_or(("unknown", "invalid"));
+
+        if !provider_managed_pending_mutation_ids.contains(&pending_mutation_id) {
+            warn!(
+                account_id = %account.id.as_ref(),
+                feed_id,
+                host_class,
+                mutation_type = pm.mutation_type.as_str(),
+                reason = "non_greader_feed",
+                "Dropping pending mutation"
+            );
+            warnings.push(dropped_pending_mutation_warning(pm.mutation_type));
+            delete_pending_mutation(db, pending_mutation_id)?;
+            continue;
+        }
+
+        let mutation = provider_mutation_for(pm.mutation_type, &pm.remote_entry_id);
+
+        match provider.push_mutations(&[mutation]).await {
+            Ok(()) => {
+                match pm.mutation_type.axis() {
+                    PendingMutationAxis::ReadState => {
+                        pushed_read_remote_ids.push(pm.remote_entry_id.clone());
+                    }
+                    PendingMutationAxis::StarState => {
+                        pushed_starred_remote_ids.push(pm.remote_entry_id.clone());
+                    }
+                }
+                delete_pending_mutation(db, pending_mutation_id)?;
+            }
+            Err(error) => {
+                log::warn!(
+                    target: "sync",
+                    "event=pending-mutation-retry provider=freshrss mutation_type={} error_kind={}",
+                    pm.mutation_type.as_str(),
+                    AppError::from(error).diagnostic_kind()
+                );
+                warn!(
+                    account_id = %account.id.as_ref(),
+                    feed_id,
+                    host_class,
+                    mutation_type = pm.mutation_type.as_str(),
+                    reason = "provider_error",
+                    "Failed to push pending mutation; will retry next sync"
+                );
+                warnings.push(pending_mutation_retry_warning(pm.mutation_type));
+            }
+        }
+    }
+
+    Ok((pushed_read_remote_ids, pushed_starred_remote_ids))
+}
+
+fn provider_mutation_for(mutation_type: PendingMutationType, remote_entry_id: &str) -> Mutation {
+    let remote_entry_id = remote_entry_id.to_string();
+    match mutation_type {
+        PendingMutationType::MarkRead => Mutation::MarkRead { remote_entry_id },
+        PendingMutationType::MarkUnread => Mutation::MarkUnread { remote_entry_id },
+        PendingMutationType::Star => Mutation::SetStarred {
+            remote_entry_id,
+            starred: true,
+        },
+        PendingMutationType::Unstar => Mutation::SetStarred {
+            remote_entry_id,
+            starred: false,
+        },
+    }
+}
+
 /// Steps 3-7: sync subscriptions, pull entries, push mutations, apply remote state, recalculate unread counts.
 pub(crate) async fn sync_greader_feeds(
     db: &Mutex<DbManager>,
@@ -166,29 +288,7 @@ pub(crate) async fn sync_greader_feeds(
             });
         }
     }
-    for feed in &feeds {
-        if is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
-            continue;
-        }
-        if let Err(error) = sync_local_feed(db, &local_provider, &account.id, feed).await {
-            if error.diagnostic_kind() == "persistence" {
-                return Err(error);
-            }
-            warnings.push(ProviderSyncWarning {
-                kind: AccountSyncWarningKind::Generic,
-                message: format!(
-                    "Local feed '{}' failed during provider sync: {error}",
-                    feed.title
-                ),
-                retry_at: None,
-                retry_in_seconds: None,
-                detail: AccountSyncWarningDetail::LocalFeedSyncFailed {
-                    feed_title: feed.title.clone(),
-                    message: error.to_string(),
-                },
-            });
-        }
-    }
+    sync_non_provider_local_feeds(db, &local_provider, account, &feeds, &mut warnings).await?;
     info!(
         account_id = %account.id.as_ref(),
         phase = "account_delta_entries",
@@ -200,84 +300,8 @@ pub(crate) async fn sync_greader_feeds(
         "FreshRSS sync phase completed"
     );
 
-    let pending_mutations = load_pending_mutations_for_account(db, &account.id)?;
-    let provider_managed_pending_mutation_ids =
-        pending_mutation_ids_targeting_provider_managed_greader_feeds(db, &account.id)?;
-    let pending_mutation_contexts = pending_mutation_log_contexts(db, &account.id)?;
-
-    let mut pushed_read_remote_ids: Vec<String> = Vec::new();
-    let mut pushed_starred_remote_ids: Vec<String> = Vec::new();
-    for pm in &pending_mutations {
-        let Some(pending_mutation_id) = pm.id else {
-            continue;
-        };
-        let (feed_id, host_class) = pending_mutation_contexts
-            .get(&pending_mutation_id)
-            .map(|(feed_id, host_class)| (feed_id.as_ref(), *host_class))
-            .unwrap_or(("unknown", "invalid"));
-
-        if !provider_managed_pending_mutation_ids.contains(&pending_mutation_id) {
-            warn!(
-                account_id = %account.id.as_ref(),
-                feed_id,
-                host_class,
-                mutation_type = pm.mutation_type.as_str(),
-                reason = "non_greader_feed",
-                "Dropping pending mutation"
-            );
-            warnings.push(dropped_pending_mutation_warning(pm.mutation_type));
-            delete_pending_mutation(db, pending_mutation_id)?;
-            continue;
-        }
-
-        let mutation = match pm.mutation_type {
-            PendingMutationType::MarkRead => Mutation::MarkRead {
-                remote_entry_id: pm.remote_entry_id.clone(),
-            },
-            PendingMutationType::MarkUnread => Mutation::MarkUnread {
-                remote_entry_id: pm.remote_entry_id.clone(),
-            },
-            PendingMutationType::Star => Mutation::SetStarred {
-                remote_entry_id: pm.remote_entry_id.clone(),
-                starred: true,
-            },
-            PendingMutationType::Unstar => Mutation::SetStarred {
-                remote_entry_id: pm.remote_entry_id.clone(),
-                starred: false,
-            },
-        };
-
-        match provider.push_mutations(&[mutation]).await {
-            Ok(()) => {
-                match pm.mutation_type.axis() {
-                    PendingMutationAxis::ReadState => {
-                        pushed_read_remote_ids.push(pm.remote_entry_id.clone());
-                    }
-                    PendingMutationAxis::StarState => {
-                        pushed_starred_remote_ids.push(pm.remote_entry_id.clone());
-                    }
-                }
-                delete_pending_mutation(db, pending_mutation_id)?;
-            }
-            Err(error) => {
-                log::warn!(
-                    target: "sync",
-                    "event=pending-mutation-retry provider=freshrss mutation_type={} error_kind={}",
-                    pm.mutation_type.as_str(),
-                    AppError::from(error).diagnostic_kind()
-                );
-                warn!(
-                    account_id = %account.id.as_ref(),
-                    feed_id,
-                    host_class,
-                    mutation_type = pm.mutation_type.as_str(),
-                    reason = "provider_error",
-                    "Failed to push pending mutation; will retry next sync"
-                );
-                warnings.push(pending_mutation_retry_warning(pm.mutation_type));
-            }
-        }
-    }
+    let (pushed_read_remote_ids, pushed_starred_remote_ids) =
+        push_pending_greader_mutations(db, provider, account, &mut warnings).await?;
 
     let pull_state_started_at = Instant::now();
     let now = chrono::Utc::now();
