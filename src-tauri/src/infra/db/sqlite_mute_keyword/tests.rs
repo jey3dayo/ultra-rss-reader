@@ -15,6 +15,9 @@ fn sqlite_feed_module_source() -> String {
 fn sqlite_article_module_source() -> String {
     [
         include_str!("../sqlite_article/mod.rs"),
+        include_str!("../sqlite_article/diagnostics.rs"),
+        include_str!("../sqlite_article/list.rs"),
+        include_str!("../sqlite_article/read.rs"),
         include_str!("../sqlite_article/history.rs"),
         include_str!("../sqlite_article/maintenance.rs"),
         include_str!("../sqlite_article/mutation.rs"),

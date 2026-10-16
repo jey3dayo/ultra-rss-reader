@@ -1568,6 +1568,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   it("keeps reader search and feed discovery trust contracts synchronized", () => {
     const sqliteArticleSource = [
       "mod.rs",
+      "diagnostics.rs",
+      "list.rs",
+      "read.rs",
       "history.rs",
       "maintenance.rs",
       "mutation.rs",
