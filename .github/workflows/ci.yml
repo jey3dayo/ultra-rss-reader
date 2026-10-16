@@ -123,7 +123,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-${{ matrix.os }}-lint-log
           path: tmp/ci-artifacts/frontend/lint.log
@@ -169,7 +169,7 @@ jobs:
 
       - name: Upload Rust failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rust-${{ matrix.os }}-lint-log
           path: tmp/ci-artifacts/rust/lint.log
@@ -203,7 +203,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-${{ matrix.os }}-test-log
           path: tmp/ci-artifacts/frontend/test.log
@@ -251,7 +251,7 @@ jobs:
 
       - name: Upload Rust failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rust-${{ matrix.os }}-test-log
           path: tmp/ci-artifacts/rust/test.log
@@ -286,7 +286,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-${{ matrix.os }}-jsdom-shard${{ matrix.shard }}-test-log
           path: tmp/ci-artifacts/frontend/test.log
@@ -321,7 +321,7 @@ jobs:
 
       - name: Upload frontend failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-${{ matrix.os }}-build-log
           path: tmp/ci-artifacts/frontend/build.log
@@ -370,7 +370,7 @@ jobs:
 
       - name: Upload native smoke failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-smoke-${{ matrix.os }}-debug-log
           path: tmp/ci-artifacts/native-smoke/debug-build.log
@@ -379,7 +379,7 @@ jobs:
 
       - name: Upload native smoke debug build artifacts
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-smoke-${{ matrix.os }}-debug-build-artifacts
           path: |
@@ -414,7 +414,7 @@ jobs:
 
       - name: Install cargo-audit
         # cargo-audit 0.22.2 pinned
-        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2.87.28
         with:
           tool: cargo-audit@0.22.2
 
