@@ -47,21 +47,48 @@ const parseArguments = (args: readonly string[]): { targetVersion: string; check
   return { targetVersion, checkOnly };
 };
 
+const describeError = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+const prepareChange = (change: WriteChange): PreparedChange => {
+  const temporaryDirectory = mkdtempSync(join(dirname(change.path), ".bump-version-"));
+  const temporaryPath = join(temporaryDirectory, basename(change.path));
+  return { ...change, temporaryDirectory, temporaryPath };
+};
+
+const writeRestoreFile = (change: PreparedChange, restoreDirectory: string): void => {
+  const restorePath = join(restoreDirectory, basename(change.path));
+  writeFileSync(restorePath, change.original, "utf8");
+  renameSync(restorePath, change.path);
+};
+
+// Restores committed files newest-first and returns one message per failed restore.
+const rollbackCommitted = (committed: readonly PreparedChange[]): string[] => {
+  const rollbackErrors: string[] = [];
+  for (const change of [...committed].reverse()) {
+    let restoreDirectory: string | undefined;
+    try {
+      restoreDirectory = mkdtempSync(join(dirname(change.path), ".bump-version-"));
+      writeRestoreFile(change, restoreDirectory);
+    } catch (rollbackError) {
+      rollbackErrors.push(`${change.path}: ${describeError(rollbackError)}`);
+    } finally {
+      if (restoreDirectory) {
+        rmSync(restoreDirectory, { recursive: true, force: true });
+      }
+    }
+  }
+  return rollbackErrors;
+};
+
 export const writeChanges = (changes: readonly WriteChange[], renameFile: RenameFile = renameSync): void => {
   const prepared: PreparedChange[] = [];
   const committed: PreparedChange[] = [];
 
   try {
-    for (const change of changes) {
-      if (change.updated === change.original) {
-        continue;
-      }
-
-      const temporaryDirectory = mkdtempSync(join(dirname(change.path), ".bump-version-"));
-      const temporaryPath = join(temporaryDirectory, basename(change.path));
-      const preparedChange = { ...change, temporaryDirectory, temporaryPath };
+    for (const change of changes.filter(({ updated, original }) => updated !== original)) {
+      const preparedChange = prepareChange(change);
       prepared.push(preparedChange);
-      writeFileSync(temporaryPath, change.updated, "utf8");
+      writeFileSync(preparedChange.temporaryPath, change.updated, "utf8");
     }
 
     for (const change of prepared) {
@@ -69,28 +96,9 @@ export const writeChanges = (changes: readonly WriteChange[], renameFile: Rename
       committed.push(change);
     }
   } catch (error) {
-    const rollbackErrors: string[] = [];
-    for (const change of [...committed].reverse()) {
-      let restoreDirectory: string | undefined;
-      try {
-        restoreDirectory = mkdtempSync(join(dirname(change.path), ".bump-version-"));
-        const restorePath = join(restoreDirectory, basename(change.path));
-        writeFileSync(restorePath, change.original, "utf8");
-        renameSync(restorePath, change.path);
-      } catch (rollbackError) {
-        rollbackErrors.push(
-          `${change.path}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
-        );
-      } finally {
-        if (restoreDirectory) {
-          rmSync(restoreDirectory, { recursive: true, force: true });
-        }
-      }
-    }
-
-    const originalError = error instanceof Error ? error.message : String(error);
+    const rollbackErrors = rollbackCommitted(committed);
     const rollbackMessage = rollbackErrors.length > 0 ? `; rollback failures: ${rollbackErrors.join("; ")}` : "";
-    throw new Error(`version update failed: ${originalError}${rollbackMessage}`);
+    throw new Error(`version update failed: ${describeError(error)}${rollbackMessage}`);
   } finally {
     for (const change of prepared) {
       rmSync(change.temporaryDirectory, { recursive: true, force: true });
