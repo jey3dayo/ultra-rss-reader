@@ -2,20 +2,30 @@ import { Result } from "@praha/byethrow";
 import i18n from "i18next";
 import { create } from "zustand";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
-import { STORAGE_KEYS } from "@/constants/storage";
 import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
+import {
+  applyFontSize,
+  applyFontStyle,
+  getDocumentRoot,
+  getMediaQueryList,
+  getPrefersReducedMotion,
+  getSystemPrefersDark,
+  logPreferenceRuntimeFailure,
+  mirrorThemePreference,
+  objectHasOwnProperty,
+  preferenceStorageFailureMessages,
+  readMirroredThemePreference,
+  updateResolvedTheme,
+} from "@/lib/settings/preferences-appearance-dom";
 import { resolveUiLanguage } from "@/lib/ui/ui-language";
 import {
   type AfterReadingPreference,
-  type FontSizePreference,
-  type FontStylePreference,
   getLikelyPreferenceKeyTypo,
   isRetiredBackendPassthroughPreferenceKey,
   normalizePreferenceRecord,
   normalizePreferenceValue,
   type PreferenceRecord,
   parseLanguagePreference,
-  parseThemePreference,
   preferenceDefaults,
   resolvePreferenceValue,
   type SortSubscriptions,
@@ -23,8 +33,6 @@ import {
 } from "@/schemas/preference-values";
 import type { PreferencesActions, PreferencesState } from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
-
-const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
 const THEME_VIEW_TRANSITION_CLASS = "vertical-wipe-transition";
 const UNKNOWN_PREFERENCE_ERROR_MESSAGE = "Unknown error";
@@ -47,20 +55,6 @@ let languageApplyRequestId = 0;
 const preferencePersistRequestCounters = new Map<string, number>();
 const preferencePersistRequestIds = new Map<string, number>();
 const preferenceMutationGenerations = new Map<string, number>();
-const preferenceStorageFailureMessages = new Set<string>();
-
-function logPreferenceRuntimeFailure(message: string, error: unknown): void {
-  console.error(message, error);
-}
-
-function logPreferenceStorageFailureOnce(message: string, error: unknown): void {
-  if (preferenceStorageFailureMessages.has(message)) {
-    return;
-  }
-
-  preferenceStorageFailureMessages.add(message);
-  logPreferenceRuntimeFailure(message, error);
-}
 
 function warnUnknownPreferenceTypo(key: string, candidate: string): void {
   console.warn(
@@ -103,55 +97,6 @@ export function resetPreferencesStoreRuntimeForTests(): void {
   preferenceStorageFailureMessages.clear();
 }
 
-function getDocumentRoot(): HTMLElement | null {
-  return typeof document === "undefined" ? null : document.documentElement;
-}
-
-function getMediaQueryList(query: string): MediaQueryList | null {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return null;
-  }
-
-  try {
-    return window.matchMedia(query);
-  } catch (error) {
-    logPreferenceRuntimeFailure(`Failed to query media preference ${query}:`, error);
-    return null;
-  }
-}
-
-function getSystemPrefersDark(): boolean {
-  return getMediaQueryList("(prefers-color-scheme: dark)")?.matches ?? false;
-}
-
-function mirrorThemePreference(theme: Theme): void {
-  try {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(STORAGE_KEYS.theme, theme);
-  } catch (error) {
-    // Storage mirroring is best-effort; DB remains the source of truth and optimistic UI state is retained.
-    logPreferenceStorageFailureOnce("Failed to mirror theme preference:", error);
-  }
-}
-
-function readMirroredThemePreference(): Theme | null {
-  try {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const storedTheme = window.localStorage.getItem(STORAGE_KEYS.theme);
-    if (storedTheme === null) {
-      return null;
-    }
-    return parseThemePreference(storedTheme);
-  } catch (error) {
-    logPreferenceStorageFailureOnce("Failed to read mirrored theme preference:", error);
-    return null;
-  }
-}
-
 function resolveErrorMessage(error: unknown): string {
   try {
     if (error instanceof Error) {
@@ -170,15 +115,6 @@ function notifyPreferencePersistFailure(key: string, error: unknown): void {
   const message = resolveErrorMessage(error);
   console.error(`Failed to persist preference ${key}:`, error);
   useUiStore.getState().showToast(i18n.t("failed_to_save_setting", { message }));
-}
-
-function getPrefersReducedMotion(): boolean {
-  return getMediaQueryList("(prefers-reduced-motion: reduce)")?.matches ?? false;
-}
-
-function updateResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark"): void {
-  root.classList.toggle("dark", resolvedTheme === "dark");
-  root.style.colorScheme = resolvedTheme;
 }
 
 function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", withTransition: boolean): void {
@@ -248,52 +184,6 @@ function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void 
   } else {
     applyResolvedTheme(root, theme === "dark" ? "dark" : "light", withTransition);
   }
-}
-
-const fontStyleClasses = {
-  sans_serif: "font-sans",
-  serif: "font-serif",
-  monospace: "font-mono",
-} satisfies Record<FontStylePreference, string>;
-
-const fontSizeClasses = {
-  small: "text-sm",
-  medium: "text-base",
-  large: "text-lg",
-} satisfies Record<FontSizePreference, string>;
-
-function isFontStylePreference(value: string): value is FontStylePreference {
-  return objectHasOwnProperty.call(fontStyleClasses, value);
-}
-
-function isFontSizePreference(value: string): value is FontSizePreference {
-  return objectHasOwnProperty.call(fontSizeClasses, value);
-}
-
-function applyFontStyle(style: string): void {
-  const root = getDocumentRoot();
-  if (root === null) {
-    return;
-  }
-
-  for (const cls of Object.values(fontStyleClasses)) {
-    root.classList.remove(cls);
-  }
-  const cls = isFontStylePreference(style) ? fontStyleClasses[style] : fontStyleClasses.sans_serif;
-  root.classList.add(cls);
-}
-
-function applyFontSize(size: string): void {
-  const root = getDocumentRoot();
-  if (root === null) {
-    return;
-  }
-
-  for (const cls of Object.values(fontSizeClasses)) {
-    root.classList.remove(cls);
-  }
-  const cls = isFontSizePreference(size) ? fontSizeClasses[size] : fontSizeClasses.medium;
-  root.classList.add(cls);
 }
 
 function getNavigatorLanguage(): string | undefined {
