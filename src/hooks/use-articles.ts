@@ -1,12 +1,10 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import type { QueryKey } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands/shared";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
-  clearArticleViewHistory,
   countAccountStarredArticles,
   getArticle,
   listAccountArticles,
@@ -15,81 +13,38 @@ import {
   listFolderArticles,
   listRecentArticles,
   listStarredArticles,
-  markAccountRead,
-  markAccountStarredRead,
-  markArticleRead,
-  markArticlesRead,
-  markFeedRead,
-  markFolderRead,
-  markOldUnreadRead,
-  type OldUnreadDays,
-  type OldUnreadScopeKind,
-  recordArticleView,
   searchArticles,
-  toggleArticleStar,
-  unstarAccountArticles,
 } from "@/api/tauri-commands";
 import {
-  classifyAppErrorForReadDiagnostics,
-  READ_STATE_PENDING_SLOW_THRESHOLD_MS,
-  recordAutoMarkPendingSlow,
-  recordAutoMarkSettled,
-} from "@/components/reader/hooks/article/read-state-diagnostics";
-import {
-  clearArticleQueryData,
   createInfiniteArticleQueryData,
   flattenArticleQueryData,
-  getRecentArticleQueryKeysForAccount,
-  isAccountKnownDeleted,
-  patchCachedArticleReadState,
-  patchCachedArticleStarState,
-  patchCachedArticlesMarkedRead,
   shareInfiniteArticleQueryData,
-  shouldInvalidateAfterRecordArticleView,
 } from "@/hooks/article-cache-projection";
-import { createMutation } from "@/hooks/create-mutation";
-import { shouldRetainBulkMarkedRead } from "@/lib/articles/article-read-projection";
-import {
-  invalidateArticleMutationQueries,
-  invalidateQueryKeysLogOnly,
-  normalizeQueryAccountId,
-  queryKeys,
-} from "@/lib/query/query-invalidation";
+import { normalizeQueryAccountId, queryKeys } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 import { requireEnabledQueryValue } from "@/lib/require-enabled-query-value";
-import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
-import { useUiStore } from "@/stores/ui-store";
 
-export type SetReadMutationInput = {
-  id: string;
-  read: boolean;
-  /**
-   * Present only for auto-mark calls (see use-article-auto-mark.ts); manual read/unread actions
-   * never set this. When present, mutationFn records read-state diagnostics (settled/pending_slow)
-   * at the mutationFn Promise boundary so they are observed even if the calling component unmounts.
-   */
-  diagnostics?: {
-    requestId: string;
-    generation: number;
-    isStaleOwner: () => boolean;
-  };
-};
+import { normalizeManualArticleQueryId } from "./article-mutation-requests";
 
-export type ToggleStarMutationInput = {
-  id: string;
-  starred: boolean;
-};
-
-export type RecordArticleViewMutationInput = {
-  accountId: string;
-  articleId: string;
-};
-
-export type MarkOldUnreadReadMutationInput = {
-  scopeKind: OldUnreadScopeKind;
-  targetId: string;
-  olderThanDays: OldUnreadDays;
-};
+export type {
+  MarkOldUnreadReadMutationInput,
+  RecordArticleViewMutationInput,
+  SetReadMutationInput,
+  ToggleStarMutationInput,
+} from "./article-mutation-requests";
+export {
+  useClearArticleViewHistory,
+  useMarkAccountRead,
+  useMarkAccountStarredRead,
+  useMarkAllRead,
+  useMarkFeedRead,
+  useMarkFolderRead,
+  useMarkOldUnreadRead,
+  useRecordArticleView,
+  useSetRead,
+  useToggleStar,
+  useUnstarAccountArticles,
+} from "./use-article-mutations";
 
 type ArticleQueryOptions = {
   mode?: ReaderFilter;
@@ -108,93 +63,6 @@ export type ArticleSearchQueryOwner = {
 };
 
 export { flattenArticleQueryData };
-
-type ClearArticleViewHistoryContext = {
-  previousRecentArticleQueries: Array<{
-    queryKey: QueryKey;
-    previousData: unknown;
-    optimisticData: unknown;
-  }>;
-};
-
-type ArticleMutationRequestToken = {
-  instanceId: symbol;
-  requestId: number;
-  order: number;
-};
-
-type ArticleMutationRequestRecord<TVariables> = {
-  token: ArticleMutationRequestToken;
-  variables: TVariables;
-  status: "pending" | "success" | "failure";
-  applied: boolean;
-};
-
-type ArticleMutationRequestState<TVariables> = {
-  nextOrder: number;
-  requests: Array<ArticleMutationRequestRecord<TVariables>>;
-};
-
-// The reader and settings surfaces can mount separate mutation hooks for the same article.
-// Share request state by article while keeping request counters local to each hook instance.
-const readRequestStatesByArticleId = new Map<string, ArticleMutationRequestState<SetReadMutationInput>>();
-const starRequestStatesByArticleId = new Map<string, ArticleMutationRequestState<ToggleStarMutationInput>>();
-
-function registerArticleMutationRequest<TVariables>(
-  statesByArticleId: Map<string, ArticleMutationRequestState<TVariables>>,
-  articleId: string,
-  instanceId: symbol,
-  requestId: number,
-  variables: TVariables,
-): ArticleMutationRequestToken {
-  const state = statesByArticleId.get(articleId) ?? { nextOrder: 0, requests: [] };
-  const requestToken = { instanceId, requestId, order: state.nextOrder };
-  state.nextOrder += 1;
-  state.requests.push({ token: requestToken, variables, status: "pending", applied: false });
-  statesByArticleId.set(articleId, state);
-  return requestToken;
-}
-
-function settleArticleMutationRequest<TVariables>(
-  statesByArticleId: Map<string, ArticleMutationRequestState<TVariables>>,
-  articleId: string,
-  requestToken: ArticleMutationRequestToken,
-  status: "success" | "failure",
-): TVariables | null {
-  const state = statesByArticleId.get(articleId);
-  const settledRequest = state?.requests.find((request) => request.token === requestToken);
-  if (!state || !settledRequest || settledRequest.status !== "pending") {
-    return null;
-  }
-
-  settledRequest.status = status;
-
-  let effectiveSuccess: ArticleMutationRequestRecord<TVariables> | null = null;
-  for (const request of state.requests) {
-    if (request.status !== "success") {
-      continue;
-    }
-
-    const hasPendingNewerRequest = state.requests.some(
-      (candidate) => candidate.status === "pending" && candidate.token.order > request.token.order,
-    );
-    if (!hasPendingNewerRequest && (effectiveSuccess === null || request.token.order > effectiveSuccess.token.order)) {
-      effectiveSuccess = request;
-    }
-  }
-
-  let variablesToApply: TVariables | null = null;
-  if (effectiveSuccess !== null && !effectiveSuccess.applied) {
-    effectiveSuccess.applied = true;
-    variablesToApply = effectiveSuccess.variables;
-  }
-
-  if (state.requests.every((request) => request.status !== "pending")) {
-    statesByArticleId.delete(articleId);
-  }
-
-  return variablesToApply;
-}
 
 const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
 const ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN = /\s+/gu;
@@ -222,10 +90,6 @@ export function getNextArticlePageParam(
   }
 
   return nextOffset;
-}
-
-function normalizeManualArticleQueryId(value: string | null): string | null {
-  return normalizeQueryAccountId(value);
 }
 
 export function normalizeArticleSearchQuery(query: string): string {
@@ -375,228 +239,6 @@ export function useAccountStarredCount(accountId: string | null) {
   });
 }
 
-function runSetReadMutation({ id, read, diagnostics }: SetReadMutationInput) {
-  if (!diagnostics) {
-    return markArticleRead(id, read).then(Result.unwrap());
-  }
-
-  const { requestId, generation, isStaleOwner } = diagnostics;
-  const startedAt = Date.now();
-  let settled = false;
-  const pendingSlowTimer = setTimeout(() => {
-    if (!settled) {
-      recordAutoMarkPendingSlow(requestId, generation, Date.now() - startedAt);
-    }
-  }, READ_STATE_PENDING_SLOW_THRESHOLD_MS);
-
-  return markArticleRead(id, read, { requestId, source: "auto" }).then((result) => {
-    settled = true;
-    clearTimeout(pendingSlowTimer);
-    const durationMs = Date.now() - startedAt;
-    const staleOwner = isStaleOwner();
-    if (Result.isSuccess(result)) {
-      recordAutoMarkSettled(requestId, generation, "success", durationMs, undefined, staleOwner);
-    } else {
-      recordAutoMarkSettled(
-        requestId,
-        generation,
-        "failure",
-        durationMs,
-        classifyAppErrorForReadDiagnostics(result.error),
-        staleOwner,
-      );
-    }
-    return Result.unwrap()(result);
-  });
-}
-
-export function useSetRead() {
-  const qc = useQueryClient();
-  const [instanceId] = useState(() => Symbol("useSetRead"));
-  const nextRequestIdRef = useRef(0);
-
-  return useMutation({
-    mutationFn: runSetReadMutation,
-    onMutate: (variables) => {
-      const requestId = nextRequestIdRef.current + 1;
-      nextRequestIdRef.current = requestId;
-      const requestToken = registerArticleMutationRequest(
-        readRequestStatesByArticleId,
-        variables.id,
-        instanceId,
-        requestId,
-        variables,
-      );
-      return { requestToken };
-    },
-    onSuccess: (_data, variables, context) => {
-      const variablesToApply = settleArticleMutationRequest(
-        readRequestStatesByArticleId,
-        variables.id,
-        context.requestToken,
-        "success",
-      );
-      if (variablesToApply === null) {
-        return;
-      }
-
-      patchCachedArticleReadState(qc, variables.id, variablesToApply.read);
-      invalidateArticleMutationQueries(qc, "article-read");
-    },
-    onError: (_error, variables, context) => {
-      if (!context) {
-        return;
-      }
-
-      const variablesToApply = settleArticleMutationRequest(
-        readRequestStatesByArticleId,
-        variables.id,
-        context.requestToken,
-        "failure",
-      );
-      if (variablesToApply === null) {
-        return;
-      }
-
-      patchCachedArticleReadState(qc, variables.id, variablesToApply.read);
-      invalidateArticleMutationQueries(qc, "article-read");
-    },
-  });
-}
-
-export const useMarkAllRead = createMutation(
-  (articleIds: string[]) => markArticlesRead(articleIds),
-  (qc) => invalidateArticleMutationQueries(qc, "article-read"),
-);
-
-export const useMarkAccountRead = createMutation(markAccountRead, (qc) =>
-  invalidateArticleMutationQueries(qc, "article-read"),
-);
-
-export const useMarkAccountStarredRead = createMutation(markAccountStarredRead, (qc) =>
-  invalidateArticleMutationQueries(qc, "article-read"),
-);
-
-export const useMarkOldUnreadRead = createMutation(
-  ({ scopeKind, targetId, olderThanDays }: MarkOldUnreadReadMutationInput) =>
-    markOldUnreadRead(scopeKind, targetId, olderThanDays),
-  (qc) => invalidateArticleMutationQueries(qc, "article-read"),
-);
-
-export const useUnstarAccountArticles = createMutation(unstarAccountArticles, (qc) =>
-  invalidateArticleMutationQueries(qc, "article-star"),
-);
-
-export function useRecordArticleView() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ accountId, articleId }: RecordArticleViewMutationInput) => {
-      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
-      const normalizedArticleId = normalizeManualArticleQueryId(articleId);
-
-      if (!normalizedAccountId || !normalizedArticleId) {
-        return Promise.resolve(null);
-      }
-
-      return recordArticleView(normalizedAccountId, normalizedArticleId).then((result) => Result.unwrap(result));
-    },
-    onSuccess: (_data, variables) => {
-      const normalizedAccountId = normalizeManualArticleQueryId(variables.accountId);
-      const normalizedArticleId = normalizeManualArticleQueryId(variables.articleId);
-
-      if (
-        !normalizedAccountId ||
-        !normalizedArticleId ||
-        !shouldInvalidateAfterRecordArticleView(qc, normalizedAccountId)
-      ) {
-        return;
-      }
-
-      invalidateArticleMutationQueries(qc, "article-view-recorded");
-    },
-  });
-}
-
-export function useClearArticleViewHistory() {
-  const { t } = useTranslation("reader");
-  const qc = useQueryClient();
-  const showToast = useUiStore((state) => state.showToast);
-
-  return useMutation<number, Error, string, ClearArticleViewHistoryContext>({
-    mutationFn: (accountId: string) => {
-      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
-
-      if (!normalizedAccountId || isAccountKnownDeleted(qc, normalizedAccountId)) {
-        return Promise.resolve(0);
-      }
-
-      return clearArticleViewHistory(normalizedAccountId).then((result) => Result.unwrap(result));
-    },
-    onMutate: async (accountId) => {
-      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
-      if (!normalizedAccountId) {
-        return { previousRecentArticleQueries: [] };
-      }
-
-      const recentArticleQueryKeys = getRecentArticleQueryKeysForAccount(normalizedAccountId);
-      await Promise.all(recentArticleQueryKeys.map((queryKey) => qc.cancelQueries({ queryKey })));
-      const previousRecentArticleQueries = recentArticleQueryKeys.map((queryKey) => ({
-        queryKey,
-        previousData: qc.getQueryData(queryKey),
-        optimisticData: undefined,
-      }));
-      for (const recentArticleQuery of previousRecentArticleQueries) {
-        const optimisticData =
-          clearArticleQueryData(recentArticleQuery.previousData) ?? createInfiniteArticleQueryData();
-        qc.setQueryData(recentArticleQuery.queryKey, optimisticData);
-        recentArticleQuery.optimisticData = qc.getQueryData(recentArticleQuery.queryKey);
-      }
-
-      return { previousRecentArticleQueries };
-    },
-    onSuccess: (_data, accountId) => {
-      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
-      if (!normalizedAccountId || isAccountKnownDeleted(qc, normalizedAccountId)) {
-        return;
-      }
-
-      invalidateQueryKeysLogOnly(qc, getRecentArticleQueryKeysForAccount(normalizedAccountId), {
-        actionOwner: "article-mutation",
-      });
-    },
-    onError: (error, _accountId, context) => {
-      for (const { queryKey, previousData, optimisticData } of context?.previousRecentArticleQueries ?? []) {
-        if (qc.getQueryData(queryKey) === optimisticData) {
-          qc.setQueryData(queryKey, previousData);
-        }
-      }
-      showToast(t("clear_recent_history_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }));
-    },
-  });
-}
-
-function patchMarkedArticlesReadAndInvalidate(qc: QueryClient, markedArticleIds: readonly string[]) {
-  // Bulk mark-read retention policy contract: see article-read-projection.ts.
-  const { viewMode, retainArticles } = useUiStore.getState();
-  if (shouldRetainBulkMarkedRead(viewMode)) {
-    retainArticles(markedArticleIds);
-  }
-
-  // Patch cached lists synchronously so unread dots clear even when the
-  // background refetch is slow or fails; invalidation stays the durable sync path.
-  patchCachedArticlesMarkedRead(qc, new Set(markedArticleIds));
-  invalidateArticleMutationQueries(qc, "article-read");
-}
-
-export const useMarkFeedRead = createMutation(markFeedRead, (qc, _feedId, markedArticleIds) =>
-  patchMarkedArticlesReadAndInvalidate(qc, markedArticleIds),
-);
-
-export const useMarkFolderRead = createMutation(markFolderRead, (qc, _folderId, markedArticleIds) =>
-  patchMarkedArticlesReadAndInvalidate(qc, markedArticleIds),
-);
-
 export function useSearchArticles(accountId: string | null, query: string) {
   const normalizedAccountId = normalizeQueryAccountId(accountId);
   const normalizedQuery = normalizeArticleSearchQuery(query);
@@ -617,58 +259,4 @@ export function useSearchArticles(accountId: string | null, query: string) {
     data: queryResult.isPlaceholderData ? undefined : queryResult.data,
     searchOwner,
   };
-}
-
-export function useToggleStar() {
-  const qc = useQueryClient();
-  const [instanceId] = useState(() => Symbol("useToggleStar"));
-  const nextRequestIdRef = useRef(0);
-
-  return useMutation({
-    mutationFn: ({ id, starred }: ToggleStarMutationInput) => toggleArticleStar(id, starred).then(Result.unwrap()),
-    onMutate: (variables) => {
-      const requestId = nextRequestIdRef.current + 1;
-      nextRequestIdRef.current = requestId;
-      const requestToken = registerArticleMutationRequest(
-        starRequestStatesByArticleId,
-        variables.id,
-        instanceId,
-        requestId,
-        variables,
-      );
-      return { requestToken };
-    },
-    onSuccess: (_data, variables, context) => {
-      const variablesToApply = settleArticleMutationRequest(
-        starRequestStatesByArticleId,
-        variables.id,
-        context.requestToken,
-        "success",
-      );
-      if (variablesToApply === null) {
-        return;
-      }
-
-      patchCachedArticleStarState(qc, variables.id, variablesToApply.starred);
-      invalidateArticleMutationQueries(qc, "article-star");
-    },
-    onError: (_error, variables, context) => {
-      if (!context) {
-        return;
-      }
-
-      const variablesToApply = settleArticleMutationRequest(
-        starRequestStatesByArticleId,
-        variables.id,
-        context.requestToken,
-        "failure",
-      );
-      if (variablesToApply === null) {
-        return;
-      }
-
-      patchCachedArticleStarState(qc, variables.id, variablesToApply.starred);
-      invalidateArticleMutationQueries(qc, "article-star");
-    },
-  });
 }
