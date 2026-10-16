@@ -281,8 +281,8 @@ export const reactDoctorFullScanTriageStatus = {
 
 // Per-finding classification: docs/knip-export-classification.md.
 const knipBaseline = {
-  issueCount: 10,
-  findingsCount: 11,
+  issueCount: 3,
+  findingsCount: 3,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {

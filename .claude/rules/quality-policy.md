@@ -15,23 +15,22 @@ React Doctor / Knip / similarity / task priority rules that are too durable for 
 
 ## Knip Ignore Policy
 
-Knip is a report-only review tool in this repository, not a continuously enforced gate. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases. As of 2026-09-08, all seven reported unused files were verified as false positives by locating the actual consumer of each:
+Knip is a report-only review tool in this repository, not a continuously enforced gate. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases, so those consumers are declared as explicit `package.json#knip.entry` items instead of being reported as unused files. Each entry must name its real consumer here:
 
-| File | Consumer |
+| Entry | Consumer |
 | --- | --- |
 | `scripts/check-toolchain-contract.ts` | `mise/quality.toml` |
 | `scripts/report-dependency-licenses.ts` | `mise/quality.toml` |
 | `scripts/verify-action-pins.ts` | `mise/setup.toml` `deps:update` |
-| `scripts/install-windows-app.ts` | `mise.toml` `run_windows` |
-| `src/dev/prod-stubs/scenario-ids.ts` | `vite.config.ts` production alias |
-| `src/dev/prod-stubs/use-dev-intent.ts` | `vite.config.ts` production alias |
-| `src/dev/prod-stubs/use-resolved-dev-intent.ts` | `vite.config.ts` production alias |
+| `scripts/ci/check-shell.ts` | `mise/lint.toml` |
+| `src/dev/prod-stubs/*.ts` | `vite.config.ts` production alias (covered by `production-dev-aliases.node.test.ts`) |
+| `src/dev/scenarios/index.ts` | dev scenario runner entry |
 
-The three alias targets are covered by `production-dev-aliases.node.test.ts`.
+`playwright.storybook.config.ts` is no longer listed: the Playwright plugin already treats it as an entry, and Knip reports the explicit item as redundant. Run Knip with the `mise` environment and installed dependencies (`pnpm exec knip`, or `mise run report:knip`); without `node_modules` the Vite / Vitest / Storybook / Playwright plugin configs cannot load and the report balloons to hundreds of false unused files.
 
-`scripts/run-guarded-pnpm-update.ts` has the same shape — invoked only from `mise/setup.toml` — but Knip does not report it, because `release-age-gate-contract.node.test.ts` imports it with `?raw` to pin its contract. That import is what makes it traceable, so do not treat its absence from the report as evidence that Knip can follow `mise` consumers.
+`scripts/run-guarded-pnpm-update.ts` has the same shape — invoked only from `mise/setup.toml` — but Knip does not report it, because `release-age-gate-contract.node.test.ts` imports it with `?raw` to pin its contract. Do not treat its absence from the report as evidence that Knip can follow `mise` consumers; when a new script is only reached through `mise`, add it to the entry list above.
 
-Keeping a hard count gate in that situation encourages number-matching instead of triage and degrades the signal. Reconsider this policy if Knip can trace these `mise` and Vite alias consumers.
+The pinned baseline in `scripts/quality-baseline.ts` is informational drift, not a failing gate; re-pin it only after the new findings are classified.
 
 `package.json#knip.ignoreDependencies` entries must document why Knip cannot see a real consumer:
 
@@ -40,6 +39,7 @@ Keeping a hard count gate in that situation encourages number-matching instead o
 `package.json#knip.ignoreBinaries` entries must document why Knip cannot trace a binary consumer:
 
 - `mise` — launched via `spawnSync` by `scripts/similarity-report.ts` to run the Rust scan; `mise` is a toolchain runner rather than a package.json dependency and therefore cannot be declared as an npm dependency; reviewed 2026-08-29.
+- `shellcheck` — spawned by `scripts/ci/check-shell.ts` (the `mise` `lint` shell check); it is a system tool provisioned outside npm, so it cannot be declared as a dependency; reviewed 2026-10-16.
 
 ### Unused Export And Type Findings
 

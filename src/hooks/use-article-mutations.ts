@@ -53,7 +53,7 @@ import {
   starRequestStatesByArticleId,
 } from "./article-mutation-requests";
 
-export function runSetReadMutation({ id, read, diagnostics }: SetReadMutationInput) {
+function runSetReadMutation({ id, read, diagnostics }: SetReadMutationInput) {
   if (!diagnostics) {
     return markArticleRead(id, read).then(Result.unwrap());
   }
@@ -254,7 +254,7 @@ export function useClearArticleViewHistory() {
   });
 }
 
-export function patchMarkedArticlesReadAndInvalidate(qc: QueryClient, markedArticleIds: readonly string[]) {
+function patchMarkedArticlesReadAndInvalidate(qc: QueryClient, markedArticleIds: readonly string[]) {
   // Bulk mark-read retention policy contract: see article-read-projection.ts.
   const { viewMode, retainArticles } = useUiStore.getState();
   if (shouldRetainBulkMarkedRead(viewMode)) {

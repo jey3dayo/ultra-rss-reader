@@ -1,4 +1,3 @@
-export { Popover } from "@base-ui/react/popover";
 export { Radio } from "@base-ui/react/radio";
 export { RadioGroup } from "@base-ui/react/radio-group";
 export { Toggle } from "@base-ui/react/toggle";

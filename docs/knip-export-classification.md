@@ -4,7 +4,7 @@ title: Knip Export And Type Classification
 description: Dated triage record classifying the 73 Knip unused-export and unused-type findings from Issue #249, with the rationale and action for each.
 resource: urn:ultra-rss-reader:docs:knip-export-classification
 tags: [category/quality, audience/agent, audience/developer, status/historical]
-timestamp: 2026-09-08
+timestamp: 2026-10-16
 audience: agent, developer
 owner: project-maintainers
 ---
@@ -166,3 +166,94 @@ Three duplications surfaced during triage and were left alone as out-of-scope:
 - `type TauriCapabilityFile` is declared locally in `tests/release-repo-contract.node.test.ts`,
   `scripts/check-release-build-contamination.ts`, and `scripts/release/validate-release-config.ts`
   while `src/schemas/app-config.ts` exported an unused alias of the same shape (now removed).
+
+## 2026-10-16 re-triage
+
+Run with the `mise` environment and installed dependencies on `origin/main` at `9a439cca`
+(`pnpm exec knip --reporter json --no-exit-code --no-progress`, Knip 6.41.0). The count had drifted
+from the pinned 10 issues / 11 findings to 27 issues / 72 findings. About 57 of the new findings came
+from the file-split PRs (#471, #482–#484): the split helper exported every moved declaration, even
+ones used only inside the new file.
+
+The 7 unused-file findings were the same `mise` / Vite-alias false positives as before, plus
+`scripts/ci/check-shell.ts`. They are now declared as `package.json#knip.entry` items, with their
+consumers listed in `.claude/rules/quality-policy.md`, and `shellcheck` is added to `ignoreBinaries`.
+The redundant `playwright.storybook.config.ts` entry was dropped.
+
+| Classification | Count | Action taken |
+| --- | --- | --- |
+| false-positive | 2 | Left as-is (`corePreferenceDefaults`, `showRestartToast`) |
+| accepted-risk | 1 | Left as-is (`getPlatformPermissionDeniedRecovery`) |
+| narrow | 62 | `export` modifier dropped, or the name dropped from a re-export list |
+| remove | 0 | Every narrowed name is still used in its own file, so nothing was deleted |
+
+Knip findings before: 72 (7 files, 50 exports, 15 types). After: 3 (3 exports, all listed above as
+kept). `scripts/quality-baseline.ts` re-pins the Knip baseline to 3 issues / 3 findings.
+
+| Location | Name | Kind | Classification | Rationale |
+| --- | --- | --- | --- | --- |
+| `src/design-system/index.ts:1` | `Popover` | exports | narrow | Barrel re-export of `@base-ui/react/popover` with no consumer; `settings-info-popover.tsx` imports `Popover` from `@base-ui/react/popover` directly. Popover is a single primitive, not a family pinned by `ui-wrapper-public-api.node.test.ts`, so the barrel completeness precedent does not apply. Dropped from the barrel. |
+| `src/schemas/preference-values.ts:194` | `corePreferenceDefaults` | exports | false-positive | Unchanged; see the 2026-09-08 row and `quality-policy.md` (the `?raw` contract pins the literal `export`). |
+| `src/hooks/use-updater.ts:25` | `showRestartToast` | exports | false-positive | Unchanged; `use-updater.node.test.ts` calls it through a dynamic `import()` namespace object, which Knip cannot trace (see `quality-policy.md`). |
+| `scripts/release/release-verification-shared.ts:55` | `recordSchema` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `scripts/release/release-verification-shared.ts:69` | `publicUrl` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `scripts/release/release-verification-shared.ts:82` | `releaseRoute` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/api/tauri-commands/system.ts:21` | `getPlatformPermissionDeniedRecovery` | exports | accepted-risk | Unchanged; see the 2026-09-08 row (mock-parity test pins the wrapper source). |
+| `src/lib/query/query-keys.ts:8` | `readerArticleModeOptions` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/subscriptions/subscription-detail.ts:210` | `compareSubscriptionPreviewArticles` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/subscriptions/subscription-detail.ts:229` | `compareSubscriptionPreviewArticleFallback` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/settings/preferences-appearance-dom.ts:15` | `logPreferenceStorageFailureOnce` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/settings/preferences-appearance-dom.ts:79` | `fontStyleClasses` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/settings/preferences-appearance-dom.ts:85` | `fontSizeClasses` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/settings/preferences-appearance-dom.ts:91` | `isFontStylePreference` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/settings/preferences-appearance-dom.ts:95` | `isFontSizePreference` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/keyboard/keyboard-action-mapping.ts:33` | `nextViewMode` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/keyboard/shortcut-key-normalization.ts:4` | `normalizeModifierToken` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/keyboard/shortcut-key-normalization.ts:8` | `normalizeShortcutKeyForContract` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/keyboard/shortcut-key-normalization.ts:43` | `isPrimaryModifierActive` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/keyboard/shortcut-key-normalization.ts:51` | `SPACE_KEY_TOKEN` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/keyboard/shortcut-key-normalization.ts:53` | `normalizeKeyToken` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/keyboard/shortcut-key-normalization.ts:61` | `normalizeKeyFromEvent` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/hooks/use-article-mutations.ts:56` | `runSetReadMutation` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/hooks/use-article-mutations.ts:257` | `patchMarkedArticlesReadAndInvalidate` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/browser-close-action-buffer.ts:32` | `scheduleBrowserCloseStuckRecovery` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/browser-close-action-buffer.ts:56` | `dispatchBufferedBrowserCloseAction` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:39` | `getFetchErrorsAccount` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:43` | `isLocalFetchErrorsAccount` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:47` | `fetchErrorsNavigationScreenKeys` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:81` | `captureFetchErrorsNavigationScreen` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:107` | `areFetchErrorsNavigationScreensEqual` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:123` | `areReaderSelectionsEqual` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:140` | `createFetchErrorsNavigationScreenGuard` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:172` | `isFetchErrorsNavigationCurrent` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:176` | `openFetchErrorsWorkspace` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:227` | `reportFetchErrorsNavigationFailure` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:68` | `FetchErrorsNavigationScreenKey` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:69` | `FetchErrorsNavigationScreenState` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/fetch-errors-navigation.ts:76` | `FetchErrorsNavigationScreenGuard` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/components/shared/workspace-header-parts.tsx:46` | `MotionText` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/components/shared/workspace-header-parts.tsx:74` | `WorkspaceHeaderBackButton` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/components/shared/workspace-header-parts.tsx:205` | `WorkspaceHeaderContextRow` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/components/shared/workspace-header-parts.tsx:242` | `WorkspaceHeaderNavigationRow` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/components/shared/workspace-header-parts.tsx:288` | `WorkspaceHeaderSubtitle` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/hooks/updater/updater-toasts.ts:13` | `isCurrentToast` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/hooks/updater/updater-toasts.ts:17` | `clearToastIfCurrent` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:38` | `readCurrentLogicalWindowSize` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:47` | `resolveTargetLogicalWindowSize` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:55` | `resolveTargetWindowSize` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:65` | `isWindowSizeWithinTolerance` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:72` | `verifyCurrentLogicalWindowSize` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:83` | `applyVerifiedDevWindowResizeAttempt` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:114` | `wait` | exports | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:9` | `WindowSizeLike` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:14` | `RequestedWindowSize` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:16` | `DevWindowLike` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:26` | `DevWindowSizeVerification` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:31` | `LogicalSizeConstructor` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/dev/scenarios/dev-window-size.ts:33` | `DevWindowResizeLike` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/hooks/use-articles.ts:30` | `MarkOldUnreadReadMutationInput` | types | narrow | `@/hooks/use-articles` re-export nobody reaches; consumers import it from `./article-mutation-requests` directly. Dropped from the re-export list. |
+| `src/hooks/use-articles.ts:31` | `RecordArticleViewMutationInput` | types | narrow | Same as `MarkOldUnreadReadMutationInput`. |
+| `src/hooks/use-articles.ts:33` | `ToggleStarMutationInput` | types | narrow | Same as `MarkOldUnreadReadMutationInput`. |
+| `src/lib/articles/article-view.ts:89` | `BuildArticleViewSummaryError` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |
+| `src/lib/runtime/diagnostics.ts:4` | `RuntimeDiagnosticPolicy` | types | narrow | Re-export added by the #483 split that nobody reaches; the only consumer imports it from `./runtime-diagnostic-policies`. Dropped from the re-export list. |
+| `src/hooks/article-mutation-requests.ts:50` | `ArticleMutationRequestRecord` | types | narrow | Used only inside its own file (`tsc --noUnusedLocals` passes after dropping the modifier); the `export` was added by a pure-move split helper and has no importer or `?raw` contract. |

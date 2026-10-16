@@ -1,11 +1,11 @@
 import { type PlatformKind, SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 import type { ShortcutKeyEvent, ShortcutModifierEvent } from "./keyboard-shortcut-model";
 
-export function normalizeModifierToken(token: string): string {
+function normalizeModifierToken(token: string): string {
   return /^(?:cmdorctrl|command|cmd|control|ctrl)$/i.test(token) ? "\u2318" : token;
 }
 
-export function normalizeShortcutKeyForContract(key: string): string {
+function normalizeShortcutKeyForContract(key: string): string {
   const compactKey = key.trim().replace(/\s*\+\s*/g, "+");
   if (compactKey.length === 0) {
     return "";
@@ -40,7 +40,7 @@ export function normalizeRecordedShortcutKey(e: {
 }): string {
   return normalizeShortcutKeyForContract(normalizeKeyFromEvent(e));
 }
-export function isPrimaryModifierActive(platformKind: PlatformKind, e: ShortcutModifierEvent): boolean {
+function isPrimaryModifierActive(platformKind: PlatformKind, e: ShortcutModifierEvent): boolean {
   return platformKind === "macos" ? e.metaKey : e.ctrlKey;
 }
 
@@ -48,9 +48,9 @@ export function hasNonPrimaryModifier(platformKind: PlatformKind, e: ShortcutMod
   return (platformKind === "macos" && e.ctrlKey) || (platformKind !== "macos" && e.metaKey);
 }
 
-export const SPACE_KEY_TOKEN = "Space";
+const SPACE_KEY_TOKEN = "Space";
 
-export function normalizeKeyToken(key: string, shiftKey: boolean): string {
+function normalizeKeyToken(key: string, shiftKey: boolean): string {
   if (key === " ") {
     return SPACE_KEY_TOKEN;
   }
@@ -58,7 +58,7 @@ export function normalizeKeyToken(key: string, shiftKey: boolean): string {
 }
 
 /** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
-export function normalizeKeyFromEvent(e: ShortcutKeyEvent): string {
+function normalizeKeyFromEvent(e: ShortcutKeyEvent): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");

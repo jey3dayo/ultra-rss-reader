@@ -43,7 +43,7 @@ const motionTextClassNames: Record<MotionTextVariant, string> = {
   subtitle: `max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft ${PHRASE_AWARE_TEXT_CLASS_NAME}`,
 };
 
-export function MotionText({ as: Component, children, phase, variant, className, testId }: MotionTextProps) {
+function MotionText({ as: Component, children, phase, variant, className, testId }: MotionTextProps) {
   return (
     <Component
       data-testid={testId}
@@ -71,7 +71,7 @@ type WorkspaceHeaderBackButtonProps = {
   onClick?: () => void;
 };
 
-export function WorkspaceHeaderBackButton({ ariaLabel, className, onClick }: WorkspaceHeaderBackButtonProps) {
+function WorkspaceHeaderBackButton({ ariaLabel, className, onClick }: WorkspaceHeaderBackButtonProps) {
   return (
     <WorkspaceHeaderActionButton aria-label={ariaLabel} onClick={onClick} className={className}>
       <ChevronLeft className="size-4" />
@@ -202,11 +202,7 @@ type WorkspaceHeaderContextRowProps = {
   useDesktopOverlay: boolean;
 };
 
-export function WorkspaceHeaderContextRow({
-  contentMotionPhase,
-  eyebrow,
-  useDesktopOverlay,
-}: WorkspaceHeaderContextRowProps) {
+function WorkspaceHeaderContextRow({ contentMotionPhase, eyebrow, useDesktopOverlay }: WorkspaceHeaderContextRowProps) {
   return (
     <div
       className={cn(
@@ -239,7 +235,7 @@ type WorkspaceHeaderNavigationRowProps = {
   useDesktopOverlay: boolean;
 };
 
-export function WorkspaceHeaderNavigationRow({
+function WorkspaceHeaderNavigationRow({
   backLabel,
   contentMotionPhase,
   hasBackAction,
@@ -285,11 +281,7 @@ type WorkspaceHeaderSubtitleProps = {
   useDesktopOverlay: boolean;
 };
 
-export function WorkspaceHeaderSubtitle({
-  contentMotionPhase,
-  subtitle,
-  useDesktopOverlay,
-}: WorkspaceHeaderSubtitleProps) {
+function WorkspaceHeaderSubtitle({ contentMotionPhase, subtitle, useDesktopOverlay }: WorkspaceHeaderSubtitleProps) {
   return (
     <div
       className={cn(

@@ -12,7 +12,7 @@ export function logPreferenceRuntimeFailure(message: string, error: unknown): vo
   console.error(message, error);
 }
 
-export function logPreferenceStorageFailureOnce(message: string, error: unknown): void {
+function logPreferenceStorageFailureOnce(message: string, error: unknown): void {
   if (preferenceStorageFailureMessages.has(message)) {
     return;
   }
@@ -76,23 +76,23 @@ export function updateResolvedTheme(root: HTMLElement, resolvedTheme: "light" | 
   root.classList.toggle("dark", resolvedTheme === "dark");
   root.style.colorScheme = resolvedTheme;
 }
-export const fontStyleClasses = {
+const fontStyleClasses = {
   sans_serif: "font-sans",
   serif: "font-serif",
   monospace: "font-mono",
 } satisfies Record<FontStylePreference, string>;
 
-export const fontSizeClasses = {
+const fontSizeClasses = {
   small: "text-sm",
   medium: "text-base",
   large: "text-lg",
 } satisfies Record<FontSizePreference, string>;
 
-export function isFontStylePreference(value: string): value is FontStylePreference {
+function isFontStylePreference(value: string): value is FontStylePreference {
   return objectHasOwnProperty.call(fontStyleClasses, value);
 }
 
-export function isFontSizePreference(value: string): value is FontSizePreference {
+function isFontSizePreference(value: string): value is FontSizePreference {
   return objectHasOwnProperty.call(fontSizeClasses, value);
 }
 

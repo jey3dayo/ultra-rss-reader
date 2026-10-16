@@ -30,7 +30,7 @@ export type KeyboardContext = {
   platformKind?: PlatformKind;
 };
 
-export function nextViewMode(current: ViewMode): ViewMode {
+function nextViewMode(current: ViewMode): ViewMode {
   const modes: ViewMode[] = ["all", "unread", "starred"];
   const currentIndex = modes.indexOf(current);
   return modes[(currentIndex + 1) % modes.length];

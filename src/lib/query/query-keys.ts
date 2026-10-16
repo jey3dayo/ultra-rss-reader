@@ -5,7 +5,7 @@ import type { ReaderFilter } from "@/lib/reader/reader-query";
 
 export type QueryInvalidationKey = ReturnType<typeof createSchemaVersionedQueryKey<string>>;
 export type ReaderArticleModeOptions = Readonly<{ mode: ReaderFilter }>;
-export function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions {
+function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions {
   return { mode };
 }
 

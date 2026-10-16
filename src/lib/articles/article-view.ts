@@ -86,11 +86,7 @@ export type BuildArticleViewSummaryParams = {
   allFeedArticles: ArticleDto[] | undefined;
 };
 
-export type BuildArticleViewSummaryError =
-  | "summary_not_available"
-  | "feed_not_found"
-  | "folder_not_found"
-  | "tag_not_found";
+type BuildArticleViewSummaryError = "summary_not_available" | "feed_not_found" | "folder_not_found" | "tag_not_found";
 
 function buildArticleViewSummaryStats(filteredArticles: ArticleDto[]): ArticleViewSummaryStats {
   const visibleFeedIds = new Set(filteredArticles.map((article) => article.feed_id));

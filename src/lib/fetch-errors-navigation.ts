@@ -36,15 +36,15 @@ export function createFetchErrorsToastAction(accountId: string, label: string): 
   };
 }
 
-export function getFetchErrorsAccount(accountId: string): AccountDto | undefined {
+function getFetchErrorsAccount(accountId: string): AccountDto | undefined {
   return queryClient.getQueryData<AccountDto[]>(queryKeys.accounts.root)?.find((account) => account.id === accountId);
 }
 
-export function isLocalFetchErrorsAccount(account: AccountDto | undefined): boolean {
+function isLocalFetchErrorsAccount(account: AccountDto | undefined): boolean {
   return account?.kind.toLowerCase() === "local";
 }
 
-export const fetchErrorsNavigationScreenKeys = [
+const fetchErrorsNavigationScreenKeys = [
   "selectedAccountId",
   "selection",
   "selectedArticleId",
@@ -65,20 +65,17 @@ export const fetchErrorsNavigationScreenKeys = [
   "isAddFeedDialogOpen",
 ] as const satisfies readonly (keyof ReturnType<typeof useUiStore.getState>)[];
 
-export type FetchErrorsNavigationScreenKey = (typeof fetchErrorsNavigationScreenKeys)[number];
-export type FetchErrorsNavigationScreenState = Pick<
-  ReturnType<typeof useUiStore.getState>,
-  FetchErrorsNavigationScreenKey
-> & {
+type FetchErrorsNavigationScreenKey = (typeof fetchErrorsNavigationScreenKeys)[number];
+type FetchErrorsNavigationScreenState = Pick<ReturnType<typeof useUiStore.getState>, FetchErrorsNavigationScreenKey> & {
   confirmDialogOpen: boolean;
 };
 
-export type FetchErrorsNavigationScreenGuard = {
+type FetchErrorsNavigationScreenGuard = {
   isUnchanged: () => boolean;
   stop: () => void;
 };
 
-export function captureFetchErrorsNavigationScreen(
+function captureFetchErrorsNavigationScreen(
   state: ReturnType<typeof useUiStore.getState>,
 ): FetchErrorsNavigationScreenState {
   return {
@@ -104,7 +101,7 @@ export function captureFetchErrorsNavigationScreen(
   };
 }
 
-export function areFetchErrorsNavigationScreensEqual(
+function areFetchErrorsNavigationScreensEqual(
   left: FetchErrorsNavigationScreenState,
   right: FetchErrorsNavigationScreenState,
 ): boolean {
@@ -120,7 +117,7 @@ export function areFetchErrorsNavigationScreensEqual(
   });
 }
 
-export function areReaderSelectionsEqual(
+function areReaderSelectionsEqual(
   left: ReturnType<typeof useUiStore.getState>["selection"],
   right: ReturnType<typeof useUiStore.getState>["selection"],
 ): boolean {
@@ -137,7 +134,7 @@ export function areReaderSelectionsEqual(
   );
 }
 
-export function createFetchErrorsNavigationScreenGuard(): FetchErrorsNavigationScreenGuard {
+function createFetchErrorsNavigationScreenGuard(): FetchErrorsNavigationScreenGuard {
   const initialScreen = captureFetchErrorsNavigationScreen(useUiStore.getState());
   let changed = false;
   let stopped = false;
@@ -169,11 +166,11 @@ export function createFetchErrorsNavigationScreenGuard(): FetchErrorsNavigationS
   };
 }
 
-export function isFetchErrorsNavigationCurrent(generation: number, screen: FetchErrorsNavigationScreenGuard): boolean {
+function isFetchErrorsNavigationCurrent(generation: number, screen: FetchErrorsNavigationScreenGuard): boolean {
   return generation === fetchErrorsNavigationGeneration && screen.isUnchanged();
 }
 
-export async function openFetchErrorsWorkspace(
+async function openFetchErrorsWorkspace(
   accountId: string,
   generation: number,
   screen: FetchErrorsNavigationScreenGuard,
@@ -224,7 +221,7 @@ export async function openFetchErrorsWorkspace(
   useUiStore.getState().openSubscriptionsIndex(currentReturnState, { accountId, summaryFilter: "fetch_errors" });
 }
 
-export async function reportFetchErrorsNavigationFailure(
+async function reportFetchErrorsNavigationFailure(
   error: unknown,
   generation: number,
   screen: FetchErrorsNavigationScreenGuard,

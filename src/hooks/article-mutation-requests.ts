@@ -47,7 +47,7 @@ export type ArticleMutationRequestToken = {
   order: number;
 };
 
-export type ArticleMutationRequestRecord<TVariables> = {
+type ArticleMutationRequestRecord<TVariables> = {
   token: ArticleMutationRequestToken;
   variables: TVariables;
   status: "pending" | "success" | "failure";

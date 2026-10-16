@@ -1,7 +1,7 @@
 import type { RuntimeDiagnosticPolicy, RuntimeDiagnosticPolicyId } from "./runtime-diagnostic-policies";
 import { RUNTIME_DIAGNOSTIC_POLICIES } from "./runtime-diagnostic-policies";
 
-export type { RuntimeDiagnosticPolicy, RuntimeDiagnosticPolicyId } from "./runtime-diagnostic-policies";
+export type { RuntimeDiagnosticPolicyId } from "./runtime-diagnostic-policies";
 export { RUNTIME_DIAGNOSTIC_POLICIES } from "./runtime-diagnostic-policies";
 
 const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`。、，．；：！？]+/gi;
