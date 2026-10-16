@@ -280,10 +280,91 @@ export function resolveArticleSummaryWebsiteLabel(feed: FeedDto): string | null 
   return href ? resolveSiteHostLabel(feed.site_url, feed.url) : null;
 }
 
-export function buildArticleViewSummaryResult(
+type SummaryResult = Result.Result<ArticleViewSummaryState, BuildArticleViewSummaryError>;
+type SummaryStats = ReturnType<typeof buildArticleViewSummaryStats>;
+
+function buildFeedSummaryResult(
+  feedId: string,
   params: BuildArticleViewSummaryParams,
-): Result.Result<ArticleViewSummaryState, BuildArticleViewSummaryError> {
-  const { selection, feeds, folders, tags, filteredArticles, allFeedArticles } = params;
+  summaryStats: SummaryStats,
+): SummaryResult {
+  const { feeds, allFeedArticles } = params;
+  const feed = feeds?.find((candidate) => candidate.id === feedId);
+  const latestFeedArticleResult = findLatestArticle(allFeedArticles?.filter((article) => article.feed_id === feedId));
+  const latestFeedArticle = Result.isSuccess(latestFeedArticleResult) ? Result.unwrap(latestFeedArticleResult) : null;
+
+  return feed
+    ? Result.succeed({
+        kind: "feed",
+        feed,
+        articleCount: summaryStats.articleCount,
+        feedCount: 1,
+        todayArticleCount: summaryStats.todayArticleCount,
+        weekArticleCount: summaryStats.weekArticleCount,
+        recentFeeds: buildRecentSummaryFeeds({
+          feeds,
+          feedIds: new Set([feed.id]),
+        }),
+        latestArticleTitle: latestFeedArticle?.title ?? null,
+        latestArticlePublishedAt: latestFeedArticle?.published_at ?? null,
+      })
+    : Result.fail("feed_not_found");
+}
+
+function collectFolderFeedIds(feeds: FeedDto[] | undefined, folderId: string): Set<string> {
+  const folderFeedIds = new Set<string>();
+  for (const feed of feeds ?? []) {
+    if (feed.folder_id === folderId) {
+      folderFeedIds.add(feed.id);
+    }
+  }
+  return folderFeedIds;
+}
+
+function buildFolderSummaryResult(
+  folderId: string,
+  params: BuildArticleViewSummaryParams,
+  summaryStats: SummaryStats,
+): SummaryResult {
+  const { feeds, folders } = params;
+  const folder = folders?.find((candidate) => candidate.id === folderId);
+  if (!folder) {
+    return Result.fail("folder_not_found");
+  }
+
+  return Result.succeed({
+    kind: "folder",
+    folder,
+    feedCount: countFeedsInFolder(feeds, folder.id),
+    unreadCount: countUnreadFeedsInFolder(feeds, folder.id),
+    articleCount: summaryStats.articleCount,
+    todayArticleCount: summaryStats.todayArticleCount,
+    weekArticleCount: summaryStats.weekArticleCount,
+    recentFeeds: buildRecentSummaryFeeds({
+      feeds,
+      feedIds: collectFolderFeedIds(feeds, folder.id),
+    }),
+    latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
+  });
+}
+
+function buildArticleSetSummaryFields(
+  params: BuildArticleViewSummaryParams,
+  summaryArticles: ArticleDto[],
+  summaryStats: SummaryStats,
+) {
+  return {
+    ...summaryStats,
+    unreadCount: params.filteredArticles.filter((article) => !article.is_read).length,
+    recentFeeds: buildRecentSummaryFeeds({
+      feeds: params.feeds,
+      feedIds: buildFeedIdsFromArticles(summaryArticles),
+    }),
+  };
+}
+
+export function buildArticleViewSummaryResult(params: BuildArticleViewSummaryParams): SummaryResult {
+  const { selection, tags, filteredArticles } = params;
   if (selection.type === "all") {
     return Result.fail("summary_not_available");
   }
@@ -292,57 +373,11 @@ export function buildArticleViewSummaryResult(
   const summaryStats = buildArticleViewSummaryStats(summaryArticles);
 
   if (selection.type === "feed") {
-    const feed = feeds?.find((candidate) => candidate.id === selection.feedId);
-    const latestFeedArticleResult = findLatestArticle(
-      allFeedArticles?.filter((article) => article.feed_id === selection.feedId),
-    );
-    const latestFeedArticle = Result.isSuccess(latestFeedArticleResult) ? Result.unwrap(latestFeedArticleResult) : null;
-
-    return feed
-      ? Result.succeed({
-          kind: "feed",
-          feed,
-          articleCount: summaryStats.articleCount,
-          feedCount: 1,
-          todayArticleCount: summaryStats.todayArticleCount,
-          weekArticleCount: summaryStats.weekArticleCount,
-          recentFeeds: buildRecentSummaryFeeds({
-            feeds,
-            feedIds: new Set([feed.id]),
-          }),
-          latestArticleTitle: latestFeedArticle?.title ?? null,
-          latestArticlePublishedAt: latestFeedArticle?.published_at ?? null,
-        })
-      : Result.fail("feed_not_found");
+    return buildFeedSummaryResult(selection.feedId, params, summaryStats);
   }
 
   if (selection.type === "folder") {
-    const folder = folders?.find((candidate) => candidate.id === selection.folderId);
-    if (!folder) {
-      return Result.fail("folder_not_found");
-    }
-
-    const folderFeedIds = new Set<string>();
-    for (const feed of feeds ?? []) {
-      if (feed.folder_id === folder.id) {
-        folderFeedIds.add(feed.id);
-      }
-    }
-
-    return Result.succeed({
-      kind: "folder",
-      folder,
-      feedCount: countFeedsInFolder(feeds, folder.id),
-      unreadCount: countUnreadFeedsInFolder(feeds, folder.id),
-      articleCount: summaryStats.articleCount,
-      todayArticleCount: summaryStats.todayArticleCount,
-      weekArticleCount: summaryStats.weekArticleCount,
-      recentFeeds: buildRecentSummaryFeeds({
-        feeds,
-        feedIds: folderFeedIds,
-      }),
-      latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
-    });
+    return buildFolderSummaryResult(selection.folderId, params, summaryStats);
   }
 
   if (selection.type === "tag") {
@@ -350,28 +385,17 @@ export function buildArticleViewSummaryResult(
     if (!tag) {
       return Result.fail("tag_not_found");
     }
-
     return Result.succeed({
       kind: "tag",
       tag,
-      ...summaryStats,
-      unreadCount: filteredArticles.filter((article) => !article.is_read).length,
-      recentFeeds: buildRecentSummaryFeeds({
-        feeds,
-        feedIds: buildFeedIdsFromArticles(summaryArticles),
-      }),
+      ...buildArticleSetSummaryFields(params, summaryArticles, summaryStats),
     });
   }
 
   return Result.succeed({
     kind: "smart",
     smartKind: selection.kind,
-    ...summaryStats,
-    unreadCount: filteredArticles.filter((article) => !article.is_read).length,
-    recentFeeds: buildRecentSummaryFeeds({
-      feeds,
-      feedIds: buildFeedIdsFromArticles(summaryArticles),
-    }),
+    ...buildArticleSetSummaryFields(params, summaryArticles, summaryStats),
   });
 }
 
