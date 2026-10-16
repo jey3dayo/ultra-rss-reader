@@ -119,7 +119,7 @@ gate mechanics, and per-rule finding classifications, and it loads on its own on
 
 ## Accepted Rust File-Length Exceptions
 
-- `src-tauri/src/service/sync_scheduler/mod.rs` remains at 551 production lines after the responsibility split. This is an accepted exception decided on 2026-08-29: it is less than 10% above the 500-line guideline, and further splitting would make startup wiring less readable.
+- None. `src-tauri/src/service/sync_scheduler/mod.rs` (previously accepted at 551 production lines on 2026-08-29) was split into `accounts.rs`, `lifecycle.rs`, `outcomes.rs`, and a `tests/` directory on 2026-10-16 and is now under 500 lines.
 
 ## Similarity Report Baseline
 
