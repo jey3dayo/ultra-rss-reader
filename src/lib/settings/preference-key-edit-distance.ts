@@ -1,4 +1,3 @@
-// Bounded edit-distance helper used for preference key typo detection.
 export function getEditDistanceWithinLimit(source: string, target: string, limit: number): number {
   if (Math.abs(source.length - target.length) > limit) {
     return limit + 1;

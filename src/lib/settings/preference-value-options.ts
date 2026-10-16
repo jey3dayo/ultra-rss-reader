@@ -1,4 +1,3 @@
-// Preference value option tuples/types.
 import { i18nResourceLocales } from "@/lib/i18n-resources";
 
 export const themePreferenceValues = ["light", "dark", "system"] as const;

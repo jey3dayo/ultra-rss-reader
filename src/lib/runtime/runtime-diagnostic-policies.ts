@@ -1,5 +1,3 @@
-// Runtime diagnostic policy ids and the per-policy logging/redaction table.
-
 export type RuntimeDiagnosticPolicyId =
   | "app-action-window"
   | "app-action-sync"
