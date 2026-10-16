@@ -194,7 +194,7 @@ describe("use-updater background download flow", () => {
         });
         expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
           "今すぐ再起動",
-          "閉じる",
+          "後で",
         ]);
       } finally {
         vi.useRealTimers();
@@ -461,7 +461,7 @@ describe("use-updater background download flow", () => {
       });
       expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
         "もう一度確認",
-        "閉じる",
+        "後で",
       ]);
     });
 
@@ -574,7 +574,7 @@ describe("use-updater background download flow", () => {
       });
       expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
         "Restart now",
-        "Close",
+        "Later",
       ]);
 
       mockCheckForUpdate.mockResolvedValueOnce(Result.succeed(null));

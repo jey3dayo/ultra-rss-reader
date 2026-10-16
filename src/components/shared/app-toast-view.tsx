@@ -40,6 +40,10 @@ export function AppToastView({
   const { message, progress, actions, variant } = toastMessage;
   const hasProgress = progress !== undefined;
   const showInBrowserRail = position === "fixed" && placement === APP_TOAST_PLACEMENTS.browserRail;
+  // A decision toast (primary + trailing dismiss action) uses the form action-pair pattern:
+  // right-aligned, quiet secondary first, primary-filled CTA last, and no duplicate corner ×.
+  const isDecision = (actions?.length ?? 0) >= 2;
+  const orderedActions = isDecision && actions ? [...actions.slice(1), actions[0]] : (actions ?? []);
   void syncActionState;
 
   return (
@@ -65,49 +69,75 @@ export function AppToastView({
     >
       <div className="flex items-center gap-2">
         <span className="min-w-0 flex-1 break-words leading-snug">{message}</span>
-        <Button
-          type="button"
-          onClick={onClose}
-          aria-label={t("close")}
-          variant="ghost"
-          size="icon-sm"
-          className={cn("ml-1 size-8 shrink-0 text-foreground-soft", hasProgress && "justify-end border-0")}
-        >
-          {hasProgress ? <X aria-hidden="true" className="size-4" viewBox="5 5 14 14" strokeWidth={2} /> : "×"}
-        </Button>
+        {!isDecision && (
+          <Button
+            type="button"
+            onClick={onClose}
+            aria-label={t("close")}
+            variant="ghost"
+            size="icon-sm"
+            className={cn("ml-1 size-8 shrink-0 text-foreground-soft", hasProgress && "justify-end border-0")}
+          >
+            {hasProgress ? <X aria-hidden="true" className="size-4" viewBox="5 5 14 14" strokeWidth={2} /> : "×"}
+          </Button>
+        )}
       </div>
       {progress !== undefined && (
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-1/72">
           {progress != null ? (
             <div
               className="h-full w-full origin-left bg-primary transition-transform duration-200 motion-reduce:transition-none"
-              style={{ transform: `scaleX(${clampProgressWidth(progress) / 100})` }}
+              style={{
+                transform: `scaleX(${clampProgressWidth(progress) / 100})`,
+              }}
             />
           ) : (
             <div className="h-full w-1/3 animate-indeterminate rounded-full bg-primary" />
           )}
         </div>
       )}
-      {actions && actions.length > 0 && (
-        <div className={cn("flex items-center gap-2", variant === "update" && "-ml-3 gap-3")}>
-          {actions.map((action, index) => (
-            <Button
-              key={action.label}
-              type="button"
-              onClick={action.onClick}
-              disabled={resolveActionDisabled(action.disabled)}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "min-h-8 px-3 py-1 text-xs font-medium text-primary hover:text-primary",
-                variant === "update" && index > 0 && "text-foreground-soft hover:text-foreground",
-              )}
-            >
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      )}
+      {orderedActions.length > 0 &&
+        (isDecision ? (
+          <div className="flex items-center justify-end gap-2" data-testid={`${testId}-action-pair`}>
+            {orderedActions.map((action, index) => {
+              const isPrimary = index === orderedActions.length - 1;
+              return (
+                <Button
+                  key={action.label}
+                  type="button"
+                  onClick={action.onClick}
+                  disabled={resolveActionDisabled(action.disabled)}
+                  variant={isPrimary ? "default" : "outline"}
+                  size="sm"
+                  data-action-role={isPrimary ? "primary" : "secondary"}
+                  className={cn(
+                    "min-h-8 min-w-16 rounded-md px-3 text-xs font-medium",
+                    isPrimary &&
+                      "border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+                  )}
+                >
+                  {action.label}
+                </Button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={cn("flex items-center gap-2", variant === "update" && "-ml-3 gap-3")}>
+            {orderedActions.map((action) => (
+              <Button
+                key={action.label}
+                type="button"
+                onClick={action.onClick}
+                disabled={resolveActionDisabled(action.disabled)}
+                variant="ghost"
+                size="sm"
+                className="min-h-8 px-3 py-1 text-xs font-medium text-primary hover:text-primary"
+              >
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        ))}
     </div>
   );
 }

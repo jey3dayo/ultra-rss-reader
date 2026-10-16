@@ -56,6 +56,7 @@ const sharedStoryModules = import.meta.glob<unknown>("/src/components/shared/*.s
 });
 
 const requiredSharedStoryExportsByFilePath = {
+  "/src/components/shared/app-toast-view.stories.tsx": ["SingleActionInformational", "UpdateReadyDecision"],
   "/src/components/shared/confirm-dialog-view.stories.tsx": [
     "Default",
     "DestructiveWithHold",
