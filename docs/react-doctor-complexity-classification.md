@@ -102,6 +102,8 @@ shared rule name, shared age, or "not an outlier".
 
 ### A. Conditional-surface fan
 
+**Retired 2026-10-16 (owner decision).** `ArticleToolbarActionStrip` (#460), `FeedDetailPanel` (#461) and `SubscriptionDetailPane` (#454) were split along the rule's remedy without scattering the visibility contract. New findings of this shape are no longer accepted by family; split them, or record a fresh per-finding reason.
+
 One return whose complexity is N sibling optional slots and visibility guards describing a single
 screen, panel, or card. Extracting each branch yields single-call-site components and moves "what is
 visible when" out of the one place a reader looks for it; the guards share the props they read, so
@@ -109,12 +111,16 @@ each extracted piece re-receives most of the parent's props.
 
 ### B. Shared primitive variant matrix
 
+**Retired 2026-10-16 (owner decision).** `LabeledInputRow` was split in #456 (36/35 → 11/9) with its ARIA wiring kept in one place and covered by tests, and `ConfirmDialogView` followed. New findings of this shape are no longer accepted by family; split them, or record a fresh per-finding reason.
+
 A shared `src/components/shared` or design-system component whose public API is a matrix of optional
 props and placement/tone variants. Splitting by variant duplicates the id derivation, ARIA wiring,
 and event plumbing that make the variants behave identically — a correctness risk larger than the
 complexity it removes.
 
 ### C. Settings-view availability chain
+
+Still standing after the 2026-10-16 re-measure: none of its members has been split and all three still report (see the re-measure table). The props-shape change below remains the way out.
 
 A settings view where feature or action availability is decided by long boolean chains over the same
 flags. Two shapes occur, and `AccountSyncSectionView` contains both: a conjunction asserting that a
@@ -135,6 +141,8 @@ cannot be collapsed, only moved to another hook that still calls all of them. Se
 
 ### E. Container state-resolution chain
 
+**Retired 2026-10-16 (owner decision).** `SettingsModalContent`, the family's reference row, was split in #459 (34/38 → 6/3). New findings of this shape are no longer accepted by family; split them, or record a fresh per-finding reason.
+
 A container whose derivations are sequentially dependent: each step consumes the previous one. These
 are not independent branches, so the rule's phrasing does not apply directly. Being extractable as
 one hook is not the test: `useAccountDetailViewProps` already was one, and Issue #256 found that a
@@ -142,6 +150,8 @@ one hook is not the test: `useAccountDetailViewProps` already was one, and Issue
 function before assigning a finding here.
 
 ### F. Platform window-chrome matrix
+
+**Retired 2026-10-16 (owner decision).** `WorkspaceHeader`, the only member, was split in #470/#471 (33/33 → 6/5) without triplicating the header content. New findings of this shape are no longer accepted by family; split them, or record a fresh per-finding reason.
 
 Branching on macOS overlay titlebar vs compact desktop vs browser preview, governed by
 [../.claude/rules/tauri-window-chrome.md](../.claude/rules/tauri-window-chrome.md). Splitting per
@@ -163,7 +173,7 @@ structure does not fit any family yet and the rationale says why.
 | `src/components/debug/focus-debug-hud-view.tsx:60` | `FocusDebugHudView` | 24 | 28 | G | accepted-risk | Debug HUD body. Reached only through `lazy()` in `app-shell.tsx` behind `debug_browser_hud === "true"`, so it is out of the default render path entirely. The branches are the diagnostic states it exists to render (expanded, geometry shown, position cycling, trace present); splitting them scatters the HUD's own contract without shrinking shipped work. |
 | `src/components/reader/article-list-item.tsx:25` | `ArticleListItem` | 30 | 28 | A | accepted-risk | One article row. All data derivation is already extracted to `resolveArticleListItemPresentation`; the remaining count is `cn()` conditional classes for selection style, active pane, read/starred, and preview size. This is the app's highest-frequency render and the list is not virtualized, so following the recommendation would add component instances per row — the remedy makes the hot path worse. See the observation below for the separate, real hot-path finding here. |
 | `src/components/reader/article-list-screen-view.tsx:59` | `ArticleListScreenView` | 18 | 41 | A | accepted-risk (no longer reported: #379) | Loading / empty / list screen states as three early returns. Cognitive-dominant at nesting 4 because the empty branch nests `isHiddenEmptyState` / `isSetupEmptyState` / default ternaries inside a passive-card layout ternary. The three empty variants share the same message, description, and action props and must stay visually consistent, so the branch is the empty-state contract itself. This is the strongest extraction candidate in family A if a future change touches it. |
-| `src/components/reader/article-toolbar-view.tsx:165` | `ArticleToolbarActionStrip` | 29 | 36 | A | accepted-risk | Toolbar actions under a mobile/wide duality, where each action is gated by a `show*` × `can*` pair and some actions relocate into an overflow menu. The mobile and desktop arms must expose the same action set with the same enablement, which is exactly what reading them side by side checks. |
+| `src/components/reader/article-toolbar-view.tsx:165` | `ArticleToolbarActionStrip` | 29 | 36 | A | resolved (split in #460; 6/5 on 2026-10-16) | Toolbar actions under a mobile/wide duality, where each action is gated by a `show*` × `can*` pair and some actions relocate into an overflow menu. The mobile and desktop arms must expose the same action set with the same enablement, which is exactly what reading them side by side checks. |
 | `src/components/reader/command-palette-resource-groups.tsx:44` | `CommandPaletteResourceGroups` | 16 | 14 | A | accepted-risk | Cyclomatic-only. Five sibling result groups, each `visible && length > 0`, over a recent/search display-state switch. The groups share `getCommandItemValue` and the recent/filtered selection; splitting each into a component repeats that plumbing five times for one call site each. |
 | `src/components/reader/feed-tree-folder-section.tsx:38` | `FeedTreeFolderSection` | 17 | 15 | A | accepted-risk | Cyclomatic-only. A folder row whose optional surfaces are drag-drop overlay, selection indicator, context menu, and trailing unread count, each guarded independently. The drop-target data attributes are spread conditionally onto three different elements from the same `canDragFeeds` flag; splitting risks the three drifting apart. |
 | `src/components/reader/feed-tree-row.tsx:69` | `FeedTreeRow` | 16 | 15 | A | accepted-risk | Classified 2026-09-18 by the Issue #324 set comparison, which is what found it unclassified; measured at `742a6919b`. Cyclomatic-dominant at nesting 1. One sidebar feed row whose optional surfaces are drag handle, favicon, unread trailing, selection indicator and context menu — but the count is dominated by `feed.isLeaving`, threaded through nine sibling guards: `canDragThisFeed`, `isCurrentSelection`, `registerSidebarNavigationTarget`, the conditional `tabIndex={-1}` spread, the leaving-marker attribute spread, and four handler gates (`onContextMenu`, `onKeyDownCapture`, `onClick`, `onMouseDown`). Those nine must agree: [../.claude/rules/motion-exit-animation.md](../.claude/rules/motion-exit-animation.md) requires a leaving row to leave the tab order, the navigation registry and every pointer path together, and the two comments in the body record why `inert` and a plain `tabIndex={undefined}` do not work here. A split that lets one guard drift leaves a departing row keyboard-reachable or focusable mid-animation, which is the defect the contract exists to prevent. |
@@ -176,16 +186,51 @@ structure does not fit any family yet and the rationale says why.
 | `src/components/settings/account-detail/sync-section-view.tsx:62` | `AccountSyncSectionView` | 18 | 19 | C | accepted-risk | Sync settings section with optional progress, status rows, and three optional action buttons that share one `isSyncing \|\| isDevCredentialsRecoveryInFlight` disabled rule. That shared rule is why the buttons are rendered together. |
 | `src/components/settings/add-account/account-config-form.tsx:136` | `AccountConfigForm` | 17 | 17 | E | accepted-risk | The only finding whose complexity is async side-effect control rather than rendering. `isCurrentSubmitSnapshot` is a seven-term latest-only guard and the failure path classifies retryable / auth / generic errors. Both are required by [../.claude/rules/async-side-effect-policy.md](../.claude/rules/async-side-effect-policy.md); splitting the guard away from the submit lifecycle weakens the stale-completion contract it exists to enforce. |
 | `src/components/settings/data-settings-view.tsx:52` | `DataSettingsView` | 20 | 11 | C | accepted-risk | The most cyclomatic-dominant row (cognitive 11, well under the threshold). The count is action availability, not conditional display: there is no `{cond && <Slot/>}` fan here. Lines 99-107 build five availability booleans as disjunctions of the shared busy flags `backingUp`, `vacuuming`, and `openingLogDir`, and those feed the `disabled` prop of five action buttons. Label fallbacks such as `{vacuumActionLabel ?? vacuumLabel}` are defaulting, not slots. Four `*ActionUnavailable` booleans are disjunctions of three, four, five, and five terms over the same busy flags. They are three distinct expressions across four names: `settingsProfileActionUnavailable` and `backupActionUnavailable` are the same five terms. Reading them adjacently is how both the differences and that duplication stay visible. |
-| `src/components/settings/settings-modal.tsx:192` | `SettingsModalContent` | 34 | 38 | E | accepted-risk | Sequential resolution of which account the settings modal shows and whether it is locked: `activeSetupAccountId` → `setupVisibleAccount` → `hasSelectedVisibleAccount` → `resolvedSettingsAccountId` → `selectedVisibleAccount` → `isSetupLocked`, each consuming the previous. Not independent branches. The whole chain is extractable as one hook, which is the same work as Issue #256; doing it here without that design would just move the number. |
+| `src/components/settings/settings-modal.tsx:192` | `SettingsModalContent` | 34 | 38 | E | resolved (split in #459; 6/3 on 2026-10-16) | Sequential resolution of which account the settings modal shows and whether it is locked: `activeSetupAccountId` → `setupVisibleAccount` → `hasSelectedVisibleAccount` → `resolvedSettingsAccountId` → `selectedVisibleAccount` → `isSetupLocked`, each consuming the previous. Not independent branches. The whole chain is extractable as one hook, which is the same work as Issue #256; doing it here without that design would just move the number. |
 | `src/components/settings/hooks/account-detail/use-account-detail-view-props.tsx:55` | `useAccountDetailViewProps` | 26 | 34 | — | accepted-risk (no longer reported: split out in #331) | Classified 2026-09-18, after Issue #256's split; re-measured against the source on the same date. Four derivations — the sync-progress value, its summary label, the current-account label, and the verification status — are independent, each read straight from `account` / `isSyncing` / `syncProgress` with no dependency on one another. Three short chains are sequential — `isSetupSyncing`/`isSetupFailed` into `isSetupActive`, `quarantineReason` into `isQuarantined` into `canShowDevCredentialsRecovery`, and `lastSuccessLabel` into `summaryDetail` into `headerSummary` — and none of them dominates the function. No one of those chains accounts for the count, and the family E definition above requires the independent surface to be gone, not merely reduced — four independent derivations alongside three chains none of which dominates is not that. The four section surfaces that used to ride along here (46 `controller` members with zero overlap across them) are now `build-general-section` / `build-credentials-section` / `build-sync-section` / `build-danger-zone-section`, and none of them reports a finding; that split is what took this from 85/106 to 26/34. #331 moved the sync-progress derivations into `build-sync-section` and the header summary into a new `build-header-summary`, the only consumer of each, which cleared the finding without assigning a family. |
 | `src/components/shared/app-toast-view.tsx:29` | `AppToastView` | 19 | 16 | A | accepted-risk | Toast surface across fixed/static positioning, the two `APP_TOAST_PLACEMENTS` values, and an update variant, plus optional progress and action rows. Cyclomatic-dominant at nesting 1: the placement and variant class picks are siblings in one `cn()` call, and their mutual exclusivity is only checkable while they are adjacent. |
 | `src/components/shared/confirm-dialog-view.tsx:172` | `ConfirmDialogView` | 16 | 16 | B | accepted-risk (no longer reported: inline disable added in #279) | Variant tone table plus hold-to-confirm, which is enabled only for the destructive variant and threads `holdEnabled` through eleven references in the body: its definition, two derived uses (`showHoldHint` and the `useHoldToConfirm` option), five pointer and blur handlers, one spread data attribute, one class term, and one conditional fill element. Those must all agree; a split that lets them disagree turns a 2s destructive confirmation into a single click. |
-| `src/components/shared/feed-detail-panel.tsx:131` | `FeedDetailPanel` | 34 | 35 | A | accepted-risk | Shared feed panel with fourteen optional top-level props crossed with a `card` / `low-wire` surface, which itself appears in eighteen `isLowWire` references, so most slots contribute two branches — one for presence, one for surface. Extracting slots scatters the low-wire pairing, and a surface change would then have to be applied in every extracted file to stay coherent. |
-| `src/components/shared/labeled-input-row.tsx:43` | `LabeledInputRow` | 35 | 36 | B | accepted-risk | Highest non-excluded finding, and entirely an optional-prop matrix: 29 optional props out of 32 members, inline vs inside action placement, icon vs text action, and error text. The `??` defaulting chains and the `aria-errormessage` / `aria-invalid` / `aria-describedby` / generated-id wiring are what make every consumer's row behave the same. Splitting by variant duplicates that accessibility wiring across files. |
+| `src/components/shared/feed-detail-panel.tsx:131` | `FeedDetailPanel` | 34 | 35 | A | resolved (split in #461; 9/7 on 2026-10-16) | Shared feed panel with fourteen optional top-level props crossed with a `card` / `low-wire` surface, which itself appears in eighteen `isLowWire` references, so most slots contribute two branches — one for presence, one for surface. Extracting slots scatters the low-wire pairing, and a surface change would then have to be applied in every extracted file to stay coherent. |
+| `src/components/shared/labeled-input-row.tsx:43` | `LabeledInputRow` | 35 | 36 | B | resolved (split in #456; 11/9 on 2026-10-16) | Highest non-excluded finding, and entirely an optional-prop matrix: 29 optional props out of 32 members, inline vs inside action placement, icon vs text action, and error text. The `??` defaulting chains and the `aria-errormessage` / `aria-invalid` / `aria-describedby` / generated-id wiring are what make every consumer's row behave the same. Splitting by variant duplicates that accessibility wiring across files. |
 | `src/components/shared/tag-color-picker.tsx:19` | `TagColorPicker` | 20 | 20 | B | accepted-risk | WAI-ARIA radiogroup with roving tabindex: Home/End/Arrow traversal, wrap-around, index normalization when the current color is not in the option list, and disabled gating. These are one keyboard contract over one ref array, not independent branches; a `useRovingRadioGroup` extraction is possible but would separate the traversal state from the inputs that own it. |
-| `src/components/shared/workspace-header.tsx:93` | `WorkspaceHeader` | 33 | 33 | F | accepted-risk | Three window-chrome modes (macOS overlay, compact desktop, browser preview) decide drag-region placement, eyebrow position, back-button visibility, and vertical rhythm, alongside a content-change motion effect. The two two-line comments in the body record why the drag surfaces are layered the way they are; per-platform splitting triplicates the header content. |
-| `src/components/subscriptions-index/subscription-detail-pane.tsx:90` | `SubscriptionDetailPane` | 16 | 20 | A | accepted-risk | Assembles `FeedDetailPanel` props from a nullable row, nullable metrics, and a nullable detail candidate. Nesting 3 is optional chaining inside one props object literal — there is no independent branch to extract, only a shorter way to write the same nullability. |
+| `src/components/shared/workspace-header.tsx:93` | `WorkspaceHeader` | 33 | 33 | F | resolved (split in #470/#471; 6/5 on 2026-10-16) | Three window-chrome modes (macOS overlay, compact desktop, browser preview) decide drag-region placement, eyebrow position, back-button visibility, and vertical rhythm, alongside a content-change motion effect. The two two-line comments in the body record why the drag surfaces are layered the way they are; per-platform splitting triplicates the header content. |
+| `src/components/subscriptions-index/subscription-detail-pane.tsx:90` | `SubscriptionDetailPane` | 16 | 20 | A | open (family A retired; partially split in #454, 16/14 on 2026-10-16, cyclomatic still over) | Assembles `FeedDetailPanel` props from a nullable row, nullable metrics, and a nullable detail candidate. Nesting 3 is optional chaining inside one props object literal — there is no independent branch to extract, only a shorter way to write the same nullability. |
 | `src/components/subscriptions-index/subscriptions-overview-summary.tsx:216` | `SummaryFilterCardButton` | 16 | 15 | A | accepted-risk | Cyclomatic-only, nesting 1. One `summaryCard.isActive` flag threaded through twelve references across seven sibling nodes (the button's `aria-pressed`, accent bar, badge, motion key and phase wrapper, value tone, caption tone, screen-reader hint) plus a review-only tooltip wrapper. Any split still needs the same flag in each piece. |
+
+## Re-measure 2026-10-16
+
+Measured with `cccc` 1.8.0 (moznion) on `main` at `5a201318`, cyclomatic / cognitive. A row reports while either value exceeds 15. Families A, B, E and F are retired (see above); rows that still report under a retired family are open, not accepted.
+
+| Function | Then | Now | Status |
+| --- | --- | --- | --- |
+| `WideLayout` | 18/16 | 18/16 | open (A retired) |
+| `FocusDebugHudView` | 24/28 | 24/28 | accepted-risk (G) |
+| `ArticleListScreenView` | 18/41 | 3/2 | resolved |
+| `ArticleToolbarActionStrip` | 29/36 | 6/5 | resolved (#460) |
+| `CommandPaletteResourceGroups` | 16/14 | 16/14 | open (A retired) |
+| `FeedTreeFolderSection` | 17/15 | 26/22 | open (A retired; grew) |
+| `FeedTreeRow` | 16/15 | 17/15 | open (A retired) |
+| `FolderSelectView` | 17/19 | 17/19 | open (B retired) |
+| `useArticleListSources` | 26/29 | 16/19 | accepted-risk (D) |
+| `useArticleListViewState` | 17/22 | 11/10 | resolved |
+| `useArticleViewSelection` | 24/31 | 14/10 | resolved |
+| `SidebarNavButton` | 15/16 | 12/12 | resolved |
+| `AccountDangerZoneView` | 28/17 | 32/24 | accepted-risk (C) |
+| `AccountSyncSectionView` | 18/19 | 18/19 | accepted-risk (C) |
+| `AccountConfigForm` | 17/17 | 27/19 | open (E retired; grew) |
+| `DataSettingsView` | 20/11 | 20/11 | accepted-risk (C) |
+| `SettingsModalContent` | 34/38 | 6/3 | resolved (#459) |
+| `useAccountDetailViewProps` | 26/34 | 4/3 | resolved (#331) |
+| `AppToastView` | 19/16 | 21/18 | open (A retired) |
+| `ConfirmDialogView` | 16/16 | 17/17 | open (B retired; split follows) |
+| `FeedDetailPanel` | 34/35 | 9/7 | resolved (#461) |
+| `LabeledInputRow` | 35/36 | 11/9 | resolved (#456) |
+| `TagColorPicker` | 20/20 | 20/20 | open (B retired) |
+| `WorkspaceHeader` | 33/33 | 6/5 | resolved (#470/#471) |
+| `SubscriptionDetailPane` | 16/20 | 16/14 | open (A retired) |
+| `SummaryFilterCardButton` | 16/15 | 16/15 | open (A retired) |
+
+`ArticleListItem` is tracked separately in #473.
 
 ## Observation Outside This Rule
 
