@@ -80,6 +80,93 @@ function buildSyncProgress({
   };
 }
 
+function buildSyncSettingControls(
+  account: AccountDetailAccount,
+  controller: AccountDetailControllerResult,
+  t: TFunction<"settings">,
+  disabled: boolean,
+): Pick<SyncSectionProps, "syncInterval" | "syncOnStartup" | "syncOnWake" | "keepReadItems"> {
+  return {
+    syncInterval: {
+      name: "sync-interval",
+      label: t("account.sync"),
+      value: String(account.sync_interval_secs),
+      options: controller.syncIntervalOptions,
+      onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
+      disabled,
+    },
+    syncOnStartup: {
+      label: t("account.sync_on_startup"),
+      checked: account.sync_on_startup,
+      onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
+      disabled,
+    },
+    syncOnWake: {
+      label: t("account.sync_on_wake"),
+      checked: account.sync_on_wake,
+      onChange: (value) => controller.handleSyncUpdate({ syncOnWake: value }),
+      disabled,
+    },
+    keepReadItems: {
+      name: "keep-read-items",
+      label: t("account.keep_read_items"),
+      value: String(account.keep_read_items_days),
+      options: controller.keepReadItemsOptions,
+      onChange: (value) => controller.handleSyncUpdate({ keepReadItemsDays: Number(value) }),
+      disabled,
+    },
+  };
+}
+
+function resolveSyncNowHandler(
+  controller: AccountDetailControllerResult,
+  isQuarantined: boolean,
+  isSetupActive: boolean,
+): SyncSectionProps["onSyncNow"] {
+  if (isQuarantined) return undefined;
+  return isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow;
+}
+
+function buildSecondaryAction(
+  controller: AccountDetailControllerResult,
+  t: TFunction<"settings">,
+  showEditCredentials: boolean,
+): Pick<SyncSectionProps, "secondaryActionLabel" | "onSecondaryAction"> {
+  return {
+    secondaryActionLabel: showEditCredentials ? t("account.setup_edit_credentials") : undefined,
+    onSecondaryAction: showEditCredentials ? controller.focusCredentialsEditor : undefined,
+  };
+}
+
+function buildDevCredentialsRecovery(
+  controller: AccountDetailControllerResult,
+  t: TFunction<"settings">,
+  canShow: boolean,
+): Pick<
+  SyncSectionProps,
+  | "devCredentialsRecoveryActionLabel"
+  | "devCredentialsRecoveryLoadingLabel"
+  | "onDevCredentialsRecoveryAction"
+  | "isDevCredentialsRecoveryInFlight"
+> {
+  return {
+    devCredentialsRecoveryActionLabel: canShow ? t("account.dev_credentials_recovery_action") : undefined,
+    devCredentialsRecoveryLoadingLabel: canShow ? t("account.dev_credentials_recovery_loading") : undefined,
+    onDevCredentialsRecoveryAction: canShow ? controller.handleResetDevCredentials : undefined,
+    isDevCredentialsRecoveryInFlight: controller.devCredentialsRecoveryInFlight,
+  };
+}
+
+function resolveSyncNote(
+  phase: SyncPhase,
+  accountSetupErrorMessage: string | null | undefined,
+  t: TFunction<"settings">,
+): SyncSectionProps["note"] {
+  if (phase === "setup-failed" && accountSetupErrorMessage != null) return accountSetupErrorMessage;
+  const noteKey = SYNC_NOTE_KEYS[phase];
+  return noteKey && t(noteKey);
+}
+
 export function buildSyncSection({
   account,
   controller,
@@ -98,60 +185,23 @@ export function buildSyncSection({
   const canShowDevCredentialsRecovery =
     canRecoverDevCredentialsStore && !isQuarantined && hasOversizedDevCredentialsStoreError(syncStatus);
   const phase = resolveSyncPhase({ isQuarantined, isSetupSyncing, isSetupFailed });
-  const noteKey = SYNC_NOTE_KEYS[phase];
   const { progressValue, progressLabel, progressCurrentLabel } = buildSyncProgress({ isSyncing, syncProgress, t });
 
   return {
     heading: t(SYNC_HEADING_KEYS[phase]),
-    note:
-      phase === "setup-failed" && accountSetupErrorMessage != null ? accountSetupErrorMessage : noteKey && t(noteKey),
+    note: resolveSyncNote(phase, accountSetupErrorMessage, t),
     progressLabel,
     progressValue,
     progressCurrentLabel,
-    syncInterval: {
-      name: "sync-interval",
-      label: t("account.sync"),
-      value: String(account.sync_interval_secs),
-      options: controller.syncIntervalOptions,
-      onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
-      disabled: isSetupActive || isQuarantined,
-    },
-    syncOnStartup: {
-      label: t("account.sync_on_startup"),
-      checked: account.sync_on_startup,
-      onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
-      disabled: isSetupActive || isQuarantined,
-    },
-    syncOnWake: {
-      label: t("account.sync_on_wake"),
-      checked: account.sync_on_wake,
-      onChange: (value) => controller.handleSyncUpdate({ syncOnWake: value }),
-      disabled: isSetupActive || isQuarantined,
-    },
-    keepReadItems: {
-      name: "keep-read-items",
-      label: t("account.keep_read_items"),
-      value: String(account.keep_read_items_days),
-      options: controller.keepReadItemsOptions,
-      onChange: (value) => controller.handleSyncUpdate({ keepReadItemsDays: Number(value) }),
-      disabled: isSetupActive || isQuarantined,
-    },
+    ...buildSyncSettingControls(account, controller, t, isSetupActive || isQuarantined),
     statusRows: syncStatusRows,
     syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),
     syncNowSuccessLabel: t("account.sync_now_succeeded"),
     syncNowSucceeded: !isSetupActive && controller.syncNowSucceeded,
     syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
-    onSyncNow: isQuarantined ? undefined : isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow,
+    onSyncNow: resolveSyncNowHandler(controller, isQuarantined, isSetupActive),
     isSyncing: isSyncing || controller.syncActionInFlight,
-    secondaryActionLabel: isSetupFailed && !isQuarantined ? t("account.setup_edit_credentials") : undefined,
-    onSecondaryAction: isSetupFailed && !isQuarantined ? controller.focusCredentialsEditor : undefined,
-    devCredentialsRecoveryActionLabel: canShowDevCredentialsRecovery
-      ? t("account.dev_credentials_recovery_action")
-      : undefined,
-    devCredentialsRecoveryLoadingLabel: canShowDevCredentialsRecovery
-      ? t("account.dev_credentials_recovery_loading")
-      : undefined,
-    onDevCredentialsRecoveryAction: canShowDevCredentialsRecovery ? controller.handleResetDevCredentials : undefined,
-    isDevCredentialsRecoveryInFlight: controller.devCredentialsRecoveryInFlight,
+    ...buildSecondaryAction(controller, t, isSetupFailed && !isQuarantined),
+    ...buildDevCredentialsRecovery(controller, t, canShowDevCredentialsRecovery),
   };
 }

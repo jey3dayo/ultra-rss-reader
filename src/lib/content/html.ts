@@ -273,51 +273,58 @@ const SRCSET_EDGE_WHITESPACE = /^[\t\n\f\r ]+|[\t\n\f\r ]+$/g;
 
 type SrcsetCandidate = { url: string; descriptors: string };
 
+const isSrcsetAsciiWhitespace = (char: string | undefined) => char !== undefined && SRCSET_ASCII_WHITESPACE.test(char);
+const isSrcsetSeparator = (char: string | undefined) => char === "," || isSrcsetAsciiWhitespace(char);
+
+function skipSrcsetWhile(value: string, start: number, predicate: (char: string | undefined) => boolean): number {
+  let position = start;
+  while (position < value.length && predicate(value[position])) {
+    position += 1;
+  }
+  return position;
+}
+
+// Descriptors run until a comma outside parentheses (or the end of input).
+function findSrcsetDescriptorEnd(value: string, start: number): number {
+  let position = start;
+  let inParens = false;
+  while (position < value.length) {
+    const char = value[position];
+    if (inParens) {
+      inParens = char !== ")";
+    } else if (char === "(") {
+      inParens = true;
+    } else if (char === ",") {
+      break;
+    }
+    position += 1;
+  }
+  return position;
+}
+
+function readSrcsetCandidate(value: string, start: number): { candidate: SrcsetCandidate; end: number } {
+  const urlEnd = skipSrcsetWhile(value, start, (char) => !isSrcsetAsciiWhitespace(char));
+  const url = value.slice(start, urlEnd);
+  if (url.endsWith(",")) {
+    return { candidate: { url: url.replace(/,+$/, ""), descriptors: "" }, end: urlEnd };
+  }
+  const descriptorEnd = findSrcsetDescriptorEnd(value, urlEnd);
+  const descriptors = value.slice(urlEnd, descriptorEnd).replace(SRCSET_EDGE_WHITESPACE, "");
+  return { candidate: { url, descriptors }, end: descriptorEnd };
+}
+
 // WHATWG "parse a srcset attribute": URLs may contain commas, and a comma
 // only ends a candidate when it trails the URL or sits outside parentheses.
 function parseSrcsetCandidates(value: string): SrcsetCandidate[] {
   const candidates: SrcsetCandidate[] = [];
-  const isAsciiWhitespace = (char: string | undefined) => char !== undefined && SRCSET_ASCII_WHITESPACE.test(char);
-  const isSeparator = (char: string | undefined) => char === "," || isAsciiWhitespace(char);
-  let position = 0;
+  let position = skipSrcsetWhile(value, 0, isSrcsetSeparator);
 
   while (position < value.length) {
-    while (position < value.length && isSeparator(value[position])) {
-      position += 1;
+    const { candidate, end } = readSrcsetCandidate(value, position);
+    if (candidate.url) {
+      candidates.push(candidate);
     }
-    if (position >= value.length) {
-      break;
-    }
-
-    const urlStart = position;
-    while (position < value.length && !isAsciiWhitespace(value[position])) {
-      position += 1;
-    }
-    let url = value.slice(urlStart, position);
-    let descriptors = "";
-
-    if (url.endsWith(",")) {
-      url = url.replace(/,+$/, "");
-    } else {
-      const descriptorStart = position;
-      let inParens = false;
-      while (position < value.length) {
-        const char = value[position];
-        if (inParens) {
-          inParens = char !== ")";
-        } else if (char === "(") {
-          inParens = true;
-        } else if (char === ",") {
-          break;
-        }
-        position += 1;
-      }
-      descriptors = value.slice(descriptorStart, position).replace(SRCSET_EDGE_WHITESPACE, "");
-    }
-
-    if (url) {
-      candidates.push({ url, descriptors });
-    }
+    position = skipSrcsetWhile(value, end, isSrcsetSeparator);
   }
 
   return candidates;
