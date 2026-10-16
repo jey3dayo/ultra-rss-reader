@@ -10,11 +10,11 @@ import {
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
-export function isCurrentToast(toast: ToastData): boolean {
+function isCurrentToast(toast: ToastData): boolean {
   return useUiStore.getState().toastMessage === toast;
 }
 
-export function clearToastIfCurrent(toast: ToastData): void {
+function clearToastIfCurrent(toast: ToastData): void {
   if (!isCurrentToast(toast)) {
     return;
   }

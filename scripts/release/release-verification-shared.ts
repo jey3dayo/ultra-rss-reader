@@ -52,7 +52,7 @@ export const fail = (message: string): never => {
   throw new Error(message);
 };
 
-export const recordSchema = v.record(v.string(), v.unknown());
+const recordSchema = v.record(v.string(), v.unknown());
 
 export const recordOf = (value: unknown, label: string): Record<string, unknown> => {
   if (!v.is(recordSchema, value)) {
@@ -66,7 +66,7 @@ export const stringAt = (record: Record<string, unknown>, key: string, label: st
   return typeof value === "string" ? value : fail(`${label}.${key} must be a string`);
 };
 
-export const publicUrl = (value: string, label: string): URL => {
+const publicUrl = (value: string, label: string): URL => {
   let url: URL;
   try {
     url = new URL(value);
@@ -79,7 +79,7 @@ export const publicUrl = (value: string, label: string): URL => {
   return url;
 };
 
-export const releaseRoute = (
+const releaseRoute = (
   release: ReleaseVerificationRelease,
   tag: string,
 ): { origin: string; repositoryPath: string; slug: string } => {

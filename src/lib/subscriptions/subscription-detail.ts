@@ -207,7 +207,7 @@ export function buildSubscriptionDetailMetrics({
   };
 }
 
-export function compareSubscriptionPreviewArticles(candidate: ArticleDto, current: ArticleDto): number {
+function compareSubscriptionPreviewArticles(candidate: ArticleDto, current: ArticleDto): number {
   const candidateTime = getDateInputTimeMs(candidate.published_at);
   const currentTime = getDateInputTimeMs(current.published_at);
 
@@ -226,7 +226,7 @@ export function compareSubscriptionPreviewArticles(candidate: ArticleDto, curren
   return candidateTime > currentTime ? -1 : 1;
 }
 
-export function compareSubscriptionPreviewArticleFallback(candidate: ArticleDto, current: ArticleDto): number {
+function compareSubscriptionPreviewArticleFallback(candidate: ArticleDto, current: ArticleDto): number {
   const titleOrder = candidate.title.localeCompare(current.title);
   if (titleOrder !== 0) {
     return titleOrder;

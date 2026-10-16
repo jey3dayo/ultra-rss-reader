@@ -29,7 +29,7 @@ export function queueBrowserCloseActionIfNeeded(action: BufferedBrowserCloseActi
   return true;
 }
 
-export function scheduleBrowserCloseStuckRecovery(): void {
+function scheduleBrowserCloseStuckRecovery(): void {
   const store = useUiStore.getState();
   if (browserCloseStuckRecoveryScheduled || store.contentMode !== "browser") {
     return;
@@ -53,7 +53,7 @@ export function scheduleBrowserCloseStuckRecovery(): void {
   }, 0);
 }
 
-export function dispatchBufferedBrowserCloseAction(action: BufferedBrowserCloseAction): void {
+function dispatchBufferedBrowserCloseAction(action: BufferedBrowserCloseAction): void {
   switch (action) {
     case "prev-article":
       emitNavigationEvent(APP_EVENTS.navigateArticle, -1);

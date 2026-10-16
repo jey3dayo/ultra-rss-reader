@@ -42,8 +42,12 @@
   },
   "knip": {
     "entry": [
-      "playwright.storybook.config.ts",
-      "src/dev/scenarios/index.ts"
+      "src/dev/scenarios/index.ts",
+      "src/dev/prod-stubs/*.ts",
+      "scripts/check-toolchain-contract.ts",
+      "scripts/ci/check-shell.ts",
+      "scripts/report-dependency-licenses.ts",
+      "scripts/verify-action-pins.ts"
     ],
     "ignoreIssues": {
       "src/components/ui/{button,collapsible,dialog,input,scroll-area,select}.tsx": [
@@ -55,7 +59,8 @@
       "wrangler"
     ],
     "ignoreBinaries": [
-      "mise"
+      "mise",
+      "shellcheck"
     ]
   },
   "dependencies": {

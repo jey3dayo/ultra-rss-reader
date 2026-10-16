@@ -26,12 +26,7 @@ import { requireEnabledQueryValue } from "@/lib/require-enabled-query-value";
 
 import { normalizeManualArticleQueryId } from "./article-mutation-requests";
 
-export type {
-  MarkOldUnreadReadMutationInput,
-  RecordArticleViewMutationInput,
-  SetReadMutationInput,
-  ToggleStarMutationInput,
-} from "./article-mutation-requests";
+export type { SetReadMutationInput } from "./article-mutation-requests";
 export {
   useClearArticleViewHistory,
   useMarkAccountRead,

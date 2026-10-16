@@ -6,14 +6,14 @@ import {
   DEV_WINDOW_UNMAXIMIZE_SETTLE_DELAY_MS,
 } from "@/dev/scenarios/constants";
 
-export type WindowSizeLike = {
+type WindowSizeLike = {
   width: number;
   height: number;
 };
 
-export type RequestedWindowSize = Partial<DevWindowSize>;
+type RequestedWindowSize = Partial<DevWindowSize>;
 
-export type DevWindowLike = {
+type DevWindowLike = {
   scaleFactor(): Promise<number>;
   innerSize(): Promise<{
     toLogical(scaleFactor: number): {
@@ -23,19 +23,19 @@ export type DevWindowLike = {
   }>;
 };
 
-export type DevWindowSizeVerification = {
+type DevWindowSizeVerification = {
   currentSize: WindowSizeLike;
   isWithinTolerance: boolean;
 };
 
-export type LogicalSizeConstructor<TSize> = new (width: number, height: number) => TSize;
+type LogicalSizeConstructor<TSize> = new (width: number, height: number) => TSize;
 
-export type DevWindowResizeLike<TSize> = DevWindowLike & {
+type DevWindowResizeLike<TSize> = DevWindowLike & {
   setSize(size: TSize): Promise<void>;
   center(): Promise<void>;
 };
 
-export async function readCurrentLogicalWindowSize(win: DevWindowLike): Promise<WindowSizeLike> {
+async function readCurrentLogicalWindowSize(win: DevWindowLike): Promise<WindowSizeLike> {
   const scaleFactor = await win.scaleFactor();
   const logicalSize = (await win.innerSize()).toLogical(scaleFactor);
   return {
@@ -44,7 +44,7 @@ export async function readCurrentLogicalWindowSize(win: DevWindowLike): Promise<
   };
 }
 
-export async function resolveTargetLogicalWindowSize(
+async function resolveTargetLogicalWindowSize(
   win: DevWindowLike,
   requestedSize: RequestedWindowSize,
 ): Promise<WindowSizeLike> {
@@ -52,24 +52,21 @@ export async function resolveTargetLogicalWindowSize(
   return resolveTargetWindowSize(requestedSize, currentSize);
 }
 
-export function resolveTargetWindowSize(
-  requestedSize: RequestedWindowSize,
-  currentSize: WindowSizeLike,
-): WindowSizeLike {
+function resolveTargetWindowSize(requestedSize: RequestedWindowSize, currentSize: WindowSizeLike): WindowSizeLike {
   return {
     width: requestedSize.width ?? currentSize.width,
     height: requestedSize.height ?? currentSize.height,
   };
 }
 
-export function isWindowSizeWithinTolerance(current: WindowSizeLike, target: WindowSizeLike): boolean {
+function isWindowSizeWithinTolerance(current: WindowSizeLike, target: WindowSizeLike): boolean {
   return (
     Math.abs(current.width - target.width) <= DEV_WINDOW_RESIZE_TOLERANCE_PX &&
     Math.abs(current.height - target.height) <= DEV_WINDOW_RESIZE_TOLERANCE_PX
   );
 }
 
-export async function verifyCurrentLogicalWindowSize(
+async function verifyCurrentLogicalWindowSize(
   win: DevWindowLike,
   targetSize: WindowSizeLike,
 ): Promise<DevWindowSizeVerification> {
@@ -80,7 +77,7 @@ export async function verifyCurrentLogicalWindowSize(
   };
 }
 
-export async function applyVerifiedDevWindowResizeAttempt<TSize>(
+async function applyVerifiedDevWindowResizeAttempt<TSize>(
   win: DevWindowResizeLike<TSize>,
   LogicalSize: LogicalSizeConstructor<TSize>,
   targetSize: WindowSizeLike,
@@ -111,7 +108,7 @@ export async function applyVerifiedDevWindowResizeAttempt<TSize>(
   return false;
 }
 
-export function wait(ms: number): Promise<void> {
+function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
