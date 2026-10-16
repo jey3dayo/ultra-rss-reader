@@ -72,20 +72,7 @@ impl GReaderProvider {
             "/reader/api/0/stream/contents/{}",
             urlencoded(stream_id)
         ));
-        let mut query = String::new();
-
-        if let Some(xt) = exclude_target {
-            query.push_str(&format!("&xt={}", urlencoded(xt)));
-        }
-
-        if let Some(ref c) = cursor {
-            if let Some(ref cont) = c.continuation {
-                query.push_str(&format!("&c={}", urlencoded(cont)));
-            }
-            if let Some(since) = c.since {
-                query.push_str(&format!("&ot={}", since.timestamp_micros()));
-            }
-        }
+        let query = stream_query_suffix(exclude_target, cursor.as_ref());
 
         let mut requested_limit = STREAM_CONTENTS_LIMIT;
         let resp: StreamContentsResponse = loop {
@@ -100,12 +87,7 @@ impl GReaderProvider {
             match Self::read_json_response(resp).await {
                 Ok(resp) => break resp,
                 Err(error) => {
-                    let is_body_cap = matches!(
-                        (&error, super::http::greader_json_body_too_large_error()),
-                        (DomainError::Network(message), DomainError::Network(expected))
-                            if message == &expected
-                    );
-                    if !is_body_cap || requested_limit == 1 {
+                    if !is_body_cap_error(&error) || requested_limit == 1 {
                         return Err(error);
                     }
                     let next_limit = (requested_limit / 2).max(1);
@@ -405,4 +387,30 @@ impl GReaderProvider {
             starred_ids: starred_resp,
         })
     }
+}
+
+fn stream_query_suffix(exclude_target: Option<&str>, cursor: Option<&SyncCursor>) -> String {
+    let mut query = String::new();
+
+    if let Some(xt) = exclude_target {
+        query.push_str(&format!("&xt={}", urlencoded(xt)));
+    }
+
+    if let Some(c) = cursor {
+        if let Some(ref cont) = c.continuation {
+            query.push_str(&format!("&c={}", urlencoded(cont)));
+        }
+        if let Some(since) = c.since {
+            query.push_str(&format!("&ot={}", since.timestamp_micros()));
+        }
+    }
+
+    query
+}
+
+fn is_body_cap_error(error: &DomainError) -> bool {
+    matches!(
+        (error, super::http::greader_json_body_too_large_error()),
+        (DomainError::Network(message), DomainError::Network(expected)) if message == &expected
+    )
 }

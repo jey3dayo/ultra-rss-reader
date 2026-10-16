@@ -104,6 +104,13 @@ pub(crate) fn is_feed_link_type(feed_type: &str) -> bool {
     )
 }
 
+/// Return the first index at or after `pos` that is not ASCII whitespace.
+fn skip_ascii_whitespace(tag: &str, pos: usize) -> usize {
+    tag[pos..]
+        .find(|c: char| !c.is_ascii_whitespace())
+        .map_or(tag.len(), |offset| pos + offset)
+}
+
 /// Extract the value of an HTML attribute from a tag string.
 pub(crate) fn extract_attribute(tag: &str, attr_name: &str) -> Option<String> {
     let mut cursor = 0;
@@ -122,20 +129,14 @@ pub(crate) fn extract_attribute(tag: &str, attr_name: &str) -> Option<String> {
             continue;
         }
 
-        let mut after_name = name_end;
-        while tag[after_name..].starts_with(|c: char| c.is_ascii_whitespace()) {
-            after_name += tag[after_name..].chars().next()?.len_utf8();
-        }
+        let after_name = skip_ascii_whitespace(tag, name_end);
 
         if !tag[after_name..].starts_with('=') {
             cursor = after_name;
             continue;
         }
 
-        let mut value_start = after_name + '='.len_utf8();
-        while tag[value_start..].starts_with(|c: char| c.is_ascii_whitespace()) {
-            value_start += tag[value_start..].chars().next()?.len_utf8();
-        }
+        let mut value_start = skip_ascii_whitespace(tag, after_name + '='.len_utf8());
 
         let quote = tag[value_start..].chars().next()?;
         if quote != '"' && quote != '\'' {

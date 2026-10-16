@@ -20,6 +20,15 @@ import {
   type WorkflowRun,
 } from "../lib/release-start-policy.ts";
 
+const RELEASES_QUERY = `query($owner:String!,$name:String!,$after:String) {
+          repository(owner:$owner,name:$name) {
+            releases(first:100,after:$after) {
+              nodes { databaseId tagName tagCommit { oid } url }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        }`;
+
 const executeStartRelease = async (env: ReleaseEnvironment, dependencies: StartReleaseDependencies): Promise<void> => {
   const releaseTag = requiredStartEnv(env, "RELEASE_TAG");
   const expectedSha = requiredStartEnv(env, "EXPECTED_SHA");
@@ -62,20 +71,24 @@ const executeStartRelease = async (env: ReleaseEnvironment, dependencies: StartR
       throw new Error(`Release run already exists: ${runs[0].html_url}. Inspect status/assets; do not redispatch.`);
     }
   };
+  const requireUntaggedReleaseElsewhere = async (release: { databaseId: number; url: string }): Promise<void> => {
+    const detail = parseReleaseTarget(await get(`releases/${release.databaseId}`));
+    const target = detail.target_commitish;
+    if (typeof target !== "string" || !target) throw new Error("Cannot verify an existing release target");
+    const resolved = /^[0-9a-f]{40}$/.test(target)
+      ? { sha: target }
+      : await request("GET", `commits/${encodeURIComponent(target)}`, undefined, true);
+    if (resolved !== undefined && parseCommit(resolved).sha === expectedSha) {
+      throw new Error(`Release already targets this commit: ${release.url}; inspect recovery`);
+    }
+  };
   const noExistingRelease = async (): Promise<void> => {
     const [owner, name] = repository.split("/");
     let after: string | null = null;
     for (;;) {
       const response = parseReleaseQuery(
         await request("POST", "graphql", {
-          query: `query($owner:String!,$name:String!,$after:String) {
-          repository(owner:$owner,name:$name) {
-            releases(first:100,after:$after) {
-              nodes { databaseId tagName tagCommit { oid } url }
-              pageInfo { hasNextPage endCursor }
-            }
-          }
-        }`,
+          query: RELEASES_QUERY,
           variables: { owner, name, after },
         }),
       );
@@ -87,15 +100,7 @@ const executeStartRelease = async (env: ReleaseEnvironment, dependencies: StartR
       if (existing)
         throw new Error(`Release already exists: ${existing.url}. Preserve notes/assets and inspect recovery.`);
       for (const release of releases.nodes.filter((candidate) => !candidate.tagCommit)) {
-        const detail = parseReleaseTarget(await get(`releases/${release.databaseId}`));
-        const target = detail.target_commitish;
-        if (typeof target !== "string" || !target) throw new Error("Cannot verify an existing release target");
-        const resolved = /^[0-9a-f]{40}$/.test(target)
-          ? { sha: target }
-          : await request("GET", `commits/${encodeURIComponent(target)}`, undefined, true);
-        if (resolved !== undefined && parseCommit(resolved).sha === expectedSha) {
-          throw new Error(`Release already targets this commit: ${release.url}; inspect recovery`);
-        }
+        await requireUntaggedReleaseElsewhere(release);
       }
       if (!releases.pageInfo.hasNextPage) return;
       if (!releases.pageInfo.endCursor || releases.pageInfo.endCursor === after)
