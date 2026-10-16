@@ -94,7 +94,6 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
     Ok(feeds)
 }
 
-/// Builds a feed entry when the outline carries an `xmlUrl` (case-insensitive key variants).
 fn outline_feed(
     attrs: &HashMap<String, String>,
     outline_stack: &[Option<String>],
