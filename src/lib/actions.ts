@@ -245,17 +245,33 @@ function handleMouseBack(store: ReturnType<typeof useUiStore.getState>): void {
 export function executeAction(action: AppAction): void {
   const store = useUiStore.getState();
 
+  if (
+    runViewPreferenceAction(action, store) ||
+    runSystemAction(action, store) ||
+    runSettingsDialogAction(action, store) ||
+    runNavigationBrowserAction(action, store) ||
+    runArticleAction(action)
+  ) {
+    return;
+  }
+
+  console.warn(`[actions] Unknown action: ${action}`);
+}
+
+type UiStoreState = ReturnType<typeof useUiStore.getState>;
+
+function runViewPreferenceAction(action: AppAction, store: UiStoreState): boolean {
   switch (action) {
     // --- View filters ---
     case "set-filter-unread":
       store.setViewMode("unread");
-      break;
+      return true;
     case "set-filter-all":
       store.setViewMode("all");
-      break;
+      return true;
     case "set-filter-starred":
       store.setViewMode("starred");
-      break;
+      return true;
 
     // --- Preference toggles ---
     case "toggle-sort-unread": {
@@ -263,120 +279,146 @@ export function executeAction(action: AppAction): void {
       usePreferencesStore
         .getState()
         .setPref("reading_sort", current === "newest_first" ? "oldest_first" : "newest_first");
-      break;
+      return true;
     }
     case "toggle-group-by-feed": {
       const current = resolvePreferenceValue(usePreferencesStore.getState().prefs, "group_by");
       usePreferencesStore.getState().setPref("group_by", current === "date" ? "feed" : "date");
-      break;
+      return true;
     }
     case "set-theme-light":
       usePreferencesStore.getState().setPref("theme", "light");
-      break;
+      return true;
     case "set-theme-dark":
       usePreferencesStore.getState().setPref("theme", "dark");
-      break;
+      return true;
     case "set-theme-system":
       usePreferencesStore.getState().setPref("theme", "system");
-      break;
+      return true;
+    default:
+      return false;
+  }
+}
 
+function runSyncAllAction(action: AppAction, store: UiStoreState): void {
+  runGlobalActionBoundary(action, "sync", () =>
+    triggerManualSyncWithCooldown({
+      onCooldown: () => {
+        store.showToast(i18n.t("sidebar:sync_cooldown_active"));
+      },
+      onSuccess: (syncResult) => {
+        const feedback = summarizeSyncResult(syncResult);
+        const message = resolveSyncFeedbackMessage(feedback, {
+          alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
+          partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
+          retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+          retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+          warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
+          localFeedSyncFailures: (count) => i18n.t("sidebar:sync_local_feed_failures", { count }),
+          success: i18n.t("sidebar:sync_completed"),
+          detailLine: (detail, remainingCount) => {
+            const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
+              i18n.t(`sidebar:sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
+            );
+            const detailText = i18n.t(`sidebar:sync_warning_detail.${key}`, params);
+            return remainingCount > 0
+              ? `${detailText} ${i18n.t("sidebar:sync_warning_detail_more", { count: remainingCount })}`
+              : detailText;
+          },
+        });
+        const action = feedback.localFeedSyncFailureAccountId
+          ? createFetchErrorsToastAction(
+              feedback.localFeedSyncFailureAccountId,
+              i18n.t("sidebar:sync_local_feed_failures_details"),
+            )
+          : null;
+        store.showToast(action ? { message, actions: [action] } : message);
+      },
+      onError: (e) => {
+        logGlobalActionFailure(action, "sync", e);
+        store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
+      },
+    }),
+  );
+}
+
+function runSystemAction(action: AppAction, store: UiStoreState): boolean {
+  switch (action) {
     // --- Window ---
     case "toggle-fullscreen":
       runGlobalActionBoundary(action, "window", toggleFullscreen);
-      break;
+      return true;
 
     // --- Sync ---
-    case "sync-all": {
-      runGlobalActionBoundary(action, "sync", () =>
-        triggerManualSyncWithCooldown({
-          onCooldown: () => {
-            store.showToast(i18n.t("sidebar:sync_cooldown_active"));
-          },
-          onSuccess: (syncResult) => {
-            const feedback = summarizeSyncResult(syncResult);
-            const message = resolveSyncFeedbackMessage(feedback, {
-              alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
-              partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
-              retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-              retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-              warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
-              localFeedSyncFailures: (count) => i18n.t("sidebar:sync_local_feed_failures", { count }),
-              success: i18n.t("sidebar:sync_completed"),
-              detailLine: (detail, remainingCount) => {
-                const { key, params } = getSyncWarningDetailTranslationKey(detail, (labelType, rawValue) =>
-                  i18n.t(`sidebar:sync_warning_detail.${labelType}_labels.${rawValue}`, { defaultValue: rawValue }),
-                );
-                const detailText = i18n.t(`sidebar:sync_warning_detail.${key}`, params);
-                return remainingCount > 0
-                  ? `${detailText} ${i18n.t("sidebar:sync_warning_detail_more", { count: remainingCount })}`
-                  : detailText;
-              },
-            });
-            const action = feedback.localFeedSyncFailureAccountId
-              ? createFetchErrorsToastAction(
-                  feedback.localFeedSyncFailureAccountId,
-                  i18n.t("sidebar:sync_local_feed_failures_details"),
-                )
-              : null;
-            store.showToast(action ? { message, actions: [action] } : message);
-          },
-          onError: (e) => {
-            logGlobalActionFailure(action, "sync", e);
-            store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
-          },
-        }),
-      );
-      break;
-    }
+    case "sync-all":
+      runSyncAllAction(action, store);
+      return true;
 
+    // --- Updater ---
+    case "check-for-updates":
+      runGlobalActionBoundary(action, "updates", runManualUpdateCheck);
+      return true;
+    case "restart-app":
+      requestApplicationRestart();
+      return true;
+    default:
+      return false;
+  }
+}
+
+function runSettingsDialogAction(action: AppAction, store: UiStoreState): boolean {
+  switch (action) {
     // --- Settings & dialogs ---
     case "open-settings":
       store.openSettings();
-      break;
+      return true;
     case "open-current-account-settings":
       if (store.selectedAccountId) {
         store.openSettingsAccount(store.selectedAccountId);
       } else {
         store.openSettings("accounts");
       }
-      break;
+      return true;
     case "open-settings-accounts":
       store.openSettings("accounts");
-      break;
+      return true;
     case "open-settings-accounts-add":
       store.openSettingsAddAccount();
-      break;
+      return true;
     case "open-settings-accounts-add-freshrss":
       store.openSettingsAddAccount("FreshRss");
-      break;
+      return true;
     case "open-add-feed":
       store.openAddFeedDialog();
-      break;
+      return true;
     case "open-subscriptions-index":
       store.openSubscriptionsIndex();
-      break;
+      return true;
     case "open-command-palette":
       store.toggleCommandPalette();
-      break;
-    case "restart-app":
-      requestApplicationRestart();
-      break;
+      return true;
+    default:
+      return false;
+  }
+}
 
+function runNavigationBrowserAction(action: AppAction, store: UiStoreState): boolean {
+  switch (action) {
     // --- Article navigation ---
     case "prev-article":
       navigateUnlessBrowserCloseQueued("prev-article", APP_EVENTS.navigateArticle, -1);
-      break;
+      return true;
     case "next-article":
       navigateUnlessBrowserCloseQueued("next-article", APP_EVENTS.navigateArticle, 1);
-      break;
+      return true;
 
     // --- Feed navigation ---
     case "prev-feed":
       navigateUnlessBrowserCloseQueued("prev-feed", APP_EVENTS.navigateFeed, -1);
-      break;
+      return true;
     case "next-feed":
       navigateUnlessBrowserCloseQueued("next-feed", APP_EVENTS.navigateFeed, 1);
-      break;
+      return true;
 
     // --- Browser ---
     case "reload-webview":
@@ -389,61 +431,57 @@ export function executeAction(action: AppAction): void {
           }),
         );
       });
-      break;
+      return true;
     case "close-browser":
       if (store.selectedArticleId && store.contentMode === "browser") {
         emitEvent(keyboardEvents.closeBrowserOverlay);
       } else {
         store.closeBrowser();
       }
-      break;
+      return true;
     case "mouse-back":
       handleMouseBack(store);
-      break;
+      return true;
     case "mouse-forward":
       if (store.contentMode === "browser") {
         void navigateBrowserForward();
       }
-      break;
+      return true;
+    default:
+      return false;
+  }
+}
 
+function runArticleAction(action: AppAction): boolean {
+  switch (action) {
     // --- Article actions (reuse existing keyboard event system) ---
     case "open-in-reader":
       emitEvent(keyboardEvents.openInAppBrowser);
-      break;
+      return true;
     case "open-in-browser":
       emitEvent(keyboardEvents.openExternalBrowser);
-      break;
+      return true;
     case "toggle-star":
       emitEvent(keyboardEvents.toggleStar);
-      break;
+      return true;
     case "toggle-read":
       emitEvent(keyboardEvents.toggleRead);
-      break;
+      return true;
     case "mark-all-read":
       emitEvent(keyboardEvents.markAllRead);
-      break;
+      return true;
 
     // --- Share actions ---
     case "copy-link":
       emitArticleShareEvent(keyboardEvents.copyLink);
-      break;
+      return true;
     case "open-in-default-browser":
       emitArticleShareEvent(keyboardEvents.openExternalBrowser);
-      break;
+      return true;
     case "add-to-reading-list":
       emitArticleShareEvent(keyboardEvents.addToReadingList);
-      break;
-
-    // --- Updater ---
-    case "check-for-updates": {
-      runGlobalActionBoundary(action, "updates", runManualUpdateCheck);
-      break;
-    }
-
-    default: {
-      const _exhaustive: never = action;
-      console.warn(`[actions] Unknown action: ${_exhaustive}`);
-      break;
-    }
+      return true;
+    default:
+      return false;
   }
 }

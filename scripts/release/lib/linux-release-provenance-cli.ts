@@ -34,28 +34,11 @@ const dependencies: LinuxProvenanceCliDependencies = {
   },
 };
 
-export const runLinuxProvenanceCli = (
-  args: readonly string[],
-  env: Readonly<Record<string, string | undefined>> = process.env,
-  io: LinuxProvenanceCliDependencies = dependencies,
-): void => {
-  if (args.length !== 1 || (args[0] !== "generate" && args[0] !== "upload")) {
-    throw new Error("usage: node scripts/release/linux-provenance.ts <generate|upload>");
-  }
-  const proof = buildLinuxReleaseProvenance(env, io);
-  const proofPath = path.resolve("src-tauri/target/release-provenance", LINUX_PROVENANCE_ASSET_NAME);
-  const contents = `${JSON.stringify(proof, null, 2)}\n`;
-  if (args[0] === "generate") {
-    io.writeProof(proofPath, contents);
-    return;
-  }
-  if (Buffer.from(io.readFile(proofPath)).toString("utf8") !== contents) {
-    throw new Error("Linux provenance file must match the checked-out source and actual build artifacts before upload");
-  }
-  const repository = env.GITHUB_REPOSITORY ?? "";
-  const server = new URL(env.GITHUB_SERVER_URL ?? "");
-  const releaseEndpoint = `repos/${repository}/releases/${proof.releaseId}`;
-  const view: unknown = JSON.parse(io.gh(["api", releaseEndpoint, "--hostname", server.hostname, "--method", "GET"]));
+type LinuxReleaseProof = ReturnType<typeof buildLinuxReleaseProvenance>;
+
+type DraftReleaseView = { assets: unknown[] } & object;
+
+function assertExpectedDraftRelease(view: unknown, proof: LinuxReleaseProof): asserts view is DraftReleaseView {
   if (
     typeof view !== "object" ||
     view === null ||
@@ -70,7 +53,10 @@ export const runLinuxProvenanceCli = (
   ) {
     throw new Error("Linux provenance upload requires the expected draft release ID and tag");
   }
-  for (const asset of view.assets) {
+}
+
+function assertProvenanceAssetAbsent(assets: readonly unknown[]): void {
+  for (const asset of assets) {
     if (typeof asset !== "object" || asset === null || !("name" in asset) || typeof asset.name !== "string") {
       throw new Error("Linux provenance upload requires valid release asset metadata");
     }
@@ -78,6 +64,9 @@ export const runLinuxProvenanceCli = (
       throw new Error("Linux provenance already exists; inspect the draft assets before manual recovery");
     }
   }
+}
+
+function resolveFixedUploadUrl(view: DraftReleaseView, server: URL, releaseEndpoint: string): URL {
   if (!("upload_url" in view) || typeof view.upload_url !== "string") {
     throw new Error("Linux provenance upload requires the fixed release upload URL");
   }
@@ -95,6 +84,26 @@ export const runLinuxProvenanceCli = (
   ) {
     throw new Error("Linux provenance upload URL does not match the fixed release ID and repository");
   }
+  return uploadUrl;
+}
+
+function uploadLinuxProvenance(
+  proof: LinuxReleaseProof,
+  proofPath: string,
+  contents: string,
+  env: Readonly<Record<string, string | undefined>>,
+  io: LinuxProvenanceCliDependencies,
+): void {
+  if (Buffer.from(io.readFile(proofPath)).toString("utf8") !== contents) {
+    throw new Error("Linux provenance file must match the checked-out source and actual build artifacts before upload");
+  }
+  const repository = env.GITHUB_REPOSITORY ?? "";
+  const server = new URL(env.GITHUB_SERVER_URL ?? "");
+  const releaseEndpoint = `repos/${repository}/releases/${proof.releaseId}`;
+  const view: unknown = JSON.parse(io.gh(["api", releaseEndpoint, "--hostname", server.hostname, "--method", "GET"]));
+  assertExpectedDraftRelease(view, proof);
+  assertProvenanceAssetAbsent(view.assets);
+  const uploadUrl = resolveFixedUploadUrl(view, server, releaseEndpoint);
   uploadUrl.searchParams.set("name", LINUX_PROVENANCE_ASSET_NAME);
   io.gh([
     "api",
@@ -110,4 +119,22 @@ export const runLinuxProvenanceCli = (
     "--input",
     proofPath,
   ]);
+}
+
+export const runLinuxProvenanceCli = (
+  args: readonly string[],
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  io: LinuxProvenanceCliDependencies = dependencies,
+): void => {
+  if (args.length !== 1 || (args[0] !== "generate" && args[0] !== "upload")) {
+    throw new Error("usage: node scripts/release/linux-provenance.ts <generate|upload>");
+  }
+  const proof = buildLinuxReleaseProvenance(env, io);
+  const proofPath = path.resolve("src-tauri/target/release-provenance", LINUX_PROVENANCE_ASSET_NAME);
+  const contents = `${JSON.stringify(proof, null, 2)}\n`;
+  if (args[0] === "generate") {
+    io.writeProof(proofPath, contents);
+    return;
+  }
+  uploadLinuxProvenance(proof, proofPath, contents, env, io);
 };
