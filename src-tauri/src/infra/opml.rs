@@ -54,38 +54,15 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 }
                 body_depth += 1;
                 let attrs = parse_outline_attrs(e)?;
-                if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
-                    feeds.push(OpmlFeed {
-                        title: outline_title_or_url(&attrs, xml_url),
-                        xml_url: xml_url.clone(),
-                        html_url: attrs.get("htmlUrl").or(attrs.get("htmlurl")).cloned(),
-                        folder: current_folder(&outline_stack),
-                    });
-                    outline_stack.push(None);
-                } else {
-                    // Folder outline (has children via Start event)
-                    let name = attrs
-                        .get("title")
-                        .or(attrs.get("text"))
-                        .cloned()
-                        .unwrap_or_default();
-                    outline_stack.push(Some(name));
-                }
+                outline_stack.push(push_start_outline(&attrs, &outline_stack, &mut feeds));
             }
             Ok(Event::Empty(ref e)) if e.name().as_ref() == b"outline" => {
                 if body_depth == 0 {
                     continue;
                 }
                 let attrs = parse_outline_attrs(e)?;
-                if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
-                    feeds.push(OpmlFeed {
-                        title: outline_title_or_url(&attrs, xml_url),
-                        xml_url: xml_url.clone(),
-                        html_url: attrs.get("htmlUrl").or(attrs.get("htmlurl")).cloned(),
-                        folder: current_folder(&outline_stack),
-                    });
-                }
                 // Empty element without xmlUrl is just ignored (no children)
+                feeds.extend(outline_feed(&attrs, &outline_stack));
             }
             Ok(Event::DocType(_)) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),
             Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" && body_depth > 0 => {
@@ -115,6 +92,40 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
     }
 
     Ok(feeds)
+}
+
+fn outline_feed(
+    attrs: &HashMap<String, String>,
+    outline_stack: &[Option<String>],
+) -> Option<OpmlFeed> {
+    let xml_url = attrs.get("xmlUrl").or(attrs.get("xmlurl"))?;
+    Some(OpmlFeed {
+        title: outline_title_or_url(attrs, xml_url),
+        xml_url: xml_url.clone(),
+        html_url: attrs.get("htmlUrl").or(attrs.get("htmlurl")).cloned(),
+        folder: current_folder(outline_stack),
+    })
+}
+
+/// Handles a non-empty `<outline>`: records a feed if present, and returns the
+/// stack entry to push (`None` for feeds, `Some(folder name)` for folders).
+fn push_start_outline(
+    attrs: &HashMap<String, String>,
+    outline_stack: &[Option<String>],
+    feeds: &mut Vec<OpmlFeed>,
+) -> Option<String> {
+    if let Some(feed) = outline_feed(attrs, outline_stack) {
+        feeds.push(feed);
+        return None;
+    }
+    // Folder outline (has children via Start event)
+    Some(
+        attrs
+            .get("title")
+            .or(attrs.get("text"))
+            .cloned()
+            .unwrap_or_default(),
+    )
 }
 
 fn current_folder(outline_stack: &[Option<String>]) -> Option<String> {
