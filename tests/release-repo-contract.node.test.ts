@@ -231,6 +231,16 @@ const readUpdaterModuleSource = (): string =>
   ["mod.rs", "state.rs", "policy.rs", "tests.rs"]
     .map((file) => readText(`src-tauri/src/commands/updater_commands/${file}`))
     .join("\n");
+const readTauriLibSource = (): string => {
+  const rustFilesIn = (dir: string): string[] =>
+    readdirSync(`src-tauri/src/${dir}`)
+      .filter((file) => file.endsWith(".rs"))
+      .sort()
+      .map((file) => `src-tauri/src/${dir}/${file}`);
+  return ["src-tauri/src/lib.rs", ...rustFilesIn("startup"), ...rustFilesIn("tests")]
+    .map((file) => readText(file))
+    .join("\n");
+};
 const readMigrationModuleSource = (): string => {
   const migrationDir = "src-tauri/src/infra/db/migration";
   const migrationTestFiles = readdirSync(`${migrationDir}/tests`)
@@ -746,7 +756,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const releaseArtifactsCli = readText("scripts/release/artifacts.ts");
   const releaseArtifactWorkflow = readText("scripts/release/workflows/artifacts.ts");
   const releaseContaminationChecker = readText("scripts/check-release-build-contamination.ts");
-  const tauriLib = readText("src-tauri/src/lib.rs");
+  const tauriLib = readTauriLibSource();
   const updaterCommandsSource = readUpdaterModuleSource();
   const migrationSource = readMigrationModuleSource();
   const devMocks = readText("src/dev/mocks.ts");

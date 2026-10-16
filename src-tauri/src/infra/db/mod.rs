@@ -113,8 +113,25 @@ mod tests {
 
     #[test]
     fn production_only_startup_paths_have_contract_inventory() {
-        let lib_rs = include_str!("../../lib.rs");
-        let sync_scheduler_rs = include_str!("../../service/sync_scheduler/mod.rs");
+        let lib_rs = [
+            include_str!("../../lib.rs"),
+            include_str!("../../startup/focus.rs"),
+            include_str!("../../startup/lifecycle.rs"),
+            include_str!("../../startup/logs.rs"),
+            include_str!("../../startup/messages.rs"),
+            include_str!("../../startup/redaction.rs"),
+            include_str!("../../startup/window.rs"),
+            include_str!("../../tests/preferences_logs_focus.rs"),
+        ]
+        .join("\n");
+        let lib_rs = lib_rs.as_str();
+        let sync_scheduler_rs = [
+            include_str!("../../service/sync_scheduler/mod.rs"),
+            include_str!("../../service/sync_scheduler/accounts.rs"),
+            include_str!("../../service/sync_scheduler/tests/loading_and_backoff.rs"),
+        ]
+        .join("\n");
+        let sync_scheduler_rs = sync_scheduler_rs.as_str();
 
         let production_only_startup_paths = [
             (
@@ -123,7 +140,7 @@ mod tests {
             ),
             (
                 "startup focus restore async path",
-                "#[cfg(not(test))]\nfn focus_main_webview_on_startup",
+                "#[cfg(not(test))]\npub(crate) fn focus_main_webview_on_startup",
             ),
             (
                 "startup focus restore cancellation state",
