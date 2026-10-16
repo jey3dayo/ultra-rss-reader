@@ -20,6 +20,7 @@ const readSyncCommandsModuleSource = (): string =>
     "progress.rs",
     "local_import_export.rs",
     "account_sync.rs",
+    "account_sync/startup.rs",
     "scheduler.rs",
     "tests/mod.rs",
     "tests/progress.rs",
