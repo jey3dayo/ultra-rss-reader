@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.3] - 2026-10-16
+
+### Features
+
+- 更新トーストなど2つの選択肢があるトーストを、右寄せの「後で」と「今すぐ再起動」ボタンに整理し、重複していた右上の × をなくしました。 (#488)
+
 ## [0.67.2] - 2026-10-16
 
 ### Maintenance
