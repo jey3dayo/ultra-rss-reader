@@ -1,13 +1,17 @@
 import { Result } from "@praha/byethrow";
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { PreferencesDto } from "@/api/schemas/preferences";
+import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useArticle, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useArticlesByTag, useTags } from "@/hooks/use-tags";
+import type { WebPreviewSessionMode } from "@/lib/articles/article-display";
 import { type ArticleViewSummaryState, buildArticleViewSummaryResult } from "@/lib/articles/article-view";
 import { resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
+import type { ContentMode } from "@/lib/layout/layout-state.types";
+import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
 import { resolveReaderSelectionSourceKind, resolveReaderSourceArticles } from "@/lib/reader/reader-source-articles";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -57,6 +61,142 @@ function resolveEmptyArticleViewState(params: {
     summary,
     landingCandidate,
   };
+}
+
+type ArticleViewEmptyStateParams = {
+  selection: ReaderQuerySelection;
+  selectedFeedId: string | null;
+  selectedAccountId: string | null;
+  accountsCount: number | undefined;
+  feeds: FeedDto[] | undefined;
+  folders: FolderDto[] | undefined;
+  tags: TagDto[] | undefined;
+  filteredArticles: ArticleDto[];
+  allFeedArticles: ArticleDto[] | undefined;
+  allFolderArticles: ArticleDto[] | undefined;
+  allTagArticles: ArticleDto[] | undefined;
+  allRecentArticles: ArticleDto[] | undefined;
+  prefs: PreferencesDto;
+  webPreviewSessionMode: WebPreviewSessionMode | undefined;
+};
+
+function resolveLandingCandidate(params: {
+  selection: ReaderQuerySelection;
+  feeds: FeedDto[] | undefined;
+  filteredArticles: ArticleDto[];
+  prefs: PreferencesDto;
+  webPreviewSessionMode: WebPreviewSessionMode | undefined;
+}): ArticleViewLandingCandidate | undefined {
+  const { selection, feeds, filteredArticles, prefs, webPreviewSessionMode } = params;
+  const landingArticle = selection.type === "all" ? undefined : filteredArticles[0];
+
+  if (!landingArticle) {
+    return undefined;
+  }
+
+  const landingFeed = feeds?.find((candidate) => candidate.id === landingArticle.feed_id);
+  const landingDisplay = resolveFeedLandingDisplay({
+    feed: landingFeed,
+    prefs,
+    articleUrl: landingArticle.url,
+    webPreviewSessionMode,
+  });
+
+  return {
+    article: landingArticle,
+    feed: landingFeed,
+    browserUrl: landingDisplay.webPreviewMode && landingArticle.url ? landingArticle.url : null,
+  };
+}
+
+function resolveArticleViewEmptyState(params: ArticleViewEmptyStateParams): ArticleViewEmptyState {
+  const {
+    selection,
+    selectedFeedId,
+    selectedAccountId,
+    accountsCount,
+    feeds,
+    folders,
+    tags,
+    filteredArticles,
+    allFeedArticles,
+    allFolderArticles,
+    allTagArticles,
+    allRecentArticles,
+    prefs,
+    webPreviewSessionMode,
+  } = params;
+
+  const summaryResult = buildArticleViewSummaryResult({
+    selection,
+    selectedFeedId,
+    feeds,
+    folders,
+    tags,
+    filteredArticles,
+    summaryArticles: resolveReaderSourceArticles({
+      sourceKind: resolveReaderSelectionSourceKind(selection),
+      feedArticles: allFeedArticles,
+      folderArticles: allFolderArticles,
+      tagArticles: allTagArticles,
+      recentArticles: allRecentArticles,
+    }),
+    allFeedArticles,
+  });
+  const summary = Result.isSuccess(summaryResult) ? Result.unwrap(summaryResult) : undefined;
+
+  return resolveEmptyArticleViewState({
+    accountsCount,
+    selectedAccountId,
+    feeds,
+    summary,
+    landingCandidate: resolveLandingCandidate({
+      selection,
+      feeds,
+      filteredArticles,
+      prefs,
+      webPreviewSessionMode,
+    }),
+  });
+}
+
+// The by-id fetch is the single source of truth for the opened article, so it works
+// regardless of which source (feed, folder, tag, smart view, search, ...) the row came
+// from. The current list is only a source-agnostic cache used for an instant render
+// while that fetch is still loading; it must never gate whether the article can open.
+function resolveSelectedArticleState(params: {
+  contentMode: ContentMode;
+  browserUrl: string | null;
+  selectedArticleId: string;
+  filteredArticles: ArticleDto[];
+  fullSelectedArticle: ArticleDto | undefined;
+  isSelectedArticlePending: boolean;
+  feeds: FeedDto[] | undefined;
+  hasNextArticle: boolean;
+}): ArticleViewSelectionState {
+  const {
+    contentMode,
+    browserUrl,
+    selectedArticleId,
+    filteredArticles,
+    fullSelectedArticle,
+    isSelectedArticlePending,
+    feeds,
+    hasNextArticle,
+  } = params;
+
+  const listArticle = filteredArticles.find((candidate) => candidate.id === selectedArticleId);
+  const article = fullSelectedArticle ?? listArticle;
+
+  if (!article) {
+    if (contentMode === "browser" && browserUrl) {
+      return { kind: "browser-only", browserUrl };
+    }
+    return isSelectedArticlePending ? { kind: "loading" } : { kind: "not-found" };
+  }
+
+  const feed = feeds?.find((candidate) => candidate.id === article.feed_id);
+  return { kind: "article", article, feed, hasNextArticle };
 }
 
 export function useArticleViewSelection(): ArticleViewSelectionState {
@@ -119,66 +259,32 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   }
 
   if (contentMode === "empty" || !selectedArticleId) {
-    const summaryResult = buildArticleViewSummaryResult({
+    return resolveArticleViewEmptyState({
       selection,
       selectedFeedId,
+      selectedAccountId,
+      accountsCount: accounts?.length,
       feeds: sources.feeds,
       folders,
       tags,
       filteredArticles: data.filteredArticles,
-      summaryArticles: resolveReaderSourceArticles({
-        sourceKind: resolveReaderSelectionSourceKind(selection),
-        feedArticles: allFeedArticles,
-        folderArticles: allFolderArticles,
-        tagArticles: allTagArticles,
-        recentArticles: allRecentArticles,
-      }),
       allFeedArticles,
-    });
-    const summary = Result.isSuccess(summaryResult) ? Result.unwrap(summaryResult) : undefined;
-    const landingArticle = selection.type === "all" ? undefined : data.filteredArticles[0];
-    const landingFeed = landingArticle
-      ? sources.feeds?.find((candidate) => candidate.id === landingArticle.feed_id)
-      : undefined;
-    const landingDisplay = landingArticle
-      ? resolveFeedLandingDisplay({
-          feed: landingFeed,
-          prefs,
-          articleUrl: landingArticle.url,
-          webPreviewSessionMode,
-        })
-      : null;
-    const landingCandidate = landingArticle
-      ? {
-          article: landingArticle,
-          feed: landingFeed,
-          browserUrl: landingDisplay?.webPreviewMode && landingArticle.url ? landingArticle.url : null,
-        }
-      : undefined;
-
-    return resolveEmptyArticleViewState({
-      accountsCount: accounts?.length,
-      selectedAccountId,
-      feeds: sources.feeds,
-      summary,
-      landingCandidate,
+      allFolderArticles,
+      allTagArticles,
+      allRecentArticles,
+      prefs,
+      webPreviewSessionMode,
     });
   }
 
-  // The by-id fetch is the single source of truth for the opened article, so it works
-  // regardless of which source (feed, folder, tag, smart view, search, ...) the row came
-  // from. The current list is only a source-agnostic cache used for an instant render
-  // while that fetch is still loading; it must never gate whether the article can open.
-  const listArticle = data.filteredArticles.find((candidate) => candidate.id === selectedArticleId);
-  const article = fullSelectedArticle ?? listArticle;
-
-  if (!article) {
-    if (contentMode === "browser" && browserUrl) {
-      return { kind: "browser-only", browserUrl };
-    }
-    return isSelectedArticlePending ? { kind: "loading" } : { kind: "not-found" };
-  }
-
-  const feed = sources.feeds?.find((candidate) => candidate.id === article.feed_id);
-  return { kind: "article", article, feed, hasNextArticle };
+  return resolveSelectedArticleState({
+    contentMode,
+    browserUrl,
+    selectedArticleId,
+    filteredArticles: data.filteredArticles,
+    fullSelectedArticle,
+    isSelectedArticlePending,
+    feeds: sources.feeds,
+    hasNextArticle,
+  });
 }

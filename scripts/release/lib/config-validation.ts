@@ -4,6 +4,8 @@ import {
   findMsixIdentityVersionOwners,
   findTopLevelJsonVersionOwners,
   MSIX_VERSION_COMPONENT_MAX,
+  type MsixIdentityVersionOwners,
+  type SourceVersionOwner,
   STABLE_VERSION_PATTERN,
 } from "./version-owners.ts";
 
@@ -148,37 +150,11 @@ const readCargoTomlVersionOwners = (source: string): { sectionCount: number; ver
 const permissionIdentifier = (permission: string | { identifier: string }): string =>
   typeof permission === "string" ? permission : permission.identifier;
 
-export const validateReleaseConfigSources = ({
-  releaseTag,
-  sources,
-}: {
-  releaseTag: string | undefined;
-  sources: ReleaseConfigSources;
-}): string[] => {
-  const packageJson = parsePackageJson(sources.packageJson);
-  const tauriConfig = parseTauriConfig(sources.tauriConfig);
-  const tauriReleaseConfig = parseTauriConfig(sources.releaseTauriConfig);
-  const tauriDevConfig = parseTauriConfig(sources.devTauriConfig);
-  const defaultCapability = parseCapabilityFile(sources.defaultCapability);
-  const packageVersionMatches = findTopLevelJsonVersionOwners(sources.packageJson);
-  const tauriVersionMatches = findTopLevelJsonVersionOwners(sources.tauriConfig);
-  const cargoVersionOwners = readCargoTomlVersionOwners(sources.cargoToml);
-  const cargoVersion =
-    cargoVersionOwners.sectionCount === 1 && cargoVersionOwners.versions.length === 1
-      ? cargoVersionOwners.versions[0]
-      : undefined;
-  const cargoLockPackageMatches = findCargoLockPackageVersionOwners(sources.cargoLock).map((owner) =>
-    owner.nameCount === 1 && owner.versions.length === 1 ? owner.versions[0]?.version : undefined,
-  );
-  const msixIdentityMatches = findMsixIdentityVersionOwners(sources.msixManifest);
-  const msixIdentityVersions = msixIdentityMatches.length === 1 ? (msixIdentityMatches[0]?.versions ?? []) : [];
-  const msixManifestVersion = msixIdentityVersions.length === 1 ? msixIdentityVersions[0]?.version : undefined;
-  const expectedTag = `v${packageJson.version}`;
-  const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
-  const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
-  const mainCapability = defaultCapability.find((capability) => capability.identifier === "main");
-  const browserWebviewCapability = defaultCapability.find((capability) => capability.identifier === "browser-webview");
-
+const collectVersionOwnerErrors = (
+  packageVersionMatches: SourceVersionOwner[],
+  tauriVersionMatches: SourceVersionOwner[],
+  cargoVersionOwners: { sectionCount: number; versions: string[] },
+): string[] => {
   const errors: string[] = [];
   if (packageVersionMatches.length !== 1) {
     errors.push(`package.json must contain exactly one version owner, found ${packageVersionMatches.length}`);
@@ -193,14 +169,25 @@ export const validateReleaseConfigSources = ({
       `src-tauri/Cargo.toml must contain exactly one [package] section and version owner, found ${cargoVersionOwners.sectionCount} sections and ${cargoVersionOwners.versions.length} versions`,
     );
   }
+  return errors;
+};
+
+const collectPackageVersionErrors = (
+  packageJson: PackageJson,
+  releaseTag: string | undefined,
+  tauriConfig: TauriConfig,
+  cargoVersion: string | undefined,
+  cargoLockPackageMatches: Array<string | undefined>,
+): string[] => {
+  const errors: string[] = [];
   const versionMatch = packageJson.version?.match(STABLE_VERSION_PATTERN);
   if (!versionMatch) {
     errors.push(`package.json version ${packageJson.version ?? "(missing)"} must be a stable X.Y.Z version`);
   } else if (versionMatch.slice(1).some((component) => Number(component) > MSIX_VERSION_COMPONENT_MAX)) {
     errors.push(`package.json version components must not exceed ${MSIX_VERSION_COMPONENT_MAX} for MSIX`);
   }
-  if (releaseTag !== expectedTag) {
-    errors.push(`release tag ${releaseTag} does not match package.json version ${expectedTag}`);
+  if (releaseTag !== `v${packageJson.version}`) {
+    errors.push(`release tag ${releaseTag} does not match package.json version v${packageJson.version}`);
   }
   if (tauriConfig.version !== packageJson.version) {
     errors.push(
@@ -221,6 +208,16 @@ export const validateReleaseConfigSources = ({
       `src-tauri/Cargo.lock ultra-rss-reader version ${cargoLockPackageMatches[0]} does not match package.json version ${packageJson.version}`,
     );
   }
+  return errors;
+};
+
+const collectMsixErrors = (
+  packageJson: PackageJson,
+  msixIdentityMatches: MsixIdentityVersionOwners[],
+  msixIdentityVersions: SourceVersionOwner[],
+  msixManifestVersion: string | undefined,
+): string[] => {
+  const errors: string[] = [];
   if (msixIdentityMatches.length !== 1) {
     errors.push(
       `msix/Package.appxmanifest must contain exactly one Identity element, found ${msixIdentityMatches.length}`,
@@ -234,6 +231,17 @@ export const validateReleaseConfigSources = ({
       `msix/Package.appxmanifest Identity version ${msixManifestVersion ?? "(missing)"} does not match package.json version ${packageJson.version}.0`,
     );
   }
+  return errors;
+};
+
+const collectTauriConfigErrors = (
+  tauriConfig: TauriConfig,
+  tauriReleaseConfig: TauriConfig,
+  tauriDevConfig: TauriConfig,
+  updaterEndpoint: string | undefined,
+  updaterPubkey: string | undefined,
+): string[] => {
+  const errors: string[] = [];
   if (tauriReleaseConfig.identifier !== tauriConfig.identifier) {
     errors.push(
       `src-tauri/tauri.release.conf.json identifier ${tauriReleaseConfig.identifier} does not match src-tauri/tauri.conf.json identifier ${tauriConfig.identifier}`,
@@ -259,18 +267,29 @@ export const validateReleaseConfigSources = ({
   if (!updaterPubkey || UPDATER_PUBKEY_PLACEHOLDER_PATTERN.test(updaterPubkey)) {
     errors.push("src-tauri/tauri.conf.json updater pubkey must be configured and must not be a placeholder");
   }
-  if (!sources.releaseWorkflow.includes("--config src-tauri/tauri.release.conf.json")) {
+  return errors;
+};
+
+const collectReleaseWorkflowErrors = (releaseWorkflow: string): string[] => {
+  const errors: string[] = [];
+  if (!releaseWorkflow.includes("--config src-tauri/tauri.release.conf.json")) {
     errors.push("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
   }
-  if (sources.releaseWorkflow.includes("--config src-tauri/tauri.dev.conf.json")) {
+  if (releaseWorkflow.includes("--config src-tauri/tauri.dev.conf.json")) {
     errors.push("release workflow must not pass src-tauri/tauri.dev.conf.json to tauri-action");
   }
-  if (
-    /\bDEV_CREDENTIALS\s*:/.test(sources.releaseWorkflow) ||
-    /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(sources.releaseWorkflow)
-  ) {
+  if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
     errors.push("release workflow must not set dev credential environment variables");
   }
+  return errors;
+};
+
+const collectCapabilityErrors = (
+  defaultCapability: TauriCapability[],
+  mainCapability: TauriCapability | undefined,
+  browserWebviewCapability: TauriCapability | undefined,
+): string[] => {
+  const errors: string[] = [];
   if (!Array.isArray(mainCapability?.permissions)) {
     errors.push("src-tauri/capabilities/default.json must declare main release permissions explicitly");
   } else if (
@@ -291,6 +310,45 @@ export const validateReleaseConfigSources = ({
   ) {
     errors.push("browser-webview capability must stay on the minimal core event permission snapshot");
   }
-
   return errors;
+};
+
+export const validateReleaseConfigSources = ({
+  releaseTag,
+  sources,
+}: {
+  releaseTag: string | undefined;
+  sources: ReleaseConfigSources;
+}): string[] => {
+  const packageJson = parsePackageJson(sources.packageJson);
+  const tauriConfig = parseTauriConfig(sources.tauriConfig);
+  const tauriReleaseConfig = parseTauriConfig(sources.releaseTauriConfig);
+  const tauriDevConfig = parseTauriConfig(sources.devTauriConfig);
+  const defaultCapability = parseCapabilityFile(sources.defaultCapability);
+  const packageVersionMatches = findTopLevelJsonVersionOwners(sources.packageJson);
+  const tauriVersionMatches = findTopLevelJsonVersionOwners(sources.tauriConfig);
+  const cargoVersionOwners = readCargoTomlVersionOwners(sources.cargoToml);
+  const cargoVersion =
+    cargoVersionOwners.sectionCount === 1 && cargoVersionOwners.versions.length === 1
+      ? cargoVersionOwners.versions[0]
+      : undefined;
+  const cargoLockPackageMatches = findCargoLockPackageVersionOwners(sources.cargoLock).map((owner) =>
+    owner.nameCount === 1 && owner.versions.length === 1 ? owner.versions[0]?.version : undefined,
+  );
+  const msixIdentityMatches = findMsixIdentityVersionOwners(sources.msixManifest);
+  const msixIdentityVersions = msixIdentityMatches.length === 1 ? (msixIdentityMatches[0]?.versions ?? []) : [];
+  const msixManifestVersion = msixIdentityVersions.length === 1 ? msixIdentityVersions[0]?.version : undefined;
+  const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
+  const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
+  const mainCapability = defaultCapability.find((capability) => capability.identifier === "main");
+  const browserWebviewCapability = defaultCapability.find((capability) => capability.identifier === "browser-webview");
+
+  return [
+    ...collectVersionOwnerErrors(packageVersionMatches, tauriVersionMatches, cargoVersionOwners),
+    ...collectPackageVersionErrors(packageJson, releaseTag, tauriConfig, cargoVersion, cargoLockPackageMatches),
+    ...collectMsixErrors(packageJson, msixIdentityMatches, msixIdentityVersions, msixManifestVersion),
+    ...collectTauriConfigErrors(tauriConfig, tauriReleaseConfig, tauriDevConfig, updaterEndpoint, updaterPubkey),
+    ...collectReleaseWorkflowErrors(sources.releaseWorkflow),
+    ...collectCapabilityErrors(defaultCapability, mainCapability, browserWebviewCapability),
+  ];
 };

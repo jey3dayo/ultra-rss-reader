@@ -191,47 +191,62 @@ export function formatEnumDriftTable(rows: readonly EnumDriftRow[]): string {
   ].join("\n");
 }
 
+const TABLE_CONSTRAINT_KEYWORDS = new Set(["CHECK", "CONSTRAINT", "FOREIGN", "PRIMARY", "UNIQUE"]);
+
+const addCreateTableColumns = (inventory: MigrationInventory, sql: string): void => {
+  for (const match of sql.matchAll(
+    /CREATE\s+(?:VIRTUAL\s+)?TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([A-Za-z_][\w]*)\s*\(([\s\S]*?)\);/gi,
+  )) {
+    const table = normalizeIdentifier(match[1] ?? "");
+    const body = match[2] ?? "";
+    inventory.tables.add(table);
+    collectTableColumns(inventory, table, body);
+  }
+};
+
+const collectTableColumns = (inventory: MigrationInventory, table: string, body: string): void => {
+  for (const definition of splitCommaList(body)) {
+    const column = normalizeIdentifier(definition.match(/^\s*([A-Za-z_][\w]*)\b/)?.[1] ?? "");
+    if (column && !TABLE_CONSTRAINT_KEYWORDS.has(column.toUpperCase())) {
+      addColumn(inventory, table, column);
+    }
+  }
+};
+
+const addAlterTableColumns = (inventory: MigrationInventory, sql: string): void => {
+  for (const match of sql.matchAll(/ALTER\s+TABLE\s+([A-Za-z_][\w]*)\s+ADD\s+COLUMN\s+([A-Za-z_][\w]*)/gi)) {
+    const table = normalizeIdentifier(match[1] ?? "");
+    const column = normalizeIdentifier(match[2] ?? "");
+    if (table && column) {
+      inventory.tables.add(table);
+      addColumn(inventory, table, column);
+    }
+  }
+};
+
+const addIndexTables = (inventory: MigrationInventory, sql: string): void => {
+  for (const match of sql.matchAll(
+    /CREATE\s+(?:UNIQUE\s+)?INDEX(?:\s+IF\s+NOT\s+EXISTS)?\s+([A-Za-z_][\w]*)\s+ON\s+([A-Za-z_][\w]*)/gi,
+  )) {
+    const index = normalizeIdentifier(match[1] ?? "");
+    const table = normalizeIdentifier(match[2] ?? "");
+    if (index) {
+      inventory.indexes.add(index);
+    }
+    if (table) {
+      inventory.tables.add(table);
+    }
+  }
+};
+
 function parseMigrationInventory(migrationSources: readonly string[]): MigrationInventory {
   const inventory = createEmptyMigrationInventory();
 
   for (const source of migrationSources) {
     const sql = removeSqlComments(source);
-
-    for (const match of sql.matchAll(
-      /CREATE\s+(?:VIRTUAL\s+)?TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([A-Za-z_][\w]*)\s*\(([\s\S]*?)\);/gi,
-    )) {
-      const table = normalizeIdentifier(match[1] ?? "");
-      const body = match[2] ?? "";
-      inventory.tables.add(table);
-      for (const definition of splitCommaList(body)) {
-        const column = normalizeIdentifier(definition.match(/^\s*([A-Za-z_][\w]*)\b/)?.[1] ?? "");
-        if (column && !["CHECK", "CONSTRAINT", "FOREIGN", "PRIMARY", "UNIQUE"].includes(column.toUpperCase())) {
-          addColumn(inventory, table, column);
-        }
-      }
-    }
-
-    for (const match of sql.matchAll(/ALTER\s+TABLE\s+([A-Za-z_][\w]*)\s+ADD\s+COLUMN\s+([A-Za-z_][\w]*)/gi)) {
-      const table = normalizeIdentifier(match[1] ?? "");
-      const column = normalizeIdentifier(match[2] ?? "");
-      if (table && column) {
-        inventory.tables.add(table);
-        addColumn(inventory, table, column);
-      }
-    }
-
-    for (const match of sql.matchAll(
-      /CREATE\s+(?:UNIQUE\s+)?INDEX(?:\s+IF\s+NOT\s+EXISTS)?\s+([A-Za-z_][\w]*)\s+ON\s+([A-Za-z_][\w]*)/gi,
-    )) {
-      const index = normalizeIdentifier(match[1] ?? "");
-      const table = normalizeIdentifier(match[2] ?? "");
-      if (index) {
-        inventory.indexes.add(index);
-      }
-      if (table) {
-        inventory.tables.add(table);
-      }
-    }
+    addCreateTableColumns(inventory, sql);
+    addAlterTableColumns(inventory, sql);
+    addIndexTables(inventory, sql);
   }
 
   return inventory;
