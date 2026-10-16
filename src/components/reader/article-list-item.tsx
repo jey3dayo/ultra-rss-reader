@@ -21,6 +21,99 @@ type ArticleListItemProps = {
   onSelect: (articleId: string) => void;
 };
 
+type ArticleRowClassNameInput = {
+  selectionStyle: string;
+  isSelected: boolean;
+  isActivePane: boolean;
+  dimmed: boolean;
+};
+
+function selectionClassName(selectionStyle: string, isSelected: boolean, isActivePane: boolean) {
+  if (selectionStyle === "classic") {
+    return cn(
+      "border-l-2 border-transparent focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
+      isSelected && isActivePane && "border-primary bg-[image:var(--sidebar-selection-gradient)]",
+      isSelected && !isActivePane && "border-border-strong/60 bg-[image:var(--sidebar-hover-gradient)]",
+    );
+  }
+  return cn(
+    isSelected &&
+      cn(
+        isActivePane
+          ? "bg-surface-2/45 after:bg-border-strong focus-visible:bg-surface-2/55"
+          : "bg-surface-2/28 after:bg-border-strong/70 focus-visible:bg-surface-2/38",
+        MOTION_ARTICLE_SELECTION_MARKER_CLASS_NAME,
+        "after:absolute after:inset-y-2 after:left-2 after:w-0.5 after:rounded-full",
+      ),
+  );
+}
+
+function articleRowClassName({ selectionStyle, isSelected, isActivePane, dimmed }: ArticleRowClassNameInput) {
+  return cn(
+    "relative isolate flex w-full cursor-pointer select-none flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
+    selectionClassName(selectionStyle, isSelected, isActivePane),
+    !isSelected && "hover:bg-surface-1/72 focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
+    dimmed && "opacity-50",
+  );
+}
+
+function titleToneClassName(isSelected: boolean, isUnread: boolean) {
+  if (isSelected) return "font-semibold text-foreground";
+  return isUnread ? "font-medium text-foreground/92" : "text-foreground/78";
+}
+
+type ArticleListItemSecondaryRowProps = {
+  isSelected: boolean;
+  imagePreviews: string;
+  showSummary: boolean;
+  normalizedSummary: string;
+  showThumbnail: boolean;
+  normalizedThumbnail: string;
+};
+
+function ArticleListItemSecondaryRow({
+  isSelected,
+  imagePreviews,
+  showSummary,
+  normalizedSummary,
+  showThumbnail,
+  normalizedThumbnail,
+}: ArticleListItemSecondaryRowProps) {
+  return (
+    <div className="flex items-start gap-2 pl-4">
+      {showSummary && (
+        <p
+          className={cn(
+            "line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft transition-colors duration-150 motion-reduce:transition-none",
+            isSelected && "text-foreground/68",
+          )}
+        >
+          {normalizedSummary}
+        </p>
+      )}
+      {showThumbnail && (
+        <div
+          className={cn(
+            "relative shrink-0 overflow-hidden rounded",
+            imagePreviews === "small" && "h-12 w-16",
+            imagePreviews === "medium" && "h-16 w-20",
+            imagePreviews === "large" && "h-20 w-28",
+          )}
+        >
+          <img
+            src={normalizedThumbnail}
+            alt=""
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const ArticleListItem = memo(function ArticleListItem({
   article,
   isSelected,
@@ -77,27 +170,12 @@ export const ArticleListItem = memo(function ArticleListItem({
       aria-label={presentation.ariaLabel}
       onClick={() => onSelect(article.id)}
       onKeyDown={handleKeyDown}
-      className={cn(
-        "relative isolate flex w-full cursor-pointer select-none flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
-        selectionStyle === "classic"
-          ? cn(
-              "border-l-2 border-transparent focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
-              isSelected && isActivePane && "border-primary bg-[image:var(--sidebar-selection-gradient)]",
-              isSelected && !isActivePane && "border-border-strong/60 bg-[image:var(--sidebar-hover-gradient)]",
-            )
-          : cn(
-              isSelected &&
-                cn(
-                  isActivePane
-                    ? "bg-surface-2/45 after:bg-border-strong focus-visible:bg-surface-2/55"
-                    : "bg-surface-2/28 after:bg-border-strong/70 focus-visible:bg-surface-2/38",
-                  MOTION_ARTICLE_SELECTION_MARKER_CLASS_NAME,
-                  "after:absolute after:inset-y-2 after:left-2 after:w-0.5 after:rounded-full",
-                ),
-            ),
-        !isSelected && "hover:bg-surface-1/72 focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
-        presentation.isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
-      )}
+      className={articleRowClassName({
+        selectionStyle,
+        isSelected,
+        isActivePane,
+        dimmed: presentation.isRead && !isSelected && (isRecentlyRead || dimArchived === "true"),
+      })}
     >
       <div className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -109,11 +187,7 @@ export const ArticleListItem = memo(function ArticleListItem({
             <h3
               className={cn(
                 "line-clamp-2 flex-1 text-sm leading-snug",
-                isSelected
-                  ? "font-semibold text-foreground"
-                  : presentation.isUnread
-                    ? "font-medium text-foreground/92"
-                    : "text-foreground/78",
+                titleToneClassName(isSelected, presentation.isUnread),
               )}
             >
               {presentation.normalizedTitle}
@@ -145,37 +219,14 @@ export const ArticleListItem = memo(function ArticleListItem({
       )}
 
       {presentation.showSecondaryRow && (
-        <div className="flex items-start gap-2 pl-4">
-          {presentation.showSummary && (
-            <p
-              className={cn(
-                "line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft transition-colors duration-150 motion-reduce:transition-none",
-                isSelected && "text-foreground/68",
-              )}
-            >
-              {presentation.normalizedSummary}
-            </p>
-          )}
-          {presentation.showThumbnail && (
-            <div
-              className={cn(
-                "relative shrink-0 overflow-hidden rounded",
-                imagePreviews === "small" && "h-12 w-16",
-                imagePreviews === "medium" && "h-16 w-20",
-                imagePreviews === "large" && "h-20 w-28",
-              )}
-            >
-              <img
-                src={presentation.normalizedThumbnail}
-                alt=""
-                className="h-full w-full object-cover"
-                referrerPolicy="no-referrer"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          )}
-        </div>
+        <ArticleListItemSecondaryRow
+          isSelected={isSelected}
+          imagePreviews={imagePreviews}
+          showSummary={presentation.showSummary}
+          normalizedSummary={presentation.normalizedSummary}
+          showThumbnail={presentation.showThumbnail}
+          normalizedThumbnail={presentation.normalizedThumbnail}
+        />
       )}
     </div>
   );
