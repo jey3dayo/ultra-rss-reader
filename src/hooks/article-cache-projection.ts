@@ -317,10 +317,6 @@ function updateCachedArticleArray(
   return updateCachedArticleArrayPage(current, nextArticle, options);
 }
 
-function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
-  return shouldKeepArticleInQuery(queryKey, nextArticle);
-}
-
 function updateCachedStarredArticleArrayPage(
   current: unknown[],
   nextArticle: ArticleDto,
@@ -385,7 +381,7 @@ function patchKnownAccountArticleCaches(qc: QueryClient, accountId: string, next
     for (const [queryKey] of accountArticleQueries) {
       qc.setQueryData(queryKey, (current: unknown) =>
         updateCachedArticleArray(current, nextArticle, {
-          insertIfMissing: shouldInsertMissingAccountArticle(queryKey, nextArticle),
+          insertIfMissing: shouldKeepArticleInQuery(queryKey, nextArticle),
           queryKey,
         }),
       );

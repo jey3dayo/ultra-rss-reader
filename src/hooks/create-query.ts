@@ -42,10 +42,6 @@ export function resetCreateQueryDiagnosticsReporterForTests(): void {
   createQueryDiagnosticsReporter = reportCreateQueryDiagnostic;
 }
 
-function normalizeQueryId(id: string | null): string | null {
-  return normalizeQueryAccountId(id);
-}
-
 function redactDiagnosticQueryId(queryId: string): string {
   return queryId.length > 0 ? "<redacted>" : queryId;
 }
@@ -105,7 +101,7 @@ export function createQuery<TData, TId extends string | null>(
   const queryKeyRoot = typeof queryRoot === "string" ? [queryRoot] : queryRoot;
 
   return function useGeneratedQuery(id: TId) {
-    const queryId = normalizeQueryId(id);
+    const queryId = normalizeQueryAccountId(id);
     return useQuery<TData, GeneratedQueryError | Error, TData, readonly unknown[]>({
       queryKey: [...queryKeyRoot, queryId],
       queryFn: () => {

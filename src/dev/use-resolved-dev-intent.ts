@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  createDevIntentGenerationSnapshot,
   type DevIntent,
   isCurrentDevIntentGeneration,
   loadDevRuntimeOptions,
   readDevIntent,
+  readDevIntentEnvSnapshot,
 } from "@/dev/intent";
 
 type ResolvedDevIntentState = {
@@ -33,7 +33,7 @@ export function useResolvedDevIntent(): ResolvedDevIntentState {
     }
 
     let cancelled = false;
-    const intentGeneration = createDevIntentGenerationSnapshot();
+    const intentGeneration = readDevIntentEnvSnapshot();
 
     void loadDevRuntimeOptions().then(() => {
       if (cancelled || !isCurrentDevIntentGeneration(intentGeneration)) {

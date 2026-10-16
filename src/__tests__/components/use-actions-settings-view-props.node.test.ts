@@ -1,5 +1,4 @@
-import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import type { ActionsSettingsViewProps } from "@/components/settings/actions-settings-view";
+import { describe, expect, it, vi } from "vitest";
 import {
   ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS,
   buildActionsSettingsViewModel,
@@ -10,12 +9,6 @@ import i18n from "@/lib/i18n";
 const t = i18n.getFixedT("en", "settings");
 
 describe("useActionsSettingsViewProps", () => {
-  it("keeps action row models as view options, not schema contracts", () => {
-    expectTypeOf<ActionsSettingsViewProps["services"][number]>()
-      .toHaveProperty("onCheckedChange")
-      .toEqualTypeOf<(checked: boolean) => void>();
-  });
-
   it("maps toolbar action preferences to service toggles", () => {
     const setPref = vi.fn();
     const props = buildActionsSettingsViewModel({

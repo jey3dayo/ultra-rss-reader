@@ -120,11 +120,3 @@ export function setStoryTauriRuntimePresent() {
 export function setStoryTauriRuntimeMissing() {
   return removeStoryRuntimeTauriInternals();
 }
-
-export function setComponentIsolationStoryRuntime() {
-  return setStoryTauriRuntimeMissing();
-}
-
-export function setAppLikeScenarioStoryRuntime() {
-  return setStoryTauriRuntimePresent();
-}

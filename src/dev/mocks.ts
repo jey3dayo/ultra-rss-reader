@@ -88,20 +88,12 @@ const mockLocalSyncSettings = new Map<string, DevLocalSyncSettings>();
 
 export type { RestoreDevMocks } from "@/dev/mock-runtime";
 
-function parseMockArgs<TCommand extends MockCommandWithArgs>(
-  command: TCommand,
-  rawIpcPayload: RawMockIpcPayload,
-): ParsedBrowserMockArgs<TCommand>;
-function parseMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMockIpcPayload): Record<string, unknown> {
-  return parse(browserMockCommandArgsSchemas[command], rawIpcPayload);
-}
-
 function parseBrowserMockArgs<TCommand extends MockCommandWithArgs>(
   command: TCommand,
   rawIpcPayload: RawMockIpcPayload,
 ): ParsedBrowserMockArgs<TCommand>;
-function parseBrowserMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMockIpcPayload) {
-  return parseMockArgs(command, rawIpcPayload);
+function parseBrowserMockArgs(command: MockCommandWithArgs, rawIpcPayload: RawMockIpcPayload): Record<string, unknown> {
+  return parse(browserMockCommandArgsSchemas[command], rawIpcPayload);
 }
 
 function cloneMockResponse<T>(value: T): T {
