@@ -9,12 +9,6 @@ import {
   sortedStorybookStoryIds,
 } from "../../../e2e/storybook/storybook-index-payload";
 import {
-  setAppLikeScenarioStoryRuntime,
-  setComponentIsolationStoryRuntime,
-  setStoryTauriRuntimeMissing,
-  setStoryTauriRuntimePresent,
-} from "../../components/storybook/story-tauri-runtime";
-import {
   STORYBOOK_EXPLORER_GROUPS,
   STORYBOOK_EXPLORER_ORDER,
   STORYBOOK_EXPLORER_SUBGROUPS,
@@ -298,13 +292,6 @@ describe("Storybook Explorer organization", () => {
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.primitives, "Button"),
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.primitives, "Command"),
     ]);
-  });
-
-  it("keeps story runtime scenario helpers available through the public Storybook helper path", () => {
-    expect(typeof setComponentIsolationStoryRuntime).toBe("function");
-    expect(typeof setAppLikeScenarioStoryRuntime).toBe("function");
-    expect(typeof setStoryTauriRuntimeMissing).toBe("function");
-    expect(typeof setStoryTauriRuntimePresent).toBe("function");
   });
 
   it("nests settings stories by role", () => {

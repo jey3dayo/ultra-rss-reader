@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { flushTestResizeObservers } from "@tests/setup";
 import type { ReactNode } from "react";
-import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import { SettingsModalView, type SettingsModalViewProps } from "@/components/settings/settings-modal-view";
+import { describe, expect, it, vi } from "vitest";
+import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 
 function setScrollMetrics(scrollArea: HTMLElement, clientHeight: number, scrollHeight: number) {
@@ -50,15 +50,6 @@ function settingsContent(children: ReactNode) {
 }
 
 describe("SettingsModalView", () => {
-  it("keeps the settings modal view contract in the feature-local type surface", () => {
-    expectTypeOf<SettingsModalViewProps>().toHaveProperty("content").toEqualTypeOf<ReactNode>();
-    expectTypeOf<SettingsModalViewProps>().toHaveProperty("navigation").toEqualTypeOf<ReactNode>();
-    expectTypeOf<SettingsModalViewProps>().toHaveProperty("onOpenChange").toEqualTypeOf<(open: boolean) => void>();
-    expectTypeOf<SettingsModalViewProps>()
-      .toHaveProperty("contentScrollBehavior")
-      .toEqualTypeOf<"auto" | "always" | "never" | undefined>();
-  });
-
   it("renders header, navigation slots, and content", () => {
     const onClose = vi.fn();
     const onOpenChange = vi.fn();

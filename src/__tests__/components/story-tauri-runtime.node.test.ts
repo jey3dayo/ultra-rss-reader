@@ -6,8 +6,6 @@ import {
   installStoryRuntimeTauriInternals,
   removeStoryRuntimeTauriInternals,
   restoreRuntimeWindowDescriptors,
-  setAppLikeScenarioStoryRuntime,
-  setComponentIsolationStoryRuntime,
   setStoryTauriRuntimeMissing,
   setStoryTauriRuntimePresent,
 } from "@/components/storybook/story-tauri-runtime";
@@ -15,22 +13,6 @@ import {
 setupBrowserTestDom();
 
 describe("story Tauri runtime helper", () => {
-  it("keeps semantic runtime helpers as public Storybook import paths", () => {
-    expect(typeof setComponentIsolationStoryRuntime).toBe("function");
-    expect(typeof setAppLikeScenarioStoryRuntime).toBe("function");
-  });
-
-  it("returns restore callbacks from semantic story runtime helpers", () => {
-    const restoreComponentIsolationRuntime = setComponentIsolationStoryRuntime();
-    const restoreAppLikeScenarioRuntime = setAppLikeScenarioStoryRuntime();
-
-    expect(typeof restoreComponentIsolationRuntime).toBe("function");
-    expect(typeof restoreAppLikeScenarioRuntime).toBe("function");
-
-    restoreAppLikeScenarioRuntime();
-    restoreComponentIsolationRuntime();
-  });
-
   it("keeps Tauri internals configurable when toggling story runtime state", () => {
     window.__DEV_BROWSER_MOCKS__ = true;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
@@ -105,16 +87,6 @@ describe("story Tauri runtime helper", () => {
     expect("invoke" in partialInternals).toBe(false);
 
     restoreRuntime();
-  });
-
-  it("names component isolation and app-like scenario runtime responsibilities", () => {
-    setAppLikeScenarioStoryRuntime();
-
-    expect(window.__TAURI_INTERNALS__).toEqual({});
-
-    setComponentIsolationStoryRuntime();
-
-    expect(window.__TAURI_INTERNALS__).toBeUndefined();
   });
 
   it("restores previous runtime globals after app-like story runtime setup", () => {

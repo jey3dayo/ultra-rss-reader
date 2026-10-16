@@ -80,7 +80,7 @@ function normalizeDevWebUrl(value: string): string | null {
   }
 }
 
-function readDevIntentEnvSnapshot(): string | undefined {
+export function readDevIntentEnvSnapshot(): string | undefined {
   return readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.intent);
 }
 
@@ -201,10 +201,6 @@ export function readDevIntent(): DevIntent {
   }
 
   return parseDevIntent(readDevIntentEnvSnapshot()) ?? readRuntimeDevIntent();
-}
-
-export function createDevIntentGenerationSnapshot(): string | undefined {
-  return readDevIntentEnvSnapshot();
 }
 
 export function isCurrentDevIntentGeneration(snapshot: string | undefined): boolean {
