@@ -23,6 +23,7 @@ paths:
   - "src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts"
   - "src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts"
   - "src/components/reader/hooks/sidebar/use-sidebar-visibility-fallback.ts"
+  - "src/components/settings/hooks/account-detail/account-detail-credentials-editor-state.ts"
   - "src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts"
   - "src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts"
   - "src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts"
