@@ -23,104 +23,98 @@ function isStaleDiscoveryAction(state: AddFeedDialogState, requestId: number | u
   return requestId !== undefined && state.discoveryRequestId !== requestId;
 }
 
+type AddFeedDialogActionType = AddFeedDialogAction["type"];
+type AddFeedDialogActionOf<T extends AddFeedDialogActionType> = Extract<AddFeedDialogAction, { type: T }>;
+type AddFeedDialogActionReducer<T extends AddFeedDialogActionType> = (
+  state: AddFeedDialogState,
+  action: AddFeedDialogActionOf<T>,
+) => AddFeedDialogState;
+type DiscoveryResultActionType = "discover-empty" | "discover-single" | "discover-multiple" | "discover-error";
+
+function ignoreStaleDiscovery<T extends DiscoveryResultActionType>(
+  reduce: AddFeedDialogActionReducer<T>,
+): AddFeedDialogActionReducer<T> {
+  return (state, action) => {
+    const { requestId } = action as { requestId?: number };
+    return isStaleDiscoveryAction(state, requestId) ? state : reduce(state, action);
+  };
+}
+
+const addFeedDialogActionReducers: { [T in AddFeedDialogActionType]: AddFeedDialogActionReducer<T> } = {
+  reset: () => createInitialAddFeedDialogState(),
+  "set-url": (state, action) => ({
+    ...state,
+    url: action.url,
+    discovering: false,
+    discoveryRequestId: null,
+    discoveredFeeds: [],
+    selectedFeedUrl: null,
+  }),
+  "start-discover": (state, action) => ({
+    ...state,
+    discovering: true,
+    discoveryRequestId: action.requestId ?? null,
+    error: null,
+    successMessage: null,
+    discoveredFeeds: [],
+    selectedFeedUrl: null,
+  }),
+  "discover-empty": ignoreStaleDiscovery((state) => ({
+    ...state,
+    discovering: false,
+    discoveryRequestId: null,
+    discoveredFeeds: [],
+    selectedFeedUrl: null,
+    successMessage: "feed_url_ready",
+  })),
+  "discover-single": ignoreStaleDiscovery((state, action) => ({
+    ...state,
+    discovering: false,
+    discoveryRequestId: null,
+    discoveredFeeds: action.feeds[0] && hasDiscoveredFeedTitle(action.feeds[0]) ? action.feeds : [],
+    selectedFeedUrl: action.feeds[0]?.url ?? null,
+    successMessage: "feed_detected",
+  })),
+  "discover-multiple": ignoreStaleDiscovery((state, action) => ({
+    ...state,
+    discovering: false,
+    discoveryRequestId: null,
+    discoveredFeeds: action.feeds,
+    selectedFeedUrl: action.feeds[0]?.url ?? null,
+  })),
+  "discover-error": ignoreStaleDiscovery((state, action) => ({
+    ...state,
+    discovering: false,
+    discoveryRequestId: null,
+    error: action.error,
+  })),
+  "set-selected-feed-url": (state, action) => ({
+    ...state,
+    selectedFeedUrl: action.url,
+  }),
+  "set-invalid-url-error": (state, action) => ({
+    ...state,
+    error: action.error,
+    successMessage: null,
+  }),
+  "set-loading": (state, action) => ({
+    ...state,
+    loading: action.loading,
+    ...(action.loading ? { error: null } : {}),
+  }),
+  "set-submit-error": (state, action) => ({
+    ...state,
+    loading: false,
+    error: action.error,
+  }),
+};
+
 export function addFeedDialogReducer(state: AddFeedDialogState, action: AddFeedDialogAction): AddFeedDialogState {
-  switch (action.type) {
-    case "reset":
-      return createInitialAddFeedDialogState();
-    case "set-url":
-      return {
-        ...state,
-        url: action.url,
-        discovering: false,
-        discoveryRequestId: null,
-        discoveredFeeds: [],
-        selectedFeedUrl: null,
-      };
-    case "start-discover":
-      return {
-        ...state,
-        discovering: true,
-        discoveryRequestId: action.requestId ?? null,
-        error: null,
-        successMessage: null,
-        discoveredFeeds: [],
-        selectedFeedUrl: null,
-      };
-    case "discover-empty":
-      if (isStaleDiscoveryAction(state, action.requestId)) {
-        return state;
-      }
-
-      return {
-        ...state,
-        discovering: false,
-        discoveryRequestId: null,
-        discoveredFeeds: [],
-        selectedFeedUrl: null,
-        successMessage: "feed_url_ready",
-      };
-    case "discover-single":
-      if (isStaleDiscoveryAction(state, action.requestId)) {
-        return state;
-      }
-
-      return {
-        ...state,
-        discovering: false,
-        discoveryRequestId: null,
-        discoveredFeeds: action.feeds[0] && hasDiscoveredFeedTitle(action.feeds[0]) ? action.feeds : [],
-        selectedFeedUrl: action.feeds[0]?.url ?? null,
-        successMessage: "feed_detected",
-      };
-    case "discover-multiple":
-      if (isStaleDiscoveryAction(state, action.requestId)) {
-        return state;
-      }
-
-      return {
-        ...state,
-        discovering: false,
-        discoveryRequestId: null,
-        discoveredFeeds: action.feeds,
-        selectedFeedUrl: action.feeds[0]?.url ?? null,
-      };
-    case "discover-error":
-      if (isStaleDiscoveryAction(state, action.requestId)) {
-        return state;
-      }
-
-      return {
-        ...state,
-        discovering: false,
-        discoveryRequestId: null,
-        error: action.error,
-      };
-    case "set-selected-feed-url":
-      return {
-        ...state,
-        selectedFeedUrl: action.url,
-      };
-    case "set-invalid-url-error":
-      return {
-        ...state,
-        error: action.error,
-        successMessage: null,
-      };
-    case "set-loading":
-      return {
-        ...state,
-        loading: action.loading,
-        ...(action.loading ? { error: null } : {}),
-      };
-    case "set-submit-error":
-      return {
-        ...state,
-        loading: false,
-        error: action.error,
-      };
-    default:
-      return state;
+  if (!Object.hasOwn(addFeedDialogActionReducers, action.type)) {
+    return state;
   }
+  const reduce = addFeedDialogActionReducers[action.type] as AddFeedDialogActionReducer<typeof action.type>;
+  return reduce(state, action);
 }
 
 export function isValidFeedUrl(value: string): boolean {
