@@ -58,45 +58,63 @@ function sharedOrPlatformPath(path: string): boolean {
   );
 }
 
+type PathKind = { frontendFile: boolean; trackingFile: boolean; rustFile: boolean; nativeAsset: boolean };
+
+const frontendPrefixes = [
+  "src/components/",
+  "src/styles/",
+  "src/design-system/",
+  "src/locales/",
+  "src/__tests__/",
+  "src/api/",
+  "tests/",
+];
+const nativeAssetPrefixes = ["src-tauri/icons/", "src-tauri/resources/", "src-tauri/capabilities/"];
+
+function unsafePath(path: string): boolean {
+  return !path || path.startsWith("/") || path.split("/").includes("..");
+}
+
+function classifyPath(path: string): PathKind {
+  return {
+    frontendFile:
+      (frontendPrefixes.some((prefix) => path.startsWith(prefix)) && /\.(?:[cm]?js|jsx|ts|tsx|css)$/.test(path)) ||
+      (path.startsWith("src/locales/") && path.endsWith(".json")),
+    trackingFile: ["CHANGELOG.md", "todo.txt", "done.txt"].includes(path),
+    rustFile: (path.startsWith("src-tauri/src/") || path.startsWith("src-tauri/tests/")) && path.endsWith(".rs"),
+    nativeAsset:
+      nativeAssetPrefixes.some((prefix) => path.startsWith(prefix)) ||
+      path === "src-tauri/tauri.conf.json" ||
+      path === "src-tauri/build.rs",
+  };
+}
+
+function requiresFullPlan(path: string, kind: PathKind): boolean {
+  return (
+    !(kind.frontendFile || kind.trackingFile || kind.rustFile || kind.nativeAsset) ||
+    /(?:^|\/)(?:scripts|release|cli|fs|filesystem|process|bin)(?:\/|[.-])/.test(path) ||
+    path.includes("windows-dispatch")
+  );
+}
+
+function applyPathToPlan(plan: Plan, path: string, kind: PathKind): void {
+  if (kind.frontendFile || kind.trackingFile || kind.nativeAsset) plan.frontend = true;
+  if (nativePath(path) || credentialPath(path)) {
+    plan.frontend = true;
+    plan.native = true;
+    plan.windows = true;
+  }
+  if (credentialPath(path)) plan.credentials = true;
+}
+
 export function planChanges(event: string, paths: readonly string[]): Plan {
   if (event !== "pull_request" || paths.length === 0) return fullPlan();
   const plan: Plan = { full: false, frontend: false, native: false, credentials: false, windows: false };
   for (const path of paths) {
-    if (!path || path.startsWith("/") || path.split("/").includes("..")) return fullPlan();
-    if (sharedOrPlatformPath(path)) return fullPlan();
-    const frontendFile =
-      ([
-        "src/components/",
-        "src/styles/",
-        "src/design-system/",
-        "src/locales/",
-        "src/__tests__/",
-        "src/api/",
-        "tests/",
-      ].some((prefix) => path.startsWith(prefix)) &&
-        /\.(?:[cm]?js|jsx|ts|tsx|css)$/.test(path)) ||
-      (path.startsWith("src/locales/") && path.endsWith(".json"));
-    const trackingFile = ["CHANGELOG.md", "todo.txt", "done.txt"].includes(path);
-    const rustFile = (path.startsWith("src-tauri/src/") || path.startsWith("src-tauri/tests/")) && path.endsWith(".rs");
-    const nativeAsset =
-      ["src-tauri/icons/", "src-tauri/resources/", "src-tauri/capabilities/"].some((prefix) =>
-        path.startsWith(prefix),
-      ) ||
-      path === "src-tauri/tauri.conf.json" ||
-      path === "src-tauri/build.rs";
-    if (
-      !(frontendFile || trackingFile || rustFile || nativeAsset) ||
-      /(?:^|\/)(?:scripts|release|cli|fs|filesystem|process|bin)(?:\/|[.-])/.test(path) ||
-      path.includes("windows-dispatch")
-    )
-      return fullPlan();
-    if (frontendFile || trackingFile || nativeAsset) plan.frontend = true;
-    if (nativePath(path) || credentialPath(path)) {
-      plan.frontend = true;
-      plan.native = true;
-      plan.windows = true;
-    }
-    if (credentialPath(path)) plan.credentials = true;
+    if (unsafePath(path) || sharedOrPlatformPath(path)) return fullPlan();
+    const kind = classifyPath(path);
+    if (requiresFullPlan(path, kind)) return fullPlan();
+    applyPathToPlan(plan, path, kind);
   }
   return plan;
 }
