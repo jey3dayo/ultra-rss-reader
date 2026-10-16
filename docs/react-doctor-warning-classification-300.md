@@ -191,13 +191,13 @@ store action で「親が居ない」ことを理由にするが、これは「�
 なお `hasResolvedSnapshot` / `hasAdoptedSnapshot` は production では読まれておらず
 （読み手はテストのみ）、これは本 finding とは別の観察として記録する。
 
-#### `no-secrets-in-client-code` `use-account-detail-credentials-editor.ts:37`
+#### `no-secrets-in-client-code` `account-detail-credentials-editor-state.ts:38`
 
 ```ts
 const MISSING_PASSWORD_ERROR_MARKER = "Password is not configured";
 ```
 
-読み手は 1 箇所だけで、`:73` の `accountHasMissingSavedPassword` が
+読み手は 1 箇所だけで、`:172` の `accountHasMissingSavedPassword` が
 `account.connection_verification_error` に対する `.includes()` の照合語として使う。
 
 値の出自は backend のユーザー可視エラー文である。
