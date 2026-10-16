@@ -55,7 +55,7 @@ export function showUpdateFailureToast(message: string, onCheckAgain: () => void
         },
       },
       {
-        label: i18n.t("close"),
+        label: i18n.t("updater.later"),
         onClick: () => {
           clearToastIfCurrent(toast);
         },
@@ -163,7 +163,7 @@ export function showRestartToast(version: string): void {
         },
       },
       {
-        label: i18n.t("close"),
+        label: i18n.t("updater.later"),
         onClick: () => {
           clearToastIfCurrent(toast);
         },

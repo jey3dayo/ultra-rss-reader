@@ -364,7 +364,7 @@ const updateToastSpecimens = [
       variant: "update",
       actions: [
         { label: "もう一度確認", onClick: () => {} },
-        { label: "閉じる", onClick: () => {} },
+        { label: "後で", onClick: () => {} },
       ],
     },
   },

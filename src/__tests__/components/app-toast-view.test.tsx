@@ -62,7 +62,7 @@ describe("AppToastView", () => {
     expect(screen.getByRole("button", { name: "Close" }).querySelector("svg")).toBeNull();
   });
 
-  it("gives update toasts an aligned action rail and clear action hierarchy", () => {
+  it("renders two-action decision toasts as a right-aligned action pair without a corner dismiss", () => {
     render(
       <AppToastView
         toastMessage={{
@@ -70,20 +70,36 @@ describe("AppToastView", () => {
           variant: "update",
           actions: [
             { label: "Restart now", onClick: vi.fn() },
-            { label: "Close", onClick: vi.fn() },
+            { label: "Later", onClick: vi.fn() },
           ],
         }}
         onClose={vi.fn()}
       />,
     );
 
-    const primaryAction = screen.getByRole("button", { name: "Restart now" });
-    const secondaryAction = screen.getByText("Close", { selector: "button" });
+    const pair = screen.getByTestId("app-toast-action-pair");
+    const buttons = Array.from(pair.querySelectorAll("button"));
 
     expect(screen.getByTestId("app-toast")).toHaveClass("gap-3", "px-4", "py-3");
-    expect(primaryAction.parentElement).toHaveClass("items-center", "-ml-3", "gap-3");
-    expect(primaryAction).toHaveClass("text-primary", "hover:text-primary");
-    expect(secondaryAction).toHaveClass("text-foreground-soft", "hover:text-foreground");
+    expect(pair).toHaveClass("justify-end");
+    expect(buttons.map((button) => button.textContent)).toEqual(["Later", "Restart now"]);
+    expect(buttons[0]).toHaveAttribute("data-action-role", "secondary");
+    expect(buttons[1]).toHaveAttribute("data-action-role", "primary");
+    expect(buttons[1]).toHaveClass("bg-primary", "text-primary-foreground", "rounded-md");
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+  });
+
+  it("keeps the corner dismiss and leading text action for single-action toasts", () => {
+    render(
+      <AppToastView
+        toastMessage={{ message: "Sync failed", actions: [{ label: "Retry", onClick: vi.fn() }] }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("text-primary");
+    expect(screen.queryByTestId("app-toast-action-pair")).toBeNull();
   });
 
   it("keeps long toast messages from pushing dismiss and actions out of the row", () => {
