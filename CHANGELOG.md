@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.2] - 2026-10-16
+
+### Maintenance
+
+- 500 行を超えていたモジュールと、複雑度の高かった関数・リリーススクリプトを小さく分割しました。未使用の export を整理し、Knip のベースラインも更新しました。動作の変更はありません。 (#473, #474, #475, #477, #478, #479, #480, #481, #482, #483, #484, #485, #486)
+- 依存パッケージ（React 19.3.1、Tauri API / CLI、Storybook 10.6.2、Sentry、TanStack Query など）と GitHub Actions の pin を同一 major 内で更新しました。
+
 ## [0.67.1] - 2026-10-16
 
 ### Maintenance
