@@ -1,5 +1,5 @@
 import type { UseMutationResult } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import type { SetReadMutationInput } from "@/hooks/use-articles";
 import { planOptimisticRetainOnRead } from "@/lib/articles/article-read-projection";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
@@ -50,6 +50,14 @@ type CommittedAutoMarkTarget = {
 
 type DelayedAfterReadingPreference = Exclude<UseArticleAutoMarkParams["afterReading"], "never" | "immediately">;
 
+type EnabledAfterReadingPreference = Exclude<UseArticleAutoMarkParams["afterReading"], "never">;
+
+type LatestArticleState = {
+  articleId: string;
+  selectedAccountId: string | null;
+  viewMode: ViewMode;
+};
+
 const delayedAutoMarkTimeoutsMs = {
   after_0_3s: 300,
   after_0_5s: 500,
@@ -74,6 +82,248 @@ export function clearManualUnreadAutoMarkSuppression(accountId: string | null, a
 
 export function clearManualUnreadAutoMarkSuppressionsForTests(): void {
   manualUnreadAutoMarkSuppressionKey = null;
+}
+
+type AutoMarkRefs = {
+  autoMarkedOwnerKeyRef: RefObject<string | null>;
+  autoMarkMutationSucceededOwnerKeyRef: RefObject<string | null>;
+  latestArticleStateRef: RefObject<LatestArticleState>;
+  pendingAutoMarkTimeoutRef: RefObject<ReturnType<typeof setTimeout> | null>;
+  pendingAutoMarkDiagnosticsRef: RefObject<{ requestId: string; generation: number } | null>;
+  autoMarkGenerationRef: RefObject<number>;
+  committedAutoMarkTargetRef: RefObject<CommittedAutoMarkTarget | null>;
+};
+
+type ScheduleEligibleAutoMarkParams = {
+  articleId: string;
+  selectedAccountId: string | null;
+  viewMode: ViewMode;
+  isRead: boolean;
+  articleEngagement: ArticleEngagement;
+  afterReading: EnabledAfterReadingPreference;
+  autoMarkOwnerKey: string;
+  autoMarkGeneration: number;
+  committedAutoMarkTargetAtSchedule: CommittedAutoMarkTarget | null;
+  retainArticle: (articleId: string) => void;
+  addRecentlyRead: (articleId: string) => void;
+  mutate: ArticleStatusMutation<SetReadMutationInput>["mutate"];
+  showToast: ArticleStatusToast;
+  refs: AutoMarkRefs;
+};
+
+function clearPendingAutoMarkTimeout(refs: AutoMarkRefs): void {
+  const pendingTimeout = refs.pendingAutoMarkTimeoutRef.current;
+  refs.pendingAutoMarkDiagnosticsRef.current = null;
+  if (pendingTimeout === null) {
+    return;
+  }
+
+  clearTimeout(pendingTimeout);
+  refs.pendingAutoMarkTimeoutRef.current = null;
+}
+
+function reconcileManualUnreadSuppression(autoMarkOwnerKey: string, refs: AutoMarkRefs): void {
+  if (manualUnreadAutoMarkSuppressionKey === null) {
+    return;
+  }
+
+  if (manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey) {
+    refs.autoMarkedOwnerKeyRef.current = null;
+    refs.autoMarkMutationSucceededOwnerKeyRef.current = null;
+  } else {
+    manualUnreadAutoMarkSuppressionKey = null;
+  }
+}
+
+function recordAlreadyReadSkip(autoMarkOwnerKey: string, autoMarkGeneration: number, refs: AutoMarkRefs): void {
+  recordAutoMarkSkipped(createReadDiagnosticRequestId(), autoMarkGeneration, "already_read");
+  if (refs.autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
+    if (refs.autoMarkMutationSucceededOwnerKeyRef.current !== autoMarkOwnerKey) {
+      refs.autoMarkedOwnerKeyRef.current = null;
+    }
+  }
+}
+
+function recordAutoMarkSkipReason({
+  articleEngagement,
+  afterReading,
+  autoMarkOwnerKey,
+  autoMarkGeneration,
+  refs,
+}: {
+  articleEngagement: ArticleEngagement;
+  afterReading: AfterReadingPreference;
+  autoMarkOwnerKey: string;
+  autoMarkGeneration: number;
+  refs: AutoMarkRefs;
+}): void {
+  // Negation of the scheduling branch in useArticleAutoMark, evaluated in the same priority order it checks, purely to
+  // classify why auto-mark did not proceed. Diagnostics-only: no state here affects behavior.
+  const skipReason =
+    articleEngagement !== "reading"
+      ? "not_reading"
+      : afterReading === "never"
+        ? "preference_never"
+        : manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey
+          ? "manual_unread_suppressed"
+          : refs.autoMarkedOwnerKeyRef.current === autoMarkOwnerKey
+            ? "already_requested"
+            : null;
+  if (skipReason !== null) {
+    recordAutoMarkSkipped(createReadDiagnosticRequestId(), autoMarkGeneration, skipReason);
+  }
+}
+
+function scheduleEligibleAutoMark({
+  articleId,
+  selectedAccountId,
+  viewMode,
+  isRead,
+  articleEngagement,
+  afterReading,
+  autoMarkOwnerKey,
+  autoMarkGeneration,
+  committedAutoMarkTargetAtSchedule,
+  retainArticle,
+  addRecentlyRead,
+  mutate,
+  showToast,
+  refs,
+}: ScheduleEligibleAutoMarkParams): void {
+  const requestId = createReadDiagnosticRequestId();
+  const delayMs = afterReading === "immediately" ? 0 : delayedAutoMarkTimeoutsMs[afterReading];
+  recordAutoMarkScheduled(requestId, autoMarkGeneration, delayMs);
+
+  const markArticleAsRead = (driftMs: number) => {
+    recordAutoMarkDispatched(requestId, autoMarkGeneration, driftMs);
+    refs.autoMarkedOwnerKeyRef.current = autoMarkOwnerKey;
+    refs.pendingAutoMarkTimeoutRef.current = null;
+    refs.pendingAutoMarkDiagnosticsRef.current = null;
+
+    const isLatestAutoMark = () => {
+      const latestArticleState = refs.latestArticleStateRef.current;
+      return (
+        refs.autoMarkGenerationRef.current === autoMarkGeneration &&
+        latestArticleState.articleId === articleId &&
+        latestArticleState.selectedAccountId === selectedAccountId &&
+        latestArticleState.viewMode === viewMode
+      );
+    };
+    const retainPlan = planOptimisticRetainOnRead({
+      viewMode,
+      markingRead: true,
+      isAlreadyRetained: useUiStore.getState().retainedArticleIds.has(articleId),
+    });
+    if (retainPlan.shouldRetain) {
+      retainArticle(articleId);
+    }
+
+    mutate(
+      {
+        id: articleId,
+        read: true,
+        diagnostics: {
+          requestId,
+          generation: autoMarkGeneration,
+          isStaleOwner: () => !isLatestAutoMark(),
+        },
+      },
+      {
+        onSuccess: () => {
+          if (!isLatestAutoMark()) {
+            return;
+          }
+          refs.autoMarkMutationSucceededOwnerKeyRef.current = autoMarkOwnerKey;
+          addRecentlyRead(articleId);
+        },
+        onError: (error) => {
+          if (!isLatestAutoMark()) {
+            return;
+          }
+          if (refs.autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
+            refs.autoMarkedOwnerKeyRef.current = null;
+          }
+          if (refs.autoMarkMutationSucceededOwnerKeyRef.current === autoMarkOwnerKey) {
+            refs.autoMarkMutationSucceededOwnerKeyRef.current = null;
+          }
+          if (retainPlan.shouldRollbackOnError) {
+            removeRetainedArticle(articleId);
+          }
+          showToast(localizeUserVisibleAppErrorMessage(error.message));
+        },
+      },
+    );
+  };
+
+  // True only while the commit this attempt was scheduled for is still the committed one. The
+  // field comparison is not redundant with the generation check: it states the contract the
+  // generation stands in for. Because this attempt only exists when the scheduling branch found
+  // the article eligible, every field matching also means it is still eligible, at the same
+  // delay it was armed with.
+  const isScheduledCommitStillCurrent = () => {
+    const committedTarget = refs.committedAutoMarkTargetRef.current;
+    return (
+      committedTarget !== null &&
+      committedAutoMarkTargetAtSchedule !== null &&
+      committedTarget.commitGeneration === committedAutoMarkTargetAtSchedule.commitGeneration &&
+      committedTarget.articleId === articleId &&
+      committedTarget.selectedAccountId === selectedAccountId &&
+      committedTarget.viewMode === viewMode &&
+      committedTarget.isRead === isRead &&
+      committedTarget.articleEngagement === articleEngagement &&
+      committedTarget.afterReading === afterReading
+    );
+  };
+
+  if (afterReading === "immediately") {
+    markArticleAsRead(0);
+  } else if (typeof setTimeout === "function") {
+    const scheduledAt = Date.now();
+    const timeout = setTimeout(() => {
+      // Timer guard pattern: only the latest scheduled timeout may mutate read state.
+      if (refs.pendingAutoMarkTimeoutRef.current !== timeout) {
+        return;
+      }
+
+      // Commit-boundary guard, checked before the dispatched diagnostic, the optimistic retain,
+      // and the mutation: a newer article, account, view mode, read state, engagement, or
+      // after-reading delay has already been committed,
+      // so this attempt must leave no trace here. Every ref is left untouched, so the pending
+      // passive cleanup still records its single cancelled(effect_cleanup) for this requestId.
+      if (!isScheduledCommitStillCurrent()) {
+        return;
+      }
+
+      markArticleAsRead(Date.now() - scheduledAt - delayMs);
+    }, delayMs);
+    refs.pendingAutoMarkTimeoutRef.current = timeout;
+    refs.pendingAutoMarkDiagnosticsRef.current = { requestId, generation: autoMarkGeneration };
+  }
+}
+
+function createAutoMarkCleanup(autoMarkGeneration: number, refs: AutoMarkRefs): () => void {
+  return () => {
+    if (refs.autoMarkGenerationRef.current === autoMarkGeneration) {
+      refs.autoMarkGenerationRef.current += 1;
+    }
+
+    const pendingTimeout = refs.pendingAutoMarkTimeoutRef.current;
+    const pendingDiagnostics = refs.pendingAutoMarkDiagnosticsRef.current;
+    refs.pendingAutoMarkDiagnosticsRef.current = null;
+    if (pendingTimeout === null) {
+      return;
+    }
+
+    clearTimeout(pendingTimeout);
+    refs.pendingAutoMarkTimeoutRef.current = null;
+    // A cleanup that still finds a pending timeout means a scheduled (not yet dispatched)
+    // auto-mark attempt is being torn down. Whether this is unmount or a dependency change
+    // cannot be distinguished from here, so this is always recorded as effect_cleanup rather
+    // than guessed at (see tmp/read-state/design-contract.md).
+    if (pendingDiagnostics !== null) {
+      recordAutoMarkCancelled(pendingDiagnostics.requestId, pendingDiagnostics.generation, "effect_cleanup");
+    }
+  };
 }
 
 export function useArticleAutoMark({
@@ -172,191 +422,48 @@ export function useArticleAutoMark({
     // The layout effect above already ran for this commit, so this is the target this attempt is
     // scheduled for.
     const committedAutoMarkTargetAtSchedule = committedAutoMarkTargetRef.current;
-
-    const clearPendingAutoMarkTimeout = () => {
-      const pendingTimeout = pendingAutoMarkTimeoutRef.current;
-      pendingAutoMarkDiagnosticsRef.current = null;
-      if (pendingTimeout === null) {
-        return;
-      }
-
-      clearTimeout(pendingTimeout);
-      pendingAutoMarkTimeoutRef.current = null;
+    const refs: AutoMarkRefs = {
+      autoMarkedOwnerKeyRef,
+      autoMarkMutationSucceededOwnerKeyRef,
+      latestArticleStateRef,
+      pendingAutoMarkTimeoutRef,
+      pendingAutoMarkDiagnosticsRef,
+      autoMarkGenerationRef,
+      committedAutoMarkTargetRef,
     };
 
-    clearPendingAutoMarkTimeout();
-
-    if (manualUnreadAutoMarkSuppressionKey !== null) {
-      if (manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey) {
-        autoMarkedOwnerKeyRef.current = null;
-        autoMarkMutationSucceededOwnerKeyRef.current = null;
-      } else {
-        manualUnreadAutoMarkSuppressionKey = null;
-      }
-    }
+    clearPendingAutoMarkTimeout(refs);
+    reconcileManualUnreadSuppression(autoMarkOwnerKey, refs);
 
     if (isRead) {
-      recordAutoMarkSkipped(createReadDiagnosticRequestId(), autoMarkGeneration, "already_read");
-      if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
-        if (autoMarkMutationSucceededOwnerKeyRef.current !== autoMarkOwnerKey) {
-          autoMarkedOwnerKeyRef.current = null;
-        }
-      }
+      recordAlreadyReadSkip(autoMarkOwnerKey, autoMarkGeneration, refs);
     } else if (
       articleEngagement === "reading" &&
       afterReading !== "never" &&
       manualUnreadAutoMarkSuppressionKey !== autoMarkOwnerKey &&
       autoMarkedOwnerKeyRef.current !== autoMarkOwnerKey
     ) {
-      const requestId = createReadDiagnosticRequestId();
-      const delayMs = afterReading === "immediately" ? 0 : delayedAutoMarkTimeoutsMs[afterReading];
-      recordAutoMarkScheduled(requestId, autoMarkGeneration, delayMs);
-
-      const markArticleAsRead = (driftMs: number) => {
-        recordAutoMarkDispatched(requestId, autoMarkGeneration, driftMs);
-        autoMarkedOwnerKeyRef.current = autoMarkOwnerKey;
-        pendingAutoMarkTimeoutRef.current = null;
-        pendingAutoMarkDiagnosticsRef.current = null;
-
-        const isLatestAutoMark = () => {
-          const latestArticleState = latestArticleStateRef.current;
-          return (
-            autoMarkGenerationRef.current === autoMarkGeneration &&
-            latestArticleState.articleId === articleId &&
-            latestArticleState.selectedAccountId === selectedAccountId &&
-            latestArticleState.viewMode === viewMode
-          );
-        };
-        const retainPlan = planOptimisticRetainOnRead({
-          viewMode,
-          markingRead: true,
-          isAlreadyRetained: useUiStore.getState().retainedArticleIds.has(articleId),
-        });
-        if (retainPlan.shouldRetain) {
-          retainArticle(articleId);
-        }
-
-        mutate(
-          {
-            id: articleId,
-            read: true,
-            diagnostics: {
-              requestId,
-              generation: autoMarkGeneration,
-              isStaleOwner: () => !isLatestAutoMark(),
-            },
-          },
-          {
-            onSuccess: () => {
-              if (!isLatestAutoMark()) {
-                return;
-              }
-              autoMarkMutationSucceededOwnerKeyRef.current = autoMarkOwnerKey;
-              addRecentlyRead(articleId);
-            },
-            onError: (error) => {
-              if (!isLatestAutoMark()) {
-                return;
-              }
-              if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
-                autoMarkedOwnerKeyRef.current = null;
-              }
-              if (autoMarkMutationSucceededOwnerKeyRef.current === autoMarkOwnerKey) {
-                autoMarkMutationSucceededOwnerKeyRef.current = null;
-              }
-              if (retainPlan.shouldRollbackOnError) {
-                removeRetainedArticle(articleId);
-              }
-              showToast(localizeUserVisibleAppErrorMessage(error.message));
-            },
-          },
-        );
-      };
-
-      // True only while the commit this attempt was scheduled for is still the committed one. The
-      // field comparison is not redundant with the generation check: it states the contract the
-      // generation stands in for. Because this attempt only exists when the scheduling branch found
-      // the article eligible, every field matching also means it is still eligible, at the same
-      // delay it was armed with.
-      const isScheduledCommitStillCurrent = () => {
-        const committedTarget = committedAutoMarkTargetRef.current;
-        return (
-          committedTarget !== null &&
-          committedAutoMarkTargetAtSchedule !== null &&
-          committedTarget.commitGeneration === committedAutoMarkTargetAtSchedule.commitGeneration &&
-          committedTarget.articleId === articleId &&
-          committedTarget.selectedAccountId === selectedAccountId &&
-          committedTarget.viewMode === viewMode &&
-          committedTarget.isRead === isRead &&
-          committedTarget.articleEngagement === articleEngagement &&
-          committedTarget.afterReading === afterReading
-        );
-      };
-
-      if (afterReading === "immediately") {
-        markArticleAsRead(0);
-      } else if (typeof setTimeout === "function") {
-        const scheduledAt = Date.now();
-        const timeout = setTimeout(() => {
-          // Timer guard pattern: only the latest scheduled timeout may mutate read state.
-          if (pendingAutoMarkTimeoutRef.current !== timeout) {
-            return;
-          }
-
-          // Commit-boundary guard, checked before the dispatched diagnostic, the optimistic retain,
-          // and the mutation: a newer article, account, view mode, read state, engagement, or
-          // after-reading delay has already been committed,
-          // so this attempt must leave no trace here. Every ref is left untouched, so the pending
-          // passive cleanup still records its single cancelled(effect_cleanup) for this requestId.
-          if (!isScheduledCommitStillCurrent()) {
-            return;
-          }
-
-          markArticleAsRead(Date.now() - scheduledAt - delayMs);
-        }, delayMs);
-        pendingAutoMarkTimeoutRef.current = timeout;
-        pendingAutoMarkDiagnosticsRef.current = { requestId, generation: autoMarkGeneration };
-      }
+      scheduleEligibleAutoMark({
+        articleId,
+        selectedAccountId,
+        viewMode,
+        isRead,
+        articleEngagement,
+        afterReading,
+        autoMarkOwnerKey,
+        autoMarkGeneration,
+        committedAutoMarkTargetAtSchedule,
+        retainArticle,
+        addRecentlyRead,
+        mutate,
+        showToast,
+        refs,
+      });
     } else {
-      // Negation of the branch above, evaluated in the same priority order it checks, purely to
-      // classify why auto-mark did not proceed. Diagnostics-only: no state here affects behavior.
-      const skipReason =
-        articleEngagement !== "reading"
-          ? "not_reading"
-          : afterReading === "never"
-            ? "preference_never"
-            : manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey
-              ? "manual_unread_suppressed"
-              : autoMarkedOwnerKeyRef.current === autoMarkOwnerKey
-                ? "already_requested"
-                : null;
-      if (skipReason !== null) {
-        recordAutoMarkSkipped(createReadDiagnosticRequestId(), autoMarkGeneration, skipReason);
-      }
+      recordAutoMarkSkipReason({ articleEngagement, afterReading, autoMarkOwnerKey, autoMarkGeneration, refs });
     }
 
-    return () => {
-      if (autoMarkGenerationRef.current === autoMarkGeneration) {
-        autoMarkGenerationRef.current += 1;
-      }
-
-      const pendingTimeout = pendingAutoMarkTimeoutRef.current;
-      const pendingDiagnostics = pendingAutoMarkDiagnosticsRef.current;
-      pendingAutoMarkDiagnosticsRef.current = null;
-      if (pendingTimeout === null) {
-        return;
-      }
-
-      clearTimeout(pendingTimeout);
-      pendingAutoMarkTimeoutRef.current = null;
-      // A cleanup that still finds a pending timeout means a scheduled (not yet dispatched)
-      // auto-mark attempt is being torn down. Whether this is unmount or a dependency change
-      // cannot be distinguished from here, so this is always recorded as effect_cleanup rather
-      // than guessed at (see tmp/read-state/design-contract.md).
-      if (pendingDiagnostics !== null) {
-        recordAutoMarkCancelled(pendingDiagnostics.requestId, pendingDiagnostics.generation, "effect_cleanup");
-      }
-    };
+    return createAutoMarkCleanup(autoMarkGeneration, refs);
   }, [
     addRecentlyRead,
     afterReading,
