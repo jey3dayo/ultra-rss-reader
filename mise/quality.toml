@@ -15,6 +15,10 @@ run = "node ./scripts/report-dependency-licenses.ts"
 description = "Knip baseline drift report; human triage required"
 run = "node ./scripts/quality-baseline.ts knip"
 
+["quality:knip"]
+description = "Knip gate: fail when findings exceed knipBaseline"
+run = "node ./scripts/quality-baseline.ts knip:check"
+
 ["quality:react-doctor:diff"]
 description = "React Doctor diff regression gate; pinned tool and baseline"
 run = "node ./scripts/quality-baseline.ts react-doctor:diff"

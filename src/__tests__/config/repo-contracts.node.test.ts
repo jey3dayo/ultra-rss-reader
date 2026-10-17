@@ -1019,6 +1019,7 @@ describe("repository static contracts", () => {
       "lint:types",
       "lint:workflow-pins",
       "lint:yaml",
+      "quality:knip",
       "quality:react-doctor-pin",
       "quality:toolchain",
       "test:change-plan",

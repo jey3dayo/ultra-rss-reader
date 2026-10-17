@@ -141,6 +141,7 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 | Native keyring integration                | Unit / integration tests around app logic only | Manual verification on each target OS                      |
 | Updater download / install                | Config and command-level checks only           | Manual verification on packaged builds per target OS       |
 | Code quality baseline reports             | Not part of default CI                         | `mise run report:knip` / `mise run report:similarity`      |
+| Knip baseline gate                        | CI Toolchain job                               | `mise run quality:knip`                                    |
 | jev-lint diff review (LLM, advisory)      | Not part of default CI                         | `mise run report:jev` (needs `TYPESAFE_API_KEY`)           |
 
 > **Windows Rust scope:** Windows CI's `mise run test:rust` runs `cargo test --test integration_test` only. Full Rust library tests run in Linux CI and on macOS/Linux with `mise run check`.
