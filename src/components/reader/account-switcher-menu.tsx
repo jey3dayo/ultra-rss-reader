@@ -3,9 +3,9 @@ import type { RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { focusAccountItem } from "@/components/reader/account-switcher-focus";
 import { NavRowButton } from "@/design-system";
-import { shouldShowKindLabel } from "@/lib/account/account-kind-label";
 import { getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
 import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
+import { shouldShowKindLabel } from "./account-kind-label";
 
 type AccountSwitcherMenuProps = {
   accounts: AccountDto[];

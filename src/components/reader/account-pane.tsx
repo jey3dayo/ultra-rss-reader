@@ -3,7 +3,6 @@ import { type KeyboardEvent as ReactKeyboardEvent, type RefCallback, useEffect, 
 import { useTranslation } from "react-i18next";
 import { useSidebarAccountStatusLabels } from "@/components/reader/hooks/sidebar/use-sidebar-account-status-labels";
 import { useAccounts } from "@/hooks/use-accounts";
-import { shouldShowKindLabel } from "@/lib/account/account-kind-label";
 import {
   ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE,
   closeAccountPaneAndFocusSidebar,
@@ -19,6 +18,7 @@ import {
   scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
+import { shouldShowKindLabel } from "./account-kind-label";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export function AccountPane() {
