@@ -37,7 +37,7 @@ function ArticleReadingRhythmCanvas() {
         />
       </div>
 
-      <div className="mt-7 font-serif text-[1.02rem] leading-8 text-foreground">
+      <div className="mt-7 text-[1.02rem] leading-8 text-foreground">
         <p>1 名前：番の市 ★：2026/04/15(水) 20:47:05.02 ID:zdCQxhZs0.net</p>
         <p className="mt-4">
           イランの攻撃被害額４３兆円、米国とイスラエルに賠償要求へ。外交当局は被害算定と今後の対応をめぐって声明を準備している。

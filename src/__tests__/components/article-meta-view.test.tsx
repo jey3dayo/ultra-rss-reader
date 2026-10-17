@@ -32,7 +32,7 @@ describe("ArticleMetaView", () => {
     expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tabular-nums");
     expect(screen.getByText("2026年3月25日 10:00").parentElement).not.toHaveClass("uppercase");
     expect(screen.getByText("Alice").parentElement).toHaveClass("text-[0.95rem]");
-    expect(screen.getByText("Alice").parentElement).toHaveClass("font-serif");
+    expect(screen.getByText("Alice").parentElement).not.toHaveClass("font-serif");
     expect(screen.getByText("Alice").parentElement).toHaveClass("text-foreground-soft");
 
     const titleButton = screen.getByRole("button", { name: "First Article" });

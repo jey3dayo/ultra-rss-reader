@@ -423,7 +423,7 @@ export function ArticleFilterToggleButtonSpecimen() {
               All
             </ArticleFilterToggleButton>
           </div>
-          <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+          <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
             Outer target stays 44px tall; the selected tonal surface is constrained to the inner label pill.
           </p>
         </div>

@@ -111,7 +111,7 @@ describe("FolderSelectView", () => {
     expect(screen.getByText("Folder name")).toHaveClass("whitespace-nowrap", "text-[color:var(--form-row-label)]");
     const newFolderInput = screen.getByLabelText("Folder name");
     expect(newFolderInput).toHaveClass("min-h-11", "w-full");
-    expect(newFolderInput.parentElement?.parentElement).toHaveClass("sm:w-[20rem]", "sm:max-w-[20rem]");
+    expect(newFolderInput.parentElement?.parentElement?.parentElement).toHaveClass("sm:w-[20rem]", "sm:max-w-[20rem]");
     expect(screen.getByText("Folder name").closest(".grid")?.lastElementChild).toHaveClass("lg:pr-2");
   });
 

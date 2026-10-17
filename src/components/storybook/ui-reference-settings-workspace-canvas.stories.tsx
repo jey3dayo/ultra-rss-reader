@@ -169,7 +169,7 @@ export function SettingsWorkspaceCanvas() {
             <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
               Settings actions
             </p>
-            <p className="mt-1 font-serif text-sm leading-[1.45] text-foreground/68">
+            <p className="mt-1 text-sm leading-[1.45] text-foreground/68">
               Shell close stays borderless in the rail. Content-side secondary actions use a quiet filled treatment so
               they remain visible without feeling like heavy outline buttons.
             </p>
@@ -189,7 +189,7 @@ export function SettingsWorkspaceCanvas() {
                 <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
                   Account detail state
                 </p>
-                <p className="mt-1 font-serif text-sm leading-[1.45] text-foreground/68">
+                <p className="mt-1 text-sm leading-[1.45] text-foreground/68">
                   Verified account detail with credentials, sync controls, and a single primary action rail.
                 </p>
               </div>
@@ -296,7 +296,7 @@ export function SettingsWorkspaceCanvas() {
                 <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
                   Add-account state
                 </p>
-                <p className="mt-1 font-serif text-sm leading-[1.45] text-foreground/68">
+                <p className="mt-1 text-sm leading-[1.45] text-foreground/68">
                   FreshRSS onboarding should still sit inside the same shell and right-side content discipline.
                 </p>
               </div>

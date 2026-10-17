@@ -172,7 +172,7 @@ export function WorkspaceFilterClusterSpecimen() {
           </ControlChipButton>
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         密度の高いワークスペースでは、pill よりも少し角張った filter chip
         を優先する。件数バッジはさらに一段小さく角を落として、本文ラベルより控えめに扱う。
       </p>
@@ -214,7 +214,7 @@ export function MotionNumberSpecimen() {
           </ControlChipButton>
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         件数バッジ、検索結果数、同期カウントのような短い数値だけに使う。記事本文、長いタイトル、フィード名は動かさない。
       </p>
     </SurfaceCard>
@@ -234,7 +234,7 @@ export function SummaryFilterCardsSpecimen() {
       <div data-testid="reference-summary-filter-card-frame">
         <SubscriptionsOverviewSummary cards={cards} onSelectFilter={setActiveFilter} />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         card 全体が filter button になる workspace summary。active accent、badge slot、numeric typography、押せない
         static sibling の差分をここで確認してから wrapper 化する。
       </p>
@@ -297,7 +297,7 @@ export function SubscriptionGroupDisclosureSpecimen() {
           onToggleGroup={toggleGroup}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         folder row は disclosure button と drop target を兼ねる。aria-expanded、count chip、motion disclosure、feed row
         との余白をこの基準面で確認する。
       </p>
@@ -331,7 +331,7 @@ export function WorkspaceActionClusterSpecimen() {
           </DecisionButton>
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         dense toolbar では action width を揃え、keep / defer / delete の順で置く。destructive
         は最後に寄せ、視線の終点に置く。
       </p>
@@ -378,7 +378,7 @@ export function DetailPanelSpecimen() {
           reasonChips={["一度見ておきたい購読"]}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         panel は単一 action card ではなく、title、status、reason、metrics、recent articles を束ねる detail
         surface。summary card より情報密度を高くし、primary action は末尾に閉じ込める。
       </p>
@@ -471,7 +471,7 @@ export function WorkspaceTwoPaneSpecimen() {
                   )}
                 >
                   <p className="font-sans text-sm text-foreground">{entry.title}</p>
-                  <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/72">
+                  <p className="mt-1 text-xs leading-[1.45] text-foreground/72">
                     選択中の feed に応じて detail pane を更新する二段構成。
                   </p>
                 </button>
@@ -544,7 +544,7 @@ export function AnnouncementCardsSpecimen() {
           </span>
           <div>
             <p className="font-sans text-base text-foreground">確認待ち</p>
-            <p className="font-serif text-sm text-muted-foreground">これから判断する購読</p>
+            <p className="text-sm text-muted-foreground">これから判断する購読</p>
           </div>
         </div>
         <div
@@ -559,11 +559,11 @@ export function AnnouncementCardsSpecimen() {
           </span>
           <div>
             <p className="font-sans text-base text-foreground">判断済み</p>
-            <p className="font-serif text-sm text-muted-foreground">すでに対応した購読</p>
+            <p className="text-sm text-muted-foreground">すでに対応した購読</p>
           </div>
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         announcement card は押せる summary card と混ぜない。hover affordance、action chip、active badge を持たない
         passive surface として扱う。
       </p>

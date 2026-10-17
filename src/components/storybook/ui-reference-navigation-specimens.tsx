@@ -149,7 +149,7 @@ export function ReaderFilterStripSpecimen() {
           ))}
         </fieldset>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         reader 固有の帯。filter chip 群と補助説明の密度を確認する。
       </p>
     </SurfaceCard>
@@ -175,7 +175,7 @@ export function AccountCardStackSpecimen() {
           onAddAccount={() => {}}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         avatar とタイトル、補足行をまとめて見せたいときの密度見本。settings の account list に近い。
       </p>
     </SurfaceCard>
@@ -309,7 +309,7 @@ export function AccountArticleNavigationAlignmentSpecimen() {
           />
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         account row は neutral の左バー、smart view は semantic surface で選択を示す。primary accent は購読/feed row
         と行動フィードに限定する。
       </p>
@@ -336,7 +336,7 @@ export function NavigationStackSpecimen() {
           displayFavicons={true}
         />
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         folder trigger と feed row の組み合わせ見本。数値列と favicon の密度を見るための断片。
       </p>
     </SurfaceCard>
@@ -372,7 +372,7 @@ export function PrimitiveCollectionStatesSpecimen() {
             Primitive disclosure
             <span className="text-xs text-foreground/56">open</span>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 rounded-md border border-border/55 bg-background/74 px-3 py-2 font-serif text-xs leading-[1.45] text-foreground/72">
+          <CollapsibleContent className="mt-2 rounded-md border border-border/55 bg-background/74 px-3 py-2 text-xs leading-[1.45] text-foreground/72">
             Collapsible content keeps disclosure behavior in the primitive layer while feature rows own copy and
             density.
           </CollapsibleContent>
@@ -390,7 +390,7 @@ export function PrimitiveCollectionStatesSpecimen() {
           </AppTooltip>
         </TooltipProvider>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         Scroll, disclosure, loading, and tooltip primitives stay as behavior affordances. Promote only repeated product
         semantics into shared.
       </p>
@@ -412,7 +412,7 @@ export function TagPaletteSpecimen() {
         optionAriaLabel={(option) => `カラー ${option}`}
         onChange={setColor}
       />
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         サイドバーや記事画面で使うタグ色の選択見本。色 chip 群と説明文の関係を見るための断片。
       </p>
     </SurfaceCard>

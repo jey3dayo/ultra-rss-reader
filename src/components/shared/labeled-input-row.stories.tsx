@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { RotateCcw } from "lucide-react";
+import { Copy, RotateCcw } from "lucide-react";
 import { fn } from "storybook/test";
 import { LabeledInputRow } from "./labeled-input-row";
 
@@ -46,6 +46,24 @@ export const InsideIconAction: Story = {
     actionAriaLabel: "Reset username",
     actionTooltipLabel: "Reset username",
     actionIcon: <RotateCcw />,
+    actionPlacement: "inside",
+    actionVariant: "ghost",
+    actionSize: "icon-sm",
+    onAction: fn(),
+  },
+};
+
+export const InsideIconActionWithError: Story = {
+  args: {
+    label: "Server URL",
+    name: "server-url",
+    type: "url",
+    value: "freshrss.example.net",
+    errorText: "Cloudflare Access requires an HTTPS server URL",
+    actionLabel: "Copy server URL",
+    actionAriaLabel: "Copy server URL",
+    actionTooltipLabel: "Copy server URL",
+    actionIcon: <Copy />,
     actionPlacement: "inside",
     actionVariant: "ghost",
     actionSize: "icon-sm",
