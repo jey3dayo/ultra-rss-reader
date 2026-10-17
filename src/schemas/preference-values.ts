@@ -191,7 +191,7 @@ const legacyAfterReadingValueMap: Record<string, AfterReadingPreference> = {
   archive: "never",
 };
 
-// The serif (明朝体) font style was removed in v0.67.4. Saved values load as the default sans stack.
+// Removed font styles stay valid in saved data and load as the default sans stack.
 const legacyFontStyleValueMap: Record<string, FontStylePreference> = {
   serif: "sans_serif",
 };
