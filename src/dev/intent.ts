@@ -7,6 +7,7 @@ import { type DevScenarioId, isDevScenarioId } from "@/dev/scenario-ids";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
+import { readFirstNonEmptyEnv } from "./env";
 
 export type DevIntent = DevScenarioId | null;
 export type DevWindowSize = {
@@ -38,17 +39,6 @@ type ReadDevWindowSizeFieldState =
   | { kind: "value"; value: number };
 
 const RETRYABLE_DEV_RUNTIME_OPTIONS_ERRORS = new Set<LoadDevRuntimeOptionsError>(["request_failed"]);
-
-function readFirstNonEmptyEnv(keys: readonly string[]): string | undefined {
-  for (const key of keys) {
-    const value = import.meta.env[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-
-  return undefined;
-}
 
 function readFirstValidDevWebUrlEnv(keys: readonly string[]): string | undefined {
   for (const key of keys) {

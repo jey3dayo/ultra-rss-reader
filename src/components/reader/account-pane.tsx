@@ -18,11 +18,8 @@ import {
   scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
+import { shouldShowKindLabel } from "./account-kind-label";
 import { SidebarNavButton } from "./sidebar-nav-button";
-
-function shouldShowKindLabel(name: string, kind: string): boolean {
-  return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();
-}
 
 export function AccountPane() {
   const { t } = useTranslation("sidebar");

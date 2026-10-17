@@ -1,17 +1,8 @@
 import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
-import { NonnegativeIntegerSchema } from "./common";
+import { isHttpUrl, NonnegativeIntegerSchema } from "./common";
 
 export const FeedDisplayModeSchema = v.picklist(["inherit", "on", "off"]);
-
-function isHttpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 const nonBlankStringSchema = v.pipe(
   v.string(),

@@ -1,14 +1,6 @@
 import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
-
-function isHttpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { isHttpUrl } from "./common";
 
 const httpUrlSchema = v.pipe(
   v.string(),

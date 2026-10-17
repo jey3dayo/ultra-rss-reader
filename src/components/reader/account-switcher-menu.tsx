@@ -5,6 +5,7 @@ import { focusAccountItem } from "@/components/reader/account-switcher-focus";
 import { NavRowButton } from "@/design-system";
 import { getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
 import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
+import { shouldShowKindLabel } from "./account-kind-label";
 
 type AccountSwitcherMenuProps = {
   accounts: AccountDto[];
@@ -16,10 +17,6 @@ type AccountSwitcherMenuProps = {
   onSelectAccount: (accountId: string) => void;
   onClose: (restoreFocus: boolean) => void;
 };
-
-function shouldShowKindLabel(name: string, kind: string): boolean {
-  return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();
-}
 
 export function AccountSwitcherMenu({
   accounts,

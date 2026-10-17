@@ -1,8 +1,8 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useSidebarController } from "@/components/reader/hooks/sidebar/use-sidebar-controller";
-import { focusArticleListRowTargetWhenReady } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
+import { focusArticleListPane } from "./focus-article-list-pane";
 import { SidebarAccountSection } from "./sidebar-account-section";
 import { SidebarContentSections } from "./sidebar-content-sections";
 import { SidebarHeaderView } from "./sidebar-header-view";
@@ -24,12 +24,6 @@ function focusSidebarNavigationTarget(target: HTMLButtonElement) {
     nextTarget?.focus({ preventScroll: true });
     nextTarget?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   });
-}
-
-function focusArticleListPane() {
-  const store = useUiStore.getState();
-  store.setFocusedPane("list");
-  focusArticleListRowTargetWhenReady(store.selectedArticleId);
 }
 
 function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>, onFocusAccountList: () => void) {

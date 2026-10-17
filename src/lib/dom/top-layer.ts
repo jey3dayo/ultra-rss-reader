@@ -1,3 +1,5 @@
+import { getDefaultDocument, isOwnerDocumentHtmlElement } from "./document";
+
 const DIALOG_TOP_LAYER_SELECTOR = '[data-slot="dialog-content"][data-open]';
 const DIALOG_INERT_EXCLUSION_SELECTOR = "[data-agentation-root]";
 const NESTED_ESCAPE_LAYER_SELECTOR = ['[role="dialog"]', "[data-radix-popper-content-wrapper]"].join(",");
@@ -20,19 +22,6 @@ type HiddenDialogState = {
 // applied. Reference-count per element so only the last release restores the
 // original attributes.
 const hiddenDialogStates = new WeakMap<HTMLElement, HiddenDialogState>();
-
-function getDefaultDocument(): Document | null {
-  return typeof document === "undefined" ? null : document;
-}
-
-function isOwnerDocumentHtmlElement(element: Element | null, ownerDocument: Document): element is HTMLElement {
-  const ownerWindow = ownerDocument.defaultView;
-  if (ownerWindow) {
-    return element instanceof ownerWindow.HTMLElement;
-  }
-
-  return typeof HTMLElement !== "undefined" && element instanceof HTMLElement;
-}
 
 function collectOutsideDialogElements(element: HTMLElement, dialogElements: HTMLElement[]): HTMLElement[] {
   if (element.matches(DIALOG_INERT_EXCLUSION_SELECTOR) || element.closest(DIALOG_INERT_EXCLUSION_SELECTOR)) {

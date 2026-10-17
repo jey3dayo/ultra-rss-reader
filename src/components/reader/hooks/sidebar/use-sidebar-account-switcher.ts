@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
+import { getDefaultDocument } from "@/lib/dom/document";
 import { isOutsideElement } from "@/lib/dom/dom-target";
 import { focusAccountItem } from "../../account-switcher-focus";
 import type { SidebarAccountSwitcherResult } from "../../sidebar-runtime.types";
@@ -29,10 +30,6 @@ type AccountSwitcherViewModel = {
   hasMultipleAccounts: boolean;
   canOpenAccountList: boolean;
 };
-
-function getRuntimeDocument(): Document | null {
-  return typeof document === "undefined" ? null : document;
-}
 
 function sidebarAccountSwitcherReducer(
   state: SidebarAccountSwitcherState,
@@ -96,7 +93,7 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
       }
     };
 
-    const ownerDocument = accountDropdownRef.current?.ownerDocument ?? getRuntimeDocument();
+    const ownerDocument = accountDropdownRef.current?.ownerDocument ?? getDefaultDocument();
     if (!ownerDocument) {
       return;
     }
