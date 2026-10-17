@@ -270,32 +270,40 @@ export function LabeledInputRow({
 
   return (
     <LabeledControlRow label={label} htmlFor={resolvedInputId} className={rowClassName} labelClassName={labelClassName}>
-      <div className={cn("flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end", controlClassName)}>
-        <div className={cn("w-full", actionPlacement === "inside" && "relative")}>
-          <Input
-            id={resolvedInputId}
-            ref={inputRef}
-            name={name}
-            type={type}
-            value={value}
-            readOnly={readOnly}
-            title={title}
-            aria-describedby={ariaDescribedBy}
-            aria-errormessage={showError ? errorMessageId : ariaErrorMessage}
-            aria-invalid={ariaInvalid || showError || undefined}
-            onChange={(event) => onChange(event.target.value)}
-            onBlur={onBlur}
-            onFocus={onFocus}
-            onKeyDown={onKeyDown}
-            placeholder={placeholder}
-            className={resolveInputClassName(hasInsideAction, isInsideIconAction, inputClassName)}
-            disabled={disabled}
-          />
-          {actionPlacement === "inside" && actionButton ? (
-            <InsideActionSlot tooltipLabel={actionTooltipLabel}>{actionButton}</InsideActionSlot>
-          ) : null}
+      <div
+        className={cn(
+          "flex w-full gap-2 sm:max-w-[30rem] sm:justify-end",
+          showError ? "items-start" : "items-center",
+          controlClassName,
+        )}
+      >
+        <div className="w-full">
+          <div className={cn(actionPlacement === "inside" && "relative")}>
+            <Input
+              id={resolvedInputId}
+              ref={inputRef}
+              name={name}
+              type={type}
+              value={value}
+              readOnly={readOnly}
+              title={title}
+              aria-describedby={ariaDescribedBy}
+              aria-errormessage={showError ? errorMessageId : ariaErrorMessage}
+              aria-invalid={ariaInvalid || showError || undefined}
+              onChange={(event) => onChange(event.target.value)}
+              onBlur={onBlur}
+              onFocus={onFocus}
+              onKeyDown={onKeyDown}
+              placeholder={placeholder}
+              className={resolveInputClassName(hasInsideAction, isInsideIconAction, inputClassName)}
+              disabled={disabled}
+            />
+            {actionPlacement === "inside" && actionButton ? (
+              <InsideActionSlot tooltipLabel={actionTooltipLabel}>{actionButton}</InsideActionSlot>
+            ) : null}
+          </div>
           {showError ? (
-            <p id={errorMessageId} className="mt-1.5 font-serif text-xs leading-5 text-state-danger-foreground">
+            <p id={errorMessageId} className="mt-1.5 text-xs leading-5 text-state-danger-foreground">
               {errorText}
             </p>
           ) : null}

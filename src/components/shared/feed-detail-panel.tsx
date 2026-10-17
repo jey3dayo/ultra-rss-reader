@@ -229,7 +229,7 @@ function FeedDetailHeader({
           {summaryText ? (
             <p
               className={cn(
-                "mt-3 max-w-[48rem] font-serif text-[1rem] leading-7 text-foreground-soft",
+                "mt-3 max-w-[48rem] text-[1rem] leading-7 text-foreground-soft",
                 isLowWire && "font-sans text-sm leading-6 text-foreground-soft/95",
               )}
             >
@@ -380,13 +380,13 @@ function FeedDetailRecentArticles({
                   rel="noreferrer"
                   className={cn("min-w-0 items-start gap-1.5 no-underline", isLowWire && "flex w-full")}
                 >
-                  <span className="line-clamp-2 min-w-0 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
+                  <span className="line-clamp-2 min-w-0 text-[0.88rem] font-normal leading-5 text-foreground">
                     {article.title}
                   </span>
                   <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
                 </Link>
               ) : (
-                <span className="line-clamp-2 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
+                <span className="line-clamp-2 text-[0.88rem] font-normal leading-5 text-foreground">
                   {article.title}
                 </span>
               )}

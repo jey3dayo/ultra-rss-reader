@@ -27,7 +27,7 @@ export function AnnotatedNote({ title, body }: AnnotatedNoteProps) {
       className="rounded-md border border-border/70 bg-surface-1/85 p-3 shadow-elevation-1"
     >
       <SectionHeading className="mb-2">{title}</SectionHeading>
-      <p className="font-serif text-sm leading-[1.45] text-foreground/72">{body}</p>
+      <p className="text-sm leading-[1.45] text-foreground/72">{body}</p>
     </div>
   );
 }

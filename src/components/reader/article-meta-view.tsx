@@ -45,7 +45,7 @@ export function ArticleMetaView({
         )}
       </h1>
       {(feedName || siteLink || author) && (
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-serif text-[0.95rem] leading-[1.7] text-foreground-soft">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.95rem] leading-[1.7] text-foreground-soft">
           {feedName &&
             (onFeedClick ? (
               <ReaderInlineActionButton variant="feed" onClick={onFeedClick}>

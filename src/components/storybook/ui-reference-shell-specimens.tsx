@@ -114,7 +114,7 @@ export function ShellExamplesSpecimen() {
           )}
         >
           <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Dialog shell</div>
-          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/72">
+          <p className="mb-3 text-xs leading-[1.45] text-foreground/72">
             Outer shell only. Keep the inner dialog component surface separate and smaller-radius.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
@@ -145,7 +145,7 @@ export function ShellExamplesSpecimen() {
           )}
         >
           <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Utility action chrome</div>
-          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/72">
+          <p className="mb-3 text-xs leading-[1.45] text-foreground/72">
             Resting state stays borderless. Selection comes from tonal fill and semantic icon tint, while focus remains
             a separate layer.
           </p>
@@ -211,7 +211,7 @@ export function ShellExamplesSpecimen() {
           )}
         >
           <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Context menu shell</div>
-          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/72">
+          <p className="mb-3 text-xs leading-[1.45] text-foreground/72">
             This is the workspace frame around the menu body, not the reusable menu body itself.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
@@ -248,7 +248,7 @@ export function CommandPaletteShellSpecimen() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
         <div>
           <SectionHeading className="mb-2">Command palette shell</SectionHeading>
-          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+          <p className="text-sm leading-[1.45] text-foreground/72">
             Command stays a primitive-backed overlay surface. Feature commands provide the grouping, labels, and
             shortcuts.
           </p>
@@ -432,7 +432,7 @@ export function MotionTransitionsSpecimen() {
             <div className="flex h-full min-w-[250px] flex-col justify-between p-4">
               <div>
                 <div className="mb-1 text-sm font-medium text-foreground">Account pane</div>
-                <p className="max-w-[18rem] font-serif text-xs leading-[1.45] text-foreground/72">
+                <p className="max-w-[18rem] text-xs leading-[1.45] text-foreground/72">
                   Width and height changes share the same measured desktop rhythm.
                 </p>
               </div>
@@ -487,7 +487,7 @@ export function MotionTransitionsSpecimen() {
                 </span>
                 <div className="font-medium">Sync complete</div>
               </div>
-              <p className="font-serif text-xs leading-[1.45] text-foreground/62">
+              <p className="text-xs leading-[1.45] text-foreground/62">
                 Dialog motion stays centered and quieter than the surrounding chrome.
               </p>
             </div>

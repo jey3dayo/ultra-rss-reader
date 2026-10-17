@@ -96,6 +96,7 @@ const requiredSharedStoryExportsByFilePath = {
     "Disabled",
     "InlineAction",
     "InsideIconAction",
+    "InsideIconActionWithError",
     "InsideTextAction",
     "LongLabelActions",
     "LongLabelInsideAction",

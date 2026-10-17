@@ -17,7 +17,7 @@ function ReferenceTypeScaleBlock({
     <div className="rounded-md border border-border/70 bg-surface-1/88 p-4 shadow-none">
       <div className="mb-3">
         <p className="font-sans text-[11px] font-medium tracking-[0.16em] text-foreground-soft uppercase">{label}</p>
-        <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/72">{hint}</p>
+        <p className="mt-1 text-xs leading-[1.45] text-foreground/72">{hint}</p>
       </div>
       <div className={sampleClassName}>{sampleText}</div>
     </div>
@@ -43,7 +43,7 @@ function ReferenceSemanticStateCard({
         <LabelChip tone={chipTone}>{chipLabel}</LabelChip>
         <div>
           <p className="font-sans text-sm text-foreground">{title}</p>
-          <p className="mt-1 font-serif text-sm leading-[1.45] text-foreground/68">{description}</p>
+          <p className="mt-1 text-sm leading-[1.45] text-foreground/68">{description}</p>
         </div>
       </div>
     </SurfaceCard>
@@ -76,7 +76,7 @@ export function TypographyScaleSpecimen() {
         <ReferenceTypeScaleBlock
           label="Body Serif"
           hint="Warm reading copy for explanatory text."
-          sampleClassName="font-serif text-[1.08rem] leading-[1.55] text-foreground/84"
+          sampleClassName="text-[1.08rem] leading-[1.55] text-foreground/84"
           sampleText="Body Serif"
         />
         <ReferenceTypeScaleBlock
@@ -174,19 +174,19 @@ export function SurfaceRoleSpecimen() {
       <div className="grid gap-3 sm:grid-cols-2">
         <SurfaceCard variant="info" padding="compact">
           <SectionHeading className="mb-2">Info surface</SectionHeading>
-          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+          <p className="text-sm leading-[1.45] text-foreground/72">
             情報カード用の shared surface。軽い注釈や補足に使う。
           </p>
         </SurfaceCard>
         <SurfaceCard variant="section" padding="compact">
           <SectionHeading className="mb-2">Section surface</SectionHeading>
-          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+          <p className="text-sm leading-[1.45] text-foreground/72">
             SettingsSection と同じ section box 用 surface。構造の区切りとして使う。
           </p>
         </SurfaceCard>
         <SurfaceCard variant="section" padding="compact" className="border-surface-4 bg-[var(--surface-selected)]">
           <SectionHeading className="mb-2">Selected surface</SectionHeading>
-          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+          <p className="text-sm leading-[1.45] text-foreground/72">
             選択済み item や current row のための selected surface。
           </p>
         </SurfaceCard>

@@ -188,7 +188,7 @@ export function LabelHelpSwitchSpecimen() {
           />
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         Keep the short summary with its label, reserve the trailing rail for the setting, and open longer help in a
         portal popover.
       </p>
@@ -336,7 +336,7 @@ export function PrimitiveControlMatrixSpecimen() {
           <Switch aria-label="Primitive switch disabled" disabled />
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         Low-level primitives stay thin. Use this matrix to verify base states before promoting a repeated product
         pattern into shared.
       </p>
@@ -357,7 +357,7 @@ export function ValidationRowSpecimen() {
           placeholder="https://your-freshrss.example"
           inputClassName="border-state-danger-border ring-destructive/10"
         />
-        <p className="pt-2 pl-[0.02rem] font-serif text-xs leading-[1.45] text-state-danger-foreground">
+        <p className="pt-2 pl-[0.02rem] text-xs leading-[1.45] text-state-danger-foreground">
           URL は `https://` から始めてください。
         </p>
       </div>
@@ -382,7 +382,7 @@ export function DisabledSwitchSpecimen() {
           </div>
         </LabeledControlRow>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         利用予定だが今は無効、という状態の見本。注記と disabled control を同時に見せる。
       </p>
     </SurfaceCard>
@@ -410,7 +410,7 @@ export function SettingsHeaderSummarySpecimen() {
           <AccountConnectionSummary statusLabel="未認証" statusTone="danger" detail="認証に失敗しています" />
         </div>
       </div>
-      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         settings の見出し右で account status を要約する見本。入力行ではなく header-level summary として扱う。
       </p>
     </SurfaceCard>

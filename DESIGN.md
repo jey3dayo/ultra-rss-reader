@@ -4,7 +4,7 @@
 
 This design system aims for warm editorial software rather than cold utility UI. The core mood is calm, crafted, and slightly premium: warm cream canvases, warm near-black text, restrained accent usage, and diffused depth that feels atmospheric instead of glossy. It should read like a thoughtfully designed reading tool, not a generic admin dashboard.
 
-The visual density should feel intentional. Typography carries most of the hierarchy, especially through compressed display text, serif body copy for warmth, and monospace for technical moments. Surfaces should separate through tonal shifts, borders, and spacing more often than through heavy chromatic contrast.
+The visual density should feel intentional. Typography carries most of the hierarchy, especially through compressed display text, the platform sans stack for body copy, and monospace for technical moments. Surfaces should separate through tonal shifts, borders, and spacing more often than through heavy chromatic contrast.
 
 When no exact token applies, prefer these defaults:
 
@@ -65,14 +65,14 @@ Color governance:
 ## Typography
 
 - Headline Font: platform-native sans UI stack, with `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI Variable Text, Segoe UI, Hiragino Sans, Hiragino Kaku Gothic ProN, Yu Gothic UI, Meiryo`
-- Body Font: platform-native sans UI stack by default; serif is a secondary accent stack for reading surfaces only
+- Body Font: platform-native sans UI stack everywhere, including reading surfaces. Do not hard-code serif (`font-serif`, Mincho, Georgia) in components; serif appears only when the user explicitly picks the 明朝体 / Serif font-style preference
 - Label Font: platform-native sans UI stack matching the headline stack
 - Code Font: platform-native monospace stack, with `ui-monospace, SFMono-Regular, SF Mono, Cascadia Mono, Cascadia Code, Consolas, Menlo, Monaco, Liberation Mono, Courier New`
 
 Role guidance:
 
 - Headlines should feel compressed and engineered, using negative tracking at larger sizes.
-- Body copy should feel literary and warm, favoring serif rhythm for longer reading.
+- Body copy should feel calm and readable, using the sans stack with generous line height for longer reading.
 - Labels should stay compact and restrained, using lighter weight and spacing rather than bold saturation.
 - Technical moments should switch clearly into monospace.
 
@@ -84,8 +84,8 @@ Detailed hierarchy:
 | Section Heading | System UI Sans | 36px (2.25rem)    | 500     | 1.20 (tight)   | -0.72px        | Feature sections, CTA headlines      |
 | Sub-heading     | System UI Sans | 26px (1.63rem)    | 500     | 1.25 (tight)   | -0.325px       | Card headings, sub-sections          |
 | Title Small     | System UI Sans | 22px (1.38rem)    | 500     | 1.30 (tight)   | -0.11px        | Smaller titles, list headings        |
-| Body Serif      | System Serif   | 19.2px (1.20rem)  | 500     | 1.50           | normal         | Editorial body for reading surfaces  |
-| Body Serif SM   | System Serif   | 17.28px (1.08rem) | 400     | 1.35           | normal         | Standard body text, descriptions     |
+| Body Reading    | System UI Sans | 19.2px (1.20rem)  | 500     | 1.50           | normal         | Body for reading surfaces            |
+| Body Reading SM | System UI Sans | 17.28px (1.08rem) | 400     | 1.35           | normal         | Standard body text, descriptions     |
 | Body Sans       | System UI Sans | 16px (1.00rem)    | 400     | 1.50           | normal/0.08px  | UI body text                         |
 | Button Label    | System UI Sans | 14px (0.88rem)    | 500     | 1.00 (tight)   | normal         | Primary button text                  |
 | Button Caption  | System UI Sans | 14px (0.88rem)    | 400     | 1.50           | 0.14px         | Secondary button label               |
@@ -99,7 +99,7 @@ Detailed hierarchy:
 Typography principles:
 
 - Desktop-app UI should prefer platform-native font rendering for settings, navigation, forms, dialogs, and dense controls.
-- Serif is an accent layer for reading comfort and editorial warmth, not the default UI face.
+- Do not use serif in app UI or reading surfaces by default. Validation, error, metadata, and descriptions all use the sans stack. Serif is only a user-selected font-style preference.
 - If a custom brand font is needed, bundle it explicitly and limit it to large headings or marketing-like moments instead of core app chrome.
 
 ## Elevation
