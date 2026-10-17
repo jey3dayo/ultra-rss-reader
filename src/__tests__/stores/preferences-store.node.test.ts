@@ -583,6 +583,16 @@ describe("usePreferencesStore preferences", () => {
     expect(usePreferencesStore.getState().loaded).toBe(true);
   });
 
+  it("falls back to sans when a saved serif font style is loaded", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(Result.succeed({ font_style: "serif" }));
+
+    await usePreferencesStore.getState().loadPreferences();
+
+    expect(usePreferencesStore.getState().prefs.font_style).toBe("sans_serif");
+    expect(document.documentElement).toHaveClass("font-sans");
+    expect(document.documentElement).not.toHaveClass("font-serif");
+  });
+
   it("keeps optimistic preference writes when an older load resolves later", async () => {
     const deferred = createTestDeferred<void>();
     vi.mocked(getPreferences).mockReturnValue(
@@ -590,7 +600,7 @@ describe("usePreferencesStore preferences", () => {
         Result.succeed({
           theme: "light",
           language: "en",
-          font_style: "serif",
+          font_style: "monospace",
           font_size: "large",
         }),
       ),
@@ -608,7 +618,7 @@ describe("usePreferencesStore preferences", () => {
     expect(usePreferencesStore.getState().prefs).toMatchObject({
       theme: "dark",
       language: "ja",
-      font_style: "serif",
+      font_style: "monospace",
       font_size: "large",
     });
     expect(document.documentElement).toHaveClass("dark");
@@ -624,7 +634,7 @@ describe("usePreferencesStore preferences", () => {
     const load = usePreferencesStore.getState().loadPreferences();
 
     usePreferencesStore.getState().setPref("language", "en");
-    usePreferencesStore.getState().setPref("font_style", "serif");
+    usePreferencesStore.getState().setPref("font_style", "monospace");
     usePreferencesStore.getState().setPref("font_size", "large");
 
     try {
@@ -634,12 +644,12 @@ describe("usePreferencesStore preferences", () => {
       expect(usePreferencesStore.getState().loaded).toBe(true);
       expect(usePreferencesStore.getState().prefs).toMatchObject({
         language: "en",
-        font_style: "serif",
+        font_style: "monospace",
         font_size: "large",
       });
       expect(changeLanguage).toHaveBeenCalledWith("en");
       expect(changeLanguage).not.toHaveBeenCalledWith("ja");
-      expect(document.documentElement).toHaveClass("font-serif");
+      expect(document.documentElement).toHaveClass("font-mono");
       expect(document.documentElement).toHaveClass("text-lg");
       expect(document.documentElement).not.toHaveClass("font-sans");
       expect(document.documentElement).not.toHaveClass("text-base");
@@ -777,7 +787,7 @@ describe("usePreferencesStore preferences", () => {
       .mockResolvedValueOnce(
         Result.succeed({
           language: "en",
-          font_style: "serif",
+          font_style: "monospace",
           font_size: "large",
         }),
       );
@@ -803,11 +813,11 @@ describe("usePreferencesStore preferences", () => {
       expect(usePreferencesStore.getState().loaded).toBe(true);
       expect(usePreferencesStore.getState().prefs).toMatchObject({
         language: "en",
-        font_style: "serif",
+        font_style: "monospace",
         font_size: "large",
       });
       expect(changeLanguage).toHaveBeenCalledWith("en");
-      expect(document.documentElement).toHaveClass("font-serif");
+      expect(document.documentElement).toHaveClass("font-mono");
       expect(document.documentElement).toHaveClass("text-lg");
     } finally {
       changeLanguage.mockRestore();
@@ -1004,7 +1014,7 @@ describe("usePreferencesStore preferences", () => {
   it.each([
     {
       key: "font_style",
-      value: "serif",
+      value: "monospace",
       errorMessage: "Failed to apply font style preference:",
     },
     {

@@ -47,7 +47,6 @@ const meta = {
             value: "sans_serif",
             options: [
               { value: "sans_serif", label: "Sans serif" },
-              { value: "serif", label: "Serif" },
               { value: "monospace", label: "Monospace" },
             ],
             onChange: fn(),

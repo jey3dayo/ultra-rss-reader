@@ -284,6 +284,17 @@ describe("preference contract", () => {
     });
   });
 
+  it("migrates the removed serif font style to the default sans stack", () => {
+    expect(normalizePreferenceValue("font_style", "serif")).toBe("sans_serif");
+    expect(normalizePreferenceValue("font_style", "monospace")).toBe("monospace");
+    expect(normalizePreferenceRecord({ font_style: "serif", theme: "dark" })).toEqual({
+      font_style: "sans_serif",
+      theme: "dark",
+    });
+    // Saved serif values must not make get_preferences fail validation.
+    expect(safeParse(PreferencesDtoSchema, { font_style: "serif" }).success).toBe(true);
+  });
+
   it("keeps app default and current preference values accepted by the API DTO schema", () => {
     const currentPreferenceValues = {
       ...preferenceDefaults,
