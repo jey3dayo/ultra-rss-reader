@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Changed
+
+- フォント設定から明朝体（Serif）を削除しました。明朝体を選んでいた場合はゴシック体で表示されます。 (#494)
+
 ## [0.67.3] - 2026-10-16
 
 ### Features

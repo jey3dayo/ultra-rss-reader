@@ -65,7 +65,7 @@ Color governance:
 ## Typography
 
 - Headline Font: platform-native sans UI stack, with `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI Variable Text, Segoe UI, Hiragino Sans, Hiragino Kaku Gothic ProN, Yu Gothic UI, Meiryo`
-- Body Font: platform-native sans UI stack everywhere, including reading surfaces. Do not hard-code serif (`font-serif`, Mincho, Georgia) in components; serif appears only when the user explicitly picks the 明朝体 / Serif font-style preference
+- Body Font: platform-native sans UI stack everywhere, including reading surfaces. Do not hard-code serif (`font-serif`, Mincho, Georgia) in components. The font-style preference offers only sans (default) and monospace
 - Label Font: platform-native sans UI stack matching the headline stack
 - Code Font: platform-native monospace stack, with `ui-monospace, SFMono-Regular, SF Mono, Cascadia Mono, Cascadia Code, Consolas, Menlo, Monaco, Liberation Mono, Courier New`
 
@@ -99,7 +99,7 @@ Detailed hierarchy:
 Typography principles:
 
 - Desktop-app UI should prefer platform-native font rendering for settings, navigation, forms, dialogs, and dense controls.
-- Do not use serif in app UI or reading surfaces by default. Validation, error, metadata, and descriptions all use the sans stack. Serif is only a user-selected font-style preference.
+- Do not use serif in app UI or reading surfaces by default. Validation, error, metadata, and descriptions all use the sans stack. There is no serif font-style preference; saved `serif` values migrate to `sans_serif`.
 - If a custom brand font is needed, bundle it explicitly and limit it to large headings or marketing-like moments instead of core app chrome.
 
 ## Elevation

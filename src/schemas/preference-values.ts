@@ -191,6 +191,21 @@ const legacyAfterReadingValueMap: Record<string, AfterReadingPreference> = {
   archive: "never",
 };
 
+// Removed font styles stay valid in saved data and load as the default sans stack.
+const legacyFontStyleValueMap: Record<string, FontStylePreference> = {
+  serif: "sans_serif",
+};
+
+function resolveLegacyPreferenceValue(key: string, value: string): string {
+  if (key === "after_reading" && objectHasOwnProperty.call(legacyAfterReadingValueMap, value)) {
+    return legacyAfterReadingValueMap[value];
+  }
+  if (key === "font_style" && objectHasOwnProperty.call(legacyFontStyleValueMap, value)) {
+    return legacyFontStyleValueMap[value];
+  }
+  return value;
+}
+
 export const corePreferenceDefaults = {
   language: "system",
   unread_badge: "dont_display",
@@ -422,10 +437,7 @@ export function normalizePreferenceValue(key: string, value: string): string {
     return value;
   }
 
-  const resolvedValue =
-    key === "after_reading" && objectHasOwnProperty.call(legacyAfterReadingValueMap, value)
-      ? legacyAfterReadingValueMap[value]
-      : value;
+  const resolvedValue = resolveLegacyPreferenceValue(key, value);
 
   const parsedValue = parseKnownPreferenceValue(key, resolvedValue);
   if (parsedValue !== null) {
@@ -451,7 +463,8 @@ export function isValidPreferenceValue(key: string, value: string): boolean {
     return true;
   }
 
-  return parseKnownPreferenceValue(key, value) !== null;
+  const resolvedValue = key === "font_style" ? resolveLegacyPreferenceValue(key, value) : value;
+  return parseKnownPreferenceValue(key, resolvedValue) !== null;
 }
 
 export function normalizePreferenceRecord(prefs: PreferenceRecord): PreferenceRecord {

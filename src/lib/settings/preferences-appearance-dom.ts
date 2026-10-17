@@ -78,7 +78,6 @@ export function updateResolvedTheme(root: HTMLElement, resolvedTheme: "light" | 
 }
 const fontStyleClasses = {
   sans_serif: "font-sans",
-  serif: "font-serif",
   monospace: "font-mono",
 } satisfies Record<FontStylePreference, string>;
 

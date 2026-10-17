@@ -60,7 +60,6 @@ export function useAppearanceSettingsViewProps({
             value: resolvePreferenceValue(prefs, "font_style"),
             options: [
               { value: "sans_serif", label: t("appearance.sans_serif") },
-              { value: "serif", label: t("appearance.serif") },
               { value: "monospace", label: t("appearance.monospace") },
             ],
             onChange: (value) => setPref("font_style", value),
