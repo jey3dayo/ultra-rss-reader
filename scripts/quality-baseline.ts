@@ -406,10 +406,11 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     command !== "react-doctor:diff" &&
     command !== "react-doctor:full" &&
     command !== "knip" &&
+    command !== "knip:check" &&
     command !== "lockfile-duplicate-majors"
   ) {
     console.error(
-      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|lockfile-duplicate-majors",
+      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|knip:check|lockfile-duplicate-majors",
     );
     process.exit(2);
   }
@@ -419,7 +420,9 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
   } else if (command === "react-doctor:full") {
     runReactDoctor("full", false);
   } else if (command === "knip") {
-    runKnip();
+    runKnip(false);
+  } else if (command === "knip:check") {
+    runKnip(true);
   } else {
     runLockfileDuplicateMajorReport();
   }
@@ -624,7 +627,7 @@ function readReactDoctorReportPayload(stdout: string): string | null {
   return null;
 }
 
-function runKnip(): void {
+function runKnip(gate: boolean): void {
   const actualVersion = readKnipVersion();
   const result = spawnSync("pnpm", ["exec", "knip", "--reporter", "json", "--no-exit-code", "--no-progress"], {
     encoding: "utf8",
@@ -651,7 +654,15 @@ function runKnip(): void {
   ].filter(Boolean);
 
   if (drift.length > 0) {
-    console.log(["Knip baseline delta (informational):", ...drift].join("\n"));
+    const label = gate ? "Knip baseline delta:" : "Knip baseline delta (informational):";
+    console.log([label, ...drift].join("\n"));
+  }
+
+  if (gate && (report.issues.length > knipBaseline.issueCount || findingsCount > knipBaseline.findingsCount)) {
+    console.error(
+      `Knip findings exceed baseline (issues ${report.issues.length}/${knipBaseline.issueCount}, findings ${findingsCount}/${knipBaseline.findingsCount}). Remove the unused code or update knipBaseline with a classification in docs/knip-export-classification.md.`,
+    );
+    process.exit(1);
   }
 }
 

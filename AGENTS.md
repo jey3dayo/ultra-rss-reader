@@ -55,7 +55,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - `mise run test:unit:dom` runs the jsdom Vitest suite separately when DOM, React rendering, Testing Library, or browser global behavior is affected.
 - `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
 - React Doctor tasks (`quality:react-doctor:*`): read [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md) before running or interpreting them.
-- `mise run report:knip` produces the Knip baseline drift report; humans triage the findings instead of treating them as a gate.
+- `mise run report:knip` produces the Knip baseline drift report; humans triage the findings. `mise run quality:knip` (CI Toolchain job) fails only when findings exceed `knipBaseline`.
 - `mise run report:similarity` reports the similarity-ts TODO baseline. Treat 0.95 as near-copy, 0.9 as TODO triage, and 0.87 as broad discovery; increase size thresholds before extracting helpers from tiny callback-shape matches.
 - Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 

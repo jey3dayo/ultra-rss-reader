@@ -14,4 +14,15 @@ ignore = [
   # rkyv 0.7; remove this entry once rust_decimal moves to rkyv >=0.8.17 or
   # drops the feature. Reviewed 2026-08-07.
   "RUSTSEC-2026-0235",
+  # RUSTSEC-2026-0367 / RUSTSEC-2026-0368 / RUSTSEC-2026-0369: zip <9.0.0
+  # extraction issues (permissions through symlinks, SUID/SGID preservation).
+  # zip 4.6.1 enters only via tauri-plugin-updater, which depends on zip ^4
+  # under cfg(target_os = "windows") to unpack the signature-verified update
+  # bundle; `cargo tree -i zip --target all` shows no other consumer. No fixed
+  # path exists upstream: tauri-plugin-updater 2.14.0 still requires zip ^4.
+  # Remove these entries once the updater moves to zip >=9.0.0.
+  # Reviewed 2026-10-17; re-review by 2026-11-17.
+  "RUSTSEC-2026-0367",
+  "RUSTSEC-2026-0368",
+  "RUSTSEC-2026-0369",
 ]

@@ -68,6 +68,8 @@ jobs:
 
       - run: mise run quality:react-doctor-pin
 
+      - run: mise run quality:knip
+
       - run: mise run test:change-plan
 
       - name: Verify CI image toolchain contract

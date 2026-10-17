@@ -15,7 +15,7 @@ React Doctor / Knip / similarity / task priority rules that are too durable for 
 
 ## Knip Ignore Policy
 
-Knip is a report-only review tool in this repository, not a continuously enforced gate. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases, so those consumers are declared as explicit `package.json#knip.entry` items instead of being reported as unused files. Each entry must name its real consumer here:
+Knip runs as a ratchet gate in CI (`mise run quality:knip`, Toolchain job): it fails only when findings exceed the pinned baseline, and `mise run report:knip` stays an informational report. Its unused-file detector cannot statically trace consumers routed through `mise` tasks or Vite aliases, so those consumers are declared as explicit `package.json#knip.entry` items instead of being reported as unused files. Each entry must name its real consumer here:
 
 | Entry | Consumer |
 | --- | --- |
@@ -30,7 +30,7 @@ Knip is a report-only review tool in this repository, not a continuously enforce
 
 `scripts/run-guarded-pnpm-update.ts` has the same shape — invoked only from `mise/setup.toml` — but Knip does not report it, because `release-age-gate-contract.node.test.ts` imports it with `?raw` to pin its contract. Do not treat its absence from the report as evidence that Knip can follow `mise` consumers; when a new script is only reached through `mise`, add it to the entry list above.
 
-The pinned baseline in `scripts/quality-baseline.ts` is informational drift, not a failing gate; re-pin it only after the new findings are classified.
+The pinned baseline in `scripts/quality-baseline.ts` is a ratchet: counts above it fail `quality:knip`, counts at or below it pass. Lower it when findings are removed; raise it only after the new findings are classified in `docs/knip-export-classification.md`.
 
 `package.json#knip.ignoreDependencies` entries must document why Knip cannot see a real consumer:
 
