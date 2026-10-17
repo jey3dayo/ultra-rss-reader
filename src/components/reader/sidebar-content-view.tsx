@@ -1,7 +1,6 @@
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import { ScrollArea } from "@/design-system";
-import { focusArticleListRowTargetWhenReady } from "@/lib/reader-focus";
-import { useUiStore } from "@/stores/ui-store";
+import { focusArticleListPane } from "./focus-article-list-pane";
 import { SidebarFeedSection } from "./sidebar-feed-section";
 import { SidebarFooterActions } from "./sidebar-footer-actions";
 
@@ -22,12 +21,6 @@ type SidebarContentViewProps = {
   addFeedDialog?: ReactNode;
   onFocusAccountList: () => void;
 };
-
-function focusArticleListPane() {
-  const store = useUiStore.getState();
-  store.setFocusedPane("list");
-  focusArticleListRowTargetWhenReady(store.selectedArticleId);
-}
 
 function handleSubscriptionListKeyDown(event: ReactKeyboardEvent<HTMLDivElement>, onFocusAccountList: () => void) {
   if (event.defaultPrevented || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) {

@@ -1,5 +1,14 @@
 import * as v from "valibot";
 
+export function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export const COUNT_RESPONSE_MAX_VALUE = Number.MAX_SAFE_INTEGER;
 
 const createNonnegativeSafeIntegerSchema = () =>

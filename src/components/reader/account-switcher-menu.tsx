@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { focusAccountItem } from "@/components/reader/account-switcher-focus";
 import { NavRowButton } from "@/design-system";
+import { shouldShowKindLabel } from "@/lib/account/account-kind-label";
 import { getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
 import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
 
@@ -16,10 +17,6 @@ type AccountSwitcherMenuProps = {
   onSelectAccount: (accountId: string) => void;
   onClose: (restoreFocus: boolean) => void;
 };
-
-function shouldShowKindLabel(name: string, kind: string): boolean {
-  return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();
-}
 
 export function AccountSwitcherMenu({
   accounts,

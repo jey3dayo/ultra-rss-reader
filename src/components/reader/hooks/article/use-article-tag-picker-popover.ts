@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
+import { getDefaultDocument } from "@/lib/dom/document";
 import { isOutsideElement } from "@/lib/dom/dom-target";
 import { focusRovingButton, getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
 import type { ArticleTagPickerViewProps } from "../../article-tag-picker-view";
@@ -9,10 +10,6 @@ type UseArticleTagPickerPopoverParams = {
   onExpandedChange: ArticleTagPickerViewProps["onExpandedChange"];
   onNewTagNameChange: ArticleTagPickerViewProps["onNewTagNameChange"];
 };
-
-function getRuntimeDocument(): Document | null {
-  return typeof document === "undefined" ? null : document;
-}
 
 export function useArticleTagPickerPopover({
   isExpanded,
@@ -92,7 +89,7 @@ export function useArticleTagPickerPopover({
       }
     };
 
-    const ownerDocument = pickerRef.current?.ownerDocument ?? getRuntimeDocument();
+    const ownerDocument = pickerRef.current?.ownerDocument ?? getDefaultDocument();
     if (!ownerDocument) {
       return;
     }
@@ -122,7 +119,7 @@ export function useArticleTagPickerPopover({
     hasFocusedOnOpenRef.current = true;
 
     const frameId = requestAnimationFrame(() => {
-      const ownerDocument = pickerRef.current?.ownerDocument ?? getRuntimeDocument();
+      const ownerDocument = pickerRef.current?.ownerDocument ?? getDefaultDocument();
       const activeElement = ownerDocument?.activeElement ?? null;
       if (
         activeElement &&

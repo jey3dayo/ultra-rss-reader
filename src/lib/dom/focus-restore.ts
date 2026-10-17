@@ -1,15 +1,4 @@
-function getDefaultDocument(): Document | null {
-  return typeof document === "undefined" ? null : document;
-}
-
-function isOwnerDocumentHtmlElement(element: Element | null, ownerDocument: Document): element is HTMLElement {
-  const ownerWindow = ownerDocument.defaultView;
-  if (ownerWindow) {
-    return element instanceof ownerWindow.HTMLElement;
-  }
-
-  return typeof HTMLElement !== "undefined" && element instanceof HTMLElement;
-}
+import { getDefaultDocument, isOwnerDocumentHtmlElement } from "./document";
 
 export function getRestorableActiveElement(ownerDocument: Document | null = getDefaultDocument()): HTMLElement | null {
   if (!ownerDocument || !isOwnerDocumentHtmlElement(ownerDocument.activeElement, ownerDocument)) {
