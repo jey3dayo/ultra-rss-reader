@@ -267,7 +267,7 @@ fn migration_failure_restores_from_backup() {
         "Error should tell users to copy files while the app is closed: {err_msg}"
     );
 
-    // Verify backup was restored — data should be intact
+    // Restored backup must preserve account data
     let conn = rusqlite::Connection::open(&db_path).unwrap();
     let name: String = conn
         .query_row("SELECT name FROM accounts WHERE id = 'a1'", [], |row| {
