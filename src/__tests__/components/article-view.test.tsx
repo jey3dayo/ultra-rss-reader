@@ -3123,6 +3123,8 @@ describe("ArticleView", () => {
         },
       );
 
+      useUiStore.setState({ selectedArticleId: primaryArticle.id, contentMode: "reader" });
+
       await screen.findByRole("heading", { level: 1, name: "First Article" });
       const viewport = getArticleReaderViewport();
 

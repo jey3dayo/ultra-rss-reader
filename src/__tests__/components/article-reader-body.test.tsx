@@ -191,6 +191,54 @@ describe("ArticleReaderBody", () => {
     expect(screen.queryByRole("button", { name: "Next article" })).not.toBeInTheDocument();
   });
 
+  function getReaderViewport(): HTMLElement {
+    const viewport = screen
+      .getByTestId("article-reader-scroll-area")
+      .querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]');
+    if (!viewport) {
+      throw new Error("Expected article reader viewport");
+    }
+    return viewport;
+  }
+
+  it("does not restore the pruned scroll entry through the unmount cleanup after the article is closed", () => {
+    useUiStore.setState({
+      articleReaderScrollPositions: new Map([
+        ["article-1", 240],
+        ["article-2", 480],
+      ]),
+    });
+    const { unmount } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    getReaderViewport().scrollTop = 640;
+
+    useUiStore.getState().clearArticle();
+    unmount();
+
+    expect(useUiStore.getState().articleReaderScrollPositions.has("article-1")).toBe(false);
+    expect(useUiStore.getState().articleReaderScrollPositions.get("article-2")).toBe(480);
+  });
+
+  it("does not restore the pruned scroll entry through a pending commit flushed after close", () => {
+    const { unmount } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    const viewport = getReaderViewport();
+    viewport.scrollTop = 280;
+    fireEvent.scroll(viewport);
+
+    useUiStore.getState().clearArticle();
+    unmount();
+
+    expect(useUiStore.getState().articleReaderScrollPositions.has("article-1")).toBe(false);
+  });
+
+  it("persists the viewport scroll position on unmount while the article stays selected", () => {
+    const { unmount } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    getReaderViewport().scrollTop = 320;
+
+    unmount();
+
+    expect(useUiStore.getState().articleReaderScrollPositions.get("article-1")).toBe(320);
+  });
+
   it("cleans up delegated content link clicks when switching articles", () => {
     const { rerender } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
     const oldLink = screen.getByRole("link", { name: "Read more" });

@@ -193,12 +193,25 @@ export function ArticleReaderBody({
     return () => {
       viewport.removeEventListener("scroll", handleScroll);
       viewport.removeEventListener("wheel", handleReaderWheel);
+      // clearArticle() prunes the closed article's scroll entry; the unmount cleanup
+      // that follows must not write the position back and undo that pruning.
+      if (useUiStore.getState().selectedArticleId !== currentArticleIdRef.current) {
+        clearPendingScrollPositionCommit();
+        pendingScrollPositionRef.current = null;
+        return;
+      }
       const didFlushPendingScrollPosition = flushPendingScrollPosition();
       if (!didFlushPendingScrollPosition) {
         setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
       }
     };
-  }, [flushPendingScrollPosition, handleReaderWheel, scheduleScrollPositionCommit, setArticleReaderScrollPosition]);
+  }, [
+    clearPendingScrollPositionCommit,
+    flushPendingScrollPosition,
+    handleReaderWheel,
+    scheduleScrollPositionCommit,
+    setArticleReaderScrollPosition,
+  ]);
 
   useLayoutEffect(() => {
     contentContainerClickListenerRef.current = (event: globalThis.MouseEvent) => {
