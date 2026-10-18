@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { getLocalFeedSyncStatuses, syncFeed } from "@/api/tauri-commands";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -17,16 +17,38 @@ function getPendingFeedRetryKey({ accountId, feedId }: PendingFeedRetry): string
   return JSON.stringify([accountId, feedId]);
 }
 
+// Dedupe keys live at module scope so they survive hook remounts while a retry
+// is in flight; keys stay account-scoped so parallel accounts cannot cross-talk,
+// and deletes remove exactly the keys added in retryFeed.
+const pendingFeedRetryKeys = new Set<string>();
+const pendingFeedRetryListeners = new Set<() => void>();
+
+export function __resetPendingFeedRetryKeysForTests(): void {
+  pendingFeedRetryKeys.clear();
+}
+
+function subscribePendingFeedRetryChanges(listener: () => void): () => void {
+  pendingFeedRetryListeners.add(listener);
+  return () => pendingFeedRetryListeners.delete(listener);
+}
+
+const getPendingFeedRetryCount = () => pendingFeedRetryKeys.size;
+
+function notifyPendingFeedRetryChange(): void {
+  for (const notify of pendingFeedRetryListeners) {
+    notify();
+  }
+}
+
 export function useLocalFeedSyncStatuses(accountId: string | null) {
   const { data: accounts, isPending: accountsPending } = useAccounts();
   const { t } = useTranslation("subscriptions");
   const showToast = useUiStore((state) => state.showToast);
   const queryClient = useQueryClient();
-  const [pendingFeedRetries, setPendingFeedRetries] = useState<PendingFeedRetry[]>([]);
-  const pendingFeedRetryKeys = useRef(new Set<string>());
   const normalizedAccountId = accountId?.trim() || null;
   const account = accounts?.find((candidate) => candidate.id === normalizedAccountId);
   const isLocalAccount = account?.kind.toLowerCase() === "local";
+  useSyncExternalStore(subscribePendingFeedRetryChanges, getPendingFeedRetryCount);
 
   const statusQuery = useQuery({
     queryKey: localFeedSyncStatusesQueryKey(isLocalAccount ? normalizedAccountId : null),
@@ -64,10 +86,8 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
           showToast(t("fetch_error_refresh_failed"));
         }
       } finally {
-        pendingFeedRetryKeys.current.delete(getPendingFeedRetryKey(variables));
-        setPendingFeedRetries((current) =>
-          current.filter((pending) => pending.accountId !== variables.accountId || pending.feedId !== variables.feedId),
-        );
+        pendingFeedRetryKeys.delete(getPendingFeedRetryKey(variables));
+        notifyPendingFeedRetryChange();
       }
     },
   });
@@ -81,15 +101,15 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
       if (!normalizedAccountId || !isLocalAccount) return;
       const variables = { accountId: normalizedAccountId, feedId };
       const retryKey = getPendingFeedRetryKey(variables);
-      if (pendingFeedRetryKeys.current.has(retryKey)) return;
-      pendingFeedRetryKeys.current.add(retryKey);
-      setPendingFeedRetries((current) => [...current, variables]);
+      if (pendingFeedRetryKeys.has(retryKey)) return;
+      pendingFeedRetryKeys.add(retryKey);
+      notifyPendingFeedRetryChange();
       retryMutation.mutate(variables);
     },
     isRetryingFeed: (feedId: string) =>
       Boolean(
         normalizedAccountId &&
-          pendingFeedRetries.some((pending) => pending.accountId === normalizedAccountId && pending.feedId === feedId),
+          pendingFeedRetryKeys.has(getPendingFeedRetryKey({ accountId: normalizedAccountId, feedId })),
       ),
   };
 }

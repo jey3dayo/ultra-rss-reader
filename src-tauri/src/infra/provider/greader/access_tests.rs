@@ -94,11 +94,12 @@ fn safe_greader_failure_diagnostic_formats_only_allowlisted_values() {
     }
 }
 
-fn access_provider(server: &mockito::Server) -> GReaderProvider {
+async fn access_provider(server: &mockito::Server) -> GReaderProvider {
     let origin = server.url().replacen("http://", "https://", 1);
     let access = CloudflareAccess::new("dummy-id", "cfast_dummy_secret", &origin).unwrap();
-    let mut provider =
-        GReaderProvider::try_for_freshrss_with_access(&origin, Some(access)).unwrap();
+    let mut provider = GReaderProvider::try_for_freshrss_with_access_async(&origin, Some(access))
+        .await
+        .unwrap();
     provider.mock_http_transport = true;
     provider
 }
@@ -136,7 +137,7 @@ async fn protected_article_ids_accept_expected_json_with_html_content_type() {
         .with_body(r#"{"itemRefs":[{"id":"123"}],"continuation":"next-page"}"#)
         .create_async()
         .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         provider.auth_token = Some("dummy-auth".into());
 
         let page = provider
@@ -180,7 +181,7 @@ async fn protected_article_ids_reject_unknown_html_json_before_state_propagation
         .with_body(body)
         .create_async()
         .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         provider.auth_token = Some("dummy-auth".into());
 
         let error = provider
@@ -208,7 +209,7 @@ async fn protected_article_ids_accept_empty_html_json_snapshot() {
             .with_body(r#"{"itemRefs":[]}"#)
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
 
     let result = provider
@@ -234,7 +235,7 @@ async fn other_protected_json_endpoints_reject_html_mime_with_valid_dtos() {
                 .with_body(body)
                 .create_async()
                 .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         provider.auth_token = Some("dummy-auth".into());
 
         let result = match path {
@@ -269,7 +270,7 @@ async fn protected_article_ids_classify_invalid_json_by_content_type() {
             .with_body(body)
             .create_async()
             .await;
-            let mut provider = access_provider(&server);
+            let mut provider = access_provider(&server).await;
             provider.auth_token = Some("dummy-auth".into());
 
             let error = match provider.pull_item_ids_page(STATE_READING_LIST, None).await {
@@ -305,7 +306,7 @@ async fn protected_article_ids_keep_normal_json_metadata_compatibility() {
             .with_body(r#"{"itemRefs":[{"id":"123"}],"metadata":{}}"#)
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
 
     let result = provider
@@ -338,7 +339,7 @@ async fn protected_article_ids_reject_html_prefixes_and_auth_statuses() {
         .with_body(body)
         .create_async()
         .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         provider.auth_token = Some("dummy-auth".into());
 
         let error = match provider.pull_item_ids_page(STATE_READING_LIST, None).await {
@@ -369,7 +370,7 @@ async fn protected_article_ids_keep_body_cap_with_html_content_type() {
             ))
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
 
     let error = match provider.pull_item_ids_page(STATE_READING_LIST, None).await {
@@ -403,7 +404,7 @@ async fn cloudflare_access_html_text_compatibility_keeps_client_login_rejected_a
                 .with_body(body)
                 .create_async()
                 .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         let login_error = provider
             .authenticate(&Credentials {
                 token: Some("dummy-user".into()),
@@ -450,7 +451,7 @@ async fn edit_tag_html_mime_rejects_non_ok_bodies_and_auth_statuses() {
                 .with_body(body)
                 .create_async()
                 .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         provider.auth_token = Some("dummy-auth".into());
         let error = provider
             .push_mutations(&[Mutation::MarkRead {
@@ -478,7 +479,7 @@ async fn edit_tag_html_ok_compatibility_keeps_decoded_body_cap() {
             ))
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
     let error = provider
         .push_mutations(&[Mutation::MarkRead {
@@ -779,7 +780,7 @@ async fn api_access_probe_authenticates_and_reads_tag_list_with_access_headers()
         .with_body(r#"{"tags":[]}"#)
         .create_async()
         .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
 
     authenticate_access_provider(&mut provider).await;
     provider
@@ -812,7 +813,7 @@ async fn api_access_probe_reports_only_endpoint_class_and_status_for_auth_failur
         )
         .create_async()
         .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
 
         authenticate_access_provider(&mut provider).await;
         let error = provider
@@ -867,7 +868,7 @@ async fn api_access_probe_rejects_html_without_echoing_body() {
         .with_body("<html>alice dummy-auth cfast_dummy_secret private page</html>")
         .create_async()
         .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
 
     authenticate_access_provider(&mut provider).await;
     let error = provider
@@ -903,7 +904,7 @@ async fn api_access_probe_keeps_json_response_body_limit() {
         ))
         .create_async()
         .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
 
     authenticate_access_provider(&mut provider).await;
     let error = provider
@@ -982,7 +983,7 @@ async fn cloudflare_access_headers_cover_login_reads_mutations_and_subscriptions
             .expect(2)
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     assert!(provider
         .authenticate(&Credentials {
             token: Some("dummy-user".into()),
@@ -1048,12 +1049,13 @@ async fn cloudflare_access_headers_cover_login_reads_mutations_and_subscriptions
     }
 }
 
-#[test]
-fn cloudflare_access_request_builder_rejects_other_origins_and_downgrades() {
+#[tokio::test]
+async fn cloudflare_access_request_builder_rejects_other_origins_and_downgrades() {
     let access =
         CloudflareAccess::new("dummy-id", "cfast_dummy_secret", "https://localhost:8443").unwrap();
     let mut provider =
-        GReaderProvider::try_for_freshrss_with_access("https://localhost:8443", Some(access))
+        GReaderProvider::try_for_freshrss_with_access_async("https://localhost:8443", Some(access))
+            .await
             .unwrap();
     for url in [
         "http://localhost:8443/reader",
@@ -1110,7 +1112,7 @@ async fn cloudflare_access_redirect_policy_blocks_before_custom_headers_reach_de
         .expect(1)
         .create_async()
         .await;
-    let mut provider = access_provider(&first);
+    let mut provider = access_provider(&first).await;
     let credentials = Credentials {
         token: Some("dummy-user".into()),
         password: Some("dummy-password".into()),
@@ -1139,7 +1141,7 @@ async fn cloudflare_access_missing_header_fault_is_detected() {
         .with_body("Auth=dummy-auth\n")
         .create_async()
         .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.cloudflare_access = None;
     assert!(provider
         .authenticate(&Credentials {
@@ -1182,7 +1184,7 @@ async fn cloudflare_access_html_and_plain_401_403_are_bounded_generic_errors() {
             .with_body(body)
             .create_async()
             .await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         let error = provider
             .authenticate(&Credentials {
                 token: Some("dummy-user".into()),
@@ -1212,7 +1214,7 @@ async fn cloudflare_access_html_is_rejected_for_reads_and_mutations_without_cont
         .with_body("<html>Access Login</html>")
         .create_async()
         .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
     let read_error = provider
         .get_subscriptions()
@@ -1246,7 +1248,7 @@ async fn cloudflare_access_html_error_status_preserves_retry_category() {
         .with_body("<html>Rate limited cfast_dummy_secret</html>")
         .create_async()
         .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     let error = provider
         .authenticate(&Credentials {
             token: Some("dummy-user".into()),
@@ -1292,7 +1294,7 @@ async fn protected_subscription_add_accepts_expected_html_mime_responses() {
             .match_query(mockito::Matcher::Any)
             .with_body(r#"{"subscriptions":[{"id":"feed/1","title":"Comic","url":"https://feed.example/rss"}]}"#)
             .create_async().await;
-        let mut provider = access_provider(&server);
+        let mut provider = access_provider(&server).await;
         provider.auth_token = Some("dummy-auth".into());
         let subscription = provider
             .create_subscription("https://feed.example/rss", None)
@@ -1317,7 +1319,7 @@ async fn protected_subscription_edit_accepts_html_mime_ok() {
             .with_body(" \tOK\r\n")
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
     assert!(
         provider
@@ -1339,7 +1341,7 @@ async fn protected_subscription_delete_accepts_html_mime_ok() {
             .with_body("OK")
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
     assert!(
         provider
@@ -1380,7 +1382,7 @@ async fn protected_subscription_mutations_reject_html_errors_and_auth_statuses()
                 .with_body(body)
                 .create_async()
                 .await;
-            let mut provider = access_provider(&server);
+            let mut provider = access_provider(&server).await;
             provider.auth_token = Some("dummy-auth".into());
             let result = match operation {
                 "add" => provider
@@ -1426,7 +1428,7 @@ async fn protected_subscription_mutation_html_mime_keeps_decoded_body_cap() {
             )
             .create_async()
             .await;
-    let mut provider = access_provider(&server);
+    let mut provider = access_provider(&server).await;
     provider.auth_token = Some("dummy-auth".into());
     let error = provider
         .edit_subscription("feed/1", Some("Comic"), None, None)

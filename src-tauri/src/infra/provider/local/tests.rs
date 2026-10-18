@@ -827,12 +827,13 @@ fn validate_external_feed_url_rechecks_repeated_private_host_resolution() {
     }
 }
 
-#[test]
-fn validate_feed_url_returns_resolved_addresses_to_pin_in_production_mode() {
+#[tokio::test]
+async fn validate_feed_url_returns_resolved_addresses_to_pin_in_production_mode() {
     let provider = LocalProvider::new();
 
     let (url, resolved_addrs) = provider
         .validate_feed_url("http://example.com/feed.xml")
+        .await
         .expect("public feed URL should validate and resolve in production mode");
 
     assert_eq!(url.as_str(), "http://example.com/feed.xml");
@@ -846,12 +847,13 @@ fn validate_feed_url_returns_resolved_addresses_to_pin_in_production_mode() {
     );
 }
 
-#[test]
-fn validate_feed_url_skips_pinning_addresses_in_private_allowed_mode() {
+#[tokio::test]
+async fn validate_feed_url_skips_pinning_addresses_in_private_allowed_mode() {
     let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
 
     let (_url, resolved_addrs) = provider
         .validate_feed_url("http://localhost/feed.xml")
+        .await
         .expect("private feed URL should be allowed in the test bypass mode");
 
     assert!(

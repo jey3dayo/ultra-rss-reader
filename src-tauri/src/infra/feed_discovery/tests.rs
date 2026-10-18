@@ -519,6 +519,66 @@ fn validate_discovery_request_url_returns_public_socket_addresses_for_request_pi
     assert_eq!(addresses, vec![SocketAddr::from(([93, 184, 216, 34], 0))]);
 }
 
+#[tokio::test]
+async fn resolve_validated_public_addrs_async_surfaces_resolver_failures_as_network_errors() {
+    let url = reqwest::Url::parse("https://unknown.test.invalid/feed.xml").unwrap();
+
+    assert!(matches!(
+        resolve_validated_public_addrs_async(&url).await,
+        Err(DomainError::Network(message))
+            if message.contains("failed to resolve test host")
+                && message.contains("unknown.test.invalid")
+    ));
+}
+
+#[tokio::test]
+async fn resolve_validated_public_addrs_async_matches_the_sync_seam_for_public_hosts() {
+    for raw_url in [
+        "https://public.test.invalid/feed.xml",
+        "https://example.com/feed.xml",
+        "https://xn--r8jz45g.xn--zckzah/feed.xml",
+    ] {
+        let url = reqwest::Url::parse(raw_url).unwrap();
+
+        assert_eq!(
+            resolve_validated_public_addrs(&url).unwrap(),
+            resolve_validated_public_addrs_async(&url).await.unwrap(),
+            "{raw_url}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn resolve_user_server_public_addrs_async_matches_the_sync_seam_for_user_servers() {
+    for raw_url in [
+        "https://shared.test.invalid/api/greader.php",
+        "https://example.com/api/greader.php",
+    ] {
+        let url = reqwest::Url::parse(raw_url).unwrap();
+
+        assert_eq!(
+            resolve_user_server_public_addrs(&url).unwrap(),
+            resolve_user_server_public_addrs_async(&url).await.unwrap(),
+            "{raw_url}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn resolve_with_deadline_bounds_slow_resolvers_with_the_timeout_message() {
+    let url = reqwest::Url::parse("https://timeout.test.invalid/feed.xml").unwrap();
+
+    assert!(matches!(
+        resolve_with_deadline(
+            resolve_user_server_public_addrs,
+            &url,
+            Duration::from_millis(10)
+        )
+        .await,
+        Err(DomainError::Network(message)) if message == DNS_RESOLVE_TIMEOUT_MESSAGE
+    ));
+}
+
 #[test]
 fn validate_discovery_request_url_rejects_known_private_fixture_hosts() {
     let url = reqwest::Url::parse("https://private.test.invalid/feed.xml").unwrap();

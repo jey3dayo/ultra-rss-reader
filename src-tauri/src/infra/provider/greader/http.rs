@@ -8,7 +8,8 @@ use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::{FeedIdentifier, Mutation, ProviderKind};
 use crate::domain::url_policy::{is_private_host, validate_user_provided_server_url};
 use crate::infra::feed_discovery::{
-    resolve_user_server_public_addrs, validate_discovery_url, validated_public_dns_resolver,
+    resolve_user_server_public_addrs, resolve_user_server_public_addrs_async,
+    validate_discovery_url, validated_public_dns_resolver,
 };
 
 use super::super::http_defaults::{self, http_client_builder};
@@ -229,6 +230,23 @@ pub(super) fn resolve_greader_base_addrs(url: &reqwest::Url) -> DomainResult<Vec
     resolve_user_server_public_addrs(url)
 }
 
+/// Async counterpart of [`resolve_greader_base_addrs`]; contract identical.
+pub(super) async fn resolve_greader_base_addrs_async(
+    url: &reqwest::Url,
+) -> DomainResult<Vec<SocketAddr>> {
+    validate_user_provided_server_url(url)?;
+
+    if let Some(address) = explicit_greader_base_addr(url) {
+        return Ok(vec![address]);
+    }
+
+    if url.host_str().is_some_and(is_private_host) {
+        return Ok(Vec::new());
+    }
+
+    resolve_user_server_public_addrs_async(url).await
+}
+
 pub(super) fn explicit_greader_base_addr(url: &reqwest::Url) -> Option<SocketAddr> {
     let host = url.host_str()?;
     let port = url.port_or_known_default().unwrap_or(80);
@@ -243,6 +261,14 @@ pub(super) fn explicit_greader_base_addr(url: &reqwest::Url) -> Option<SocketAdd
     }
 
     None
+}
+
+fn parse_greader_base_url(base: &str) -> DomainResult<reqwest::Url> {
+    reqwest::Url::parse(base).map_err(|_| {
+        DomainError::Validation(
+            crate::domain::url_policy::UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
+        )
+    })
 }
 
 impl GReaderProvider {
@@ -276,7 +302,10 @@ impl GReaderProvider {
         })
     }
 
-    pub(crate) fn try_for_freshrss_with_access(
+    /// Async counterpart of [`Self::try_for_freshrss`] route with access
+    /// gateway support: contract identical, but DNS resolution runs off the
+    /// async executor threads.
+    pub(crate) async fn try_for_freshrss_with_access_async(
         server_url: &str,
         access: Option<CloudflareAccess>,
     ) -> DomainResult<Self> {
@@ -284,7 +313,7 @@ impl GReaderProvider {
             access.ensure_origin(server_url)?;
         }
         let base = freshrss_api_base(server_url);
-        let client = Self::build_http_client_with_access(&base, access.as_ref())?;
+        let client = Self::build_http_client_with_access_async(&base, access.as_ref()).await?;
         Ok(Self {
             kind: ProviderKind::FreshRss,
             api_base: base.clone(),
@@ -305,13 +334,33 @@ impl GReaderProvider {
         base: &str,
         access: Option<&CloudflareAccess>,
     ) -> DomainResult<reqwest::Client> {
-        let base_url = reqwest::Url::parse(base).map_err(|_| {
-            DomainError::Validation(
-                crate::domain::url_policy::UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
-            )
-        })?;
-        let explicit_base_addr = explicit_greader_base_addr(&base_url);
-        let resolved_addresses = resolve_greader_base_addrs(&base_url)?;
+        let base_url = parse_greader_base_url(base)?;
+        Self::build_http_client_with_access_and_addrs(
+            &base_url,
+            resolve_greader_base_addrs(&base_url),
+            access,
+        )
+    }
+
+    async fn build_http_client_with_access_async(
+        base: &str,
+        access: Option<&CloudflareAccess>,
+    ) -> DomainResult<reqwest::Client> {
+        let base_url = parse_greader_base_url(base)?;
+        Self::build_http_client_with_access_and_addrs(
+            &base_url,
+            resolve_greader_base_addrs_async(&base_url).await,
+            access,
+        )
+    }
+
+    fn build_http_client_with_access_and_addrs(
+        base_url: &reqwest::Url,
+        resolved_addresses: DomainResult<Vec<SocketAddr>>,
+        access: Option<&CloudflareAccess>,
+    ) -> DomainResult<reqwest::Client> {
+        let resolved_addresses = resolved_addresses?;
+        let explicit_base_addr = explicit_greader_base_addr(base_url);
         let base_host = base_url.host_str();
         let base_host_is_private = base_host.is_some_and(is_private_host);
         let initial_private_host = base_host

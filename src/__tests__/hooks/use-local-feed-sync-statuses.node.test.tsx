@@ -6,7 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncResultDto } from "@/api/schemas";
 import type { AccountDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
-import { localFeedSyncStatusesQueryKey, useLocalFeedSyncStatuses } from "@/hooks/use-local-feed-sync-statuses";
+import {
+  __resetPendingFeedRetryKeysForTests,
+  localFeedSyncStatusesQueryKey,
+  useLocalFeedSyncStatuses,
+} from "@/hooks/use-local-feed-sync-statuses";
 import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
@@ -97,6 +101,7 @@ describe("useLocalFeedSyncStatuses", () => {
 
   beforeEach(() => {
     ({ queryClient, wrapper } = createQueryWrapper());
+    __resetPendingFeedRetryKeysForTests();
     useUiStore.setState({ selectedAccountId: "acc-1" });
     vi.spyOn(tauriCommands, "listAccounts").mockResolvedValue(Result.succeed(accounts));
   });
@@ -219,6 +224,43 @@ describe("useLocalFeedSyncStatuses", () => {
       retryResolvers.get("feed-1")?.(Result.succeed(successfulSync));
     });
     await waitFor(() => expect(result.current.isRetryingFeed("feed-1")).toBe(false));
+  });
+
+  it("keeps retry dedupe and pending state across a remount while the sync is in flight", async () => {
+    const retryResolvers = new Map<string, (result: Awaited<ReturnType<typeof tauriCommands.syncFeed>>) => void>();
+    const syncFeedSpy = vi.spyOn(tauriCommands, "syncFeed").mockImplementation(
+      (feedId) =>
+        new Promise<Awaited<ReturnType<typeof tauriCommands.syncFeed>>>((resolve) => {
+          retryResolvers.set(feedId, resolve);
+        }),
+    );
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));
+    const first = renderHook(({ accountId }) => useLocalFeedSyncStatuses(accountId), {
+      initialProps: { accountId: "acc-1" },
+      wrapper,
+    });
+
+    await waitFor(() => expect(first.result.current.statusQuery.isSuccess).toBe(true));
+    act(() => first.result.current.retryFeed("feed-1"));
+    await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledTimes(1));
+    expect(first.result.current.isRetryingFeed("feed-1")).toBe(true);
+
+    first.unmount();
+
+    const second = renderHook(({ accountId }) => useLocalFeedSyncStatuses(accountId), {
+      initialProps: { accountId: "acc-1" },
+      wrapper,
+    });
+    await waitFor(() => expect(second.result.current.statusQuery.isSuccess).toBe(true));
+    expect(second.result.current.isRetryingFeed("feed-1")).toBe(true);
+
+    act(() => second.result.current.retryFeed("feed-1"));
+    await waitFor(() => expect(syncFeedSpy).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      retryResolvers.get("feed-1")?.(Result.succeed(successfulSync));
+    });
+    await waitFor(() => expect(second.result.current.isRetryingFeed("feed-1")).toBe(false));
   });
 
   it("keeps the first account retry pending when an overlapping second-account retry settles", async () => {

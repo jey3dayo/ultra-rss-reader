@@ -1,6 +1,7 @@
 #[cfg(not(test))]
 use std::net::ToSocketAddrs;
 use std::net::{IpAddr, SocketAddr};
+use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{
@@ -15,6 +16,12 @@ mod http;
 #[cfg(test)]
 const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str =
     http_defaults::DOWNGRADE_REDIRECT_VALIDATION_MESSAGE;
+
+/// Deadline for off-runtime DNS resolution. The OS resolver has no timeout of
+/// its own, so without this a blackholed resolver would park a spawn_blocking
+/// worker until the OS completes (often tens of seconds, per attempt).
+pub(crate) const DNS_RESOLVE_TIMEOUT: Duration = Duration::from_secs(10);
+const DNS_RESOLVE_TIMEOUT_MESSAGE: &str = "DNS resolution timed out while resolving the host";
 
 #[cfg(test)]
 pub(super) use html::{extract_attribute, extract_feed_links, resolve_url};
@@ -135,6 +142,38 @@ fn validate_and_resolve_discovery_request_url(url: &reqwest::Url) -> DomainResul
     validate_resolved_host_is_public(url)
 }
 
+/// Run the sync resolve+validate seam on a blocking thread so the OS resolver
+/// call never happens on async executor threads (see `resolve_host_addresses`).
+async fn resolve_with_deadline(
+    resolve: fn(&reqwest::Url) -> DomainResult<Vec<SocketAddr>>,
+    url: &reqwest::Url,
+    deadline: Duration,
+) -> DomainResult<Vec<SocketAddr>> {
+    let url = url.clone();
+    let joined = tokio::task::spawn_blocking(move || resolve(&url));
+    match tokio::time::timeout(deadline, joined).await {
+        Ok(Ok(resolved)) => resolved,
+        Ok(Err(join_error)) => Err(DomainError::Network(join_error.to_string())),
+        Err(_) => Err(DomainError::Network(
+            DNS_RESOLVE_TIMEOUT_MESSAGE.to_string(),
+        )),
+    }
+}
+
+/// Async counterpart of [`resolve_validated_public_addrs`]; contract identical.
+pub(crate) async fn resolve_validated_public_addrs_async(
+    url: &reqwest::Url,
+) -> DomainResult<Vec<SocketAddr>> {
+    resolve_with_deadline(resolve_validated_public_addrs, url, DNS_RESOLVE_TIMEOUT).await
+}
+
+/// Async counterpart of [`resolve_user_server_public_addrs`]; contract identical.
+pub(crate) async fn resolve_user_server_public_addrs_async(
+    url: &reqwest::Url,
+) -> DomainResult<Vec<SocketAddr>> {
+    resolve_with_deadline(resolve_user_server_public_addrs, url, DNS_RESOLVE_TIMEOUT).await
+}
+
 fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
     validate_resolved_host(url, HostPolicy::AutomaticRequest)
 }
@@ -172,6 +211,10 @@ fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<SocketAddr>
 
 #[cfg(test)]
 fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<SocketAddr>> {
+    // The 150ms delay exists only so the 10ms deadline can beat the resolver:
+    // timeouts for real DNS are decided by the OS resolver, which the seam
+    // deadline is the only guard against.
+    const SLOW_TEST_RESOLVE_DELAY: Duration = Duration::from_millis(150);
     match host {
         "localhost" | "localhost." => Ok(vec![SocketAddr::from(([127, 0, 0, 1], port))]),
         "nas.local" | "freshrss" => Ok(vec![SocketAddr::from(([127, 0, 0, 1], port))]),
@@ -181,6 +224,12 @@ fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<SocketAddr>
         "private.test.invalid" => Ok(vec![SocketAddr::from(([127, 0, 0, 1], port))]),
         "shared.test.invalid" => Ok(vec![SocketAddr::from(([100, 64, 0, 1], port))]),
         "public.test.invalid" => Ok(vec![SocketAddr::from(([93, 184, 216, 34], port))]),
+        "timeout.test.invalid" => {
+            std::thread::sleep(SLOW_TEST_RESOLVE_DELAY);
+            Err(DomainError::Network(format!(
+                "failed to resolve test host: {host}"
+            )))
+        }
         _ => Err(DomainError::Network(format!(
             "failed to resolve test host: {host}"
         ))),

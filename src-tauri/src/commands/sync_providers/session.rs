@@ -49,7 +49,7 @@ impl GReaderSession {
         if mode == CredentialLookupMode::Background && !keyring_store::uses_dev_credential_store() {
             let (cached, lease_generation) = keyring_store::session_cache::get_leased(account)
                 .map_err(|error| SessionError::Auth(error.into()))?;
-            let provider = Self::provider_with_access(server_url, Ok(cached.access))?;
+            let provider = Self::provider_with_access(server_url, Ok(cached.access)).await?;
             let result = Self::authenticate(provider, username, cached.password.to_string()).await;
             if matches!(&result, Err(SessionError::Auth(error)) if error.diagnostic_kind() == "auth")
             {
@@ -95,7 +95,7 @@ impl GReaderSession {
             .map_err(|error| SessionError::Auth(error.into()))?;
         #[cfg(target_os = "macos")]
         let cached_access = access.clone();
-        let provider = Self::provider_with_access(server_url, Ok(access))?;
+        let provider = Self::provider_with_access(server_url, Ok(access)).await?;
         let password = match mode {
             CredentialLookupMode::Background => super::get_greader_password(account).await,
             CredentialLookupMode::Interactive => {
@@ -115,7 +115,7 @@ impl GReaderSession {
         Ok(session)
     }
 
-    fn provider_with_access(
+    async fn provider_with_access(
         server_url: &str,
         access: Result<
             Option<crate::infra::keyring_store::cloudflare_access::CloudflareAccess>,
@@ -125,7 +125,8 @@ impl GReaderSession {
         let access = access.map_err(|error| {
             SessionError::Auth(crate::domain::error::DomainError::from(error).into())
         })?;
-        GReaderProvider::try_for_freshrss_with_access(server_url, access)
+        GReaderProvider::try_for_freshrss_with_access_async(server_url, access)
+            .await
             .map_err(|error| SessionError::Auth(error.into()))
     }
 
@@ -328,21 +329,32 @@ mod tests {
             SessionError::Auth(AppError::UserVisible { .. })
         ));
     }
-    #[test]
-    fn cloudflare_access_session_load_errors_and_imported_origin_changes_fail_closed() {
+    #[tokio::test]
+    async fn cloudflare_access_session_load_errors_and_imported_origin_changes_fail_closed() {
         use crate::infra::keyring_store::cloudflare_access::{AccessStoreError, CloudflareAccess};
-        for error in [AccessStoreError::Unavailable, AccessStoreError::Malformed] {
-            assert!(matches!(
-                GReaderSession::provider_with_access("https://localhost", Err(error)),
-                Err(SessionError::Auth(_))
-            ));
+        let unavailable = GReaderSession::provider_with_access(
+            "https://localhost",
+            Err(AccessStoreError::Unavailable),
+        )
+        .await;
+        let malformed = GReaderSession::provider_with_access(
+            "https://localhost",
+            Err(AccessStoreError::Malformed),
+        )
+        .await;
+        for error in [unavailable, malformed] {
+            assert!(matches!(error, Err(SessionError::Auth(_))));
         }
         let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://localhost").unwrap();
         assert!(matches!(
-            GReaderSession::provider_with_access("https://127.0.0.1", Ok(Some(access))),
+            GReaderSession::provider_with_access("https://127.0.0.1", Ok(Some(access))).await,
             Err(SessionError::Auth(_))
         ));
-        assert!(GReaderSession::provider_with_access("http://localhost", Ok(None)).is_ok());
+        assert!(
+            GReaderSession::provider_with_access("http://localhost", Ok(None))
+                .await
+                .is_ok()
+        );
     }
 
     #[test]
