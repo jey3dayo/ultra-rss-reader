@@ -89,7 +89,6 @@ import {
 
 type CommandArgsSchema = BaseSchema<Record<string, unknown>, Record<string, unknown>, BaseIssue<unknown>>;
 
-// Registry: command names (snake_case) -> schema (only commands with args)
 export const commandArgsSchemas = {
   list_folders: listFoldersArgs,
   list_feeds: listFeedsArgs,

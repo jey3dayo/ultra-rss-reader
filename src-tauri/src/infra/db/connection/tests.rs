@@ -130,11 +130,9 @@ fn new_does_not_backup_fresh_db() {
     let dir = tempfile::tempdir().unwrap();
     let db_path = dir.path().join("test.db");
 
-    // First init — creates a fresh DB at the latest schema version
     let _db = DbManager::new(&db_path).unwrap();
     drop(_db);
 
-    // Fresh DB should NOT create a backup (nothing to back up)
     let backup = crate::infra::db::backup::backup_path(&db_path, 0);
     assert!(!backup.exists(), "Fresh DB should not create a backup");
 }
@@ -144,11 +142,9 @@ fn new_skips_backup_when_already_current() {
     let dir = tempfile::tempdir().unwrap();
     let db_path = dir.path().join("test.db");
 
-    // First init — creates DB at latest version
     let _db = DbManager::new(&db_path).unwrap();
     drop(_db);
 
-    // Second init — no migration needed, no backup
     let _db2 = DbManager::new(&db_path).unwrap();
     drop(_db2);
 
@@ -280,7 +276,6 @@ fn migration_failure_restores_from_backup() {
         .unwrap();
     assert_eq!(name, "Test");
 
-    // Verify schema version is 5 (restored state)
     let version = super::super::migration::get_schema_version(&conn);
     assert_eq!(version, 5, "Should be restored to v5");
 }

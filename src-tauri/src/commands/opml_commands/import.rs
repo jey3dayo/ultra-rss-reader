@@ -90,7 +90,6 @@ pub(crate) fn import_opml_in_db(
         .filter_map(|feed| normalized_feed_url_key(&feed.url))
         .collect();
 
-    // Pre-populate cache with existing folders
     for f in &existing_folders {
         folder_cache.insert(folder_cache_key(&f.name), f.id.clone());
     }
@@ -106,7 +105,6 @@ pub(crate) fn import_opml_in_db(
             continue;
         }
 
-        // Resolve or create folder
         let folder_id = if let Some(ref folder_name) = opml_feed.folder {
             let cache_key = folder_cache_key(folder_name);
             if let Some(id) = folder_cache.get(&cache_key) {

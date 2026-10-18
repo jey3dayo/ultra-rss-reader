@@ -33,21 +33,17 @@ pub struct DbManager {
 
 impl DbManager {
     pub fn new(db_path: &Path) -> DomainResult<Self> {
-        // Check if this is a fresh database (file doesn't exist yet)
         let is_fresh = !db_path.exists();
 
-        // Phase 1: Open writer and check schema version
         let writer = Connection::open(db_path)?;
         Self::apply_pragmas(&writer)?;
         let current_version = super::migration::read_schema_version(&writer)?;
         let needs_migration = super::migration::schema_needs_migration(&writer)?;
 
-        // Phase 2: Backup before migration (skip for fresh/empty DB)
         if needs_migration && !is_fresh {
             // Drop writer before backup to ensure WAL is checkpointed
             drop(writer);
             let backup_file = super::backup::create_backup(db_path, current_version)?;
-            // Re-open writer after backup
             let writer = Connection::open(db_path)?;
             Self::apply_pragmas(&writer)?;
             let reader = Connection::open(db_path)?;
@@ -62,7 +58,6 @@ impl DbManager {
             manager.reconcile_startup_migration_cost()?;
             Ok(manager)
         } else {
-            // No migration needed, or fresh DB — just open and migrate
             let reader = Connection::open(db_path)?;
             Self::apply_pragmas(&reader)?;
             let mut manager = Self { writer, reader };
@@ -138,7 +133,6 @@ impl DbManager {
         }
     }
 
-    /// In-memory DB for testing
     pub fn new_in_memory() -> DomainResult<Self> {
         // For in-memory, both connections must share the same DB.
         // Use a unique named in-memory DB with shared cache to avoid conflicts in parallel tests.

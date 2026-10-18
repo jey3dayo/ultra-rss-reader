@@ -53,7 +53,6 @@ pub(crate) fn generate_export_opml_in_db(
 ) -> Result<String, AppError> {
     let account_id = AccountId(account_id);
 
-    // Get account name for the OPML title
     let account_repo = SqliteAccountRepository::new(db.reader());
     let accounts = account_repo.find_all().map_err(AppError::from)?;
     let account = accounts
@@ -64,12 +63,10 @@ pub(crate) fn generate_export_opml_in_db(
         })?;
     let title = account.name.clone();
 
-    // Load folders for name lookup
     let folder_repo = SqliteFolderRepository::new(db.reader());
     let folders = folder_repo
         .find_by_account(&account_id)
         .map_err(AppError::from)?;
-    // Load feeds and convert to OpmlFeed
     let feed_repo = SqliteFeedRepository::new(db.reader());
     let feeds = feed_repo
         .find_by_account(&account_id)
