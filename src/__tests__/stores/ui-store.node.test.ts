@@ -1155,6 +1155,54 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().articleReaderScrollPositions.size).toBe(0);
   });
 
+  it("caps articleReaderScrollPositions at the entry limit and evicts the oldest insertion", () => {
+    const maxEntries = 100;
+    const setScrollPosition = useUiStore.getState().setArticleReaderScrollPosition;
+    for (let index = 0; index <= maxEntries; index += 1) {
+      setScrollPosition(`article-${index}`, index);
+    }
+
+    const scrollPositions = useUiStore.getState().articleReaderScrollPositions;
+    expect(scrollPositions.size).toBe(maxEntries);
+    expect(scrollPositions.has("article-0")).toBe(false);
+    for (let index = 1; index <= maxEntries; index += 1) {
+      expect(scrollPositions.get(`article-${index}`)).toBe(index);
+    }
+  });
+
+  it("keeps an already tracked article when its scroll position is re-set", () => {
+    const maxEntries = 100;
+    const setScrollPosition = useUiStore.getState().setArticleReaderScrollPosition;
+    for (let index = 0; index < maxEntries; index += 1) {
+      setScrollPosition(`article-${index}`, index);
+    }
+
+    setScrollPosition("article-0", 500);
+
+    const scrollPositions = useUiStore.getState().articleReaderScrollPositions;
+    expect(scrollPositions.size).toBe(maxEntries);
+    expect(scrollPositions.get("article-0")).toBe(500);
+    for (let index = 1; index < maxEntries; index += 1) {
+      expect(scrollPositions.get(`article-${index}`)).toBe(index);
+    }
+  });
+
+  it("prunes the closed article scroll position on clearArticle and keeps others", () => {
+    useUiStore.setState({
+      selectedArticleId: "article-1",
+      articleReaderScrollPositions: new Map([
+        ["article-1", 240],
+        ["article-2", 480],
+      ]),
+    });
+
+    useUiStore.getState().clearArticle();
+
+    expect(useUiStore.getState().selectedArticleId).toBeNull();
+    expect(useUiStore.getState().contentMode).toBe("empty");
+    expect(useUiStore.getState().articleReaderScrollPositions).toEqual(new Map([["article-2", 480]]));
+  });
+
   it("context-aware subscription selection returns to unread outside starred context", () => {
     useUiStore.setState({ viewMode: "all", selection: { type: "all" } });
 

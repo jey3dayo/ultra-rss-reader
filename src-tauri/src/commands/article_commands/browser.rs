@@ -230,7 +230,8 @@ pub(crate) async fn check_browser_embed_support_with_timeout(
     // Resolve and pin the validated public addresses so the fetch connects to the
     // same addresses that passed validation, closing the DNS-rebinding window
     // between validation and connect.
-    let resolved_addrs = crate::infra::feed_discovery::resolve_validated_public_addrs(&url)
+    let resolved_addrs = crate::infra::feed_discovery::resolve_validated_public_addrs_async(&url)
+        .await
         .map_err(|error| match error {
             DomainError::Validation(message) => AppError::UserVisible { message },
             other => AppError::from(other),

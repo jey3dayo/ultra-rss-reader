@@ -15,7 +15,7 @@ use crate::domain::provider::*;
 use crate::domain::url_policy::{
     validate_http_url_without_credentials, UNSUPPORTED_URL_VALIDATION_MESSAGE,
 };
-use crate::infra::feed_discovery::resolve_validated_public_addrs;
+use crate::infra::feed_discovery::resolve_validated_public_addrs_async;
 
 use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
@@ -81,7 +81,10 @@ impl LocalProvider {
         })
     }
 
-    fn validate_feed_url(&self, feed_url: &str) -> DomainResult<(reqwest::Url, Vec<SocketAddr>)> {
+    async fn validate_feed_url(
+        &self,
+        feed_url: &str,
+    ) -> DomainResult<(reqwest::Url, Vec<SocketAddr>)> {
         let url = reqwest::Url::parse(feed_url)
             .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
 
@@ -93,7 +96,7 @@ impl LocalProvider {
             validate_http_url_without_credentials(&url)?;
             Vec::new()
         } else {
-            resolve_validated_public_addrs(&url)?
+            resolve_validated_public_addrs_async(&url).await?
         };
 
         Ok((url, resolved_addrs))
@@ -167,7 +170,7 @@ impl FeedProvider for LocalProvider {
             }
         };
 
-        let (feed_url, resolved_addrs) = self.validate_feed_url(&feed_url)?;
+        let (feed_url, resolved_addrs) = self.validate_feed_url(&feed_url).await?;
         let _permit = self.acquire_sync_request_permit().await?;
         let client = self.feed_http_client(&feed_url, &resolved_addrs)?;
         let mut request = client.get(feed_url.clone());
@@ -251,7 +254,7 @@ impl FeedProvider for LocalProvider {
         _folder: Option<&str>,
     ) -> DomainResult<RemoteSubscription> {
         // For local feeds, just validate the URL by fetching and parsing
-        let (url, resolved_addrs) = self.validate_feed_url(url)?;
+        let (url, resolved_addrs) = self.validate_feed_url(url).await?;
         let _permit = self.acquire_discovery_request_permit().await?;
         let client = self.feed_http_client(&url, &resolved_addrs)?;
         let response = client

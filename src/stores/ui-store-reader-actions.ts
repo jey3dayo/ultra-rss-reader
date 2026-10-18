@@ -19,6 +19,8 @@ import { getSettingsAccountsViewState } from "@/stores/ui-store-settings-actions
 import { getIdleSyncProgress } from "@/stores/ui-store-sync-actions";
 
 type UiStoreSet = StoreApi<UiStoreState>["setState"];
+
+const MAX_READER_SCROLL_ENTRIES = 100;
 type UiStoreReaderSliceActions = UiStoreReaderActions & Pick<UiStoreState, "setHasNextArticle">;
 type UiStoreReaderRuntime = {
   parseSubscriptionsWorkspaceReturnState: (value: unknown) => SubscriptionsWorkspaceReturnState;
@@ -324,7 +326,17 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
               };
             })(),
       ),
-    clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
+    clearArticle: () =>
+      set((state) => {
+        const closedArticleId = state.selectedArticleId;
+        if (closedArticleId === null || !state.articleReaderScrollPositions.has(closedArticleId)) {
+          return { selectedArticleId: null, contentMode: "empty" };
+        }
+
+        const articleReaderScrollPositions = new Map(state.articleReaderScrollPositions);
+        articleReaderScrollPositions.delete(closedArticleId);
+        return { selectedArticleId: null, contentMode: "empty", articleReaderScrollPositions };
+      }),
     openBrowser: (url) =>
       set((state) => ({
         accountPaneOpen: false,
@@ -435,6 +447,12 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
 
         const articleReaderScrollPositions = new Map(state.articleReaderScrollPositions);
         articleReaderScrollPositions.set(articleId, normalizedScrollTop);
+        if (articleReaderScrollPositions.size > MAX_READER_SCROLL_ENTRIES) {
+          const oldestArticleId = articleReaderScrollPositions.keys().next().value;
+          if (oldestArticleId !== undefined) {
+            articleReaderScrollPositions.delete(oldestArticleId);
+          }
+        }
         return { articleReaderScrollPositions };
       }),
   };

@@ -193,12 +193,28 @@ export function ArticleReaderBody({
     return () => {
       viewport.removeEventListener("scroll", handleScroll);
       viewport.removeEventListener("wheel", handleReaderWheel);
+      // clearArticle() prunes the closed article's scroll entry, so a true close
+      // (selectedArticleId nulled) must not write the position back. An ordinary
+      // selection change keeps selectedArticleId non-null and unmounts this body
+      // while the by-id fetch loads; that switch still has to save the outgoing
+      // article's scroll position.
+      if (useUiStore.getState().selectedArticleId === null) {
+        clearPendingScrollPositionCommit();
+        pendingScrollPositionRef.current = null;
+        return;
+      }
       const didFlushPendingScrollPosition = flushPendingScrollPosition();
       if (!didFlushPendingScrollPosition) {
         setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
       }
     };
-  }, [flushPendingScrollPosition, handleReaderWheel, scheduleScrollPositionCommit, setArticleReaderScrollPosition]);
+  }, [
+    clearPendingScrollPositionCommit,
+    flushPendingScrollPosition,
+    handleReaderWheel,
+    scheduleScrollPositionCommit,
+    setArticleReaderScrollPosition,
+  ]);
 
   useLayoutEffect(() => {
     contentContainerClickListenerRef.current = (event: globalThis.MouseEvent) => {
