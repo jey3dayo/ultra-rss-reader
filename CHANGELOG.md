@@ -15,7 +15,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 - コードを言い直すだけのコメントと JSDoc を整理しました。動作の変更はありません。 (#498)
 
-
 ## [0.67.4] - 2026-10-18
 
 ### Changed
