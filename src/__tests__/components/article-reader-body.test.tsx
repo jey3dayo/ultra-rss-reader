@@ -239,6 +239,32 @@ describe("ArticleReaderBody", () => {
     expect(useUiStore.getState().articleReaderScrollPositions.get("article-1")).toBe(320);
   });
 
+  it("persists the outgoing article scroll when the body unmounts after selecting a cache-miss article", () => {
+    useUiStore.setState({
+      articleReaderScrollPositions: new Map([["article-2", 480]]),
+    });
+    const { unmount } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    getReaderViewport().scrollTop = 640;
+
+    useUiStore.setState({ selectedArticleId: "article-2" });
+    unmount();
+
+    expect(useUiStore.getState().articleReaderScrollPositions.get("article-1")).toBe(640);
+    expect(useUiStore.getState().articleReaderScrollPositions.get("article-2")).toBe(480);
+  });
+
+  it("flushes a pending scroll commit when the body unmounts after selecting a cache-miss article", () => {
+    const { unmount } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+    const viewport = getReaderViewport();
+    viewport.scrollTop = 360;
+    fireEvent.scroll(viewport);
+
+    useUiStore.setState({ selectedArticleId: "article-2" });
+    unmount();
+
+    expect(useUiStore.getState().articleReaderScrollPositions.get("article-1")).toBe(360);
+  });
+
   it("cleans up delegated content link clicks when switching articles", () => {
     const { rerender } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
     const oldLink = screen.getByRole("link", { name: "Read more" });
