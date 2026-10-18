@@ -579,6 +579,65 @@ async fn resolve_with_deadline_bounds_slow_resolvers_with_the_timeout_message() 
     ));
 }
 
+#[tokio::test]
+async fn resolve_with_deadline_keeps_the_permit_locked_until_the_stalled_closure_finishes() {
+    static PERMITS: Semaphore = Semaphore::const_new(1);
+    let url = reqwest::Url::parse("https://stalled.test.invalid/feed.xml").unwrap();
+
+    assert!(matches!(
+        resolve_with_deadline_in_pool(
+            resolve_user_server_public_addrs,
+            &url,
+            Duration::from_millis(10),
+            &PERMITS
+        )
+        .await,
+        Err(DomainError::Network(message)) if message == DNS_RESOLVE_TIMEOUT_MESSAGE
+    ));
+
+    assert!(
+        PERMITS.try_acquire().is_err(),
+        "timed-out resolver must still occupy its permit: spawn_blocking work cannot be aborted"
+    );
+
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    assert_eq!(
+        PERMITS.available_permits(),
+        1,
+        "permit should be released once the stalled resolver returns"
+    );
+}
+
+#[tokio::test]
+async fn resolve_with_deadline_times_out_instead_of_stacking_jobs_when_permits_are_saturated() {
+    static PERMITS: Semaphore = Semaphore::const_new(1);
+    let url = reqwest::Url::parse("https://stalled.test.invalid/feed.xml").unwrap();
+
+    let first = resolve_with_deadline_in_pool(
+        resolve_user_server_public_addrs,
+        &url,
+        Duration::from_millis(10),
+        &PERMITS,
+    )
+    .await;
+    assert!(matches!(
+        first,
+        Err(DomainError::Network(message)) if message == DNS_RESOLVE_TIMEOUT_MESSAGE
+    ));
+
+    let second = resolve_with_deadline_in_pool(
+        resolve_user_server_public_addrs,
+        &url,
+        Duration::from_millis(10),
+        &PERMITS,
+    )
+    .await;
+    assert!(matches!(
+        second,
+        Err(DomainError::Network(message)) if message == DNS_RESOLVE_TIMEOUT_MESSAGE
+    ));
+}
+
 #[test]
 fn validate_discovery_request_url_rejects_known_private_fixture_hosts() {
     let url = reqwest::Url::parse("https://private.test.invalid/feed.xml").unwrap();
