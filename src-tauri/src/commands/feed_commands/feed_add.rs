@@ -127,10 +127,8 @@ pub(crate) async fn add_local_feed_with_provider(
         return add_freshrss_feed_with_account(db, account, url).await;
     }
 
-    // 1. Validate by fetching the feed
     let sub = provider.create_subscription(&url, None).await?;
 
-    // 2. Save to DB
     let feed = Feed {
         id: FeedId::new(),
         account_id: account_id.clone(),
@@ -170,7 +168,6 @@ pub(crate) async fn add_local_feed_with_provider(
         persisted_feed
     };
 
-    // 3. Fetch initial articles for the new feed
     if let Err(error) =
         crate::commands::sync_providers::sync_local_feed(db, provider, &account_id, &persisted_feed)
             .await
@@ -179,7 +176,6 @@ pub(crate) async fn add_local_feed_with_provider(
         return Err(error);
     }
 
-    // 4. Re-read unread count from DB
     let unread_count_result = {
         let db_guard = lock_db(db)?;
         recalculate_feed_unread_count_in_db(&db_guard, &persisted_feed.id)

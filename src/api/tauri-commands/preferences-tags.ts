@@ -43,7 +43,6 @@ export const importSettingsProfile = (profileJson: string) =>
     { profileJson },
   );
 
-// Tags
 export const listTags = () => safeInvoke("list_tags", { response: TagDtoListSchema });
 
 export const createTag = (name: string, color?: string) =>

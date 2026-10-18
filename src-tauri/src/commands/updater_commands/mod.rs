@@ -105,7 +105,6 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
 
     let info = update.as_ref().map(make_update_info);
 
-    // Cache the update handle for download_update
     pending
         .0
         .lock()
@@ -132,7 +131,6 @@ async fn do_download_update(
     session_id: u64,
     download_guard: &DownloadGuard,
 ) -> Result<(), AppError> {
-    // Take the cached update handle, falling back to a fresh check if empty
     let pending = app.state::<PendingUpdate>();
     let (_, update) = {
         let mut guard = pending.0.lock().await;

@@ -90,9 +90,6 @@ export function parseJsonWithSchemaOrNull<TSchema extends RuntimeSchema>(
   }
 }
 
-/**
- * Safe-named alias for callers that prefer a nullable parse helper name.
- */
 export function safeParseJsonWithSchema<TSchema extends RuntimeSchema>(
   contents: string,
   schema: TSchema,

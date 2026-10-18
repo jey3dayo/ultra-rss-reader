@@ -27,24 +27,20 @@ export const resetOversizedDevCredentialsStore = () =>
     response: BooleanResponseSchema,
   });
 
-// Updater
 export const checkForUpdate = () => safeInvoke("check_for_update", { response: nullable(UpdateInfoDtoSchema) });
 
 export const downloadUpdate = () => safeInvoke("download_update", { response: NullResponseSchema });
 
 export const restartApp = () => safeInvoke("restart_app", { response: NullResponseSchema });
 
-// Database
 export const getDatabaseInfo = () => safeInvoke("get_database_info", { response: DatabaseInfoDtoSchema });
 
 export const vacuumDatabase = () => safeInvoke("vacuum_database", { response: DatabaseInfoDtoSchema });
 
 export const backupDatabase = () => safeInvoke("backup_database", { response: NullResponseSchema });
 
-// Logs
 export const openLogDir = () => safeInvoke("open_log_dir", { response: NullResponseSchema });
 
-// Read-state diagnostics (see src/components/reader/hooks/article/read-state-diagnostics.ts)
 export const recordReadDiagnosticsBatch = (events: readonly ReadDiagnosticEventArgs[], droppedCount: number) =>
   safeInvoke(
     "record_read_diagnostics_batch",
