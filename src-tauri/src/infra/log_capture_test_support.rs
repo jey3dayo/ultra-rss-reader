@@ -2,6 +2,19 @@
 
 const CHILD_ENV: &str = "URR_LOG_CAPTURE_SCENARIO";
 const LINE_PREFIX: &str = "LOGLINE ";
+/// Proxy variables are process-global and other tests temporarily point them at a dead
+/// proxy (`http_defaults` tests). A child spawned during that window would inherit them and
+/// route its loopback fixture traffic through the dead proxy, so the child never sees them.
+const PROXY_ENV_KEYS: [&str; 8] = [
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
+];
 
 struct StdoutLogger;
 
@@ -39,15 +52,19 @@ pub(crate) fn run_in_isolated_process(
         .split_once("::")
         .expect("module path should include the crate name")
         .1;
-    let output = std::process::Command::new(
+    let mut command = std::process::Command::new(
         std::env::current_exe().expect("test binary path should be available"),
-    )
-    .arg("--exact")
-    .arg(format!("{crate_relative_module}::{test_name}"))
-    .arg("--nocapture")
-    .env(CHILD_ENV, scenario)
-    .output()
-    .expect("isolated test subprocess should start");
+    );
+    for key in PROXY_ENV_KEYS {
+        command.env_remove(key);
+    }
+    let output = command
+        .arg("--exact")
+        .arg(format!("{crate_relative_module}::{test_name}"))
+        .arg("--nocapture")
+        .env(CHILD_ENV, scenario)
+        .output()
+        .expect("isolated test subprocess should start");
     let stdout = String::from_utf8(output.stdout).expect("child stdout should be UTF-8");
     assert!(
         output.status.success() && stdout.contains("test result: ok. 1 passed; 0 failed;"),
