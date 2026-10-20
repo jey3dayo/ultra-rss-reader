@@ -2,6 +2,44 @@ use super::*;
 use test_support::SyncAccessGuard;
 
 #[test]
+fn cloudflare_access_bundle_round_trips_through_local_file_backend() {
+    let dir = tempfile::tempdir().expect("temp dir should be created");
+    let backend =
+        super::super::secret_backend::LocalFileBackend::new(dir.path().join("credentials.json"));
+    let entry = super::super::secret_backend::SecretEntry {
+        kind: super::super::secret_backend::SecretKind::CloudflareAccess,
+        account_id: "acct".to_string(),
+    };
+    let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://example.com")
+        .expect("dummy Access fixture should have valid HTTPS credentials");
+    let value = serde_json::to_string(&StoredBundle {
+        client_id: access.client_id.clone(),
+        client_secret: access.client_secret.clone(),
+        https_origin: access.https_origin.clone(),
+    })
+    .expect("Access bundle fixture should serialize");
+
+    backend
+        .write(&entry, &value)
+        .expect("Access bundle write should succeed");
+    let raw = backend
+        .read(&entry)
+        .expect("Access bundle read should succeed")
+        .expect("Access bundle should exist after write");
+    assert_eq!(decode_bundle(&raw), Ok(access));
+
+    backend
+        .delete(&entry)
+        .expect("Access bundle delete should succeed");
+    assert_eq!(
+        backend
+            .read(&entry)
+            .expect("deleted Access bundle read should succeed"),
+        None
+    );
+}
+
+#[test]
 fn cloudflare_access_sync_overrides_isolate_accounts_and_cleanup_on_drop() {
     let missing_id = uuid::Uuid::new_v4().to_string();
     let unavailable_id = uuid::Uuid::new_v4().to_string();
