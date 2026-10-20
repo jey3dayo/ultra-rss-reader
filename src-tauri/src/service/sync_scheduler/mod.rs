@@ -36,6 +36,7 @@ mod lifecycle;
 mod outcomes;
 mod scheduling;
 
+pub(crate) use backoff::waiting_for_credential_access;
 #[cfg(test)]
 use backoff::{
     backoff_persistence_failure_warning, calculate_backoff, calculate_backoff_secs,

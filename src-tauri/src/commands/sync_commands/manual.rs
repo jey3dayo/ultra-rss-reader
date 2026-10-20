@@ -104,11 +104,23 @@ pub fn get_account_sync_status(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<AccountSyncStatus, AppError> {
-    let db_guard = lock_db(&state.db)?;
-    let repo = SqliteSyncStateRepository::new(db_guard.reader());
-    let scope_key = SyncStateScopeKey::scheduler().as_string();
-    let state = repo.get(&AccountId(account_id), &scope_key)?;
-    Ok(map_account_sync_status(state))
+    let account_id = AccountId(account_id);
+    let mut status = {
+        let db_guard = lock_db(&state.db)?;
+        let repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let scope_key = SyncStateScopeKey::scheduler().as_string();
+        map_account_sync_status(repo.get(&account_id, &scope_key)?)
+    };
+    let account = {
+        let db_guard = lock_db(&state.db)?;
+        let repo = SqliteAccountRepository::new(db_guard.reader());
+        repo.find_by_id(&account_id)?
+    };
+    if let Some(account) = account {
+        status.waiting_for_credential_access =
+            crate::service::sync_scheduler::waiting_for_credential_access(&state.db, &account);
+    }
+    Ok(status)
 }
 
 #[tauri::command]

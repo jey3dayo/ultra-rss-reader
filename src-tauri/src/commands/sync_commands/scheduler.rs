@@ -59,12 +59,14 @@ pub(crate) fn map_account_sync_status(sync_state: Option<SyncState>) -> AccountS
             last_error: sync_state.last_error,
             error_count: sync_state.error_count,
             next_retry_at: sync_state.next_retry_at,
+            waiting_for_credential_access: false,
         },
         None => AccountSyncStatus {
             last_success_at: None,
             last_error: None,
             error_count: 0,
             next_retry_at: None,
+            waiting_for_credential_access: false,
         },
     }
 }
