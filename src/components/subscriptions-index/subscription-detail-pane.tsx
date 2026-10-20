@@ -160,12 +160,12 @@ function buildDetailMetrics({
     unreadCount: row.feed.unread_count,
   });
   const updateFrequencyValue: ReactNode = overloaded ? (
-    <>
+    <span className="flex flex-wrap items-center gap-1.5 whitespace-normal">
       {formatUpdateFrequencyValue(metrics.recentArticleCount)}
-      <LabelChip data-testid="subscriptions-detail-overloaded-badge" tone="warning" size="compact" className="ml-1.5">
+      <LabelChip data-testid="subscriptions-detail-overloaded-badge" tone="warning" size="compact">
         {overloadedBadgeLabel}
       </LabelChip>
-    </>
+    </span>
   ) : (
     formatUpdateFrequencyValue(metrics.recentArticleCount)
   );
