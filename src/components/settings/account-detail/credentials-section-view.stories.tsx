@@ -103,6 +103,8 @@ export const DirtyDraft: Story = {
   args: {
     serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
     testConnectionLabel: "Save & Test Connection",
+    changedFields: { serverUrl: true, username: false, password: false },
+    changedFieldLabel: "Changed",
   },
 };
 
@@ -111,6 +113,19 @@ export const SetupFailedDirtyDraft: Story = {
     note: "Setup failed",
     serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
     testConnectionLabel: "Save & Test Connection",
+    changedFields: { serverUrl: true, username: false, password: false },
+    changedFieldLabel: "Changed",
+  },
+};
+
+export const DirtyDraftMultipleFields: Story = {
+  args: {
+    serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
+    usernameValue: "new-user",
+    passwordValue: "new-password",
+    testConnectionLabel: "Save & Test Connection",
+    changedFields: { serverUrl: true, username: true, password: true },
+    changedFieldLabel: "Changed",
   },
 };
 

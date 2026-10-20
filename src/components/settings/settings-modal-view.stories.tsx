@@ -5,6 +5,8 @@ import { denseNarrowViewportParameters } from "@/components/storybook/viewport-f
 import { AccountsNavView } from "./accounts-nav-view";
 import { SettingsModalView } from "./settings-modal-view";
 import { SettingsNavView } from "./settings-nav-view";
+import { SettingsUnsavedChangesBar } from "./settings-unsaved-changes-bar";
+import { SettingsUnsavedChangesDialog } from "./settings-unsaved-changes-dialog";
 
 function DefaultNavigation({ disabled = false }: { disabled?: boolean }) {
   return (
@@ -47,6 +49,20 @@ function DefaultAccountsNavigation({ disabled = false }: { disabled?: boolean })
       onSelectAccount={fn()}
       onAddAccount={fn()}
       disabled={disabled}
+    />
+  );
+}
+
+function UnsavedChangesFooter({ saving }: { saving: boolean }) {
+  return (
+    <SettingsUnsavedChangesBar
+      message="未保存の変更があります"
+      discardLabel="破棄"
+      saveLabel="保存して接続確認"
+      savingLabel="確認中…"
+      saving={saving}
+      onDiscard={fn()}
+      onSave={fn()}
     />
   );
 }
@@ -103,6 +119,68 @@ export const SaveLocked: Story = {
     navigation: <DefaultNavigation disabled />,
     accountsNavigation: <DefaultAccountsNavigation disabled />,
     lockMessage: "変更を保存しています。設定を閉じる前にお待ちください。",
+  },
+};
+
+export const UnsavedChanges: Story = {
+  args: {
+    title: "環境設定",
+    closeLabel: "環境設定を閉じる",
+    footer: <UnsavedChangesFooter saving={false} />,
+  },
+};
+
+export const UnsavedChangesSaving: Story = {
+  args: {
+    title: "環境設定",
+    closeLabel: "環境設定を閉じる",
+    footer: <UnsavedChangesFooter saving={true} />,
+  },
+};
+
+export const LeaveConfirmation: Story = {
+  args: {
+    title: "環境設定",
+    closeLabel: "環境設定を閉じる",
+    footer: <UnsavedChangesFooter saving={false} />,
+    leaveConfirmation: (
+      <SettingsUnsavedChangesDialog
+        open
+        title="変更を保存しますか？"
+        message="保存せずに移動すると、編集中の内容は失われます。"
+        saveLabel="保存"
+        savingLabel="確認中…"
+        discardLabel="破棄"
+        cancelLabel="キャンセル"
+        saving={false}
+        onSave={fn()}
+        onDiscard={fn()}
+        onCancel={fn()}
+      />
+    ),
+  },
+};
+
+export const LeaveConfirmationSaving: Story = {
+  args: {
+    title: "環境設定",
+    closeLabel: "環境設定を閉じる",
+    footer: <UnsavedChangesFooter saving={false} />,
+    leaveConfirmation: (
+      <SettingsUnsavedChangesDialog
+        open
+        title="変更を保存しますか？"
+        message="保存せずに移動すると、編集中の内容は失われます。"
+        saveLabel="保存"
+        savingLabel="確認中…"
+        discardLabel="破棄"
+        cancelLabel="キャンセル"
+        saving={true}
+        onSave={fn()}
+        onDiscard={fn()}
+        onCancel={fn()}
+      />
+    ),
   },
 };
 

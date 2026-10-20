@@ -79,3 +79,14 @@ export const SyncInProgress: Story = {
     isSyncing: true,
   },
 };
+
+export const SyncSucceeded: Story = {
+  args: {
+    syncNowLabel: "Sync Now",
+    syncingLabel: "Syncing…",
+    syncNowSuccessLabel: "Synced",
+    syncNowSucceeded: true,
+    onSyncNow: fn(),
+    isSyncing: false,
+  },
+};
