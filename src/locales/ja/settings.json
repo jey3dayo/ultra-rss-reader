@@ -455,6 +455,7 @@
     "credential_storage_description": "FreshRSSのAPIパスワードとCloudflare Accessのトークンの保存先です。切り替えると保存済みの認証情報を移行します。",
     "credential_storage_local_file_warning": "ローカルファイルはOSのキーチェーンより安全性が低くなります。このユーザーだけが読めるファイルとしてアプリのデータフォルダに保存します。",
     "credential_storage_saved": "認証情報の保存先を変更しました",
+    "credential_storage_cleanup_incomplete": "保存先を変更しましたが、以前の保存先から認証情報を削除できませんでした。再度切り替えるか手動で削除してください",
     "credential_storage_failed": "認証情報の保存先を変更できませんでした: {{message}}"
   },
   "debug": {

@@ -63,6 +63,7 @@ export const CredentialStorageKindSchema = v.picklist(["os_keychain", "local_fil
 export const CredentialStorageSchema = s.strictObject({
   storage: CredentialStorageKindSchema,
   configurable: v.boolean(),
+  cleanup_incomplete: v.optional(v.boolean(), false),
 });
 
 export type CredentialStorageKind = v.InferOutput<typeof CredentialStorageKindSchema>;

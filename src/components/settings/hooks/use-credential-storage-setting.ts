@@ -99,7 +99,9 @@ export function useCredentialStorageSetting({
         loaded: true,
         saving: false,
       });
-      showToast(t("data.credential_storage_saved"));
+      showToast(
+        dto.cleanup_incomplete ? t("data.credential_storage_cleanup_incomplete") : t("data.credential_storage_saved"),
+      );
       await invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()]);
     },
     [queryClient, showToast, t],

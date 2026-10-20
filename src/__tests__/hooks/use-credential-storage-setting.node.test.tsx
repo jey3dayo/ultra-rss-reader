@@ -12,8 +12,8 @@ import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 
 setupBrowserTestDom();
 
-const keychainDto: CredentialStorageDto = { storage: "os_keychain", configurable: true };
-const localFileDto: CredentialStorageDto = { storage: "local_file", configurable: true };
+const keychainDto: CredentialStorageDto = { storage: "os_keychain", configurable: true, cleanup_incomplete: false };
+const localFileDto: CredentialStorageDto = { storage: "local_file", configurable: true, cleanup_incomplete: false };
 
 function createT(): TFunction<"settings"> {
   return ((key: string, _values?: Record<string, unknown>) => key) as TFunction<"settings">;
@@ -64,6 +64,27 @@ describe("useCredentialStorageSetting", () => {
     expect(setCredentialStorageSpy).toHaveBeenCalledWith("local_file");
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: accountSyncStatusQueryKey() });
     expect(showToast).toHaveBeenCalledWith("data.credential_storage_saved");
+    expect(result.current.storage).toBe("local_file");
+    expect(result.current.saving).toBe(false);
+  });
+
+  it("shows the cleanup_incomplete toast and still invalidates account sync status when cleanup is incomplete", async () => {
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    vi.spyOn(tauriCommands, "getCredentialStorage").mockResolvedValue(Result.succeed(keychainDto));
+    const setCredentialStorageSpy = vi
+      .spyOn(tauriCommands, "setCredentialStorage")
+      .mockResolvedValue(Result.succeed({ ...localFileDto, cleanup_incomplete: true }));
+
+    const { result } = renderSettingHook();
+
+    await act(async () => {
+      await result.current.handleChange("local_file");
+    });
+
+    expect(setCredentialStorageSpy).toHaveBeenCalledWith("local_file");
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: accountSyncStatusQueryKey() });
+    expect(showToast).toHaveBeenCalledWith("data.credential_storage_cleanup_incomplete");
+    expect(showToast).not.toHaveBeenCalledWith("data.credential_storage_saved");
     expect(result.current.storage).toBe("local_file");
     expect(result.current.saving).toBe(false);
   });

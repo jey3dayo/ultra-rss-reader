@@ -19,12 +19,14 @@ const DEV_STORE_LOCKED_MESSAGE: &str =
 pub struct CredentialStorageDto {
     storage: CredentialStorage,
     configurable: bool,
+    cleanup_incomplete: bool,
 }
 
 fn credential_storage_dto() -> CredentialStorageDto {
     CredentialStorageDto {
         storage: storage_mode::active(),
         configurable: credential_storage_configurable(),
+        cleanup_incomplete: false,
     }
 }
 
@@ -64,6 +66,7 @@ pub async fn set_credential_storage(
     Ok(CredentialStorageDto {
         storage,
         configurable: true,
+        cleanup_incomplete: report.cleanup_failures > 0,
     })
 }
 
@@ -105,9 +108,13 @@ fn switch_with_lock(
 
     let from = secret_backend::backend_for(storage_mode::active()).map_err(AppError::from)?;
     let to = secret_backend::backend_for(storage).map_err(AppError::from)?;
-    secret_backend::migrate_secrets(from.as_ref(), to.as_ref(), &entries, || {
-        storage_mode::persist(storage)
-    })
+    secret_backend::migrate_secrets(
+        from.as_ref(),
+        to.as_ref(),
+        &entries,
+        storage == CredentialStorage::OsKeychain,
+        || storage_mode::persist(storage),
+    )
     .map_err(AppError::from)
 }
 
@@ -122,11 +129,31 @@ mod tests {
         let dto = CredentialStorageDto {
             storage: CredentialStorage::LocalFile,
             configurable: true,
+            cleanup_incomplete: false,
         };
 
         let json = serde_json::to_string(&dto).expect("DTO should serialize");
 
-        assert_eq!(json, r#"{"storage":"local_file","configurable":true}"#);
+        assert_eq!(
+            json,
+            r#"{"storage":"local_file","configurable":true,"cleanup_incomplete":false}"#
+        );
+    }
+
+    #[test]
+    fn credential_storage_dto_serializes_cleanup_incomplete_true() {
+        let dto = CredentialStorageDto {
+            storage: CredentialStorage::OsKeychain,
+            configurable: true,
+            cleanup_incomplete: true,
+        };
+
+        let json = serde_json::to_string(&dto).expect("DTO should serialize");
+
+        assert_eq!(
+            json,
+            r#"{"storage":"os_keychain","configurable":true,"cleanup_incomplete":true}"#
+        );
     }
 
     fn test_account(kind: ProviderKind, id: &str) -> Account {

@@ -182,6 +182,7 @@ pub(crate) fn migrate_secrets(
     from: &dyn SecretBackend,
     to: &dyn SecretBackend,
     entries: &[SecretEntry],
+    delete_stale_target: bool,
     commit: impl FnOnce() -> DomainResult<()>,
 ) -> DomainResult<MigrationReport> {
     let mut plan: Vec<PlannedChange> = Vec::with_capacity(entries.len());
@@ -194,7 +195,7 @@ pub(crate) fn migrate_secrets(
                 source_value: Some(value),
                 target_snapshot,
             }),
-            None if target_snapshot.is_some() => plan.push(PlannedChange {
+            None if target_snapshot.is_some() && delete_stale_target => plan.push(PlannedChange {
                 entry: entry.clone(),
                 source_value: None,
                 target_snapshot,
@@ -418,7 +419,7 @@ mod tests {
         let entries = [password.clone(), access.clone(), missing.clone()];
 
         let commit_calls = Cell::new(0usize);
-        let report = migrate_secrets(&source, &target, &entries, || {
+        let report = migrate_secrets(&source, &target, &entries, true, || {
             commit_calls.set(commit_calls.get() + 1);
             Ok(())
         })
@@ -455,7 +456,7 @@ mod tests {
         target.seed(&first, "prior-first");
 
         let commit_calls = Cell::new(0usize);
-        let result = migrate_secrets(&source, &target, &entries, || {
+        let result = migrate_secrets(&source, &target, &entries, true, || {
             commit_calls.set(commit_calls.get() + 1);
             Ok(())
         });
@@ -485,7 +486,7 @@ mod tests {
         target.seed(&first, "prior-first");
 
         let commit_calls = Cell::new(0usize);
-        let result = migrate_secrets(&source, &target, &entries, || {
+        let result = migrate_secrets(&source, &target, &entries, true, || {
             commit_calls.set(commit_calls.get() + 1);
             Ok(())
         });
@@ -515,7 +516,7 @@ mod tests {
         target.seed(&first, "prior-first");
 
         let commit_calls = Cell::new(0usize);
-        let result = migrate_secrets(&source, &target, &entries, || {
+        let result = migrate_secrets(&source, &target, &entries, true, || {
             commit_calls.set(commit_calls.get() + 1);
             Err(DomainError::Keychain(MEMORY_COMMIT_FAILURE.to_string()))
         });
@@ -544,7 +545,7 @@ mod tests {
             .expect("source second seed should be written");
 
         let commit_calls = Cell::new(0usize);
-        let report = migrate_secrets(&source, &target, &entries, || {
+        let report = migrate_secrets(&source, &target, &entries, true, || {
             commit_calls.set(commit_calls.get() + 1);
             Ok(())
         })
@@ -575,7 +576,7 @@ mod tests {
         let entries = [fresh.clone(), stale.clone()];
 
         let commit_calls = Cell::new(0usize);
-        let report = migrate_secrets(&source, &target, &entries, || {
+        let report = migrate_secrets(&source, &target, &entries, true, || {
             commit_calls.set(commit_calls.get() + 1);
             Ok(())
         })
@@ -595,6 +596,33 @@ mod tests {
     }
 
     #[test]
+    fn migration_without_stale_deletion_keeps_target_value_when_source_is_empty() {
+        let source = MemoryBackend::new();
+        let target = MemoryBackend::new();
+        let stale = password_entry("stale");
+        target.seed(&stale, "stale-value");
+        let entries = [stale.clone()];
+
+        let commit_calls = Cell::new(0usize);
+        let report = migrate_secrets(&source, &target, &entries, false, || {
+            commit_calls.set(commit_calls.get() + 1);
+            Ok(())
+        })
+        .expect("migration should succeed");
+
+        assert_eq!(
+            report,
+            MigrationReport {
+                migrated: 0,
+                cleanup_failures: 0
+            }
+        );
+        assert_eq!(commit_calls.get(), 1);
+        assert_eq!(target.get(&stale).as_deref(), Some("stale-value"));
+        assert_eq!(source.get(&stale), None);
+    }
+
+    #[test]
     fn write_failure_after_stale_deletion_restores_deleted_value() {
         let source = MemoryBackend::new();
         let target = MemoryBackend::new().with_fail_write_on_attempt(1);
@@ -607,7 +635,7 @@ mod tests {
         let entries = [stale.clone(), fresh.clone()];
 
         let commit_calls = Cell::new(0usize);
-        let result = migrate_secrets(&source, &target, &entries, || {
+        let result = migrate_secrets(&source, &target, &entries, true, || {
             commit_calls.set(commit_calls.get() + 1);
             Ok(())
         });
