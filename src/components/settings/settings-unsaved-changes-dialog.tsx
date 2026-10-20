@@ -1,8 +1,14 @@
 import { AlertTriangle } from "lucide-react";
 import { useRef } from "react";
-import { LoadingActionContent } from "@/components/shared/loading-action-content";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  LoadingActionContent,
+} from "@/design-system";
 
 type SettingsUnsavedChangesDialogProps = {
   open: boolean;
