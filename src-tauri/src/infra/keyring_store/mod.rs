@@ -43,11 +43,30 @@ pub(crate) enum CredentialLookupMode {
 }
 
 impl CredentialLookupMode {
-    pub(crate) fn for_user_sync() -> Self {
-        if cfg!(target_os = "macos") {
+    pub(crate) fn user_sync_mode(is_macos: bool, uses_file_store: bool, has_lease: bool) -> Self {
+        if !is_macos {
+            return Self::Interactive;
+        }
+        if uses_file_store || has_lease {
             Self::Background
         } else {
             Self::Interactive
+        }
+    }
+
+    pub(crate) fn for_user_sync(account_id: &str) -> Self {
+        #[cfg(target_os = "macos")]
+        {
+            Self::user_sync_mode(
+                cfg!(target_os = "macos"),
+                uses_dev_credential_store(),
+                session_cache::has_lease(account_id),
+            )
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = account_id;
+            Self::user_sync_mode(cfg!(target_os = "macos"), false, false)
         }
     }
 

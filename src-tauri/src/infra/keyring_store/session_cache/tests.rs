@@ -165,7 +165,7 @@ fn unattended_raw_reads_fail_before_starting_any_keychain_process() {
     );
     assert!(matches!(access, Err(DomainError::Keychain(message)) if message == NEEDS_AUTH));
     assert_eq!(
-        CredentialLookupMode::for_user_sync(),
-        CredentialLookupMode::Background
+        CredentialLookupMode::for_user_sync("dummy-never-read"),
+        CredentialLookupMode::Interactive
     );
 }

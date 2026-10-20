@@ -1006,6 +1006,41 @@ fn desktop_builds_use_persistent_keyring_backends() {
     );
 }
 
+#[test]
+fn user_sync_mode_is_interactive_without_file_store_or_lease_on_macos() {
+    assert_eq!(
+        super::CredentialLookupMode::user_sync_mode(true, false, false),
+        super::CredentialLookupMode::Interactive
+    );
+}
+
+#[test]
+fn user_sync_mode_is_background_with_a_lease_on_macos() {
+    assert_eq!(
+        super::CredentialLookupMode::user_sync_mode(true, false, true),
+        super::CredentialLookupMode::Background
+    );
+}
+
+#[test]
+fn user_sync_mode_is_background_with_file_store_on_macos() {
+    assert_eq!(
+        super::CredentialLookupMode::user_sync_mode(true, true, false),
+        super::CredentialLookupMode::Background
+    );
+}
+
+#[test]
+fn user_sync_mode_is_interactive_on_non_macos_regardless_of_file_store_or_lease() {
+    for (uses_file_store, has_lease) in [(false, false), (false, true), (true, false), (true, true)]
+    {
+        assert_eq!(
+            super::CredentialLookupMode::user_sync_mode(false, uses_file_store, has_lease),
+            super::CredentialLookupMode::Interactive
+        );
+    }
+}
+
 #[tokio::test]
 async fn stalled_credential_read_times_out_at_the_caller() {
     let (finished_tx, finished_rx) = tokio::sync::oneshot::channel();

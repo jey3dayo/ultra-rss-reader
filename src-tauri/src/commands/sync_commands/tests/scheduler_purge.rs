@@ -392,7 +392,7 @@ async fn account_sync_finish_step_runs_while_the_syncing_guard_is_held() {
         &syncing,
         Vec::new(),
         None,
-        crate::infra::keyring_store::CredentialLookupMode::Background,
+        |_| crate::infra::keyring_store::CredentialLookupMode::Background,
         SyncTrigger::Background,
         |_| held_during_finish = Some(syncing.load(Ordering::SeqCst)),
     )

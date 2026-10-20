@@ -368,7 +368,7 @@ pub(crate) async fn run_automatic_sync_for_accounts_with_progress(
         syncing,
         accounts,
         reporter,
-        CredentialLookupMode::Background,
+        |_| CredentialLookupMode::Background,
         SyncTrigger::Background,
         finish,
     )

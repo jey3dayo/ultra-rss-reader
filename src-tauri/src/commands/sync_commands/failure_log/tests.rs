@@ -136,6 +136,7 @@ async fn sync_entrypoints_log_partial_results_without_account_or_feed_details() 
         run_sync_for_accounts_with_mode, sync_account,
     };
     use crate::commands::sync_commands::tests::test_sync_command_account;
+    use crate::domain::account::Account;
     use crate::domain::feed::Feed;
     use crate::domain::types::FeedId;
     use crate::infra::db::connection::DbManager;
@@ -179,11 +180,16 @@ async fn sync_entrypoints_log_partial_results_without_account_or_feed_details() 
             assert_eq!(result.warnings.len(), 1);
             return;
         }
-        let (trigger, mode) = if scenario == "manual-all" {
-            (SyncTrigger::ManualAll, CredentialLookupMode::Interactive)
-        } else {
-            (SyncTrigger::Background, CredentialLookupMode::Background)
-        };
+        let (trigger, mode): (SyncTrigger, fn(&Account) -> CredentialLookupMode) =
+            if scenario == "manual-all" {
+                (SyncTrigger::ManualAll, |_| {
+                    CredentialLookupMode::Interactive
+                })
+            } else {
+                (SyncTrigger::Background, |_| {
+                    CredentialLookupMode::Background
+                })
+            };
         let result = run_sync_for_accounts_with_mode(
             &db,
             &AtomicBool::new(false),

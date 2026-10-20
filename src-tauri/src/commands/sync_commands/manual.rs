@@ -44,11 +44,14 @@ pub enum SyncCredentialAccess {
     Interactive,
 }
 
-fn account_sync_mode(access: Option<SyncCredentialAccess>) -> CredentialLookupMode {
+fn account_sync_mode(
+    access: Option<SyncCredentialAccess>,
+    account_id: &str,
+) -> CredentialLookupMode {
     match access {
         Some(SyncCredentialAccess::Background) => CredentialLookupMode::Background,
         Some(SyncCredentialAccess::Interactive) => CredentialLookupMode::Interactive,
-        None => CredentialLookupMode::for_user_sync(),
+        None => CredentialLookupMode::for_user_sync(account_id),
     }
 }
 
@@ -68,7 +71,7 @@ pub async fn trigger_sync(
         &state.syncing,
         accounts,
         Some(reporter),
-        CredentialLookupMode::for_user_sync(),
+        |account| CredentialLookupMode::for_user_sync(account.id.as_ref()),
         SyncTrigger::ManualAll,
         |result| {
             let plan = plan_finish(&FinishInput::from_result(result), SyncEntry::ManualAll);
@@ -150,7 +153,7 @@ pub async fn trigger_sync_account(
         failed: Vec::new(),
         warnings: Vec::new(),
     };
-    let mode = account_sync_mode(credential_access);
+    let mode = account_sync_mode(credential_access, account_id.as_ref());
     match sync_account_with_mode(&state.db, &account, mode).await {
         Ok(outcome) => {
             result.succeeded = 1;
@@ -271,7 +274,7 @@ pub async fn trigger_sync_feed(
         &state.db,
         &account,
         &feed,
-        CredentialLookupMode::for_user_sync(),
+        CredentialLookupMode::for_user_sync(account.id.as_ref()),
     )
     .await
     {
