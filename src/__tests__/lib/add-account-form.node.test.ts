@@ -1,9 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import {
+  addAccountFormInitialState,
+  addAccountFormReducer,
   buildAddAccountPayload,
   formatAddAccountValidationError,
   getAddAccountFormConfig,
+  isAddAccountFormDirty,
   isAddAccountFormSubmittable,
 } from "@/lib/account/add-account-form";
 import enSettings from "@/locales/en/settings.json";
@@ -177,6 +180,36 @@ describe("add-account-form utils", () => {
 
     expect(Result.unwrapError(missingUsername)).toBe("missing_username");
     expect(Result.unwrapError(missingPassword)).toBe("missing_password");
+  });
+
+  it("detects dirty add-account state from typed fields and Cloudflare Access", () => {
+    expect(isAddAccountFormDirty(addAccountFormInitialState)).toBe(false);
+
+    for (const field of [
+      "name",
+      "serverUrl",
+      "username",
+      "password",
+      "cloudflareAccessClientId",
+      "cloudflareAccessClientSecret",
+    ] as const) {
+      expect(
+        isAddAccountFormDirty(
+          addAccountFormReducer(addAccountFormInitialState, { type: "setField", field, value: "typed" }),
+        ),
+      ).toBe(true);
+    }
+
+    expect(
+      isAddAccountFormDirty(
+        addAccountFormReducer(addAccountFormInitialState, { type: "setField", field: "name", value: "   " }),
+      ),
+    ).toBe(false);
+    expect(
+      isAddAccountFormDirty(
+        addAccountFormReducer(addAccountFormInitialState, { type: "setCloudflareAccessEnabled", value: true }),
+      ),
+    ).toBe(true);
   });
 
   it("reports whether the current form can be submitted", () => {

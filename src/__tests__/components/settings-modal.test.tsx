@@ -470,6 +470,36 @@ describe("SettingsModal", () => {
     expect(screen.queryByText("Local Feeds")).not.toBeInTheDocument();
   });
 
+  it("asks before discarding typed add-account values when closing settings", async () => {
+    const user = userEvent.setup();
+
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: null,
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: "FreshRss",
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.type(await screen.findByLabelText("Server URL"), "https://freshrss.example.com");
+
+    await user.click(screen.getByRole("button", { name: "Close settings" }));
+    const confirmDialog = await screen.findByRole("dialog", { name: "Save your changes?" });
+
+    expect(within(confirmDialog).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(within(confirmDialog).getByRole("button", { name: "Discard" })).toBeInTheDocument();
+    expect(within(confirmDialog).queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+
+    await user.click(within(confirmDialog).getByRole("button", { name: "Discard" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsOpen).toBe(false);
+    });
+  });
+
   it("prefers the active setup account detail over the add-account top screen", async () => {
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.setState({

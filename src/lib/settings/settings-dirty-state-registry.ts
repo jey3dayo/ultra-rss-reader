@@ -1,4 +1,4 @@
-type SettingsDirtyStateOwner = "account" | "tag" | "shortcut" | "preferences" | "data";
+type SettingsDirtyStateOwner = "account" | "add-account" | "tag" | "shortcut" | "preferences" | "data";
 
 export type SettingsDirtyStateActions = { save: () => Promise<boolean>; discard: () => void };
 
