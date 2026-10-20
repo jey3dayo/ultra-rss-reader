@@ -1,6 +1,7 @@
 import { cn } from "cn";
 import { useState } from "react";
 import {
+  canSaveDirtySettingsEntries,
   discardDirtySettingsEntries,
   saveDirtySettingsEntries,
 } from "@/components/settings/hooks/settings-dirty-state-registry";
@@ -63,7 +64,7 @@ export function SettingsUnsavedChangesFooter(labels: SettingsUnsavedChangesLabel
   const dirtyStateSnapshot = useSettingsDirtyStateRegistrySnapshot();
   const [saving, setSaving] = useState(false);
 
-  if (!dirtyStateSnapshot.dirty && !saving) {
+  if (!saving && !canSaveDirtySettingsEntries(dirtyStateSnapshot)) {
     return null;
   }
 

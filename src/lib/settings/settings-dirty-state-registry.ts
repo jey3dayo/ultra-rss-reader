@@ -62,6 +62,13 @@ export async function saveDirtySettingsEntries(snapshot: SettingsDirtyStateSnaps
   return true;
 }
 
+export function canSaveDirtySettingsEntries(snapshot: SettingsDirtyStateSnapshot): boolean {
+  if (!snapshot.dirty) {
+    return false;
+  }
+  return snapshot.entries.every((entry) => !entry.dirty || entry.actions !== undefined);
+}
+
 export function discardDirtySettingsEntries(snapshot: SettingsDirtyStateSnapshot): void {
   for (const entry of snapshot.entries) {
     if (entry.dirty && entry.actions) {

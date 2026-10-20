@@ -12,6 +12,7 @@ import {
 
 type SettingsUnsavedChangesDialogProps = {
   open: boolean;
+  canSave: boolean;
   title: string;
   message: string;
   saveLabel: string;
@@ -26,6 +27,7 @@ type SettingsUnsavedChangesDialogProps = {
 
 export function SettingsUnsavedChangesDialog({
   open,
+  canSave,
   title,
   message,
   saveLabel,
@@ -38,6 +40,8 @@ export function SettingsUnsavedChangesDialog({
   onCancel,
 }: SettingsUnsavedChangesDialogProps) {
   const saveButtonRef = useRef<HTMLButtonElement>(null);
+  const discardButtonRef = useRef<HTMLButtonElement>(null);
+  const initialFocusRef = canSave ? saveButtonRef : discardButtonRef;
 
   return (
     <Dialog
@@ -50,7 +54,7 @@ export function SettingsUnsavedChangesDialog({
     >
       <DialogContent
         showCloseButton={false}
-        initialFocus={saveButtonRef}
+        initialFocus={initialFocusRef}
         overlayPreset="readable"
         className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-6 sm:max-w-sm"
       >
@@ -81,6 +85,7 @@ export function SettingsUnsavedChangesDialog({
               <span className="min-w-0">{cancelLabel}</span>
             </Button>
             <Button
+              ref={discardButtonRef}
               variant="outline"
               onClick={onDiscard}
               disabled={saving}
@@ -88,17 +93,19 @@ export function SettingsUnsavedChangesDialog({
             >
               <span className="min-w-0">{discardLabel}</span>
             </Button>
-            <Button
-              ref={saveButtonRef}
-              onClick={onSave}
-              disabled={saving}
-              aria-busy={saving || undefined}
-              className="h-auto min-h-11 min-w-0 max-w-full shrink whitespace-normal py-2 [overflow-wrap:anywhere]"
-            >
-              <LoadingActionContent loading={saving} loadingLabel={savingLabel}>
-                {saveLabel}
-              </LoadingActionContent>
-            </Button>
+            {canSave ? (
+              <Button
+                ref={saveButtonRef}
+                onClick={onSave}
+                disabled={saving}
+                aria-busy={saving || undefined}
+                className="h-auto min-h-11 min-w-0 max-w-full shrink whitespace-normal py-2 [overflow-wrap:anywhere]"
+              >
+                <LoadingActionContent loading={saving} loadingLabel={savingLabel}>
+                  {saveLabel}
+                </LoadingActionContent>
+              </Button>
+            ) : null}
           </div>
         </div>
       </DialogContent>

@@ -146,6 +146,7 @@ export const LeaveConfirmation: Story = {
     leaveConfirmation: (
       <SettingsUnsavedChangesDialog
         open
+        canSave
         title="変更を保存しますか？"
         message="保存せずに移動すると、編集中の内容は失われます。"
         saveLabel="保存"
@@ -169,6 +170,7 @@ export const LeaveConfirmationSaving: Story = {
     leaveConfirmation: (
       <SettingsUnsavedChangesDialog
         open
+        canSave
         title="変更を保存しますか？"
         message="保存せずに移動すると、編集中の内容は失われます。"
         saveLabel="保存"
@@ -176,6 +178,30 @@ export const LeaveConfirmationSaving: Story = {
         discardLabel="破棄"
         cancelLabel="キャンセル"
         saving={true}
+        onSave={fn()}
+        onDiscard={fn()}
+        onCancel={fn()}
+      />
+    ),
+  },
+};
+
+export const LeaveConfirmationWithoutSave: Story = {
+  args: {
+    title: "環境設定",
+    closeLabel: "環境設定を閉じる",
+    footer: null,
+    leaveConfirmation: (
+      <SettingsUnsavedChangesDialog
+        open
+        canSave={false}
+        title="変更を保存しますか？"
+        message="保存せずに移動すると、編集中の内容は失われます。"
+        saveLabel="保存"
+        savingLabel="確認中…"
+        discardLabel="破棄"
+        cancelLabel="キャンセル"
+        saving={false}
         onSave={fn()}
         onDiscard={fn()}
         onCancel={fn()}

@@ -23,6 +23,7 @@ const labels: DialogLabels = {
 
 const baseProps = {
   open: true,
+  canSave: true,
   saving: false,
   onSave: vi.fn(),
   onDiscard: vi.fn(),
@@ -94,6 +95,28 @@ describe("SettingsUnsavedChangesDialog", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onDiscard).not.toHaveBeenCalled();
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("hides the Save button and focuses Discard when saving is not available", async () => {
+    const user = userEvent.setup();
+    const onDiscard = vi.fn();
+    const onCancel = vi.fn();
+    renderDialog({ canSave: false, onDiscard, onCancel });
+
+    const dialog = screen.getByRole("dialog", { name: labels.title });
+    const buttons = within(dialog).getAllByRole("button");
+
+    expect(buttons.map((button) => button.textContent)).toEqual([labels.cancelLabel, labels.discardLabel]);
+    expect(within(dialog).queryByRole("button", { name: labels.saveLabel })).not.toBeInTheDocument();
+
+    await vi.waitFor(() => {
+      expect(within(dialog).getByRole("button", { name: labels.discardLabel })).toHaveFocus();
+    });
+
+    await user.click(within(dialog).getByRole("button", { name: labels.discardLabel }));
+
+    expect(onDiscard).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
   });
 
   it("disables every action and shows the saving label while saving, and Escape does not cancel", async () => {

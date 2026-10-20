@@ -14,6 +14,7 @@ import { useAccountDetailController } from "@/components/settings/hooks/account-
 import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/account-detail/use-account-detail-sync-status-rows";
 import { useAccountDetailViewProps } from "@/components/settings/hooks/account-detail/use-account-detail-view-props";
 import {
+  canSaveDirtySettingsEntries,
   discardDirtySettingsEntries,
   saveDirtySettingsEntries,
 } from "@/components/settings/hooks/settings-dirty-state-registry";
@@ -421,6 +422,9 @@ function SettingsModalContent() {
     if (leave === null) {
       return;
     }
+    if (!canSaveDirtySettingsEntries(dirtyStateSnapshot)) {
+      return;
+    }
     setSavingBeforeLeave(true);
     try {
       const saved = await saveDirtySettingsEntries(dirtyStateSnapshot);
@@ -449,6 +453,7 @@ function SettingsModalContent() {
   const leaveConfirmation = (
     <SettingsUnsavedChangesDialog
       open={pendingLeave !== null}
+      canSave={canSaveDirtySettingsEntries(dirtyStateSnapshot)}
       title={t("dirty_state.confirm_title")}
       message={t("dirty_state.confirm_message")}
       saveLabel={t("dirty_state.save")}

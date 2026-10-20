@@ -1,7 +1,45 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { SettingsUnsavedChangesBar } from "@/components/settings/settings-unsaved-changes-bar";
+import {
+  SettingsDirtyStateRegistryProvider,
+  useRegisterSettingsDirtyState,
+} from "@/components/settings/hooks/use-settings-dirty-state-registry";
+import {
+  SettingsUnsavedChangesBar,
+  SettingsUnsavedChangesFooter,
+} from "@/components/settings/settings-unsaved-changes-bar";
+
+function DirtyTagWithoutActionsHarness() {
+  useRegisterSettingsDirtyState({
+    owner: "tag",
+    dirty: true,
+    pending: false,
+    blockingReason: "tag-unsaved",
+  });
+  return (
+    <SettingsUnsavedChangesFooter
+      message="You have unsaved changes"
+      discardLabel="Discard"
+      saveLabel="Save & Test Connection"
+      savingLabel="Saving…"
+    />
+  );
+}
+
+describe("SettingsUnsavedChangesFooter", () => {
+  it("renders nothing when the only dirty entry has no actions", () => {
+    render(
+      <SettingsDirtyStateRegistryProvider>
+        <DirtyTagWithoutActionsHarness />
+      </SettingsDirtyStateRegistryProvider>,
+    );
+
+    expect(screen.queryByTestId("settings-unsaved-changes-bar")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save & Test Connection" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+});
 
 describe("SettingsUnsavedChangesBar", () => {
   it("renders the unsaved changes message", () => {

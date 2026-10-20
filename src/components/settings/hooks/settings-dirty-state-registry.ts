@@ -5,6 +5,7 @@ export type {
   SettingsDirtyStateSnapshot,
 } from "@/lib/settings/settings-dirty-state-registry";
 export {
+  canSaveDirtySettingsEntries,
   createSettingsDirtyStateRegistry,
   createSettingsDirtyStateSnapshot,
   discardDirtySettingsEntries,

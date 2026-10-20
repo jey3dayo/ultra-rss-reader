@@ -4,6 +4,7 @@ import type { PropsWithChildren } from "react";
 import { useLayoutEffect, useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
+  canSaveDirtySettingsEntries,
   createSettingsDirtyStateSnapshot,
   discardDirtySettingsEntries,
   getSettingsDirtyStateSnapshot,
@@ -320,6 +321,66 @@ describe("settings dirty-state registry", () => {
 
     expect(dirtyDiscard).toHaveBeenCalledTimes(1);
     expect(cleanDiscard).not.toHaveBeenCalled();
+  });
+
+  describe("canSaveDirtySettingsEntries", () => {
+    it("returns false for an empty snapshot", () => {
+      expect(canSaveDirtySettingsEntries(createSettingsDirtyStateSnapshot([]))).toBe(false);
+    });
+
+    it("returns false when a dirty entry lacks actions", () => {
+      const snapshot = createSettingsDirtyStateSnapshot([
+        {
+          owner: "tag",
+          dirty: true,
+          pending: false,
+          blockingReason: "tag-unsaved",
+        },
+      ]);
+
+      expect(canSaveDirtySettingsEntries(snapshot)).toBe(false);
+    });
+
+    it("returns true when every dirty entry has actions", () => {
+      const snapshot = createSettingsDirtyStateSnapshot([
+        {
+          owner: "account",
+          dirty: true,
+          pending: false,
+          blockingReason: null,
+          actions: { save: vi.fn().mockResolvedValue(true), discard: vi.fn() },
+        },
+        {
+          owner: "shortcut",
+          dirty: true,
+          pending: false,
+          blockingReason: null,
+          actions: { save: vi.fn().mockResolvedValue(true), discard: vi.fn() },
+        },
+      ]);
+
+      expect(canSaveDirtySettingsEntries(snapshot)).toBe(true);
+    });
+
+    it("ignores non-dirty entries without actions", () => {
+      const snapshot = createSettingsDirtyStateSnapshot([
+        {
+          owner: "account",
+          dirty: true,
+          pending: false,
+          blockingReason: null,
+          actions: { save: vi.fn().mockResolvedValue(true), discard: vi.fn() },
+        },
+        {
+          owner: "data",
+          dirty: false,
+          pending: false,
+          blockingReason: null,
+        },
+      ]);
+
+      expect(canSaveDirtySettingsEntries(snapshot)).toBe(true);
+    });
   });
 
   it("keeps registered actions calling the latest callbacks without re-notifying the snapshot", async () => {
