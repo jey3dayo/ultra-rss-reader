@@ -1,5 +1,5 @@
 import { Eye, EyeOff } from "lucide-react";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { useId, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
@@ -22,6 +22,7 @@ export type AccountCredentialInputRow = {
 
 export type AccountCloudflareAccessSection = {
   status: CloudflareAccessStatus;
+  changedIndicator?: ReactNode;
   hasSavedSecret: boolean;
   secretEditing: boolean;
   secretVisible: boolean;
@@ -131,6 +132,7 @@ function CloudflareAccessAuthorizationRequired({
         mode="detail"
         label={section.label}
         description={section.description}
+        labelIndicator={section.changedIndicator}
         trailing={<CloudflareAccessRecoveryActions section={section} disabled={disabled} />}
         disabled={disabled}
         labelClassName={labelClassName}
@@ -356,6 +358,7 @@ export function CloudflareAccessCredentialFields({
           mode="detail"
           label={section.label}
           description={section.description}
+          labelIndicator={section.changedIndicator}
           checked={section.enabled}
           onChange={section.onEnabledChange}
           disabled={disabled}

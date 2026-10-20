@@ -79,6 +79,64 @@ describe("AccountCredentialsSectionView", () => {
     expect(onTestConnection).not.toHaveBeenCalled();
   });
 
+  it("highlights changed fields with an accent border and indicator dot", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        serverUrlLabel="Server URL"
+        serverUrlValue="https://freshrss.example.com"
+        onServerUrlChange={() => {}}
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+        changedFields={{ serverUrl: true, username: false, password: false }}
+        changedFieldLabel="Changed"
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass(
+      "border-[var(--settings-field-changed-border)]",
+    );
+    expect(screen.getByRole("textbox", { name: "Username" })).not.toHaveClass(
+      "border-[var(--settings-field-changed-border)]",
+    );
+    expect(screen.getByText("Changed")).toBeInTheDocument();
+    expect(screen.getAllByText("Changed")).toHaveLength(1);
+  });
+
+  it("does not render changed field indicators without changedFields", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        serverUrlLabel="Server URL"
+        serverUrlValue="https://freshrss.example.com"
+        onServerUrlChange={() => {}}
+        onServerUrlBlur={() => {}}
+        serverUrlCopyLabel="Copy Server URL"
+        onServerUrlCopy={() => {}}
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        onUsernameBlur={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+      />,
+    );
+
+    expect(screen.queryByText("Changed")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Server URL" })).not.toHaveClass(
+      "border-[var(--settings-field-changed-border)]",
+    );
+  });
+
   it("shows a settings-toned loading action while testing the connection", () => {
     render(
       <AccountCredentialsSectionView

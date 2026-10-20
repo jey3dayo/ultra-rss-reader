@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import type { ReactNode } from "react";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
+import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
 import { isFreshRssAccount } from "./account-kind";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";
 
@@ -62,8 +63,13 @@ export function buildCredentialsSection({
       onPasswordChange={controller.setCredPassword}
       onPasswordFocus={controller.onPasswordFocus}
       onPasswordBlur={controller.onPasswordBlur}
+      changedFields={controller.changedFields}
+      changedFieldLabel={t("dirty_state.field_changed")}
       cloudflareAccess={{
         status: controller.cloudflareAccessStatus,
+        changedIndicator: controller.changedFields.cloudflareAccess ? (
+          <ChangedFieldIndicator label={t("dirty_state.field_changed")} />
+        ) : undefined,
         hasSavedSecret: controller.cloudflareAccessHasSavedSecret,
         secretEditing: controller.cloudflareAccessSecretEditing,
         secretVisible: controller.cloudflareAccessSecretVisible,

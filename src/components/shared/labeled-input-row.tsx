@@ -38,6 +38,7 @@ type LabeledInputRowProps = {
   onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
   rowClassName?: string;
   labelClassName?: string;
+  labelAccessory?: ReactNode;
   controlClassName?: string;
   inputClassName?: string;
   actionLabel?: string;
@@ -229,6 +230,7 @@ export function LabeledInputRow({
   onKeyDown,
   rowClassName,
   labelClassName,
+  labelAccessory,
   controlClassName,
   inputClassName,
   actionLabel,
@@ -269,7 +271,13 @@ export function LabeledInputRow({
   });
 
   return (
-    <LabeledControlRow label={label} htmlFor={resolvedInputId} className={rowClassName} labelClassName={labelClassName}>
+    <LabeledControlRow
+      label={label}
+      htmlFor={resolvedInputId}
+      className={rowClassName}
+      labelClassName={labelClassName}
+      labelAccessory={labelAccessory}
+    >
       <div
         className={cn(
           "flex w-full gap-2 sm:max-w-[30rem] sm:justify-end",

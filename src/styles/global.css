@@ -244,6 +244,7 @@
   --settings-shell-divider-border: rgba(38, 37, 30, 0.08);
   --settings-shell-section-border: rgba(38, 37, 30, 0.04);
   --settings-shell-control-border: rgba(38, 37, 30, 0.08);
+  --settings-field-changed-border: color-mix(in oklab, var(--primary) 64%, transparent);
   --settings-shell-shadow: var(--shadow-elevation-3);
   --settings-shell-section-shadow: none;
   --settings-shell-control-shadow: none;
@@ -611,6 +612,7 @@
   --settings-shell-divider-border: rgba(243, 239, 230, 0.1);
   --settings-shell-section-border: rgba(243, 239, 230, 0.05);
   --settings-shell-control-border: rgba(243, 239, 230, 0.1);
+  --settings-field-changed-border: color-mix(in oklab, var(--primary) 72%, transparent);
   --settings-shell-shadow: var(--shadow-elevation-3);
   --settings-shell-section-shadow: none;
   --settings-shell-control-shadow: none;
@@ -898,6 +900,7 @@
     --border-strong: CanvasText;
     --input: ButtonBorder;
     --ring: Highlight;
+    --settings-field-changed-border: Highlight;
     --sidebar: Canvas;
     --sidebar-foreground: CanvasText;
     --sidebar-accent: Canvas;

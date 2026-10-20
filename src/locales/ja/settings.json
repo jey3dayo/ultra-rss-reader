@@ -5,7 +5,8 @@
   "add_account_ellipsis": "アカウントを追加…",
   "dirty_state": {
     "dirty_lock_message": "現在の編集を完了または破棄してから設定を閉じてください。",
-    "pending_lock_message": "変更を保存しています。設定を閉じる前にお待ちください。"
+    "pending_lock_message": "変更を保存しています。設定を閉じる前にお待ちください。",
+    "field_changed": "変更あり"
   },
   "nav": {
     "general": "一般",

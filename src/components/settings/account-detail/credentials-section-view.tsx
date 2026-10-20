@@ -1,13 +1,33 @@
+import { cn } from "cn";
 import { Copy } from "lucide-react";
+import type { ReactNode } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
+import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
+import {
+  SETTINGS_CHANGED_CONTROL_CLASS,
+  SETTINGS_CONTROL_SURFACE_CLASS,
+} from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow, LabeledInputRow } from "@/design-system";
 import type { AccountCloudflareAccessSection, AccountCredentialInputRow } from "./cloudflare-access-credential-fields";
 import { CloudflareAccessCredentialFields } from "./cloudflare-access-credential-fields";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
 const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";
+
+function inputClassFor(changed: boolean): string {
+  return cn("h-11", SETTINGS_CONTROL_SURFACE_CLASS, changed && SETTINGS_CHANGED_CONTROL_CLASS);
+}
+
+type ChangedFieldState = {
+  serverUrl: boolean;
+  username: boolean;
+  password: boolean;
+};
+
+function indicatorFor(changed: boolean, changedFieldLabel: string | undefined): ReactNode {
+  return changed && changedFieldLabel ? <ChangedFieldIndicator label={changedFieldLabel} /> : undefined;
+}
 
 type AccountCredentialsSectionViewProps = {
   heading: string;
@@ -40,6 +60,8 @@ type AccountCredentialsSectionViewProps = {
   connectionTestSucceeded?: boolean;
   testConnectionSuccessLabel?: string;
   extraRows?: AccountCredentialInputRow[];
+  changedFields?: ChangedFieldState;
+  changedFieldLabel?: string;
   cloudflareAccess?: AccountCloudflareAccessSection;
 };
 
@@ -74,10 +96,16 @@ export function AccountCredentialsSectionView({
   connectionTestSucceeded,
   testConnectionSuccessLabel,
   extraRows,
+  changedFields,
+  changedFieldLabel,
   cloudflareAccess,
 }: AccountCredentialsSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
   const resolvedExtraRows = extraRows ?? EMPTY_EXTRA_ROWS;
+  const changed = changedFields ?? { serverUrl: false, username: false, password: false };
+
+  const inputClass = (field: keyof ChangedFieldState) => inputClassFor(changed[field]);
+  const accessory = (field: keyof ChangedFieldState) => indicatorFor(changed[field], changedFieldLabel);
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
@@ -92,7 +120,8 @@ export function AccountCredentialsSectionView({
           onChange={onServerUrlChange}
           onBlur={!disabled ? onServerUrlBlur : undefined}
           labelClassName={labelColumnClassName}
-          inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+          inputClassName={inputClass("serverUrl")}
+          labelAccessory={accessory("serverUrl")}
           errorText={serverUrlErrorText}
           actionLabel={serverUrlCopyLabel}
           actionAriaLabel={serverUrlCopyLabel}
@@ -129,7 +158,8 @@ export function AccountCredentialsSectionView({
         onChange={onUsernameChange}
         onBlur={!disabled ? onUsernameBlur : undefined}
         labelClassName={labelColumnClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={inputClass("username")}
+        labelAccessory={accessory("username")}
         disabled={disabled}
       />
       <LabeledInputRow
@@ -141,7 +171,8 @@ export function AccountCredentialsSectionView({
         onBlur={!disabled ? onPasswordBlur : undefined}
         placeholder={passwordPlaceholder}
         labelClassName={labelColumnClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={inputClass("password")}
+        labelAccessory={accessory("password")}
         disabled={disabled}
       />
       {cloudflareAccess && (
