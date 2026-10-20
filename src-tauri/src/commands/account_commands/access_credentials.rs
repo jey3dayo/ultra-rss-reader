@@ -120,21 +120,27 @@ fn cached_access_metadata(account: &Account) -> Result<CloudflareAccessMetadata,
     }
 }
 
-/// macOS reads only the in-memory lease so that opening settings never prompts for Keychain access.
+#[cfg(any(target_os = "macos", test))]
+fn settings_metadata_reads_store(is_macos: bool, uses_file_store: bool) -> bool {
+    !is_macos || uses_file_store
+}
+
+/// macOS reads the session lease, or the local file store when active, so that opening
+/// settings never prompts for Keychain access.
 pub(super) fn settings_access_metadata(
     account: &Account,
     store: &impl CloudflareAccessStore,
 ) -> Result<CloudflareAccessMetadata, AppError> {
-    #[cfg(target_os = "macos")]
-    {
-        let _ = store;
-        cached_access_metadata(account)
+    #[cfg(any(target_os = "macos", test))]
+    if !settings_metadata_reads_store(
+        cfg!(target_os = "macos"),
+        keyring_store::uses_local_file_storage(),
+    ) {
+        return cached_access_metadata(account);
     }
-    #[cfg(not(target_os = "macos"))]
     access_metadata(account, store)
 }
 
-#[cfg(any(not(target_os = "macos"), test))]
 pub(super) fn access_metadata(
     account: &Account,
     store: &impl CloudflareAccessStore,

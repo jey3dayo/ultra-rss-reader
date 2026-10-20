@@ -93,7 +93,7 @@ fn write_marker_atomically(
     file.write_all(body.as_bytes())?;
     file.sync_all()?;
     std::fs::rename(temp_path, dir.join(MARKER_FILE_NAME))?;
-    super::dev_store_file::sync_parent_dir(&dir.join(MARKER_FILE_NAME))?;
+    let _ = super::dev_store_file::sync_parent_dir(&dir.join(MARKER_FILE_NAME));
     Ok(())
 }
 

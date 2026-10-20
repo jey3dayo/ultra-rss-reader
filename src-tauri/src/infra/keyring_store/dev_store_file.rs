@@ -141,11 +141,7 @@ pub(super) fn write_dev_store(path: &Path, store: &HashMap<String, String>) -> D
             "Failed to replace dev store: {error}"
         )));
     }
-    if let Err(e) = sync_parent_dir(path) {
-        return Err(dev_store_recovery_error(format!(
-            "Failed to sync dev store directory: {e}"
-        )));
-    }
+    let _ = sync_parent_dir(path);
     Ok(())
 }
 
