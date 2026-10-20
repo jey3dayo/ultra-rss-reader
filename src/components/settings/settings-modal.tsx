@@ -14,6 +14,10 @@ import { useAccountDetailController } from "@/components/settings/hooks/account-
 import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/account-detail/use-account-detail-sync-status-rows";
 import { useAccountDetailViewProps } from "@/components/settings/hooks/account-detail/use-account-detail-view-props";
 import {
+  discardDirtySettingsEntries,
+  saveDirtySettingsEntries,
+} from "@/components/settings/hooks/settings-dirty-state-registry";
+import {
   SettingsDirtyStateRegistryProvider,
   useRegisterSettingsDirtyState,
   useSettingsDirtyStateRegistrySnapshot,
@@ -23,6 +27,7 @@ import { MuteSettings } from "@/components/settings/mute-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { SettingsUnsavedChangesFooter } from "@/components/settings/settings-unsaved-changes-bar";
+import { SettingsUnsavedChangesDialog } from "@/components/settings/settings-unsaved-changes-dialog";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { TagsSettings } from "@/components/settings/tags-settings";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
@@ -273,18 +278,13 @@ function getIsSetupLocked({
   );
 }
 
-function getDirtyStateLockReason(
+function getPendingSaveLockReason(
   dirtyStateSnapshot: SettingsDirtyStateSnapshot,
   t: TFunction<"settings">,
 ): string | null {
   if (dirtyStateSnapshot.pending) {
     return t("dirty_state.pending_lock_message", {
       defaultValue: "Saving changes. Please wait before leaving settings.",
-    });
-  }
-  if (dirtyStateSnapshot.dirty) {
-    return t("dirty_state.dirty_lock_message", {
-      defaultValue: "Finish or discard the current edit before leaving settings.",
     });
   }
 
@@ -405,7 +405,62 @@ function SettingsModalContent() {
     pending: pendingPreferenceSaves > 0,
     blockingReason: pendingPreferenceSaves > 0 ? "preferences-save-pending" : null,
   });
-  const dirtyStateLockReason = getDirtyStateLockReason(dirtyStateSnapshot, t);
+  const dirtyStateLockReason = getPendingSaveLockReason(dirtyStateSnapshot, t);
+  const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
+  const [savingBeforeLeave, setSavingBeforeLeave] = useState(false);
+  const guardLeave = (leave: () => void) => {
+    if (!dirtyStateSnapshot.dirty) {
+      leave();
+      return;
+    }
+    setPendingLeave(() => leave);
+  };
+
+  const handleLeaveSave = async () => {
+    const leave = pendingLeave;
+    if (leave === null) {
+      return;
+    }
+    setSavingBeforeLeave(true);
+    try {
+      const saved = await saveDirtySettingsEntries(dirtyStateSnapshot);
+      setPendingLeave(null);
+      if (saved) {
+        leave();
+      }
+    } finally {
+      setSavingBeforeLeave(false);
+    }
+  };
+
+  const handleLeaveDiscard = () => {
+    const leave = pendingLeave;
+    setPendingLeave(null);
+    discardDirtySettingsEntries(dirtyStateSnapshot);
+    leave?.();
+  };
+
+  const handleLeaveCancel = () => {
+    if (!savingBeforeLeave) {
+      setPendingLeave(null);
+    }
+  };
+
+  const leaveConfirmation = (
+    <SettingsUnsavedChangesDialog
+      open={pendingLeave !== null}
+      title={t("dirty_state.confirm_title")}
+      message={t("dirty_state.confirm_message")}
+      saveLabel={t("dirty_state.save")}
+      savingLabel={t("account.testing_connection")}
+      discardLabel={t("dirty_state.discard")}
+      cancelLabel={t("dirty_state.cancel")}
+      saving={savingBeforeLeave}
+      onSave={() => void handleLeaveSave()}
+      onDiscard={handleLeaveDiscard}
+      onCancel={handleLeaveCancel}
+    />
+  );
   const footer = (
     <SettingsUnsavedChangesFooter
       message={t("dirty_state.unsaved_changes")}
@@ -459,6 +514,8 @@ function SettingsModalContent() {
       />
     ),
     footer,
+    guardLeave,
+    leaveConfirmation,
     closeSettings,
     openSettings,
     setSettingsCategory,

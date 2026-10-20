@@ -28,6 +28,8 @@ vi.mock("@/components/settings/settings-modal-view", () => ({
     navigation,
     accountsNavigation,
     content,
+    footer,
+    leaveConfirmation,
     onClose,
   }: SettingsModalViewProps) =>
     open ? (
@@ -39,6 +41,8 @@ vi.mock("@/components/settings/settings-modal-view", () => ({
         <div>{navigation}</div>
         <div>{accountsNavigation}</div>
         <div>{content}</div>
+        {footer}
+        {leaveConfirmation}
       </div>
     ) : null,
 }));
@@ -125,6 +129,219 @@ describe("SettingsModal", () => {
 
     expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+  });
+
+  describe("with unsaved account edits", () => {
+    const editedServerUrl = "https://freshrss.example.com/reader";
+
+    function buildAccountsWithValidFreshRss() {
+      return sampleAccounts.map((account) => (account.id === "acc-2" ? { ...account, kind: "FreshRss" } : account));
+    }
+
+    beforeEach(() => {
+      setupTauriMocks((cmd) => {
+        if (cmd === "list_accounts") {
+          return buildAccountsWithValidFreshRss();
+        }
+        return undefined;
+      });
+    });
+
+    async function openFreshRssAccountDetail(user: ReturnType<typeof userEvent.setup>) {
+      const accountButtons = await screen.findAllByRole("button", {
+        name: /FreshRSS/i,
+      });
+      await user.click(accountButtons[accountButtons.length - 1] ?? accountButtons[0]);
+
+      await waitFor(() => {
+        expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+      });
+      expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+
+      const serverUrlInput = await screen.findByRole("textbox", { name: "Server URL" });
+      await user.clear(serverUrlInput);
+      await user.type(serverUrlInput, editedServerUrl);
+      expect(serverUrlInput).toHaveValue(editedServerUrl);
+
+      return serverUrlInput;
+    }
+
+    async function clickCloseSettings(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole("button", { name: "Close settings" }));
+      return await screen.findByRole("dialog", { name: "Save your changes?" });
+    }
+
+    it("asks to save changes when closing with edits and keeps settings open", async () => {
+      const user = userEvent.setup();
+
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      await openFreshRssAccountDetail(user);
+      await clickCloseSettings(user);
+
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+    });
+
+    it("closes the dialog on cancel, keeps settings open, and keeps the edited value", async () => {
+      const user = userEvent.setup();
+
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      const serverUrlInput = await openFreshRssAccountDetail(user);
+      const confirmDialog = await clickCloseSettings(user);
+
+      await user.click(within(confirmDialog).getByRole("button", { name: "Cancel" }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog", { name: "Save your changes?" })).not.toBeInTheDocument();
+      });
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(serverUrlInput).toHaveValue(editedServerUrl);
+      expect(screen.getByText("You have unsaved changes")).toBeInTheDocument();
+    });
+
+    it("treats Escape inside the dialog like cancel", async () => {
+      const user = userEvent.setup();
+
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      await openFreshRssAccountDetail(user);
+      await clickCloseSettings(user);
+
+      await user.keyboard("{Escape}");
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog", { name: "Save your changes?" })).not.toBeInTheDocument();
+      });
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(screen.getByText("You have unsaved changes")).toBeInTheDocument();
+    });
+
+    it("discards the edits and closes settings when discard is chosen", async () => {
+      const user = userEvent.setup();
+
+      usePreferencesStore.setState({
+        prefs: { selected_account_id: "acc-2" },
+        loaded: true,
+      });
+      useUiStore.setState(useUiStore.getInitialState());
+      useUiStore.getState().openSettings("accounts");
+
+      render(<SettingsModal />, { wrapper: createWrapper() });
+
+      const serverUrlInput = await screen.findByRole("textbox", { name: "Server URL" });
+      await user.clear(serverUrlInput);
+      await user.type(serverUrlInput, editedServerUrl);
+
+      await user.click(screen.getByRole("button", { name: "Close settings" }));
+      const confirmDialog = await screen.findByRole("dialog", { name: "Save your changes?" });
+      await user.click(within(confirmDialog).getByRole("button", { name: "Discard" }));
+
+      await waitFor(() => {
+        expect(useUiStore.getState().settingsOpen).toBe(false);
+      });
+    });
+
+    it("saves the edits, runs the connection test, and closes settings when save is chosen", async () => {
+      const user = userEvent.setup();
+      const verifiedAccount = {
+        ...buildAccountsWithValidFreshRss()[1],
+        connection_verification_status: "verified",
+        connection_verified_at: "2026-04-19T05:32:00Z",
+        connection_verification_error: null,
+      };
+      const calls: string[] = [];
+
+      setupTauriMocks((cmd, args) => {
+        calls.push(cmd);
+        if (cmd === "list_accounts") {
+          return buildAccountsWithValidFreshRss();
+        }
+        if (cmd === "update_account_credentials") {
+          return {
+            ...verifiedAccount,
+            server_url: typeof args.serverUrl === "string" ? args.serverUrl : verifiedAccount.server_url,
+          };
+        }
+        if (cmd === "test_account_connection") {
+          return { ...verifiedAccount, server_url: editedServerUrl };
+        }
+        return undefined;
+      });
+
+      usePreferencesStore.setState({
+        prefs: { selected_account_id: "acc-2" },
+        loaded: true,
+      });
+      useUiStore.setState(useUiStore.getInitialState());
+      useUiStore.getState().openSettings("accounts");
+
+      render(<SettingsModal />, { wrapper: createWrapper() });
+
+      const serverUrlInput = await screen.findByRole("textbox", { name: "Server URL" });
+      await user.clear(serverUrlInput);
+      await user.type(serverUrlInput, editedServerUrl);
+
+      await user.click(screen.getByRole("button", { name: "Close settings" }));
+      const confirmDialog = await screen.findByRole("dialog", { name: "Save your changes?" });
+      await user.click(within(confirmDialog).getByRole("button", { name: "Save" }));
+
+      await waitFor(() => {
+        expect(calls).toContain("update_account_credentials");
+        expect(calls).toContain("test_account_connection");
+      });
+      await waitFor(() => {
+        expect(useUiStore.getState().settingsOpen).toBe(false);
+      });
+    });
+
+    it("closes the dialog and keeps settings open when the connection test fails", async () => {
+      const user = userEvent.setup();
+      const account = buildAccountsWithValidFreshRss()[1];
+      let savedServerUrl: string | null = null;
+
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "list_accounts") {
+          return buildAccountsWithValidFreshRss().map((listed) =>
+            listed.id === "acc-2" && savedServerUrl !== null ? { ...listed, server_url: savedServerUrl } : listed,
+          );
+        }
+        if (cmd === "update_account_credentials") {
+          const savedAccount = {
+            ...account,
+            server_url: typeof args.serverUrl === "string" ? args.serverUrl : account.server_url,
+          };
+          savedServerUrl = savedAccount.server_url;
+          return savedAccount;
+        }
+        if (cmd === "test_account_connection") {
+          throw new Error("Authentication failed");
+        }
+        return undefined;
+      });
+
+      usePreferencesStore.setState({
+        prefs: { selected_account_id: "acc-2" },
+        loaded: true,
+      });
+      useUiStore.setState(useUiStore.getInitialState());
+      useUiStore.getState().openSettings("accounts");
+
+      render(<SettingsModal />, { wrapper: createWrapper() });
+
+      const serverUrlInput = await screen.findByRole("textbox", { name: "Server URL" });
+      await user.clear(serverUrlInput);
+      await user.type(serverUrlInput, editedServerUrl);
+
+      await user.click(screen.getByRole("button", { name: "Close settings" }));
+      const confirmDialog = await screen.findByRole("dialog", { name: "Save your changes?" });
+      await user.click(within(confirmDialog).getByRole("button", { name: "Save" }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog", { name: "Save your changes?" })).not.toBeInTheDocument();
+      });
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+      expect(serverUrlInput).toHaveValue(editedServerUrl);
+    });
   });
 
   it("keeps modal open, category selection, and account navigation transitions stable", async () => {

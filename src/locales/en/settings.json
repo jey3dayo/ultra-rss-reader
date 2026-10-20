@@ -4,7 +4,10 @@
   "accounts_heading": "Accounts",
   "add_account_ellipsis": "Add account…",
   "dirty_state": {
-    "dirty_lock_message": "Finish or discard the current edit before leaving settings.",
+    "confirm_title": "Save your changes?",
+    "confirm_message": "If you leave without saving, your edits will be lost.",
+    "save": "Save",
+    "cancel": "Cancel",
     "pending_lock_message": "Saving changes. Please wait before leaving settings.",
     "field_changed": "Changed",
     "unsaved_changes": "You have unsaved changes",
