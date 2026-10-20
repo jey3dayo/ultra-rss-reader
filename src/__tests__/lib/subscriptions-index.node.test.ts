@@ -1002,16 +1002,23 @@ describe("subscriptions index helpers", () => {
     ).toEqual([]);
   });
 
-  it("filters visible rows to high update-frequency feeds for the frequent card", () => {
+  it("filters visible rows to overloaded feeds for the frequent card", () => {
+    const overloadedFeeds = [
+      { ...feeds[0], id: "feed-quiet-overloaded", title: "Quiet Overloaded Feed", unread_count: 100 },
+      feeds[1],
+    ];
     const rows = buildSubscriptionListRows({
-      feeds,
+      feeds: overloadedFeeds,
       candidateMap: new Map(),
       feedArticleSummaryMap: new Map([
         [
-          "feed-active",
-          { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 12 },
+          "feed-quiet-overloaded",
+          { feed_id: "feed-quiet-overloaded", latest_article_at: null, starred_count: 0, recent_article_count: 90 },
         ],
-        ["feed-stale", { feed_id: "feed-stale", latest_article_at: null, starred_count: 0, recent_article_count: 3 }],
+        [
+          "feed-active",
+          { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 89 },
+        ],
       ]),
       folderNameById: new Map([["folder-work", "Work"]]),
     });
@@ -1025,30 +1032,34 @@ describe("subscriptions index helpers", () => {
         searchQuery: "",
         sortKey: "title",
       }).map((row) => row.feed.id),
-    ).toEqual(["feed-active"]);
+    ).toEqual(["feed-quiet-overloaded"]);
   });
 
-  it("keeps the frequent card count consistent with the filtered list and does not hide deferred high-frequency feeds", () => {
+  it("keeps the frequent card count consistent with the filtered list and does not hide deferred overloaded feeds", () => {
+    const overloadedFeeds = [{ ...feeds[1], unread_count: 100 }, feeds[0], feeds[2], feeds[3]];
     const frequentSummaryMap = new Map([
-      ["feed-active", { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 12 }],
-      ["feed-mid", { feed_id: "feed-mid", latest_article_at: null, starred_count: 0, recent_article_count: 5 }],
-      ["feed-stale", { feed_id: "feed-stale", latest_article_at: null, starred_count: 0, recent_article_count: 3 }],
-      ["feed-dormant", { feed_id: "feed-dormant", latest_article_at: null, starred_count: 0, recent_article_count: 0 }],
+      ["feed-active", { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 90 }],
+      ["feed-mid", { feed_id: "feed-mid", latest_article_at: null, starred_count: 0, recent_article_count: 95 }],
+      ["feed-stale", { feed_id: "feed-stale", latest_article_at: null, starred_count: 0, recent_article_count: 95 }],
+      [
+        "feed-dormant",
+        { feed_id: "feed-dormant", latest_article_at: null, starred_count: 0, recent_article_count: 95 },
+      ],
     ]);
     const rows = buildSubscriptionListRows({
-      feeds,
+      feeds: overloadedFeeds,
       candidateMap: new Map(),
       feedArticleSummaryMap: frequentSummaryMap,
       folderNameById: new Map([["folder-work", "Work"]]),
     });
 
     const { frequentCount } = buildSubscriptionsIndexSummary({
-      feeds,
+      feeds: overloadedFeeds,
       candidates: [],
       feedArticleSummaryMap: frequentSummaryMap,
     });
 
-    // A high-frequency feed that was deferred must still appear under the
+    // An overloaded feed that was deferred must still appear under the
     // informational "frequent" filter (only review/stale hide decided feeds).
     const visibleFeedIds = buildVisibleSubscriptionRows({
       rows,

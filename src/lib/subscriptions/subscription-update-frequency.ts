@@ -9,34 +9,35 @@ import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-cou
  */
 export const SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS = 30;
 
-/**
- * Absolute article-count thresholds over the {@link SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS}
- * window. Derived from the real per-feed distribution of a 283-feed account:
- * `>= 10 / 30d` lands at ~p88 (roughly one article every three days), and
- * `>= 4 / 30d` at ~p75. Thresholds are absolute (not a live percentile) so a
- * feed's tier is a stable, explainable property rather than a ranking that
- * shifts as subscriptions are added or removed.
- */
-export const SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD = 10;
-export const SUBSCRIPTION_UPDATE_FREQUENCY_MEDIUM_THRESHOLD = 4;
+export const SUBSCRIPTION_OVERLOADED_RECENT_ARTICLE_THRESHOLD = 90;
+export const SUBSCRIPTION_OVERLOADED_UNREAD_THRESHOLD = 100;
 
-export type SubscriptionUpdateFrequencyTier = "high" | "medium" | "low" | "none";
+export function isOverloaded({
+  postsLast30Days,
+  unreadCount,
+}: {
+  postsLast30Days: number;
+  unreadCount: number;
+}): boolean {
+  return (
+    Math.floor(normalizeSubscriptionCount(postsLast30Days)) >= SUBSCRIPTION_OVERLOADED_RECENT_ARTICLE_THRESHOLD &&
+    Math.floor(normalizeSubscriptionCount(unreadCount)) >= SUBSCRIPTION_OVERLOADED_UNREAD_THRESHOLD
+  );
+}
 
-/**
- * Classify a feed's recent update frequency from its raw recent-window article
- * count. Non-finite or negative inputs normalize toward `"none"`.
- */
-export function resolveSubscriptionUpdateFrequencyTier(recentArticleCount: number): SubscriptionUpdateFrequencyTier {
+export type SubscriptionUpdatePace =
+  | { unit: "day"; count: number }
+  | { unit: "week"; count: number }
+  | { unit: "none" };
+
+export function resolveSubscriptionUpdatePace(recentArticleCount: number): SubscriptionUpdatePace {
   const count = Math.floor(normalizeSubscriptionCount(recentArticleCount));
-
-  if (count >= SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD) {
-    return "high";
+  if (count === 0) {
+    return { unit: "none" };
   }
-  if (count >= SUBSCRIPTION_UPDATE_FREQUENCY_MEDIUM_THRESHOLD) {
-    return "medium";
+  const perDay = count / SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS;
+  if (perDay >= 1) {
+    return { unit: "day", count: Math.round(perDay) };
   }
-  if (count >= 1) {
-    return "low";
-  }
-  return "none";
+  return { unit: "week", count: Math.max(1, Math.round(perDay * 7)) };
 }

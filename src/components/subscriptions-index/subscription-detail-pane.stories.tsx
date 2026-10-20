@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { ArticleDto, FeedDto, LocalFeedSyncStatusDto } from "@/api/tauri-commands";
-import { resolveSubscriptionUpdateFrequencyTier } from "@/lib/subscriptions/subscription-update-frequency";
+import {
+  resolveSubscriptionUpdatePace,
+  SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
+} from "@/lib/subscriptions/subscription-update-frequency";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -9,11 +12,12 @@ import type {
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 
-const UPDATE_FREQUENCY_TIER_LABELS = { high: "High", medium: "Medium", low: "Low" } as const;
-
 function formatStoryUpdateFrequencyValue(recentArticleCount: number): string {
-  const tier = resolveSubscriptionUpdateFrequencyTier(recentArticleCount);
-  return tier === "none" ? "None (in 30d)" : `${UPDATE_FREQUENCY_TIER_LABELS[tier]} (${recentArticleCount} in 30d)`;
+  const pace = resolveSubscriptionUpdatePace(recentArticleCount);
+  if (pace.unit === "none") {
+    return `None (in ${SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS}d)`;
+  }
+  return `About ${pace.count} per ${pace.unit} (${recentArticleCount} in ${SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS}d)`;
 }
 
 const feed = {
@@ -109,6 +113,7 @@ const meta = {
     latestArticleEmptyLabel: "No fetched articles",
     updateFrequencyLabel: "Update frequency",
     formatUpdateFrequencyValue: formatStoryUpdateFrequencyValue,
+    overloadedBadgeLabel: "Can't keep up",
     unreadCountLabel: "Unread",
     starredCountLabel: "Starred",
     reasonHeading: "Review reason",

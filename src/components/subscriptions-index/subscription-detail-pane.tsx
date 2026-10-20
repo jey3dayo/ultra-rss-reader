@@ -1,4 +1,5 @@
 import { Check, Clock3, Copy, Globe, Pencil, RefreshCw, Rss, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import type { LocalFeedSyncStatusDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import {
@@ -6,11 +7,13 @@ import {
   DecisionButton,
   FeedDetailPanel,
   FeedFavicon,
+  LabelChip,
   SurfaceCard,
   WorkspaceManagementActionButton,
 } from "@/design-system";
 import { formatShortDateTime } from "@/lib/datetime";
 import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
+import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
 import type {
@@ -47,6 +50,7 @@ type SubscriptionDetailPaneProps = {
   latestArticleEmptyLabel?: string;
   updateFrequencyLabel: string;
   formatUpdateFrequencyValue: (recentArticleCount: number) => string;
+  overloadedBadgeLabel: string;
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
@@ -129,6 +133,7 @@ type DetailMetricsInput = {
   latestArticleEmptyLabel: string;
   updateFrequencyLabel: string;
   formatUpdateFrequencyValue: (recentArticleCount: number) => string;
+  overloadedBadgeLabel: string;
   unreadCountLabel: string;
   starredCountLabel: string;
   displayModeLabel: string;
@@ -144,11 +149,26 @@ function buildDetailMetrics({
   latestArticleEmptyLabel,
   updateFrequencyLabel,
   formatUpdateFrequencyValue,
+  overloadedBadgeLabel,
   unreadCountLabel,
   starredCountLabel,
   displayModeLabel,
   displayModeValue,
 }: DetailMetricsInput) {
+  const overloaded = isOverloaded({
+    postsLast30Days: metrics.recentArticleCount,
+    unreadCount: row.feed.unread_count,
+  });
+  const updateFrequencyValue: ReactNode = overloaded ? (
+    <>
+      {formatUpdateFrequencyValue(metrics.recentArticleCount)}
+      <LabelChip data-testid="subscriptions-detail-overloaded-badge" tone="warning" size="compact" className="ml-1.5">
+        {overloadedBadgeLabel}
+      </LabelChip>
+    </>
+  ) : (
+    formatUpdateFrequencyValue(metrics.recentArticleCount)
+  );
   return [
     { label: folderLabel, value: row.folderName ?? "—" },
     {
@@ -157,7 +177,7 @@ function buildDetailMetrics({
     },
     {
       label: updateFrequencyLabel,
-      value: formatUpdateFrequencyValue(metrics.recentArticleCount),
+      value: updateFrequencyValue,
     },
     { label: unreadCountLabel, value: row.feed.unread_count },
     { label: starredCountLabel, value: metrics.starredCount },
@@ -378,6 +398,7 @@ export function SubscriptionDetailPane({
   latestArticleEmptyLabel = "—",
   updateFrequencyLabel,
   formatUpdateFrequencyValue,
+  overloadedBadgeLabel,
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
@@ -473,6 +494,7 @@ export function SubscriptionDetailPane({
                   latestArticleEmptyLabel,
                   updateFrequencyLabel,
                   formatUpdateFrequencyValue,
+                  overloadedBadgeLabel,
                   unreadCountLabel,
                   starredCountLabel,
                   displayModeLabel,

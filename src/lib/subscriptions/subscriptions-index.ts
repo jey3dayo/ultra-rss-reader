@@ -6,7 +6,7 @@ import {
   hasSubscriptionReviewReason,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscriptions/subscription-review-candidates";
-import { resolveSubscriptionUpdateFrequencyTier } from "@/lib/subscriptions/subscription-update-frequency";
+import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
 import type {
   SubscriptionListGroup,
   SubscriptionListRow,
@@ -67,7 +67,10 @@ function rowMatchesSubscriptionSummaryFilter(
   }
 
   if (filterKey === "frequent") {
-    return resolveSubscriptionUpdateFrequencyTier(row.recentArticleCount) === "high";
+    return isOverloaded({
+      postsLast30Days: row.recentArticleCount,
+      unreadCount: row.feed.unread_count,
+    });
   }
 
   if (filterKey === "fetch_errors") {
@@ -196,7 +199,7 @@ function countFrequentFeeds(feeds: FeedDto[], feedArticleSummaryMap: Map<string,
   let count = 0;
   for (const feed of feeds) {
     const recentArticleCount = feedArticleSummaryMap.get(feed.id)?.recent_article_count ?? 0;
-    if (resolveSubscriptionUpdateFrequencyTier(recentArticleCount) === "high") {
+    if (isOverloaded({ postsLast30Days: recentArticleCount, unreadCount: feed.unread_count })) {
       count += 1;
     }
   }

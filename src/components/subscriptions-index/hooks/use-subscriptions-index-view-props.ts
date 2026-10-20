@@ -15,8 +15,9 @@ import {
   resolveSubscriptionReviewSummaryTranslationKey,
 } from "@/lib/subscriptions/subscription-review-candidates";
 import {
-  resolveSubscriptionUpdateFrequencyTier,
-  SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD,
+  resolveSubscriptionUpdatePace,
+  SUBSCRIPTION_OVERLOADED_RECENT_ARTICLE_THRESHOLD,
+  SUBSCRIPTION_OVERLOADED_UNREAD_THRESHOLD,
   SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
 } from "@/lib/subscriptions/subscription-update-frequency";
 import {
@@ -219,7 +220,8 @@ export function useSubscriptionsIndexViewProps({
         t("summary_frequent_caption", {
           count,
           days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
-          threshold: SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD,
+          threshold: SUBSCRIPTION_OVERLOADED_RECENT_ARTICLE_THRESHOLD,
+          unread: SUBSCRIPTION_OVERLOADED_UNREAD_THRESHOLD,
         }),
     },
   }) satisfies SubscriptionSummaryCard[];
@@ -366,16 +368,17 @@ export function useSubscriptionsIndexViewProps({
     latestArticleEmptyLabel: t("meta_latest_article_none"),
     updateFrequencyLabel: t("update_frequency"),
     formatUpdateFrequencyValue: (recentArticleCount) => {
-      const tier = resolveSubscriptionUpdateFrequencyTier(recentArticleCount);
-      if (tier === "none") {
+      const pace = resolveSubscriptionUpdatePace(recentArticleCount);
+      if (pace.unit === "none") {
         return t("update_frequency_value_none", { days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS });
       }
-      return t("update_frequency_value", {
-        tier: t(`update_frequency_tier_${tier}`),
+      return t(`update_frequency_value_per_${pace.unit}`, {
+        count: pace.count,
+        total: recentArticleCount,
         days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
-        count: recentArticleCount,
       });
     },
+    overloadedBadgeLabel: t("update_frequency_overloaded_badge"),
     unreadCountLabel: t("unread_count"),
     starredCountLabel: t("starred_count"),
     reasonHeading: t("detail_reason_heading"),

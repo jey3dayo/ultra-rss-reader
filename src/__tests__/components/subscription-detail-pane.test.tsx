@@ -52,6 +52,7 @@ const baseProps = {
   latestArticleEmptyLabel: "No updates yet",
   updateFrequencyLabel: "Update frequency",
   formatUpdateFrequencyValue: (recentArticleCount: number) => `${recentArticleCount} recent`,
+  overloadedBadgeLabel: "Can't keep up",
   unreadCountLabel: "Unread",
   starredCountLabel: "Starred",
   reasonHeading: "Reason",
@@ -433,5 +434,21 @@ describe("SubscriptionDetailPane", () => {
     expect(within(getLatestArticleMetricRow()).getByText("No updates yet")).toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("Invalid Date")).not.toBeInTheDocument();
     expect(within(getLatestArticleMetricRow()).queryByText("—")).not.toBeInTheDocument();
+  });
+
+  it("shows the overloaded badge for 90 recent articles with 100 unread and not for 89", () => {
+    const overloadedRow = { ...buildRow(), feed: buildFeed({ unread_count: 100 }) };
+
+    const { rerender } = render(
+      <SubscriptionDetailPane {...baseProps} row={overloadedRow} metrics={{ ...metrics, recentArticleCount: 90 }} />,
+    );
+
+    expect(screen.getByTestId("subscriptions-detail-overloaded-badge")).toHaveTextContent("Can't keep up");
+
+    rerender(
+      <SubscriptionDetailPane {...baseProps} row={overloadedRow} metrics={{ ...metrics, recentArticleCount: 89 }} />,
+    );
+
+    expect(screen.queryByTestId("subscriptions-detail-overloaded-badge")).not.toBeInTheDocument();
   });
 });
