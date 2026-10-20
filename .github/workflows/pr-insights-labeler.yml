@@ -45,4 +45,6 @@ jobs:
             src-tauri/target/**
             src/components/ui/**
             src/generated/**
+            src/locales/**/*.json
+            src/styles/global.css
           language: "ja"
