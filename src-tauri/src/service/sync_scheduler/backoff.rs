@@ -380,10 +380,11 @@ fn credential_access_pending(has_lease: bool, last_error: Option<&str>) -> bool 
 }
 
 /// Once authorization is required, only an explicit connection can resume macOS scheduling.
-pub(super) fn waiting_for_credential_access(db: &Mutex<DbManager>, account: &Account) -> bool {
+pub(crate) fn waiting_for_credential_access(db: &Mutex<DbManager>, account: &Account) -> bool {
     #[cfg(target_os = "macos")]
     {
-        let has_lease = crate::infra::keyring_store::session_cache::has_lease(account.id.as_ref());
+        let has_lease = crate::infra::keyring_store::uses_dev_credential_store()
+            || crate::infra::keyring_store::session_cache::has_lease(account.id.as_ref());
         let Ok(db) = db.lock() else {
             return false;
         };

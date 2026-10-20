@@ -724,3 +724,19 @@ fn settings_metadata_reads_the_credential_store_off_macos() {
         }
     );
 }
+
+#[test]
+fn settings_metadata_reads_store_when_not_macos_or_when_local_file_storage_is_active() {
+    for (is_macos, uses_file_store, expected) in [
+        (false, false, true),
+        (false, true, true),
+        (true, false, false),
+        (true, true, true),
+    ] {
+        assert_eq!(
+            settings_metadata_reads_store(is_macos, uses_file_store),
+            expected,
+            "is_macos={is_macos}, uses_file_store={uses_file_store}"
+        );
+    }
+}

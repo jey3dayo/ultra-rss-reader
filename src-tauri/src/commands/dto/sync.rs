@@ -26,6 +26,7 @@ pub struct AccountSyncStatus {
     pub last_error: Option<String>,
     pub error_count: i32,
     pub next_retry_at: Option<String>,
+    pub waiting_for_credential_access: bool,
 }
 
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]

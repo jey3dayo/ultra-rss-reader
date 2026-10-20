@@ -453,6 +453,7 @@ function createDefaultHandler(): MockHandler {
           last_error: null,
           error_count: 0,
           next_retry_at: null,
+          waiting_for_credential_access: false,
         } satisfies AccountSyncStatusDto;
       case "open_in_browser":
       case "plugin:opener|open_url":
@@ -462,6 +463,10 @@ function createDefaultHandler(): MockHandler {
         return null;
       case "reset_oversized_dev_credentials_store":
         return false;
+      case "get_credential_storage":
+        return { storage: "os_keychain", configurable: true };
+      case "set_credential_storage":
+        return { storage: args.storage, configurable: true };
       case "plugin:event|listen":
         return 1;
       case "plugin:event|unlisten":

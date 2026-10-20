@@ -95,6 +95,7 @@ export {
   renameTagArgs,
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
+  setCredentialStorageArgs,
   setLocalAccountSyncSettingsArgs,
   setMuteAutoMarkReadArgs,
   setPreferenceArgs,
@@ -162,6 +163,10 @@ export {
   MuteKeywordScopeSchema,
 } from "./mute-keyword";
 export {
+  type CredentialStorageDto,
+  type CredentialStorageKind,
+  CredentialStorageKindSchema,
+  CredentialStorageSchema,
   type DevRuntimeOptions,
   DevRuntimeOptionsSchema,
   type PlatformInfo,

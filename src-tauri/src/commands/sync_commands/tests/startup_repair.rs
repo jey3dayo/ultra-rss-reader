@@ -586,3 +586,12 @@ fn map_account_sync_status_includes_last_success_at() {
         Some("2026-04-16T12:40:00Z")
     );
 }
+
+#[test]
+fn map_account_sync_status_reports_not_waiting_for_credential_access() {
+    let status = map_account_sync_status(None);
+    assert!(!status.waiting_for_credential_access);
+
+    let json = serde_json::to_string(&status).expect("DTO should serialize");
+    assert!(json.contains(r#""waiting_for_credential_access":false"#));
+}

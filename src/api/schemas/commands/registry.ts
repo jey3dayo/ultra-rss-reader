@@ -41,6 +41,7 @@ import {
   createOrUpdateBrowserWebviewArgs,
   setBrowserWebviewBoundsArgs,
 } from "./browser-webview";
+import { setCredentialStorageArgs } from "./credential-storage";
 import {
   addLocalFeedArgs,
   createFolderArgs,
@@ -143,6 +144,7 @@ export const commandArgsSchemas = {
   export_opml_to_file: exportOpmlToFileArgs,
   export_settings_profile_to_file: exportSettingsProfileToFileArgs,
   import_settings_profile: importSettingsProfileArgs,
+  set_credential_storage: setCredentialStorageArgs,
   set_preference: setPreferenceArgs,
   copy_to_clipboard: copyToClipboardArgs,
   add_to_reading_list: addToReadingListArgs,

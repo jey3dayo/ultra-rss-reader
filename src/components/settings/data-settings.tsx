@@ -1,6 +1,9 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { CredentialStorageSectionView } from "@/components/settings/credential-storage-section-view";
 import { DataSettingsView } from "@/components/settings/data-settings-view";
 import { useUiStore } from "@/stores/ui-store";
+import { useCredentialStorageSetting } from "./hooks/use-credential-storage-setting";
 import { useDataSettingsController } from "./hooks/use-data-settings-controller";
 import { useRegisterSettingsDirtyState } from "./hooks/use-settings-dirty-state-registry";
 
@@ -13,12 +16,29 @@ export function DataSettings() {
     showToast,
     setSettingsLoading,
   });
+  const credentialStorage = useCredentialStorageSetting({ t, showToast });
+  const credentialStorageSection: ReactNode = (
+    <CredentialStorageSectionView
+      heading={t("data.credential_storage_heading")}
+      label={t("data.credential_storage_label")}
+      description={t("data.credential_storage_description")}
+      osKeychainLabel={t("data.credential_storage_os_keychain")}
+      localFileLabel={t("data.credential_storage_local_file")}
+      localFileWarning={t("data.credential_storage_local_file_warning")}
+      storage={credentialStorage.storage}
+      loaded={credentialStorage.loaded}
+      configurable={credentialStorage.configurable}
+      saving={credentialStorage.saving}
+      onStorageChange={(next) => void credentialStorage.handleChange(next)}
+    />
+  );
   const dataActionPending =
     controller.vacuuming ||
     controller.backingUp ||
     controller.openingLogDir ||
     controller.exportingSettingsProfile ||
-    controller.importingSettingsProfile;
+    controller.importingSettingsProfile ||
+    credentialStorage.saving;
   const safetyChecklist = t("data.safety_checklist", {
     returnObjects: true,
   }) as string[];
@@ -34,6 +54,7 @@ export function DataSettings() {
     <DataSettingsView
       title={t("data.heading")}
       databaseHeading={t("data.database")}
+      credentialStorageSection={credentialStorageSection}
       databaseSizeLabel={t("data.database_size")}
       databaseSizeStatus={controller.databaseSizeStatus}
       databaseSizeValue={controller.databaseSizeValue}

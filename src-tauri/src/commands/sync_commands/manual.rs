@@ -44,11 +44,14 @@ pub enum SyncCredentialAccess {
     Interactive,
 }
 
-fn account_sync_mode(access: Option<SyncCredentialAccess>) -> CredentialLookupMode {
+fn account_sync_mode(
+    access: Option<SyncCredentialAccess>,
+    account_id: &str,
+) -> CredentialLookupMode {
     match access {
         Some(SyncCredentialAccess::Background) => CredentialLookupMode::Background,
         Some(SyncCredentialAccess::Interactive) => CredentialLookupMode::Interactive,
-        None => CredentialLookupMode::for_user_sync(),
+        None => CredentialLookupMode::for_user_sync(account_id),
     }
 }
 
@@ -68,7 +71,7 @@ pub async fn trigger_sync(
         &state.syncing,
         accounts,
         Some(reporter),
-        CredentialLookupMode::for_user_sync(),
+        |account| CredentialLookupMode::for_user_sync(account.id.as_ref()),
         SyncTrigger::ManualAll,
         |result| {
             let plan = plan_finish(&FinishInput::from_result(result), SyncEntry::ManualAll);
@@ -101,11 +104,23 @@ pub fn get_account_sync_status(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<AccountSyncStatus, AppError> {
-    let db_guard = lock_db(&state.db)?;
-    let repo = SqliteSyncStateRepository::new(db_guard.reader());
-    let scope_key = SyncStateScopeKey::scheduler().as_string();
-    let state = repo.get(&AccountId(account_id), &scope_key)?;
-    Ok(map_account_sync_status(state))
+    let account_id = AccountId(account_id);
+    let mut status = {
+        let db_guard = lock_db(&state.db)?;
+        let repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let scope_key = SyncStateScopeKey::scheduler().as_string();
+        map_account_sync_status(repo.get(&account_id, &scope_key)?)
+    };
+    let account = {
+        let db_guard = lock_db(&state.db)?;
+        let repo = SqliteAccountRepository::new(db_guard.reader());
+        repo.find_by_id(&account_id)?
+    };
+    if let Some(account) = account {
+        status.waiting_for_credential_access =
+            crate::service::sync_scheduler::waiting_for_credential_access(&state.db, &account);
+    }
+    Ok(status)
 }
 
 #[tauri::command]
@@ -150,7 +165,7 @@ pub async fn trigger_sync_account(
         failed: Vec::new(),
         warnings: Vec::new(),
     };
-    let mode = account_sync_mode(credential_access);
+    let mode = account_sync_mode(credential_access, account_id.as_ref());
     match sync_account_with_mode(&state.db, &account, mode).await {
         Ok(outcome) => {
             result.succeeded = 1;
@@ -271,7 +286,7 @@ pub async fn trigger_sync_feed(
         &state.db,
         &account,
         &feed,
-        CredentialLookupMode::for_user_sync(),
+        CredentialLookupMode::for_user_sync(account.id.as_ref()),
     )
     .await
     {

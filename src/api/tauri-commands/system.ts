@@ -1,6 +1,8 @@
 import { nullable } from "valibot";
 import {
   BooleanResponseSchema,
+  type CredentialStorageKind,
+  CredentialStorageSchema,
   DatabaseInfoDtoSchema,
   DevRuntimeOptionsSchema,
   NullResponseSchema,
@@ -8,11 +10,19 @@ import {
   PlatformPermissionDeniedRecoveryListSchema,
   type ReadDiagnosticEventArgs,
   recordReadDiagnosticsBatchArgs,
+  setCredentialStorageArgs,
   UpdateInfoDtoSchema,
 } from "@/api/schemas";
 import { safeInvoke } from "./runtime";
 
 export const getPlatformInfo = () => safeInvoke("get_platform_info", { response: PlatformInfoSchema });
+export const getCredentialStorage = () => safeInvoke("get_credential_storage", { response: CredentialStorageSchema });
+export const setCredentialStorage = (storage: CredentialStorageKind) =>
+  safeInvoke(
+    "set_credential_storage",
+    { response: CredentialStorageSchema, args: setCredentialStorageArgs },
+    { storage },
+  );
 export const getDevRuntimeOptions = () => safeInvoke("get_dev_runtime_options", { response: DevRuntimeOptionsSchema });
 // No production caller yet. `tests/helpers/tauri-mocks.node.test.ts` extracts the frontend command
 // set from this source and pins it against the default mock set, and `src/dev/mocks.ts` plus the

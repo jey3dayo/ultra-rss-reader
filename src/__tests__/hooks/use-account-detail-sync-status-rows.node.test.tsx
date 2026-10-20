@@ -12,6 +12,7 @@ describe("useAccountDetailSyncStatusRows", () => {
     next_retry_at: null,
     error_count: 0,
     last_error: null,
+    waiting_for_credential_access: false,
     ...overrides,
   });
 
@@ -92,6 +93,54 @@ describe("useAccountDetailSyncStatusRows", () => {
       {
         label: "label:account.next_automatic_retry",
         value: "not-a-date",
+      },
+    ]);
+  });
+
+  it("replaces the retry row with the paused automatic sync row while waiting for credential access", () => {
+    const syncStatus = createSyncStatus({
+      next_retry_at: "2026-04-13T10:00:00Z",
+      waiting_for_credential_access: true,
+    });
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncStatusRows({
+        syncStatus,
+        language: "en",
+        t,
+      }),
+    );
+
+    expect(result.current).toEqual([
+      {
+        label: "label:account.automatic_sync_status",
+        value: "label:account.automatic_sync_paused_needs_connection_test",
+      },
+    ]);
+  });
+
+  it("keeps the consecutive failures row while waiting for credential access", () => {
+    const syncStatus = createSyncStatus({
+      error_count: 3,
+      waiting_for_credential_access: true,
+    });
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncStatusRows({
+        syncStatus,
+        language: "en",
+        t,
+      }),
+    );
+
+    expect(result.current).toEqual([
+      {
+        label: "label:account.automatic_sync_status",
+        value: "label:account.automatic_sync_paused_needs_connection_test",
+      },
+      {
+        label: "label:account.consecutive_sync_failures",
+        value: "3 failures",
       },
     ]);
   });

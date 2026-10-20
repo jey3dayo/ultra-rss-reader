@@ -1,6 +1,7 @@
 export * from "./account";
 export * from "./article";
 export * from "./browser-webview";
+export * from "./credential-storage";
 export * from "./feed-folder";
 export * from "./integration";
 export * from "./local-account-sync";

@@ -131,10 +131,23 @@ function buildSecondaryAction(
   controller: AccountDetailControllerResult,
   t: TFunction<"settings">,
   showEditCredentials: boolean,
+  showTestConnection: boolean,
 ): Pick<SyncSectionProps, "secondaryActionLabel" | "onSecondaryAction"> {
+  if (showEditCredentials) {
+    return {
+      secondaryActionLabel: t("account.setup_edit_credentials"),
+      onSecondaryAction: controller.focusCredentialsEditor,
+    };
+  }
+  if (showTestConnection) {
+    return {
+      secondaryActionLabel: t("account.test_connection"),
+      onSecondaryAction: controller.handleTestConnection,
+    };
+  }
   return {
-    secondaryActionLabel: showEditCredentials ? t("account.setup_edit_credentials") : undefined,
-    onSecondaryAction: showEditCredentials ? controller.focusCredentialsEditor : undefined,
+    secondaryActionLabel: undefined,
+    onSecondaryAction: undefined,
   };
 }
 
@@ -185,6 +198,7 @@ export function buildSyncSection({
   const canShowDevCredentialsRecovery =
     canRecoverDevCredentialsStore && !isQuarantined && hasOversizedDevCredentialsStoreError(syncStatus);
   const phase = resolveSyncPhase({ isQuarantined, isSetupSyncing, isSetupFailed });
+  const isWaitingForCredentialAccess = syncStatus?.waiting_for_credential_access === true;
   const { progressValue, progressLabel, progressCurrentLabel } = buildSyncProgress({ isSyncing, syncProgress, t });
 
   return {
@@ -201,7 +215,12 @@ export function buildSyncSection({
     syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
     onSyncNow: resolveSyncNowHandler(controller, isQuarantined, isSetupActive),
     isSyncing: isSyncing || controller.syncActionInFlight,
-    ...buildSecondaryAction(controller, t, isSetupFailed && !isQuarantined),
+    ...buildSecondaryAction(
+      controller,
+      t,
+      isSetupFailed && !isQuarantined,
+      isWaitingForCredentialAccess && !isQuarantined && !isSetupActive,
+    ),
     ...buildDevCredentialsRecovery(controller, t, canShowDevCredentialsRecovery),
   };
 }

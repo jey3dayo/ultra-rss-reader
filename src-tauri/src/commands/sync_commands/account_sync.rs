@@ -203,7 +203,7 @@ pub(crate) async fn run_sync_for_accounts_with_progress(
         syncing,
         accounts,
         reporter,
-        CredentialLookupMode::Background,
+        |_| CredentialLookupMode::Background,
         SyncTrigger::Background,
         |_| {},
     )
@@ -217,7 +217,7 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     syncing: &AtomicBool,
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
-    mode: CredentialLookupMode,
+    mode: impl Fn(&Account) -> CredentialLookupMode,
     trigger: SyncTrigger,
     finish: impl FnOnce(&SyncResult),
 ) -> Result<SyncResult, AppError> {
@@ -259,7 +259,7 @@ pub(crate) async fn run_sync_for_accounts_guarded(
         db,
         accounts,
         reporter,
-        CredentialLookupMode::Background,
+        |_| CredentialLookupMode::Background,
         trigger,
     )
     .await
@@ -269,7 +269,7 @@ async fn run_sync_for_accounts_guarded_with_mode(
     db: &Mutex<DbManager>,
     accounts: Vec<Account>,
     reporter: Option<SyncProgressReporter>,
-    mode: CredentialLookupMode,
+    mode: impl Fn(&Account) -> CredentialLookupMode,
     trigger: SyncTrigger,
 ) -> Result<SyncResult, AppError> {
     let total = accounts.len();
@@ -286,6 +286,7 @@ async fn run_sync_for_accounts_guarded_with_mode(
         .into_iter()
         .map(|account| {
             let reporter = reporter.clone();
+            let mode = mode(&account);
             async move {
                 if let Some(reporter) = reporter.as_ref() {
                     reporter.emit_account_started(&account);

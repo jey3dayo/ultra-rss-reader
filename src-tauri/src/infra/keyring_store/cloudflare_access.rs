@@ -11,6 +11,7 @@ use super::diagnostics::{
     log_credential_malformed, log_keyring_access_failed, log_keyring_error, CredentialKind,
     KeyringOp,
 };
+use super::secret_backend::SecretBackend;
 
 pub(super) const SERVICE: &str = "ultra-rss-reader-cloudflare-access";
 pub(crate) const CLIENT_ID_HEADER: &str = "cf-access-client-id";
@@ -114,15 +115,73 @@ pub(crate) struct OsCloudflareAccessStore;
 
 impl OsCloudflareAccessStore {
     fn raw(&self, account_id: &str) -> Result<Option<String>, AccessStoreError> {
-        match Self::entry(account_id, KeyringOp::Load)?.get_password() {
-            Ok(value) => Ok(Some(value)),
-            Err(keyring::Error::NoEntry) => Ok(None),
-            Err(error) => Err(unavailable(KeyringOp::Load, &error)),
-        }
+        self.raw_get(account_id, KeyringOp::Load)
     }
 
     fn entry(account_id: &str, op: KeyringOp) -> Result<keyring::Entry, AccessStoreError> {
         keyring::Entry::new(SERVICE, account_id).map_err(|error| unavailable(op, &error))
+    }
+
+    fn raw_get(&self, account_id: &str, op: KeyringOp) -> Result<Option<String>, AccessStoreError> {
+        if super::uses_local_file_storage() {
+            let backend = Self::local_file_backend()?;
+            return backend
+                .read(&Self::secret_entry(account_id))
+                .map_err(|_| AccessStoreError::Unavailable);
+        }
+        match Self::entry(account_id, op)?.get_password() {
+            Ok(value) => Ok(Some(value)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(error) => Err(unavailable(op, &error)),
+        }
+    }
+
+    fn raw_set(
+        &self,
+        account_id: &str,
+        value: &str,
+        op: KeyringOp,
+    ) -> Result<(), AccessStoreError> {
+        let _write_guard =
+            super::credential_write_guard().map_err(|_| AccessStoreError::Unavailable)?;
+        if super::uses_local_file_storage() {
+            let backend = Self::local_file_backend()?;
+            return backend
+                .write(&Self::secret_entry(account_id), value)
+                .map_err(|_| AccessStoreError::Unavailable);
+        }
+        Self::entry(account_id, op)?
+            .set_password(value)
+            .map_err(|error| unavailable(op, &error))
+    }
+
+    fn raw_delete(&self, account_id: &str, op: KeyringOp) -> Result<(), AccessStoreError> {
+        let _write_guard =
+            super::credential_write_guard().map_err(|_| AccessStoreError::Unavailable)?;
+        if super::uses_local_file_storage() {
+            let backend = Self::local_file_backend()?;
+            return backend
+                .delete(&Self::secret_entry(account_id))
+                .map_err(|_| AccessStoreError::Unavailable);
+        }
+        match Self::entry(account_id, op)?.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => {}
+            Err(error) => return Err(unavailable(op, &error)),
+        }
+        Ok(())
+    }
+
+    fn local_file_backend() -> Result<super::secret_backend::LocalFileBackend, AccessStoreError> {
+        super::storage_mode::local_credentials_path()
+            .map(super::secret_backend::LocalFileBackend::new)
+            .ok_or(AccessStoreError::Unavailable)
+    }
+
+    fn secret_entry(account_id: &str) -> super::secret_backend::SecretEntry {
+        super::secret_backend::SecretEntry {
+            kind: super::secret_backend::SecretKind::CloudflareAccess,
+            account_id: account_id.to_string(),
+        }
     }
 }
 
@@ -142,9 +201,7 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
             https_origin: access.https_origin.clone(),
         })
         .map_err(|_| AccessStoreError::Malformed)?;
-        Self::entry(account_id, KeyringOp::Save)?
-            .set_password(&value)
-            .map_err(|error| unavailable(KeyringOp::Save, &error))?;
+        self.raw_set(account_id, &value, KeyringOp::Save)?;
         verify_saved_access(self, account_id, Some(access))?;
         #[cfg(target_os = "macos")]
         invalidate_leases(account_id)?;
@@ -154,10 +211,7 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
     fn remove(&self, account_id: &str) -> Result<(), AccessStoreError> {
         #[cfg(target_os = "macos")]
         super::session_cache::invalidate(account_id).map_err(|_| AccessStoreError::Unavailable)?;
-        match Self::entry(account_id, KeyringOp::Remove)?.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => {}
-            Err(error) => return Err(unavailable(KeyringOp::Remove, &error)),
-        }
+        self.raw_delete(account_id, KeyringOp::Remove)?;
         verify_saved_access(self, account_id, None)?;
         #[cfg(target_os = "macos")]
         invalidate_leases(account_id)?;
@@ -180,9 +234,7 @@ impl CloudflareAccessStore for OsCloudflareAccessStore {
             AccessSnapshot::Missing => self.remove(account_id),
             AccessSnapshot::Configured(access) => self.save(account_id, access),
             AccessSnapshot::Malformed(raw) => {
-                Self::entry(account_id, KeyringOp::Restore)?
-                    .set_password(raw)
-                    .map_err(|error| unavailable(KeyringOp::Restore, &error))?;
+                self.raw_set(account_id, raw, KeyringOp::Restore)?;
                 if self.raw(account_id)?.as_ref() == Some(raw) {
                     #[cfg(target_os = "macos")]
                     invalidate_leases(account_id)?;
@@ -216,6 +268,10 @@ pub(crate) fn load_for_sync_with_mode(
     #[cfg(test)]
     if let Some(result) = test_support::lookup(account_id) {
         return result;
+    }
+    let _read_guard = super::credential_read_guard().map_err(|_| AccessStoreError::Unavailable)?;
+    if super::uses_local_file_storage() {
+        return OsCloudflareAccessStore.load(account_id);
     }
     #[cfg(target_os = "macos")]
     {

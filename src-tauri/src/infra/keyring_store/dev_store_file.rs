@@ -2,7 +2,9 @@ use super::redaction::redacted_dev_store_path;
 use super::DEV_CREDENTIALS_RECOVERY_HINT;
 use crate::domain::error::{DomainError, DomainResult};
 use std::collections::HashMap;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -98,8 +100,36 @@ pub(super) fn write_dev_store(path: &Path, store: &HashMap<String, String>) -> D
         )));
     }
     let temp_path = dev_store_temp_path(path);
-    std::fs::write(&temp_path, &json)
+    if let Err(error) = std::fs::remove_file(&temp_path) {
+        if error.kind() != ErrorKind::NotFound {
+            return Err(dev_store_recovery_error(format!(
+                "Failed to write dev store: {error}"
+            )));
+        }
+    }
+    #[cfg(unix)]
+    let mut temp_file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&temp_path)
         .map_err(|e| dev_store_recovery_error(format!("Failed to write dev store: {e}")))?;
+    #[cfg(not(unix))]
+    let mut temp_file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temp_path)
+        .map_err(|e| dev_store_recovery_error(format!("Failed to write dev store: {e}")))?;
+    if let Err(error) = temp_file
+        .write_all(json.as_bytes())
+        .and_then(|()| temp_file.sync_all())
+    {
+        cleanup_failed_dev_store_temp_file(&temp_path);
+        return Err(dev_store_recovery_error(format!(
+            "Failed to write dev store: {error}"
+        )));
+    }
+    drop(temp_file);
     #[cfg(unix)]
     if let Err(error) = super::dev_store_lock::set_dev_store_owner_only_permissions(&temp_path) {
         cleanup_failed_dev_store_temp_file(&temp_path);
@@ -111,7 +141,23 @@ pub(super) fn write_dev_store(path: &Path, store: &HashMap<String, String>) -> D
             "Failed to replace dev store: {error}"
         )));
     }
+    let _ = sync_parent_dir(path);
     Ok(())
+}
+
+pub(super) fn sync_parent_dir(path: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        let Some(parent) = path.parent() else {
+            return Ok(());
+        };
+        std::fs::File::open(parent)?.sync_all()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        Ok(())
+    }
 }
 
 pub(super) fn dev_store_recovery_error(message: impl Into<String>) -> DomainError {

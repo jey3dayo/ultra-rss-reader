@@ -9,6 +9,7 @@ export const AccountSyncStatusSchema = s.strictObject({
   last_error: v.nullable(v.string()),
   error_count: v.pipe(v.number(), v.integer(), v.minValue(0), v.finite()),
   next_retry_at: nullableIsoDateTimeStringSchema,
+  waiting_for_credential_access: v.optional(v.boolean(), false),
 });
 
 export type AccountSyncStatusDto = v.InferOutput<typeof AccountSyncStatusSchema>;
