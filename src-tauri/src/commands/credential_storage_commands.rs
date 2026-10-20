@@ -1,5 +1,5 @@
 use serde::Serialize;
-use tauri::State;
+use tauri::Manager;
 
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
@@ -35,7 +35,7 @@ pub fn get_credential_storage() -> Result<CredentialStorageDto, AppError> {
 
 #[tauri::command]
 pub async fn set_credential_storage(
-    state: State<'_, AppState>,
+    app_handle: tauri::AppHandle,
     storage: CredentialStorage,
 ) -> Result<CredentialStorageDto, AppError> {
     if !credential_storage_configurable() {
@@ -48,13 +48,7 @@ pub async fn set_credential_storage(
         return Ok(credential_storage_dto());
     }
 
-    let entries = {
-        let db = crate::commands::lock_db(&state.db)?;
-        let repo = SqliteAccountRepository::new(db.reader());
-        migration_entries_for_freshrss_accounts(repo.find_all()?)
-    };
-
-    let report = tokio::task::spawn_blocking(move || switch_with_lock(&entries, storage))
+    let report = tokio::task::spawn_blocking(move || switch_with_lock(app_handle, storage))
         .await
         .map_err(|_| AppError::UserVisible {
             message: SWITCH_FAILED_MESSAGE.into(),
@@ -73,10 +67,10 @@ pub async fn set_credential_storage(
     })
 }
 
-fn migration_entries_for_freshrss_accounts(accounts: Vec<Account>) -> Vec<SecretEntry> {
+fn migration_entries_for_accounts(accounts: Vec<Account>) -> Vec<SecretEntry> {
     accounts
         .into_iter()
-        .filter(|account| account.kind == ProviderKind::FreshRss)
+        .filter(|account| account.kind != ProviderKind::Local)
         .flat_map(|account| {
             let account_id = account.id.0;
             [
@@ -94,18 +88,24 @@ fn migration_entries_for_freshrss_accounts(accounts: Vec<Account>) -> Vec<Secret
 }
 
 fn switch_with_lock(
-    entries: &[SecretEntry],
+    app_handle: tauri::AppHandle,
     storage: CredentialStorage,
 ) -> Result<MigrationReport, AppError> {
+    let state = app_handle.state::<AppState>();
+    let db = crate::commands::lock_db(&state.db)?;
     let _switch_guard =
         crate::infra::keyring_store::credential_write_guard().map_err(AppError::from)?;
     if storage_mode::active() == storage {
         return Ok(MigrationReport::default());
     }
 
+    let entries =
+        migration_entries_for_accounts(SqliteAccountRepository::new(db.reader()).find_all()?);
+    drop(db);
+
     let from = secret_backend::backend_for(storage_mode::active()).map_err(AppError::from)?;
     let to = secret_backend::backend_for(storage).map_err(AppError::from)?;
-    secret_backend::migrate_secrets(from.as_ref(), to.as_ref(), entries, || {
+    secret_backend::migrate_secrets(from.as_ref(), to.as_ref(), &entries, || {
         storage_mode::persist(storage)
     })
     .map_err(AppError::from)
@@ -114,6 +114,8 @@ fn switch_with_lock(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::account::ConnectionVerificationStatus;
+    use crate::domain::types::AccountId;
 
     #[test]
     fn credential_storage_dto_serializes_storage_kind_snake_case() {
@@ -125,5 +127,61 @@ mod tests {
         let json = serde_json::to_string(&dto).expect("DTO should serialize");
 
         assert_eq!(json, r#"{"storage":"local_file","configurable":true}"#);
+    }
+
+    fn test_account(kind: ProviderKind, id: &str) -> Account {
+        Account {
+            id: AccountId(id.to_string()),
+            kind,
+            name: "Account".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        }
+    }
+
+    #[test]
+    fn migration_entries_include_both_kinds_for_freshrss_and_quarantined_accounts() {
+        let accounts = vec![
+            test_account(ProviderKind::FreshRss, "freshrss-account"),
+            test_account(ProviderKind::Quarantined, "quarantined-account"),
+        ];
+
+        let entries = migration_entries_for_accounts(accounts);
+
+        assert_eq!(
+            entries,
+            vec![
+                SecretEntry {
+                    kind: SecretKind::FreshRssPassword,
+                    account_id: "freshrss-account".to_string(),
+                },
+                SecretEntry {
+                    kind: SecretKind::CloudflareAccess,
+                    account_id: "freshrss-account".to_string(),
+                },
+                SecretEntry {
+                    kind: SecretKind::FreshRssPassword,
+                    account_id: "quarantined-account".to_string(),
+                },
+                SecretEntry {
+                    kind: SecretKind::CloudflareAccess,
+                    account_id: "quarantined-account".to_string(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn migration_entries_exclude_local_accounts() {
+        let accounts = vec![test_account(ProviderKind::Local, "local-account")];
+
+        assert!(migration_entries_for_accounts(accounts).is_empty());
     }
 }
