@@ -1,24 +1,21 @@
 import { describe, expect, it } from "vitest";
-import {
-  resolveSubscriptionUpdateFrequencyTier,
-  SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD,
-  SUBSCRIPTION_UPDATE_FREQUENCY_MEDIUM_THRESHOLD,
-} from "@/lib/subscriptions/subscription-update-frequency";
+import { isOverloaded, resolveSubscriptionUpdatePace } from "@/lib/subscriptions/subscription-update-frequency";
 
-describe("resolveSubscriptionUpdateFrequencyTier", () => {
-  it("classifies each tier including the exact threshold boundaries and fractional flooring", () => {
-    expect(resolveSubscriptionUpdateFrequencyTier(0)).toBe("none");
-    expect(resolveSubscriptionUpdateFrequencyTier(SUBSCRIPTION_UPDATE_FREQUENCY_MEDIUM_THRESHOLD - 1)).toBe("low");
-    expect(resolveSubscriptionUpdateFrequencyTier(3.9)).toBe("low");
-    expect(resolveSubscriptionUpdateFrequencyTier(SUBSCRIPTION_UPDATE_FREQUENCY_MEDIUM_THRESHOLD)).toBe("medium");
-    expect(resolveSubscriptionUpdateFrequencyTier(SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD - 1)).toBe("medium");
-    expect(resolveSubscriptionUpdateFrequencyTier(SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD)).toBe("high");
-    expect(resolveSubscriptionUpdateFrequencyTier(500)).toBe("high");
+describe("isOverloaded", () => {
+  it("requires both thresholds and respects their boundaries", () => {
+    expect(isOverloaded({ postsLast30Days: 90, unreadCount: 100 })).toBe(true);
+    expect(isOverloaded({ postsLast30Days: 89, unreadCount: 100 })).toBe(false);
+    expect(isOverloaded({ postsLast30Days: 99, unreadCount: 90 })).toBe(false);
+    expect(isOverloaded({ postsLast30Days: 90, unreadCount: 99 })).toBe(false);
   });
+});
 
-  it("normalizes negative and non-finite counts toward none", () => {
-    expect(resolveSubscriptionUpdateFrequencyTier(-5)).toBe("none");
-    expect(resolveSubscriptionUpdateFrequencyTier(Number.NaN)).toBe("none");
-    expect(resolveSubscriptionUpdateFrequencyTier(Number.POSITIVE_INFINITY)).toBe("none");
+describe("resolveSubscriptionUpdatePace", () => {
+  it("resolves none, daily, and weekly paces from the 30-day window", () => {
+    expect(resolveSubscriptionUpdatePace(0)).toEqual({ unit: "none" });
+    expect(resolveSubscriptionUpdatePace(30)).toEqual({ unit: "day", count: 1 });
+    expect(resolveSubscriptionUpdatePace(484)).toEqual({ unit: "day", count: 16 });
+    expect(resolveSubscriptionUpdatePace(1)).toEqual({ unit: "week", count: 1 });
+    expect(resolveSubscriptionUpdatePace(10)).toEqual({ unit: "week", count: 2 });
   });
 });

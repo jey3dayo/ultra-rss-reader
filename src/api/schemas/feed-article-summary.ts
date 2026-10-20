@@ -8,7 +8,7 @@ export const FeedArticleSummaryDtoSchema = s.strictObject({
   starred_count: NonnegativeIntegerSchema,
   // Count of visible articles published in the recent activity window (last 30 days,
   // future-dated rows excluded). Backend source of truth: RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS.
-  // Tier classification lives in src/lib/subscriptions/subscription-update-frequency.ts.
+  // Pace and frequent-criteria resolution lives in src/lib/subscriptions/subscription-update-frequency.ts.
   recent_article_count: NonnegativeIntegerSchema,
 });
 

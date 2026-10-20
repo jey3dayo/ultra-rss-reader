@@ -68,6 +68,7 @@ type SubscriptionsIndexPageViewProps = {
   latestArticleEmptyLabel: string;
   updateFrequencyLabel: string;
   formatUpdateFrequencyValue: (recentArticleCount: number) => string;
+  overloadedBadgeLabel: string;
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
@@ -128,6 +129,7 @@ export function SubscriptionsIndexPageView({
   latestArticleEmptyLabel,
   updateFrequencyLabel,
   formatUpdateFrequencyValue,
+  overloadedBadgeLabel,
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
@@ -214,6 +216,7 @@ export function SubscriptionsIndexPageView({
               latestArticleEmptyLabel={latestArticleEmptyLabel}
               updateFrequencyLabel={updateFrequencyLabel}
               formatUpdateFrequencyValue={formatUpdateFrequencyValue}
+              overloadedBadgeLabel={overloadedBadgeLabel}
               unreadCountLabel={unreadCountLabel}
               starredCountLabel={starredCountLabel}
               reasonHeading={reasonHeading}
