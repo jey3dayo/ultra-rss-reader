@@ -18,6 +18,7 @@ mod dev_store_path;
 mod diagnostics;
 mod macos_security_cli;
 mod redaction;
+pub(crate) mod secret_backend;
 #[cfg(any(target_os = "macos", test))]
 pub(crate) mod session_cache;
 pub(crate) mod storage_mode;
