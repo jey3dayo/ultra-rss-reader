@@ -10,6 +10,8 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { AccountDto } from "@/api/tauri-commands";
 import { AccountDetail } from "@/components/settings/account-detail";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
+import { SettingsDirtyStateRegistryProvider } from "@/components/settings/hooks/use-settings-dirty-state-registry";
+import { SettingsUnsavedChangesFooter } from "@/components/settings/settings-unsaved-changes-bar";
 import { i18nResourceLocales } from "@/lib/i18n-resources";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -82,6 +84,20 @@ async function findPasswordInput() {
   }
 
   return input;
+}
+
+function AccountDetailWithSaveBarHarness() {
+  return (
+    <SettingsDirtyStateRegistryProvider>
+      <SettingsUnsavedChangesFooter
+        message={i18n.t("settings:dirty_state.unsaved_changes")}
+        discardLabel={i18n.t("settings:dirty_state.discard")}
+        saveLabel={i18n.t("settings:account.save_and_test_connection")}
+        savingLabel={i18n.t("settings:account.testing_connection")}
+      />
+      <AccountDetail />
+    </SettingsDirtyStateRegistryProvider>
+  );
 }
 
 const { showSaveDialogMock } = vi.hoisted(() => ({ showSaveDialogMock: vi.fn() }));
@@ -895,7 +911,7 @@ describe("AccountDetail", () => {
           errorMessage: "Authentication failed",
         },
       });
-      render(<AccountDetail />, { wrapper: createWrapper() });
+      render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
       await screen.findByRole("button", { name: "Retry setup" });
       if (field === "password") {
         await user.type(await findPasswordInput(), "dummy-new-password");
@@ -920,6 +936,7 @@ describe("AccountDetail", () => {
       expect(useUiStore.getState().accountSetupSession?.state).toBe("failed");
       expect(useUiStore.getState().toastMessage?.message).toContain("Save & Test Connection");
       expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveFocus();
+      expect(screen.getByRole("button", { name: "Check Connection" })).toBeDisabled();
 
       await user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
       await waitFor(() => expect(calls).toContain("test_account_connection"));
@@ -1059,7 +1076,7 @@ describe("AccountDetail", () => {
       }
     });
 
-    render(<AccountDetail />, { wrapper: createWrapper() });
+    render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
 
     const passwordInput = await findPasswordInput();
     expect(passwordInput).toHaveValue("••••••••");
@@ -1138,7 +1155,7 @@ describe("AccountDetail", () => {
       }
     });
 
-    render(<AccountDetail />, { wrapper: createWrapper() });
+    render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
 
     const passwordInput = await findPasswordInput();
     await user.click(passwordInput);
@@ -1217,7 +1234,7 @@ describe("AccountDetail", () => {
       }
     });
 
-    render(<AccountDetail />, { wrapper: createWrapper() });
+    render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
 
     const serverUrlInput = await screen.findByRole("textbox", {
       name: "Server URL",
@@ -1251,7 +1268,7 @@ describe("AccountDetail", () => {
       expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(0);
     });
 
-    const secondSaveButton = screen.getByRole("button", { name: "Save & Test Connection" });
+    const secondSaveButton = await screen.findByRole("button", { name: "Save & Test Connection" });
     await waitFor(() => expect(secondSaveButton).toBeEnabled());
     const secondSaveClick = user.click(secondSaveButton);
 

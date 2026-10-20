@@ -27,6 +27,7 @@ type UseSettingsModalViewPropsParams = {
   settingsLoading: boolean;
   accounts: AccountDto[] | undefined;
   content: ReactNode;
+  footer?: ReactNode;
   closeSettings: () => void;
   openSettings: () => void;
   setSettingsCategory: (category: SettingsCategory) => void;
@@ -64,6 +65,7 @@ export function useSettingsModalViewProps({
   settingsLoading,
   accounts,
   content,
+  footer,
   closeSettings,
   openSettings,
   setSettingsCategory,
@@ -121,6 +123,7 @@ export function useSettingsModalViewProps({
       />
     ),
     content,
+    footer,
     contentResetKey: buildSettingsContentResetKey({
       settingsCategory,
       settingsAccountId,

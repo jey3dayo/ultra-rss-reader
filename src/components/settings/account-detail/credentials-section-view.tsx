@@ -55,6 +55,7 @@ type AccountCredentialsSectionViewProps = {
   onPasswordBlur?: () => void;
   testConnectionLabel?: string;
   testingConnectionLabel?: string;
+  testConnectionDisabled?: boolean;
   onTestConnection?: () => void;
   isTestingConnection?: boolean;
   connectionTestSucceeded?: boolean;
@@ -91,6 +92,7 @@ export function AccountCredentialsSectionView({
   onPasswordBlur,
   testConnectionLabel,
   testingConnectionLabel,
+  testConnectionDisabled,
   onTestConnection,
   isTestingConnection,
   connectionTestSucceeded,
@@ -192,7 +194,7 @@ export function AccountCredentialsSectionView({
               loadingLabel={testingConnectionLabel}
               success={connectionTestSucceeded}
               successLabel={testConnectionSuccessLabel}
-              disabled={disabled}
+              disabled={disabled || testConnectionDisabled}
             >
               {testConnectionLabel}
             </SettingsLoadingActionButton>

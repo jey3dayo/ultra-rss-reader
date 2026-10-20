@@ -154,7 +154,6 @@ export function useAccountDetailCredentialsEditor({
     activeAccountIdRef.current = account.id;
     draftRevisionRef.current = state.draftRevision;
   });
-  useRegisterSettingsDirtyState(dirtyState);
 
   useEffect(() => {
     dispatch({
@@ -426,6 +425,11 @@ export function useAccountDetailCredentialsEditor({
       dispatch({ type: "set-testing-connection", value: false });
     }
   };
+
+  useRegisterSettingsDirtyState(dirtyState, {
+    save: handleTestConnection,
+    discard: discardCredentialDrafts,
+  });
 
   const handleCopyServerUrl = async () => {
     const value = (credServerUrl ?? account.server_url ?? "").trim();

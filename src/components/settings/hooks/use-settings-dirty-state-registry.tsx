@@ -3,6 +3,7 @@ import {
   type PropsWithChildren,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
@@ -10,6 +11,7 @@ import {
 import {
   createSettingsDirtyStateRegistry,
   EMPTY_SETTINGS_DIRTY_STATE_SNAPSHOT,
+  type SettingsDirtyStateActions,
   type SettingsDirtyStateEntry,
   type SettingsDirtyStateRegistry,
   type SettingsDirtyStateSnapshot,
@@ -28,17 +30,36 @@ export function SettingsDirtyStateRegistryProvider({ children }: PropsWithChildr
   );
 }
 
-export function useRegisterSettingsDirtyState(entry: SettingsDirtyStateEntry): void {
+export function useRegisterSettingsDirtyState(
+  entry: SettingsDirtyStateEntry,
+  actions?: SettingsDirtyStateActions,
+): void {
   const registry = useContext(SettingsDirtyStateRegistryContext);
+  const actionsRef = useRef<SettingsDirtyStateActions | undefined>(undefined);
+  useLayoutEffect(() => {
+    actionsRef.current = actions;
+  });
   const { owner, dirty, pending, blockingReason } = entry;
+  const hasActions = actions !== undefined;
+  const stableActions = useMemo(
+    () =>
+      hasActions
+        ? {
+            save: () => actionsRef.current?.save() ?? Promise.resolve(true),
+            discard: () => actionsRef.current?.discard(),
+          }
+        : undefined,
+    [hasActions],
+  );
   const stableEntry = useMemo(
     () => ({
       owner,
       dirty,
       pending,
       blockingReason,
+      actions: stableActions,
     }),
-    [owner, dirty, pending, blockingReason],
+    [owner, dirty, pending, blockingReason, stableActions],
   );
 
   useEffect(() => {

@@ -6,7 +6,9 @@
   "dirty_state": {
     "dirty_lock_message": "Finish or discard the current edit before leaving settings.",
     "pending_lock_message": "Saving changes. Please wait before leaving settings.",
-    "field_changed": "Changed"
+    "field_changed": "Changed",
+    "unsaved_changes": "You have unsaved changes",
+    "discard": "Discard"
   },
   "nav": {
     "general": "General",

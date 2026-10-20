@@ -22,6 +22,7 @@ import { useSettingsModalViewProps } from "@/components/settings/hooks/use-setti
 import { MuteSettings } from "@/components/settings/mute-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
+import { SettingsUnsavedChangesFooter } from "@/components/settings/settings-unsaved-changes-bar";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { TagsSettings } from "@/components/settings/tags-settings";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
@@ -405,6 +406,14 @@ function SettingsModalContent() {
     blockingReason: pendingPreferenceSaves > 0 ? "preferences-save-pending" : null,
   });
   const dirtyStateLockReason = getDirtyStateLockReason(dirtyStateSnapshot, t);
+  const footer = (
+    <SettingsUnsavedChangesFooter
+      message={t("dirty_state.unsaved_changes")}
+      discardLabel={t("dirty_state.discard")}
+      saveLabel={t("account.save_and_test_connection")}
+      savingLabel={t("account.testing_connection")}
+    />
+  );
 
   useEffect(() => {
     if (deletedAccountIds.length === 0 || accounts === undefined) {
@@ -449,6 +458,7 @@ function SettingsModalContent() {
         onAccountDeleted={handleAccountDeleted}
       />
     ),
+    footer,
     closeSettings,
     openSettings,
     setSettingsCategory,

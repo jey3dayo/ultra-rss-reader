@@ -6,7 +6,9 @@
   "dirty_state": {
     "dirty_lock_message": "現在の編集を完了または破棄してから設定を閉じてください。",
     "pending_lock_message": "変更を保存しています。設定を閉じる前にお待ちください。",
-    "field_changed": "変更あり"
+    "field_changed": "変更あり",
+    "unsaved_changes": "未保存の変更があります",
+    "discard": "破棄"
   },
   "nav": {
     "general": "一般",

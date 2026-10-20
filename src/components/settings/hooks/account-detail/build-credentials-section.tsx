@@ -31,6 +31,7 @@ export function buildCredentialsSection({
   const cloudflareAccessError = controller.cloudflareAccessValidationError;
   const connectionTestSucceeded =
     controller.connectionTestSucceeded && !controller.dirtyState.dirty && !controller.testingConnection;
+  const hasUnsavedChanges = controller.dirtyState.dirty;
 
   return (
     <AccountCredentialsSectionView
@@ -108,13 +109,8 @@ export function buildCredentialsSection({
         clientSecretError: t("account.error_cloudflare_access_secret_required"),
         validationError: cloudflareAccessError,
       }}
-      testConnectionLabel={
-        isSetupSyncing || isQuarantined
-          ? undefined
-          : controller.dirtyState.dirty
-            ? t("account.save_and_test_connection")
-            : t("account.test_connection")
-      }
+      testConnectionLabel={isSetupSyncing || isQuarantined ? undefined : t("account.test_connection")}
+      testConnectionDisabled={hasUnsavedChanges}
       testingConnectionLabel={isSetupSyncing || isQuarantined ? undefined : t("account.testing_connection")}
       connectionTestSucceeded={connectionTestSucceeded}
       testConnectionSuccessLabel={t("account.test_connection_succeeded")}

@@ -1,11 +1,14 @@
 import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import type { PropsWithChildren } from "react";
-import { describe, expect, it } from "vitest";
+import { useLayoutEffect, useRef } from "react";
+import { describe, expect, it, vi } from "vitest";
 import {
   createSettingsDirtyStateSnapshot,
+  discardDirtySettingsEntries,
   getSettingsDirtyStateSnapshot,
   type SettingsDirtyStateEntry,
+  saveDirtySettingsEntries,
 } from "@/components/settings/hooks/settings-dirty-state-registry";
 import {
   SettingsDirtyStateRegistryProvider,
@@ -182,5 +185,192 @@ describe("settings dirty-state registry", () => {
       blockingReasons: [],
       entries: [],
     });
+  });
+
+  it("stops before a dirty entry without actions after saving earlier entries", async () => {
+    const firstSave = vi.fn().mockResolvedValue(true);
+    const snapshot = createSettingsDirtyStateSnapshot([
+      {
+        owner: "account",
+        dirty: true,
+        pending: false,
+        blockingReason: "account-credentials-dirty",
+        actions: { save: firstSave, discard: vi.fn() },
+      },
+      {
+        owner: "tag",
+        dirty: true,
+        pending: false,
+        blockingReason: "tag-unsaved",
+      },
+    ]);
+
+    await expect(saveDirtySettingsEntries(snapshot)).resolves.toBe(false);
+    expect(firstSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops saving at the first dirty entry whose save fails", async () => {
+    const firstSave = vi.fn().mockResolvedValue(true);
+    const failingSave = vi.fn().mockResolvedValue(false);
+    const lastSave = vi.fn().mockResolvedValue(true);
+    const snapshot = createSettingsDirtyStateSnapshot([
+      {
+        owner: "account",
+        dirty: true,
+        pending: false,
+        blockingReason: null,
+        actions: { save: firstSave, discard: vi.fn() },
+      },
+      {
+        owner: "tag",
+        dirty: true,
+        pending: false,
+        blockingReason: null,
+        actions: { save: failingSave, discard: vi.fn() },
+      },
+      {
+        owner: "shortcut",
+        dirty: true,
+        pending: false,
+        blockingReason: null,
+        actions: { save: lastSave, discard: vi.fn() },
+      },
+    ]);
+
+    await expect(saveDirtySettingsEntries(snapshot)).resolves.toBe(false);
+    expect(firstSave).toHaveBeenCalledTimes(1);
+    expect(failingSave).toHaveBeenCalledTimes(1);
+    expect(lastSave).not.toHaveBeenCalled();
+  });
+
+  it("resolves true when every dirty entry saves successfully", async () => {
+    const firstSave = vi.fn().mockResolvedValue(true);
+    const secondSave = vi.fn().mockResolvedValue(true);
+    const snapshot = createSettingsDirtyStateSnapshot([
+      {
+        owner: "account",
+        dirty: true,
+        pending: false,
+        blockingReason: null,
+        actions: { save: firstSave, discard: vi.fn() },
+      },
+      {
+        owner: "shortcut",
+        dirty: true,
+        pending: false,
+        blockingReason: null,
+        actions: { save: secondSave, discard: vi.fn() },
+      },
+    ]);
+
+    await expect(saveDirtySettingsEntries(snapshot)).resolves.toBe(true);
+    expect(firstSave).toHaveBeenCalledTimes(1);
+    expect(secondSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores non-dirty entries with and without actions while saving", async () => {
+    const untouchedSave = vi.fn().mockResolvedValue(true);
+    const snapshot = createSettingsDirtyStateSnapshot([
+      {
+        owner: "tag",
+        dirty: false,
+        pending: false,
+        blockingReason: null,
+        actions: { save: untouchedSave, discard: vi.fn() },
+      },
+      {
+        owner: "data",
+        dirty: false,
+        pending: false,
+        blockingReason: null,
+      },
+    ]);
+
+    await expect(saveDirtySettingsEntries(snapshot)).resolves.toBe(true);
+    expect(untouchedSave).not.toHaveBeenCalled();
+  });
+
+  it("discards only dirty entries that have actions", () => {
+    const dirtyDiscard = vi.fn();
+    const cleanDiscard = vi.fn();
+    const snapshot = createSettingsDirtyStateSnapshot([
+      {
+        owner: "account",
+        dirty: true,
+        pending: false,
+        blockingReason: "account-credentials-dirty",
+        actions: { save: vi.fn().mockResolvedValue(true), discard: dirtyDiscard },
+      },
+      {
+        owner: "tag",
+        dirty: false,
+        pending: false,
+        blockingReason: null,
+        actions: { save: vi.fn().mockResolvedValue(true), discard: cleanDiscard },
+      },
+      {
+        owner: "data",
+        dirty: true,
+        pending: false,
+        blockingReason: "data-unsaved",
+      },
+    ]);
+
+    discardDirtySettingsEntries(snapshot);
+
+    expect(dirtyDiscard).toHaveBeenCalledTimes(1);
+    expect(cleanDiscard).not.toHaveBeenCalled();
+  });
+
+  it("keeps registered actions calling the latest callbacks without re-notifying the snapshot", async () => {
+    const saveCalls: string[] = [];
+    const discardCalls: string[] = [];
+    const { result, rerender } = renderHook(
+      ({ callbackId }: { callbackId: string }) => {
+        const snapshot = useSettingsDirtyStateRegistrySnapshot();
+        const snapshotChangesRef = useRef(0);
+        const lastSnapshotRef = useRef<unknown>(null);
+        useLayoutEffect(() => {
+          if (lastSnapshotRef.current !== snapshot) {
+            lastSnapshotRef.current = snapshot;
+            snapshotChangesRef.current += 1;
+          }
+        });
+        useRegisterSettingsDirtyState(
+          {
+            owner: "account",
+            dirty: true,
+            pending: false,
+            blockingReason: "account-credentials-dirty",
+          },
+          {
+            save: async () => {
+              saveCalls.push(callbackId);
+              return true;
+            },
+            discard: () => {
+              discardCalls.push(callbackId);
+            },
+          },
+        );
+        return { snapshot, snapshotChangesRef };
+      },
+      { initialProps: { callbackId: "first" }, wrapper },
+    );
+
+    expect(result.current.snapshot.entries).toHaveLength(1);
+    const registeredSnapshot = result.current.snapshot;
+    const changesBeforeRerender = result.current.snapshotChangesRef.current;
+
+    rerender({ callbackId: "second" });
+
+    expect(result.current.snapshotChangesRef.current).toBe(changesBeforeRerender);
+    expect(result.current.snapshot).toBe(registeredSnapshot);
+    const registeredEntry = result.current.snapshot.entries[0];
+    expect(registeredEntry?.actions).toBeDefined();
+    await registeredEntry?.actions?.save();
+    registeredEntry?.actions?.discard();
+    expect(saveCalls).toEqual(["second"]);
+    expect(discardCalls).toEqual(["second"]);
   });
 });
