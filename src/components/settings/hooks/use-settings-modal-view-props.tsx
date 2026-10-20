@@ -116,6 +116,10 @@ export function useSettingsModalViewProps({
     if (setupLocked) {
       return;
     }
+    if (settingsAddAccount) {
+      openSettingsAddAccount();
+      return;
+    }
     guardLeave(() => openSettingsAddAccount());
   };
 

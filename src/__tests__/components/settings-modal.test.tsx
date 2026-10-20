@@ -500,6 +500,28 @@ describe("SettingsModal", () => {
     });
   });
 
+  it("does not open the leave dialog when re-selecting the active add-account item", async () => {
+    const user = userEvent.setup();
+
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: null,
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: "FreshRss",
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.type(await screen.findByLabelText("Server URL"), "https://freshrss.example.com");
+
+    await user.click(screen.getByRole("button", { name: "Add account…" }));
+
+    expect(screen.queryByRole("dialog", { name: "Save your changes?" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Server URL")).toHaveValue("https://freshrss.example.com");
+  });
+
   it("prefers the active setup account detail over the add-account top screen", async () => {
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.setState({
