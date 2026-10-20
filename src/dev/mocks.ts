@@ -370,6 +370,7 @@ export function setupDevMocks(): RestoreDevMocks {
             last_error: `Account not found: ${accountId}`,
             error_count: 1,
             next_retry_at: null,
+            waiting_for_credential_access: false,
           } satisfies AccountSyncStatusDto;
         }
         if (account.kind === "Local") {
@@ -378,6 +379,7 @@ export function setupDevMocks(): RestoreDevMocks {
             last_error: "Sync is unavailable for local accounts",
             error_count: 1,
             next_retry_at: null,
+            waiting_for_credential_access: false,
           } satisfies AccountSyncStatusDto;
         }
         return {
@@ -385,6 +387,7 @@ export function setupDevMocks(): RestoreDevMocks {
           last_error: null,
           error_count: 0,
           next_retry_at: null,
+          waiting_for_credential_access: false,
         } satisfies AccountSyncStatusDto;
       }
 

@@ -395,7 +395,7 @@ describe("DTO schemas", () => {
       error_count: 0,
       next_retry_at: null,
     };
-    expect(parse(AccountSyncStatusSchema, data)).toEqual(data);
+    expect(parse(AccountSyncStatusSchema, data)).toEqual({ ...data, waiting_for_credential_access: false });
   });
   it("keeps account sync status error counts nonnegative integers", () => {
     const data = {
@@ -403,6 +403,7 @@ describe("DTO schemas", () => {
       last_error: "network",
       error_count: 0,
       next_retry_at: null,
+      waiting_for_credential_access: false,
     };
 
     expect(parse(AccountSyncStatusSchema, { ...data, error_count: 1 })).toEqual({
@@ -424,6 +425,7 @@ describe("DTO schemas", () => {
       last_error: null,
       error_count: 0,
       next_retry_at: "2026-04-15T02:00:00Z",
+      waiting_for_credential_access: false,
     };
 
     expect(parse(AccountSyncStatusSchema, data)).toEqual(data);

@@ -453,6 +453,7 @@ function createDefaultHandler(): MockHandler {
           last_error: null,
           error_count: 0,
           next_retry_at: null,
+          waiting_for_credential_access: false,
         } satisfies AccountSyncStatusDto;
       case "open_in_browser":
       case "plugin:opener|open_url":

@@ -58,12 +58,14 @@ describe("useAccountSyncStatus", () => {
       last_error: null,
       error_count: 0,
       next_retry_at: null,
+      waiting_for_credential_access: false,
     };
     const acc2Status: AccountSyncStatusDto = {
       last_success_at: null,
       last_error: "timeout",
       error_count: 2,
       next_retry_at: "2026-05-09T02:00:00.000Z",
+      waiting_for_credential_access: false,
     };
     const statusesByAccountId = new Map<string, AccountSyncStatusDto>([
       ["acc-1", acc1Status],
@@ -96,6 +98,7 @@ describe("useAccountSyncStatus", () => {
         last_error: null,
         error_count: 0,
         next_retry_at: null,
+        waiting_for_credential_access: false,
       }),
     );
 
@@ -145,6 +148,7 @@ describe("useAccountSyncStatus", () => {
         last_error: null,
         error_count: 0,
         next_retry_at: null,
+        waiting_for_credential_access: false,
       }),
     );
 

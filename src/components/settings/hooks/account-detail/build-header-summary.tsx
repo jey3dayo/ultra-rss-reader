@@ -38,16 +38,28 @@ export function buildHeaderSummary({
         ? t("account.connection_fetch_failed_summary")
         : t("account.connection_not_fetched_summary");
 
+  const isWaitingForCredentialAccess = syncStatus?.waiting_for_credential_access === true;
+
   return (
     <AccountConnectionSummary
       statusLabel={
-        verificationStatus === "verified"
-          ? t("account.connection_verified_status")
-          : verificationStatus === "error"
-            ? t("account.connection_error_status")
-            : t("account.connection_unverified_status")
+        isWaitingForCredentialAccess
+          ? t("account.connection_reauthorization_required_status")
+          : verificationStatus === "verified"
+            ? t("account.connection_verified_status")
+            : verificationStatus === "error"
+              ? t("account.connection_error_status")
+              : t("account.connection_unverified_status")
       }
-      statusTone={verificationStatus === "verified" ? "success" : verificationStatus === "error" ? "danger" : "warning"}
+      statusTone={
+        isWaitingForCredentialAccess
+          ? "warning"
+          : verificationStatus === "verified"
+            ? "success"
+            : verificationStatus === "error"
+              ? "danger"
+              : "warning"
+      }
       detail={summaryDetail}
     />
   );

@@ -31,7 +31,12 @@ export function useAccountDetailSyncStatusRows({
 
     const rows: AccountDetailSyncStatusRowsResult = [];
 
-    if (syncStatus.next_retry_at) {
+    if (syncStatus.waiting_for_credential_access) {
+      rows.push({
+        label: t("account.automatic_sync_status"),
+        value: t("account.automatic_sync_paused_needs_connection_test"),
+      });
+    } else if (syncStatus.next_retry_at) {
       const formattedRetryAt = formatAccountSyncRetryDateTime(syncStatus.next_retry_at, language);
       rows.push({ label: t("account.next_automatic_retry"), value: formattedRetryAt ?? syncStatus.next_retry_at });
     }

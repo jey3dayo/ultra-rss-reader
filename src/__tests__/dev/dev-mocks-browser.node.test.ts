@@ -351,6 +351,7 @@ describe("setupDevMocks", () => {
       last_error: null,
       error_count: 0,
       next_retry_at: null,
+      waiting_for_credential_access: false,
     });
   });
 
