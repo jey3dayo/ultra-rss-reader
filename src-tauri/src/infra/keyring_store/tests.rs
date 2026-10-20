@@ -1107,6 +1107,34 @@ fn credential_write_guard_blocks_second_acquirer_until_first_guard_is_dropped() 
         .expect("second acquirer thread should finish after being unblocked");
 }
 
+#[test]
+fn credential_backend_switch_guard_waits_for_in_flight_reads() {
+    let first = super::credential_read_guard().expect("read guard should acquire");
+    let (acquired_tx, acquired_rx) = std::sync::mpsc::channel();
+    let second = std::thread::spawn(move || {
+        let guard = super::credential_backend_switch_guard();
+        let acquired = guard.is_ok();
+        let _ = acquired_tx.send(acquired);
+        drop(guard);
+    });
+
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    assert!(
+        acquired_rx.try_recv().is_err(),
+        "switch acquirer must stay blocked while a read guard is held"
+    );
+    drop(first);
+    assert!(
+        acquired_rx
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .expect("switch acquirer should unblock after the read guard is dropped"),
+        "switch acquirer should own the guard after the read guard is dropped"
+    );
+    second
+        .join()
+        .expect("switch acquirer thread should finish after being unblocked");
+}
+
 #[tokio::test]
 async fn stalled_credential_read_times_out_at_the_caller() {
     let (finished_tx, finished_rx) = tokio::sync::oneshot::channel();

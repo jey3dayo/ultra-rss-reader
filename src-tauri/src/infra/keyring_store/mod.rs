@@ -44,6 +44,24 @@ pub(crate) fn credential_write_guard() -> DomainResult<std::sync::MutexGuard<'st
         .map_err(|_| DomainError::Keychain("Failed to lock credential store".into()))
 }
 
+// Readers hold the read guard across backend selection and the read; the storage switch
+// holds the write guard across migration so cleanup never deletes an entry an in-flight
+// read selected.
+static CREDENTIAL_BACKEND_LOCK: std::sync::RwLock<()> = std::sync::RwLock::new(());
+
+pub(crate) fn credential_read_guard() -> DomainResult<std::sync::RwLockReadGuard<'static, ()>> {
+    CREDENTIAL_BACKEND_LOCK
+        .read()
+        .map_err(|_| DomainError::Keychain("Failed to lock credential store".into()))
+}
+
+pub(crate) fn credential_backend_switch_guard(
+) -> DomainResult<std::sync::RwLockWriteGuard<'static, ()>> {
+    CREDENTIAL_BACKEND_LOCK
+        .write()
+        .map_err(|_| DomainError::Keychain("Failed to lock credential store".into()))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CredentialLookupMode {
     Background,
@@ -334,6 +352,11 @@ where
 }
 
 pub fn get_password(account_id: &str) -> DomainResult<String> {
+    let _read_guard = credential_read_guard()?;
+    get_password_unguarded(account_id)
+}
+
+fn get_password_unguarded(account_id: &str) -> DomainResult<String> {
     if let Some(path) = dev_credentials_path() {
         validate_dev_credential_account_id(account_id)?;
         let store = read_dev_store(&path)?;
@@ -367,6 +390,7 @@ pub(crate) fn get_password_for_sync_with_mode(
     account_id: &str,
     mode: CredentialLookupMode,
 ) -> DomainResult<String> {
+    let _read_guard = credential_read_guard()?;
     if let Some(path) = dev_credentials_path() {
         validate_dev_credential_account_id(account_id)?;
         let store = read_dev_store(&path)?;
@@ -384,7 +408,7 @@ pub(crate) fn get_password_for_sync_with_mode(
     #[cfg(not(target_os = "macos"))]
     {
         let _ = mode;
-        get_password(account_id)
+        get_password_unguarded(account_id)
     }
 }
 

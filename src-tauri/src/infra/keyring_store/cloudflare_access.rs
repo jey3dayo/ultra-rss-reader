@@ -269,6 +269,7 @@ pub(crate) fn load_for_sync_with_mode(
     if let Some(result) = test_support::lookup(account_id) {
         return result;
     }
+    let _read_guard = super::credential_read_guard().map_err(|_| AccessStoreError::Unavailable)?;
     if super::uses_local_file_storage() {
         return OsCloudflareAccessStore.load(account_id);
     }

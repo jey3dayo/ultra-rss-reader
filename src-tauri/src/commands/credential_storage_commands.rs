@@ -105,6 +105,8 @@ fn switch_with_lock(
     let entries =
         migration_entries_for_accounts(SqliteAccountRepository::new(db.reader()).find_all()?);
     drop(db);
+    let _backend_guard =
+        crate::infra::keyring_store::credential_backend_switch_guard().map_err(AppError::from)?;
 
     let from = secret_backend::backend_for(storage_mode::active()).map_err(AppError::from)?;
     let to = secret_backend::backend_for(storage).map_err(AppError::from)?;
