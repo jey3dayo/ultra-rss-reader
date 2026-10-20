@@ -1,8 +1,11 @@
 import { Result } from "@praha/byethrow";
+import { useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CredentialStorageKind } from "@/api/schemas";
 import { getCredentialStorage, setCredentialStorage } from "@/api/tauri-commands";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 
 type UseCredentialStorageSettingParams = {
@@ -37,6 +40,7 @@ export function useCredentialStorageSetting({
   showToast,
 }: UseCredentialStorageSettingParams): UseCredentialStorageSettingResult {
   const [state, setState] = useState<CredentialStorageSettingState>(initialCredentialStorageState);
+  const queryClient = useQueryClient();
   const mountedRef = useRef(false);
   const savingRef = useRef(false);
 
@@ -96,8 +100,9 @@ export function useCredentialStorageSetting({
         saving: false,
       });
       showToast(t("data.credential_storage_saved"));
+      await invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()]);
     },
-    [showToast, t],
+    [queryClient, showToast, t],
   );
 
   return {

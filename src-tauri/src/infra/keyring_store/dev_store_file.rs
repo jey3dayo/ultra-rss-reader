@@ -141,7 +141,27 @@ pub(super) fn write_dev_store(path: &Path, store: &HashMap<String, String>) -> D
             "Failed to replace dev store: {error}"
         )));
     }
+    if let Err(e) = sync_parent_dir(path) {
+        return Err(dev_store_recovery_error(format!(
+            "Failed to sync dev store directory: {e}"
+        )));
+    }
     Ok(())
+}
+
+pub(super) fn sync_parent_dir(path: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        let Some(parent) = path.parent() else {
+            return Ok(());
+        };
+        std::fs::File::open(parent)?.sync_all()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        Ok(())
+    }
 }
 
 pub(super) fn dev_store_recovery_error(message: impl Into<String>) -> DomainError {

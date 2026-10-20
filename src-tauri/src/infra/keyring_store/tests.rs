@@ -628,6 +628,16 @@ fn write_dev_store_replaces_via_temp_file_without_leaving_staging_copy() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn sync_parent_dir_succeeds_for_file_in_tempdir() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("dev-credentials.json");
+    std::fs::write(&path, "{}").expect("dev credential fixture should be writable");
+
+    super::dev_store_file::sync_parent_dir(&path).expect("directory sync should succeed");
+}
+
 #[test]
 fn write_dev_store_replaces_an_existing_store_file() {
     let dir = tempfile::tempdir().unwrap();

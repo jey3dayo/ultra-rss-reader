@@ -23,6 +23,14 @@ const mocks = vi.hoisted(() => ({
   setSettingsLoading: vi.fn(),
   useRegisterSettingsDirtyState: vi.fn(),
   translationCalls: [] as { key: string; options: unknown }[],
+  queryClient: {
+    invalidateQueries: vi.fn((..._args: unknown[]) => Promise.resolve()),
+  },
+}));
+
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQueryClient: () => mocks.queryClient,
 }));
 
 vi.mock("@/components/settings/data-settings-view", () => ({
