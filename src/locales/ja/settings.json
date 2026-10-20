@@ -447,7 +447,15 @@
     "open_log_dir": "ログフォルダを開く",
     "opening_log_dir": "開いています…",
     "open_log_dir_description": "問題の調査に使うログを確認します。",
-    "open_log_dir_failed": "ログフォルダを開けませんでした: {{message}}"
+    "open_log_dir_failed": "ログフォルダを開けませんでした: {{message}}",
+    "credential_storage_heading": "認証情報",
+    "credential_storage_label": "認証情報の保存先",
+    "credential_storage_os_keychain": "OS標準のキーチェーン（推奨）",
+    "credential_storage_local_file": "ローカルファイル",
+    "credential_storage_description": "FreshRSSのAPIパスワードとCloudflare Accessのトークンの保存先です。切り替えると保存済みの認証情報を移行します。",
+    "credential_storage_local_file_warning": "ローカルファイルはOSのキーチェーンより安全性が低くなります。このユーザーだけが読めるファイルとしてアプリのデータフォルダに保存します。",
+    "credential_storage_saved": "認証情報の保存先を変更しました",
+    "credential_storage_failed": "認証情報の保存先を変更できませんでした: {{message}}"
   },
   "debug": {
     "heading": "開発",

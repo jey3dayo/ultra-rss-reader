@@ -1,4 +1,4 @@
-import { type ChangeEvent, useRef } from "react";
+import { type ChangeEvent, type ReactNode, useRef } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
@@ -8,6 +8,7 @@ import type { DatabaseSizeStatus } from "./hooks/use-data-settings-controller";
 type DataSettingsViewProps = {
   title: string;
   databaseHeading: string;
+  credentialStorageSection?: ReactNode;
   databaseSizeLabel: string;
   databaseSizeStatus: DatabaseSizeStatus;
   databaseSizeValue: string;
@@ -60,6 +61,7 @@ const DATA_ACTION_ROW_CLASS_NAME =
 export function DataSettingsView({
   title,
   databaseHeading,
+  credentialStorageSection,
   databaseSizeLabel,
   databaseSizeStatus,
   databaseSizeValue,
@@ -174,6 +176,7 @@ export function DataSettingsView({
           </LabeledControlRow>
         </SettingsSection>
 
+        {credentialStorageSection}
         <SettingsSection
           heading={safetyHeading}
           headingAccessory={

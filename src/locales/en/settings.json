@@ -447,7 +447,15 @@
     "open_log_dir": "Open Log Directory",
     "opening_log_dir": "Opening…",
     "open_log_dir_description": "View application log files for troubleshooting.",
-    "open_log_dir_failed": "Failed to open log directory: {{message}}"
+    "open_log_dir_failed": "Failed to open log directory: {{message}}",
+    "credential_storage_heading": "Credentials",
+    "credential_storage_label": "Credential storage",
+    "credential_storage_os_keychain": "OS keychain (recommended)",
+    "credential_storage_local_file": "Local file",
+    "credential_storage_description": "Where the FreshRSS API password and Cloudflare Access token are stored. Switching migrates saved credentials.",
+    "credential_storage_local_file_warning": "A local file is less secure than the OS keychain. It is stored in the app data folder, readable only by your user.",
+    "credential_storage_saved": "Credential storage changed",
+    "credential_storage_failed": "Could not change credential storage: {{message}}"
   },
   "debug": {
     "heading": "Development",

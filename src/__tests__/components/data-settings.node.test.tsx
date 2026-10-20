@@ -47,6 +47,10 @@ vi.mock("@/stores/ui-store", () => ({
 }));
 
 vi.mock("react-i18next", () => ({
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => undefined,
+  },
   useTranslation: () => ({
     t: (key: string, options?: unknown) => {
       mocks.translationCalls.push({ key, options });
