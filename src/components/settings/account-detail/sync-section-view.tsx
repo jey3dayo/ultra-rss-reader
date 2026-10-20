@@ -31,9 +31,6 @@ type AccountSwitchControl = {
 type AccountSyncSectionViewProps = {
   heading: string;
   note?: string;
-  progressLabel?: string;
-  progressValue?: number | null;
-  progressCurrentLabel?: string;
   syncInterval: AccountSelectControl;
   syncOnStartup: AccountSwitchControl;
   syncOnWake: AccountSwitchControl;
@@ -57,10 +54,6 @@ type AccountSelectRowProps = {
   control: AccountSelectControl;
 };
 
-function clampProgressValue(value: number): number {
-  return Math.min(Math.max(value, 0), 100);
-}
-
 export function AccountSyncSectionView({
   heading,
   note,
@@ -69,9 +62,6 @@ export function AccountSyncSectionView({
   syncOnWake,
   keepReadItems,
   statusRows,
-  progressLabel,
-  progressValue,
-  progressCurrentLabel,
   syncNowLabel,
   syncNowSuccessLabel,
   syncNowSucceeded,
@@ -85,7 +75,6 @@ export function AccountSyncSectionView({
   onDevCredentialsRecoveryAction,
   isDevCredentialsRecoveryInFlight,
 }: AccountSyncSectionViewProps) {
-  const normalizedProgressValue = typeof progressValue === "number" ? clampProgressValue(progressValue) : null;
   const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
   const devCredentialsRecoveryDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
 
@@ -105,33 +94,6 @@ export function AccountSyncSectionView({
         disabled={syncOnWake.disabled}
       />
       <AccountSelectRow control={keepReadItems} />
-      {progressLabel ? (
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className={cn(CONTROL_RAIL_CLASS, "mt-4 space-y-2 px-4 py-3", SETTINGS_INFO_SURFACE_CLASS)}
-        >
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="font-medium text-foreground">{progressLabel}</span>
-            {progressCurrentLabel ? <span className="text-foreground-soft">{progressCurrentLabel}</span> : null}
-          </div>
-          <div
-            role="progressbar"
-            aria-label={progressLabel}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={normalizedProgressValue === null ? undefined : Math.round(normalizedProgressValue)}
-            className="h-1.5 overflow-hidden rounded-full bg-surface-3"
-          >
-            {normalizedProgressValue === null ? (
-              <div className="h-full w-1/3 rounded-full bg-accent/70" />
-            ) : (
-              <div className="h-full rounded-full bg-accent" style={{ width: `${normalizedProgressValue}%` }} />
-            )}
-          </div>
-        </div>
-      ) : null}
       {statusRows && statusRows.length > 0 ? (
         <div className={cn(CONTROL_RAIL_CLASS, "mt-4 px-4 py-3 text-sm", SETTINGS_INFO_SURFACE_CLASS)}>
           {statusRows.map((row) => (

@@ -117,13 +117,10 @@ describe("AccountSyncSectionView", () => {
     expect(onKeepReadItemsChange).toHaveBeenCalledWith("90");
   });
 
-  it("renders determinate sync progress text while syncing", () => {
+  it("omits the sync progress card and shows the syncing button state while syncing", () => {
     render(
       <AccountSyncSectionView
         heading="Syncing"
-        progressLabel="1 of 3 completed"
-        progressValue={33}
-        progressCurrentLabel="Syncing: FreshRSS"
         syncInterval={{
           name: "sync-interval",
           label: "Sync",
@@ -155,55 +152,17 @@ describe("AccountSyncSectionView", () => {
       />,
     );
 
-    expect(screen.getByRole("progressbar", { name: "1 of 3 completed" })).toHaveAttribute("aria-valuenow", "33");
-    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
-    expect(screen.getByRole("status")).toHaveAttribute("aria-atomic", "true");
-    expect(screen.getByText("1 of 3 completed")).toBeInTheDocument();
-    expect(screen.getByText("Syncing: FreshRSS")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Syncing..." });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
   });
 
-  it("clamps determinate sync progress aria value to the progressbar range", () => {
+  it("shows the success label on the sync button after the sync succeeded", () => {
     render(
       <AccountSyncSectionView
         heading="Syncing"
-        progressLabel="3 of 2 completed"
-        progressValue={150}
-        syncInterval={{
-          name: "sync-interval",
-          label: "Sync",
-          value: "3600",
-          options: [{ value: "3600", label: "Every hour" }],
-          onChange: () => {},
-        }}
-        syncOnWake={{
-          label: "Sync on wake",
-          checked: true,
-          onChange: () => {},
-        }}
-        syncOnStartup={{
-          label: "Sync on startup",
-          checked: true,
-          onChange: () => {},
-        }}
-        keepReadItems={{
-          name: "keep-read-items",
-          label: "Keep read items",
-          value: "30",
-          options: [{ value: "30", label: "One month" }],
-          onChange: () => {},
-        }}
-      />,
-    );
-
-    expect(screen.getByRole("progressbar", { name: "3 of 2 completed" })).toHaveAttribute("aria-valuenow", "100");
-  });
-
-  it("renders indeterminate sync progress without a numeric value", () => {
-    render(
-      <AccountSyncSectionView
-        heading="Syncing"
-        progressLabel="Starting sync"
-        progressValue={null}
         syncInterval={{
           name: "sync-interval",
           label: "Sync",
@@ -229,19 +188,17 @@ describe("AccountSyncSectionView", () => {
           onChange: () => {},
         }}
         syncNowLabel="Sync Now"
-        syncingLabel="Syncing..."
+        syncNowSuccessLabel="Sync completed"
+        syncNowSucceeded={true}
         onSyncNow={() => {}}
-        isSyncing={true}
+        isSyncing={false}
       />,
     );
 
-    const progress = screen.getByRole("progressbar", { name: "Starting sync" });
-
-    expect(progress).not.toHaveAttribute("aria-valuenow");
-    expect(screen.getByText("Starting sync")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sync completed" })).toBeInTheDocument();
   });
 
-  it("does not render sync progress when no progress label is provided", () => {
+  it("keeps the syncing button on the standard settings action geometry", () => {
     render(
       <AccountSyncSectionView
         heading="Syncing"

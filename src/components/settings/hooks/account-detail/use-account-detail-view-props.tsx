@@ -1,6 +1,5 @@
 import type { TFunction } from "i18next";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
-import type { AccountDetailSyncProgress } from "@/components/settings/account-detail/account-detail";
 import type { AccountSyncStatusRow } from "@/components/settings/account-detail/sync-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import type { AccountDetailViewProps } from "@/components/settings/account-detail/view";
@@ -18,7 +17,6 @@ type AccountDetailViewPropsParams = {
   account: AccountDetailAccount;
   controller: AccountDetailControllerResult;
   isSyncing: boolean;
-  syncProgress?: AccountDetailSyncProgress;
   syncStatus: AccountSyncStatusDto | undefined;
   syncStatusRows: AccountSyncStatusRow[];
   language: string;
@@ -51,7 +49,6 @@ export function useAccountDetailViewProps({
   account,
   controller,
   isSyncing,
-  syncProgress,
   syncStatus,
   syncStatusRows,
   language,
@@ -97,7 +94,6 @@ export function useAccountDetailViewProps({
       syncStatusRows,
       accountSetupErrorMessage,
       isSyncing,
-      syncProgress,
       syncStatus,
       canRecoverDevCredentialsStore,
       isSetupSyncing,

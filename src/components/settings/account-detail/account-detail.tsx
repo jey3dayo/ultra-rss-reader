@@ -12,16 +12,9 @@ import { refetchAccountSyncStatusWithErrorSurface } from "./sync-status-refetch"
 import type { AccountDetailAccount } from "./types";
 import { AccountDetailView } from "./view";
 
-export type AccountDetailSyncProgress = {
-  total: number;
-  completed: number;
-  currentAccountName: string | null;
-};
-
 type AccountDetailContentProps = {
   account: AccountDetailAccount;
   isSyncing: boolean;
-  syncProgress?: AccountDetailSyncProgress;
   accountSetupState: AccountSetupSessionState | null;
   accountSetupErrorMessage?: string | null;
 };
@@ -29,7 +22,6 @@ type AccountDetailContentProps = {
 function AccountDetailContent({
   account,
   isSyncing,
-  syncProgress,
   accountSetupState,
   accountSetupErrorMessage,
 }: AccountDetailContentProps) {
@@ -65,7 +57,6 @@ function AccountDetailContent({
     account,
     controller,
     isSyncing,
-    syncProgress: isSyncing ? syncProgress : undefined,
     syncStatus: syncStatusQuery.data,
     syncStatusRows,
     language: i18n.language,
@@ -104,15 +95,6 @@ export function AccountDetail() {
       key={account.id}
       account={account}
       isSyncing={isSyncing || accountSetupState === "syncing"}
-      syncProgress={
-        isSyncing || accountSetupState === "syncing"
-          ? {
-              total: syncProgress.total,
-              completed: syncProgress.completed,
-              currentAccountName: syncProgress.currentAccountName,
-            }
-          : undefined
-      }
       accountSetupState={accountSetupState}
       accountSetupErrorMessage={accountSetupErrorMessage}
     />

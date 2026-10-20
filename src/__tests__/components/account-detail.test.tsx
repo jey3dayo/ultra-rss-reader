@@ -36,9 +36,6 @@ type AccountDetailViewMockProps = {
     heading: string;
     note?: string;
     isSyncing?: boolean;
-    progressLabel?: string;
-    progressValue?: number | null;
-    progressCurrentLabel?: string;
     syncNowLabel?: string;
     syncingLabel?: string;
     onSyncNow?: () => void;
@@ -477,56 +474,6 @@ describe("AccountDetail", () => {
       expect(accountDetailViewSpy).toHaveBeenCalled();
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
       expect(lastCall?.[0].syncSection.isSyncing).toBe(true);
-      expect(lastCall?.[0].syncSection.progressLabel).toBe("1 of 2 completed");
-      expect(lastCall?.[0].syncSection.progressCurrentLabel).toBe("Syncing: Local");
-    });
-  });
-
-  it("shows preparing progress text while setup sync has started but totals are not available yet", async () => {
-    setupTauriMocks((cmd) => {
-      if (cmd === "list_accounts") {
-        return [
-          {
-            id: "acc-1",
-            kind: "FreshRss",
-            name: "debug",
-            username: "debug",
-            server_url: "https://freshrss.example.com",
-            sync_interval_secs: 3600,
-            sync_on_startup: true,
-            sync_on_wake: false,
-            keep_read_items_days: 30,
-          },
-        ];
-      }
-      return null;
-    });
-
-    useUiStore.setState({
-      syncProgress: {
-        active: false,
-        sessionId: null,
-        kind: null,
-        stage: null,
-        total: 0,
-        completed: 0,
-        currentAccountName: null,
-        activeAccountIds: new Set(),
-      },
-      accountSetupSession: {
-        accountId: "acc-1",
-        owner: "add-account",
-        state: "syncing",
-      },
-    });
-
-    render(<AccountDetail />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
-      expect(lastCall?.[0].syncSection.isSyncing).toBe(true);
-      expect(lastCall?.[0].syncSection.progressLabel).toBe("Starting sync");
-      expect(lastCall?.[0].syncSection.progressValue).toBeNull();
     });
   });
 
