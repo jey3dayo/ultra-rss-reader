@@ -20,6 +20,7 @@ mod macos_security_cli;
 mod redaction;
 #[cfg(any(target_os = "macos", test))]
 pub(crate) mod session_cache;
+pub(crate) mod storage_mode;
 #[cfg(test)]
 mod tests;
 
@@ -248,6 +249,11 @@ fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainRes
 #[cfg(target_os = "macos")]
 pub(crate) fn uses_dev_credential_store() -> bool {
     dev_credentials_path().is_some()
+}
+
+pub(crate) fn uses_local_file_storage() -> bool {
+    dev_store_path::platform_dev_credentials_path().is_none()
+        && storage_mode::active() == storage_mode::CredentialStorage::LocalFile
 }
 
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {

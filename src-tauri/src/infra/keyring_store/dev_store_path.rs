@@ -1,7 +1,18 @@
+use super::storage_mode::{self, CredentialStorage};
 use crate::platform::{PlatformInfo, PlatformKind};
 use std::path::{Path, PathBuf};
 
 pub(super) fn dev_credentials_path() -> Option<PathBuf> {
+    if let Some(path) = platform_dev_credentials_path() {
+        return Some(path);
+    }
+    if storage_mode::active() == CredentialStorage::LocalFile {
+        return storage_mode::local_credentials_path();
+    }
+    None
+}
+
+pub(super) fn platform_dev_credentials_path() -> Option<PathBuf> {
     let info = PlatformInfo::current();
     dev_credentials_path_for_platform(&info, |key| std::env::var(key).ok())
 }

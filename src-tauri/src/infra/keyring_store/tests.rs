@@ -628,6 +628,27 @@ fn write_dev_store_replaces_via_temp_file_without_leaving_staging_copy() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn write_dev_store_creates_owner_only_file_on_unix() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("dev-credentials.json");
+    let mut store = HashMap::new();
+    store.insert("account-a".to_string(), "secret-a".to_string());
+
+    super::dev_store_file::write_dev_store(&path, &store)
+        .expect("dev credential fixture should be writable");
+
+    let mode = std::fs::metadata(&path)
+        .expect("dev credential store should exist")
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o777, 0o600);
+    assert_eq!(super::dev_store_file::read_dev_store(&path).unwrap(), store);
+}
+
 #[test]
 fn dev_store_temp_path_stays_next_to_final_store() {
     let path = Path::new("/tmp/ultra-rss-reader/dev-credentials.json");
