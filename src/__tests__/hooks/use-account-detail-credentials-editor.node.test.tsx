@@ -10,6 +10,11 @@ import i18n from "@tests/helpers/i18n-setup";
 import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  accountDetailCredentialsEditorReducer,
+  createInitialAccountDetailCredentialsEditorState,
+  resolveCredentialChangedFields,
+} from "@/components/settings/hooks/account-detail/account-detail-credentials-editor-state";
 import { useAccountDetailCredentialsEditor } from "@/components/settings/hooks/account-detail/use-account-detail-credentials-editor";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -292,7 +297,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       { initialProps: { selectedAccount: account } },
     );
 
-    let connectionTest: Promise<void> = Promise.resolve();
+    let connectionTest: Promise<unknown> = Promise.resolve();
     act(() => {
       connectionTest = result.current.handleTestConnection();
     });
@@ -1238,8 +1243,8 @@ describe("useAccountDetailCredentialsEditor", () => {
       useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
     );
 
-    let firstTest: Promise<void> = Promise.resolve();
-    let secondTest: Promise<void> = Promise.resolve();
+    let firstTest: Promise<unknown> = Promise.resolve();
+    let secondTest: Promise<unknown> = Promise.resolve();
     act(() => {
       firstTest = result.current.handleTestConnection();
       secondTest = result.current.handleTestConnection();
@@ -1363,7 +1368,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       }),
     );
 
-    let testConnection: Promise<void> = Promise.resolve();
+    let testConnection: Promise<unknown> = Promise.resolve();
     await act(async () => {
       testConnection = result.current.handleTestConnection();
       await Promise.resolve();
@@ -1411,7 +1416,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       { initialProps: { account: firstAccount } },
     );
 
-    let testConnection: Promise<void> = Promise.resolve();
+    let testConnection: Promise<unknown> = Promise.resolve();
     await act(async () => {
       testConnection = result.current.handleTestConnection();
       await Promise.resolve();
@@ -1821,6 +1826,276 @@ describe("useAccountDetailCredentialsEditor", () => {
     );
 
     expect(result.current.passwordDisplayValue).toBe("");
+  });
+
+  it("marks only credential fields edited away from saved values as changed", () => {
+    const account = sampleAccounts[1];
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    expect(result.current.changedFields).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: false,
+    });
+    expect(result.current.dirtyState.dirty).toBe(false);
+
+    act(() => {
+      result.current.setCredServerUrl("https://other.example.com");
+    });
+
+    expect(result.current.changedFields).toEqual({
+      serverUrl: true,
+      username: false,
+      password: false,
+      cloudflareAccess: false,
+    });
+    expect(result.current.dirtyState.dirty).toBe(true);
+  });
+
+  it("treats a value edited back to the saved value, including surrounding whitespace, as unchanged", () => {
+    const account = sampleAccounts[1];
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    act(() => {
+      result.current.setCredServerUrl("  https://freshrss.example.com  ");
+      result.current.setCredUsername("  user  ");
+    });
+
+    expect(result.current.changedFields).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: false,
+    });
+    expect(result.current.dirtyState.dirty).toBe(false);
+
+    act(() => {
+      result.current.setCredServerUrl("https://other.example.com");
+      result.current.setCredUsername("alice");
+      result.current.setCredPassword("new-dummy-password");
+    });
+
+    expect(result.current.changedFields).toEqual({
+      serverUrl: true,
+      username: true,
+      password: true,
+      cloudflareAccess: false,
+    });
+    expect(result.current.dirtyState.dirty).toBe(true);
+
+    act(() => {
+      result.current.setCredPassword("");
+    });
+
+    expect(result.current.changedFields.password).toBe(false);
+    expect(result.current.changedFields.username).toBe(true);
+    expect(result.current.dirtyState.dirty).toBe(true);
+  });
+
+  it("resolves the connection test true after the save and verification succeed", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockResolvedValue(Result.succeed({ ...account, username: "alice" }));
+    testAccountConnectionMock.mockResolvedValue(
+      Result.succeed({
+        ...account,
+        username: "alice",
+        connection_verification_status: "verified",
+        connection_verified_at: "2026-04-19T05:32:00Z",
+        connection_verification_error: null,
+      }),
+    );
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+
+    act(() => {
+      result.current.setCredUsername("alice");
+    });
+
+    let tested = false;
+    await act(async () => {
+      tested = await result.current.handleTestConnection();
+    });
+
+    expect(tested).toBe(true);
+    expect(result.current.dirtyState.dirty).toBe(false);
+    expect(result.current.connectionTestSucceeded).toBe(true);
+  });
+
+  it("resolves the connection test false when the credential save fails", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockRejectedValue(new Error("keychain unavailable"));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+
+    act(() => {
+      result.current.setCredUsername("alice");
+    });
+
+    let tested = true;
+    await act(async () => {
+      tested = await result.current.handleTestConnection();
+    });
+
+    expect(tested).toBe(false);
+    expect(testAccountConnectionMock).not.toHaveBeenCalled();
+    expect(result.current.connectionTestSucceeded).toBe(false);
+  });
+
+  it("resolves the connection test false when the verification fails", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockResolvedValue(Result.succeed(account));
+    testAccountConnectionMock.mockResolvedValue(Result.fail({ message: "invalid credentials" }));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+
+    act(() => {
+      result.current.setCredUsername("alice");
+    });
+
+    let tested = true;
+    await act(async () => {
+      tested = await result.current.handleTestConnection();
+    });
+
+    expect(tested).toBe(false);
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
+    expect(result.current.dirtyState.dirty).toBe(false);
+  });
+
+  it("discards all credential and Access drafts back to the saved account values", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValue(
+      Result.succeed({ status: "loaded", client_id: "saved-client-id" }),
+    );
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => {
+      expect(result.current.cloudflareAccessStatus).toBe("ready");
+      expect(result.current.cloudflareAccessClientId).toBe("saved-client-id");
+    });
+
+    act(() => {
+      result.current.setCredServerUrl("https://other.example.com");
+      result.current.setCredUsername("alice");
+      result.current.setCredPassword("new-dummy-password");
+      result.current.setCloudflareAccessClientId("edited-client-id");
+      result.current.setCloudflareAccessSecret("draft-dummy-secret");
+    });
+    expect(result.current.dirtyState.dirty).toBe(true);
+
+    act(() => {
+      result.current.discardCredentialDrafts();
+    });
+
+    expect(result.current.dirtyState.dirty).toBe(false);
+    expect(result.current.changedFields).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: false,
+    });
+    expect(result.current.credServerUrl).toBeNull();
+    expect(result.current.credUsername).toBeNull();
+    expect(result.current.credPassword).toBeNull();
+    expect(result.current.passwordDisplayValue).toBe("••••••••");
+    expect(result.current.cloudflareAccessEnabled).toBe(true);
+    expect(result.current.cloudflareAccessClientId).toBe("saved-client-id");
+    expect(result.current.cloudflareAccessSecret).toBe("");
+    expect(result.current.cloudflareAccessSecretEditing).toBe(false);
+    expect(result.current.cloudflareAccessSecretVisible).toBe(false);
+  });
+
+  it("resolves changed credential fields from trimmed draft values", () => {
+    const account = sampleAccounts[1];
+
+    expect(resolveCredentialChangedFields(account, null, null, null, false)).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: false,
+    });
+    expect(resolveCredentialChangedFields(account, "https://other.example.com", "  user  ", "", true)).toEqual({
+      serverUrl: true,
+      username: false,
+      password: false,
+      cloudflareAccess: true,
+    });
+  });
+
+  it("discards credential drafts through the reducer and restores the saved Access values", () => {
+    const account = sampleAccounts[1];
+    let state = createInitialAccountDetailCredentialsEditorState(account);
+    state = accountDetailCredentialsEditorReducer(state, {
+      type: "cloudflare-access-loaded",
+      clientId: "saved-client-id",
+      serverUrl: account.server_url ?? "",
+    });
+    state = accountDetailCredentialsEditorReducer(state, { type: "set-cred-username", value: "edited-user" });
+    state = accountDetailCredentialsEditorReducer(state, { type: "set-cloudflare-access-status", value: "error" });
+    state = accountDetailCredentialsEditorReducer(state, {
+      type: "set-cloudflare-access-recovery-action",
+      value: "replace",
+    });
+    state = accountDetailCredentialsEditorReducer(state, { type: "set-cloudflare-access-secret-editing", value: true });
+    state = accountDetailCredentialsEditorReducer(state, { type: "set-cloudflare-access-secret-visible", value: true });
+    state = accountDetailCredentialsEditorReducer(state, {
+      type: "set-cloudflare-access-secret",
+      value: "draft-dummy-secret",
+    });
+    const revisionBeforeDiscard = state.draftRevision;
+
+    const discarded = accountDetailCredentialsEditorReducer(state, { type: "discard-credential-drafts" });
+
+    expect(discarded.credServerUrl).toBeNull();
+    expect(discarded.credUsername).toBeNull();
+    expect(discarded.credPassword).toBeNull();
+    expect(discarded.cloudflareAccessEnabled).toBe(true);
+    expect(discarded.cloudflareAccessClientId).toBe("saved-client-id");
+    expect(discarded.cloudflareAccessSecret).toBe("");
+    expect(discarded.cloudflareAccessSecretEditing).toBe(false);
+    expect(discarded.cloudflareAccessSecretVisible).toBe(false);
+    expect(discarded.cloudflareAccessRecoveryAction).toBeNull();
+    expect(discarded.cloudflareAccessDraftTouched).toBe(false);
+    expect(discarded.cloudflareAccessRemovalRequested).toBe(false);
+    expect(discarded.draftRevision).toBe(revisionBeforeDiscard + 1);
+  });
+
+  it("discards drafts to empty Access state through the reducer when nothing is saved", () => {
+    const account = sampleAccounts[1];
+    let state = createInitialAccountDetailCredentialsEditorState(account);
+    state = accountDetailCredentialsEditorReducer(state, {
+      type: "cloudflare-access-loaded",
+      clientId: null,
+      serverUrl: account.server_url ?? "",
+    });
+    state = accountDetailCredentialsEditorReducer(state, {
+      type: "set-cred-server-url",
+      value: "https://other.example.com",
+    });
+    state = accountDetailCredentialsEditorReducer(state, { type: "set-cloudflare-access-enabled", value: true });
+
+    const discarded = accountDetailCredentialsEditorReducer(state, { type: "discard-credential-drafts" });
+
+    expect(discarded.credServerUrl).toBeNull();
+    expect(discarded.cloudflareAccessEnabled).toBe(false);
+    expect(discarded.cloudflareAccessClientId).toBe("");
+    expect(discarded.draftRevision).toBeGreaterThan(state.draftRevision);
   });
 });
 

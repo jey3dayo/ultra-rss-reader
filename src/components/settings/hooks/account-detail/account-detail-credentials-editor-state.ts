@@ -122,6 +122,7 @@ export type AccountDetailCredentialsEditorAction =
   | { type: "set-testing-connection"; value: boolean }
   | { type: "set-credential-save-pending"; value: boolean }
   | { type: "sync-saved-password-presence"; value: boolean }
+  | { type: "discard-credential-drafts" }
   | {
       type: "clear-credential-drafts";
       passwordWasSaved: boolean;
@@ -224,6 +225,34 @@ export function resolveCredentialDraftValues(
   const usernameChanged = credUsername !== null && username !== ((account.username ?? "").trim() || undefined);
   const passwordChanged = credPassword !== null && credPassword !== "";
   return { serverUrl, username, password, serverUrlChanged, usernameChanged, passwordChanged };
+}
+
+export type CredentialChangedFields = {
+  serverUrl: boolean;
+  username: boolean;
+  password: boolean;
+  cloudflareAccess: boolean;
+};
+
+export function resolveCredentialChangedFields(
+  account: AccountDetailCredentialsEditorParams["account"],
+  credServerUrl: string | null,
+  credUsername: string | null,
+  credPassword: string | null,
+  cloudflareAccessDirty: boolean,
+): CredentialChangedFields {
+  const { serverUrlChanged, usernameChanged, passwordChanged } = resolveCredentialDraftValues(
+    account,
+    credServerUrl,
+    credUsername,
+    credPassword,
+  );
+  return {
+    serverUrl: serverUrlChanged,
+    username: usernameChanged,
+    password: passwordChanged,
+    cloudflareAccess: cloudflareAccessDirty,
+  };
 }
 
 export function isCloudflareAccessMetadataUnavailable(status: CloudflareAccessStatus): boolean {
@@ -431,6 +460,26 @@ function reduceClearCredentialDrafts(
   };
 }
 
+function reduceDiscardCredentialDrafts(
+  state: AccountDetailCredentialsEditorState,
+): AccountDetailCredentialsEditorState {
+  return {
+    ...state,
+    credServerUrl: null,
+    credUsername: null,
+    credPassword: null,
+    cloudflareAccessEnabled: state.savedCloudflareAccessClientId !== null,
+    cloudflareAccessClientId: state.savedCloudflareAccessClientId ?? "",
+    cloudflareAccessSecret: "",
+    cloudflareAccessSecretEditing: false,
+    cloudflareAccessSecretVisible: false,
+    cloudflareAccessRecoveryAction: null,
+    cloudflareAccessDraftTouched: false,
+    cloudflareAccessRemovalRequested: false,
+    draftRevision: state.draftRevision + 1,
+  };
+}
+
 export function accountDetailCredentialsEditorReducer(
   state: AccountDetailCredentialsEditorState,
   action: AccountDetailCredentialsEditorAction,
@@ -488,6 +537,8 @@ export function accountDetailCredentialsEditorReducer(
       return { ...state, credentialSavePending: action.value };
     case "sync-saved-password-presence":
       return { ...state, hasSavedPassword: action.value };
+    case "discard-credential-drafts":
+      return reduceDiscardCredentialDrafts(state);
     case "clear-credential-drafts":
       return reduceClearCredentialDrafts(state, action);
     default:

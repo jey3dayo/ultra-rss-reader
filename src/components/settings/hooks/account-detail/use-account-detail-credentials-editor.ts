@@ -19,6 +19,7 @@ import {
   type AccountDetailCredentialsEditorParams,
   accountDetailCredentialsEditorReducer,
   accountMayHaveSavedPassword,
+  type CredentialChangedFields,
   type CredentialCommitOutcome,
   type CredentialDraftValues,
   type CredentialSaveSuccessToastKey,
@@ -28,6 +29,7 @@ import {
   isCloudflareAccessMetadataUnavailable,
   isCurrentSuccessfulConnectionTest,
   MASKED_PASSWORD_VALUE,
+  resolveCredentialChangedFields,
   resolveCredentialDraftValues,
   resolveCredentialSaveFailureMessage,
   resolveCredentialSaveValidationErrorKey,
@@ -52,6 +54,7 @@ export type AccountDetailCredentialsEditorResult = {
   testingConnection: boolean;
   connectionTestSucceeded: boolean;
   dirtyState: SettingsDirtyStateEntry;
+  changedFields: CredentialChangedFields;
   serverUrlInputRef: RefObject<HTMLInputElement | null>;
   usernameInputRef: RefObject<HTMLInputElement | null>;
   setCredServerUrl: (value: string | null) => void;
@@ -64,7 +67,8 @@ export type AccountDetailCredentialsEditorResult = {
   setCloudflareAccessSecretEditing: (value: boolean) => void;
   setCloudflareAccessSecretVisible: (value: boolean) => void;
   commitCredentials: () => Promise<boolean>;
-  handleTestConnection: () => Promise<void>;
+  handleTestConnection: () => Promise<boolean>;
+  discardCredentialDrafts: () => void;
   handleCopyServerUrl: () => Promise<void>;
   onPasswordFocus: () => void;
   onPasswordBlur: () => void;
@@ -116,9 +120,15 @@ export function useAccountDetailCredentialsEditor({
     savedOrigin: state.savedCloudflareAccessOrigin,
     serverUrl: currentServerUrl,
   });
-  const credentialsDirty =
-    credServerUrl !== null || credUsername !== null || (credPassword !== null && credPassword !== "");
-  const credentialsOrAccessDirty = credentialsDirty || cloudflareAccessDirty;
+  const changedFields = resolveCredentialChangedFields(
+    account,
+    credServerUrl,
+    credUsername,
+    credPassword,
+    cloudflareAccessDirty,
+  );
+  const credentialsOrAccessDirty =
+    changedFields.serverUrl || changedFields.username || changedFields.password || changedFields.cloudflareAccess;
   const dirtyState: SettingsDirtyStateEntry = {
     owner: "account",
     dirty: credentialsOrAccessDirty,
@@ -364,14 +374,16 @@ export function useAccountDetailCredentialsEditor({
     return saveTask;
   };
 
+  const discardCredentialDrafts = () => dispatch({ type: "discard-credential-drafts" });
+
   const commitCredentials = async (): Promise<boolean> => {
     const outcome = await commitCredentialDraft("account.credentials_saved");
     return outcome.saved;
   };
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = async (): Promise<boolean> => {
     if (pendingConnectionTestRef.current) {
-      return;
+      return false;
     }
 
     setSuccessfulConnectionTest(null);
@@ -383,14 +395,14 @@ export function useAccountDetailCredentialsEditor({
     try {
       const credentialCommit = await commitCredentialDraft(null);
       if (!credentialCommit.saved) {
-        return;
+        return false;
       }
       if (
         !mountedRef.current ||
         activeAccountIdRef.current !== requestAccountId ||
         draftRevisionRef.current !== requestDraftRevision
       ) {
-        return;
+        return false;
       }
 
       const verified = await runConnectionVerification(
@@ -399,7 +411,7 @@ export function useAccountDetailCredentialsEditor({
         credentialCommit.updatedAccount ?? undefined,
       );
       if (!verified || connectionTestAccountGenerationRef.current !== requestAccountGeneration) {
-        return;
+        return false;
       }
 
       setSuccessfulConnectionTest({
@@ -408,6 +420,7 @@ export function useAccountDetailCredentialsEditor({
         draftRevision: requestDraftRevision,
       });
       useUiStore.getState().showToast(t("account.connection_success"));
+      return true;
     } finally {
       pendingConnectionTestRef.current = false;
       dispatch({ type: "set-testing-connection", value: false });
@@ -470,6 +483,7 @@ export function useAccountDetailCredentialsEditor({
     testingConnection,
     connectionTestSucceeded,
     dirtyState,
+    changedFields,
     serverUrlInputRef,
     usernameInputRef,
     setCredServerUrl: (value) => dispatch({ type: "set-cred-server-url", value }),
@@ -483,6 +497,7 @@ export function useAccountDetailCredentialsEditor({
     setCloudflareAccessSecretVisible: (value) => dispatch({ type: "set-cloudflare-access-secret-visible", value }),
     commitCredentials,
     handleTestConnection,
+    discardCredentialDrafts,
     handleCopyServerUrl,
     onPasswordFocus,
     onPasswordBlur,
