@@ -159,6 +159,7 @@ function readRustCommandSources() {
     "account_commands/mod.rs",
     ...RUST_ARTICLE_COMMAND_MODULE_FILES.map((file) => `article_commands/${file}`),
     "browser_webview_commands/mod.rs",
+    "credential_storage_commands.rs",
     "database_commands/mod.rs",
     ...RUST_FEED_COMMAND_MODULE_FILES.map((file) => `feed_commands/${file}`),
     "log_commands.rs",

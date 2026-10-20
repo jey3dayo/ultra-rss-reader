@@ -123,6 +123,8 @@ const expectedCommandOwnerAllowlists = {
     "get_tag_article_counts",
   ],
   "settings-commands": [
+    "get_credential_storage",
+    "set_credential_storage",
     "get_preferences",
     "set_preference",
     "get_local_account_sync_settings",

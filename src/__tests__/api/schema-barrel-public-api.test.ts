@@ -63,6 +63,8 @@ const publicSchemaRuntimeExports = [
   "CloudflareAccessMetadataSchema",
   "COUNT_RESPONSE_MAX_VALUE",
   "CountResponseSchema",
+  "CredentialStorageKindSchema",
+  "CredentialStorageSchema",
   "DatabaseInfoDtoSchema",
   "DevRuntimeOptionsSchema",
   "DiscoveredFeedDtoListSchema",

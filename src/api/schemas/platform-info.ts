@@ -57,3 +57,13 @@ export const PlatformPermissionDeniedRecoveryListSchema = v.array(PlatformPermis
 
 export type DevRuntimeOptions = v.InferOutput<typeof DevRuntimeOptionsSchema>;
 export type PlatformPermissionDeniedRecovery = v.InferOutput<typeof PlatformPermissionDeniedRecoverySchema>;
+
+export const CredentialStorageKindSchema = v.picklist(["os_keychain", "local_file"]);
+
+export const CredentialStorageSchema = s.strictObject({
+  storage: CredentialStorageKindSchema,
+  configurable: v.boolean(),
+});
+
+export type CredentialStorageKind = v.InferOutput<typeof CredentialStorageKindSchema>;
+export type CredentialStorageDto = v.InferOutput<typeof CredentialStorageSchema>;

@@ -20,7 +20,7 @@ static APP_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum CredentialStorage {
+pub enum CredentialStorage {
     #[default]
     OsKeychain,
     LocalFile,

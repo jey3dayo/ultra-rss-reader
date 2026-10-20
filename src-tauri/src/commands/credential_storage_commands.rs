@@ -20,7 +20,7 @@ const DEV_STORE_LOCKED_MESSAGE: &str =
 static SWITCH_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Serialize, PartialEq)]
-pub(crate) struct CredentialStorageDto {
+pub struct CredentialStorageDto {
     storage: CredentialStorage,
     configurable: bool,
 }
@@ -33,12 +33,12 @@ fn credential_storage_dto() -> CredentialStorageDto {
 }
 
 #[tauri::command]
-pub(crate) fn get_credential_storage() -> Result<CredentialStorageDto, AppError> {
+pub fn get_credential_storage() -> Result<CredentialStorageDto, AppError> {
     Ok(credential_storage_dto())
 }
 
 #[tauri::command]
-pub(crate) async fn set_credential_storage(
+pub async fn set_credential_storage(
     state: State<'_, AppState>,
     storage: CredentialStorage,
 ) -> Result<CredentialStorageDto, AppError> {

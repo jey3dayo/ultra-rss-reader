@@ -933,6 +933,14 @@ export function setupDevMocks(): RestoreDevMocks {
         return null;
       }
 
+      case "get_credential_storage":
+        return { storage: "os_keychain", configurable: true };
+
+      case "set_credential_storage": {
+        const { storage } = parseBrowserMockArgs("set_credential_storage", rawIpcPayload);
+        return { storage, configurable: true };
+      }
+
       case "get_platform_info":
         return cloneMockResponse(DEV_MOCK_PLATFORM_INFO);
 
