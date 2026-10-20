@@ -628,6 +628,34 @@ fn write_dev_store_replaces_via_temp_file_without_leaving_staging_copy() {
     );
 }
 
+#[test]
+fn write_dev_store_replaces_an_existing_store_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("dev-credentials.json");
+    let mut first_store = HashMap::new();
+    first_store.insert("account-a".to_string(), "secret-a".to_string());
+    let mut second_store = HashMap::new();
+    second_store.insert("account-b".to_string(), "secret-b".to_string());
+    second_store.insert("account-c".to_string(), "secret-c".to_string());
+
+    super::dev_store_file::write_dev_store(&path, &first_store)
+        .expect("initial dev credential store write should succeed");
+    super::dev_store_file::write_dev_store(&path, &second_store)
+        .expect("replacement dev credential store write should succeed");
+
+    assert_eq!(
+        super::dev_store_file::read_dev_store(&path).unwrap(),
+        second_store,
+        "the replacement store must fully replace the previous content"
+    );
+    assert!(
+        !super::dev_store_file::read_dev_store(&path)
+            .unwrap()
+            .contains_key("account-a"),
+        "the previous content should not survive the replacement write"
+    );
+}
+
 #[cfg(unix)]
 #[test]
 fn write_dev_store_creates_owner_only_file_on_unix() {
@@ -1039,6 +1067,34 @@ fn user_sync_mode_is_interactive_on_non_macos_regardless_of_file_store_or_lease(
             super::CredentialLookupMode::Interactive
         );
     }
+}
+
+#[test]
+fn credential_write_guard_blocks_second_acquirer_until_first_guard_is_dropped() {
+    let first = super::credential_write_guard().expect("first guard should acquire");
+    let (acquired_tx, acquired_rx) = std::sync::mpsc::channel();
+    let second = std::thread::spawn(move || {
+        let guard = super::credential_write_guard();
+        let acquired = guard.is_ok();
+        let _ = acquired_tx.send(acquired);
+        drop(guard);
+    });
+
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    assert!(
+        acquired_rx.try_recv().is_err(),
+        "second acquirer must stay blocked while the first guard is held"
+    );
+    drop(first);
+    assert!(
+        acquired_rx
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .expect("second acquirer should unblock after the first guard is dropped"),
+        "second acquirer should own the guard after the first guard is dropped"
+    );
+    second
+        .join()
+        .expect("second acquirer thread should finish after being unblocked");
 }
 
 #[tokio::test]

@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use serde::Serialize;
 use tauri::State;
 
@@ -16,8 +14,6 @@ use crate::repository::account::AccountRepository;
 const SWITCH_FAILED_MESSAGE: &str = "Failed to change credential storage";
 const DEV_STORE_LOCKED_MESSAGE: &str =
     "Credential storage cannot be changed while the development credential store is in use";
-
-static SWITCH_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Serialize, PartialEq)]
 pub struct CredentialStorageDto {
@@ -101,9 +97,8 @@ fn switch_with_lock(
     entries: &[SecretEntry],
     storage: CredentialStorage,
 ) -> Result<MigrationReport, AppError> {
-    let _switch_guard = SWITCH_LOCK.lock().map_err(|_| AppError::UserVisible {
-        message: SWITCH_FAILED_MESSAGE.into(),
-    })?;
+    let _switch_guard =
+        crate::infra::keyring_store::credential_write_guard().map_err(AppError::from)?;
     if storage_mode::active() == storage {
         return Ok(MigrationReport::default());
     }

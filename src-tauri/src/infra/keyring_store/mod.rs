@@ -36,6 +36,14 @@ pub(super) const SERVICE: &str = "ultra-rss-reader";
 pub(super) const DEV_CREDENTIALS_RECOVERY_HINT: &str =
     "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent temporary/lock files, then restart the application.";
 
+static CREDENTIAL_WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+pub(crate) fn credential_write_guard() -> DomainResult<std::sync::MutexGuard<'static, ()>> {
+    CREDENTIAL_WRITE_LOCK
+        .lock()
+        .map_err(|_| DomainError::Keychain("Failed to lock credential store".into()))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CredentialLookupMode {
     Background,
@@ -291,6 +299,7 @@ pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
 }
 
 fn write_password(account_id: &str, password: &str) -> DomainResult<()> {
+    let _write_guard = credential_write_guard()?;
     if let Some(path) = dev_credentials_path() {
         validate_dev_credential_account_id(account_id)?;
         with_dev_store_lock(&path, || {
@@ -389,6 +398,7 @@ pub fn delete_password(account_id: &str) -> DomainResult<()> {
 }
 
 fn remove_password(account_id: &str) -> DomainResult<()> {
+    let _write_guard = credential_write_guard()?;
     if let Some(path) = dev_credentials_path() {
         return with_dev_store_lock(&path, || delete_dev_password_at_path(&path, account_id));
     }

@@ -142,6 +142,8 @@ impl OsCloudflareAccessStore {
         value: &str,
         op: KeyringOp,
     ) -> Result<(), AccessStoreError> {
+        let _write_guard =
+            super::credential_write_guard().map_err(|_| AccessStoreError::Unavailable)?;
         if super::uses_local_file_storage() {
             let backend = Self::local_file_backend()?;
             return backend
@@ -154,6 +156,8 @@ impl OsCloudflareAccessStore {
     }
 
     fn raw_delete(&self, account_id: &str, op: KeyringOp) -> Result<(), AccessStoreError> {
+        let _write_guard =
+            super::credential_write_guard().map_err(|_| AccessStoreError::Unavailable)?;
         if super::uses_local_file_storage() {
             let backend = Self::local_file_backend()?;
             return backend

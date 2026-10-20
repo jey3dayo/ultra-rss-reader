@@ -170,6 +170,25 @@ mod tests {
     }
 
     #[test]
+    fn write_marker_replaces_an_existing_marker() {
+        let dir = tempfile::tempdir().expect("temp dir should be created");
+
+        for expected in [
+            CredentialStorage::LocalFile,
+            CredentialStorage::OsKeychain,
+            CredentialStorage::LocalFile,
+        ] {
+            write_marker(dir.path(), expected).expect("marker write should succeed");
+            assert_eq!(
+                read_marker(dir.path()),
+                expected,
+                "each marker write should replace the previously stored mode"
+            );
+            assert_no_temp_file(dir.path());
+        }
+    }
+
+    #[test]
     fn write_marker_round_trips_os_keychain_choice() {
         let dir = tempfile::tempdir().expect("temp dir should be created");
 
