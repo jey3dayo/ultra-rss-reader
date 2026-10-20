@@ -144,6 +144,20 @@ export const CloudflareAccessChangingSecret: Story = {
   },
 };
 
+export const CloudflareAccessChangedFields: Story = {
+  args: {
+    cloudflareAccess: {
+      ...configuredCloudflareAccess,
+      changedFieldLabel: "Changed",
+      clientId: {
+        ...configuredCloudflareAccess.clientId,
+        value: "new-demo-client-id",
+        changed: true,
+      },
+    },
+  },
+};
+
 export const CloudflareAccessRevealedDraft: Story = {
   args: {
     cloudflareAccess: {

@@ -109,6 +109,67 @@ describe("AccountCredentialsSectionView", () => {
     expect(screen.getAllByText("Changed")).toHaveLength(1);
   });
 
+  it("highlights the Cloudflare Access client ID input while leaving the secret input unchanged", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Server"
+        usernameLabel="Username"
+        usernameValue="alice"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter new password"
+        onPasswordChange={() => {}}
+        cloudflareAccess={{
+          status: "ready",
+          hasSavedSecret: false,
+          secretEditing: false,
+          secretVisible: false,
+          secretDescription: "Leave blank to keep the saved Secret.",
+          secretSavedLabel: "Saved",
+          secretChangeLabel: "Change",
+          secretChangeAriaLabel: "Change saved Client Secret",
+          secretCancelLabel: "Cancel",
+          secretShowLabel: "Show new Secret",
+          secretHideLabel: "Hide new Secret",
+          onSecretEditingChange: () => {},
+          onSecretVisibilityChange: () => {},
+          loadingMessage: "Checking…",
+          readErrorMessage: "Access metadata could not be read.",
+          unavailableMessage: "Manage Access in the desktop app.",
+          authorizationRequiredMessage: "Run the connection test to load Access settings.",
+          label: "Cloudflare Access",
+          description: "Add Access authentication",
+          enabled: true,
+          onEnabledChange: () => {},
+          changedFieldLabel: "Changed",
+          clientId: {
+            label: "Client ID",
+            value: "edited-client-id",
+            onChange: () => {},
+            changed: true,
+          },
+          clientSecret: {
+            label: "Client Secret",
+            value: "",
+            placeholder: "New Client Secret",
+            onChange: () => {},
+            changed: false,
+          },
+          clientIdError: "Enter a Client ID",
+          clientSecretError: "Enter a Client Secret",
+          validationError: null,
+        }}
+      />,
+    );
+
+    const clientIdInput = screen.getByLabelText("Client ID");
+    const secretInput = screen.getByLabelText("Client Secret");
+    expect(clientIdInput).toHaveClass("border-[var(--settings-field-changed-border)]");
+    expect(secretInput).not.toHaveClass("border-[var(--settings-field-changed-border)]");
+    expect(screen.getAllByText("Changed")).toHaveLength(1);
+  });
+
   it("does not render changed field indicators without changedFields", () => {
     render(
       <AccountCredentialsSectionView

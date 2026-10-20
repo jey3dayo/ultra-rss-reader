@@ -116,6 +116,11 @@ export function useAccountDetailCredentialsEditor({
     credUsername,
     credPassword,
     cloudflareAccessDirty,
+    {
+      clientId: state.cloudflareAccessClientId,
+      clientSecret: state.cloudflareAccessSecret,
+      savedClientId: state.savedCloudflareAccessClientId,
+    },
   );
   const credentialsOrAccessDirty =
     changedFields.serverUrl || changedFields.username || changedFields.password || changedFields.cloudflareAccess;

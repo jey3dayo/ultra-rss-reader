@@ -231,6 +231,14 @@ export type CredentialChangedFields = {
   username: boolean;
   password: boolean;
   cloudflareAccess: boolean;
+  cloudflareAccessClientId: boolean;
+  cloudflareAccessSecret: boolean;
+};
+
+export type CloudflareAccessChangedFieldValues = {
+  clientId: string;
+  clientSecret: string;
+  savedClientId: string | null;
 };
 
 export function resolveCredentialChangedFields(
@@ -239,6 +247,7 @@ export function resolveCredentialChangedFields(
   credUsername: string | null,
   credPassword: string | null,
   cloudflareAccessDirty: boolean,
+  cloudflareAccessFields: CloudflareAccessChangedFieldValues,
 ): CredentialChangedFields {
   const { serverUrlChanged, usernameChanged, passwordChanged } = resolveCredentialDraftValues(
     account,
@@ -251,6 +260,9 @@ export function resolveCredentialChangedFields(
     username: usernameChanged,
     password: passwordChanged,
     cloudflareAccess: cloudflareAccessDirty,
+    cloudflareAccessClientId:
+      cloudflareAccessDirty && cloudflareAccessFields.clientId.trim() !== (cloudflareAccessFields.savedClientId ?? ""),
+    cloudflareAccessSecret: cloudflareAccessDirty && cloudflareAccessFields.clientSecret.trim().length > 0,
   };
 }
 

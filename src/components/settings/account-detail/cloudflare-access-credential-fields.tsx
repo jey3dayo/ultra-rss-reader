@@ -1,10 +1,15 @@
+import { cn } from "cn";
 import { Eye, EyeOff } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
 import { useId, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
 import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
-import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
+import {
+  SETTINGS_CHANGED_CONTROL_CLASS,
+  SETTINGS_CONTROL_SURFACE_CLASS,
+} from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow, LabeledInputRow, SurfaceCard } from "@/design-system";
 import type { CloudflareAccessDraftError, CloudflareAccessStatus } from "@/lib/account/cloudflare-access";
 
@@ -18,11 +23,13 @@ export type AccountCredentialInputRow = {
   onFocus?: () => void;
   inputRef?: RefObject<HTMLInputElement | null>;
   errorText?: string;
+  changed?: boolean;
 };
 
 export type AccountCloudflareAccessSection = {
   status: CloudflareAccessStatus;
   changedIndicator?: ReactNode;
+  changedFieldLabel?: string;
   hasSavedSecret: boolean;
   secretEditing: boolean;
   secretVisible: boolean;
@@ -57,6 +64,16 @@ type CloudflareAccessCredentialFieldsProps = {
   disabled: boolean;
   labelClassName: string;
 };
+
+function changedInputClassName(changed: boolean | undefined): string {
+  return changed
+    ? cn("h-11", SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_CHANGED_CONTROL_CLASS)
+    : `h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`;
+}
+
+function changedLabelAccessory(changed: boolean | undefined, changedFieldLabel: string | undefined): ReactNode {
+  return changed === true && changedFieldLabel ? <ChangedFieldIndicator label={changedFieldLabel} /> : undefined;
+}
 
 function CloudflareAccessRecoveryActions({
   section,
@@ -179,7 +196,8 @@ function CloudflareAccessSecretEditor({
         placeholder={clientSecret.placeholder}
         ariaDescribedBy={section.hasSavedSecret ? descriptionId : undefined}
         labelClassName={labelClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={changedInputClassName(clientSecret.changed)}
+        labelAccessory={changedLabelAccessory(clientSecret.changed, section.changedFieldLabel)}
         disabled={disabled}
         errorText={requiresReplacement ? section.clientSecretError : undefined}
         actionLabel={section.secretVisible ? section.secretHideLabel : section.secretShowLabel}
@@ -295,7 +313,8 @@ function CloudflareAccessInputRows({ section, disabled, labelClassName }: Cloudf
         onBlur={!disabled ? clientId.onBlur : undefined}
         placeholder={clientId.placeholder}
         labelClassName={labelClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={changedInputClassName(clientId.changed)}
+        labelAccessory={changedLabelAccessory(clientId.changed, section.changedFieldLabel)}
         disabled={disabled}
         errorText={validationError === "client_id_required" ? section.clientIdError : undefined}
       />

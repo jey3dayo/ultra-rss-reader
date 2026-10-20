@@ -1839,6 +1839,8 @@ describe("useAccountDetailCredentialsEditor", () => {
       username: false,
       password: false,
       cloudflareAccess: false,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
     });
     expect(result.current.dirtyState.dirty).toBe(false);
 
@@ -1851,6 +1853,8 @@ describe("useAccountDetailCredentialsEditor", () => {
       username: false,
       password: false,
       cloudflareAccess: false,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
     });
     expect(result.current.dirtyState.dirty).toBe(true);
   });
@@ -1871,6 +1875,8 @@ describe("useAccountDetailCredentialsEditor", () => {
       username: false,
       password: false,
       cloudflareAccess: false,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
     });
     expect(result.current.dirtyState.dirty).toBe(false);
 
@@ -1885,6 +1891,8 @@ describe("useAccountDetailCredentialsEditor", () => {
       username: true,
       password: true,
       cloudflareAccess: false,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
     });
     expect(result.current.dirtyState.dirty).toBe(true);
 
@@ -2009,6 +2017,8 @@ describe("useAccountDetailCredentialsEditor", () => {
       username: false,
       password: false,
       cloudflareAccess: false,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
     });
     expect(result.current.credServerUrl).toBeNull();
     expect(result.current.credUsername).toBeNull();
@@ -2024,17 +2034,99 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("resolves changed credential fields from trimmed draft values", () => {
     const account = sampleAccounts[1];
 
-    expect(resolveCredentialChangedFields(account, null, null, null, false)).toEqual({
+    expect(
+      resolveCredentialChangedFields(account, null, null, null, false, {
+        clientId: "",
+        clientSecret: "",
+        savedClientId: null,
+      }),
+    ).toEqual({
       serverUrl: false,
       username: false,
       password: false,
       cloudflareAccess: false,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
     });
-    expect(resolveCredentialChangedFields(account, "https://other.example.com", "  user  ", "", true)).toEqual({
+    expect(
+      resolveCredentialChangedFields(account, "https://other.example.com", "  user  ", "", true, {
+        clientId: "saved-client-id",
+        clientSecret: "",
+        savedClientId: "saved-client-id",
+      }),
+    ).toEqual({
       serverUrl: true,
       username: false,
       password: false,
       cloudflareAccess: true,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
+    });
+  });
+
+  it("marks the Cloudflare Access client ID changed only when it differs from the saved value", () => {
+    const account = sampleAccounts[1];
+
+    expect(
+      resolveCredentialChangedFields(account, null, null, null, true, {
+        clientId: "  saved-client-id  ",
+        clientSecret: "",
+        savedClientId: "saved-client-id",
+      }),
+    ).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: true,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
+    });
+    expect(
+      resolveCredentialChangedFields(account, null, null, null, true, {
+        clientId: "edited-client-id",
+        clientSecret: "",
+        savedClientId: "saved-client-id",
+      }),
+    ).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: true,
+      cloudflareAccessClientId: true,
+      cloudflareAccessSecret: false,
+    });
+  });
+
+  it("marks the Cloudflare Access secret changed when only a secret is typed", () => {
+    const account = sampleAccounts[1];
+
+    expect(
+      resolveCredentialChangedFields(account, null, null, null, true, {
+        clientId: "saved-client-id",
+        clientSecret: "",
+        savedClientId: "saved-client-id",
+      }),
+    ).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: true,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: false,
+    });
+    expect(
+      resolveCredentialChangedFields(account, null, null, null, true, {
+        clientId: "saved-client-id",
+        clientSecret: "draft-dummy-secret",
+        savedClientId: "saved-client-id",
+      }),
+    ).toEqual({
+      serverUrl: false,
+      username: false,
+      password: false,
+      cloudflareAccess: true,
+      cloudflareAccessClientId: false,
+      cloudflareAccessSecret: true,
     });
   });
 
