@@ -11,6 +11,7 @@ import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent 
 import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAccountDetailCredentialsEditor } from "@/components/settings/hooks/account-detail/use-account-detail-credentials-editor";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -1318,6 +1319,33 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.testingConnection).toBe(false);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.accounts.root });
     expect(useUiStore.getState().toastMessage?.message).toBe("Connection failed: test account not found");
+  });
+
+  it("invalidates the account sync status query after a successful connection test and not after a failure", async () => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    testAccountConnectionMock.mockResolvedValueOnce(Result.fail({ message: "invalid credentials" }));
+    const { result } = renderHook(() => useAccountDetailCredentialsEditor({ account, queryClient, t }));
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).not.toHaveBeenCalledWith({
+      queryKey: accountSyncStatusQueryKey(account.id),
+    });
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+
+    expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: accountSyncStatusQueryKey(account.id),
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.accounts.root });
   });
 
   it("ignores a stale connection success when the draft changes before the result returns", async () => {

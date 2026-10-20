@@ -2,7 +2,8 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { Dispatch } from "react";
 import { getAccountCloudflareAccess, testAccountConnection } from "@/api/tauri-commands";
-import { queryKeys } from "@/lib/query/query-invalidation";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import type { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -66,5 +67,6 @@ export async function runAccountConnectionVerification({
   }
   const verifiedAccount = Result.unwrap(result);
   updateCachedAccount(queryClient, mergeVerifiedAccount(verifiedAccount, verifiedAccountBase));
+  await invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey(requestAccountId)]);
   return true;
 }

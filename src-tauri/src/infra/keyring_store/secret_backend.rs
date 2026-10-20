@@ -150,22 +150,23 @@ pub(crate) fn backend_for(storage: CredentialStorage) -> DomainResult<Box<dyn Se
     }
 }
 
-fn rollback_target_writes(
-    to: &dyn SecretBackend,
-    pending: &[(SecretEntry, Zeroizing<String>)],
-    target_snapshots: &[Option<Zeroizing<String>>],
-    indices: &[usize],
-) {
+struct PlannedChange {
+    entry: SecretEntry,
+    source_value: Option<Zeroizing<String>>,
+    target_snapshot: Option<Zeroizing<String>>,
+}
+
+fn rollback_target_changes(to: &dyn SecretBackend, changes: &[PlannedChange], indices: &[usize]) {
     for &index in indices {
-        let (entry, _) = &pending[index];
-        let result = match &target_snapshots[index] {
-            Some(snapshot) => to.write(entry, snapshot),
-            None => to.delete(entry),
+        let change = &changes[index];
+        let result = match &change.target_snapshot {
+            Some(snapshot) => to.write(&change.entry, snapshot),
+            None => to.delete(&change.entry),
         };
         if let Err(error) = result {
             tracing::warn!(
                 "event=secret-migration-rollback-failed op=restore credential_kind={} error={error}",
-                credential_kind(entry.kind).label()
+                credential_kind(change.entry.kind).label()
             );
         }
     }
@@ -183,58 +184,83 @@ pub(crate) fn migrate_secrets(
     entries: &[SecretEntry],
     commit: impl FnOnce() -> DomainResult<()>,
 ) -> DomainResult<MigrationReport> {
-    let mut pending: Vec<(SecretEntry, Zeroizing<String>)> = Vec::new();
+    let mut plan: Vec<PlannedChange> = Vec::with_capacity(entries.len());
     for entry in entries {
-        if let Some(value) = from.read(entry)? {
-            pending.push((entry.clone(), Zeroizing::new(value)));
+        let source_value = from.read(entry)?.map(Zeroizing::new);
+        let target_snapshot = to.read(entry)?.map(Zeroizing::new);
+        match source_value {
+            Some(value) => plan.push(PlannedChange {
+                entry: entry.clone(),
+                source_value: Some(value),
+                target_snapshot,
+            }),
+            None if target_snapshot.is_some() => plan.push(PlannedChange {
+                entry: entry.clone(),
+                source_value: None,
+                target_snapshot,
+            }),
+            None => {}
         }
     }
 
-    let mut target_snapshots: Vec<Option<Zeroizing<String>>> = Vec::with_capacity(pending.len());
-    for (entry, _) in &pending {
-        target_snapshots.push(to.read(entry)?.map(Zeroizing::new));
-    }
-
-    let mut written: Vec<usize> = Vec::new();
-    for (index, (entry, value)) in pending.iter().enumerate() {
-        if let Err(error) = to.write(entry, value) {
-            written.push(index);
-            rollback_target_writes(to, &pending, &target_snapshots, &written);
+    let mut applied: Vec<usize> = Vec::new();
+    for (index, change) in plan.iter().enumerate() {
+        let outcome = match &change.source_value {
+            Some(value) => {
+                if let Err(error) = to.write(&change.entry, value) {
+                    applied.push(index);
+                    Err(error)
+                } else {
+                    applied.push(index);
+                    match to.read(&change.entry) {
+                        Ok(read_back) if read_back.as_deref() == Some(value.as_str()) => Ok(()),
+                        Ok(_) => Err(DomainError::Keychain(MIGRATION_COPY_FAILURE.to_string())),
+                        Err(error) => Err(error),
+                    }
+                }
+            }
+            None => {
+                if let Err(error) = to.delete(&change.entry) {
+                    applied.push(index);
+                    Err(error)
+                } else {
+                    applied.push(index);
+                    match to.read(&change.entry) {
+                        Ok(None) => Ok(()),
+                        Ok(_) => Err(DomainError::Keychain(MIGRATION_COPY_FAILURE.to_string())),
+                        Err(error) => Err(error),
+                    }
+                }
+            }
+        };
+        if let Err(error) = outcome {
+            rollback_target_changes(to, &plan, &applied);
             return Err(error);
-        }
-        written.push(index);
-        match to.read(entry) {
-            Ok(read_back) if read_back.as_deref() == Some(value.as_str()) => {}
-            Ok(_) => {
-                rollback_target_writes(to, &pending, &target_snapshots, &written);
-                return Err(DomainError::Keychain(MIGRATION_COPY_FAILURE.to_string()));
-            }
-            Err(error) => {
-                rollback_target_writes(to, &pending, &target_snapshots, &written);
-                return Err(error);
-            }
         }
     }
 
     if let Err(error) = commit() {
-        let all: Vec<usize> = (0..pending.len()).collect();
-        rollback_target_writes(to, &pending, &target_snapshots, &all);
+        let all: Vec<usize> = (0..plan.len()).collect();
+        rollback_target_changes(to, &plan, &all);
         return Err(error);
     }
 
     let mut cleanup_failures = 0;
-    for (entry, _) in &pending {
-        if from.delete(entry).is_err() {
+    for change in &plan {
+        if change.source_value.is_some() && from.delete(&change.entry).is_err() {
             cleanup_failures += 1;
             tracing::warn!(
                 "event=secret-migration-cleanup-failed credential_kind={}",
-                credential_kind(entry.kind).label()
+                credential_kind(change.entry.kind).label()
             );
         }
     }
 
     Ok(MigrationReport {
-        migrated: pending.len(),
+        migrated: plan
+            .iter()
+            .filter(|change| change.source_value.is_some())
+            .count(),
         cleanup_failures,
     })
 }
@@ -534,6 +560,65 @@ mod tests {
         assert_eq!(commit_calls.get(), 1);
         assert_eq!(target.get(&first).as_deref(), Some("first-secret"));
         assert_eq!(target.get(&second).as_deref(), Some("second-secret"));
+    }
+
+    #[test]
+    fn migration_deletes_stale_destination_value_missing_from_source() {
+        let source = MemoryBackend::new();
+        let target = MemoryBackend::new();
+        let fresh = password_entry("fresh");
+        let stale = password_entry("stale");
+        source
+            .write(&fresh, "fresh-secret")
+            .expect("source fresh seed should be written");
+        target.seed(&stale, "stale-value");
+        let entries = [fresh.clone(), stale.clone()];
+
+        let commit_calls = Cell::new(0usize);
+        let report = migrate_secrets(&source, &target, &entries, || {
+            commit_calls.set(commit_calls.get() + 1);
+            Ok(())
+        })
+        .expect("migration should succeed");
+
+        assert_eq!(
+            report,
+            MigrationReport {
+                migrated: 1,
+                cleanup_failures: 0
+            }
+        );
+        assert_eq!(commit_calls.get(), 1);
+        assert_eq!(target.get(&fresh).as_deref(), Some("fresh-secret"));
+        assert_eq!(target.get(&stale), None);
+        assert_eq!(source.get(&stale), None);
+    }
+
+    #[test]
+    fn write_failure_after_stale_deletion_restores_deleted_value() {
+        let source = MemoryBackend::new();
+        let target = MemoryBackend::new().with_fail_write_on_attempt(1);
+        let stale = password_entry("stale");
+        let fresh = access_entry("fresh");
+        target.seed(&stale, "stale-value");
+        source
+            .write(&fresh, "fresh-secret")
+            .expect("source fresh seed should be written");
+        let entries = [stale.clone(), fresh.clone()];
+
+        let commit_calls = Cell::new(0usize);
+        let result = migrate_secrets(&source, &target, &entries, || {
+            commit_calls.set(commit_calls.get() + 1);
+            Ok(())
+        });
+
+        let message = expect_keychain_error(result);
+        assert_eq!(message, MEMORY_WRITE_FAILURE);
+        assert_eq!(commit_calls.get(), 0);
+        assert_eq!(target.get(&stale).as_deref(), Some("stale-value"));
+        assert_eq!(target.get(&fresh), None);
+        assert_eq!(source.get(&stale), None);
+        assert_eq!(source.get(&fresh).as_deref(), Some("fresh-secret"));
     }
 
     #[test]
