@@ -15,9 +15,9 @@ import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { SettingsDirtyStateEntry } from "../settings-dirty-state-registry";
 import { useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
 import { runAccountConnectionVerification } from "./account-detail-connection-verification";
+import { accountDetailCredentialsEditorReducer } from "./account-detail-credentials-editor-reducer";
 import {
   type AccountDetailCredentialsEditorParams,
-  accountDetailCredentialsEditorReducer,
   accountMayHaveSavedPassword,
   type CredentialChangedFields,
   type CredentialCommitOutcome,

@@ -10,8 +10,8 @@ import i18n from "@tests/helpers/i18n-setup";
 import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { accountDetailCredentialsEditorReducer } from "@/components/settings/hooks/account-detail/account-detail-credentials-editor-reducer";
 import {
-  accountDetailCredentialsEditorReducer,
   createInitialAccountDetailCredentialsEditorState,
   resolveCredentialChangedFields,
 } from "@/components/settings/hooks/account-detail/account-detail-credentials-editor-state";
