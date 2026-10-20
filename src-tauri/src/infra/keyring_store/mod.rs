@@ -252,6 +252,10 @@ pub(crate) fn uses_dev_credential_store() -> bool {
     dev_credentials_path().is_some()
 }
 
+pub(crate) fn credential_storage_configurable() -> bool {
+    dev_store_path::platform_dev_credentials_path().is_none()
+}
+
 pub(crate) fn uses_local_file_storage() -> bool {
     dev_store_path::platform_dev_credentials_path().is_none()
         && storage_mode::active() == storage_mode::CredentialStorage::LocalFile

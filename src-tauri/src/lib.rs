@@ -139,6 +139,7 @@ pub fn run() {
             std::fs::create_dir_all(&app_data_dir).map_err(|error| {
                 startup_app_data_dir_create_error_message(&app_data_dir, &error)
             })?;
+            crate::infra::keyring_store::storage_mode::init(&app_data_dir);
             let db_path = app_data_dir.join("ultra-rss-reader.db");
             let db = match DbManager::new(&db_path) {
                 Ok(db) => db,
@@ -400,6 +401,8 @@ pub fn run() {
             commands::platform_commands::get_dev_runtime_options,
             commands::platform_commands::get_platform_permission_denied_recovery,
             commands::platform_commands::reset_oversized_dev_credentials_store,
+            commands::credential_storage_commands::get_credential_storage,
+            commands::credential_storage_commands::set_credential_storage,
             commands::updater_commands::check_for_update,
             commands::updater_commands::download_update,
             commands::updater_commands::restart_app,

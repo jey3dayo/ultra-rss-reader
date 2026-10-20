@@ -1,6 +1,7 @@
 pub mod account_commands;
 pub mod article_commands;
 pub mod browser_webview_commands;
+pub mod credential_storage_commands;
 pub mod database_commands;
 pub mod dto;
 pub mod feed_commands;
@@ -67,6 +68,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "get_dev_runtime_options"
         | "get_platform_permission_denied_recovery"
         | "reset_oversized_dev_credentials_store"
+        | "get_credential_storage"
         | "discover_feeds"
         | "check_for_update"
         | "download_update"
@@ -134,6 +136,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "get_tag_article_counts" => CommandDbLockPolicy::BlockingLock,
         "add_account"
         | "test_account_connection"
+        | "set_credential_storage"
         | "add_local_feed"
         | "delete_feed"
         | "rename_feed"
