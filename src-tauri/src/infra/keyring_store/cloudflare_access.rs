@@ -89,15 +89,9 @@ impl AccessStoreError {
 
 impl From<AccessStoreError> for DomainError {
     fn from(error: AccessStoreError) -> Self {
-        let message = error.to_string();
-        match error {
-            AccessStoreError::NotAllowed
-            | AccessStoreError::Canceled
-            | AccessStoreError::Verification => Self::CredentialStore {
-                failure: error.failure(AccessOperation::Read),
-                message,
-            },
-            AccessStoreError::Unavailable | AccessStoreError::Malformed => Self::Keychain(message),
+        Self::CredentialStore {
+            failure: error.failure(AccessOperation::Read),
+            message: error.to_string(),
         }
     }
 }

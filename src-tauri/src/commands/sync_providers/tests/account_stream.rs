@@ -71,6 +71,33 @@ async fn greader_password_lookup_preserves_owned_read_timeout_error() {
 }
 
 #[tokio::test]
+async fn greader_password_lookup_keeps_the_credential_failure_cause_for_the_ui() {
+    use crate::domain::error::{CredentialFailure, CredentialFailureCause, CredentialTarget};
+
+    let failure =
+        CredentialFailure::new(CredentialTarget::Password, CredentialFailureCause::Canceled);
+    let error = get_greader_password_with_reader(
+        "acc-canceled",
+        CredentialLookupMode::Interactive,
+        move |_| {
+            Err(DomainError::CredentialStore {
+                failure,
+                message: "dummy keychain prompt canceled".into(),
+            })
+        },
+    )
+    .await
+    .expect_err("a typed keychain failure should reach the command boundary");
+
+    match error {
+        AppError::CredentialStore {
+            credential_failure, ..
+        } => assert_eq!(credential_failure, failure),
+        other => panic!("expected a typed credential failure, got {other:?}"),
+    }
+}
+
+#[tokio::test]
 async fn sync_greader_account_uses_account_stream_for_full_sync_and_maps_entries_to_feeds() {
     let mut server = mockito::Server::new_async().await;
     server

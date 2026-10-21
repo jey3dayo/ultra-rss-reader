@@ -348,6 +348,31 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn cloudflare_access_read_failures_reach_the_ui_with_their_cause() {
+        use crate::infra::keyring_store::cloudflare_access::AccessStoreError;
+        for (store_error, cause) in [
+            (AccessStoreError::NotAllowed, "not_allowed"),
+            (AccessStoreError::Canceled, "canceled"),
+            (AccessStoreError::Unavailable, "read_failed"),
+            (AccessStoreError::Malformed, "read_failed"),
+        ] {
+            let error = GReaderSession::provider_with_access("https://localhost", Err(store_error))
+                .await
+                .err()
+                .expect("an unreadable Access entry should fail the session")
+                .into_user_visible();
+
+            assert_eq!(
+                serde_json::to_value(&error)
+                    .expect("the error should serialize")
+                    .get("credential_failure"),
+                Some(&serde_json::json!({ "target": "cloudflare_access", "cause": cause })),
+                "{store_error:?}"
+            );
+        }
+    }
+
     #[test]
     fn granting_a_lease_records_the_generation_it_attempted() {
         use crate::infra::keyring_store::session_cache::{

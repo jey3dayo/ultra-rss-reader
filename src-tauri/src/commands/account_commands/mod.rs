@@ -417,6 +417,44 @@ mod connection_probe_tests {
         tag_list.assert_async().await;
     }
 
+    #[test]
+    fn credential_failure_during_the_connection_test_reaches_the_ui_with_its_cause() {
+        use crate::domain::error::{
+            CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError,
+        };
+
+        let failure = CredentialFailure::new(
+            CredentialTarget::Password,
+            CredentialFailureCause::NotAllowed,
+        );
+        let account = account(
+            "https://localhost",
+            ConnectionVerificationStatus::Unverified,
+        );
+        let db = DbManager::new_in_memory().expect("test database should initialize");
+        let repo = SqliteAccountRepository::new(db.writer());
+        repo.save(&account).expect("test account should save");
+
+        let error = persist_connection_verification_result(
+            &repo,
+            &account.id,
+            Err(SessionError::Auth(AppError::from(
+                DomainError::CredentialStore {
+                    failure,
+                    message: "dummy keychain denied".to_string(),
+                },
+            ))),
+        )
+        .expect_err("a denied keychain read must fail the connection test");
+
+        match error {
+            AppError::CredentialStore {
+                credential_failure, ..
+            } => assert_eq!(credential_failure, failure),
+            other => panic!("expected a typed credential failure, got {other:?}"),
+        }
+    }
+
     #[tokio::test]
     async fn successful_protected_probe_is_the_result_persisted_as_verified() {
         let mut server = mockito::Server::new_async().await;
