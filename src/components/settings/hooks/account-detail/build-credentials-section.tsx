@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
+import type { CredentialStoreKind } from "@/lib/account/credential-failure";
 import { isFreshRssAccount } from "./account-kind";
+import { buildCredentialFailureNotice } from "./build-credential-failure-notice";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";
 
 type BuildCredentialsSectionParams = {
@@ -14,6 +16,7 @@ type BuildCredentialsSectionParams = {
   isSetupFailed: boolean;
   isSetupActive: boolean;
   isQuarantined: boolean;
+  credentialStoreKind: CredentialStoreKind;
 };
 
 export function buildCredentialsSection({
@@ -23,12 +26,20 @@ export function buildCredentialsSection({
   isSetupSyncing,
   isSetupFailed,
   isQuarantined,
+  credentialStoreKind,
 }: BuildCredentialsSectionParams): ReactNode {
   if (!isFreshRssAccount(account)) {
     return undefined;
   }
 
   const cloudflareAccessError = controller.cloudflareAccessValidationError;
+  const failure =
+    controller.credentialFailure ??
+    (controller.cloudflareAccessStatus === "error"
+      ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
+      : null);
+  const failureNotice =
+    failure === null ? undefined : buildCredentialFailureNotice(failure, credentialStoreKind, t, controller);
 
   return (
     <AccountCredentialsSectionView
@@ -58,6 +69,7 @@ export function buildCredentialsSection({
       passwordLabel={t("account.password")}
       passwordValue={controller.passwordDisplayValue}
       passwordPlaceholder={t("account.password_placeholder")}
+      passwordFailureNotice={failure?.target === "password" ? failureNotice : undefined}
       onPasswordChange={controller.setCredPassword}
       onPasswordFocus={controller.onPasswordFocus}
       onPasswordBlur={controller.onPasswordBlur}
@@ -83,7 +95,7 @@ export function buildCredentialsSection({
         recoveryAction: controller.cloudflareAccessRecoveryAction,
         onRecoveryActionChange: controller.setCloudflareAccessRecoveryAction,
         loadingMessage: t("account.cloudflare_access_loading"),
-        readErrorMessage: t("account.cloudflare_access_read_failed"),
+        failureNotice: failure?.target === "cloudflare_access" ? failureNotice : undefined,
         unavailableMessage: t("account.cloudflare_access_unavailable"),
         authorizationRequiredMessage: t("account.cloudflare_access_authorization_required"),
         label: t("account.cloudflare_access"),

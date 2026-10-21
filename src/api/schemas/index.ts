@@ -128,7 +128,7 @@ export {
   DiscoveredFeedDtoListSchema,
   DiscoveredFeedDtoSchema,
 } from "./discovered-feed";
-export { APP_ERROR_MESSAGE_MAX_CHARS, type AppError, AppErrorSchema } from "./error";
+export { APP_ERROR_MESSAGE_MAX_CHARS, type AppError, AppErrorSchema, type CredentialFailure } from "./error";
 export { type FeedDto, FeedDtoListSchema, FeedDtoSchema } from "./feed";
 export {
   type FeedArticleSummaryDto,

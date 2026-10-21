@@ -6,6 +6,7 @@ import {
   getHttpsOrigin,
 } from "@/lib/account/cloudflare-access";
 import { isCloudflareAccessRecoveryRequired } from "@/lib/account/cloudflare-access-error";
+import type { CredentialFailureNotice } from "@/lib/account/credential-failure";
 import { isValidRequiredHttpServerUrl } from "@/lib/account/server-url";
 import type { AccountDetailEditorContext } from "../../account-detail/types";
 
@@ -54,6 +55,7 @@ export type AccountDetailCredentialsEditorState = {
   cloudflareAccessRemovalRequested: boolean;
   testingConnection: boolean;
   credentialSavePending: boolean;
+  credentialFailure: CredentialFailureNotice | null;
   draftRevision: number;
 };
 
@@ -120,6 +122,8 @@ export type AccountDetailCredentialsEditorAction =
     }
   | { type: "set-testing-connection"; value: boolean }
   | { type: "set-credential-save-pending"; value: boolean }
+  | { type: "set-credential-failure"; value: CredentialFailureNotice | null }
+  | { type: "retry-cloudflare-access-load" }
   | { type: "sync-saved-password-presence"; value: boolean }
   | { type: "discard-credential-drafts" }
   | {
@@ -198,6 +202,7 @@ export function createInitialAccountDetailCredentialsEditorState(
     cloudflareAccessRemovalRequested: false,
     testingConnection: false,
     credentialSavePending: false,
+    credentialFailure: null,
     draftRevision: 0,
   };
 }

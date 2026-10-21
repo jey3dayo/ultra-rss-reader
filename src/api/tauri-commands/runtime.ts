@@ -32,6 +32,8 @@ type SchemaBackedInvokeOptions<R extends RuntimeSchema> = InvokeArgsOptions & {
 
 type GenericInvokeOptions = InvokeArgsOptions;
 
+const REDACTED_CREDENTIAL_OPERATION_MESSAGE =
+  "Cloudflare Access credential operation failed. Check your connection and keyring access, then retry.";
 const VALIDATION_ISSUE_LIMIT = 3;
 const VALIDATION_DETAIL_MAX_LENGTH = 240;
 const RETRYABLE_RUNTIME_ERROR_PATTERNS = [
@@ -130,6 +132,15 @@ function toRedactedCommandError(error: unknown): AppError {
   if (parsed.success && isCloudflareAccessRollbackFailure(parsed.output)) {
     return { type: "UserVisible", message: CLOUDFLARE_ACCESS_RECOVERY_REQUIRED };
   }
+  const credentialFailure =
+    parsed.success && parsed.output.type === "UserVisible" ? parsed.output.credential_failure : undefined;
+  if (credentialFailure !== undefined) {
+    return {
+      type: "UserVisible",
+      message: REDACTED_CREDENTIAL_OPERATION_MESSAGE,
+      credential_failure: credentialFailure,
+    };
+  }
   const type = parsed.success
     ? parsed.output.type === "Retryable"
       ? "Retryable"
@@ -139,7 +150,7 @@ function toRedactedCommandError(error: unknown): AppError {
       : "UserVisible";
   return {
     type,
-    message: "Cloudflare Access credential operation failed. Check your connection and keyring access, then retry.",
+    message: REDACTED_CREDENTIAL_OPERATION_MESSAGE,
   };
 }
 

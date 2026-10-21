@@ -5,6 +5,36 @@ import { describe, expect, it, vi } from "vitest";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 
 describe("AccountCredentialsSectionView", () => {
+  it("keeps a password failure right under the password field with a retry action", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue="typed-draft"
+        passwordPlaceholder="Enter password"
+        passwordFailureNotice={{
+          lines: ["Access to Keychain was canceled.", "Your changes are still in the form."],
+          retryLabel: "Retry Save",
+          onRetry,
+          retryDisabled: false,
+        }}
+        onPasswordChange={() => {}}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Access to Keychain was canceled.");
+    expect(screen.getByLabelText("Password").compareDocumentPosition(alert)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByLabelText("Password")).toHaveValue("typed-draft");
+    await user.click(screen.getByRole("button", { name: "Retry Save" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it("renders credential inputs and delegates changes", async () => {
     const user = userEvent.setup();
     const onUsernameChange = vi.fn();
@@ -126,7 +156,6 @@ describe("AccountCredentialsSectionView", () => {
           onSecretEditingChange: () => {},
           onSecretVisibilityChange: () => {},
           loadingMessage: "Checking…",
-          readErrorMessage: "Access metadata could not be read.",
           unavailableMessage: "Manage Access in the desktop app.",
           authorizationRequiredMessage: "Run the connection test to load Access settings.",
           label: "Cloudflare Access",
@@ -334,7 +363,6 @@ describe("AccountCredentialsSectionView", () => {
             },
             onSecretVisibilityChange: setSecretVisible,
             loadingMessage: "Checking…",
-            readErrorMessage: "Access metadata could not be read. Existing credentials will be kept unchanged.",
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
@@ -457,7 +485,6 @@ describe("AccountCredentialsSectionView", () => {
             },
             onSecretVisibilityChange: setSecretVisible,
             loadingMessage: "Checking…",
-            readErrorMessage: "Access metadata could not be read.",
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
@@ -540,8 +567,12 @@ describe("AccountCredentialsSectionView", () => {
               setAction(nextAction);
             },
             loadingMessage: "Checking…",
-            readErrorMessage:
-              "Cloudflare Access settings could not be read. Existing credentials will be kept unchanged.",
+            failureNotice: {
+              lines: ["Cloudflare Access settings could not be read. Existing credentials will be kept unchanged."],
+              retryLabel: "Try Again",
+              onRetry: () => {},
+              retryDisabled: false,
+            },
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
@@ -611,7 +642,6 @@ describe("AccountCredentialsSectionView", () => {
               setAction(nextAction);
             },
             loadingMessage: "Checking…",
-            readErrorMessage: "Access metadata could not be read.",
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",

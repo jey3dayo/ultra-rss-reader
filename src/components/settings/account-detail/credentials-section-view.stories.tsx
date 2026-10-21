@@ -26,7 +26,6 @@ const configuredCloudflareAccess = {
   onSecretEditingChange: fn(),
   onSecretVisibilityChange: fn(),
   loadingMessage: "Checking Cloudflare Access settings…",
-  readErrorMessage: "Cloudflare Access settings could not be read. Existing credentials will be kept unchanged.",
   unavailableMessage: "Cloudflare Access settings can only be managed in the desktop app.",
   authorizationRequiredMessage: "Run the connection test to load Access settings.",
   label: "Cloudflare Access",
@@ -126,6 +125,34 @@ export const DirtyDraftMultipleFields: Story = {
 export const CloudflareAccessConfigured: Story = {
   args: {
     cloudflareAccess: configuredCloudflareAccess,
+  },
+};
+
+export const CloudflareAccessSaveFailed: Story = {
+  args: {
+    cloudflareAccess: {
+      ...configuredCloudflareAccess,
+      failureNotice: {
+        lines: ["Couldn’t save Cloudflare Access credentials to Keychain.", "Your changes are still in the form."],
+        retryLabel: "Retry Save",
+        onRetry: fn(),
+        retryDisabled: false,
+      },
+    },
+  },
+};
+
+export const PasswordSaveCanceled: Story = {
+  args: {
+    passwordFailureNotice: {
+      lines: [
+        "Access to Keychain was canceled. To continue, try again and allow access.",
+        "Your changes are still in the form.",
+      ],
+      retryLabel: "Retry Save",
+      onRetry: fn(),
+      retryDisabled: false,
+    },
   },
 };
 

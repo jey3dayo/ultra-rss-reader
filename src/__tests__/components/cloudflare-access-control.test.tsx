@@ -1,10 +1,45 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FormEvent } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
+import type { CredentialStoreKind } from "@/lib/account/credential-failure";
+
+const { storeKind } = vi.hoisted(() => ({ storeKind: { current: "os_store" as CredentialStoreKind } }));
+
+vi.mock("@/components/settings/hooks/use-credential-store-kind", () => ({
+  useCredentialStoreKind: () => storeKind.current,
+}));
 
 describe("CloudflareAccessControl", () => {
+  beforeEach(() => {
+    storeKind.current = "os_store";
+  });
+
+  it.each([
+    { kind: "keychain", included: "Keychain", excluded: "Windows Credential Manager" },
+    { kind: "credential_manager", included: "Windows Credential Manager", excluded: "Keychain" },
+    { kind: "local_file", included: "local file", excluded: "Keychain" },
+  ] as const)("explains only the $kind store in the help popover", async ({ kind, included, excluded }) => {
+    storeKind.current = kind;
+    const user = userEvent.setup();
+    render(
+      <CloudflareAccessControl
+        mode="detail"
+        label="Cloudflare Access"
+        description="Add Access authentication"
+        checked={false}
+        onChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "About Cloudflare Access" }));
+
+    const popup = screen.getByRole("dialog", { name: "Cloudflare Access" });
+    expect(popup).toHaveTextContent(included);
+    expect(popup).not.toHaveTextContent(excluded);
+  });
+
   it.each(["add", "detail"] as const)(
     "opens and closes %s help with pointer, keyboard, touch, and Escape without submitting",
     async (mode) => {
@@ -34,7 +69,9 @@ describe("CloudflareAccessControl", () => {
       expect(info).toHaveAttribute("aria-expanded", "true");
       expect(onChange).not.toHaveBeenCalled();
       expect(toggle).toHaveAttribute("aria-checked", "false");
-      expect(popup).toHaveTextContent(mode === "add" ? "OS keyring" : "Turn Access off and save");
+      expect(popup).toHaveTextContent(
+        mode === "add" ? "Client ID and Client Secret" : "saved Secret is never displayed",
+      );
       expect(info.closest("form")).not.toContainElement(popup);
       await user.keyboard("{Enter}");
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

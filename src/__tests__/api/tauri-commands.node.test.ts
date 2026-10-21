@@ -1574,6 +1574,28 @@ describe("safeInvoke args validation", () => {
     expect(consoleError).not.toHaveBeenCalled();
   });
 
+  it("keeps the structured credential failure when redacting an Access command error", async () => {
+    const consoleError = suppressConsoleError();
+    setupTauriMocks(() => {
+      throw {
+        type: "UserVisible",
+        message: "Keychain error: current-dummy-secret",
+        credential_failure: { target: "cloudflare_access", cause: "canceled" },
+      };
+    });
+    const result = await updateAccountCredentials("acc-2", "https://reader.example.com", "alice", undefined, {
+      action: "replace",
+      clientId: "dummy-id",
+      clientSecret: "current-dummy-secret",
+    });
+    expect(Result.unwrapError(result)).toEqual({
+      type: "UserVisible",
+      message: "Cloudflare Access credential operation failed. Check your connection and keyring access, then retry.",
+      credential_failure: { target: "cloudflare_access", cause: "canceled" },
+    });
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
   it("redacts Access args and response validation failures without a recovery category", async () => {
     const consoleError = suppressConsoleError();
     const invoked = vi.fn();

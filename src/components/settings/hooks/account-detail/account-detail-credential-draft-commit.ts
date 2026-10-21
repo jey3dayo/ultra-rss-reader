@@ -1,7 +1,10 @@
 import { Result } from "@praha/byethrow";
 import type { Dispatch, RefObject } from "react";
+import type { AppError } from "@/api/schemas";
 import { updateAccountCredentials } from "@/api/tauri-commands";
 import type { deriveCloudflareAccessDraftState } from "@/lib/account/cloudflare-access";
+import { isCloudflareAccessRecoveryRequired } from "@/lib/account/cloudflare-access-error";
+import { getCredentialFailure } from "@/lib/account/credential-failure";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
@@ -149,6 +152,15 @@ export function createCredentialDraftCommitter(
       }
     };
 
+    const reportCredentialSaveFailure = (error: AppError, accessOperationPending: boolean): void => {
+      const failure = isCloudflareAccessRecoveryRequired(error) ? null : getCredentialFailure(error);
+      if (failure === null) {
+        showCredentialSaveError({ message: resolveCredentialSaveFailureMessage(error, accessOperationPending, t) });
+        return;
+      }
+      dispatch({ type: "set-credential-failure", value: { ...failure, operation: "save" } });
+    };
+
     const resolveCredentialSaveFailure = (
       saveResult: Awaited<ReturnType<typeof updateAccountCredentials>>,
       accessOperationPending: boolean,
@@ -162,9 +174,7 @@ export function createCredentialDraftCommitter(
       if (draftRevisionRef.current !== draftRevision) {
         return { saved: false, updatedAccount: null };
       }
-      showCredentialSaveError({
-        message: resolveCredentialSaveFailureMessage(Result.unwrapError(saveResult), accessOperationPending, t),
-      });
+      reportCredentialSaveFailure(Result.unwrapError(saveResult), accessOperationPending);
       return { saved: false, updatedAccount: null };
     };
 
@@ -224,6 +234,7 @@ export function createCredentialDraftCommitter(
 
       const accessOperationPending =
         cloudflareAccessUpdate?.action === "replace" || cloudflareAccessUpdate?.action === "remove";
+      dispatch({ type: "set-credential-failure", value: null });
       const saveResult = await runCredentialSaveRequest(credentialValues, accessOperationPending);
       if (saveResult === null) {
         return { saved: false, updatedAccount: null };

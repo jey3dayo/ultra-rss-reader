@@ -1,8 +1,10 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { Dispatch } from "react";
+import type { AppError } from "@/api/schemas";
 import { getAccountCloudflareAccess, testAccountConnection } from "@/api/tauri-commands";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { getCredentialFailure } from "@/lib/account/credential-failure";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { updateCachedAccount } from "../../account-detail/query-cache";
@@ -18,6 +20,7 @@ export async function runAccountConnectionVerification({
   queryClient,
   dispatch,
   showConnectionError,
+  showSavedConnectionError,
   isStaleVerificationRequest,
   requestAccountId,
   requestDraftRevision,
@@ -27,11 +30,26 @@ export async function runAccountConnectionVerification({
   queryClient: QueryClient;
   dispatch: Dispatch<AccountDetailCredentialsEditorAction>;
   showConnectionError: ReturnType<typeof createAccountDetailErrorToast>;
+  showSavedConnectionError: ReturnType<typeof createAccountDetailErrorToast>;
   isStaleVerificationRequest: (requestAccountId: string, requestDraftRevision: number) => boolean;
   requestAccountId: string;
   requestDraftRevision: number;
   verifiedAccountBase?: AccountDetailCredentialsEditorParams["account"];
 }): Promise<boolean> {
+  const saved = verifiedAccountBase !== undefined;
+  const reportConnectionFailure = (error: AppError): void => {
+    const failure = getCredentialFailure(error);
+    if (failure === null) {
+      (saved ? showSavedConnectionError : showConnectionError)(error);
+      return;
+    }
+    dispatch({
+      type: "set-credential-failure",
+      value: { ...failure, operation: saved ? "check_after_save" : "check" },
+    });
+  };
+
+  dispatch({ type: "set-credential-failure", value: null });
   let result: Awaited<ReturnType<typeof testAccountConnection>>;
   try {
     result = await testAccountConnection(requestAccountId);
@@ -39,7 +57,7 @@ export async function runAccountConnectionVerification({
     if (isStaleVerificationRequest(requestAccountId, requestDraftRevision)) {
       return false;
     }
-    showConnectionError({ message: getErrorMessage(error) });
+    reportConnectionFailure({ type: "UserVisible", message: getErrorMessage(error) });
     await queryClient.invalidateQueries({ queryKey: queryKeys.accounts.root });
     return false;
   }
@@ -48,7 +66,7 @@ export async function runAccountConnectionVerification({
     return false;
   }
   if (Result.isFailure(result)) {
-    showConnectionError(Result.unwrapError(result));
+    reportConnectionFailure(Result.unwrapError(result));
     await queryClient.invalidateQueries({ queryKey: queryKeys.accounts.root });
     return false;
   }

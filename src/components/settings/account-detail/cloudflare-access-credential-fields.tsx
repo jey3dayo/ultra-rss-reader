@@ -12,6 +12,11 @@ import {
 } from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow, LabeledInputRow, SurfaceCard } from "@/design-system";
 import type { CloudflareAccessDraftError, CloudflareAccessStatus } from "@/lib/account/cloudflare-access";
+import {
+  CredentialFailureNoticeBody,
+  CredentialFailureNoticeView,
+  type CredentialFailureNoticeViewModel,
+} from "./credential-failure-notice-view";
 
 export type AccountCredentialInputRow = {
   label: string;
@@ -45,7 +50,7 @@ export type AccountCloudflareAccessSection = {
   recoveryAction?: "replace" | "remove" | null;
   onRecoveryActionChange?: (action: "replace" | "remove") => void;
   loadingMessage: string;
-  readErrorMessage: string;
+  failureNotice?: CredentialFailureNoticeViewModel;
   unavailableMessage: string;
   authorizationRequiredMessage: string;
   label: string;
@@ -123,7 +128,7 @@ function CloudflareAccessRecoveryCard({
 
   return (
     <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
-      <p className="text-sm leading-[1.5]">{section.readErrorMessage}</p>
+      {section.failureNotice && <CredentialFailureNoticeBody notice={section.failureNotice} />}
       {section.onRecoveryActionChange && (
         <div className="mt-3 flex flex-wrap gap-2">
           <CloudflareAccessRecoveryActions section={section} disabled={disabled} />
@@ -387,6 +392,7 @@ export function CloudflareAccessCredentialFields({
       {showInputRows && (
         <CloudflareAccessInputRows section={section} disabled={disabled} labelClassName={labelClassName} />
       )}
+      {status !== "error" && section.failureNotice && <CredentialFailureNoticeView notice={section.failureNotice} />}
     </>
   );
 }

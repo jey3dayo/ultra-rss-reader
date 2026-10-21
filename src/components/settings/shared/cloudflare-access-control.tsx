@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useCredentialStoreKind } from "@/components/settings/hooks/use-credential-store-kind";
 import { GradientSwitch, LabeledControlRow, SettingsInfoPopover } from "@/design-system";
 
 type CloudflareAccessControlSlotProps =
@@ -35,10 +36,16 @@ export function CloudflareAccessControl({
   labelIndicator,
 }: CloudflareAccessControlProps) {
   const { t } = useTranslation("settings");
+  const storeKind = useCredentialStoreKind();
   const popover = (
     <SettingsInfoPopover
       title={label}
-      content={t(mode === "add" ? "account.cloudflare_access_add_details" : "account.cloudflare_access_details")}
+      content={
+        <div className="space-y-2">
+          <p>{t(`account.credential_store_help.${storeKind}`)}</p>
+          <p>{t(mode === "add" ? "account.cloudflare_access_add_details" : "account.cloudflare_access_details")}</p>
+        </div>
+      }
       ariaLabel={t("account.cloudflare_access_info")}
     />
   );

@@ -215,8 +215,8 @@
     "cloudflare_access": "Cloudflare Access",
     "cloudflare_access_description": "Add Access authentication",
     "cloudflare_access_info": "About Cloudflare Access",
-    "cloudflare_access_add_details": "Enter the Client ID and Client Secret for your Access Service Token. Credentials are stored securely in your OS keyring.",
-    "cloudflare_access_details": "Leave Client Secret blank to keep the saved value. Changing the Client ID or server origin requires a new Secret. Turn Access off and save to remove the saved credentials.",
+    "cloudflare_access_add_details": "Enter the Client ID and Client Secret for your Access Service Token.",
+    "cloudflare_access_details": "The saved Secret is never displayed. Leave it unchanged to keep using it. Changing the Client ID or server origin requires a new Secret.",
     "cloudflare_access_reconfigure": "Reconfigure Access",
     "cloudflare_access_remove": "Remove Access",
     "cloudflare_access_remove_on_save": "Saved Access credentials will be removed when you save.",
@@ -232,11 +232,10 @@
     "cloudflare_access_secret_show": "Show new Secret",
     "cloudflare_access_secret_hide": "Hide new Secret",
     "cloudflare_access_loading": "Checking Cloudflare Access settings…",
-    "cloudflare_access_read_failed": "Cloudflare Access settings could not be read. Saved settings are unknown and will be kept unless you reconfigure or remove them. On macOS, run the connection test to allow Keychain access for this app session (up to 8 hours). Sync will not open permission dialogs.",
-    "cloudflare_access_authorization_required": "Run the connection test to load Cloudflare Access settings. Saved settings are kept until you change them.",
+    "cloudflare_access_authorization_required": "Run Check Connection to allow access to saved credentials in Keychain.",
     "cloudflare_access_unavailable": "Cloudflare Access settings can only be managed in the desktop app.",
     "cloudflare_access_metadata_required_for_origin_change": "Cloudflare Access settings could not be read. Reload this account before changing its server origin.",
-    "cloudflare_access_save_failed": "Cloudflare Access credentials could not be saved. Check keyring access and try again.",
+    "cloudflare_access_save_failed": "Cloudflare Access credentials could not be saved. Check your connection and access permissions, then try again.",
     "cloudflare_access_recovery_required": "Credentials could not be restored after a failed save. Re-enter your FreshRSS password and Cloudflare Access credentials, or remove Access, before reconnecting.",
     "username": "Username",
     "credentials": "Credentials",
@@ -400,7 +399,43 @@
     "local_desc": "On My Mac",
     "freshrss_desc": "freshrss.org",
     "coming_soon": "Coming soon",
-    "back_to_services": "Back to service selection"
+    "back_to_services": "Back to service selection",
+    "credential_store_help": {
+      "keychain": "Credentials are stored in Keychain. Checking the connection or saving changes may request access. Loaded credentials can be used for up to 8 hours while the app remains open. Automatic sync never opens a permission dialog.",
+      "credential_manager": "Credentials are stored in Windows Credential Manager.",
+      "local_file": "Credentials are stored in a local file on this device. The OS credential store is not used, so no access permission is requested.",
+      "os_store": "Credentials are stored in your OS credential store."
+    },
+    "credential_store_name": {
+      "keychain": "Keychain",
+      "credential_manager": "Windows Credential Manager",
+      "local_file": "the local credentials file",
+      "os_store": "the OS credential store"
+    },
+    "credential_target": {
+      "password": "the password",
+      "cloudflare_access": "Cloudflare Access credentials"
+    },
+    "credential_failure": {
+      "read_failed": "Couldn’t read {{target}} from {{store}}.",
+      "write_failed": "Couldn’t save {{target}} to {{store}}.",
+      "canceled": "Access to {{store}} was canceled. To continue, try again and allow access.",
+      "not_allowed": "Couldn’t continue because access to {{store}} wasn’t allowed.",
+      "unverified": "Couldn’t verify that saving {{target}} succeeded."
+    },
+    "credential_failure_saved_unchanged": "Your saved settings haven’t been changed.",
+    "credential_failure_save_next": {
+      "kept": "Your changes are still in the form.",
+      "unverified": "Save again, or re-enter the credentials."
+    },
+    "credential_retry": {
+      "load": "Try Again",
+      "save": "Retry Save",
+      "check": "Retry Check"
+    },
+    "credential_saved_connection_unconfirmed": "Saved, but the connection couldn’t be confirmed.",
+    "credential_save_failed": "Couldn’t save credentials: {{message}}",
+    "saved_connection_unconfirmed": "Saved, but the connection couldn’t be confirmed: {{message}}"
   },
   "data": {
     "heading": "Data Management",

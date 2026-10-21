@@ -1092,7 +1092,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     expect(firstSaved).toBe(false);
-    expect(useUiStore.getState().toastMessage?.message).toBe("Failed to update sync settings: keychain unavailable");
+    expect(useUiStore.getState().toastMessage?.message).toBe("Couldn’t save credentials: keychain unavailable");
     expect(result.current.credServerUrl).toBe("https://reader.example.com");
     expect(result.current.credUsername).toBe("alice");
 
@@ -1137,7 +1137,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
     expect(result.current.credPassword).toBe("new-secret");
     expect(result.current.passwordDisplayValue).toBe("new-secret");
-    expect(useUiStore.getState().toastMessage?.message).toBe("Failed to update sync settings: keychain unavailable");
+    expect(useUiStore.getState().toastMessage?.message).toBe("Couldn’t save credentials: keychain unavailable");
     expect(testAccountConnectionMock).not.toHaveBeenCalled();
   });
 
@@ -1176,7 +1176,9 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.credUsername).toBeNull();
     expect(result.current.credPassword).toBeNull();
     expect(result.current.dirtyState.dirty).toBe(false);
-    expect(useUiStore.getState().toastMessage?.message).toBe("Connection failed: invalid credentials");
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "Saved, but the connection couldn’t be confirmed: invalid credentials",
+    );
 
     testAccountConnectionMock.mockResolvedValue(
       Result.succeed({
@@ -1193,6 +1195,114 @@ describe("useAccountDetailCredentialsEditor", () => {
 
     expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(1);
     expect(testAccountConnectionMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["canceled", "cloudflare_access"],
+    ["not_allowed", "cloudflare_access"],
+    ["write_failed", "password"],
+    ["unverified", "password"],
+  ] as const)("keeps a structured %s save failure for %s inline and retries the save", async (cause, target) => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockResolvedValueOnce(
+      Result.fail({
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: { target, cause },
+      }),
+    );
+    updateAccountCredentialsMock.mockResolvedValueOnce(Result.succeed({ ...account, username: "reader" }));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+    act(() => {
+      result.current.setCredUsername("reader");
+    });
+
+    await act(async () => {
+      expect(await result.current.commitCredentials()).toBe(false);
+    });
+
+    expect(result.current.credentialFailure).toEqual({ target, cause, operation: "save" });
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(result.current.credUsername).toBe("reader");
+
+    await act(async () => {
+      expect(await result.current.commitCredentials()).toBe(true);
+    });
+    expect(result.current.credentialFailure).toBeNull();
+  });
+
+  it("reports a structured connection failure after a successful save as saved but unconfirmed", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockResolvedValue(Result.succeed({ ...account, username: "reader" }));
+    testAccountConnectionMock.mockResolvedValueOnce(
+      Result.fail({
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: { target: "password", cause: "not_allowed" },
+      }),
+    );
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+    act(() => {
+      result.current.setCredUsername("reader");
+    });
+
+    await act(async () => {
+      expect(await result.current.handleTestConnection()).toBe(false);
+    });
+
+    expect(result.current.credentialFailure).toEqual({
+      target: "password",
+      cause: "not_allowed",
+      operation: "check_after_save",
+    });
+    expect(useUiStore.getState().toastMessage).toBeNull();
+
+    await act(async () => {
+      expect(await result.current.handleTestConnection()).toBe(true);
+    });
+    expect(result.current.credentialFailure).toBeNull();
+  });
+
+  it("keeps a structured Access read failure after a metadata load and clears it when the retry loads", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValueOnce(
+      Result.fail({
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: { target: "cloudflare_access", cause: "not_allowed" },
+      }),
+    );
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("error"));
+    expect(result.current.credentialFailure).toEqual({
+      target: "cloudflare_access",
+      cause: "not_allowed",
+      operation: "load",
+    });
+
+    act(() => {
+      result.current.discardCredentialDrafts();
+    });
+    expect(result.current.credentialFailure?.operation).toBe("load");
+
+    getAccountCloudflareAccessMock.mockResolvedValueOnce(Result.succeed({ status: "loaded", client_id: "dummy-id" }));
+    act(() => {
+      result.current.retryCloudflareAccessLoad();
+    });
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+    expect(result.current.credentialFailure).toBeNull();
+    expect(result.current.cloudflareAccessClientId).toBe("dummy-id");
   });
 
   it("does not rewrite saved Access credentials when retrying a failed connection check", async () => {

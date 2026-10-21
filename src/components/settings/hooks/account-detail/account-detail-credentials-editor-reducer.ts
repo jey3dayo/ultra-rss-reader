@@ -75,9 +75,11 @@ function reduceCloudflareAccessLoaded(
   action: CloudflareAccessLoadedAction,
 ): AccountDetailCredentialsEditorState {
   const savedCloudflareAccessOrigin = action.clientId === null ? null : getHttpsOrigin(action.serverUrl);
+  const credentialFailure = state.credentialFailure?.operation === "load" ? null : state.credentialFailure;
   if (state.cloudflareAccessDraftTouched) {
     return {
       ...state,
+      credentialFailure,
       cloudflareAccessStatus: "ready",
       cloudflareAccessRecoveryAction: null,
       savedCloudflareAccessClientId: action.clientId,
@@ -86,6 +88,7 @@ function reduceCloudflareAccessLoaded(
   }
   return {
     ...state,
+    credentialFailure,
     cloudflareAccessStatus: "ready",
     cloudflareAccessRecoveryAction: null,
     savedCloudflareAccessClientId: action.clientId,
@@ -134,6 +137,7 @@ function reduceClearCredentialDrafts(
 ): AccountDetailCredentialsEditorState {
   return {
     ...state,
+    credentialFailure: retainedLoadFailure(state),
     credServerUrl: state.credServerUrl === action.draft.credServerUrl ? null : state.credServerUrl,
     credUsername: state.credUsername === action.draft.credUsername ? null : state.credUsername,
     credPassword: state.credPassword === action.draft.credPassword ? null : state.credPassword,
@@ -144,11 +148,16 @@ function reduceClearCredentialDrafts(
   };
 }
 
+function retainedLoadFailure(state: AccountDetailCredentialsEditorState) {
+  return state.credentialFailure?.operation === "load" ? state.credentialFailure : null;
+}
+
 function reduceDiscardCredentialDrafts(
   state: AccountDetailCredentialsEditorState,
 ): AccountDetailCredentialsEditorState {
   return {
     ...state,
+    credentialFailure: retainedLoadFailure(state),
     credServerUrl: null,
     credUsername: null,
     credPassword: null,
@@ -219,6 +228,16 @@ export function accountDetailCredentialsEditorReducer(
       return { ...state, testingConnection: action.value };
     case "set-credential-save-pending":
       return { ...state, credentialSavePending: action.value };
+    case "set-credential-failure":
+      return action.value === null && state.credentialFailure?.operation === "load"
+        ? state
+        : { ...state, credentialFailure: action.value };
+    case "retry-cloudflare-access-load":
+      return {
+        ...state,
+        credentialFailure: null,
+        cloudflareAccessStatus: "loading",
+      };
     case "sync-saved-password-presence":
       return { ...state, hasSavedPassword: action.value };
     case "discard-credential-drafts":

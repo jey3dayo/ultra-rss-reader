@@ -10,6 +10,7 @@ import {
 import { LabeledInputRow } from "@/design-system";
 import type { AccountCloudflareAccessSection, AccountCredentialInputRow } from "./cloudflare-access-credential-fields";
 import { CloudflareAccessCredentialFields } from "./cloudflare-access-credential-fields";
+import { CredentialFailureNoticeView, type CredentialFailureNoticeViewModel } from "./credential-failure-notice-view";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
 
@@ -48,6 +49,7 @@ type AccountCredentialsSectionViewProps = {
   passwordLabel: string;
   passwordValue: string;
   passwordPlaceholder: string;
+  passwordFailureNotice?: CredentialFailureNoticeViewModel;
   onPasswordChange: (value: string) => void;
   onPasswordFocus?: () => void;
   onPasswordBlur?: () => void;
@@ -78,6 +80,7 @@ export function AccountCredentialsSectionView({
   passwordLabel,
   passwordValue,
   passwordPlaceholder,
+  passwordFailureNotice,
   onPasswordChange,
   onPasswordFocus,
   onPasswordBlur,
@@ -161,6 +164,7 @@ export function AccountCredentialsSectionView({
         labelAccessory={accessory("password")}
         disabled={disabled}
       />
+      {passwordFailureNotice && <CredentialFailureNoticeView notice={passwordFailureNotice} />}
       {cloudflareAccess && (
         <CloudflareAccessCredentialFields
           section={cloudflareAccess}

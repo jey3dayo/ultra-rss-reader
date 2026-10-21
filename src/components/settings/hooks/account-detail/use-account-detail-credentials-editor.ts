@@ -6,6 +6,7 @@ import {
   type CloudflareAccessStatus,
   deriveCloudflareAccessDraftState,
 } from "@/lib/account/cloudflare-access";
+import type { CredentialFailureNotice } from "@/lib/account/credential-failure";
 import { focusFirstInput } from "@/lib/dom/input-focus";
 import { useUiStore } from "@/stores/ui-store";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -41,6 +42,7 @@ export type AccountDetailCredentialsEditorResult = {
   cloudflareAccessSecretEditing: boolean;
   cloudflareAccessSecretVisible: boolean;
   cloudflareAccessValidationError: CloudflareAccessDraftError | null;
+  credentialFailure: CredentialFailureNotice | null;
   testingConnection: boolean;
   connectionTestSucceeded: boolean;
   dirtyState: SettingsDirtyStateEntry;
@@ -56,6 +58,7 @@ export type AccountDetailCredentialsEditorResult = {
   setCloudflareAccessSecret: (value: string) => void;
   setCloudflareAccessSecretEditing: (value: boolean) => void;
   setCloudflareAccessSecretVisible: (value: boolean) => void;
+  retryCloudflareAccessLoad: () => void;
   commitCredentials: () => Promise<boolean>;
   handleTestConnection: () => Promise<boolean>;
   discardCredentialDrafts: () => void;
@@ -89,8 +92,9 @@ export function useAccountDetailCredentialsEditor({
   const mountedRef = useRef(true);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
-  const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
+  const showCredentialSaveError = createAccountDetailErrorToast(t, "account.credential_save_failed");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
+  const showSavedConnectionError = createAccountDetailErrorToast(t, "account.saved_connection_unconfirmed");
   const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed");
   const savedPasswordPresence = accountMayHaveSavedPassword(account);
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
@@ -157,7 +161,12 @@ export function useAccountDetailCredentialsEditor({
     });
   }, [savedPasswordPresence]);
 
-  useAccountDetailCloudflareAccessLoader({ account, dispatch, cloudflareAccessRequestIdRef, activeAccountIdRef });
+  const retryCloudflareAccessLoad = useAccountDetailCloudflareAccessLoader({
+    account,
+    dispatch,
+    cloudflareAccessRequestIdRef,
+    activeAccountIdRef,
+  });
 
   useEffect(() => {
     mountedRef.current = true;
@@ -181,6 +190,7 @@ export function useAccountDetailCredentialsEditor({
       queryClient,
       dispatch,
       showConnectionError,
+      showSavedConnectionError,
       isStaleVerificationRequest,
       requestAccountId,
       requestDraftRevision,
@@ -319,6 +329,7 @@ export function useAccountDetailCredentialsEditor({
     cloudflareAccessSecretEditing: state.cloudflareAccessSecretEditing,
     cloudflareAccessSecretVisible: state.cloudflareAccessSecretVisible,
     cloudflareAccessValidationError,
+    credentialFailure: state.credentialFailure,
     testingConnection,
     connectionTestSucceeded,
     dirtyState,
@@ -334,6 +345,7 @@ export function useAccountDetailCredentialsEditor({
     setCloudflareAccessSecret: (value) => dispatch({ type: "set-cloudflare-access-secret", value }),
     setCloudflareAccessSecretEditing: (value) => dispatch({ type: "set-cloudflare-access-secret-editing", value }),
     setCloudflareAccessSecretVisible: (value) => dispatch({ type: "set-cloudflare-access-secret-visible", value }),
+    retryCloudflareAccessLoad,
     commitCredentials,
     handleTestConnection,
     discardCredentialDrafts,
