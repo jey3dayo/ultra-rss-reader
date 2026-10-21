@@ -1,3 +1,4 @@
+use super::native_status::keyring_os_status;
 use super::CredentialLookupMode;
 #[cfg(target_os = "macos")]
 use crate::domain::error::CredentialTarget;
@@ -91,12 +92,29 @@ pub(super) fn log_keyring_access_failed(
     );
 }
 
+pub(super) fn keyring_error_diagnostic(
+    credential_kind: CredentialKind,
+    op: KeyringOp,
+    error: &keyring::Error,
+) -> String {
+    let diagnostic =
+        keyring_access_failed_diagnostic(credential_kind, op, keyring_failure_reason(error));
+    match keyring_os_status(error) {
+        Some(status) => format!("{diagnostic} os_status={status}"),
+        None => diagnostic,
+    }
+}
+
 pub(super) fn log_keyring_error(
     credential_kind: CredentialKind,
     op: KeyringOp,
     error: &keyring::Error,
 ) {
-    log_keyring_access_failed(credential_kind, op, keyring_failure_reason(error));
+    log::warn!(
+        target: "keyring_store",
+        "{}",
+        keyring_error_diagnostic(credential_kind, op, error)
+    );
 }
 
 pub(super) fn log_sync_read_gate_failed(

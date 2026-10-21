@@ -127,6 +127,41 @@ fn cloudflare_access_malformed_entries_are_typed_and_redacted() {
     assert_eq!(access.client_id(), "dummy");
 }
 
+struct UnreadableStore(AccessStoreError);
+
+impl CloudflareAccessStore for UnreadableStore {
+    fn load(&self, _: &str) -> Result<Option<CloudflareAccess>, AccessStoreError> {
+        Err(self.0)
+    }
+    fn save(&self, _: &str, _: &CloudflareAccess) -> Result<(), AccessStoreError> {
+        Ok(())
+    }
+    fn remove(&self, _: &str) -> Result<(), AccessStoreError> {
+        Ok(())
+    }
+}
+
+#[test]
+fn a_write_that_cannot_be_read_back_is_unverified_unless_the_user_refused_the_read() {
+    let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://example.com")
+        .expect("dummy Access fixture should have valid HTTPS credentials");
+
+    for (read_error, expected) in [
+        (
+            AccessStoreError::Unavailable,
+            AccessStoreError::Verification,
+        ),
+        (AccessStoreError::Canceled, AccessStoreError::Canceled),
+        (AccessStoreError::NotAllowed, AccessStoreError::NotAllowed),
+    ] {
+        assert_eq!(
+            verify_saved_access(&UnreadableStore(read_error), "acct", Some(&access)),
+            Err(expected),
+            "{read_error:?}"
+        );
+    }
+}
+
 #[cfg(target_os = "macos")]
 #[test]
 fn native_user_cancellation_is_a_cancelled_access_failure() {

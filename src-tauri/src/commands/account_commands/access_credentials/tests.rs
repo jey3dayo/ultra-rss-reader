@@ -13,6 +13,7 @@ use crate::repository::account::AccountRepository;
 #[derive(Default)]
 struct FakeStore {
     unavailable: Cell<bool>,
+    unreadable: Cell<Option<AccessStoreError>>,
     password: RefCell<Option<String>>,
     access: RefCell<Option<CloudflareAccess>>,
     malformed: RefCell<Option<String>>,
@@ -23,6 +24,9 @@ struct FakeStore {
 
 impl FakeStore {
     fn stored_access(&self) -> Result<Option<CloudflareAccess>, AccessStoreError> {
+        if let Some(error) = self.unreadable.get() {
+            return Err(error);
+        }
         if self.unavailable.get() || self.fail("load") {
             return Err(AccessStoreError::Unavailable);
         }
@@ -70,6 +74,9 @@ impl CloudflareAccessStore for FakeStore {
         Ok(())
     }
     fn snapshot(&self, _: &str) -> Result<AccessSnapshot, AccessStoreError> {
+        if let Some(error) = self.unreadable.get() {
+            return Err(error);
+        }
         if self.unavailable.get() {
             return Err(AccessStoreError::Unavailable);
         }
@@ -187,6 +194,7 @@ fn account_exists(db: &Mutex<DbManager>, id: &AccountId) -> bool {
 
 mod failure_causes;
 mod keychain_access;
+mod unreadable_previous;
 
 #[test]
 fn delete_non_freshrss_account_succeeds_when_access_keyring_is_unavailable() {
@@ -447,7 +455,6 @@ fn cloudflare_access_save_readback_and_db_failure_restore_both_credentials() {
     for fault in [
         "save",
         "verify",
-        "load",
         "password_save",
         "password_verify",
         "password_read",

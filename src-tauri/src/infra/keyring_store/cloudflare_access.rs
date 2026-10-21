@@ -336,7 +336,10 @@ pub(crate) fn verify_saved_access(
     account_id: &str,
     expected: Option<&CloudflareAccess>,
 ) -> Result<(), AccessStoreError> {
-    let actual = store.load(account_id)?;
+    let actual = store.load(account_id).map_err(|error| match error {
+        AccessStoreError::Unavailable => AccessStoreError::Verification,
+        other => other,
+    })?;
     if actual.as_ref() == expected {
         Ok(())
     } else {

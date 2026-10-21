@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::commands::dto::AppError;
 use crate::domain::account::Account;
-use crate::domain::error::DomainError;
+use crate::domain::error::{CredentialFailureCause, DomainError};
 use crate::domain::provider::ProviderKind;
 use crate::infra::keyring_store::{
     self,
@@ -212,6 +212,14 @@ fn write_access(
     .map_err(|error| store_error(error, AccessOperation::Write))
 }
 
+fn is_unverified(error: &AppError) -> bool {
+    matches!(
+        error,
+        AppError::CredentialStore { credential_failure, .. }
+            if credential_failure.cause == CredentialFailureCause::Unverified
+    )
+}
+
 fn restore_access(
     store: &impl CloudflareAccessStore,
     id: &str,
@@ -261,26 +269,28 @@ pub(super) fn persist_account_credentials<T>(
     } else {
         planned_access(account, action, None)?
     };
-    let previous_access = if creating {
-        AccessSnapshot::Missing
-    } else {
-        store
-            .snapshot(id)
-            .map_err(|error| store_error(error, AccessOperation::Read))?
-    };
-    let previous_configured = if matches!(action, CloudflareAccessArg::Keep {}) {
-        previous_access
-            .configured()
-            .map_err(|error| store_error(error, AccessOperation::Read))?
-    } else {
-        None
-    };
-    let next_access = if matches!(action, CloudflareAccessArg::Keep {}) {
-        planned_access(account, action, previous_configured)?
-    } else {
-        validated_replacement
-    };
     let change_access = !matches!(action, CloudflareAccessArg::Keep {});
+    let previous_access = if creating {
+        Some(AccessSnapshot::Missing)
+    } else {
+        match store.snapshot(id) {
+            Ok(snapshot) => Some(snapshot),
+            // The write and its readback decide a replacement or removal; only the rollback needs the old value.
+            Err(AccessStoreError::Unavailable) if change_access => None,
+            Err(error) => return Err(store_error(error, AccessOperation::Read)),
+        }
+    };
+    let previous_configured = match &previous_access {
+        Some(snapshot) if !change_access => snapshot
+            .configured()
+            .map_err(|error| store_error(error, AccessOperation::Read))?,
+        _ => None,
+    };
+    let next_access = if change_access {
+        validated_replacement
+    } else {
+        planned_access(account, action, previous_configured)?
+    };
     let password = password
         .filter(|value| !value.is_empty())
         .filter(|_| account.kind == ProviderKind::FreshRss);
@@ -291,6 +301,7 @@ pub(super) fn persist_account_credentials<T>(
     };
     let mut password_attempted = false;
     let mut access_attempted = false;
+    let mut access_written = false;
     let result = (|| {
         if let Some(password) = password {
             password_attempted = true;
@@ -298,7 +309,12 @@ pub(super) fn persist_account_credentials<T>(
         }
         if change_access {
             access_attempted = true;
-            write_access(store, id, next_access.as_ref())?;
+            let written = write_access(store, id, next_access.as_ref());
+            access_written = match &written {
+                Ok(()) => true,
+                Err(error) => is_unverified(error),
+            };
+            written?;
         }
         persist_account()
     })();
@@ -309,8 +325,11 @@ pub(super) fn persist_account_credentials<T>(
             Ok(value)
         }
         Err(error) => {
-            let access_failed =
-                access_attempted && restore_access(store, id, &previous_access).is_err();
+            let access_failed = access_attempted
+                && match &previous_access {
+                    Some(snapshot) => restore_access(store, id, snapshot).is_err(),
+                    None => access_written,
+                };
             let password_failed = password_attempted
                 && match previous_password.as_deref() {
                     Some(previous) => store
