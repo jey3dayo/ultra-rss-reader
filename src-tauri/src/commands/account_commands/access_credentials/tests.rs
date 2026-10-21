@@ -17,9 +17,21 @@ struct FakeStore {
     access: RefCell<Option<CloudflareAccess>>,
     malformed: RefCell<Option<String>>,
     failures: RefCell<Vec<&'static str>>,
+    password_reads: Cell<usize>,
+    access_loads: Cell<usize>,
 }
 
 impl FakeStore {
+    fn stored_access(&self) -> Result<Option<CloudflareAccess>, AccessStoreError> {
+        if self.unavailable.get() || self.fail("load") {
+            return Err(AccessStoreError::Unavailable);
+        }
+        if self.malformed.borrow().is_some() {
+            return Err(AccessStoreError::Malformed);
+        }
+        Ok(self.access.borrow().clone())
+    }
+
     fn fail(&self, operation: &'static str) -> bool {
         let mut failures = self.failures.borrow_mut();
         if failures.first() == Some(&operation) {
@@ -32,13 +44,8 @@ impl FakeStore {
 }
 impl CloudflareAccessStore for FakeStore {
     fn load(&self, _: &str) -> Result<Option<CloudflareAccess>, AccessStoreError> {
-        if self.unavailable.get() || self.fail("load") {
-            return Err(AccessStoreError::Unavailable);
-        }
-        if self.malformed.borrow().is_some() {
-            return Err(AccessStoreError::Malformed);
-        }
-        Ok(self.access.borrow().clone())
+        self.access_loads.set(self.access_loads.get() + 1);
+        self.stored_access()
     }
     fn save(&self, _: &str, access: &CloudflareAccess) -> Result<(), AccessStoreError> {
         if self.unavailable.get() || self.fail("save") {
@@ -62,14 +69,14 @@ impl CloudflareAccessStore for FakeStore {
         }
         Ok(())
     }
-    fn snapshot(&self, id: &str) -> Result<AccessSnapshot, AccessStoreError> {
+    fn snapshot(&self, _: &str) -> Result<AccessSnapshot, AccessStoreError> {
         if self.unavailable.get() {
             return Err(AccessStoreError::Unavailable);
         }
         if let Some(raw) = self.malformed.borrow().as_ref() {
             return Ok(AccessSnapshot::Malformed(raw.clone()));
         }
-        Ok(match self.load(id)? {
+        Ok(match self.stored_access()? {
             Some(access) => AccessSnapshot::Configured(access),
             None => AccessSnapshot::Missing,
         })
@@ -94,6 +101,7 @@ impl CloudflareAccessStore for FakeStore {
 }
 impl AccountCredentialStore for FakeStore {
     fn password(&self, _: &str) -> Result<Option<String>, AppError> {
+        self.password_reads.set(self.password_reads.get() + 1);
         if self.fail("password_read") {
             return Err(db_error());
         }
@@ -176,6 +184,8 @@ fn account_exists(db: &Mutex<DbManager>, id: &AccountId) -> bool {
         .expect("account deletion state should be readable")
         .is_some()
 }
+
+mod keychain_access;
 
 #[test]
 fn delete_non_freshrss_account_succeeds_when_access_keyring_is_unavailable() {

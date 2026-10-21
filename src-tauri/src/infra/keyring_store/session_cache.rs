@@ -4,12 +4,14 @@ use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
+use tracing::warn;
 use zeroize::Zeroizing;
 
 use super::cloudflare_access::CloudflareAccess;
 pub(crate) use super::NEEDS_AUTH;
 use crate::domain::account::Account;
 use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::provider::ProviderKind;
 
 const MAX_ACCOUNTS: usize = 16;
 const LEASE: Duration = Duration::from_secs(8 * 60 * 60);
@@ -72,6 +74,13 @@ impl SessionCache {
     fn has_lease(&mut self, id: &str, now: Instant) -> bool {
         self.leases.retain(|_, lease| lease.expires > now);
         self.leases.contains_key(id)
+    }
+
+    fn leased_password(&mut self, id: &str, now: Instant) -> Option<Zeroizing<String>> {
+        self.leases.retain(|_, lease| lease.expires > now);
+        self.leases
+            .get(id)
+            .map(|lease| lease.credentials.password.clone())
     }
 
     fn invalidate_if_generation(&mut self, id: &str, generation: u64) -> bool {
@@ -160,6 +169,36 @@ pub(crate) fn has_lease(id: &str) -> bool {
     CACHE
         .lock()
         .is_ok_and(|mut cache| cache.has_lease(id, Instant::now()))
+}
+
+/// Invalidates the account's lease and returns its password, whatever URL or username it
+/// was leased under, so a save that leaves the password unchanged can lease it again.
+pub(crate) fn take_leased_password(id: &str) -> DomainResult<Option<Zeroizing<String>>> {
+    let mut cache = CACHE.lock().map_err(|_| needs_auth())?;
+    let leased = cache.leased_password(id, Instant::now());
+    cache.invalidate(id);
+    Ok(leased)
+}
+
+/// Leases the credentials a successful save persisted: the saved password, else the one
+/// taken from the previous lease. Without a known password nothing is granted.
+pub(crate) fn grant_saved(
+    account: &Account,
+    saved_password: Option<&str>,
+    taken_password: Option<Zeroizing<String>>,
+    access: Option<CloudflareAccess>,
+) {
+    let password = saved_password
+        .map(|password| Zeroizing::new(password.to_string()))
+        .or(taken_password);
+    let Some(password) = password.filter(|_| account.kind == ProviderKind::FreshRss) else {
+        return;
+    };
+    let granted = invalidate(account.id.as_ref())
+        .and_then(|generation| grant(account, generation, SessionCredentials { password, access }));
+    if let Err(error) = granted {
+        warn!(%error, "Saved credentials could not be leased for this session");
+    }
 }
 
 /// Drops the lease only if it is still the one read at `generation`.

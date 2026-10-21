@@ -6,6 +6,9 @@ use crate::infra::keyring_store::{self, cloudflare_access, CredentialKind, Crede
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 
+#[cfg(any(target_os = "macos", test))]
+mod lease;
+
 /// An authenticated GReader provider shared by one sync operation.
 #[derive(Debug)]
 pub(crate) struct GReaderSession {
@@ -46,24 +49,12 @@ impl GReaderSession {
             .filter(|server_url| !server_url.is_empty())
             .ok_or(SessionError::MissingServerUrl)?;
         #[cfg(target_os = "macos")]
-        if mode == CredentialLookupMode::Background && !keyring_store::uses_dev_credential_store() {
-            let (cached, lease_generation) = keyring_store::session_cache::get_leased(account)
-                .map_err(|error| SessionError::Auth(error.into()))?;
-            let provider = Self::provider_with_access(server_url, Ok(cached.access)).await?;
-            let result = Self::authenticate(provider, username, cached.password.to_string()).await;
-            if matches!(&result, Err(SessionError::Auth(error)) if error.diagnostic_kind() == "auth")
+        if !keyring_store::uses_dev_credential_store() {
+            if let Some(session) =
+                Self::try_leased_session(account, mode, &username, server_url).await?
             {
-                if let Err(error) = keyring_store::session_cache::invalidate_if_generation(
-                    account.id.as_ref(),
-                    lease_generation,
-                ) {
-                    warn!(
-                        account_id = %account.id.as_ref(),
-                        "Could not invalidate rejected credential lease: {error}"
-                    );
-                }
+                return Ok(session);
             }
-            return result;
         }
         #[cfg(target_os = "macos")]
         let generation = keyring_store::session_cache::invalidate(account.id.as_ref())

@@ -203,8 +203,7 @@ fn write_access(
         Some(access) => store.save(id, access),
         None => store.remove(id),
     }
-    .map_err(store_error)?;
-    keyring_store::cloudflare_access::verify_saved_access(store, id, access).map_err(store_error)
+    .map_err(store_error)
 }
 
 fn restore_access(
@@ -241,8 +240,8 @@ pub(super) fn persist_account_credentials<T>(
     persist_account: impl FnOnce() -> Result<T, AppError>,
 ) -> Result<T, AppError> {
     let id = account.id.as_ref();
-    #[cfg(target_os = "macos")]
-    keyring_store::session_cache::invalidate(id)?;
+    #[cfg(any(target_os = "macos", test))]
+    let prior_lease = keyring_store::session_cache::take_leased_password(id)?;
     let validated_replacement = if matches!(action, CloudflareAccessArg::Keep {}) {
         None
     } else {
@@ -278,11 +277,6 @@ pub(super) fn persist_account_credentials<T>(
         if let Some(password) = password {
             password_attempted = true;
             store.set_password(id, password)?;
-            if store.password(id)?.as_deref() != Some(password) {
-                return Err(AppError::from(DomainError::Keychain(
-                    "FreshRSS password write could not be verified.".into(),
-                )));
-            }
         }
         if change_access {
             access_attempted = true;
@@ -291,7 +285,11 @@ pub(super) fn persist_account_credentials<T>(
         persist_account()
     })();
     match result {
-        Ok(value) => Ok(value),
+        Ok(value) => {
+            #[cfg(any(target_os = "macos", test))]
+            keyring_store::session_cache::grant_saved(account, password, prior_lease, next_access);
+            Ok(value)
+        }
         Err(error) => {
             let access_failed =
                 access_attempted && restore_access(store, id, &previous_access).is_err();
