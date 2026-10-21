@@ -142,21 +142,18 @@ impl CloudflareAccessStore for UnreadableStore {
 }
 
 #[test]
-fn a_write_that_cannot_be_read_back_is_unverified_unless_the_user_refused_the_read() {
+fn a_write_that_cannot_be_read_back_is_unverified_whatever_stopped_the_read() {
     let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://example.com")
         .expect("dummy Access fixture should have valid HTTPS credentials");
 
-    for (read_error, expected) in [
-        (
-            AccessStoreError::Unavailable,
-            AccessStoreError::Verification,
-        ),
-        (AccessStoreError::Canceled, AccessStoreError::Canceled),
-        (AccessStoreError::NotAllowed, AccessStoreError::NotAllowed),
+    for read_error in [
+        AccessStoreError::Unavailable,
+        AccessStoreError::Canceled,
+        AccessStoreError::NotAllowed,
     ] {
         assert_eq!(
             verify_saved_access(&UnreadableStore(read_error), "acct", Some(&access)),
-            Err(expected),
+            Err(AccessStoreError::Verification),
             "{read_error:?}"
         );
     }
