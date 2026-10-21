@@ -175,6 +175,10 @@ Elevation scale:
 - Settings form rows should switch to the two-column label/control rail only when the row's container has enough room. Narrow settings cards and constrained Storybook fixtures should keep controls stacked instead of forcing a desktop rail from viewport width alone.
 - In settings rows, place an info control immediately after its label on the same title line, keep a short summary visible below, and reserve the trailing rail for the setting control. Put longer static help in a portal popover so opening it does not move form fields or action footers.
 - Keep errors, status, validation, and essential irreversible-action or security warnings visible in the form even when a help popover explains them in more detail.
+- Show a message next to the operation or target it describes. Put input errors directly under the field, and keep an error that needs the user's action in its section instead of auto-dismissing it. A toast is a supplementary notice and must never be the only place an important failure appears.
+- Put supplementary explanation in the info popover, but keep the current state, the required action, and important warnings in the form.
+- Write a failure so it separates what happened, what it means for saved data, and what the user can do next, and offer that next action (retry) beside the message. Treat a user cancellation as distinct from a failure: say it was canceled and never retry it automatically.
+- Keep an unresolved problem reviewable by returning to the screen it belongs to. Never show secret values or raw diagnostic logs in a message.
 - When several toolbar settings share one explanation, show that label once in the trailing column or group heading instead of repeating it beside every switch.
 - Icon-led action rows in settings should use the shared settings row primitive for label, icon, divider, and control alignment. Destructive compact actions should use a labeled icon-only danger button rather than a local text button when adjacent settings surfaces already use icon actions.
 

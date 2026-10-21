@@ -1,5 +1,6 @@
-//! macOS unattended work never opens the OS credential store. Only a successful
-//! explicit connection grants a bounded, process-local credential lease.
+//! macOS unattended work never opens the OS credential store. A successful explicit connection
+//! or a save that knows the secrets grants a bounded, process-local credential lease; an
+//! interactive connection that fails afterwards revokes the lease it started from.
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
