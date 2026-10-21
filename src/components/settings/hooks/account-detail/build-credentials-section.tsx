@@ -33,13 +33,22 @@ export function buildCredentialsSection({
   }
 
   const cloudflareAccessError = controller.cloudflareAccessValidationError;
-  const failure =
-    controller.credentialFailure ??
-    (controller.cloudflareAccessStatus === "error"
-      ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
-      : null);
-  const failureNotice =
-    failure === null ? undefined : buildCredentialFailureNotice(failure, credentialStoreKind, t, controller);
+  const failure = controller.credentialFailure;
+  const passwordFailure = failure?.target === "password" ? failure : null;
+  const cloudflareAccessFailure =
+    failure?.target === "cloudflare_access"
+      ? failure
+      : controller.cloudflareAccessStatus === "error"
+        ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
+        : null;
+  const passwordFailureNotice =
+    passwordFailure === null
+      ? undefined
+      : buildCredentialFailureNotice(passwordFailure, credentialStoreKind, t, controller);
+  const cloudflareAccessFailureNotice =
+    cloudflareAccessFailure === null
+      ? undefined
+      : buildCredentialFailureNotice(cloudflareAccessFailure, credentialStoreKind, t, controller);
 
   return (
     <AccountCredentialsSectionView
@@ -69,7 +78,7 @@ export function buildCredentialsSection({
       passwordLabel={t("account.password")}
       passwordValue={controller.passwordDisplayValue}
       passwordPlaceholder={t("account.password_placeholder")}
-      passwordFailureNotice={failure?.target === "password" ? failureNotice : undefined}
+      passwordFailureNotice={passwordFailureNotice}
       onPasswordChange={controller.setCredPassword}
       onPasswordFocus={controller.onPasswordFocus}
       onPasswordBlur={controller.onPasswordBlur}
@@ -95,7 +104,7 @@ export function buildCredentialsSection({
         recoveryAction: controller.cloudflareAccessRecoveryAction,
         onRecoveryActionChange: controller.setCloudflareAccessRecoveryAction,
         loadingMessage: t("account.cloudflare_access_loading"),
-        failureNotice: failure?.target === "cloudflare_access" ? failureNotice : undefined,
+        failureNotice: cloudflareAccessFailureNotice,
         unavailableMessage: t("account.cloudflare_access_unavailable"),
         authorizationRequiredMessage: t("account.cloudflare_access_authorization_required"),
         label: t("account.cloudflare_access"),

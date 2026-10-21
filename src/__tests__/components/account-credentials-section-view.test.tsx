@@ -442,6 +442,53 @@ describe("AccountCredentialsSectionView", () => {
     expect(onEnabledChange).toHaveBeenCalledWith(false);
   });
 
+  it("says saved Access credentials will be removed once the switch is turned off", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Server"
+        usernameLabel="Username"
+        usernameValue="alice"
+        onUsernameChange={() => {}}
+        onUsernameBlur={() => {}}
+        passwordLabel="Password"
+        passwordValue="••••••••"
+        passwordPlaceholder="Enter new password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+        cloudflareAccess={{
+          status: "ready",
+          hasSavedSecret: true,
+          secretEditing: false,
+          secretVisible: false,
+          secretDescription: "",
+          secretSavedLabel: "Saved",
+          secretChangeLabel: "Change",
+          secretChangeAriaLabel: "Change saved Client Secret",
+          secretCancelLabel: "Cancel",
+          secretShowLabel: "Show new Secret",
+          secretHideLabel: "Hide new Secret",
+          onSecretEditingChange: () => {},
+          onSecretVisibilityChange: () => {},
+          loadingMessage: "Checking…",
+          unavailableMessage: "Manage Access in the desktop app.",
+          authorizationRequiredMessage: "Run the connection test to load Access settings.",
+          label: "Cloudflare Access",
+          description: "Add Access authentication",
+          enabled: false,
+          onEnabledChange: () => {},
+          clientId: { label: "Client ID", value: "saved-client-id", onChange: () => {}, onBlur: () => {} },
+          clientSecret: { label: "Client Secret", value: "", onChange: () => {}, onBlur: () => {} },
+          clientIdError: "Enter a Client ID",
+          clientSecretError: "Enter a Client Secret",
+          validationError: null,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("switch", { name: "Cloudflare Access" })).not.toBeChecked();
+    expect(screen.getByText("Saved Access credentials will be removed when you save.")).toBeVisible();
+  });
+
   it("keeps a required Secret draft cancelable and focuses its empty field after cancel", async () => {
     const user = userEvent.setup();
 

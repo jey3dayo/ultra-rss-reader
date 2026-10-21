@@ -351,6 +351,7 @@ export function CloudflareAccessCredentialFields({
   disabled,
   labelClassName,
 }: CloudflareAccessCredentialFieldsProps) {
+  const { t } = useTranslation("settings");
   const { status } = section;
 
   if (status === "loading") {
@@ -388,6 +389,9 @@ export function CloudflareAccessCredentialFields({
           disabled={disabled}
           labelClassName={labelClassName}
         />
+      )}
+      {status === "ready" && !section.enabled && section.hasSavedSecret && (
+        <p className="text-sm leading-[1.5] text-foreground-soft">{t("account.cloudflare_access_remove_on_save")}</p>
       )}
       {showInputRows && (
         <CloudflareAccessInputRows section={section} disabled={disabled} labelClassName={labelClassName} />
