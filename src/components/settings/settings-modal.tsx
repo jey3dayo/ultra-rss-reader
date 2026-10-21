@@ -281,14 +281,15 @@ function SettingsModalContent() {
       onCancel={handleLeaveCancel}
     />
   );
-  const footer = (
-    <SettingsUnsavedChangesFooter
-      message={t("dirty_state.unsaved_changes")}
-      discardLabel={t("dirty_state.discard")}
-      saveLabel={t("account.save_and_test_connection")}
-      savingLabel={t("account.testing_connection")}
-    />
-  );
+  const footer =
+    selectedVisibleAccount === undefined ? (
+      <SettingsUnsavedChangesFooter
+        message={t("dirty_state.unsaved_changes")}
+        discardLabel={t("dirty_state.discard")}
+        saveLabel={t("account.save_and_test_connection")}
+        savingLabel={t("account.testing_connection")}
+      />
+    ) : undefined;
 
   useEffect(() => {
     if (deletedAccountIds.length === 0 || accounts === undefined) {

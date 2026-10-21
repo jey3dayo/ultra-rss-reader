@@ -11,7 +11,6 @@ import type { AccountDto } from "@/api/tauri-commands";
 import { AccountDetail } from "@/components/settings/account-detail";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import { SettingsDirtyStateRegistryProvider } from "@/components/settings/hooks/use-settings-dirty-state-registry";
-import { SettingsUnsavedChangesFooter } from "@/components/settings/settings-unsaved-changes-bar";
 import { i18nResourceLocales } from "@/lib/i18n-resources";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -34,6 +33,7 @@ type AccountDetailViewMockProps = {
     onNameKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   };
   credentialsSection?: ReactNode;
+  footer?: ReactNode;
   syncSection: {
     heading: string;
     note?: string;
@@ -89,12 +89,6 @@ async function findPasswordInput() {
 function AccountDetailWithSaveBarHarness() {
   return (
     <SettingsDirtyStateRegistryProvider>
-      <SettingsUnsavedChangesFooter
-        message={i18n.t("settings:dirty_state.unsaved_changes")}
-        discardLabel={i18n.t("settings:dirty_state.discard")}
-        saveLabel={i18n.t("settings:account.save_and_test_connection")}
-        savingLabel={i18n.t("settings:account.testing_connection")}
-      />
       <AccountDetail />
     </SettingsDirtyStateRegistryProvider>
   );
@@ -130,6 +124,7 @@ vi.mock("@/components/settings/account-detail/view", () => ({
           </button>
         )}
         {props.credentialsSection}
+        {props.footer}
         <div>{props.syncSection.heading}</div>
         {props.syncSection.note ? <p>{props.syncSection.note}</p> : null}
         <button type="button" onClick={() => props.syncSection.syncOnStartup.onChange(true)}>
@@ -936,7 +931,7 @@ describe("AccountDetail", () => {
       expect(useUiStore.getState().accountSetupSession?.state).toBe("failed");
       expect(useUiStore.getState().toastMessage?.message).toContain("Save & Test Connection");
       expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveFocus();
-      expect(screen.getByRole("button", { name: "Check Connection" })).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Check Connection" })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
       await waitFor(() => expect(calls).toContain("test_account_connection"));
@@ -1099,6 +1094,93 @@ describe("AccountDetail", () => {
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
+    });
+  });
+
+  describe("pane action bar", () => {
+    const freshRssAccount = {
+      id: "acc-1",
+      kind: "FreshRss",
+      name: "FreshRSS",
+      username: "user",
+      server_url: "https://freshrss.example.com",
+      sync_interval_secs: 3600,
+      sync_on_startup: true,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+    };
+
+    it("offers only the connection check while nothing is unsaved", async () => {
+      setupTauriMocks((cmd) => (cmd === "list_accounts" ? [freshRssAccount] : undefined));
+
+      render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
+
+      expect(await screen.findByRole("button", { name: "Check Connection" })).toBeEnabled();
+      expect(screen.queryByText("You have unsaved changes")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Save & Test Connection" })).not.toBeInTheDocument();
+    });
+
+    it("swaps to discard and save-and-test with a status message once a draft exists, and discard restores the saved state", async () => {
+      const user = userEvent.setup();
+      setupTauriMocks((cmd) => (cmd === "list_accounts" ? [freshRssAccount] : undefined));
+
+      render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
+
+      const passwordInput = await findPasswordInput();
+      await user.click(passwordInput);
+      await user.type(passwordInput, "new-secret");
+
+      expect(screen.getByText("You have unsaved changes")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save & Test Connection" })).toBeEnabled();
+      expect(screen.queryByRole("button", { name: "Check Connection" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Discard" }));
+
+      expect(await screen.findByRole("button", { name: "Check Connection" })).toBeEnabled();
+      expect(screen.queryByText("You have unsaved changes")).not.toBeInTheDocument();
+      expect(await findPasswordInput()).toHaveValue("••••••••");
+    });
+
+    it("keeps the unsaved layout while saving, locks both buttons, and ignores a second press", async () => {
+      const user = userEvent.setup();
+      const calls: string[] = [];
+      const credentialSave = createDeferred<unknown>();
+
+      setupTauriMocks((cmd) => {
+        calls.push(cmd);
+        switch (cmd) {
+          case "list_accounts":
+            return [freshRssAccount];
+          case "update_account_credentials":
+            return credentialSave.promise;
+          case "test_account_connection":
+            return { ...freshRssAccount, connection_verification_status: "verified" };
+          default:
+            return undefined;
+        }
+      });
+
+      render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
+
+      const passwordInput = await findPasswordInput();
+      await user.click(passwordInput);
+      await user.type(passwordInput, "new-secret");
+      await user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
+
+      const testingButton = await screen.findByRole("button", { name: "Checking…" });
+      expect(testingButton).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Check Connection" })).not.toBeInTheDocument();
+
+      await user.click(testingButton);
+      expect(calls.filter((cmd) => cmd === "update_account_credentials")).toHaveLength(1);
+
+      await act(async () => credentialSave.resolve({ ...freshRssAccount, connection_verification_status: "verified" }));
+
+      expect(await screen.findByRole("button", { name: "Connection verified" })).toBeEnabled();
+      expect(screen.queryByText("You have unsaved changes")).not.toBeInTheDocument();
+      expect(calls.filter((cmd) => cmd === "test_account_connection")).toHaveLength(1);
     });
   });
 

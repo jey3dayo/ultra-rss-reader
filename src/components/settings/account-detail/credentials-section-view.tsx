@@ -1,19 +1,17 @@
 import { cn } from "cn";
 import { Copy } from "lucide-react";
 import type { ReactNode } from "react";
-import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import {
   SETTINGS_CHANGED_CONTROL_CLASS,
   SETTINGS_CONTROL_SURFACE_CLASS,
 } from "@/components/settings/shared/settings-surface";
-import { LabeledControlRow, LabeledInputRow } from "@/design-system";
+import { LabeledInputRow } from "@/design-system";
 import type { AccountCloudflareAccessSection, AccountCredentialInputRow } from "./cloudflare-access-credential-fields";
 import { CloudflareAccessCredentialFields } from "./cloudflare-access-credential-fields";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
-const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";
 
 function inputClassFor(changed: boolean): string {
   return cn("h-11", SETTINGS_CONTROL_SURFACE_CLASS, changed && SETTINGS_CHANGED_CONTROL_CLASS);
@@ -53,13 +51,6 @@ type AccountCredentialsSectionViewProps = {
   onPasswordChange: (value: string) => void;
   onPasswordFocus?: () => void;
   onPasswordBlur?: () => void;
-  testConnectionLabel?: string;
-  testingConnectionLabel?: string;
-  testConnectionDisabled?: boolean;
-  onTestConnection?: () => void;
-  isTestingConnection?: boolean;
-  connectionTestSucceeded?: boolean;
-  testConnectionSuccessLabel?: string;
   extraRows?: AccountCredentialInputRow[];
   changedFields?: ChangedFieldState;
   changedFieldLabel?: string;
@@ -90,13 +81,6 @@ export function AccountCredentialsSectionView({
   onPasswordChange,
   onPasswordFocus,
   onPasswordBlur,
-  testConnectionLabel,
-  testingConnectionLabel,
-  testConnectionDisabled,
-  onTestConnection,
-  isTestingConnection,
-  connectionTestSucceeded,
-  testConnectionSuccessLabel,
   extraRows,
   changedFields,
   changedFieldLabel,
@@ -183,23 +167,6 @@ export function AccountCredentialsSectionView({
           disabled={disabled}
           labelClassName={labelColumnClassName}
         />
-      )}
-      {onTestConnection && (
-        <LabeledControlRow label="" labelClassName={labelColumnClassName}>
-          <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
-            <SettingsLoadingActionButton
-              size="standalone"
-              onClick={onTestConnection}
-              loading={isTestingConnection}
-              loadingLabel={testingConnectionLabel}
-              success={connectionTestSucceeded}
-              successLabel={testConnectionSuccessLabel}
-              disabled={disabled || testConnectionDisabled}
-            >
-              {testConnectionLabel}
-            </SettingsLoadingActionButton>
-          </div>
-        </LabeledControlRow>
       )}
     </SettingsSection>
   );

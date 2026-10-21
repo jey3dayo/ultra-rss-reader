@@ -4,12 +4,6 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 
-function expectStandaloneSettingsActionButton(button: HTMLElement) {
-  expect(button).toHaveClass("h-9", "min-h-9", "px-3");
-  expect(button).toHaveClass("text-[13px]", "font-medium");
-  expect(button).not.toHaveClass("h-11", "px-4");
-}
-
 describe("AccountCredentialsSectionView", () => {
   it("renders credential inputs and delegates changes", async () => {
     const user = userEvent.setup();
@@ -49,9 +43,8 @@ describe("AccountCredentialsSectionView", () => {
     expect(onPasswordBlur).toHaveBeenCalled();
   });
 
-  it("does not trigger persistence or connection verification when blur callbacks are absent", async () => {
+  it("does not trigger persistence when blur callbacks are absent", async () => {
     const user = userEvent.setup();
-    const onTestConnection = vi.fn();
     const onServerUrlChange = vi.fn();
 
     render(
@@ -67,7 +60,6 @@ describe("AccountCredentialsSectionView", () => {
         passwordValue=""
         passwordPlaceholder="Enter password"
         onPasswordChange={() => {}}
-        onTestConnection={onTestConnection}
       />,
     );
 
@@ -76,7 +68,6 @@ describe("AccountCredentialsSectionView", () => {
     serverUrlInput.blur();
 
     expect(onServerUrlChange).toHaveBeenCalled();
-    expect(onTestConnection).not.toHaveBeenCalled();
   });
 
   it("highlights changed fields with an accent border and indicator dot", () => {
@@ -198,7 +189,7 @@ describe("AccountCredentialsSectionView", () => {
     );
   });
 
-  it("shows a settings-toned loading action while testing the connection", () => {
+  it("renders flexible credential inputs and no connection-test button, which lives in the pane action bar", () => {
     render(
       <AccountCredentialsSectionView
         heading="Credentials"
@@ -218,54 +209,15 @@ describe("AccountCredentialsSectionView", () => {
         passwordPlaceholder="Enter password"
         onPasswordChange={() => {}}
         onPasswordBlur={() => {}}
-        testConnectionLabel="Test Connection"
-        testingConnectionLabel="Testing..."
-        onTestConnection={() => {}}
-        isTestingConnection={true}
       />,
     );
 
-    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("w-full");
-    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("h-11");
-    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("w-full");
-    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("h-11");
-    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("w-full");
-    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Copy Server URL" })).toBeInTheDocument();
-    const button = screen.getByRole("button", { name: "Testing..." });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("aria-busy", "true");
-    expectStandaloneSettingsActionButton(button);
-    expect(button).toHaveClass(
-      "border",
-      "border-[var(--settings-shell-control-border)]",
-      "shadow-[var(--settings-shell-control-shadow)]",
-      "bg-surface-2/82",
-      "text-foreground",
-    );
-    expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
-  });
-
-  it("shows the test-connection label once, as the button", () => {
-    render(
-      <AccountCredentialsSectionView
-        heading="Credentials"
-        usernameLabel="Username"
-        usernameValue="debug"
-        onUsernameChange={() => {}}
-        passwordLabel="Password"
-        passwordValue=""
-        passwordPlaceholder="Enter password"
-        onPasswordChange={() => {}}
-        testConnectionLabel="Check Connection"
-        testingConnectionLabel="Testing..."
-        onTestConnection={() => {}}
-      />,
-    );
-
-    const matches = screen.getAllByText("Check Connection");
-    expect(matches).toHaveLength(1);
-    expect(matches[0]).toBe(screen.getByRole("button", { name: "Check Connection" }));
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("w-full", "h-11");
+    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("w-full", "h-11");
+    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("w-full", "h-11");
+    expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Copy Server URL",
+    ]);
   });
 
   it("uses a fixed desktop label column and flexible credential inputs", () => {

@@ -52,6 +52,20 @@ describe("SettingsContentLayout", () => {
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
   });
 
+  it("renders the footer after the scroll area, outside the scrolling content", () => {
+    render(
+      <SettingsContentLayout title="General" footer={<div data-testid="pane-footer">Footer</div>}>
+        <div>Body</div>
+      </SettingsContentLayout>,
+    );
+
+    const footer = screen.getByTestId("pane-footer");
+    const scrollArea = screen.getByTestId("settings-content-scroll-area");
+
+    expect(scrollArea).not.toContainElement(footer);
+    expect(scrollArea.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("keeps local scroll behavior props ahead of shared settings context defaults", () => {
     render(
       <SettingsContentScrollBehaviorProvider value="always">

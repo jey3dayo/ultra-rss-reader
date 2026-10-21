@@ -6,6 +6,7 @@ import type { AccountDetailViewProps } from "@/components/settings/account-detai
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { isValidOptionalHttpServerUrl } from "@/lib/account/server-url";
 import { isFreshRssAccount, isLocalAccount } from "./account-kind";
+import { buildAccountActionBar } from "./build-account-action-bar";
 import { buildCredentialsSection } from "./build-credentials-section";
 import { buildDangerZoneSection } from "./build-danger-zone-section";
 import { buildGeneralSection } from "./build-general-section";
@@ -28,7 +29,14 @@ type AccountDetailViewPropsParams = {
 
 type AccountDetailViewPropsResult = Pick<
   AccountDetailViewProps,
-  "title" | "subtitle" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
+  | "title"
+  | "subtitle"
+  | "headerSummary"
+  | "generalSection"
+  | "credentialsSection"
+  | "syncSection"
+  | "dangerZone"
+  | "footer"
 >;
 
 function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunction<"settings">): string | null {
@@ -107,5 +115,6 @@ export function useAccountDetailViewProps({
       t,
       isSetupActive,
     }),
+    footer: buildAccountActionBar({ account, controller, t, isSetupSyncing, isQuarantined }),
   };
 }

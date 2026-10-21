@@ -215,6 +215,18 @@ describe("SettingsModal", () => {
       expect(screen.getByText("You have unsaved changes")).toBeInTheDocument();
     });
 
+    it("shows the pane action bar instead of the global unsaved-changes footer on the account detail pane", async () => {
+      const user = userEvent.setup();
+
+      render(<SettingsModal />, { wrapper: createWrapper() });
+      await openFreshRssAccountDetail(user);
+
+      const actionBar = screen.getByTestId("account-action-bar");
+      expect(within(actionBar).getByText("You have unsaved changes")).toBeInTheDocument();
+      expect(screen.getAllByText("You have unsaved changes")).toHaveLength(1);
+      expect(screen.queryByTestId("settings-unsaved-changes-bar")).not.toBeInTheDocument();
+    });
+
     it("discards the edits and closes settings when discard is chosen", async () => {
       const user = userEvent.setup();
 

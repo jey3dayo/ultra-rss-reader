@@ -12,6 +12,7 @@ export type AccountDetailViewProps = {
   credentialsSection?: ReactNode;
   syncSection: ComponentProps<typeof AccountSyncSectionView>;
   dangerZone: ComponentProps<typeof AccountDangerZoneView>;
+  footer?: ReactNode;
 };
 
 export function AccountDetailView({
@@ -22,12 +23,14 @@ export function AccountDetailView({
   credentialsSection,
   syncSection,
   dangerZone,
+  footer,
 }: AccountDetailViewProps) {
   return (
     <SettingsContentLayout
       title={title}
       subtitle={subtitle}
       headerSummary={headerSummary}
+      footer={footer}
       titleLayout="stacked-left"
       maxWidthClassName="max-w-[640px]"
       contentTestId="account-detail-layout"

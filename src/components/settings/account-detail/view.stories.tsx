@@ -3,6 +3,7 @@ import { type ReactNode, useEffect } from "react";
 import { fn } from "storybook/test";
 import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import { AccountConnectionSummary } from "../account-connection-summary";
+import { AccountActionBar } from "./account-action-bar";
 import { AccountCredentialsSectionView } from "./credentials-section-view";
 import { AccountDetailView } from "./view";
 
@@ -171,9 +172,20 @@ export const ActionSuccessFeedback: Story = {
         passwordValue="••••••••"
         passwordPlaceholder="新しいパスワードを入力"
         onPasswordChange={fn()}
+      />
+    ),
+    footer: (
+      <AccountActionBar
+        hasUnsavedChanges={false}
+        running={false}
+        message="未保存の変更があります"
+        discardLabel="破棄"
+        saveAndTestLabel="保存して接続確認"
         testConnectionLabel="接続確認"
-        testConnectionSuccessLabel="接続確認済み"
-        connectionTestSucceeded={true}
+        testingLabel="確認中…"
+        connectionVerified={false}
+        connectionVerifiedLabel="接続確認済み"
+        onDiscard={fn()}
         onTestConnection={fn()}
       />
     ),

@@ -1,4 +1,3 @@
-import { cn } from "cn";
 import { useState } from "react";
 import {
   canSaveDirtySettingsEntries,
@@ -6,7 +5,7 @@ import {
   saveDirtySettingsEntries,
 } from "@/components/settings/hooks/settings-dirty-state-registry";
 import { useSettingsDirtyStateRegistrySnapshot } from "@/components/settings/hooks/use-settings-dirty-state-registry";
-import { SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
+import { SettingsActionBarShell } from "@/components/settings/shared/settings-action-bar-shell";
 import { FormActionButtons } from "@/design-system";
 
 type SettingsUnsavedChangesLabels = {
@@ -32,31 +31,17 @@ export function SettingsUnsavedChangesBar({
   onSave,
 }: SettingsUnsavedChangesBarProps) {
   return (
-    <section
-      data-testid="settings-unsaved-changes-bar"
-      aria-label={message}
-      className={cn(
-        "flex shrink-0 flex-col gap-3 border-t px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8",
-        SETTINGS_DIVIDER_CLASS,
-      )}
-      style={{ backgroundColor: "var(--settings-shell-content)" }}
-    >
-      <p role="status" className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
-        <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-[var(--settings-field-changed-border)]" />
-        {message}
-      </p>
-      <div className="sm:w-auto">
-        <FormActionButtons
-          cancelLabel={discardLabel}
-          submitLabel={saveLabel}
-          submittingLabel={savingLabel}
-          loading={saving}
-          cancelDisabled={saving}
-          onCancel={onDiscard}
-          onSubmit={onSave}
-        />
-      </div>
-    </section>
+    <SettingsActionBarShell testId="settings-unsaved-changes-bar" label={message} message={message}>
+      <FormActionButtons
+        cancelLabel={discardLabel}
+        submitLabel={saveLabel}
+        submittingLabel={savingLabel}
+        loading={saving}
+        cancelDisabled={saving}
+        onCancel={onDiscard}
+        onSubmit={onSave}
+      />
+    </SettingsActionBarShell>
   );
 }
 

@@ -583,12 +583,9 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Development" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Add account…" }).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Test Connection" })).toHaveClass(
-      "border",
-      "border-[var(--settings-shell-control-border)]",
-      "bg-surface-2/82",
-      "text-foreground",
-    );
+    expect(
+      within(screen.getByTestId("account-action-bar")).getByRole("button", { name: "Test Connection" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });

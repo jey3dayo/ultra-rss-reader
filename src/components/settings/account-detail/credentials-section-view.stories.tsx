@@ -67,8 +67,6 @@ const meta = {
     passwordLabel: "Password",
     passwordValue: "",
     passwordPlaceholder: "Enter new password",
-    testConnectionLabel: "Check Connection",
-    testingConnectionLabel: "Checking…",
     onServerUrlChange: fn(),
     onServerUrlBlur: fn(),
     onServerUrlCopy: fn(),
@@ -77,7 +75,6 @@ const meta = {
     onPasswordChange: fn(),
     onPasswordFocus: fn(),
     onPasswordBlur: fn(),
-    onTestConnection: fn(),
   },
   decorators: [
     (Story) => (
@@ -102,7 +99,6 @@ export const SavedPassword: Story = {
 export const DirtyDraft: Story = {
   args: {
     serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
-    testConnectionLabel: "Save & Test Connection",
     changedFields: { serverUrl: true, username: false, password: false },
     changedFieldLabel: "Changed",
   },
@@ -112,7 +108,6 @@ export const SetupFailedDirtyDraft: Story = {
   args: {
     note: "Setup failed",
     serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
-    testConnectionLabel: "Save & Test Connection",
     changedFields: { serverUrl: true, username: false, password: false },
     changedFieldLabel: "Changed",
   },
@@ -123,7 +118,6 @@ export const DirtyDraftMultipleFields: Story = {
     serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
     usernameValue: "new-user",
     passwordValue: "new-password",
-    testConnectionLabel: "Save & Test Connection",
     changedFields: { serverUrl: true, username: true, password: true },
     changedFieldLabel: "Changed",
   },
@@ -191,8 +185,6 @@ export const JapaneseNarrow: Story = {
     usernameLabel: "ユーザー名",
     passwordLabel: "パスワード",
     passwordPlaceholder: "新しいパスワードを入力",
-    testConnectionLabel: "接続確認",
-    testingConnectionLabel: "確認中…",
   },
   decorators: [
     (Story) => (
