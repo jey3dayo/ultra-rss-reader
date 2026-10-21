@@ -1408,6 +1408,34 @@ describe("AppErrorSchema", () => {
     });
   });
 
+  it("accepts the structured credential failure the keychain commands attach", () => {
+    expect(
+      parse(AppErrorSchema, {
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: { target: "cloudflare_access", cause: "not_allowed" },
+      }),
+    ).toEqual({
+      type: "UserVisible",
+      message: "Keychain error: dummy",
+      credential_failure: { target: "cloudflare_access", cause: "not_allowed" },
+    });
+  });
+
+  it.each([
+    { target: "password", cause: "cancelled" },
+    { target: "token", cause: "canceled" },
+    { target: "password", cause: "canceled", detail: "x" },
+  ])("rejects a credential failure outside the contract: %j", (credentialFailure) => {
+    expect(() =>
+      parse(AppErrorSchema, {
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: credentialFailure,
+      }),
+    ).toThrow();
+  });
+
   it("keeps support codes and diagnostics ids out of the AppError wire contract", () => {
     expect(() =>
       parse(AppErrorSchema, {

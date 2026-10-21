@@ -10,6 +10,7 @@ type SettingsContentLayoutProps = {
   title: string;
   subtitle?: string;
   headerSummary?: ReactNode;
+  footer?: ReactNode;
   children: ReactNode;
   titleLayout?: "sticky-centered" | "stacked-left";
   maxWidthClassName?: string;
@@ -45,6 +46,7 @@ export function SettingsContentLayout({
   title,
   subtitle,
   headerSummary,
+  footer,
   children,
   titleLayout = "sticky-centered",
   maxWidthClassName,
@@ -146,6 +148,7 @@ export function SettingsContentLayout({
           />
         ) : null}
       </div>
+      {footer}
     </section>
   );
 }

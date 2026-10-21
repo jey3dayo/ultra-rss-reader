@@ -4,13 +4,16 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::error::{
+    CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError, DomainResult,
+};
 use crate::domain::url_policy::validate_user_provided_server_url;
 
 use super::diagnostics::{
     log_credential_malformed, log_keyring_access_failed, log_keyring_error, CredentialKind,
     KeyringOp,
 };
+use super::native_status::keyring_cause;
 use super::secret_backend::SecretBackend;
 
 pub(super) const SERVICE: &str = "ultra-rss-reader-cloudflare-access";
@@ -51,15 +54,45 @@ struct StoredBundle {
 pub(crate) enum AccessStoreError {
     #[error("Cloudflare Access OS keyring is unavailable. Allow keyring access and try again.")]
     Unavailable,
+    #[error("Cloudflare Access OS keyring is unavailable. Allow keyring access and try again.")]
+    NotAllowed,
+    #[error("Cloudflare Access OS keyring is unavailable. Allow keyring access and try again.")]
+    Canceled,
     #[error("Cloudflare Access OS keyring entry is malformed. Replace or remove the entry before reconnecting.")]
     Malformed,
     #[error("Cloudflare Access OS keyring write could not be verified. Try saving the credentials again.")]
     Verification,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AccessOperation {
+    Read,
+    Write,
+}
+
+impl AccessStoreError {
+    pub(crate) fn failure(self, operation: AccessOperation) -> CredentialFailure {
+        let cause = match (self, operation) {
+            (Self::NotAllowed, _) => CredentialFailureCause::NotAllowed,
+            (Self::Canceled, _) => CredentialFailureCause::Canceled,
+            (Self::Verification, _) => CredentialFailureCause::Unverified,
+            (Self::Unavailable | Self::Malformed, AccessOperation::Read) => {
+                CredentialFailureCause::ReadFailed
+            }
+            (Self::Unavailable | Self::Malformed, AccessOperation::Write) => {
+                CredentialFailureCause::WriteFailed
+            }
+        };
+        CredentialFailure::new(CredentialTarget::CloudflareAccess, cause)
+    }
+}
+
 impl From<AccessStoreError> for DomainError {
     fn from(error: AccessStoreError) -> Self {
-        Self::Keychain(error.to_string())
+        Self::CredentialStore {
+            failure: error.failure(AccessOperation::Read),
+            message: error.to_string(),
+        }
     }
 }
 
@@ -281,7 +314,14 @@ pub(crate) fn load_for_sync_with_mode(
             account_id,
             mode,
         )
-        .map_err(|_| AccessStoreError::Unavailable)?;
+        .map_err(|error| match error {
+            DomainError::CredentialStore { failure, .. }
+                if failure.cause == CredentialFailureCause::NotAllowed =>
+            {
+                AccessStoreError::NotAllowed
+            }
+            _ => AccessStoreError::Unavailable,
+        })?;
         raw.map(|raw| decode_bundle(&raw)).transpose()
     }
     #[cfg(not(target_os = "macos"))]
@@ -315,7 +355,11 @@ fn log_verification_mismatch() {
 
 fn unavailable(op: KeyringOp, error: &keyring::Error) -> AccessStoreError {
     log_keyring_error(CredentialKind::CloudflareAccess, op, error);
-    AccessStoreError::Unavailable
+    match keyring_cause(error, CredentialFailureCause::ReadFailed) {
+        CredentialFailureCause::Canceled => AccessStoreError::Canceled,
+        CredentialFailureCause::NotAllowed => AccessStoreError::NotAllowed,
+        _ => AccessStoreError::Unavailable,
+    }
 }
 
 fn malformed(stage: &str) -> AccessStoreError {

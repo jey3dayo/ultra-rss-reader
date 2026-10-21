@@ -27,6 +27,9 @@ type UseSettingsModalViewPropsParams = {
   settingsLoading: boolean;
   accounts: AccountDto[] | undefined;
   content: ReactNode;
+  footer?: ReactNode;
+  guardLeave?: (leave: () => void) => void;
+  leaveConfirmation?: ReactNode;
   closeSettings: () => void;
   openSettings: () => void;
   setSettingsCategory: (category: SettingsCategory) => void;
@@ -64,6 +67,9 @@ export function useSettingsModalViewProps({
   settingsLoading,
   accounts,
   content,
+  footer,
+  guardLeave = (leave) => leave(),
+  leaveConfirmation,
   closeSettings,
   openSettings,
   setSettingsCategory,
@@ -87,21 +93,33 @@ export function useSettingsModalViewProps({
       return;
     }
 
-    setSettingsCategory(settingsCategoryByNavId[categoryId]);
+    const nextCategory = settingsCategoryByNavId[categoryId];
+    if (nextCategory === settingsCategory && !settingsAddAccount && settingsAccountId === null) {
+      setSettingsCategory(nextCategory);
+      return;
+    }
+    guardLeave(() => setSettingsCategory(nextCategory));
   };
 
   const handleSelectAccount = (accountId: string) => {
     if (setupLocked) {
       return;
     }
-    openSettingsAccount(accountId);
+    if (accountId === settingsAccountId) {
+      openSettingsAccount(accountId);
+      return;
+    }
+    guardLeave(() => openSettingsAccount(accountId));
   };
 
   const handleAddAccount = () => {
     if (setupLocked) {
       return;
     }
-    openSettingsAddAccount();
+    if (settingsAddAccount) {
+      return;
+    }
+    guardLeave(() => openSettingsAddAccount());
   };
 
   return {
@@ -121,6 +139,8 @@ export function useSettingsModalViewProps({
       />
     ),
     content,
+    footer,
+    leaveConfirmation,
     contentResetKey: buildSettingsContentResetKey({
       settingsCategory,
       settingsAccountId,
@@ -134,14 +154,14 @@ export function useSettingsModalViewProps({
       if (setupLocked) {
         return;
       }
-      closeSettings();
+      guardLeave(closeSettings);
     },
     onOpenChange: (open) => {
       if (!open) {
         if (setupLocked) {
           return;
         }
-        closeSettings();
+        guardLeave(closeSettings);
         return;
       }
       openSettings();

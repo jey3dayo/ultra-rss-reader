@@ -1,12 +1,13 @@
 import type { TFunction } from "i18next";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
-import type { AccountDetailSyncProgress } from "@/components/settings/account-detail/account-detail";
 import type { AccountSyncStatusRow } from "@/components/settings/account-detail/sync-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import type { AccountDetailViewProps } from "@/components/settings/account-detail/view";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { isValidOptionalHttpServerUrl } from "@/lib/account/server-url";
+import { useCredentialStoreKind } from "../use-credential-store-kind";
 import { isFreshRssAccount, isLocalAccount } from "./account-kind";
+import { buildAccountActionBar } from "./build-account-action-bar";
 import { buildCredentialsSection } from "./build-credentials-section";
 import { buildDangerZoneSection } from "./build-danger-zone-section";
 import { buildGeneralSection } from "./build-general-section";
@@ -18,7 +19,6 @@ type AccountDetailViewPropsParams = {
   account: AccountDetailAccount;
   controller: AccountDetailControllerResult;
   isSyncing: boolean;
-  syncProgress?: AccountDetailSyncProgress;
   syncStatus: AccountSyncStatusDto | undefined;
   syncStatusRows: AccountSyncStatusRow[];
   language: string;
@@ -30,7 +30,14 @@ type AccountDetailViewPropsParams = {
 
 type AccountDetailViewPropsResult = Pick<
   AccountDetailViewProps,
-  "title" | "subtitle" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
+  | "title"
+  | "subtitle"
+  | "headerSummary"
+  | "generalSection"
+  | "credentialsSection"
+  | "syncSection"
+  | "dangerZone"
+  | "footer"
 >;
 
 function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunction<"settings">): string | null {
@@ -51,7 +58,6 @@ export function useAccountDetailViewProps({
   account,
   controller,
   isSyncing,
-  syncProgress,
   syncStatus,
   syncStatusRows,
   language,
@@ -60,6 +66,7 @@ export function useAccountDetailViewProps({
   accountSetupState,
   accountSetupErrorMessage,
 }: AccountDetailViewPropsParams): AccountDetailViewPropsResult {
+  const credentialStoreKind = useCredentialStoreKind();
   const isSetupSyncing = accountSetupState === "syncing";
   const isSetupFailed = accountSetupState === "failed";
   const isSetupActive = isSetupSyncing || isSetupFailed;
@@ -89,6 +96,7 @@ export function useAccountDetailViewProps({
       isSetupFailed,
       isSetupActive,
       isQuarantined,
+      credentialStoreKind,
     }),
     syncSection: buildSyncSection({
       account,
@@ -97,7 +105,6 @@ export function useAccountDetailViewProps({
       syncStatusRows,
       accountSetupErrorMessage,
       isSyncing,
-      syncProgress,
       syncStatus,
       canRecoverDevCredentialsStore,
       isSetupSyncing,
@@ -111,5 +118,6 @@ export function useAccountDetailViewProps({
       t,
       isSetupActive,
     }),
+    footer: buildAccountActionBar({ account, controller, t, isSetupSyncing, isQuarantined }),
   };
 }

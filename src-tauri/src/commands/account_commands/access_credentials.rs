@@ -8,7 +8,7 @@ use crate::domain::provider::ProviderKind;
 use crate::infra::keyring_store::{
     self,
     cloudflare_access::{
-        AccessSnapshot, AccessStoreError, CloudflareAccess, CloudflareAccessStore,
+        AccessOperation, AccessSnapshot, AccessStoreError, CloudflareAccess, CloudflareAccessStore,
         OsCloudflareAccessStore,
     },
 };
@@ -91,8 +91,12 @@ impl AccountCredentialStore for OsAccountCredentialStore {
     }
 }
 
-fn store_error(error: AccessStoreError) -> AppError {
-    DomainError::from(error).into()
+fn store_error(error: AccessStoreError, operation: AccessOperation) -> AppError {
+    DomainError::CredentialStore {
+        failure: error.failure(operation),
+        message: error.to_string(),
+    }
+    .into()
 }
 
 fn account_url(account: &Account) -> Result<&str, AppError> {
@@ -150,7 +154,9 @@ pub(super) fn access_metadata(
             message: "Cloudflare Access is only supported for FreshRSS accounts.".into(),
         });
     }
-    let access = store.load(account.id.as_ref()).map_err(store_error)?;
+    let access = store
+        .load(account.id.as_ref())
+        .map_err(|error| store_error(error, AccessOperation::Read))?;
     // Metadata permits settings recovery after a URL import changed the origin.
     Ok(CloudflareAccessMetadata::Loaded {
         client_id: access.map(|access| access.client_id().to_string()),
@@ -203,8 +209,7 @@ fn write_access(
         Some(access) => store.save(id, access),
         None => store.remove(id),
     }
-    .map_err(store_error)?;
-    keyring_store::cloudflare_access::verify_saved_access(store, id, access).map_err(store_error)
+    .map_err(|error| store_error(error, AccessOperation::Write))
 }
 
 fn restore_access(
@@ -212,11 +217,19 @@ fn restore_access(
     id: &str,
     snapshot: &AccessSnapshot,
 ) -> Result<(), AppError> {
-    store.restore(id, snapshot).map_err(store_error)?;
-    if &store.snapshot(id).map_err(store_error)? == snapshot {
+    store
+        .restore(id, snapshot)
+        .map_err(|error| store_error(error, AccessOperation::Write))?;
+    let restored = store
+        .snapshot(id)
+        .map_err(|error| store_error(error, AccessOperation::Read))?;
+    if &restored == snapshot {
         Ok(())
     } else {
-        Err(store_error(AccessStoreError::Verification))
+        Err(store_error(
+            AccessStoreError::Verification,
+            AccessOperation::Write,
+        ))
     }
 }
 
@@ -241,8 +254,8 @@ pub(super) fn persist_account_credentials<T>(
     persist_account: impl FnOnce() -> Result<T, AppError>,
 ) -> Result<T, AppError> {
     let id = account.id.as_ref();
-    #[cfg(target_os = "macos")]
-    keyring_store::session_cache::invalidate(id)?;
+    #[cfg(any(target_os = "macos", test))]
+    let prior_lease = keyring_store::session_cache::take_leased_password(id)?;
     let validated_replacement = if matches!(action, CloudflareAccessArg::Keep {}) {
         None
     } else {
@@ -251,10 +264,14 @@ pub(super) fn persist_account_credentials<T>(
     let previous_access = if creating {
         AccessSnapshot::Missing
     } else {
-        store.snapshot(id).map_err(store_error)?
+        store
+            .snapshot(id)
+            .map_err(|error| store_error(error, AccessOperation::Read))?
     };
     let previous_configured = if matches!(action, CloudflareAccessArg::Keep {}) {
-        previous_access.configured().map_err(store_error)?
+        previous_access
+            .configured()
+            .map_err(|error| store_error(error, AccessOperation::Read))?
     } else {
         None
     };
@@ -278,11 +295,6 @@ pub(super) fn persist_account_credentials<T>(
         if let Some(password) = password {
             password_attempted = true;
             store.set_password(id, password)?;
-            if store.password(id)?.as_deref() != Some(password) {
-                return Err(AppError::from(DomainError::Keychain(
-                    "FreshRSS password write could not be verified.".into(),
-                )));
-            }
         }
         if change_access {
             access_attempted = true;
@@ -291,7 +303,11 @@ pub(super) fn persist_account_credentials<T>(
         persist_account()
     })();
     match result {
-        Ok(value) => Ok(value),
+        Ok(value) => {
+            #[cfg(any(target_os = "macos", test))]
+            keyring_store::session_cache::grant_saved(account, password, prior_lease, next_access);
+            Ok(value)
+        }
         Err(error) => {
             let access_failed =
                 access_attempted && restore_access(store, id, &previous_access).is_err();
@@ -334,7 +350,9 @@ pub(super) fn delete_account_credentials(
 ) -> Result<(), AppError> {
     #[cfg(target_os = "macos")]
     keyring_store::session_cache::invalidate(id)?;
-    let previous = store.snapshot(id).map_err(store_error)?;
+    let previous = store
+        .snapshot(id)
+        .map_err(|error| store_error(error, AccessOperation::Read))?;
     if let Err(error) = write_access(store, id, None) {
         let access_failed = restore_access(store, id, &previous).is_err();
         return Err(rollback_error(error, false, access_failed));

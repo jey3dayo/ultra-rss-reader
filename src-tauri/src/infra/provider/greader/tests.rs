@@ -908,7 +908,9 @@ async fn redaction_authenticate_auth_failure_does_not_surface_credentials() {
             assert!(!message.contains(username));
             assert!(!message.contains(password));
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("auth failures should remain user visible: {message}");
         }
     }

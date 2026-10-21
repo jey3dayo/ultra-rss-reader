@@ -31,6 +31,8 @@ export type SettingsModalViewProps = {
   content: ReactNode;
   contentResetKey?: string;
   contentScrollBehavior?: SettingsModalContentScrollBehavior;
+  footer?: ReactNode;
+  leaveConfirmation?: ReactNode;
   isLoading?: boolean;
   isCloseDisabled?: boolean;
   lockMessage?: string;
@@ -50,6 +52,8 @@ export function SettingsModalView({
   content,
   contentResetKey = "",
   contentScrollBehavior = "auto",
+  footer,
+  leaveConfirmation,
   isLoading,
   isCloseDisabled = false,
   lockMessage,
@@ -193,7 +197,9 @@ export function SettingsModalView({
               {content}
             </SettingsContentScrollBehaviorProvider>
           </div>
+          {footer}
         </div>
+        {leaveConfirmation}
       </DialogContent>
     </Dialog>
   );

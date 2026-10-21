@@ -4,8 +4,14 @@
   "accounts_heading": "アカウント",
   "add_account_ellipsis": "アカウントを追加…",
   "dirty_state": {
-    "dirty_lock_message": "現在の編集を完了または破棄してから設定を閉じてください。",
-    "pending_lock_message": "変更を保存しています。設定を閉じる前にお待ちください。"
+    "confirm_title": "変更を保存しますか？",
+    "confirm_message": "保存せずに移動すると、編集中の内容は失われます。",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "pending_lock_message": "変更を保存しています。設定を閉じる前にお待ちください。",
+    "field_changed": "変更あり",
+    "unsaved_changes": "未保存の変更があります",
+    "discard": "破棄"
   },
   "nav": {
     "general": "一般",
@@ -209,8 +215,8 @@
     "cloudflare_access": "Cloudflare Access",
     "cloudflare_access_description": "Access 認証を追加",
     "cloudflare_access_info": "Cloudflare Access の説明",
-    "cloudflare_access_add_details": "Access の Service Token の Client ID と Client Secret を入力します。認証情報は OS の安全な保存領域に保管されます。",
-    "cloudflare_access_details": "Client Secret が空欄なら保存済みの値を使います。Client ID やサーバーのオリジンを変更する場合は、新しい Secret が必要です。無効にして保存すると、保存済みの認証情報を削除します。",
+    "cloudflare_access_add_details": "Access の Service Token の Client ID と Client Secret を入力します。",
+    "cloudflare_access_details": "保存済みの Secret は表示しません。Secret を変更しなければ、保存済みの値を使います。Client ID または接続先のオリジンを変更する場合は、新しい Secret が必要です。",
     "cloudflare_access_reconfigure": "Access を再設定",
     "cloudflare_access_remove": "Access を削除",
     "cloudflare_access_remove_on_save": "保存すると、保存済みの Access 認証情報を削除します。",
@@ -226,11 +232,10 @@
     "cloudflare_access_secret_show": "新しく入力したSecretを表示",
     "cloudflare_access_secret_hide": "新しく入力したSecretを隠す",
     "cloudflare_access_loading": "Cloudflare Access の設定を確認しています…",
-    "cloudflare_access_read_failed": "Cloudflare Access の設定を読み込めませんでした。保存状態は不明です。再設定または削除を選ばない限り、保存済みの設定を保持します。macOSでは接続確認を実行して、この起動中（最大8時間）のKeychain利用を許可します。同期から許可画面は開きません。",
-    "cloudflare_access_authorization_required": "Cloudflare Access の設定は、接続確認を実行すると読み込めます。保存済みの設定は、変更するまで保持されます。",
+    "cloudflare_access_authorization_required": "保存済みの認証情報を使うには、接続確認でキーチェーンへのアクセスを許可してください。",
     "cloudflare_access_unavailable": "Cloudflare Access の設定はデスクトップアプリで管理できます。",
     "cloudflare_access_metadata_required_for_origin_change": "Cloudflare Access の設定を読み込めません。サーバーの接続先を変更する前に、このアカウントを開き直してください。",
-    "cloudflare_access_save_failed": "Cloudflare Access の認証情報を保存できませんでした。キーリングを確認して再試行してください。",
+    "cloudflare_access_save_failed": "Cloudflare Access の認証情報を保存できませんでした。接続とアクセス許可を確認して、もう一度お試しください。",
     "cloudflare_access_recovery_required": "保存失敗後に認証情報を復元できませんでした。再接続する前に FreshRSS のパスワードと Cloudflare Access の認証情報を入力し直すか、Access を削除してください。",
     "username": "ユーザー名",
     "credentials": "認証情報",
@@ -330,9 +335,6 @@
     "sync_now": "今すぐ同期",
     "sync_now_succeeded": "同期完了",
     "syncing_now": "同期中…",
-    "sync_progress_summary": "{{total}} 件中 {{completed}} 件完了",
-    "sync_progress_current_account": "同期中: {{name}}",
-    "sync_progress_preparing": "同期を開始しています",
     "sync_complete": "同期が完了しました",
     "setup_lock_reason": "最初の同期が終わるまで、この画面は閉じられません。",
     "setup_syncing_heading": "初回セットアップ中",
@@ -397,7 +399,43 @@
     "local_desc": "この端末",
     "freshrss_desc": "FreshRSS サーバー",
     "coming_soon": "準備中",
-    "back_to_services": "サービス選択に戻る"
+    "back_to_services": "サービス選択に戻る",
+    "credential_store_help": {
+      "keychain": "認証情報はキーチェーンに保存します。必要な場合、接続確認や保存時にアクセス許可を求めます。読み込んだ認証情報は、この起動中に最大8時間利用します。自動同期では許可画面を開きません。",
+      "credential_manager": "認証情報は Windows の資格情報マネージャーに保存します。",
+      "local_file": "認証情報はこの端末のローカルファイルに保存します。OS の保管庫は使わないため、アクセス許可は求めません。",
+      "os_store": "認証情報は OS の資格情報ストアに保存します。"
+    },
+    "credential_store_name": {
+      "keychain": "キーチェーン",
+      "credential_manager": "資格情報マネージャー",
+      "local_file": "ローカルファイル",
+      "os_store": "OS の資格情報ストア"
+    },
+    "credential_target": {
+      "password": "パスワード",
+      "cloudflare_access": "Cloudflare Access の認証情報"
+    },
+    "credential_failure": {
+      "read_failed": "{{store}}から{{target}}を読み込めませんでした。",
+      "write_failed": "{{target}}を{{store}}に保存できませんでした。",
+      "canceled": "{{store}}へのアクセスがキャンセルされました。続けるには再試行し、アクセスを許可してください。",
+      "not_allowed": "{{store}}へのアクセスが許可されなかったため、処理を続けられませんでした。",
+      "unverified": "{{target}}が保存されたか確認できませんでした。"
+    },
+    "credential_failure_saved_unchanged": "保存済みの設定は変更されていません。",
+    "credential_failure_save_next": {
+      "kept": "入力した内容は保持されています。",
+      "unverified": "もう一度保存するか、入力し直してください。"
+    },
+    "credential_retry": {
+      "load": "再試行",
+      "save": "保存を再試行",
+      "check": "接続確認を再試行"
+    },
+    "credential_saved_connection_unconfirmed": "保存しましたが、接続を確認できませんでした。",
+    "credential_save_failed": "認証情報を保存できませんでした: {{message}}",
+    "saved_connection_unconfirmed": "保存しましたが、接続を確認できませんでした: {{message}}"
   },
   "data": {
     "heading": "データ管理",

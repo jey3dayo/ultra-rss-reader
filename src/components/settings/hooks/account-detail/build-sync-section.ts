@@ -1,7 +1,6 @@
 import type { TFunction } from "i18next";
 import type { ComponentProps } from "react";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
-import type { AccountDetailSyncProgress } from "@/components/settings/account-detail/account-detail";
 import type {
   AccountSyncSectionView,
   AccountSyncStatusRow,
@@ -18,7 +17,6 @@ type BuildSyncSectionParams = {
   syncStatusRows: AccountSyncStatusRow[];
   accountSetupErrorMessage?: string | null;
   isSyncing: boolean;
-  syncProgress?: AccountDetailSyncProgress;
   syncStatus: AccountSyncStatusDto | undefined;
   canRecoverDevCredentialsStore: boolean;
   isSetupSyncing: boolean;
@@ -56,28 +54,6 @@ function resolveSyncPhase({
   if (isSetupSyncing) return "setup-syncing";
   if (isSetupFailed) return "setup-failed";
   return "idle";
-}
-
-function buildSyncProgress({
-  isSyncing,
-  syncProgress,
-  t,
-}: Pick<BuildSyncSectionParams, "isSyncing" | "syncProgress" | "t">) {
-  const hasTotal = isSyncing && syncProgress !== undefined && syncProgress.total > 0;
-  return {
-    progressValue: hasTotal
-      ? Math.max((syncProgress.completed / syncProgress.total) * 100, syncProgress.completed === 0 ? 8 : 0)
-      : null,
-    progressLabel: hasTotal
-      ? t("account.sync_progress_summary", { completed: syncProgress.completed, total: syncProgress.total })
-      : isSyncing
-        ? t("account.sync_progress_preparing")
-        : undefined,
-    progressCurrentLabel:
-      isSyncing && syncProgress?.currentAccountName
-        ? t("account.sync_progress_current_account", { name: syncProgress.currentAccountName })
-        : undefined,
-  };
 }
 
 function buildSyncSettingControls(
@@ -187,7 +163,6 @@ export function buildSyncSection({
   syncStatusRows,
   accountSetupErrorMessage,
   isSyncing,
-  syncProgress,
   syncStatus,
   canRecoverDevCredentialsStore,
   isSetupSyncing,
@@ -199,14 +174,10 @@ export function buildSyncSection({
     canRecoverDevCredentialsStore && !isQuarantined && hasOversizedDevCredentialsStoreError(syncStatus);
   const phase = resolveSyncPhase({ isQuarantined, isSetupSyncing, isSetupFailed });
   const isWaitingForCredentialAccess = syncStatus?.waiting_for_credential_access === true;
-  const { progressValue, progressLabel, progressCurrentLabel } = buildSyncProgress({ isSyncing, syncProgress, t });
 
   return {
     heading: t(SYNC_HEADING_KEYS[phase]),
     note: resolveSyncNote(phase, accountSetupErrorMessage, t),
-    progressLabel,
-    progressValue,
-    progressCurrentLabel,
     ...buildSyncSettingControls(account, controller, t, isSetupActive || isQuarantined),
     statusRows: syncStatusRows,
     syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),

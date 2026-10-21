@@ -1,10 +1,13 @@
-use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::error::{
+    CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError, DomainResult,
+};
 use dev_store_file::{read_dev_store, validate_dev_credential_account_id, write_dev_store};
 use dev_store_lock::{delete_dev_password_at_path, with_dev_store_lock};
 use dev_store_path::dev_credentials_path;
 use diagnostics::{
     log_keyring_access_failed, log_keyring_error, log_sync_read_gate_failed, KeyringOp,
 };
+use native_status::keyring_cause;
 #[cfg(any(target_os = "macos", test))]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(any(target_os = "macos", test))]
@@ -17,6 +20,7 @@ mod dev_store_lock;
 mod dev_store_path;
 mod diagnostics;
 mod macos_security_cli;
+mod native_status;
 mod redaction;
 pub(crate) mod secret_backend;
 #[cfg(any(target_os = "macos", test))]
@@ -247,6 +251,13 @@ where
 // Public API
 // ---------------------------------------------------------------------------
 
+fn password_failure(cause: CredentialFailureCause, message: String) -> DomainError {
+    DomainError::CredentialStore {
+        failure: CredentialFailure::new(CredentialTarget::Password, cause),
+        message,
+    }
+}
+
 fn missing_password_error() -> DomainError {
     DomainError::Validation(
         "Password is not configured. Re-enter your password in account settings, save it, and try again.".to_string(),
@@ -269,7 +280,10 @@ where
                 "missing",
             );
         }
-        DomainError::Keychain(format!("Failed to verify saved password: {e}"))
+        password_failure(
+            CredentialFailureCause::Unverified,
+            format!("Failed to verify saved password: {e}"),
+        )
     })?;
 
     if actual_password == expected_password {
@@ -280,7 +294,8 @@ where
             KeyringOp::Verify,
             "mismatch",
         );
-        Err(DomainError::Keychain(
+        Err(password_failure(
+            CredentialFailureCause::Unverified,
             "Failed to verify saved password: retrieved value did not match the saved credential"
                 .to_string(),
         ))
@@ -330,7 +345,10 @@ fn write_password(account_id: &str, password: &str) -> DomainResult<()> {
 
     let entry = keyring::Entry::new(SERVICE, account_id).map_err(|e| {
         log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Save, &e);
-        DomainError::Keychain(format!("Failed to access credential store: {e}"))
+        password_failure(
+            CredentialFailureCause::WriteFailed,
+            format!("Failed to access credential store: {e}"),
+        )
     })?;
     set_password_with_entry(account_id, password, &entry, get_password)
 }
@@ -346,7 +364,10 @@ where
 {
     entry.set_password(password).map_err(|e| {
         log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Save, &e);
-        DomainError::Keychain(format!("Failed to save password: {e}"))
+        password_failure(
+            keyring_cause(&e, CredentialFailureCause::WriteFailed),
+            format!("Failed to save password: {e}"),
+        )
     })?;
     verify_saved_password_with_reader(account_id, password, read_password)
 }
@@ -368,16 +389,20 @@ fn get_password_unguarded(account_id: &str) -> DomainResult<String> {
 
     let entry = keyring::Entry::new(SERVICE, account_id).map_err(|e| {
         log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Load, &e);
-        DomainError::Keychain(format!("Failed to access credential store: {e}"))
+        password_failure(
+            CredentialFailureCause::ReadFailed,
+            format!("Failed to access credential store: {e}"),
+        )
     })?;
     match entry.get_password() {
         Ok(password) => Ok(password),
         Err(keyring::Error::NoEntry) => Err(missing_password_error()),
         Err(e) => {
             log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Load, &e);
-            Err(DomainError::Keychain(format!(
-                "Failed to retrieve password: {e}"
-            )))
+            Err(password_failure(
+                keyring_cause(&e, CredentialFailureCause::ReadFailed),
+                format!("Failed to retrieve password: {e}"),
+            ))
         }
     }
 }
@@ -429,16 +454,20 @@ fn remove_password(account_id: &str) -> DomainResult<()> {
 
     let entry = keyring::Entry::new(SERVICE, account_id).map_err(|e| {
         log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Remove, &e);
-        DomainError::Keychain(format!("Failed to access credential store: {e}"))
+        password_failure(
+            CredentialFailureCause::WriteFailed,
+            format!("Failed to access credential store: {e}"),
+        )
     })?;
     match entry.delete_credential() {
         Ok(()) => Ok(()),
         Err(keyring::Error::NoEntry) => Ok(()), // Already gone, not an error
         Err(e) => {
             log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Remove, &e);
-            Err(DomainError::Keychain(format!(
-                "Failed to delete password: {e}"
-            )))
+            Err(password_failure(
+                keyring_cause(&e, CredentialFailureCause::WriteFailed),
+                format!("Failed to delete password: {e}"),
+            ))
         }
     }
 }

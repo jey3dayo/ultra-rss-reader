@@ -358,10 +358,11 @@ async fn rename_feed_command_access_errors_fail_closed_before_http() {
         .await
         .expect_err("Access lookup or origin errors should reject rename before HTTP");
 
-        assert!(matches!(
-            error,
-            AppError::UserVisible { message } if message == expected_message
-        ));
+        let (AppError::UserVisible { message } | AppError::CredentialStore { message, .. }) = error
+        else {
+            panic!("Access lookup or origin errors should stay user-visible");
+        };
+        assert_eq!(message, expected_message);
         let guard = db.lock().unwrap();
         let feed = SqliteFeedRepository::new(guard.reader())
             .find_by_id(&feed_id)

@@ -1,9 +1,41 @@
 use reqwest::{header::HeaderMap, StatusCode};
+use serde::Serialize;
 use std::net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use thiserror::Error;
 
 pub const PROVIDER_RETRY_AFTER_MAX_SECONDS: u64 = 3_600;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CredentialTarget {
+    Password,
+    CloudflareAccess,
+}
+
+/// What happened to a credential operation, as the UI distinguishes it. `Canceled` is only set
+/// when the OS reported a user cancellation; an opaque CLI exit is `NotAllowed`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CredentialFailureCause {
+    ReadFailed,
+    WriteFailed,
+    Canceled,
+    NotAllowed,
+    Unverified,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct CredentialFailure {
+    pub target: CredentialTarget,
+    pub cause: CredentialFailureCause,
+}
+
+impl CredentialFailure {
+    pub fn new(target: CredentialTarget, cause: CredentialFailureCause) -> Self {
+        Self { target, cause }
+    }
+}
 
 #[derive(Debug, Clone, Error)]
 pub enum DomainError {
@@ -26,6 +58,11 @@ pub enum DomainError {
     Validation(String),
     #[error("Keychain error: {0}")]
     Keychain(String),
+    #[error("Keychain error: {message}")]
+    CredentialStore {
+        failure: CredentialFailure,
+        message: String,
+    },
     #[error("Migration error: {0}")]
     Migration(String),
 }

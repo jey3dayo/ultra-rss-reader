@@ -103,7 +103,9 @@ fn import_parser_errors_are_user_visible() {
         AppError::UserVisible { message } => {
             assert_eq!(message, "OPML document must contain an <opml> root element");
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("OPML parser errors should not be retryable: {message}");
         }
     }
@@ -118,7 +120,9 @@ fn import_parser_rejects_opml_content_over_large_file_limit() {
         AppError::UserVisible { message } => {
             assert_eq!(message, OPML_IMPORT_CONTENT_TOO_LARGE_MESSAGE);
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("large OPML policy errors should not be retryable: {message}");
         }
     }
@@ -159,7 +163,9 @@ fn import_parser_malformed_xml_error_matches_toast_surface() {
         AppError::UserVisible { message } => {
             assert_eq!(message, "OPML document is malformed XML");
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("OPML malformed XML errors should not be retryable: {message}");
         }
     }

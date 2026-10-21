@@ -122,7 +122,7 @@ fn fallback_network_errors_do_not_surface_sensitive_url_parts_as_retryable_messa
             assert!(!message.contains("raw-key"));
             assert!(!message.contains("access-token"));
         }
-        AppError::UserVisible { message } => {
+        AppError::UserVisible { message } | AppError::CredentialStore { message, .. } => {
             panic!("network fallback errors should remain retryable: {message}");
         }
     }

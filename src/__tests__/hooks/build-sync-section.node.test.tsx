@@ -1,10 +1,9 @@
+import { createAccountDetailControllerStub } from "@tests/helpers/account-detail-controller-stub";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
-import type { RefObject } from "react";
 import { describe, expect, it } from "vitest";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { buildSyncSection } from "@/components/settings/hooks/account-detail/build-sync-section";
-import type { AccountDetailControllerResult } from "@/components/settings/hooks/account-detail/use-account-detail-controller";
 
 function createSyncStatus(overrides: Partial<AccountSyncStatusDto>): AccountSyncStatusDto {
   return {
@@ -17,87 +16,13 @@ function createSyncStatus(overrides: Partial<AccountSyncStatusDto>): AccountSync
   };
 }
 
-function createControllerStub(overrides: Partial<AccountDetailControllerResult> = {}): AccountDetailControllerResult {
-  const noop = () => {};
-  const inputRef: RefObject<HTMLInputElement | null> = { current: null };
-  return {
-    editingName: false,
-    savingName: false,
-    nameDraft: "",
-    setNameDraft: noop,
-    nameInputRef: inputRef,
-    startEditingName: noop,
-    commitRename: async () => {},
-    handleNameKeyDown: noop,
-    credServerUrl: null,
-    credUsername: null,
-    credPassword: null,
-    passwordDisplayValue: "",
-    cloudflareAccessStatus: "ready",
-    cloudflareAccessRecoveryAction: null,
-    cloudflareAccessEnabled: false,
-    cloudflareAccessClientId: "",
-    cloudflareAccessSecret: "",
-    cloudflareAccessHasSavedSecret: false,
-    cloudflareAccessSecretEditing: false,
-    cloudflareAccessSecretVisible: false,
-    cloudflareAccessValidationError: null,
-    testingConnection: false,
-    connectionTestSucceeded: false,
-    dirtyState: { owner: "account", dirty: false, pending: false, blockingReason: null },
-    serverUrlInputRef: inputRef,
-    usernameInputRef: inputRef,
-    setCredServerUrl: noop,
-    setCredUsername: noop,
-    setCredPassword: noop,
-    setCloudflareAccessRecoveryAction: noop,
-    setCloudflareAccessEnabled: noop,
-    setCloudflareAccessClientId: noop,
-    setCloudflareAccessSecret: noop,
-    setCloudflareAccessSecretEditing: noop,
-    setCloudflareAccessSecretVisible: noop,
-    commitCredentials: async () => true,
-    handleTestConnection: async () => {},
-    handleCopyServerUrl: async () => {},
-    onPasswordFocus: noop,
-    onPasswordBlur: noop,
-    focusCredentialsEditor: noop,
-    handleSyncUpdate: async () => {},
-    handleSyncNow: async () => {},
-    handleSetupRetry: async () => {},
-    handleResetDevCredentials: async () => {},
-    syncActionInFlight: false,
-    syncNowSucceeded: false,
-    devCredentialsRecoveryInFlight: false,
-    syncIntervalOptions: [],
-    keepReadItemsOptions: [],
-    handleImportOpml: async () => {},
-    handleExportOpml: async () => {},
-    localSyncFolderPath: "",
-    setLocalSyncFolderPath: noop,
-    localSyncEnabled: false,
-    handleToggleLocalSyncEnabled: noop,
-    handleSaveLocalSyncFolder: async () => {},
-    handleExportLocalSyncOperations: async () => {},
-    handleImportLocalSyncOperations: async () => {},
-    handleRequestDelete: noop,
-    importingOpml: false,
-    exportingOpml: false,
-    loadingLocalSyncSettings: false,
-    savingLocalSyncSettings: false,
-    exportingLocalSyncOperations: false,
-    importingLocalSyncOperations: false,
-    ...overrides,
-  };
-}
-
 describe("buildSyncSection", () => {
   const account = { ...sampleAccounts[1], kind: "FreshRss" };
   const language = "ja";
   const t = i18n.getFixedT(language, "settings");
 
   it("exposes the test connection secondary action while waiting for credential access", () => {
-    const controller = createControllerStub();
+    const controller = createAccountDetailControllerStub();
     const props = buildSyncSection({
       account,
       controller,
@@ -118,7 +43,7 @@ describe("buildSyncSection", () => {
   });
 
   it("keeps the edit credentials secondary action while waiting during setup failure", () => {
-    const controller = createControllerStub();
+    const controller = createAccountDetailControllerStub();
     const props = buildSyncSection({
       account,
       controller,
@@ -139,7 +64,7 @@ describe("buildSyncSection", () => {
   });
 
   it("does not expose a secondary action otherwise", () => {
-    const controller = createControllerStub();
+    const controller = createAccountDetailControllerStub();
     const props = buildSyncSection({
       account,
       controller,

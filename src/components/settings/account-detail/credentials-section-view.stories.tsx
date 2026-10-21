@@ -26,7 +26,6 @@ const configuredCloudflareAccess = {
   onSecretEditingChange: fn(),
   onSecretVisibilityChange: fn(),
   loadingMessage: "Checking Cloudflare Access settings…",
-  readErrorMessage: "Cloudflare Access settings could not be read. Existing credentials will be kept unchanged.",
   unavailableMessage: "Cloudflare Access settings can only be managed in the desktop app.",
   authorizationRequiredMessage: "Run the connection test to load Access settings.",
   label: "Cloudflare Access",
@@ -67,8 +66,6 @@ const meta = {
     passwordLabel: "Password",
     passwordValue: "",
     passwordPlaceholder: "Enter new password",
-    testConnectionLabel: "Check Connection",
-    testingConnectionLabel: "Checking…",
     onServerUrlChange: fn(),
     onServerUrlBlur: fn(),
     onServerUrlCopy: fn(),
@@ -77,7 +74,6 @@ const meta = {
     onPasswordChange: fn(),
     onPasswordFocus: fn(),
     onPasswordBlur: fn(),
-    onTestConnection: fn(),
   },
   decorators: [
     (Story) => (
@@ -102,7 +98,8 @@ export const SavedPassword: Story = {
 export const DirtyDraft: Story = {
   args: {
     serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
-    testConnectionLabel: "Save & Test Connection",
+    changedFields: { serverUrl: true, username: false, password: false },
+    changedFieldLabel: "Changed",
   },
 };
 
@@ -110,7 +107,18 @@ export const SetupFailedDirtyDraft: Story = {
   args: {
     note: "Setup failed",
     serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
-    testConnectionLabel: "Save & Test Connection",
+    changedFields: { serverUrl: true, username: false, password: false },
+    changedFieldLabel: "Changed",
+  },
+};
+
+export const DirtyDraftMultipleFields: Story = {
+  args: {
+    serverUrlValue: "https://new.freshrss.example.com/api/greader.php",
+    usernameValue: "new-user",
+    passwordValue: "new-password",
+    changedFields: { serverUrl: true, username: true, password: true },
+    changedFieldLabel: "Changed",
   },
 };
 
@@ -120,11 +128,53 @@ export const CloudflareAccessConfigured: Story = {
   },
 };
 
+export const CloudflareAccessSaveFailed: Story = {
+  args: {
+    cloudflareAccess: {
+      ...configuredCloudflareAccess,
+      failureNotice: {
+        lines: ["Couldn’t save Cloudflare Access credentials to Keychain.", "Your changes are still in the form."],
+        retryLabel: "Retry Save",
+        onRetry: fn(),
+        retryDisabled: false,
+      },
+    },
+  },
+};
+
+export const PasswordSaveCanceled: Story = {
+  args: {
+    passwordFailureNotice: {
+      lines: [
+        "Access to Keychain was canceled. To continue, try again and allow access.",
+        "Your changes are still in the form.",
+      ],
+      retryLabel: "Retry Save",
+      onRetry: fn(),
+      retryDisabled: false,
+    },
+  },
+};
+
 export const CloudflareAccessChangingSecret: Story = {
   args: {
     cloudflareAccess: {
       ...configuredCloudflareAccess,
       secretEditing: true,
+    },
+  },
+};
+
+export const CloudflareAccessChangedFields: Story = {
+  args: {
+    cloudflareAccess: {
+      ...configuredCloudflareAccess,
+      changedFieldLabel: "Changed",
+      clientId: {
+        ...configuredCloudflareAccess.clientId,
+        value: "new-demo-client-id",
+        changed: true,
+      },
     },
   },
 };
@@ -162,8 +212,6 @@ export const JapaneseNarrow: Story = {
     usernameLabel: "ユーザー名",
     passwordLabel: "パスワード",
     passwordPlaceholder: "新しいパスワードを入力",
-    testConnectionLabel: "接続確認",
-    testingConnectionLabel: "確認中…",
   },
   decorators: [
     (Story) => (

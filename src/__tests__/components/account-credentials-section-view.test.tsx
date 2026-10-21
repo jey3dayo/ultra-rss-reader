@@ -4,13 +4,37 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 
-function expectStandaloneSettingsActionButton(button: HTMLElement) {
-  expect(button).toHaveClass("h-9", "min-h-9", "px-3");
-  expect(button).toHaveClass("text-[13px]", "font-medium");
-  expect(button).not.toHaveClass("h-11", "px-4");
-}
-
 describe("AccountCredentialsSectionView", () => {
+  it("keeps a password failure right under the password field with a retry action", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue="typed-draft"
+        passwordPlaceholder="Enter password"
+        passwordFailureNotice={{
+          lines: ["Access to Keychain was canceled.", "Your changes are still in the form."],
+          retryLabel: "Retry Save",
+          onRetry,
+          retryDisabled: false,
+        }}
+        onPasswordChange={() => {}}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Access to Keychain was canceled.");
+    expect(screen.getByLabelText("Password").compareDocumentPosition(alert)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByLabelText("Password")).toHaveValue("typed-draft");
+    await user.click(screen.getByRole("button", { name: "Retry Save" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it("renders credential inputs and delegates changes", async () => {
     const user = userEvent.setup();
     const onUsernameChange = vi.fn();
@@ -49,9 +73,8 @@ describe("AccountCredentialsSectionView", () => {
     expect(onPasswordBlur).toHaveBeenCalled();
   });
 
-  it("does not trigger persistence or connection verification when blur callbacks are absent", async () => {
+  it("does not trigger persistence when blur callbacks are absent", async () => {
     const user = userEvent.setup();
-    const onTestConnection = vi.fn();
     const onServerUrlChange = vi.fn();
 
     render(
@@ -67,7 +90,6 @@ describe("AccountCredentialsSectionView", () => {
         passwordValue=""
         passwordPlaceholder="Enter password"
         onPasswordChange={() => {}}
-        onTestConnection={onTestConnection}
       />,
     );
 
@@ -76,10 +98,127 @@ describe("AccountCredentialsSectionView", () => {
     serverUrlInput.blur();
 
     expect(onServerUrlChange).toHaveBeenCalled();
-    expect(onTestConnection).not.toHaveBeenCalled();
   });
 
-  it("shows a settings-toned loading action while testing the connection", () => {
+  it("highlights changed fields with an accent border and indicator dot", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        serverUrlLabel="Server URL"
+        serverUrlValue="https://freshrss.example.com"
+        onServerUrlChange={() => {}}
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+        changedFields={{ serverUrl: true, username: false, password: false }}
+        changedFieldLabel="Changed"
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass(
+      "border-[var(--settings-field-changed-border)]",
+    );
+    expect(screen.getByRole("textbox", { name: "Username" })).not.toHaveClass(
+      "border-[var(--settings-field-changed-border)]",
+    );
+    expect(screen.getByText("Changed")).toBeInTheDocument();
+    expect(screen.getAllByText("Changed")).toHaveLength(1);
+  });
+
+  it("highlights the Cloudflare Access client ID input while leaving the secret input unchanged", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Server"
+        usernameLabel="Username"
+        usernameValue="alice"
+        onUsernameChange={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter new password"
+        onPasswordChange={() => {}}
+        cloudflareAccess={{
+          status: "ready",
+          hasSavedSecret: false,
+          secretEditing: false,
+          secretVisible: false,
+          secretDescription: "Leave blank to keep the saved Secret.",
+          secretSavedLabel: "Saved",
+          secretChangeLabel: "Change",
+          secretChangeAriaLabel: "Change saved Client Secret",
+          secretCancelLabel: "Cancel",
+          secretShowLabel: "Show new Secret",
+          secretHideLabel: "Hide new Secret",
+          onSecretEditingChange: () => {},
+          onSecretVisibilityChange: () => {},
+          loadingMessage: "Checking…",
+          unavailableMessage: "Manage Access in the desktop app.",
+          authorizationRequiredMessage: "Run the connection test to load Access settings.",
+          label: "Cloudflare Access",
+          description: "Add Access authentication",
+          enabled: true,
+          onEnabledChange: () => {},
+          changedFieldLabel: "Changed",
+          clientId: {
+            label: "Client ID",
+            value: "edited-client-id",
+            onChange: () => {},
+            changed: true,
+          },
+          clientSecret: {
+            label: "Client Secret",
+            value: "",
+            placeholder: "New Client Secret",
+            onChange: () => {},
+            changed: false,
+          },
+          clientIdError: "Enter a Client ID",
+          clientSecretError: "Enter a Client Secret",
+          validationError: null,
+        }}
+      />,
+    );
+
+    const clientIdInput = screen.getByLabelText("Client ID");
+    const secretInput = screen.getByLabelText("Client Secret");
+    expect(clientIdInput).toHaveClass("border-[var(--settings-field-changed-border)]");
+    expect(secretInput).not.toHaveClass("border-[var(--settings-field-changed-border)]");
+    expect(screen.getAllByText("Changed")).toHaveLength(1);
+  });
+
+  it("does not render changed field indicators without changedFields", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        serverUrlLabel="Server URL"
+        serverUrlValue="https://freshrss.example.com"
+        onServerUrlChange={() => {}}
+        onServerUrlBlur={() => {}}
+        serverUrlCopyLabel="Copy Server URL"
+        onServerUrlCopy={() => {}}
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        onUsernameBlur={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+      />,
+    );
+
+    expect(screen.queryByText("Changed")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Server URL" })).not.toHaveClass(
+      "border-[var(--settings-field-changed-border)]",
+    );
+  });
+
+  it("renders flexible credential inputs and no connection-test button, which lives in the pane action bar", () => {
     render(
       <AccountCredentialsSectionView
         heading="Credentials"
@@ -99,54 +238,15 @@ describe("AccountCredentialsSectionView", () => {
         passwordPlaceholder="Enter password"
         onPasswordChange={() => {}}
         onPasswordBlur={() => {}}
-        testConnectionLabel="Test Connection"
-        testingConnectionLabel="Testing..."
-        onTestConnection={() => {}}
-        isTestingConnection={true}
       />,
     );
 
-    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("w-full");
-    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("h-11");
-    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("w-full");
-    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("h-11");
-    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("w-full");
-    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Copy Server URL" })).toBeInTheDocument();
-    const button = screen.getByRole("button", { name: "Testing..." });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("aria-busy", "true");
-    expectStandaloneSettingsActionButton(button);
-    expect(button).toHaveClass(
-      "border",
-      "border-[var(--settings-shell-control-border)]",
-      "shadow-[var(--settings-shell-control-shadow)]",
-      "bg-surface-2/82",
-      "text-foreground",
-    );
-    expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
-  });
-
-  it("shows the test-connection label once, as the button", () => {
-    render(
-      <AccountCredentialsSectionView
-        heading="Credentials"
-        usernameLabel="Username"
-        usernameValue="debug"
-        onUsernameChange={() => {}}
-        passwordLabel="Password"
-        passwordValue=""
-        passwordPlaceholder="Enter password"
-        onPasswordChange={() => {}}
-        testConnectionLabel="Check Connection"
-        testingConnectionLabel="Testing..."
-        onTestConnection={() => {}}
-      />,
-    );
-
-    const matches = screen.getAllByText("Check Connection");
-    expect(matches).toHaveLength(1);
-    expect(matches[0]).toBe(screen.getByRole("button", { name: "Check Connection" }));
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("w-full", "h-11");
+    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("w-full", "h-11");
+    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("w-full", "h-11");
+    expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Copy Server URL",
+    ]);
   });
 
   it("uses a fixed desktop label column and flexible credential inputs", () => {
@@ -263,7 +363,6 @@ describe("AccountCredentialsSectionView", () => {
             },
             onSecretVisibilityChange: setSecretVisible,
             loadingMessage: "Checking…",
-            readErrorMessage: "Access metadata could not be read. Existing credentials will be kept unchanged.",
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
@@ -343,6 +442,53 @@ describe("AccountCredentialsSectionView", () => {
     expect(onEnabledChange).toHaveBeenCalledWith(false);
   });
 
+  it("says saved Access credentials will be removed once the switch is turned off", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Server"
+        usernameLabel="Username"
+        usernameValue="alice"
+        onUsernameChange={() => {}}
+        onUsernameBlur={() => {}}
+        passwordLabel="Password"
+        passwordValue="••••••••"
+        passwordPlaceholder="Enter new password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+        cloudflareAccess={{
+          status: "ready",
+          hasSavedSecret: true,
+          secretEditing: false,
+          secretVisible: false,
+          secretDescription: "",
+          secretSavedLabel: "Saved",
+          secretChangeLabel: "Change",
+          secretChangeAriaLabel: "Change saved Client Secret",
+          secretCancelLabel: "Cancel",
+          secretShowLabel: "Show new Secret",
+          secretHideLabel: "Hide new Secret",
+          onSecretEditingChange: () => {},
+          onSecretVisibilityChange: () => {},
+          loadingMessage: "Checking…",
+          unavailableMessage: "Manage Access in the desktop app.",
+          authorizationRequiredMessage: "Run the connection test to load Access settings.",
+          label: "Cloudflare Access",
+          description: "Add Access authentication",
+          enabled: false,
+          onEnabledChange: () => {},
+          clientId: { label: "Client ID", value: "saved-client-id", onChange: () => {}, onBlur: () => {} },
+          clientSecret: { label: "Client Secret", value: "", onChange: () => {}, onBlur: () => {} },
+          clientIdError: "Enter a Client ID",
+          clientSecretError: "Enter a Client Secret",
+          validationError: null,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("switch", { name: "Cloudflare Access" })).not.toBeChecked();
+    expect(screen.getByText("Saved Access credentials will be removed when you save.")).toBeVisible();
+  });
+
   it("keeps a required Secret draft cancelable and focuses its empty field after cancel", async () => {
     const user = userEvent.setup();
 
@@ -386,7 +532,6 @@ describe("AccountCredentialsSectionView", () => {
             },
             onSecretVisibilityChange: setSecretVisible,
             loadingMessage: "Checking…",
-            readErrorMessage: "Access metadata could not be read.",
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
@@ -469,8 +614,12 @@ describe("AccountCredentialsSectionView", () => {
               setAction(nextAction);
             },
             loadingMessage: "Checking…",
-            readErrorMessage:
-              "Cloudflare Access settings could not be read. Existing credentials will be kept unchanged.",
+            failureNotice: {
+              lines: ["Cloudflare Access settings could not be read. Existing credentials will be kept unchanged."],
+              retryLabel: "Try Again",
+              onRetry: () => {},
+              retryDisabled: false,
+            },
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",
@@ -540,7 +689,6 @@ describe("AccountCredentialsSectionView", () => {
               setAction(nextAction);
             },
             loadingMessage: "Checking…",
-            readErrorMessage: "Access metadata could not be read.",
             unavailableMessage: "Manage Access in the desktop app.",
             authorizationRequiredMessage: "Run the connection test to load Access settings.",
             label: "Cloudflare Access",

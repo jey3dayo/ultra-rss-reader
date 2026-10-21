@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { BookOpen, Palette, Settings, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
+import { AccountActionBar } from "@/components/settings/account-detail/account-action-bar";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import { AccountDetailView } from "@/components/settings/account-detail/view";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
@@ -229,8 +230,6 @@ export function SettingsWorkspaceCanvas() {
                         passwordLabel="Password"
                         passwordValue="••••••••"
                         passwordPlaceholder="Enter new password"
-                        testConnectionLabel="Test Connection"
-                        testingConnectionLabel="Testing…"
                         onServerUrlChange={() => {}}
                         onServerUrlBlur={() => {}}
                         onServerUrlCopy={() => {}}
@@ -239,7 +238,6 @@ export function SettingsWorkspaceCanvas() {
                         onPasswordChange={() => {}}
                         onPasswordFocus={() => {}}
                         onPasswordBlur={() => {}}
-                        onTestConnection={() => {}}
                       />
                     }
                     syncSection={{
@@ -286,6 +284,21 @@ export function SettingsWorkspaceCanvas() {
                       onExport: () => {},
                       onRequestDelete: () => {},
                     }}
+                    footer={
+                      <AccountActionBar
+                        hasUnsavedChanges={false}
+                        running={false}
+                        message="You have unsaved changes"
+                        discardLabel="Discard"
+                        saveAndTestLabel="Save & Test Connection"
+                        testConnectionLabel="Test Connection"
+                        testingLabel="Testing…"
+                        connectionVerified={false}
+                        connectionVerifiedLabel="Connection verified"
+                        onDiscard={() => {}}
+                        onTestConnection={() => {}}
+                      />
+                    }
                   />
                 }
               />

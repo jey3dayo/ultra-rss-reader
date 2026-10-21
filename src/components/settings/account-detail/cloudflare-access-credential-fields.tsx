@@ -1,12 +1,22 @@
+import { cn } from "cn";
 import { Eye, EyeOff } from "lucide-react";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { useId, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
 import { CloudflareAccessControl } from "@/components/settings/shared/cloudflare-access-control";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
-import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
+import {
+  SETTINGS_CHANGED_CONTROL_CLASS,
+  SETTINGS_CONTROL_SURFACE_CLASS,
+} from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow, LabeledInputRow, SurfaceCard } from "@/design-system";
 import type { CloudflareAccessDraftError, CloudflareAccessStatus } from "@/lib/account/cloudflare-access";
+import {
+  CredentialFailureNoticeBody,
+  CredentialFailureNoticeView,
+  type CredentialFailureNoticeViewModel,
+} from "./credential-failure-notice-view";
 
 export type AccountCredentialInputRow = {
   label: string;
@@ -18,10 +28,13 @@ export type AccountCredentialInputRow = {
   onFocus?: () => void;
   inputRef?: RefObject<HTMLInputElement | null>;
   errorText?: string;
+  changed?: boolean;
 };
 
 export type AccountCloudflareAccessSection = {
   status: CloudflareAccessStatus;
+  changedIndicator?: ReactNode;
+  changedFieldLabel?: string;
   hasSavedSecret: boolean;
   secretEditing: boolean;
   secretVisible: boolean;
@@ -37,7 +50,7 @@ export type AccountCloudflareAccessSection = {
   recoveryAction?: "replace" | "remove" | null;
   onRecoveryActionChange?: (action: "replace" | "remove") => void;
   loadingMessage: string;
-  readErrorMessage: string;
+  failureNotice?: CredentialFailureNoticeViewModel;
   unavailableMessage: string;
   authorizationRequiredMessage: string;
   label: string;
@@ -56,6 +69,16 @@ type CloudflareAccessCredentialFieldsProps = {
   disabled: boolean;
   labelClassName: string;
 };
+
+function changedInputClassName(changed: boolean | undefined): string {
+  return changed
+    ? cn("h-11", SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_CHANGED_CONTROL_CLASS)
+    : `h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`;
+}
+
+function changedLabelAccessory(changed: boolean | undefined, changedFieldLabel: string | undefined): ReactNode {
+  return changed === true && changedFieldLabel ? <ChangedFieldIndicator label={changedFieldLabel} /> : undefined;
+}
 
 function CloudflareAccessRecoveryActions({
   section,
@@ -105,7 +128,7 @@ function CloudflareAccessRecoveryCard({
 
   return (
     <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
-      <p className="text-sm leading-[1.5]">{section.readErrorMessage}</p>
+      {section.failureNotice && <CredentialFailureNoticeBody notice={section.failureNotice} />}
       {section.onRecoveryActionChange && (
         <div className="mt-3 flex flex-wrap gap-2">
           <CloudflareAccessRecoveryActions section={section} disabled={disabled} />
@@ -131,6 +154,7 @@ function CloudflareAccessAuthorizationRequired({
         mode="detail"
         label={section.label}
         description={section.description}
+        labelIndicator={section.changedIndicator}
         trailing={<CloudflareAccessRecoveryActions section={section} disabled={disabled} />}
         disabled={disabled}
         labelClassName={labelClassName}
@@ -177,7 +201,8 @@ function CloudflareAccessSecretEditor({
         placeholder={clientSecret.placeholder}
         ariaDescribedBy={section.hasSavedSecret ? descriptionId : undefined}
         labelClassName={labelClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={changedInputClassName(clientSecret.changed)}
+        labelAccessory={changedLabelAccessory(clientSecret.changed, section.changedFieldLabel)}
         disabled={disabled}
         errorText={requiresReplacement ? section.clientSecretError : undefined}
         actionLabel={section.secretVisible ? section.secretHideLabel : section.secretShowLabel}
@@ -293,7 +318,8 @@ function CloudflareAccessInputRows({ section, disabled, labelClassName }: Cloudf
         onBlur={!disabled ? clientId.onBlur : undefined}
         placeholder={clientId.placeholder}
         labelClassName={labelClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={changedInputClassName(clientId.changed)}
+        labelAccessory={changedLabelAccessory(clientId.changed, section.changedFieldLabel)}
         disabled={disabled}
         errorText={validationError === "client_id_required" ? section.clientIdError : undefined}
       />
@@ -325,6 +351,7 @@ export function CloudflareAccessCredentialFields({
   disabled,
   labelClassName,
 }: CloudflareAccessCredentialFieldsProps) {
+  const { t } = useTranslation("settings");
   const { status } = section;
 
   if (status === "loading") {
@@ -356,15 +383,20 @@ export function CloudflareAccessCredentialFields({
           mode="detail"
           label={section.label}
           description={section.description}
+          labelIndicator={section.changedIndicator}
           checked={section.enabled}
           onChange={section.onEnabledChange}
           disabled={disabled}
           labelClassName={labelClassName}
         />
       )}
+      {status === "ready" && !section.enabled && section.hasSavedSecret && (
+        <p className="text-sm leading-[1.5] text-foreground-soft">{t("account.cloudflare_access_remove_on_save")}</p>
+      )}
       {showInputRows && (
         <CloudflareAccessInputRows section={section} disabled={disabled} labelClassName={labelClassName} />
       )}
+      {status !== "error" && section.failureNotice && <CredentialFailureNoticeView notice={section.failureNotice} />}
     </>
   );
 }

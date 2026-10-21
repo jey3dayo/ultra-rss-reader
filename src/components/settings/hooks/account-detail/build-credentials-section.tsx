@@ -2,7 +2,10 @@ import type { TFunction } from "i18next";
 import type { ReactNode } from "react";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
+import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
+import type { CredentialStoreKind } from "@/lib/account/credential-failure";
 import { isFreshRssAccount } from "./account-kind";
+import { buildCredentialFailureNotice } from "./build-credential-failure-notice";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";
 
 type BuildCredentialsSectionParams = {
@@ -13,6 +16,7 @@ type BuildCredentialsSectionParams = {
   isSetupFailed: boolean;
   isSetupActive: boolean;
   isQuarantined: boolean;
+  credentialStoreKind: CredentialStoreKind;
 };
 
 export function buildCredentialsSection({
@@ -22,14 +26,30 @@ export function buildCredentialsSection({
   isSetupSyncing,
   isSetupFailed,
   isQuarantined,
+  credentialStoreKind,
 }: BuildCredentialsSectionParams): ReactNode {
   if (!isFreshRssAccount(account)) {
     return undefined;
   }
 
   const cloudflareAccessError = controller.cloudflareAccessValidationError;
-  const connectionTestSucceeded =
-    controller.connectionTestSucceeded && !controller.dirtyState.dirty && !controller.testingConnection;
+  const failure = controller.credentialFailure;
+  const passwordFailure = failure?.target === "password" ? failure : null;
+  const cloudflareAccessFailure =
+    failure?.target === "cloudflare_access"
+      ? failure
+      : (controller.cloudflareAccessLoadFailure ??
+        (controller.cloudflareAccessStatus === "error"
+          ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
+          : null));
+  const passwordFailureNotice =
+    passwordFailure === null
+      ? undefined
+      : buildCredentialFailureNotice(passwordFailure, credentialStoreKind, t, controller);
+  const cloudflareAccessFailureNotice =
+    cloudflareAccessFailure === null
+      ? undefined
+      : buildCredentialFailureNotice(cloudflareAccessFailure, credentialStoreKind, t, controller);
 
   return (
     <AccountCredentialsSectionView
@@ -59,11 +79,17 @@ export function buildCredentialsSection({
       passwordLabel={t("account.password")}
       passwordValue={controller.passwordDisplayValue}
       passwordPlaceholder={t("account.password_placeholder")}
+      passwordFailureNotice={passwordFailureNotice}
       onPasswordChange={controller.setCredPassword}
       onPasswordFocus={controller.onPasswordFocus}
       onPasswordBlur={controller.onPasswordBlur}
+      changedFields={controller.changedFields}
+      changedFieldLabel={t("dirty_state.field_changed")}
       cloudflareAccess={{
         status: controller.cloudflareAccessStatus,
+        changedIndicator: controller.changedFields.cloudflareAccess ? (
+          <ChangedFieldIndicator label={t("dirty_state.field_changed")} />
+        ) : undefined,
         hasSavedSecret: controller.cloudflareAccessHasSavedSecret,
         secretEditing: controller.cloudflareAccessSecretEditing,
         secretVisible: controller.cloudflareAccessSecretVisible,
@@ -79,41 +105,32 @@ export function buildCredentialsSection({
         recoveryAction: controller.cloudflareAccessRecoveryAction,
         onRecoveryActionChange: controller.setCloudflareAccessRecoveryAction,
         loadingMessage: t("account.cloudflare_access_loading"),
-        readErrorMessage: t("account.cloudflare_access_read_failed"),
+        failureNotice: cloudflareAccessFailureNotice,
         unavailableMessage: t("account.cloudflare_access_unavailable"),
         authorizationRequiredMessage: t("account.cloudflare_access_authorization_required"),
         label: t("account.cloudflare_access"),
         description: t("account.cloudflare_access_description"),
         enabled: controller.cloudflareAccessEnabled,
         onEnabledChange: controller.setCloudflareAccessEnabled,
+        changedFieldLabel: t("dirty_state.field_changed"),
         clientId: {
           label: t("account.cloudflare_access_client_id"),
           value: controller.cloudflareAccessClientId,
           placeholder: t("account.cloudflare_access_client_id_placeholder"),
           onChange: controller.setCloudflareAccessClientId,
+          changed: controller.changedFields.cloudflareAccessClientId,
         },
         clientSecret: {
           label: t("account.cloudflare_access_secret"),
           value: controller.cloudflareAccessSecret,
           placeholder: t("account.cloudflare_access_secret_placeholder"),
           onChange: controller.setCloudflareAccessSecret,
+          changed: controller.changedFields.cloudflareAccessSecret,
         },
         clientIdError: t("account.error_cloudflare_access_client_id_required"),
         clientSecretError: t("account.error_cloudflare_access_secret_required"),
         validationError: cloudflareAccessError,
       }}
-      testConnectionLabel={
-        isSetupSyncing || isQuarantined
-          ? undefined
-          : controller.dirtyState.dirty
-            ? t("account.save_and_test_connection")
-            : t("account.test_connection")
-      }
-      testingConnectionLabel={isSetupSyncing || isQuarantined ? undefined : t("account.testing_connection")}
-      connectionTestSucceeded={connectionTestSucceeded}
-      testConnectionSuccessLabel={t("account.test_connection_succeeded")}
-      onTestConnection={isSetupSyncing || isQuarantined ? undefined : controller.handleTestConnection}
-      isTestingConnection={controller.testingConnection}
     />
   );
 }

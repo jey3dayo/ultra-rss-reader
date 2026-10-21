@@ -16,7 +16,9 @@ fn sqlite_errors_map_to_persistence_and_user_visible_app_errors() {
         AppError::UserVisible { message } => {
             assert_eq!(message, "Persistence error: Query returned no rows");
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("sqlite persistence errors must not become retryable: {message}");
         }
     }
@@ -51,7 +53,9 @@ fn provider_boundary_errors_keep_internal_kind_and_user_visible_messages() {
             AppError::UserVisible { message } => {
                 assert_eq!(message, expected_message);
             }
-            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+            AppError::Retryable { message }
+            | AppError::RetryableWithMetadata { message, .. }
+            | AppError::CredentialStore { message, .. } => {
                 panic!("provider boundary errors must not become retryable: {message}");
             }
         }
@@ -139,14 +143,22 @@ fn provider_boundary_errors_keep_category_and_recovery_surface() {
                 AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. },
                 true,
             ) => assert_eq!(message, expected_message),
-            (AppError::UserVisible { message }, false) => assert_eq!(message, expected_message),
+            (
+                AppError::UserVisible { message } | AppError::CredentialStore { message, .. },
+                false,
+            ) => {
+                assert_eq!(message, expected_message)
+            }
             (
                 AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. },
                 false,
             ) => {
                 panic!("provider boundary error became unexpectedly retryable: {message}");
             }
-            (AppError::UserVisible { message }, true) => {
+            (
+                AppError::UserVisible { message } | AppError::CredentialStore { message, .. },
+                true,
+            ) => {
                 panic!("provider boundary error stopped being retryable: {message}");
             }
         }

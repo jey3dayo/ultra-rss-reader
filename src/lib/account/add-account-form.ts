@@ -231,6 +231,18 @@ export function buildAddAccountPayload(
   });
 }
 
+export function isAddAccountFormDirty(state: AddAccountFormState): boolean {
+  const dirtyFields = [
+    state.name,
+    state.serverUrl,
+    state.username,
+    state.password,
+    state.cloudflareAccessClientId,
+    state.cloudflareAccessClientSecret,
+  ];
+  return dirtyFields.some((value) => value.trim().length > 0) || state.cloudflareAccessEnabled;
+}
+
 export function isAddAccountFormSubmittable(input: AddAccountFormInput): boolean {
   return Result.isSuccess(buildAddAccountPayload(input));
 }

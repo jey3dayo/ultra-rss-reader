@@ -24,10 +24,25 @@ const appErrorMessageSchema = v.pipe(
   ),
 );
 
+const CREDENTIAL_FAILURE_TARGETS = ["password", "cloudflare_access"] as const;
+const CREDENTIAL_FAILURE_CAUSES = ["read_failed", "write_failed", "canceled", "not_allowed", "unverified"] as const;
+
+const CredentialFailureSchema = s.strictObject({
+  target: v.picklist(CREDENTIAL_FAILURE_TARGETS),
+  cause: v.picklist(CREDENTIAL_FAILURE_CAUSES),
+});
+
 export const AppErrorSchema = v.variant("type", [
-  unwrapStrictObjectSchema(s.strictObject({ type: v.literal("UserVisible"), message: appErrorMessageSchema })),
+  unwrapStrictObjectSchema(
+    s.strictObject({
+      type: v.literal("UserVisible"),
+      message: appErrorMessageSchema,
+      credential_failure: v.optional(CredentialFailureSchema),
+    }),
+  ),
   unwrapStrictObjectSchema(s.strictObject({ type: v.literal("Retryable"), message: appErrorMessageSchema })),
   unwrapStrictObjectSchema(s.strictObject({ type: v.literal("Diagnostics"), message: appErrorMessageSchema })),
 ]);
 
 export type AppError = v.InferOutput<typeof AppErrorSchema>;
+export type CredentialFailure = v.InferOutput<typeof CredentialFailureSchema>;

@@ -1,5 +1,6 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useCredentialStoreKind } from "@/components/settings/hooks/use-credential-store-kind";
 import { GradientSwitch, LabeledControlRow, SettingsInfoPopover } from "@/design-system";
 
 type CloudflareAccessControlSlotProps =
@@ -20,6 +21,7 @@ type CloudflareAccessControlProps = CloudflareAccessControlSlotProps & {
   disabled?: boolean;
   labelClassName?: string;
   mode: "add" | "detail";
+  labelIndicator?: ReactNode;
 };
 
 export function CloudflareAccessControl({
@@ -31,8 +33,22 @@ export function CloudflareAccessControl({
   disabled,
   labelClassName,
   mode,
+  labelIndicator,
 }: CloudflareAccessControlProps) {
   const { t } = useTranslation("settings");
+  const storeKind = useCredentialStoreKind();
+  const popover = (
+    <SettingsInfoPopover
+      title={label}
+      content={
+        <div className="space-y-2">
+          <p>{t(`account.credential_store_help.${storeKind}`)}</p>
+          <p>{t(mode === "add" ? "account.cloudflare_access_add_details" : "account.cloudflare_access_details")}</p>
+        </div>
+      }
+      ariaLabel={t("account.cloudflare_access_info")}
+    />
+  );
 
   return (
     <LabeledControlRow
@@ -40,11 +56,14 @@ export function CloudflareAccessControl({
       description={description}
       labelClassName={labelClassName}
       labelAccessory={
-        <SettingsInfoPopover
-          title={label}
-          content={t(mode === "add" ? "account.cloudflare_access_add_details" : "account.cloudflare_access_details")}
-          ariaLabel={t("account.cloudflare_access_info")}
-        />
+        labelIndicator !== undefined ? (
+          <span className="inline-flex items-center gap-1.5">
+            {popover}
+            {labelIndicator}
+          </span>
+        ) : (
+          popover
+        )
       }
     >
       {({ descriptionId }) =>

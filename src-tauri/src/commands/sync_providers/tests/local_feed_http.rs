@@ -237,7 +237,9 @@ async fn sync_local_feed_returns_post_write_integrity_error() {
         AppError::UserVisible { message } => {
             assert!(message.contains("no such table: preferences"));
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("post-write DB failures should not be retryable: {message}");
         }
     }
@@ -306,7 +308,9 @@ async fn sync_local_feed_rolls_back_articles_when_sync_state_save_fails() {
         AppError::UserVisible { message } => {
             assert!(message.contains("forced sync_state failure"));
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("sync_state DB failures should not be retryable: {message}");
         }
     }

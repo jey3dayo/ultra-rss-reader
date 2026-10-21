@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
+import { useRegisterSettingsDirtyState } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import {
   type AddAccountPayload,
   type AddAccountProviderKind,
@@ -10,6 +11,7 @@ import {
   addAccountFormReducer,
   formatAddAccountValidationError,
   getAddAccountFormConfig,
+  isAddAccountFormDirty,
   isAddAccountFormSubmittable,
   matchAddAccountPayload,
 } from "@/lib/account/add-account-form";
@@ -195,6 +197,13 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
   const submitRequestIdRef = useRef(0);
   const formRef = useRef(form);
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
+
+  useRegisterSettingsDirtyState({
+    owner: "add-account",
+    dirty: isAddAccountFormDirty(form),
+    pending: false,
+    blockingReason: isAddAccountFormDirty(form) ? "add-account-form-dirty" : null,
+  });
 
   const serviceDef = findServiceDefinition(kind);
 

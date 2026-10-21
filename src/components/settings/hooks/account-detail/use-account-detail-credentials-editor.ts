@@ -1,36 +1,29 @@
 import { Result } from "@praha/byethrow";
 import { type RefObject, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
-import { copyToClipboard, updateAccountCredentials } from "@/api/tauri-commands";
+import { copyToClipboard } from "@/api/tauri-commands";
 import {
   type CloudflareAccessDraftError,
   type CloudflareAccessStatus,
   deriveCloudflareAccessDraftState,
 } from "@/lib/account/cloudflare-access";
+import type { CredentialFailureNotice } from "@/lib/account/credential-failure";
 import { focusFirstInput } from "@/lib/dom/input-focus";
-import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
-import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
-import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { SettingsDirtyStateEntry } from "../settings-dirty-state-registry";
 import { useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
 import { runAccountConnectionVerification } from "./account-detail-connection-verification";
+import { createCredentialDraftCommitter } from "./account-detail-credential-draft-commit";
+import { accountDetailCredentialsEditorReducer } from "./account-detail-credentials-editor-reducer";
 import {
   type AccountDetailCredentialsEditorParams,
-  accountDetailCredentialsEditorReducer,
   accountMayHaveSavedPassword,
+  type CredentialChangedFields,
   type CredentialCommitOutcome,
-  type CredentialDraftValues,
-  type CredentialSaveSuccessToastKey,
   createInitialAccountDetailCredentialsEditorState,
-  getCloudflareAccessDraftSnapshot,
-  getCredentialDraftSnapshot,
-  isCloudflareAccessMetadataUnavailable,
   isCurrentSuccessfulConnectionTest,
   MASKED_PASSWORD_VALUE,
-  resolveCredentialDraftValues,
-  resolveCredentialSaveFailureMessage,
-  resolveCredentialSaveValidationErrorKey,
+  resolveCredentialChangedFields,
   type SuccessfulConnectionTest,
 } from "./account-detail-credentials-editor-state";
 import { useAccountDetailCloudflareAccessLoader } from "./use-account-detail-cloudflare-access-loader";
@@ -49,9 +42,12 @@ export type AccountDetailCredentialsEditorResult = {
   cloudflareAccessSecretEditing: boolean;
   cloudflareAccessSecretVisible: boolean;
   cloudflareAccessValidationError: CloudflareAccessDraftError | null;
+  credentialFailure: CredentialFailureNotice | null;
+  cloudflareAccessLoadFailure: CredentialFailureNotice | null;
   testingConnection: boolean;
   connectionTestSucceeded: boolean;
   dirtyState: SettingsDirtyStateEntry;
+  changedFields: CredentialChangedFields;
   serverUrlInputRef: RefObject<HTMLInputElement | null>;
   usernameInputRef: RefObject<HTMLInputElement | null>;
   setCredServerUrl: (value: string | null) => void;
@@ -63,8 +59,10 @@ export type AccountDetailCredentialsEditorResult = {
   setCloudflareAccessSecret: (value: string) => void;
   setCloudflareAccessSecretEditing: (value: boolean) => void;
   setCloudflareAccessSecretVisible: (value: boolean) => void;
+  retryCloudflareAccessLoad: () => void;
   commitCredentials: () => Promise<boolean>;
-  handleTestConnection: () => Promise<void>;
+  handleTestConnection: () => Promise<boolean>;
+  discardCredentialDrafts: () => void;
   handleCopyServerUrl: () => Promise<void>;
   onPasswordFocus: () => void;
   onPasswordBlur: () => void;
@@ -95,8 +93,9 @@ export function useAccountDetailCredentialsEditor({
   const mountedRef = useRef(true);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
-  const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
+  const showCredentialSaveError = createAccountDetailErrorToast(t, "account.credential_save_failed");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
+  const showSavedConnectionError = createAccountDetailErrorToast(t, "account.saved_connection_unconfirmed");
   const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed");
   const savedPasswordPresence = accountMayHaveSavedPassword(account);
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
@@ -116,9 +115,20 @@ export function useAccountDetailCredentialsEditor({
     savedOrigin: state.savedCloudflareAccessOrigin,
     serverUrl: currentServerUrl,
   });
-  const credentialsDirty =
-    credServerUrl !== null || credUsername !== null || (credPassword !== null && credPassword !== "");
-  const credentialsOrAccessDirty = credentialsDirty || cloudflareAccessDirty;
+  const changedFields = resolveCredentialChangedFields(
+    account,
+    credServerUrl,
+    credUsername,
+    credPassword,
+    cloudflareAccessDirty,
+    {
+      clientId: state.cloudflareAccessClientId,
+      clientSecret: state.cloudflareAccessSecret,
+      savedClientId: state.savedCloudflareAccessClientId,
+    },
+  );
+  const credentialsOrAccessDirty =
+    changedFields.serverUrl || changedFields.username || changedFields.password || changedFields.cloudflareAccess;
   const dirtyState: SettingsDirtyStateEntry = {
     owner: "account",
     dirty: credentialsOrAccessDirty,
@@ -144,7 +154,6 @@ export function useAccountDetailCredentialsEditor({
     activeAccountIdRef.current = account.id;
     draftRevisionRef.current = state.draftRevision;
   });
-  useRegisterSettingsDirtyState(dirtyState);
 
   useEffect(() => {
     dispatch({
@@ -153,7 +162,12 @@ export function useAccountDetailCredentialsEditor({
     });
   }, [savedPasswordPresence]);
 
-  useAccountDetailCloudflareAccessLoader({ account, dispatch, cloudflareAccessRequestIdRef, activeAccountIdRef });
+  const retryCloudflareAccessLoad = useAccountDetailCloudflareAccessLoader({
+    account,
+    dispatch,
+    cloudflareAccessRequestIdRef,
+    activeAccountIdRef,
+  });
 
   useEffect(() => {
     mountedRef.current = true;
@@ -177,201 +191,44 @@ export function useAccountDetailCredentialsEditor({
       queryClient,
       dispatch,
       showConnectionError,
+      showSavedConnectionError,
       isStaleVerificationRequest,
       requestAccountId,
       requestDraftRevision,
       verifiedAccountBase,
     });
 
-  const commitCredentialDraft = async (
-    successToastKey: CredentialSaveSuccessToastKey | null,
-  ): Promise<CredentialCommitOutcome> => {
-    if (pendingCredentialSaveRef.current) {
-      if (state.draftRevision === pendingCredentialSaveRevisionRef.current) {
-        return pendingCredentialSaveRef.current;
-      }
-      const queuedAccountId = account.id;
-      const queuedDraftRevision = state.draftRevision;
-      return pendingCredentialSaveRef.current.then(() => {
-        if (
-          !mountedRef.current ||
-          activeAccountIdRef.current !== queuedAccountId ||
-          draftRevisionRef.current !== queuedDraftRevision
-        ) {
-          return { saved: false, updatedAccount: null };
-        }
-        return commitCredentialDraft(successToastKey);
-      });
-    }
+  const commitCredentialDraft = createCredentialDraftCommitter({
+    account,
+    queryClient,
+    t,
+    state,
+    dispatch,
+    credServerUrl,
+    credUsername,
+    credPassword,
+    cloudflareAccessValidationError,
+    cloudflareAccessUpdate,
+    cloudflareAccessDirty,
+    showCredentialSaveError,
+    pendingCredentialSaveRef,
+    pendingCredentialSaveRevisionRef,
+    cloudflareAccessRequestIdRef,
+    activeAccountIdRef,
+    draftRevisionRef,
+    mountedRef,
+  });
 
-    const draftRevision = state.draftRevision;
-    const credentialDraft = getCredentialDraftSnapshot(state);
-    const cloudflareAccessDraft = getCloudflareAccessDraftSnapshot(state);
-
-    const isSaveContextCurrent = (): boolean =>
-      mountedRef.current && activeAccountIdRef.current === account.id && draftRevisionRef.current === draftRevision;
-    const isSaveAccountCurrent = (): boolean => mountedRef.current && activeAccountIdRef.current === account.id;
-
-    const showCredentialSaveValidationError = (
-      credentialValues: CredentialDraftValues,
-    ): CredentialCommitOutcome | null => {
-      const validationErrorKey = resolveCredentialSaveValidationErrorKey({
-        serverUrl: credentialValues.serverUrl,
-        username: credentialValues.username,
-        cloudflareAccessValidationError,
-        accessMetadataUnavailable: isCloudflareAccessMetadataUnavailable(state.cloudflareAccessStatus),
-        cloudflareAccessUpdate,
-        serverUrlChanged: credentialValues.serverUrlChanged,
-        accountServerUrl: account.server_url,
-      });
-      if (validationErrorKey === null) {
-        return null;
-      }
-      useUiStore.getState().showToast(t(validationErrorKey));
-      return { saved: false, updatedAccount: null };
-    };
-
-    const runCredentialSaveRequest = async (
-      credentialValues: CredentialDraftValues,
-      accessOperationPending: boolean,
-    ): Promise<Awaited<ReturnType<typeof updateAccountCredentials>> | null> => {
-      const accessUpdateForRequest = cloudflareAccessUpdate?.action === "keep" ? undefined : cloudflareAccessUpdate;
-      try {
-        if (accessUpdateForRequest === undefined) {
-          return await updateAccountCredentials(
-            account.id,
-            credentialValues.serverUrl,
-            credentialValues.username,
-            credentialValues.password,
-          );
-        }
-        return await updateAccountCredentials(
-          account.id,
-          credentialValues.serverUrl,
-          credentialValues.username,
-          credentialValues.password,
-          accessUpdateForRequest,
-        );
-      } catch (error) {
-        if (!isSaveContextCurrent()) {
-          return null;
-        }
-        showCredentialSaveError({
-          message: accessOperationPending ? t("account.cloudflare_access_save_failed") : getErrorMessage(error),
-        });
-        return null;
-      }
-    };
-
-    const resolveCredentialSaveFailure = (
-      saveResult: Awaited<ReturnType<typeof updateAccountCredentials>>,
-      accessOperationPending: boolean,
-    ): CredentialCommitOutcome | null => {
-      if (!isSaveAccountCurrent()) {
-        return { saved: false, updatedAccount: null };
-      }
-      if (!Result.isFailure(saveResult)) {
-        return null;
-      }
-      if (draftRevisionRef.current !== draftRevision) {
-        return { saved: false, updatedAccount: null };
-      }
-      showCredentialSaveError({
-        message: resolveCredentialSaveFailureMessage(Result.unwrapError(saveResult), accessOperationPending, t),
-      });
-      return { saved: false, updatedAccount: null };
-    };
-
-    const applyCredentialSaveSuccess = (
-      updated: AccountDetailCredentialsEditorParams["account"],
-      credentialValues: CredentialDraftValues,
-    ): CredentialCommitOutcome => {
-      if (cloudflareAccessUpdate !== undefined && cloudflareAccessUpdate.action !== "keep") {
-        cloudflareAccessRequestIdRef.current += 1;
-        dispatch({
-          type: "record-saved-cloudflare-access",
-          clientId: cloudflareAccessUpdate.action === "replace" ? cloudflareAccessUpdate.clientId : null,
-          serverUrl: credentialValues.serverUrl ?? account.server_url ?? "",
-          draft: cloudflareAccessDraft,
-        });
-      }
-      updateCachedAccount(queryClient, updated);
-      invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
-      dispatch({
-        type: "clear-credential-drafts",
-        passwordWasSaved: credentialValues.passwordChanged,
-        draft: credentialDraft,
-        cloudflareAccessDraft,
-      });
-      if (successToastKey !== null && draftRevisionRef.current === draftRevision) {
-        useUiStore.getState().showToast(t(successToastKey));
-      }
-      return { saved: true, updatedAccount: updated };
-    };
-
-    const runCredentialSave = async (): Promise<CredentialCommitOutcome> => {
-      const credentialValues = resolveCredentialDraftValues(account, credServerUrl, credUsername, credPassword);
-
-      if (!isSaveContextCurrent()) {
-        return { saved: false, updatedAccount: null };
-      }
-
-      const validationOutcome = showCredentialSaveValidationError(credentialValues);
-      if (validationOutcome !== null) {
-        return validationOutcome;
-      }
-
-      if (
-        !credentialValues.serverUrlChanged &&
-        !credentialValues.usernameChanged &&
-        !credentialValues.passwordChanged &&
-        !cloudflareAccessDirty
-      ) {
-        dispatch({
-          type: "clear-credential-drafts",
-          passwordWasSaved: false,
-          draft: credentialDraft,
-          cloudflareAccessDraft,
-        });
-        return { saved: true, updatedAccount: null };
-      }
-
-      const accessOperationPending =
-        cloudflareAccessUpdate?.action === "replace" || cloudflareAccessUpdate?.action === "remove";
-      const saveResult = await runCredentialSaveRequest(credentialValues, accessOperationPending);
-      if (saveResult === null) {
-        return { saved: false, updatedAccount: null };
-      }
-
-      const failureOutcome = resolveCredentialSaveFailure(saveResult, accessOperationPending);
-      if (failureOutcome !== null) {
-        return failureOutcome;
-      }
-
-      return applyCredentialSaveSuccess(Result.unwrap(saveResult), credentialValues);
-    };
-
-    const saveTask = runCredentialSave();
-
-    pendingCredentialSaveRevisionRef.current = draftRevision;
-    dispatch({ type: "set-credential-save-pending", value: true });
-    pendingCredentialSaveRef.current = saveTask.finally(() => {
-      pendingCredentialSaveRef.current = null;
-      pendingCredentialSaveRevisionRef.current = null;
-      dispatch({ type: "set-credential-save-pending", value: false });
-    });
-
-    return saveTask;
-  };
+  const discardCredentialDrafts = () => dispatch({ type: "discard-credential-drafts" });
 
   const commitCredentials = async (): Promise<boolean> => {
     const outcome = await commitCredentialDraft("account.credentials_saved");
     return outcome.saved;
   };
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = async (): Promise<boolean> => {
     if (pendingConnectionTestRef.current) {
-      return;
+      return false;
     }
 
     setSuccessfulConnectionTest(null);
@@ -383,14 +240,14 @@ export function useAccountDetailCredentialsEditor({
     try {
       const credentialCommit = await commitCredentialDraft(null);
       if (!credentialCommit.saved) {
-        return;
+        return false;
       }
       if (
         !mountedRef.current ||
         activeAccountIdRef.current !== requestAccountId ||
         draftRevisionRef.current !== requestDraftRevision
       ) {
-        return;
+        return false;
       }
 
       const verified = await runConnectionVerification(
@@ -399,7 +256,7 @@ export function useAccountDetailCredentialsEditor({
         credentialCommit.updatedAccount ?? undefined,
       );
       if (!verified || connectionTestAccountGenerationRef.current !== requestAccountGeneration) {
-        return;
+        return false;
       }
 
       setSuccessfulConnectionTest({
@@ -408,11 +265,17 @@ export function useAccountDetailCredentialsEditor({
         draftRevision: requestDraftRevision,
       });
       useUiStore.getState().showToast(t("account.connection_success"));
+      return true;
     } finally {
       pendingConnectionTestRef.current = false;
       dispatch({ type: "set-testing-connection", value: false });
     }
   };
+
+  useRegisterSettingsDirtyState(dirtyState, {
+    save: handleTestConnection,
+    discard: discardCredentialDrafts,
+  });
 
   const handleCopyServerUrl = async () => {
     const value = (credServerUrl ?? account.server_url ?? "").trim();
@@ -467,9 +330,12 @@ export function useAccountDetailCredentialsEditor({
     cloudflareAccessSecretEditing: state.cloudflareAccessSecretEditing,
     cloudflareAccessSecretVisible: state.cloudflareAccessSecretVisible,
     cloudflareAccessValidationError,
+    credentialFailure: state.credentialFailure,
+    cloudflareAccessLoadFailure: state.cloudflareAccessLoadFailure,
     testingConnection,
     connectionTestSucceeded,
     dirtyState,
+    changedFields,
     serverUrlInputRef,
     usernameInputRef,
     setCredServerUrl: (value) => dispatch({ type: "set-cred-server-url", value }),
@@ -481,8 +347,10 @@ export function useAccountDetailCredentialsEditor({
     setCloudflareAccessSecret: (value) => dispatch({ type: "set-cloudflare-access-secret", value }),
     setCloudflareAccessSecretEditing: (value) => dispatch({ type: "set-cloudflare-access-secret-editing", value }),
     setCloudflareAccessSecretVisible: (value) => dispatch({ type: "set-cloudflare-access-secret-visible", value }),
+    retryCloudflareAccessLoad,
     commitCredentials,
     handleTestConnection,
+    discardCredentialDrafts,
     handleCopyServerUrl,
     onPasswordFocus,
     onPasswordBlur,

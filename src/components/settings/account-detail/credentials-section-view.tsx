@@ -1,13 +1,32 @@
+import { cn } from "cn";
 import { Copy } from "lucide-react";
-import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
+import type { ReactNode } from "react";
+import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
-import { LabeledControlRow, LabeledInputRow } from "@/design-system";
+import {
+  SETTINGS_CHANGED_CONTROL_CLASS,
+  SETTINGS_CONTROL_SURFACE_CLASS,
+} from "@/components/settings/shared/settings-surface";
+import { LabeledInputRow } from "@/design-system";
 import type { AccountCloudflareAccessSection, AccountCredentialInputRow } from "./cloudflare-access-credential-fields";
 import { CloudflareAccessCredentialFields } from "./cloudflare-access-credential-fields";
+import { CredentialFailureNoticeView, type CredentialFailureNoticeViewModel } from "./credential-failure-notice-view";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
-const CONTROL_RAIL_CLASS = "w-full sm:max-w-[30rem]";
+
+function inputClassFor(changed: boolean): string {
+  return cn("h-11", SETTINGS_CONTROL_SURFACE_CLASS, changed && SETTINGS_CHANGED_CONTROL_CLASS);
+}
+
+type ChangedFieldState = {
+  serverUrl: boolean;
+  username: boolean;
+  password: boolean;
+};
+
+function indicatorFor(changed: boolean, changedFieldLabel: string | undefined): ReactNode {
+  return changed && changedFieldLabel ? <ChangedFieldIndicator label={changedFieldLabel} /> : undefined;
+}
 
 type AccountCredentialsSectionViewProps = {
   heading: string;
@@ -30,16 +49,13 @@ type AccountCredentialsSectionViewProps = {
   passwordLabel: string;
   passwordValue: string;
   passwordPlaceholder: string;
+  passwordFailureNotice?: CredentialFailureNoticeViewModel;
   onPasswordChange: (value: string) => void;
   onPasswordFocus?: () => void;
   onPasswordBlur?: () => void;
-  testConnectionLabel?: string;
-  testingConnectionLabel?: string;
-  onTestConnection?: () => void;
-  isTestingConnection?: boolean;
-  connectionTestSucceeded?: boolean;
-  testConnectionSuccessLabel?: string;
   extraRows?: AccountCredentialInputRow[];
+  changedFields?: ChangedFieldState;
+  changedFieldLabel?: string;
   cloudflareAccess?: AccountCloudflareAccessSection;
 };
 
@@ -64,20 +80,21 @@ export function AccountCredentialsSectionView({
   passwordLabel,
   passwordValue,
   passwordPlaceholder,
+  passwordFailureNotice,
   onPasswordChange,
   onPasswordFocus,
   onPasswordBlur,
-  testConnectionLabel,
-  testingConnectionLabel,
-  onTestConnection,
-  isTestingConnection,
-  connectionTestSucceeded,
-  testConnectionSuccessLabel,
   extraRows,
+  changedFields,
+  changedFieldLabel,
   cloudflareAccess,
 }: AccountCredentialsSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
   const resolvedExtraRows = extraRows ?? EMPTY_EXTRA_ROWS;
+  const changed = changedFields ?? { serverUrl: false, username: false, password: false };
+
+  const inputClass = (field: keyof ChangedFieldState) => inputClassFor(changed[field]);
+  const accessory = (field: keyof ChangedFieldState) => indicatorFor(changed[field], changedFieldLabel);
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
@@ -92,7 +109,8 @@ export function AccountCredentialsSectionView({
           onChange={onServerUrlChange}
           onBlur={!disabled ? onServerUrlBlur : undefined}
           labelClassName={labelColumnClassName}
-          inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+          inputClassName={inputClass("serverUrl")}
+          labelAccessory={accessory("serverUrl")}
           errorText={serverUrlErrorText}
           actionLabel={serverUrlCopyLabel}
           actionAriaLabel={serverUrlCopyLabel}
@@ -129,7 +147,8 @@ export function AccountCredentialsSectionView({
         onChange={onUsernameChange}
         onBlur={!disabled ? onUsernameBlur : undefined}
         labelClassName={labelColumnClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={inputClass("username")}
+        labelAccessory={accessory("username")}
         disabled={disabled}
       />
       <LabeledInputRow
@@ -141,32 +160,17 @@ export function AccountCredentialsSectionView({
         onBlur={!disabled ? onPasswordBlur : undefined}
         placeholder={passwordPlaceholder}
         labelClassName={labelColumnClassName}
-        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
+        inputClassName={inputClass("password")}
+        labelAccessory={accessory("password")}
         disabled={disabled}
       />
+      {passwordFailureNotice && <CredentialFailureNoticeView notice={passwordFailureNotice} />}
       {cloudflareAccess && (
         <CloudflareAccessCredentialFields
           section={cloudflareAccess}
           disabled={disabled}
           labelClassName={labelColumnClassName}
         />
-      )}
-      {onTestConnection && (
-        <LabeledControlRow label="" labelClassName={labelColumnClassName}>
-          <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
-            <SettingsLoadingActionButton
-              size="standalone"
-              onClick={onTestConnection}
-              loading={isTestingConnection}
-              loadingLabel={testingConnectionLabel}
-              success={connectionTestSucceeded}
-              successLabel={testConnectionSuccessLabel}
-              disabled={disabled}
-            >
-              {testConnectionLabel}
-            </SettingsLoadingActionButton>
-          </div>
-        </LabeledControlRow>
       )}
     </SettingsSection>
   );

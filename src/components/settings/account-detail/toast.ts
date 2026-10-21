@@ -9,7 +9,9 @@ type AccountDetailError = UiDisplayState;
 type AccountDetailErrorToastKey =
   | "account.failed_to_rename"
   | "account.failed_to_update_sync"
+  | "account.credential_save_failed"
   | "account.connection_failed"
+  | "account.saved_connection_unconfirmed"
   | "account.copy_server_url_failed"
   | "account.sync_failed"
   | "account.failed_to_import_opml"

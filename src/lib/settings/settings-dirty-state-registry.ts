@@ -1,10 +1,13 @@
-type SettingsDirtyStateOwner = "account" | "tag" | "shortcut" | "preferences" | "data";
+type SettingsDirtyStateOwner = "account" | "add-account" | "tag" | "shortcut" | "preferences" | "data";
+
+export type SettingsDirtyStateActions = { save: () => Promise<boolean>; discard: () => void };
 
 export type SettingsDirtyStateEntry = {
   owner: SettingsDirtyStateOwner;
   dirty: boolean;
   pending: boolean;
   blockingReason: string | null;
+  actions?: SettingsDirtyStateActions;
 };
 
 export type SettingsDirtyStateSnapshot = {
@@ -42,6 +45,36 @@ export function createSettingsDirtyStateSnapshot(entries: SettingsDirtyStateEntr
     blockingReasons: activeEntries.flatMap((entry) => (entry.blockingReason === null ? [] : [entry.blockingReason])),
     entries: activeEntries,
   };
+}
+
+export async function saveDirtySettingsEntries(snapshot: SettingsDirtyStateSnapshot): Promise<boolean> {
+  for (const entry of snapshot.entries) {
+    if (!entry.dirty) {
+      continue;
+    }
+    if (!entry.actions) {
+      return false;
+    }
+    if (!(await entry.actions.save())) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function canSaveDirtySettingsEntries(snapshot: SettingsDirtyStateSnapshot): boolean {
+  if (!snapshot.dirty) {
+    return false;
+  }
+  return snapshot.entries.every((entry) => !entry.dirty || entry.actions !== undefined);
+}
+
+export function discardDirtySettingsEntries(snapshot: SettingsDirtyStateSnapshot): void {
+  for (const entry of snapshot.entries) {
+    if (entry.dirty && entry.actions) {
+      entry.actions.discard();
+    }
+  }
 }
 
 export function createSettingsDirtyStateRegistry(): SettingsDirtyStateRegistry {
