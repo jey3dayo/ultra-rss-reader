@@ -7,7 +7,8 @@ use crate::infra::keyring_store::{self, CredentialLookupMode};
 impl GReaderSession {
     /// Authenticates from the session lease. Background work needs a lease; an interactive
     /// attempt without a usable lease, or whose lease the server rejects, returns `Ok(None)`
-    /// so the caller reads the credential store instead.
+    /// so the caller reads the credential store instead. Any other interactive failure drops the
+    /// lease it used, so a lease granted by a save never outlives a connection that failed.
     pub(super) async fn try_leased_session(
         account: &Account,
         mode: CredentialLookupMode,
@@ -19,20 +20,26 @@ impl GReaderSession {
             Err(_) if mode == CredentialLookupMode::Interactive => return Ok(None),
             Err(error) => return Err(SessionError::Auth(error.into())),
         };
-        let provider = Self::provider_with_access(server_url, Ok(cached.access)).await?;
-        let result =
-            Self::authenticate(provider, username.to_string(), cached.password.to_string()).await;
-        if matches!(&result, Err(SessionError::Auth(error)) if error.diagnostic_kind() == "auth") {
-            if let Err(error) = keyring_store::session_cache::invalidate_if_generation(
-                account.id.as_ref(),
-                generation,
-            ) {
-                warn!(
-                    account_id = %account.id.as_ref(),
-                    "Could not invalidate rejected credential lease: {error}"
-                );
+        let result = async {
+            let provider = Self::provider_with_access(server_url, Ok(cached.access)).await?;
+            Self::authenticate(provider, username.to_string(), cached.password.to_string()).await
+        }
+        .await;
+        if let Err(error) = &result {
+            let rejected =
+                matches!(error, SessionError::Auth(error) if error.diagnostic_kind() == "auth");
+            if rejected || mode == CredentialLookupMode::Interactive {
+                if let Err(error) = keyring_store::session_cache::invalidate_if_generation(
+                    account.id.as_ref(),
+                    generation,
+                ) {
+                    warn!(
+                        account_id = %account.id.as_ref(),
+                        "Could not invalidate failed credential lease: {error}"
+                    );
+                }
             }
-            if mode == CredentialLookupMode::Interactive {
+            if rejected && mode == CredentialLookupMode::Interactive {
                 return Ok(None);
             }
         }
@@ -147,6 +154,71 @@ mod tests {
         login.assert_async().await;
         assert!(matches!(outcome, Ok(None)));
         assert!(session_cache::get_leased(&account).is_err());
+    }
+
+    #[tokio::test]
+    async fn interactive_login_failure_after_a_save_leaves_no_lease() {
+        let (failing, _login) = login_server(500).await;
+        let urls = [failing.url(), "http://127.0.0.1:1".to_string()];
+        for (index, server_url) in urls.iter().enumerate() {
+            let account = account(
+                &format!("lease-saved-login-failed-{index}-dummy"),
+                server_url,
+            );
+            session_cache::grant_saved(&account, Some("leased-dummy-password"), None, None);
+            assert!(session_cache::get_leased(&account).is_ok());
+
+            let outcome = try_lease(&account, CredentialLookupMode::Interactive).await;
+
+            assert!(
+                matches!(outcome, Err(SessionError::Auth(_))),
+                "{server_url}"
+            );
+            assert!(session_cache::get_leased(&account).is_err(), "{server_url}");
+        }
+    }
+
+    #[tokio::test]
+    async fn stale_interactive_failure_keeps_a_newer_lease() {
+        let mut server = mockito::Server::new_async().await;
+        let account = account("lease-stale-failure-dummy", &server.url());
+        let regranted = account.clone();
+        let newer_generation = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let recorded = newer_generation.clone();
+        let _login = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(500)
+            .with_body_from_request(move |_| {
+                recorded.store(lease(&regranted), std::sync::atomic::Ordering::SeqCst);
+                Vec::new()
+            })
+            .create_async()
+            .await;
+        let stale_generation = lease(&account);
+
+        let outcome = try_lease(&account, CredentialLookupMode::Interactive).await;
+
+        let newer = newer_generation.load(std::sync::atomic::Ordering::SeqCst);
+        assert!(matches!(outcome, Err(SessionError::Auth(_))));
+        assert_ne!(newer, stale_generation);
+        assert_eq!(
+            session_cache::get_leased(&account)
+                .expect("a failure of the older attempt must not drop the newer lease")
+                .1,
+            newer
+        );
+    }
+
+    #[tokio::test]
+    async fn background_login_failure_keeps_the_lease() {
+        let (server, _login) = login_server(500).await;
+        let account = account("lease-background-transient-dummy", &server.url());
+        lease(&account);
+
+        let outcome = try_lease(&account, CredentialLookupMode::Background).await;
+
+        assert!(matches!(outcome, Err(SessionError::Auth(_))));
+        assert!(session_cache::get_leased(&account).is_ok());
     }
 
     #[tokio::test]
