@@ -3,7 +3,7 @@ import type { PlatformKind } from "@/constants/platform";
 
 export type CredentialStoreKind = "keychain" | "credential_manager" | "local_file" | "os_store";
 
-export type CredentialFailureOperation = "load" | "save" | "check" | "check_after_save";
+type CredentialFailureOperation = "load" | "save" | "check" | "check_after_save";
 
 export type CredentialFailureNotice = CredentialFailure & { operation: CredentialFailureOperation };
 
