@@ -42,6 +42,18 @@ describe("buildCredentialsSection failure notices", () => {
     expect(props.cloudflareAccess?.failureNotice?.retryLabel).toBe("Try Again");
   });
 
+  it("keeps the real cause of an Access load failure next to a password failure", () => {
+    const props = sectionProps({
+      cloudflareAccessStatus: "error",
+      cloudflareAccessLoadFailure: { target: "cloudflare_access", cause: "not_allowed", operation: "load" },
+      credentialFailure: { target: "password", cause: "write_failed", operation: "save" },
+    });
+
+    expect(props.cloudflareAccess?.failureNotice?.lines[0]).toBe(
+      "Couldn’t continue because access to Keychain wasn’t allowed.",
+    );
+  });
+
   it("shows an Access save failure only under Access, not under the password", () => {
     const props = sectionProps({
       cloudflareAccessStatus: "ready",

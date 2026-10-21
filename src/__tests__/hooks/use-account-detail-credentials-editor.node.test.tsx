@@ -1285,7 +1285,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
     );
     await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("error"));
-    expect(result.current.credentialFailure).toEqual({
+    expect(result.current.cloudflareAccessLoadFailure).toEqual({
       target: "cloudflare_access",
       cause: "not_allowed",
       operation: "load",
@@ -1294,15 +1294,60 @@ describe("useAccountDetailCredentialsEditor", () => {
     act(() => {
       result.current.discardCredentialDrafts();
     });
-    expect(result.current.credentialFailure?.operation).toBe("load");
+    expect(result.current.cloudflareAccessLoadFailure?.operation).toBe("load");
 
     getAccountCloudflareAccessMock.mockResolvedValueOnce(Result.succeed({ status: "loaded", client_id: "dummy-id" }));
     act(() => {
       result.current.retryCloudflareAccessLoad();
     });
     await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
-    expect(result.current.credentialFailure).toBeNull();
+    expect(result.current.cloudflareAccessLoadFailure).toBeNull();
     expect(result.current.cloudflareAccessClientId).toBe("dummy-id");
+  });
+
+  it("keeps the Access read failure and a password save failure side by side, and retrying the load leaves the password notice", async () => {
+    setTauriRuntimePresent();
+    const account = sampleAccounts[1];
+    getAccountCloudflareAccessMock.mockResolvedValueOnce(
+      Result.fail({
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: { target: "cloudflare_access", cause: "not_allowed" },
+      }),
+    );
+    updateAccountCredentialsMock.mockResolvedValueOnce(
+      Result.fail({
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: { target: "password", cause: "write_failed" },
+      }),
+    );
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("error"));
+    act(() => {
+      result.current.setCredUsername("reader");
+    });
+
+    await act(async () => {
+      expect(await result.current.commitCredentials()).toBe(false);
+    });
+
+    expect(result.current.credentialFailure).toEqual({ target: "password", cause: "write_failed", operation: "save" });
+    expect(result.current.cloudflareAccessLoadFailure).toEqual({
+      target: "cloudflare_access",
+      cause: "not_allowed",
+      operation: "load",
+    });
+
+    getAccountCloudflareAccessMock.mockResolvedValueOnce(Result.succeed({ status: "loaded", client_id: "dummy-id" }));
+    act(() => {
+      result.current.retryCloudflareAccessLoad();
+    });
+    await waitFor(() => expect(result.current.cloudflareAccessStatus).toBe("ready"));
+    expect(result.current.cloudflareAccessLoadFailure).toBeNull();
+    expect(result.current.credentialFailure).toEqual({ target: "password", cause: "write_failed", operation: "save" });
   });
 
   it("does not rewrite saved Access credentials when retrying a failed connection check", async () => {

@@ -43,6 +43,7 @@ export type AccountDetailCredentialsEditorResult = {
   cloudflareAccessSecretVisible: boolean;
   cloudflareAccessValidationError: CloudflareAccessDraftError | null;
   credentialFailure: CredentialFailureNotice | null;
+  cloudflareAccessLoadFailure: CredentialFailureNotice | null;
   testingConnection: boolean;
   connectionTestSucceeded: boolean;
   dirtyState: SettingsDirtyStateEntry;
@@ -330,6 +331,7 @@ export function useAccountDetailCredentialsEditor({
     cloudflareAccessSecretVisible: state.cloudflareAccessSecretVisible,
     cloudflareAccessValidationError,
     credentialFailure: state.credentialFailure,
+    cloudflareAccessLoadFailure: state.cloudflareAccessLoadFailure,
     testingConnection,
     connectionTestSucceeded,
     dirtyState,

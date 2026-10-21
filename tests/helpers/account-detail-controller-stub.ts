@@ -29,6 +29,7 @@ export function createAccountDetailControllerStub(
     cloudflareAccessSecretVisible: false,
     cloudflareAccessValidationError: null,
     credentialFailure: null,
+    cloudflareAccessLoadFailure: null,
     testingConnection: false,
     connectionTestSucceeded: false,
     dirtyState: { owner: "account", dirty: false, pending: false, blockingReason: null },

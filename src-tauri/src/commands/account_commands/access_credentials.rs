@@ -92,10 +92,11 @@ impl AccountCredentialStore for OsAccountCredentialStore {
 }
 
 fn store_error(error: AccessStoreError, operation: AccessOperation) -> AppError {
-    AppError::CredentialStore {
+    DomainError::CredentialStore {
+        failure: error.failure(operation),
         message: error.to_string(),
-        credential_failure: error.failure(operation),
     }
+    .into()
 }
 
 fn account_url(account: &Account) -> Result<&str, AppError> {

@@ -56,6 +56,7 @@ export type AccountDetailCredentialsEditorState = {
   testingConnection: boolean;
   credentialSavePending: boolean;
   credentialFailure: CredentialFailureNotice | null;
+  cloudflareAccessLoadFailure: CredentialFailureNotice | null;
   draftRevision: number;
 };
 
@@ -203,6 +204,7 @@ export function createInitialAccountDetailCredentialsEditorState(
     testingConnection: false,
     credentialSavePending: false,
     credentialFailure: null,
+    cloudflareAccessLoadFailure: null,
     draftRevision: 0,
   };
 }

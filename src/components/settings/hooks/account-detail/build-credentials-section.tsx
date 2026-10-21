@@ -38,9 +38,10 @@ export function buildCredentialsSection({
   const cloudflareAccessFailure =
     failure?.target === "cloudflare_access"
       ? failure
-      : controller.cloudflareAccessStatus === "error"
-        ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
-        : null;
+      : (controller.cloudflareAccessLoadFailure ??
+        (controller.cloudflareAccessStatus === "error"
+          ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
+          : null));
   const passwordFailureNotice =
     passwordFailure === null
       ? undefined

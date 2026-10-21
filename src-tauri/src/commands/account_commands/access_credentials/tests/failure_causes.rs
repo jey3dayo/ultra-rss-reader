@@ -79,6 +79,17 @@ fn unreadable_access_metadata_is_a_read_failure() {
 }
 
 #[test]
+fn typed_store_failures_keep_the_keychain_message_the_frontend_matches_on() {
+    let error = store_error(AccessStoreError::Malformed, AccessOperation::Read);
+
+    assert_eq!(
+        error.to_string(),
+        "Keychain error: Cloudflare Access OS keyring entry is malformed. Replace or remove the entry before reconnecting."
+    );
+    assert_eq!(error.diagnostic_kind(), "keychain");
+}
+
+#[test]
 fn a_denied_keyring_prompt_is_not_allowed_whatever_the_operation() {
     for operation in [AccessOperation::Read, AccessOperation::Write] {
         let error = store_error(AccessStoreError::NotAllowed, operation);
