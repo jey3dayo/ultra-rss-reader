@@ -370,7 +370,8 @@ pub(super) fn retry_after_seconds_from_app_error(error: &AppError) -> Option<u64
         }
         AppError::Retryable { .. }
         | AppError::RetryableWithMetadata { .. }
-        | AppError::UserVisible { .. } => None,
+        | AppError::UserVisible { .. }
+        | AppError::CredentialStore { .. } => None,
     }
 }
 

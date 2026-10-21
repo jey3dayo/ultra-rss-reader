@@ -4,7 +4,9 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::error::{
+    CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError, DomainResult,
+};
 use crate::domain::url_policy::validate_user_provided_server_url;
 
 use super::diagnostics::{
@@ -51,15 +53,50 @@ struct StoredBundle {
 pub(crate) enum AccessStoreError {
     #[error("Cloudflare Access OS keyring is unavailable. Allow keyring access and try again.")]
     Unavailable,
+    #[cfg(any(target_os = "macos", test))]
+    #[error("Cloudflare Access OS keyring is unavailable. Allow keyring access and try again.")]
+    NotAllowed,
     #[error("Cloudflare Access OS keyring entry is malformed. Replace or remove the entry before reconnecting.")]
     Malformed,
     #[error("Cloudflare Access OS keyring write could not be verified. Try saving the credentials again.")]
     Verification,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AccessOperation {
+    Read,
+    Write,
+}
+
+impl AccessStoreError {
+    pub(crate) fn failure(self, operation: AccessOperation) -> CredentialFailure {
+        let cause = match (self, operation) {
+            #[cfg(any(target_os = "macos", test))]
+            (Self::NotAllowed, _) => CredentialFailureCause::NotAllowed,
+            (Self::Verification, _) => CredentialFailureCause::Unverified,
+            (Self::Unavailable | Self::Malformed, AccessOperation::Read) => {
+                CredentialFailureCause::ReadFailed
+            }
+            (Self::Unavailable | Self::Malformed, AccessOperation::Write) => {
+                CredentialFailureCause::WriteFailed
+            }
+        };
+        CredentialFailure::new(CredentialTarget::CloudflareAccess, cause)
+    }
+}
+
 impl From<AccessStoreError> for DomainError {
     fn from(error: AccessStoreError) -> Self {
-        Self::Keychain(error.to_string())
+        let message = error.to_string();
+        match error {
+            AccessStoreError::NotAllowed | AccessStoreError::Verification => {
+                Self::CredentialStore {
+                    failure: error.failure(AccessOperation::Read),
+                    message,
+                }
+            }
+            AccessStoreError::Unavailable | AccessStoreError::Malformed => Self::Keychain(message),
+        }
     }
 }
 
@@ -281,7 +318,14 @@ pub(crate) fn load_for_sync_with_mode(
             account_id,
             mode,
         )
-        .map_err(|_| AccessStoreError::Unavailable)?;
+        .map_err(|error| match error {
+            DomainError::CredentialStore { failure, .. }
+                if failure.cause == CredentialFailureCause::NotAllowed =>
+            {
+                AccessStoreError::NotAllowed
+            }
+            _ => AccessStoreError::Unavailable,
+        })?;
         raw.map(|raw| decode_bundle(&raw)).transpose()
     }
     #[cfg(not(target_os = "macos"))]

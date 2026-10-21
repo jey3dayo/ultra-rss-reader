@@ -7,7 +7,9 @@ use super::redaction::redact_diagnostic_text;
 #[cfg(any(target_os = "macos", test))]
 use super::redaction::redact_stderr_text;
 #[cfg(target_os = "macos")]
-use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::error::{
+    CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError, DomainResult,
+};
 #[cfg(target_os = "macos")]
 use std::time::{Duration, Instant};
 
@@ -17,6 +19,16 @@ pub(super) const KEYRING_SECURITY_CLI_TIMEOUT: Duration = Duration::from_secs(5)
 const KEYRING_SECURITY_CLI_RETRY_DELAY: Duration = Duration::from_millis(25);
 #[cfg(target_os = "macos")]
 const SECURITY_CLI_PATH: &str = "/usr/bin/security";
+
+/// The CLI reports the OSStatus as its exit code truncated to one byte, so an exit code cannot
+/// tell a cancelled prompt from a denied one: it is only ever "not allowed".
+#[cfg(target_os = "macos")]
+fn not_allowed(target: CredentialTarget, message: String) -> DomainError {
+    DomainError::CredentialStore {
+        failure: CredentialFailure::new(target, CredentialFailureCause::NotAllowed),
+        message,
+    }
+}
 
 #[cfg(target_os = "macos")]
 #[derive(Clone, Copy)]
@@ -223,11 +235,14 @@ fn read_password_from_security_cli_command(
         None,
         output.output.status.code(),
     );
-    Err(DomainError::Keychain(format!(
-        "macOS Keychain CLI failed status={} stderr={}",
-        redact_diagnostic_text(&output.output.status.to_string()),
-        redact_stderr_text(&String::from_utf8_lossy(&output.output.stderr))
-    )))
+    Err(not_allowed(
+        CredentialTarget::Password,
+        format!(
+            "macOS Keychain CLI failed status={} stderr={}",
+            redact_diagnostic_text(&output.output.status.to_string()),
+            redact_stderr_text(&String::from_utf8_lossy(&output.output.stderr))
+        ),
+    ))
 }
 
 #[cfg(target_os = "macos")]
@@ -269,7 +284,7 @@ fn read_credential_from_security_cli_command(
     ]);
     let output = run_keyring_read_command(command, timeout).map_err(|failure| {
         failure.log(credential_kind, mode, timeout);
-        failure.credential_error()
+        failure.credential_error(credential_kind.target())
     })?;
     decode_credential_output_with_failure(output.output).map_err(|failure| {
         log_keyring_read_failure(
@@ -281,13 +296,14 @@ fn read_credential_from_security_cli_command(
             None,
             failure.exit_code(),
         );
-        failure.into_domain_error()
+        failure.into_domain_error(credential_kind.target())
     })
 }
 
 #[cfg(all(test, target_os = "macos"))]
 fn decode_credential_output(output: std::process::Output) -> DomainResult<Option<String>> {
-    decode_credential_output_with_failure(output).map_err(|failure| failure.into_domain_error())
+    decode_credential_output_with_failure(output)
+        .map_err(|failure| failure.into_domain_error(CredentialTarget::CloudflareAccess))
 }
 
 #[cfg(target_os = "macos")]
@@ -477,13 +493,19 @@ impl SecurityCliRunFailure {
             Self::Spawn(error, _) => {
                 DomainError::Keychain(format!("Failed to run macOS Keychain CLI: {error}"))
             }
+            Self::Wait(failure @ SecurityCliWaitFailure::Timeout, _) => {
+                not_allowed(CredentialTarget::Password, failure.to_string())
+            }
             Self::Wait(failure, _) => DomainError::Keychain(failure.to_string()),
         }
     }
 
-    fn credential_error(self) -> DomainError {
+    fn credential_error(self, target: CredentialTarget) -> DomainError {
         match self {
             Self::Spawn(_, _) => DomainError::Keychain("Could not read OS keyring entry".into()),
+            Self::Wait(failure @ SecurityCliWaitFailure::Timeout, _) => {
+                not_allowed(target, failure.to_string())
+            }
             Self::Wait(failure, _) => DomainError::Keychain(failure.to_string()),
         }
     }
@@ -542,7 +564,7 @@ impl CredentialOutputFailure {
         }
     }
 
-    fn into_domain_error(self) -> DomainError {
+    fn into_domain_error(self, target: CredentialTarget) -> DomainError {
         match self {
             Self::InvalidEncoding => {
                 DomainError::Keychain("Invalid OS keyring entry encoding".into())
@@ -550,7 +572,8 @@ impl CredentialOutputFailure {
             Self::ParseOutput => {
                 DomainError::Keychain("Failed to parse OS keyring entry output".into())
             }
-            Self::CliExit(_) => DomainError::Keychain(
+            Self::CliExit(_) => not_allowed(
+                target,
                 "Could not read OS keyring entry. Allow keyring access and try again.".into(),
             ),
         }
@@ -739,6 +762,35 @@ mod tests {
         ] {
             let error = super::decode_credential_output(response).unwrap_err();
             assert!(!format!("{error:?} {error}").contains("cfast_dummy_secret"));
+        }
+    }
+
+    #[test]
+    fn security_cli_exit_codes_are_not_allowed_never_a_confirmed_cancellation() {
+        use super::{CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError};
+        use std::os::unix::process::ExitStatusExt;
+
+        // The CLI exit code is the OSStatus truncated to a byte: 128 is -128 (user cancelled)
+        // but also any other status that ends in the same byte.
+        for code in [36, 128] {
+            let error = super::decode_credential_output(std::process::Output {
+                status: std::process::ExitStatus::from_raw(code << 8),
+                stdout: vec![],
+                stderr: vec![],
+            })
+            .unwrap_err();
+
+            assert!(
+                matches!(
+                    error,
+                    DomainError::CredentialStore { failure, .. }
+                        if failure == CredentialFailure::new(
+                            CredentialTarget::CloudflareAccess,
+                            CredentialFailureCause::NotAllowed,
+                        )
+                ),
+                "exit {code}"
+            );
         }
     }
 }

@@ -1,4 +1,6 @@
 use super::CredentialLookupMode;
+#[cfg(target_os = "macos")]
+use crate::domain::error::CredentialTarget;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CredentialKind {
@@ -7,6 +9,14 @@ pub(crate) enum CredentialKind {
 }
 
 impl CredentialKind {
+    #[cfg(target_os = "macos")]
+    pub(crate) fn target(self) -> CredentialTarget {
+        match self {
+            Self::FreshRssPassword => CredentialTarget::Password,
+            Self::CloudflareAccess => CredentialTarget::CloudflareAccess,
+        }
+    }
+
     pub(super) fn label(self) -> &'static str {
         match self {
             Self::FreshRssPassword => "freshrss-password",

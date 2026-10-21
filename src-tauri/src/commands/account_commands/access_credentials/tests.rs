@@ -185,6 +185,7 @@ fn account_exists(db: &Mutex<DbManager>, id: &AccountId) -> bool {
         .is_some()
 }
 
+mod failure_causes;
 mod keychain_access;
 
 #[test]

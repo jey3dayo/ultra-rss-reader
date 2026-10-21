@@ -102,7 +102,7 @@ fn error_class(error: &DomainError) -> &'static str {
         DomainError::Persistence(_) => "persistence",
         DomainError::Auth(_) => "auth",
         DomainError::Validation(_) => "validation",
-        DomainError::Keychain(_) => "keychain",
+        DomainError::Keychain(_) | DomainError::CredentialStore { .. } => "keychain",
         DomainError::Migration(_) => "migration",
     }
 }

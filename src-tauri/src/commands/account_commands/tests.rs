@@ -447,7 +447,9 @@ fn add_account_reports_original_db_error_and_recovery_when_keyring_rollback_fail
             assert!(message.contains("FreshRSS password: failed"));
             assert!(message.contains("Recovery required"));
         }
-        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+        AppError::Retryable { message }
+        | AppError::RetryableWithMetadata { message, .. }
+        | AppError::CredentialStore { message, .. } => {
             panic!("unexpected retryable error: {message}");
         }
     }

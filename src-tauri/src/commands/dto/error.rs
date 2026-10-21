@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::domain::error::DomainError;
+use crate::domain::error::{CredentialFailure, DomainError};
 
 pub const APP_ERROR_MESSAGE_MAX_CHARS: usize = 2048;
 const APP_ERROR_FALLBACK_MESSAGE: &str = "An application error occurred";
@@ -19,6 +19,11 @@ pub enum AppError {
         message: String,
         retry_after_seconds: Option<u64>,
     },
+    #[serde(rename = "UserVisible")]
+    CredentialStore {
+        message: String,
+        credential_failure: CredentialFailure,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,7 +34,9 @@ pub enum UserFacingErrorSupportPolicy {
 
 pub fn user_facing_error_support_policy(error: &AppError) -> UserFacingErrorSupportPolicy {
     match error {
-        AppError::UserVisible { .. } => UserFacingErrorSupportPolicy::StableSupportCodeOnly,
+        AppError::UserVisible { .. } | AppError::CredentialStore { .. } => {
+            UserFacingErrorSupportPolicy::StableSupportCodeOnly
+        }
         AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. } => {
             UserFacingErrorSupportPolicy::EphemeralDiagnosticsIdForLogs
         }
@@ -68,6 +75,10 @@ impl From<DomainError> for AppError {
                 message,
                 retry_after_seconds: Some(*retry_after_seconds),
             },
+            DomainError::CredentialStore { failure, .. } => AppError::CredentialStore {
+                message,
+                credential_failure: *failure,
+            },
             _ => AppError::UserVisible { message },
         }
     }
@@ -77,7 +88,7 @@ impl AppError {
     /// Static label safe for release logs; never derived from message content.
     pub fn diagnostic_kind(&self) -> &'static str {
         match self {
-            AppError::UserVisible { message } => {
+            AppError::UserVisible { message } | AppError::CredentialStore { message, .. } => {
                 const PREFIXED_KINDS: [(&str, &str); 5] = [
                     ("Keychain error:", "keychain"),
                     ("Auth error:", "auth"),
@@ -100,7 +111,8 @@ impl std::fmt::Display for AppError {
         match self {
             AppError::UserVisible { message }
             | AppError::Retryable { message }
-            | AppError::RetryableWithMetadata { message, .. } => {
+            | AppError::RetryableWithMetadata { message, .. }
+            | AppError::CredentialStore { message, .. } => {
                 write!(f, "{}", message)
             }
         }
@@ -141,6 +153,32 @@ mod tests {
     use crate::domain::error::DomainError;
 
     #[test]
+    fn credential_store_error_serializes_its_cause_under_the_user_visible_tag() {
+        use crate::domain::error::{CredentialFailure, CredentialFailureCause, CredentialTarget};
+
+        let error = AppError::from(DomainError::CredentialStore {
+            failure: CredentialFailure::new(
+                CredentialTarget::CloudflareAccess,
+                CredentialFailureCause::NotAllowed,
+            ),
+            message: "dummy keyring denied".to_string(),
+        });
+
+        assert_eq!(
+            serde_json::to_value(&error).expect("the error should serialize"),
+            serde_json::json!({
+                "type": "UserVisible",
+                "message": "Keychain error: dummy keyring denied",
+                "credential_failure": {
+                    "target": "cloudflare_access",
+                    "cause": "not_allowed"
+                }
+            })
+        );
+        assert_eq!(error.diagnostic_kind(), "keychain");
+    }
+
+    #[test]
     fn diagnostic_kind_is_a_static_label_without_message_text() {
         const SENTINEL: &str = "https://secret-sentinel.invalid/acct-42";
         let errors = [
@@ -171,7 +209,7 @@ mod tests {
             AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 assert_eq!(message, "Network error: timeout");
             }
-            AppError::UserVisible { message } => {
+            AppError::UserVisible { message } | AppError::CredentialStore { message, .. } => {
                 panic!("network errors should be retryable, got user-visible: {message}");
             }
         }
@@ -197,7 +235,8 @@ mod tests {
                     assert_eq!(message, expected_message);
                 }
                 AppError::Retryable { message }
-                | AppError::RetryableWithMetadata { message, .. } => {
+                | AppError::RetryableWithMetadata { message, .. }
+                | AppError::CredentialStore { message, .. } => {
                     panic!("non-network errors should be user-visible, got retryable: {message}");
                 }
             }
@@ -222,7 +261,8 @@ mod tests {
             let message = match app_error {
                 AppError::UserVisible { message }
                 | AppError::Retryable { message }
-                | AppError::RetryableWithMetadata { message, .. } => message,
+                | AppError::RetryableWithMetadata { message, .. }
+                | AppError::CredentialStore { message, .. } => message,
             };
 
             assert!(
