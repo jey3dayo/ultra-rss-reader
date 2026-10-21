@@ -30,6 +30,7 @@ vi.mock("@/components/settings/settings-modal-view", () => ({
     content,
     footer,
     leaveConfirmation,
+    contentResetKey,
     onClose,
   }: SettingsModalViewProps) =>
     open ? (
@@ -40,7 +41,7 @@ vi.mock("@/components/settings/settings-modal-view", () => ({
         </button>
         <div>{navigation}</div>
         <div>{accountsNavigation}</div>
-        <div>{content}</div>
+        <div key={contentResetKey}>{content}</div>
         {footer}
         {leaveConfirmation}
       </div>
