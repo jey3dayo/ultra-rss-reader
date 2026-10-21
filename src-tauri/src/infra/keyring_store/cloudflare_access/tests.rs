@@ -126,3 +126,28 @@ fn cloudflare_access_malformed_entries_are_typed_and_redacted() {
     let access = decode_bundle(r#"{"client_id":"dummy","client_secret":"cfast_dummy","https_origin":"https://example.com"}"#).unwrap();
     assert_eq!(access.client_id(), "dummy");
 }
+
+#[cfg(target_os = "macos")]
+#[test]
+fn native_user_cancellation_is_a_cancelled_access_failure() {
+    let native = |status| {
+        keyring::Error::PlatformFailure(Box::new(security_framework::base::Error::from_code(
+            status,
+        )))
+    };
+
+    assert_eq!(
+        unavailable(KeyringOp::Load, &native(-128)),
+        AccessStoreError::Canceled
+    );
+    assert_eq!(
+        unavailable(KeyringOp::Load, &native(-50)),
+        AccessStoreError::Unavailable
+    );
+    assert_eq!(
+        AccessStoreError::Canceled
+            .failure(AccessOperation::Write)
+            .cause,
+        CredentialFailureCause::Canceled
+    );
+}

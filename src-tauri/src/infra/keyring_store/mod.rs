@@ -7,6 +7,7 @@ use dev_store_path::dev_credentials_path;
 use diagnostics::{
     log_keyring_access_failed, log_keyring_error, log_sync_read_gate_failed, KeyringOp,
 };
+use native_status::keyring_cause;
 #[cfg(any(target_os = "macos", test))]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(any(target_os = "macos", test))]
@@ -19,6 +20,7 @@ mod dev_store_lock;
 mod dev_store_path;
 mod diagnostics;
 mod macos_security_cli;
+mod native_status;
 mod redaction;
 pub(crate) mod secret_backend;
 #[cfg(any(target_os = "macos", test))]
@@ -363,7 +365,7 @@ where
     entry.set_password(password).map_err(|e| {
         log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Save, &e);
         password_failure(
-            CredentialFailureCause::WriteFailed,
+            keyring_cause(&e, CredentialFailureCause::WriteFailed),
             format!("Failed to save password: {e}"),
         )
     })?;
@@ -398,7 +400,7 @@ fn get_password_unguarded(account_id: &str) -> DomainResult<String> {
         Err(e) => {
             log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Load, &e);
             Err(password_failure(
-                CredentialFailureCause::ReadFailed,
+                keyring_cause(&e, CredentialFailureCause::ReadFailed),
                 format!("Failed to retrieve password: {e}"),
             ))
         }
@@ -463,7 +465,7 @@ fn remove_password(account_id: &str) -> DomainResult<()> {
         Err(e) => {
             log_keyring_error(CredentialKind::FreshRssPassword, KeyringOp::Remove, &e);
             Err(password_failure(
-                CredentialFailureCause::WriteFailed,
+                keyring_cause(&e, CredentialFailureCause::WriteFailed),
                 format!("Failed to delete password: {e}"),
             ))
         }
