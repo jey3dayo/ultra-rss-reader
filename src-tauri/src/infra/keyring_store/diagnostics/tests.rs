@@ -27,6 +27,27 @@ fn keyring_failure_reason_is_a_static_label_without_error_text() {
     );
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn keyring_error_diagnostic_names_the_os_status_of_a_native_failure() {
+    let native = keyring::Error::PlatformFailure(Box::new(
+        security_framework::base::Error::from_code(-25293),
+    ));
+
+    assert_eq!(
+        keyring_error_diagnostic(CredentialKind::CloudflareAccess, KeyringOp::Load, &native),
+        "event=keyring-access-failed credential_kind=cloudflare-access op=load failure_reason=platform os_status=-25293"
+    );
+    assert_eq!(
+        keyring_error_diagnostic(
+            CredentialKind::CloudflareAccess,
+            KeyringOp::Load,
+            &keyring::Error::PlatformFailure(SENTINEL.into())
+        ),
+        "event=keyring-access-failed credential_kind=cloudflare-access op=load failure_reason=platform"
+    );
+}
+
 #[test]
 fn keyring_diagnostic_lines_carry_only_fixed_fields() {
     if child_scenario().is_some() {

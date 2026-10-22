@@ -25,7 +25,15 @@ const appErrorMessageSchema = v.pipe(
 );
 
 const CREDENTIAL_FAILURE_TARGETS = ["password", "cloudflare_access"] as const;
-const CREDENTIAL_FAILURE_CAUSES = ["read_failed", "write_failed", "canceled", "not_allowed", "unverified"] as const;
+const CREDENTIAL_FAILURE_CAUSES = [
+  "read_failed",
+  "write_failed",
+  "canceled",
+  "not_allowed",
+  "unreadable",
+  "unwritable",
+  "unverified",
+] as const;
 
 const CredentialFailureSchema = s.strictObject({
   target: v.picklist(CREDENTIAL_FAILURE_TARGETS),

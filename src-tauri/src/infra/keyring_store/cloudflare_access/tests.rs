@@ -127,6 +127,38 @@ fn cloudflare_access_malformed_entries_are_typed_and_redacted() {
     assert_eq!(access.client_id(), "dummy");
 }
 
+struct UnreadableStore(AccessStoreError);
+
+impl CloudflareAccessStore for UnreadableStore {
+    fn load(&self, _: &str) -> Result<Option<CloudflareAccess>, AccessStoreError> {
+        Err(self.0)
+    }
+    fn save(&self, _: &str, _: &CloudflareAccess) -> Result<(), AccessStoreError> {
+        Ok(())
+    }
+    fn remove(&self, _: &str) -> Result<(), AccessStoreError> {
+        Ok(())
+    }
+}
+
+#[test]
+fn a_write_that_cannot_be_read_back_is_unverified_whatever_stopped_the_read() {
+    let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://example.com")
+        .expect("dummy Access fixture should have valid HTTPS credentials");
+
+    for read_error in [
+        AccessStoreError::Unavailable,
+        AccessStoreError::Canceled,
+        AccessStoreError::NotAllowed,
+    ] {
+        assert_eq!(
+            verify_saved_access(&UnreadableStore(read_error), "acct", Some(&access)),
+            Err(AccessStoreError::Verification),
+            "{read_error:?}"
+        );
+    }
+}
+
 #[cfg(target_os = "macos")]
 #[test]
 fn native_user_cancellation_is_a_cancelled_access_failure() {
@@ -149,5 +181,40 @@ fn native_user_cancellation_is_a_cancelled_access_failure() {
             .failure(AccessOperation::Write)
             .cause,
         CredentialFailureCause::Canceled
+    );
+}
+
+#[test]
+fn an_inaccessible_entry_fails_reads_as_unreadable_and_writes_as_unwritable() {
+    assert_eq!(
+        AccessStoreError::Inaccessible
+            .failure(AccessOperation::Read)
+            .cause,
+        CredentialFailureCause::Unreadable
+    );
+    assert_eq!(
+        AccessStoreError::Inaccessible
+            .failure(AccessOperation::Write)
+            .cause,
+        CredentialFailureCause::Unwritable
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn an_os_auth_failure_is_an_inaccessible_entry_but_a_cancellation_is_not() {
+    let platform_failure = |status| {
+        keyring::Error::PlatformFailure(Box::new(security_framework::base::Error::from_code(
+            status,
+        )))
+    };
+
+    assert_eq!(
+        unavailable(KeyringOp::Load, &platform_failure(-25293)),
+        AccessStoreError::Inaccessible
+    );
+    assert_eq!(
+        unavailable(KeyringOp::Remove, &platform_failure(-128)),
+        AccessStoreError::Canceled
     );
 }

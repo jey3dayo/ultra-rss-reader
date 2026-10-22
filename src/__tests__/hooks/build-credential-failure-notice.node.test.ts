@@ -22,10 +22,36 @@ describe("buildCredentialFailureNotice", () => {
     ["canceled", "Access to Keychain was canceled. To continue, try again and allow access."],
     ["not_allowed", "Couldn’t continue because access to Keychain wasn’t allowed."],
     ["unverified", "Couldn’t verify that saving Cloudflare Access credentials succeeded."],
+    [
+      "unreadable",
+      "The saved item for Cloudflare Access credentials came from another build, so Keychain can’t read it. Re-enter it and save again.",
+    ],
+    [
+      "unwritable",
+      "The saved item for Cloudflare Access credentials came from another build, so Keychain can’t read or delete it. Delete it in Keychain Access, or launch a signed build, then save again.",
+    ],
   ] as const)("names what happened for %s in the store's own words", (cause, expected) => {
     const notice: CredentialFailureNotice = { target: "cloudflare_access", cause, operation: "save" };
 
     expect(buildCredentialFailureNotice(notice, "keychain", en, createHandlers()).lines[0]).toBe(expected);
+  });
+
+  it.each([
+    [
+      "unreadable",
+      "Cloudflare Access の認証情報は別のビルドが保存したため、キーチェーンから読み込めません。入力し直して保存してください。",
+    ],
+    [
+      "unwritable",
+      "Cloudflare Access の認証情報は別のビルドが保存したため、キーチェーンで読み込めず、削除もできませんでした。キーチェーンアクセスで該当項目を削除するか、署名付きビルドで起動してから、もう一度保存してください。",
+    ],
+  ] as const)("explains %s as another build's item, not a refusal, in Japanese", (cause, expected) => {
+    const notice: CredentialFailureNotice = { target: "cloudflare_access", cause, operation: "save" };
+
+    const [first] = buildCredentialFailureNotice(notice, "keychain", ja, createHandlers()).lines;
+
+    expect(first).toBe(expected);
+    expect(first).not.toContain("許可");
   });
 
   it.each([

@@ -1,5 +1,6 @@
 use super::*;
 use crate::domain::account::ConnectionVerificationStatus;
+use crate::domain::error::{CredentialFailure, CredentialTarget};
 use crate::domain::types::AccountId;
 use std::cell::{Cell, RefCell};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,6 +14,10 @@ use crate::repository::account::AccountRepository;
 #[derive(Default)]
 struct FakeStore {
     unavailable: Cell<bool>,
+    unreadable: Cell<Option<AccessStoreError>>,
+    undeletable: Cell<Option<AccessStoreError>>,
+    password_unreadable: Cell<Option<CredentialFailureCause>>,
+    password_undeletable: Cell<Option<CredentialFailureCause>>,
     password: RefCell<Option<String>>,
     access: RefCell<Option<CloudflareAccess>>,
     malformed: RefCell<Option<String>>,
@@ -23,6 +28,9 @@ struct FakeStore {
 
 impl FakeStore {
     fn stored_access(&self) -> Result<Option<CloudflareAccess>, AccessStoreError> {
+        if let Some(error) = self.unreadable.get() {
+            return Err(error);
+        }
         if self.unavailable.get() || self.fail("load") {
             return Err(AccessStoreError::Unavailable);
         }
@@ -62,6 +70,10 @@ impl CloudflareAccessStore for FakeStore {
         if self.unavailable.get() || self.fail("remove") {
             return Err(AccessStoreError::Unavailable);
         }
+        if let Some(error) = self.undeletable.get() {
+            return Err(error);
+        }
+        self.unreadable.set(None);
         *self.malformed.borrow_mut() = None;
         *self.access.borrow_mut() = None;
         if self.fail("remove_verify") {
@@ -70,6 +82,9 @@ impl CloudflareAccessStore for FakeStore {
         Ok(())
     }
     fn snapshot(&self, _: &str) -> Result<AccessSnapshot, AccessStoreError> {
+        if let Some(error) = self.unreadable.get() {
+            return Err(error);
+        }
         if self.unavailable.get() {
             return Err(AccessStoreError::Unavailable);
         }
@@ -105,6 +120,9 @@ impl AccountCredentialStore for FakeStore {
         if self.fail("password_read") {
             return Err(db_error());
         }
+        if let Some(cause) = self.password_unreadable.get() {
+            return Err(password_error(cause));
+        }
         Ok(self.password.borrow().clone())
     }
     fn set_password(&self, _: &str, password: &str) -> Result<(), AppError> {
@@ -118,6 +136,10 @@ impl AccountCredentialStore for FakeStore {
         Ok(())
     }
     fn delete_password(&self, _: &str) -> Result<(), AppError> {
+        if let Some(cause) = self.password_undeletable.get() {
+            return Err(password_error(cause));
+        }
+        self.password_unreadable.set(None);
         if self.unavailable.get() {
             return Err(AppError::from(DomainError::Keychain(
                 "dummy keyring unavailable".into(),
@@ -126,6 +148,13 @@ impl AccountCredentialStore for FakeStore {
         *self.password.borrow_mut() = None;
         Ok(())
     }
+}
+fn password_error(cause: CredentialFailureCause) -> AppError {
+    DomainError::CredentialStore {
+        failure: CredentialFailure::new(CredentialTarget::Password, cause),
+        message: "dummy keyring failure".into(),
+    }
+    .into()
 }
 fn account() -> Account {
     Account {
@@ -186,7 +215,9 @@ fn account_exists(db: &Mutex<DbManager>, id: &AccountId) -> bool {
 }
 
 mod failure_causes;
+mod inaccessible_previous;
 mod keychain_access;
+mod unreadable_previous;
 
 #[test]
 fn delete_non_freshrss_account_succeeds_when_access_keyring_is_unavailable() {
@@ -447,7 +478,6 @@ fn cloudflare_access_save_readback_and_db_failure_restore_both_credentials() {
     for fault in [
         "save",
         "verify",
-        "load",
         "password_save",
         "password_verify",
         "password_read",

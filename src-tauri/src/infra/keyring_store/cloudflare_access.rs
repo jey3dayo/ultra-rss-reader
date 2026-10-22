@@ -58,6 +58,8 @@ pub(crate) enum AccessStoreError {
     NotAllowed,
     #[error("Cloudflare Access OS keyring is unavailable. Allow keyring access and try again.")]
     Canceled,
+    #[error("Cloudflare Access OS keyring entry belongs to another build and cannot be read or replaced.")]
+    Inaccessible,
     #[error("Cloudflare Access OS keyring entry is malformed. Replace or remove the entry before reconnecting.")]
     Malformed,
     #[error("Cloudflare Access OS keyring write could not be verified. Try saving the credentials again.")]
@@ -75,6 +77,8 @@ impl AccessStoreError {
         let cause = match (self, operation) {
             (Self::NotAllowed, _) => CredentialFailureCause::NotAllowed,
             (Self::Canceled, _) => CredentialFailureCause::Canceled,
+            (Self::Inaccessible, AccessOperation::Read) => CredentialFailureCause::Unreadable,
+            (Self::Inaccessible, AccessOperation::Write) => CredentialFailureCause::Unwritable,
             (Self::Verification, _) => CredentialFailureCause::Unverified,
             (Self::Unavailable | Self::Malformed, AccessOperation::Read) => {
                 CredentialFailureCause::ReadFailed
@@ -336,7 +340,9 @@ pub(crate) fn verify_saved_access(
     account_id: &str,
     expected: Option<&CloudflareAccess>,
 ) -> Result<(), AccessStoreError> {
-    let actual = store.load(account_id)?;
+    let actual = store
+        .load(account_id)
+        .map_err(|_| AccessStoreError::Verification)?;
     if actual.as_ref() == expected {
         Ok(())
     } else {
@@ -358,6 +364,9 @@ fn unavailable(op: KeyringOp, error: &keyring::Error) -> AccessStoreError {
     match keyring_cause(error, CredentialFailureCause::ReadFailed) {
         CredentialFailureCause::Canceled => AccessStoreError::Canceled,
         CredentialFailureCause::NotAllowed => AccessStoreError::NotAllowed,
+        CredentialFailureCause::Unreadable | CredentialFailureCause::Unwritable => {
+            AccessStoreError::Inaccessible
+        }
         _ => AccessStoreError::Unavailable,
     }
 }

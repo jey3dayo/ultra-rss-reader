@@ -5,7 +5,7 @@ fn access_failure(cause: CredentialFailureCause) -> CredentialFailure {
     CredentialFailure::new(CredentialTarget::CloudflareAccess, cause)
 }
 
-fn failure_of(error: &AppError) -> CredentialFailure {
+pub(super) fn failure_of(error: &AppError) -> CredentialFailure {
     match error {
         AppError::CredentialStore {
             credential_failure, ..
@@ -20,11 +20,11 @@ fn save_failure(account: &Account, store: &FakeStore, action: &CloudflareAccessA
 }
 
 #[test]
-fn unreadable_access_keyring_before_a_save_is_a_read_failure() {
+fn unreadable_access_keyring_before_a_keep_save_is_a_read_failure() {
     let store = configured();
     store.unavailable.set(true);
 
-    let error = save_failure(&account(), &store, &replace());
+    let error = save_failure(&account(), &store, &CloudflareAccessArg::Keep {});
 
     assert_eq!(
         failure_of(&error),
