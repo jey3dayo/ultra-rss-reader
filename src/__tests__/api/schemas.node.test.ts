@@ -1422,6 +1422,16 @@ describe("AppErrorSchema", () => {
     });
   });
 
+  it.each(["unreadable", "unwritable"])("accepts the %s credential failure cause", (cause) => {
+    expect(
+      parse(AppErrorSchema, {
+        type: "UserVisible",
+        message: "Keychain error: dummy",
+        credential_failure: { target: "password", cause },
+      }),
+    ).toMatchObject({ credential_failure: { target: "password", cause } });
+  });
+
   it.each([
     { target: "password", cause: "cancelled" },
     { target: "token", cause: "canceled" },

@@ -354,6 +354,7 @@ mod tests {
         for (store_error, cause) in [
             (AccessStoreError::NotAllowed, "not_allowed"),
             (AccessStoreError::Canceled, "canceled"),
+            (AccessStoreError::Inaccessible, "unreadable"),
             (AccessStoreError::Unavailable, "read_failed"),
             (AccessStoreError::Malformed, "read_failed"),
         ] {

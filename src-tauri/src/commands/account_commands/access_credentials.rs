@@ -220,6 +220,14 @@ fn is_unverified(error: &AppError) -> bool {
     )
 }
 
+fn is_unreadable(error: &AppError) -> bool {
+    matches!(
+        error,
+        AppError::CredentialStore { credential_failure, .. }
+            if credential_failure.cause == CredentialFailureCause::Unreadable
+    )
+}
+
 fn restore_access(
     store: &impl CloudflareAccessStore,
     id: &str,
@@ -270,13 +278,19 @@ pub(super) fn persist_account_credentials<T>(
         planned_access(account, action, None)?
     };
     let change_access = !matches!(action, CloudflareAccessArg::Keep {});
-    let previous_access = if creating {
+    let mut access_inaccessible = false;
+    let mut previous_access = if creating {
         Some(AccessSnapshot::Missing)
     } else {
         match store.snapshot(id) {
             Ok(snapshot) => Some(snapshot),
             // The write and its readback decide a replacement or removal; only the rollback needs the old value.
             Err(AccessStoreError::Unavailable) if change_access => None,
+            // An entry another build created cannot be read, so it is deleted and recreated.
+            Err(AccessStoreError::Inaccessible) if change_access => {
+                access_inaccessible = true;
+                None
+            }
             Err(error) => return Err(store_error(error, AccessOperation::Read)),
         }
     };
@@ -294,11 +308,22 @@ pub(super) fn persist_account_credentials<T>(
     let password = password
         .filter(|value| !value.is_empty())
         .filter(|_| account.kind == ProviderKind::FreshRss);
+    let mut password_inaccessible = false;
     let previous_password = if password.is_some() && !creating {
-        store.password(id)?
+        match store.password(id) {
+            Ok(previous) => previous,
+            Err(error) if is_unreadable(&error) => {
+                password_inaccessible = true;
+                None
+            }
+            Err(error) => return Err(error),
+        }
     } else {
         None
     };
+    if password_inaccessible {
+        store.delete_password(id)?;
+    }
     let mut password_attempted = false;
     let mut access_attempted = false;
     let mut access_written = false;
@@ -309,6 +334,12 @@ pub(super) fn persist_account_credentials<T>(
         }
         if change_access {
             access_attempted = true;
+            if access_inaccessible {
+                store
+                    .remove(id)
+                    .map_err(|error| store_error(error, AccessOperation::Write))?;
+                previous_access = Some(AccessSnapshot::Missing);
+            }
             let written = write_access(store, id, next_access.as_ref());
             access_written = match &written {
                 Ok(()) => true,

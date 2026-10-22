@@ -421,6 +421,8 @@
       "write_failed": "Couldn’t save {{target}} to {{store}}.",
       "canceled": "Access to {{store}} was canceled. To continue, try again and allow access.",
       "not_allowed": "Couldn’t continue because access to {{store}} wasn’t allowed.",
+      "unreadable": "The saved item for {{target}} came from another build, so {{store}} can’t read it. Re-enter it and save again.",
+      "unwritable": "The saved item for {{target}} came from another build, so {{store}} can’t read or delete it. Delete it in Keychain Access, or launch a signed build, then save again.",
       "unverified": "Couldn’t verify that saving {{target}} succeeded."
     },
     "credential_failure_saved_unchanged": "Your saved settings haven’t been changed.",

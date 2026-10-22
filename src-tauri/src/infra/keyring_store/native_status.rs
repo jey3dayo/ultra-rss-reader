@@ -22,8 +22,9 @@ pub(super) fn keyring_os_status(_error: &keyring::Error) -> Option<i32> {
 }
 
 /// Cause of a native keyring failure. Only an OSStatus reported by the Security framework can
-/// say the user cancelled or was refused; any other failure, including a prompt that could not
-/// be shown, keeps the caller's `default`.
+/// say the user cancelled. An auth failure carries no evidence of a refusal: it is how an entry
+/// created by another build answers a read or write, so it follows the caller's `default`
+/// read or write. Any other failure keeps `default`.
 #[cfg(target_os = "macos")]
 pub(super) fn keyring_cause(
     error: &keyring::Error,
@@ -31,7 +32,11 @@ pub(super) fn keyring_cause(
 ) -> CredentialFailureCause {
     match keyring_os_status(error) {
         Some(ERR_SEC_USER_CANCELED) => CredentialFailureCause::Canceled,
-        Some(ERR_SEC_AUTH_FAILED) => CredentialFailureCause::NotAllowed,
+        Some(ERR_SEC_AUTH_FAILED) => match default {
+            CredentialFailureCause::ReadFailed => CredentialFailureCause::Unreadable,
+            CredentialFailureCause::WriteFailed => CredentialFailureCause::Unwritable,
+            other => other,
+        },
         _ => default,
     }
 }
@@ -64,8 +69,22 @@ mod tests {
         };
 
         assert_eq!(cause(-128), CredentialFailureCause::Canceled);
-        assert_eq!(cause(-25293), CredentialFailureCause::NotAllowed);
+        assert_eq!(cause(-25293), CredentialFailureCause::Unwritable);
         assert_eq!(cause(-50), CredentialFailureCause::WriteFailed);
+    }
+
+    #[test]
+    fn an_auth_failure_is_an_inaccessible_item_never_a_user_refusal() {
+        let error = platform_failure(-25293);
+
+        assert_eq!(
+            keyring_cause(&error, CredentialFailureCause::ReadFailed),
+            CredentialFailureCause::Unreadable
+        );
+        assert_eq!(
+            keyring_cause(&error, CredentialFailureCause::WriteFailed),
+            CredentialFailureCause::Unwritable
+        );
     }
 
     #[test]

@@ -1,5 +1,6 @@
 use super::*;
 use crate::domain::account::ConnectionVerificationStatus;
+use crate::domain::error::{CredentialFailure, CredentialTarget};
 use crate::domain::types::AccountId;
 use std::cell::{Cell, RefCell};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,6 +15,9 @@ use crate::repository::account::AccountRepository;
 struct FakeStore {
     unavailable: Cell<bool>,
     unreadable: Cell<Option<AccessStoreError>>,
+    undeletable: Cell<Option<AccessStoreError>>,
+    password_unreadable: Cell<Option<CredentialFailureCause>>,
+    password_undeletable: Cell<Option<CredentialFailureCause>>,
     password: RefCell<Option<String>>,
     access: RefCell<Option<CloudflareAccess>>,
     malformed: RefCell<Option<String>>,
@@ -66,6 +70,10 @@ impl CloudflareAccessStore for FakeStore {
         if self.unavailable.get() || self.fail("remove") {
             return Err(AccessStoreError::Unavailable);
         }
+        if let Some(error) = self.undeletable.get() {
+            return Err(error);
+        }
+        self.unreadable.set(None);
         *self.malformed.borrow_mut() = None;
         *self.access.borrow_mut() = None;
         if self.fail("remove_verify") {
@@ -112,6 +120,9 @@ impl AccountCredentialStore for FakeStore {
         if self.fail("password_read") {
             return Err(db_error());
         }
+        if let Some(cause) = self.password_unreadable.get() {
+            return Err(password_error(cause));
+        }
         Ok(self.password.borrow().clone())
     }
     fn set_password(&self, _: &str, password: &str) -> Result<(), AppError> {
@@ -125,6 +136,10 @@ impl AccountCredentialStore for FakeStore {
         Ok(())
     }
     fn delete_password(&self, _: &str) -> Result<(), AppError> {
+        if let Some(cause) = self.password_undeletable.get() {
+            return Err(password_error(cause));
+        }
+        self.password_unreadable.set(None);
         if self.unavailable.get() {
             return Err(AppError::from(DomainError::Keychain(
                 "dummy keyring unavailable".into(),
@@ -133,6 +148,13 @@ impl AccountCredentialStore for FakeStore {
         *self.password.borrow_mut() = None;
         Ok(())
     }
+}
+fn password_error(cause: CredentialFailureCause) -> AppError {
+    DomainError::CredentialStore {
+        failure: CredentialFailure::new(CredentialTarget::Password, cause),
+        message: "dummy keyring failure".into(),
+    }
+    .into()
 }
 fn account() -> Account {
     Account {
@@ -193,6 +215,7 @@ fn account_exists(db: &Mutex<DbManager>, id: &AccountId) -> bool {
 }
 
 mod failure_causes;
+mod inaccessible_previous;
 mod keychain_access;
 mod unreadable_previous;
 

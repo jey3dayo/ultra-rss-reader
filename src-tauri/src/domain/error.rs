@@ -22,6 +22,8 @@ pub enum CredentialFailureCause {
     WriteFailed,
     Canceled,
     NotAllowed,
+    Unreadable,
+    Unwritable,
     Unverified,
 }
 
