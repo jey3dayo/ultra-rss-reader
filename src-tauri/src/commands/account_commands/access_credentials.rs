@@ -335,9 +335,11 @@ pub(super) fn persist_account_credentials<T>(
         if change_access {
             access_attempted = true;
             if access_inaccessible {
-                store
+                let removed = store
                     .remove(id)
-                    .map_err(|error| store_error(error, AccessOperation::Write))?;
+                    .map_err(|error| store_error(error, AccessOperation::Write));
+                access_written = matches!(&removed, Err(error) if is_unverified(error));
+                removed?;
                 previous_access = Some(AccessSnapshot::Missing);
             }
             let written = write_access(store, id, next_access.as_ref());

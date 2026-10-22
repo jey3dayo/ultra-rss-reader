@@ -113,6 +113,17 @@ fn a_failure_after_recreating_access_rolls_back_to_the_deleted_state() {
 }
 
 #[test]
+fn an_unverified_delete_of_an_unreadable_entry_requires_recovery() {
+    let store = inaccessible_access();
+    *store.failures.borrow_mut() = vec!["remove_verify"];
+
+    let error = persist(&store, None, &replace())
+        .expect_err("a delete that cannot be verified should fail the save");
+
+    assert!(error.to_string().contains("Recovery required"));
+}
+
+#[test]
 fn replacing_the_password_recreates_an_entry_that_cannot_be_read() {
     let store = configured();
     store
