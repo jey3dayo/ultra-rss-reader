@@ -29,7 +29,7 @@ Ignore entries:
 
 - `RUSTSEC-2026-0235` — rkyv <0.8.17 (out-of-bounds reads in archives containing Rc/Arc) via `tauri-plugin-log -> byte-unit -> rust_decimal` as a disabled optional feature; `cargo tree -i rkyv --target all` prints nothing, so rkyv is never compiled. Remove once rust_decimal adopts rkyv >=0.8.17 or drops the feature; reviewed 2026-08-07.
 
-Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.
+Known dev-path advisories (2 findings: `braces` high via shadcn / markdownlint-cli2 → micromatch, with no patched release published; `katex` low via markdownlint-cli2 → micromark-extension-math, whose `^0.16` range excludes the 0.18 fix) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-10-23.
 
 ## pnpm Version Enforcement
 
