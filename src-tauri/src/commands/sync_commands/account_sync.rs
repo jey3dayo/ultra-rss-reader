@@ -14,12 +14,14 @@ use crate::commands::sync_providers::{
     repair_greader_remote_state, sync_greader_account, sync_greader_feed, sync_local_feed,
     GReaderSession, ProviderSyncOutcome, SessionError,
 };
-use crate::domain::account::Account;
+use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::feed::Feed;
 use crate::domain::provider::ProviderKind;
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::keyring_store::CredentialLookupMode;
+use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 
 use super::failure_log::{log_sync_completion, log_sync_failure, log_sync_warning, SyncTrigger};
@@ -98,7 +100,7 @@ pub(crate) async fn sync_account_with_mode(
                 elapsed_ms = auth_started_at.elapsed().as_millis() as u64,
                 "FreshRSS sync phase completed"
             );
-            let outcome = sync_greader_account(db, account, &session).await;
+            let outcome = sync_greader_account_and_confirm_connection(db, account, &session).await;
             #[cfg(target_os = "macos")]
             release_lease_after_failed_interactive_sync(mode, account, &session, &outcome);
             outcome
@@ -106,6 +108,42 @@ pub(crate) async fn sync_account_with_mode(
         ProviderKind::Quarantined => Err(AppError::UserVisible {
             message: "Account configuration is quarantined".into(),
         }),
+    }
+}
+
+pub(super) async fn sync_greader_account_and_confirm_connection(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    session: &GReaderSession,
+) -> Result<ProviderSyncOutcome, AppError> {
+    let outcome = sync_greader_account(db, account, session).await;
+    if outcome.is_ok() {
+        confirm_connection_verified(db, account);
+    }
+    outcome
+}
+
+/// Sync success proves the credentials work; failure proves nothing because credential-lookup errors share `SessionError::Auth`.
+fn confirm_connection_verified(db: &Mutex<DbManager>, account: &Account) {
+    if account.connection_verification_status == ConnectionVerificationStatus::Verified {
+        return;
+    }
+    let verified_at = chrono::Utc::now().to_rfc3339();
+    let persisted = lock_db(db).and_then(|db_guard| {
+        SqliteAccountRepository::new(db_guard.writer())
+            .update_connection_verification(
+                &account.id,
+                ConnectionVerificationStatus::Verified,
+                Some(&verified_at),
+                None,
+            )
+            .map_err(AppError::from)
+    });
+    if let Err(error) = persisted {
+        warn!(
+            account_id = %account.id.as_ref(),
+            "Failed to record verified connection after sync: {error}"
+        );
     }
 }
 
