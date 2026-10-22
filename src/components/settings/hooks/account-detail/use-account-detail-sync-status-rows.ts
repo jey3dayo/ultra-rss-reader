@@ -3,13 +3,14 @@ import { useMemo } from "react";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import type { AccountSyncStatusRow } from "@/components/settings/account-detail/sync-section-view";
 import {
+  formatAccountLastSuccessLabel,
   formatAccountSyncRetryDateTime,
   getAccountSyncErrorTranslationKey,
 } from "@/lib/account/account-sync-status-format";
 
 type AccountDetailSyncStatusTranslator =
   | TFunction<"settings">
-  | ((key: string, options?: { count?: number; message?: string }) => string);
+  | ((key: string, options?: { count?: number; message?: string; date?: string; time?: string }) => string);
 
 type AccountDetailSyncStatusRowsParams = {
   syncStatus: AccountSyncStatusDto | undefined;
@@ -30,6 +31,16 @@ export function useAccountDetailSyncStatusRows({
     }
 
     const rows: AccountDetailSyncStatusRowsResult = [];
+
+    const lastSuccess = formatAccountLastSuccessLabel(syncStatus.last_success_at ?? undefined, language);
+    if (lastSuccess) {
+      rows.push({
+        label: t("account.last_sync_success"),
+        value: lastSuccess.isToday
+          ? t("account.synced_today_at", { time: lastSuccess.time })
+          : t("account.synced_date_at", { date: lastSuccess.date, time: lastSuccess.time }),
+      });
+    }
 
     if (syncStatus.waiting_for_credential_access) {
       rows.push({

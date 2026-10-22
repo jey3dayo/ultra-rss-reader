@@ -1,8 +1,9 @@
+import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import { type CSSProperties, createContext, type ReactNode, use, useId } from "react";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
 import { ScrollArea } from "@/design-system";
-import { SETTINGS_DIVIDER_CLASS } from "./settings-surface";
+import { SETTINGS_CARD_CONTENT_INSET_CLASS, SETTINGS_DIVIDER_CLASS } from "./settings-surface";
 
 const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
 
@@ -14,12 +15,34 @@ type SettingsContentLayoutProps = {
   children: ReactNode;
   titleLayout?: "sticky-centered" | "stacked-left";
   maxWidthClassName?: string;
+  alignTitleToCardContent?: boolean;
   outerTestId?: string;
   contentTestId?: string;
   scrollBehavior?: "auto" | "always" | "never";
 };
 
 type SettingsToneVariables = CSSProperties & Record<"--section-heading-color" | "--form-row-label", string>;
+
+const stackedHeaderVariants = cva("flex min-h-[4rem] shrink-0 items-center py-0 backdrop-blur-sm", {
+  variants: {
+    alignToCardContent: {
+      true: "px-0",
+      false: "px-5 sm:px-8",
+    },
+  },
+});
+
+const stackedHeaderContentVariants = cva(
+  "flex min-h-10 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
+  {
+    variants: {
+      alignToCardContent: {
+        true: SETTINGS_CARD_CONTENT_INSET_CLASS,
+        false: "",
+      },
+    },
+  },
+);
 
 const toneVariables: SettingsToneVariables = {
   "--section-heading-color": "var(--settings-shell-section-label)",
@@ -50,6 +73,7 @@ export function SettingsContentLayout({
   children,
   titleLayout = "sticky-centered",
   maxWidthClassName,
+  alignTitleToCardContent = false,
   outerTestId,
   contentTestId,
   scrollBehavior,
@@ -100,16 +124,13 @@ export function SettingsContentLayout({
       ) : (
         <header
           data-testid="settings-content-header"
-          className={cn(
-            "flex min-h-[4rem] shrink-0 items-center px-5 py-0 backdrop-blur-sm sm:px-8",
-            SETTINGS_DIVIDER_CLASS,
-          )}
+          className={cn(stackedHeaderVariants({ alignToCardContent: alignTitleToCardContent }), SETTINGS_DIVIDER_CLASS)}
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
         >
           <div
             className={cn(
               headerContentClassName,
-              "flex min-h-10 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
+              stackedHeaderContentVariants({ alignToCardContent: alignTitleToCardContent }),
             )}
           >
             <div className="min-w-0">

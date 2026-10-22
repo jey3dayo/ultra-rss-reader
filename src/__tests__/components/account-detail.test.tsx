@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
@@ -19,7 +19,6 @@ import { useUiStore } from "@/stores/ui-store";
 type AccountDetailViewMockProps = {
   title: string;
   subtitle?: string;
-  headerSummary?: ReactNode;
   generalSection: {
     nameValue: string;
     disabled?: boolean;
@@ -104,7 +103,6 @@ vi.mock("@/components/settings/account-detail/view", () => ({
     return (
       <div>
         <h2>{props.title}</h2>
-        {props.headerSummary}
         {props.generalSection.isEditingName ? (
           <input
             aria-label="Account name"
@@ -521,6 +519,7 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
       expect(lastCall?.[0].syncSection.statusRows).toEqual([
+        expect.objectContaining({ label: "Last synced" }),
         expect.objectContaining({
           label: "Next automatic retry",
           value: expect.any(String),
@@ -737,7 +736,7 @@ describe("AccountDetail", () => {
 
     await waitFor(() => {
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
-      expect(lastCall?.[0].syncSection.statusRows).toEqual([]);
+      expect(lastCall?.[0].syncSection.statusRows).toEqual([expect.objectContaining({ label: "Last synced" })]);
     });
     expect(statusCallCount).toBeGreaterThanOrEqual(2);
   });
@@ -1377,36 +1376,16 @@ describe("AccountDetail", () => {
     });
   });
 
-  it("shows the persisted connection summary for a verified FreshRSS account", async () => {
+  it("lists the last successful sync in the sync section without a header connection status", async () => {
     const now = new Date();
     const localTodayAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 1, 6).toISOString();
 
     setupTauriMocks((cmd) => {
       switch (cmd) {
         case "list_accounts":
-          return [
-            {
-              id: "acc-1",
-              kind: "FreshRss",
-              name: "FreshRSS",
-              username: "user",
-              server_url: "https://freshrss.example.com",
-              sync_interval_secs: 3600,
-              sync_on_startup: true,
-              sync_on_wake: false,
-              keep_read_items_days: 30,
-              connection_verification_status: "verified",
-              connection_verified_at: "2026-04-19T05:32:00Z",
-              connection_verification_error: null,
-            },
-          ];
+          return [buildFreshRssAccountFixture({ connection_verification_status: "verified" })];
         case "get_account_sync_status":
-          return {
-            last_success_at: localTodayAt,
-            last_error: null,
-            error_count: 0,
-            next_retry_at: null,
-          };
+          return { last_success_at: localTodayAt, last_error: null, error_count: 0, next_retry_at: null };
         default:
           return undefined;
       }
@@ -1414,50 +1393,9 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    expect(await screen.findByTestId("account-connection-summary")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByText("Verified")).toBeInTheDocument();
-      expect(screen.getByText("Today 01:06")).toBeInTheDocument();
-    });
-  });
-
-  it("shows an auth-failure summary when verification has never succeeded", async () => {
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_accounts":
-          return [
-            {
-              id: "acc-1",
-              kind: "FreshRss",
-              name: "FreshRSS",
-              username: "user",
-              server_url: "https://freshrss.example.com",
-              sync_interval_secs: 3600,
-              sync_on_startup: true,
-              sync_on_wake: false,
-              keep_read_items_days: 30,
-              connection_verification_status: "error",
-              connection_verified_at: null,
-              connection_verification_error: "Authentication failed",
-            },
-          ];
-        case "get_account_sync_status":
-          return {
-            last_success_at: null,
-            last_error: null,
-            error_count: 0,
-            next_retry_at: null,
-          };
-        default:
-          return undefined;
-      }
-    });
-
-    render(<AccountDetail />, { wrapper: createWrapper() });
-
-    expect(await screen.findByTestId("account-connection-summary")).toBeInTheDocument();
-    expect(screen.getByText("Unauthorized")).toBeInTheDocument();
-    expect(screen.getByText("Authentication failed")).toBeInTheDocument();
+    expect(await screen.findByText("Last synced")).toBeInTheDocument();
+    expect(screen.getByText("Today 01:06")).toBeInTheDocument();
+    expect(screen.queryByText("Verified")).not.toBeInTheDocument();
   });
 
   const pastSyncSuccessAt = "2020-01-06T01:06:00Z";
@@ -1488,41 +1426,127 @@ describe("AccountDetail", () => {
     };
   }
 
-  it.each([
-    {
-      name: "synced on a past date",
-      verificationOverrides: {
-        connection_verification_status: "verified" as const,
-        connection_verified_at: "2026-04-19T05:32:00Z",
-        connection_verification_error: null,
-      },
-      syncStatus: { last_success_at: pastSyncSuccessAt, last_error: null },
-      expectedStatusLabel: "Verified",
-      expectedDetail: pastSyncSuccessDetail,
-    },
-    {
-      name: "fetch-failed when unverified and the last sync errored",
-      verificationOverrides: {},
-      syncStatus: { last_success_at: null, last_error: "Network timeout" },
-      expectedStatusLabel: "Unverified",
-      expectedDetail: "Fetching failed",
-    },
-    {
-      name: "not-fetched when unverified and nothing has synced",
-      verificationOverrides: {},
-      syncStatus: { last_success_at: null, last_error: null },
-      expectedStatusLabel: "Unverified",
-      expectedDetail: "Nothing has been fetched yet",
-    },
-  ])(
-    "shows the connection summary detail: $name",
-    async ({ verificationOverrides, syncStatus, expectedStatusLabel, expectedDetail }) => {
+  it("lists a past last successful sync with its date", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [buildFreshRssAccountFixture({ connection_verification_status: "verified" })];
+        case "get_account_sync_status":
+          return { last_success_at: pastSyncSuccessAt, last_error: null, error_count: 0, next_retry_at: null };
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Last synced")).toBeInTheDocument();
+    expect(screen.getByText(pastSyncSuccessDetail)).toBeInTheDocument();
+  });
+
+  it("omits the last synced row when nothing has synced yet but other status rows load", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [buildFreshRssAccountFixture({})];
+        case "get_account_sync_status":
+          return { last_success_at: null, last_error: null, error_count: 2, next_retry_at: null };
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Consecutive sync failures")).toBeInTheDocument();
+    expect(screen.queryByText("Last synced")).not.toBeInTheDocument();
+  });
+
+  it("lists the last successful sync for a Local account", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "Local",
+              name: "Local",
+              username: null,
+              server_url: null,
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "get_account_sync_status":
+          return { last_success_at: pastSyncSuccessAt, last_error: null, error_count: 0, next_retry_at: null };
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Last synced")).toBeInTheDocument();
+    expect(screen.getByText(pastSyncSuccessDetail)).toBeInTheDocument();
+  });
+
+  it("shows the stored authentication failure in the server section after a failed verification", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            buildFreshRssAccountFixture({
+              connection_verification_status: "error",
+              connection_verified_at: null,
+              connection_verification_error: "Authentication failed",
+            }),
+          ];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Authentication failed");
+    expect(within(notice).getByRole("button", { name: "Retry Check" })).toBeInTheDocument();
+  });
+
+  it("lets a current Cloudflare Access failure replace the stored authentication failure notice", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            buildFreshRssAccountFixture({
+              connection_verification_status: "error",
+              connection_verified_at: null,
+              connection_verification_error: "Authentication failed",
+            }),
+          ];
+        case "get_account_cloudflare_access":
+          throw new Error("keychain read failed");
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).not.toHaveTextContent("Authentication failed");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+  });
+
+  it.each(["verified", "unverified"] as const)(
+    "shows no authentication failure notice for a %s account",
+    async (status) => {
       setupTauriMocks((cmd) => {
         switch (cmd) {
           case "list_accounts":
-            return [buildFreshRssAccountFixture(verificationOverrides)];
-          case "get_account_sync_status":
-            return { ...syncStatus, error_count: 0, next_retry_at: null };
+            return [buildFreshRssAccountFixture({ connection_verification_status: status })];
           default:
             return undefined;
         }
@@ -1530,9 +1554,8 @@ describe("AccountDetail", () => {
 
       render(<AccountDetail />, { wrapper: createWrapper() });
 
-      expect(await screen.findByTestId("account-connection-summary")).toBeInTheDocument();
-      expect(await screen.findByText(expectedStatusLabel)).toBeInTheDocument();
-      expect(await screen.findByText(expectedDetail)).toBeInTheDocument();
+      await screen.findByRole("button", { name: "Enable startup sync" });
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     },
   );
 

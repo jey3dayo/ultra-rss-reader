@@ -1,3 +1,4 @@
+mod connection_verification;
 mod finish_plan;
 mod interactive_lease;
 mod local_sync;

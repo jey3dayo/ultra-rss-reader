@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { BookOpen, Palette, Settings, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountActionBar } from "@/components/settings/account-detail/account-action-bar";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import { AccountDetailView } from "@/components/settings/account-detail/view";
@@ -11,11 +10,7 @@ import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsShellSectionLabel } from "@/components/settings/shared/settings-shell-section-label";
 import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
-import {
-  AnnotatedNote,
-  ReferencePage,
-  SettingsHeaderSummarySpecimen,
-} from "@/components/storybook/ui-reference-settings-specimens";
+import { AnnotatedNote, ReferencePage } from "@/components/storybook/ui-reference-settings-specimens";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 
 const settingsNavItems = [
@@ -182,7 +177,6 @@ export function SettingsWorkspaceCanvas() {
               <SettingsActionButton>Open log directory</SettingsActionButton>
             </div>
           </div>
-          <SettingsHeaderSummarySpecimen />
 
           <div className="grid gap-6">
             <div className="space-y-3">
@@ -202,9 +196,6 @@ export function SettingsWorkspaceCanvas() {
                 content={
                   <AccountDetailView
                     title="Development"
-                    headerSummary={
-                      <AccountConnectionSummary statusLabel="Verified" statusTone="success" detail="Today 12:55" />
-                    }
                     generalSection={{
                       heading: "General",
                       nameLabel: "Description",

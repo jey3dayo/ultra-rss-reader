@@ -153,18 +153,16 @@ describe("Storybook viewport density fixtures", () => {
     );
   });
 
-  it("keeps the account detail dense fixtures focused on localized error and disabled controls", () => {
+  it("keeps the account detail dense fixtures focused on long localized labels and disabled controls", () => {
     expect(AccountDetailJapaneseLongLabelsDense.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
     expect(AccountDetailDenseA11yDisabledState.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
 
     cleanup();
     renderStory(accountDetailMeta, AccountDetailJapaneseLongLabelsDense);
-    expect(screen.getByText("再試行を待機中")).toBeInTheDocument();
     expect(screen.getByText("個人用FreshRSS長い表示名の検証アカウント")).toBeInTheDocument();
 
     cleanup();
     renderStory(accountDetailMeta, AccountDetailDenseA11yDisabledState);
-    expect(screen.getByText("接続できません")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Syncing" })).toBeDisabled();
   });
 });

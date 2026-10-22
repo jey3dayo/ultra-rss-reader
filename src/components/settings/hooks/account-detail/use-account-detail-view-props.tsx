@@ -11,7 +11,6 @@ import { buildAccountActionBar } from "./build-account-action-bar";
 import { buildCredentialsSection } from "./build-credentials-section";
 import { buildDangerZoneSection } from "./build-danger-zone-section";
 import { buildGeneralSection } from "./build-general-section";
-import { buildHeaderSummary } from "./build-header-summary";
 import { buildSyncSection } from "./build-sync-section";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";
 
@@ -21,7 +20,6 @@ type AccountDetailViewPropsParams = {
   isSyncing: boolean;
   syncStatus: AccountSyncStatusDto | undefined;
   syncStatusRows: AccountSyncStatusRow[];
-  language: string;
   t: TFunction<"settings">;
   canRecoverDevCredentialsStore: boolean;
   accountSetupState?: AccountSetupSessionState | null;
@@ -30,14 +28,7 @@ type AccountDetailViewPropsParams = {
 
 type AccountDetailViewPropsResult = Pick<
   AccountDetailViewProps,
-  | "title"
-  | "subtitle"
-  | "headerSummary"
-  | "generalSection"
-  | "credentialsSection"
-  | "syncSection"
-  | "dangerZone"
-  | "footer"
+  "title" | "subtitle" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone" | "footer"
 >;
 
 function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunction<"settings">): string | null {
@@ -60,7 +51,6 @@ export function useAccountDetailViewProps({
   isSyncing,
   syncStatus,
   syncStatusRows,
-  language,
   t,
   canRecoverDevCredentialsStore,
   accountSetupState,
@@ -72,13 +62,10 @@ export function useAccountDetailViewProps({
   const isSetupActive = isSetupSyncing || isSetupFailed;
   const quarantineReason = resolveAccountQuarantineReason(account, t);
   const isQuarantined = quarantineReason !== null;
-  const verificationStatus = account.connection_verification_status ?? "unverified";
-  const headerSummary = buildHeaderSummary({ account, verificationStatus, syncStatus, language, t });
 
   return {
     title: account.name,
     subtitle: quarantineReason ?? undefined,
-    headerSummary,
     generalSection: buildGeneralSection({
       account,
       controller,

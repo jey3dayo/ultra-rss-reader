@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { ReactNode } from "react";
+import type { CredentialFailureNoticeViewModel } from "@/components/settings/account-detail/credential-failure-notice-view";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import { ChangedFieldIndicator } from "@/components/settings/shared/changed-field-indicator";
@@ -42,9 +43,18 @@ export function buildCredentialsSection({
         (controller.cloudflareAccessStatus === "error"
           ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
           : null));
+  const persistedAuthFailureNotice: CredentialFailureNoticeViewModel | undefined =
+    account.connection_verification_status === "error" && cloudflareAccessFailure === null
+      ? {
+          lines: [t("account.connection_auth_failed_summary")],
+          retryLabel: t("account.credential_retry.check"),
+          onRetry: () => void controller.handleTestConnection(),
+          retryDisabled: controller.testingConnection,
+        }
+      : undefined;
   const passwordFailureNotice =
     passwordFailure === null
-      ? undefined
+      ? persistedAuthFailureNotice
       : buildCredentialFailureNotice(passwordFailure, credentialStoreKind, t, controller);
   const cloudflareAccessFailureNotice =
     cloudflareAccessFailure === null
