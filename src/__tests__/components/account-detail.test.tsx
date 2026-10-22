@@ -1515,6 +1515,31 @@ describe("AccountDetail", () => {
     expect(within(notice).getByRole("button", { name: "Retry Check" })).toBeInTheDocument();
   });
 
+  it("lets a current Cloudflare Access failure replace the stored authentication failure notice", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            buildFreshRssAccountFixture({
+              connection_verification_status: "error",
+              connection_verified_at: null,
+              connection_verification_error: "Authentication failed",
+            }),
+          ];
+        case "get_account_cloudflare_access":
+          throw new Error("keychain read failed");
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).not.toHaveTextContent("Authentication failed");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+  });
+
   it.each(["verified", "unverified"] as const)(
     "shows no authentication failure notice for a %s account",
     async (status) => {

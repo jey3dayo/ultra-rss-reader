@@ -44,7 +44,7 @@ export function buildCredentialsSection({
           ? ({ target: "cloudflare_access", cause: "read_failed", operation: "load" } as const)
           : null));
   const persistedAuthFailureNotice: CredentialFailureNoticeViewModel | undefined =
-    account.connection_verification_status === "error"
+    account.connection_verification_status === "error" && cloudflareAccessFailure === null
       ? {
           lines: [t("account.connection_auth_failed_summary")],
           retryLabel: t("account.credential_retry.check"),
