@@ -2,16 +2,19 @@ import { createAccountDetailControllerStub } from "@tests/helpers/account-detail
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import { type ComponentProps, isValidElement } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 import { buildCredentialsSection } from "@/components/settings/hooks/account-detail/build-credentials-section";
 import type { AccountDetailControllerResult } from "@/components/settings/hooks/account-detail/use-account-detail-controller";
 
 type SectionProps = ComponentProps<typeof AccountCredentialsSectionView>;
 
-function sectionProps(overrides: Partial<AccountDetailControllerResult>): SectionProps {
+function sectionProps(
+  overrides: Partial<AccountDetailControllerResult>,
+  verificationStatus?: "verified" | "unverified" | "error",
+): SectionProps {
   const section = buildCredentialsSection({
-    account: { ...sampleAccounts[1], kind: "FreshRss" },
+    account: { ...sampleAccounts[1], kind: "FreshRss", connection_verification_status: verificationStatus },
     controller: createAccountDetailControllerStub(overrides),
     t: i18n.getFixedT("en", "settings"),
     isSetupSyncing: false,
@@ -62,5 +65,38 @@ describe("buildCredentialsSection failure notices", () => {
 
     expect(props.passwordFailureNotice).toBeUndefined();
     expect(props.cloudflareAccess?.failureNotice?.retryLabel).toBe("Retry Save");
+  });
+});
+
+describe("buildCredentialsSection persisted auth failure", () => {
+  it("shows the stored authentication failure with a check retry when the last verification failed", () => {
+    const handleTestConnection = vi.fn(async () => true);
+    const props = sectionProps({ handleTestConnection, testingConnection: true }, "error");
+
+    expect(props.passwordFailureNotice?.lines).toEqual(["Authentication failed"]);
+    expect(props.passwordFailureNotice?.retryLabel).toBe("Retry Check");
+    expect(props.passwordFailureNotice?.retryDisabled).toBe(true);
+
+    props.passwordFailureNotice?.onRetry();
+    expect(handleTestConnection).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["verified", "unverified", undefined] as const)(
+    "shows no failure notice when the verification status is %s",
+    (status) => {
+      expect(sectionProps({}, status).passwordFailureNotice).toBeUndefined();
+    },
+  );
+
+  it("lets a failure from this session replace the stored authentication failure", () => {
+    const props = sectionProps(
+      { credentialFailure: { target: "password", cause: "canceled", operation: "save" } },
+      "error",
+    );
+
+    expect(props.passwordFailureNotice?.lines).toEqual([
+      "Access to Keychain was canceled. To continue, try again and allow access.",
+      "Your changes are still in the form.",
+    ]);
   });
 });

@@ -46,7 +46,7 @@ export function AccountActionBar({
 
   if (showUnsavedMode) {
     return (
-      <SettingsActionBarShell testId="account-action-bar" label={message} message={message}>
+      <SettingsActionBarShell testId="account-action-bar" label={message} message={message} alignment="card-controls">
         <FormActionButtons
           cancelLabel={discardLabel}
           submitLabel={saveAndTestLabel}
@@ -61,7 +61,7 @@ export function AccountActionBar({
   }
 
   return (
-    <SettingsActionBarShell testId="account-action-bar" label={testConnectionLabel}>
+    <SettingsActionBarShell testId="account-action-bar" label={testConnectionLabel} alignment="card-controls">
       <SettingsLoadingActionButton
         size="compact"
         onClick={onTestConnection}

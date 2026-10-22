@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useEffect } from "react";
 import { fn } from "storybook/test";
 import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
-import { AccountConnectionSummary } from "../account-connection-summary";
 import { AccountActionBar } from "./account-action-bar";
 import { AccountCredentialsSectionView } from "./credentials-section-view";
 import { AccountDetailView } from "./view";
@@ -54,7 +53,6 @@ const meta = {
   args: {
     title: "Personal FreshRSS",
     subtitle: "FreshRSS",
-    headerSummary: <AccountConnectionSummary statusLabel="Verified" statusTone="success" detail="Today 01:06" />,
     generalSection: {
       heading: "General",
       nameLabel: "Description",
@@ -147,7 +145,6 @@ export const ActionSuccessFeedback: Story = {
   args: {
     title: "個人用FreshRSS",
     subtitle: "FreshRSS",
-    headerSummary: <AccountConnectionSummary statusLabel="接続確認済み" statusTone="success" detail="今日 01:06" />,
     generalSection: {
       ...meta.args.generalSection,
       heading: "基本情報",
@@ -243,44 +240,11 @@ export const ConfirmingDelete: Story = {
   },
 };
 
-export const WarningSummary: Story = {
-  args: {
-    headerSummary: (
-      <AccountConnectionSummary
-        statusLabel="Retry scheduled"
-        statusTone="warning"
-        detail="Network timeout while contacting FreshRSS"
-      />
-    ),
-  },
-};
-
-export const DangerSummary: Story = {
-  args: {
-    headerSummary: (
-      <AccountConnectionSummary statusLabel="Connection failed" statusTone="danger" detail="Credentials rejected" />
-    ),
-  },
-};
-
-export const SummaryWithoutDetail: Story = {
-  args: {
-    headerSummary: <AccountConnectionSummary statusLabel="Verified" statusTone="success" />,
-  },
-};
-
 export const JapaneseLongLabelsDense: Story = {
   parameters: denseNarrowViewportParameters,
   args: {
     title: "個人用FreshRSS長い表示名の検証アカウント",
     subtitle: "FreshRSS接続設定",
-    headerSummary: (
-      <AccountConnectionSummary
-        statusLabel="再試行を待機中"
-        statusTone="warning"
-        detail="FreshRSSサーバーへの接続がタイムアウトしたため、次回の自動同期で再試行します"
-      />
-    ),
     generalSection: {
       ...meta.args.generalSection,
       heading: "基本情報",
@@ -355,9 +319,6 @@ export const DenseA11yDisabledState: Story = {
   parameters: denseNarrowViewportParameters,
   args: {
     title: "FreshRSS",
-    headerSummary: (
-      <AccountConnectionSummary statusLabel="接続できません" statusTone="danger" detail="認証情報が拒否されました" />
-    ),
     generalSection: {
       ...meta.args.generalSection,
       disabled: true,

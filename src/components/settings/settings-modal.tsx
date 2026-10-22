@@ -91,7 +91,6 @@ function SnapshotBackedAccountDetail({
     isSyncing,
     syncStatus: syncStatusQuery.data,
     syncStatusRows,
-    language: i18n.language,
     t,
     canRecoverDevCredentialsStore: platformLoaded && !platformLoadError && usesDevFileCredentials,
   });

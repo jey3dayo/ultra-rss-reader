@@ -1,6 +1,5 @@
 import { cn } from "cn";
 import { useState } from "react";
-import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import {
@@ -384,34 +383,6 @@ export function DisabledSwitchSpecimen() {
       </div>
       <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
         利用予定だが今は無効、という状態の見本。注記と disabled control を同時に見せる。
-      </p>
-    </SurfaceCard>
-  );
-}
-
-export function SettingsHeaderSummarySpecimen() {
-  return (
-    <SurfaceCard variant="section">
-      <SectionHeading className="mb-2">Settings header summary</SectionHeading>
-      <div
-        data-testid="reference-settings-header-summary-frame"
-        className="grid gap-3 rounded-md border border-border/70 bg-card/30 p-3 shadow-none lg:grid-cols-3"
-      >
-        <div className="rounded-md border border-border/70 bg-background/88 p-3">
-          <p className="mb-3 font-sans text-[20px] tracking-[-0.03em] text-foreground">FreshRSS</p>
-          <AccountConnectionSummary statusLabel="確認済み" statusTone="success" detail="今日 01:06" />
-        </div>
-        <div className="rounded-md border border-border/70 bg-background/88 p-3">
-          <p className="mb-3 font-sans text-[20px] tracking-[-0.03em] text-foreground">FreshRSS</p>
-          <AccountConnectionSummary statusLabel="未確認" statusTone="warning" detail="まだ取得できていません" />
-        </div>
-        <div className="rounded-md border border-border/70 bg-background/88 p-3">
-          <p className="mb-3 font-sans text-[20px] tracking-[-0.03em] text-foreground">FreshRSS</p>
-          <AccountConnectionSummary statusLabel="未認証" statusTone="danger" detail="認証に失敗しています" />
-        </div>
-      </div>
-      <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
-        settings の見出し右で account status を要約する見本。入力行ではなく header-level summary として扱う。
       </p>
     </SurfaceCard>
   );

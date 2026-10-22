@@ -40,7 +40,6 @@ export const UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS = [
   "reference-workspace-two-pane-detail",
   "reference-announcement-card-pending",
   "reference-announcement-card-decided",
-  "reference-settings-header-summary-frame",
   "reference-settings-workspace-detail-shell",
   "reference-settings-workspace-add-shell",
 ] as const;

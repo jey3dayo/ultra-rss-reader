@@ -8,6 +8,7 @@ export type InvalidateFeedQueriesOptions = {
   includeFolders?: boolean;
   includeAccountUnreadCount?: boolean;
   includeLocalFeedSyncStatuses?: boolean;
+  includeAccounts?: boolean;
 };
 
 export type InvalidateArticleQueriesOptions = {
@@ -120,6 +121,11 @@ export const FEED_INVALIDATION_TARGETS = [
     option: "includeLocalFeedSyncStatuses",
     defaultEnabled: false,
     queryKeys: [queryKeys.localFeedSyncStatuses.root],
+  },
+  {
+    option: "includeAccounts",
+    defaultEnabled: false,
+    queryKeys: [queryKeys.accounts.root],
   },
 ] as const satisfies ReadonlyArray<InvalidationTarget<keyof InvalidateFeedQueriesOptions>>;
 
@@ -325,7 +331,12 @@ export const QUERY_INVALIDATION_INTENT_MATRIX: Record<QueryInvalidationIntent, Q
   },
   "account-sync-now-articles": {
     actionOwner: "account-sync-now",
-    queryKeys: [queryKeys.feeds.root, queryKeys.articles.root, queryKeys.localFeedSyncStatuses.root],
+    queryKeys: [
+      queryKeys.feeds.root,
+      queryKeys.articles.root,
+      queryKeys.localFeedSyncStatuses.root,
+      queryKeys.accounts.root,
+    ],
   },
   "feed-edit-changed": {
     actionOwner: "feed-edit",

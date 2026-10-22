@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
+import { SETTINGS_DETAIL_MAX_WIDTH_CLASS } from "@/components/settings/shared/settings-surface";
 import { AccountDangerZoneView } from "./danger-zone-view";
 import { AccountGeneralSectionView } from "./general-section-view";
 import { AccountSyncSectionView } from "./sync-section-view";
@@ -7,7 +8,6 @@ import { AccountSyncSectionView } from "./sync-section-view";
 export type AccountDetailViewProps = {
   title: string;
   subtitle?: string;
-  headerSummary?: ReactNode;
   generalSection: ComponentProps<typeof AccountGeneralSectionView>;
   credentialsSection?: ReactNode;
   syncSection: ComponentProps<typeof AccountSyncSectionView>;
@@ -18,7 +18,6 @@ export type AccountDetailViewProps = {
 export function AccountDetailView({
   title,
   subtitle,
-  headerSummary,
   generalSection,
   credentialsSection,
   syncSection,
@@ -29,10 +28,10 @@ export function AccountDetailView({
     <SettingsContentLayout
       title={title}
       subtitle={subtitle}
-      headerSummary={headerSummary}
       footer={footer}
       titleLayout="stacked-left"
-      maxWidthClassName="max-w-[640px]"
+      maxWidthClassName={SETTINGS_DETAIL_MAX_WIDTH_CLASS}
+      alignTitleToCardContent
       contentTestId="account-detail-layout"
     >
       <AccountGeneralSectionView {...generalSection} />
