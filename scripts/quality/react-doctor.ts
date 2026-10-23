@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import * as v from "valibot";
-import { reactDoctorBaselines, reactDoctorFullScanTriageStatus } from "./react-doctor-triage.ts";
 import type { ReactDoctorDiagnostic, ReactDoctorSummary } from "./react-doctor-schemas.ts";
 import { parseReactDoctorDiagnostics, reactDoctorReportSchema } from "./react-doctor-schemas.ts";
+import { reactDoctorBaselines, reactDoctorFullScanTriageStatus } from "./react-doctor-triage.ts";
 import type { QualityToolDiagnostic } from "./tool-process.ts";
 import {
   createProcessDiagnostic,
