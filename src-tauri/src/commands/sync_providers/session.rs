@@ -21,7 +21,10 @@ pub(crate) struct GReaderSession {
 pub(crate) enum SessionError {
     MissingUsername,
     MissingServerUrl,
+    /// Server rejected the login or the request.
     Auth(AppError),
+    /// Local credential store (Keychain / session cache) failed before any server was contacted.
+    Credential(AppError),
 }
 
 impl GReaderSession {
@@ -58,7 +61,7 @@ impl GReaderSession {
         }
         #[cfg(target_os = "macos")]
         let generation = keyring_store::session_cache::invalidate(account.id.as_ref())
-            .map_err(|error| SessionError::Auth(error.into()))?;
+            .map_err(|error| SessionError::Credential(error.into()))?;
         let account_id = account.id.as_ref().to_string();
         // Dev builds only: Cloudflare Access is not in the dev file store, so it still reads the
         // OS Keychain and may prompt, as before leases existed.
@@ -83,7 +86,7 @@ impl GReaderSession {
                 .map_err(crate::domain::error::DomainError::from)
             })
             .await
-            .map_err(|error| SessionError::Auth(error.into()))?;
+            .map_err(|error| SessionError::Credential(error.into()))?;
         #[cfg(target_os = "macos")]
         let cached_access = access.clone();
         let provider = Self::provider_with_access(server_url, Ok(access)).await?;
@@ -93,7 +96,7 @@ impl GReaderSession {
                 super::get_greader_password_interactive(account).await
             }
         }
-        .map_err(SessionError::Auth)?;
+        .map_err(SessionError::Credential)?;
 
         #[cfg(target_os = "macos")]
         let credentials = keyring_store::session_cache::SessionCredentials {
@@ -114,7 +117,7 @@ impl GReaderSession {
         >,
     ) -> Result<GReaderProvider, SessionError> {
         let access = access.map_err(|error| {
-            SessionError::Auth(crate::domain::error::DomainError::from(error).into())
+            SessionError::Credential(crate::domain::error::DomainError::from(error).into())
         })?;
         GReaderProvider::try_for_freshrss_with_access_async(server_url, access)
             .await
@@ -139,7 +142,7 @@ impl GReaderSession {
         credentials: keyring_store::session_cache::SessionCredentials,
     ) -> Result<Self, SessionError> {
         keyring_store::session_cache::grant(account, generation, credentials)
-            .map_err(|error| SessionError::Auth(error.into()))?;
+            .map_err(|error| SessionError::Credential(error.into()))?;
         Ok(Self {
             lease_generation: Some(generation),
             ..self
@@ -156,7 +159,7 @@ impl SessionError {
             Self::MissingServerUrl => AppError::UserVisible {
                 message: "FreshRSS server URL is required".to_string(),
             },
-            Self::Auth(error) => error,
+            Self::Auth(error) | Self::Credential(error) => error,
         }
     }
 
@@ -170,7 +173,7 @@ impl SessionError {
                 "GReader account {} has no server URL, skipping",
                 account.id.as_ref()
             ),
-            Self::Auth(_) => {}
+            Self::Auth(_) | Self::Credential(_) => {}
         }
     }
 
@@ -184,7 +187,7 @@ impl SessionError {
                 "GReader account {} has no server URL, skipping {context}",
                 account.id.as_ref()
             ),
-            Self::Auth(_) => {}
+            Self::Auth(_) | Self::Credential(_) => {}
         }
     }
 }
@@ -334,7 +337,7 @@ mod tests {
         )
         .await;
         for error in [unavailable, malformed] {
-            assert!(matches!(error, Err(SessionError::Auth(_))));
+            assert!(matches!(error, Err(SessionError::Credential(_))));
         }
         let access = CloudflareAccess::new("dummy-id", "cfast_dummy", "https://localhost").unwrap();
         assert!(matches!(
