@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import * as v from "valibot";
 import { describe, expect, it } from "vitest";
 import {
   buildMaterializedScanCommandArgs,
@@ -16,10 +17,10 @@ import {
   findWarningFamilyCountMismatches,
   parseCommandTokens,
   parseComplexityClassificationRecordRows,
-  parseReactDoctorScanReport,
   type ReactDoctorScanDiagnostic,
   sumWarningFamilyCounts,
 } from "../../../scripts/check-react-doctor-pin-consistency.ts";
+import { reactDoctorPinSchema, updateReactDoctorPin } from "../../../scripts/quality/react-doctor-schemas.ts";
 import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
 
 const complexityRule = "no-high-complexity-react-function";
@@ -312,45 +313,6 @@ describe("check-react-doctor-pin-consistency", () => {
     });
   });
 
-  describe("parseReactDoctorScanReport", () => {
-    it("parses version, summary and diagnostics from JSON", () => {
-      const stdout = JSON.stringify({
-        version: "0.9.14",
-        summary: { errorCount: 1, warningCount: 2, affectedFileCount: 3 },
-        diagnostics: [{ rule: "rule-a", severity: "warning", normalizedFilePath: "a.tsx", message: "msg" }],
-      });
-      const report = parseReactDoctorScanReport(stdout);
-      expect(report.version).toBe("0.9.14");
-      expect(report.summary).toEqual({ errorCount: 1, warningCount: 2, affectedFileCount: 3 });
-      expect(report.diagnostics).toEqual([
-        { rule: "rule-a", severity: "warning", normalizedFilePath: "a.tsx", message: "msg" },
-      ]);
-    });
-
-    it("reads the report when react-doctor prints log lines before it", () => {
-      const report = {
-        version: "0.9.14",
-        summary: { errorCount: 0, warningCount: 1, affectedFileCount: 1 },
-        diagnostics: [{ rule: "rule-a", severity: "warning", normalizedFilePath: "a.tsx", message: "msg" }],
-      };
-      const stdout = `oxlint-plugin-react-doctor 0.9.14\n{"level":"info","msg":"scanning"}\n${JSON.stringify(report)}`;
-
-      expect(parseReactDoctorScanReport(stdout).summary.warningCount).toBe(1);
-    });
-
-    it("throws on a report missing summary", () => {
-      expect(() => parseReactDoctorScanReport(JSON.stringify({ version: "0.9.14", diagnostics: [] }))).toThrow();
-    });
-
-    it("throws on a report missing diagnostics", () => {
-      expect(() =>
-        parseReactDoctorScanReport(
-          JSON.stringify({ version: "0.9.14", summary: { errorCount: 0, warningCount: 0, affectedFileCount: 0 } }),
-        ),
-      ).toThrow();
-    });
-  });
-
   describe("checkAncestry", () => {
     it("passes when the resolved commit is an ancestor of origin/main", () => {
       expect(checkAncestry("742a6919b", "742a6919babc", true)).toBeNull();
@@ -425,7 +387,6 @@ describe("check-react-doctor-pin-consistency", () => {
   });
 
   it("preserves metadata fields (like description) when re-pinning", () => {
-    // Simulate the repin logic: read original JSON, update measured values, preserve metadata
     const originalJson = {
       $schema: "https://json-schema.org/draft-07/schema#",
       description: "React Doctor baseline pin: machine-generated measurement values",
@@ -438,27 +399,52 @@ describe("check-react-doctor-pin-consistency", () => {
       auditWarningCount: 20,
     };
 
-    // Simulate update
-    const updatedPin = {
-      ...originalJson,
-      $schema: undefined, // Remove $schema as it's meaningless
+    const updatedPin = updateReactDoctorPin(originalJson, {
       pluginVersion: "0.9.18",
-      full: {
-        score: null,
+      fullSummary: {
         errorCount: 2,
         warningCount: 15,
         affectedFileCount: 15,
       },
       auditWarningCount: 25,
-    };
-    delete updatedPin.$schema;
+    });
 
     // Verify description is preserved and $schema is removed
     expect(updatedPin.description).toBe("React Doctor baseline pin: machine-generated measurement values");
     expect(updatedPin.$schema).toBeUndefined();
     expect(updatedPin.pluginVersion).toBe("0.9.18");
-    expect(updatedPin.full.errorCount).toBe(2);
-    expect(updatedPin.full.warningCount).toBe(15);
+    expect((updatedPin.full as { errorCount: number }).errorCount).toBe(2);
+    expect((updatedPin.full as { warningCount: number }).warningCount).toBe(15);
     expect(updatedPin.auditWarningCount).toBe(25);
+  });
+
+  it("rejects negative counts in pin schema", () => {
+    const invalidPin = {
+      description: "test",
+      scanSha: "abc123",
+      pluginVersion: "0.9.18",
+      scanCommand: "react-doctor . --verbose",
+      diff: { score: null, errorCount: 0, warningCount: 0, affectedFileCount: 0 },
+      full: { score: null, errorCount: -1, warningCount: 10, affectedFileCount: 10 },
+      auditScanCommand: "react-doctor . --no-respect-inline-disables",
+      auditWarningCount: 20,
+    };
+
+    expect(() => v.parse(reactDoctorPinSchema, invalidPin)).toThrow();
+  });
+
+  it("rejects non-integer counts in pin schema", () => {
+    const invalidPin = {
+      description: "test",
+      scanSha: "abc123",
+      pluginVersion: "0.9.18",
+      scanCommand: "react-doctor . --verbose",
+      diff: { score: null, errorCount: 0, warningCount: 0, affectedFileCount: 0 },
+      full: { score: null, errorCount: 1.5, warningCount: 10, affectedFileCount: 10 },
+      auditScanCommand: "react-doctor . --no-respect-inline-disables",
+      auditWarningCount: 20,
+    };
+
+    expect(() => v.parse(reactDoctorPinSchema, invalidPin)).toThrow();
   });
 });

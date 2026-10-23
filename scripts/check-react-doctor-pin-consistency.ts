@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import * as v from "valibot";
 import type { ReactDoctorPin } from "./quality/react-doctor-schemas.ts";
-import { reactDoctorPinSchema } from "./quality/react-doctor-schemas.ts";
-import { reactDoctorFullScanTriageStatus, readJsonPayloads } from "./quality-baseline.ts";
+import { reactDoctorPinSchema, updateReactDoctorPin } from "./quality/react-doctor-schemas.ts";
+import { reactDoctorFullScanTriageStatus } from "./quality-baseline.ts";
 
 const reactDoctorPinPath = "scripts/quality/react-doctor-pin.json";
 const scanTimeoutMs = 180_000;
@@ -33,82 +33,6 @@ export type ReactDoctorScanReport = {
   };
   diagnostics: ReactDoctorScanDiagnostic[];
 };
-
-// react-doctor can print log lines before the report; reuse quality-baseline.ts's
-// brace-balancing payload reader rather than parsing stdout whole.
-export function parseReactDoctorScanReport(stdout: string): ReactDoctorScanReport {
-  let lastError: unknown;
-  for (const payload of readJsonPayloads(stdout)) {
-    try {
-      return parseReactDoctorScanReportPayload(payload);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw new Error(
-    `react-doctor output contained no report object${lastError instanceof Error ? `: ${lastError.message}` : "."}`,
-  );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function parseReactDoctorScanReportPayload(payload: string): ReactDoctorScanReport {
-  const parsed: unknown = JSON.parse(payload);
-  if (!isRecord(parsed)) {
-    throw new Error("react-doctor did not return a JSON object.");
-  }
-
-  const summary = parsed.summary;
-  if (!isRecord(summary)) {
-    throw new Error("react-doctor report is missing summary.");
-  }
-
-  const diagnostics = parsed.diagnostics;
-  if (!Array.isArray(diagnostics)) {
-    throw new Error("react-doctor report is missing diagnostics.");
-  }
-
-  return {
-    version: readStringField(parsed, "version"),
-    summary: {
-      errorCount: readNumberField(summary, "errorCount"),
-      warningCount: readNumberField(summary, "warningCount"),
-      affectedFileCount: readNumberField(summary, "affectedFileCount"),
-    },
-    diagnostics: diagnostics.map(readScanDiagnostic),
-  };
-}
-
-function readScanDiagnostic(entry: unknown): ReactDoctorScanDiagnostic {
-  if (!isRecord(entry)) {
-    throw new Error("react-doctor diagnostic entry is not an object.");
-  }
-  const record = entry;
-  return {
-    rule: readStringField(record, "rule"),
-    severity: readStringField(record, "severity"),
-    normalizedFilePath: readStringField(record, "normalizedFilePath"),
-    message: readStringField(record, "message"),
-  };
-}
-
-function readStringField(source: Record<string, unknown>, key: string): string {
-  const value = source[key];
-  if (typeof value !== "string") {
-    throw new Error(`Expected string field "${key}" in react-doctor report.`);
-  }
-  return value;
-}
-
-function readNumberField(source: Record<string, unknown>, key: string): number {
-  const value = source[key];
-  if (typeof value !== "number") {
-    throw new Error(`Expected number field "${key}" in react-doctor report.`);
-  }
-  return value;
-}
 
 // Excludes line/column: rows measurably drift to different lines across plugin versions
 // while remaining the same finding, and react-doctor's `id` embeds both plus a content hash.
@@ -356,22 +280,11 @@ function repin(): void {
   const originalJson = JSON.parse(readFileSync(reactDoctorPinPath, "utf8"));
 
   // Update only the measured values
-  const updatedPin = {
-    ...originalJson,
-    // Remove $schema as it's meaningless (draft-07 meta-schema)
-    $schema: undefined,
+  const updatedPin = updateReactDoctorPin(originalJson, {
     pluginVersion: report.version,
-    full: {
-      score: null,
-      errorCount: report.summary.errorCount,
-      warningCount: report.summary.warningCount,
-      affectedFileCount: report.summary.affectedFileCount,
-    },
+    fullSummary: report.summary,
     auditWarningCount,
-  };
-
-  // Remove undefined properties
-  delete updatedPin.$schema;
+  });
 
   const pinJson = JSON.stringify(updatedPin, null, 2);
   writeFileSync(reactDoctorPinPath, `${pinJson}\n`);
@@ -442,7 +355,8 @@ function materializeTree(commit: string, workDir: string): string {
 }
 
 function runReactDoctorScan(command: string, targetDir: string): ReactDoctorScanReport {
-  const args = ["exec", ...buildMaterializedScanCommandArgs(command, targetDir)];
+  const reportPath = join(tmpdir(), `react-doctor-scan-${Date.now()}.json`);
+  const args = ["exec", ...buildMaterializedScanCommandArgs(command, targetDir), "--json-out", reportPath];
   const result = spawnSync("pnpm", args, {
     encoding: "utf8",
     timeout: scanTimeoutMs,
@@ -453,7 +367,27 @@ function runReactDoctorScan(command: string, targetDir: string): ReactDoctorScan
       `pnpm exec react-doctor against ${targetDir} exited with status ${result.status ?? "unknown"}: ${result.stderr}`,
     );
   }
-  return parseReactDoctorScanReport(result.stdout);
+
+  try {
+    const reportJson = readFileSync(reportPath, "utf8");
+    const parsed = JSON.parse(reportJson);
+    const report: ReactDoctorScanReport = {
+      version: parsed.version,
+      summary: {
+        errorCount: parsed.summary.errorCount,
+        warningCount: parsed.summary.warningCount,
+        affectedFileCount: parsed.summary.affectedFileCount,
+      },
+      diagnostics: parsed.diagnostics || [],
+    };
+    return report;
+  } finally {
+    try {
+      rmSync(reportPath, { force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
 }
 
 function main(): void {
