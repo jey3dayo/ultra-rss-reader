@@ -138,7 +138,7 @@ pub(crate) async fn run_startup_sync_and_repair(
                     message: error.to_string(),
                 });
             }
-            Err(SessionError::Auth(error)) => {
+            Err(SessionError::Auth(error) | SessionError::Credential(error)) => {
                 log_sync_failure(SyncTrigger::StartupRepair, &account.kind, &error);
                 repair_failures.push(AccountSyncError {
                     account_id: account.id.as_ref().to_string(),
