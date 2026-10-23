@@ -43,7 +43,7 @@ export function TagColorPicker({
   ] as const;
   const colorRadioValues = radioValues.filter((value): value is string => value !== null);
   const selectedIndex = radioValues.indexOf(resolvedColor);
-  const checkedIndex = selectedIndex >= 0 ? selectedIndex : 0;
+  const checkedIndex = Math.max(selectedIndex, 0);
   const selectByIndex = (index: number, shouldFocus = false) => {
     if (disabled) {
       return;

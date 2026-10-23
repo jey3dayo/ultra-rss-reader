@@ -1,8 +1,7 @@
 ---
-lockfileVersion: '9.0'
+lockfileVersion: "9.0"
 
 importers:
-
   .:
     configDependencies: {}
     packageManagerDependencies:
@@ -11,23 +10,19 @@ importers:
         version: 12.3.4
 
 packages:
-
-  '@pnpm/exe.darwin-arm64@12.3.4':
-    resolution: {integrity: sha512-XXX}
+  "@pnpm/exe.darwin-arm64@12.3.4":
+    resolution: { integrity: sha512-XXX }
 
   pnpm@12.3.4:
-    resolution: {integrity: sha512-XXX}
+    resolution: { integrity: sha512-XXX }
 
 snapshots:
-
   pnpm@12.3.4:
     optionalDependencies:
-      '@pnpm/exe.darwin-arm64': 12.3.4
-
+      "@pnpm/exe.darwin-arm64": 12.3.4
 ---
-lockfileVersion: '9.0'
+lockfileVersion: "9.0"
 
 packages:
-
   react@19.0.0:
-    resolution: {integrity: sha512-XXX}
+    resolution: { integrity: sha512-XXX }
