@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "description": "React Doctor baseline pin: machine-generated measurement values that change when the plugin version or scan snapshot changes. Re-pin together with triage status in quality-baseline.ts.",
   "scanSha": "4b7c5977c",
-  "pluginVersion": "0.9.17",
+  "pluginVersion": "0.9.18",
   "scanCommand": "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   "diff": {
     "score": null,
@@ -17,5 +17,5 @@
     "affectedFileCount": 29
   },
   "auditScanCommand": "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
-  "auditWarningCount": 31
+  "auditWarningCount": 69
 }
