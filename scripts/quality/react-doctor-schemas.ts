@@ -1,6 +1,7 @@
 import * as v from "valibot";
 
 export const reactDoctorPinSchema = v.object({
+  description: v.optional(v.string()),
   scanSha: v.string(),
   pluginVersion: v.string(),
   scanCommand: v.string(),
