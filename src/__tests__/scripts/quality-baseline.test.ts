@@ -1,9 +1,6 @@
 import type { SpawnSyncReturns } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  buildLockfileDuplicateMajorReport,
   buildReactDoctorRuleCounts,
   createProcessDiagnostic,
   createReportDiagnostic,
@@ -18,17 +15,7 @@ import {
   reactDoctorFullScanTriageStatus,
   reactDoctorScopeArgs,
   readJsonPayload,
-  readLockfilePackages,
-} from "../../../scripts/quality-baseline";
-
-const SINGLE_DOCUMENT_LOCKFILE = readFileSync(
-  join(process.cwd(), "tests/fixtures/quality-baseline/pnpm-lock-single-document.yaml"),
-  "utf8",
-);
-const TWO_DOCUMENT_LOCKFILE = readFileSync(
-  join(process.cwd(), "tests/fixtures/quality-baseline/pnpm-lock-two-documents.yaml"),
-  "utf8",
-);
+} from "../../../scripts/quality-baseline.ts";
 
 describe("quality-baseline", () => {
   // The diff gate's whole contract lives in these flags. `changed` is what makes an
@@ -463,72 +450,6 @@ describe("quality-baseline", () => {
       includedPaths: ["src/api/schemas.ts", "src-tauri/capabilities/default.json"],
       ignoredPaths: ["src-tauri/gen/schemas/capabilities.json", "src-tauri/target/debug/app"],
     });
-  });
-
-  it("classifies duplicate lockfile majors by direct dependency and allowlist status", () => {
-    const lockfile = [
-      "lockfileVersion: '9.0'",
-      "",
-      "packages:",
-      "  '@vitest/spy@3.2.4':",
-      "    resolution: {integrity: sha512-old}",
-      "  '@vitest/spy@5.0.0':",
-      "    resolution: {integrity: sha512-new}",
-      "  'direct-lib@1.0.0':",
-      "    resolution: {integrity: sha512-one}",
-      "  'direct-lib@2.0.0':",
-      "    resolution: {integrity: sha512-two}",
-    ].join("\n");
-
-    expect(
-      buildLockfileDuplicateMajorReport(lockfile, {
-        dependencies: { "direct-lib": "^2.0.0" },
-      }),
-    ).toEqual({
-      duplicatePackageCount: 2,
-      duplicateMajorCount: 4,
-      directDuplicatePackageCount: 1,
-      unreviewedDuplicatePackageCount: 1,
-      entries: [
-        {
-          // The fixture stands in for "a transitive duplicate the allowlist covers"; it has to
-          // name an entry that is actually in knownAcceptableLockfileDuplicateMajors, or the
-          // allowed branch stops being exercised at all.
-          name: "@vitest/spy",
-          majors: [3, 5],
-          versions: ["3.2.4", "5.0.0"],
-          dependencyType: "transitive",
-          allowed: true,
-          reason: expect.any(String),
-        },
-        {
-          name: "direct-lib",
-          majors: [1, 2],
-          versions: ["1.0.0", "2.0.0"],
-          dependencyType: "direct",
-          allowed: false,
-          reason: undefined,
-        },
-      ],
-    });
-  });
-
-  it("uses the dependency document packages in a two-document lockfile", () => {
-    expect([...readLockfilePackages(TWO_DOCUMENT_LOCKFILE).entries()]).toEqual([
-      ["react", [{ version: "19.0.0", major: 19 }]],
-    ]);
-  });
-
-  it("keeps collecting every package from a single-document lockfile", () => {
-    expect([...readLockfilePackages(SINGLE_DOCUMENT_LOCKFILE).entries()]).toEqual([
-      [
-        "react",
-        [
-          { version: "18.3.1", major: 18 },
-          { version: "19.0.0", major: 19 },
-        ],
-      ],
-    ]);
   });
 });
 

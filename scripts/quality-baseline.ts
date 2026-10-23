@@ -285,28 +285,6 @@ const knipBaseline = {
   findingsCount: 3,
 } as const;
 
-const lockfileDuplicateMajorBaseline = {
-  // Current direct duplicates are intentionally unreviewed until their
-  // compatibility lanes are retired: jest-dom keeps a transitive v6 beside
-  // the direct v7, while the TypeScript aliases expose v6 and v7 beside the
-  // transitive v5 used by the remaining toolchain.
-  duplicatePackageCount: 50,
-  duplicateMajorCount: 104,
-  directDuplicatePackageCount: 2,
-  unreviewedDuplicatePackageCount: 46,
-} as const;
-
-// Matched against the lockfile by name and major set, so an entry that matches nothing is dead
-// data; remove it.
-const knownAcceptableLockfileDuplicateMajors = [
-  {
-    name: "@vitest/spy",
-    majors: [3, 5],
-    reason:
-      "Transitive Vitest 3 compatibility copy retained beside Vitest 5 by the current Storybook/Vitest toolchain.",
-  },
-] as const;
-
 type ReactDoctorMode = keyof typeof reactDoctorBaselines;
 
 export type ReactDoctorRuleCount = ReactDoctorDiagnostic & {
@@ -339,34 +317,6 @@ type KnipReport = {
   issues: KnipIssueBucket[];
 };
 
-type PackageManifest = {
-  dependencies?: Record<string, unknown>;
-  devDependencies?: Record<string, unknown>;
-  optionalDependencies?: Record<string, unknown>;
-};
-
-type LockfilePackageVersion = {
-  version: string;
-  major: number;
-};
-
-export type LockfileDuplicateMajorEntry = {
-  name: string;
-  majors: number[];
-  versions: string[];
-  dependencyType: "direct" | "transitive";
-  allowed: boolean;
-  reason?: string;
-};
-
-export type LockfileDuplicateMajorReport = {
-  duplicatePackageCount: number;
-  duplicateMajorCount: number;
-  directDuplicatePackageCount: number;
-  unreviewedDuplicatePackageCount: number;
-  entries: LockfileDuplicateMajorEntry[];
-};
-
 export type QualityToolDiagnosticKind =
   | "missing-command"
   | "non-zero-exit"
@@ -392,12 +342,9 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     command !== "react-doctor:diff" &&
     command !== "react-doctor:full" &&
     command !== "knip" &&
-    command !== "knip:check" &&
-    command !== "lockfile-duplicate-majors"
+    command !== "knip:check"
   ) {
-    console.error(
-      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|knip:check|lockfile-duplicate-majors",
-    );
+    console.error("Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|knip:check");
     process.exit(2);
   }
 
@@ -407,10 +354,8 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     runReactDoctor("full", false);
   } else if (command === "knip") {
     runKnip(false);
-  } else if (command === "knip:check") {
-    runKnip(true);
   } else {
-    runLockfileDuplicateMajorReport();
+    runKnip(true);
   }
 }
 
@@ -671,94 +616,6 @@ export function formatKnipIssue(issue: KnipIssueBucket): string {
   return categories.length > 0 ? `${file} ${categories.join(" ")}` : file;
 }
 
-function runLockfileDuplicateMajorReport(): void {
-  const report = buildLockfileDuplicateMajorReport(
-    readFileSync("pnpm-lock.yaml", "utf8"),
-    JSON.parse(readFileSync("package.json", "utf8")) as PackageManifest,
-  );
-
-  console.log(
-    [
-      `Lockfile duplicate majors: packages=${report.duplicatePackageCount}`,
-      `majors=${report.duplicateMajorCount}`,
-      `direct=${report.directDuplicatePackageCount}`,
-      `unreviewed=${report.unreviewedDuplicatePackageCount}`,
-    ].join(" "),
-  );
-  for (const entry of report.entries) {
-    const status = entry.allowed ? "allowed" : "unreviewed";
-    console.log(
-      `${status}: ${entry.name} majors=${entry.majors.join(",")} versions=${entry.versions.join(",")} ${entry.dependencyType}`,
-    );
-  }
-
-  const drift = [
-    checkEqual(
-      "duplicatePackageCount",
-      report.duplicatePackageCount,
-      lockfileDuplicateMajorBaseline.duplicatePackageCount,
-    ),
-    checkEqual("duplicateMajorCount", report.duplicateMajorCount, lockfileDuplicateMajorBaseline.duplicateMajorCount),
-    checkEqual(
-      "directDuplicatePackageCount",
-      report.directDuplicatePackageCount,
-      lockfileDuplicateMajorBaseline.directDuplicatePackageCount,
-    ),
-    checkEqual(
-      "unreviewedDuplicatePackageCount",
-      report.unreviewedDuplicatePackageCount,
-      lockfileDuplicateMajorBaseline.unreviewedDuplicatePackageCount,
-    ),
-  ].filter(Boolean);
-
-  if (drift.length > 0) {
-    console.error(drift.join("\n"));
-    process.exit(1);
-  }
-}
-
-export function buildLockfileDuplicateMajorReport(
-  lockfile: string,
-  manifest: PackageManifest,
-): LockfileDuplicateMajorReport {
-  const directDependencyNames = new Set([
-    ...Object.keys(manifest.dependencies ?? {}),
-    ...Object.keys(manifest.devDependencies ?? {}),
-    ...Object.keys(manifest.optionalDependencies ?? {}),
-  ]);
-  const versionsByPackageName = readLockfilePackages(lockfile);
-  const entries: LockfileDuplicateMajorEntry[] = [];
-
-  for (const [name, versions] of [...versionsByPackageName.entries()].sort(([left], [right]) =>
-    left.localeCompare(right),
-  )) {
-    const majors = [...new Set(versions.map((entry) => entry.major))].sort((left, right) => left - right);
-    if (majors.length < 2) {
-      continue;
-    }
-
-    const allowlistEntry = knownAcceptableLockfileDuplicateMajors.find(
-      (entry) => entry.name === name && sameNumberList(entry.majors, majors),
-    );
-    entries.push({
-      name,
-      majors,
-      versions: [...new Set(versions.map((entry) => entry.version))].sort(compareSemverLike),
-      dependencyType: directDependencyNames.has(name) ? "direct" : "transitive",
-      allowed: allowlistEntry !== undefined,
-      reason: allowlistEntry?.reason,
-    });
-  }
-
-  return {
-    duplicatePackageCount: entries.length,
-    duplicateMajorCount: entries.reduce((total, entry) => total + entry.majors.length, 0),
-    directDuplicatePackageCount: entries.filter((entry) => entry.dependencyType === "direct").length,
-    unreviewedDuplicatePackageCount: entries.filter((entry) => !entry.allowed).length,
-    entries,
-  };
-}
-
 function readKnipVersion(): string {
   const result = spawnSync("pnpm", ["exec", "knip", "--version"], {
     encoding: "utf8",
@@ -828,7 +685,7 @@ export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
           diagnostics: parseReactDoctorDiagnostics(
             parseResult.output.diagnostics.length > 0
               ? parseResult.output.diagnostics
-              : parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? [],
+              : (parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? []),
           ),
         };
       }
@@ -961,80 +818,6 @@ function countIssueFindings(issue: KnipIssueBucket): number {
     }
     return total + value.length;
   }, 0);
-}
-
-export function readLockfilePackages(lockfile: string): Map<string, LockfilePackageVersion[]> {
-  const lockfileDocuments = lockfile.split(/^---[ \t]*(?:\r?\n|$)/m).filter((document) => document.trim().length > 0);
-  // Why: pnpm 12 can put pnpm itself and platform-specific binaries in an environment
-  // document before the dependency document. The final document owns application packages;
-  // retaining the sole-document path keeps traditional lockfiles unchanged.
-  const dependencyDocument = lockfileDocuments.at(-1) ?? lockfile;
-  const packagesMatch = /^packages:[ \t]*$/m.exec(dependencyDocument);
-  if (packagesMatch === null) {
-    throw new Error("pnpm lockfile is missing a packages section.");
-  }
-
-  const versionsByPackageName = new Map<string, LockfilePackageVersion[]>();
-  const packageKeyPattern = /^ {2}(?:"([^"]+)"|'([^']+)'|([^:\n]+)):/gm;
-  const packagesSection = dependencyDocument.slice(packagesMatch.index);
-
-  for (const match of packagesSection.matchAll(packageKeyPattern)) {
-    const packageKey = match[1] ?? match[2] ?? match[3];
-    if (packageKey === undefined) {
-      continue;
-    }
-
-    const packageVersion = readLockfilePackageVersion(packageKey.trim());
-    if (packageVersion === null) {
-      continue;
-    }
-
-    const versions = versionsByPackageName.get(packageVersion.name) ?? [];
-    versions.push({ version: packageVersion.version, major: packageVersion.major });
-    versionsByPackageName.set(packageVersion.name, versions);
-  }
-
-  return versionsByPackageName;
-}
-
-function readLockfilePackageVersion(packageKey: string): { name: string; version: string; major: number } | null {
-  const keyWithoutPeerSuffix = packageKey.replace(/^\//, "").split("(")[0];
-  const versionSeparatorIndex = keyWithoutPeerSuffix.startsWith("@")
-    ? keyWithoutPeerSuffix.indexOf("@", 1)
-    : keyWithoutPeerSuffix.indexOf("@");
-  if (versionSeparatorIndex === -1) {
-    return null;
-  }
-
-  const version = keyWithoutPeerSuffix.slice(versionSeparatorIndex + 1);
-  const majorText = /^\d+/.exec(version)?.[0];
-  if (majorText === undefined) {
-    return null;
-  }
-
-  return {
-    name: keyWithoutPeerSuffix.slice(0, versionSeparatorIndex),
-    version,
-    major: Number(majorText),
-  };
-}
-
-function compareSemverLike(left: string, right: string): number {
-  const leftParts = left.split(".").map(Number);
-  const rightParts = right.split(".").map(Number);
-  const maxLength = Math.max(leftParts.length, rightParts.length);
-  for (let index = 0; index < maxLength; index += 1) {
-    const leftPart = leftParts[index] ?? 0;
-    const rightPart = rightParts[index] ?? 0;
-    if (leftPart !== rightPart) {
-      return leftPart - rightPart;
-    }
-  }
-  return left.localeCompare(right);
-}
-
-function sameNumberList(left: readonly number[], right: readonly number[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 export function readJsonPayload(stdout: string): string {
