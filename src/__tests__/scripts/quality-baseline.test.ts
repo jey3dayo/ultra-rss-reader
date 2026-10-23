@@ -100,7 +100,10 @@ describe("quality-baseline", () => {
       mode: "full",
       baselineDegraded: false,
       summary: { score: null, errorCount: 0, warningCount: 2, affectedFileCount: 1 },
-      diagnostics: [{ severity: "warning", rule: "(unknown rule)" }, { severity: "(unknown severity)", rule: "(unknown rule)" }],
+      diagnostics: [
+        { severity: "warning", rule: "(unknown rule)" },
+        { severity: "(unknown severity)", rule: "(unknown rule)" },
+      ],
     };
 
     expect(buildReactDoctorRuleCounts(report.diagnostics)).toEqual([
