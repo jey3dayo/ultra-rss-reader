@@ -817,6 +817,26 @@ function compareReactDoctorSeverity(left: string, right: string): number {
   return leftOrder - rightOrder || left.localeCompare(right);
 }
 
+export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
+  for (const payload of readJsonPayloads(stdout)) {
+    try {
+      const parsed = JSON.parse(payload);
+      const parseResult = v.safeParse(reactDoctorReportSchema, parsed);
+      if (parseResult.success) {
+        return {
+          ...parseResult.output,
+          diagnostics: parseReactDoctorDiagnostics(
+            parseResult.output.diagnostics.length > 0
+              ? parseResult.output.diagnostics
+              : parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? [],
+          ),
+        };
+      }
+    } catch {}
+  }
+  throw new Error("React Doctor did not return a valid report JSON object.");
+}
+
 export function parseKnipReport(stdout: string): KnipReport {
   // Knip with --reporter json writes a single JSON line. Parse the last non-empty line.
   const lines = stdout

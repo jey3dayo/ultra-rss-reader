@@ -12,7 +12,6 @@ import {
   compareComplexityIdentitySets,
   complexityIdentityKey,
   extractComplexityFunctionName,
-  extractPinnedFullScanSummary,
   findUnaccountedWarningRules,
   findWarningFamilyCountMismatches,
   parseCommandTokens,
@@ -20,8 +19,9 @@ import {
   parseReactDoctorScanReport,
   type ReactDoctorScanDiagnostic,
   sumWarningFamilyCounts,
-} from "../../../scripts/check-react-doctor-pin-consistency";
-import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline";
+  checkRuleCounts,
+} from "../../../scripts/check-react-doctor-pin-consistency.ts";
+import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
 
 const complexityRule = "no-high-complexity-react-function";
 
@@ -242,34 +242,21 @@ describe("check-react-doctor-pin-consistency", () => {
     });
   });
 
-  describe("extractPinnedFullScanSummary", () => {
-    it("extracts the pinned full-scan totals from the quality-baseline source", () => {
-      const source = [
-        "const reactDoctorBaselines = {",
-        "  diff: {",
-        "    score: null,",
-        "    errorCount: 0,",
-        "    warningCount: 0,",
-        "    affectedFileCount: 0,",
-        "  },",
-        "  full: {",
-        "    score: null,",
-        "    errorCount: 2,",
-        "    warningCount: 32,",
-        "    affectedFileCount: 32,",
-        "  },",
-        "} as const;",
-      ].join("\n");
-      expect(extractPinnedFullScanSummary(source)).toEqual({ errorCount: 2, warningCount: 32, affectedFileCount: 32 });
+  describe("loadPinnedFullScanSummary", () => {
+    it("loads the pinned full-scan totals from the react-doctor-pin JSON", () => {
+      const pinJson = readFileSync("scripts/quality/react-doctor-pin.json", "utf8");
+      const pin = JSON.parse(pinJson);
+      expect(pin.full).toEqual({
+        score: null,
+        errorCount: 2,
+        warningCount: 29,
+        affectedFileCount: 29,
+      });
     });
 
-    it("throws when the pinned block cannot be found", () => {
-      expect(() => extractPinnedFullScanSummary("no such block here")).toThrow();
-    });
-
-    it("matches the real reactDoctorFullScanTriageStatus derivation against the current source", () => {
-      const source = readFileSync("scripts/quality-baseline.ts", "utf8");
-      const pinned = extractPinnedFullScanSummary(source);
+    it("matches the real reactDoctorFullScanTriageStatus derivation against the current pin", () => {
+      const pinJson = readFileSync("scripts/quality/react-doctor-pin.json", "utf8");
+      const pinned = JSON.parse(pinJson).full;
       const status = reactDoctorFullScanTriageStatus;
       expect(pinned.errorCount).toBe(status.errorCountAtScan);
       expect(pinned.warningCount).toBe(
