@@ -327,6 +327,7 @@ export const QUERY_INVALIDATION_INTENT_MATRIX: Record<QueryInvalidationIntent, Q
       queryKeys.search.root,
       queryKeys.recentArticles.root,
       queryKeys.feedArticleSummaries.root,
+      queryKeys.accounts.root,
     ],
   },
   "account-sync-now-articles": {
