@@ -5,10 +5,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildReactDoctorRuleCounts,
-  formatKnipIssue,
   isExpectedReactDoctorReportMode,
   isQualityBaselineRepoScanIgnoredPath,
-  parseKnipReport,
   partitionQualityBaselineRepoScanPaths,
   qualityBaselineRepoScanIgnoredPathPrefixes,
   reactDoctorDegradedNotice,
@@ -16,6 +14,7 @@ import {
   reactDoctorScopeArgs,
   readReactDoctorJsonOutReport,
 } from "../../../scripts/quality-baseline.ts";
+import { formatKnipIssue, parseKnipReport } from "../../../scripts/quality/knip.ts";
 import { createProcessDiagnostic, createReportDiagnostic } from "../../../scripts/quality/tool-process.ts";
 
 describe("quality-baseline", () => {
