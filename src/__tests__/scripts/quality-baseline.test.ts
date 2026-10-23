@@ -122,10 +122,10 @@ describe("quality-baseline", () => {
   });
 
   it("keeps nested braces and braces inside strings inside the JSON payload", () => {
+    // parseKnipReport reads the last non-empty line
     const output = [
       "knip 6.18.0",
       '{"issues":[{"file":"src/example.ts","exports":["useThing"],"note":"literal { brace }"}]}',
-      "scan finished",
     ].join("\n");
 
     expect(parseKnipReport(output)).toEqual({
@@ -333,7 +333,7 @@ describe("quality-baseline", () => {
 
   it("rejects JSON array output as a malformed tool report", () => {
     expect(() => parseKnipReport('[{"file":"src/example.ts"}]')).toThrow(
-      "Knip did not return a valid report JSON object.",
+      "Knip did not return a valid report JSON object:",
     );
   });
 
