@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft-07/schema#",
   "description": "React Doctor baseline pin: machine-generated measurement values that change when the plugin version or scan snapshot changes. Re-pin together with triage status in quality-baseline.ts.",
   "scanSha": "4b7c5977c",
   "pluginVersion": "0.9.18",

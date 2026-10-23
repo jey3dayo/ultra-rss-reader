@@ -352,9 +352,14 @@ function repin(): void {
     rmSync(workDir, { recursive: true, force: true });
   }
 
-  const currentPin = loadReactDoctorPin();
-  const newPin: ReactDoctorPin = {
-    ...currentPin,
+  // Read the original JSON file to preserve metadata like "description"
+  const originalJson = JSON.parse(readFileSync(reactDoctorPinPath, "utf8"));
+
+  // Update only the measured values
+  const updatedPin = {
+    ...originalJson,
+    // Remove $schema as it's meaningless (draft-07 meta-schema)
+    $schema: undefined,
     pluginVersion: report.version,
     full: {
       score: null,
@@ -365,15 +370,18 @@ function repin(): void {
     auditWarningCount,
   };
 
-  const pinJson = JSON.stringify(newPin, null, 2);
+  // Remove undefined properties
+  delete updatedPin.$schema;
+
+  const pinJson = JSON.stringify(updatedPin, null, 2);
   writeFileSync(reactDoctorPinPath, `${pinJson}\n`);
 
   console.log(`✓ Updated ${reactDoctorPinPath}`);
-  console.log(`  pluginVersion: ${newPin.pluginVersion}`);
-  console.log(`  full.errorCount: ${newPin.full.errorCount}`);
-  console.log(`  full.warningCount: ${newPin.full.warningCount}`);
-  console.log(`  full.affectedFileCount: ${newPin.full.affectedFileCount}`);
-  console.log(`  auditWarningCount: ${newPin.auditWarningCount}`);
+  console.log(`  pluginVersion: ${updatedPin.pluginVersion}`);
+  console.log(`  full.errorCount: ${updatedPin.full.errorCount}`);
+  console.log(`  full.warningCount: ${updatedPin.full.warningCount}`);
+  console.log(`  full.affectedFileCount: ${updatedPin.full.affectedFileCount}`);
+  console.log(`  auditWarningCount: ${updatedPin.auditWarningCount}`);
 }
 
 function fail(failures: string[]): never {
