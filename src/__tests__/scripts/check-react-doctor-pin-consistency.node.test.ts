@@ -20,7 +20,7 @@ import {
   sumWarningFamilyCounts,
 } from "../../../scripts/check-react-doctor-pin-consistency.ts";
 import { parseReactDoctorPin, updateReactDoctorPin } from "../../../scripts/quality/react-doctor-schemas.ts";
-import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
+import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality/react-doctor-triage.ts";
 
 const complexityRule = "no-high-complexity-react-function";
 

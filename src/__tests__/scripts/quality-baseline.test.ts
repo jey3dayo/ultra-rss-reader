@@ -10,11 +10,11 @@ import {
   partitionQualityBaselineRepoScanPaths,
   qualityBaselineRepoScanIgnoredPathPrefixes,
   reactDoctorDegradedNotice,
-  reactDoctorFullScanTriageStatus,
   reactDoctorScopeArgs,
   readReactDoctorJsonOutReport,
 } from "../../../scripts/quality-baseline.ts";
 import { formatKnipIssue, parseKnipReport } from "../../../scripts/quality/knip.ts";
+import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality/react-doctor-triage.ts";
 import { createProcessDiagnostic, createReportDiagnostic } from "../../../scripts/quality/tool-process.ts";
 
 describe("quality-baseline", () => {

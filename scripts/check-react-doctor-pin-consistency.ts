@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import * as v from "valibot";
 import type { ReactDoctorPin } from "./quality/react-doctor-schemas.ts";
 import { reactDoctorPinSchema, updateReactDoctorPin } from "./quality/react-doctor-schemas.ts";
-import { reactDoctorFullScanTriageStatus } from "./quality-baseline.ts";
+import { reactDoctorFullScanTriageStatus } from "./quality/react-doctor-triage.ts";
 
 const reactDoctorPinPath = "scripts/quality/react-doctor-pin.json";
 const scanTimeoutMs = 180_000;
