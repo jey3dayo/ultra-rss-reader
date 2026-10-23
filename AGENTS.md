@@ -110,7 +110,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - On completion: `tuxedo done` then `archive` (moves to `done.txt`), close the linked issue, and add a `CHANGELOG.md` entry once the work stabilizes.
 - Do not add a task without a discovery method; state how it will be verified (code audit, focused test, manual verification, or CI gate) in the issue or the todo line.
 - If the durable answer is a rule, update `AGENTS.md` or `.claude/rules/` instead of keeping it as a task.
-- React Doctor / Knip baselines live in `scripts/quality-baseline.ts`; similarity false-positive baselines live in `scripts/similarity-report.ts`. Update those constants only after running the matching pinned task and confirming expected drift.
+- React Doctor triage status lives in `scripts/quality/react-doctor-triage.ts`; Knip baseline lives in `scripts/quality/knip.ts`; similarity false-positive baselines live in `scripts/similarity-report.ts`. Update those constants only after running the matching pinned task and confirming expected drift.
 
 ## Native, Browser, And Skills
 

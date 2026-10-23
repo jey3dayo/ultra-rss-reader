@@ -40,7 +40,7 @@ paths:
 - React Doctor full scan is an informational baseline report: `mise run quality:react-doctor:full`.
 - Knip baseline drift is reported with `mise run report:knip`; humans decide how to triage the findings.
 - Similarity baseline drift is reported with `mise run report:similarity`.
-- Tool versions and baseline counts are fixed in `package.json`, `pnpm-lock.yaml`, and `scripts/quality-baseline.ts`; update them together only after intentional triage.
+- Tool versions and baseline counts are fixed in `package.json`, `pnpm-lock.yaml`, `scripts/quality/knip.ts`, and `scripts/quality/react-doctor-triage.ts`; update them together only after intentional triage.
 
 ## Repository Structure
 

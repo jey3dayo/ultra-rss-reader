@@ -1,6 +1,6 @@
 ---
 paths:
-  - "scripts/quality-baseline.ts"
+  - "scripts/quality/knip.ts"
   - "scripts/similarity-report.ts"
   - "scripts/check-react-doctor-pin-consistency.ts"
   - "todo.txt"
@@ -30,7 +30,7 @@ Knip runs as a ratchet gate in CI (`mise run quality:knip`, Toolchain job): it f
 
 `scripts/run-guarded-pnpm-update.ts` has the same shape — invoked only from `mise/setup.toml` — but Knip does not report it, because `release-age-gate-contract.node.test.ts` imports it with `?raw` to pin its contract. Do not treat its absence from the report as evidence that Knip can follow `mise` consumers; when a new script is only reached through `mise`, add it to the entry list above.
 
-The pinned baseline in `scripts/quality-baseline.ts` is a ratchet: counts above it fail `quality:knip`, counts at or below it pass. Lower it when findings are removed; raise it only after the new findings are classified in `docs/knip-export-classification.md`.
+The pinned baseline in `scripts/quality/knip.ts` is a ratchet: counts above it fail `quality:knip`, counts at or below it pass. Lower it when findings are removed; raise it only after the new findings are classified in `docs/knip-export-classification.md`.
 
 `package.json#knip.ignoreDependencies` entries must document why Knip cannot see a real consumer:
 
