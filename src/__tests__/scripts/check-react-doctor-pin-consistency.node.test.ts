@@ -19,7 +19,6 @@ import {
   parseReactDoctorScanReport,
   type ReactDoctorScanDiagnostic,
   sumWarningFamilyCounts,
-  checkRuleCounts,
 } from "../../../scripts/check-react-doctor-pin-consistency.ts";
 import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
 
