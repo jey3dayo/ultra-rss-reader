@@ -392,6 +392,7 @@ export function reactDoctorDegradedNotice(report: Pick<ReactDoctorReport, "basel
 
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   const scopeArgs = reactDoctorScopeArgs(mode);
+  const reportPath = `tmp/react-doctor-${mode}.json`;
   const result = spawnSync(
     "pnpm",
     [
@@ -406,6 +407,8 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
       ...scopeArgs,
       "--json",
       "--json-compact",
+      "--json-out",
+      reportPath,
       "--blocking",
       "none",
       "--no-score",
@@ -438,8 +441,11 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
     };
   } catch (error) {
     const diagnostic: QualityToolDiagnostic = {
-      outcome: "report-invalid",
-      stderr: error instanceof Error ? error.message : "Failed to parse react-doctor report",
+      kind: "malformed-report",
+      tool: "React Doctor",
+      command: "pnpm exec react-doctor",
+      message: "Failed to parse react-doctor report",
+      stderr: error instanceof Error ? error.message : String(error),
     };
     writeToolDiagnostic(diagnostic);
     process.exit(exitCodeForDiagnostic(diagnostic));

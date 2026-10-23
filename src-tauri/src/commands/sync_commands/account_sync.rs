@@ -92,7 +92,9 @@ pub(crate) async fn sync_account_with_mode(
                 Err(error @ SessionError::MissingServerUrl) => {
                     return Err(error.into_user_visible());
                 }
-                Err(SessionError::Auth(error)) => return Err(error),
+                Err(SessionError::Auth(error) | SessionError::Credential(error)) => {
+                    return Err(error);
+                }
             };
             info!(
                 account_id = %account.id.as_ref(),
@@ -123,7 +125,7 @@ pub(super) async fn sync_greader_account_and_confirm_connection(
     outcome
 }
 
-/// Sync success proves the credentials work; failure proves nothing because credential-lookup errors share `SessionError::Auth`.
+/// Sync success proves the credentials work; failure proves nothing.
 fn confirm_connection_verified(db: &Mutex<DbManager>, account: &Account) {
     if account.connection_verification_status == ConnectionVerificationStatus::Verified {
         return;
@@ -199,7 +201,9 @@ pub(crate) async fn sync_feed_with_mode(
                 Err(error @ SessionError::MissingServerUrl) => {
                     return Err(error.into_user_visible());
                 }
-                Err(SessionError::Auth(error)) => return Err(error),
+                Err(SessionError::Auth(error) | SessionError::Credential(error)) => {
+                    return Err(error);
+                }
             };
             sync_greader_feed(db, account, feed, &session).await
         }
