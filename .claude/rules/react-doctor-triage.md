@@ -1,6 +1,7 @@
 ---
 paths:
-  - "scripts/quality-baseline.ts"
+  - "scripts/quality/react-doctor-triage.ts"
+  - "scripts/quality/react-doctor.ts"
   - "src/__tests__/scripts/quality-baseline.test.ts"
   - "src/__tests__/config/react-doctor-disable-reference-contract.node.test.ts"
   - "docs/react-doctor-*.md"
@@ -59,7 +60,7 @@ Classify every React Doctor warning before suppressing or fixing it:
 - `false-positive`: tool cannot model the local contract; record the proof near the code only when a local comment prevents future churn.
 - `suppress`: last resort for unavoidable tool noise; include the warning id, scope, reason, owner, and review trigger in the suppression location.
 
-Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality-baseline.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
+Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality/react-doctor-triage.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
 
 ### No Scan Task Runs Automatically
 

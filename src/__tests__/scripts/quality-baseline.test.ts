@@ -3,20 +3,20 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { formatKnipIssue, parseKnipReport } from "../../../scripts/quality/knip.ts";
 import {
   buildReactDoctorRuleCounts,
-  createProcessDiagnostic,
-  createReportDiagnostic,
-  formatKnipIssue,
   isExpectedReactDoctorReportMode,
-  isQualityBaselineRepoScanIgnoredPath,
-  parseKnipReport,
-  partitionQualityBaselineRepoScanPaths,
-  qualityBaselineRepoScanIgnoredPathPrefixes,
   reactDoctorDegradedNotice,
-  reactDoctorFullScanTriageStatus,
   reactDoctorScopeArgs,
   readReactDoctorJsonOutReport,
+} from "../../../scripts/quality/react-doctor.ts";
+import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality/react-doctor-triage.ts";
+import { createProcessDiagnostic, createReportDiagnostic } from "../../../scripts/quality/tool-process.ts";
+import {
+  isQualityBaselineRepoScanIgnoredPath,
+  partitionQualityBaselineRepoScanPaths,
+  qualityBaselineRepoScanIgnoredPathPrefixes,
 } from "../../../scripts/quality-baseline.ts";
 
 describe("quality-baseline", () => {

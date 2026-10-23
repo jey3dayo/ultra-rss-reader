@@ -14,13 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { checkReleaseBuildSources } from "../scripts/check-release-build-contamination";
-import {
-  generatedFixtureSnapshotSizeBudget,
-  isGeneratedReportArtifactPath,
-  liveProviderTestGateContract,
-  markdownlintRepoContract,
-  qualityBaselineRepoScanIgnoredPathPrefixes,
-} from "../scripts/quality-baseline";
+import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../scripts/quality-baseline";
 import {
   RELEASE_UPDATER_ASSET_CONTRACT as actualReleaseUpdaterAssetContract,
   UNSUPPORTED_UPDATER_PLATFORM_KEYS as actualUnsupportedUpdaterPlatformKeys,
@@ -34,6 +28,12 @@ import {
   formatRepositorySqlInventoryReport,
   readMigrationSources,
 } from "../scripts/repo-contract-inventory";
+import {
+  generatedFixtureSnapshotSizeBudget,
+  isGeneratedReportArtifactPath,
+  liveProviderTestGateContract,
+  markdownlintRepoContract,
+} from "./helpers/quality-baseline-repo-contract";
 import {
   extractYamlInlineListValues,
   extractYamlLabelsFields,
