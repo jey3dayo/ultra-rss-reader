@@ -5,8 +5,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildReactDoctorRuleCounts,
-  createProcessDiagnostic,
-  createReportDiagnostic,
   formatKnipIssue,
   isExpectedReactDoctorReportMode,
   isQualityBaselineRepoScanIgnoredPath,
@@ -18,6 +16,7 @@ import {
   reactDoctorScopeArgs,
   readReactDoctorJsonOutReport,
 } from "../../../scripts/quality-baseline.ts";
+import { createProcessDiagnostic, createReportDiagnostic } from "../../../scripts/quality/tool-process.ts";
 
 describe("quality-baseline", () => {
   // The diff gate's whole contract lives in these flags. `changed` is what makes an
