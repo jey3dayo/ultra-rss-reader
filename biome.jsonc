@@ -29,11 +29,11 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.test.ts", "**/*.test.tsx", "tests/**"],
+      // Playwright rules misfire on Vitest / Testing Library files; only e2e/** runs Playwright.
+      "includes": ["src/**", "tests/**", ".storybook/**", "scripts/**"],
       "linter": {
         "rules": {
           "correctness": {
-            "noComponentHookFactories": "off",
             "noPlaywrightMissingAwait": "off",
             "usePlaywrightValidDescribeCallback": "off"
           }
@@ -41,10 +41,13 @@
       }
     },
     {
+      // Module-scope hook factories (createQuery, createMutation) and test-local components that close over mocks.
       "includes": [
-        "src/components/reader/hooks/use-ui-store-slice.ts",
+        "src/__tests__/**",
+        "tests/**",
         "src/hooks/create-mutation.ts",
-        "src/hooks/create-query.ts"
+        "src/hooks/create-query.ts",
+        "src/components/reader/hooks/use-ui-store-slice.ts"
       ],
       "linter": {
         "rules": {
@@ -79,6 +82,7 @@
       "*.js",
       "*.json",
       "!!tests/fixtures/sanitizer",
+      "!!tests/fixtures/quality-baseline",
       "!!node_modules",
       "!!.pnpm-store",
       "!!dist",

@@ -444,6 +444,7 @@ describe("query-invalidation", () => {
         queryKeys.search.root,
         queryKeys.recentArticles.root,
         queryKeys.feedArticleSummaries.root,
+        queryKeys.accounts.root,
       ],
     );
     expectQueryKeys(

@@ -7,7 +7,7 @@ frontend:
           - "index.html"
           - "vite.config.ts"
           - "tsconfig*.json"
-          - "biome.json"
+          - "biome.jsonc"
 
 backend:
   - changed-files:
