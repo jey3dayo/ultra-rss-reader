@@ -24,14 +24,37 @@
             "inputComponents": ["Input"]
           }
         }
-      },
-      "correctness": {
-        "noComponentHookFactories": "off",
-        "noPlaywrightMissingAwait": "off",
-        "usePlaywrightValidDescribeCallback": "off"
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "tests/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noComponentHookFactories": "off",
+            "noPlaywrightMissingAwait": "off",
+            "usePlaywrightValidDescribeCallback": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "src/components/reader/hooks/use-ui-store-slice.ts",
+        "src/hooks/create-mutation.ts",
+        "src/hooks/create-query.ts"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noComponentHookFactories": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "double",
