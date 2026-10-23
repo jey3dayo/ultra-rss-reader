@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import * as v from "valibot";
 import { describe, expect, it } from "vitest";
 import {
   buildMaterializedScanCommandArgs,
@@ -22,6 +21,7 @@ import {
 } from "../../../scripts/check-react-doctor-pin-consistency.ts";
 import { reactDoctorPinSchema, updateReactDoctorPin } from "../../../scripts/quality/react-doctor-schemas.ts";
 import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
+import * as v from "valibot";
 
 const complexityRule = "no-high-complexity-react-function";
 

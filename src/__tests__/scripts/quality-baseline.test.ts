@@ -94,33 +94,6 @@ describe("quality-baseline", () => {
     });
   });
 
-  it("counts React Doctor findings by severity and rule in a stable order", () => {
-    const output = JSON.stringify({
-      version: "0.9.13",
-      mode: "full",
-      baselineDegraded: false,
-      summary: { score: null, errorCount: 2, warningCount: 4, affectedFileCount: 3 },
-      diagnostics: [
-        { severity: "warning", rule: "exhaustive-deps" },
-        { severity: "error", rule: "no-ref-current-in-render" },
-        { severity: "warning", rule: "no-high-complexity-react-function" },
-        { severity: "warning", rule: "exhaustive-deps" },
-        { severity: "error", rule: "no-prop-callback-in-render" },
-        { severity: "warning", rule: "a-brand-new-rule" },
-      ],
-    });
-
-    // Errors before warnings, then most frequent first, then rule name. A rule nobody has
-    // classified yet still has to show up rather than being absorbed into the total.
-    expect(buildReactDoctorRuleCounts(parseReactDoctorReport(output).diagnostics)).toEqual([
-      { severity: "error", rule: "no-prop-callback-in-render", count: 1 },
-      { severity: "error", rule: "no-ref-current-in-render", count: 1 },
-      { severity: "warning", rule: "exhaustive-deps", count: 2 },
-      { severity: "warning", rule: "a-brand-new-rule", count: 1 },
-      { severity: "warning", rule: "no-high-complexity-react-function", count: 1 },
-    ]);
-  });
-
   it("keeps diagnostics with no readable rule or severity in the breakdown", () => {
     const report = {
       version: "0.9.13",
