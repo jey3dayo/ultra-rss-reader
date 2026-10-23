@@ -82,23 +82,25 @@ export function updateReactDoctorPin(
     fullSummary: { errorCount: number; warningCount: number; affectedFileCount: number };
     auditWarningCount: number;
   },
-): Record<string, unknown> {
-  const updated = {
-    ...originalPin,
-    // Remove $schema as it's meaningless (draft-07 meta-schema)
-    $schema: undefined,
+): ReactDoctorPin {
+  const updated: ReactDoctorPin = {
+    description: typeof originalPin.description === "string" ? originalPin.description : undefined,
+    scanSha: typeof originalPin.scanSha === "string" ? originalPin.scanSha : "",
     pluginVersion: updates.pluginVersion,
+    scanCommand: typeof originalPin.scanCommand === "string" ? originalPin.scanCommand : "",
+    diff:
+      typeof originalPin.diff === "object" && originalPin.diff !== null
+        ? (originalPin.diff as ReactDoctorPin["diff"])
+        : { score: null, errorCount: 0, warningCount: 0, affectedFileCount: 0 },
     full: {
       score: null,
       errorCount: updates.fullSummary.errorCount,
       warningCount: updates.fullSummary.warningCount,
       affectedFileCount: updates.fullSummary.affectedFileCount,
     },
+    auditScanCommand: typeof originalPin.auditScanCommand === "string" ? originalPin.auditScanCommand : "",
     auditWarningCount: updates.auditWarningCount,
   };
-
-  // Remove undefined properties
-  delete updated.$schema;
 
   return updated;
 }

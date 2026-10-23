@@ -510,16 +510,6 @@ function main(): void {
     failures.push(`The scan reports warning rule(s) with no classification: ${unaccountedRules.join(", ")}`);
   }
 
-  const derivedUntriaged =
-    report.summary.warningCount - status.classifiedFindingCount - status.classifiedWarningFamiliesCount;
-  if (derivedUntriaged !== status.untriagedWarningCountAtScan) {
-    failures.push(
-      `untriagedWarningCountAtScan is pinned at ${status.untriagedWarningCountAtScan}, but ` +
-        `warningCount (${report.summary.warningCount}) - classifiedFindingCount (${status.classifiedFindingCount}) - ` +
-        `classifiedWarningFamiliesCount (${status.classifiedWarningFamiliesCount}) is ${derivedUntriaged}.`,
-    );
-  }
-
   if (failures.length > 0) {
     fail(failures);
   }

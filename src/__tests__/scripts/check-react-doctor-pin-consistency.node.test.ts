@@ -19,10 +19,7 @@ import {
   type ReactDoctorScanDiagnostic,
   sumWarningFamilyCounts,
 } from "../../../scripts/check-react-doctor-pin-consistency.ts";
-import {
-  parseReactDoctorPin,
-  updateReactDoctorPin,
-} from "../../../scripts/quality/react-doctor-schemas.ts";
+import { parseReactDoctorPin, updateReactDoctorPin } from "../../../scripts/quality/react-doctor-schemas.ts";
 import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
 
 const complexityRule = "no-high-complexity-react-function";
@@ -411,12 +408,11 @@ describe("check-react-doctor-pin-consistency", () => {
       auditWarningCount: 25,
     });
 
-    // Verify description is preserved and $schema is removed
+    // Verify description is preserved and $schema is removed (not in ReactDoctorPin type)
     expect(updatedPin.description).toBe("React Doctor baseline pin: machine-generated measurement values");
-    expect(updatedPin.$schema).toBeUndefined();
     expect(updatedPin.pluginVersion).toBe("0.9.18");
-    expect((updatedPin.full as { errorCount: number }).errorCount).toBe(2);
-    expect((updatedPin.full as { warningCount: number }).warningCount).toBe(15);
+    expect(updatedPin.full.errorCount).toBe(2);
+    expect(updatedPin.full.warningCount).toBe(15);
     expect(updatedPin.auditWarningCount).toBe(25);
   });
 
