@@ -111,7 +111,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
   scanSha: "4b7c5977c",
-  pluginVersion: "0.9.17",
+  pluginVersion: "0.9.18",
   scanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
   classifiedRule: "no-high-complexity-react-function",
@@ -255,7 +255,7 @@ const reactDoctorFullScanTriageStatusBase = {
   // fixed finding from a silenced one. auditWarningCount is the same scan with
   // --no-respect-inline-disables, which is the number that moves only when a finding is
   // actually fixed. Re-pin the two together; measured on the same SHA as scanSha.
-  auditWarningCount: 70,
+  auditWarningCount: 69,
   auditScanCommand:
     "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
   reportArtifactPath: "tmp/react-doctor-full.json",
