@@ -22,7 +22,6 @@
     "quality:react-doctor:diff": "node ./scripts/quality-baseline.ts react-doctor:diff",
     "quality:react-doctor:full": "node ./scripts/quality-baseline.ts react-doctor:full",
     "report:knip": "node ./scripts/quality-baseline.ts knip",
-    "quality:lockfile-duplicate-majors": "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
     "check:release-contamination": "node ./scripts/check-release-build-contamination.ts",
     "diagnose:macos-keychain-signature": "node ./scripts/release/macos-keychain-signature-diagnostics.ts",
     "hooks:install": "lefthook install",
