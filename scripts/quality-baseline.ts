@@ -390,6 +390,29 @@ export function reactDoctorDegradedNotice(report: Pick<ReactDoctorReport, "basel
   return "React Doctor reported no baseline comparison, so this run lists every finding in the changed files rather than only new ones.";
 }
 
+/**
+ * Reads and parses a React Doctor JSON report from a file written by `--json-out`.
+ * @param reportPath - Path to the JSON report file
+ * @returns Parsed React Doctor report with diagnostics
+ * @throws Error with details if the file cannot be read, parsed, or validated
+ */
+export function readReactDoctorJsonOutReport(reportPath: string): ReactDoctorReport {
+  const reportJson = readFileSync(reportPath, "utf8");
+  const parsed = JSON.parse(reportJson);
+  const parseResult = v.safeParse(reactDoctorReportSchema, parsed);
+  if (!parseResult.success) {
+    throw new Error(`Invalid react-doctor report: ${parseResult.issues.map((i) => i.message).join(", ")}`);
+  }
+  return {
+    ...parseResult.output,
+    diagnostics: parseReactDoctorDiagnostics(
+      parseResult.output.diagnostics.length > 0
+        ? parseResult.output.diagnostics
+        : (parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? []),
+    ),
+  };
+}
+
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   const scopeArgs = reactDoctorScopeArgs(mode);
   const reportPath = `tmp/react-doctor-${mode}.json`;
@@ -425,20 +448,7 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
 
   let report: ReactDoctorReport;
   try {
-    const reportJson = readFileSync(reportPath, "utf8");
-    const parsed = JSON.parse(reportJson);
-    const parseResult = v.safeParse(reactDoctorReportSchema, parsed);
-    if (!parseResult.success) {
-      throw new Error(`Invalid react-doctor report: ${parseResult.issues.map((i) => i.message).join(", ")}`);
-    }
-    report = {
-      ...parseResult.output,
-      diagnostics: parseReactDoctorDiagnostics(
-        parseResult.output.diagnostics.length > 0
-          ? parseResult.output.diagnostics
-          : (parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? []),
-      ),
-    };
+    report = readReactDoctorJsonOutReport(reportPath);
   } catch (error) {
     const diagnostic: QualityToolDiagnostic = {
       kind: "malformed-report",
@@ -450,6 +460,7 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
     writeToolDiagnostic(diagnostic);
     process.exit(exitCodeForDiagnostic(diagnostic));
   }
+
   const expected = reactDoctorBaselines[mode];
 
   const summary = [
@@ -680,26 +691,6 @@ function compareReactDoctorSeverity(left: string, right: string): number {
   return leftOrder - rightOrder || left.localeCompare(right);
 }
 
-export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
-  for (const payload of readJsonPayloads(stdout)) {
-    try {
-      const parsed = JSON.parse(payload);
-      const parseResult = v.safeParse(reactDoctorReportSchema, parsed);
-      if (parseResult.success) {
-        return {
-          ...parseResult.output,
-          diagnostics: parseReactDoctorDiagnostics(
-            parseResult.output.diagnostics.length > 0
-              ? parseResult.output.diagnostics
-              : (parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? []),
-          ),
-        };
-      }
-    } catch {}
-  }
-  throw new Error("React Doctor did not return a valid report JSON object.");
-}
-
 export function parseKnipReport(stdout: string): KnipReport {
   // Knip with --reporter json writes a single JSON line. Parse the last non-empty line.
   const lines = stdout
@@ -826,15 +817,6 @@ function countIssueFindings(issue: KnipIssueBucket): number {
   }, 0);
 }
 
-export function readJsonPayload(stdout: string): string {
-  const [payload] = readJsonPayloads(stdout);
-  if (payload !== undefined) {
-    return payload;
-  }
-
-  throw new Error("Tool output did not contain a JSON object.");
-}
-
 export function isQualityBaselineRepoScanIgnoredPath(filePath: string): boolean {
   const normalizedPath = normalizeRepoScanPath(filePath);
   return qualityBaselineRepoScanIgnoredPathPrefixes.some((prefix) => normalizedPath.startsWith(prefix));
@@ -867,60 +849,6 @@ export function partitionQualityBaselineRepoScanPaths(paths: readonly string[]):
 
 function normalizeRepoScanPath(filePath: string): string {
   return filePath.replaceAll("\\", "/").replace(/^\.\/+/, "");
-}
-
-export function readJsonPayloads(stdout: string): string[] {
-  const payloads: string[] = [];
-  for (let start = stdout.indexOf("{"); start !== -1; start = stdout.indexOf("{", start + 1)) {
-    const payload = readBalancedJsonObject(stdout, start);
-    if (payload === null) {
-      continue;
-    }
-
-    try {
-      JSON.parse(payload);
-      payloads.push(payload);
-    } catch {}
-  }
-
-  return payloads;
-}
-
-function readBalancedJsonObject(stdout: string, start: number): string | null {
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let index = start; index < stdout.length; index += 1) {
-    const char = stdout[index];
-
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === "\\") {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (char === "{") {
-      depth += 1;
-    } else if (char === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        return stdout.slice(start, index + 1);
-      }
-    }
-  }
-
-  return null;
 }
 
 function checkEqual(name: string, actual: string | number | null, expected: string | number | null): string | null {

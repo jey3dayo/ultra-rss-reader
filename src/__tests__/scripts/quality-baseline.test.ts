@@ -1,4 +1,7 @@
 import type { SpawnSyncReturns } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildReactDoctorRuleCounts,
@@ -8,13 +11,12 @@ import {
   isExpectedReactDoctorReportMode,
   isQualityBaselineRepoScanIgnoredPath,
   parseKnipReport,
-  parseReactDoctorReport,
   partitionQualityBaselineRepoScanPaths,
   qualityBaselineRepoScanIgnoredPathPrefixes,
   reactDoctorDegradedNotice,
   reactDoctorFullScanTriageStatus,
   reactDoctorScopeArgs,
-  readJsonPayload,
+  readReactDoctorJsonOutReport,
 } from "../../../scripts/quality-baseline.ts";
 
 describe("quality-baseline", () => {
@@ -65,27 +67,6 @@ describe("quality-baseline", () => {
     expect(formatKnipIssue({ file: 42, exports: "not-an-array" })).toBe("<unknown file>");
   });
 
-  it("extracts JSON after tool version and log prefixes", () => {
-    const output = [
-      "react-doctor 0.5.8",
-      "info: running offline scan",
-      '{"version":"0.5.8","mode":"diff","summary":{"score":100,"errorCount":0,"warningCount":0,"affectedFileCount":0}}',
-    ].join("\n");
-
-    expect(parseReactDoctorReport(output)).toEqual({
-      version: "0.5.8",
-      mode: "diff",
-      baselineDegraded: false,
-      summary: {
-        score: 100,
-        errorCount: 0,
-        warningCount: 0,
-        affectedFileCount: 0,
-      },
-      diagnostics: [],
-    });
-  });
-
   // The notice is the only thing that distinguishes a delta result from a changed-files
   // result, since the counts are identical in shape. Pin both directions so removing the
   // branch cannot pass as working.
@@ -93,19 +74,6 @@ describe("quality-baseline", () => {
     expect(reactDoctorDegradedNotice({ baselineDegraded: true })).toContain("no baseline comparison");
     expect(reactDoctorDegradedNotice({ baselineDegraded: true })).toContain("every finding in the changed files");
     expect(reactDoctorDegradedNotice({ baselineDegraded: false })).toBeNull();
-  });
-
-  // react-doctor omits the field on a healthy comparison and sets it to true when the base
-  // could not be resolved, in which case the report silently becomes every finding in the
-  // changed files. Reading the absence as "not degraded" is what keeps that distinction.
-  it("reads a degraded baseline run as degraded and an absent flag as healthy", () => {
-    const degraded =
-      '{"version":"0.9.13","mode":"diff","baselineDegraded":true,"summary":{"score":null,"errorCount":0,"warningCount":1,"affectedFileCount":1}}';
-    expect(parseReactDoctorReport(degraded).baselineDegraded).toBe(true);
-
-    const healthy =
-      '{"version":"0.9.13","mode":"baseline","summary":{"score":null,"errorCount":0,"warningCount":0,"affectedFileCount":0}}';
-    expect(parseReactDoctorReport(healthy).baselineDegraded).toBe(false);
   });
 
   it("keeps nested braces and braces inside strings inside the JSON payload", () => {
@@ -126,103 +94,22 @@ describe("quality-baseline", () => {
     });
   });
 
-  it("skips malformed brace-prefixed logs and reads the first valid JSON object", () => {
-    const output = '{not json}\n{"issues":[]}';
-
-    expect(readJsonPayload(output)).toBe('{"issues":[]}');
-  });
-
-  it("reads the React Doctor report after structured JSON log prefixes", () => {
-    const output = [
-      '{"level":"info","message":"scan started"}',
-      '{"version":"0.5.8","mode":"full","summary":{"score":85,"errorCount":0,"warningCount":228,"affectedFileCount":87}}',
-      "warning: trailing text",
-    ].join("\n");
-
-    expect(parseReactDoctorReport(output)).toEqual({
-      version: "0.5.8",
-      mode: "full",
-      baselineDegraded: false,
-      summary: {
-        score: 85,
-        errorCount: 0,
-        warningCount: 228,
-        affectedFileCount: 87,
-      },
-      diagnostics: [],
-    });
-  });
-
-  it("accepts React Doctor offline reports without score output", () => {
-    const output =
-      '{"version":"0.5.8","mode":"diff","summary":{"score":null,"errorCount":0,"warningCount":0,"affectedFileCount":0}}';
-
-    expect(parseReactDoctorReport(output)).toEqual({
-      version: "0.5.8",
-      mode: "diff",
-      baselineDegraded: false,
-      summary: {
-        score: null,
-        errorCount: 0,
-        warningCount: 0,
-        affectedFileCount: 0,
-      },
-      diagnostics: [],
-    });
-  });
-
-  it("counts React Doctor findings by severity and rule in a stable order", () => {
-    const output = JSON.stringify({
-      version: "0.9.13",
-      mode: "full",
-      baselineDegraded: false,
-      summary: { score: null, errorCount: 2, warningCount: 4, affectedFileCount: 3 },
-      diagnostics: [
-        { severity: "warning", rule: "exhaustive-deps" },
-        { severity: "error", rule: "no-ref-current-in-render" },
-        { severity: "warning", rule: "no-high-complexity-react-function" },
-        { severity: "warning", rule: "exhaustive-deps" },
-        { severity: "error", rule: "no-prop-callback-in-render" },
-        { severity: "warning", rule: "a-brand-new-rule" },
-      ],
-    });
-
-    // Errors before warnings, then most frequent first, then rule name. A rule nobody has
-    // classified yet still has to show up rather than being absorbed into the total.
-    expect(buildReactDoctorRuleCounts(parseReactDoctorReport(output).diagnostics)).toEqual([
-      { severity: "error", rule: "no-prop-callback-in-render", count: 1 },
-      { severity: "error", rule: "no-ref-current-in-render", count: 1 },
-      { severity: "warning", rule: "exhaustive-deps", count: 2 },
-      { severity: "warning", rule: "a-brand-new-rule", count: 1 },
-      { severity: "warning", rule: "no-high-complexity-react-function", count: 1 },
-    ]);
-  });
-
   it("keeps diagnostics with no readable rule or severity in the breakdown", () => {
-    const output = JSON.stringify({
+    const report = {
       version: "0.9.13",
       mode: "full",
       baselineDegraded: false,
       summary: { score: null, errorCount: 0, warningCount: 2, affectedFileCount: 1 },
-      diagnostics: [{ severity: "warning" }, {}],
-    });
+      diagnostics: [
+        { severity: "warning", rule: "(unknown rule)" },
+        { severity: "(unknown severity)", rule: "(unknown rule)" },
+      ],
+    };
 
-    expect(buildReactDoctorRuleCounts(parseReactDoctorReport(output).diagnostics)).toEqual([
+    expect(buildReactDoctorRuleCounts(report.diagnostics)).toEqual([
       { severity: "warning", rule: "(unknown rule)", count: 1 },
       { severity: "(unknown severity)", rule: "(unknown rule)", count: 1 },
     ]);
-  });
-
-  it("reads React Doctor diagnostics from projects when the top level omits them", () => {
-    const output = JSON.stringify({
-      version: "0.9.13",
-      mode: "full",
-      baselineDegraded: false,
-      summary: { score: null, errorCount: 0, warningCount: 1, affectedFileCount: 1 },
-      projects: [{ diagnostics: [{ severity: "warning", rule: "no-derived-state" }] }],
-    });
-
-    expect(parseReactDoctorReport(output).diagnostics).toEqual([{ severity: "warning", rule: "no-derived-state" }]);
   });
 
   it("keeps the full-scan triage status honest about what the snapshot covers", () => {
@@ -310,12 +197,6 @@ describe("quality-baseline", () => {
     const output = '{"event":"start"}\n{"issues":[]}';
 
     expect(parseKnipReport(output)).toEqual({ issues: [] });
-  });
-
-  it("throws a stable error when tool output does not contain valid JSON", () => {
-    expect(() => readJsonPayload("react-doctor 0.5.8\nno json payload")).toThrow(
-      "Tool output did not contain a JSON object.",
-    );
   });
 
   it("rejects JSON array output as a malformed tool report", () => {
@@ -449,6 +330,69 @@ describe("quality-baseline", () => {
     ).toEqual({
       includedPaths: ["src/api/schemas.ts", "src-tauri/capabilities/default.json"],
       ignoredPaths: ["src-tauri/gen/schemas/capabilities.json", "src-tauri/target/debug/app"],
+    });
+  });
+
+  describe("readReactDoctorJsonOutReport", () => {
+    it("throws when the report file does not exist", () => {
+      expect(() => readReactDoctorJsonOutReport("/nonexistent/report.json")).toThrow();
+    });
+
+    it("throws when the report file contains invalid JSON", () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), "react-doctor-test-"));
+      const reportPath = join(tmpDir, "invalid.json");
+      try {
+        writeFileSync(reportPath, "{not valid json}", "utf8");
+        expect(() => readReactDoctorJsonOutReport(reportPath)).toThrow();
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it("throws when the report file has a schema mismatch", () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), "react-doctor-test-"));
+      const reportPath = join(tmpDir, "mismatch.json");
+      try {
+        // Valid JSON but missing required fields
+        writeFileSync(reportPath, JSON.stringify({ version: "0.9.18" }), "utf8");
+        expect(() => readReactDoctorJsonOutReport(reportPath)).toThrow(/Invalid react-doctor report/);
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it("reads a valid report file and returns parsed diagnostics", () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), "react-doctor-test-"));
+      const reportPath = join(tmpDir, "valid.json");
+      try {
+        const validReport = {
+          version: "0.9.18",
+          mode: "full",
+          summary: {
+            score: null,
+            errorCount: 1,
+            warningCount: 2,
+            affectedFileCount: 2,
+          },
+          diagnostics: [
+            { severity: "error", rule: "no-ref-current-in-render" },
+            { severity: "warning", rule: "exhaustive-deps" },
+            { severity: "warning", rule: "no-high-complexity-react-function" },
+          ],
+        };
+        writeFileSync(reportPath, JSON.stringify(validReport), "utf8");
+
+        const result = readReactDoctorJsonOutReport(reportPath);
+
+        expect(result.version).toBe("0.9.18");
+        expect(result.mode).toBe("full");
+        expect(result.summary.errorCount).toBe(1);
+        expect(result.summary.warningCount).toBe(2);
+        expect(result.diagnostics).toHaveLength(3);
+        expect(result.diagnostics[0]).toMatchObject({ severity: "error", rule: "no-ref-current-in-render" });
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
   });
 });
