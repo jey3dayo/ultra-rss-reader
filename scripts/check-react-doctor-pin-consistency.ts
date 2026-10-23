@@ -274,7 +274,7 @@ export function findUnaccountedWarningRules(
   return [...warningRuleCounts.keys()].filter((rule) => !accountedRuleNames.has(rule)).sort();
 }
 
-export type PinnedFullScanSummary = {
+type PinnedFullScanSummary = {
   errorCount: number;
   warningCount: number;
   affectedFileCount: number;
