@@ -3,11 +3,19 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import * as v from "valibot";
+import type { ReactDoctorPin } from "./quality/react-doctor-schemas.ts";
+import { reactDoctorPinSchema } from "./quality/react-doctor-schemas.ts";
 import { reactDoctorFullScanTriageStatus, readJsonPayloads } from "./quality-baseline.ts";
 
-const qualityBaselineSourcePath = "scripts/quality-baseline.ts";
+const reactDoctorPinPath = "scripts/quality/react-doctor-pin.json";
 const scanTimeoutMs = 180_000;
 const scanMaxBufferBytes = 64 * 1024 * 1024;
+
+function loadReactDoctorPin(): ReactDoctorPin {
+  const pinJson = readFileSync(reactDoctorPinPath, "utf8");
+  return v.parse(reactDoctorPinSchema, JSON.parse(pinJson));
+}
 
 export type ReactDoctorScanDiagnostic = {
   rule: string;
@@ -272,19 +280,13 @@ export type PinnedFullScanSummary = {
   affectedFileCount: number;
 };
 
-// affectedFileCount has no export to read; regex-extracting the pin avoids a second, driftable copy.
-const pinnedFullScanSummaryPattern =
-  /full:\s*\{\s*score:\s*null,\s*errorCount:\s*(\d+),\s*warningCount:\s*(\d+),\s*affectedFileCount:\s*(\d+),\s*\}/;
-
-export function extractPinnedFullScanSummary(qualityBaselineSource: string): PinnedFullScanSummary {
-  const match = pinnedFullScanSummaryPattern.exec(qualityBaselineSource);
-  if (match === null) {
-    throw new Error(`Could not find the pinned full-scan summary block in ${qualityBaselineSourcePath}.`);
-  }
+// Load pin data from JSON instead of regex extraction
+function loadPinnedFullScanSummary(): PinnedFullScanSummary {
+  const pin = loadReactDoctorPin();
   return {
-    errorCount: Number(match[1]),
-    warningCount: Number(match[2]),
-    affectedFileCount: Number(match[3]),
+    errorCount: pin.full.errorCount,
+    warningCount: pin.full.warningCount,
+    affectedFileCount: pin.full.affectedFileCount,
   };
 }
 
@@ -323,6 +325,55 @@ export function buildOriginMainFetchArgs(isShallow: boolean): string[] {
     "origin",
     "main:refs/remotes/origin/main",
   ];
+}
+
+function repin(): void {
+  const status = reactDoctorFullScanTriageStatus;
+
+  console.log(`Re-pinning react-doctor baseline at ${status.scanSha}...`);
+
+  runGit(buildOriginMainFetchArgs(isShallowRepository()));
+  const scanCommit = resolveCommit(status.scanSha);
+  const isAncestor = gitSucceeds(["merge-base", "--is-ancestor", scanCommit, "refs/remotes/origin/main"]);
+  const ancestryFailure = checkAncestry(status.scanSha, scanCommit, isAncestor);
+  if (ancestryFailure !== null) {
+    fail([ancestryFailure]);
+  }
+
+  const workDir = mkdtempSync(join(tmpdir(), "react-doctor-repin-"));
+  let report: ReactDoctorScanReport;
+  let auditWarningCount: number;
+  try {
+    const extractDir = materializeTree(scanCommit, workDir);
+    report = runReactDoctorScan(status.scanCommand, extractDir);
+    const auditReport = runReactDoctorScan(status.auditScanCommand, extractDir);
+    auditWarningCount = auditReport.summary.warningCount;
+  } finally {
+    rmSync(workDir, { recursive: true, force: true });
+  }
+
+  const currentPin = loadReactDoctorPin();
+  const newPin: ReactDoctorPin = {
+    ...currentPin,
+    pluginVersion: report.version,
+    full: {
+      score: null,
+      errorCount: report.summary.errorCount,
+      warningCount: report.summary.warningCount,
+      affectedFileCount: report.summary.affectedFileCount,
+    },
+    auditWarningCount,
+  };
+
+  const pinJson = JSON.stringify(newPin, null, 2);
+  writeFileSync(reactDoctorPinPath, `${pinJson}\n`);
+
+  console.log(`✓ Updated ${reactDoctorPinPath}`);
+  console.log(`  pluginVersion: ${newPin.pluginVersion}`);
+  console.log(`  full.errorCount: ${newPin.full.errorCount}`);
+  console.log(`  full.warningCount: ${newPin.full.warningCount}`);
+  console.log(`  full.affectedFileCount: ${newPin.full.affectedFileCount}`);
+  console.log(`  auditWarningCount: ${newPin.auditWarningCount}`);
 }
 
 function fail(failures: string[]): never {
@@ -398,22 +449,29 @@ function runReactDoctorScan(command: string, targetDir: string): ReactDoctorScan
 }
 
 function main(): void {
+  const args = process.argv.slice(2);
+  const writeMode = args.includes("--write");
+
+  if (writeMode) {
+    repin();
+    return;
+  }
+
   const status = reactDoctorFullScanTriageStatus;
-  const qualityBaselineSource = readFileSync(qualityBaselineSourcePath, "utf8");
-  const pinnedSummary = extractPinnedFullScanSummary(qualityBaselineSource);
+  const pinnedSummary = loadPinnedFullScanSummary();
 
   const derivedPinnedWarningCount =
     status.untriagedWarningCountAtScan + status.classifiedFindingCount + status.classifiedWarningFamiliesCount;
   if (derivedPinnedWarningCount !== pinnedSummary.warningCount) {
     fail([
       `reactDoctorFullScanTriageStatus derives warningCount ${derivedPinnedWarningCount} but ` +
-        `reactDoctorBaselines.full.warningCount in ${qualityBaselineSourcePath} is ${pinnedSummary.warningCount}.`,
+        `${reactDoctorPinPath} warningCount is ${pinnedSummary.warningCount}.`,
     ]);
   }
   if (status.errorCountAtScan !== pinnedSummary.errorCount) {
     fail([
       `reactDoctorFullScanTriageStatus.errorCountAtScan is ${status.errorCountAtScan} but ` +
-        `reactDoctorBaselines.full.errorCount in ${qualityBaselineSourcePath} is ${pinnedSummary.errorCount}.`,
+        `${reactDoctorPinPath} errorCount is ${pinnedSummary.errorCount}.`,
     ]);
   }
 

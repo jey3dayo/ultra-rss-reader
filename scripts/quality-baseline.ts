@@ -1,9 +1,22 @@
 import type { SpawnSyncReturns } from "node:child_process";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import * as v from "valibot";
+import type { ReactDoctorDiagnostic, ReactDoctorPin, ReactDoctorSummary } from "./quality/react-doctor-schemas.ts";
+import {
+  parseReactDoctorDiagnostics,
+  reactDoctorPinSchema,
+  reactDoctorReportSchema,
+} from "./quality/react-doctor-schemas.ts";
 
 const qualityToolTimeoutMs = 120_000;
+
+// Load react-doctor pin from JSON
+function loadReactDoctorPin(): ReactDoctorPin {
+  const pinJson = readFileSync("scripts/quality/react-doctor-pin.json", "utf8");
+  return v.parse(reactDoctorPinSchema, JSON.parse(pinJson));
+}
 
 export const qualityBaselineRepoScanIgnoredPathPrefixes = [
   "node_modules/",
@@ -62,22 +75,10 @@ export const liveProviderTestGateContract = {
     "Do not print FreshRSS URL, username, password, tokens, cookies, or response bodies in live test logs or verification notes.",
 } as const;
 
+const reactDoctorPin = loadReactDoctorPin();
 const reactDoctorBaselines = {
-  diff: {
-    score: null,
-    errorCount: 0,
-    warningCount: 0,
-    affectedFileCount: 0,
-  },
-  // A measurement snapshot of the scan at scanSha, not a set of accepted risks: equal totals say
-  // nothing about whether the findings were reviewed. Re-pin together with
-  // reactDoctorFullScanTriageStatus.
-  full: {
-    score: null,
-    errorCount: 2,
-    warningCount: 29,
-    affectedFileCount: 29,
-  },
+  diff: reactDoctorPin.diff,
+  full: reactDoctorPin.full,
 } as const;
 
 // What was and was not triaged at the snapshot the full-scan constants describe. The
@@ -110,11 +111,9 @@ const reactDoctorFullScanTriageStatusBase = {
   // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
-  scanSha: "4b7c5977c",
-  pluginVersion: "0.9.17",
-  scanCommand:
-    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
-  classifiedRule: "no-high-complexity-react-function",
+  scanSha: reactDoctorPin.scanSha,
+  pluginVersion: reactDoctorPin.pluginVersion,
+  scanCommand: reactDoctorPin.scanCommand,
   // Rows in the record that this scan reports, not rows in the record: rows the scan no longer
   // reports stay in place, marked. scripts/check-react-doctor-pin-consistency.ts compares the sets.
   classifiedFindingCount: 22,
@@ -255,10 +254,11 @@ const reactDoctorFullScanTriageStatusBase = {
   // fixed finding from a silenced one. auditWarningCount is the same scan with
   // --no-respect-inline-disables, which is the number that moves only when a finding is
   // actually fixed. Re-pin the two together; measured on the same SHA as scanSha.
-  auditWarningCount: 70,
-  auditScanCommand:
-    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
+  auditWarningCount: reactDoctorPin.auditWarningCount,
+  auditScanCommand: reactDoctorPin.auditScanCommand,
   reportArtifactPath: "tmp/react-doctor-full.json",
+  // classifiedRule is used in triage, not in the pin
+  classifiedRule: "no-high-complexity-react-function",
 } as const;
 
 const classifiedWarningFamiliesCount = reactDoctorFullScanTriageStatusBase.classifiedWarningFamilies.reduce(
@@ -309,18 +309,6 @@ const knownAcceptableLockfileDuplicateMajors = [
 
 type ReactDoctorMode = keyof typeof reactDoctorBaselines;
 
-type ReactDoctorSummary = {
-  score: number | null;
-  errorCount: number;
-  warningCount: number;
-  affectedFileCount: number;
-};
-
-export type ReactDoctorDiagnostic = {
-  severity: string;
-  rule: string;
-};
-
 export type ReactDoctorRuleCount = ReactDoctorDiagnostic & {
   count: number;
 };
@@ -340,8 +328,6 @@ type ReactDoctorReport = {
 // A diagnostic with no readable rule or severity still has to appear in the breakdown.
 // Dropping it would let an unnamed finding pass as reviewed, which is the failure the
 // per-rule output exists to prevent.
-const unknownReactDoctorRule = "(unknown rule)";
-const unknownReactDoctorSeverity = "(unknown severity)";
 
 // Typed as readonly string[] rather than a literal tuple so an arbitrary severity string
 // from the report can be looked up without a cast.
@@ -489,7 +475,30 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
     process.exit(exitCodeForDiagnostic(processDiagnostic));
   }
 
-  const report = parseReactDoctorReportOrExit(result.stdout);
+  let report: ReactDoctorReport;
+  try {
+    const reportJson = readFileSync(reportPath, "utf8");
+    const parsed = JSON.parse(reportJson);
+    const parseResult = v.safeParse(reactDoctorReportSchema, parsed);
+    if (!parseResult.success) {
+      throw new Error(`Invalid react-doctor report: ${parseResult.issues.map((i) => i.message).join(", ")}`);
+    }
+    report = {
+      ...parseResult.output,
+      diagnostics: parseReactDoctorDiagnostics(
+        parseResult.output.diagnostics.length > 0
+          ? parseResult.output.diagnostics
+          : (parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? []),
+      ),
+    };
+  } catch (error) {
+    const diagnostic: QualityToolDiagnostic = {
+      outcome: "report-invalid",
+      stderr: error instanceof Error ? error.message : "Failed to parse react-doctor report",
+    };
+    writeToolDiagnostic(diagnostic);
+    process.exit(exitCodeForDiagnostic(diagnostic));
+  }
   const expected = reactDoctorBaselines[mode];
 
   const summary = [
@@ -506,7 +515,7 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   }
 
   if (mode === "full") {
-    reportReactDoctorFullScanTriage(report, result.stdout);
+    reportReactDoctorFullScanTriage(report, reportPath);
   }
 
   const drift = [
@@ -533,7 +542,7 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
 // The full-scan baseline compares totals only, so a zero delta says nothing about whether
 // the findings were reviewed. Print the per-rule breakdown and the outstanding triage
 // every run, drift or not, so equality can never be mistaken for approval.
-function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: string): void {
+function reportReactDoctorFullScanTriage(report: ReactDoctorReport, reportPath: string): void {
   const status = reactDoctorFullScanTriageStatus;
 
   console.log("React Doctor full baseline is a measurement snapshot of the last scan, not a set of accepted risks.");
@@ -546,12 +555,7 @@ function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: stri
     console.log(`  ${entry.severity} ${entry.rule}: ${entry.count}`);
   }
 
-  const artifactPath = writeReactDoctorReportArtifact(stdout, status.reportArtifactPath);
-  console.log(
-    artifactPath === null
-      ? "Every finding is in the scan output above; the report artifact could not be written."
-      : `Every finding, with its file and message, is in ${artifactPath}.`,
-  );
+  console.log(`Every finding, with its file and message, is in ${reportPath}.`);
 
   console.log("Outstanding triage (counts are from the pinned scan, not a live count):");
   console.log(
@@ -599,32 +603,6 @@ function reportReactDoctorFullScanTriage(report: ReactDoctorReport, stdout: stri
   console.log(
     "  Totals only: an equal count can hide findings that were swapped for different ones, so this is not a general regression check.",
   );
-}
-
-function writeReactDoctorReportArtifact(stdout: string, reportPath: string): string | null {
-  const payload = readReactDoctorReportPayload(stdout);
-  if (payload === null) {
-    return null;
-  }
-
-  try {
-    mkdirSync("tmp", { recursive: true });
-    writeFileSync(reportPath, `${payload}\n`);
-    return reportPath;
-  } catch {
-    return null;
-  }
-}
-
-function readReactDoctorReportPayload(stdout: string): string | null {
-  for (const payload of readJsonPayloads(stdout)) {
-    try {
-      readReactDoctorReport(JSON.parse(payload));
-      return payload;
-    } catch {}
-  }
-
-  return null;
 }
 
 function runKnip(gate: boolean): void {
@@ -811,77 +789,6 @@ function readKnipVersion(): string {
   return version;
 }
 
-export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
-  for (const payload of readJsonPayloads(stdout)) {
-    try {
-      const parsed: unknown = JSON.parse(payload);
-      return readReactDoctorReport(parsed);
-    } catch {}
-  }
-
-  throw new Error("React Doctor did not return a valid report JSON object.");
-}
-
-function readReactDoctorReport(parsed: unknown): ReactDoctorReport {
-  if (!isObject(parsed)) {
-    throw new Error("React Doctor did not return a JSON object.");
-  }
-
-  const summary = parsed.summary;
-  if (!isObject(summary)) {
-    throw new Error("React Doctor report is missing summary.");
-  }
-
-  return {
-    version: readString(parsed, "version"),
-    mode: readString(parsed, "mode"),
-    baselineDegraded: parsed.baselineDegraded === true,
-    summary: {
-      score: readNullableNumber(summary, "score"),
-      errorCount: readNumber(summary, "errorCount"),
-      warningCount: readNumber(summary, "warningCount"),
-      affectedFileCount: readNumber(summary, "affectedFileCount"),
-    },
-    diagnostics: readReactDoctorDiagnostics(parsed),
-  };
-}
-
-// React Doctor reports diagnostics at the top level and repeats them per project. Prefer
-// the top-level array and fall back to the per-project ones so the breakdown survives a
-// report shape that only carries the latter.
-function readReactDoctorDiagnostics(parsed: Record<string, unknown>): ReactDoctorDiagnostic[] {
-  const topLevel = parsed.diagnostics;
-  if (Array.isArray(topLevel)) {
-    return readReactDoctorDiagnosticList(topLevel);
-  }
-
-  const projects = parsed.projects;
-  if (!Array.isArray(projects)) {
-    return [];
-  }
-
-  return projects.flatMap((project) => {
-    if (!isObject(project)) {
-      return [];
-    }
-    const diagnostics = project.diagnostics;
-    return Array.isArray(diagnostics) ? readReactDoctorDiagnosticList(diagnostics) : [];
-  });
-}
-
-function readReactDoctorDiagnosticList(entries: readonly unknown[]): ReactDoctorDiagnostic[] {
-  return entries.flatMap((entry) => (isObject(entry) ? [readReactDoctorDiagnostic(entry)] : []));
-}
-
-function readReactDoctorDiagnostic(entry: Record<string, unknown>): ReactDoctorDiagnostic {
-  return {
-    severity: readOptionalString(entry, "severity") ?? unknownReactDoctorSeverity,
-    rule: readOptionalString(entry, "rule") ?? unknownReactDoctorRule,
-  };
-}
-
-// Stable order: known severities first in escalation order, then any unknown severity
-// alphabetically; within a severity, most frequent first, then rule name.
 export function buildReactDoctorRuleCounts(diagnostics: readonly ReactDoctorDiagnostic[]): ReactDoctorRuleCount[] {
   const countsByKey = new Map<string, ReactDoctorRuleCount>();
   for (const diagnostic of diagnostics) {
@@ -911,23 +818,31 @@ function compareReactDoctorSeverity(left: string, right: string): number {
 }
 
 export function parseKnipReport(stdout: string): KnipReport {
-  for (const payload of readJsonPayloads(stdout)) {
-    try {
-      const parsed: unknown = JSON.parse(payload);
-      return readKnipReport(parsed);
-    } catch {}
+  // Knip with --reporter json writes a single JSON line. Parse the last non-empty line.
+  const lines = stdout
+    .trim()
+    .split("\n")
+    .filter((line) => line.trim());
+  const lastLine = lines[lines.length - 1];
+  if (!lastLine) {
+    throw new Error("Knip did not return any output.");
   }
 
-  throw new Error("Knip did not return a valid report JSON object.");
-}
-
-function readKnipReport(parsed: unknown): KnipReport {
-  if (!isObject(parsed) || !Array.isArray(parsed.issues)) {
-    throw new Error("Knip did not return an issues array.");
+  try {
+    const parsed: unknown = JSON.parse(lastLine);
+    if (typeof parsed !== "object" || parsed === null || !Array.isArray((parsed as Record<string, unknown>).issues)) {
+      throw new Error("Knip did not return an issues array.");
+    }
+    return {
+      issues: ((parsed as Record<string, unknown>).issues as unknown[]).filter(
+        (item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item),
+      ),
+    };
+  } catch (error) {
+    throw new Error(
+      `Knip did not return a valid report JSON object: ${error instanceof Error ? error.message : "parse failed"}`,
+    );
   }
-  return {
-    issues: parsed.issues.filter(isObject),
-  };
 }
 
 export function createProcessDiagnostic(
@@ -1199,29 +1114,8 @@ function readBalancedJsonObject(stdout: string, start: number): string | null {
   return null;
 }
 
-function readNullableNumber(source: Record<string, unknown>, key: string): number | null {
-  const value = source[key];
-  if (value === null) {
-    return null;
-  }
-  if (typeof value !== "number") {
-    throw new Error(`Expected number or null at ${key}.`);
-  }
-  return value;
-}
-
 function checkEqual(name: string, actual: string | number | null, expected: string | number | null): string | null {
   return actual === expected ? null : `${name} drift: expected ${expected}, actual ${actual}`;
-}
-
-function parseReactDoctorReportOrExit(stdout: string): ReactDoctorReport {
-  try {
-    return parseReactDoctorReport(stdout);
-  } catch (error) {
-    const diagnostic = createReportDiagnostic("React Doctor", "pnpm exec react-doctor", stdout, error);
-    writeToolDiagnostic(diagnostic);
-    process.exit(exitCodeForDiagnostic(diagnostic));
-  }
 }
 
 function parseKnipReportOrExit(stdout: string): KnipReport {
@@ -1248,8 +1142,9 @@ function exitCodeForDiagnostic(diagnostic: QualityToolDiagnostic): number {
   return diagnostic.exitCode ?? 1;
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+function trimOptional(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 }
 
 function readErrorCode(error: Error | undefined): string | undefined {
@@ -1261,32 +1156,6 @@ function readErrorCode(error: Error | undefined): string | undefined {
 
 function hasErrorCode(error: Error): error is Error & { code: unknown } {
   return "code" in error;
-}
-
-function trimOptional(value: string | null | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
-}
-
-function readString(source: Record<string, unknown>, key: string): string {
-  const value = source[key];
-  if (typeof value !== "string") {
-    throw new Error(`Expected string at ${key}.`);
-  }
-  return value;
-}
-
-function readOptionalString(source: Record<string, unknown>, key: string): string | undefined {
-  const value = source[key];
-  return typeof value === "string" ? value : undefined;
-}
-
-function readNumber(source: Record<string, unknown>, key: string): number {
-  const value = source[key];
-  if (typeof value !== "number") {
-    throw new Error(`Expected number at ${key}.`);
-  }
-  return value;
 }
 
 const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
