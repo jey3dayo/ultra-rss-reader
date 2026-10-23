@@ -834,7 +834,7 @@ export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
           diagnostics: parseReactDoctorDiagnostics(
             parseResult.output.diagnostics.length > 0
               ? parseResult.output.diagnostics
-              : parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? [],
+              : (parseResult.output.projects?.flatMap((p) => p.diagnostics ?? []) ?? []),
           ),
         };
       }
