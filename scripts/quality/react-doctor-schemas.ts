@@ -55,6 +55,9 @@ export const reactDoctorReportSchema = v.object({
   ),
 });
 
+export type ReactDoctorSummary = v.InferOutput<typeof reactDoctorSummarySchema>;
+export type ReactDoctorDiagnostic = v.InferOutput<typeof reactDoctorDiagnosticSchema>;
+
 export function parseReactDoctorDiagnostics(diagnostics: unknown[]): { severity: string; rule: string }[] {
   return diagnostics
     .filter((d): d is Record<string, unknown> => typeof d === "object" && d !== null && !Array.isArray(d))
