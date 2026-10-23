@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -27,6 +27,37 @@
       }
     }
   },
+  "overrides": [
+    {
+      // Playwright rules misfire on Vitest / Testing Library files; only e2e/** runs Playwright.
+      "includes": ["src/**", "tests/**", ".storybook/**", "scripts/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noPlaywrightMissingAwait": "off",
+            "usePlaywrightValidDescribeCallback": "off"
+          }
+        }
+      }
+    },
+    {
+      // Module-scope hook factories (createQuery, createMutation) and test-local components that close over mocks.
+      "includes": [
+        "src/__tests__/**",
+        "tests/**",
+        "src/hooks/create-mutation.ts",
+        "src/hooks/create-query.ts",
+        "src/components/reader/hooks/use-ui-store-slice.ts"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noComponentHookFactories": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "double",
@@ -51,6 +82,7 @@
       "*.js",
       "*.json",
       "!!tests/fixtures/sanitizer",
+      "!!tests/fixtures/quality-baseline",
       "!!node_modules",
       "!!.pnpm-store",
       "!!dist",

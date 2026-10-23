@@ -138,7 +138,7 @@ export function useSidebarController(): SidebarControllerResult {
         }
 
         const selectedIndex = accounts?.findIndex((account) => account.id === selectedAccountId) ?? -1;
-        focusAccountItem(accountItemRefs, accountCount, selectedIndex >= 0 ? selectedIndex : 0);
+        focusAccountItem(accountItemRefs, accountCount, Math.max(selectedIndex, 0));
       },
       (runFocus) => {
         if (typeof window === "undefined" || typeof window.setTimeout !== "function") {

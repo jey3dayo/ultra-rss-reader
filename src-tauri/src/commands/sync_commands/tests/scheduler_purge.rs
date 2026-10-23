@@ -123,6 +123,70 @@ fn clear_scheduler_sync_status_clears_account_level_backoff() {
     assert!(state.last_success_at.is_some());
 }
 
+fn insert_local_account(db: &Mutex<DbManager>) -> AccountId {
+    let account_id = AccountId::new();
+    db.lock()
+        .unwrap()
+        .writer()
+        .execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            rusqlite::params![account_id.as_ref(), "Local", "Local"],
+        )
+        .unwrap();
+    account_id
+}
+
+#[test]
+fn clear_scheduler_backoff_keeps_last_success_at() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let account_id = insert_local_account(&db);
+    db.lock()
+        .unwrap()
+        .writer()
+        .execute(
+            "INSERT INTO sync_state (account_id, scope_key, last_success_at, last_error, error_count, next_retry_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![
+                account_id.as_ref(),
+                SyncStateScopeKey::scheduler().as_string(),
+                "2020-01-01T00:00:00Z",
+                "old failure",
+                2,
+                "2099-01-01T00:00:00Z",
+            ],
+        )
+        .unwrap();
+
+    clear_scheduler_backoff(&db, &account_id).unwrap();
+
+    let db_guard = db.lock().unwrap();
+    let state = SqliteSyncStateRepository::new(db_guard.reader())
+        .get(&account_id, SyncStateScopeKey::scheduler())
+        .unwrap()
+        .unwrap();
+    assert_eq!(state.error_count, 0);
+    assert_eq!(state.last_error, None);
+    assert_eq!(state.next_retry_at, None);
+    assert_eq!(
+        state.last_success_at.as_deref(),
+        Some("2020-01-01T00:00:00Z")
+    );
+}
+
+#[test]
+fn clear_scheduler_backoff_leaves_last_success_at_empty_without_a_prior_sync() {
+    let db = Mutex::new(DbManager::new_in_memory().unwrap());
+    let account_id = insert_local_account(&db);
+
+    clear_scheduler_backoff(&db, &account_id).unwrap();
+
+    let db_guard = db.lock().unwrap();
+    let state = SqliteSyncStateRepository::new(db_guard.reader())
+        .get(&account_id, SyncStateScopeKey::scheduler())
+        .unwrap()
+        .unwrap();
+    assert_eq!(state.last_success_at, None);
+}
+
 #[test]
 fn purge_old_articles_deletes_old_read_items_when_retention_is_enabled() {
     let db = Mutex::new(DbManager::new_in_memory().unwrap());

@@ -111,9 +111,17 @@ const reactDoctorFullScanTriageStatusBase = {
   // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
+<<<<<<< HEAD
   scanSha: reactDoctorPin.scanSha,
   pluginVersion: reactDoctorPin.pluginVersion,
   scanCommand: reactDoctorPin.scanCommand,
+=======
+  scanSha: "4b7c5977c",
+  pluginVersion: "0.9.18",
+  scanCommand:
+    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
+  classifiedRule: "no-high-complexity-react-function",
+>>>>>>> origin/main
   // Rows in the record that this scan reports, not rows in the record: rows the scan no longer
   // reports stay in place, marked. scripts/check-react-doctor-pin-consistency.ts compares the sets.
   classifiedFindingCount: 22,
@@ -254,8 +262,14 @@ const reactDoctorFullScanTriageStatusBase = {
   // fixed finding from a silenced one. auditWarningCount is the same scan with
   // --no-respect-inline-disables, which is the number that moves only when a finding is
   // actually fixed. Re-pin the two together; measured on the same SHA as scanSha.
+<<<<<<< HEAD
   auditWarningCount: reactDoctorPin.auditWarningCount,
   auditScanCommand: reactDoctorPin.auditScanCommand,
+=======
+  auditWarningCount: 69,
+  auditScanCommand:
+    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
+>>>>>>> origin/main
   reportArtifactPath: "tmp/react-doctor-full.json",
   // classifiedRule is used in triage, not in the pin
   classifiedRule: "no-high-complexity-react-function",

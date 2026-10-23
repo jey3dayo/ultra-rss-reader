@@ -242,7 +242,7 @@ pub async fn test_account_connection(
     };
     #[cfg(target_os = "macos")]
     if verification.is_ok() {
-        crate::commands::sync_commands::clear_credential_wait(&state.db, &id)?;
+        crate::commands::sync_commands::clear_scheduler_backoff(&state.db, &id)?;
     }
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
@@ -311,7 +311,11 @@ fn persist_connection_verification_result(
             )?;
             Err(error)
         }
-        Err(error) => Err(error.into_user_visible()),
+        Err(
+            error @ (SessionError::MissingUsername
+            | SessionError::MissingServerUrl
+            | SessionError::Credential(_)),
+        ) => Err(error.into_user_visible()),
     }
 }
 
@@ -326,6 +330,9 @@ mod connection_probe_tests {
     use crate::commands::dto::AppError;
     use crate::commands::sync_providers::{GReaderSession, SessionError};
     use crate::domain::account::{Account, ConnectionVerificationStatus};
+    use crate::domain::error::{
+        CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError,
+    };
     use crate::domain::provider::ProviderKind;
     use crate::domain::types::AccountId;
     use crate::infra::db::connection::DbManager;
@@ -417,16 +424,23 @@ mod connection_probe_tests {
         tag_list.assert_async().await;
     }
 
-    #[test]
-    fn credential_failure_during_the_connection_test_reaches_the_ui_with_its_cause() {
-        use crate::domain::error::{
-            CredentialFailure, CredentialFailureCause, CredentialTarget, DomainError,
-        };
-
-        let failure = CredentialFailure::new(
+    fn denied_keychain_failure() -> CredentialFailure {
+        CredentialFailure::new(
             CredentialTarget::Password,
             CredentialFailureCause::NotAllowed,
-        );
+        )
+    }
+
+    fn denied_keychain_error() -> AppError {
+        AppError::from(DomainError::CredentialStore {
+            failure: denied_keychain_failure(),
+            message: "dummy keychain denied".to_string(),
+        })
+    }
+
+    #[test]
+    fn credential_failure_during_the_connection_test_reaches_the_ui_with_its_cause() {
+        let failure = denied_keychain_failure();
         let account = account(
             "https://localhost",
             ConnectionVerificationStatus::Unverified,
@@ -438,12 +452,7 @@ mod connection_probe_tests {
         let error = persist_connection_verification_result(
             &repo,
             &account.id,
-            Err(SessionError::Auth(AppError::from(
-                DomainError::CredentialStore {
-                    failure,
-                    message: "dummy keychain denied".to_string(),
-                },
-            ))),
+            Err(SessionError::Credential(denied_keychain_error())),
         )
         .expect_err("a denied keychain read must fail the connection test");
 
@@ -452,6 +461,45 @@ mod connection_probe_tests {
                 credential_failure, ..
             } => assert_eq!(credential_failure, failure),
             other => panic!("expected a typed credential failure, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn credential_failure_leaves_the_stored_verification_unchanged() {
+        let verified = account("https://localhost", ConnectionVerificationStatus::Verified);
+        let errored = Account {
+            id: AccountId("connection-probe-errored".to_string()),
+            connection_verification_status: ConnectionVerificationStatus::Error,
+            connection_verified_at: None,
+            connection_verification_error: Some("Auth error: earlier server rejection".to_string()),
+            ..verified.clone()
+        };
+        let db = DbManager::new_in_memory().expect("test database should initialize");
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        for before in [verified, errored] {
+            repo.save(&before).expect("test account should save");
+
+            persist_connection_verification_result(
+                &repo,
+                &before.id,
+                Err(SessionError::Credential(denied_keychain_error())),
+            )
+            .expect_err("a credential-store failure must fail the connection test");
+            let after = repo
+                .find_by_id(&before.id)
+                .expect("account query should succeed")
+                .expect("account should remain persisted");
+
+            assert_eq!(
+                after.connection_verification_status,
+                before.connection_verification_status
+            );
+            assert_eq!(after.connection_verified_at, before.connection_verified_at);
+            assert_eq!(
+                after.connection_verification_error,
+                before.connection_verification_error
+            );
         }
     }
 

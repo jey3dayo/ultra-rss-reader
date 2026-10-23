@@ -13,8 +13,8 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpListener;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
 use tokio::task::JoinHandle;
 use tokio::time::{timeout, Duration};
 
@@ -52,6 +52,12 @@ async fn local_client_build_failure_is_returned_to_provider_operation() {
     ));
 }
 
+/// Replying before the request is read lets the response overtake the request, which hyper rejects as an unexpected message.
+async fn read_request_head(stream: &mut TcpStream) {
+    let mut request = [0_u8; 1024];
+    let _ = stream.read(&mut request).await;
+}
+
 struct OneShotHttpServer {
     address: std::net::SocketAddr,
     task: Option<JoinHandle<()>>,
@@ -70,6 +76,7 @@ impl OneShotHttpServer {
                 .accept()
                 .await
                 .expect("test server should accept one request");
+            read_request_head(&mut stream).await;
             stream
                 .write_all(response.as_bytes())
                 .await
@@ -191,6 +198,7 @@ async fn feed_http_client_rejects_public_to_private_dns_rebinding_redirect() {
         let Ok((mut stream, _)) = listener.accept().await else {
             return;
         };
+        read_request_head(&mut stream).await;
         let response = format!(
             "HTTP/1.1 302 Found\r\nLocation: {private_redirect}\r\nContent-Length: 0\r\n\r\n"
         );
