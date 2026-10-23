@@ -23,6 +23,16 @@ export const reactDoctorPinSchema = v.object({
 
 export type ReactDoctorPin = v.InferOutput<typeof reactDoctorPinSchema>;
 
+/**
+ * Parse and validate React Doctor pin data.
+ * @param data - Unknown data to parse
+ * @returns Validated ReactDoctorPin
+ * @throws ValiError if validation fails
+ */
+export function parseReactDoctorPin(data: unknown): ReactDoctorPin {
+  return v.parse(reactDoctorPinSchema, data);
+}
+
 const reactDoctorSummarySchema = v.object({
   score: v.nullable(v.number()),
   errorCount: v.number(),

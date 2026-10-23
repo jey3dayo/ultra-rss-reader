@@ -19,7 +19,10 @@ import {
   type ReactDoctorScanDiagnostic,
   sumWarningFamilyCounts,
 } from "../../../scripts/check-react-doctor-pin-consistency.ts";
-import { reactDoctorPinSchema, updateReactDoctorPin } from "../../../scripts/quality/react-doctor-schemas.ts";
+import {
+  parseReactDoctorPin,
+  updateReactDoctorPin,
+} from "../../../scripts/quality/react-doctor-schemas.ts";
 import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
 
 const complexityRule = "no-high-complexity-react-function";
@@ -429,7 +432,7 @@ describe("check-react-doctor-pin-consistency", () => {
       auditWarningCount: 20,
     };
 
-    expect(() => JSON.parse(JSON.stringify(reactDoctorPinSchema.parse(invalidPin)))).toThrow();
+    expect(() => parseReactDoctorPin(invalidPin)).toThrow();
   });
 
   it("rejects non-integer counts in pin schema", () => {
@@ -444,6 +447,6 @@ describe("check-react-doctor-pin-consistency", () => {
       auditWarningCount: 20,
     };
 
-    expect(() => JSON.parse(JSON.stringify(reactDoctorPinSchema.parse(invalidPin)))).toThrow();
+    expect(() => parseReactDoctorPin(invalidPin)).toThrow();
   });
 });
