@@ -13,7 +13,6 @@ export const qualityBaselineRepoScanIgnoredPathPrefixes = [
   "src-tauri/gen/schemas/",
 ] as const;
 
-
 export function runQualityBaseline(command: string | undefined = process.argv[2]): void {
   if (
     command !== "react-doctor:diff" &&
@@ -40,7 +39,6 @@ export function isQualityBaselineRepoScanIgnoredPath(filePath: string): boolean 
   const normalizedPath = normalizeRepoScanPath(filePath);
   return qualityBaselineRepoScanIgnoredPathPrefixes.some((prefix) => normalizedPath.startsWith(prefix));
 }
-
 
 export function partitionQualityBaselineRepoScanPaths(paths: readonly string[]): {
   includedPaths: string[];

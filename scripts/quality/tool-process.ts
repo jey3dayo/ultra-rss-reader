@@ -2,7 +2,7 @@ import type { SpawnSyncReturns } from "node:child_process";
 
 export const qualityToolTimeoutMs = 120_000;
 
-export type QualityToolDiagnosticKind =
+type QualityToolDiagnosticKind =
   | "missing-command"
   | "non-zero-exit"
   | "empty-report"
