@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildMaterializedScanCommandArgs,
   buildOriginMainFetchArgs,
+  parseCommandTokens,
+} from "../../../scripts/check-react-doctor-pin-consistency.ts";
+import {
   buildScanComplexityIdentities,
   buildWarningRuleCounts,
   type ClassificationRecordRow,
@@ -14,11 +17,10 @@ import {
   extractComplexityFunctionName,
   findUnaccountedWarningRules,
   findWarningFamilyCountMismatches,
-  parseCommandTokens,
   parseComplexityClassificationRecordRows,
   type ReactDoctorScanDiagnostic,
   sumWarningFamilyCounts,
-} from "../../../scripts/check-react-doctor-pin-consistency.ts";
+} from "../../../scripts/quality/react-doctor-classification.ts";
 import { parseReactDoctorPin, updateReactDoctorPin } from "../../../scripts/quality/react-doctor-schemas.ts";
 import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality/react-doctor-triage.ts";
 
