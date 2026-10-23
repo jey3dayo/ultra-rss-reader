@@ -429,7 +429,7 @@ describe("check-react-doctor-pin-consistency", () => {
       auditWarningCount: 20,
     };
 
-    expect(() => v.parse(reactDoctorPinSchema, invalidPin)).toThrow();
+    expect(() => JSON.parse(JSON.stringify(reactDoctorPinSchema.parse(invalidPin)))).toThrow();
   });
 
   it("rejects non-integer counts in pin schema", () => {
@@ -444,6 +444,6 @@ describe("check-react-doctor-pin-consistency", () => {
       auditWarningCount: 20,
     };
 
-    expect(() => v.parse(reactDoctorPinSchema, invalidPin)).toThrow();
+    expect(() => JSON.parse(JSON.stringify(reactDoctorPinSchema.parse(invalidPin)))).toThrow();
   });
 });
