@@ -254,14 +254,8 @@ const reactDoctorFullScanTriageStatusBase = {
   // fixed finding from a silenced one. auditWarningCount is the same scan with
   // --no-respect-inline-disables, which is the number that moves only when a finding is
   // actually fixed. Re-pin the two together; measured on the same SHA as scanSha.
-<<<<<<< HEAD
   auditWarningCount: reactDoctorPin.auditWarningCount,
   auditScanCommand: reactDoctorPin.auditScanCommand,
-=======
-  auditWarningCount: 69,
-  auditScanCommand:
-    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
->>>>>>> origin/main
   reportArtifactPath: "tmp/react-doctor-full.json",
   // classifiedRule is used in triage, not in the pin
   classifiedRule: "no-high-complexity-react-function",
