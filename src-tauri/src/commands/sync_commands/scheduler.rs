@@ -293,6 +293,23 @@ pub(crate) fn clear_scheduler_sync_status(
     db: &Mutex<DbManager>,
     account_id: &AccountId,
 ) -> Result<(), AppError> {
+    reset_scheduler_backoff(db, account_id, true)
+}
+
+/// Clears the retry backoff without recording a sync; `last_success_at` is shown as "Last synced".
+#[cfg(any(target_os = "macos", test))]
+pub(crate) fn clear_scheduler_backoff(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<(), AppError> {
+    reset_scheduler_backoff(db, account_id, false)
+}
+
+fn reset_scheduler_backoff(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    record_success: bool,
+) -> Result<(), AppError> {
     let db_guard = lock_db(db)?;
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
     let scope_key = SyncStateScopeKey::scheduler().as_string();
@@ -313,7 +330,9 @@ pub(crate) fn clear_scheduler_sync_status(
     state.error_count = 0;
     state.last_error = None;
     state.next_retry_at = None;
-    state.last_success_at = Some(chrono::Utc::now().to_rfc3339());
+    if record_success {
+        state.last_success_at = Some(chrono::Utc::now().to_rfc3339());
+    }
     repo.save(&state)?;
     Ok(())
 }

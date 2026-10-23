@@ -242,7 +242,7 @@ pub async fn test_account_connection(
     };
     #[cfg(target_os = "macos")]
     if verification.is_ok() {
-        crate::commands::sync_commands::clear_credential_wait(&state.db, &id)?;
+        crate::commands::sync_commands::clear_scheduler_backoff(&state.db, &id)?;
     }
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
