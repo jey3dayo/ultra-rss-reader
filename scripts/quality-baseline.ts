@@ -111,17 +111,9 @@ const reactDoctorFullScanTriageStatusBase = {
   // scanCommand and auditScanCommand at the pinned pluginVersion. The classification numbers below
   // are those diagnostics read through the *current* records, so this commit's own copy of the
   // block is deliberately outside the contract — do not compare them.
-<<<<<<< HEAD
   scanSha: reactDoctorPin.scanSha,
   pluginVersion: reactDoctorPin.pluginVersion,
   scanCommand: reactDoctorPin.scanCommand,
-=======
-  scanSha: "4b7c5977c",
-  pluginVersion: "0.9.18",
-  scanCommand:
-    "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
-  classifiedRule: "no-high-complexity-react-function",
->>>>>>> origin/main
   // Rows in the record that this scan reports, not rows in the record: rows the scan no longer
   // reports stay in place, marked. scripts/check-react-doctor-pin-consistency.ts compares the sets.
   classifiedFindingCount: 22,
@@ -461,6 +453,7 @@ export function reactDoctorDegradedNotice(report: Pick<ReactDoctorReport, "basel
 
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   const scopeArgs = reactDoctorScopeArgs(mode);
+  const reportPath = `tmp/react-doctor-${mode}.json`;
   const result = spawnSync(
     "pnpm",
     [
@@ -475,6 +468,8 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
       ...scopeArgs,
       "--json",
       "--json-compact",
+      "--json-out",
+      reportPath,
       "--blocking",
       "none",
       "--no-score",
@@ -507,8 +502,11 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
     };
   } catch (error) {
     const diagnostic: QualityToolDiagnostic = {
-      outcome: "report-invalid",
-      stderr: error instanceof Error ? error.message : "Failed to parse react-doctor report",
+      kind: "malformed-report",
+      tool: "React Doctor",
+      command: "pnpm exec react-doctor",
+      message: "Failed to parse react-doctor report",
+      stderr: error instanceof Error ? error.message : String(error),
     };
     writeToolDiagnostic(diagnostic);
     process.exit(exitCodeForDiagnostic(diagnostic));
