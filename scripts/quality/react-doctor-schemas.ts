@@ -22,14 +22,14 @@ export const reactDoctorPinSchema = v.object({
 
 export type ReactDoctorPin = v.InferOutput<typeof reactDoctorPinSchema>;
 
-export const reactDoctorSummarySchema = v.object({
+const reactDoctorSummarySchema = v.object({
   score: v.nullable(v.number()),
   errorCount: v.number(),
   warningCount: v.number(),
   affectedFileCount: v.number(),
 });
 
-export const reactDoctorDiagnosticSchema = v.object({
+const reactDoctorDiagnosticSchema = v.object({
   severity: v.fallback(v.string(), "(unknown severity)"),
   rule: v.fallback(v.string(), "(unknown rule)"),
 });
@@ -57,7 +57,6 @@ export const reactDoctorReportSchema = v.object({
 
 export type ReactDoctorSummary = v.InferOutput<typeof reactDoctorSummarySchema>;
 export type ReactDoctorDiagnostic = v.InferOutput<typeof reactDoctorDiagnosticSchema>;
-export type ReactDoctorReport = v.InferOutput<typeof reactDoctorReportSchema>;
 
 export function parseReactDoctorDiagnostics(diagnostics: unknown[]): { severity: string; rule: string }[] {
   return diagnostics
