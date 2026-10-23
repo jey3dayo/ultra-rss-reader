@@ -14,13 +14,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { checkReleaseBuildSources } from "../scripts/check-release-build-contamination";
+import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../scripts/quality-baseline";
 import {
   generatedFixtureSnapshotSizeBudget,
   isGeneratedReportArtifactPath,
   liveProviderTestGateContract,
   markdownlintRepoContract,
-  qualityBaselineRepoScanIgnoredPathPrefixes,
-} from "../scripts/quality-baseline";
+} from "./helpers/quality-baseline-repo-contract";
 import {
   RELEASE_UPDATER_ASSET_CONTRACT as actualReleaseUpdaterAssetContract,
   UNSUPPORTED_UPDATER_PLATFORM_KEYS as actualUnsupportedUpdaterPlatformKeys,
