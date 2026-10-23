@@ -1,0 +1,20 @@
+{
+  "description": "React Doctor baseline pin: machine-generated measurement values that change when the plugin version or scan snapshot changes. Re-pin together with triage status in quality-baseline.ts.",
+  "scanSha": "4b7c5977c",
+  "pluginVersion": "0.9.18",
+  "scanCommand": "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code",
+  "diff": {
+    "score": null,
+    "errorCount": 0,
+    "warningCount": 0,
+    "affectedFileCount": 0
+  },
+  "full": {
+    "score": null,
+    "errorCount": 2,
+    "warningCount": 29,
+    "affectedFileCount": 29
+  },
+  "auditScanCommand": "react-doctor . --verbose --project . --scope full --json --json-compact --blocking none --no-score --no-dead-code --no-respect-inline-disables",
+  "auditWarningCount": 69
+}

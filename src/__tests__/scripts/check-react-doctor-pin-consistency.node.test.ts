@@ -12,7 +12,6 @@ import {
   compareComplexityIdentitySets,
   complexityIdentityKey,
   extractComplexityFunctionName,
-  extractPinnedFullScanSummary,
   findUnaccountedWarningRules,
   findWarningFamilyCountMismatches,
   parseCommandTokens,
@@ -20,8 +19,8 @@ import {
   parseReactDoctorScanReport,
   type ReactDoctorScanDiagnostic,
   sumWarningFamilyCounts,
-} from "../../../scripts/check-react-doctor-pin-consistency";
-import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline";
+} from "../../../scripts/check-react-doctor-pin-consistency.ts";
+import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality-baseline.ts";
 
 const complexityRule = "no-high-complexity-react-function";
 
@@ -242,34 +241,21 @@ describe("check-react-doctor-pin-consistency", () => {
     });
   });
 
-  describe("extractPinnedFullScanSummary", () => {
-    it("extracts the pinned full-scan totals from the quality-baseline source", () => {
-      const source = [
-        "const reactDoctorBaselines = {",
-        "  diff: {",
-        "    score: null,",
-        "    errorCount: 0,",
-        "    warningCount: 0,",
-        "    affectedFileCount: 0,",
-        "  },",
-        "  full: {",
-        "    score: null,",
-        "    errorCount: 2,",
-        "    warningCount: 32,",
-        "    affectedFileCount: 32,",
-        "  },",
-        "} as const;",
-      ].join("\n");
-      expect(extractPinnedFullScanSummary(source)).toEqual({ errorCount: 2, warningCount: 32, affectedFileCount: 32 });
+  describe("loadPinnedFullScanSummary", () => {
+    it("loads the pinned full-scan totals from the react-doctor-pin JSON", () => {
+      const pinJson = readFileSync("scripts/quality/react-doctor-pin.json", "utf8");
+      const pin = JSON.parse(pinJson);
+      expect(pin.full).toEqual({
+        score: null,
+        errorCount: 2,
+        warningCount: 29,
+        affectedFileCount: 29,
+      });
     });
 
-    it("throws when the pinned block cannot be found", () => {
-      expect(() => extractPinnedFullScanSummary("no such block here")).toThrow();
-    });
-
-    it("matches the real reactDoctorFullScanTriageStatus derivation against the current source", () => {
-      const source = readFileSync("scripts/quality-baseline.ts", "utf8");
-      const pinned = extractPinnedFullScanSummary(source);
+    it("matches the real reactDoctorFullScanTriageStatus derivation against the current pin", () => {
+      const pinJson = readFileSync("scripts/quality/react-doctor-pin.json", "utf8");
+      const pinned = JSON.parse(pinJson).full;
       const status = reactDoctorFullScanTriageStatus;
       expect(pinned.errorCount).toBe(status.errorCountAtScan);
       expect(pinned.warningCount).toBe(
@@ -436,5 +422,43 @@ describe("check-react-doctor-pin-consistency", () => {
       );
       expect(activeKeys.size).toBe(activeRows.length);
     });
+  });
+
+  it("preserves metadata fields (like description) when re-pinning", () => {
+    // Simulate the repin logic: read original JSON, update measured values, preserve metadata
+    const originalJson = {
+      $schema: "https://json-schema.org/draft-07/schema#",
+      description: "React Doctor baseline pin: machine-generated measurement values",
+      scanSha: "abc123",
+      pluginVersion: "0.9.17",
+      scanCommand: "react-doctor . --verbose",
+      diff: { score: null, errorCount: 0, warningCount: 0, affectedFileCount: 0 },
+      full: { score: null, errorCount: 1, warningCount: 10, affectedFileCount: 10 },
+      auditScanCommand: "react-doctor . --no-respect-inline-disables",
+      auditWarningCount: 20,
+    };
+
+    // Simulate update
+    const updatedPin = {
+      ...originalJson,
+      $schema: undefined, // Remove $schema as it's meaningless
+      pluginVersion: "0.9.18",
+      full: {
+        score: null,
+        errorCount: 2,
+        warningCount: 15,
+        affectedFileCount: 15,
+      },
+      auditWarningCount: 25,
+    };
+    delete updatedPin.$schema;
+
+    // Verify description is preserved and $schema is removed
+    expect(updatedPin.description).toBe("React Doctor baseline pin: machine-generated measurement values");
+    expect(updatedPin.$schema).toBeUndefined();
+    expect(updatedPin.pluginVersion).toBe("0.9.18");
+    expect(updatedPin.full.errorCount).toBe(2);
+    expect(updatedPin.full.warningCount).toBe(15);
+    expect(updatedPin.auditWarningCount).toBe(25);
   });
 });
