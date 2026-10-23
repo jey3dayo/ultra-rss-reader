@@ -16,12 +16,6 @@ import { describe, expect, it } from "vitest";
 import { checkReleaseBuildSources } from "../scripts/check-release-build-contamination";
 import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../scripts/quality-baseline";
 import {
-  generatedFixtureSnapshotSizeBudget,
-  isGeneratedReportArtifactPath,
-  liveProviderTestGateContract,
-  markdownlintRepoContract,
-} from "./helpers/quality-baseline-repo-contract";
-import {
   RELEASE_UPDATER_ASSET_CONTRACT as actualReleaseUpdaterAssetContract,
   UNSUPPORTED_UPDATER_PLATFORM_KEYS as actualUnsupportedUpdaterPlatformKeys,
 } from "../scripts/release/lib/artifact-contract";
@@ -34,6 +28,12 @@ import {
   formatRepositorySqlInventoryReport,
   readMigrationSources,
 } from "../scripts/repo-contract-inventory";
+import {
+  generatedFixtureSnapshotSizeBudget,
+  isGeneratedReportArtifactPath,
+  liveProviderTestGateContract,
+  markdownlintRepoContract,
+} from "./helpers/quality-baseline-repo-contract";
 import {
   extractYamlInlineListValues,
   extractYamlLabelsFields,

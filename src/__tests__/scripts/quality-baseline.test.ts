@@ -3,11 +3,6 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  isQualityBaselineRepoScanIgnoredPath,
-  partitionQualityBaselineRepoScanPaths,
-  qualityBaselineRepoScanIgnoredPathPrefixes,
-} from "../../../scripts/quality-baseline.ts";
 import { formatKnipIssue, parseKnipReport } from "../../../scripts/quality/knip.ts";
 import {
   buildReactDoctorRuleCounts,
@@ -18,6 +13,11 @@ import {
 } from "../../../scripts/quality/react-doctor.ts";
 import { reactDoctorFullScanTriageStatus } from "../../../scripts/quality/react-doctor-triage.ts";
 import { createProcessDiagnostic, createReportDiagnostic } from "../../../scripts/quality/tool-process.ts";
+import {
+  isQualityBaselineRepoScanIgnoredPath,
+  partitionQualityBaselineRepoScanPaths,
+  qualityBaselineRepoScanIgnoredPathPrefixes,
+} from "../../../scripts/quality-baseline.ts";
 
 describe("quality-baseline", () => {
   // The diff gate's whole contract lives in these flags. `changed` is what makes an
