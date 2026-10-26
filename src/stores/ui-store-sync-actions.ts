@@ -101,12 +101,48 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
     clearAccountSetup: () => set({ accountSetupSession: null }),
     applySyncProgress: (event) =>
       set((state) => {
-        if (shouldIgnoreSyncProgressEvent(state.syncProgress, event)) {
+        const counts = normalizeSyncProgressCounts(event);
+        const currentSessionId = state.syncProgress.sessionId;
+        const isCurrentSession = currentSessionId === event.session_id;
+        const isOlderSession = currentSessionId !== null && event.session_id < currentSessionId;
+
+        // Handle terminal events from older sessions to fix stuck state: when a newer
+        // session starts before an older one finishes, the newer session resets
+        // activeAccountIds, and the older session's terminal events are normally ignored
+        // completely. But those terminal events signal that specific accounts are done,
+        // so we process them to clean up activeAccountIds.
+        if (isOlderSession && state.syncProgress.active) {
+          if (event.stage === "finished") {
+            // Older session finished: clear to idle.
+            return {
+              syncProgress: getIdleSyncProgress(),
+            };
+          }
+          if (event.stage === "account_finished" && event.account_id) {
+            // Remove this account from activeAccountIds even though it's from an older session.
+            const activeAccountIds = new Set(state.syncProgress.activeAccountIds);
+            activeAccountIds.delete(event.account_id);
+            if (activeAccountIds.size === 0 && state.syncProgress.kind === "manual_account") {
+              return {
+                syncProgress: getIdleSyncProgress(),
+              };
+            }
+            return {
+              syncProgress: {
+                ...state.syncProgress,
+                activeAccountIds,
+              },
+            };
+          }
+          // Ignore non-terminal events from older sessions.
           return {};
         }
 
-        const counts = normalizeSyncProgressCounts(event);
-        const isCurrentSession = state.syncProgress.sessionId === event.session_id;
+        // Ignore events from older sessions when we're idle (no cleanup needed).
+        if (isOlderSession) {
+          return {};
+        }
+
         const total = isCurrentSession ? Math.max(state.syncProgress.total, counts.total) : counts.total;
         const completed = Math.min(
           isCurrentSession ? Math.max(state.syncProgress.completed, counts.completed) : counts.completed,
@@ -141,22 +177,5 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
         };
       }),
     clearSyncProgress: () => set({ syncProgress: getIdleSyncProgress() }),
-    clearSyncProgressForAccount: (accountId) =>
-      set((state) => {
-        if (!state.syncProgress.active || state.syncProgress.kind !== "manual_account") {
-          return {};
-        }
-        const activeAccountIds = new Set(state.syncProgress.activeAccountIds);
-        activeAccountIds.delete(accountId);
-        if (activeAccountIds.size === 0) {
-          return { syncProgress: getIdleSyncProgress() };
-        }
-        return {
-          syncProgress: {
-            ...state.syncProgress,
-            activeAccountIds,
-          },
-        };
-      }),
   };
 }

@@ -246,9 +246,6 @@ export function useAccountDetailSyncControls({
           invalidateAccountSyncNowQueries(queryClient);
           onSyncStatusChanged?.();
           const feedback = summarizeSyncResult(syncResult);
-          if (feedback.kind === "already-in-progress") {
-            useUiStore.getState().clearSyncProgressForAccount(requestAccountId);
-          }
           setSyncNowSuccess(
             feedback.kind === "success" ? { accountId: requestAccountId, generation: requestGeneration } : null,
           );
