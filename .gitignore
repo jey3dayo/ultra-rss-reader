@@ -22,6 +22,7 @@ src-tauri/gen/schemas/
 # Playwright
 test-results/
 playwright-report/
+.playwright-mcp/
 
 # Storybook
 storybook-static/
