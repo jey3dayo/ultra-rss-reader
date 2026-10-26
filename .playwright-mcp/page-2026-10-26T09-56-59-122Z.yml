@@ -1,0 +1,332 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e3]:
+    - main [ref=f4e8]:
+      - generic [ref=f4e9]:
+        - navigation [ref=f4e564]:
+          - generic [ref=f4e14]:
+            - button [ref=f4e565]
+            - button [ref=f4e566]
+          - button [ref=f4e567] [cursor=pointer]:
+            - heading [level=1] [ref=f4e568]: FreshRSS
+            - paragraph [ref=f4e23]: Not synced yet
+          - generic [ref=f4e24]:
+            - generic [ref=f4e25]: Smart views
+            - button [pressed] [ref=f4e569]:
+              - generic [ref=f4e27]: Unread
+              - generic [ref=f4e29]: "24"
+            - button [ref=f4e570]:
+              - generic [ref=f4e32]: Starred
+              - generic [ref=f4e34]: "2"
+            - button [ref=f4e571]:
+              - generic [ref=f4e37]: Recently Viewed
+          - button [expanded] [ref=f4e572]:
+            - generic [ref=f4e44]: Subscriptions
+          - generic [ref=f4e51]:
+            - generic [ref=f4e54]:
+              - generic [ref=f4e56]:
+                - button [ref=f4e573]:
+                  - generic [ref=f4e59]: Misc
+                  - generic [ref=f4e67]: "3"
+                - generic:
+                  - generic:
+                    - generic:
+                      - button [ref=f4e70]
+                      - button:
+                        - generic: AUTOMATON
+                        - generic: "3"
+              - generic [ref=f4e79]:
+                - button [ref=f4e575]:
+                  - generic [ref=f4e82]: News
+                  - generic [ref=f4e90]: "13"
+                - generic:
+                  - generic:
+                    - generic:
+                      - button [ref=f4e93]
+                      - button:
+                        - generic: NHKニュース
+                        - generic: "8"
+                  - generic:
+                    - generic:
+                      - button [ref=f4e102]
+                      - button:
+                        - generic: はてブ 人気エントリー
+                        - generic: "5"
+              - generic [ref=f4e111]:
+                - button [ref=f4e577]:
+                  - generic [ref=f4e114]: Tech
+                  - generic [ref=f4e122]: "6"
+                - generic:
+                  - generic:
+                    - generic:
+                      - button [ref=f4e125]
+                      - button:
+                        - generic: INTERNET Watch
+                        - generic: "2"
+                  - generic:
+                    - generic:
+                      - button [ref=f4e134]
+                      - button:
+                        - generic: npaka
+                        - generic: "1"
+                  - generic:
+                    - generic:
+                      - button [ref=f4e143]
+                      - button:
+                        - generic: PCパーツまとめ [full]
+                        - generic: "2"
+                  - generic:
+                    - generic:
+                      - button [ref=f4e152]
+                      - button:
+                        - generic: Publickey
+                        - generic: "1"
+              - generic [ref=f4e161]:
+                - button [ref=f4e579]:
+                  - generic [ref=f4e164]: youtube
+                  - generic [ref=f4e172]: "2"
+                - generic:
+                  - generic:
+                    - generic:
+                      - button [ref=f4e175]
+                      - button:
+                        - generic: ウチラン
+                        - generic: "1"
+                  - generic:
+                    - generic:
+                      - button [ref=f4e184]
+                      - button:
+                        - generic: 田楽
+                        - generic: "1"
+            - generic [ref=f4e192]:
+              - button [expanded] [ref=f4e581]:
+                - generic [ref=f4e195]: Tags
+              - generic [ref=f4e201]:
+                - button [ref=f4e582]:
+                  - generic [ref=f4e203]: important
+                  - generic [ref=f4e207]: "1"
+                - button [ref=f4e584]:
+                  - generic [ref=f4e210]: read later
+                  - generic [ref=f4e214]: "1"
+                - button [ref=f4e586]:
+                  - generic [ref=f4e217]: work
+                  - generic [ref=f4e221]: "1"
+          - generic [ref=f4e223]:
+            - button [ref=f4e588]:
+              - generic [ref=f4e225]: Manage Subscriptions
+            - button [ref=f4e589]
+            - button [ref=f4e590]
+        - generic [ref=f4e229]:
+          - generic [ref=f4e230]:
+            - button [ref=f4e591]:
+              - generic [ref=f4e233]: Subscriptions
+            - generic [ref=f4e235]:
+              - button [disabled]
+              - button [ref=f4e592]
+          - listbox [ref=f4e593]:
+            - region [ref=f4e594]:
+              - generic [ref=f4e246]: TODAY
+              - option [ref=f4e595] [cursor=pointer]:
+                - heading [level=3] [ref=f4e596]: 全国の桜 記録的な早咲き 各地で開花宣言 見頃は今週末から
+                - paragraph [ref=f4e257]: NHKニュース
+                - paragraph [ref=f4e259]: 28日、全国の気象台が相次いで桜の開花を発表しました。平年より1週間ほど早い開花で、各地の名所では今週末から見頃を迎える見通しです。
+              - option [ref=f4e597] [cursor=pointer]:
+                - heading [level=3] [ref=f4e598]: 国内キャッシュレス決済比率 過去最高を更新 経済産業省が発表
+                - paragraph [ref=f4e269]: NHKニュース
+                - paragraph [ref=f4e271]: 26日午前、キャッシュレス決済比率が過去最高を更新。コード決済が伸びをけん引。
+              - option [ref=f4e599] [cursor=pointer]:
+                - heading [level=3] [ref=f4e600]: 京都駅に新しい観光案内ラウンジ 多言語対応で乗り換え案内も
+                - paragraph [ref=f4e281]: NHKニュース
+                - paragraph [ref=f4e283]: 京都駅の構内に29日、観光案内ラウンジがオープンしました。4か国語に対応した案内スタッフが常駐し、周辺路線への乗り換え案内やモデルコースの提案を行います。
+              - option [ref=f4e601] [cursor=pointer]:
+                - heading [level=3] [ref=f4e602]: SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。弾幕へのこだわりがすごい
+                - paragraph [ref=f4e293]: AUTOMATON
+                - paragraph [ref=f4e295]: Housemarque開発の高難度3D弾幕ローグライトシューター『SAROS』のクリエイティブディレクターへのインタビュー。弾幕ゲームとしてのこだわりを語る。
+              - option [ref=f4e603] [cursor=pointer]:
+                - heading [level=3] [ref=f4e604]: サッカーW杯 ブラジル戦へ森保監督「勝って歴史変える」
+                - paragraph [ref=f4e305]: NHKニュース
+                - paragraph [ref=f4e307]: サッカーワールドカップ日本代表の森保一監督は決勝トーナメント1回戦のブラジル戦を前に公式会見に臨み、「勝って歴史を変えたい」と意欲を示しました。
+              - option [ref=f4e605] [cursor=pointer]:
+                - heading [level=3] [ref=f4e606]: 人気海上街づくりサバイバルシム『Havendock』が期間限定で無料配布開始。Epic Gamesストアにて
+                - paragraph [ref=f4e317]: AUTOMATON
+                - paragraph [ref=f4e319]: 人気海上街づくりサバイバルシム『Havendock』がEpic Gamesストアにて3月28日まで無料配布中。
+              - option [ref=f4e607] [cursor=pointer]:
+                - heading [level=3] [ref=f4e608]: “積ん読”は悪くない 読書量より「本との出会い方」を見直す
+                - paragraph [ref=f4e329]: はてブ 人気エントリー
+                - paragraph [ref=f4e331]: 積ん読との付き合い方を、読書習慣の研究や書店員の視点とともに整理します。
+              - option [ref=f4e609] [cursor=pointer]:
+                - heading [level=3] [ref=f4e610]: OpenAI、Microsoftと独占契約終了 Amazon経由でモデル提供 - 日本経済新聞
+                - paragraph [ref=f4e341]: はてブ 人気エントリー
+                - paragraph [ref=f4e343]: OpenAIとMicrosoftの契約見直しをめぐるニュースをまとめます。
+              - option [ref=f4e611] [cursor=pointer]:
+                - heading [level=3] [ref=f4e612]: 欧州路線に持続可能燃料を本格導入、6月から対象便を順次拡大
+                - paragraph [ref=f4e353]: はてブ 人気エントリー
+                - paragraph [ref=f4e355]: 欧州路線で持続可能な航空燃料の導入が進み、日本の航空会社も対象便を拡大しています。
+              - option [ref=f4e613] [cursor=pointer]:
+                - heading [level=3] [ref=f4e614]: 7月発表の短観予測 設備投資の回復で改善見込む声
+                - paragraph [ref=f4e365]: NHKニュース
+                - paragraph [ref=f4e367]: 7月1日に公表される日銀の短観について、民間の調査会社の間では、製造業の設備投資が回復していることを背景に、景況感の改善を予測する見方が多くなっています。
+              - option [ref=f4e615] [cursor=pointer]:
+                - heading [level=3] [ref=f4e616]: 大分 別府温泉の観光客数が過去最多 インバウンドが押し上げ
+                - paragraph [ref=f4e377]: NHKニュース
+                - paragraph [ref=f4e379]: 大分県別府市の温泉施設を訪れた観光客数が昨年度に過去最多となりました。海外からの旅行者が全体の3割を占め、市は受け入れ体制の拡充を進めています。
+              - option [ref=f4e617] [cursor=pointer]:
+                - heading [level=3] [ref=f4e618]: 一時期よく見かけた「カーディガンを腰に巻くスタイル」は今若い子はあまりしないのだろうか？
+                - paragraph [ref=f4e389]: はてブ 人気エントリー
+                - paragraph [ref=f4e391]: ファッションの流行変化について、SNS上の反応をまとめた記事です。
+              - option [ref=f4e619] [cursor=pointer]:
+                - heading [level=3] [ref=f4e620]: 国際宇宙ステーション補給ミッション成功 民間機で初の往復再利用
+                - paragraph [ref=f4e401]: NHKニュース
+                - paragraph [ref=f4e403]: 国際宇宙ステーションへの補給ミッションが28日、無事に完了しました。民間の補給機として初めて往復での機体再利用に成功し、輸送コストの大幅な低減につながると期待されています。
+              - option [ref=f4e621] [cursor=pointer]:
+                - heading [level=3] [ref=f4e622]: 南米各国が新たな貿易枠組みで合意 関税引き下げへ
+                - paragraph [ref=f4e413]: NHKニュース
+                - paragraph [ref=f4e415]: 南米の主要国は28日、域内の貿易枠組みを見直すことで合意しました。段階的な関税の引き下げにより、農産品や工業製品の取引拡大を目指すとしています。
+              - option [ref=f4e623] [cursor=pointer]:
+                - heading [level=3] [ref=f4e624]: Scribe v2 リアルタイム音声認識 - 150ms 低遅延 API
+                - paragraph [ref=f4e425]: はてブ 人気エントリー
+                - paragraph [ref=f4e427]: リアルタイム音声認識 API の改善点と、低遅延化の仕組みを紹介します。
+            - region [ref=f4e625]:
+              - generic [ref=f4e429]: YESTERDAY
+              - option [ref=f4e626] [cursor=pointer]:
+                - heading [level=3] [ref=f4e627]: 大盛況オープンワールド『紅の砂漠』、やたら「木」が強いと話題に。丸太を持ったら、ボスさえ一撃
+                - paragraph [ref=f4e440]: AUTOMATON
+                - paragraph [ref=f4e442]: 『紅の砂漠』で木を使った意外な攻略法が話題に。丸太を持つだけでボスを一撃で倒せる。
+              - option [ref=f4e628] [cursor=pointer]:
+                - heading [level=3] [ref=f4e629]: 家庭内ネットワークを見直すなら、まず確認したいルーター設定
+                - paragraph [ref=f4e452]: INTERNET Watch
+                - paragraph [ref=f4e454]: 家庭内ネットワークの速度と安全性を改善するための基本設定を解説します。
+              - option [ref=f4e630] [cursor=pointer]:
+                - heading [level=3] [ref=f4e631]: パスキー対応サービスが拡大、移行時に気をつけたいポイント
+                - paragraph [ref=f4e464]: INTERNET Watch
+                - paragraph [ref=f4e466]: パスキー対応が広がる中、複数端末で安全に使うための注意点をまとめます。
+              - option [ref=f4e632] [cursor=pointer]:
+                - heading [level=3] [ref=f4e633]: Claude 4.5 Sonnet の新機能まとめ - 実践的な使い方ガイド
+                - paragraph [ref=f4e478]: npaka
+                - paragraph [ref=f4e480]: Claude 4.5 Sonnetの新機能まとめ。コンテキストウィンドウ拡張、コーディング能力改善、マルチモーダル理解の向上。
+              - option [ref=f4e634] [cursor=pointer]:
+                - heading [level=3] [ref=f4e635]: 次世代GPUの補助電源、ケーブル取り回しで注意したいこと
+                - paragraph [ref=f4e490]: PCパーツまとめ [full]
+                - paragraph [ref=f4e492]: 自作PCで高性能GPUを扱う際の電源ケーブルとケース内エアフローの注意点。
+              - option [ref=f4e636] [cursor=pointer]:
+                - heading [level=3] [ref=f4e637]: ミニPCの発熱対策、静音性と性能のバランスをどう取るか
+                - paragraph [ref=f4e502]: PCパーツまとめ [full]
+                - paragraph [ref=f4e504]: コンパクトな筐体で温度を抑えるための置き場所とファン設定を紹介します。
+              - option [ref=f4e638] [cursor=pointer]:
+                - heading [level=3] [ref=f4e639]: 今週の気になる配信まとめ、コメント欄で話題になった場面
+                - paragraph [ref=f4e514]: ウチラン
+                - paragraph [ref=f4e516]: 配信の見どころと、視聴者コメントで盛り上がった場面を振り返ります。
+              - option [ref=f4e640] [cursor=pointer]:
+                - heading [level=3] [ref=f4e641]: 週末に遊びたい協力ゲーム特集、短時間でも盛り上がるタイトル
+                - paragraph [ref=f4e526]: 田楽
+                - paragraph [ref=f4e528]: 週末に友人と遊びやすい協力ゲームを、プレイ時間別に紹介します。
+              - option [ref=f4e642] [cursor=pointer]:
+                - heading [level=3] [ref=f4e643]: PostgreSQL 18ベータ版が登場、仮想生成カラムやJSONパス機能が追加。パフォーマンス改善も多数
+                - paragraph [ref=f4e540]: Publickey
+                - paragraph [ref=f4e542]: PostgreSQL 18ベータ版がリリース。仮想生成カラムやJSONパス機能など多くの新機能とパフォーマンス改善を含む。
+          - group [ref=f4e544]:
+            - button [disabled] [pressed] [ref=f4e644]:
+              - generic [ref=f4e546]: UNREAD
+            - button [disabled] [ref=f4e645]:
+              - generic [ref=f4e549]: ALL
+            - button [disabled] [ref=f4e646]:
+              - generic [ref=f4e552]: STARRED
+    - status [ref=f4e556]
+  - generic [ref=f4e558] [cursor=pointer]:
+    - group [aria-hidden]:
+      - generic:
+        - button
+      - generic:
+        - button
+      - generic:
+        - button [disabled]
+      - generic:
+        - button [disabled]
+      - button [disabled] [aria-hidden]
+      - generic:
+        - button [disabled]
+      - generic:
+        - button
+    - button [ref=f4e647]
+  - dialog [ref=f4e651]:
+    - generic [ref=f4e652]:
+      - generic [ref=f4e653]:
+        - button "Close settings" [ref=f4e654]
+        - heading "Settings" [level=2] [ref=f4e655]
+      - navigation [ref=f4e660]:
+        - button "General" [ref=f4e661]
+        - button "Reading" [ref=f4e669]
+        - button "Appearance" [ref=f4e676]
+        - button "Mute" [ref=f4e687]
+        - button "Tags" [ref=f4e697]
+        - button "Shortcuts" [ref=f4e705]
+        - button "Actions and Sharing" [ref=f4e712]
+        - button "Data" [ref=f4e723]
+        - button "Development" [ref=f4e732]
+      - generic [ref=f4e746]:
+        - paragraph [ref=f4e747]: Accounts
+        - generic [ref=f4e751]:
+          - button "FreshRSS user" [ref=f4e752]:
+            - generic [ref=f4e759]:
+              - generic [ref=f4e760]: FreshRSS
+              - generic [ref=f4e761]: user
+          - button "Local" [ref=f4e762]
+          - button "Add account…" [ref=f4e771]
+    - region [ref=f4e779]:
+      - heading "General" [level=2] [ref=f4e783]
+      - generic [ref=f4e789]:
+        - generic [ref=f4e790]:
+          - generic [ref=f4e791]:
+            - heading "App" [level=3] [ref=f4e792]
+            - generic [ref=f4e793]:
+              - generic [ref=f4e794]:
+                - generic [ref=f4e795]: Language
+                - generic [ref=f4e798]:
+                  - combobox "Language" [expanded] [ref=f4e799]:
+                    - generic [ref=f4e800]: System default
+                  - listbox [ref=f4e867]:
+                    - option "System default" [active] [selected] [ref=f4e868]
+                    - option "English" [ref=f4e872]
+                    - option "日本語" [ref=f4e875]
+                  - textbox [aria-hidden] [ref=f4e802]: system
+              - generic [ref=f4e803]:
+                - generic [ref=f4e804]: Unread count badge
+                - generic [ref=f4e807]:
+                  - combobox "Unread count badge" [ref=f4e808]:
+                    - generic [ref=f4e809]: Don't display
+                  - textbox [aria-hidden] [ref=f4e811]: dont_display
+          - generic [ref=f4e812]:
+            - heading "Sync" [level=3] [ref=f4e813]
+            - generic [ref=f4e815]:
+              - generic [ref=f4e816]: Sync when the app starts
+              - generic [ref=f4e819]:
+                - switch "Sync when the app starts" [checked] [ref=f4e820]
+                - checkbox [checked] [aria-hidden] [ref=f4e821]
+        - generic [ref=f4e823]:
+          - heading "Navigation" [level=3] [ref=f4e824]
+          - generic [ref=f4e825]:
+            - generic [ref=f4e826]:
+              - generic [ref=f4e827]: Show Unread in sidebar
+              - generic [ref=f4e830]:
+                - switch "Show Unread in sidebar" [checked] [ref=f4e831]
+                - checkbox [checked] [aria-hidden] [ref=f4e832]
+            - generic [ref=f4e833]:
+              - generic [ref=f4e834]: Show Starred in sidebar
+              - generic [ref=f4e837]:
+                - switch "Show Starred in sidebar" [checked] [ref=f4e838]
+                - checkbox [checked] [aria-hidden] [ref=f4e839]
+            - generic [ref=f4e840]:
+              - generic [ref=f4e841]: Show Recently Viewed in sidebar
+              - generic [ref=f4e844]:
+                - switch "Show Recently Viewed in sidebar" [checked] [ref=f4e845]
+                - checkbox [checked] [aria-hidden] [ref=f4e846]
+            - generic [ref=f4e847]:
+              - generic [ref=f4e848]: Show Tags in sidebar
+              - generic [ref=f4e851]:
+                - switch "Show Tags in sidebar" [checked] [ref=f4e852]
+                - checkbox [checked] [aria-hidden] [ref=f4e853]
+            - generic [ref=f4e854]:
+              - generic [ref=f4e855]: Startup folder expansion
+              - generic [ref=f4e858]:
+                - combobox "Startup folder expansion" [ref=f4e859]:
+                  - generic [ref=f4e860]: All collapsed
+                - textbox [aria-hidden] [ref=f4e862]: all_collapsed

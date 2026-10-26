@@ -49,6 +49,7 @@ export function CredentialStorageSectionView({
         options={options}
         onChange={onStorageChange}
         disabled={saving}
+        triggerClassName="sm:min-w-[220px]"
       />
       <p className="text-[13px] leading-[1.5] text-foreground-soft">{description}</p>
       {storage === "local_file" && (

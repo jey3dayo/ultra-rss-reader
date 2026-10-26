@@ -53,7 +53,7 @@ export function LabeledSelectRow({
       <Select name={name} value={value} onValueChange={handleValueChange} disabled={disabled} open={open}>
         <SelectTrigger
           aria-labelledby={resolvedLabelId}
-          className={cn("w-full sm:w-auto sm:min-w-[220px] sm:max-w-full", triggerClassName)}
+          className={cn("w-full sm:w-auto sm:max-w-full", triggerClassName)}
         >
           <SelectOptionValue options={options} />
         </SelectTrigger>
