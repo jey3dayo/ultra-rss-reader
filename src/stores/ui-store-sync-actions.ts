@@ -31,13 +31,6 @@ function normalizeSyncProgressCounts(event: Pick<SyncProgressEventDto, "total" |
   };
 }
 
-function shouldIgnoreSyncProgressEvent(
-  current: SyncProgressUiState,
-  event: Pick<SyncProgressEventDto, "session_id">,
-): boolean {
-  return current.sessionId !== null && event.session_id < current.sessionId;
-}
-
 function normalizeAccountSetupAccountId(accountId: string): string | null {
   const normalizedAccountId = accountId.trim();
   return normalizedAccountId.length > 0 ? normalizedAccountId : null;
