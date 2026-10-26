@@ -61,16 +61,12 @@ pub async fn trigger_sync(
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
     let accounts = load_all_accounts(&state.db)?;
-    let reporter = SyncProgressReporter::new(
-        app_handle.clone(),
-        SyncProgressKind::ManualAll,
-        accounts.len(),
-    );
+    // Reporter is created AFTER acquiring the guard in run_sync_for_accounts_with_mode
     let result = run_sync_for_accounts_with_mode(
         &state.db,
         &state.syncing,
         accounts,
-        Some(reporter),
+        None, // Reporter will be created after guard acquisition
         |account| CredentialLookupMode::for_user_sync(account.id.as_ref()),
         SyncTrigger::ManualAll,
         |result| {
@@ -94,6 +90,8 @@ pub async fn trigger_sync(
                 emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
             }
         },
+        Some(&app_handle),
+        Some(SyncProgressKind::ManualAll),
     )
     .await?;
     Ok(result)
