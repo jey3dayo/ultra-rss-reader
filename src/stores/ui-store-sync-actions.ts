@@ -20,7 +20,7 @@ export function getIdleSyncProgress(): SyncProgressUiState {
     completed: 0,
     currentAccountName: null,
     activeAccountIds: new Set(),
-    finishedSessionIds: new Set(),
+    lastSettledSessionId: 0,
   };
 }
 
@@ -95,8 +95,8 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
     clearAccountSetup: () => set({ accountSetupSession: null }),
     applySyncProgress: (event) =>
       set((state) => {
-        // Ignore events for sessions that already finished
-        if (state.syncProgress.finishedSessionIds.has(event.session_id)) {
+        // Ignore events for sessions that already finished (session_id <= lastSettledSessionId)
+        if (event.session_id <= state.syncProgress.lastSettledSessionId) {
           return {};
         }
 
@@ -105,26 +105,25 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
         const isCurrentSession = currentSessionId === event.session_id;
         const isNewerSession = currentSessionId === null || event.session_id > currentSessionId;
 
-        // Handle finished event: mark this session as finished
+        // Handle finished event: mark this session as settled
         if (event.stage === "finished") {
-          const finishedSessionIds = new Set(state.syncProgress.finishedSessionIds);
-          finishedSessionIds.add(event.session_id);
+          const lastSettledSessionId = Math.max(state.syncProgress.lastSettledSessionId, event.session_id);
 
           // If this was the current session, clear to idle
           if (isCurrentSession) {
             return {
               syncProgress: {
                 ...getIdleSyncProgress(),
-                finishedSessionIds,
+                lastSettledSessionId,
               },
             };
           }
 
-          // Otherwise just mark it as finished
+          // Otherwise just update lastSettledSessionId
           return {
             syncProgress: {
               ...state.syncProgress,
-              finishedSessionIds,
+              lastSettledSessionId,
             },
           };
         }
@@ -159,7 +158,7 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
             completed,
             currentAccountName: event.account_name ?? (isCurrentSession ? state.syncProgress.currentAccountName : null),
             activeAccountIds,
-            finishedSessionIds: state.syncProgress.finishedSessionIds,
+            lastSettledSessionId: state.syncProgress.lastSettledSessionId,
           },
         };
       }),

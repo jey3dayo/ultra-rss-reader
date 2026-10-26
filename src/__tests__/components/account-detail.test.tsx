@@ -474,6 +474,7 @@ describe("AccountDetail", () => {
         completed: 1,
         currentAccountName: "Local",
         activeAccountIds: new Set(),
+        lastSettledSessionId: 0,
       },
     });
 
@@ -771,6 +772,7 @@ describe("AccountDetail", () => {
         completed: 0,
         currentAccountName: "Local",
         activeAccountIds: new Set(["acc-1"]),
+        lastSettledSessionId: 0,
       },
     });
 

@@ -139,7 +139,7 @@ function expectInitialUiStateDefaults() {
     completed: 0,
     currentAccountName: null,
     activeAccountIds: new Set(),
-    finishedSessionIds: new Set(),
+    lastSettledSessionId: 0,
   });
   expect(state.confirmDialog).toEqual({
     open: false,
@@ -205,6 +205,7 @@ describe("useUiStore", () => {
         completed: 0,
         currentAccountName: "FreshRSS",
         activeAccountIds: new Set(["acc-1"]),
+        lastSettledSessionId: 0,
       },
       accountSetupSession: {
         accountId: "acc-1",
@@ -410,6 +411,7 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: "FreshRSS",
       activeAccountIds: new Set(["acc-1"]),
+      lastSettledSessionId: 0,
     } satisfies SyncProgressUiState;
 
     expect(runtimeEvent.account_name).toBe("FreshRSS");
@@ -615,7 +617,7 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
-      finishedSessionIds: new Set([1]),
+      lastSettledSessionId: 1,
     });
   });
 
@@ -722,7 +724,7 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
-      finishedSessionIds: new Set(),
+      lastSettledSessionId: 0,
     });
   });
 
@@ -817,7 +819,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().syncProgress.sessionId).toBe(null);
 
     // STALE account_started from session 1 arrives late (network delay/reordering)
-    // With per-session tracking: session 1 is in finishedSessionIds, so this is ignored
+    // With per-session tracking: session 1 is in lastSettledSessionId, so this is ignored
     useUiStore.getState().applySyncProgress({
       session_id: 1,
       kind: "manual_account",

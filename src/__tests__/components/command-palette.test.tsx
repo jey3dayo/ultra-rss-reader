@@ -312,6 +312,7 @@ describe("CommandPalette", () => {
         completed: 0,
         currentAccountName: "Local",
         activeAccountIds: new Set(["acc-1"]),
+        lastSettledSessionId: 0,
       },
     });
 

@@ -748,14 +748,12 @@ describe("useAccountDetailSyncControls", () => {
     const manualSyncDeferred = createDeferred<ReturnType<typeof Result.succeed<typeof successfulSyncResult>>>();
     syncAccountMock.mockReturnValueOnce(manualSyncDeferred.promise);
 
-    const { result } = renderHook(
-      () =>
-        useAccountDetailSyncControls({
-          account: firstAccount,
-          queryClient,
-          t,
-        }),
-      { wrapper: createTestQueryClient().wrapper },
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({
+        account: firstAccount,
+        queryClient,
+        t,
+      }),
     );
 
     // Manual sync starts (session 1)

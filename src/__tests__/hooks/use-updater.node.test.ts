@@ -483,6 +483,7 @@ describe("use-updater background download flow", () => {
           completed: 0,
           currentAccountName: null,
           activeAccountIds: new Set(),
+          lastSettledSessionId: 0,
         },
       });
 
