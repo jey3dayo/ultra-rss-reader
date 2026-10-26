@@ -723,6 +723,78 @@ describe("useUiStore", () => {
     });
   });
 
+  it("clears sync progress for specific account when manual_account sync is deduplicated", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 1,
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1"]));
+
+    useUiStore.getState().clearSyncProgressForAccount("acc-1");
+
+    expect(useUiStore.getState().syncProgress).toEqual({
+      active: false,
+      sessionId: null,
+      kind: null,
+      stage: null,
+      total: 0,
+      completed: 0,
+      currentAccountName: null,
+      activeAccountIds: new Set(),
+    });
+  });
+
+  it("removes account from activeAccountIds but keeps progress active when other accounts remain", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 1,
+      kind: "manual_account",
+      total: 2,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 1,
+      kind: "manual_account",
+      total: 2,
+      completed: 0,
+      account_id: "acc-2",
+      account_name: "Account 2",
+    });
+
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1", "acc-2"]));
+
+    useUiStore.getState().clearSyncProgressForAccount("acc-1");
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-2"]));
+  });
+
+  it("does nothing when clearing sync progress for account during non-manual_account sync", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "started",
+      session_id: 1,
+      kind: "manual_all",
+      total: 2,
+      completed: 0,
+    });
+
+    const progressBefore = useUiStore.getState().syncProgress;
+    useUiStore.getState().clearSyncProgressForAccount("acc-1");
+
+    expect(useUiStore.getState().syncProgress).toEqual(progressBefore);
+  });
+
   it("opens, closes, and toggles the command palette", () => {
     useUiStore.getState().openCommandPalette();
     expect(useUiStore.getState().commandPaletteOpen).toBe(true);

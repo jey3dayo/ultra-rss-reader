@@ -739,4 +739,60 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().accountSetupSession).toBeNull();
     expect(useUiStore.getState().toastMessage?.message).toBe(t("account.setup_complete"));
   });
+
+  it("clears sync progress state when sync is deduplicated", async () => {
+    const queryClient = createTestQueryClient();
+    const firstAccount = makeLocalAccount("acc-1");
+    listAccountsMock.mockResolvedValue(Result.succeed([firstAccount]));
+    updateAccountSyncMock.mockImplementation(async (_id, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays) =>
+      Result.succeed(
+        makeUpdatedAccount(firstAccount, {
+          syncIntervalSecs,
+          syncOnStartup,
+          syncOnWake,
+          keepReadItemsDays,
+        }),
+      ),
+    );
+
+    const deduplicatedSyncResult = {
+      synced: false,
+      total: 0,
+      succeeded: 0,
+      failed: [],
+      warnings: [],
+    };
+    syncAccountMock.mockResolvedValueOnce(Result.succeed(deduplicatedSyncResult));
+
+    const { result } = renderHook(
+      () =>
+        useAccountDetailSyncControls({
+          account: firstAccount,
+          queryClient,
+          t,
+        }),
+      { wrapper: createTestQueryClient().wrapper },
+    );
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: firstAccount.id,
+      account_name: firstAccount.name,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.activeAccountIds.has(firstAccount.id)).toBe(true);
+
+    await act(async () => {
+      await result.current.handleSyncNow();
+    });
+
+    expect(syncAccountMock).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().syncProgress.activeAccountIds.has(firstAccount.id)).toBe(false);
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
 });

@@ -190,6 +190,7 @@ export type UiActions = {
   closeSubscriptionsWorkspace: () => void;
   applySyncProgress: (event: SyncProgressEventDto) => void;
   clearSyncProgress: () => void;
+  clearSyncProgressForAccount: (accountId: string) => void;
   startAccountSetupVerification: () => void;
   startAccountSetup: (accountId: string, options?: { owner?: AccountSetupSessionOwner }) => void;
   markAccountSetupFailed: (accountId: string, errorMessage?: string) => void;
@@ -423,7 +424,10 @@ export type UiStoreDialogActions = Pick<
 
 export type UiStoreToastActions = Pick<UiStoreState, "showToast" | "clearToast" | "clearToastAnnouncement">;
 
-export type UiStoreSyncProgressActions = Pick<UiStoreState, "applySyncProgress" | "clearSyncProgress">;
+export type UiStoreSyncProgressActions = Pick<
+  UiStoreState,
+  "applySyncProgress" | "clearSyncProgress" | "clearSyncProgressForAccount"
+>;
 
 export type UiStoreAccountSetupActions = Pick<
   UiStoreState,

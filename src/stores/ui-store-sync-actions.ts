@@ -141,5 +141,22 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
         };
       }),
     clearSyncProgress: () => set({ syncProgress: getIdleSyncProgress() }),
+    clearSyncProgressForAccount: (accountId) =>
+      set((state) => {
+        if (!state.syncProgress.active || state.syncProgress.kind !== "manual_account") {
+          return {};
+        }
+        const activeAccountIds = new Set(state.syncProgress.activeAccountIds);
+        activeAccountIds.delete(accountId);
+        if (activeAccountIds.size === 0) {
+          return { syncProgress: getIdleSyncProgress() };
+        }
+        return {
+          syncProgress: {
+            ...state.syncProgress,
+            activeAccountIds,
+          },
+        };
+      }),
   };
 }
