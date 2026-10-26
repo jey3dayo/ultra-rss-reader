@@ -512,7 +512,7 @@ describe("shared form controls", () => {
     const switchControl = screen.getByRole("switch", { name: "Open links in background" });
     expect(combobox).toHaveTextContent("FreshRSS");
     expect(screen.getByText("Account type")).toHaveClass("whitespace-nowrap");
-    expect(combobox).toHaveClass("sm:w-[220px]", "motion-reduce:transition-none");
+    expect(combobox).toHaveClass("sm:w-auto", "sm:max-w-full", "motion-reduce:transition-none");
     expect(switchControl.parentElement).toHaveClass("lg:justify-end");
     expect(switchControl).toHaveClass("motion-reduce:transition-none");
     expect(switchControl).toHaveAccessibleDescription("Keep the reader visible when opening links.");
