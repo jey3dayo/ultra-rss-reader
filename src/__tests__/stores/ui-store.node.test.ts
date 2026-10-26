@@ -968,6 +968,91 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().syncProgress.active).toBe(false);
   });
 
+  it("CRITICAL: newer finished overtakes older active progress → idle (prevents stuck spinner)", () => {
+    // Session 100: manual_account starts and is displayed
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(100);
+
+    // Session 101: automatic sync finishes BEFORE session 100 finishes
+    // This must clear the UI to idle because session 101 finishing means
+    // all sessions <= 101 (including 100) are now considered settled
+    useUiStore.getState().applySyncProgress({
+      session_id: 101,
+      kind: "automatic",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    // CRITICAL: UI must be idle, not stuck showing session 100
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(useUiStore.getState().syncProgress.lastSettledSessionId).toBe(101);
+
+    // Session 100's finished arrives late, but is ignored (100 <= 101)
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    // Remains idle
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("older finished after newer started → newer stays active", () => {
+    // Session 100: starts
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    // Session 101: starts (takes over display)
+    useUiStore.getState().applySyncProgress({
+      session_id: 101,
+      kind: "automatic",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(101);
+
+    // Session 100: finishes (older session)
+    // Since 100 < 101 (current), this should NOT clear the display
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    // Session 101 remains active
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(101);
+    expect(useUiStore.getState().syncProgress.lastSettledSessionId).toBe(100);
+  });
+
   it("opens, closes, and toggles the command palette", () => {
     useUiStore.getState().openCommandPalette();
     expect(useUiStore.getState().commandPaletteOpen).toBe(true);

@@ -109,8 +109,9 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
         if (event.stage === "finished") {
           const lastSettledSessionId = Math.max(state.syncProgress.lastSettledSessionId, event.session_id);
 
-          // If this was the current session, clear to idle
-          if (isCurrentSession) {
+          // If this finished event is for a session >= the currently displayed session,
+          // clear to idle (all sessions up to and including the finished one are settled)
+          if (currentSessionId !== null && event.session_id >= currentSessionId) {
             return {
               syncProgress: {
                 ...getIdleSyncProgress(),
