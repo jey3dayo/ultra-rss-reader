@@ -139,6 +139,7 @@ function expectInitialUiStateDefaults() {
     completed: 0,
     currentAccountName: null,
     activeAccountIds: new Set(),
+    finishedSessionIds: new Set(),
   });
   expect(state.confirmDialog).toEqual({
     open: false,
@@ -614,6 +615,7 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
+      finishedSessionIds: new Set([1]),
     });
   });
 
@@ -720,102 +722,8 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
+      finishedSessionIds: new Set(),
     });
-  });
-
-  it("handles terminal events from older sessions to fix stuck activeAccountIds", () => {
-    // Session 1: manual_account sync for acc-1
-    useUiStore.getState().applySyncProgress({
-      session_id: 1,
-      kind: "manual_account",
-      stage: "started",
-      total: 1,
-      completed: 0,
-    });
-
-    useUiStore.getState().applySyncProgress({
-      session_id: 1,
-      kind: "manual_account",
-      stage: "account_started",
-      total: 1,
-      completed: 0,
-      account_id: "acc-1",
-      account_name: "Account 1",
-    });
-
-    expect(useUiStore.getState().syncProgress).toEqual(
-      expect.objectContaining({
-        active: true,
-        sessionId: 1,
-        kind: "manual_account",
-        activeAccountIds: new Set(["acc-1"]),
-      }),
-    );
-
-    // Session 2: background sync starts, resets activeAccountIds
-    useUiStore.getState().applySyncProgress({
-      session_id: 2,
-      kind: "automatic",
-      stage: "started",
-      total: 1,
-      completed: 0,
-    });
-
-    expect(useUiStore.getState().syncProgress).toEqual(
-      expect.objectContaining({
-        active: true,
-        sessionId: 2,
-        kind: "automatic",
-        activeAccountIds: new Set(),
-      }),
-    );
-
-    // Session 1 account_finished arrives BEFORE session 2 finishes
-    // (the critical interleaving that causes the bug)
-    useUiStore.getState().applySyncProgress({
-      session_id: 1,
-      kind: "manual_account",
-      stage: "account_finished",
-      total: 1,
-      completed: 1,
-      account_id: "acc-1",
-      account_name: "Account 1",
-      success: true,
-    });
-
-    // activeAccountIds should still be empty (old event processed to clean up)
-    expect(useUiStore.getState().syncProgress).toEqual(
-      expect.objectContaining({
-        active: true,
-        sessionId: 2,
-        activeAccountIds: new Set(),
-      }),
-    );
-
-    // Session 2 finishes
-    useUiStore.getState().applySyncProgress({
-      session_id: 2,
-      kind: "automatic",
-      stage: "finished",
-      total: 1,
-      completed: 1,
-      success: true,
-    });
-
-    expect(useUiStore.getState().syncProgress.active).toBe(false);
-
-    // Session 1 finished event may also arrive late, but we're now idle so it's ignored
-    useUiStore.getState().applySyncProgress({
-      session_id: 1,
-      kind: "manual_account",
-      stage: "finished",
-      total: 1,
-      completed: 1,
-      success: true,
-    });
-
-    // State should remain idle
-    expect(useUiStore.getState().syncProgress.active).toBe(false);
   });
 
   it("handles account_finished from older session when current session is still active", () => {
@@ -870,6 +778,192 @@ describe("useUiStore", () => {
         activeAccountIds: new Set(["acc-2"]),
       }),
     );
+  });
+
+  it("REGRESSION TEST: stale non-terminal event after finished re-activates UI (main branch bug)", () => {
+    // Session 1 starts and adds acc-1
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(1);
+
+    // Session 1 finishes
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(null);
+
+    // STALE account_started from session 1 arrives late (network delay/reordering)
+    // With per-session tracking: session 1 is in finishedSessionIds, so this is ignored
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-2",
+      account_name: "Account 2",
+    });
+
+    // FIXED: State remains idle (stale event is ignored)
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("(a) session N running, N+1 starts and finishes, then N finishes → idle", () => {
+    // Session N starts
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(1);
+
+    // Session N+1 starts (newer session takes over display)
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
+
+    // Session N+1 finishes
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    // State is idle because current session finished
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+
+    // Session N finishes late
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    // State remains idle
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("(b) session N running, N+1 starts, N finishes → still active for N+1, then N+1 finishes → idle", () => {
+    // Session N starts
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+
+    // Session N+1 starts (takes over display)
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
+
+    // Session N finishes (older session)
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    // State remains active because N+1 is still running
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
+
+    // Session N+1 finishes
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    // Now idle
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("(c) stale event for a finished session while idle → stays idle", () => {
+    // Session finishes
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+
+    // Stale account_started from the same session arrives
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    // Stays idle (event for finished session is ignored)
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
   });
 
   it("opens, closes, and toggles the command palette", () => {
