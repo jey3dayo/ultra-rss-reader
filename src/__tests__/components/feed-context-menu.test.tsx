@@ -234,4 +234,13 @@ describe("FeedContextMenuContent", () => {
 
     expect(screen.getByRole("button", { name: /mark example\.com as read/i })).toBeInTheDocument();
   });
+
+  it("hides mark same-site feeds item when feed host cannot be determined", () => {
+    const feed = { ...sampleFeeds[0], site_url: "", url: "invalid-url", unread_count: 5 };
+    sameSiteFeedIndexRef.current = new Map();
+
+    render(<FeedContextMenuContent feed={feed} />);
+
+    expect(screen.queryByRole("button", { name: /mark.*as read/i })).not.toBeInTheDocument();
+  });
 });

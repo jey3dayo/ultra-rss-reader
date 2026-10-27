@@ -73,6 +73,9 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
 
   const sameSiteStats = useMemo(() => {
     const host = extractNormalizedSiteHost(feed.site_url, feed.url);
+    if (!host) {
+      return { feedIds: [], unreadCount: 0 };
+    }
     const stats = sameSiteFeedIndex.get(host);
     return stats ?? { feedIds: [], unreadCount: 0 };
   }, [feed.site_url, feed.url, sameSiteFeedIndex]);

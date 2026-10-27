@@ -5,7 +5,7 @@ import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
-import { countSameSiteFeeds, useMarkSameSiteFeedsRead } from "./use-mark-same-site-feeds-read";
+import { useMarkSameSiteFeedsRead } from "./use-mark-same-site-feeds-read";
 
 vi.mock("@/api/tauri-commands", () => ({
   markFeedRead: vi.fn(),
@@ -24,71 +24,6 @@ const createTestFeed = (overrides: Partial<FeedDto> = {}): FeedDto => ({
   reader_mode: "inherit",
   web_preview_mode: "inherit",
   ...overrides,
-});
-
-describe("countSameSiteFeeds", () => {
-  it("counts feeds with the same normalized host", () => {
-    const targetFeed = createTestFeed({ id: "feed-1", site_url: "https://www.example.com" });
-    const allFeeds = [
-      targetFeed,
-      createTestFeed({ id: "feed-2", site_url: "https://example.com" }),
-      createTestFeed({ id: "feed-3", site_url: "https://WWW.EXAMPLE.COM" }),
-      createTestFeed({ id: "feed-4", site_url: "https://other.com" }),
-    ];
-
-    expect(countSameSiteFeeds(targetFeed, allFeeds)).toBe(3);
-  });
-
-  it("counts feeds using feed URL as fallback", () => {
-    const targetFeed = createTestFeed({ id: "feed-1", site_url: "", url: "https://www.example.com/feed" });
-    const allFeeds = [
-      targetFeed,
-      createTestFeed({ id: "feed-2", site_url: "", url: "https://example.com/rss" }),
-      createTestFeed({ id: "feed-3", site_url: "https://other.com", url: "https://other.com/feed" }),
-    ];
-
-    expect(countSameSiteFeeds(targetFeed, allFeeds)).toBe(2);
-  });
-
-  it("only matches feeds from the same account", () => {
-    const targetFeed = createTestFeed({ id: "feed-1", account_id: "account-1", site_url: "https://example.com" });
-    const allFeeds = [
-      targetFeed,
-      createTestFeed({ id: "feed-2", account_id: "account-1", site_url: "https://example.com" }),
-      createTestFeed({ id: "feed-3", account_id: "account-2", site_url: "https://example.com" }),
-    ];
-
-    expect(countSameSiteFeeds(targetFeed, allFeeds)).toBe(2);
-  });
-
-  it("only matches itself when host cannot be determined", () => {
-    const targetFeed = createTestFeed({ id: "feed-1", site_url: "", url: "invalid-url" });
-    const allFeeds = [
-      targetFeed,
-      createTestFeed({ id: "feed-2", site_url: "", url: "also-invalid" }),
-      createTestFeed({ id: "feed-3", site_url: "https://example.com" }),
-    ];
-
-    expect(countSameSiteFeeds(targetFeed, allFeeds)).toBe(1);
-  });
-
-  it("returns 1 when the target feed is the only feed", () => {
-    const targetFeed = createTestFeed({ id: "feed-1", site_url: "https://example.com" });
-    const allFeeds = [targetFeed];
-
-    expect(countSameSiteFeeds(targetFeed, allFeeds)).toBe(1);
-  });
-
-  it("returns 1 when no other feeds match", () => {
-    const targetFeed = createTestFeed({ id: "feed-1", site_url: "https://example.com" });
-    const allFeeds = [
-      targetFeed,
-      createTestFeed({ id: "feed-2", site_url: "https://other.com" }),
-      createTestFeed({ id: "feed-3", site_url: "https://another.com" }),
-    ];
-
-    expect(countSameSiteFeeds(targetFeed, allFeeds)).toBe(1);
-  });
 });
 
 describe("useMarkSameSiteFeedsRead", () => {

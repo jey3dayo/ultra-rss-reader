@@ -29,7 +29,7 @@ type MarkSameSiteFeedsReadResult = {
  * - Only feeds with a determinable host are matched; feeds with no valid host only match themselves
  * - Only matches feeds within the same account
  */
-export function getSameSiteFeeds(targetFeed: FeedDto, allAccountFeeds: FeedDto[]): FeedDto[] {
+function getSameSiteFeeds(targetFeed: FeedDto, allAccountFeeds: FeedDto[]): FeedDto[] {
   const targetHost = extractNormalizedSiteHost(targetFeed.site_url, targetFeed.url);
 
   return allAccountFeeds.filter((feed) => {
@@ -44,21 +44,6 @@ export function getSameSiteFeeds(targetFeed: FeedDto, allAccountFeeds: FeedDto[]
 
     return feedHost === targetHost;
   });
-}
-
-/**
- * Count how many other feeds in the same account share the target feed's site.
- */
-export function countSameSiteFeeds(targetFeed: FeedDto, allAccountFeeds: FeedDto[]): number {
-  return getSameSiteFeeds(targetFeed, allAccountFeeds).length;
-}
-
-/**
- * Calculate total unread count across same-site feeds.
- */
-export function countSameSiteUnread(targetFeed: FeedDto, allAccountFeeds: FeedDto[]): number {
-  const matchingFeeds = getSameSiteFeeds(targetFeed, allAccountFeeds);
-  return matchingFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
 }
 
 /**
