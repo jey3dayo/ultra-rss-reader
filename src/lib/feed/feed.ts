@@ -77,3 +77,23 @@ export function resolveExternalFaviconHost(siteUrl: string, feedUrl: string): st
   const host = resolveSiteHostLabel(siteUrl, feedUrl);
   return host && canUseExternalFaviconEndpoint(host) ? host : null;
 }
+
+/**
+ * Normalize a hostname for same-site comparison.
+ *
+ * Normalization: lowercase and strip leading "www." subdomain.
+ */
+export function normalizeSiteHost(host: string): string {
+  const lowerHost = host.toLowerCase();
+  return lowerHost.startsWith("www.") ? lowerHost.slice(4) : lowerHost;
+}
+
+/**
+ * Extract and normalize the site host for a feed.
+ *
+ * Returns the normalized host if one can be extracted, or null if the feed has no valid host.
+ */
+export function extractNormalizedSiteHost(siteUrl: string, feedUrl: string): string | null {
+  const host = resolveSiteHostLabel(siteUrl, feedUrl);
+  return host ? normalizeSiteHost(host) : null;
+}

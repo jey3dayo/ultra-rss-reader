@@ -8,7 +8,7 @@ import { FeedContextMenuContent } from "@/components/reader/feed-context-menu";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef } = vi.hoisted(() => ({
+const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef, sameSiteFeedIndexRef } = vi.hoisted(() => ({
   deleteFeedMutateAsyncMock: vi.fn(),
   unsubscribeDialogPropsRef: {
     current: null as null | {
@@ -17,24 +17,38 @@ const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef } = vi.hoisted(() =
       onConfirm: () => void;
     },
   },
+  sameSiteFeedIndexRef: {
+    current: new Map() as Map<string | null, { feedIds: string[]; unreadCount: number }>,
+  },
 }));
 
 vi.mock("@/components/reader/feed-context-menu-view", () => ({
   FeedContextMenuView: ({
     openSiteLabel,
     hasUnreadArticles,
+    markSameSiteFeedsReadLabel,
+    hasSameSiteUnread,
     onOpenSite,
+    onMarkSameSiteFeedsRead,
     onUnsubscribe,
   }: {
     openSiteLabel: string;
     hasUnreadArticles: boolean;
+    markSameSiteFeedsReadLabel?: string;
+    hasSameSiteUnread?: boolean;
     onOpenSite: () => void;
+    onMarkSameSiteFeedsRead?: () => void;
     onUnsubscribe: () => void;
   }) => (
     <>
       <button type="button" data-has-unread-articles={String(hasUnreadArticles)} onClick={onOpenSite}>
         {openSiteLabel}
       </button>
+      {markSameSiteFeedsReadLabel && hasSameSiteUnread && onMarkSameSiteFeedsRead && (
+        <button type="button" onClick={onMarkSameSiteFeedsRead}>
+          {markSameSiteFeedsReadLabel}
+        </button>
+      )}
       <button type="button" onClick={onUnsubscribe}>
         Unsubscribe…
       </button>
@@ -66,6 +80,18 @@ vi.mock("@/hooks/use-delete-feed", () => ({
   useDeleteFeed: () => ({ isPending: false, mutateAsync: deleteFeedMutateAsyncMock }),
 }));
 
+vi.mock("@/hooks/use-feeds", () => ({
+  useFeeds: () => ({ data: [] }),
+}));
+
+vi.mock("@/hooks/use-mark-same-site-feeds-read", () => ({
+  useMarkSameSiteFeedsRead: () => vi.fn(),
+}));
+
+vi.mock("@/hooks/use-same-site-feed-index", () => ({
+  useSameSiteFeedIndex: () => sameSiteFeedIndexRef.current,
+}));
+
 describe("FeedContextMenuContent", () => {
   let calls: MockTauriCommandCall[] = [];
 
@@ -74,6 +100,7 @@ describe("FeedContextMenuContent", () => {
     vi.clearAllMocks();
     unsubscribeDialogPropsRef.current = null;
     deleteFeedMutateAsyncMock.mockResolvedValue(undefined);
+    sameSiteFeedIndexRef.current = new Map();
     calls = [];
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState(useUiStore.getInitialState());
@@ -180,5 +207,40 @@ describe("FeedContextMenuContent", () => {
     await act(async () => {
       resolveDelete();
     });
+  });
+
+  it("hides mark same-site feeds item when only one feed exists", () => {
+    sameSiteFeedIndexRef.current = new Map([["example.com", { feedIds: [sampleFeeds[0].id], unreadCount: 5 }]]);
+
+    render(<FeedContextMenuContent feed={sampleFeeds[0]} />);
+
+    expect(screen.queryByRole("button", { name: /mark example\.com as read/i })).not.toBeInTheDocument();
+  });
+
+  it("hides mark same-site feeds item when same-site feeds have no unread articles", () => {
+    const feed = { ...sampleFeeds[0], site_url: "https://example.com", unread_count: 0 };
+    sameSiteFeedIndexRef.current = new Map([["example.com", { feedIds: [feed.id, "feed-2"], unreadCount: 0 }]]);
+
+    render(<FeedContextMenuContent feed={feed} />);
+
+    expect(screen.queryByRole("button", { name: /mark example\.com as read/i })).not.toBeInTheDocument();
+  });
+
+  it("shows mark same-site feeds item when multiple feeds with unread exist", () => {
+    const feed = { ...sampleFeeds[0], site_url: "https://example.com", unread_count: 5 };
+    sameSiteFeedIndexRef.current = new Map([["example.com", { feedIds: [feed.id, "feed-2"], unreadCount: 10 }]]);
+
+    render(<FeedContextMenuContent feed={feed} />);
+
+    expect(screen.getByRole("button", { name: /mark example\.com as read/i })).toBeInTheDocument();
+  });
+
+  it("hides mark same-site feeds item when feed host cannot be determined", () => {
+    const feed = { ...sampleFeeds[0], site_url: "", url: "invalid-url", unread_count: 5 };
+    sameSiteFeedIndexRef.current = new Map();
+
+    render(<FeedContextMenuContent feed={feed} />);
+
+    expect(screen.queryByRole("button", { name: /mark.*as read/i })).not.toBeInTheDocument();
   });
 });

@@ -1,11 +1,15 @@
-import { useCallback, useReducer, useRef, useState } from "react";
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
-import { resolveSiteHostLabel } from "@/lib/feed/feed";
+import { useFeeds } from "@/hooks/use-feeds";
+import { useMarkSameSiteFeedsRead } from "@/hooks/use-mark-same-site-feeds-read";
+import { useSameSiteFeedIndex } from "@/hooks/use-same-site-feed-index";
+import { closeBrowserWebviewBeforeReaderMode } from "@/lib/browser/close-browser-webview-before-reader-mode";
+import { extractNormalizedSiteHost, resolveSiteHostLabel } from "@/lib/feed/feed";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -47,6 +51,7 @@ function feedContextMenuReducer(state: FeedContextMenuState, action: FeedContext
 
 export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const { t } = useTranslation("reader");
+  const { t: tc } = useTranslation("common");
   const [state, dispatch] = useReducer(feedContextMenuReducer, initialFeedContextMenuState);
   const { showFeedEditDialog, showUnsubscribeDialog } = state;
   const confirmMarkAllRead = useConfirmMarkAllRead();
@@ -54,8 +59,29 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const markOldUnreadRead = useOldUnreadReadAction("feed", feed.id);
   const deleteFeedMutation = useDeleteFeed();
   const showToast = useUiStore((s) => s.showToast);
+  const showConfirm = useUiStore((s) => s.showConfirm);
+  const askBeforeMarkAll = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "ask_before_mark_all"));
+  const browserUrl = useUiStore((s) => s.browserUrl);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const unsubscribePendingRef = useRef(false);
   const [unsubscribePending, setUnsubscribePending] = useState(false);
+
+  const { data: allFeeds } = useFeeds(feed.account_id);
+  const sameSiteFeedIndex = useSameSiteFeedIndex(allFeeds);
+  const markSameSiteFeedsRead = useMarkSameSiteFeedsRead();
+
+  const sameSiteStats = useMemo(() => {
+    const host = extractNormalizedSiteHost(feed.site_url, feed.url);
+    if (!host) {
+      return { feedIds: [], unreadCount: 0 };
+    }
+    const stats = sameSiteFeedIndex.get(host);
+    return stats ?? { feedIds: [], unreadCount: 0 };
+  }, [feed.site_url, feed.url, sameSiteFeedIndex]);
+
+  const sameSiteFeedsCount = sameSiteStats.feedIds.length;
+  const sameSiteUnreadCount = sameSiteStats.unreadCount;
 
   const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
 
@@ -76,6 +102,69 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       }),
     );
   }, [confirmMarkAllRead, feed.id, feed.unread_count, markFeedRead]);
+
+  const handleMarkSameSiteFeedsRead = useCallback(() => {
+    if (!allFeeds || sameSiteFeedsCount === 0) {
+      return;
+    }
+
+    const executeMarkRead = async () => {
+      const result = await markSameSiteFeedsRead({ targetFeed: feed, allAccountFeeds: allFeeds });
+      const succeededCount = result.succeededFeedIds.length;
+      const failedCount = result.failedFeedIds.length;
+
+      if (succeededCount > 0) {
+        showToast(t("marked_same_site_feeds_read", { count: succeededCount }));
+      }
+
+      if (failedCount > 0) {
+        showToast(t("failed_to_mark_same_site_feeds_read", { count: failedCount }));
+      }
+    };
+
+    if (askBeforeMarkAll !== "true") {
+      void executeMarkRead();
+      return;
+    }
+
+    const confirmMessage = t("confirm_mark_same_site_feeds_read", { count: sameSiteFeedsCount, host: siteHost });
+    const executeWithBrowserClose = () => {
+      if (browserUrl) {
+        setBrowserCloseInFlight(true);
+        void closeBrowserWebviewBeforeReaderMode().finally(() => {
+          closeBrowser();
+          showConfirm(confirmMessage, executeMarkRead, {
+            actionLabel: tc("mark_as_read_action"),
+            actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteUnreadCount }),
+            variant: "warning",
+          });
+        });
+      } else {
+        showConfirm(confirmMessage, executeMarkRead, {
+          actionLabel: tc("mark_as_read_action"),
+          actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteUnreadCount }),
+          variant: "warning",
+        });
+      }
+    };
+
+    executeWithBrowserClose();
+  }, [
+    allFeeds,
+    askBeforeMarkAll,
+    browserUrl,
+    closeBrowser,
+    feed,
+    markSameSiteFeedsRead,
+    sameSiteFeedsCount,
+    sameSiteUnreadCount,
+    setBrowserCloseInFlight,
+    showConfirm,
+    showToast,
+    siteHost,
+    t,
+    tc,
+  ]);
 
   const handleOpenUnsubscribeDialog = useCallback(() => {
     dispatch({ type: "set-unsubscribe-dialog", value: true });
@@ -114,6 +203,10 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         markAllReadLabel={t("mark_all_as_read")}
         markOldUnreadReadLabel={t("mark_old_unread_read")}
         oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
+        markSameSiteFeedsReadLabel={
+          sameSiteFeedsCount > 1 ? t("mark_same_site_feeds_read", { host: siteHost }) : undefined
+        }
+        hasSameSiteUnread={sameSiteUnreadCount > 0}
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
         hasUnreadArticles={feed.unread_count > 0}
@@ -130,6 +223,13 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
             },
           )();
         }}
+        onMarkSameSiteFeedsRead={
+          sameSiteFeedsCount > 1 && sameSiteUnreadCount > 0
+            ? createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.feedMarkSameSiteFeedsRead, handleMarkSameSiteFeedsRead, {
+                showToast,
+              })
+            : undefined
+        }
         onUnsubscribe={handleOpenUnsubscribeDialog}
         onEdit={handleOpenFeedEditDialog}
       />

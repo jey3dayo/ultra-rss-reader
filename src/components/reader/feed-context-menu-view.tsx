@@ -9,11 +9,14 @@ type FeedContextMenuViewProps = {
   markOldUnreadReadLabel: string;
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
   hasUnreadArticles?: boolean;
+  markSameSiteFeedsReadLabel?: string;
+  hasSameSiteUnread?: boolean;
   unsubscribeLabel: string;
   editLabel: string;
   onOpenSite: () => void;
   onMarkAllRead: () => void;
   onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
+  onMarkSameSiteFeedsRead?: () => void;
   onUnsubscribe: () => void;
   onEdit: () => void;
 };
@@ -24,11 +27,14 @@ export function FeedContextMenuView({
   markOldUnreadReadLabel,
   oldUnreadDayLabel,
   hasUnreadArticles = true,
+  markSameSiteFeedsReadLabel,
+  hasSameSiteUnread = false,
   unsubscribeLabel,
   editLabel,
   onOpenSite,
   onMarkAllRead,
   onMarkOldUnreadRead,
+  onMarkSameSiteFeedsRead,
   onUnsubscribe,
   onEdit,
 }: FeedContextMenuViewProps) {
@@ -66,6 +72,15 @@ export function FeedContextMenuView({
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}
           />
+          {markSameSiteFeedsReadLabel && hasSameSiteUnread && onMarkSameSiteFeedsRead && (
+            <ContextMenu.Item
+              data-action-id={CONTEXT_MENU_ACTION_IDS.feedMarkSameSiteFeedsRead}
+              className={contextMenuStyles.item}
+              onClick={onMarkSameSiteFeedsRead}
+            >
+              {markSameSiteFeedsReadLabel}
+            </ContextMenu.Item>
+          )}
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.feedUnsubscribe}
