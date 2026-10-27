@@ -756,7 +756,6 @@ describe("useAccountDetailSyncControls", () => {
       }),
     );
 
-    // Manual sync starts (session 1)
     useUiStore.getState().applySyncProgress({
       session_id: 1,
       kind: "manual_account",
@@ -778,7 +777,6 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().syncProgress.sessionId).toBe(1);
     expect(useUiStore.getState().syncProgress.activeAccountIds.has(firstAccount.id)).toBe(true);
 
-    // Background sync starts (session 2) - this resets activeAccountIds
     useUiStore.getState().applySyncProgress({
       session_id: 2,
       kind: "automatic",
@@ -790,7 +788,6 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
     expect(useUiStore.getState().syncProgress.activeAccountIds.has(firstAccount.id)).toBe(false);
 
-    // Background sync finishes (session 2)
     useUiStore.getState().applySyncProgress({
       session_id: 2,
       kind: "automatic",
@@ -802,7 +799,6 @@ describe("useAccountDetailSyncControls", () => {
 
     expect(useUiStore.getState().syncProgress.active).toBe(false);
 
-    // Manual sync finishes (session 1) - old session terminal event should clear state
     useUiStore.getState().applySyncProgress({
       session_id: 1,
       kind: "manual_account",
@@ -822,15 +818,12 @@ describe("useAccountDetailSyncControls", () => {
       success: true,
     });
 
-    // State should remain idle (terminal events from old session handled gracefully)
     expect(useUiStore.getState().syncProgress.active).toBe(false);
 
-    // Trigger the manual sync
     const syncPromise = act(async () => {
       await result.current.handleSyncNow();
     });
 
-    // Resolve it
     manualSyncDeferred.resolve(Result.succeed(successfulSyncResult));
     await syncPromise;
   });

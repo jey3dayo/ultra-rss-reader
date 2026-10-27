@@ -95,7 +95,7 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
     clearAccountSetup: () => set({ accountSetupSession: null }),
     applySyncProgress: (event) =>
       set((state) => {
-        // Ignore events for sessions that already finished (session_id <= lastSettledSessionId)
+        // Events at or below lastSettledSessionId belong to finished sessions.
         if (event.session_id <= state.syncProgress.lastSettledSessionId) {
           return {};
         }
@@ -105,12 +105,9 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
         const isCurrentSession = currentSessionId === event.session_id;
         const isNewerSession = currentSessionId === null || event.session_id > currentSessionId;
 
-        // Handle finished event: mark this session as settled
         if (event.stage === "finished") {
           const lastSettledSessionId = Math.max(state.syncProgress.lastSettledSessionId, event.session_id);
 
-          // If this finished event is for a session >= the currently displayed session,
-          // clear to idle (all sessions up to and including the finished one are settled)
           if (currentSessionId !== null && event.session_id >= currentSessionId) {
             return {
               syncProgress: {
@@ -120,7 +117,6 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
             };
           }
 
-          // Otherwise just update lastSettledSessionId
           return {
             syncProgress: {
               ...state.syncProgress,
@@ -129,12 +125,10 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
           };
         }
 
-        // For non-terminal events from older sessions: ignore
         if (!isNewerSession && !isCurrentSession) {
           return {};
         }
 
-        // For newer sessions or first event while idle: start tracking this session
         const total = isCurrentSession ? Math.max(state.syncProgress.total, counts.total) : counts.total;
         const completed = Math.min(
           isCurrentSession ? Math.max(state.syncProgress.completed, counts.completed) : counts.completed,
@@ -163,6 +157,13 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
           },
         };
       }),
-    clearSyncProgress: () => set({ syncProgress: getIdleSyncProgress() }),
+    // Keeps the settled ID so delayed events of the cleared session stay ignored.
+    clearSyncProgress: () =>
+      set((state) => ({
+        syncProgress: {
+          ...getIdleSyncProgress(),
+          lastSettledSessionId: Math.max(state.syncProgress.lastSettledSessionId, state.syncProgress.sessionId ?? 0),
+        },
+      })),
   };
 }

@@ -13,10 +13,10 @@ fn sync_progress_completed_is_monotonic_and_clamped_to_total() {
 
 #[test]
 fn sync_progress_session_id_advances_per_reporter() {
-    SYNC_PROGRESS_SESSION_ID.store(0, Ordering::SeqCst);
+    let first = next_sync_progress_session_id();
+    let second = next_sync_progress_session_id();
 
-    assert_eq!(next_sync_progress_session_id(), 1);
-    assert_eq!(next_sync_progress_session_id(), 2);
+    assert!(second > first);
 }
 
 #[test]

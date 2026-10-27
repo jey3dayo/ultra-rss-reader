@@ -66,8 +66,7 @@ pub use local_feed_health::get_local_feed_sync_statuses;
 pub use manual::{get_account_sync_status, trigger_sync, trigger_sync_account, trigger_sync_feed};
 #[cfg(test)]
 use progress::{
-    next_sync_progress_completed, next_sync_progress_session_id, sync_event_emit_warning,
-    SyncGuard, SYNC_PROGRESS_SESSION_ID,
+    next_sync_progress_completed, next_sync_progress_session_id, sync_event_emit_warning, SyncGuard,
 };
 #[cfg(test)]
 use scheduler::{
