@@ -17,9 +17,7 @@ use tauri::{AppHandle, Manager};
 pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
     use std::os::unix::process::CommandExt;
 
-    // Run Tauri's cleanup before spawning helper and exiting
-    app.cleanup_before_exit();
-
+    // Gather all info before spawning or running cleanup
     let current_exe = match tauri::utils::platform::current_exe() {
         Ok(exe) => exe,
         Err(e) => {
@@ -38,6 +36,9 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
 
     // Get current process ID to wait for
     let current_pid = std::process::id();
+
+    // Collect args before spawning (app.env() must not be called after cleanup)
+    let args: Vec<_> = app.env().args_os.iter().skip(1).collect();
 
     // Build the relaunch script that:
     // 1. Waits for this PID to exit (with 10s timeout)
@@ -69,7 +70,7 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
         .arg("sh") // $0
         .arg(&bundle_path) // $1
         .arg(current_pid.to_string()) // $2
-        .args(app.env().args_os.iter().skip(1)) // $3+ - forward all args including non-UTF-8
+        .args(args) // $3+ - forward all args including non-UTF-8
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -82,6 +83,8 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
                 current_pid,
                 bundle_path.display()
             );
+            // Only run cleanup after successful spawn
+            app.cleanup_before_exit();
             std::process::exit(0);
         }
         Err(e) => {
