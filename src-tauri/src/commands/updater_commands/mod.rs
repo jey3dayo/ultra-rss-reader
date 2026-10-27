@@ -25,7 +25,8 @@ pub(crate) use state::{resolve_post_download_install, PostDownloadInstall};
 
 pub(crate) use state::{DownloadGuard, PendingUpdateHandle, SyncInstallGuard};
 
-#[cfg(target_os = "macos")]
+// Module compiles on all platforms so its tests run in CI, but the
+// restart_preserving_dock_icon function is macOS-only.
 mod restart_macos;
 
 #[tauri::command]

@@ -1,5 +1,9 @@
 use std::path::{Path, PathBuf};
+
+#[cfg(target_os = "macos")]
 use std::process::Command;
+
+#[cfg(target_os = "macos")]
 use tauri::{AppHandle, Manager};
 
 /// Restarts the macOS app using LaunchServices without the -n flag to preserve
@@ -9,6 +13,7 @@ use tauri::{AppHandle, Manager};
 /// causing a duplicate Dock icon after updates. This implementation uses `open`
 /// without `-n` and spawns a helper that waits for this process to exit before
 /// relaunching.
+#[cfg(target_os = "macos")]
 pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
     use std::os::unix::process::CommandExt;
 
@@ -31,15 +36,8 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
         return app.restart();
     };
 
-    // Get current process ID and original args to forward
+    // Get current process ID to wait for
     let current_pid = std::process::id();
-    let args: Vec<String> = app
-        .env()
-        .args_os
-        .iter()
-        .skip(1)
-        .filter_map(|s| s.to_str().map(String::from))
-        .collect();
 
     // Build the relaunch script that:
     // 1. Waits for this PID to exit (with 10s timeout)
@@ -71,7 +69,7 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
         .arg("sh") // $0
         .arg(&bundle_path) // $1
         .arg(current_pid.to_string()) // $2
-        .args(&args) // $3+
+        .args(app.env().args_os.iter().skip(1)) // $3+ - forward all args including non-UTF-8
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -95,6 +93,7 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
 
 /// Finds the .app bundle path from a binary path.
 /// Returns the path to the .app directory (e.g., /Applications/Ultra RSS Reader.app).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn find_app_bundle(binary_path: &Path) -> Option<PathBuf> {
     let mut current = binary_path;
 
