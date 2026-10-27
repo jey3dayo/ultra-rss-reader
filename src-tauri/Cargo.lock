@@ -6252,7 +6252,7 @@ dependencies = [
 
 [[package]]
 name = "ultra-rss-reader"
-version = "0.67.10"
+version = "0.67.11"
 dependencies = [
  "ammonia",
  "async-trait",
