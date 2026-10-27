@@ -66,6 +66,16 @@ vi.mock("@/hooks/use-delete-feed", () => ({
   useDeleteFeed: () => ({ isPending: false, mutateAsync: deleteFeedMutateAsyncMock }),
 }));
 
+vi.mock("@/hooks/use-feeds", () => ({
+  useFeeds: () => ({ data: [] }),
+}));
+
+vi.mock("@/hooks/use-mark-same-site-feeds-read", () => ({
+  countSameSiteFeeds: () => 0,
+  countSameSiteUnread: () => 0,
+  useMarkSameSiteFeedsRead: () => vi.fn(),
+}));
+
 describe("FeedContextMenuContent", () => {
   let calls: MockTauriCommandCall[] = [];
 
@@ -180,5 +190,19 @@ describe("FeedContextMenuContent", () => {
     await act(async () => {
       resolveDelete();
     });
+  });
+
+  it("hides mark same-site feeds item when only one feed exists", () => {
+    render(<FeedContextMenuContent feed={sampleFeeds[0]} />);
+
+    expect(screen.queryByRole("button", { name: /mark.*as read/i })).not.toBeInTheDocument();
+  });
+
+  it("hides mark same-site feeds item when same-site feeds have no unread articles", () => {
+    const feed = { ...sampleFeeds[0], site_url: "https://example.com", unread_count: 0 };
+
+    render(<FeedContextMenuContent feed={feed} />);
+
+    expect(screen.queryByRole("button", { name: /mark.*as read/i })).not.toBeInTheDocument();
   });
 });
