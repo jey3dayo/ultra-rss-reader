@@ -9,11 +9,14 @@ type FeedContextMenuViewProps = {
   markOldUnreadReadLabel: string;
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
   hasUnreadArticles?: boolean;
+  markSameSiteFeedsReadLabel?: string;
+  sameSiteFeedsCount?: number;
   unsubscribeLabel: string;
   editLabel: string;
   onOpenSite: () => void;
   onMarkAllRead: () => void;
   onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
+  onMarkSameSiteFeedsRead?: () => void;
   onUnsubscribe: () => void;
   onEdit: () => void;
 };
@@ -24,14 +27,18 @@ export function FeedContextMenuView({
   markOldUnreadReadLabel,
   oldUnreadDayLabel,
   hasUnreadArticles = true,
+  markSameSiteFeedsReadLabel,
+  sameSiteFeedsCount,
   unsubscribeLabel,
   editLabel,
   onOpenSite,
   onMarkAllRead,
   onMarkOldUnreadRead,
+  onMarkSameSiteFeedsRead,
   onUnsubscribe,
   onEdit,
 }: FeedContextMenuViewProps) {
+  const showMarkSameSiteItem = markSameSiteFeedsReadLabel && sameSiteFeedsCount && sameSiteFeedsCount > 1;
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner className={contextMenuStyles.positioner}>
@@ -66,6 +73,15 @@ export function FeedContextMenuView({
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}
           />
+          {showMarkSameSiteItem && onMarkSameSiteFeedsRead && (
+            <ContextMenu.Item
+              data-action-id={CONTEXT_MENU_ACTION_IDS.feedMarkSameSiteFeedsRead}
+              className={contextMenuStyles.item}
+              onClick={onMarkSameSiteFeedsRead}
+            >
+              {markSameSiteFeedsReadLabel}
+            </ContextMenu.Item>
+          )}
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.feedUnsubscribe}

@@ -5,6 +5,8 @@ import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/u
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
+import { useFeeds } from "@/hooks/use-feeds";
+import { countSameSiteFeeds, useMarkSameSiteFeedsRead } from "@/hooks/use-mark-same-site-feeds-read";
 import { resolveSiteHostLabel } from "@/lib/feed/feed";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -57,6 +59,10 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const unsubscribePendingRef = useRef(false);
   const [unsubscribePending, setUnsubscribePending] = useState(false);
 
+  const { data: allFeeds } = useFeeds(feed.account_id);
+  const markSameSiteFeedsRead = useMarkSameSiteFeedsRead();
+  const sameSiteFeedsCount = allFeeds ? countSameSiteFeeds(feed, allFeeds) : 0;
+
   const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
 
   const handleOpenSite = useCallback(async () => {
@@ -76,6 +82,15 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       }),
     );
   }, [confirmMarkAllRead, feed.id, feed.unread_count, markFeedRead]);
+
+  const handleMarkSameSiteFeedsRead = useCallback(() => {
+    if (!allFeeds) {
+      return;
+    }
+
+    showToast(t("confirm_mark_same_site_feeds_read", { count: sameSiteFeedsCount }));
+    void markSameSiteFeedsRead({ targetFeed: feed, allAccountFeeds: allFeeds });
+  }, [allFeeds, feed, markSameSiteFeedsRead, sameSiteFeedsCount, showToast, t]);
 
   const handleOpenUnsubscribeDialog = useCallback(() => {
     dispatch({ type: "set-unsubscribe-dialog", value: true });
@@ -114,6 +129,10 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         markAllReadLabel={t("mark_all_as_read")}
         markOldUnreadReadLabel={t("mark_old_unread_read")}
         oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
+        markSameSiteFeedsReadLabel={
+          sameSiteFeedsCount > 0 ? t("mark_same_site_feeds_read_count", { count: sameSiteFeedsCount }) : undefined
+        }
+        sameSiteFeedsCount={sameSiteFeedsCount}
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
         hasUnreadArticles={feed.unread_count > 0}
@@ -130,6 +149,13 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
             },
           )();
         }}
+        onMarkSameSiteFeedsRead={
+          sameSiteFeedsCount > 1
+            ? createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.feedMarkSameSiteFeedsRead, handleMarkSameSiteFeedsRead, {
+                showToast,
+              })
+            : undefined
+        }
         onUnsubscribe={handleOpenUnsubscribeDialog}
         onEdit={handleOpenFeedEditDialog}
       />
