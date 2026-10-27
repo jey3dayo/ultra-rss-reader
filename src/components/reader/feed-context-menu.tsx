@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useRef, useState } from "react";
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
@@ -6,13 +6,10 @@ import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
-import {
-  countSameSiteFeeds,
-  countSameSiteUnread,
-  useMarkSameSiteFeedsRead,
-} from "@/hooks/use-mark-same-site-feeds-read";
+import { useMarkSameSiteFeedsRead } from "@/hooks/use-mark-same-site-feeds-read";
+import { useSameSiteFeedIndex } from "@/hooks/use-same-site-feed-index";
 import { closeBrowserWebviewBeforeReaderMode } from "@/lib/browser/close-browser-webview-before-reader-mode";
-import { resolveSiteHostLabel } from "@/lib/feed/feed";
+import { extractNormalizedSiteHost, resolveSiteHostLabel } from "@/lib/feed/feed";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -63,7 +60,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const deleteFeedMutation = useDeleteFeed();
   const showToast = useUiStore((s) => s.showToast);
   const showConfirm = useUiStore((s) => s.showConfirm);
-  const askBeforeMarkAll = resolvePreferenceValue(usePreferencesStore.getState().prefs, "ask_before_mark_all");
+  const askBeforeMarkAll = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "ask_before_mark_all"));
   const browserUrl = useUiStore((s) => s.browserUrl);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
   const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
@@ -71,9 +68,17 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const [unsubscribePending, setUnsubscribePending] = useState(false);
 
   const { data: allFeeds } = useFeeds(feed.account_id);
+  const sameSiteFeedIndex = useSameSiteFeedIndex(allFeeds);
   const markSameSiteFeedsRead = useMarkSameSiteFeedsRead();
-  const sameSiteFeedsCount = allFeeds ? countSameSiteFeeds(feed, allFeeds) : 0;
-  const sameSiteUnreadCount = allFeeds ? countSameSiteUnread(feed, allFeeds) : 0;
+
+  const sameSiteStats = useMemo(() => {
+    const host = extractNormalizedSiteHost(feed.site_url, feed.url);
+    const stats = sameSiteFeedIndex.get(host);
+    return stats ?? { feedIds: [], unreadCount: 0 };
+  }, [feed.site_url, feed.url, sameSiteFeedIndex]);
+
+  const sameSiteFeedsCount = sameSiteStats.feedIds.length;
+  const sameSiteUnreadCount = sameSiteStats.unreadCount;
 
   const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
 
@@ -127,14 +132,14 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
           closeBrowser();
           showConfirm(confirmMessage, executeMarkRead, {
             actionLabel: tc("mark_as_read_action"),
-            actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteFeedsCount }),
+            actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteUnreadCount }),
             variant: "warning",
           });
         });
       } else {
         showConfirm(confirmMessage, executeMarkRead, {
           actionLabel: tc("mark_as_read_action"),
-          actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteFeedsCount }),
+          actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteUnreadCount }),
           variant: "warning",
         });
       }
@@ -149,6 +154,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     feed,
     markSameSiteFeedsRead,
     sameSiteFeedsCount,
+    sameSiteUnreadCount,
     setBrowserCloseInFlight,
     showConfirm,
     showToast,
