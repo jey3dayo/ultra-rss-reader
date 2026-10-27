@@ -139,6 +139,7 @@ function expectInitialUiStateDefaults() {
     completed: 0,
     currentAccountName: null,
     activeAccountIds: new Set(),
+    lastSettledSessionId: 0,
   });
   expect(state.confirmDialog).toEqual({
     open: false,
@@ -204,6 +205,7 @@ describe("useUiStore", () => {
         completed: 0,
         currentAccountName: "FreshRSS",
         activeAccountIds: new Set(["acc-1"]),
+        lastSettledSessionId: 0,
       },
       accountSetupSession: {
         accountId: "acc-1",
@@ -409,6 +411,7 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: "FreshRSS",
       activeAccountIds: new Set(["acc-1"]),
+      lastSettledSessionId: 0,
     } satisfies SyncProgressUiState;
 
     expect(runtimeEvent.account_name).toBe("FreshRSS");
@@ -614,6 +617,7 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
+      lastSettledSessionId: 1,
     });
   });
 
@@ -698,7 +702,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set());
   });
 
-  it("clears every sync progress field through the explicit reset action", () => {
+  it("resets the progress display and keeps the cleared session settled", () => {
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
       session_id: 7,
@@ -720,7 +724,366 @@ describe("useUiStore", () => {
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
+      lastSettledSessionId: 7,
     });
+  });
+
+  it("ignores delayed events of a finished session after the progress display was cleared", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "finished",
+      session_id: 1,
+      kind: "manual_account",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    useUiStore.getState().clearSyncProgress();
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 1,
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set());
+  });
+
+  it("settles the displayed session on clear and still accepts a newer session", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 5,
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    useUiStore.getState().clearSyncProgress();
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 5,
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set());
+
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 6,
+      kind: "automatic",
+      total: 1,
+      completed: 0,
+      account_id: "acc-2",
+      account_name: "Account 2",
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        active: true,
+        sessionId: 6,
+        activeAccountIds: new Set(["acc-2"]),
+      }),
+    );
+  });
+
+  it("handles account_finished from older session when current session is still active", () => {
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "manual_account",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-2",
+      account_name: "Account 2",
+    });
+
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-2"]));
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_finished",
+      total: 1,
+      completed: 1,
+      account_id: "acc-1",
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        active: true,
+        sessionId: 2,
+        activeAccountIds: new Set(["acc-2"]),
+      }),
+    );
+  });
+
+  it("ignores a delayed account_started event after its session finished", () => {
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(1);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(null);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-2",
+      account_name: "Account 2",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("stays idle when an older session finishes after the newer session finished", () => {
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(1);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("keeps the newer session active when an older session finishes first", () => {
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("ignores a delayed event of a finished session while idle", () => {
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("returns to idle when a newer session finishes while an older session is displayed", () => {
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(100);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 101,
+      kind: "automatic",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(useUiStore.getState().syncProgress.lastSettledSessionId).toBe(101);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+  });
+
+  it("keeps the newer session active when an older session finishes after it started", () => {
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Account 1",
+    });
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 101,
+      kind: "automatic",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(101);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 100,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(101);
+    expect(useUiStore.getState().syncProgress.lastSettledSessionId).toBe(100);
   });
 
   it("opens, closes, and toggles the command palette", () => {

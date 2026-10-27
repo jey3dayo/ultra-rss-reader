@@ -19,6 +19,7 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
+import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
 
@@ -79,6 +80,7 @@ function createSyncHookParams(
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
+      lastSettledSessionId: 0,
     },
     applySyncProgress: vi.fn(),
     clearSyncProgress: vi.fn(),
@@ -484,6 +486,7 @@ describe("resolveSidebarLastSyncedLabel", () => {
               completed: 1,
               currentAccountName: "Account 1",
               activeAccountIds: new Set(["acc-1"]),
+              lastSettledSessionId: 0,
             },
             clearSyncProgress,
           }),
@@ -512,6 +515,37 @@ describe("resolveSidebarLastSyncedLabel", () => {
       completed: 1,
       activeAccountCount: 1,
     });
+  });
+
+  it("stays idle when a delayed sync-progress event arrives after sync-completed", () => {
+    const { wrapper } = createQueryWrapper();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(
+      () =>
+        useSidebarSync(
+          createSyncHookParams({
+            syncProgress: useUiStore((state) => state.syncProgress),
+            applySyncProgress: useUiStore.getState().applySyncProgress,
+            clearSyncProgress: useUiStore.getState().clearSyncProgress,
+          }),
+        ),
+      { wrapper },
+    );
+    const emitSyncProgress = getRegisteredListener("sync-progress");
+    const emitSyncCompleted = getRegisteredListener("sync-completed");
+
+    act(() => {
+      emitSyncProgress({ payload: { ...syncProgressPayload, kind: "manual_account", total: 1, completed: 1 } });
+      emitSyncProgress({
+        payload: { ...syncProgressPayload, stage: "finished", kind: "manual_account", total: 1, completed: 1 },
+      });
+      emitSyncCompleted({ payload: null });
+      emitSyncProgress({ payload: { ...syncProgressPayload, kind: "manual_account", total: 1, completed: 0 } });
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set());
   });
 
   it("connects manual sync cooldown listener aggregation to diagnostics", () => {

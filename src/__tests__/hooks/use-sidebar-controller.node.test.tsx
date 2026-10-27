@@ -115,6 +115,7 @@ function createRuntime(overrides: Partial<SidebarRuntimeResult> = {}): SidebarRu
       completed: 0,
       currentAccountName: null,
       activeAccountIds: new Set(),
+      lastSettledSessionId: 0,
     },
     applySyncProgress: vi.fn(),
     clearSyncProgress: vi.fn(),

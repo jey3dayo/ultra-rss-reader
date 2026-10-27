@@ -68,6 +68,7 @@ export type SyncProgressUiState = {
   stage: SyncProgressStage | null;
   total: number;
   completed: number;
+  lastSettledSessionId: number;
 };
 
 export type UiState = {

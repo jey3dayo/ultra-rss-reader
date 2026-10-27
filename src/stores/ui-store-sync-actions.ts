@@ -20,6 +20,7 @@ export function getIdleSyncProgress(): SyncProgressUiState {
     completed: 0,
     currentAccountName: null,
     activeAccountIds: new Set(),
+    lastSettledSessionId: 0,
   };
 }
 
@@ -29,13 +30,6 @@ function normalizeSyncProgressCounts(event: Pick<SyncProgressEventDto, "total" |
     total,
     completed: Math.min(Math.max(0, event.completed), total),
   };
-}
-
-function shouldIgnoreSyncProgressEvent(
-  current: SyncProgressUiState,
-  event: Pick<SyncProgressEventDto, "session_id">,
-): boolean {
-  return current.sessionId !== null && event.session_id < current.sessionId;
 }
 
 function normalizeAccountSetupAccountId(accountId: string): string | null {
@@ -101,12 +95,40 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
     clearAccountSetup: () => set({ accountSetupSession: null }),
     applySyncProgress: (event) =>
       set((state) => {
-        if (shouldIgnoreSyncProgressEvent(state.syncProgress, event)) {
+        // Events at or below lastSettledSessionId belong to finished sessions.
+        if (event.session_id <= state.syncProgress.lastSettledSessionId) {
           return {};
         }
 
         const counts = normalizeSyncProgressCounts(event);
-        const isCurrentSession = state.syncProgress.sessionId === event.session_id;
+        const currentSessionId = state.syncProgress.sessionId;
+        const isCurrentSession = currentSessionId === event.session_id;
+        const isNewerSession = currentSessionId === null || event.session_id > currentSessionId;
+
+        if (event.stage === "finished") {
+          const lastSettledSessionId = Math.max(state.syncProgress.lastSettledSessionId, event.session_id);
+
+          if (currentSessionId !== null && event.session_id >= currentSessionId) {
+            return {
+              syncProgress: {
+                ...getIdleSyncProgress(),
+                lastSettledSessionId,
+              },
+            };
+          }
+
+          return {
+            syncProgress: {
+              ...state.syncProgress,
+              lastSettledSessionId,
+            },
+          };
+        }
+
+        if (!isNewerSession && !isCurrentSession) {
+          return {};
+        }
+
         const total = isCurrentSession ? Math.max(state.syncProgress.total, counts.total) : counts.total;
         const completed = Math.min(
           isCurrentSession ? Math.max(state.syncProgress.completed, counts.completed) : counts.completed,
@@ -114,17 +136,11 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
         );
         const activeAccountIds = isCurrentSession ? new Set(state.syncProgress.activeAccountIds) : new Set<string>();
         if (event.account_id) {
-          if (event.stage === "account_finished" || event.stage === "finished") {
+          if (event.stage === "account_finished") {
             activeAccountIds.delete(event.account_id);
-          } else {
+          } else if (event.stage === "account_started") {
             activeAccountIds.add(event.account_id);
           }
-        }
-
-        if (event.stage === "finished") {
-          return {
-            syncProgress: getIdleSyncProgress(),
-          };
         }
 
         return {
@@ -137,9 +153,17 @@ export function createUiStoreSyncActions(set: UiStoreSet): UiStoreSyncActions {
             completed,
             currentAccountName: event.account_name ?? (isCurrentSession ? state.syncProgress.currentAccountName : null),
             activeAccountIds,
+            lastSettledSessionId: state.syncProgress.lastSettledSessionId,
           },
         };
       }),
-    clearSyncProgress: () => set({ syncProgress: getIdleSyncProgress() }),
+    // Keeps the settled ID so delayed events of the cleared session stay ignored.
+    clearSyncProgress: () =>
+      set((state) => ({
+        syncProgress: {
+          ...getIdleSyncProgress(),
+          lastSettledSessionId: Math.max(state.syncProgress.lastSettledSessionId, state.syncProgress.sessionId ?? 0),
+        },
+      })),
   };
 }

@@ -739,4 +739,92 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().accountSetupSession).toBeNull();
     expect(useUiStore.getState().toastMessage?.message).toBe(t("account.setup_complete"));
   });
+
+  it("handles terminal events from older sessions when sessions interleave", async () => {
+    const queryClient = createTestQueryClient();
+    const firstAccount = makeLocalAccount("acc-1");
+    listAccountsMock.mockResolvedValue(Result.succeed([firstAccount]));
+
+    const manualSyncDeferred = createDeferred<ReturnType<typeof Result.succeed<typeof successfulSyncResult>>>();
+    syncAccountMock.mockReturnValueOnce(manualSyncDeferred.promise);
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({
+        account: firstAccount,
+        queryClient,
+        t,
+      }),
+    );
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_started",
+      total: 1,
+      completed: 0,
+      account_id: firstAccount.id,
+      account_name: firstAccount.name,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(true);
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(1);
+    expect(useUiStore.getState().syncProgress.activeAccountIds.has(firstAccount.id)).toBe(true);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "started",
+      total: 1,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState().syncProgress.sessionId).toBe(2);
+    expect(useUiStore.getState().syncProgress.activeAccountIds.has(firstAccount.id)).toBe(false);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 2,
+      kind: "automatic",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "account_finished",
+      total: 1,
+      completed: 1,
+      account_id: firstAccount.id,
+      account_name: firstAccount.name,
+      success: true,
+    });
+    useUiStore.getState().applySyncProgress({
+      session_id: 1,
+      kind: "manual_account",
+      stage: "finished",
+      total: 1,
+      completed: 1,
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+
+    const syncPromise = act(async () => {
+      await result.current.handleSyncNow();
+    });
+
+    manualSyncDeferred.resolve(Result.succeed(successfulSyncResult));
+    await syncPromise;
+  });
 });
