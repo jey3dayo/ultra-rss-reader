@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
@@ -24,10 +24,25 @@ impl Drop for SyncGuard<'_> {
     }
 }
 
+/// Session ID assigned on first use, shared across clones, so that IDs follow
+/// the order sessions start emitting rather than the order reporters are built.
+#[derive(Clone)]
+pub(crate) struct LazySessionId(Arc<OnceLock<u64>>);
+
+impl LazySessionId {
+    pub(crate) fn new() -> Self {
+        Self(Arc::new(OnceLock::new()))
+    }
+
+    pub(crate) fn get(&self) -> u64 {
+        *self.0.get_or_init(next_sync_progress_session_id)
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct SyncProgressReporter {
     app_handle: AppHandle,
-    session_id: u64,
+    session_id: LazySessionId,
     kind: SyncProgressKind,
     total: usize,
     completed: Arc<AtomicUsize>,
@@ -37,7 +52,7 @@ impl SyncProgressReporter {
     pub(crate) fn new(app_handle: AppHandle, kind: SyncProgressKind, total: usize) -> Self {
         Self {
             app_handle,
-            session_id: next_sync_progress_session_id(),
+            session_id: LazySessionId::new(),
             kind,
             total,
             completed: Arc::new(AtomicUsize::new(0)),
@@ -55,7 +70,7 @@ impl SyncProgressReporter {
             SYNC_PROGRESS_EVENT,
             SyncProgressEvent {
                 stage,
-                session_id: self.session_id,
+                session_id: self.session_id.get(),
                 kind: self.kind,
                 total: self.total,
                 completed,

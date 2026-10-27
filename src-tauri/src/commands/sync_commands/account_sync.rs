@@ -262,8 +262,6 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
     mode: impl Fn(&Account) -> CredentialLookupMode,
     trigger: SyncTrigger,
     finish: impl FnOnce(&SyncResult),
-    app_handle: Option<&tauri::AppHandle>,
-    kind: Option<SyncProgressKind>,
 ) -> Result<SyncResult, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -279,13 +277,6 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
         });
     }
     let _guard = SyncGuard(syncing);
-
-    // Create reporter after acquiring the guard if not provided
-    let reporter = reporter.or_else(|| {
-        app_handle
-            .zip(kind)
-            .map(|(handle, k)| SyncProgressReporter::new(handle.clone(), k, accounts.len()))
-    });
 
     let result =
         run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode, trigger).await?;
