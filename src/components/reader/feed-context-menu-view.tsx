@@ -10,7 +10,7 @@ type FeedContextMenuViewProps = {
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
   hasUnreadArticles?: boolean;
   markSameSiteFeedsReadLabel?: string;
-  sameSiteFeedsCount?: number;
+  hasSameSiteUnread?: boolean;
   unsubscribeLabel: string;
   editLabel: string;
   onOpenSite: () => void;
@@ -28,7 +28,7 @@ export function FeedContextMenuView({
   oldUnreadDayLabel,
   hasUnreadArticles = true,
   markSameSiteFeedsReadLabel,
-  sameSiteFeedsCount,
+  hasSameSiteUnread = false,
   unsubscribeLabel,
   editLabel,
   onOpenSite,
@@ -38,7 +38,6 @@ export function FeedContextMenuView({
   onUnsubscribe,
   onEdit,
 }: FeedContextMenuViewProps) {
-  const showMarkSameSiteItem = markSameSiteFeedsReadLabel && sameSiteFeedsCount && sameSiteFeedsCount > 1;
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner className={contextMenuStyles.positioner}>
@@ -73,7 +72,7 @@ export function FeedContextMenuView({
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}
           />
-          {showMarkSameSiteItem && onMarkSameSiteFeedsRead && (
+          {markSameSiteFeedsReadLabel && hasSameSiteUnread && onMarkSameSiteFeedsRead && (
             <ContextMenu.Item
               data-action-id={CONTEXT_MENU_ACTION_IDS.feedMarkSameSiteFeedsRead}
               className={contextMenuStyles.item}

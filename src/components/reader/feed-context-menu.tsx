@@ -6,7 +6,12 @@ import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
-import { countSameSiteFeeds, useMarkSameSiteFeedsRead } from "@/hooks/use-mark-same-site-feeds-read";
+import {
+  countSameSiteFeeds,
+  countSameSiteUnread,
+  useMarkSameSiteFeedsRead,
+} from "@/hooks/use-mark-same-site-feeds-read";
+import { closeBrowserWebviewBeforeReaderMode } from "@/lib/browser/close-browser-webview-before-reader-mode";
 import { resolveSiteHostLabel } from "@/lib/feed/feed";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -49,6 +54,7 @@ function feedContextMenuReducer(state: FeedContextMenuState, action: FeedContext
 
 export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const { t } = useTranslation("reader");
+  const { t: tc } = useTranslation("common");
   const [state, dispatch] = useReducer(feedContextMenuReducer, initialFeedContextMenuState);
   const { showFeedEditDialog, showUnsubscribeDialog } = state;
   const confirmMarkAllRead = useConfirmMarkAllRead();
@@ -56,12 +62,18 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const markOldUnreadRead = useOldUnreadReadAction("feed", feed.id);
   const deleteFeedMutation = useDeleteFeed();
   const showToast = useUiStore((s) => s.showToast);
+  const showConfirm = useUiStore((s) => s.showConfirm);
+  const askBeforeMarkAll = resolvePreferenceValue(usePreferencesStore.getState().prefs, "ask_before_mark_all");
+  const browserUrl = useUiStore((s) => s.browserUrl);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const unsubscribePendingRef = useRef(false);
   const [unsubscribePending, setUnsubscribePending] = useState(false);
 
   const { data: allFeeds } = useFeeds(feed.account_id);
   const markSameSiteFeedsRead = useMarkSameSiteFeedsRead();
   const sameSiteFeedsCount = allFeeds ? countSameSiteFeeds(feed, allFeeds) : 0;
+  const sameSiteUnreadCount = allFeeds ? countSameSiteUnread(feed, allFeeds) : 0;
 
   const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
 
@@ -84,13 +96,66 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   }, [confirmMarkAllRead, feed.id, feed.unread_count, markFeedRead]);
 
   const handleMarkSameSiteFeedsRead = useCallback(() => {
-    if (!allFeeds) {
+    if (!allFeeds || sameSiteFeedsCount === 0) {
       return;
     }
 
-    showToast(t("confirm_mark_same_site_feeds_read", { count: sameSiteFeedsCount }));
-    void markSameSiteFeedsRead({ targetFeed: feed, allAccountFeeds: allFeeds });
-  }, [allFeeds, feed, markSameSiteFeedsRead, sameSiteFeedsCount, showToast, t]);
+    const executeMarkRead = async () => {
+      const result = await markSameSiteFeedsRead({ targetFeed: feed, allAccountFeeds: allFeeds });
+      const succeededCount = result.succeededFeedIds.length;
+      const failedCount = result.failedFeedIds.length;
+
+      if (succeededCount > 0) {
+        showToast(t("marked_same_site_feeds_read", { count: succeededCount }));
+      }
+
+      if (failedCount > 0) {
+        showToast(t("failed_to_mark_same_site_feeds_read", { count: failedCount }));
+      }
+    };
+
+    if (askBeforeMarkAll !== "true") {
+      void executeMarkRead();
+      return;
+    }
+
+    const confirmMessage = t("confirm_mark_same_site_feeds_read", { count: sameSiteFeedsCount, host: siteHost });
+    const executeWithBrowserClose = () => {
+      if (browserUrl) {
+        setBrowserCloseInFlight(true);
+        void closeBrowserWebviewBeforeReaderMode().finally(() => {
+          closeBrowser();
+          showConfirm(confirmMessage, executeMarkRead, {
+            actionLabel: tc("mark_as_read_action"),
+            actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteFeedsCount }),
+            variant: "warning",
+          });
+        });
+      } else {
+        showConfirm(confirmMessage, executeMarkRead, {
+          actionLabel: tc("mark_as_read_action"),
+          actionAccessibleLabel: t("mark_read_count_accessible_label", { count: sameSiteFeedsCount }),
+          variant: "warning",
+        });
+      }
+    };
+
+    executeWithBrowserClose();
+  }, [
+    allFeeds,
+    askBeforeMarkAll,
+    browserUrl,
+    closeBrowser,
+    feed,
+    markSameSiteFeedsRead,
+    sameSiteFeedsCount,
+    setBrowserCloseInFlight,
+    showConfirm,
+    showToast,
+    siteHost,
+    t,
+    tc,
+  ]);
 
   const handleOpenUnsubscribeDialog = useCallback(() => {
     dispatch({ type: "set-unsubscribe-dialog", value: true });
@@ -130,9 +195,9 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         markOldUnreadReadLabel={t("mark_old_unread_read")}
         oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
         markSameSiteFeedsReadLabel={
-          sameSiteFeedsCount > 0 ? t("mark_same_site_feeds_read_count", { count: sameSiteFeedsCount }) : undefined
+          sameSiteFeedsCount > 1 ? t("mark_same_site_feeds_read", { host: siteHost }) : undefined
         }
-        sameSiteFeedsCount={sameSiteFeedsCount}
+        hasSameSiteUnread={sameSiteUnreadCount > 0}
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
         hasUnreadArticles={feed.unread_count > 0}
@@ -150,7 +215,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
           )();
         }}
         onMarkSameSiteFeedsRead={
-          sameSiteFeedsCount > 1
+          sameSiteFeedsCount > 1 && sameSiteUnreadCount > 0
             ? createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.feedMarkSameSiteFeedsRead, handleMarkSameSiteFeedsRead, {
                 showToast,
               })

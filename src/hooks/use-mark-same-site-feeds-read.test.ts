@@ -132,13 +132,14 @@ describe("useMarkSameSiteFeedsRead", () => {
 
     const { result } = renderHook(() => useMarkSameSiteFeedsRead(), { wrapper });
 
-    const markedFeedIds = await result.current({ targetFeed, allAccountFeeds });
+    const markResult = await result.current({ targetFeed, allAccountFeeds });
 
-    expect(markedFeedIds).toHaveLength(3);
-    expect(markedFeedIds).toContain("feed-1");
-    expect(markedFeedIds).toContain("feed-2");
-    expect(markedFeedIds).toContain("feed-3");
-    expect(markedFeedIds).not.toContain("feed-4");
+    expect(markResult.succeededFeedIds).toHaveLength(3);
+    expect(markResult.succeededFeedIds).toContain("feed-1");
+    expect(markResult.succeededFeedIds).toContain("feed-2");
+    expect(markResult.succeededFeedIds).toContain("feed-3");
+    expect(markResult.succeededFeedIds).not.toContain("feed-4");
+    expect(markResult.failedFeedIds).toHaveLength(0);
 
     await waitFor(() => {
       expect(mockMarkFeedRead).toHaveBeenCalledTimes(3);
@@ -161,12 +162,12 @@ describe("useMarkSameSiteFeedsRead", () => {
 
     const { result } = renderHook(() => useMarkSameSiteFeedsRead(), { wrapper });
 
-    const markedFeedIds = await result.current({ targetFeed, allAccountFeeds });
+    const markResult = await result.current({ targetFeed, allAccountFeeds });
 
-    expect(markedFeedIds).toHaveLength(2);
-    expect(markedFeedIds).toContain("feed-1");
-    expect(markedFeedIds).toContain("feed-2");
-    expect(markedFeedIds).not.toContain("feed-3");
+    expect(markResult.succeededFeedIds).toHaveLength(2);
+    expect(markResult.succeededFeedIds).toContain("feed-1");
+    expect(markResult.succeededFeedIds).toContain("feed-2");
+    expect(markResult.succeededFeedIds).not.toContain("feed-3");
   });
 
   it("continues marking feeds even if one fails", async () => {
@@ -187,9 +188,13 @@ describe("useMarkSameSiteFeedsRead", () => {
 
     const { result } = renderHook(() => useMarkSameSiteFeedsRead(), { wrapper });
 
-    const markedFeedIds = await result.current({ targetFeed, allAccountFeeds });
+    const markResult = await result.current({ targetFeed, allAccountFeeds });
 
-    expect(markedFeedIds).toHaveLength(3);
+    expect(markResult.succeededFeedIds).toHaveLength(2);
+    expect(markResult.succeededFeedIds).toContain("feed-1");
+    expect(markResult.succeededFeedIds).toContain("feed-3");
+    expect(markResult.failedFeedIds).toHaveLength(1);
+    expect(markResult.failedFeedIds).toContain("feed-2");
     expect(mockMarkFeedRead).toHaveBeenCalledTimes(3);
   });
 });
