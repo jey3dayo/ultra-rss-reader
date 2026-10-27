@@ -1,59 +1,96 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 /// Restarts the macOS app using LaunchServices without the -n flag to preserve
 /// the Dock icon association after updates.
 ///
 /// The standard `app.restart()` uses `open -n` which creates a new app instance,
 /// causing a duplicate Dock icon after updates. This implementation uses `open`
-/// without `-n` and spawns a delayed relaunch helper to avoid that issue.
+/// without `-n` and spawns a helper that waits for this process to exit before
+/// relaunching.
 pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
     use std::os::unix::process::CommandExt;
+
+    // Run Tauri's cleanup before spawning helper and exiting
+    app.cleanup_before_exit();
 
     let current_exe = match tauri::utils::platform::current_exe() {
         Ok(exe) => exe,
         Err(e) => {
             tracing::error!("failed to get current exe path: {e}");
-            std::process::exit(1);
+            return app.restart();
         }
     };
 
-    if let Some(bundle_path) = find_app_bundle(&current_exe) {
-        // Spawn a helper process that waits briefly for this process to exit,
-        // then relaunches the app via LaunchServices (open without -n).
-        // This preserves the Dock icon association.
-        let relaunch_script = format!(
-            "sleep 0.3 && /usr/bin/open '{}'",
-            bundle_path.display()
-        );
-
-        match Command::new("/bin/sh")
-            .arg("-c")
-            .arg(&relaunch_script)
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .process_group(0) // Create new process group
-            .spawn()
-        {
-            Ok(_) => {
-                tracing::debug!("spawned delayed relaunch helper for {}", bundle_path.display());
-            }
-            Err(e) => {
-                tracing::error!("failed to spawn relaunch helper: {e}");
-            }
-        }
-    } else {
+    let Some(bundle_path) = find_app_bundle(&current_exe) else {
         tracing::warn!(
             "could not determine .app bundle path from {}; using fallback restart",
             current_exe.display()
         );
-        // Fall back to Tauri's restart if we can't find the bundle
         return app.restart();
-    }
+    };
 
-    std::process::exit(0);
+    // Get current process ID and original args to forward
+    let current_pid = std::process::id();
+    let args: Vec<String> = app
+        .env()
+        .args_os
+        .iter()
+        .skip(1)
+        .filter_map(|s| s.to_str().map(String::from))
+        .collect();
+
+    // Build the relaunch script that:
+    // 1. Waits for this PID to exit (with 10s timeout)
+    // 2. Relaunches via LaunchServices without -n flag
+    // Pass bundle path, PID, and args as positional parameters to avoid injection.
+    let relaunch_script = r#"
+        bundle="$1"
+        pid="$2"
+        shift 2
+        
+        # Wait for the old process to exit (max 10 seconds)
+        timeout=100
+        while [ $timeout -gt 0 ] && kill -0 "$pid" 2>/dev/null; do
+            sleep 0.1
+            timeout=$((timeout - 1))
+        done
+        
+        # Relaunch without -n to preserve Dock icon association
+        if [ $# -gt 0 ]; then
+            exec /usr/bin/open "$bundle" --args "$@"
+        else
+            exec /usr/bin/open "$bundle"
+        fi
+    "#;
+
+    let mut cmd = Command::new("/bin/sh");
+    cmd.arg("-c")
+        .arg(relaunch_script)
+        .arg("sh") // $0
+        .arg(&bundle_path) // $1
+        .arg(current_pid.to_string()) // $2
+        .args(&args) // $3+
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .process_group(0); // Create new process group
+
+    match cmd.spawn() {
+        Ok(_) => {
+            tracing::debug!(
+                "spawned relaunch helper (waiting for PID {} to exit) for {}",
+                current_pid,
+                bundle_path.display()
+            );
+            std::process::exit(0);
+        }
+        Err(e) => {
+            tracing::error!("failed to spawn relaunch helper: {e}; falling back to app.restart()");
+            return app.restart();
+        }
+    }
 }
 
 /// Finds the .app bundle path from a binary path.
@@ -91,7 +128,8 @@ mod tests {
 
     #[test]
     fn find_app_bundle_returns_correct_path() {
-        let binary_path = Path::new("/Applications/Ultra RSS Reader.app/Contents/MacOS/ultra-rss-reader");
+        let binary_path =
+            Path::new("/Applications/Ultra RSS Reader.app/Contents/MacOS/ultra-rss-reader");
         let bundle = find_app_bundle(binary_path);
         assert_eq!(
             bundle,
