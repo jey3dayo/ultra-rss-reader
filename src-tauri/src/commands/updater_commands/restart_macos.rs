@@ -38,7 +38,8 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
     let current_pid = std::process::id();
 
     // Collect args before spawning (app.env() must not be called after cleanup)
-    let args: Vec<_> = app.env().args_os.iter().skip(1).collect();
+    // Use into_iter() to own the args, not borrow from temporary
+    let args: Vec<std::ffi::OsString> = app.env().args_os.into_iter().skip(1).collect();
 
     // Build the relaunch script that:
     // 1. Waits for this PID to exit (with 10s timeout)
