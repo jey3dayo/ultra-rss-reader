@@ -316,3 +316,54 @@ export const ActiveUnfolderedTarget: Story = {
     onDragEnd: fn(),
   },
 };
+
+const folderReorderDemoFolders: FeedTreeFolderViewModel[] = [
+  {
+    id: "folder-work",
+    name: "Work",
+    accountId: "acc-1",
+    sortOrder: 0,
+    unreadCount: 2,
+    isExpanded: false,
+    isSelected: false,
+    feeds: [],
+  },
+  {
+    id: "folder-personal",
+    name: "Personal",
+    accountId: "acc-1",
+    sortOrder: 1,
+    unreadCount: 0,
+    isExpanded: false,
+    isSelected: false,
+    feeds: [],
+  },
+];
+
+export const FolderReorderInsertionLine: Story = {
+  args: {
+    folders: folderReorderDemoFolders,
+    unfolderedFeeds: [],
+    canDragFolders: true,
+    draggedFolderId: "folder-personal",
+    folderDragInsertionIndex: 0,
+    onToggleFolder: fn(),
+    onSelectFeed: fn(),
+    onDragStartFolder: fn(),
+    onDragFolderInsertionChange: fn(),
+    onDropFolderReorder: fn(),
+    onDragEnd: fn(),
+  },
+};
+
+export const FolderReorderResult: Story = {
+  args: {
+    folders: [
+      { ...folderReorderDemoFolders[1], sortOrder: 0 },
+      { ...folderReorderDemoFolders[0], sortOrder: 1 },
+    ],
+    unfolderedFeeds: [],
+    onToggleFolder: fn(),
+    onSelectFeed: fn(),
+  },
+};
