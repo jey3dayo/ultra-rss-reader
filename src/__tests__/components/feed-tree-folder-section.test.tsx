@@ -103,6 +103,8 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).not.toHaveClass("pr-1.5");
     expect(folderButton).not.toHaveClass("pl-7");
     expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
+    expect(selectedIndicator).toHaveClass("z-[1]", "bg-primary/85");
+    expect(selectedIndicator).not.toHaveClass("z-0", "opacity-0");
   });
 
   it("aligns the child rail with the disclosure chevron wire", () => {

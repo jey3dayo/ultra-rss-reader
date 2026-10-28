@@ -35,7 +35,7 @@ export function FeedTreeSelectableRow({
           aria-hidden="true"
           {...selectedIndicatorProps}
           className={cn(
-            "pointer-events-none absolute inset-y-1.5 left-[var(--feed-tree-rail-offset)] z-0 w-0.5 rounded-full bg-primary/85 transition-[opacity,transform,background-color] duration-200 ease-standard motion-reduce:transition-none",
+            "pointer-events-none absolute inset-y-1.5 left-[var(--feed-tree-rail-offset)] z-[1] w-0.5 rounded-full bg-primary/85 transition-[opacity,transform,background-color] duration-200 ease-standard motion-reduce:transition-none",
             selectedIndicatorClassName,
           )}
         />

@@ -343,7 +343,8 @@ describe("FeedTreeView", () => {
     const selectedIndicator = container.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
     expect(selectedIndicator).not.toBeNull();
-    expect(selectedIndicator).toHaveClass("left-0");
+    expect(selectedIndicator).toHaveClass("left-0", "z-[1]");
+    expect(selectedIndicator).not.toHaveClass("z-0", "opacity-0");
     expect(folderButton).not.toHaveClass("before:bg-primary/85");
   });
 
