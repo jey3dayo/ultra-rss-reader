@@ -103,14 +103,7 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).not.toHaveClass("pr-1.5");
     expect(folderButton).not.toHaveClass("pl-7");
     expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
-    expect(selectedIndicator).toHaveClass(
-      "left-0",
-      "z-[1]",
-      "inset-y-1.5",
-      "w-0.5",
-      "rounded-full",
-      "bg-primary/85",
-    );
+    expect(selectedIndicator).toHaveClass("left-0", "z-[1]", "inset-y-1.5", "w-0.5", "rounded-full", "bg-primary/85");
     expect(selectedIndicator).not.toHaveClass("z-0", "opacity-0");
   });
 
