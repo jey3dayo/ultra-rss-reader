@@ -86,7 +86,6 @@ export function useSidebarControllerSections({
     t,
   });
   const {
-    renderFolderContextMenu,
     renderFeedContextMenu,
     renderTagContextMenu,
     renderTagSectionContextMenu,
@@ -121,8 +120,9 @@ export function useSidebarControllerSections({
     },
     [feeds, folders, selectSmartView, setExpandedFolders],
   );
-  const { feedTreeProps } = useSidebarFeedSectionController({
+  const { feedTreeProps, folderReorderKeyboard } = useSidebarFeedSectionController({
     selectedAccountId,
+    folderOrderMode: selectedAccount?.folder_order_mode,
     feeds,
     folders,
     starredCountByFeedId,
@@ -149,8 +149,8 @@ export function useSidebarControllerSections({
     displayFavicons,
     moveFeedToFolder,
     moveFeedToUnfoldered,
-    renderFolderContextMenu,
     renderFeedContextMenu,
+    feedTreeScrollContainerRef: feedViewportRef,
   });
 
   const headerProps = useSidebarHeaderProps({
@@ -219,5 +219,6 @@ export function useSidebarControllerSections({
     accountSectionProps,
     smartViewsProps,
     contentSectionsProps,
+    folderReorderKeyboard,
   };
 }

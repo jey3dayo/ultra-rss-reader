@@ -52,6 +52,8 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "add_to_reading_list",
   "copy_to_clipboard",
   "create_folder",
+  "reorder_folders",
+  "reset_folder_order",
   "delete_feed",
   "discover_feeds",
   "download_update",

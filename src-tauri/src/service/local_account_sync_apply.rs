@@ -82,7 +82,27 @@ fn upsert_folders(
         folder_ids.insert(normalized_name.clone(), folder_id);
         report.folders_upserted += 1;
     }
+    renormalize_folder_sort_orders(conn, account_id)?;
     Ok(folder_ids)
+}
+
+fn renormalize_folder_sort_orders(conn: &Connection, account_id: &AccountId) -> DomainResult<()> {
+    let folder_ids = {
+        let mut stmt = conn.prepare(
+            "SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order ASC, name COLLATE NOCASE ASC, id ASC",
+        )?;
+        let rows = stmt.query_map(params![account_id.0], |row| row.get::<_, String>(0))?;
+        rows.collect::<Result<Vec<_>, _>>()?
+    };
+
+    for (sort_order, folder_id) in folder_ids.iter().enumerate() {
+        conn.execute(
+            "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
+            params![sort_order as i32, folder_id],
+        )?;
+    }
+
+    Ok(())
 }
 
 fn upsert_feeds(

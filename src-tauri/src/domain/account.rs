@@ -13,6 +13,31 @@ pub enum ConnectionVerificationStatus {
     Quarantined,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FolderOrderMode {
+    #[default]
+    Name,
+    Manual,
+}
+
+impl FolderOrderMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Name => "name",
+            Self::Manual => "manual",
+        }
+    }
+
+    pub fn from_db(value: &str) -> Result<Self, String> {
+        match value {
+            "name" => Ok(Self::Name),
+            "manual" => Ok(Self::Manual),
+            other => Err(format!("Unknown folder order mode: {other}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
     pub id: AccountId,

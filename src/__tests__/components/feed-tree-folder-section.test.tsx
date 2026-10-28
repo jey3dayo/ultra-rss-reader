@@ -20,6 +20,7 @@ describe("FeedTreeFolderSection", () => {
     render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}
@@ -59,6 +60,7 @@ describe("FeedTreeFolderSection", () => {
     render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}
@@ -86,6 +88,7 @@ describe("FeedTreeFolderSection", () => {
     render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}
@@ -173,6 +176,7 @@ describe("FeedTreeFolderSection", () => {
     const { rerender } = render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}

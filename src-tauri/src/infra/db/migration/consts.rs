@@ -45,6 +45,8 @@ pub(super) const MIGRATION_V25: &str =
     include_str!("../../../../migrations/V25__folder_name_scope.sql");
 pub(super) const MIGRATION_V26: &str =
     include_str!("../../../../migrations/V26__sanitizer_version_backfill_index.sql");
+pub(super) const MIGRATION_V27: &str =
+    include_str!("../../../../migrations/V27__account_folder_order_mode.sql");
 
 pub(super) const V8_READER_MODE_COLUMN: &str = "reader_mode";
 pub(super) const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";

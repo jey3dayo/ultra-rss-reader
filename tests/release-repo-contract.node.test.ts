@@ -2303,6 +2303,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       "V24__feed_icon_url.sql",
       "V25__folder_name_scope.sql",
       "V26__sanitizer_version_backfill_index.sql",
+      "V27__account_folder_order_mode.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

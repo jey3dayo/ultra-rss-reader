@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
+import { applyDragEdgeAutoScroll } from "@/lib/sidebar/drag-edge-auto-scroll";
 import {
   applyFeedTreePointerDropOutcome,
   resolveFeedTreePointerDropOutcome,
@@ -17,6 +18,7 @@ import { applyFeedTreeHoverTarget } from "../../feed-tree-hover-target";
 export function useFeedTreePointerDragEvents({
   isPointerTracking,
   pointerDragRef,
+  scrollContainerRef,
   setPointerDragPreview,
   setPointerHoverTarget,
   queueSuppressHandleClickReset,
@@ -29,6 +31,7 @@ export function useFeedTreePointerDragEvents({
   onDragEnd,
 }: UseFeedTreePointerDragEventsParams) {
   const latestParamsRef = useRef<Omit<UseFeedTreePointerDragEventsParams, "isPointerTracking" | "pointerDragRef">>({
+    scrollContainerRef,
     setPointerDragPreview,
     setPointerHoverTarget,
     queueSuppressHandleClickReset,
@@ -42,6 +45,7 @@ export function useFeedTreePointerDragEvents({
   });
   useLayoutEffect(() => {
     latestParamsRef.current = {
+      scrollContainerRef,
       setPointerDragPreview,
       setPointerHoverTarget,
       queueSuppressHandleClickReset,
@@ -96,6 +100,11 @@ export function useFeedTreePointerDragEvents({
       if (!session.isDragging) {
         return;
       }
+
+      applyDragEdgeAutoScroll({
+        clientY: event.clientY,
+        scrollContainer: latestParamsRef.current.scrollContainerRef?.current ?? null,
+      });
 
       const hoverTarget = getFeedDropTargetAtPoint(event.clientX, event.clientY);
       if (!isSameFeedDropTarget(session.hoverTarget, hoverTarget)) {

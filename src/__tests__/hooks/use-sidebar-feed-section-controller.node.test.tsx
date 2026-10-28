@@ -24,6 +24,11 @@ vi.mock("@/hooks/use-confirm-mark-all-read", () => ({
   useConfirmMarkAllRead: () => vi.fn(),
 }));
 
+vi.mock("@/hooks/use-folder-reorder", () => ({
+  useReorderFolders: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+  useResetFolderOrder: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+}));
+
 setupBrowserTestDom();
 
 afterEach(async () => {
@@ -34,6 +39,7 @@ afterEach(async () => {
 function createControllerParams(overrides: Partial<SidebarFeedSectionParams> = {}): SidebarFeedSectionParams {
   return {
     selectedAccountId: "acc-1",
+    folderOrderMode: "name",
     feeds: [sampleFeeds[0]],
     folders: [{ ...sampleFolders[0], account_id: "acc-1" }],
     starredCountByFeedId: new Map(),

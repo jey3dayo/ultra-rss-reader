@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { FolderOrderMode } from "@/lib/sidebar/folder-order";
 import { FeedContextMenuContent } from "../../feed-context-menu";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
 import { FolderContextMenuContent } from "../../folder-context-menu";
@@ -12,6 +13,16 @@ type UseSidebarContextMenuRenderersParams = {
   folders: Array<{ id: string }> | undefined;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   onManageTags: () => void;
+  folderOrderMode?: FolderOrderMode;
+  onMoveFolderUp?: (folderId: string) => void;
+  onMoveFolderDown?: (folderId: string) => void;
+  onResetFolderOrder?: () => void;
+  getVisibleFolderMenuState?: (folderId: string) => {
+    visibleIndex: number;
+    visibleCount: number;
+    canMoveUp: boolean;
+    canMoveDown: boolean;
+  };
 };
 
 function toFolderContextMenuFolder(folder: FeedTreeFolderViewModel) {
@@ -51,16 +62,38 @@ export function useSidebarContextMenuRenderers({
   folders,
   setExpandedFolders,
   onManageTags,
+  folderOrderMode = "name",
+  onMoveFolderUp,
+  onMoveFolderDown,
+  onResetFolderOrder,
+  getVisibleFolderMenuState,
 }: UseSidebarContextMenuRenderersParams): SidebarContextMenuRenderersResult {
   const renderFolderContextMenu = useCallback(
-    (folder: FeedTreeFolderViewModel) => (
-      <FolderContextMenuContent
-        folder={toFolderContextMenuFolder(folder)}
-        folderUnread={folder.unreadCount}
-        feeds={folder.feeds.map(toFeedContextMenuFeed)}
-      />
-    ),
-    [],
+    (folder: FeedTreeFolderViewModel) => {
+      const menuState = getVisibleFolderMenuState?.(folder.id) ?? {
+        visibleIndex: -1,
+        visibleCount: folders?.length ?? 0,
+        canMoveUp: false,
+        canMoveDown: false,
+      };
+
+      return (
+        <FolderContextMenuContent
+          folder={toFolderContextMenuFolder(folder)}
+          folderUnread={folder.unreadCount}
+          feeds={folder.feeds.map(toFeedContextMenuFeed)}
+          folderOrderMode={folderOrderMode}
+          visibleFolderIndex={menuState.visibleIndex}
+          visibleFolderCount={menuState.visibleCount}
+          canMoveFolderUp={menuState.canMoveUp}
+          canMoveFolderDown={menuState.canMoveDown}
+          onMoveFolderUp={() => onMoveFolderUp?.(folder.id)}
+          onMoveFolderDown={() => onMoveFolderDown?.(folder.id)}
+          onResetFolderOrder={() => onResetFolderOrder?.()}
+        />
+      );
+    },
+    [folderOrderMode, folders?.length, getVisibleFolderMenuState, onMoveFolderDown, onMoveFolderUp, onResetFolderOrder],
   );
 
   const renderFeedContextMenu = useCallback(

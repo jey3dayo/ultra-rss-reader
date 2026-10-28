@@ -1,3 +1,4 @@
+import * as v from "valibot";
 import * as s from "@/api/schemas/validation";
 import { FeedDisplayModeSchema } from "../feed";
 import { feedTitleSchema, folderNameSchema, nonBlankTrimmedIdSchema, nullableBlankStringToNullSchema } from "./shared";
@@ -28,4 +29,12 @@ export const updateFeedDisplaySettingsArgs = s.object({
   feedId: nonBlankTrimmedIdSchema,
   readerMode: FeedDisplayModeSchema,
   webPreviewMode: FeedDisplayModeSchema,
+});
+export const reorderFoldersArgs = s.object({
+  accountId: nonBlankTrimmedIdSchema,
+  orderedFolderIds: v.array(nonBlankTrimmedIdSchema),
+});
+export const resetFolderOrderArgs = s.object({
+  accountId: nonBlankTrimmedIdSchema,
+  orderedFolderIds: v.array(nonBlankTrimmedIdSchema),
 });

@@ -4,7 +4,7 @@ import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarAccountSectionProps } from "./sidebar-account-section";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 import type { SidebarDensity } from "./sidebar-density";
-import type { StartupFolderExpansionMode } from "./sidebar-feed-section.types";
+import type { SidebarFolderReorderKeyboardProps, StartupFolderExpansionMode } from "./sidebar-feed-section.types";
 import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";
 import type { SidebarHeaderProps } from "./sidebar-header-view";
 import type { SidebarSourcesResult } from "./sidebar-sources.types";
@@ -46,6 +46,7 @@ export type SidebarSectionPropsResult = {
   accountSectionProps: SidebarAccountProps;
   smartViewsProps: SidebarSmartViewsProps;
   contentSectionsProps: SidebarContentProps;
+  folderReorderKeyboard: SidebarFolderReorderKeyboardProps;
 };
 
 export type SidebarControllerResult = SidebarSectionPropsResult & {

@@ -38,7 +38,12 @@ pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppE
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.reader());
     let accounts = repo.find_all()?;
-    Ok(accounts.into_iter().map(AccountDto::from).collect())
+    let mut account_dtos = Vec::with_capacity(accounts.len());
+    for account in accounts {
+        let folder_order_mode = repo.get_folder_order_mode(&account.id)?;
+        account_dtos.push(AccountDto::from_account(account, folder_order_mode));
+    }
+    Ok(account_dtos)
 }
 
 #[tauri::command]

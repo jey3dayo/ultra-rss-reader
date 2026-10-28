@@ -10,9 +10,18 @@ const meta = {
   args: {
     markAllReadLabel: "Mark all as read",
     markOldUnreadReadLabel: "Mark old unread as read",
-    oldUnreadDayLabel: (days) => `${days} days`,
+    oldUnreadDayLabel: (days: 7 | 30 | 90) => `${days} days`,
+    moveUpLabel: "Move up",
+    moveDownLabel: "Move down",
+    resetOrderLabel: "Reset folder order",
+    folderOrderMode: "manual" as const,
+    canMoveUp: true,
+    canMoveDown: false,
     onMarkAllRead: fn(),
     onMarkOldUnreadRead: fn(),
+    onMoveUp: fn(),
+    onMoveDown: fn(),
+    onResetOrder: fn(),
   },
   render: (args) => (
     <div className="min-h-48 bg-background p-16">

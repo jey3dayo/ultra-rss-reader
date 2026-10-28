@@ -4,6 +4,7 @@ import type { SidebarFeedTreeProps, SidebarFeedTreePropsParams } from "../../sid
 export function useSidebarFeedTreeProps({
   isFeedsSectionOpen,
   scopeKey,
+  feedTreeScrollContainerRef,
   feedTreeFolders,
   unfolderedFeedViews,
   toggleFolder,
@@ -14,7 +15,10 @@ export function useSidebarFeedTreeProps({
   displayFavicons,
   sidebarDensity,
   canDragFeeds,
+  canDragFolders,
   draggedFeedId,
+  draggedFolderId,
+  folderDragInsertionIndex,
   activeDropTarget,
   handleDragStartFeed,
   handleDragEnterFolder,
@@ -22,6 +26,10 @@ export function useSidebarFeedTreeProps({
   handleDropToFolder,
   handleDropToUnfoldered,
   clearDragState,
+  clearFolderDragState,
+  handleDragStartFolder,
+  handleDragFolderInsertionChange,
+  handleDropFolderReorder,
   renderFolderContextMenu,
   renderFeedContextMenu,
 }: SidebarFeedTreePropsParams): SidebarFeedTreeProps {
@@ -40,10 +48,16 @@ export function useSidebarFeedTreeProps({
     });
   }, [handleDropToUnfoldered]);
 
+  const handleDragEnd = useCallback(() => {
+    clearDragState();
+    clearFolderDragState();
+  }, [clearDragState, clearFolderDragState]);
+
   return {
     isOpen: isFeedsSectionOpen,
     scopeKey,
     sidebarDensity,
+    feedTreeScrollContainerRef,
     folders: feedTreeFolders,
     unfolderedFeeds: unfolderedFeedViews,
     onToggleFolder: toggleFolder,
@@ -53,14 +67,20 @@ export function useSidebarFeedTreeProps({
     onMarkFolderRead: markFolderRead,
     displayFavicons,
     canDragFeeds,
+    canDragFolders,
     draggedFeedId,
+    draggedFolderId,
+    folderDragInsertionIndex,
     activeDropTarget,
     onDragStartFeed: (feed) => handleDragStartFeed(feed.id),
+    onDragStartFolder: (folder) => handleDragStartFolder(folder.id),
+    onDragFolderInsertionChange: handleDragFolderInsertionChange,
+    onDropFolderReorder: handleDropFolderReorder,
     onDragEnterFolder: handleDragEnterFolder,
     onDragEnterUnfoldered: handleDragEnterUnfoldered,
     onDropToFolder: handleDropToFolderRequest,
     onDropToUnfoldered: handleDropToUnfolderedRequest,
-    onDragEnd: clearDragState,
+    onDragEnd: handleDragEnd,
     renderFolderContextMenu,
     renderFeedContextMenu,
   };

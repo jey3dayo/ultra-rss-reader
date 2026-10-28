@@ -1,4 +1,4 @@
-import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import type { ReactNode, PointerEvent as ReactPointerEvent, RefObject } from "react";
 import type { ActiveDropTarget } from "@/lib/sidebar/feed-tree-drag.types";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 import type { SidebarDensity } from "./sidebar-density";
@@ -68,6 +68,13 @@ export type FeedTreeViewProps = {
   onDropToFolder?: (folderId: string) => void;
   onDropToUnfoldered?: () => void;
   onDragEnd?: () => void;
+  feedTreeScrollContainerRef?: RefObject<HTMLElement | null>;
+  canDragFolders?: boolean;
+  draggedFolderId?: string | null;
+  folderDragInsertionIndex?: number | null;
+  onDragStartFolder?: (folder: FeedTreeFolderViewModel) => void;
+  onDragFolderInsertionChange?: (insertionIndex: number | null) => void;
+  onDropFolderReorder?: (folderId: string, insertionIndex: number) => void;
 };
 
 export type FeedTreeRowProps = {

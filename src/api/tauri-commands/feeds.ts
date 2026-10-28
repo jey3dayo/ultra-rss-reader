@@ -20,6 +20,8 @@ import {
   markFolderReadArgs,
   NullResponseSchema,
   renameFeedArgs,
+  reorderFoldersArgs,
+  resetFolderOrderArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
 } from "@/api/schemas";
@@ -73,6 +75,20 @@ export const addLocalFeed = (accountId: string, url: string) =>
 
 export const createFolder = (accountId: string, name: string) =>
   safeInvoke("create_folder", { response: FolderDtoSchema, args: createFolderArgs }, { accountId, name });
+
+export const reorderFolders = (accountId: string, orderedFolderIds: readonly string[]) =>
+  safeInvoke(
+    "reorder_folders",
+    { response: FolderDtoListSchema, args: reorderFoldersArgs },
+    { accountId, orderedFolderIds: [...orderedFolderIds] },
+  );
+
+export const resetFolderOrder = (accountId: string, orderedFolderIds: readonly string[]) =>
+  safeInvoke(
+    "reset_folder_order",
+    { response: FolderDtoListSchema, args: resetFolderOrderArgs },
+    { accountId, orderedFolderIds: [...orderedFolderIds] },
+  );
 
 export const deleteFeed = (feedId: string) =>
   safeInvoke("delete_feed", { response: NullResponseSchema, args: deleteFeedArgs }, { feedId });

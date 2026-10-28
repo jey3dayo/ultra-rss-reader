@@ -44,6 +44,7 @@ export const AccountDtoSchema = s.strictObject({
   connection_verification_status: v.optional(AccountConnectionVerificationStatusSchema),
   connection_verified_at: v.optional(v.nullable(IsoDateTimeStringSchema)),
   connection_verification_error: v.optional(v.nullable(v.string())),
+  folder_order_mode: v.optional(v.picklist(["name", "manual"])),
 });
 
 export const AccountDtoListSchema = v.array(AccountDtoSchema);

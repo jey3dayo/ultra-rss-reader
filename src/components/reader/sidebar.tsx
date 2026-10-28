@@ -26,7 +26,15 @@ function focusSidebarNavigationTarget(target: HTMLButtonElement) {
   });
 }
 
-function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>, onFocusAccountList: () => void) {
+function handleSidebarKeyDown(
+  event: ReactKeyboardEvent<HTMLElement>,
+  onFocusAccountList: () => void,
+  onFolderReorderKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => boolean,
+) {
+  if (onFolderReorderKeyDown(event)) {
+    return;
+  }
+
   if (
     event.defaultPrevented ||
     (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "ArrowLeft" && event.key !== "ArrowRight")
@@ -72,16 +80,31 @@ function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>, onFocusAcc
 
 export function Sidebar() {
   const { t } = useTranslation("reader");
-  const { sidebarClassName, headerProps, accountSectionProps, smartViewsProps, contentSectionsProps } =
-    useSidebarController();
+  const {
+    sidebarClassName,
+    headerProps,
+    accountSectionProps,
+    smartViewsProps,
+    contentSectionsProps,
+    folderReorderKeyboard,
+  } = useSidebarController();
 
   return (
     <nav
       aria-label={t("sidebar_landmark")}
       className={sidebarClassName}
       data-sidebar-pane="true"
-      onKeyDown={(event) => handleSidebarKeyDown(event, contentSectionsProps.onFocusAccountList)}
+      onKeyDown={(event) =>
+        handleSidebarKeyDown(
+          event,
+          contentSectionsProps.onFocusAccountList,
+          folderReorderKeyboard.onFolderReorderKeyDown,
+        )
+      }
     >
+      <div role="status" aria-live="polite" className="sr-only">
+        {folderReorderKeyboard.liveRegionMessage}
+      </div>
       <SidebarHeaderView {...headerProps} />
       <SidebarAccountSection {...accountSectionProps} />
       <SmartViewsView {...smartViewsProps} />

@@ -6,6 +6,7 @@ use tauri::State;
 use crate::commands::dto::{AppError, FolderDto};
 use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
+use crate::domain::account::FolderOrderMode;
 use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
 use crate::domain::provider::ProviderKind;
@@ -312,4 +313,140 @@ fn validate_update_feed_folder_target(
         }
         Some(_) => Ok(()),
     }
+}
+
+fn apply_folder_sort_order_ids(
+    tx: &rusqlite::Transaction<'_>,
+    account_id: &AccountId,
+    ordered_folder_ids: &[String],
+) -> Result<(), AppError> {
+    if ordered_folder_ids.is_empty() {
+        return Ok(());
+    }
+
+    let existing_ids = {
+        let mut stmt = tx
+            .prepare("SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id")
+            .map_err(|error| DomainError::Persistence(error.to_string()))?;
+        let rows = stmt
+            .query_map(params![account_id.0], |row| row.get::<_, String>(0))
+            .map_err(|error| DomainError::Persistence(error.to_string()))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|error| DomainError::Persistence(error.to_string()))?
+    };
+
+    if existing_ids.len() != ordered_folder_ids.len() {
+        return Err(AppError::UserVisible {
+            message: "Folder list is out of date. Please retry.".into(),
+        });
+    }
+
+    let existing_set: std::collections::HashSet<&str> =
+        existing_ids.iter().map(String::as_str).collect();
+    if ordered_folder_ids
+        .iter()
+        .any(|folder_id| !existing_set.contains(folder_id.as_str()))
+    {
+        return Err(AppError::UserVisible {
+            message: "Folder list is out of date. Please retry.".into(),
+        });
+    }
+
+    for (index, folder_id) in ordered_folder_ids.iter().enumerate() {
+        let temporary_order = -(index as i32 + 1);
+        tx.execute(
+            "UPDATE folders SET sort_order = ?1 WHERE id = ?2 AND account_id = ?3",
+            params![temporary_order, folder_id, account_id.0],
+        )
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+    }
+
+    for (sort_order, folder_id) in ordered_folder_ids.iter().enumerate() {
+        let sort_order = i32::try_from(sort_order).map_err(|error| {
+            DomainError::Persistence(format!("Folder sort order overflow: {error}"))
+        })?;
+        tx.execute(
+            "UPDATE folders SET sort_order = ?1 WHERE id = ?2 AND account_id = ?3",
+            params![sort_order, folder_id, account_id.0],
+        )
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+    }
+
+    Ok(())
+}
+
+pub(crate) fn reorder_folders_in_db(
+    db: &DbManager,
+    account_id: String,
+    ordered_folder_ids: Vec<String>,
+) -> Result<Vec<FolderDto>, AppError> {
+    let account_id = AccountId(account_id);
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+    let account_repo = SqliteAccountRepository::new(&tx);
+    if account_repo.find_by_id(&account_id)?.is_none() {
+        return Err(AppError::UserVisible {
+            message: "Account not found".into(),
+        });
+    }
+
+    apply_folder_sort_order_ids(&tx, &account_id, &ordered_folder_ids)?;
+    account_repo.set_folder_order_mode(&account_id, FolderOrderMode::Manual)?;
+
+    tx.commit()
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+
+    let folder_repo = SqliteFolderRepository::new(db.reader());
+    let folders = folder_repo.find_by_account(&account_id)?;
+    Ok(folders.into_iter().map(FolderDto::from).collect())
+}
+
+pub(crate) fn reset_folder_order_in_db(
+    db: &DbManager,
+    account_id: String,
+    ordered_folder_ids: Vec<String>,
+) -> Result<Vec<FolderDto>, AppError> {
+    let account_id = AccountId(account_id);
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+    let account_repo = SqliteAccountRepository::new(&tx);
+    if account_repo.find_by_id(&account_id)?.is_none() {
+        return Err(AppError::UserVisible {
+            message: "Account not found".into(),
+        });
+    }
+
+    apply_folder_sort_order_ids(&tx, &account_id, &ordered_folder_ids)?;
+    account_repo.set_folder_order_mode(&account_id, FolderOrderMode::Name)?;
+
+    tx.commit()
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+
+    let folder_repo = SqliteFolderRepository::new(db.reader());
+    let folders = folder_repo.find_by_account(&account_id)?;
+    Ok(folders.into_iter().map(FolderDto::from).collect())
+}
+
+#[tauri::command]
+pub fn reorder_folders(
+    state: State<'_, AppState>,
+    account_id: String,
+    ordered_folder_ids: Vec<String>,
+) -> Result<Vec<FolderDto>, AppError> {
+    let db = lock_db(&state.db)?;
+    reorder_folders_in_db(&db, account_id, ordered_folder_ids)
+}
+
+#[tauri::command]
+pub fn reset_folder_order(
+    state: State<'_, AppState>,
+    account_id: String,
+    ordered_folder_ids: Vec<String>,
+) -> Result<Vec<FolderDto>, AppError> {
+    let db = lock_db(&state.db)?;
+    reset_folder_order_in_db(&db, account_id, ordered_folder_ids)
 }

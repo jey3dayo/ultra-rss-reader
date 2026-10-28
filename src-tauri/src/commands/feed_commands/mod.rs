@@ -22,8 +22,11 @@ pub use feed_mutations::{
     __tauri_command_name_rename_feed, delete_feed, rename_feed,
 };
 pub use folders::{
-    __cmd__create_folder, __cmd__update_feed_folder, __tauri_command_name_create_folder,
-    __tauri_command_name_update_feed_folder, create_folder, update_feed_folder,
+    __cmd__create_folder, __cmd__reorder_folders, __cmd__reset_folder_order,
+    __cmd__update_feed_folder, __tauri_command_name_create_folder,
+    __tauri_command_name_reorder_folders, __tauri_command_name_reset_folder_order,
+    __tauri_command_name_update_feed_folder, create_folder, reorder_folders, reset_folder_order,
+    update_feed_folder,
 };
 
 #[cfg(test)]
@@ -166,6 +169,7 @@ pub(super) use feed_mutations::{
 pub(super) use feed_mutations::{load_delete_feed_account, load_feed_for_delete};
 #[cfg(test)]
 pub(super) use folders::{
-    classify_update_feed_folder_error, create_folder_in_db, update_feed_folder_in_db,
+    classify_update_feed_folder_error, create_folder_in_db, reorder_folders_in_db,
+    reset_folder_order_in_db, update_feed_folder_in_db,
     update_feed_folder_with_remote_sync_boundary, validate_folder_name,
 };

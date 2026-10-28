@@ -419,6 +419,40 @@ export function setupDevMocks(): RestoreDevMocks {
         return cloneMockResponse(folder);
       }
 
+      case "reorder_folders": {
+        const { accountId, orderedFolderIds } = parseBrowserMockArgs("reorder_folders", rawIpcPayload);
+        const accountFolders = mockFolders.filter((folder) => folder.account_id === accountId);
+        orderedFolderIds.forEach((folderId: string, index: number) => {
+          const folder = accountFolders.find((candidate) => candidate.id === folderId);
+          if (folder) {
+            folder.sort_order = index;
+          }
+        });
+        return cloneMockResponse(
+          accountFolders
+            .slice()
+            .sort((left, right) => left.sort_order - right.sort_order)
+            .map((folder) => ({ ...folder })),
+        );
+      }
+
+      case "reset_folder_order": {
+        const { accountId, orderedFolderIds } = parseBrowserMockArgs("reset_folder_order", rawIpcPayload);
+        const accountFolders = mockFolders.filter((folder) => folder.account_id === accountId);
+        orderedFolderIds.forEach((folderId: string, index: number) => {
+          const folder = accountFolders.find((candidate) => candidate.id === folderId);
+          if (folder) {
+            folder.sort_order = index;
+          }
+        });
+        return cloneMockResponse(
+          accountFolders
+            .slice()
+            .sort((left, right) => left.sort_order - right.sort_order)
+            .map((folder) => ({ ...folder })),
+        );
+      }
+
       case "list_feeds": {
         const { accountId } = parseBrowserMockArgs("list_feeds", rawIpcPayload);
         return cloneMockResponse(mockFeeds.filter((f) => f.account_id === accountId));
