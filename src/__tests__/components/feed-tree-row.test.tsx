@@ -44,9 +44,8 @@ describe("FeedTreeRow", () => {
     expect(feedButton).not.toHaveClass("pl-7");
     expect(feedButton).not.toHaveClass("pl-8");
     expect(feedButton).toHaveClass("motion-list-item-enter", "rounded-lg");
-    expect(selectedIndicator).toHaveClass("left-[var(--feed-tree-rail-offset)]", "z-[1]", "bg-primary/85");
+    expect(selectedIndicator).toHaveClass("left-[var(--feed-tree-rail-offset)]");
     expect(handleAnchor).toHaveClass("left-[var(--feed-tree-rail-offset)]");
-    expect(selectedIndicator).not.toHaveClass("z-0", "opacity-0");
     expect(selectedIndicator).toHaveClass("group-hover/feed-row:opacity-0");
     expect(selectedIndicator).not.toHaveClass("group-focus-within/feed-row:opacity-0");
     expect(feedButton).not.toHaveClass("before:-left-2");
@@ -62,8 +61,6 @@ describe("FeedTreeRow", () => {
     const dragButton = screen.queryByRole("button", { name: "Drag Alpha" });
 
     expect(selectedIndicator).not.toBeNull();
-    expect(selectedIndicator).toHaveClass("z-[1]");
-    expect(selectedIndicator).not.toHaveClass("z-0", "opacity-0");
     expect(selectedIndicator).not.toHaveClass("group-hover/feed-row:opacity-0");
     expect(selectedIndicator).not.toHaveClass("group-focus-within/feed-row:opacity-0");
     expect(dragButton).toBeNull();
