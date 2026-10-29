@@ -50,3 +50,40 @@ describe("useSidebarFolderReorderActions reset confirmation", () => {
     });
   });
 });
+
+describe("useSidebarFolderReorderActions live region", () => {
+  beforeEach(() => {
+    setupTauriMocks((cmd) => (cmd === "reorder_folders" ? folders : undefined));
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  afterEach(() => {
+    cleanup();
+    teardownTauriMocks();
+  });
+
+  it("clears the announcement before a repeated move so the same text is announced again", async () => {
+    const { wrapper } = createQueryWrapper();
+    const { result } = renderHook(
+      () =>
+        useSidebarFolderReorderActions({
+          accountId: "acc-1",
+          folderOrderMode: "manual",
+          folders,
+          visibleOrderedFolderIds: ["folder-a", "folder-b"],
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      result.current.moveFolderByDirection("folder-b", "up");
+    });
+    await vi.waitFor(() => expect(result.current.liveRegionMessage).toBe("Bravo moved up"));
+
+    act(() => {
+      result.current.moveFolderByDirection("folder-b", "up");
+    });
+
+    expect(result.current.liveRegionMessage).toBeNull();
+  });
+});

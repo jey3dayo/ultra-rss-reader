@@ -61,6 +61,7 @@ export function useSidebarFolderReorderActions({
         return false;
       }
 
+      setLiveRegionMessage(null);
       submitFolderOrder(nextOrder).then(
         () =>
           setLiveRegionMessage(

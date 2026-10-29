@@ -62,46 +62,80 @@ fn upsert_folders(
     folders: &BTreeMap<String, LocalSyncFolderState>,
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<BTreeMap<String, FolderId>> {
+    // (account_id, sort_order) is unique, so imported orders are written only after every row
+    // is parked on a distinct temporary value.
+    let mut requested_order: BTreeMap<String, (i32, String)> = BTreeMap::new();
+    {
+        let mut stmt =
+            conn.prepare("SELECT id, name, sort_order FROM folders WHERE account_id = ?1")?;
+        let rows = stmt.query_map(params![account_id.0], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i32>(2)?,
+            ))
+        })?;
+        for row in rows {
+            let (id, name, sort_order) = row?;
+            requested_order.insert(id, (sort_order, name.to_ascii_lowercase()));
+        }
+    }
+    park_folder_sort_orders(conn, account_id)?;
+
     let mut folder_ids = BTreeMap::new();
     for (normalized_name, folder) in folders {
         let folder_id = find_folder_id_by_normalized_name(conn, account_id, normalized_name)?
             .unwrap_or_else(FolderId::new);
+        let parked_sort_order = i32::MIN + i32::try_from(folder_ids.len()).unwrap_or(0);
         conn.execute(
             "INSERT INTO folders (id, account_id, name, sort_order)
              VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(id) DO UPDATE SET
-               name = excluded.name,
-               sort_order = excluded.sort_order",
+             ON CONFLICT(id) DO UPDATE SET name = excluded.name",
             params![
                 folder_id.0,
                 account_id.0,
                 folder.display_name,
-                folder.sort_order
+                parked_sort_order
             ],
         )?;
+        requested_order.insert(
+            folder_id.0.clone(),
+            (folder.sort_order, folder.display_name.to_ascii_lowercase()),
+        );
         folder_ids.insert(normalized_name.clone(), folder_id);
         report.folders_upserted += 1;
     }
-    renormalize_folder_sort_orders(conn, account_id)?;
-    Ok(folder_ids)
-}
 
-fn renormalize_folder_sort_orders(conn: &Connection, account_id: &AccountId) -> DomainResult<()> {
-    let folder_ids = {
-        let mut stmt = conn.prepare(
-            "SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order ASC, name COLLATE NOCASE ASC, id ASC",
-        )?;
-        let rows = stmt.query_map(params![account_id.0], |row| row.get::<_, String>(0))?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-
-    for (sort_order, folder_id) in folder_ids.iter().enumerate() {
+    let mut final_order: Vec<_> = requested_order.into_iter().collect();
+    final_order.sort_by(
+        |(left_id, (left_order, left_name)), (right_id, (right_order, right_name))| {
+            left_order
+                .cmp(right_order)
+                .then_with(|| left_name.cmp(right_name))
+                .then_with(|| left_id.cmp(right_id))
+        },
+    );
+    for (sort_order, (folder_id, _)) in final_order.iter().enumerate() {
         conn.execute(
             "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
             params![sort_order as i32, folder_id],
         )?;
     }
+    Ok(folder_ids)
+}
 
+fn park_folder_sort_orders(conn: &Connection, account_id: &AccountId) -> DomainResult<()> {
+    let folder_ids = {
+        let mut stmt = conn.prepare("SELECT id FROM folders WHERE account_id = ?1")?;
+        let rows = stmt.query_map(params![account_id.0], |row| row.get::<_, String>(0))?;
+        rows.collect::<Result<Vec<_>, _>>()?
+    };
+    for (index, folder_id) in folder_ids.iter().enumerate() {
+        conn.execute(
+            "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
+            params![-1 - index as i32, folder_id],
+        )?;
+    }
     Ok(())
 }
 

@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { createPortal } from "react-dom";
 import { useFeedTreeDrag } from "@/components/reader/hooks/feed-tree/use-feed-tree-drag";
 import { useFolderTreeDrag } from "@/components/reader/hooks/feed-tree/use-folder-tree-drag";
 import type { FeedTreeViewProps } from "./feed-tree.types";
@@ -166,12 +167,18 @@ export function FeedTreeView({
             />
           ) : null}
         </div>
-        {pointerDragPreview ? (
-          <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />
-        ) : null}
-        {folderPointerDragPreview ? (
-          <FeedTreeFolderDragOverlay preview={folderPointerDragPreview} displayFavicons={displayFavicons} />
-        ) : null}
+        {pointerDragPreview
+          ? createPortal(
+              <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />,
+              document.body,
+            )
+          : null}
+        {folderPointerDragPreview
+          ? createPortal(
+              <FeedTreeFolderDragOverlay preview={folderPointerDragPreview} displayFavicons={displayFavicons} />,
+              document.body,
+            )
+          : null}
       </div>
     </div>
   );

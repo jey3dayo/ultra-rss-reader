@@ -21,8 +21,8 @@ type FolderReorderMutationContext = {
 
 let reorderChain: Promise<unknown> = Promise.resolve();
 
-// onMutate runs before the serialized IPC, so a later snapshot can hold an earlier unsaved order: only a
-// mutation that started with nothing in flight may roll back; after a failed burst the DB is reloaded.
+// onMutate runs before the serialized IPC, so only a mutation that started with nothing in flight may roll back
+// and only the last save of a burst writes the cache; after a failure the DB is reloaded.
 let pendingReorderCount = 0;
 let reorderBurstFailed = false;
 
@@ -82,6 +82,9 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
       return { previousFolders, previousAccounts, startedAlone } satisfies FolderReorderMutationContext;
     },
     onSuccess: (folders, { accountId }) => {
+      if (pendingReorderCount > 1) {
+        return;
+      }
       queryClient.setQueryData<FolderDto[]>([...queryKeys.folders.root, accountId], folders);
       invalidateFeedQueries(queryClient, {
         includeFolders: true,

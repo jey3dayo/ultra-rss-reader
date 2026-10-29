@@ -120,4 +120,51 @@ describe("useReorderFolders", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.folders.root });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.accounts.root });
   });
+
+  it("keeps a later queued order on screen when an earlier save succeeds first", async () => {
+    const ipcCalls: ReturnType<typeof createDeferred<FolderDto[]>>[] = [];
+    setupTauriMocks((cmd) => {
+      if (cmd === "reorder_folders") {
+        const call = createDeferred<FolderDto[]>();
+        ipcCalls.push(call);
+        return call.promise;
+      }
+      return undefined;
+    });
+    const folderQueryKey = [...queryKeys.folders.root, "acc-1"];
+    const orderOf = () =>
+      [...(queryClient.getQueryData<FolderDto[]>(folderQueryKey) ?? [])]
+        .sort((left, right) => left.sort_order - right.sort_order)
+        .map((folder) => folder.id);
+    const withOrder = (ids: string[]) =>
+      ids.map((id, sortOrder) => ({
+        ...(folders.find((folder) => folder.id === id) as FolderDto),
+        sort_order: sortOrder,
+      }));
+    queryClient.setQueryData<FolderDto[]>(folderQueryKey, folders);
+
+    const { result } = renderHook(() => useReorderFolders(), { wrapper });
+
+    const first = result.current.mutateAsync({
+      accountId: "acc-1",
+      orderedFolderIds: ["folder-b", "folder-a", "folder-c"],
+    });
+    await waitFor(() => expect(orderOf()).toEqual(["folder-b", "folder-a", "folder-c"]));
+    const second = result.current.mutateAsync({
+      accountId: "acc-1",
+      orderedFolderIds: ["folder-b", "folder-c", "folder-a"],
+    });
+    await waitFor(() => expect(orderOf()).toEqual(["folder-b", "folder-c", "folder-a"]));
+
+    await waitFor(() => expect(ipcCalls).toHaveLength(1));
+    ipcCalls[0].resolve(withOrder(["folder-b", "folder-a", "folder-c"]));
+    await first;
+    expect(orderOf()).toEqual(["folder-b", "folder-c", "folder-a"]);
+
+    await waitFor(() => expect(ipcCalls).toHaveLength(2));
+    ipcCalls[1].resolve(withOrder(["folder-b", "folder-c", "folder-a"]));
+    await second;
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(orderOf()).toEqual(["folder-b", "folder-c", "folder-a"]);
+  });
 });
