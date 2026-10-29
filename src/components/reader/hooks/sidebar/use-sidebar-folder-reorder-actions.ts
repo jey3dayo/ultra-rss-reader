@@ -109,6 +109,7 @@ export function useSidebarFolderReorderActions({
     if (resolvedFolderOrderMode === "manual") {
       showConfirm(t("folder_reset_order_confirm"), executeReset, {
         actionLabel: t("folder_reset_order"),
+        variant: "warning",
       });
       return;
     }
