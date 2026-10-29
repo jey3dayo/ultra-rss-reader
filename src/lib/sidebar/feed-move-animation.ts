@@ -1,4 +1,5 @@
 import { MOTION_DATA_SIDEBAR_ROW_LEAVING_ATTRIBUTE } from "@/constants";
+import { FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { FOLDER_REORDER_FOLDER_ID_ATTRIBUTE } from "./folder-tree-drop-target";
 import { FOLDER_REORDER_SNAPSHOT_MAX_AGE_MS, fadeOptions, flipOptions } from "./folder-tree-reorder-animation";
 
@@ -7,6 +8,7 @@ export const FEED_MOVE_FOLDER_ROW_ATTRIBUTE = "data-folder-row-id";
 
 // Only leaf rows animate (feed rows and folder header rows), so a folder's displacement never stacks on its children's.
 const MOTION_ROW_SELECTOR = `[${FEED_MOVE_FEED_ROW_ATTRIBUTE}], [${FEED_MOVE_FOLDER_ROW_ATTRIBUTE}]`;
+const DRAG_ONLY_LAYOUT_SELECTOR = `[${FEED_DROP_TARGET_KIND_ATTRIBUTE}="unfoldered"]`;
 const NOT_ANIMATABLE_ANCESTOR_SELECTOR = `[aria-hidden="true"], [inert], [${MOTION_DATA_SIDEBAR_ROW_LEAVING_ATTRIBUTE}="true"]`;
 // The row's button carries the mount-time list-item enter animation; the fade has to sit on the same element to override it.
 const MOVED_ROW_FADE_TARGET_SELECTOR = "[data-feed-id]";
@@ -24,6 +26,7 @@ export type FeedMoveSnapshot = {
   movedFeedId: string;
   destinationFolderId: string | null;
   movedRow: HTMLElement | null;
+  dragOnlyElements: readonly HTMLElement[];
   topByRowKey: ReadonlyMap<string, number>;
 };
 
@@ -89,14 +92,15 @@ export function captureFeedMoveSnapshot(params: {
     movedFeedId: feedId,
     destinationFolderId,
     movedRow,
+    dragOnlyElements: Array.from(container.querySelectorAll<HTMLElement>(DRAG_ONLY_LAYOUT_SELECTOR)),
     topByRowKey,
   };
 }
 
 export type FeedMovePlayResult = { outcome: "pending" | "discarded" } | { outcome: "played"; animations: Animation[] };
 
-// "pending" means the move has not reached the DOM yet, so layout changes unrelated to it (drop zone teardown,
-// hover styles) must not consume the snapshot.
+// "pending" lasts until the move is in the DOM and the in-flow drag UI captured with the snapshot is gone,
+// so the final layout is what gets compared.
 export function playFeedMoveAnimation(params: {
   container: HTMLElement | null;
   snapshot: FeedMoveSnapshot;
@@ -120,7 +124,7 @@ export function playFeedMoveAnimation(params: {
   const landed = movedRow
     ? readOwningFolderId(movedRow) === snapshot.destinationFolderId
     : snapshot.movedRow !== null && !snapshot.movedRow.isConnected;
-  if (!landed) {
+  if (!landed || snapshot.dragOnlyElements.some((element) => element.isConnected)) {
     return { outcome: "pending" };
   }
 

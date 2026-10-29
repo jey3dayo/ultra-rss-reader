@@ -8,6 +8,7 @@ import {
   playFeedMoveAnimation,
   watchFeedMoveAnimation,
 } from "@/lib/sidebar/feed-move-animation";
+import { FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
 import { FOLDER_REORDER_SNAPSHOT_MAX_AGE_MS } from "@/lib/sidebar/folder-tree-reorder-animation";
 
 function requireSnapshot(snapshot: FeedMoveSnapshot | null): FeedMoveSnapshot {
@@ -97,6 +98,38 @@ describe("feed move animation", () => {
     expect(tree.u1.animate).not.toHaveBeenCalled();
     expect(tree.a1.animate).not.toHaveBeenCalled();
     expect(tree.a1.button.animate).toHaveBeenCalledWith([{ opacity: 0.6 }, { opacity: 1 }], expect.any(Object));
+  });
+
+  it("waits for the drag-only drop zone to unmount and plays once against the final layout", () => {
+    const tree = setupTree();
+    const dropZone = document.createElement("div");
+    dropZone.setAttribute(FEED_DROP_TARGET_KIND_ATTRIBUTE, "unfoldered");
+    tree.container.prepend(dropZone);
+    const snapshot = capture(tree.container);
+    applyMoveToBravo(tree);
+
+    expect(play(tree.container, snapshot).outcome).toBe("pending");
+    expect(tree.a2.animate).not.toHaveBeenCalled();
+
+    dropZone.remove();
+    tree.a2.setTop(12);
+    tree.bravo.header.setTop(32);
+    tree.a1.setTop(52);
+    tree.a1.button.setTop(52);
+    tree.b1.setTop(72);
+    tree.u1.setTop(92);
+    const result = play(tree.container, snapshot);
+
+    expect(result.outcome).toBe("played");
+    expect(tree.a2.animate).toHaveBeenCalledWith(
+      [{ transform: "translateY(28px)" }, { transform: "translateY(0)" }],
+      expect.anything(),
+    );
+    expect(tree.u1.animate).toHaveBeenCalledWith(
+      [{ transform: "translateY(8px)" }, { transform: "translateY(0)" }],
+      expect.anything(),
+    );
+    expect(tree.a1.button.animate).toHaveBeenCalledTimes(1);
   });
 
   it("does not stack a folder's displacement on its children", () => {

@@ -44,13 +44,15 @@ const initialFeeds = [
 type HarnessProps = {
   expandedFolderIds: Set<string>;
   failMove: boolean;
+  settleMove?: Promise<void>;
 };
 
-function Harness({ expandedFolderIds, failMove }: HarnessProps) {
+function Harness({ expandedFolderIds, failMove, settleMove }: HarnessProps) {
   const [feeds, setFeeds] = useState(initialFeeds);
   const scrollRef = useRef<HTMLDivElement>(null);
   const moveFeed = async (feedId: string, folderId: string | null) => {
     setFeeds((current) => current.map((feed) => (feed.id === feedId ? { ...feed, folder_id: folderId } : feed)));
+    await settleMove;
     if (failMove) {
       throw new Error("move failed");
     }
@@ -178,6 +180,31 @@ describe("feed move motion through the sidebar controller and feed tree", () => 
 
     expect(translatedRowIds()).toContain("feed-a2");
     expect(animateCalls.filter((call) => JSON.stringify(call.keyframes).includes("opacity"))).toHaveLength(1);
+  });
+
+  it("waits until the drag UI is gone before playing, as the optimistic update lands before the move settles", async () => {
+    let settle = () => {};
+    const settleMove = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    render(<Harness expandedFolderIds={new Set(["folder-a", "folder-b"])} failMove={false} settleMove={settleMove} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Drag A one" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Move to Bravo" }));
+    });
+    flushTestMutationObservers();
+
+    expect(screen.getByTestId("unfoldered-drop-zone")).toBeInTheDocument();
+    expect(animateCalls).toHaveLength(0);
+
+    await act(async () => {
+      settle();
+    });
+    flushTestMutationObservers();
+
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
+    expect(translatedRowIds()).toEqual(["feed-a2", "folder:folder-b"]);
   });
 
   it("plays no motion when the move is rejected", async () => {
