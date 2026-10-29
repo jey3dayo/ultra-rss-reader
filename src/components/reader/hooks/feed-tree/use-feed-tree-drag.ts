@@ -65,6 +65,7 @@ export function useFeedTreeDrag({
   onDropToFolder,
   onDropToUnfoldered,
   onDragEnd,
+  scrollContainerRef,
 }: UseFeedTreeDragParams): UseFeedTreeDragResult {
   const normalizedDraggedFeedId = draggedFeedId ?? null;
   const [state, dispatch] = useReducer(feedTreeDragReducer, initialFeedTreeDragState);
@@ -131,6 +132,7 @@ export function useFeedTreeDrag({
   useFeedTreePointerDragEvents({
     isPointerTracking,
     pointerDragRef,
+    scrollContainerRef,
     setPointerDragPreview,
     setPointerHoverTarget,
     queueSuppressHandleClickReset,

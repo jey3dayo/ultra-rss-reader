@@ -8,6 +8,8 @@ use crate::domain::local_account_sync::{
     LocalSyncEntityKey, LocalSyncOperationId,
 };
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_folder::SqliteFolderRepository;
+use crate::repository::folder::FolderRepository;
 
 fn ts(seconds: i64) -> DateTime<Utc> {
     DateTime::from_timestamp(seconds, 0).expect("test timestamp should be valid")
@@ -425,4 +427,87 @@ fn apply_rolls_back_when_later_mute_keyword_upsert_violates_constraints() {
         )
         .unwrap();
     assert_eq!(alpha_count, 0);
+}
+
+fn folder_upsert(
+    id: &str,
+    sync_account_id: &LocalSyncAccountId,
+    name: &str,
+    sort_order: i32,
+) -> crate::domain::local_account_sync::LocalAccountSyncOperation {
+    operation(
+        id,
+        sync_account_id,
+        LocalSyncEntityKey::Folder {
+            normalized_name: normalize_tag_name(name).unwrap(),
+        },
+        LocalSyncAction::UpsertFolder {
+            display_name: name.to_string(),
+            sort_order,
+        },
+    )
+}
+
+fn enforce_folder_order_contract(conn: &Connection, account_id: &AccountId) {
+    SqliteFolderRepository::new(conn)
+        .find_by_account(account_id)
+        .unwrap();
+}
+
+fn folder_names_in_order(conn: &Connection, account_id: &AccountId) -> Vec<String> {
+    let mut stmt = conn
+        .prepare("SELECT name FROM folders WHERE account_id = ?1 ORDER BY sort_order")
+        .unwrap();
+    let rows = stmt
+        .query_map(params![account_id.0], |row| row.get::<_, String>(0))
+        .unwrap();
+    rows.collect::<Result<Vec<_>, _>>().unwrap()
+}
+
+#[test]
+fn apply_reorders_existing_folders_despite_the_unique_sort_order_index() {
+    let db = DbManager::new_in_memory().unwrap();
+    let conn = db.writer();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    seed_account(conn, &account_id);
+    conn.execute(
+        "INSERT INTO folders (id, account_id, name, sort_order)
+         VALUES ('folder-a', ?1, 'A', 0), ('folder-b', ?1, 'B', 1)",
+        params![account_id.0],
+    )
+    .unwrap();
+    enforce_folder_order_contract(conn, &account_id);
+    let projection = merge_local_account_sync_operations([
+        folder_upsert("a", &sync_account_id, "A", 1),
+        folder_upsert("b", &sync_account_id, "B", 0),
+    ])
+    .projection;
+
+    apply_local_account_sync_projection(&db, &account_id, &sync_account_id, &projection).unwrap();
+
+    assert_eq!(folder_names_in_order(conn, &account_id), ["B", "A"]);
+}
+
+#[test]
+fn apply_inserts_a_folder_whose_sort_order_is_already_taken_locally() {
+    let db = DbManager::new_in_memory().unwrap();
+    let conn = db.writer();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    seed_account(conn, &account_id);
+    conn.execute(
+        "INSERT INTO folders (id, account_id, name, sort_order)
+         VALUES ('folder-a', ?1, 'A', 0), ('folder-c', ?1, 'C', 1)",
+        params![account_id.0],
+    )
+    .unwrap();
+    enforce_folder_order_contract(conn, &account_id);
+    let projection =
+        merge_local_account_sync_operations([folder_upsert("b", &sync_account_id, "B", 1)])
+            .projection;
+
+    apply_local_account_sync_projection(&db, &account_id, &sync_account_id, &projection).unwrap();
+
+    assert_eq!(folder_names_in_order(conn, &account_id), ["A", "B", "C"]);
 }

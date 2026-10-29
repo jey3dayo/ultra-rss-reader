@@ -68,6 +68,11 @@ export const remainingTypeSurfaceAllowlist = [
     "UseFeedTreeDragResult",
     "UseFeedTreePointerDragEventsParams",
   ]),
+  remainingTypeSurface("src/components/reader/hooks/feed-tree/folder-tree-drag.types.ts", [
+    "UseFolderTreeDragParams",
+    "UseFolderTreeDragResult",
+    "UseFolderTreePointerDragEventsParams",
+  ]),
   remainingTypeSurface("src/components/reader/sidebar-feed-section.types.ts", [
     "SidebarFeedDragStateParams",
     "SidebarFeedDragStateResult",
@@ -76,6 +81,7 @@ export const remainingTypeSurfaceAllowlist = [
     "SidebarFeedSectionResult",
     "SidebarFeedTreeProps",
     "SidebarFeedTreePropsParams",
+    "SidebarFolderReorderKeyboardProps",
     "SidebarStartupFolderExpansionParams",
     "SidebarVisibilityFallbackParams",
   ]),

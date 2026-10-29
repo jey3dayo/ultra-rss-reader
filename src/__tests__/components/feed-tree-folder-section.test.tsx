@@ -20,6 +20,7 @@ describe("FeedTreeFolderSection", () => {
     render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}
@@ -59,6 +60,7 @@ describe("FeedTreeFolderSection", () => {
     render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}
@@ -86,6 +88,7 @@ describe("FeedTreeFolderSection", () => {
     render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}
@@ -175,6 +178,7 @@ describe("FeedTreeFolderSection", () => {
     const { rerender } = render(
       <FeedTreeFolderSection
         folder={baseFolder}
+        folderIndex={0}
         activeDropTarget={null}
         onToggleFolder={vi.fn()}
         onSelectFolder={vi.fn()}
@@ -388,6 +392,30 @@ describe("FeedTreeFolderSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
 
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
+    expect(onSelectFolder).not.toHaveBeenCalled();
+  });
+
+  it("ignores the click that follows a folder drag instead of collapsing the selected folder", () => {
+    const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+    const consumeSuppressedHandleClick = vi.fn(() => true);
+
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, isExpanded: true }}
+        activeDropTarget={null}
+        onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+        displayFavicons={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+
+    expect(consumeSuppressedHandleClick).toHaveBeenCalledTimes(1);
+    expect(onToggleFolder).not.toHaveBeenCalled();
     expect(onSelectFolder).not.toHaveBeenCalled();
   });
 

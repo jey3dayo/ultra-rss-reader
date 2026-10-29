@@ -2,6 +2,7 @@ import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import { queryElementByDataAttribute } from "./dom/data-attribute";
 import type { FocusedPane } from "./layout/layout-state.types";
 
+export const SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE = "data-sidebar-folder-navigation-target";
 export const SIDEBAR_SELECTED_TARGET_ATTRIBUTE = "data-sidebar-selected-target";
 export const SIDEBAR_FALLBACK_TARGET_ATTRIBUTE = "data-sidebar-fallback-target";
 export const ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE = "data-account-pane-selected-target";

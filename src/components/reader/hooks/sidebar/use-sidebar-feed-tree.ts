@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { sortSidebarFolders } from "@/lib/sidebar/folder-order";
 import { groupFeedsByFolder } from "@/lib/sidebar/sidebar";
 import {
   buildSidebarFeedTreeFolders,
@@ -22,6 +23,8 @@ export function useSidebarFeedTree({
   sortSubscriptions,
   grayscaleFavicons,
   draggedFeedId,
+  draggedFolderId = null,
+  folderOrderMode,
   starredCountByFeedId = EMPTY_STARRED_COUNT_BY_FEED_ID,
 }: UseSidebarFeedTreeParams): UseSidebarFeedTreeResult {
   // Memoised rather than a bare `?? []`; see use-sidebar-feed-section-controller.ts.
@@ -35,11 +38,10 @@ export function useSidebarFeedTree({
     [feedList],
   );
 
-  const sortedFolderList = useMemo(() => {
-    const sortedFolders = folderList.slice();
-    sortedFolders.sort((a, b) => a.name.localeCompare(b.name));
-    return sortedFolders;
-  }, [folderList]);
+  const sortedFolderList = useMemo(
+    () => sortSidebarFolders(folderList, folderOrderMode),
+    [folderList, folderOrderMode],
+  );
 
   const sortFeeds = useCallback(
     (candidateFeeds: FeedDto[]): FeedDto[] => sortSidebarSubscriptionFeeds(candidateFeeds, sortSubscriptions),
@@ -68,7 +70,7 @@ export function useSidebarFeedTree({
     [feedsByFolder, getVisibleFeeds, sortedFolderList, unfolderedFeeds],
   );
 
-  const hideEmptyFoldersInCurrentView = viewMode !== "all" && draggedFeedId === null;
+  const hideEmptyFoldersInCurrentView = viewMode !== "all" && draggedFeedId === null && draggedFolderId === null;
 
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
@@ -119,5 +121,6 @@ export function useSidebarFeedTree({
     feedTreeFolders,
     unfolderedFeedViews,
     orderedFeedIds,
+    visibleOrderedFolderIds: feedTreeFolders.map((folder) => folder.id),
   };
 }

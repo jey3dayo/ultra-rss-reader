@@ -1,5 +1,6 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
+import type { FolderOrderMode } from "@/lib/sidebar/folder-order";
 import type {
   FeedTreeFeedViewModel,
   FeedTreeFolderViewModel,
@@ -20,6 +21,8 @@ export type UseSidebarFeedTreeParams = {
   sortSubscriptions: SortSubscriptions;
   grayscaleFavicons: boolean;
   draggedFeedId: string | null;
+  draggedFolderId?: string | null;
+  folderOrderMode?: FolderOrderMode;
   starredCountByFeedId?: ReadonlyMap<string, number>;
 };
 
@@ -33,4 +36,5 @@ export type UseSidebarFeedTreeResult = {
   feedTreeFolders: FeedTreeFolderViewModel[];
   unfolderedFeedViews: FeedTreeFeedViewModel[];
   orderedFeedIds: string[];
+  visibleOrderedFolderIds: string[];
 };

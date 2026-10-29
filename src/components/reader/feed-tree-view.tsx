@@ -1,8 +1,11 @@
 import { cn } from "cn";
+import { createPortal } from "react-dom";
 import { useFeedTreeDrag } from "@/components/reader/hooks/feed-tree/use-feed-tree-drag";
+import { useFolderTreeDrag } from "@/components/reader/hooks/feed-tree/use-folder-tree-drag";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
 import { FeedTreeEmptyState } from "./feed-tree-empty-state";
+import { FeedTreeFolderDragOverlay } from "./feed-tree-folder-drag-overlay";
 import { FeedTreeFolderSection } from "./feed-tree-folder-section";
 import { FeedTreeRowCollapse } from "./feed-tree-row-collapse";
 import { FeedTreeUnfolderedDropZone } from "./feed-tree-unfoldered-drop-zone";
@@ -10,10 +13,6 @@ import { FeedTreeUnfolderedSection } from "./feed-tree-unfoldered-section";
 import { useFeedTreePresence } from "./hooks/sidebar/use-feed-tree-presence";
 import { getSidebarDensityTokens } from "./sidebar-density";
 
-// Stable fallback scope for call sites (tests, stories) that never switch
-// account/view-mode scope and so have no reason to pass `scopeKey`: a
-// constant scope means useFeedTreePresence's scope-reset path never fires
-// for them, which matches their previous (pre-presence) behavior.
 const DEFAULT_FEED_TREE_SCOPE_KEY = "feed-tree-view";
 
 export function FeedTreeView({
@@ -33,9 +32,16 @@ export function FeedTreeView({
   renderFolderContextMenu,
   renderFeedContextMenu,
   canDragFeeds = false,
+  canDragFolders = false,
   draggedFeedId,
+  draggedFolderId,
+  folderDragInsertionIndex = null,
   activeDropTarget = null,
+  feedTreeScrollContainerRef,
   onDragStartFeed,
+  onDragStartFolder,
+  onDragFolderInsertionChange,
+  onDropFolderReorder,
   onDragEnterFolder,
   onDragEnterUnfoldered,
   onDropToFolder,
@@ -43,10 +49,6 @@ export function FeedTreeView({
   onDragEnd,
 }: FeedTreeViewProps) {
   const tokens = getSidebarDensityTokens(sidebarDensity);
-  // The presence output (not the raw logical props) decides emptiness and
-  // what gets rendered: a row/folder can still be present here (isLeaving)
-  // for its exit animation after it has already disappeared from the
-  // logical tree, and the empty state must not flash in underneath it.
   const { folders, unfolderedFeeds } = useFeedTreePresence({
     folders: logicalFolders,
     unfolderedFeeds: logicalUnfolderedFeeds,
@@ -54,10 +56,13 @@ export function FeedTreeView({
   });
   const hasFeeds = folders.length > 0 || unfolderedFeeds.length > 0;
   const hasUnfolderedFeeds = unfolderedFeeds.length > 0;
+  const isFolderDragging = draggedFolderId !== null && draggedFolderId !== undefined;
+  const effectiveCanDragFeeds = canDragFeeds && !isFolderDragging;
+
   const {
     activeUnfoldered,
     activeVisualDropTarget,
-    consumeSuppressedHandleClick,
+    consumeSuppressedHandleClick: consumeFeedDragClickSuppression,
     handlePointerDownFeed,
     normalizedDraggedFeedId,
     pointerDragPreview,
@@ -65,9 +70,10 @@ export function FeedTreeView({
   } = useFeedTreeDrag({
     isOpen,
     hasFeeds,
-    canDragFeeds,
+    canDragFeeds: effectiveCanDragFeeds,
     activeDropTarget,
     draggedFeedId,
+    scrollContainerRef: feedTreeScrollContainerRef,
     onDragStartFeed,
     onDragEnterFolder,
     onDragEnterUnfoldered,
@@ -75,6 +81,23 @@ export function FeedTreeView({
     onDropToUnfoldered,
     onDragEnd,
   });
+
+  const {
+    handlePointerDownFolder,
+    pointerDragPreview: folderPointerDragPreview,
+    consumeSuppressedHandleClick: consumeFolderDragClickSuppression,
+  } = useFolderTreeDrag({
+    isOpen,
+    canDragFolders,
+    draggedFolderId,
+    scrollContainerRef: feedTreeScrollContainerRef,
+    onDragStartFolder,
+    onDragFolderInsertionChange,
+    onDropFolderReorder,
+    onDragEnd,
+  });
+
+  const consumeSuppressedHandleClick = () => consumeFeedDragClickSuppression() || consumeFolderDragClickSuppression();
 
   if (!hasFeeds) {
     if (!isOpen) {
@@ -92,20 +115,23 @@ export function FeedTreeView({
     >
       <div className="motion-disclosure-body">
         <div className={cn(tokens.treeRootPadding, tokens.treeGap)}>
-          {showUnfolderedDropZone ? (
+          {showUnfolderedDropZone && !isFolderDragging ? (
             <FeedTreeUnfolderedDropZone
-              enabled={canDragFeeds}
+              enabled={effectiveCanDragFeeds}
               active={activeUnfoldered}
               onDropToUnfoldered={onDropToUnfoldered}
             />
           ) : null}
-          {folders.map((folder) => (
+          {folders.map((folder, folderIndex) => (
             <FeedTreeRowCollapse key={folder.id} collapsing={folder.isLeaving}>
               <FeedTreeFolderSection
                 sidebarDensity={sidebarDensity}
                 folder={folder}
-                activeDropTarget={activeVisualDropTarget}
+                folderIndex={folderIndex}
+                activeDropTarget={isFolderDragging ? null : activeVisualDropTarget}
                 draggedFeedId={normalizedDraggedFeedId}
+                draggedFolderId={draggedFolderId}
+                folderDragInsertionIndex={folderDragInsertionIndex}
                 onToggleFolder={onToggleFolder}
                 onSelectFolder={onSelectFolder}
                 onSelectFeed={onSelectFeed}
@@ -114,10 +140,12 @@ export function FeedTreeView({
                 displayFavicons={displayFavicons}
                 renderFolderContextMenu={renderFolderContextMenu}
                 renderFeedContextMenu={renderFeedContextMenu}
-                canDragFeeds={canDragFeeds}
+                canDragFeeds={effectiveCanDragFeeds}
+                canDragFolders={canDragFolders}
                 onDragStartFeed={onDragStartFeed}
                 onDropToFolder={onDropToFolder}
                 onPointerDownFeed={handlePointerDownFeed}
+                onPointerDownFolder={handlePointerDownFolder}
                 consumeSuppressedHandleClick={consumeSuppressedHandleClick}
               />
             </FeedTreeRowCollapse>
@@ -131,7 +159,7 @@ export function FeedTreeView({
               onMarkFeedRead={onMarkFeedRead}
               displayFavicons={displayFavicons}
               renderFeedContextMenu={renderFeedContextMenu}
-              canDragFeeds={canDragFeeds}
+              canDragFeeds={effectiveCanDragFeeds}
               normalizedDraggedFeedId={normalizedDraggedFeedId}
               onDragStartFeed={onDragStartFeed}
               onPointerDownFeed={handlePointerDownFeed}
@@ -139,9 +167,18 @@ export function FeedTreeView({
             />
           ) : null}
         </div>
-        {pointerDragPreview ? (
-          <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />
-        ) : null}
+        {pointerDragPreview
+          ? createPortal(
+              <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />,
+              document.body,
+            )
+          : null}
+        {folderPointerDragPreview
+          ? createPortal(
+              <FeedTreeFolderDragOverlay preview={folderPointerDragPreview} displayFavicons={displayFavicons} />,
+              document.body,
+            )
+          : null}
       </div>
     </div>
   );

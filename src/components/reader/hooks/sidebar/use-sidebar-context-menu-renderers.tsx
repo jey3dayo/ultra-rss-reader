@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { FolderOrderMode } from "@/lib/sidebar/folder-order";
 import { FeedContextMenuContent } from "../../feed-context-menu";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
 import { FolderContextMenuContent } from "../../folder-context-menu";
@@ -12,6 +13,8 @@ type UseSidebarContextMenuRenderersParams = {
   folders: Array<{ id: string }> | undefined;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   onManageTags: () => void;
+  folderOrderMode?: FolderOrderMode;
+  onResetFolderOrder?: () => void;
 };
 
 function toFolderContextMenuFolder(folder: FeedTreeFolderViewModel) {
@@ -51,16 +54,22 @@ export function useSidebarContextMenuRenderers({
   folders,
   setExpandedFolders,
   onManageTags,
+  folderOrderMode = "name",
+  onResetFolderOrder,
 }: UseSidebarContextMenuRenderersParams): SidebarContextMenuRenderersResult {
   const renderFolderContextMenu = useCallback(
-    (folder: FeedTreeFolderViewModel) => (
-      <FolderContextMenuContent
-        folder={toFolderContextMenuFolder(folder)}
-        folderUnread={folder.unreadCount}
-        feeds={folder.feeds.map(toFeedContextMenuFeed)}
-      />
-    ),
-    [],
+    (folder: FeedTreeFolderViewModel) => {
+      return (
+        <FolderContextMenuContent
+          folder={toFolderContextMenuFolder(folder)}
+          folderUnread={folder.unreadCount}
+          feeds={folder.feeds.map(toFeedContextMenuFeed)}
+          folderOrderMode={folderOrderMode}
+          onResetFolderOrder={() => onResetFolderOrder?.()}
+        />
+      );
+    },
+    [folderOrderMode, onResetFolderOrder],
   );
 
   const renderFeedContextMenu = useCallback(

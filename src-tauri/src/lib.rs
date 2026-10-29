@@ -322,6 +322,8 @@ pub fn run() {
             commands::account_commands::delete_account,
             commands::feed_commands::list_folders,
             commands::feed_commands::create_folder,
+            commands::feed_commands::reorder_folders,
+            commands::feed_commands::reset_folder_order,
             commands::feed_commands::list_feeds,
             commands::feed_commands::add_local_feed,
             commands::feed_commands::delete_feed,

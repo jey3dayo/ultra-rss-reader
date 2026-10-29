@@ -4,8 +4,12 @@ import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPoi
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@/design-system/context-menu";
-import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import { SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE, SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
+import {
+  FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
+  FOLDER_REORDER_TARGET_ATTRIBUTE,
+} from "@/lib/sidebar/folder-tree-drop-target";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type {
   ActiveDropTarget,
@@ -13,6 +17,7 @@ import type {
   FeedTreeFolderViewModel,
   FeedTreePresenceFolderViewModel,
 } from "./feed-tree.types";
+import { FeedTreeFolderInsertionLine } from "./feed-tree-folder-insertion-line";
 import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
 import { FeedTreeRow } from "./feed-tree-row";
 import { FeedTreeRowCollapse } from "./feed-tree-row-collapse";
@@ -26,8 +31,11 @@ const folderChildRailClassName = "ml-[1.125rem] pl-3";
 type FeedTreeFolderSectionProps = {
   sidebarDensity?: SidebarDensity;
   folder: FeedTreePresenceFolderViewModel;
+  folderIndex?: number;
   activeDropTarget: ActiveDropTarget;
   draggedFeedId?: string | null;
+  draggedFolderId?: string | null;
+  folderDragInsertionIndex?: number | null;
   onToggleFolder: (folderId: string) => void;
   onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
@@ -37,17 +45,22 @@ type FeedTreeFolderSectionProps = {
   renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
   renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
   canDragFeeds?: boolean;
+  canDragFolders?: boolean;
   onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
   onDropToFolder?: (folderId: string) => void;
   onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerDownFolder?: (folder: FeedTreePresenceFolderViewModel, event: ReactPointerEvent<HTMLElement>) => void;
   consumeSuppressedHandleClick?: () => boolean;
 };
 
 export function FeedTreeFolderSection({
   sidebarDensity = "normal",
   folder,
+  folderIndex = 0,
   activeDropTarget,
   draggedFeedId,
+  draggedFolderId,
+  folderDragInsertionIndex,
   onToggleFolder,
   onSelectFolder,
   onSelectFeed,
@@ -57,16 +70,29 @@ export function FeedTreeFolderSection({
   renderFolderContextMenu,
   renderFeedContextMenu,
   canDragFeeds,
+  canDragFolders,
   onDragStartFeed,
   onDropToFolder,
   onPointerDownFeed,
+  onPointerDownFolder,
   consumeSuppressedHandleClick,
 }: FeedTreeFolderSectionProps) {
   const { t } = useTranslation("sidebar");
   const tokens = getSidebarDensityTokens(sidebarDensity);
   const { contextMenuTarget, captureTarget, captureKeyboardTarget, clearTarget } = useContextMenuTargetSnapshot(folder);
-  const isDropTarget = canDragFeeds && !folder.isLeaving;
+  const isDropTarget = canDragFeeds && !folder.isLeaving && draggedFolderId == null;
   const showDropOverlay = isDropTarget && draggedFeedId !== null;
+  const isFolderDragging = draggedFolderId === folder.id;
+  const showInsertionLineBefore =
+    folderDragInsertionIndex !== null &&
+    folderDragInsertionIndex !== undefined &&
+    folderDragInsertionIndex === folderIndex &&
+    draggedFolderId !== null;
+  const showInsertionLineAfter =
+    folderDragInsertionIndex !== null &&
+    folderDragInsertionIndex !== undefined &&
+    folderDragInsertionIndex === folderIndex + 1 &&
+    draggedFolderId !== null;
   const isActive = isDropTarget && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
   const panelId = `feed-tree-folder-panel-${folder.id}`;
   const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) =>
@@ -79,6 +105,10 @@ export function FeedTreeFolderSection({
     <div
       ref={rowRef}
       className={cn("relative rounded-md", isActive && "bg-[var(--feed-tree-active-folder-surface)]")}
+      {...{
+        [FOLDER_REORDER_TARGET_ATTRIBUTE]: canDragFolders && !folder.isLeaving ? "true" : undefined,
+        [FOLDER_REORDER_FOLDER_ID_ATTRIBUTE]: folder.id,
+      }}
       {...(isDropTarget
         ? {
             [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
@@ -86,6 +116,7 @@ export function FeedTreeFolderSection({
           }
         : {})}
     >
+      <FeedTreeFolderInsertionLine visible={showInsertionLineBefore} />
       {showDropOverlay ? (
         <button
           type="button"
@@ -130,6 +161,12 @@ export function FeedTreeFolderSection({
                 trailingKeepLastOnClear
                 trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
                 {...(isCurrentSelection ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+                {...(!folder.isLeaving
+                  ? {
+                      [SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE]: "true",
+                      "data-folder-id": folder.id,
+                    }
+                  : {})}
                 {...(isDropTarget
                   ? {
                       [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
@@ -146,15 +183,27 @@ export function FeedTreeFolderSection({
                   "flex-1 rounded-lg pl-0.5",
                   folderParentRailClassName,
                   isActive && "border-dashed bg-[var(--feed-tree-drop-target-surface)] ring-1 ring-sidebar-border",
+                  isFolderDragging && "opacity-55",
+                  canDragFolders && !folder.isLeaving && "cursor-grab active:cursor-grabbing",
                 )}
               />
             }
             onContextMenu={folder.isLeaving ? undefined : captureTarget}
             onKeyDownCapture={folder.isLeaving ? undefined : captureKeyboardTarget}
+            onPointerDown={
+              folder.isLeaving || !canDragFolders
+                ? undefined
+                : (event) => {
+                    onPointerDownFolder?.(folder, event);
+                  }
+            }
             onClick={
               folder.isLeaving
                 ? undefined
                 : () => {
+                    if (consumeSuppressedHandleClick?.()) {
+                      return;
+                    }
                     if (folder.isSelected && folder.isExpanded) {
                       onToggleFolder(folder.id);
                       return;
@@ -189,9 +238,9 @@ export function FeedTreeFolderSection({
       </div>
       <div
         id={panelId}
-        data-state={folder.isExpanded ? "open" : "closed"}
-        aria-hidden={folder.isExpanded ? "false" : "true"}
-        inert={folder.isExpanded ? undefined : true}
+        data-state={folder.isExpanded && !isFolderDragging ? "open" : "closed"}
+        aria-hidden={folder.isExpanded && !isFolderDragging ? "false" : "true"}
+        inert={folder.isExpanded && !isFolderDragging ? undefined : true}
         className="motion-disclosure-panel"
       >
         <div className="motion-disclosure-body">
@@ -227,6 +276,7 @@ export function FeedTreeFolderSection({
           </div>
         </div>
       </div>
+      <FeedTreeFolderInsertionLine visible={showInsertionLineAfter} className="-bottom-px top-auto" />
     </div>
   );
 }

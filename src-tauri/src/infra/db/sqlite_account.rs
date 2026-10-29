@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection, OptionalExtension};
 use tracing::warn;
 
-use crate::domain::account::{Account, ConnectionVerificationStatus};
+use crate::domain::account::{Account, ConnectionVerificationStatus, FolderOrderMode};
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
@@ -331,6 +331,23 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         let rows_affected = self
             .conn
             .execute("DELETE FROM accounts WHERE id = ?1", params![id.0])?;
+        require_account_row_affected(rows_affected, id)
+    }
+
+    fn get_folder_order_mode(&self, id: &AccountId) -> DomainResult<FolderOrderMode> {
+        let mode: String = self.conn.query_row(
+            "SELECT folder_order_mode FROM accounts WHERE id = ?1",
+            params![id.0],
+            |row| row.get(0),
+        )?;
+        FolderOrderMode::from_db(&mode).map_err(DomainError::Persistence)
+    }
+
+    fn set_folder_order_mode(&self, id: &AccountId, mode: FolderOrderMode) -> DomainResult<()> {
+        let rows_affected = self.conn.execute(
+            "UPDATE accounts SET folder_order_mode = ?1 WHERE id = ?2",
+            params![mode.as_str(), id.0],
+        )?;
         require_account_row_affected(rows_affected, id)
     }
 }

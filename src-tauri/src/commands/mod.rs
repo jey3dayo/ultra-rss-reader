@@ -83,6 +83,8 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "delete_account"
         | "list_folders"
         | "create_folder"
+        | "reorder_folders"
+        | "reset_folder_order"
         | "list_feeds"
         | "update_feed_display_settings"
         | "get_account_sync_status"

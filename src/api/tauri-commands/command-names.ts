@@ -75,6 +75,8 @@ export const TAURI_COMMAND_NAMES = [
   "rename_account",
   "rename_feed",
   "rename_tag",
+  "reorder_folders",
+  "reset_folder_order",
   "reset_oversized_dev_credentials_store",
   "restart_app",
   "search_articles",

@@ -93,6 +93,8 @@ export {
   renameAccountArgs,
   renameFeedArgs,
   renameTagArgs,
+  reorderFoldersArgs,
+  resetFolderOrderArgs,
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
   setCredentialStorageArgs,

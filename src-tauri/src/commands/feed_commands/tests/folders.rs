@@ -552,3 +552,218 @@ fn create_folder_classifies_concurrent_sort_order_constraint() {
         .unwrap();
     assert_eq!(folder_count, 0);
 }
+
+#[test]
+fn reorder_folders_renumbers_all_folders_and_sets_manual_mode() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    let folder_c = FolderId::new();
+    for (folder_id, sort_order, name) in [
+        (&folder_a, 0, "Alpha"),
+        (&folder_b, 1, "Bravo"),
+        (&folder_c, 2, "Charlie"),
+    ] {
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, name, sort_order],
+            )
+            .unwrap();
+    }
+
+    let reordered = reorder_folders_in_db(
+        &db,
+        account_id.0.clone(),
+        vec![folder_c.0.clone(), folder_a.0.clone(), folder_b.0.clone()],
+    )
+    .expect("reorder should succeed");
+
+    assert_eq!(
+        reordered
+            .iter()
+            .map(|folder| folder.id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            folder_c.0.as_str(),
+            folder_a.0.as_str(),
+            folder_b.0.as_str()
+        ]
+    );
+
+    let mode: String = db
+        .reader()
+        .query_row(
+            "SELECT folder_order_mode FROM accounts WHERE id = ?1",
+            params![account_id.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(mode, "manual");
+}
+
+#[test]
+fn reorder_folders_does_not_change_other_accounts() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let other_account_id = insert_test_account(&db, "Other");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    let other_folder = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4), (?5, ?2, ?6, ?7)",
+            params![folder_a.0, account_id.0, "Alpha", 0, folder_b.0, "Bravo", 1],
+        )
+        .unwrap();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+            params![other_folder.0, other_account_id.0, "Other", 0],
+        )
+        .unwrap();
+
+    reorder_folders_in_db(
+        &db,
+        account_id.0.clone(),
+        vec![folder_b.0.clone(), folder_a.0.clone()],
+    )
+    .expect("reorder should succeed");
+
+    let other_sort_order: i32 = db
+        .reader()
+        .query_row(
+            "SELECT sort_order FROM folders WHERE id = ?1",
+            params![other_folder.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(other_sort_order, 0);
+}
+
+#[test]
+fn reset_folder_order_renumbers_and_sets_name_mode() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4), (?5, ?2, ?6, ?7)",
+            params![folder_a.0, account_id.0, "Alpha", 5, folder_b.0, "Bravo", 2],
+        )
+        .unwrap();
+    db.writer()
+        .execute(
+            "UPDATE accounts SET folder_order_mode = 'manual' WHERE id = ?1",
+            params![account_id.0],
+        )
+        .unwrap();
+
+    let reset = reset_folder_order_in_db(
+        &db,
+        account_id.0.clone(),
+        vec![folder_a.0.clone(), folder_b.0.clone()],
+    )
+    .expect("reset should succeed");
+    assert_eq!(reset.len(), 2);
+    assert_eq!(reset[0].sort_order, 0);
+    assert_eq!(reset[1].sort_order, 1);
+
+    let mode: String = db
+        .reader()
+        .query_row(
+            "SELECT folder_order_mode FROM accounts WHERE id = ?1",
+            params![account_id.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(mode, "name");
+}
+
+#[test]
+fn reorder_folders_rejects_empty_ordered_ids_when_folders_exist() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+            params![folder_a.0, account_id.0, "Alpha", 0],
+        )
+        .unwrap();
+
+    let error = reorder_folders_in_db(&db, account_id.0.clone(), vec![])
+        .expect_err("empty folder order should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message }
+            if message == "Folder list is out of date. Please retry."
+    ));
+}
+
+#[test]
+fn reorder_folders_rejects_duplicate_ids() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4), (?5, ?2, ?6, ?7)",
+            params![folder_a.0, account_id.0, "Alpha", 0, folder_b.0, "Bravo", 1],
+        )
+        .unwrap();
+
+    let error = reorder_folders_in_db(
+        &db,
+        account_id.0.clone(),
+        vec![folder_a.0.clone(), folder_a.0.clone()],
+    )
+    .expect_err("duplicate folder ids should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message }
+            if message == "Folder list is out of date. Please retry."
+    ));
+
+    let folder_b_sort_order: i32 = db
+        .reader()
+        .query_row(
+            "SELECT sort_order FROM folders WHERE id = ?1",
+            params![folder_b.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(folder_b_sort_order, 1);
+}
+
+#[test]
+fn reorder_folders_succeeds_with_legacy_duplicate_sort_orders_inside_the_transaction() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    db.writer()
+        .execute_batch("DROP INDEX IF EXISTS idx_folders_account_sort_order_unique;")
+        .unwrap();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4), (?5, ?2, ?6, ?4)",
+            params![folder_a.0, account_id.0, "Alpha", 0, folder_b.0, "Bravo"],
+        )
+        .unwrap();
+
+    let folders = reorder_folders_in_db(
+        &db,
+        account_id.0.clone(),
+        vec![folder_b.0.clone(), folder_a.0.clone()],
+    )
+    .expect("legacy duplicate sort orders should not break reordering");
+
+    let ids: Vec<&str> = folders.iter().map(|folder| folder.id.as_str()).collect();
+    assert_eq!(ids, vec![folder_b.0.as_str(), folder_a.0.as_str()]);
+}

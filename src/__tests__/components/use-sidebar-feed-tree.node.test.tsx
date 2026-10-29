@@ -114,6 +114,24 @@ describe("useSidebarFeedTree", () => {
     expect(result.current.unfolderedFeedViews.map((feed) => feed.id)).toEqual(["feed-u-2", "feed-u-1"]);
   });
 
+  it("uses manual folder order when folder order mode is manual", () => {
+    const { result } = renderHook(() =>
+      useSidebarFeedTree({
+        feeds,
+        folders,
+        selection: { type: "all" },
+        viewMode: "all",
+        expandedFolderIds: new Set(["folder-a", "folder-z"]),
+        sortSubscriptions: "newest_first",
+        grayscaleFavicons: false,
+        draggedFeedId: null,
+        folderOrderMode: "manual",
+      }),
+    );
+
+    expect(result.current.sortedFolderList.map((folder) => folder.id)).toEqual(["folder-a", "folder-z"]);
+  });
+
   it("does not reorder the caller-owned folders array", () => {
     const originalFolderOrder = folders.map((folder) => folder.id);
 

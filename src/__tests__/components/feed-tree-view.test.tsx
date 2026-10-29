@@ -730,6 +730,7 @@ describe("FeedTreeView", () => {
 
     const overlay = screen.getByTestId("feed-tree-drag-overlay");
     expect(overlay).toHaveTextContent("Alpha");
+    expect(overlay.parentElement).toBe(document.body);
     expect(overlay).toHaveStyle({ transform: "translate3d(52px, 64px, 0)" });
     expect(overlay.className).not.toContain("motion-");
     expect(overlay.firstElementChild).toHaveClass(

@@ -1,4 +1,4 @@
-import type { Dispatch, MutableRefObject, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
+import type { Dispatch, MutableRefObject, PointerEvent as ReactPointerEvent, RefObject, SetStateAction } from "react";
 import type { FeedTreePointerDragSession } from "@/lib/sidebar/feed-tree-drag-session";
 import type { ActiveDropTarget, FeedTreeFeedViewModel } from "../../feed-tree.types";
 import type { FeedTreeDragOverlayPreview } from "../../feed-tree-drag-overlay";
@@ -9,6 +9,7 @@ export type UseFeedTreeDragParams = {
   canDragFeeds: boolean;
   activeDropTarget: ActiveDropTarget;
   draggedFeedId?: string | null;
+  scrollContainerRef?: UseFeedTreePointerDragEventsParams["scrollContainerRef"];
   onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
   onDragEnterFolder?: (folderId: string) => void;
   onDragEnterUnfoldered?: () => void;
@@ -31,6 +32,7 @@ export type UseFeedTreeDragResult = {
 export type UseFeedTreePointerDragEventsParams = {
   isPointerTracking: boolean;
   pointerDragRef: MutableRefObject<FeedTreePointerDragSession | null>;
+  scrollContainerRef?: RefObject<HTMLElement | null>;
   setPointerDragPreview: Dispatch<SetStateAction<FeedTreeDragOverlayPreview | null>>;
   setPointerHoverTarget: Dispatch<SetStateAction<ActiveDropTarget>>;
   queueSuppressHandleClickReset: () => void;

@@ -17,6 +17,7 @@ pub struct AccountDto {
     pub connection_verification_status: String,
     pub connection_verified_at: Option<String>,
     pub connection_verification_error: Option<String>,
+    pub folder_order_mode: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -147,8 +148,11 @@ impl From<crate::domain::mute_keyword::MuteKeyword> for MuteKeywordDto {
     }
 }
 
-impl From<crate::domain::account::Account> for AccountDto {
-    fn from(a: crate::domain::account::Account) -> Self {
+impl AccountDto {
+    pub fn from_account(
+        a: crate::domain::account::Account,
+        folder_order_mode: crate::domain::account::FolderOrderMode,
+    ) -> Self {
         let capabilities = a.kind.capabilities();
         let display_name = a.name.clone();
         Self {
@@ -179,7 +183,14 @@ impl From<crate::domain::account::Account> for AccountDto {
             .to_string(),
             connection_verified_at: a.connection_verified_at,
             connection_verification_error: a.connection_verification_error,
+            folder_order_mode: folder_order_mode.as_str().to_string(),
         }
+    }
+}
+
+impl From<crate::domain::account::Account> for AccountDto {
+    fn from(a: crate::domain::account::Account) -> Self {
+        Self::from_account(a, crate::domain::account::FolderOrderMode::default())
     }
 }
 

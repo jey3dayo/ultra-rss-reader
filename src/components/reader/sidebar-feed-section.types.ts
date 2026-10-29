@@ -1,4 +1,6 @@
+import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
 import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
+import type { FolderOrderMode } from "@/lib/sidebar/folder-order";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type { SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preference-values";
 import type { FeedTreeViewProps } from "./feed-tree.types";
@@ -72,6 +74,7 @@ export type SidebarVisibilityFallbackParams = {
 
 export type SidebarFeedSectionParams = {
   selectedAccountId: string | null;
+  folderOrderMode?: FolderOrderMode;
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;
   starredCountByFeedId: ReadonlyMap<string, number>;
@@ -98,14 +101,20 @@ export type SidebarFeedSectionParams = {
   moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
   moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
   sidebarDensity: SidebarDensity;
-  renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
   renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
+  feedTreeScrollContainerRef?: RefObject<HTMLElement | null>;
+};
+
+export type SidebarFolderReorderKeyboardProps = {
+  liveRegionMessage: string | null;
+  onFolderReorderKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => boolean;
 };
 
 export type SidebarFeedTreePropsParams = {
   isFeedsSectionOpen: boolean;
   scopeKey: NonNullable<FeedTreeViewProps["scopeKey"]>;
   sidebarDensity: SidebarDensity;
+  feedTreeScrollContainerRef?: RefObject<HTMLElement | null>;
   feedTreeFolders: FeedTreeViewProps["folders"];
   unfolderedFeedViews: FeedTreeViewProps["unfolderedFeeds"];
   toggleFolder: FeedTreeViewProps["onToggleFolder"];
@@ -115,7 +124,10 @@ export type SidebarFeedTreePropsParams = {
   markFolderRead: NonNullable<FeedTreeViewProps["onMarkFolderRead"]>;
   displayFavicons: FeedTreeViewProps["displayFavicons"];
   canDragFeeds: boolean;
+  canDragFolders: boolean;
   draggedFeedId: SidebarFeedDragStateResult["draggedFeedId"];
+  draggedFolderId: string | null;
+  folderDragInsertionIndex: number | null;
   activeDropTarget: SidebarFeedDragStateResult["activeDropTarget"];
   handleDragStartFeed: (feedId: string) => void;
   handleDragEnterFolder: SidebarFeedDragStateResult["handleDragEnterFolder"];
@@ -123,10 +135,15 @@ export type SidebarFeedTreePropsParams = {
   handleDropToFolder: SidebarFeedDragStateResult["handleDropToFolder"];
   handleDropToUnfoldered: SidebarFeedDragStateResult["handleDropToUnfoldered"];
   clearDragState: SidebarFeedDragStateResult["clearDragState"];
+  clearFolderDragState: () => void;
+  handleDragStartFolder: (folderId: string) => void;
+  handleDragFolderInsertionChange: (insertionIndex: number | null) => void;
+  handleDropFolderReorder: (folderId: string, insertionIndex: number) => void;
   renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
   renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
 };
 
 export type SidebarFeedSectionResult = {
   feedTreeProps: SidebarFeedTreeProps;
+  folderReorderKeyboard: SidebarFolderReorderKeyboardProps;
 };

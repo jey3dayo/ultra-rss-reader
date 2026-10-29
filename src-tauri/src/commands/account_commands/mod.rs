@@ -33,12 +33,25 @@ pub(crate) use validation::{
 #[cfg(test)]
 mod tests;
 
+fn account_dto_from_repo(
+    repo: &impl AccountRepository,
+    account: Account,
+) -> Result<AccountDto, AppError> {
+    let folder_order_mode = repo.get_folder_order_mode(&account.id)?;
+    Ok(AccountDto::from_account(account, folder_order_mode))
+}
+
 #[tauri::command]
 pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.reader());
     let accounts = repo.find_all()?;
-    Ok(accounts.into_iter().map(AccountDto::from).collect())
+    let mut account_dtos = Vec::with_capacity(accounts.len());
+    for account in accounts {
+        let folder_order_mode = repo.get_folder_order_mode(&account.id)?;
+        account_dtos.push(AccountDto::from_account(account, folder_order_mode));
+    }
+    Ok(account_dtos)
 }
 
 #[tauri::command]
@@ -99,7 +112,7 @@ pub async fn add_account(
         || repo.save(&account).map_err(AppError::from),
     )?;
 
-    Ok(AccountDto::from(account))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -141,7 +154,7 @@ pub fn update_account_sync(
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
-    Ok(AccountDto::from(account))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -187,7 +200,7 @@ pub fn update_account_credentials(
             Ok(account)
         },
     )?;
-    Ok(AccountDto::from(account))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -205,7 +218,7 @@ pub fn rename_account(
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
-    Ok(AccountDto::from(account))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -215,16 +228,18 @@ pub async fn test_account_connection(
 ) -> Result<AccountDto, AppError> {
     let id = AccountId(account_id);
 
-    let account = {
+    let (account, folder_order_mode) = {
         let db = crate::commands::lock_db(&state.db)?;
         let repo = SqliteAccountRepository::new(db.reader());
-        repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
             message: "Account not found".into(),
-        })?
-    }; // DB lock dropped
+        })?;
+        let folder_order_mode = repo.get_folder_order_mode(&account.id)?;
+        Ok::<_, AppError>((account, folder_order_mode))
+    }?; // DB lock dropped
 
     if !matches!(account.kind, ProviderKind::FreshRss) {
-        return Ok(AccountDto::from(account));
+        return Ok(AccountDto::from_account(account, folder_order_mode));
     }
 
     let session = GReaderSession::establish_interactive(&account).await;
@@ -253,7 +268,7 @@ pub async fn test_account_connection(
         message: "Account not found".into(),
     })?;
 
-    Ok(AccountDto::from(updated))
+    account_dto_from_repo(&repo, updated)
 }
 
 /// A failed test drops only the lease it attempted to grant; a newer test's lease must survive.

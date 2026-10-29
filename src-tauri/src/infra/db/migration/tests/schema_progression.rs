@@ -97,6 +97,16 @@ fn latest_schema_includes_account_connection_verification_columns() {
 }
 
 #[test]
+fn latest_schema_includes_account_folder_order_mode_column() {
+    let mut conn = open_in_memory();
+    run_migrations(&mut conn).unwrap();
+
+    assert!(conn
+        .prepare("SELECT folder_order_mode FROM accounts LIMIT 0")
+        .is_ok());
+}
+
+#[test]
 fn latest_schema_includes_local_account_sync_export_digest_column() {
     let mut conn = open_in_memory();
     run_migrations(&mut conn).unwrap();

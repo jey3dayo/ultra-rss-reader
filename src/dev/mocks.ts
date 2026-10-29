@@ -100,6 +100,13 @@ function cloneMockResponse<T>(value: T): T {
   return structuredClone(value);
 }
 
+function setDevMockFolderOrderMode(accountId: string, folderOrderMode: AccountDto["folder_order_mode"]) {
+  const account = mockAccounts.find((candidate) => candidate.id === accountId);
+  if (account) {
+    account.folder_order_mode = folderOrderMode;
+  }
+}
+
 function resetDevMockState() {
   resetDevMockDataState();
   resetDevMockDiagnostics();
@@ -417,6 +424,42 @@ export function setupDevMocks(): RestoreDevMocks {
         };
         mockFolders.push(folder);
         return cloneMockResponse(folder);
+      }
+
+      case "reorder_folders": {
+        const { accountId, orderedFolderIds } = parseBrowserMockArgs("reorder_folders", rawIpcPayload);
+        const accountFolders = mockFolders.filter((folder) => folder.account_id === accountId);
+        orderedFolderIds.forEach((folderId: string, index: number) => {
+          const folder = accountFolders.find((candidate) => candidate.id === folderId);
+          if (folder) {
+            folder.sort_order = index;
+          }
+        });
+        setDevMockFolderOrderMode(accountId, "manual");
+        return cloneMockResponse(
+          accountFolders
+            .slice()
+            .sort((left, right) => left.sort_order - right.sort_order)
+            .map((folder) => ({ ...folder })),
+        );
+      }
+
+      case "reset_folder_order": {
+        const { accountId, orderedFolderIds } = parseBrowserMockArgs("reset_folder_order", rawIpcPayload);
+        const accountFolders = mockFolders.filter((folder) => folder.account_id === accountId);
+        orderedFolderIds.forEach((folderId: string, index: number) => {
+          const folder = accountFolders.find((candidate) => candidate.id === folderId);
+          if (folder) {
+            folder.sort_order = index;
+          }
+        });
+        setDevMockFolderOrderMode(accountId, "name");
+        return cloneMockResponse(
+          accountFolders
+            .slice()
+            .sort((left, right) => left.sort_order - right.sort_order)
+            .map((folder) => ({ ...folder })),
+        );
       }
 
       case "list_feeds": {
