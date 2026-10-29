@@ -26,17 +26,11 @@ function focusSidebarNavigationTarget(target: HTMLButtonElement) {
   });
 }
 
-function handleSidebarKeyDown(
-  event: ReactKeyboardEvent<HTMLElement>,
-  onFocusAccountList: () => void,
-  onFolderReorderKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => boolean,
-) {
-  if (onFolderReorderKeyDown(event)) {
-    return;
-  }
-
+function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>, onFocusAccountList: () => void) {
   if (
     event.defaultPrevented ||
+    event.altKey ||
+    event.metaKey ||
     (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "ArrowLeft" && event.key !== "ArrowRight")
   ) {
     return;
@@ -94,13 +88,7 @@ export function Sidebar() {
       aria-label={t("sidebar_landmark")}
       className={sidebarClassName}
       data-sidebar-pane="true"
-      onKeyDown={(event) =>
-        handleSidebarKeyDown(
-          event,
-          contentSectionsProps.onFocusAccountList,
-          folderReorderKeyboard.onFolderReorderKeyDown,
-        )
-      }
+      onKeyDown={(event) => handleSidebarKeyDown(event, contentSectionsProps.onFocusAccountList)}
     >
       <div role="status" aria-live="polite" className="sr-only">
         {folderReorderKeyboard.liveRegionMessage}

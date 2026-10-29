@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
 import { getFeedLandingFailureMessage } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { useSidebarFeedDragState } from "@/components/reader/hooks/sidebar/use-sidebar-feed-drag-state";
@@ -13,14 +13,12 @@ import { useSidebarVisibilityFallback } from "@/components/reader/hooks/sidebar/
 import { useMarkFeedRead, useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
-import { SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import {
   FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
   FOLDER_REORDER_TARGET_ATTRIBUTE,
 } from "@/lib/sidebar/folder-tree-drop-target";
 import { captureFolderReorderSnapshot, watchFolderReorderAnimation } from "@/lib/sidebar/folder-tree-reorder-animation";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
-import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { buildFeedMarkAllReadConfirmation } from "../../feed-mark-all-read";
@@ -79,7 +77,6 @@ export function useSidebarFeedSectionController({
   const resolvedFeedTreeScrollContainerRef = feedTreeScrollContainerRef ?? feedTreeContainerRef;
   const visibleOrderedFolderIdsRef = useRef<readonly string[]>([]);
   const reorderToVisibleIndexRef = useRef<(folderId: string, targetVisibleIndex: number) => void>(() => undefined);
-  const platformKind = usePlatformStore((state) => state.platform.kind);
   const initialFeedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
   const initialFolderById = useMemo(() => new Map(folderList.map((folder) => [folder.id, folder])), [folderList]);
   const isStarredTreeContext = selection.type === "smart" && selection.kind === "starred";
@@ -171,18 +168,13 @@ export function useSidebarFeedSectionController({
 
   visibleOrderedFolderIdsRef.current = visibleOrderedFolderIds;
 
-  const {
-    liveRegionMessage,
-    moveFolderByDirection,
-    reorderFolderToVisibleIndex,
-    resetFolderOrder,
-    resolvedFolderOrderMode,
-  } = useSidebarFolderReorderActions({
-    accountId: selectedAccountId,
-    folderOrderMode,
-    folders,
-    visibleOrderedFolderIds,
-  });
+  const { liveRegionMessage, reorderFolderToVisibleIndex, resetFolderOrder, resolvedFolderOrderMode } =
+    useSidebarFolderReorderActions({
+      accountId: selectedAccountId,
+      folderOrderMode,
+      folders,
+      visibleOrderedFolderIds,
+    });
 
   reorderToVisibleIndexRef.current = reorderFolderToVisibleIndex;
 
@@ -216,42 +208,6 @@ export function useSidebarFeedSectionController({
       );
     },
     [resetFolderOrder, resolvedFolderOrderMode],
-  );
-
-  const onFolderReorderKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLElement>) => {
-      if (event.defaultPrevented || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) {
-        return false;
-      }
-
-      const target = event.target instanceof Element ? event.target : null;
-      const folderTarget = target?.closest<HTMLButtonElement>(`[${SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE}="true"]`);
-      if (!folderTarget) {
-        return false;
-      }
-
-      const usesMacChord = platformKind === "macos" && event.metaKey && event.altKey && !event.shiftKey;
-      const usesWindowsChord =
-        platformKind !== "macos" && event.altKey && event.shiftKey && !event.metaKey && !event.ctrlKey;
-      if (!usesMacChord && !usesWindowsChord) {
-        return false;
-      }
-
-      const folderId = folderTarget.getAttribute("data-folder-id");
-      if (!folderId) {
-        return false;
-      }
-
-      const moved = moveFolderByDirection(folderId, event.key === "ArrowUp" ? "up" : "down");
-      if (!moved) {
-        return true;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      return true;
-    },
-    [moveFolderByDirection, platformKind],
   );
 
   const handleSelectFeed = useCallback(
@@ -382,7 +338,6 @@ export function useSidebarFeedSectionController({
     feedTreeProps,
     folderReorderKeyboard: {
       liveRegionMessage,
-      onFolderReorderKeyDown,
     },
   };
 }

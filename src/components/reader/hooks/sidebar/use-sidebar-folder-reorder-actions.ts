@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import type { FolderDto } from "@/api/tauri-commands";
 import { useReorderFolders, useResetFolderOrder } from "@/hooks/use-folder-reorder";
 import {
-  buildFullFolderOrderAfterNeighborMove,
   buildFullFolderOrderAfterVisibleMove,
   buildNameOrderedFolderIds,
   type FolderOrderMode,
@@ -41,39 +40,6 @@ export function useSidebarFolderReorderActions({
       await reorderFoldersMutation.mutateAsync({ accountId, orderedFolderIds: [...orderedFolderIds] });
     },
     [accountId, reorderFoldersMutation],
-  );
-
-  const moveFolderByDirection = useCallback(
-    (folderId: string, direction: "up" | "down") => {
-      const folder = folderList.find((candidate) => candidate.id === folderId);
-      if (!folder) {
-        return false;
-      }
-
-      const nextOrder = buildFullFolderOrderAfterNeighborMove({
-        folders: folderList,
-        folderOrderMode: resolvedFolderOrderMode,
-        visibleOrderedFolderIds,
-        folderId,
-        direction,
-      });
-      if (!nextOrder) {
-        return false;
-      }
-
-      setLiveRegionMessage(null);
-      submitFolderOrder(nextOrder).then(
-        () =>
-          setLiveRegionMessage(
-            direction === "up"
-              ? t("folder_reorder_moved_up", { name: folder.name })
-              : t("folder_reorder_moved_down", { name: folder.name }),
-          ),
-        () => undefined, // surfaced by the mutation's onError toast
-      );
-      return true;
-    },
-    [folderList, resolvedFolderOrderMode, submitFolderOrder, t, visibleOrderedFolderIds],
   );
 
   const reorderFolderToVisibleIndex = useCallback(
@@ -122,7 +88,6 @@ export function useSidebarFolderReorderActions({
     resolvedFolderOrderMode,
     liveRegionMessage,
     setLiveRegionMessage,
-    moveFolderByDirection,
     reorderFolderToVisibleIndex,
     resetFolderOrder,
     isReorderPending: reorderFoldersMutation.isPending || resetFolderOrderMutation.isPending,

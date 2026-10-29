@@ -25,27 +25,6 @@ export function sortSidebarFolders(
   return sorted;
 }
 
-export function swapVisibleFolderNeighbors(
-  orderedFolderIds: readonly string[],
-  folderId: string,
-  direction: "up" | "down",
-): string[] | null {
-  const currentIndex = orderedFolderIds.indexOf(folderId);
-  if (currentIndex < 0) {
-    return null;
-  }
-
-  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-  if (targetIndex < 0 || targetIndex >= orderedFolderIds.length) {
-    return null;
-  }
-
-  const nextOrder = orderedFolderIds.slice();
-  const [moved] = nextOrder.splice(currentIndex, 1);
-  nextOrder.splice(targetIndex, 0, moved);
-  return nextOrder;
-}
-
 export function buildNameOrderedFolderIds(folders: readonly FolderDto[]): string[] {
   return sortSidebarFolders(folders, "name").map((folder) => folder.id);
 }
@@ -103,30 +82,6 @@ export function buildFullFolderOrderAfterVisibleMove(params: {
     folders,
     folderOrderMode,
     visibleOrderBefore: visibleOrderedFolderIds,
-    visibleOrderAfter,
-  });
-}
-
-export function buildFullFolderOrderAfterNeighborMove(params: {
-  folders: readonly FolderDto[];
-  folderOrderMode: FolderOrderMode | undefined;
-  visibleOrderedFolderIds: readonly string[];
-  folderId: string;
-  direction: "up" | "down";
-}): string[] | null {
-  const visibleOrderAfter = swapVisibleFolderNeighbors(
-    params.visibleOrderedFolderIds,
-    params.folderId,
-    params.direction,
-  );
-  if (!visibleOrderAfter) {
-    return null;
-  }
-
-  return buildFullFolderOrderAfterVisibleReorder({
-    folders: params.folders,
-    folderOrderMode: params.folderOrderMode,
-    visibleOrderBefore: params.visibleOrderedFolderIds,
     visibleOrderAfter,
   });
 }
