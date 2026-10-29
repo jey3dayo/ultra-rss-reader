@@ -290,6 +290,35 @@ fn find_by_account_ordered_by_sort_order() {
 }
 
 #[test]
+fn set_sort_orders_renumbers_a_permutation_despite_the_unique_sort_order_index() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFolderRepository::new(db.writer());
+    let mut ids = Vec::new();
+    for (name, order) in [("A", 0), ("B", 1), ("C", 2)] {
+        let folder = Folder {
+            id: FolderId::new(),
+            account_id: account_id.clone(),
+            remote_id: None,
+            name: name.to_string(),
+            sort_order: order,
+        };
+        ids.push(folder.id.0.clone());
+        repo.save(&folder).unwrap();
+    }
+
+    let reversed = vec![ids[2].clone(), ids[1].clone(), ids[0].clone()];
+    repo.set_sort_orders(&account_id, &reversed).unwrap();
+
+    let folders = repo.find_by_account(&account_id).unwrap();
+    let ordered: Vec<(&str, i32)> = folders
+        .iter()
+        .map(|folder| (folder.name.as_str(), folder.sort_order))
+        .collect();
+    assert_eq!(ordered, vec![("C", 0), ("B", 1), ("A", 2)]);
+}
+
+#[test]
 fn find_by_account_repairs_duplicate_sort_order_before_creating_unique_index() {
     let db = test_db();
     let account_id = insert_test_account(&db);

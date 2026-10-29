@@ -110,7 +110,7 @@ export function useFolderTreePointerDragEvents({
         scrollContainer: scrollRef?.current ?? null,
       });
 
-      const nextTarget = resolveFolderReorderInsertionIndex(event.clientX, event.clientY);
+      const nextTarget = resolveFolderReorderInsertionIndex(event.clientX, event.clientY, scrollRef?.current ?? null);
       if (!isSameFolderReorderDropTarget(session.dropTarget, nextTarget)) {
         session.dropTarget = nextTarget;
         setTarget(nextTarget);

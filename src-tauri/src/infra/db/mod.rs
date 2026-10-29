@@ -253,6 +253,7 @@ mod tests {
             "create",
             "update_sync_settings",
             "set_folder_order_mode",
+            "set_sort_orders",
             "update_credentials",
             "update_connection_verification",
             "update_unread_count",

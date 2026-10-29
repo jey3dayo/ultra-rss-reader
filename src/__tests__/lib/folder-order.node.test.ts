@@ -24,11 +24,17 @@ describe("folder-order", () => {
     ]);
   });
 
-  it("sorts folders by sort_order in manual mode", () => {
-    expect(sortSidebarFolders(folders, "manual").map((folder) => folder.id)).toEqual([
-      "folder-a",
+  it("sorts folders by sort_order in manual mode, not by name", () => {
+    const manuallyOrdered: FolderDto[] = [
+      { id: "folder-a", account_id: "acc-1", name: "Alpha", sort_order: 2 },
+      { id: "folder-b", account_id: "acc-1", name: "Bravo", sort_order: 0 },
+      { id: "folder-c", account_id: "acc-1", name: "Charlie", sort_order: 1 },
+    ];
+
+    expect(sortSidebarFolders(manuallyOrdered, "manual").map((folder) => folder.id)).toEqual([
       "folder-b",
       "folder-c",
+      "folder-a",
     ]);
   });
 

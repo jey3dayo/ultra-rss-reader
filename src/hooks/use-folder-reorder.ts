@@ -16,9 +16,16 @@ type ReorderFoldersArgs = {
 type FolderReorderMutationContext = {
   previousFolders: FolderDto[] | undefined;
   previousAccounts: AccountDto[] | undefined;
+  startedAlone: boolean;
 };
 
 let reorderChain: Promise<unknown> = Promise.resolve();
+
+// Optimistic updates run before the serialized IPC, so a later snapshot can already contain an earlier
+// unsaved order. Only a mutation that started with nothing in flight has a snapshot that matches the DB;
+// once the last in-flight mutation settles after a failure, the caches are reloaded from the DB instead.
+let pendingReorderCount = 0;
+let reorderBurstFailed = false;
 
 function enqueueReorderMutation<T>(task: () => Promise<T>): Promise<T> {
   const next = reorderChain.then(task, task);
@@ -49,6 +56,8 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
   return useMutation({
     mutationFn,
     onMutate: async ({ accountId, orderedFolderIds }) => {
+      const startedAlone = pendingReorderCount === 0;
+      pendingReorderCount += 1;
       const folderQueryKey = [...queryKeys.folders.root, accountId] as const;
       await queryClient.cancelQueries({ queryKey: queryKeys.folders.root });
       await queryClient.cancelQueries({ queryKey: queryKeys.accounts.root });
@@ -71,7 +80,7 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
         );
       }
 
-      return { previousFolders, previousAccounts } satisfies FolderReorderMutationContext;
+      return { previousFolders, previousAccounts, startedAlone } satisfies FolderReorderMutationContext;
     },
     onSuccess: (folders, { accountId }) => {
       queryClient.setQueryData<FolderDto[]>([...queryKeys.folders.root, accountId], folders);
@@ -82,13 +91,27 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
       });
     },
     onError: (error, { accountId }, context) => {
-      if (context?.previousFolders) {
-        queryClient.setQueryData([...queryKeys.folders.root, accountId], context.previousFolders);
-      }
-      if (context?.previousAccounts) {
-        queryClient.setQueryData(queryKeys.accounts.root, context.previousAccounts);
+      reorderBurstFailed = true;
+      if (context?.startedAlone) {
+        if (context.previousFolders) {
+          queryClient.setQueryData([...queryKeys.folders.root, accountId], context.previousFolders);
+        }
+        if (context.previousAccounts) {
+          queryClient.setQueryData(queryKeys.accounts.root, context.previousAccounts);
+        }
       }
       showToast(t("folder_reorder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }));
+    },
+    onSettled: () => {
+      pendingReorderCount -= 1;
+      if (pendingReorderCount === 0 && reorderBurstFailed) {
+        reorderBurstFailed = false;
+        invalidateFeedQueries(queryClient, {
+          includeFolders: true,
+          includeAccounts: true,
+          actionOwner: "feed-folder-move",
+        });
+      }
     },
   });
 }

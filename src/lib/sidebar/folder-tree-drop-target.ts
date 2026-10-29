@@ -23,9 +23,22 @@ function getFolderReorderTargets(): HTMLElement[] {
   );
 }
 
-export function resolveFolderReorderInsertionIndex(clientX: number, clientY: number): FolderReorderDropTarget {
+function isPointInsideRect(rect: DOMRect, clientX: number, clientY: number): boolean {
+  return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+}
+
+// Rows scrolled out of `clipContainer` keep their rects, so the row bounds alone also cover the header and footer.
+export function resolveFolderReorderInsertionIndex(
+  clientX: number,
+  clientY: number,
+  clipContainer: HTMLElement | null = null,
+): FolderReorderDropTarget {
   const targets = getFolderReorderTargets();
   if (targets.length === 0) {
+    return null;
+  }
+
+  if (clipContainer && !isPointInsideRect(clipContainer.getBoundingClientRect(), clientX, clientY)) {
     return null;
   }
 

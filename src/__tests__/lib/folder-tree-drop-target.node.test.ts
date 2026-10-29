@@ -51,4 +51,21 @@ describe("resolveFolderReorderInsertionIndex", () => {
     expect(resolveFolderReorderInsertionIndex(60, 105)).toEqual({ insertionIndex: 0 });
     expect(resolveFolderReorderInsertionIndex(60, 155)).toEqual({ insertionIndex: 2 });
   });
+
+  it("returns null for a pointer over rows' bounds but outside the clipping scroll container", () => {
+    document.body.innerHTML = `
+      <div ${FOLDER_REORDER_TARGET_ATTRIBUTE}="true"></div>
+      <div ${FOLDER_REORDER_TARGET_ATTRIBUTE}="true"></div>
+    `;
+    const viewport = document.createElement("div");
+    document.body.appendChild(viewport);
+    viewport.getBoundingClientRect = vi.fn(() => createDomRect({ top: 100, left: 0, width: 200, height: 100 }));
+    const targets = Array.from(document.querySelectorAll<HTMLElement>(`[${FOLDER_REORDER_TARGET_ATTRIBUTE}="true"]`));
+    targets[0].getBoundingClientRect = vi.fn(() => createDomRect({ top: -100, left: 20, width: 80, height: 40 }));
+    targets[1].getBoundingClientRect = vi.fn(() => createDomRect({ top: 140, left: 20, width: 80, height: 40 }));
+
+    expect(resolveFolderReorderInsertionIndex(60, 50)).toEqual({ insertionIndex: 1 });
+    expect(resolveFolderReorderInsertionIndex(60, 50, viewport)).toBeNull();
+    expect(resolveFolderReorderInsertionIndex(60, 150, viewport)).toEqual({ insertionIndex: 1 });
+  });
 });

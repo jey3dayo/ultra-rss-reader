@@ -320,67 +320,25 @@ fn apply_folder_sort_order_ids(
     account_id: &AccountId,
     ordered_folder_ids: &[String],
 ) -> Result<(), AppError> {
-    let existing_ids = {
-        let mut stmt = tx
-            .prepare("SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id")
-            .map_err(|error| DomainError::Persistence(error.to_string()))?;
-        let rows = stmt
-            .query_map(params![account_id.0], |row| row.get::<_, String>(0))
-            .map_err(|error| DomainError::Persistence(error.to_string()))?;
-        rows.collect::<Result<Vec<_>, _>>()
-            .map_err(|error| DomainError::Persistence(error.to_string()))?
-    };
+    let folder_repo = SqliteFolderRepository::new(tx);
+    let existing_ids: std::collections::HashSet<String> = folder_repo
+        .find_by_account(account_id)?
+        .into_iter()
+        .map(|folder| folder.id.0)
+        .collect();
 
-    if ordered_folder_ids.is_empty() {
-        if existing_ids.is_empty() {
-            return Ok(());
-        }
+    let mut seen_ids = std::collections::HashSet::with_capacity(ordered_folder_ids.len());
+    let is_exact_folder_set = existing_ids.len() == ordered_folder_ids.len()
+        && ordered_folder_ids.iter().all(|folder_id| {
+            existing_ids.contains(folder_id) && seen_ids.insert(folder_id.as_str())
+        });
+    if !is_exact_folder_set {
         return Err(AppError::UserVisible {
             message: "Folder list is out of date. Please retry.".into(),
         });
     }
 
-    if existing_ids.len() != ordered_folder_ids.len() {
-        return Err(AppError::UserVisible {
-            message: "Folder list is out of date. Please retry.".into(),
-        });
-    }
-
-    let existing_set: std::collections::HashSet<&str> =
-        existing_ids.iter().map(String::as_str).collect();
-    let ordered_set: std::collections::HashSet<&str> =
-        ordered_folder_ids.iter().map(String::as_str).collect();
-    if ordered_set.len() != ordered_folder_ids.len()
-        || ordered_set.len() != existing_set.len()
-        || ordered_folder_ids
-            .iter()
-            .any(|folder_id| !existing_set.contains(folder_id.as_str()))
-    {
-        return Err(AppError::UserVisible {
-            message: "Folder list is out of date. Please retry.".into(),
-        });
-    }
-
-    for (index, folder_id) in ordered_folder_ids.iter().enumerate() {
-        let temporary_order = -(index as i32 + 1);
-        tx.execute(
-            "UPDATE folders SET sort_order = ?1 WHERE id = ?2 AND account_id = ?3",
-            params![temporary_order, folder_id, account_id.0],
-        )
-        .map_err(|error| DomainError::Persistence(error.to_string()))?;
-    }
-
-    for (sort_order, folder_id) in ordered_folder_ids.iter().enumerate() {
-        let sort_order = i32::try_from(sort_order).map_err(|error| {
-            DomainError::Persistence(format!("Folder sort order overflow: {error}"))
-        })?;
-        tx.execute(
-            "UPDATE folders SET sort_order = ?1 WHERE id = ?2 AND account_id = ?3",
-            params![sort_order, folder_id, account_id.0],
-        )
-        .map_err(|error| DomainError::Persistence(error.to_string()))?;
-    }
-
+    folder_repo.set_sort_orders(account_id, ordered_folder_ids)?;
     Ok(())
 }
 
