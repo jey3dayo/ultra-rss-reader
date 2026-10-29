@@ -34,17 +34,17 @@ export function useSidebarFolderReorderActions({
   const folderList = folders ?? [];
 
   const submitFolderOrder = useCallback(
-    (orderedFolderIds: readonly string[]) => {
+    async (orderedFolderIds: readonly string[]) => {
       if (!accountId) {
         return;
       }
-      reorderFoldersMutation.mutate({ accountId, orderedFolderIds: [...orderedFolderIds] });
+      await reorderFoldersMutation.mutateAsync({ accountId, orderedFolderIds: [...orderedFolderIds] });
     },
     [accountId, reorderFoldersMutation],
   );
 
   const moveFolderByDirection = useCallback(
-    (folderId: string, direction: "up" | "down") => {
+    async (folderId: string, direction: "up" | "down") => {
       const folder = folderList.find((candidate) => candidate.id === folderId);
       if (!folder) {
         return false;
@@ -61,7 +61,12 @@ export function useSidebarFolderReorderActions({
         return false;
       }
 
-      submitFolderOrder(nextOrder);
+      try {
+        await submitFolderOrder(nextOrder);
+      } catch {
+        return false;
+      }
+
       setLiveRegionMessage(
         direction === "up"
           ? t("folder_reorder_moved_up", { name: folder.name })
@@ -91,11 +96,15 @@ export function useSidebarFolderReorderActions({
       return;
     }
 
-    const executeReset = () => {
-      resetFolderOrderMutation.mutate({
-        accountId,
-        orderedFolderIds: buildNameOrderedFolderIds(folderList),
-      });
+    const executeReset = async () => {
+      try {
+        await resetFolderOrderMutation.mutateAsync({
+          accountId,
+          orderedFolderIds: buildNameOrderedFolderIds(folderList),
+        });
+      } catch {
+        return;
+      }
       setLiveRegionMessage(t("folder_reorder_reset"));
     };
 

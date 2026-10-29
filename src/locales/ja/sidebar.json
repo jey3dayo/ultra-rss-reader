@@ -56,6 +56,7 @@
   "folder_reorder_moved_up": "{{name}} を上へ移動しました",
   "folder_reorder_moved_down": "{{name}} を下へ移動しました",
   "folder_reorder_reset": "フォルダ順序をアルファベット順に戻しました",
+  "folder_reorder_failed": "フォルダ順序の保存に失敗しました: {{message}}",
   "move_to_no_folder": "フォルダなしへ移動",
   "drop_to_remove_from_folder": "ここにドロップしてフォルダから外す",
   "sync_warning_detail": {

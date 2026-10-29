@@ -7,7 +7,8 @@ use super::consts::{
     V16_CONNECTION_VERIFICATION_STATUS_COLUMN, V16_CONNECTION_VERIFICATION_STATUS_SQL,
     V16_CONNECTION_VERIFIED_AT_COLUMN, V16_CONNECTION_VERIFIED_AT_SQL,
     V22_LAST_EXPORT_DIGEST_COLUMN, V22_LAST_EXPORT_DIGEST_SQL, V24_FEED_ICON_URL_COLUMN,
-    V24_FEED_ICON_URL_SQL, V8_READER_MODE_COLUMN, V8_WEB_PREVIEW_MODE_COLUMN,
+    V24_FEED_ICON_URL_SQL, V27_FOLDER_ORDER_MODE_COLUMN, V27_FOLDER_ORDER_MODE_SQL,
+    V8_READER_MODE_COLUMN, V8_WEB_PREVIEW_MODE_COLUMN,
 };
 use super::{set_schema_version, table_exists, table_has_column};
 
@@ -165,6 +166,18 @@ pub(super) fn apply_v24_feed_icon_url(conn: &Connection) -> DomainResult<()> {
     )?;
 
     set_schema_version(conn, 24)?;
+    Ok(())
+}
+
+pub(super) fn apply_v27_account_folder_order_mode(conn: &Connection) -> DomainResult<()> {
+    add_column_if_missing(
+        conn,
+        "accounts",
+        V27_FOLDER_ORDER_MODE_COLUMN,
+        V27_FOLDER_ORDER_MODE_SQL,
+    )?;
+
+    set_schema_version(conn, 27)?;
     Ok(())
 }
 

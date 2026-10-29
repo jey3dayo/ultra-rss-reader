@@ -16,10 +16,11 @@ pub(super) use super::{
     create_folder_in_db, delete_feed_in_db, delete_feed_with_provider_sync_boundary,
     delete_feed_with_remote_sync_boundary, delete_feed_with_sync_boundary, lock_db,
     recalculate_feed_unread_count_in_db, rename_feed_in_db, rename_feed_with_remote_sync_boundary,
-    update_feed_display_settings_in_db, update_feed_folder_in_db,
-    update_feed_folder_with_remote_sync_boundary, validate_add_freshrss_feed_preflight_in_db,
-    validate_add_freshrss_subscription_unique_in_db, validate_add_local_feed_account_in_db,
-    validate_add_local_feed_duplicate_url_in_db, UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
+    reorder_folders_in_db, reset_folder_order_in_db, update_feed_display_settings_in_db,
+    update_feed_folder_in_db, update_feed_folder_with_remote_sync_boundary,
+    validate_add_freshrss_feed_preflight_in_db, validate_add_freshrss_subscription_unique_in_db,
+    validate_add_local_feed_account_in_db, validate_add_local_feed_duplicate_url_in_db,
+    UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
 };
 pub(super) use crate::commands::dto::AppError;
 pub(super) use crate::domain::account::{Account, ConnectionVerificationStatus};

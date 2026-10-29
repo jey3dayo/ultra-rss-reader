@@ -1,9 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import type { AccountDto, FolderDto } from "@/api/tauri-commands";
 import { reorderFolders, resetFolderOrder } from "@/api/tauri-commands";
 import { invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { queryKeys } from "@/lib/query/query-keys";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import { useUiStore } from "@/stores/ui-store";
 
 type ReorderFoldersArgs = {
   accountId: string;
@@ -40,6 +43,8 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
 }) {
   const { mutationFn, folderOrderMode } = params;
   const queryClient = useQueryClient();
+  const { t } = useTranslation("sidebar");
+  const showToast = useUiStore((state) => state.showToast);
 
   return useMutation({
     mutationFn,
@@ -76,13 +81,14 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
         actionOwner: "feed-folder-move",
       });
     },
-    onError: (_error, { accountId }, context) => {
+    onError: (error, { accountId }, context) => {
       if (context?.previousFolders) {
         queryClient.setQueryData([...queryKeys.folders.root, accountId], context.previousFolders);
       }
       if (context?.previousAccounts) {
         queryClient.setQueryData(queryKeys.accounts.root, context.previousAccounts);
       }
+      showToast(t("folder_reorder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }));
     },
   });
 }

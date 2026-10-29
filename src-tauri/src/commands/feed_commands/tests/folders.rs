@@ -681,3 +681,62 @@ fn reset_folder_order_renumbers_and_sets_name_mode() {
         .unwrap();
     assert_eq!(mode, "name");
 }
+
+#[test]
+fn reorder_folders_rejects_empty_ordered_ids_when_folders_exist() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+            params![folder_a.0, account_id.0, "Alpha", 0],
+        )
+        .unwrap();
+
+    let error = reorder_folders_in_db(&db, account_id.0.clone(), vec![])
+        .expect_err("empty folder order should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message }
+            if message == "Folder list is out of date. Please retry."
+    ));
+}
+
+#[test]
+fn reorder_folders_rejects_duplicate_ids() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4), (?5, ?2, ?6, ?7)",
+            params![folder_a.0, account_id.0, "Alpha", 0, folder_b.0, "Bravo", 1],
+        )
+        .unwrap();
+
+    let error = reorder_folders_in_db(
+        &db,
+        account_id.0.clone(),
+        vec![folder_a.0.clone(), folder_a.0.clone()],
+    )
+    .expect_err("duplicate folder ids should be rejected");
+
+    assert!(matches!(
+        error,
+        AppError::UserVisible { message }
+            if message == "Folder list is out of date. Please retry."
+    ));
+
+    let folder_b_sort_order: i32 = db
+        .reader()
+        .query_row(
+            "SELECT sort_order FROM folders WHERE id = ?1",
+            params![folder_b.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(folder_b_sort_order, 1);
+}

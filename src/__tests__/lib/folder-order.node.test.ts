@@ -56,6 +56,17 @@ describe("folder-order", () => {
     expect(nextOrder).toEqual(["folder-c", "folder-a", "folder-b"]);
   });
 
+  it("adjusts downward insertion index after removing the dragged folder", () => {
+    const nextOrder = buildFullFolderOrderAfterVisibleMove({
+      folders,
+      folderOrderMode: "name",
+      visibleOrderedFolderIds: ["folder-a", "folder-b", "folder-c"],
+      movedFolderId: "folder-a",
+      targetVisibleIndex: 2,
+    });
+    expect(nextOrder).toEqual(["folder-b", "folder-a", "folder-c"]);
+  });
+
   it("builds full order after neighbor move", () => {
     const nextOrder = buildFullFolderOrderAfterNeighborMove({
       folders,

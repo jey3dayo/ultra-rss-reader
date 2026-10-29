@@ -56,6 +56,7 @@
   "folder_reorder_moved_up": "{{name}} moved up",
   "folder_reorder_moved_down": "{{name}} moved down",
   "folder_reorder_reset": "Folder order reset to alphabetical",
+  "folder_reorder_failed": "Failed to save folder order: {{message}}",
   "move_to_no_folder": "Move to no folder",
   "drop_to_remove_from_folder": "Drop here to remove from folder",
   "sync_warning_detail": {

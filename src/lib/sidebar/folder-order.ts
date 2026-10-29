@@ -92,7 +92,11 @@ export function buildFullFolderOrderAfterVisibleMove(params: {
   }
 
   visibleOrderAfter.splice(currentIndex, 1);
-  const clampedTargetIndex = Math.max(0, Math.min(targetVisibleIndex, visibleOrderAfter.length));
+  let insertIndex = targetVisibleIndex;
+  if (targetVisibleIndex > currentIndex) {
+    insertIndex = targetVisibleIndex - 1;
+  }
+  const clampedTargetIndex = Math.max(0, Math.min(insertIndex, visibleOrderAfter.length));
   visibleOrderAfter.splice(clampedTargetIndex, 0, movedFolderId);
 
   return buildFullFolderOrderAfterVisibleReorder({
