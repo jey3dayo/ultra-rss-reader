@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import { FEED_MOVE_FOLDER_ROW_ATTRIBUTE } from "@/lib/sidebar/feed-move-animation";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
 import {
   FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
@@ -135,7 +136,7 @@ export function FeedTreeFolderSection({
           }}
         />
       ) : null}
-      <div className="relative flex items-center gap-0.5">
+      <div className="relative flex items-center gap-0.5" {...{ [FEED_MOVE_FOLDER_ROW_ATTRIBUTE]: folder.id }}>
         {folder.isSelected ? (
           <span
             aria-hidden="true"

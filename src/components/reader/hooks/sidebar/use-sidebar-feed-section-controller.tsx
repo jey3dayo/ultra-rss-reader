@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
 import { getFeedLandingFailureMessage } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
+import { useFeedMoveMotion } from "@/components/reader/hooks/sidebar/use-feed-move-motion";
 import { useSidebarFeedDragState } from "@/components/reader/hooks/sidebar/use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "@/components/reader/hooks/sidebar/use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "@/components/reader/hooks/sidebar/use-sidebar-feed-tree";
@@ -88,6 +89,13 @@ export function useSidebarFeedSectionController({
   // leaving row into the next one.
   const feedTreeScopeKey = `${selectedAccountId ?? ""}:${feedTreeViewMode}`;
 
+  const feedMoveMotion = useFeedMoveMotion({
+    containerRef: resolvedFeedTreeScrollContainerRef,
+    scopeKey: feedTreeScopeKey,
+    moveFeedToFolder,
+    moveFeedToUnfoldered,
+  });
+
   const {
     draggedFeedId,
     activeDropTarget,
@@ -102,8 +110,8 @@ export function useSidebarFeedSectionController({
     isFeedsSectionOpen,
     feedById: initialFeedById,
     folderById: initialFolderById,
-    moveFeedToFolder,
-    moveFeedToUnfoldered,
+    moveFeedToFolder: feedMoveMotion.moveFeedToFolder,
+    moveFeedToUnfoldered: feedMoveMotion.moveFeedToUnfoldered,
   });
 
   const stopFolderReorderWatchRef = useRef<(() => void) | null>(null);
