@@ -99,17 +99,10 @@ lists every finding in the changed files, and its counts cannot be told apart fr
 which is why the wrapper says so out loud. The wrapper names the missing comparison rather than a
 cause, because several causes land on the same `baselineDelta === undefined` check.
 
-Measured on 0.9.18 (2026-10-29, details in
-[../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md)):
-
-- A full clone, a depth-2 clone of a PR merge commit, a linked worktree, and the main checkout all
-  compare healthily (`mode: "baseline"`, no `baselineDegraded`). The gate does not degrade by default.
-- A working tree with unmerged paths degrades: `mode: "diff"`, `baselineDegraded: true`, no error.
-  Resolve the conflict before reading the gate.
-- A shallow checkout with no merge base does not degrade. react-doctor falls back to `mode: "full"`
-  and reports every finding, with no flag. The wrapper's mode check fails that run as `mode drift`.
-- Other causes exist in the code (a failed head or base lint, a `--max-duration` budget, base files
-  that cannot be extracted) but were not reproduced.
+The gate degrades only under specific conditions, such as unmerged paths in the working tree, and a
+shallow checkout with no merge base falls back to a full scan without setting the flag; the wrapper
+fails that case as `mode drift`. The measured conditions per state are in
+[../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
 
 A green diff gate that prints the degraded line means no findings at all in the changed files, which
 is stricter than "no new findings" and still safe to gate on. A red one in that state may be listing
