@@ -1576,6 +1576,59 @@ describe("Sidebar", () => {
     });
   });
 
+  it("no longer reorders folders on the former Cmd+Option and Alt+Shift arrow chords", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            { id: "folder-1", account_id: args.accountId, name: "Alpha", sort_order: 0 },
+            { id: "folder-2", account_id: args.accountId, name: "Bravo", sort_order: 1 },
+          ];
+        case "list_feeds":
+          return [];
+        case "list_articles":
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return sampleTags;
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      viewMode: "all",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const bravoRow = (await screen.findByText("Bravo")).closest<HTMLButtonElement>("button");
+    if (!bravoRow) {
+      throw new Error("Expected the Bravo folder row to be a button");
+    }
+    bravoRow.focus();
+
+    for (const chord of [
+      { key: "ArrowUp", metaKey: true, altKey: true },
+      { key: "ArrowDown", metaKey: true, altKey: true },
+      { key: "ArrowUp", altKey: true, shiftKey: true },
+      { key: "ArrowDown", altKey: true, shiftKey: true },
+    ]) {
+      fireEvent.keyDown(bravoRow, chord);
+    }
+
+    expect(calls.filter((call) => call.cmd === "reorder_folders")).toEqual([]);
+  });
+
   it("skips collapsed folder children and disabled rows during sidebar roving navigation", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

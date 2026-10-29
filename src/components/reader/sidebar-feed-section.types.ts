@@ -1,4 +1,4 @@
-import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
+import type { RefObject } from "react";
 import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import type { FolderOrderMode } from "@/lib/sidebar/folder-order";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
@@ -107,7 +107,6 @@ export type SidebarFeedSectionParams = {
 
 export type SidebarFolderReorderKeyboardProps = {
   liveRegionMessage: string | null;
-  onFolderReorderKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => boolean;
 };
 
 export type SidebarFeedTreePropsParams = {

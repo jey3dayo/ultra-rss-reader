@@ -51,8 +51,6 @@
   "drag_folder": "{{name}} をドラッグ",
   "folder_reset_order": "フォルダ順序をリセット",
   "folder_reset_order_confirm": "フォルダ順序をアルファベット順に戻しますか？",
-  "folder_reorder_moved_up": "{{name}} を上へ移動しました",
-  "folder_reorder_moved_down": "{{name}} を下へ移動しました",
   "folder_reorder_reset": "フォルダ順序をアルファベット順に戻しました",
   "folder_reorder_failed": "フォルダ順序の保存に失敗しました: {{message}}",
   "move_to_no_folder": "フォルダなしへ移動",

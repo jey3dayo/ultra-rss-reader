@@ -4,7 +4,7 @@ import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPoi
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@/design-system/context-menu";
-import { SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE, SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
 import {
   FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
@@ -161,12 +161,6 @@ export function FeedTreeFolderSection({
                 trailingKeepLastOnClear
                 trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
                 {...(isCurrentSelection ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
-                {...(!folder.isLeaving
-                  ? {
-                      [SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE]: "true",
-                      "data-folder-id": folder.id,
-                    }
-                  : {})}
                 {...(isDropTarget
                   ? {
                       [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
