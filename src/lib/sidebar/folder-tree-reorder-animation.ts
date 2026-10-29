@@ -8,7 +8,7 @@ function readMotionToken(name: string, fallback: string): string {
 }
 
 // WAAPI cannot resolve var() in its timing options, so the shared tokens are read from the token layer.
-function flipOptions(): KeyframeAnimationOptions {
+export function flipOptions(): KeyframeAnimationOptions {
   return {
     duration: Number.parseFloat(readMotionToken("--motion-duration-resize", "260")),
     easing: readMotionToken("--motion-ease-standard", "ease-out"),
@@ -16,7 +16,7 @@ function flipOptions(): KeyframeAnimationOptions {
   };
 }
 
-function reducedMotionFadeOptions(): KeyframeAnimationOptions {
+export function fadeOptions(): KeyframeAnimationOptions {
   return {
     duration: Number.parseFloat(readMotionToken("--motion-duration-contextual", "180")),
     easing: readMotionToken("--motion-ease-standard", "ease-out"),
@@ -95,7 +95,7 @@ export function playFolderReorderAnimation(params: {
 
     played = true;
     if (reducedMotion) {
-      row.animate([{ opacity: 0.6 }, { opacity: 1 }], reducedMotionFadeOptions());
+      row.animate([{ opacity: 0.6 }, { opacity: 1 }], fadeOptions());
       continue;
     }
 

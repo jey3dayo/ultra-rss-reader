@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/design-system";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_ROW_LEAVING_ATTRIBUTE, SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import { FEED_MOVE_FEED_ROW_ATTRIBUTE } from "@/lib/sidebar/feed-move-animation";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { FeedTreeRowProps } from "./feed-tree.types";
 import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
@@ -96,7 +97,7 @@ export function FeedTreeRow({
       rowRef={rowRef}
       rowClassName={cn("group/feed-row", isDragged && "opacity-70")}
       rowStyle={rowStyle}
-      rowProps={{ "data-feed-row-id": feed.id }}
+      rowProps={{ [FEED_MOVE_FEED_ROW_ATTRIBUTE]: feed.id }}
       selected={feed.isSelected}
       selectedIndicatorProps={{ "data-feed-row-selected-indicator": feed.id }}
       selectedIndicatorClassName={cn(canDragFeeds && "group-hover/feed-row:opacity-0")}
