@@ -21,9 +21,8 @@ type FolderReorderMutationContext = {
 
 let reorderChain: Promise<unknown> = Promise.resolve();
 
-// Optimistic updates run before the serialized IPC, so a later snapshot can already contain an earlier
-// unsaved order. Only a mutation that started with nothing in flight has a snapshot that matches the DB;
-// once the last in-flight mutation settles after a failure, the caches are reloaded from the DB instead.
+// onMutate runs before the serialized IPC, so a later snapshot can hold an earlier unsaved order: only a
+// mutation that started with nothing in flight may roll back; after a failed burst the DB is reloaded.
 let pendingReorderCount = 0;
 let reorderBurstFailed = false;
 

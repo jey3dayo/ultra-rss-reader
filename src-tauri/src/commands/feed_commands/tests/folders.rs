@@ -740,3 +740,30 @@ fn reorder_folders_rejects_duplicate_ids() {
         .unwrap();
     assert_eq!(folder_b_sort_order, 1);
 }
+
+#[test]
+fn reorder_folders_succeeds_with_legacy_duplicate_sort_orders_inside_the_transaction() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    db.writer()
+        .execute_batch("DROP INDEX IF EXISTS idx_folders_account_sort_order_unique;")
+        .unwrap();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4), (?5, ?2, ?6, ?4)",
+            params![folder_a.0, account_id.0, "Alpha", 0, folder_b.0, "Bravo"],
+        )
+        .unwrap();
+
+    let folders = reorder_folders_in_db(
+        &db,
+        account_id.0.clone(),
+        vec![folder_b.0.clone(), folder_a.0.clone()],
+    )
+    .expect("legacy duplicate sort orders should not break reordering");
+
+    let ids: Vec<&str> = folders.iter().map(|folder| folder.id.as_str()).collect();
+    assert_eq!(ids, vec![folder_b.0.as_str(), folder_a.0.as_str()]);
+}

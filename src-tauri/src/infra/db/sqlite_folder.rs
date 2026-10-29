@@ -283,13 +283,21 @@ impl FolderRepository for SqliteFolderRepository<'_> {
         self.detach_feeds_and_delete(id)
     }
 
+    fn find_ids_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id")?;
+        let ids = stmt
+            .query_map(params![account_id.0], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(ids)
+    }
+
     fn set_sort_orders(
         &self,
         account_id: &AccountId,
         ordered_folder_ids: &[String],
     ) -> DomainResult<()> {
-        self.ensure_order_contract()?;
-
         // (account_id, sort_order) is UNIQUE, so park the rows on negative values before renumbering.
         for (index, folder_id) in ordered_folder_ids.iter().enumerate() {
             let temporary_order = -(index as i32 + 1);

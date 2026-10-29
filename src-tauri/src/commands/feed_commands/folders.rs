@@ -322,9 +322,8 @@ fn apply_folder_sort_order_ids(
 ) -> Result<(), AppError> {
     let folder_repo = SqliteFolderRepository::new(tx);
     let existing_ids: std::collections::HashSet<String> = folder_repo
-        .find_by_account(account_id)?
+        .find_ids_by_account(account_id)?
         .into_iter()
-        .map(|folder| folder.id.0)
         .collect();
 
     let mut seen_ids = std::collections::HashSet::with_capacity(ordered_folder_ids.len());

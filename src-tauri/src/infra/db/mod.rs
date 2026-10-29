@@ -218,6 +218,7 @@ mod tests {
             "find_unread_by_feed",
             "find_starred_by_feed",
             "find_by_account",
+            "find_ids_by_account",
             "find_unread_by_account",
             "find_by_folder",
             "find_unread_by_folder",
