@@ -318,5 +318,37 @@ describe("folder reorder animation", () => {
       expect(otherIdAttributeOnly.animate).not.toHaveBeenCalled();
       expect(outsideTarget.animate).not.toHaveBeenCalled();
     });
+
+    it("plays once from the watcher for rows identified only by that attribute", () => {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const alpha = mountRowWithAttributes(container, { [ID_ATTRIBUTE]: "alpha" }, 0);
+      const bravo = mountRowWithAttributes(container, { [ID_ATTRIBUTE]: "bravo" }, 20);
+      const snapshot = captureFolderReorderSnapshot({
+        container,
+        targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+        idAttribute: ID_ATTRIBUTE,
+        now: Date.now(),
+      });
+      if (!snapshot) {
+        throw new Error("snapshot should be captured while rows carry the id attribute");
+      }
+      const stop = watchFolderReorderAnimation({
+        container,
+        targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+        idAttribute: ID_ATTRIBUTE,
+        snapshot,
+        reducedMotion: false,
+      });
+
+      alpha.setTop(20);
+      bravo.setTop(0);
+      flushTestMutationObservers();
+      flushTestMutationObservers();
+
+      expect(alpha.animate).toHaveBeenCalledTimes(1);
+      expect(bravo.animate).toHaveBeenCalledTimes(1);
+      stop();
+    });
   });
 });
