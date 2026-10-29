@@ -344,8 +344,8 @@ Use this path when a Rust integration test cannot remove its temporary database,
    - saving credentials
    - reloading credentials after restart
    - deleting or replacing stored credentials
-2. For FreshRSS account credentials, check whether the build is using `DEV_CREDENTIALS=1`. Cloudflare Access Service Token credentials do not follow that setting; they follow the selected credential storage mode (OS keyring by default, or `credentials.json` in the app data directory in local-file mode).
-3. For packaged builds, verify behavior against the OS-native keyring, not the dev credential file path.
+2. Check whether the build is using `DEV_CREDENTIALS=1`. With it, FreshRSS account credentials use the dev credential file, while Cloudflare Access Service Token credentials still use the OS keyring (the local-file mode is ignored). Without it, both use the selected credential storage mode: the OS keyring by default, or `credentials.json` in the app data directory in local-file mode.
+3. For packaged builds, verify behavior against the selected store (the OS-native keyring by default, `credentials.json` in local-file mode), not the dev credential file path.
 4. If Cloudflare Access is configured, confirm the FreshRSS URL is HTTPS and matches the stored origin; redirects to another origin are rejected.
 5. Save logs before removing and re-adding the account.
 
