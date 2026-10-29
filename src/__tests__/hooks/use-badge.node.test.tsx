@@ -5,6 +5,7 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBadge } from "@/hooks/use-badge";
 import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
@@ -70,6 +71,23 @@ describe("useBadge", () => {
     usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
 
     render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(5);
+    });
+  });
+
+  it("applies the badge count under StrictMode double effects", async () => {
+    usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+    const Wrapper = createWrapper();
+
+    render(
+      <StrictMode>
+        <Wrapper>
+          <HookHarness />
+        </Wrapper>
+      </StrictMode>,
+    );
 
     await waitFor(() => {
       expect(setBadgeCountMock).toHaveBeenCalledWith(5);

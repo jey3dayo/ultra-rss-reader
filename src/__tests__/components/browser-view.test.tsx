@@ -6,6 +6,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { flushTestResizeObservers } from "@tests/setup";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
@@ -613,6 +614,41 @@ describe("BrowserView", () => {
     const wipeOverlay = screen.getByTestId("browser-theme-wipe-overlay");
     expect(wipeOverlay).toHaveClass(MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME);
     expect(wipeOverlay).toHaveAttribute("aria-hidden", "true");
+
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
+
+    expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
+  });
+
+  it("clears the theme wipe overlay after the timer under StrictMode double effects", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+    const Wrapper = createWrapper();
+
+    render(
+      <StrictMode>
+        <Wrapper>
+          <BrowserViewHarness />
+        </Wrapper>
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("browser-overlay-shell")).toHaveAttribute("data-open", "true");
+    });
+
+    act(() => {
+      usePreferencesStore.getState().setPref("theme", "dark");
+    });
+    expect(screen.getByTestId("browser-theme-wipe-overlay")).toBeInTheDocument();
 
     act(() => {
       vi.runOnlyPendingTimers();
