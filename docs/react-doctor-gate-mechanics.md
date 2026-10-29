@@ -1,7 +1,7 @@
 ---
 type: record
 title: React Doctor Gate Mechanics
-description: Dated record of why the React Doctor diff gate runs degraded and what the superseded reactDoctorFullScanTriageStatusBase.scanSha re-pin contract cost, including the consistency check the current contract makes available as a PR gate.
+description: Dated record of when the React Doctor diff gate degrades and what the superseded reactDoctorFullScanTriageStatusBase.scanSha re-pin contract cost, including the consistency check the current contract makes available as a PR gate.
 resource: urn:ultra-rss-reader:docs:react-doctor-gate-mechanics
 tags: [category/quality, audience/agent, audience/developer, status/historical]
 timestamp: 2026-09-18
@@ -15,18 +15,33 @@ Measurement and decision record behind two React Doctor gate behaviors. The dura
 [../.claude/rules/react-doctor-triage.md](../.claude/rules/react-doctor-triage.md); this file holds the
 evidence behind them and the readings they replaced.
 
-## Why The Diff Gate Runs Degraded
+## When The Diff Gate Degrades
 
-Measured 2026-09-09 in this repository: every `--scope changed` run degrades, on a linked
-worktree, against `origin/main`, an explicit SHA, or `git merge-base`, and with the flags
-stripped back to `--scope changed --base <ref>`. `--help` documents no baseline option, so the
-comparison is internal and the cause is not reachable from the CLI surface.
+Superseded on 2026-10-29. An earlier measurement (2026-09-09) recorded that every `--scope changed`
+run degraded, on a linked worktree, against `origin/main`, an explicit SHA, or `git merge-base`,
+and concluded the cause was not reachable from the CLI. Re-measured on react-doctor 0.9.18 against
+isolated fixtures and this repository, that no longer holds.
 
-react-doctor's own report schema documents the state as "a `baseline` run was intended but the
-base couldn't be resolved — a shallow CI checkout with no merge base, or a failed base/head
-lint", and the wrapper names the missing comparison rather than a cause, because the flag is
-computed from `baselineDelta === undefined` and both listed causes land there
-indistinguishably.
+`baselineDegraded` is `baselineIntended && !baselineComputed`. A project has a `baselineDelta`
+only when a base comparison was built and head and base lint both completed, so any missing
+`baselineDelta` degrades the whole run.
+
+| State | Report |
+| --- | --- |
+| Full clone, base given as SHA or `origin/main` | `mode: "baseline"`, not degraded |
+| Depth-2 clone of a PR merge commit, base as full SHA | `mode: "baseline"`, not degraded |
+| Linked worktree and main checkout of this repository | `mode: "baseline"`, not degraded |
+| Unmerged paths in the working tree | `mode: "diff"`, `baselineDegraded: true`, no error |
+| Shallow clone with no merge base | `mode: "full"`, every finding, no flag |
+| `--base` ref missing or not a plain ref (`HEAD^1`) | `ok: false`, not a degrade |
+
+The unmerged-path case comes from react-doctor refusing to build a diff plan while
+`git diff --diff-filter=U` lists files. The shallow case is a silent fallback to a full scan, which the
+wrapper's mode check reports as `mode drift`.
+
+Not reproduced: the degraded run Issue #431 saw in CI, and the code paths for a failed head or base
+lint, a `--max-duration` budget, and base files that cannot be extracted. The fixtures were local
+clones; no GitHub Actions run was observed.
 
 ## scanSha Re-Pin Gating: What The Old Contract Cost
 
