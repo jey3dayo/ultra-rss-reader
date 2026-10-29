@@ -8,7 +8,7 @@
       "core:default",
       {
         "identifier": "opener:allow-open-url",
-        "allow": [{ "url": "mailto:*" }]
+        "allow": [{ "url": "http://*" }, { "url": "https://*" }, { "url": "mailto:*" }]
       },
       "clipboard-manager:allow-write-text",
       "dialog:allow-save",

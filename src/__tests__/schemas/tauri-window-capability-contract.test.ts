@@ -211,7 +211,7 @@ describe("tauri window capability contract", () => {
     expect(permissionIds).not.toContain("updater:default");
     expect(capability.permissions).toContainEqual({
       identifier: "opener:allow-open-url",
-      allow: [{ url: "mailto:*" }],
+      allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
     });
   });
 

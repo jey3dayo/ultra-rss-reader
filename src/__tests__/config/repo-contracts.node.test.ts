@@ -1436,7 +1436,7 @@ describe("repository static contracts", () => {
     expect(mainCapability?.permissions?.map(permissionIdentifier)).not.toContain("opener:allow-default-urls");
     expect(mainCapability?.permissions).toContainEqual({
       identifier: "opener:allow-open-url",
-      allow: [{ url: "mailto:*" }],
+      allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
     });
     expect(tauriConfig.app.security.csp).toContain(`connect-src ipc: http://ipc.localhost ${SENTRY_INGEST_ORIGIN}`);
     expect(tauriConfig.app.security.csp).toContain("base-uri 'self'");
