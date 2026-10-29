@@ -34,17 +34,17 @@ export function useSidebarFolderReorderActions({
   const folderList = folders ?? [];
 
   const submitFolderOrder = useCallback(
-    (orderedFolderIds: readonly string[], onSuccess?: () => void) => {
+    async (orderedFolderIds: readonly string[]) => {
       if (!accountId) {
         return;
       }
-      reorderFoldersMutation.mutate({ accountId, orderedFolderIds: [...orderedFolderIds] }, { onSuccess });
+      await reorderFoldersMutation.mutateAsync({ accountId, orderedFolderIds: [...orderedFolderIds] });
     },
     [accountId, reorderFoldersMutation],
   );
 
   const moveFolderByDirection = useCallback(
-    (folderId: string, direction: "up" | "down") => {
+    async (folderId: string, direction: "up" | "down") => {
       const folder = folderList.find((candidate) => candidate.id === folderId);
       if (!folder) {
         return false;
@@ -61,13 +61,17 @@ export function useSidebarFolderReorderActions({
         return false;
       }
 
-      submitFolderOrder(nextOrder, () => {
-        setLiveRegionMessage(
-          direction === "up"
-            ? t("folder_reorder_moved_up", { name: folder.name })
-            : t("folder_reorder_moved_down", { name: folder.name }),
-        );
-      });
+      try {
+        await submitFolderOrder(nextOrder);
+      } catch {
+        return false;
+      }
+
+      setLiveRegionMessage(
+        direction === "up"
+          ? t("folder_reorder_moved_up", { name: folder.name })
+          : t("folder_reorder_moved_down", { name: folder.name }),
+      );
       return true;
     },
     [folderList, resolvedFolderOrderMode, submitFolderOrder, t, visibleOrderedFolderIds],
@@ -82,7 +86,7 @@ export function useSidebarFolderReorderActions({
         movedFolderId,
         targetVisibleIndex,
       });
-      submitFolderOrder(nextOrder);
+      submitFolderOrder(nextOrder).catch(() => undefined); // surfaced by the mutation's onError toast
     },
     [folderList, resolvedFolderOrderMode, submitFolderOrder, visibleOrderedFolderIds],
   );
@@ -92,14 +96,16 @@ export function useSidebarFolderReorderActions({
       return;
     }
 
-    const executeReset = () => {
-      resetFolderOrderMutation.mutate(
-        {
+    const executeReset = async () => {
+      try {
+        await resetFolderOrderMutation.mutateAsync({
           accountId,
           orderedFolderIds: buildNameOrderedFolderIds(folderList),
-        },
-        { onSuccess: () => setLiveRegionMessage(t("folder_reorder_reset")) },
-      );
+        });
+      } catch {
+        return;
+      }
+      setLiveRegionMessage(t("folder_reorder_reset"));
     };
 
     if (resolvedFolderOrderMode === "manual") {

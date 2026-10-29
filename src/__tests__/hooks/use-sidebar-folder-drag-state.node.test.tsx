@@ -19,12 +19,12 @@ function renderDragState(visibleOrderedFolderIds: readonly string[]) {
 }
 
 describe("useSidebarFolderDragState drop index", () => {
-  it("moves a folder dropped in a later gap to the index it has once the folder itself is removed", () => {
+  it("passes the dropped gap index through; the order helper adjusts it for the removed folder", () => {
     const { result, onReorderToVisibleIndex } = renderDragState(["a", "b", "c"]);
 
     act(() => result.current.handleDropFolderReorder("a", 2));
 
-    expect(onReorderToVisibleIndex).toHaveBeenCalledWith("a", 1);
+    expect(onReorderToVisibleIndex).toHaveBeenCalledWith("a", 2);
   });
 
   it("keeps the index for an earlier gap and ignores a drop in the gaps adjacent to the folder", () => {

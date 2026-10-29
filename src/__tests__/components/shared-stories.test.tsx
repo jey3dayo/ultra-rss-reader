@@ -64,6 +64,7 @@ const requiredSharedStoryExportsByFilePath = {
     "LongCopy",
     "PrivateLinkWarning",
     "PrivateLinkWarningJapanese",
+    "FolderResetOrderConfirm",
     "SuccessTone",
     "WarningTone",
   ],

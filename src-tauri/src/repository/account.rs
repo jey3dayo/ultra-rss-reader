@@ -1,4 +1,4 @@
-use crate::domain::account::{Account, ConnectionVerificationStatus};
+use crate::domain::account::{Account, ConnectionVerificationStatus, FolderOrderMode};
 use crate::domain::error::DomainResult;
 use crate::domain::types::AccountId;
 
@@ -29,4 +29,6 @@ pub trait AccountRepository {
     ) -> DomainResult<()>;
     fn rename(&self, id: &AccountId, name: &str) -> DomainResult<()>;
     fn delete(&self, id: &AccountId) -> DomainResult<()>;
+    fn get_folder_order_mode(&self, id: &AccountId) -> DomainResult<FolderOrderMode>;
+    fn set_folder_order_mode(&self, id: &AccountId, mode: FolderOrderMode) -> DomainResult<()>;
 }

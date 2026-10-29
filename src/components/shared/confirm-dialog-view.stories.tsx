@@ -68,6 +68,15 @@ export const JapaneseFeedCount: Story = {
   },
 };
 
+export const FolderResetOrderConfirm: Story = {
+  args: {
+    title: "Confirm",
+    message: "Reset folder order to alphabetical?",
+    actionLabel: "Reset folder order",
+    cancelLabel: "Cancel",
+  },
+};
+
 export const LongCopy: Story = {
   args: {
     title: "Apply bulk update",

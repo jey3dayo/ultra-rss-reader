@@ -65,11 +65,15 @@ export function useFolderTreePointerDragEvents({
         onDropFolderReorder: dropReorder,
       } = latestParamsRef.current;
 
-      if (session?.isDragging && !shouldCancel && session.dropTarget) {
+      if (!session) {
+        return;
+      }
+
+      if (session.isDragging && !shouldCancel && session.dropTarget) {
         dropReorder?.(session.folder.id, session.dropTarget.insertionIndex);
       }
 
-      if (session?.isDragging) {
+      if (session.isDragging) {
         suppressReset?.();
       }
       clearTracking();
@@ -106,7 +110,7 @@ export function useFolderTreePointerDragEvents({
         scrollContainer: scrollRef?.current ?? null,
       });
 
-      const nextTarget = resolveFolderReorderInsertionIndex(event.clientX, event.clientY, scrollRef?.current ?? null);
+      const nextTarget = resolveFolderReorderInsertionIndex(event.clientX, event.clientY);
       if (!isSameFolderReorderDropTarget(session.dropTarget, nextTarget)) {
         session.dropTarget = nextTarget;
         setTarget(nextTarget);

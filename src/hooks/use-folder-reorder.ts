@@ -5,7 +5,6 @@ import type { AccountDto, FolderDto } from "@/api/tauri-commands";
 import { reorderFolders, resetFolderOrder } from "@/api/tauri-commands";
 import { invalidateFeedQueries } from "@/lib/query/query-invalidation";
 import { queryKeys } from "@/lib/query/query-keys";
-import { getErrorMessage } from "@/lib/ui/errors";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -43,8 +42,8 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
   folderOrderMode: AccountDto["folder_order_mode"];
 }) {
   const { mutationFn, folderOrderMode } = params;
-  const { t } = useTranslation("sidebar");
   const queryClient = useQueryClient();
+  const { t } = useTranslation("sidebar");
   const showToast = useUiStore((state) => state.showToast);
 
   return useMutation({
@@ -83,13 +82,13 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
       });
     },
     onError: (error, { accountId }, context) => {
-      showToast(t("folder_reorder_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }));
       if (context?.previousFolders) {
         queryClient.setQueryData([...queryKeys.folders.root, accountId], context.previousFolders);
       }
       if (context?.previousAccounts) {
         queryClient.setQueryData(queryKeys.accounts.root, context.previousAccounts);
       }
+      showToast(t("folder_reorder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }));
     },
   });
 }

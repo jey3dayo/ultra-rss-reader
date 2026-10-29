@@ -3,7 +3,7 @@ use tauri::State;
 use crate::commands::dto::{AccountDto, AppError};
 use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
-use crate::domain::account::{Account, ConnectionVerificationStatus, FolderOrderMode};
+use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
@@ -32,6 +32,14 @@ pub(crate) use validation::{
 
 #[cfg(test)]
 mod tests;
+
+fn account_dto_from_repo(
+    repo: &impl AccountRepository,
+    account: Account,
+) -> Result<AccountDto, AppError> {
+    let folder_order_mode = repo.get_folder_order_mode(&account.id)?;
+    Ok(AccountDto::from_account(account, folder_order_mode))
+}
 
 #[tauri::command]
 pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppError> {
@@ -104,10 +112,7 @@ pub async fn add_account(
         || repo.save(&account).map_err(AppError::from),
     )?;
 
-    Ok(AccountDto::from_account(
-        account,
-        FolderOrderMode::default(),
-    ))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -149,8 +154,7 @@ pub fn update_account_sync(
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
-    let folder_order_mode = repo.get_folder_order_mode(&id)?;
-    Ok(AccountDto::from_account(account, folder_order_mode))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -196,8 +200,7 @@ pub fn update_account_credentials(
             Ok(account)
         },
     )?;
-    let folder_order_mode = repo.get_folder_order_mode(&id)?;
-    Ok(AccountDto::from_account(account, folder_order_mode))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -215,8 +218,7 @@ pub fn rename_account(
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
-    let folder_order_mode = repo.get_folder_order_mode(&id)?;
-    Ok(AccountDto::from_account(account, folder_order_mode))
+    account_dto_from_repo(&repo, account)
 }
 
 #[tauri::command]
@@ -232,9 +234,9 @@ pub async fn test_account_connection(
         let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
             message: "Account not found".into(),
         })?;
-        let folder_order_mode = repo.get_folder_order_mode(&id)?;
-        (account, folder_order_mode)
-    }; // DB lock dropped
+        let folder_order_mode = repo.get_folder_order_mode(&account.id)?;
+        Ok::<_, AppError>((account, folder_order_mode))
+    }?; // DB lock dropped
 
     if !matches!(account.kind, ProviderKind::FreshRss) {
         return Ok(AccountDto::from_account(account, folder_order_mode));
@@ -265,9 +267,8 @@ pub async fn test_account_connection(
     let updated = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;
-    let folder_order_mode = repo.get_folder_order_mode(&id)?;
 
-    Ok(AccountDto::from_account(updated, folder_order_mode))
+    account_dto_from_repo(&repo, updated)
 }
 
 /// A failed test drops only the lease it attempted to grant; a newer test's lease must survive.

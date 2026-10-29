@@ -41,12 +41,9 @@ export function useSidebarFolderDragState({
     (folderId: string, insertionIndex: number) => {
       const visibleOrderedFolderIds = visibleOrderedFolderIdsRef.current ?? [];
       const currentIndex = visibleOrderedFolderIds.indexOf(folderId);
-      let targetVisibleIndex = insertionIndex;
-      if (currentIndex >= 0 && insertionIndex > currentIndex) {
-        targetVisibleIndex = insertionIndex - 1;
-      }
+      const targetVisibleIndex = insertionIndex;
 
-      if (currentIndex === targetVisibleIndex) {
+      if (currentIndex === targetVisibleIndex || (currentIndex >= 0 && insertionIndex === currentIndex + 1)) {
         clearFolderDragState();
         return;
       }

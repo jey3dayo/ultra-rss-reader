@@ -151,10 +151,15 @@ fn v27_allows_duplicate_folder_order_mode_column_only() {
     run_migrations(&mut conn).unwrap();
     set_schema_version(&conn, 26).unwrap();
 
-    let result = run_migrations(&mut conn).unwrap();
-    assert_eq!(result.from_version, 26);
-    assert_eq!(result.to_version, LATEST_VERSION);
+    let first = run_migrations(&mut conn).unwrap();
+    assert_eq!(first.from_version, 26);
+    assert_eq!(first.to_version, LATEST_VERSION);
     assert!(conn
         .prepare("SELECT folder_order_mode FROM accounts LIMIT 0")
         .is_ok());
+
+    let second = run_migrations(&mut conn).unwrap();
+    assert_eq!(second.from_version, LATEST_VERSION);
+    assert_eq!(second.to_version, LATEST_VERSION);
+    assert!(!second.migrated());
 }

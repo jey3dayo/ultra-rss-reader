@@ -331,6 +331,15 @@ fn apply_folder_sort_order_ids(
             .map_err(|error| DomainError::Persistence(error.to_string()))?
     };
 
+    if ordered_folder_ids.is_empty() {
+        if existing_ids.is_empty() {
+            return Ok(());
+        }
+        return Err(AppError::UserVisible {
+            message: "Folder list is out of date. Please retry.".into(),
+        });
+    }
+
     if existing_ids.len() != ordered_folder_ids.len() {
         return Err(AppError::UserVisible {
             message: "Folder list is out of date. Please retry.".into(),
@@ -339,10 +348,14 @@ fn apply_folder_sort_order_ids(
 
     let existing_set: std::collections::HashSet<&str> =
         existing_ids.iter().map(String::as_str).collect();
-    let mut seen_ids = std::collections::HashSet::with_capacity(ordered_folder_ids.len());
-    if ordered_folder_ids.iter().any(|folder_id| {
-        !existing_set.contains(folder_id.as_str()) || !seen_ids.insert(folder_id.as_str())
-    }) {
+    let ordered_set: std::collections::HashSet<&str> =
+        ordered_folder_ids.iter().map(String::as_str).collect();
+    if ordered_set.len() != ordered_folder_ids.len()
+        || ordered_set.len() != existing_set.len()
+        || ordered_folder_ids
+            .iter()
+            .any(|folder_id| !existing_set.contains(folder_id.as_str()))
+    {
         return Err(AppError::UserVisible {
             message: "Folder list is out of date. Please retry.".into(),
         });

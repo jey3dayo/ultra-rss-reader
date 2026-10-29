@@ -65,4 +65,5 @@ pub(super) const V22_LAST_EXPORT_DIGEST_SQL: &str =
 pub(super) const V24_FEED_ICON_URL_COLUMN: &str = "icon_url";
 pub(super) const V24_FEED_ICON_URL_SQL: &str = "ALTER TABLE feeds ADD COLUMN icon_url TEXT";
 pub(super) const V27_FOLDER_ORDER_MODE_COLUMN: &str = "folder_order_mode";
-pub(super) const V27_FOLDER_ORDER_MODE_SQL: &str = "ALTER TABLE accounts ADD COLUMN folder_order_mode TEXT NOT NULL DEFAULT 'name' CHECK (folder_order_mode IN ('name', 'manual'))";
+pub(super) const V27_FOLDER_ORDER_MODE_SQL: &str =
+    "ALTER TABLE accounts ADD COLUMN folder_order_mode TEXT NOT NULL DEFAULT 'name' CHECK (folder_order_mode IN ('name', 'manual'))";
