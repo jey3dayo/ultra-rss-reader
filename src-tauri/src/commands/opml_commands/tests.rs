@@ -236,6 +236,12 @@ fn validate_opml_feed_url_trims_surrounding_whitespace() {
 }
 
 #[test]
+fn validate_opml_feed_url_keeps_non_ascii_whitespace() {
+    let url = "https://example.com/feed\u{a0}";
+    assert_eq!(super::import::validate_opml_feed_url(url).unwrap(), url);
+}
+
+#[test]
 fn import_parser_trims_whitespace_around_xml_url() {
     let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">

@@ -231,7 +231,7 @@ pub(crate) fn validate_opml_feed_url(url: &str) -> Result<String, AppError> {
         other => AppError::from(other),
     })?;
 
-    Ok(url.trim().to_string())
+    Ok(url.trim_ascii().to_string())
 }
 
 pub(crate) fn normalized_feed_url_key(raw_url: &str) -> Option<String> {
