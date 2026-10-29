@@ -28,7 +28,7 @@
 
 - ローカルファースト、アカウント不要 — 全記事が組み込み SQLite に保存され、FTS5 全文検索がオフラインで動作します。
 - FreshRSS 同期 — Google Reader API 経由で FreshRSS サーバーと接続。既読・スターは双方向同期し、ローカルの未送信変更が古いリモート状態で巻き戻されないよう保護されます。
-- 認証情報は OS キーリングへ — FreshRSS のパスワードやトークン、任意の Cloudflare Access Service Token は Keychain / Credential Manager / Secret Service に保存され、データベースには入りません。
+- 認証情報は既定で OS キーリングへ — FreshRSS のパスワードやトークン、任意の Cloudflare Access Service Token は Keychain / Credential Manager / Secret Service に保存され、データベースには入りません。設定で選べるローカルファイルモードでは、アプリのデータフォルダへ暗号化せずに保存します。
 - キーボード駆動 — `j`/`k` ナビゲーション、単キーアクション、任意のフィードへ直接ジャンプできる `⌘K` コマンドパレット。バインドはすべてカスタマイズ可能です。
 - リーディングフローを離れず元ページを閲覧 — Web Preview が配信元ページをアプリ内に埋め込み、専用のブラウザ操作を提供します。
 

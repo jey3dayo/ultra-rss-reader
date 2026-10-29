@@ -21,6 +21,10 @@ paths:
 - `mise run app:dev:signed` や `mise run app:build` では無効（本番同等の Keychain を使用）
 - dev credentials ファイルはリポジトリ外に保存されるため `.gitignore` 不要
 
+## ローカルファイルモード
+
+設定で「ローカルファイル」を選ぶと、FreshRSS パスワードと Cloudflare Access 資格情報は OS keyring でなくアプリデータフォルダの `credentials.json` に平文で保存される（Unix では 0600）。既定は OS keyring のまま。選択状態は `credential-storage.json` のマーカーで保持する（`infra/keyring_store/storage_mode.rs`）。
+
 ## 根拠
 
 認証情報を SQLite に平文保存すると、DB ファイルのコピーで漏洩する。OS keyring は macOS Keychain / Windows Credential Manager / Linux Secret Service を使い、OS レベルの暗号化で保護される。

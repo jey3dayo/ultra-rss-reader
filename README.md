@@ -28,7 +28,7 @@
 
 - Local-first, no account required — All articles live in an embedded SQLite database on your machine. Full-text search (FTS5) works offline across everything you have ever fetched.
 - First-class FreshRSS sync — Connect a FreshRSS server via the Google Reader API. Read status and stars sync bidirectionally, with pending local changes protected from being overwritten by stale remote state.
-- Credentials in the OS keyring — FreshRSS passwords and tokens, plus optional Cloudflare Access Service Token credentials, go to Keychain / Credential Manager / Secret Service, never into the database.
+- Credentials in the OS keyring by default — FreshRSS passwords and tokens, plus optional Cloudflare Access Service Token credentials, go to Keychain / Credential Manager / Secret Service, never into the database. An optional local-file mode stores them unencrypted in the app data directory instead.
 - Keyboard-driven — `j`/`k` navigation, single-key actions, a `⌘K` command palette that jumps straight to any feed, and fully customizable bindings.
 - Read the real page without leaving — Web Preview embeds the publisher page inside the reading flow with dedicated browser controls.
 
