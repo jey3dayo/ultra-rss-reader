@@ -5,6 +5,7 @@ import type { FeedTreeFolderViewModel, FeedTreePresenceFolderViewModel } from ".
 
 export type FolderTreeDragOverlayPreview = {
   folder: FeedTreeFolderViewModel;
+  pointerId: number;
   x: number;
   y: number;
 };

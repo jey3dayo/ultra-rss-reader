@@ -14,9 +14,14 @@ const preview: FolderTreeDragOverlayPreview = {
     isSelected: false,
     feeds: [],
   },
+  pointerId: 7,
   x: 10,
   y: 20,
 };
+
+function movePointer(pointerId: number, clientX: number, clientY: number) {
+  window.dispatchEvent(Object.assign(new MouseEvent("pointermove", { clientX, clientY }), { pointerId }));
+}
 
 describe("FeedTreeFolderDragOverlay", () => {
   it("follows the pointer without needing a new preview from the parent", () => {
@@ -25,10 +30,21 @@ describe("FeedTreeFolderDragOverlay", () => {
     expect(overlay.style.transform).toBe("translate3d(22px, 32px, 0)");
 
     act(() => {
-      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 100, clientY: 200 }));
+      movePointer(7, 100, 200);
     });
 
     expect(overlay.style.transform).toBe("translate3d(112px, 212px, 0)");
+  });
+
+  it("ignores moves from a pointer other than the one that started the drag", () => {
+    render(<FeedTreeFolderDragOverlay preview={preview} displayFavicons={false} />);
+    const overlay = screen.getByTestId("feed-tree-folder-drag-overlay");
+
+    act(() => {
+      movePointer(8, 100, 200);
+    });
+
+    expect(overlay.style.transform).toBe("translate3d(22px, 32px, 0)");
   });
 
   it("stops following the pointer once unmounted", () => {
@@ -36,7 +52,7 @@ describe("FeedTreeFolderDragOverlay", () => {
     const overlay = screen.getByTestId("feed-tree-folder-drag-overlay");
     unmount();
 
-    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 100, clientY: 200 }));
+    movePointer(7, 100, 200);
 
     expect(overlay.style.transform).toBe("translate3d(22px, 32px, 0)");
   });

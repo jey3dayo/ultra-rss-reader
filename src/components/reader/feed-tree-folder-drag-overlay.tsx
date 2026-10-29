@@ -21,13 +21,13 @@ export function FeedTreeFolderDragOverlay({ preview, displayFavicons }: FeedTree
 
   useEffect(() => {
     const followPointer = (event: PointerEvent) => {
-      if (overlayRef.current) {
+      if (event.pointerId === preview.pointerId && overlayRef.current) {
         overlayRef.current.style.transform = toOverlayTransform(event.clientX, event.clientY);
       }
     };
     window.addEventListener("pointermove", followPointer);
     return () => window.removeEventListener("pointermove", followPointer);
-  }, []);
+  }, [preview.pointerId]);
 
   return (
     <div

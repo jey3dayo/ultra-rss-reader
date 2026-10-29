@@ -98,7 +98,7 @@ export function useFolderTreePointerDragEvents({
       if (!session.isDragging && shouldStartFolderTreePointerDrag(session, event.clientX, event.clientY)) {
         session.isDragging = true;
         dragStart?.(session.folder);
-        setPreview({ folder: session.folder, x: event.clientX, y: event.clientY });
+        setPreview({ folder: session.folder, pointerId: event.pointerId, x: event.clientX, y: event.clientY });
       }
 
       if (!session.isDragging) {

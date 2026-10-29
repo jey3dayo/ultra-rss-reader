@@ -106,10 +106,11 @@ export function useReorderFolders() {
 
 export function useResetFolderOrder() {
   return useFolderOrderMutation({
-    mutationFn: async ({ accountId, orderedFolderIds }: ReorderFoldersArgs) => {
-      const result = await resetFolderOrder(accountId, orderedFolderIds);
-      return Result.unwrap(result);
-    },
+    mutationFn: async ({ accountId, orderedFolderIds }: ReorderFoldersArgs) =>
+      enqueueReorderMutation(async () => {
+        const result = await resetFolderOrder(accountId, orderedFolderIds);
+        return Result.unwrap(result);
+      }),
     folderOrderMode: "name",
   });
 }

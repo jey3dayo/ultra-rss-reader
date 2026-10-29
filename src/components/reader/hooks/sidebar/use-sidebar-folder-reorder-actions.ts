@@ -44,7 +44,7 @@ export function useSidebarFolderReorderActions({
   );
 
   const moveFolderByDirection = useCallback(
-    async (folderId: string, direction: "up" | "down") => {
+    (folderId: string, direction: "up" | "down") => {
       const folder = folderList.find((candidate) => candidate.id === folderId);
       if (!folder) {
         return false;
@@ -61,16 +61,14 @@ export function useSidebarFolderReorderActions({
         return false;
       }
 
-      try {
-        await submitFolderOrder(nextOrder);
-      } catch {
-        return false;
-      }
-
-      setLiveRegionMessage(
-        direction === "up"
-          ? t("folder_reorder_moved_up", { name: folder.name })
-          : t("folder_reorder_moved_down", { name: folder.name }),
+      submitFolderOrder(nextOrder).then(
+        () =>
+          setLiveRegionMessage(
+            direction === "up"
+              ? t("folder_reorder_moved_up", { name: folder.name })
+              : t("folder_reorder_moved_down", { name: folder.name }),
+          ),
+        () => undefined, // surfaced by the mutation's onError toast
       );
       return true;
     },
