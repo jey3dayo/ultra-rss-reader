@@ -22,7 +22,7 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
         Ok(exe) => exe,
         Err(e) => {
             tracing::error!("failed to get current exe path: {e}");
-            return app.restart();
+            app.restart()
         }
     };
 
@@ -31,7 +31,7 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
             "could not determine .app bundle path from {}; using fallback restart",
             current_exe.display()
         );
-        return app.restart();
+        app.restart()
     };
 
     // Get current process ID to wait for
@@ -90,7 +90,7 @@ pub fn restart_preserving_dock_icon(app: &AppHandle) -> ! {
         }
         Err(e) => {
             tracing::error!("failed to spawn relaunch helper: {e}; falling back to app.restart()");
-            return app.restart();
+            app.restart()
         }
     }
 }

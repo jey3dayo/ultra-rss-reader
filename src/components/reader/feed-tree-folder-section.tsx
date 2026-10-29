@@ -140,7 +140,7 @@ export function FeedTreeFolderSection({
           <span
             aria-hidden="true"
             data-folder-row-selected-indicator={folder.id}
-            className="pointer-events-none absolute inset-y-1.5 left-0 z-0 w-0.5 rounded-full bg-primary/85 transition-[opacity,transform,background-color] duration-200 ease-standard motion-reduce:transition-none"
+            className="pointer-events-none absolute inset-y-1.5 left-0 z-[1] w-0.5 rounded-full bg-primary/85 transition-[opacity,transform,background-color] duration-200 ease-standard motion-reduce:transition-none"
           />
         ) : null}
         <ContextMenu.Root onOpenChange={(open) => !open && clearTarget()}>
