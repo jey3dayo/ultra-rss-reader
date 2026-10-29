@@ -69,7 +69,9 @@ export function useFolderTreePointerDragEvents({
         dropReorder?.(session.folder.id, session.dropTarget.insertionIndex);
       }
 
-      suppressReset?.();
+      if (session?.isDragging) {
+        suppressReset?.();
+      }
       clearTracking();
       dragEnd?.();
     };
@@ -92,6 +94,7 @@ export function useFolderTreePointerDragEvents({
       if (!session.isDragging && shouldStartFolderTreePointerDrag(session, event.clientX, event.clientY)) {
         session.isDragging = true;
         dragStart?.(session.folder);
+        setPreview({ folder: session.folder, x: event.clientX, y: event.clientY });
       }
 
       if (!session.isDragging) {
@@ -103,18 +106,12 @@ export function useFolderTreePointerDragEvents({
         scrollContainer: scrollRef?.current ?? null,
       });
 
-      const nextTarget = resolveFolderReorderInsertionIndex(event.clientY);
+      const nextTarget = resolveFolderReorderInsertionIndex(event.clientX, event.clientY, scrollRef?.current ?? null);
       if (!isSameFolderReorderDropTarget(session.dropTarget, nextTarget)) {
         session.dropTarget = nextTarget;
         setTarget(nextTarget);
         insertionChange?.(nextTarget?.insertionIndex ?? null);
       }
-
-      setPreview({
-        folder: session.folder,
-        x: event.clientX,
-        y: event.clientY,
-      });
     };
 
     const handlePointerUp = (event: PointerEvent) => {

@@ -129,3 +129,32 @@ fn v24_allows_duplicate_feed_icon_url_column_only() {
     assert_eq!(result.to_version, LATEST_VERSION);
     assert!(conn.prepare("SELECT icon_url FROM feeds LIMIT 0").is_ok());
 }
+
+#[test]
+fn v27_file_migration_matches_inline_contract() {
+    let inline_v27_sql = format!(
+        "{V27_FOLDER_ORDER_MODE_SQL};
+          DELETE FROM schema_version;
+          INSERT INTO schema_version (version) VALUES (27);"
+    );
+
+    assert_eq!(
+        normalize_sql(MIGRATION_V27),
+        normalize_sql(&inline_v27_sql),
+        "file-based V27 migration must stay in sync with the inline migration"
+    );
+}
+
+#[test]
+fn v27_allows_duplicate_folder_order_mode_column_only() {
+    let mut conn = open_in_memory();
+    run_migrations(&mut conn).unwrap();
+    set_schema_version(&conn, 26).unwrap();
+
+    let result = run_migrations(&mut conn).unwrap();
+    assert_eq!(result.from_version, 26);
+    assert_eq!(result.to_version, LATEST_VERSION);
+    assert!(conn
+        .prepare("SELECT folder_order_mode FROM accounts LIMIT 0")
+        .is_ok());
+}

@@ -681,3 +681,42 @@ fn reset_folder_order_renumbers_and_sets_name_mode() {
         .unwrap();
     assert_eq!(mode, "name");
 }
+
+#[test]
+fn reorder_folders_rejects_incomplete_or_duplicate_id_lists_without_changing_state() {
+    let db = test_db();
+    let account_id = insert_test_account(&db, "Primary");
+    let folder_a = FolderId::new();
+    let folder_b = FolderId::new();
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4), (?5, ?2, ?6, ?7)",
+            params![folder_a.0, account_id.0, "Alpha", 0, folder_b.0, "Bravo", 1],
+        )
+        .unwrap();
+
+    let invalid_lists = [
+        Vec::new(),
+        vec![folder_a.0.clone(), folder_a.0.clone()],
+        vec![folder_a.0.clone()],
+    ];
+    for ordered_folder_ids in invalid_lists {
+        let error = reorder_folders_in_db(&db, account_id.0.clone(), ordered_folder_ids)
+            .expect_err("list that is not the exact set of folders should be rejected");
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message == "Folder list is out of date. Please retry."
+        ));
+    }
+
+    let mode: String = db
+        .reader()
+        .query_row(
+            "SELECT folder_order_mode FROM accounts WHERE id = ?1",
+            params![account_id.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(mode, "name");
+}

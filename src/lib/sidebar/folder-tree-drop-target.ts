@@ -23,9 +23,22 @@ function getFolderReorderTargets(): HTMLElement[] {
   );
 }
 
-export function resolveFolderReorderInsertionIndex(clientY: number): FolderReorderDropTarget {
+function isPointInsideElement(element: HTMLElement, clientX: number, clientY: number): boolean {
+  const rect = element.getBoundingClientRect();
+  return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+}
+
+export function resolveFolderReorderInsertionIndex(
+  clientX: number,
+  clientY: number,
+  treeContainer: HTMLElement | null,
+): FolderReorderDropTarget {
   const targets = getFolderReorderTargets();
   if (targets.length === 0) {
+    return null;
+  }
+
+  if (treeContainer && !isPointInsideElement(treeContainer, clientX, clientY)) {
     return null;
   }
 

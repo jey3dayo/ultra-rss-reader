@@ -23,8 +23,6 @@ vi.mock("react-i18next", () => ({
     t: (key: string, options?: { message?: string; name?: string; count?: number }) => {
       if (namespace === "sidebar") {
         const sidebarLabels: Record<string, string> = {
-          folder_move_up: "Move up",
-          folder_move_down: "Move down",
           folder_reset_order: "Reset folder order",
         };
         return sidebarLabels[key] ?? key;
@@ -71,12 +69,6 @@ describe("FolderContextMenuContent", () => {
           folderUnread={6}
           feeds={[]}
           folderOrderMode="name"
-          visibleFolderIndex={0}
-          visibleFolderCount={2}
-          canMoveFolderUp={false}
-          canMoveFolderDown
-          onMoveFolderUp={vi.fn()}
-          onMoveFolderDown={vi.fn()}
           onResetFolderOrder={vi.fn()}
         />
       </ContextMenu.Root>,
@@ -101,20 +93,13 @@ describe("FolderContextMenuContent", () => {
           folderUnread={0}
           feeds={[]}
           folderOrderMode="manual"
-          visibleFolderIndex={1}
-          visibleFolderCount={2}
-          canMoveFolderUp
-          canMoveFolderDown={false}
-          onMoveFolderUp={vi.fn()}
-          onMoveFolderDown={vi.fn()}
           onResetFolderOrder={vi.fn()}
         />
       </ContextMenu.Root>,
     );
 
     expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Move up" })).toBeEnabled();
-    expect(screen.getByRole("menuitem", { name: "Move down" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByRole("menuitem", { name: /move (up|down)/i })).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Reset folder order" })).toBeInTheDocument();
   });
 });

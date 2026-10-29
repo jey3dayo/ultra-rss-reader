@@ -34,11 +34,11 @@ export function useSidebarFolderReorderActions({
   const folderList = folders ?? [];
 
   const submitFolderOrder = useCallback(
-    (orderedFolderIds: readonly string[]) => {
+    (orderedFolderIds: readonly string[], onSuccess?: () => void) => {
       if (!accountId) {
         return;
       }
-      reorderFoldersMutation.mutate({ accountId, orderedFolderIds: [...orderedFolderIds] });
+      reorderFoldersMutation.mutate({ accountId, orderedFolderIds: [...orderedFolderIds] }, { onSuccess });
     },
     [accountId, reorderFoldersMutation],
   );
@@ -61,12 +61,13 @@ export function useSidebarFolderReorderActions({
         return false;
       }
 
-      submitFolderOrder(nextOrder);
-      setLiveRegionMessage(
-        direction === "up"
-          ? t("folder_reorder_moved_up", { name: folder.name })
-          : t("folder_reorder_moved_down", { name: folder.name }),
-      );
+      submitFolderOrder(nextOrder, () => {
+        setLiveRegionMessage(
+          direction === "up"
+            ? t("folder_reorder_moved_up", { name: folder.name })
+            : t("folder_reorder_moved_down", { name: folder.name }),
+        );
+      });
       return true;
     },
     [folderList, resolvedFolderOrderMode, submitFolderOrder, t, visibleOrderedFolderIds],
@@ -92,11 +93,13 @@ export function useSidebarFolderReorderActions({
     }
 
     const executeReset = () => {
-      resetFolderOrderMutation.mutate({
-        accountId,
-        orderedFolderIds: buildNameOrderedFolderIds(folderList),
-      });
-      setLiveRegionMessage(t("folder_reorder_reset"));
+      resetFolderOrderMutation.mutate(
+        {
+          accountId,
+          orderedFolderIds: buildNameOrderedFolderIds(folderList),
+        },
+        { onSuccess: () => setLiveRegionMessage(t("folder_reorder_reset")) },
+      );
     };
 
     if (resolvedFolderOrderMode === "manual") {
@@ -109,19 +112,6 @@ export function useSidebarFolderReorderActions({
     executeReset();
   }, [accountId, folderList, resetFolderOrderMutation, resolvedFolderOrderMode, showConfirm, t]);
 
-  const getVisibleFolderMenuState = useCallback(
-    (folderId: string) => {
-      const visibleIndex = visibleOrderedFolderIds.indexOf(folderId);
-      return {
-        visibleIndex,
-        visibleCount: visibleOrderedFolderIds.length,
-        canMoveUp: visibleIndex > 0,
-        canMoveDown: visibleIndex >= 0 && visibleIndex < visibleOrderedFolderIds.length - 1,
-      };
-    },
-    [visibleOrderedFolderIds],
-  );
-
   return {
     resolvedFolderOrderMode,
     liveRegionMessage,
@@ -129,7 +119,6 @@ export function useSidebarFolderReorderActions({
     moveFolderByDirection,
     reorderFolderToVisibleIndex,
     resetFolderOrder,
-    getVisibleFolderMenuState,
     isReorderPending: reorderFoldersMutation.isPending || resetFolderOrderMutation.isPending,
   };
 }

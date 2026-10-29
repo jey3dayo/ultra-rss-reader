@@ -14,15 +14,7 @@ type UseSidebarContextMenuRenderersParams = {
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   onManageTags: () => void;
   folderOrderMode?: FolderOrderMode;
-  onMoveFolderUp?: (folderId: string) => void;
-  onMoveFolderDown?: (folderId: string) => void;
   onResetFolderOrder?: () => void;
-  getVisibleFolderMenuState?: (folderId: string) => {
-    visibleIndex: number;
-    visibleCount: number;
-    canMoveUp: boolean;
-    canMoveDown: boolean;
-  };
 };
 
 function toFolderContextMenuFolder(folder: FeedTreeFolderViewModel) {
@@ -63,37 +55,21 @@ export function useSidebarContextMenuRenderers({
   setExpandedFolders,
   onManageTags,
   folderOrderMode = "name",
-  onMoveFolderUp,
-  onMoveFolderDown,
   onResetFolderOrder,
-  getVisibleFolderMenuState,
 }: UseSidebarContextMenuRenderersParams): SidebarContextMenuRenderersResult {
   const renderFolderContextMenu = useCallback(
     (folder: FeedTreeFolderViewModel) => {
-      const menuState = getVisibleFolderMenuState?.(folder.id) ?? {
-        visibleIndex: -1,
-        visibleCount: folders?.length ?? 0,
-        canMoveUp: false,
-        canMoveDown: false,
-      };
-
       return (
         <FolderContextMenuContent
           folder={toFolderContextMenuFolder(folder)}
           folderUnread={folder.unreadCount}
           feeds={folder.feeds.map(toFeedContextMenuFeed)}
           folderOrderMode={folderOrderMode}
-          visibleFolderIndex={menuState.visibleIndex}
-          visibleFolderCount={menuState.visibleCount}
-          canMoveFolderUp={menuState.canMoveUp}
-          canMoveFolderDown={menuState.canMoveDown}
-          onMoveFolderUp={() => onMoveFolderUp?.(folder.id)}
-          onMoveFolderDown={() => onMoveFolderDown?.(folder.id)}
           onResetFolderOrder={() => onResetFolderOrder?.()}
         />
       );
     },
-    [folderOrderMode, folders?.length, getVisibleFolderMenuState, onMoveFolderDown, onMoveFolderUp, onResetFolderOrder],
+    [folderOrderMode, onResetFolderOrder],
   );
 
   const renderFeedContextMenu = useCallback(

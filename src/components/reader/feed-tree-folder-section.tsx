@@ -201,6 +201,9 @@ export function FeedTreeFolderSection({
               folder.isLeaving
                 ? undefined
                 : () => {
+                    if (consumeSuppressedHandleClick?.()) {
+                      return;
+                    }
                     if (folder.isSelected && folder.isExpanded) {
                       onToggleFolder(folder.id);
                       return;

@@ -11,14 +11,14 @@ use crate::domain::error::{DomainError, DomainResult};
 use consts::{
     MIGRATION_V1, MIGRATION_V11, MIGRATION_V12, MIGRATION_V13, MIGRATION_V14, MIGRATION_V15,
     MIGRATION_V17, MIGRATION_V18, MIGRATION_V19, MIGRATION_V2, MIGRATION_V21, MIGRATION_V23,
-    MIGRATION_V25, MIGRATION_V26, MIGRATION_V27, MIGRATION_V3, MIGRATION_V4, MIGRATION_V5,
-    MIGRATION_V6, MIGRATION_V7, MIGRATION_V9,
+    MIGRATION_V25, MIGRATION_V26, MIGRATION_V3, MIGRATION_V4, MIGRATION_V5, MIGRATION_V6,
+    MIGRATION_V7, MIGRATION_V9,
 };
 use repairs::{
     apply_v16_account_connection_verification, apply_v20_article_account_ordered_indexes,
     apply_v22_local_account_sync_export_state, apply_v24_feed_icon_url,
-    apply_v8_feed_reader_preview_modes, feed_mode_columns_need_repair,
-    repair_missing_feed_mode_columns,
+    apply_v27_account_folder_order_mode, apply_v8_feed_reader_preview_modes,
+    feed_mode_columns_need_repair, repair_missing_feed_mode_columns,
 };
 
 /// Result of a migration run.
@@ -141,7 +141,7 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
         tx.execute_batch(MIGRATION_V26)?;
     }
     if from_version < 27 {
-        tx.execute_batch(MIGRATION_V27)?;
+        apply_v27_account_folder_order_mode(&tx)?;
     }
 
     let to_version = read_schema_version(&tx)?;

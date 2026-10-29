@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useMemo, useRef } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
 import { getFeedLandingFailureMessage } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { useSidebarFeedDragState } from "@/components/reader/hooks/sidebar/use-sidebar-feed-drag-state";
@@ -15,7 +15,11 @@ import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { FOLDER_REORDER_TARGET_ATTRIBUTE } from "@/lib/sidebar/folder-tree-drop-target";
-import { runFolderReorderDropAnimation } from "@/lib/sidebar/folder-tree-reorder-animation";
+import {
+  captureFolderReorderSnapshot,
+  type FolderReorderSnapshot,
+  playFolderReorderAnimation,
+} from "@/lib/sidebar/folder-tree-reorder-animation";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -106,15 +110,14 @@ export function useSidebarFeedSectionController({
     moveFeedToUnfoldered,
   });
 
-  const runFolderDropAnimation = useCallback(() => {
-    const reducedMotion =
-      typeof window !== "undefined" && typeof window.matchMedia === "function"
-        ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        : false;
-    runFolderReorderDropAnimation({
+  // The optimistic cache write lands after the drop handler returns, so the rows are captured
+  // here and animated by the layout effect below once the visible order actually changes.
+  const pendingFolderReorderSnapshotRef = useRef<FolderReorderSnapshot | null>(null);
+  const captureFolderReorderForAnimation = useCallback(() => {
+    pendingFolderReorderSnapshotRef.current = captureFolderReorderSnapshot({
       container: resolvedFeedTreeScrollContainerRef.current,
       targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
-      reducedMotion,
+      now: Date.now(),
     });
   }, [resolvedFeedTreeScrollContainerRef]);
 
@@ -132,7 +135,7 @@ export function useSidebarFeedSectionController({
     onReorderToVisibleIndex: (folderId, targetVisibleIndex) => {
       reorderToVisibleIndexRef.current(folderId, targetVisibleIndex);
     },
-    onDropAnimation: runFolderDropAnimation,
+    onDropAnimation: captureFolderReorderForAnimation,
   });
 
   const { feedById, selectedFeedId, feedTreeFolders, unfolderedFeedViews, orderedFeedIds, visibleOrderedFolderIds } =
@@ -152,12 +155,37 @@ export function useSidebarFeedSectionController({
 
   visibleOrderedFolderIdsRef.current = visibleOrderedFolderIds;
 
+  const visibleFolderOrderKey = visibleOrderedFolderIds.join("\u0000");
+  const previousVisibleFolderOrderKeyRef = useRef(visibleFolderOrderKey);
+  useLayoutEffect(() => {
+    if (previousVisibleFolderOrderKeyRef.current === visibleFolderOrderKey) {
+      return;
+    }
+    previousVisibleFolderOrderKeyRef.current = visibleFolderOrderKey;
+
+    const snapshot = pendingFolderReorderSnapshotRef.current;
+    if (!snapshot) {
+      return;
+    }
+    pendingFolderReorderSnapshotRef.current = null;
+    const reducedMotion =
+      typeof window !== "undefined" && typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        : false;
+    playFolderReorderAnimation({
+      container: resolvedFeedTreeScrollContainerRef.current,
+      targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      snapshot,
+      reducedMotion,
+      now: Date.now(),
+    });
+  }, [resolvedFeedTreeScrollContainerRef, visibleFolderOrderKey]);
+
   const {
     liveRegionMessage,
     moveFolderByDirection,
     reorderFolderToVisibleIndex,
     resetFolderOrder,
-    getVisibleFolderMenuState,
     resolvedFolderOrderMode,
   } = useSidebarFolderReorderActions({
     accountId: selectedAccountId,
@@ -170,7 +198,6 @@ export function useSidebarFeedSectionController({
 
   const renderFolderContextMenu = useCallback(
     (folder: FeedTreeFolderViewModel) => {
-      const menuState = getVisibleFolderMenuState(folder.id);
       return (
         <FolderContextMenuContent
           folder={{
@@ -194,17 +221,11 @@ export function useSidebarFeedSectionController({
             web_preview_mode: feed.webPreviewMode,
           }))}
           folderOrderMode={resolvedFolderOrderMode}
-          visibleFolderIndex={menuState.visibleIndex}
-          visibleFolderCount={menuState.visibleCount}
-          canMoveFolderUp={menuState.canMoveUp}
-          canMoveFolderDown={menuState.canMoveDown}
-          onMoveFolderUp={() => moveFolderByDirection(folder.id, "up")}
-          onMoveFolderDown={() => moveFolderByDirection(folder.id, "down")}
           onResetFolderOrder={resetFolderOrder}
         />
       );
     },
-    [getVisibleFolderMenuState, moveFolderByDirection, resetFolderOrder, resolvedFolderOrderMode],
+    [resetFolderOrder, resolvedFolderOrderMode],
   );
 
   const onFolderReorderKeyDown = useCallback(

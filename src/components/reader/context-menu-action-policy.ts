@@ -23,8 +23,6 @@ export const CONTEXT_MENU_ACTION_IDS = {
   folderMarkAllRead: "folder-mark-all-read",
   folderMarkOldUnreadRead: "folder-mark-old-unread-read",
   folderMarkOldUnreadReadDays: "folder-mark-old-unread-read-days",
-  folderMoveUp: "folder-move-up",
-  folderMoveDown: "folder-move-down",
   folderResetOrder: "folder-reset-order",
   folderSetDisplayPreset: "folder-set-display-preset",
   smartRecentClearHistory: "smart-recent-clear-history",

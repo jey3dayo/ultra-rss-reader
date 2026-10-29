@@ -14,12 +14,6 @@ type FolderContextMenuContentProps = {
   folderUnread: number;
   feeds: FeedDto[];
   folderOrderMode: FolderOrderMode;
-  visibleFolderIndex: number;
-  visibleFolderCount: number;
-  canMoveFolderUp: boolean;
-  canMoveFolderDown: boolean;
-  onMoveFolderUp: () => void;
-  onMoveFolderDown: () => void;
   onResetFolderOrder: () => void;
 };
 
@@ -41,10 +35,6 @@ export function FolderContextMenuContent({
   folder,
   folderUnread,
   folderOrderMode,
-  canMoveFolderUp,
-  canMoveFolderDown,
-  onMoveFolderUp,
-  onMoveFolderDown,
   onResetFolderOrder,
 }: FolderContextMenuContentProps) {
   const { t } = useTranslation("reader");
@@ -69,13 +59,9 @@ export function FolderContextMenuContent({
       markAllReadLabel={t("mark_all_as_read")}
       markOldUnreadReadLabel={t("mark_old_unread_read")}
       oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
-      moveUpLabel={sidebarT("folder_move_up")}
-      moveDownLabel={sidebarT("folder_move_down")}
       resetOrderLabel={sidebarT("folder_reset_order")}
       hasUnreadArticles={folderUnread > 0}
       folderOrderMode={folderOrderMode}
-      canMoveUp={canMoveFolderUp}
-      canMoveDown={canMoveFolderDown}
       onMarkAllRead={handleMarkAllRead}
       onMarkOldUnreadRead={(days) =>
         createMenuActionHandler(
@@ -87,10 +73,6 @@ export function FolderContextMenuContent({
             showToast,
           },
         )()
-      }
-      onMoveUp={() => createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.folderMoveUp, onMoveFolderUp, { showToast })()}
-      onMoveDown={() =>
-        createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.folderMoveDown, onMoveFolderDown, { showToast })()
       }
       onResetOrder={() =>
         createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.folderResetOrder, onResetFolderOrder, { showToast })()

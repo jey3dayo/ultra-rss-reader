@@ -45,6 +45,7 @@ pub(super) const MIGRATION_V25: &str =
     include_str!("../../../../migrations/V25__folder_name_scope.sql");
 pub(super) const MIGRATION_V26: &str =
     include_str!("../../../../migrations/V26__sanitizer_version_backfill_index.sql");
+#[cfg(test)]
 pub(super) const MIGRATION_V27: &str =
     include_str!("../../../../migrations/V27__account_folder_order_mode.sql");
 
@@ -63,3 +64,5 @@ pub(super) const V22_LAST_EXPORT_DIGEST_SQL: &str =
     "ALTER TABLE local_account_sync_settings ADD COLUMN last_export_digest TEXT";
 pub(super) const V24_FEED_ICON_URL_COLUMN: &str = "icon_url";
 pub(super) const V24_FEED_ICON_URL_SQL: &str = "ALTER TABLE feeds ADD COLUMN icon_url TEXT";
+pub(super) const V27_FOLDER_ORDER_MODE_COLUMN: &str = "folder_order_mode";
+pub(super) const V27_FOLDER_ORDER_MODE_SQL: &str = "ALTER TABLE accounts ADD COLUMN folder_order_mode TEXT NOT NULL DEFAULT 'name' CHECK (folder_order_mode IN ('name', 'manual'))";

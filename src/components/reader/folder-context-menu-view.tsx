@@ -8,17 +8,11 @@ type FolderContextMenuViewProps = {
   markAllReadLabel: string;
   markOldUnreadReadLabel: string;
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
-  moveUpLabel: string;
-  moveDownLabel: string;
   resetOrderLabel: string;
   hasUnreadArticles?: boolean;
   folderOrderMode: FolderOrderMode;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   onMarkAllRead: () => void;
   onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onResetOrder: () => void;
 };
 
@@ -26,17 +20,11 @@ export function FolderContextMenuView({
   markAllReadLabel,
   markOldUnreadReadLabel,
   oldUnreadDayLabel,
-  moveUpLabel,
-  moveDownLabel,
   resetOrderLabel,
   hasUnreadArticles = true,
   folderOrderMode,
-  canMoveUp,
-  canMoveDown,
   onMarkAllRead,
   onMarkOldUnreadRead,
-  onMoveUp,
-  onMoveDown,
   onResetOrder,
 }: FolderContextMenuViewProps) {
   return (
@@ -59,31 +47,17 @@ export function FolderContextMenuView({
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}
           />
-          <ContextMenu.Separator className={contextMenuStyles.separator} />
-          <ContextMenu.Item
-            data-action-id={CONTEXT_MENU_ACTION_IDS.folderMoveUp}
-            className={contextMenuStyles.item}
-            disabled={!canMoveUp}
-            onClick={onMoveUp}
-          >
-            {moveUpLabel}
-          </ContextMenu.Item>
-          <ContextMenu.Item
-            data-action-id={CONTEXT_MENU_ACTION_IDS.folderMoveDown}
-            className={contextMenuStyles.item}
-            disabled={!canMoveDown}
-            onClick={onMoveDown}
-          >
-            {moveDownLabel}
-          </ContextMenu.Item>
           {folderOrderMode === "manual" ? (
-            <ContextMenu.Item
-              data-action-id={CONTEXT_MENU_ACTION_IDS.folderResetOrder}
-              className={contextMenuStyles.item}
-              onClick={onResetOrder}
-            >
-              {resetOrderLabel}
-            </ContextMenu.Item>
+            <>
+              <ContextMenu.Separator className={contextMenuStyles.separator} />
+              <ContextMenu.Item
+                data-action-id={CONTEXT_MENU_ACTION_IDS.folderResetOrder}
+                className={contextMenuStyles.item}
+                onClick={onResetOrder}
+              >
+                {resetOrderLabel}
+              </ContextMenu.Item>
+            </>
           ) : null}
         </ContextMenu.Popup>
       </ContextMenu.Positioner>

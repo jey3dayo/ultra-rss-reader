@@ -393,6 +393,30 @@ describe("FeedTreeFolderSection", () => {
     expect(onSelectFolder).not.toHaveBeenCalled();
   });
 
+  it("ignores the click that follows a folder drag instead of collapsing the selected folder", () => {
+    const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+    const consumeSuppressedHandleClick = vi.fn(() => true);
+
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, isExpanded: true }}
+        activeDropTarget={null}
+        onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+        displayFavicons={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+
+    expect(consumeSuppressedHandleClick).toHaveBeenCalledTimes(1);
+    expect(onToggleFolder).not.toHaveBeenCalled();
+    expect(onSelectFolder).not.toHaveBeenCalled();
+  });
+
   it("expands and selects a collapsed folder from the folder row", () => {
     const onToggleFolder = vi.fn();
     const onSelectFolder = vi.fn();
