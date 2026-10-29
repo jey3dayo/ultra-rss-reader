@@ -131,7 +131,7 @@ Platform permission denied copy contract:
 - Check the migration error output first to find the redacted database or backup label and backup directory label for the failed startup.
 - Do not delete backup files until you have confirmed the app can reopen the database safely.
 - Treat the main `.db` file and any matching `-wal` / `-shm` sidecars as a backup set.
-- Treat database backup sets as private, unencrypted user data. They may contain subscription history, article metadata/content, tags, folders, read/star state, and sync metadata even though production credentials live in the OS keyring.
+- Treat database backup sets as private, unencrypted user data. They may contain subscription history, article metadata/content, tags, folders, read/star state, and sync metadata even though production credentials are kept outside the database (in the OS keyring by default, or in unencrypted `credentials.json` in local-file mode, which is not part of a database backup).
 - App-created database backups run `integrity_check` before copying, checkpoint WAL with `TRUNCATE` before the copy, write through a temporary file plus rename, write metadata, and run `integrity_check` again on the backup before reporting success.
 - Automatic restore runs `integrity_check` on the backup before staging files, restores the `.db` plus matching `-wal` / `-shm` set through temporary files and rollback files, checkpoints WAL with `TRUNCATE`, and runs `integrity_check` on the restored database before reopening it.
 - Migrations run inside one SQLite transaction. If any migration step fails, the transaction rolls back to the original schema version; startup then restores the preserved pre-migration backup when one exists, otherwise the failed database and logs must be preserved for manual recovery.
@@ -174,7 +174,7 @@ Use private data reset only after preserving any logs or backups needed for an a
 Retention contract:
 
 - Uninstall or app binary deletion removes the application bundle only; it must not be described as deleting local app data.
-- Reinstalling the same version or a newer version may reuse the existing app data, database, preferences, logs, and OS keyring credentials.
+- Reinstalling the same version or a newer version may reuse the existing app data, database, preferences, logs, and stored credentials (OS keyring entries by default, or `credentials.json` in local-file mode).
 - App data removal is a separate privacy operation that must verify each retained surface below.
 - A bundle identifier change creates a different OS app data, log, and keyring namespace. Treat any apparent "missing data after update" report after an identifier change as a migration-path incident, not as a private data reset.
 - A reset is complete only when all applicable surfaces are removed or intentionally preserved for an active incident. If any surface cannot be checked or removed, the result is incomplete.
@@ -182,7 +182,7 @@ Retention contract:
 Before telling a user that private data has been cleared, verify each surface separately:
 
 - local app database and any `-wal` / `-shm` sidecars
-- OS keyring credentials
+- stored credentials: OS keyring entries by default, or `credentials.json` in the app data directory in local-file mode
 - preferences, window state, and local app settings
 - release logs opened by the in-app log-directory flow
 - stale support/debug logs and support dumps created during troubleshooting
@@ -202,7 +202,7 @@ Account recovery contract:
 - Credential reset means re-entering and saving the account password. If saving the account update fails after writing the new credential, restore the previous keyring entry; if the previous credential cannot be read, leave the account unchanged and ask the user to re-enter credentials.
 - Server URL or username fix means updating account credentials metadata and then testing the connection. When either value changes, clear account-scoped `sync_state` and `pending_mutations`; when they do not change, keep the cache and pending queue.
 - Cache clear means removing stale account-scoped sync state or pending mutations, not rewriting credentials. If the UI cannot expose a separate cache clear action, describe it as unavailable rather than folding it into credential reset.
-- Delete account removes the database account first, then attempts to remove the matching OS keyring entry by account id. A keyring cleanup failure makes privacy cleanup incomplete, but must not resurrect the deleted database account.
+- Delete account removes the database account first, then attempts to remove the matching stored credential by account id: the OS keyring entry by default, or the account's entry in `credentials.json` in local-file mode. A credential cleanup failure makes privacy cleanup incomplete, but must not resurrect the deleted database account.
 - Rename account does not rename keyring entries because credentials are keyed by stable account id, not display name.
 
 App data namespace migration contract:
