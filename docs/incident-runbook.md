@@ -182,7 +182,7 @@ Retention contract:
 Before telling a user that private data has been cleared, verify each surface separately:
 
 - local app database and any `-wal` / `-shm` sidecars
-- stored credentials: OS keyring entries by default, or `credentials.json` in the app data directory in local-file mode
+- stored credentials: OS keyring entries by default, or `credentials.json` in the app data directory in local-file mode; if the storage mode was ever switched, or a switch reported `cleanup_failures`, check both stores because secrets can remain in the previous one
 - preferences, window state, and local app settings
 - release logs opened by the in-app log-directory flow
 - stale support/debug logs and support dumps created during troubleshooting
