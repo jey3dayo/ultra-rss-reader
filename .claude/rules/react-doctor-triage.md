@@ -86,7 +86,7 @@ PR's own code, so neither consequence above is weakened — a new finding on the
 reaches `main` unnoticed. What it removes is the third failure mode this file records: a pin whose
 totals add up while the sets behind them disagree. Adopted 2026-09-18 under Issue #324.
 
-### The Diff Gate Currently Runs Degraded
+### When The Diff Gate Degrades
 
 `quality:react-doctor:diff` prints an extra line when react-doctor sets `baselineDegraded`:
 
@@ -94,22 +94,23 @@ totals add up while the sets behind them disagree. Adopted 2026-09-18 under Issu
 React Doctor reported no baseline comparison, so this run lists every finding in the changed files rather than only new ones.
 ```
 
-react-doctor's own report schema documents that state as "a `baseline` run was intended but the
-base couldn't be resolved — a shallow CI checkout with no merge base, or a failed base/head
-lint", and says the report then "lists every finding in the changed files (mode downgrades to
-`diff`, the `baseline` block is dropped, the CI gate is skipped)". In other words a degraded run
-is the `files` behaviour again, and the counts alone cannot be told apart from a real delta —
-which is why the wrapper says so out loud instead of letting the numbers stand for something
-they are not. The wrapper names the missing comparison rather than a cause, because the flag is
-computed from `baselineDelta === undefined` and both listed causes land there indistinguishably.
+A degraded run is a `baseline` run that was intended but produced no comparison. The report then
+lists every finding in the changed files, and its counts cannot be told apart from a real delta,
+which is why the wrapper says so out loud. The wrapper names the missing comparison rather than a
+cause, because several causes land on the same `baselineDelta === undefined` check.
 
-Do not read a green diff gate as "no new findings" while this line appears; read it as "no
-findings at all in the changed files", which is strictly stronger and therefore still safe to
-gate on. Every `--scope changed` run in this repository currently degrades however the base is
-given, and `--help` documents no baseline option, so the cause is not reachable from the CLI
-surface. Finding it, so the gate reports what it was changed to report, is open work; the
-measured attempts are in
+The gate degrades only under specific conditions, such as unmerged paths in the working tree, and a
+shallow checkout with no merge base falls back to a full scan without setting the flag; the wrapper
+fails that case as `mode drift`. The measured conditions per state are in
 [../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
+
+A green diff gate that prints the degraded line means no findings at all in the changed files, which
+is stricter than "no new findings" and still safe to gate on. A red one in that state may be listing
+findings the base already had.
+
+Before putting the diff gate in CI, deepen the checkout (a PR merge ref needs both parents) and
+check that `git merge-base <base> HEAD` succeeds in a step ahead of the scan; the CI behaviour
+itself has not been observed. Tracking: [#431](https://github.com/jey3dayo/ultra-rss-reader/issues/431).
 
 ### Recording An Accepted Risk So The Gate Can See It
 
