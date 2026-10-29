@@ -1,12 +1,27 @@
 import { FOLDER_REORDER_FOLDER_ID_ATTRIBUTE } from "./folder-tree-drop-target";
 
-const FLIP_SPRING_OPTIONS: KeyframeAnimationOptions = {
-  duration: 420,
-  easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
-  fill: "both",
-};
+function readMotionToken(name: string, fallback: string): string {
+  if (typeof document === "undefined") {
+    return fallback;
+  }
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
 
-const REDUCED_MOTION_HIGHLIGHT_MS = 150;
+// WAAPI cannot resolve var() in its timing options, so the shared tokens are read from the token layer.
+function flipOptions(): KeyframeAnimationOptions {
+  return {
+    duration: Number.parseFloat(readMotionToken("--motion-duration-resize", "260")),
+    easing: readMotionToken("--motion-ease-standard", "ease-out"),
+    fill: "both",
+  };
+}
+
+function reducedMotionFadeOptions(): KeyframeAnimationOptions {
+  return {
+    duration: Number.parseFloat(readMotionToken("--motion-duration-contextual", "180")),
+    easing: readMotionToken("--motion-ease-standard", "ease-out"),
+  };
+}
 
 export const FOLDER_REORDER_SNAPSHOT_MAX_AGE_MS = 1500;
 
@@ -71,14 +86,11 @@ export function playFolderReorderAnimation(params: {
 
     played = true;
     if (reducedMotion) {
-      row.animate([{ backgroundColor: "var(--feed-tree-drop-target-surface)" }, { backgroundColor: "transparent" }], {
-        duration: REDUCED_MOTION_HIGHLIGHT_MS,
-        fill: "none",
-      });
+      row.animate([{ opacity: 0.6 }, { opacity: 1 }], reducedMotionFadeOptions());
       continue;
     }
 
-    row.animate([{ transform: `translateY(${deltaY}px)` }, { transform: "translateY(0)" }], FLIP_SPRING_OPTIONS);
+    row.animate([{ transform: `translateY(${deltaY}px)` }, { transform: "translateY(0)" }], flipOptions());
   }
 
   return played ? "played" : "unmoved";

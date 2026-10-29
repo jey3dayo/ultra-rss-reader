@@ -76,6 +76,36 @@ describe("folder reorder animation", () => {
     );
   });
 
+  it("takes the row motion timing from the shared motion tokens instead of an inline curve", () => {
+    document.documentElement.style.setProperty("--motion-duration-resize", "300ms");
+    document.documentElement.style.setProperty("--motion-ease-standard", "cubic-bezier(0.1, 0.2, 0.3, 0.4)");
+    const { container, alpha } = setup();
+    const snapshot = captureFolderReorderSnapshot({
+      container,
+      targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      now: 1000,
+    });
+    if (!snapshot) {
+      throw new Error("snapshot should be captured while target rows exist");
+    }
+
+    alpha.setTop(20);
+    playFolderReorderAnimation({
+      container,
+      targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      snapshot,
+      reducedMotion: false,
+      now: 1100,
+    });
+
+    expect(alpha.animate).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({ duration: 300, easing: "cubic-bezier(0.1, 0.2, 0.3, 0.4)" }),
+    );
+    document.documentElement.style.removeProperty("--motion-duration-resize");
+    document.documentElement.style.removeProperty("--motion-ease-standard");
+  });
+
   it("reports unmoved so the snapshot survives a render that has not applied the new order yet", () => {
     const { container, alpha, bravo } = setup();
     const snapshot = captureFolderReorderSnapshot({
@@ -144,10 +174,7 @@ describe("folder reorder animation", () => {
       now: 1100,
     });
 
-    expect(alpha.animate).toHaveBeenCalledWith(
-      [{ backgroundColor: "var(--feed-tree-drop-target-surface)" }, { backgroundColor: "transparent" }],
-      expect.objectContaining({ fill: "none" }),
-    );
+    expect(alpha.animate).toHaveBeenCalledWith([{ opacity: 0.6 }, { opacity: 1 }], expect.any(Object));
   });
 
   it("keeps watching through renders that leave rows in place and plays once a row actually moves", () => {
