@@ -45,6 +45,7 @@ export function useFeedMoveMotion({
   moveFeedToUnfoldered,
 }: UseFeedMoveMotionParams): UseFeedMoveMotionResult {
   const sessionRef = useRef<FeedMoveMotionSession | null>(null);
+  const sessionScopeKeyRef = useRef(scopeKey);
   const scopeKeyRef = useRef(scopeKey);
   scopeKeyRef.current = scopeKey;
   const lastInputWasKeyboardRef = useKeyboardInputTracker();
@@ -55,6 +56,12 @@ export function useFeedMoveMotion({
   }, []);
 
   useEffect(() => stopSession, [stopSession]);
+
+  useEffect(() => {
+    if (sessionScopeKeyRef.current !== scopeKey) {
+      stopSession();
+    }
+  }, [scopeKey, stopSession]);
 
   const moveWithMotion = useCallback(
     async (feedId: string, destinationFolderId: string | null, move: () => Promise<unknown>) => {
@@ -77,6 +84,7 @@ export function useFeedMoveMotion({
           })
         : null;
       sessionRef.current = session;
+      sessionScopeKeyRef.current = scopeKeyRef.current;
 
       try {
         return await move();

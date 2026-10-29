@@ -249,7 +249,7 @@ describe("feed move animation", () => {
 
     expect(tree.a2.animate).toHaveBeenCalledWith(
       expect.any(Array),
-      expect.objectContaining({ duration: 300, easing: "ease-in-out" }),
+      expect.objectContaining({ duration: 300, easing: "ease-in-out", fill: "none" }),
     );
     expect(tree.a1.button.animate).toHaveBeenCalledWith(
       expect.any(Array),

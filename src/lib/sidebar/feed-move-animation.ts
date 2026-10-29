@@ -5,13 +5,18 @@ import { FOLDER_REORDER_SNAPSHOT_MAX_AGE_MS, fadeOptions, flipOptions } from "./
 export const FEED_MOVE_FEED_ROW_ATTRIBUTE = "data-feed-row-id";
 export const FEED_MOVE_FOLDER_ROW_ATTRIBUTE = "data-folder-row-id";
 
+// Only leaf rows animate (feed rows and folder header rows), so a folder's displacement never stacks on its children's.
 const MOTION_ROW_SELECTOR = `[${FEED_MOVE_FEED_ROW_ATTRIBUTE}], [${FEED_MOVE_FOLDER_ROW_ATTRIBUTE}]`;
 const NOT_ANIMATABLE_ANCESTOR_SELECTOR = `[aria-hidden="true"], [inert], [${MOTION_DATA_SIDEBAR_ROW_LEAVING_ATTRIBUTE}="true"]`;
 // The row's button carries the mount-time list-item enter animation; the fade has to sit on the same element to override it.
 const MOVED_ROW_FADE_TARGET_SELECTOR = "[data-feed-id]";
 const FADE_KEYFRAMES: Keyframe[] = [{ opacity: 0.6 }, { opacity: 1 }];
 
-// Animated rows are leaves only (feed rows and folder header rows), so a folder's displacement never stacks on its children's.
+// Rows keep no transform after the motion, so they do not stay stacking contexts.
+function feedMoveFlipOptions(): KeyframeAnimationOptions {
+  return { ...flipOptions(), fill: "none" };
+}
+
 export type FeedMoveSnapshot = {
   capturedAt: number;
   scopeKey: string;
@@ -132,7 +137,10 @@ export function playFeedMoveAnimation(params: {
     animations.push(
       reducedMotion
         ? element.animate(FADE_KEYFRAMES, fadeOptions())
-        : element.animate([{ transform: `translateY(${deltaY}px)` }, { transform: "translateY(0)" }], flipOptions()),
+        : element.animate(
+            [{ transform: `translateY(${deltaY}px)` }, { transform: "translateY(0)" }],
+            feedMoveFlipOptions(),
+          ),
     );
   }
 

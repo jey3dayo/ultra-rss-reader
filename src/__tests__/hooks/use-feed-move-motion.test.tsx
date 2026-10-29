@@ -94,6 +94,20 @@ describe("useFeedMoveMotion", () => {
     expect(tree.a1.animate).not.toHaveBeenCalled();
   });
 
+  it("does not animate a move activated with the space key", async () => {
+    const tree = setupTree();
+    const { result } = renderMotion(tree);
+
+    pressKey(" ");
+    await act(async () => {
+      await result.current.moveFeedToFolder("a1", "bravo");
+    });
+    tree.applyMove();
+    flushTestMutationObservers();
+
+    expect(tree.a2.animate).not.toHaveBeenCalled();
+  });
+
   it("animates again once the pointer is used after a keyboard activation", async () => {
     const tree = setupTree();
     const { result } = renderMotion(tree);
@@ -172,6 +186,22 @@ describe("useFeedMoveMotion", () => {
     flushTestMutationObservers();
 
     expect(tree.a2.animate).not.toHaveBeenCalled();
+  });
+
+  it("cancels a motion that is already running when the scope changes", async () => {
+    const tree = setupTree();
+    const { result, rerender } = renderMotion(tree);
+
+    await act(async () => {
+      await result.current.moveFeedToFolder("a1", "bravo");
+    });
+    tree.applyMove();
+    flushTestMutationObservers();
+    expect(tree.a2.cancel).not.toHaveBeenCalled();
+    rerender({ scopeKey: "acc-1:unread" });
+
+    expect(tree.a2.cancel).toHaveBeenCalledTimes(1);
+    expect(tree.bravo.header.cancel).toHaveBeenCalledTimes(1);
   });
 
   it("does not play a move that lands after unmount", async () => {
