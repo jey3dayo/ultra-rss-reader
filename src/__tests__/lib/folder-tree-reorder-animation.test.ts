@@ -1,3 +1,4 @@
+import { flushTestMutationObservers } from "@tests/setup";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
@@ -7,6 +8,7 @@ import {
   captureFolderReorderSnapshot,
   FOLDER_REORDER_SNAPSHOT_MAX_AGE_MS,
   playFolderReorderAnimation,
+  watchFolderReorderAnimation,
 } from "@/lib/sidebar/folder-tree-reorder-animation";
 
 type TestRow = { element: HTMLElement; animate: ReturnType<typeof vi.fn>; setTop: (top: number) => void };
@@ -55,7 +57,7 @@ describe("folder reorder animation", () => {
 
     alpha.setTop(20);
     bravo.setTop(0);
-    playFolderReorderAnimation({
+    const outcome = playFolderReorderAnimation({
       container,
       targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
       snapshot,
@@ -63,6 +65,7 @@ describe("folder reorder animation", () => {
       now: 1100,
     });
 
+    expect(outcome).toBe("played");
     expect(alpha.animate).toHaveBeenCalledWith(
       [{ transform: "translateY(-20px)" }, { transform: "translateY(0)" }],
       expect.objectContaining({ duration: expect.any(Number) }),
@@ -73,7 +76,7 @@ describe("folder reorder animation", () => {
     );
   });
 
-  it("skips rows that did not move", () => {
+  it("reports unmoved so the snapshot survives a render that has not applied the new order yet", () => {
     const { container, alpha, bravo } = setup();
     const snapshot = captureFolderReorderSnapshot({
       container,
@@ -84,7 +87,7 @@ describe("folder reorder animation", () => {
       throw new Error("snapshot should be captured while target rows exist");
     }
 
-    playFolderReorderAnimation({
+    const outcome = playFolderReorderAnimation({
       container,
       targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
       snapshot,
@@ -92,6 +95,7 @@ describe("folder reorder animation", () => {
       now: 1100,
     });
 
+    expect(outcome).toBe("unmoved");
     expect(alpha.animate).not.toHaveBeenCalled();
     expect(bravo.animate).not.toHaveBeenCalled();
   });
@@ -108,7 +112,7 @@ describe("folder reorder animation", () => {
     }
 
     alpha.setTop(40);
-    playFolderReorderAnimation({
+    const outcome = playFolderReorderAnimation({
       container,
       targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
       snapshot,
@@ -116,6 +120,7 @@ describe("folder reorder animation", () => {
       now: 1000 + FOLDER_REORDER_SNAPSHOT_MAX_AGE_MS + 1,
     });
 
+    expect(outcome).toBe("expired");
     expect(alpha.animate).not.toHaveBeenCalled();
   });
 
@@ -143,5 +148,60 @@ describe("folder reorder animation", () => {
       [{ backgroundColor: "var(--feed-tree-drop-target-surface)" }, { backgroundColor: "transparent" }],
       expect.objectContaining({ fill: "none" }),
     );
+  });
+
+  it("keeps watching through renders that leave rows in place and plays once a row actually moves", () => {
+    const { container, alpha, bravo } = setup();
+    const snapshot = captureFolderReorderSnapshot({
+      container,
+      targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      now: Date.now(),
+    });
+    if (!snapshot) {
+      throw new Error("snapshot should be captured while target rows exist");
+    }
+    const stop = watchFolderReorderAnimation({
+      container,
+      targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      snapshot,
+      reducedMotion: false,
+    });
+
+    flushTestMutationObservers();
+    expect(alpha.animate).not.toHaveBeenCalled();
+
+    alpha.setTop(20);
+    bravo.setTop(0);
+    flushTestMutationObservers();
+    expect(alpha.animate).toHaveBeenCalledTimes(1);
+    expect(bravo.animate).toHaveBeenCalledTimes(1);
+
+    flushTestMutationObservers();
+    expect(alpha.animate).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("stops watching when cancelled so a later reorder is not animated from the old snapshot", () => {
+    const { container, alpha } = setup();
+    const snapshot = captureFolderReorderSnapshot({
+      container,
+      targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      now: Date.now(),
+    });
+    if (!snapshot) {
+      throw new Error("snapshot should be captured while target rows exist");
+    }
+    const stop = watchFolderReorderAnimation({
+      container,
+      targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      snapshot,
+      reducedMotion: false,
+    });
+    stop();
+
+    alpha.setTop(20);
+    flushTestMutationObservers();
+
+    expect(alpha.animate).not.toHaveBeenCalled();
   });
 });

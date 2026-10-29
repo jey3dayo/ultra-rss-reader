@@ -100,6 +100,13 @@ function cloneMockResponse<T>(value: T): T {
   return structuredClone(value);
 }
 
+function setDevMockFolderOrderMode(accountId: string, folderOrderMode: AccountDto["folder_order_mode"]) {
+  const account = mockAccounts.find((candidate) => candidate.id === accountId);
+  if (account) {
+    account.folder_order_mode = folderOrderMode;
+  }
+}
+
 function resetDevMockState() {
   resetDevMockDataState();
   resetDevMockDiagnostics();
@@ -428,6 +435,7 @@ export function setupDevMocks(): RestoreDevMocks {
             folder.sort_order = index;
           }
         });
+        setDevMockFolderOrderMode(accountId, "manual");
         return cloneMockResponse(
           accountFolders
             .slice()
@@ -445,6 +453,7 @@ export function setupDevMocks(): RestoreDevMocks {
             folder.sort_order = index;
           }
         });
+        setDevMockFolderOrderMode(accountId, "name");
         return cloneMockResponse(
           accountFolders
             .slice()
