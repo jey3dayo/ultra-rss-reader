@@ -1576,7 +1576,7 @@ describe("Sidebar", () => {
     });
   });
 
-  it("leaves folder rows and sidebar focus alone for Cmd+Option and Alt+Shift arrow chords", async () => {
+  it("no longer reorders folders on the former Cmd+Option and Alt+Shift arrow chords", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -1616,7 +1616,6 @@ describe("Sidebar", () => {
       throw new Error("Expected the Bravo folder row to be a button");
     }
     bravoRow.focus();
-    const selectionBefore = useUiStore.getState().selection;
 
     for (const chord of [
       { key: "ArrowUp", metaKey: true, altKey: true },
@@ -1627,8 +1626,6 @@ describe("Sidebar", () => {
       fireEvent.keyDown(bravoRow, chord);
     }
 
-    expect(bravoRow).toHaveFocus();
-    expect(useUiStore.getState().selection).toEqual(selectionBefore);
     expect(calls.filter((call) => call.cmd === "reorder_folders")).toEqual([]);
   });
 

@@ -29,8 +29,6 @@ function focusSidebarNavigationTarget(target: HTMLButtonElement) {
 function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>, onFocusAccountList: () => void) {
   if (
     event.defaultPrevented ||
-    event.altKey ||
-    event.metaKey ||
     (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "ArrowLeft" && event.key !== "ArrowRight")
   ) {
     return;
