@@ -231,4 +231,92 @@ describe("folder reorder animation", () => {
 
     expect(alpha.animate).not.toHaveBeenCalled();
   });
+
+  describe("with a caller-specified id attribute", () => {
+    const ID_ATTRIBUTE = "data-test-row-id";
+
+    function mountRowWithAttributes(container: HTMLElement, attributes: Record<string, string>, top: number): TestRow {
+      const row = mountRow(container, "unused", top);
+      row.element.removeAttribute(FOLDER_REORDER_FOLDER_ID_ATTRIBUTE);
+      for (const [name, value] of Object.entries(attributes)) {
+        row.element.setAttribute(name, value);
+      }
+      return row;
+    }
+
+    it("matches rows before and after the move by the value of that attribute", () => {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const alpha = mountRowWithAttributes(container, { [ID_ATTRIBUTE]: "alpha" }, 0);
+      const bravo = mountRowWithAttributes(container, { [ID_ATTRIBUTE]: "bravo" }, 20);
+      const snapshot = captureFolderReorderSnapshot({
+        container,
+        targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+        idAttribute: ID_ATTRIBUTE,
+        now: 1000,
+      });
+      if (!snapshot) {
+        throw new Error("snapshot should be captured while rows carry the id attribute");
+      }
+
+      alpha.setTop(20);
+      bravo.setTop(0);
+      const outcome = playFolderReorderAnimation({
+        container,
+        targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+        idAttribute: ID_ATTRIBUTE,
+        snapshot,
+        reducedMotion: false,
+        now: 1100,
+      });
+
+      expect(outcome).toBe("played");
+      expect(alpha.animate).toHaveBeenCalledWith(
+        [{ transform: "translateY(-20px)" }, { transform: "translateY(0)" }],
+        expect.anything(),
+      );
+      expect(bravo.animate).toHaveBeenCalledWith(
+        [{ transform: "translateY(20px)" }, { transform: "translateY(0)" }],
+        expect.anything(),
+      );
+    });
+
+    it("ignores rows without that attribute and rows outside the target attribute", () => {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const identified = mountRowWithAttributes(container, { [ID_ATTRIBUTE]: "alpha" }, 0);
+      const otherIdAttributeOnly = mountRowWithAttributes(
+        container,
+        { [FOLDER_REORDER_FOLDER_ID_ATTRIBUTE]: "alpha" },
+        20,
+      );
+      const outsideTarget = mountRowWithAttributes(container, { [ID_ATTRIBUTE]: "alpha" }, 40);
+      outsideTarget.element.removeAttribute(FOLDER_REORDER_TARGET_ATTRIBUTE);
+      const snapshot = captureFolderReorderSnapshot({
+        container,
+        targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+        idAttribute: ID_ATTRIBUTE,
+        now: 1000,
+      });
+      if (!snapshot) {
+        throw new Error("snapshot should be captured while a row carries the id attribute");
+      }
+
+      identified.setTop(60);
+      otherIdAttributeOnly.setTop(80);
+      outsideTarget.setTop(100);
+      playFolderReorderAnimation({
+        container,
+        targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+        idAttribute: ID_ATTRIBUTE,
+        snapshot,
+        reducedMotion: false,
+        now: 1100,
+      });
+
+      expect(identified.animate).toHaveBeenCalledTimes(1);
+      expect(otherIdAttributeOnly.animate).not.toHaveBeenCalled();
+      expect(outsideTarget.animate).not.toHaveBeenCalled();
+    });
+  });
 });
