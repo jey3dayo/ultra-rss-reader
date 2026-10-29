@@ -1023,7 +1023,10 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     expect(releasePermissions).toEqual({ contents: "write" });
     const jobPermissions = [...releaseWorkflow.matchAll(/^ {4}permissions:\n((?: {6}[^\n]+\n)+)/gm)];
-    expect(jobPermissions.map((match) => match[1])).toEqual(["      contents: write\n      actions: read\n"]);
+    expect(jobPermissions.map((match) => match[1])).toEqual([
+      "      contents: write\n      actions: read\n",
+      "      contents: read\n",
+    ]);
     expect(releaseWorkflow).toContain("  preflight:\n    permissions:\n      contents: write\n      actions: read");
   });
 
