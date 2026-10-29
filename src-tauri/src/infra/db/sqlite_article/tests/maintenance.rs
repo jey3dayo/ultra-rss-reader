@@ -165,6 +165,76 @@ fn purge_old_read_keeps_tagged_and_view_history_articles() {
 }
 
 #[test]
+fn purge_old_read_keeps_articles_with_pending_mutations() {
+    let db = test_db();
+    let account_id = insert_test_account_with_kind(&db, "FreshRss");
+    let other_account_id = insert_test_account_with_kind(&db, "FreshRss");
+    let feed_id = insert_test_feed(&db, &account_id);
+    let repo = SqliteArticleRepository::new(db.writer());
+    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+    let cutoff = Utc::now();
+    let old_time = cutoff - chrono::Duration::days(1);
+
+    let mut queued_old_read = make_article(&feed_id, "Queued old read");
+    queued_old_read.is_read = true;
+    queued_old_read.remote_id = Some("entry-queued".to_string());
+    queued_old_read.published_at = old_time;
+    queued_old_read.fetched_at = old_time;
+
+    let mut other_account_queued = make_article(&feed_id, "Other account queued");
+    other_account_queued.is_read = true;
+    other_account_queued.remote_id = Some("entry-other-account".to_string());
+    other_account_queued.published_at = old_time + chrono::Duration::minutes(1);
+    other_account_queued.fetched_at = old_time + chrono::Duration::minutes(1);
+
+    let mut plain_old_read = make_article(&feed_id, "Plain old read");
+    plain_old_read.is_read = true;
+    plain_old_read.remote_id = Some("entry-plain".to_string());
+    plain_old_read.published_at = old_time + chrono::Duration::minutes(2);
+    plain_old_read.fetched_at = old_time + chrono::Duration::minutes(2);
+
+    let mut newest = make_article(&feed_id, "Newest");
+    newest.is_read = true;
+    newest.remote_id = Some("entry-newest".to_string());
+    newest.published_at = old_time + chrono::Duration::minutes(3);
+    newest.fetched_at = old_time + chrono::Duration::minutes(3);
+
+    repo.upsert(&[
+        queued_old_read,
+        other_account_queued,
+        plain_old_read,
+        newest,
+    ])
+    .unwrap();
+    for (owner, remote_entry_id) in [
+        (&account_id, "entry-queued"),
+        (&other_account_id, "entry-other-account"),
+    ] {
+        pending_repo
+            .save(&PendingMutation {
+                id: None,
+                account_id: owner.clone(),
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: remote_entry_id.to_string(),
+                created_at: "2026-10-29T00:00:00Z".to_string(),
+            })
+            .unwrap();
+    }
+
+    let deleted = repo.purge_old_read(&account_id, cutoff).unwrap();
+
+    assert_eq!(deleted, 2);
+    let remaining_titles = repo
+        .find_by_feed(&feed_id, &Pagination::default())
+        .unwrap()
+        .into_iter()
+        .map(|article| article.title)
+        .collect::<Vec<_>>();
+    assert_eq!(remaining_titles, ["Newest", "Queued old read"]);
+}
+
+#[test]
 fn purge_old_read_is_scoped_to_account() {
     let db = test_db();
     let target_account_id = insert_test_account(&db);
