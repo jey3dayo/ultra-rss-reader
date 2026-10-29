@@ -84,7 +84,7 @@ async function applyBadgeCountCommand(
 export function useBadge() {
   const badgeRequestSeqRef = useRef(0);
   const latestBadgeCountRef = useRef<number | undefined>(undefined);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const badgePref = usePreferencesStore((s) => resolveUnreadBadgePreference(s.prefs.unread_badge));
   const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
@@ -111,6 +111,7 @@ export function useBadge() {
   }, [accountUnreadCount, accountUnreadCountFetching, badgePref, feeds, feedsFetching, selectedAccountId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };

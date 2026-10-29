@@ -73,7 +73,7 @@ function BrowserThemeWipeOverlay() {
   const resolvedTheme = themePreference === "system" ? systemTheme : themePreference;
   const reducedMotion = useReducedMotionPreference();
   const cleanupTimeoutRef = useRef<number | null>(null);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const previousResolvedThemeRef = useRef<typeof resolvedTheme | null>(null);
   const [wipeKey, setWipeKey] = useState(0);
 
@@ -121,6 +121,7 @@ function BrowserThemeWipeOverlay() {
   }, [reducedMotion, resolvedTheme]);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (cleanupTimeoutRef.current !== null) {

@@ -26,13 +26,11 @@ export function useArticleBrowserOverlayClose({
   setBrowserCloseInFlight,
   setBrowserOverlayClosedPreference,
 }: UseArticleBrowserOverlayCloseParams) {
-  const mountedRef = useRef(true);
   const closeInFlightByHookRef = useRef(false);
   const closeFinalizedRef = useRef(false);
 
   useEffect(() => {
     return () => {
-      mountedRef.current = false;
       if (closeInFlightByHookRef.current && useUiStore.getState().browserCloseInFlight) {
         setBrowserCloseInFlight(false);
       }
