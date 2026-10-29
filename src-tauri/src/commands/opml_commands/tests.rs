@@ -228,6 +228,29 @@ fn import_parser_normalizes_feed_title_and_folder_like_regular_validation() {
 }
 
 #[test]
+fn validate_opml_feed_url_trims_surrounding_whitespace() {
+    assert_eq!(
+        super::import::validate_opml_feed_url("  https://example.com/feed.xml  ").unwrap(),
+        "https://example.com/feed.xml"
+    );
+}
+
+#[test]
+fn import_parser_trims_whitespace_around_xml_url() {
+    let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+<outline text="Padded" type="rss" xmlUrl=" https://example.com/feed.xml "/>
+  </body>
+</opml>"#;
+
+    let feeds = parse_import_opml(opml).unwrap();
+
+    assert_eq!(feeds.len(), 1);
+    assert_eq!(feeds[0].xml_url, "https://example.com/feed.xml");
+}
+
+#[test]
 fn import_parser_rejects_invalid_feed_title_and_folder_like_regular_validation() {
     let blank_title = r#"<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
