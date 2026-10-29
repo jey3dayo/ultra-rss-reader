@@ -99,7 +99,7 @@ Warning thresholds must be driven by observed performance diagnostics or release
 
 Decision: do not add app-managed local database encryption at rest for this release.
 
-Ultra RSS Reader stores feed, article, folder, tag, read/star state, and sync metadata in the local app database. Credentials remain outside the database in the OS keyring for production builds. The current local database privacy boundary relies on OS account isolation and OS disk encryption such as FileVault or BitLocker, not an app-managed database key.
+Ultra RSS Reader stores feed, article, folder, tag, read/star state, and sync metadata in the local app database. Credentials remain outside the database in the OS keyring by default for production builds. When the user opts in to local-file credential storage, they are instead kept unencrypted in `credentials.json` in the app data directory, still outside the database. The current local database privacy boundary relies on OS account isolation and OS disk encryption such as FileVault or BitLocker, not an app-managed database key.
 
 Rationale:
 
@@ -114,7 +114,7 @@ Future work may revisit this decision with a scoped threat model, backup/export 
 
 Decision: database backups are private user data and are not app-encrypted by Ultra RSS Reader in this release. OPML exports are shareable only after user review because feed titles and URLs can reveal subscriptions, organizations, or private endpoints.
 
-Database backups include the SQLite database and any matching `-wal` / `-shm` sidecars. They can contain account names, feed URLs, article titles, saved article content, read/star state, folder and tag names, sync metadata, and local preferences stored in the database. Production credentials remain outside the database in the OS keyring, but a backup can still reveal private reading and subscription history. Backup files must be treated as confidential support artifacts, kept only as long as needed for recovery or incident triage, and deleted manually when no longer needed.
+Database backups include the SQLite database and any matching `-wal` / `-shm` sidecars. They can contain account names, feed URLs, article titles, saved article content, read/star state, folder and tag names, sync metadata, and local preferences stored in the database. Production credentials remain outside the database (OS keyring by default; `credentials.json` in local-file mode, which is not part of a database backup), but a backup can still reveal private reading and subscription history. Backup files must be treated as confidential support artifacts, kept only as long as needed for recovery or incident triage, and deleted manually when no longer needed.
 
 OPML export must keep credential values, cookies, tokens, local paths, article content, read/star state, sync metadata, and database backup metadata out of the generated file. OPML may still contain private feed URLs and user-visible feed or folder names, so the user-facing flow must describe it as a subscription list export rather than an anonymous or sanitized privacy export.
 
@@ -135,7 +135,9 @@ Native file selection policy:
 - Database backup save locations must be treated as private user-chosen paths and must not be logged or shown in support copy unless redacted.
 - Installer upgrade and updater flows that operate on an existing profile must
   recommend a private OS-level copy of the complete app data directory or
-  database backup set before replacement. The user-facing copy must say the
+  database backup set before replacement. In local-file credential mode the
+  app data directory contains plaintext `credentials.json`, so that copy must
+  stay private and must not be attached or shared. The user-facing copy must say the
   backup can contain private reading/subscription history, is not app-encrypted
   by Ultra RSS Reader, and should be stored in a private location. It must not
   describe OPML export or settings export as a complete app-data backup.
@@ -209,7 +211,7 @@ Decision: any support dump or diagnostics export must require explicit user cons
 
 The preview must list the artifact classes that will be included, the redaction classes that were applied, and the items the user must review manually before sharing. It must not expose raw local paths, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, hostname, OS username, or a stable device identifier. If the preview cannot be produced, support dump generation must fail closed and direct the user to share a manually redacted app.log excerpt instead.
 
-Bug report attachments follow the same privacy boundary. Public issues should prefer redacted log excerpts, screenshots with private fields hidden, or copied support codes. Raw database backups, full app data directories, keychain exports, and unreviewed support dumps must stay out of public issue attachments.
+Bug report attachments follow the same privacy boundary. Public issues should prefer redacted log excerpts, screenshots with private fields hidden, or copied support codes. Raw database backups, full app data directories (including `credentials.json` in local-file credential mode), keychain exports, and unreviewed support dumps must stay out of public issue attachments.
 
 Diagnostics size contract:
 

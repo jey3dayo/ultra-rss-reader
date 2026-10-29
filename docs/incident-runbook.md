@@ -82,7 +82,7 @@ These diagnostics observe the existing auto-mark and `mark_article_read` behavio
 Attachment contract:
 
 - Prefer the smallest artifact that proves the failure: a redacted log excerpt, a screenshot of the prompt, or a copied support code.
-- Do not attach raw app data directories, full database backups, keychain exports, or unreviewed support dumps to public issues.
+- Do not attach raw app data directories (in local-file credential mode they contain plaintext `credentials.json`), full database backups, keychain exports, or unreviewed support dumps to public issues.
 - If a database backup set or support dump is needed, share it only through a private support channel after confirming consent and redaction preview requirements from [feed-content-privacy.md](./feed-content-privacy.md).
 - Screenshots of OS prompts, SmartScreen, Gatekeeper, or permission dialogs must hide local usernames, local paths, account names, feed URLs, and server URLs.
 
@@ -344,7 +344,7 @@ Use this path when a Rust integration test cannot remove its temporary database,
    - saving credentials
    - reloading credentials after restart
    - deleting or replacing stored credentials
-2. For FreshRSS account credentials, check whether the build is using `DEV_CREDENTIALS=1`. Cloudflare Access Service Token credentials always use the OS keyring, regardless of that setting.
+2. For FreshRSS account credentials, check whether the build is using `DEV_CREDENTIALS=1`. Cloudflare Access Service Token credentials do not follow that setting; they follow the selected credential storage mode (OS keyring by default, or `credentials.json` in the app data directory in local-file mode).
 3. For packaged builds, verify behavior against the OS-native keyring, not the dev credential file path.
 4. If Cloudflare Access is configured, confirm the FreshRSS URL is HTTPS and matches the stored origin; redirects to another origin are rejected.
 5. Save logs before removing and re-adding the account.

@@ -1,13 +1,13 @@
 # Privacy Policy — Ultra RSS Reader
 
-Last updated: 2026-08-16
+Last updated: 2026-10-29
 
 Ultra RSS Reader is a local-first desktop RSS reader. This policy describes what data the app handles and where it goes.
 
 ## Data stored on your device
 
 - Articles, feeds, and reading state (read/starred status, search index) are stored in a local SQLite database on your machine. They are never uploaded to us.
-- Account credentials for RSS sync services (such as a FreshRSS server you configure) are stored in your operating system's credential manager (macOS Keychain / Windows Credential Manager). Optional Cloudflare Access Service Token credentials for FreshRSS are stored there too, separately from SQLite, and are sent only to the account's configured HTTPS origin. When Access is enabled, redirects to another origin are rejected.
+- Account credentials for RSS sync services (such as a FreshRSS server you configure) are stored in your operating system's credential manager (macOS Keychain / Windows Credential Manager) by default. Optional Cloudflare Access Service Token credentials for FreshRSS are stored in the same place, separately from SQLite, and are sent only to the account's configured HTTPS origin. When Access is enabled, redirects to another origin are rejected. If you opt in to the "Local file" credential storage setting, these credentials are instead stored unencrypted in a `credentials.json` file in the app data folder on your device (readable only by your user on Unix-like systems), and the OS credential manager is not used.
 - Preferences (theme, layout, shortcuts) are stored locally.
 
 ## Network access

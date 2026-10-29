@@ -32,7 +32,7 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 - Cross-feature constants live in `src/constants/`; shared type-only contracts live in `src/lib/*.types.ts`; reusable test helpers live in `tests/helpers/` and are imported as `@tests/helpers/*`.
 - Rust follows `commands -> service -> repository -> domain -> infra`.
 - Do not hold `std::sync::Mutex` locks across `.await` points.
-- Credentials must stay in the OS keyring; never store FreshRSS passwords or tokens in SQLite. `DEV_CREDENTIALS=1` is development-only.
+- Credentials live in the OS keyring by default, or unencrypted in `credentials.json` in the app data directory when the user opts in to local-file storage; never store FreshRSS passwords or tokens in SQLite. `DEV_CREDENTIALS=1` is development-only.
 - Japanese UI copy under `src/locales/ja/` is product copy: concise, natural, and covered by copy-sensitive tests when changed.
 - Put temporary artifacts under `tmp/`.
 
