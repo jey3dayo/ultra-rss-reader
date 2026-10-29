@@ -1439,6 +1439,9 @@ describe("repository static contracts", () => {
       allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
     });
     expect(tauriConfig.app.security.csp).toContain(`connect-src ipc: http://ipc.localhost ${SENTRY_INGEST_ORIGIN}`);
+    expect(tauriConfig.app.security.csp).toContain("base-uri 'self'");
+    expect(tauriConfig.app.security.csp).toContain("form-action 'none'");
+    expect(tauriConfig.app.security.csp).toContain("object-src 'none'");
   });
 
   it("allows Sentry event ingest from the packaged app CSP", () => {

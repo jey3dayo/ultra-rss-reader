@@ -988,6 +988,7 @@ Display contract:
 
 - Reader HTML must continue to come from sanitized `content_sanitized` fields.
 - Any future CSP tightening must preserve `script-src 'self'` unless there is an explicit, reviewed reason to change it.
+- The production CSP also sets `base-uri 'self'`, `form-action 'none'` and `object-src 'none'`; none of them falls back to `default-src`. Do not remove them without a reviewed reason.
 - Privacy changes that affect remote images, frames, or preview loading must be verified in reader mode, preview mode, and packaged Tauri builds before release.
 - Private data reset and uninstall guidance must cover database, credentials, preferences/local app state, release logs, stale support/debug logs, support dumps, and backups as separate retention surfaces.
 - Installer, updater, uninstall, and reinstall copy must say that app data can persist across app binary removal and app reinstall.
