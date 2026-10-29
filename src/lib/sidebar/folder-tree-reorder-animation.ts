@@ -37,16 +37,17 @@ function listReorderRows(container: HTMLElement, targetAttribute: string): HTMLE
 export function captureFolderReorderSnapshot(params: {
   container: HTMLElement | null;
   targetAttribute: string;
+  idAttribute?: string;
   now: number;
 }): FolderReorderSnapshot | null {
-  const { container, targetAttribute, now } = params;
+  const { container, targetAttribute, idAttribute = FOLDER_REORDER_FOLDER_ID_ATTRIBUTE, now } = params;
   if (!container) {
     return null;
   }
 
   const topByFolderId = new Map<string, number>();
   for (const row of listReorderRows(container, targetAttribute)) {
-    const folderId = row.getAttribute(FOLDER_REORDER_FOLDER_ID_ATTRIBUTE);
+    const folderId = row.getAttribute(idAttribute);
     if (folderId) {
       topByFolderId.set(folderId, row.getBoundingClientRect().top);
     }
@@ -62,18 +63,26 @@ export type FolderReorderPlayOutcome = "played" | "unmoved" | "expired";
 export function playFolderReorderAnimation(params: {
   container: HTMLElement | null;
   targetAttribute: string;
+  idAttribute?: string;
   snapshot: FolderReorderSnapshot;
   reducedMotion: boolean;
   now: number;
 }): FolderReorderPlayOutcome {
-  const { container, targetAttribute, snapshot, reducedMotion, now } = params;
+  const {
+    container,
+    targetAttribute,
+    idAttribute = FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
+    snapshot,
+    reducedMotion,
+    now,
+  } = params;
   if (!container || now - snapshot.capturedAt > FOLDER_REORDER_SNAPSHOT_MAX_AGE_MS) {
     return "expired";
   }
 
   let played = false;
   for (const row of listReorderRows(container, targetAttribute)) {
-    const folderId = row.getAttribute(FOLDER_REORDER_FOLDER_ID_ATTRIBUTE);
+    const folderId = row.getAttribute(idAttribute);
     const previousTop = folderId ? snapshot.topByFolderId.get(folderId) : undefined;
     if (previousTop === undefined) {
       continue;
@@ -101,10 +110,11 @@ export function playFolderReorderAnimation(params: {
 export function watchFolderReorderAnimation(params: {
   container: HTMLElement | null;
   targetAttribute: string;
+  idAttribute?: string;
   snapshot: FolderReorderSnapshot;
   reducedMotion: boolean;
 }): () => void {
-  const { container, targetAttribute, snapshot, reducedMotion } = params;
+  const { container, targetAttribute, idAttribute, snapshot, reducedMotion } = params;
   if (!container) {
     return () => undefined;
   }
@@ -114,6 +124,7 @@ export function watchFolderReorderAnimation(params: {
     const outcome = playFolderReorderAnimation({
       container,
       targetAttribute,
+      idAttribute,
       snapshot,
       reducedMotion,
       now: Date.now(),

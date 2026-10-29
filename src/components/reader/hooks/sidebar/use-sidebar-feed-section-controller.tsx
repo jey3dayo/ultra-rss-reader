@@ -14,7 +14,10 @@ import { useMarkFeedRead, useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { SIDEBAR_FOLDER_NAVIGATION_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
-import { FOLDER_REORDER_TARGET_ATTRIBUTE } from "@/lib/sidebar/folder-tree-drop-target";
+import {
+  FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
+  FOLDER_REORDER_TARGET_ATTRIBUTE,
+} from "@/lib/sidebar/folder-tree-drop-target";
 import { captureFolderReorderSnapshot, watchFolderReorderAnimation } from "@/lib/sidebar/folder-tree-reorder-animation";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -114,6 +117,7 @@ export function useSidebarFeedSectionController({
     const snapshot = captureFolderReorderSnapshot({
       container,
       targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      idAttribute: FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
       now: Date.now(),
     });
     if (!snapshot) {
@@ -126,6 +130,7 @@ export function useSidebarFeedSectionController({
     stopFolderReorderWatchRef.current = watchFolderReorderAnimation({
       container,
       targetAttribute: FOLDER_REORDER_TARGET_ATTRIBUTE,
+      idAttribute: FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
       snapshot,
       reducedMotion,
     });
