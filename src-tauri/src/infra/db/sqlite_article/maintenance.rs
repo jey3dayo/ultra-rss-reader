@@ -24,6 +24,12 @@ impl ArticleMaintenanceRepository for SqliteArticleRepository<'_> {
                  WHERE h.account_id = ?2
                    AND h.article_id = articles.id
                )
+               AND (
+                 articles.remote_id IS NULL
+                 OR articles.remote_id NOT IN (
+                   SELECT remote_entry_id FROM pending_mutations WHERE account_id = ?2
+                 )
+               )
                AND EXISTS (
                  SELECT 1
                  FROM articles newer
