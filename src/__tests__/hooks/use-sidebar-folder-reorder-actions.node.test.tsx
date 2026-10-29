@@ -85,5 +85,7 @@ describe("useSidebarFolderReorderActions live region", () => {
     });
 
     expect(result.current.liveRegionMessage).toBeNull();
+    await vi.waitFor(() => expect(result.current.liveRegionMessage).toBe("Bravo moved up"));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
   });
 });
