@@ -732,3 +732,238 @@ fn export_if_changed_writes_again_and_updates_digest_after_state_changes() {
         settings_after_first.last_export_digest
     );
 }
+
+fn seed_two_unread_articles(db: &DbManager, account_id: &AccountId) {
+    db.writer()
+        .execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+            [&account_id.0],
+        )
+        .unwrap();
+    db.writer()
+        .execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url, reader_mode, web_preview_mode)
+             VALUES ('feed-1', ?1, 'Feed', 'https://example.com/feed.xml', 'https://example.com', 'inherit', 'inherit')",
+            [&account_id.0],
+        )
+        .unwrap();
+    for (id, guid) in [("article-x", "guid-x"), ("article-y", "guid-y")] {
+        db.writer()
+            .execute(
+                "INSERT INTO articles (
+                    id, feed_id, remote_id, title, published_at, fetched_at, is_read, is_starred
+                 )
+                 VALUES (?1, 'feed-1', ?2, ?1, ?3, ?3, 0, 0)",
+                rusqlite::params![id, guid, ts(1).to_rfc3339()],
+            )
+            .unwrap();
+    }
+}
+
+fn article_flag(db: &DbManager, article_id: &str, column: &str) -> bool {
+    db.reader()
+        .query_row(
+            &format!("SELECT {column} FROM articles WHERE id = ?1"),
+            [article_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+fn article_change_time(db: &DbManager, article_id: &str, column: &str) -> Option<String> {
+    db.reader()
+        .query_row(
+            &format!("SELECT {column} FROM articles WHERE id = ?1"),
+            [article_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+fn export_then_import_between_devices(
+    column: &str,
+    importer_edit: &str,
+    exporter_edit: &str,
+) -> (DbManager, DbManager) {
+    let account_id = AccountId("account-1".to_string());
+    let exporter = DbManager::new_in_memory().unwrap();
+    let importer = DbManager::new_in_memory().unwrap();
+    seed_two_unread_articles(&exporter, &account_id);
+    seed_two_unread_articles(&importer, &account_id);
+    let dir = tempfile::tempdir().unwrap();
+    let settings = LocalAccountSyncSettings {
+        device_id: LocalSyncDeviceId("device-b".to_string()),
+        ..seeded_settings(&dir.path().to_string_lossy(), &account_id)
+    };
+
+    SqliteLocalAccountSyncSettingsRepository::new(exporter.writer())
+        .save(&settings)
+        .unwrap();
+    exporter
+        .writer()
+        .execute(
+            &format!("UPDATE articles SET {column} = 1 WHERE id = ?1"),
+            [exporter_edit],
+        )
+        .unwrap();
+    export_local_account_sync_folder(&exporter, &account_id, &settings).unwrap();
+
+    importer
+        .writer()
+        .execute(
+            &format!("UPDATE articles SET {column} = 1 WHERE id = ?1"),
+            [importer_edit],
+        )
+        .unwrap();
+    import_local_account_sync_folder(
+        &importer,
+        &account_id,
+        &settings.sync_account_id,
+        dir.path(),
+    )
+    .unwrap();
+    (exporter, importer)
+}
+
+#[test]
+fn import_keeps_unexported_local_read_change_and_applies_newer_remote_one() {
+    let (_exporter, importer) =
+        export_then_import_between_devices("is_read", "article-y", "article-x");
+
+    assert!(
+        article_flag(&importer, "article-x", "is_read"),
+        "the other device's newer read change should be applied"
+    );
+    assert!(
+        article_flag(&importer, "article-y", "is_read"),
+        "a local read change that was never exported must survive the import"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_star_change_and_applies_newer_remote_one() {
+    let (_exporter, importer) =
+        export_then_import_between_devices("is_starred", "article-y", "article-x");
+
+    assert!(
+        article_flag(&importer, "article-x", "is_starred"),
+        "the other device's newer star change should be applied"
+    );
+    assert!(
+        article_flag(&importer, "article-y", "is_starred"),
+        "a local star change that was never exported must survive the import"
+    );
+}
+
+fn article_state_operation_times(
+    db: &DbManager,
+    account_id: &AccountId,
+    article_title: &str,
+) -> (DateTime<Utc>, DateTime<Utc>) {
+    let operations = build_current_state_operations(
+        db,
+        account_id,
+        &LocalSyncAccountId("sync-account-a".to_string()),
+        &LocalSyncDeviceId("device-a".to_string()),
+    )
+    .unwrap();
+    let key = crate::domain::local_account_sync::generate_local_sync_article_key(
+        &LocalSyncAccountId("sync-account-a".to_string()),
+        "https://example.com/feed.xml",
+        crate::domain::local_account_sync::LocalSyncEntryIdentity {
+            guid: Some(article_title.replace("article-", "guid-")),
+            url: None,
+            title: Some(article_title.to_string()),
+        },
+    )
+    .unwrap()
+    .key;
+    let time_of = |wanted_read: bool| {
+        operations
+            .iter()
+            .find(|operation| {
+                matches!(&operation.entity_key, LocalSyncEntityKey::Article { article_key } if *article_key == key)
+                    && matches!(
+                        (&operation.action, wanted_read),
+                        (LocalSyncAction::SetRead { .. }, true)
+                            | (LocalSyncAction::SetStarred { .. }, false)
+                    )
+            })
+            .expect("article operation should be exported")
+            .occurred_at
+    };
+    (time_of(true), time_of(false))
+}
+
+#[test]
+fn export_uses_article_change_times_and_epoch_for_untouched_articles() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId("account-1".to_string());
+    seed_two_unread_articles(&db, &account_id);
+    db.writer()
+        .execute(
+            "UPDATE articles
+             SET is_read = 1, read_changed_at = '2026-01-02T03:04:05.678Z'
+             WHERE id = 'article-x'",
+            [],
+        )
+        .unwrap();
+
+    let (x_read, x_starred) = article_state_operation_times(&db, &account_id, "article-x");
+    let (y_read, y_starred) = article_state_operation_times(&db, &account_id, "article-y");
+
+    assert_eq!(
+        x_read,
+        DateTime::parse_from_rfc3339("2026-01-02T03:04:05.678Z").unwrap()
+    );
+    assert_eq!(x_starred, DateTime::UNIX_EPOCH);
+    assert_eq!(y_read, DateTime::UNIX_EPOCH);
+    assert_eq!(y_starred, DateTime::UNIX_EPOCH);
+}
+
+#[test]
+fn import_stores_remote_change_time_and_reexport_keeps_it() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId("account-1".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account-a".to_string());
+    seed_two_unread_articles(&db, &account_id);
+    let dir = tempfile::tempdir().unwrap();
+    let remote_time = DateTime::parse_from_rfc3339("2026-01-02T03:04:05.678Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    let key = crate::domain::local_account_sync::generate_local_sync_article_key(
+        &sync_account_id,
+        "https://example.com/feed.xml",
+        crate::domain::local_account_sync::LocalSyncEntryIdentity {
+            guid: Some("guid-x".to_string()),
+            url: None,
+            title: Some("article-x".to_string()),
+        },
+    )
+    .unwrap()
+    .key;
+    let remote_operation = LocalAccountSyncOperation {
+        occurred_at: remote_time,
+        ..operation_with(
+            "sync-account-a",
+            "remote-read",
+            LocalSyncEntityKey::Article { article_key: key },
+            LocalSyncAction::SetRead { is_read: true },
+        )
+    };
+    write_local_sync_operation_file(dir.path(), &remote_operation, 1).unwrap();
+
+    import_local_account_sync_folder(&db, &account_id, &sync_account_id, dir.path()).unwrap();
+
+    assert!(article_flag(&db, "article-x", "is_read"));
+    assert_eq!(
+        article_change_time(&db, "article-x", "read_changed_at").as_deref(),
+        Some("2026-01-02T03:04:05.678Z")
+    );
+    assert_eq!(
+        article_change_time(&db, "article-x", "starred_changed_at"),
+        None
+    );
+    let (x_read, _) = article_state_operation_times(&db, &account_id, "article-x");
+    assert_eq!(x_read, remote_time);
+}

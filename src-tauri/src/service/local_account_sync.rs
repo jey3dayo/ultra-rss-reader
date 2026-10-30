@@ -1,10 +1,10 @@
 use std::path::Path;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use rusqlite::params;
 use sha2::{Digest, Sha256};
 
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::local_account_sync::{
     generate_local_sync_article_key, merge_local_account_sync_operations, normalize_feed_url,
     normalize_mute_keyword, normalize_tag_name, LocalAccountSyncOperation, LocalSyncAccountId,
@@ -245,7 +245,8 @@ fn build_current_state_operations(
     }
 
     let mut article_stmt = conn.prepare(
-        "SELECT f.url, a.remote_id, a.url, a.title, a.is_read, a.is_starred
+        "SELECT f.url, a.remote_id, a.url, a.title, a.is_read, a.is_starred,
+                a.read_changed_at, a.starred_changed_at
          FROM articles a
          JOIN feeds f ON f.id = a.feed_id
          WHERE f.account_id = ?1
@@ -260,10 +261,14 @@ fn build_current_state_operations(
                 row.get::<_, Option<String>>(3)?,
                 row.get::<_, bool>(4)?,
                 row.get::<_, bool>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
             ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    for (feed_url, guid, url, title, is_read, is_starred) in articles {
+    for (feed_url, guid, url, title, is_read, is_starred, read_changed_at, starred_changed_at) in
+        articles
+    {
         let article_key = generate_local_sync_article_key(
             sync_account_id,
             &feed_url,
@@ -273,7 +278,7 @@ fn build_current_state_operations(
         operations.push(operation(
             sync_account_id,
             device_id,
-            now,
+            article_change_time(read_changed_at)?,
             LocalSyncEntityKey::Article {
                 article_key: article_key.clone(),
             },
@@ -282,7 +287,7 @@ fn build_current_state_operations(
         operations.push(operation(
             sync_account_id,
             device_id,
-            now,
+            article_change_time(starred_changed_at)?,
             LocalSyncEntityKey::Article { article_key },
             LocalSyncAction::SetStarred { is_starred },
         ));
@@ -368,6 +373,21 @@ fn build_current_state_operations(
     }
 
     Ok(operations)
+}
+
+/// A state that was never changed on this device exports as the epoch, so any recorded change on
+/// another device wins on import.
+fn article_change_time(changed_at: Option<String>) -> DomainResult<DateTime<Utc>> {
+    let Some(changed_at) = changed_at else {
+        return Ok(DateTime::UNIX_EPOCH);
+    };
+    DateTime::parse_from_rfc3339(&changed_at)
+        .map(|parsed| parsed.with_timezone(&Utc))
+        .map_err(|error| {
+            DomainError::Parse(format!(
+                "invalid article change time {changed_at:?}: {error}"
+            ))
+        })
 }
 
 fn operation(

@@ -146,6 +146,23 @@ fn v27_file_migration_matches_inline_contract() {
 }
 
 #[test]
+fn v28_file_migration_matches_inline_contract() {
+    let inline_v28_sql = format!(
+        "{V28_READ_CHANGED_AT_SQL};
+          {V28_STARRED_CHANGED_AT_SQL};
+          {V28_STAMP_TRIGGERS_SQL}
+          DELETE FROM schema_version;
+          INSERT INTO schema_version (version) VALUES (28);"
+    );
+
+    assert_eq!(
+        normalize_sql(MIGRATION_V28),
+        normalize_sql(&inline_v28_sql),
+        "file-based V28 migration must stay in sync with the inline migration"
+    );
+}
+
+#[test]
 fn v27_allows_duplicate_folder_order_mode_column_only() {
     let mut conn = open_in_memory();
     run_migrations(&mut conn).unwrap();
@@ -162,4 +179,74 @@ fn v27_allows_duplicate_folder_order_mode_column_only() {
     assert_eq!(second.from_version, LATEST_VERSION);
     assert_eq!(second.to_version, LATEST_VERSION);
     assert!(!second.migrated());
+}
+
+#[test]
+fn v28_adds_article_change_time_columns_and_triggers() {
+    let mut conn = open_in_memory();
+    run_migrations(&mut conn).unwrap();
+
+    assert!(conn
+        .prepare("SELECT read_changed_at, starred_changed_at FROM articles LIMIT 0")
+        .is_ok());
+    let trigger_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type = 'trigger'
+               AND name IN ('articles_stamp_read_changed_at', 'articles_stamp_starred_changed_at')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(trigger_count, 2);
+}
+
+#[test]
+fn v28_stamps_change_times_for_repository_writes_but_not_for_explicit_times() {
+    use crate::domain::types::ArticleId;
+    use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_article::SqliteArticleRepository;
+    use crate::repository::article::ArticleMutationRepository;
+
+    let db = DbManager::new_in_memory().unwrap();
+    let conn = db.writer();
+    conn.execute_batch(
+        "INSERT INTO accounts (id, kind, name) VALUES ('account-1', 'Local', 'Local');
+         INSERT INTO feeds (id, account_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-1', 'account-1', 'Feed', 'https://example.com/feed.xml', '', 'inherit', 'inherit');
+         INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read, is_starred)
+         VALUES ('article-1', 'feed-1', 'Article', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 0, 0);",
+    )
+    .unwrap();
+    let change_times = |conn: &Connection| -> (Option<String>, Option<String>) {
+        conn.query_row(
+            "SELECT read_changed_at, starred_changed_at FROM articles WHERE id = 'article-1'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap()
+    };
+    assert_eq!(change_times(conn), (None, None));
+
+    let repo = SqliteArticleRepository::new(conn);
+    repo.mark_as_read(&ArticleId("article-1".to_string()), true)
+        .unwrap();
+    let (read_changed_at, starred_changed_at) = change_times(conn);
+    assert!(read_changed_at.is_some_and(|value| value.ends_with('Z')));
+    assert_eq!(starred_changed_at, None);
+
+    repo.mark_as_starred(&ArticleId("article-1".to_string()), true)
+        .unwrap();
+    assert!(change_times(conn).1.is_some());
+
+    conn.execute(
+        "UPDATE articles SET is_read = 0, read_changed_at = '2020-05-06T07:08:09.123Z'
+         WHERE id = 'article-1'",
+        [],
+    )
+    .unwrap();
+    assert_eq!(
+        change_times(conn).0.as_deref(),
+        Some("2020-05-06T07:08:09.123Z")
+    );
 }
