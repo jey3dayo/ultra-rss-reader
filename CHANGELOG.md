@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.14] - 2026-10-30
+
+### Bug Fixes
+
+- OPML を取り込むとき、フィード URL の前後に空白があれば取り除いて保存するようにしました。 (#545)
+- 未送信の変更が残っている記事を、古い記事の自動削除の対象から外しました。 (#542)
+- 開発時の StrictMode で effect が二重に実行されても、バッジなどの更新が止まらないようにしました。 (#543)
+- アプリの CSP に `base-uri` / `form-action` / `object-src` を追加しました。 (#546)
+
+### Documentation
+
+- 資格情報の保存先に、ローカルファイルモードの内容を反映しました。 (#541, #544)
+
+### Maintenance
+
+- CI で rust-clippy を macOS でも実行するようにしました。 (#540)
+- release workflow の quality ジョブの権限を `contents: read` に絞りました。 (#547)
+
 ## [0.67.13] - 2026-10-29
 
 ### Added
