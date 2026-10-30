@@ -49,6 +49,10 @@ pub(super) const MIGRATION_V26: &str =
 pub(super) const MIGRATION_V27: &str =
     include_str!("../../../../migrations/V27__account_folder_order_mode.sql");
 
+#[cfg(test)]
+pub(super) const MIGRATION_V28: &str =
+    include_str!("../../../../migrations/V28__article_state_change_times.sql");
+
 pub(super) const V8_READER_MODE_COLUMN: &str = "reader_mode";
 pub(super) const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
 pub(super) const V16_CONNECTION_VERIFICATION_STATUS_COLUMN: &str = "connection_verification_status";
@@ -67,3 +71,32 @@ pub(super) const V24_FEED_ICON_URL_SQL: &str = "ALTER TABLE feeds ADD COLUMN ico
 pub(super) const V27_FOLDER_ORDER_MODE_COLUMN: &str = "folder_order_mode";
 pub(super) const V27_FOLDER_ORDER_MODE_SQL: &str =
     "ALTER TABLE accounts ADD COLUMN folder_order_mode TEXT NOT NULL DEFAULT 'name' CHECK (folder_order_mode IN ('name', 'manual'))";
+pub(super) const V28_READ_CHANGED_AT_COLUMN: &str = "read_changed_at";
+pub(super) const V28_READ_CHANGED_AT_SQL: &str =
+    "ALTER TABLE articles ADD COLUMN read_changed_at TEXT";
+pub(super) const V28_STARRED_CHANGED_AT_COLUMN: &str = "starred_changed_at";
+pub(super) const V28_STARRED_CHANGED_AT_SQL: &str =
+    "ALTER TABLE articles ADD COLUMN starred_changed_at TEXT";
+/// Stamps the change time of is_read / is_starred on every write path. An UPDATE that sets
+/// *_changed_at itself (local-sync import) is left as written.
+pub(super) const V28_STAMP_TRIGGERS_SQL: &str = "
+CREATE TRIGGER IF NOT EXISTS articles_stamp_read_changed_at
+AFTER UPDATE OF is_read ON articles
+FOR EACH ROW
+WHEN NEW.is_read IS NOT OLD.is_read AND NEW.read_changed_at IS OLD.read_changed_at
+BEGIN
+    UPDATE articles
+    SET read_changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS articles_stamp_starred_changed_at
+AFTER UPDATE OF is_starred ON articles
+FOR EACH ROW
+WHEN NEW.is_starred IS NOT OLD.is_starred AND NEW.starred_changed_at IS OLD.starred_changed_at
+BEGIN
+    UPDATE articles
+    SET starred_changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = NEW.id;
+END;
+";

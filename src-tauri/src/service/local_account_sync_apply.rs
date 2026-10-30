@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::local_account_sync::{
     generate_local_sync_article_key, LocalAccountSyncProjection, LocalSyncAccountId,
     LocalSyncEntryIdentity, LocalSyncFeedState, LocalSyncFolderState, LocalSyncMuteKeywordState,
@@ -305,23 +306,75 @@ fn apply_article_states(
             report.unmatched_article_keys += 1;
             continue;
         };
-        if let Some(is_read) = state.is_read {
-            conn.execute(
-                "UPDATE articles SET is_read = ?1 WHERE id = ?2",
-                params![is_read, target.article_id.0],
-            )?;
-            feed_ids_to_recalculate.insert(target.feed_id.0.clone());
-            report.article_states_applied += 1;
+        if let (Some(is_read), Some(read_updated_at)) = (state.is_read, state.read_updated_at) {
+            if is_newer_than_local_change(
+                conn,
+                &target.article_id,
+                "read_changed_at",
+                read_updated_at,
+            )? {
+                conn.execute(
+                    "UPDATE articles SET is_read = ?1, read_changed_at = ?2 WHERE id = ?3",
+                    params![
+                        is_read,
+                        format_article_change_time(read_updated_at),
+                        target.article_id.0
+                    ],
+                )?;
+                feed_ids_to_recalculate.insert(target.feed_id.0.clone());
+                report.article_states_applied += 1;
+            }
         }
-        if let Some(is_starred) = state.is_starred {
-            conn.execute(
-                "UPDATE articles SET is_starred = ?1 WHERE id = ?2",
-                params![is_starred, target.article_id.0],
-            )?;
-            report.article_states_applied += 1;
+        if let (Some(is_starred), Some(starred_updated_at)) =
+            (state.is_starred, state.starred_updated_at)
+        {
+            if is_newer_than_local_change(
+                conn,
+                &target.article_id,
+                "starred_changed_at",
+                starred_updated_at,
+            )? {
+                conn.execute(
+                    "UPDATE articles SET is_starred = ?1, starred_changed_at = ?2 WHERE id = ?3",
+                    params![
+                        is_starred,
+                        format_article_change_time(starred_updated_at),
+                        target.article_id.0
+                    ],
+                )?;
+                report.article_states_applied += 1;
+            }
         }
     }
     Ok(feed_ids_to_recalculate)
+}
+
+/// The file value replaces the local one only when it is not older than the local change.
+/// A state never changed locally (NULL) always yields to the file.
+fn is_newer_than_local_change(
+    conn: &Connection,
+    article_id: &ArticleId,
+    changed_at_column: &str,
+    file_updated_at: DateTime<Utc>,
+) -> DomainResult<bool> {
+    let local_changed_at: Option<String> = conn.query_row(
+        &format!("SELECT {changed_at_column} FROM articles WHERE id = ?1"),
+        params![article_id.0],
+        |row| row.get(0),
+    )?;
+    let Some(local_changed_at) = local_changed_at else {
+        return Ok(true);
+    };
+    let local_changed_at = DateTime::parse_from_rfc3339(&local_changed_at).map_err(|error| {
+        DomainError::Parse(format!(
+            "invalid {changed_at_column} {local_changed_at:?}: {error}"
+        ))
+    })?;
+    Ok(file_updated_at >= local_changed_at)
+}
+
+fn format_article_change_time(time: DateTime<Utc>) -> String {
+    time.to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 fn apply_article_tags(

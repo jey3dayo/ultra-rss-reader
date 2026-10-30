@@ -511,3 +511,145 @@ fn apply_inserts_a_folder_whose_sort_order_is_already_taken_locally() {
 
     assert_eq!(folder_names_in_order(conn, &account_id), ["A", "B", "C"]);
 }
+
+fn seed_unread_article_with_key(
+    conn: &Connection,
+    account_id: &AccountId,
+    sync_account_id: &LocalSyncAccountId,
+) -> LocalSyncArticleKey {
+    seed_account(conn, account_id);
+    conn.execute(
+        "INSERT INTO feeds (id, account_id, title, url, site_url, unread_count, reader_mode, web_preview_mode)
+         VALUES ('feed-existing', ?1, 'Feed', 'https://example.com/feed.xml', '', 1, 'inherit', 'inherit')",
+        params![account_id.0],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO articles (
+            id, feed_id, remote_id, title, published_at, fetched_at, is_read, is_starred
+         )
+         VALUES ('article-existing', 'feed-existing', 'guid-1', 'Article', ?1, ?1, 0, 0)",
+        params![ts(1).to_rfc3339()],
+    )
+    .unwrap();
+    crate::domain::local_account_sync::generate_local_sync_article_key(
+        sync_account_id,
+        "https://example.com/feed.xml",
+        crate::domain::local_account_sync::LocalSyncEntryIdentity {
+            guid: Some("guid-1".to_string()),
+            url: None,
+            title: None,
+        },
+    )
+    .unwrap()
+    .key
+}
+
+fn apply_read_at(
+    db: &DbManager,
+    account_id: &AccountId,
+    sync_account_id: &LocalSyncAccountId,
+    article_key: &LocalSyncArticleKey,
+    is_read: bool,
+    occurred_at: DateTime<Utc>,
+) {
+    let mut read_operation = operation(
+        "read",
+        sync_account_id,
+        LocalSyncEntityKey::Article {
+            article_key: article_key.clone(),
+        },
+        LocalSyncAction::SetRead { is_read },
+    );
+    read_operation.occurred_at = occurred_at;
+    let projection = merge_local_account_sync_operations([read_operation]).projection;
+    apply_local_account_sync_projection(db, account_id, sync_account_id, &projection).unwrap();
+}
+
+fn article_is_read(db: &DbManager) -> bool {
+    db.writer()
+        .query_row(
+            "SELECT is_read FROM articles WHERE id = 'article-existing'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+fn set_local_read_change(db: &DbManager, changed_at: DateTime<Utc>) {
+    db.writer()
+        .execute(
+            "UPDATE articles SET is_read = 1, read_changed_at = ?1 WHERE id = 'article-existing'",
+            params![format_article_change_time(changed_at)],
+        )
+        .unwrap();
+}
+
+#[test]
+fn apply_keeps_a_local_read_state_changed_after_the_file_change() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    let article_key = seed_unread_article_with_key(db.writer(), &account_id, &sync_account_id);
+    set_local_read_change(&db, ts(20));
+
+    apply_read_at(
+        &db,
+        &account_id,
+        &sync_account_id,
+        &article_key,
+        false,
+        ts(10),
+    );
+
+    assert!(
+        article_is_read(&db),
+        "a file change older than the local change must not overwrite it"
+    );
+}
+
+#[test]
+fn apply_overwrites_a_local_read_state_changed_before_the_file_change() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    let article_key = seed_unread_article_with_key(db.writer(), &account_id, &sync_account_id);
+    set_local_read_change(&db, ts(10));
+
+    apply_read_at(
+        &db,
+        &account_id,
+        &sync_account_id,
+        &article_key,
+        false,
+        ts(20),
+    );
+
+    assert!(
+        !article_is_read(&db),
+        "a file change newer than the local change must be applied"
+    );
+}
+
+#[test]
+fn apply_takes_the_file_value_when_both_changes_share_a_time() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    let article_key = seed_unread_article_with_key(db.writer(), &account_id, &sync_account_id);
+    set_local_read_change(&db, ts(10));
+
+    apply_read_at(
+        &db,
+        &account_id,
+        &sync_account_id,
+        &article_key,
+        false,
+        ts(10),
+    );
+
+    assert!(
+        !article_is_read(&db),
+        "a tie must resolve to the file value, as the merge does for competing files"
+    );
+}
