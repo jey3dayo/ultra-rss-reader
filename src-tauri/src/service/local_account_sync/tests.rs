@@ -413,7 +413,16 @@ fn export_writes_current_local_account_state_as_operation_files() {
 
 #[test]
 fn compute_digest_is_stable_across_differing_operation_ids_and_timestamps() {
-    let operation_a = operation("op-1");
+    let operation_a = operation_with(
+        "sync-account-a",
+        "op-1",
+        LocalSyncEntityKey::Tag {
+            normalized_name: "rust".to_string(),
+        },
+        LocalSyncAction::AddTag {
+            display_name: "Rust".to_string(),
+        },
+    );
     let operation_b = LocalAccountSyncOperation {
         operation_id: LocalSyncOperationId("op-2".to_string()),
         occurred_at: ts(999),
@@ -421,6 +430,21 @@ fn compute_digest_is_stable_across_differing_operation_ids_and_timestamps() {
     };
 
     assert_eq!(
+        compute_local_account_sync_digest(&[operation_a]),
+        compute_local_account_sync_digest(&[operation_b])
+    );
+}
+
+#[test]
+fn compute_digest_changes_when_an_article_state_change_time_changes() {
+    let operation_a = operation("op-1");
+    let operation_b = LocalAccountSyncOperation {
+        operation_id: LocalSyncOperationId("op-2".to_string()),
+        occurred_at: ts(999),
+        ..operation_a.clone()
+    };
+
+    assert_ne!(
         compute_local_account_sync_digest(&[operation_a]),
         compute_local_account_sync_digest(&[operation_b])
     );
@@ -966,4 +990,43 @@ fn import_stores_remote_change_time_and_reexport_keeps_it() {
     );
     let (x_read, _) = article_state_operation_times(&db, &account_id, "article-x");
     assert_eq!(x_read, remote_time);
+}
+
+#[test]
+fn export_if_changed_writes_when_a_restored_article_state_has_a_newer_change_time() {
+    let db = DbManager::new_in_memory().unwrap();
+    let account_id = AccountId("account-1".to_string());
+    seed_two_unread_articles(&db, &account_id);
+    let dir = tempfile::tempdir().unwrap();
+    let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+    settings_repo
+        .save(&seeded_settings(&dir.path().to_string_lossy(), &account_id))
+        .unwrap();
+    let settings = settings_repo
+        .find_by_account_id(&account_id)
+        .unwrap()
+        .expect("settings should exist");
+    export_local_account_sync_folder_if_changed(&db, &account_id, &settings)
+        .unwrap()
+        .expect("first export should write");
+    let exported = settings_repo
+        .find_by_account_id(&account_id)
+        .unwrap()
+        .expect("settings should keep the exported digest");
+
+    for is_read in [1, 0] {
+        db.writer()
+            .execute(
+                "UPDATE articles SET is_read = ?1 WHERE id = 'article-x'",
+                [is_read],
+            )
+            .unwrap();
+    }
+
+    assert!(
+        export_local_account_sync_folder_if_changed(&db, &account_id, &exported)
+            .unwrap()
+            .is_some(),
+        "an article change that restores the exported value carries a newer change time and must be exported"
+    );
 }

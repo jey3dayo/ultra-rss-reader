@@ -156,13 +156,24 @@ fn write_operation_files(
 
 /// Computes a deterministic digest over the canonical operation set,
 /// excluding `operation_id` and `occurred_at` since both are regenerated on
-/// every export and would otherwise make every digest unique.
+/// every export and would otherwise make every digest unique. The exception is
+/// an article's read/starred change time: it is recorded data, and a change that
+/// restores the exported value still has to be exported to win the import merge.
 pub fn compute_local_account_sync_digest(operations: &[LocalAccountSyncOperation]) -> String {
     let mut entries: Vec<String> = operations
         .iter()
         .map(|operation| {
-            serde_json::to_string(&(&operation.entity_key, &operation.action))
-                .expect("local account sync entity key and action should serialize")
+            let recorded_change_time = matches!(
+                operation.action,
+                LocalSyncAction::SetRead { .. } | LocalSyncAction::SetStarred { .. }
+            )
+            .then_some(operation.occurred_at);
+            serde_json::to_string(&(
+                &operation.entity_key,
+                &operation.action,
+                recorded_change_time,
+            ))
+            .expect("local account sync entity key and action should serialize")
         })
         .collect();
     entries.sort();
