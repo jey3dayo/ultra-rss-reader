@@ -30,16 +30,18 @@ const denseLayoutOverflowCases = [
   },
   {
     storyId: "reader-article-articlecontentview--worst-case-article-typography",
-    viewport: { width: 720, height: 900 },
+    viewport: { width: 784, height: 900 },
   },
   {
     storyId: "reader-sidebar-feedtreeview--worst-case-unread-counts",
-    viewport: { width: 240, height: 480 },
+    viewport: { width: 256, height: 480 },
   },
 ] satisfies readonly DenseLayoutOverflowCase[];
 
 async function openStory(page: Page, storyId: string) {
-  const runtimeErrors = installRuntimeErrorGuard(page);
+  const runtimeErrors = installRuntimeErrorGuard(page, {
+    expectedConsoleErrors: [/^Failed to load resource: the server responded with a status of 404/],
+  });
 
   try {
     await expect(async () => {

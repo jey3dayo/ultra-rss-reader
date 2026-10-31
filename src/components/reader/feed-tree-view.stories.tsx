@@ -401,7 +401,10 @@ export const WorstCaseUnreadCounts: Story = {
   name: "Break UI / Unread counts (240px)",
   decorators: [
     (Story) => (
-      <div className="w-[240px] bg-sidebar p-2 text-sidebar-foreground" data-testid="feed-tree-break-ui-worst-case">
+      <div
+        className="w-full min-w-0 bg-sidebar text-sidebar-foreground"
+        data-testid="feed-tree-break-ui-worst-case"
+      >
         <Story />
       </div>
     ),

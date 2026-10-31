@@ -103,7 +103,7 @@ export const WorstCaseArticleTypography: Story = {
   decorators: [
     (Story) => (
       <article
-        className="mx-auto w-[720px] bg-background p-8 text-foreground"
+        className="box-border w-full max-w-[720px] bg-background p-8 text-foreground"
         data-testid="article-content-worst-case-typography"
       >
         <Story />

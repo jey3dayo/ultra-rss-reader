@@ -131,7 +131,8 @@ describe("SidebarNavButton", () => {
       </SidebarNavButton>,
     );
 
-    expect(screen.getByRole("button", { name: /12,345,678/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Feed row 12,345,678" })).toBeInTheDocument();
+    expect(screen.queryByText("9,999+")).toBeInTheDocument();
   });
 
   it("removes the trailing badge immediately when trailing clears without opting in", () => {

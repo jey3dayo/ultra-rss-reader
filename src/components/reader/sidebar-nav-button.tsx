@@ -44,11 +44,12 @@ function SidebarNavButtonTrailingBadge({ trailing, isLeaving, className, title }
   if (trailing === null || trailing === undefined) {
     return null;
   }
+  const hideAbbreviatedCountFromAccessibilityTree = isLeaving || Boolean(title);
   return (
     <span
       className={cn(MOTION_SIDEBAR_BADGE_CLASS_NAME, "shrink-0")}
       title={title}
-      aria-hidden={isLeaving ? "true" : undefined}
+      aria-hidden={hideAbbreviatedCountFromAccessibilityTree ? "true" : undefined}
       {...{ [MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE]: isLeaving ? "true" : undefined }}
     >
       {typeof trailing === "string" || typeof trailing === "number" ? (
