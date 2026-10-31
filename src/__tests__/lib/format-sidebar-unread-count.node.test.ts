@@ -12,7 +12,7 @@ describe("formatSidebarUnreadCount", () => {
 
 describe("normalizeArticleDisplayTitle", () => {
   it("matches the list item untitled fallback used in the reader meta heading", () => {
-    expect(normalizeArticleDisplayTitle("")).toBe("Untitled article");
-    expect(normalizeArticleDisplayTitle("   ")).toBe("Untitled article");
+    expect(normalizeArticleDisplayTitle("", "Untitled article")).toBe("Untitled article");
+    expect(normalizeArticleDisplayTitle("   ", "Untitled article")).toBe("Untitled article");
   });
 });

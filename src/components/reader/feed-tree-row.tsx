@@ -175,7 +175,7 @@ export function FeedTreeRow({
               />
             </span>
           )}
-          <span className="min-w-0 flex-1 truncate font-medium" dir="auto" title={feed.title}>
+          <span className="min-w-0 flex-1 truncate text-left font-medium" dir="auto" title={feed.title}>
             {feed.title}
           </span>
         </ContextMenu.Trigger>

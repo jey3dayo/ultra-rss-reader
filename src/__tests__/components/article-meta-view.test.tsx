@@ -106,6 +106,20 @@ describe("ArticleMetaView", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Untitled article" })).toBeInTheDocument();
   });
 
+  it("exposes full feed and author names when the meta row truncates", () => {
+    render(
+      <ArticleMetaView
+        title="Article"
+        author="Aleksandra Wiśniewska-Kowalczyk"
+        feedName="Global technology and science reporting"
+        publishedLabel="2026年3月25日 10:00"
+      />,
+    );
+
+    expect(screen.getByTitle("Global technology and science reporting")).toBeInTheDocument();
+    expect(screen.getByTitle("Aleksandra Wiśniewska-Kowalczyk")).toBeInTheDocument();
+  });
+
   it("keeps reader inline actions as native non-submit buttons with forwarded disabled semantics", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();

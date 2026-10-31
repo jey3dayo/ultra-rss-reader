@@ -227,7 +227,11 @@ export function FeedTreeFolderSection({
                 <Folder className="size-3.5" aria-hidden="true" />
               </span>
             ) : null}
-            <span className="min-w-0 flex-1 truncate font-medium tracking-[-0.01em]" dir="auto" title={folder.name}>
+            <span
+              className="min-w-0 flex-1 truncate text-left font-medium tracking-[-0.01em]"
+              dir="auto"
+              title={folder.name}
+            >
               {folder.name}
             </span>
           </ContextMenu.Trigger>

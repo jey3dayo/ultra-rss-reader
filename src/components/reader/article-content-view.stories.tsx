@@ -31,6 +31,8 @@ const worstCaseArticleTypographyHtml = `<h1>International research briefing 📰
 </table>
 <h3>Long preformatted line</h3>
 <pre><code>const veryLongIdentifierWithoutBreaks = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';</code></pre>
+<p>longunbrokenwordwithoutanybreaks_abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvwxyz</p>
+<p dir="ltr">English paragraph with explicit left-to-right direction.</p>
 <p>أخبار العلوم 2026 — mixed English punctuation: 1,234.56?</p>
 <p dir="rtl">דיווח מעורב: 12,345 נקודות.</p>
 <blockquote>اقتباس طويل مع English tail — em dash test.</blockquote>

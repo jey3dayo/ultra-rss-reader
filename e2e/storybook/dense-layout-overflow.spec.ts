@@ -28,6 +28,14 @@ const denseLayoutOverflowCases = [
     storyId: "subscriptions-list-subscriptionslistpane--reader-aligned",
     viewport: { width: 900, height: 720 },
   },
+  {
+    storyId: "reader-article-articlecontentview--worst-case-article-typography",
+    viewport: { width: 720, height: 900 },
+  },
+  {
+    storyId: "reader-sidebar-feedtreeview--worst-case-unread-counts",
+    viewport: { width: 240, height: 480 },
+  },
 ] satisfies readonly DenseLayoutOverflowCase[];
 
 async function openStory(page: Page, storyId: string) {

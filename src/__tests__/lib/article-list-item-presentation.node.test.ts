@@ -15,6 +15,7 @@ function buildPresentation(summary: string | null | undefined) {
     imagePreviews: "off",
     unreadSuffix: "unread",
     starredSuffix: "starred",
+    untitledFallback: "Untitled article",
   });
 }
 

@@ -234,13 +234,15 @@ describe("ArticleContentView", () => {
       <ArticleContentView
         contentHtml={fromSanitizedArticleHtmlDto({
           content_sanitized:
-            '<p>أخبار العلوم 2026 and English punctuation.</p><p dir="rtl">שלום world 123.</p><blockquote>اقتباس — quote.</blockquote>',
+            '<p>أخبار العلوم 2026 and English punctuation.</p><p dir="rtl">English paragraph with explicit direction.</p><blockquote>اقتباس — quote.</blockquote>',
         })}
       />,
     );
 
     expect(screen.getByText("أخبار العلوم 2026 and English punctuation.")).toBeInTheDocument();
-    expect(container.querySelector('p[dir="rtl"]')).toHaveTextContent("שלום world 123.");
+    const explicitDirParagraph = container.querySelector('p[dir="rtl"]');
+    expect(explicitDirParagraph).toHaveTextContent("English paragraph with explicit direction.");
+    expect(explicitDirParagraph).toHaveAttribute("dir", "rtl");
   });
 
   it("smoke-renders a large sanitized article body with many remote images without expanding render wrappers", () => {

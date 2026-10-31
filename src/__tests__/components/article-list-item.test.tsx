@@ -72,6 +72,7 @@ describe("ArticleListItem", () => {
         imagePreviews: "medium",
         unreadSuffix: "(unread)",
         starredSuffix: "(starred)",
+        untitledFallback: "Untitled article",
       }),
     ).toEqual({
       ariaLabel: "Episode 150 (starred)",
@@ -104,6 +105,7 @@ describe("ArticleListItem", () => {
         imagePreviews: "large",
         unreadSuffix: "(unread)",
         starredSuffix: "(starred)",
+        untitledFallback: "Untitled article",
       }),
     ).toEqual({
       ariaLabel: "First Article (unread)",
@@ -136,6 +138,7 @@ describe("ArticleListItem", () => {
         imagePreviews: "medium",
         unreadSuffix: "(unread)",
         starredSuffix: "(starred)",
+        untitledFallback: "Untitled article",
       }),
     ).toMatchObject({
       normalizedThumbnail: "",
@@ -161,6 +164,7 @@ describe("ArticleListItem", () => {
           imagePreviews: "medium",
           unreadSuffix: "(unread)",
           starredSuffix: "(starred)",
+          untitledFallback: "Untitled article",
         }),
       ).toMatchObject({
         normalizedThumbnail: thumbnail,
@@ -192,6 +196,7 @@ describe("ArticleListItem", () => {
           imagePreviews: "medium",
           unreadSuffix: "(unread)",
           starredSuffix: "(starred)",
+          untitledFallback: "Untitled article",
         }),
       ).toMatchObject({
         normalizedThumbnail: "",
@@ -269,6 +274,7 @@ describe("ArticleListItem", () => {
         imagePreviews: "off",
         unreadSuffix: "(unread)",
         starredSuffix: "(starred)",
+        untitledFallback: "Untitled article",
       }),
     ).toMatchObject({
       ariaLabel: "First Article (unread)",
@@ -334,6 +340,7 @@ describe("ArticleListItem", () => {
         imagePreviews: "off",
         unreadSuffix: "(unread)",
         starredSuffix: "(starred)",
+        untitledFallback: "Untitled article",
       }),
     ).toMatchObject({
       ariaLabel: "Untitled article (unread)",

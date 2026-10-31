@@ -147,6 +147,7 @@ export function SidebarNavButton({
         className={trailingClassNames}
         title={trailingTitle}
       />
+      {trailingTitle && !trailingIsLeaving ? <span className="sr-only">{trailingTitle}</span> : null}
     </button>
   );
 }

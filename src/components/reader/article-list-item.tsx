@@ -141,6 +141,7 @@ export const ArticleListItem = memo(function ArticleListItem({
     imagePreviews,
     unreadSuffix: t("unread_suffix"),
     starredSuffix: t("starred_suffix"),
+    untitledFallback: t("article_untitled_fallback"),
   });
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {

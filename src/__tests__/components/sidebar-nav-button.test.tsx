@@ -124,6 +124,16 @@ describe("SidebarNavButton", () => {
     expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
   });
 
+  it("exposes the exact capped unread count to screen readers", () => {
+    render(
+      <SidebarNavButton trailing="9,999+" trailingTitle="12,345,678">
+        Feed row
+      </SidebarNavButton>,
+    );
+
+    expect(screen.getByRole("button", { name: /12,345,678/ })).toBeInTheDocument();
+  });
+
   it("removes the trailing badge immediately when trailing clears without opting in", () => {
     const { container, rerender } = render(<SidebarNavButton trailing={1}>Feed row</SidebarNavButton>);
 
