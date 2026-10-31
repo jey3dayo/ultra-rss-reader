@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { parse } from "valibot";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SanitizedArticleHtmlDtoSchema } from "@/api/schemas/article";
 import { ArticleContentView } from "@/components/reader/article-content-view";
 import articleContentViewStories from "@/components/reader/article-content-view.stories";
@@ -11,6 +11,62 @@ function dangerouslyBrandRawArticleHtmlForViewTest(rawHtml: string): SanitizedAr
 }
 
 describe("ArticleContentView", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("gives overflowing tables and code keyboard access and updates it as their size changes", () => {
+    let scrollWidth = 400;
+    let measure = () => {};
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(() => scrollWidth);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          measure = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+
+    const { container, rerender } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtml(
+          "<table><tbody><tr><td>Metrics</td></tr></tbody></table><pre>Code</pre><pre tabindex='-1'>Authored focus policy</pre>",
+        )}
+      />,
+    );
+    const table = screen.getByRole("table");
+    const code = screen.getByText("Code");
+    expect(table).toHaveAttribute("tabindex", "0");
+    expect(code).toHaveAttribute("tabindex", "0");
+    expect(screen.getByText("Authored focus policy")).toHaveAttribute("tabindex", "-1");
+    table.focus();
+    expect(table).toHaveFocus();
+
+    scrollWidth = 100;
+    act(() => measure());
+    expect(table).not.toHaveAttribute("tabindex");
+    expect(code).not.toHaveAttribute("tabindex");
+    expect(screen.getByText("Authored focus policy")).toHaveAttribute("tabindex", "-1");
+
+    scrollWidth = 400;
+    rerender(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<pre>Replacement code</pre>")} />);
+    expect(screen.getByText("Replacement code")).toHaveAttribute("tabindex", "0");
+    expect(container.querySelector(".prose")).toHaveClass(
+      "prose-pre:focus-visible:outline-2",
+      "prose-table:focus-visible:outline-2",
+    );
+  });
+
+  it("keeps overflow keyboard access available when ResizeObserver is unavailable", () => {
+    vi.stubGlobal("ResizeObserver", undefined);
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(400);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
+    render(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<pre>Code</pre>")} />);
+    expect(screen.getByText("Code")).toHaveAttribute("tabindex", "0");
+  });
+
   it("renders a thumbnail and sanitized html content", () => {
     const { container } = render(
       <ArticleContentView

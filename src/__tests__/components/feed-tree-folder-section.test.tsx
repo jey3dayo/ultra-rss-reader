@@ -30,9 +30,11 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Comic",
+      name: /^Comic/,
     });
 
+    expect(folderButton).toHaveAccessibleName("Comic Select folder 9,274");
+    expect(folderButton).not.toHaveAttribute("aria-label");
     expect(folderButton).toHaveClass("pl-0.5");
     expect(folderButton).not.toHaveClass("pr-1.5");
     expect(folderButton).not.toHaveClass("-ml-1");
@@ -57,6 +59,26 @@ describe("FeedTreeFolderSection", () => {
     );
   });
 
+  it("uses the exact unread count in the accessible name when the visible badge is capped", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, unreadCount: 12_345 }}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    const folderButton = screen.getByRole("button", { name: "Comic Select folder 12,345" });
+
+    expect(folderButton).toHaveAccessibleName("Comic Select folder 12,345");
+    expect(folderButton).not.toHaveAccessibleName(/9,999\+/);
+    expect(folderButton).not.toHaveAttribute("aria-label");
+    expect(screen.getByText("9,999+").closest("[aria-hidden='true']")).toBeInTheDocument();
+  });
+
   it("adds a folder icon slot when feed favicons are visible", () => {
     render(
       <FeedTreeFolderSection
@@ -71,7 +93,7 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Comic",
+      name: /^Comic/,
     });
 
     expect(folderButton).toHaveClass("pl-0.5");
@@ -99,7 +121,7 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Comic",
+      name: /^Comic/,
     });
     const selectedIndicator = document.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
@@ -165,7 +187,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.mouseDown(screen.getByRole("button", { name: "Select folder Comic" }), { button: 1 });
+    fireEvent.mouseDown(screen.getByRole("button", { name: /^Comic/ }), { button: 1 });
 
     expect(onMarkFolderRead).not.toHaveBeenCalled();
     expect(onSelectFolder).not.toHaveBeenCalled();
@@ -189,7 +211,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.contextMenu(screen.getByRole("button", { name: "Select folder Comic" }));
+    fireEvent.contextMenu(screen.getByRole("button", { name: /^Comic/ }));
 
     rerender(
       <FeedTreeFolderSection
@@ -221,7 +243,7 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Comic",
+      name: /^Comic/,
     });
     const row = folderButton.closest("div.rounded-md");
 
@@ -281,7 +303,7 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Comic",
+      name: /^Comic/,
     });
     const folderPanel = document.getElementById("feed-tree-folder-panel-folder-1");
 
@@ -305,7 +327,7 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Comic",
+      name: /^Comic/,
     });
     const panelId = folderButton.getAttribute("aria-controls");
     expect(panelId).toBe("feed-tree-folder-panel-folder-1");
@@ -346,7 +368,7 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Comic",
+      name: /^Comic/,
     });
     const panelId = folderButton.getAttribute("aria-controls");
     const panel = document.getElementById(panelId ?? "");
@@ -390,7 +412,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Comic/ }));
 
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFolder).not.toHaveBeenCalled();
@@ -413,7 +435,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Comic/ }));
 
     expect(consumeSuppressedHandleClick).toHaveBeenCalledTimes(1);
     expect(onToggleFolder).not.toHaveBeenCalled();
@@ -435,7 +457,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Comic/ }));
 
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
@@ -456,7 +478,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Comic/ }));
 
     expect(onToggleFolder).not.toHaveBeenCalled();
     expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
@@ -477,7 +499,7 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Comic/ }));
 
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFolder).toHaveBeenCalledWith("folder-1");

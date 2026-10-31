@@ -150,7 +150,7 @@ export function SidebarNavButton({
         className={cn("flex min-w-0 flex-1 items-center justify-start", tokens.navButtonContentGap, contentClassName)}
       >
         {children}
-      </span>
+      </span>{" "}
       <SidebarNavButtonTrailingBadge
         trailing={resolvedTrailing}
         isLeaving={trailingIsLeaving}

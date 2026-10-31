@@ -69,8 +69,13 @@ export const WithLongLabel: Story = {
   },
   render: (args) => (
     <div className="max-w-xl">
-      <LabeledControlRow {...args}>
-        <Input value="Enabled" readOnly className="h-auto w-auto border-border bg-background px-2 py-1 text-sm" />
+      <LabeledControlRow {...args} htmlFor="storybook-row-long-input">
+        <Input
+          id="storybook-row-long-input"
+          value="Enabled"
+          readOnly
+          className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+        />
       </LabeledControlRow>
     </div>
   ),

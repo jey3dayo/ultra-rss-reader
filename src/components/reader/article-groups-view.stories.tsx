@@ -73,7 +73,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-[380px] bg-card">
+      <div role="listbox" aria-label="Articles" className="w-full max-w-[380px] bg-card">
         <Story />
       </div>
     ),

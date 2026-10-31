@@ -1628,7 +1628,7 @@ describe("ArticleList", () => {
     await user.click(await screen.findByRole("button", { name: "Toggle star" }));
 
     const articleList = screen.getByRole("listbox", { name: "Article list" });
-    const selectedRow = within(articleList).getByRole("option", { name: "Second Article" });
+    const selectedRow = within(articleList).getByRole("option", { name: /^Second Article(?: |$)/ });
 
     expect((await screen.findAllByText("Second Article")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Toggle star" })).toHaveAttribute("aria-pressed", "false");
@@ -1713,7 +1713,7 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().focusedPane).toBe("list");
-      expect(within(list).getByRole("option", { name: "First Article (unread)" })).toHaveFocus();
+      expect(within(list).getByRole("option", { name: /^First Article(?: |$)/ })).toHaveFocus();
     });
   });
 

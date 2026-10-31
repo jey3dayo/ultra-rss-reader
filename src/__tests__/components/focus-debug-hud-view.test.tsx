@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FocusDebugHudView } from "@/components/debug/focus-debug-hud-view";
 
 const baseProps = {
@@ -23,6 +23,18 @@ function renderFocusDebugHudView(overrides: Partial<ComponentProps<typeof FocusD
 }
 
 describe("FocusDebugHudView", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("makes overflowing event traces reachable by keyboard", () => {
+    vi.spyOn(Element.prototype, "scrollHeight", "get").mockReturnValue(400);
+    vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(100);
+    renderFocusDebugHudView({ defaultExpanded: true });
+    const viewport = screen.getByText(baseProps.traces[0]).closest<HTMLElement>('[data-slot="scroll-area-viewport"]');
+    expect(viewport).toHaveAttribute("tabindex", "0");
+    viewport?.focus();
+    expect(viewport).toHaveFocus();
+  });
+
   it("keeps the collapsed HUD as a quiet transparent shell", () => {
     renderFocusDebugHudView();
 

@@ -45,7 +45,7 @@
   "date_at": "{{date}} at {{time}}",
   "add_account_to_start": "Add account",
   "toggle_folder": "Toggle folder {{name}}",
-  "select_folder": "Select folder {{name}}",
+  "select_folder": "Select folder",
   "move_to_folder": "Move to {{name}}",
   "drag_feed": "Drag {{name}}",
   "drag_folder": "Drag {{name}}",

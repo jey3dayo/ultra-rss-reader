@@ -295,7 +295,9 @@ export function LabeledInputRow({
               value={value}
               readOnly={readOnly}
               title={title}
-              aria-describedby={ariaDescribedBy}
+              aria-describedby={
+                [ariaDescribedBy, showError ? errorMessageId : undefined].filter(Boolean).join(" ") || undefined
+              }
               aria-errormessage={showError ? errorMessageId : ariaErrorMessage}
               aria-invalid={ariaInvalid || showError || undefined}
               onChange={(event) => onChange(event.target.value)}

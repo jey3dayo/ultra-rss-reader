@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 
 describe("AccountDetailSettingsRow", () => {
+  it("names disabled switches with their visible row label", () => {
+    render(<AccountDetailSettingsRow label="Open links in background" type="switch" checked />);
+
+    const control = screen.getByRole("switch", { name: "Open links in background" });
+    expect(control).toHaveAttribute("aria-disabled", "true");
+    expect(control).toHaveAttribute("aria-checked", "true");
+  });
+
   it("left-aligns read-only text values with the same inset as input controls", () => {
     render(<AccountDetailSettingsRow label="Type" type="text" value="FreshRSS" />);
 

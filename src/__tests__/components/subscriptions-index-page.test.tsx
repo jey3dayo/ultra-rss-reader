@@ -259,8 +259,10 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const fetchErrors = await screen.findByRole("button", { name: "取得エラー を表示" });
-    const summaryActions = screen.getAllByRole("button", { name: /を表示$/ });
+    const fetchErrors = await screen.findByRole("button", { name: /^取得エラー / });
+    const summaryActions = screen.getAllByRole("button", {
+      name: /^(取得エラー|総購読数|見直し候補|90日以上未更新|更新過多) /,
+    });
     expect(summaryActions[0]).toBe(fetchErrors);
     expect(fetchErrors).toHaveClass("border-state-danger-border/72");
   });
@@ -278,7 +280,7 @@ describe("SubscriptionsIndexPage", () => {
     const staticCard = caption.closest("[data-subscriptions-summary-static-card]");
     expect(staticCard).toBeInTheDocument();
     expect(staticCard?.parentElement?.firstElementChild).toBe(staticCard);
-    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
     expect(staticCard).not.toHaveClass("border-state-danger-border/72");
   });
 
@@ -302,7 +304,7 @@ describe("SubscriptionsIndexPage", () => {
     );
     expect(within(pendingCard).queryByText("取得状態を確認できません")).not.toBeInTheDocument();
     expect(within(pendingCard).queryByText("0")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
 
     const rejectStatus = rejectStatusRead;
     if (!rejectStatus) {
@@ -320,7 +322,7 @@ describe("SubscriptionsIndexPage", () => {
     );
     expect(within(unavailableCard).getByText("取得状態を確認できません")).toBeInTheDocument();
     expect(within(unavailableCard).queryByText("0")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
   });
 
   it("keeps the page view props aligned with the shared subscriptions index models", () => {
@@ -690,13 +692,13 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "取得エラー を表示" }));
+    await user.click(await screen.findByRole("button", { name: /^取得エラー / }));
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "再取得" }));
 
     expect(await screen.findByText("取得エラーのあるフィードはありません")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "取得エラー を表示" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "総購読数 を表示" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^取得エラー / })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^総購読数 / })).toBeInTheDocument();
   });
 
   it("restores a returned stale filter, collapsed group state, and list scroll position", async () => {

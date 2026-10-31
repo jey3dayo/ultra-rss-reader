@@ -45,7 +45,7 @@
   "date_at": "{{date}} {{time}}",
   "add_account_to_start": "アカウントを追加",
   "toggle_folder": "{{name}} フォルダを開閉",
-  "select_folder": "{{name}} フォルダを選択",
+  "select_folder": "フォルダを選択",
   "move_to_folder": "{{name}} に移動",
   "drag_feed": "{{name}} をドラッグ",
   "drag_folder": "{{name}} をドラッグ",

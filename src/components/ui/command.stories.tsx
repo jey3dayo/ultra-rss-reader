@@ -27,7 +27,6 @@ function CommandStory({ query, testId }: CommandStoryProps) {
           onValueChange={() => {}}
         />
         <CommandList>
-          <CommandEmpty>No commands found.</CommandEmpty>
           <CommandGroup heading="Reader">
             <CommandItem value="sync all feeds">
               <RefreshCw className="size-4" />
@@ -54,6 +53,7 @@ function CommandStory({ query, testId }: CommandStoryProps) {
             </CommandItem>
           </CommandGroup>
         </CommandList>
+        <CommandEmpty>No commands found.</CommandEmpty>
       </Command>
     </div>
   );

@@ -10,6 +10,7 @@ export default defineConfig({
   use: {
     ...devices["Desktop Chrome"],
     baseURL: "http://127.0.0.1:6006",
+    reducedMotion: "reduce",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

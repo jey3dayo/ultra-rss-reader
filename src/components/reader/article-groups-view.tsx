@@ -40,7 +40,11 @@ export function ArticleGroupsView({
   const groupLabelIdPrefix = useId();
 
   return groups.map((group) => (
-    <section key={group.id} aria-labelledby={group.showLabel ? `${groupLabelIdPrefix}-${group.id}` : undefined}>
+    <div
+      key={group.id}
+      role="group"
+      aria-labelledby={group.showLabel ? `${groupLabelIdPrefix}-${group.id}` : undefined}
+    >
       {group.showLabel && (
         <div data-group-header="true" className="sticky top-0 z-10 flex h-7 select-none items-center px-4">
           <span
@@ -74,6 +78,6 @@ export function ArticleGroupsView({
           })}
         </div>
       ))}
-    </section>
+    </div>
   ));
 }
