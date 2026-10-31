@@ -1,6 +1,7 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
+import { useId } from "react";
 import { MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE, MOTION_SIDEBAR_BADGE_CLASS_NAME } from "@/constants";
 import { MotionNumber, SIDEBAR_RIGHT_RAIL_CLASS_NAME } from "@/design-system";
 import { useUiStore } from "@/stores/ui-store";
@@ -93,8 +94,11 @@ export function SidebarNavButton({
   trailingTitle,
   trailingKeepLastOnClear = false,
   type = "button",
+  "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: SidebarNavButtonProps) {
+  const exactUnreadCountId = useId();
   const tokens = getSidebarDensityTokens(density);
   const focusedPane = useUiStore((state) => state.focusedPane);
   const activePane = activePaneProp ?? focusedPane === "sidebar";
@@ -109,11 +113,16 @@ export function SidebarNavButton({
     trailing,
     keepLastOnClear: trailingKeepLastOnClear,
   });
+  const showExactUnreadCount = Boolean(trailingTitle) && !trailingIsLeaving;
+  const exactUnreadCountDescribedBy = showExactUnreadCount && ariaLabel ? exactUnreadCountId : undefined;
+  const mergedAriaDescribedBy = [ariaDescribedBy, exactUnreadCountDescribedBy].filter(Boolean).join(" ") || undefined;
 
   return (
     <button
       ref={ref}
       type={type}
+      aria-label={ariaLabel}
+      aria-describedby={mergedAriaDescribedBy}
       data-sidebar-navigation-target={registerSidebarNavigationTarget ? "true" : undefined}
       data-active-pane={selected ? String(activePane) : undefined}
       className={cn(
@@ -148,7 +157,11 @@ export function SidebarNavButton({
         className={trailingClassNames}
         title={trailingTitle}
       />
-      {trailingTitle && !trailingIsLeaving ? <span className="sr-only">{trailingTitle}</span> : null}
+      {showExactUnreadCount ? (
+        <span id={exactUnreadCountDescribedBy ? exactUnreadCountId : undefined} className="sr-only">
+          {trailingTitle}
+        </span>
+      ) : null}
     </button>
   );
 }

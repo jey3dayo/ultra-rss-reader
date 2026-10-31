@@ -69,6 +69,28 @@ test.describe("runtime error guard", () => {
     }
   });
 
+  test("allows console 404 noise only for explicitly allowed HTTP 404 URLs", async ({ page }) => {
+    const runtimeErrors = installRuntimeErrorGuard(page, {
+      allowedHttp404UrlMatchers: [/allowed-fixture\.example\/missing\.png$/],
+    });
+
+    try {
+      await page.route("**/allowed-fixture.example/missing.png", (route) => route.fulfill({ status: 404 }));
+      await page.route("**/blocked-fixture.example/missing.png", (route) => route.fulfill({ status: 404 }));
+
+      await page.setContent(`
+        <img src="https://allowed-fixture.example/missing.png" alt="" />
+        <img src="https://blocked-fixture.example/missing.png" alt="" />
+      `);
+      await page.waitForTimeout(250);
+
+      expect(runtimeErrors.disallowedHttp404Urls).toEqual(["https://blocked-fixture.example/missing.png"]);
+      expect(runtimeErrors.expectedConsoleErrors.length).toBeGreaterThan(0);
+    } finally {
+      runtimeErrors.dispose();
+    }
+  });
+
   test("does not classify malformed browser webview fallback payload warnings as expected fallback", async ({
     page,
   }) => {

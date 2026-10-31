@@ -94,6 +94,26 @@ export const InlineImageMediaRail: Story = {
   ],
 };
 
+export const ProsePlaintextBidiContract: Story = {
+  name: "Prose plaintext bidi contract",
+  args: {
+    thumbnailUrl: null,
+    contentHtml: fromSanitizedArticleHtml(
+      '<div dir="rtl"><p data-testid="article-content-dir-wrapper-paragraph">English</p></div><p data-testid="article-content-plain-paragraph">Plain English</p>',
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <article
+        className="mx-auto max-w-3xl bg-background p-8 text-foreground"
+        data-testid="article-content-dir-bidi-contract"
+      >
+        <Story />
+      </article>
+    ),
+  ],
+};
+
 export const WorstCaseArticleTypography: Story = {
   name: "Break UI / Worst-case typography (720px)",
   args: {

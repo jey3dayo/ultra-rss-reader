@@ -135,6 +135,16 @@ describe("SidebarNavButton", () => {
     expect(screen.queryByText("9,999+")).toBeInTheDocument();
   });
 
+  it("exposes the exact capped unread count via description when aria-label overrides the button name", () => {
+    render(
+      <SidebarNavButton aria-label="Folder row" trailing="9,999+" trailingTitle="12,345,678">
+        Visible folder label
+      </SidebarNavButton>,
+    );
+
+    expect(screen.getByRole("button", { name: "Folder row" })).toHaveAccessibleDescription("12,345,678");
+  });
+
   it("removes the trailing badge immediately when trailing clears without opting in", () => {
     const { container, rerender } = render(<SidebarNavButton trailing={1}>Feed row</SidebarNavButton>);
 

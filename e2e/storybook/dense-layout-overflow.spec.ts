@@ -1,5 +1,6 @@
 import { expect, type Page, test, type ViewportSize } from "@playwright/test";
 import {
+  expectedGoogleFaviconHttp404UrlMatchers,
   expectNoRuntimeErrors,
   expectNoStorybookRuntimeErrorDom,
   installRuntimeErrorGuard,
@@ -40,7 +41,7 @@ const denseLayoutOverflowCases = [
 
 async function openStory(page: Page, storyId: string) {
   const runtimeErrors = installRuntimeErrorGuard(page, {
-    expectedConsoleErrors: [/^Failed to load resource: the server responded with a status of 404/],
+    allowedHttp404UrlMatchers: expectedGoogleFaviconHttp404UrlMatchers,
   });
 
   try {
