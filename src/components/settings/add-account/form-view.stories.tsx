@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { SettingsNamespaceBoundary } from "@/components/storybook/settings-namespace-boundary";
+import { loadSettingsNamespace } from "@/components/storybook/settings-namespace-loader";
 import { AddAccountFormView } from "./form-view";
 
 async function openCloudflareAccessHelp(canvasElement: HTMLElement) {
@@ -14,6 +14,7 @@ const meta = {
   title: "Settings/Account/AddAccountFormView",
   component: AddAccountFormView,
   tags: ["autodocs"],
+  loaders: [loadSettingsNamespace],
   args: {
     title: "Add Account",
     accountHeading: "Account",
@@ -46,11 +47,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <SettingsNamespaceBoundary>
-        <div className="w-full max-w-[420px] bg-background p-4">
-          <Story />
-        </div>
-      </SettingsNamespaceBoundary>
+      <div className="w-full max-w-[420px] bg-background p-4">
+        <Story />
+      </div>
     ),
   ],
 } satisfies Meta<typeof AddAccountFormView>;

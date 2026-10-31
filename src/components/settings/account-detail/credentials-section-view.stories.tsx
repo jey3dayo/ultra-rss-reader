@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { SettingsNamespaceBoundary } from "@/components/storybook/settings-namespace-boundary";
+import { loadSettingsNamespace } from "@/components/storybook/settings-namespace-loader";
 import type { AccountCloudflareAccessSection } from "./cloudflare-access-credential-fields";
 import { AccountCredentialsSectionView } from "./credentials-section-view";
 
@@ -56,6 +56,7 @@ const meta = {
   title: "Settings/Section/AccountCredentialsSectionView",
   component: AccountCredentialsSectionView,
   tags: ["autodocs"],
+  loaders: [loadSettingsNamespace],
   args: {
     heading: "Server",
     serverUrlLabel: "Server URL",
@@ -78,11 +79,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <SettingsNamespaceBoundary>
-        <div className="w-full max-w-[640px] bg-background p-4">
-          <Story />
-        </div>
-      </SettingsNamespaceBoundary>
+      <div className="w-full max-w-[640px] bg-background p-4">
+        <Story />
+      </div>
     ),
   ],
 } satisfies Meta<typeof AccountCredentialsSectionView>;
