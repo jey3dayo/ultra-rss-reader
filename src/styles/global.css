@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -97,6 +99,27 @@
   100% {
     translate: -100% 0;
   }
+}
+
+@utility prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--foreground-soft);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--foreground-soft);
+  --tw-prose-bullets: var(--foreground-soft);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground-soft);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--foreground-soft);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--surface-1);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  color: var(--foreground);
+  font-family: inherit;
 }
 
 /* Legacy tokens for existing components */

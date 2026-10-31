@@ -211,7 +211,7 @@ describe("ArticleContentView", () => {
     const prose = container.querySelector(".prose");
     expect(prose).not.toBeNull();
     expect(prose).toHaveClass("min-w-0");
-    expect(prose).toHaveClass("overflow-x-hidden");
+    expect(prose).not.toHaveClass("overflow-x-hidden");
     expect(prose).toHaveClass("prose-table:block");
     expect(prose).toHaveClass("prose-table:max-w-full");
     expect(prose).toHaveClass("prose-table:overflow-x-auto");
@@ -242,6 +242,23 @@ describe("ArticleContentView", () => {
     expect(prose).toHaveClass("prose-img:w-full", "prose-img:max-w-full", "prose-img:h-auto");
     expect(screen.getByRole("img", { name: "Panel" })).toHaveAttribute("src", "https://cdn.example.com/panel.jpg");
     expect(screen.getByRole("img", { name: "Figure" })).toHaveAttribute("src", "https://cdn.example.com/figure.jpg");
+  });
+
+  it("applies plaintext bidi on article block elements for mixed-script paragraphs", () => {
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            '<p>أخبار العلوم 2026 and English punctuation.</p><p dir="rtl">שלום world 123.</p><blockquote>اقتباس — quote.</blockquote>',
+        })}
+      />,
+    );
+
+    const prose = container.querySelector(".prose");
+    expect(prose).not.toBeNull();
+    expect(prose).toHaveClass("[&_:where(blockquote,h1,h2,h3,h4,h5,h6,li,p,td,th)]:[unicode-bidi:plaintext]");
+    expect(screen.getByText("أخبار العلوم 2026 and English punctuation.")).toBeInTheDocument();
+    expect(container.querySelector('[dir="rtl"]')).not.toBeNull();
   });
 
   it("smoke-renders a large sanitized article body with many remote images without expanding render wrappers", () => {

@@ -7,6 +7,7 @@ import { FeedFavicon } from "@/design-system";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_ROW_LEAVING_ATTRIBUTE, SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { FEED_MOVE_FEED_ROW_ATTRIBUTE } from "@/lib/sidebar/feed-move-animation";
+import { formatSidebarUnreadCount } from "@/lib/sidebar/format-sidebar-unread-count";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { FeedTreeRowProps } from "./feed-tree.types";
 import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
@@ -91,6 +92,7 @@ export function FeedTreeRow({
   useFeedTreeRowLeaveFocus(rowRef, feed.isLeaving);
   const canDragThisFeed = canDragFeeds && !feed.isLeaving;
   const isCurrentSelection = feed.isSelected && !feed.isLeaving;
+  const unreadCountPresentation = feed.unreadCount > 0 ? formatSidebarUnreadCount(feed.unreadCount) : null;
 
   return (
     <FeedTreeSelectableRow
@@ -122,7 +124,8 @@ export function FeedTreeRow({
               selected={feed.isSelected}
               selectedIndicatorMode={canDragFeeds ? "hidden" : "always"}
               registerSidebarNavigationTarget={!feed.isLeaving}
-              trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
+              trailing={unreadCountPresentation?.label}
+              trailingTitle={unreadCountPresentation?.title}
               trailingKeepLastOnClear
               trailingClassName={
                 feed.isSelected
@@ -172,7 +175,7 @@ export function FeedTreeRow({
               />
             </span>
           )}
-          <span className="max-w-full truncate font-medium" dir="auto" title={feed.title}>
+          <span className="min-w-0 flex-1 truncate font-medium" dir="auto" title={feed.title}>
             {feed.title}
           </span>
         </ContextMenu.Trigger>

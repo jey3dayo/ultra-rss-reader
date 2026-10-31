@@ -21,6 +21,8 @@ type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
   contentClassName?: string;
   ref?: Ref<HTMLButtonElement>;
   trailingClassName?: string;
+  /** Tooltip for the trailing badge (e.g. exact unread count when the label is capped). */
+  trailingTitle?: string;
   /**
    * Keeps rendering the last non-empty `trailing` value, fading it out
    * instead of unmounting it the instant `trailing` becomes empty (e.g. an
@@ -35,15 +37,17 @@ type SidebarNavButtonTrailingBadgeProps = {
   trailing: ReactNode;
   isLeaving: boolean;
   className: string;
+  title?: string;
 };
 
-function SidebarNavButtonTrailingBadge({ trailing, isLeaving, className }: SidebarNavButtonTrailingBadgeProps) {
+function SidebarNavButtonTrailingBadge({ trailing, isLeaving, className, title }: SidebarNavButtonTrailingBadgeProps) {
   if (trailing === null || trailing === undefined) {
     return null;
   }
   return (
     <span
-      className={MOTION_SIDEBAR_BADGE_CLASS_NAME}
+      className={cn(MOTION_SIDEBAR_BADGE_CLASS_NAME, "shrink-0")}
+      title={title}
       aria-hidden={isLeaving ? "true" : undefined}
       {...{ [MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE]: isLeaving ? "true" : undefined }}
     >
@@ -85,6 +89,7 @@ export function SidebarNavButton({
   ref,
   trailing,
   trailingClassName,
+  trailingTitle,
   trailingKeepLastOnClear = false,
   type = "button",
   ...props
@@ -140,6 +145,7 @@ export function SidebarNavButton({
         trailing={resolvedTrailing}
         isLeaving={trailingIsLeaving}
         className={trailingClassNames}
+        title={trailingTitle}
       />
     </button>
   );

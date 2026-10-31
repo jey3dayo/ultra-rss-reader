@@ -367,3 +367,60 @@ export const FolderReorderResult: Story = {
     onSelectFeed: fn(),
   },
 };
+
+const breakUiLongName = "International news and technology headlines with emoji 📰 and more words to force truncation";
+
+const breakUiWorstCaseFolders: FeedTreeFolderViewModel[] = [
+  {
+    id: "folder-break-ui",
+    name: breakUiLongName,
+    accountId: "acc-1",
+    sortOrder: 0,
+    unreadCount: 12_345_678,
+    isExpanded: true,
+    isSelected: false,
+    feeds: [
+      {
+        id: "feed-break-ui",
+        accountId: "acc-1",
+        folderId: "folder-break-ui",
+        title: "Global technology and science reporting — 最新の科学技術",
+        url: "https://example.com/global.xml",
+        siteUrl: "https://example.com/global",
+        unreadCount: 12_345_678,
+        readerMode: "on",
+        webPreviewMode: "off",
+        isSelected: true,
+        grayscaleFavicon: false,
+      },
+    ],
+  },
+];
+
+export const WorstCaseUnreadCountsNarrow: Story = {
+  name: "Break UI / Unread counts (240px)",
+  decorators: [
+    (Story) => (
+      <div className="w-[240px] bg-sidebar p-2 text-sidebar-foreground" data-testid="feed-tree-break-ui-narrow">
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    folders: breakUiWorstCaseFolders,
+    unfolderedFeeds: [],
+    displayFavicons: true,
+  },
+};
+
+export const WorstCaseUnreadCountsWide: Story = {
+  name: "Break UI / Unread counts (900px)",
+  decorators: [
+    (Story) => (
+      <div className="w-[900px] bg-sidebar p-2 text-sidebar-foreground" data-testid="feed-tree-break-ui-wide">
+        <Story />
+      </div>
+    ),
+  ],
+  args: WorstCaseUnreadCountsNarrow.args,
+};

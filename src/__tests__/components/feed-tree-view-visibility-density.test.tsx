@@ -77,7 +77,7 @@ describe("FeedTreeView visibility and density contract", () => {
     const row = screen.getByRole("button", { name: /very long user-created feed/ });
 
     expect(row).toHaveClass("min-h-8", "py-0.5");
-    expect(name).toHaveClass("max-w-full", "truncate");
+    expect(name).toHaveClass("min-w-0", "flex-1", "truncate");
     expect(name).toHaveAttribute("dir", "auto");
     expect(name).toHaveAttribute("title", "مثال very long user-created feed display name for dense rows");
   });

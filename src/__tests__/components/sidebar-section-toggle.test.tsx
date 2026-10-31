@@ -13,7 +13,7 @@ describe("SidebarSectionToggle", () => {
     expect(button).toHaveClass("motion-disclosure-trigger", "rounded-lg", "select-none", "hover:bg-surface-1/72");
     expect(button).toHaveClass("focus-visible:bg-[var(--sidebar-hover-surface)]", "focus-visible:ring-0");
     expect(button).not.toHaveClass("focus-visible:ring-ring/45");
-    expect(button.querySelector("svg")?.parentElement).toHaveClass("w-8", "justify-end", "text-right");
+    expect(button.querySelector("svg")?.parentElement).toHaveClass("min-w-8", "justify-end", "text-right");
     expect(button.querySelector("svg")).toHaveClass("size-3.5");
     expect(button.querySelector("svg")).toHaveClass("translate-x-[3px]");
     expect(button.querySelector("svg")).toHaveClass("text-sidebar-foreground/54");

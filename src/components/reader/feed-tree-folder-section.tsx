@@ -11,6 +11,7 @@ import {
   FOLDER_REORDER_FOLDER_ID_ATTRIBUTE,
   FOLDER_REORDER_TARGET_ATTRIBUTE,
 } from "@/lib/sidebar/folder-tree-drop-target";
+import { formatSidebarUnreadCount } from "@/lib/sidebar/format-sidebar-unread-count";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type {
   ActiveDropTarget,
@@ -101,6 +102,7 @@ export function FeedTreeFolderSection({
   const rowRef = useRef<HTMLDivElement>(null);
   useFeedTreeRowLeaveFocus(rowRef, folder.isLeaving);
   const isCurrentSelection = folder.isSelected && !folder.isLeaving;
+  const unreadCountPresentation = folder.unreadCount > 0 ? formatSidebarUnreadCount(folder.unreadCount) : null;
 
   return (
     <div
@@ -158,7 +160,8 @@ export function FeedTreeFolderSection({
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
                 registerSidebarNavigationTarget={!folder.isLeaving}
-                trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
+                trailing={unreadCountPresentation?.label}
+                trailingTitle={unreadCountPresentation?.title}
                 trailingKeepLastOnClear
                 trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
                 {...(isCurrentSelection ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
@@ -224,7 +227,7 @@ export function FeedTreeFolderSection({
                 <Folder className="size-3.5" aria-hidden="true" />
               </span>
             ) : null}
-            <span className="max-w-full truncate font-medium tracking-[-0.01em]" dir="auto" title={folder.name}>
+            <span className="min-w-0 flex-1 truncate font-medium tracking-[-0.01em]" dir="auto" title={folder.name}>
               {folder.name}
             </span>
           </ContextMenu.Trigger>

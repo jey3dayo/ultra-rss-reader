@@ -121,7 +121,7 @@ describe("SidebarNavButton", () => {
     render(<SidebarNavButton trailing={12}>Feed row</SidebarNavButton>);
 
     expect(screen.getByText("12")).toHaveClass("motion-content-swap", "tabular-nums");
-    expect(screen.getByText("12")).toHaveClass("w-8", "justify-end", "text-right");
+    expect(screen.getByText("12")).toHaveClass("min-w-8", "shrink-0", "justify-end", "text-right");
     expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
   });
 
@@ -417,5 +417,16 @@ describe("SidebarNavButton", () => {
     render(<SidebarNavButton ref={buttonRef}>Feed row</SidebarNavButton>);
 
     expect(buttonRef.current).toBe(screen.getByRole("button", { name: "Feed row" }));
+  });
+
+  it("forwards trailingTitle to the badge wrapper for capped unread labels", () => {
+    const { container } = render(
+      <SidebarNavButton trailing="9,999+" trailingTitle="12,345,678">
+        Long feed name
+      </SidebarNavButton>,
+    );
+
+    expect(queryTrailingBadge(container)).toHaveAttribute("title", "12,345,678");
+    expect(queryTrailingBadge(container)).toHaveClass("shrink-0");
   });
 });

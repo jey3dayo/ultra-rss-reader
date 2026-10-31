@@ -4,6 +4,10 @@ import { stripHtmlTags } from "@/lib/content/html";
 const ARTICLE_LIST_ITEM_TITLE_FALLBACK = "Untitled article";
 const ARTICLE_LIST_ITEM_TITLE_WHITESPACE_PATTERN = /\s+/g;
 
+export function normalizeArticleDisplayTitle(title: string): string {
+  return title.replace(ARTICLE_LIST_ITEM_TITLE_WHITESPACE_PATTERN, " ").trim() || ARTICLE_LIST_ITEM_TITLE_FALLBACK;
+}
+
 // Bulletin-board style feeds (e.g. 2ch/5ch mirrors) often prefix each post
 // with a numbered header like `1 名前：Anonymous@2026/07/21(火) ID:xxxxYYYY`,
 // which reads as noise once stripped of HTML and shown as a list preview.
@@ -70,8 +74,7 @@ export function resolveArticleListItemPresentation({
 }: ArticleListItemPresentationInput): ArticleListItemPresentation {
   const isRead = articleIsRead || isRecentlyRead;
   const isUnread = !isRead;
-  const normalizedTitle =
-    title.replace(ARTICLE_LIST_ITEM_TITLE_WHITESPACE_PATTERN, " ").trim() || ARTICLE_LIST_ITEM_TITLE_FALLBACK;
+  const normalizedTitle = normalizeArticleDisplayTitle(title);
   const normalizedFeedName = feedName?.trim() ?? "";
   const normalizedThumbnail = normalizeArticleRemoteImageUrl(thumbnail) ?? "";
   const summaryText = summary ? stripHtmlTags(summary) : "";

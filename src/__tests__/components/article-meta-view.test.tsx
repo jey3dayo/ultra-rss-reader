@@ -31,9 +31,8 @@ describe("ArticleMetaView", () => {
     expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tracking-[0.08em]");
     expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tabular-nums");
     expect(screen.getByText("2026年3月25日 10:00").parentElement).not.toHaveClass("uppercase");
-    expect(screen.getByText("Alice").parentElement).toHaveClass("text-[0.95rem]");
-    expect(screen.getByText("Alice").parentElement).not.toHaveClass("font-serif");
-    expect(screen.getByText("Alice").parentElement).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Alice").closest(".inline-flex")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("Alice").closest(".flex.flex-wrap")).toHaveClass("text-[0.95rem]", "text-foreground-soft");
 
     const titleButton = screen.getByRole("button", { name: "First Article" });
     const feedButton = screen.getByRole("button", { name: "Tech Blog" });
@@ -99,6 +98,30 @@ describe("ArticleMetaView", () => {
     expect(heading).toHaveClass("leading-[1.07]");
     expect(screen.queryByRole("button", { name: "Offline Article" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tech Blog" })).not.toBeInTheDocument();
+  });
+
+  it("uses the shared untitled fallback for blank article titles", () => {
+    render(<ArticleMetaView title="" publishedLabel="Friday, October 30, 2026 at 10:00 AM" />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Untitled article" })).toBeInTheDocument();
+  });
+
+  it("keeps the author separator on the same line as the author", () => {
+    const { container } = render(
+      <ArticleMetaView
+        title="International science and technology research report 📰"
+        feedName="Global technology and science reporting — 最新の科学技術と国際ニュースを詳しく伝えるフィード"
+        author="Aleksandra Wiśniewska-Kowalczyk"
+        publishedLabel="Friday, October 30, 2026 at 10:00 AM"
+      />,
+    );
+
+    const authorGroup = screen.getByText("Aleksandra Wiśniewska-Kowalczyk").parentElement;
+    const metaRow = container.querySelector(".flex.flex-wrap.items-baseline");
+
+    expect(metaRow).toHaveClass("justify-start", "text-left");
+    expect(authorGroup).toHaveClass("whitespace-nowrap");
+    expect(authorGroup?.querySelector('[aria-hidden="true"]')).toHaveTextContent("/");
   });
 
   it("keeps reader inline actions as native non-submit buttons with forwarded disabled semantics", async () => {
