@@ -81,7 +81,7 @@ export function ArticleMetaView({
             </FeedSiteLink>
           ) : null}
           {normalizedAuthor ? (
-            <span className="inline-flex max-w-full min-w-0 items-baseline gap-x-1 whitespace-nowrap">
+            <span className="inline-flex max-w-full min-w-0 items-baseline gap-x-2.5 whitespace-nowrap">
               {normalizedFeedName || siteLink ? <MetaSeparator /> : null}
               <span className="truncate" title={normalizedAuthor}>
                 {normalizedAuthor}
