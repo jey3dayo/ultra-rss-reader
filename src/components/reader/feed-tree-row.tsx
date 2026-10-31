@@ -122,7 +122,7 @@ export function FeedTreeRow({
             <SidebarNavButton
               density={sidebarDensity}
               selected={feed.isSelected}
-              selectedIndicatorMode={canDragFeeds ? "hidden" : "always"}
+              selectedIndicatorMode="hidden"
               registerSidebarNavigationTarget={!feed.isLeaving}
               trailing={unreadCountPresentation?.label}
               trailingTitle={unreadCountPresentation?.title}
