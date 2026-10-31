@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.15] - 2026-10-31
+
+### Bug Fixes
+
+- ローカル同期のインポート時に、未エクスポートの自端末の既読・スター変更が巻き戻らないようにしました。 (#548)
+
+### Maintenance
+
+- npm 依存を更新し、Node.js を 26.13.0 に更新しました。 (#551)
+
 ## [0.67.14] - 2026-10-30
 
 ### Bug Fixes
