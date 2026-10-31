@@ -97,6 +97,7 @@ mise run test:unit:dom # jsdom Vitest for DOM/rendering changes
 mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:storybook:e2e # Storybook Playwright smoke tests
 mise run build:storybook    # Storybook static build check
+mise run test:storybook:a11y # axe against the prebuilt static Storybook
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
 mise run report:jev   # jev-lint LLM review of the diff against origin/main (needs TYPESAFE_API_KEY; advisory, not a gate)
@@ -124,6 +125,7 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 - `mise run test:unit:dom` runs the jsdom Vitest suite for DOM, React rendering, Testing Library, and browser global coverage.
 - `mise run test:e2e` runs Playwright against the browser-mode UI flow. Its default config also collects `e2e/storybook/`, whose specs need the Storybook server; run `mise exec -- pnpm exec playwright test e2e/app.spec.ts` for the app flow only.
 - `mise run test:storybook:e2e` runs the Storybook Playwright smoke suite against the UI reference canvases. Use it after changing Storybook stories, shared visual reference canvases, or Storybook-only decorators.
+- `mise run test:storybook:a11y` runs Chromium axe WCAG A/AA checks (2.0, 2.1, and 2.2) on every story in `storybook-static/index.json`. Run `pnpm exec playwright install chromium` once, then `mise run build:storybook` before the audit. The static server refuses reuse; story render failures and axe violations fail the gate. This checks each story's initial rendered state; keyboard interaction and states opened by user actions still need focused tests.
 - `mise run build:storybook` is the static Storybook build gate. Run it with `mise run test:storybook:e2e` before relying on a Storybook fixture in a review or release note.
 - `mise run test:live` is opt-in and requires real FreshRSS credentials from `.env`.
 - Features that depend on OS services such as updater installation and native keyring behavior still need platform-specific manual verification. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before tagging a release or sharing a packaged build.
@@ -131,18 +133,19 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 
 ### Verification Matrix
 
-| Area                                      | Default CI / local gate                        | Additional verification                                    |
-| ----------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
-| TypeScript / Rust / node unit regressions | `mise run check`                               | `mise run ci` before PR handoff or broad changes           |
-| DOM / React rendering regressions         | `mise run ci`                                  | Focused `mise run test:unit:dom` during local iteration    |
-| Browser-mode UI flow                      | `mise run test:e2e`                            | Optional manual pass in `mise run app:dev:browser`         |
-| Storybook reference canvases              | Not part of default CI                         | `mise run build:storybook` + `mise run test:storybook:e2e` |
-| FreshRSS real-server integration          | Not part of default CI                         | `mise run test:live` with real credentials                 |
-| Native keyring integration                | Unit / integration tests around app logic only | Manual verification on each target OS                      |
-| Updater download / install                | Config and command-level checks only           | Manual verification on packaged builds per target OS       |
-| Code quality baseline reports             | Not part of default CI                         | `mise run report:knip` / `mise run report:similarity`      |
-| Knip baseline gate                        | CI Toolchain job                               | `mise run quality:knip`                                    |
-| jev-lint diff review (LLM, advisory)      | Not part of default CI                         | `mise run report:jev` (needs `TYPESAFE_API_KEY`)           |
+| Area                                      | Default CI / local gate                        | Additional verification                                     |
+| ----------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| TypeScript / Rust / node unit regressions | `mise run check`                               | `mise run ci` before PR handoff or broad changes            |
+| DOM / React rendering regressions         | `mise run ci`                                  | Focused `mise run test:unit:dom` during local iteration     |
+| Browser-mode UI flow                      | `mise run test:e2e`                            | Optional manual pass in `mise run app:dev:browser`          |
+| Storybook accessibility                   | Ubuntu Chromium on UI/Storybook or full plans  | `mise run build:storybook` + `mise run test:storybook:a11y` |
+| Storybook reference canvases              | Smoke tests remain local                       | `mise run build:storybook` + `mise run test:storybook:e2e`  |
+| FreshRSS real-server integration          | Not part of default CI                         | `mise run test:live` with real credentials                  |
+| Native keyring integration                | Unit / integration tests around app logic only | Manual verification on each target OS                       |
+| Updater download / install                | Config and command-level checks only           | Manual verification on packaged builds per target OS        |
+| Code quality baseline reports             | Not part of default CI                         | `mise run report:knip` / `mise run report:similarity`       |
+| Knip baseline gate                        | CI Toolchain job                               | `mise run quality:knip`                                     |
+| jev-lint diff review (LLM, advisory)      | Not part of default CI                         | `mise run report:jev` (needs `TYPESAFE_API_KEY`)            |
 
 > **Windows Rust scope:** Windows CI's `mise run test:rust` runs `cargo test --test integration_test` only. Full Rust library tests run in Linux CI and on macOS/Linux with `mise run check`.
 
@@ -282,7 +285,7 @@ macOS release artifacts are built under a no Developer ID policy. The release co
 - Use [docs/incident-runbook.md](docs/incident-runbook.md) for the shortest path to logs, backups, and failure-specific triage steps.
 - If the app looks stale during development, make sure you are using `mise run app:dev` or `mise run app:dev:browser`, not `pnpm preview`.
 - If `pnpm preview` does not reflect a recent frontend change, run `pnpm build` first so `dist/` is regenerated.
-- Playwright failure artifacts are split by gate: browser-mode E2E writes to `test-results/e2e` and `playwright-report/e2e`; Storybook smoke writes to `test-results/storybook` and `playwright-report/storybook`.
+- Playwright failure artifacts are split by gate: browser-mode E2E writes to `test-results/e2e` and `playwright-report/e2e`; Storybook smoke writes to `test-results/storybook` and `playwright-report/storybook`; axe writes to `test-results/storybook-a11y` and `playwright-report/storybook-a11y`, including violation JSON, screenshots, and traces on failure.
 
 ## Documentation
 

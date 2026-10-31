@@ -72,6 +72,10 @@ run = "playwright test"
 description = "Run Storybook Playwright E2E tests"
 run = "playwright test --config playwright.storybook.config.ts"
 
+["test:storybook:a11y"]
+description = "Run axe WCAG checks against a prebuilt static Storybook (run build:storybook first)"
+run = "playwright test --config playwright.storybook-a11y.config.ts"
+
 ["test:all"]
 description = "Run all tests including E2E"
 depends = ["test:rust", "test:unit", "test:e2e", "test:storybook:e2e"]

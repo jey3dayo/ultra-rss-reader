@@ -4,12 +4,13 @@ import { checkJobs, type Plan, requiredJobs } from "./plan.ts";
 export function parsePlan(value: unknown): Plan {
   if (
     !isRecord(value) ||
-    Object.keys(value).length !== 5 ||
+    Object.keys(value).length !== 6 ||
     typeof value.full !== "boolean" ||
     typeof value.frontend !== "boolean" ||
     typeof value.native !== "boolean" ||
     typeof value.credentials !== "boolean" ||
-    typeof value.windows !== "boolean"
+    typeof value.windows !== "boolean" ||
+    typeof value.storybook !== "boolean"
   ) {
     throw new Error("Missing or invalid CI plan");
   }
@@ -19,10 +20,11 @@ export function parsePlan(value: unknown): Plan {
     native: value.native,
     credentials: value.credentials,
     windows: value.windows,
+    storybook: value.storybook,
   };
   if (
     !plan.frontend ||
-    (plan.full && !(plan.frontend && plan.native && plan.credentials && plan.windows)) ||
+    (plan.full && !(plan.frontend && plan.native && plan.credentials && plan.windows && plan.storybook)) ||
     (plan.credentials && !plan.native) ||
     (plan.native && !plan.windows)
   ) {

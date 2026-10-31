@@ -1224,7 +1224,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(extractTaskBlock(miseToml, "test:unit:ci:dom:shard1")).toContain("--project jsdom --shard=1/2");
     expect(extractTaskBlock(miseToml, "test:unit:ci:dom:shard2")).toContain("--project jsdom --shard=2/2");
     expect(gateJob).toContain(
-      "needs: [change-plan, toolchain, format, lint, rust-clippy, test-node, test-rust, test-jsdom, build, native-smoke, audit]",
+      "needs: [change-plan, toolchain, format, lint, rust-clippy, test-node, test-rust, test-jsdom, build, storybook-a11y, native-smoke, audit]",
     );
     expect(gateJob).toContain("node scripts/ci/quality-gate.ts");
     expect(ciWorkflow).not.toContain("mise run test:ci");

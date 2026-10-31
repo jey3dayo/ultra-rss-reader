@@ -16,6 +16,7 @@ const plan = detectPlan(process.env.GITHUB_EVENT_NAME ?? "", () => {
 const outputs = {
   plan: JSON.stringify(plan),
   frontend: String(plan.frontend),
+  storybook: String(plan.storybook),
   native: String(plan.native),
   credentials: String(plan.credentials),
   full: String(plan.full),

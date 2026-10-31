@@ -23,7 +23,14 @@ function results(plan: Plan): Record<string, { result: string }> {
 }
 
 test("UI-only runs the complete Ubuntu frontend lane without native compilation", () => {
-  assert.deepEqual(ui, { full: false, frontend: true, native: false, credentials: false, windows: false });
+  assert.deepEqual(ui, {
+    full: false,
+    frontend: true,
+    native: false,
+    credentials: false,
+    windows: false,
+    storybook: true,
+  });
   assert.deepEqual(requiredJobs(ui), {
     toolchain: true,
     format: true,
@@ -33,6 +40,7 @@ test("UI-only runs the complete Ubuntu frontend lane without native compilation"
     "test-rust": false,
     "test-jsdom": true,
     build: true,
+    "storybook-a11y": true,
     "native-smoke": false,
     audit: false,
   });
@@ -48,9 +56,34 @@ test("UI-only runs the complete Ubuntu frontend lane without native compilation"
     assert.deepEqual(planChanges("pull_request", [`src/components/view.${extension}`]), ui);
 });
 
+test("Storybook configuration and stories require the accessibility lane", () => {
+  for (const path of [
+    ".storybook/main.ts",
+    ".storybook/preview.ts",
+    "e2e/storybook/accessibility.spec.ts",
+    "playwright.storybook-a11y.config.ts",
+    "src/components/ui/button.stories.tsx",
+  ])
+    assert.deepEqual(planChanges("pull_request", [path]), ui, path);
+  for (const path of ["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml"])
+    assert.equal(planChanges("pull_request", [path]).storybook, true, path);
+  const native = planChanges("pull_request", ["src-tauri/src/domain/article.rs"]);
+  assert.equal(requiredJobs(native)["storybook-a11y"], false);
+  for (const result of ["failure", "cancelled", "skipped"])
+    assert.ok(validateGate(ui, { ...results(ui), "storybook-a11y": { result } }, "pull_request").length);
+  assert.deepEqual(validateGate(native, results(native), "pull_request"), []);
+});
+
 test("Rust and native changes retain the full frontend baseline and native lanes", () => {
   const rust = planChanges("pull_request", ["src-tauri/src/domain/article.rs"]);
-  assert.deepEqual(rust, { full: false, frontend: true, native: true, credentials: false, windows: true });
+  assert.deepEqual(rust, {
+    full: false,
+    frontend: true,
+    native: true,
+    credentials: false,
+    windows: true,
+    storybook: false,
+  });
   for (const path of [
     "src/api/tauri-commands.ts",
     "src-tauri/resources/icon.png",
@@ -114,7 +147,7 @@ test("credential matching uses whole path tokens, not substrings", () => {
 
 test("root task-tracking files run only the frontend lane and never widen a Rust change", () => {
   for (const path of ["CHANGELOG.md", "todo.txt", "done.txt"])
-    assert.deepEqual(planChanges("pull_request", [path]), ui, path);
+    assert.deepEqual(planChanges("pull_request", [path]), { ...ui, storybook: false }, path);
   assert.deepEqual(planChanges("pull_request", ["src/components/reader/article.tsx", "CHANGELOG.md", "todo.txt"]), ui);
   assert.deepEqual(planChanges("pull_request", ["src-tauri/src/domain/article.rs", "CHANGELOG.md"]), {
     full: false,
@@ -122,6 +155,7 @@ test("root task-tracking files run only the frontend lane and never widen a Rust
     native: true,
     credentials: false,
     windows: true,
+    storybook: false,
   });
 });
 
@@ -228,6 +262,8 @@ test("malformed or contradictory plans cannot bypass required checks", () => {
     null,
     {},
     { ...ui, frontend: "true" },
+    { ...ui, storybook: "true" },
+    { ...fullPlan(), storybook: false },
     { ...ui, frontend: false },
     { ...ui, full: true },
     { ...ui, credentials: true },
@@ -290,6 +326,20 @@ test("workflow connects every planned lane to the gate and keeps Windows/full re
   assert.ok(workflow.includes("needs.change-plan.outputs.credentials == 'true'"));
   assert.ok(workflow.includes("os: [macos-latest, windows-latest]"));
   assert.ok(!workflow.includes("run: |"));
+});
+
+test("Storybook audit runs independently on static output and retains failure evidence", () => {
+  const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+  const job = workflow.slice(workflow.indexOf("  storybook-a11y:"), workflow.indexOf("  native-smoke:"));
+  assert.ok(job.includes("needs.change-plan.outputs.storybook == 'true'"));
+  assert.ok(job.includes("runs-on: ubuntu-latest"));
+  assert.ok(job.includes("pnpm exec playwright install --with-deps chromium"));
+  assert.ok(job.indexOf("mise run build:storybook") < job.indexOf("mise run test:storybook:a11y"));
+  assert.ok(job.includes("if: failure()"));
+  for (const path of ["test-results/storybook-a11y/", "playwright-report/storybook-a11y/"])
+    assert.ok(job.includes(path));
+  assert.ok(!job.includes("continue-on-error"));
+  assert.ok(!job.includes("rust-toolchain"));
 });
 
 test("dependency-free Node CLIs emit a full dispatch plan and enforce gate failure exits", (context) => {

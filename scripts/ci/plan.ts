@@ -7,14 +7,22 @@ export const checkJobs = [
   "test-rust",
   "test-jsdom",
   "build",
+  "storybook-a11y",
   "native-smoke",
   "audit",
 ] as const;
 
-export type Plan = { full: boolean; frontend: boolean; native: boolean; credentials: boolean; windows: boolean };
+export type Plan = {
+  full: boolean;
+  frontend: boolean;
+  native: boolean;
+  credentials: boolean;
+  windows: boolean;
+  storybook: boolean;
+};
 
 export function fullPlan(): Plan {
-  return { full: true, frontend: true, native: true, credentials: true, windows: true };
+  return { full: true, frontend: true, native: true, credentials: true, windows: true, storybook: true };
 }
 
 const credentialTokens = new Set([
@@ -58,7 +66,13 @@ function sharedOrPlatformPath(path: string): boolean {
   );
 }
 
-type PathKind = { frontendFile: boolean; trackingFile: boolean; rustFile: boolean; nativeAsset: boolean };
+type PathKind = {
+  storybookFile: boolean;
+  frontendFile: boolean;
+  trackingFile: boolean;
+  rustFile: boolean;
+  nativeAsset: boolean;
+};
 
 const frontendPrefixes = [
   "src/components/",
@@ -77,6 +91,8 @@ function unsafePath(path: string): boolean {
 
 function classifyPath(path: string): PathKind {
   return {
+    storybookFile:
+      path.startsWith(".storybook/") || path.startsWith("e2e/storybook/") || path.startsWith("playwright.storybook"),
     frontendFile:
       (frontendPrefixes.some((prefix) => path.startsWith(prefix)) && /\.(?:[cm]?js|jsx|ts|tsx|css)$/.test(path)) ||
       (path.startsWith("src/locales/") && path.endsWith(".json")),
@@ -91,14 +107,15 @@ function classifyPath(path: string): PathKind {
 
 function requiresFullPlan(path: string, kind: PathKind): boolean {
   return (
-    !(kind.frontendFile || kind.trackingFile || kind.rustFile || kind.nativeAsset) ||
+    !(kind.frontendFile || kind.storybookFile || kind.trackingFile || kind.rustFile || kind.nativeAsset) ||
     /(?:^|\/)(?:scripts|release|cli|fs|filesystem|process|bin)(?:\/|[.-])/.test(path) ||
     path.includes("windows-dispatch")
   );
 }
 
 function applyPathToPlan(plan: Plan, path: string, kind: PathKind): void {
-  if (kind.frontendFile || kind.trackingFile || kind.nativeAsset) plan.frontend = true;
+  if (kind.storybookFile || (kind.frontendFile && !path.startsWith("src/api/"))) plan.storybook = true;
+  if (kind.frontendFile || kind.storybookFile || kind.trackingFile || kind.nativeAsset) plan.frontend = true;
   if (nativePath(path) || credentialPath(path)) {
     plan.frontend = true;
     plan.native = true;
@@ -109,7 +126,14 @@ function applyPathToPlan(plan: Plan, path: string, kind: PathKind): void {
 
 export function planChanges(event: string, paths: readonly string[]): Plan {
   if (event !== "pull_request" || paths.length === 0) return fullPlan();
-  const plan: Plan = { full: false, frontend: false, native: false, credentials: false, windows: false };
+  const plan: Plan = {
+    full: false,
+    frontend: false,
+    native: false,
+    credentials: false,
+    windows: false,
+    storybook: false,
+  };
   for (const path of paths) {
     if (unsafePath(path) || sharedOrPlatformPath(path)) return fullPlan();
     const kind = classifyPath(path);
@@ -129,6 +153,7 @@ export function requiredJobs(plan: Plan): Record<string, boolean> {
     "test-rust": plan.native,
     "test-jsdom": plan.frontend,
     build: plan.frontend,
+    "storybook-a11y": plan.storybook,
     "native-smoke": plan.native,
     audit: plan.full,
   };
