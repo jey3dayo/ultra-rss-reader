@@ -29,6 +29,17 @@
   },
   "overrides": [
     {
+      // Article option groups belong to a listbox; fieldset semantics are for form controls.
+      "includes": ["src/components/reader/article-groups-view.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "off"
+          }
+        }
+      }
+    },
+    {
       // Playwright rules misfire on Vitest / Testing Library files; only e2e/** runs Playwright.
       "includes": ["src/**", "tests/**", ".storybook/**", "scripts/**"],
       "linter": {

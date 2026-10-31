@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
+import { loadSettingsNamespace } from "@/components/storybook/settings-namespace-loader";
 import type { AccountCloudflareAccessSection } from "./cloudflare-access-credential-fields";
 import { AccountCredentialsSectionView } from "./credentials-section-view";
 
@@ -55,6 +56,7 @@ const meta = {
   title: "Settings/Section/AccountCredentialsSectionView",
   component: AccountCredentialsSectionView,
   tags: ["autodocs"],
+  loaders: [loadSettingsNamespace],
   args: {
     heading: "Server",
     serverUrlLabel: "Server URL",

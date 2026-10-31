@@ -31,7 +31,7 @@ describe("SidebarFooterActions", () => {
       />,
     );
 
-    const subscriptionsButton = screen.getByRole("button", { name: "Manage Subscriptions" });
+    const subscriptionsButton = screen.getByRole("button", { name: "Feeds: Manage Subscriptions" });
     const themeButton = screen.getByRole("button", { name: "Toggle Theme" });
     const settingsButton = screen.getByRole("button", { name: "Settings" });
 
@@ -64,7 +64,7 @@ describe("SidebarFooterActions", () => {
       />,
     );
 
-    await user.hover(screen.getByRole("button", { name: "Manage Subscriptions" }));
+    await user.hover(screen.getByRole("button", { name: "Feeds: Manage Subscriptions" }));
     await waitFor(() => {
       expect(
         screen

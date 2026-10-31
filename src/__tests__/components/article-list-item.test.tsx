@@ -75,7 +75,7 @@ describe("ArticleListItem", () => {
         untitledFallback: "Untitled article",
       }),
     ).toEqual({
-      ariaLabel: "Episode 150 (starred)",
+      statusDescription: "(starred)",
       isRead: true,
       isUnread: false,
       metaLabel: "Read 10:30",
@@ -108,7 +108,7 @@ describe("ArticleListItem", () => {
         untitledFallback: "Untitled article",
       }),
     ).toEqual({
-      ariaLabel: "First Article (unread)",
+      statusDescription: "(unread)",
       isRead: false,
       isUnread: true,
       metaLabel: "Tech Blog · Read yesterday",
@@ -277,7 +277,7 @@ describe("ArticleListItem", () => {
         untitledFallback: "Untitled article",
       }),
     ).toMatchObject({
-      ariaLabel: "First Article (unread)",
+      statusDescription: "(unread)",
       normalizedTitle: "First Article",
       showSummary: true,
     });
@@ -298,10 +298,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("option", { name: "First Article (unread)" })).toHaveAttribute(
-      "aria-label",
-      "First Article (unread)",
-    );
+    const option = screen.getByRole("option", { name: "First Article A hello world article (unread)" });
+    expect(option).toHaveAccessibleName("First Article A hello world article (unread)");
+    expect(option).not.toHaveAttribute("aria-label");
     expect(screen.getByRole("heading", { name: "First Article" })).toBeInTheDocument();
   });
 
@@ -343,7 +342,7 @@ describe("ArticleListItem", () => {
         untitledFallback: "Untitled article",
       }),
     ).toMatchObject({
-      ariaLabel: "Untitled article (unread)",
+      statusDescription: "(unread)",
       normalizedTitle: "Untitled article",
       showSummary: false,
     });
@@ -364,14 +363,13 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("option", { name: "Untitled article (unread)" })).toHaveAttribute(
-      "aria-label",
-      "Untitled article (unread)",
-    );
+    const option = screen.getByRole("option", { name: "Untitled article A hello world article (unread)" });
+    expect(option).toHaveAccessibleName("Untitled article A hello world article (unread)");
+    expect(option).not.toHaveAttribute("aria-label");
     expect(screen.getByRole("heading", { name: "Untitled article" })).toBeInTheDocument();
   });
 
-  it("treats recently read retained articles as read in accessibility labels", () => {
+  it("treats recently read retained articles as read in the option's state text", () => {
     render(
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
@@ -388,7 +386,9 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("option", { name: "First Article" })).toHaveAttribute("aria-label", "First Article");
+    const option = screen.getByRole("option", { name: "First Article A hello world article" });
+    expect(option).toHaveAccessibleName("First Article A hello world article");
+    expect(option).not.toHaveAttribute("aria-label");
   });
 
   it("renders article rows as focusable listbox options instead of buttons", () => {
@@ -409,7 +409,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(option.tagName).toBe("DIV");
     expect(option).toHaveAttribute("tabindex", "0");
@@ -432,7 +432,7 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("option", { name: "First Article (unread)" })).toHaveClass("select-none");
+    expect(screen.getByRole("option", { name: /^First Article(?: |$)/ })).toHaveClass("select-none");
   });
 
   it("shows a star indicator on starred article rows", () => {
@@ -496,7 +496,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
 
     fireEvent.keyDown(option, { key: "Enter" });
@@ -576,7 +576,7 @@ describe("ArticleListItem", () => {
     );
 
     const selectedOption = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(selectedOption).toHaveClass("bg-surface-2/45");
     expect(selectedOption).not.toHaveClass("ring-1");
@@ -599,7 +599,7 @@ describe("ArticleListItem", () => {
       />,
     );
 
-    expect(screen.getByRole("option", { name: "First Article (unread)" })).toHaveClass("hover:bg-surface-1/72");
+    expect(screen.getByRole("option", { name: /^First Article(?: |$)/ })).toHaveClass("hover:bg-surface-1/72");
   });
 
   it("distinguishes active and inactive selected rows", () => {
@@ -620,7 +620,7 @@ describe("ArticleListItem", () => {
     );
 
     const inactiveOption = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(inactiveOption).toHaveAttribute("data-active-pane", "false");
     expect(inactiveOption).toHaveClass("bg-surface-2/28");
@@ -643,7 +643,7 @@ describe("ArticleListItem", () => {
     );
 
     const activeOption = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(activeOption).toHaveAttribute("data-active-pane", "true");
     expect(activeOption).toHaveClass("bg-surface-2/45");
@@ -668,7 +668,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(option).toHaveClass("border-l-2", "border-primary", "bg-[image:var(--sidebar-selection-gradient)]");
 
@@ -688,7 +688,7 @@ describe("ArticleListItem", () => {
     );
 
     const unselectedOption = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(unselectedOption).toHaveClass("border-l-2", "border-transparent");
     expect(unselectedOption).not.toHaveClass("border-primary", "bg-[image:var(--sidebar-selection-gradient)]");
@@ -712,7 +712,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(option).not.toHaveClass("focus-visible:ring-2");
     expect(option).not.toHaveClass("focus-visible:ring-ring/45");
@@ -741,7 +741,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(option).toHaveClass("focus-visible:bg-[image:var(--sidebar-focus-gradient)]");
     expect(option).not.toHaveClass("focus-visible:ring-2");
@@ -766,7 +766,7 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", {
-      name: "First Article (unread)",
+      name: /^First Article(?: |$)/,
     });
     expect(option.querySelector(".shrink-0.pt-0\\.5.text-xs")).toBeNull();
   });
@@ -843,7 +843,7 @@ describe("ArticleListItem", () => {
     );
 
     expect(screen.getByText("First Article")).toHaveClass("font-semibold", "text-foreground");
-    expect(screen.getByRole("option", { name: "First Article (unread)" })).not.toHaveClass(
+    expect(screen.getByRole("option", { name: /^First Article(?: |$)/ })).not.toHaveClass(
       "motion-static-hover-surface",
     );
     expect(screen.getByText("Tech Blog")).toHaveClass("text-foreground/72");

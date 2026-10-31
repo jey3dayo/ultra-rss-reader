@@ -172,7 +172,10 @@ describe("ArticleListScreenView", () => {
     );
 
     expect(screen.getByText("Today")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Today" })).toBeInTheDocument();
+    const listbox = screen.getByRole("listbox", { name: "Article list" });
+    const group = screen.getByRole("group", { name: "Today" });
+    expect(listbox).toContainElement(group);
+    expect(group).toContainElement(screen.getByRole("option", { name: /First Article/i }));
     expect(screen.getByRole("option", { name: /First Article/i })).toBeInTheDocument();
     expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
   });
@@ -373,7 +376,7 @@ describe("ArticleListScreenView", () => {
     );
 
     const rowBefore = screen.getByRole("option", {
-      name: "Retained unread article (starred)",
+      name: /^Retained unread article(?: |$)/,
     });
     // The dot stays mounted with the filled tone; read state hides it via opacity fade.
     expect(rowBefore.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).toHaveClass("opacity-0");
@@ -411,7 +414,7 @@ describe("ArticleListScreenView", () => {
     );
 
     const rowAfter = screen.getByRole("option", {
-      name: "Retained unread article (unread) (starred)",
+      name: /^Retained unread article(?: |$)/,
     });
     expect(rowAfter.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).not.toHaveClass("opacity-0");
   });

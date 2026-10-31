@@ -80,17 +80,17 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
     expect(screen.getByText("No folder")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-9");
-    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("motion-contextual-surface");
+    expect(screen.getByRole("button", { name: /^Work/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /^Work/ })).toHaveClass("min-h-9");
+    expect(screen.getByRole("button", { name: /^Work/ })).toHaveClass("motion-contextual-surface");
     expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-9");
     expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("motion-contextual-surface");
     expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-9");
 
-    await user.click(screen.getByRole("button", { name: "Select folder Work" }));
+    await user.click(screen.getByRole("button", { name: /^Work/ }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
     await user.click(screen.getByRole("button", { name: /Beta/ }));
-    fireEvent.mouseDown(screen.getByRole("button", { name: "Select folder Work" }), { button: 1 });
+    fireEvent.mouseDown(screen.getByRole("button", { name: /^Work/ }), { button: 1 });
     fireEvent.mouseDown(screen.getByRole("button", { name: /Alpha/ }), {
       button: 1,
     });
@@ -306,7 +306,7 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Select folder Work" }));
+    await user.click(screen.getByRole("button", { name: /^Work/ }));
 
     expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
@@ -338,7 +338,7 @@ describe("FeedTreeView", () => {
     );
 
     const folderButton = screen.getByRole("button", {
-      name: "Select folder Work",
+      name: /^Work/,
     });
     const selectedIndicator = container.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
@@ -503,7 +503,7 @@ describe("FeedTreeView", () => {
     expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("size-8");
     expect(document.querySelector('[data-feed-id="feed-2"]')).not.toHaveClass("pl-8");
     expect(document.querySelector('[data-feed-id="feed-2"]')).toHaveClass("px-1.5");
-    expect(screen.getByRole("button", { name: "Select folder Empty" })).toHaveClass("min-h-8");
+    expect(screen.getByRole("button", { name: /^Empty/ })).toHaveClass("min-h-8");
   });
 
   it("accepts folder moves anywhere inside an expanded folder section", () => {
@@ -647,7 +647,7 @@ describe("FeedTreeView", () => {
     );
 
     const targetButton = screen.getByRole("button", {
-      name: "Select folder Target",
+      name: /^Target/,
     });
     const originalElementFromPoint = document.elementFromPoint;
     try {
@@ -757,7 +757,7 @@ describe("FeedTreeView", () => {
 
     render(<Harness />);
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Select folder folder-a" }), {
+    fireEvent.pointerDown(screen.getByRole("button", { name: /^folder-a/ }), {
       button: 0,
       clientX: 10,
       clientY: 10,
@@ -1102,7 +1102,7 @@ describe("FeedTreeView", () => {
     );
 
     const folderTarget = screen.getByRole("button", {
-      name: "Select folder Target",
+      name: /^Target/,
     });
     const originalElementFromPoint = document.elementFromPoint;
 
@@ -1359,8 +1359,8 @@ describe("FeedTreeView", () => {
     expect(screen.getByRole("button", { name: "仕事 フォルダを選択" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "仕事 に移動" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "アルファ をドラッグ" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "フォルダなしへ移動" })).toHaveTextContent(
-      "ここにドロップしてフォルダから外す",
-    );
+    expect(
+      screen.getByRole("button", { name: "ここにドロップしてフォルダから外す: フォルダなしへ移動" }),
+    ).toHaveTextContent("ここにドロップしてフォルダから外す");
   });
 });

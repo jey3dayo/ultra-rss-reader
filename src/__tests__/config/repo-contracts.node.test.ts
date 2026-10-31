@@ -993,6 +993,18 @@ describe("repository static contracts", () => {
     expect(appReportFolder).not.toBe(storybookReportFolder);
   });
 
+  it("isolates the static accessibility suite from dev-server Playwright runs", () => {
+    const auditConfig = readRepoFile("playwright.storybook-a11y.config.ts");
+    expect(extractPlaywrightForbidOnlyExpression(auditConfig)).toBe("Boolean(process.env.CI)");
+    expect(extractPlaywrightOutputDir(auditConfig)).toBe("test-results/storybook-a11y");
+    expect(extractPlaywrightHtmlReportFolder(auditConfig)).toBe("playwright-report/storybook-a11y");
+    expect(auditConfig).toContain('testMatch: "accessibility.spec.ts"');
+    expect(auditConfig).toContain("--outDir storybook-static");
+    expect(auditConfig).toContain("reuseExistingServer: false");
+    for (const config of ["playwright.config.ts", "playwright.storybook.config.ts"])
+      expect(readRepoFile(config)).toMatch(/testIgnore: "[^" ]*accessibility\.spec\.ts"/);
+  });
+
   it("keeps app and Storybook Playwright focused tests forbidden in CI", () => {
     const playwrightConfig = readRepoFile("playwright.config.ts");
     const storybookPlaywrightConfig = readRepoFile("playwright.storybook.config.ts");
@@ -1010,6 +1022,7 @@ describe("repository static contracts", () => {
       "audit:deps",
       "audit:deps:rust",
       "build",
+      "build:storybook",
       "format:check",
       "lint:actions",
       "lint:actions-shell",
@@ -1025,6 +1038,7 @@ describe("repository static contracts", () => {
       "test:change-plan",
       "test:keychain-session",
       "test:rust",
+      "test:storybook:a11y",
       "test:unit:ci:dom:shard1",
       "test:unit:ci:dom:shard2",
       "test:unit:ci:node",

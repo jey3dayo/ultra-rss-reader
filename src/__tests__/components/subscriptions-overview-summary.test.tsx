@@ -92,7 +92,7 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    await user.hover(screen.getByRole("button", { name: "Needs review を表示" }));
+    await user.hover(screen.getByRole("button", { name: /^Needs review / }));
 
     expect(await screen.findByText("Needs review: quiet feeds or weak usage signals.")).toHaveClass(
       "motion-popup-surface",
@@ -112,11 +112,11 @@ describe("SubscriptionsOverviewSummary", () => {
 
     render(<SubscriptionsOverviewSummary cards={cards} labels={englishLabels} onSelectFilter={onSelectFilter} />);
 
-    const grid = screen.getByRole("button", { name: "Show Fetch errors" }).closest(".grid");
+    const grid = screen.getByRole("button", { name: /^Fetch errors / }).closest(".grid");
     expect(grid).toHaveClass("sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]");
     expect(screen.getAllByTestId("subscriptions-summary-card-badge-slot")).toHaveLength(5);
-    expect(screen.getByRole("button", { name: "Show Fetch errors" })).not.toHaveClass("sm:col-span-2");
-    await user.click(screen.getByRole("button", { name: "Show Fetch errors" }));
+    expect(screen.getByRole("button", { name: /^Fetch errors / })).not.toHaveClass("sm:col-span-2");
+    await user.click(screen.getByRole("button", { name: /^Fetch errors / }));
     expect(onSelectFilter).toHaveBeenCalledWith("fetch_errors");
   });
 
@@ -137,8 +137,9 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Show Needs review" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Needs review を表示" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Needs review 2 Check these feeds Filter" })).toHaveAccessibleDescription(
+      "Show Needs review",
+    );
   });
 
   it("reserves the active badge slot to avoid layout shift", () => {
@@ -227,7 +228,7 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const card = screen.getByRole("button", { name: "Needs review を表示" });
+    const card = screen.getByRole("button", { name: /^Needs review / });
     expect(card).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(card);
@@ -338,8 +339,8 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const reviewCard = screen.getByRole("button", { name: "Needs review を表示" });
-    const staleCard = screen.getByRole("button", { name: "90-day stale を表示" });
+    const reviewCard = screen.getByRole("button", { name: /^Needs review / });
+    const staleCard = screen.getByRole("button", { name: /^90-day stale / });
 
     expect(reviewCard).toHaveClass(
       "border-[color:color-mix(in_srgb,var(--ring)_22%,var(--border))]",
@@ -405,7 +406,7 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
-    const card = screen.getByRole("button", { name: "Needs review を表示" });
+    const card = screen.getByRole("button", { name: /^Needs review / });
 
     expect(card).toHaveClass("rounded-md", "w-full");
     expect(within(card).getByTestId("subscriptions-summary-card-badge-slot")).toBeInTheDocument();

@@ -5,6 +5,7 @@ const meta = {
   title: "Shared/Controls/GradientSwitch",
   component: GradientSwitch,
   tags: ["autodocs"],
+  args: { "aria-label": "バックグラウンドでリンクを開く" },
   decorators: [
     (Story) => (
       <div className="flex items-center gap-4 p-8">
@@ -60,15 +61,15 @@ export const SettingsRow: Story = {
     <div className="w-full max-w-[400px] space-y-0">
       <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
         <span className="text-sm text-foreground">バックグラウンドでリンクを開く</span>
-        <GradientSwitch {...args} />
+        <GradientSwitch {...args} aria-label="バックグラウンドでリンクを開く" />
       </div>
       <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
         <span className="text-sm text-foreground">⌘クリックでアプリ内ブラウザを開く</span>
-        <GradientSwitch defaultChecked />
+        <GradientSwitch defaultChecked aria-label="⌘クリックでアプリ内ブラウザを開く" />
       </div>
       <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
         <span className="text-sm text-foreground">実行前に確認する</span>
-        <GradientSwitch defaultChecked />
+        <GradientSwitch defaultChecked aria-label="実行前に確認する" />
       </div>
     </div>
   ),

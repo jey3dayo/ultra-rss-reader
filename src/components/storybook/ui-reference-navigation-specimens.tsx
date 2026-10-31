@@ -355,6 +355,7 @@ export function PrimitiveCollectionStatesSpecimen() {
         )}
       >
         <ScrollArea
+          keyboardScrollable
           className="h-32 rounded-md border border-border/60 bg-background/86"
           contentClassName="grid gap-1 p-2"
         >
@@ -365,12 +366,8 @@ export function PrimitiveCollectionStatesSpecimen() {
           ))}
         </ScrollArea>
         <Collapsible defaultOpen>
-          <CollapsibleTrigger
-            className="flex w-full items-center justify-between rounded-md border border-border/60 bg-background/86 px-3 py-2 text-left text-sm font-medium text-foreground"
-            aria-label="Primitive disclosure open"
-          >
-            Primitive disclosure
-            <span className="text-xs text-foreground/56">open</span>
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-border/60 bg-background/86 px-3 py-2 text-left text-sm font-medium text-foreground">
+            Primitive disclosure <span className="text-xs text-foreground/56">open</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 rounded-md border border-border/55 bg-background/74 px-3 py-2 text-xs leading-[1.45] text-foreground/72">
             Collapsible content keeps disclosure behavior in the primitive layer while feature rows own copy and

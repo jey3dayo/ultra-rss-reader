@@ -32,7 +32,7 @@ export function AccountDetailSettingsRow(props: AccountDetailSettingsRowProps) {
 
   return (
     <LabeledControlRow label={props.label} labelClassName={props.labelClassName}>
-      {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
+      {props.type === "switch" && <GradientSwitch checked={props.checked} disabled aria-label={props.label} />}
       {props.type === "select" && (
         <div className={valueRailClassName}>
           <span className={cn(valueTextClassName, "inline-flex justify-between gap-2", props.valueClassName)}>

@@ -900,14 +900,20 @@ describe("useKeyboard", () => {
     unmount();
   });
 
-  it("pressing ArrowLeft in the article pane returns focus to the article list", async () => {
+  it("pressing ArrowLeft outside an overflow region in the reader returns focus to the article list", async () => {
     const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
     useUiStore.setState({ focusedPane: "content" });
 
-    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    const readerPane = screen.getByTestId("article-pane");
+    expect(readerPane.closest('[data-reader-horizontal-scroll-region="true"]')).toBeNull();
+    const event = new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true });
+    const defaultAllowed = readerPane.dispatchEvent(event);
+
+    expect(defaultAllowed).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
 
     await waitFor(() => {
       expect(useUiStore.getState().focusedPane).toBe("list");

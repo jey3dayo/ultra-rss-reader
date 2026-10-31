@@ -239,7 +239,7 @@ function SummaryFilterCardButton({
         cardClassName,
         "group cursor-pointer hover:border-border-strong/90 focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
       )}
-      aria-label={resolveSummaryFilterCardAriaLabel(summaryCard, labels)}
+      aria-description={resolveSummaryFilterCardAriaLabel(summaryCard, labels)}
       aria-pressed={Boolean(summaryCard.isActive)}
       onClick={() => onSelect(summaryCard.filterKey)}
     >

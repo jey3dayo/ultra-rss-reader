@@ -168,7 +168,6 @@ export const ArticleListItem = memo(function ArticleListItem({
       tabIndex={isSelected ? 0 : -1}
       aria-selected={isSelected}
       data-active-pane={isSelected ? String(isActivePane) : undefined}
-      aria-label={presentation.ariaLabel}
       onClick={() => onSelect(article.id)}
       onKeyDown={handleKeyDown}
       className={articleRowClassName({
@@ -229,6 +228,7 @@ export const ArticleListItem = memo(function ArticleListItem({
           normalizedThumbnail={presentation.normalizedThumbnail}
         />
       )}
+      {presentation.statusDescription ? <span className="sr-only"> {presentation.statusDescription}</span> : null}
     </div>
   );
 });

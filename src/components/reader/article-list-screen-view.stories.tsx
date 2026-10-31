@@ -276,21 +276,23 @@ function ClassicSelectionClickToggleRegressionStory() {
 
   return (
     <StoryFrame theme="dark">
-      {articleIds.map((articleId) => (
-        <ArticleListItem
-          key={articleId}
-          article={{ ...garminWrapRegressionArticleFixture, id: articleId }}
-          isSelected={selectedArticleId === articleId}
-          isActivePane={selectedArticleId === articleId}
-          isRecentlyRead={false}
-          dimArchived="true"
-          textPreview="true"
-          imagePreviews="off"
-          selectionStyle="classic"
-          feedName="INTERNET Watch"
-          onSelect={() => setSelectedArticleId(articleId)}
-        />
-      ))}
+      <div role="listbox" aria-label="Articles">
+        {articleIds.map((articleId) => (
+          <ArticleListItem
+            key={articleId}
+            article={{ ...garminWrapRegressionArticleFixture, id: articleId }}
+            isSelected={selectedArticleId === articleId}
+            isActivePane={selectedArticleId === articleId}
+            isRecentlyRead={false}
+            dimArchived="true"
+            textPreview="true"
+            imagePreviews="off"
+            selectionStyle="classic"
+            feedName="INTERNET Watch"
+            onSelect={() => setSelectedArticleId(articleId)}
+          />
+        ))}
+      </div>
     </StoryFrame>
   );
 }

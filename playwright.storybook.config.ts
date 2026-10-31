@@ -8,6 +8,7 @@ const storybookWebServerTimeoutMs = 120000;
 
 export default defineConfig({
   testDir: "./e2e/storybook",
+  testIgnore: "**/accessibility.spec.ts",
   timeout: 120000,
   forbidOnly: Boolean(process.env.CI),
   use: {

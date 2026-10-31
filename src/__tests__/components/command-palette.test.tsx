@@ -376,6 +376,7 @@ describe("CommandPalette", () => {
 
     const emptyStatus = await screen.findByRole("status");
     expect(emptyStatus).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByRole("listbox")).not.toContainElement(emptyStatus);
     expect(emptyStatus).toHaveTextContent(/No results found|command_palette\.no_results/);
 
     await user.clear(input);

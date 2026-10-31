@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Copy, MoveDiagonal2, X } from "lucide-react";
 import { useId, useState } from "react";
 import { DebugHudActionButton } from "@/components/debug/debug-hud-action-button";
 import { DebugHudFrame } from "@/components/debug/debug-hud-frame";
+import { ScrollArea } from "@/design-system";
 import type { BrowserDebugGeometryRow } from "@/lib/browser/browser-debug-geometry";
 import { summarizeDebugHudActiveElementDescription } from "@/lib/debug/debug-hud-active-element";
 
@@ -246,7 +247,11 @@ export function FocusDebugHudView({
               <div className="border-b border-white/8 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
                 {DEBUG_HUD_COPY.recentEvents}
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2 font-mono text-[11px] leading-5 text-white/68">
+              <ScrollArea
+                keyboardScrollable
+                className="min-h-0 flex-1 font-mono text-[11px] leading-5 text-white/68"
+                contentClassName="px-2.5 py-2"
+              >
                 {visibleTraces.length > 0 ? (
                   visibleTraces.map((trace) => (
                     <div key={trace} className="break-words">
@@ -256,7 +261,7 @@ export function FocusDebugHudView({
                 ) : (
                   <div className="text-white/36">{DEBUG_HUD_COPY.emptyTrace}</div>
                 )}
-              </div>
+              </ScrollArea>
             </div>
           </div>
         ) : (

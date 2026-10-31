@@ -19,7 +19,7 @@ export function FeedTreeUnfolderedDropZone({ enabled, active, onDropToUnfoldered
   return (
     <button
       type="button"
-      aria-label={t("move_to_no_folder")}
+      aria-label={active ? `${t("drop_to_remove_from_folder")}: ${t("move_to_no_folder")}` : t("move_to_no_folder")}
       data-testid="unfoldered-drop-zone"
       {...{ [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "unfoldered" }}
       className={cn(

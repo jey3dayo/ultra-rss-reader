@@ -1,23 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import { loadSettingsNamespace } from "@/components/storybook/settings-namespace-loader";
 import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
-import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { AddAccountForm, type AddAccountFormProps } from "./controller";
-
-function SettingsNamespaceBoundary({ children }: { children: ReactNode }) {
-  const ready = useI18nResourceNamespace("settings");
-
-  if (!ready) {
-    return <div aria-hidden="true" className="min-h-80" />;
-  }
-
-  return children;
-}
 
 const meta = {
   title: "Settings/Account/AddAccountForm",
   component: AddAccountForm,
   tags: ["autodocs"],
+  loaders: [loadSettingsNamespace],
   args: {
     debugState: {
       submitMessage: "Storybook preview does not submit real accounts. Use the desktop app to test registration.",
@@ -26,17 +16,15 @@ const meta = {
   decorators: [
     (Story, context) => (
       <StoryQueryClientProvider>
-        <SettingsNamespaceBoundary>
-          <div
-            className={
-              context.viewMode === "docs"
-                ? "mx-auto w-full max-w-[440px] bg-background p-4"
-                : "mx-auto h-[820px] w-full max-w-[440px] overflow-auto bg-background p-4"
-            }
-          >
-            <Story />
-          </div>
-        </SettingsNamespaceBoundary>
+        <div
+          className={
+            context.viewMode === "docs"
+              ? "mx-auto w-full max-w-[440px] bg-background p-4"
+              : "mx-auto h-[820px] w-full max-w-[440px] overflow-auto bg-background p-4"
+          }
+        >
+          <Story />
+        </div>
       </StoryQueryClientProvider>
     ),
   ],

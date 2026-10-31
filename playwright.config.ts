@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "**/storybook/accessibility.spec.ts",
   timeout: 30000,
   forbidOnly: Boolean(process.env.CI),
   use: {

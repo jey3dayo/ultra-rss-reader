@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { parse } from "valibot";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SanitizedArticleHtmlDtoSchema } from "@/api/schemas/article";
 import { ArticleContentView } from "@/components/reader/article-content-view";
 import articleContentViewStories from "@/components/reader/article-content-view.stories";
@@ -11,6 +11,112 @@ function dangerouslyBrandRawArticleHtmlForViewTest(rawHtml: string): SanitizedAr
 }
 
 describe("ArticleContentView", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("gives overflowing tables and code keyboard access and updates it as their size changes", () => {
+    let scrollWidth = 400;
+    let measure = () => {};
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(() => scrollWidth);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          measure = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+
+    const { container, rerender } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtml(
+          "<table><tbody><tr><td>Metrics</td></tr></tbody></table><pre>Code</pre><pre tabindex='-1'>Authored focus policy</pre>",
+        )}
+      />,
+    );
+    const table = screen.getByRole("table");
+    const code = screen.getByText("Code");
+    expect(table).toHaveAttribute("tabindex", "0");
+    expect(code).toHaveAttribute("tabindex", "0");
+    expect(screen.getByText("Authored focus policy")).toHaveAttribute("tabindex", "-1");
+    table.focus();
+    expect(table).toHaveFocus();
+
+    scrollWidth = 100;
+    act(() => measure());
+    expect(table).not.toHaveAttribute("tabindex");
+    expect(code).not.toHaveAttribute("tabindex");
+    expect(screen.getByText("Authored focus policy")).toHaveAttribute("tabindex", "-1");
+
+    scrollWidth = 400;
+    rerender(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<pre>Replacement code</pre>")} />);
+    expect(screen.getByText("Replacement code")).toHaveAttribute("tabindex", "0");
+    expect(container.querySelector(".prose")).toHaveClass(
+      "prose-pre:focus-visible:outline-2",
+      "prose-table:focus-visible:outline-2",
+    );
+  });
+
+  it("keeps overflow keyboard access available when ResizeObserver is unavailable", () => {
+    vi.stubGlobal("ResizeObserver", undefined);
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(400);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
+    render(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<pre>Code</pre>")} />);
+    expect(screen.getByText("Code")).toHaveAttribute("tabindex", "0");
+  });
+
+  it("updates overflow keyboard access when an article image loads", () => {
+    let imageLoaded = false;
+    let observerDisconnected = false;
+    const observedElements = new Set<Element>();
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.matches("table") && imageLoaded ? 400 : 100;
+    });
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.matches("table") ? 200 : 100;
+    });
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe(target: Element) {
+          observedElements.add(target);
+        }
+        disconnect() {
+          observerDisconnected = true;
+        }
+      },
+    );
+
+    const { unmount } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtml(
+          "<table><tbody><tr><td><img src='https://example.com/chart.png' alt='Chart' /></td></tr></tbody></table>",
+        )}
+      />,
+    );
+    const table = screen.getByRole("table");
+    const tableChild = table.firstElementChild;
+    const image = screen.getByRole("img", { name: "Chart" });
+    if (!tableChild) throw new Error("Expected the overflowing table to have an element child");
+    expect(table).not.toHaveAttribute("data-reader-horizontal-scroll-region");
+    expect(table).not.toHaveAttribute("tabindex");
+    imageLoaded = true;
+    fireEvent.load(image);
+
+    expect(table).toHaveAttribute("data-reader-horizontal-scroll-region", "true");
+    expect(table).toHaveAttribute("tabindex", "0");
+    expect(observedElements.has(table)).toBe(true);
+    expect(observedElements.has(tableChild)).toBe(true);
+
+    unmount();
+    expect(observerDisconnected).toBe(true);
+    fireEvent.load(image);
+    expect(table).not.toHaveAttribute("data-reader-horizontal-scroll-region");
+    expect(table).not.toHaveAttribute("tabindex");
+  });
+
   it("renders a thumbnail and sanitized html content", () => {
     const { container } = render(
       <ArticleContentView

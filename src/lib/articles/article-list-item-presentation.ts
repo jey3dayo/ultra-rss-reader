@@ -44,7 +44,7 @@ export type ArticleListItemPresentationInput = {
 };
 
 export type ArticleListItemPresentation = {
-  ariaLabel: string;
+  statusDescription: string;
   isRead: boolean;
   isUnread: boolean;
   metaLabel: string;
@@ -90,7 +90,7 @@ export function resolveArticleListItemPresentation({
   const showThumbnail = imagePreviews !== "off" && Boolean(normalizedThumbnail);
 
   return {
-    ariaLabel: `${normalizedTitle}${isRead ? "" : ` ${unreadSuffix}`}${isStarred ? ` ${starredSuffix}` : ""}`,
+    statusDescription: [isRead ? null : unreadSuffix, isStarred ? starredSuffix : null].filter(Boolean).join(" "),
     isRead,
     isUnread,
     metaLabel,

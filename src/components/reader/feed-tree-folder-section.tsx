@@ -151,10 +151,6 @@ export function FeedTreeFolderSection({
             render={
               <SidebarNavButton
                 density={sidebarDensity}
-                aria-label={t("select_folder", {
-                  defaultValue: "Select folder {{name}}",
-                  name: folder.name,
-                })}
                 aria-expanded={folder.isExpanded}
                 aria-controls={panelId}
                 selected={folder.isSelected}
@@ -233,7 +229,8 @@ export function FeedTreeFolderSection({
               title={folder.name}
             >
               {folder.name}
-            </span>
+            </span>{" "}
+            <span className="sr-only">{t("select_folder")}</span>{" "}
           </ContextMenu.Trigger>
           {renderFolderContextMenu?.(contextMenuTarget)}
         </ContextMenu.Root>

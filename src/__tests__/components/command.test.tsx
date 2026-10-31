@@ -1,14 +1,22 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Command, CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
 
 describe("Command primitives", () => {
   beforeEach(() => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
-  it("exposes CommandEmpty as a polite status region only when filtered results are empty", async () => {
+  it("announces empty results without adding a status child to the listbox", async () => {
     const user = userEvent.setup();
 
     render(
@@ -16,8 +24,8 @@ describe("Command primitives", () => {
         <CommandInput placeholder="Search commands" />
         <CommandList>
           <CommandItem value="open settings">Open settings</CommandItem>
-          <CommandEmpty>No results found</CommandEmpty>
         </CommandList>
+        <CommandEmpty>No results found</CommandEmpty>
       </Command>,
     );
 
@@ -33,13 +41,29 @@ describe("Command primitives", () => {
     const status = await screen.findByRole("status");
     expect(status).toHaveAttribute("aria-live", "polite");
     expect(status).toHaveTextContent("No results found");
+    expect(screen.getByRole("listbox")).not.toContainElement(status);
     expect(status.querySelector('[data-slot="command-empty"]')).toHaveClass("text-foreground-soft");
 
     await user.clear(screen.getByPlaceholderText("Search commands"));
 
     await waitFor(() => {
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(screen.queryByText("No results found")).not.toBeInTheDocument();
     });
+  });
+
+  it("keeps decorative result dividers out of the listbox accessibility tree", () => {
+    render(
+      <Command>
+        <CommandList>
+          <CommandItem>Open settings</CommandItem>
+          <CommandSeparator />
+          <CommandItem>Refresh feeds</CommandItem>
+        </CommandList>
+      </Command>,
+    );
+
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
   });
 
   it("exposes CommandDialog title and description through the dialog role", () => {

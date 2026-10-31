@@ -812,15 +812,15 @@ describe("Sidebar", () => {
     }
     await user.click(starredSmartViewButton);
 
-    expect(await screen.findByRole("button", { name: "Select folder Starred Folder" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Select folder Plain Folder" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Starred Folder/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Plain Folder/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Select folder Starred Folder" }));
+    await user.click(screen.getByRole("button", { name: /^Starred Folder/ }));
 
     expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-starred" });
     expect(useUiStore.getState().viewMode).toBe("starred");
-    expect(screen.getByRole("button", { name: "Select folder Starred Folder" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Select folder Plain Folder" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Starred Folder/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Plain Folder/ })).not.toBeInTheDocument();
   });
 
   it("uses the starred article source for the starred subscription tree", async () => {
@@ -944,7 +944,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    fireEvent.mouseDown(await screen.findByRole("button", { name: "Select folder Work" }), { button: 1 });
+    fireEvent.mouseDown(await screen.findByRole("button", { name: /^Work/ }), { button: 1 });
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -1029,7 +1029,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    const folderRow = await screen.findByRole("button", { name: "Select folder Work" });
+    const folderRow = await screen.findByRole("button", { name: /^Work/ });
     expect(folderRow).toHaveClass("min-h-8");
     expect(folderRow).toHaveAttribute("aria-expanded", "true");
   });
@@ -1106,7 +1106,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    const folderButton = await screen.findByRole("button", { name: "Select folder Work" });
+    const folderButton = await screen.findByRole("button", { name: /^Work/ });
     await user.click(folderButton);
 
     expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
@@ -1517,7 +1517,7 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().focusedPane).toBe("list");
       expect(useUiStore.getState().selectedArticleId).toBe("feed-2-art-1");
-      expect(screen.getByRole("option", { name: "feed-2 Article (unread)" })).toHaveFocus();
+      expect(screen.getByRole("option", { name: /^feed-2 Article(?: |$)/ })).toHaveFocus();
     });
   });
 
@@ -1669,9 +1669,9 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    const closedFolder = await screen.findByRole("button", { name: "Select folder Closed Folder" });
+    const closedFolder = await screen.findByRole("button", { name: /^Closed Folder/ });
     const hiddenFeed = queryFeedButton("feed-hidden");
-    const openFolder = screen.getByRole("button", { name: "Select folder Open Folder" });
+    const openFolder = screen.getByRole("button", { name: /^Open Folder/ });
 
     expect(hiddenFeed).not.toBeNull();
     if (!hiddenFeed) {
@@ -2181,7 +2181,7 @@ describe("Sidebar", () => {
       "acc-1": ["folder-restored"],
     });
 
-    await screen.findByRole("button", { name: "Select folder Restored" });
+    await screen.findByRole("button", { name: /^Restored.*Select folder/ });
 
     await waitFor(() => {
       expect(useUiStore.getState().expandedFolderIds).toEqual(new Set(["folder-restored"]));

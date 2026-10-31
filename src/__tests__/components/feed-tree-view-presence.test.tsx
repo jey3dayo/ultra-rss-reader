@@ -244,7 +244,7 @@ describe("FeedTreeView presence wiring", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveAttribute("data-feed-drop-target");
+    expect(screen.getByRole("button", { name: /^Work/ })).toHaveAttribute("data-feed-drop-target");
 
     rerender(
       <FeedTreeView
@@ -260,7 +260,7 @@ describe("FeedTreeView presence wiring", () => {
       />,
     );
 
-    const folderButton = screen.getByRole("button", { name: "Select folder Work" });
+    const folderButton = screen.getByRole("button", { name: /^Work/ });
     expect(folderButton).not.toHaveAttribute("data-feed-drop-target");
     expect(folderButton.closest("[data-feed-drop-kind]")).toBeNull();
   });
@@ -388,7 +388,7 @@ describe("FeedTreeView presence wiring", () => {
     // The folder and its last child both keep rendering through the exit
     // duration — neither disappears before the animation had a chance to
     // run against it.
-    expect(screen.getByRole("button", { name: "Select folder Work" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Work/ })).toBeInTheDocument();
     expect(document.querySelector('[data-feed-id="feed-a"]')).toBeInTheDocument();
 
     // Exactly one ancestor in the tree owns the collapse — the folder — not
@@ -411,7 +411,7 @@ describe("FeedTreeView presence wiring", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Select folder Work" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Work/ })).not.toBeInTheDocument();
   });
 
   it("collapses only the leaving child, not the still-present folder, when one sibling leaves", () => {
@@ -460,7 +460,7 @@ describe("FeedTreeView presence wiring", () => {
     // The single collapse owner scopes to the leaving child only, not the
     // whole folder: it must not contain the folder's own nav button.
     expect(leavingWrappers[0]?.querySelector('[data-feed-id="feed-leave"]')).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Select folder Work" })?.closest(leavingRowSelector)).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Work/ })?.closest(leavingRowSelector)).toBeNull();
   });
 
   it("does not switch to the empty state while a retained row is still leaving from an otherwise-empty tree", () => {

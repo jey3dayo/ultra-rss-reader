@@ -99,10 +99,8 @@ describe("Storybook viewport density fixtures", () => {
     renderStory(feedTreeMeta, FeedTreeDenseNarrowA11yState);
 
     expect(screen.getByTestId("feed-tree-dense-smoke")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Select folder Engineering and release monitoring" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Accessibility regression queue84" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Engineering and release monitoring/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Accessibility regression queue 84" })).toBeInTheDocument();
   });
 
   it("keeps the article toolbar dense fixtures focused on mobile labels and disabled state", () => {
@@ -113,15 +111,17 @@ describe("Storybook viewport density fixtures", () => {
     const { container: longLabelContainer } = renderStory(articleToolbarMeta, ArticleToolbarMobileJapaneseLongLabels);
     expect(longLabelContainer.querySelector(".sticky.top-0")).toHaveClass("h-12");
     expect(longLabelContainer.querySelector("[data-tauri-drag-region]")).toHaveClass("min-w-0");
-    expect(screen.getByRole("button", { name: "この記事を既読または未読に切り替える" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Webプレビューを開く" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "未読にする: この記事を既読または未読に切り替える" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "プレビューを開く: Webプレビューを開く" })).toBeInTheDocument();
     expect(screen.getByText("未読にする")).toHaveClass("min-w-0", "max-w-14", "truncate", "sm:max-w-16");
     expect(screen.getByText("プレビューを開く")).toHaveClass("min-w-0", "max-w-14", "truncate", "sm:max-w-16");
 
     cleanup();
     renderStory(articleToolbarMeta, ArticleToolbarMobileA11yDisabledState);
-    expect(screen.getByRole("button", { name: "Toggle read" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Open Web Preview" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "既読状態: Toggle read" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "プレビュー: Open Web Preview" })).toBeDisabled();
   });
 
   it("keeps the browser overlay retryable issue fixture focused on error recovery controls", () => {

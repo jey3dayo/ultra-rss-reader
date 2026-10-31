@@ -31,7 +31,11 @@ export function SidebarFooterActions({
     <TooltipProvider>
       <div className="flex min-h-11 items-center gap-1.5 border-t border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2">
         <SidebarFooterActionButton
-          label={subscriptionsIndexLabel}
+          label={
+            subscriptionsIndexShortLabel === subscriptionsIndexLabel
+              ? subscriptionsIndexLabel
+              : `${subscriptionsIndexShortLabel}: ${subscriptionsIndexLabel}`
+          }
           tooltipLabel={subscriptionsIndexLabel}
           onClick={onOpenSubscriptionsIndex}
           className={subscriptionsButtonClassName}
