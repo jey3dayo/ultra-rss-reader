@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
 import { getFeedLandingFailureMessage } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { useFeedMoveMotion } from "@/components/reader/hooks/sidebar/use-feed-move-motion";
@@ -174,8 +174,6 @@ export function useSidebarFeedSectionController({
       starredCountByFeedId,
     });
 
-  visibleOrderedFolderIdsRef.current = visibleOrderedFolderIds;
-
   const { liveRegionMessage, reorderFolderToVisibleIndex, resetFolderOrder, resolvedFolderOrderMode } =
     useSidebarFolderReorderActions({
       accountId: selectedAccountId,
@@ -184,7 +182,18 @@ export function useSidebarFeedSectionController({
       visibleOrderedFolderIds,
     });
 
-  reorderToVisibleIndexRef.current = reorderFolderToVisibleIndex;
+  useLayoutEffect(() => {
+    visibleOrderedFolderIdsRef.current = visibleOrderedFolderIds;
+    reorderToVisibleIndexRef.current = reorderFolderToVisibleIndex;
+  });
+
+  const isDraggedFolderVisible = draggedFolderId !== null && visibleOrderedFolderIds.includes(draggedFolderId);
+
+  useEffect(() => {
+    if (draggedFolderId !== null && !isDraggedFolderVisible) {
+      clearFolderDragState();
+    }
+  }, [clearFolderDragState, draggedFolderId, isDraggedFolderVisible]);
 
   const renderFolderContextMenu = useCallback(
     (folder: FeedTreeFolderViewModel) => {
