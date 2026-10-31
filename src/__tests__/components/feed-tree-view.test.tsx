@@ -757,7 +757,7 @@ describe("FeedTreeView", () => {
 
     render(<Harness />);
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Select folder folder-a" }), {
+    fireEvent.pointerDown(screen.getByRole("button", { name: /^folder-a/ }), {
       button: 0,
       clientX: 10,
       clientY: 10,
