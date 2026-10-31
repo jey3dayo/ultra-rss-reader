@@ -29,6 +29,10 @@ export function useArticleTagPickerPopover({
   const isMountedRef = useRef(true);
   const wasExpandedRef = useRef(isExpanded);
   const previousAvailableTagCountRef = useRef(availableTagCount);
+  const previousAvailableTagIdsRef = useRef(availableTagIds);
+  const focusedTagIdRef = useRef<string | null>(null);
+  const focusedTagOptionRef = useRef<Element | null>(null);
+  const focusedTagOptionWasActiveRef = useRef(false);
   const [focusedTagId, setFocusedTagId] = useState<string | null>(availableTagIds[0] ?? null);
   const activeTagId =
     focusedTagId && availableTagIds.includes(focusedTagId) ? focusedTagId : (availableTagIds[0] ?? null);
@@ -53,6 +57,10 @@ export function useArticleTagPickerPopover({
   }, []);
 
   const handleTagOptionFocus = useCallback((tagId: string) => {
+    focusedTagIdRef.current = tagId;
+    const activeElement = pickerRef.current?.ownerDocument.activeElement ?? null;
+    focusedTagOptionRef.current = activeElement && pickerRef.current?.contains(activeElement) ? activeElement : null;
+    focusedTagOptionWasActiveRef.current = true;
     setFocusedTagId(tagId);
   }, []);
 
@@ -121,13 +129,29 @@ export function useArticleTagPickerPopover({
   }, [closePicker, isExpanded]);
 
   useEffect(() => {
+    const picker = pickerRef.current;
+    if (!isExpanded || !picker) {
+      return;
+    }
+
+    const handleFocusOut = (event: FocusEvent) => {
+      if (event.target === focusedTagOptionRef.current) {
+        focusedTagOptionWasActiveRef.current = false;
+      }
+    };
+
+    picker.addEventListener("focusout", handleFocusOut);
+    return () => picker.removeEventListener("focusout", handleFocusOut);
+  }, [isExpanded]);
+
+  useEffect(() => {
     if (!isExpanded || hasFocusedOnOpenRef.current) {
       return;
     }
 
-    hasFocusedOnOpenRef.current = true;
-
     const frameId = requestAnimationFrame(() => {
+      hasFocusedOnOpenRef.current = true;
+
       const ownerDocument = pickerRef.current?.ownerDocument ?? getDefaultDocument();
       const activeElement = ownerDocument?.activeElement ?? null;
       if (
@@ -160,15 +184,45 @@ export function useArticleTagPickerPopover({
 
   useEffect(() => {
     const previousAvailableTagCount = previousAvailableTagCountRef.current;
+    const previousAvailableTagIds = previousAvailableTagIdsRef.current;
     previousAvailableTagCountRef.current = availableTagCount;
+    previousAvailableTagIdsRef.current = availableTagIds;
 
-    if (!isExpanded || availableTagCount >= previousAvailableTagCount) {
+    if (!isExpanded) {
       return;
     }
 
-    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (available-tag shrink close), docs/react-doctor-warning-classification-300.md:313
-    closePicker(true);
-  }, [availableTagCount, closePicker, isExpanded]);
+    if (availableTagCount < previousAvailableTagCount) {
+      // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- accepted risk (available-tag shrink close), docs/react-doctor-warning-classification-300.md:313
+      closePicker(true);
+      return;
+    }
+
+    const focusedTagId = focusedTagIdRef.current;
+    const focusedTagWasRemoved =
+      focusedTagId !== null &&
+      previousAvailableTagIds.includes(focusedTagId) &&
+      !availableTagIds.includes(focusedTagId);
+    const ownerDocument = pickerRef.current?.ownerDocument ?? getDefaultDocument();
+    const activeElement = ownerDocument?.activeElement ?? null;
+    const focusedOption = focusedTagOptionRef.current;
+    const focusWasLostWithFocusedOption =
+      focusedTagWasRemoved &&
+      focusedTagOptionWasActiveRef.current &&
+      (activeElement === ownerDocument?.body ||
+        (activeElement === focusedOption && focusedOption !== null && !focusedOption.isConnected));
+
+    if (focusedTagWasRemoved && focusWasLostWithFocusedOption && availableTagCount > 0) {
+      const previousFocusedIndex = previousAvailableTagIds.indexOf(focusedTagId);
+      const fallbackIndex = Math.min(previousFocusedIndex, availableTagCount - 1);
+      const fallbackTagId = availableTagIds[fallbackIndex];
+      if (fallbackIndex >= 0 && fallbackTagId) {
+        setFocusedTagId(fallbackTagId);
+        focusRovingButton(tagOptionRefs, availableTagCount, fallbackIndex);
+        return;
+      }
+    }
+  }, [availableTagCount, availableTagIds, closePicker, isExpanded]);
 
   useEffect(() => {
     if (wasExpandedRef.current && !isExpanded) {
