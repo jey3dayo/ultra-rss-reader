@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useEffect, useRef } from "react";
+import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { readMatchMedia } from "@/lib/runtime/match-media-listener";
 import {
   captureFeedMoveSnapshot,
@@ -47,7 +47,6 @@ export function useFeedMoveMotion({
   const sessionRef = useRef<FeedMoveMotionSession | null>(null);
   const sessionScopeKeyRef = useRef(scopeKey);
   const scopeKeyRef = useRef(scopeKey);
-  scopeKeyRef.current = scopeKey;
   const lastInputWasKeyboardRef = useKeyboardInputTracker();
 
   const stopSession = useCallback(() => {
@@ -56,6 +55,10 @@ export function useFeedMoveMotion({
   }, []);
 
   useEffect(() => stopSession, [stopSession]);
+
+  useLayoutEffect(() => {
+    scopeKeyRef.current = scopeKey;
+  }, [scopeKey]);
 
   useEffect(() => {
     if (sessionScopeKeyRef.current !== scopeKey) {

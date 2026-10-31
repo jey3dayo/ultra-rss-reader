@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Profiler } from "react";
+import { Profiler, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedTreeView } from "@/components/reader/feed-tree-view";
 import i18n from "@/lib/i18n";
@@ -703,6 +703,75 @@ describe("FeedTreeView", () => {
         value: originalElementFromPoint,
       });
     }
+  });
+
+  it("ends the pointer drag when its folder disappears from the list", () => {
+    const folders = ["folder-a", "folder-b", "folder-c"].map((id, sortOrder) => ({
+      id,
+      name: id,
+      accountId: "acc-1",
+      sortOrder,
+      unreadCount: 0,
+      isExpanded: false,
+      isSelected: false,
+      feeds: [],
+    }));
+    const onDropFolderReorder = vi.fn();
+    const onDragEnd = vi.fn();
+
+    function Harness() {
+      const [currentFolders, setCurrentFolders] = useState(folders);
+      const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentFolders(folders.slice(1));
+              setDraggedFolderId(null);
+            }}
+          >
+            Remove dragged folder
+          </button>
+          <FeedTreeView
+            isOpen={true}
+            canDragFolders={true}
+            folders={currentFolders}
+            unfolderedFeeds={[]}
+            onToggleFolder={vi.fn()}
+            onSelectFeed={vi.fn()}
+            onDragStartFolder={(folder) => setDraggedFolderId(folder.id)}
+            onDropFolderReorder={onDropFolderReorder}
+            onDragEnd={() => {
+              setDraggedFolderId(null);
+              onDragEnd();
+            }}
+            draggedFolderId={draggedFolderId}
+            displayFavicons={false}
+            emptyState={{ kind: "message", message: "No feeds yet" }}
+          />
+        </>
+      );
+    }
+
+    render(<Harness />);
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Select folder folder-a" }), {
+      button: 0,
+      clientX: 10,
+      clientY: 10,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(window, { clientX: 24, clientY: 24, pointerId: 1 });
+    expect(screen.getByTestId("feed-tree-folder-drag-overlay")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove dragged folder" }));
+
+    expect(screen.queryByTestId("feed-tree-folder-drag-overlay")).not.toBeInTheDocument();
+    expect(onDragEnd).toHaveBeenCalledOnce();
+    fireEvent.pointerUp(window, { clientX: 24, clientY: 24, pointerId: 1 });
+    expect(onDropFolderReorder).not.toHaveBeenCalled();
   });
 
   it("renders a drag overlay that follows the pointer while dragging", () => {

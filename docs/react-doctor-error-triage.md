@@ -4,7 +4,7 @@ title: React Doctor の render 中 ref 書き換えに関する証拠記録
 description: Issue #260 で報告された14件について、コード、読み手、再実行時の挙動、既存テストを記録する。
 resource: urn:ultra-rss-reader:docs:react-doctor-error-triage
 tags: [category/quality, audience/developer, tool/react-doctor]
-timestamp: 2026-09-10
+timestamp: 2026-11-01
 audience: developer
 owner: project-maintainers
 ---
@@ -297,3 +297,15 @@ CI にも lefthook にも入っていないので、reintroduction を止める�
 5. 既存のテスト：`src/__tests__/components/shortcuts-settings.test.tsx` の `keeps open shortcut settings labels on one locale while language changes`、`src/__tests__/components/shortcuts-help-modal.test.tsx` の `keeps open help labels on one locale while language changes`、`src/__tests__/components/settings-modal.test.tsx` の `keeps open modal chrome on one locale while language changes`。
 
 分類：**must-fix**（修正済み）。13 と同じ状態機械の片側。破棄された open render の capture が closed な current tree を越えて次の open に残る経路もある。**13 と 1 つの実装単位**として扱う。
+
+## 2026-11-01 live scan
+
+ベース HEAD は `c19b72fb543cfbc03a11196878eeda3fdbf22c25`。同一 worktree で今回の変更前後に React Doctor を実行した。
+
+| 指標 | 変更前 | 変更後 |
+| --- | ---: | ---: |
+| errors | 5 | 2 |
+| warnings | 31 | 31 |
+| files | 31 | 29 |
+
+`no-ref-current-in-render` は4件から1件に減り、sidebar の3件が解消した。残る1件は `src/components/reader/hooks/article-list/use-article-list-data.ts:79`。`no-prop-callback-in-render` の1件は既存の test による。pinned baseline は過去 SHA を参照するため、変更していない。
