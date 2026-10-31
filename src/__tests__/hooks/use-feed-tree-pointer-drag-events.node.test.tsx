@@ -123,6 +123,7 @@ describe("useFeedTreePointerDragEvents", () => {
 
       expect(initialSetPointerDragPreview).toHaveBeenCalledWith({
         feed: expect.objectContaining({ id: "feed-1" }),
+        pointerId: 1,
         x: 20,
         y: 20,
       });
@@ -149,11 +150,7 @@ describe("useFeedTreePointerDragEvents", () => {
       expect(getDragListenerAdds()).toBe(listenerAddsAfterInitialDragMove);
       expect(getDragListenerRemoves()).toBe(0);
       expect(initialSetPointerDragPreview).toHaveBeenCalledTimes(1);
-      expect(latestSetPointerDragPreview).toHaveBeenCalledWith({
-        feed: expect.objectContaining({ id: "feed-1" }),
-        x: 30,
-        y: 30,
-      });
+      expect(latestSetPointerDragPreview).not.toHaveBeenCalled();
       expect(initialOnDragEnterFolder).toHaveBeenCalledTimes(1);
       expect(latestOnDragEnterFolder).toHaveBeenCalledWith("folder-2");
 

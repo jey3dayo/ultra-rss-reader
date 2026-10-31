@@ -1,9 +1,11 @@
+import { useEffect, useRef } from "react";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import { FeedFavicon } from "@/design-system";
 import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 
 export type FeedTreeDragOverlayPreview = {
   feed: FeedTreeFeedViewModel;
+  pointerId: number;
   x: number;
   y: number;
 };
@@ -17,6 +19,12 @@ type FeedTreeDragOverlayCardProps = {
   feed: FeedTreeFeedViewModel;
   displayFavicons: boolean;
 };
+
+const OVERLAY_CURSOR_OFFSET_PX = 12;
+
+function toOverlayTransform(x: number, y: number) {
+  return `translate3d(${x + OVERLAY_CURSOR_OFFSET_PX}px, ${y + OVERLAY_CURSOR_OFFSET_PX}px, 0)`;
+}
 
 function FeedTreeDragOverlayCard({ feed, displayFavicons }: FeedTreeDragOverlayCardProps) {
   return (
@@ -44,13 +52,24 @@ function FeedTreeDragOverlayCard({ feed, displayFavicons }: FeedTreeDragOverlayC
 }
 
 export function FeedTreeDragOverlay({ preview, displayFavicons }: FeedTreeDragOverlayProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const followPointer = (event: PointerEvent) => {
+      if (event.pointerId === preview.pointerId && overlayRef.current) {
+        overlayRef.current.style.transform = toOverlayTransform(event.clientX, event.clientY);
+      }
+    };
+    window.addEventListener("pointermove", followPointer);
+    return () => window.removeEventListener("pointermove", followPointer);
+  }, [preview.pointerId]);
+
   return (
     <div
+      ref={overlayRef}
       data-testid="feed-tree-drag-overlay"
       className="pointer-events-none fixed left-0 top-0 z-50"
-      style={{
-        transform: `translate3d(${preview.x + 12}px, ${preview.y + 12}px, 0)`,
-      }}
+      style={{ transform: toOverlayTransform(preview.x, preview.y) }}
     >
       <FeedTreeDragOverlayCard feed={preview.feed} displayFavicons={displayFavicons} />
     </div>
