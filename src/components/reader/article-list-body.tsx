@@ -15,6 +15,7 @@ export type ArticleListBodyProps = {
   onListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
   keepContentMountedWhileLoading?: boolean;
+  keepContentMotionMountedWhileEmpty?: boolean;
   loadingMessage: string;
   emptyStateVariant?: ArticleListEmptyStateVariant;
   emptyMessage: string;
@@ -43,6 +44,7 @@ export function ArticleListBody({
   onListKeyDownCapture,
   isLoading,
   keepContentMountedWhileLoading = false,
+  keepContentMotionMountedWhileEmpty = false,
   loadingMessage,
   emptyStateVariant,
   emptyMessage,
@@ -77,6 +79,7 @@ export function ArticleListBody({
           onListKeyDownCapture={onListKeyDownCapture}
           isLoading={isLoading}
           keepContentMountedWhileLoading={keepContentMountedWhileLoading}
+          keepContentMotionMountedWhileEmpty={keepContentMotionMountedWhileEmpty}
           loadingMessage={loadingMessage}
           emptyStateVariant={emptyStateVariant}
           emptyMessage={emptyMessage}

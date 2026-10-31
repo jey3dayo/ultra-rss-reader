@@ -33,6 +33,7 @@ type ArticleListScreenViewProps = {
   onListKeyDownCapture?: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
   keepContentMountedWhileLoading?: boolean;
+  keepContentMotionMountedWhileEmpty?: boolean;
   loadingMessage: string;
   emptyStateVariant?: ArticleListEmptyStateVariant;
   emptyMessage: string;
@@ -57,6 +58,7 @@ export function ArticleListScreenView({
   onListKeyDownCapture,
   isLoading,
   keepContentMountedWhileLoading = false,
+  keepContentMotionMountedWhileEmpty = false,
   loadingMessage,
   emptyStateVariant = "default",
   emptyMessage,
@@ -76,6 +78,7 @@ export function ArticleListScreenView({
   const bodyRef = useReaderPassiveLayoutBodyRef("list");
   const mergedViewportRef = useMemo(() => mergeReaderPassiveLayoutRefs(viewportRef, bodyRef), [viewportRef, bodyRef]);
   const passiveCard = useReaderPassiveLayoutCard("list", contentMotionKey);
+  const isRetainedEmptyState = groups.length === 0 && !isLoading && keepContentMotionMountedWhileEmpty;
 
   if (isLoading && !keepContentMountedWhileLoading) {
     return (
@@ -87,7 +90,7 @@ export function ArticleListScreenView({
     );
   }
 
-  if (groups.length === 0 && !keepContentMountedWhileLoading) {
+  if (groups.length === 0 && !keepContentMountedWhileLoading && !keepContentMotionMountedWhileEmpty) {
     return (
       <ScrollArea className="h-full" viewportRef={mergedViewportRef}>
         <ArticleListEmptyState
@@ -104,16 +107,29 @@ export function ArticleListScreenView({
 
   return (
     <div className="relative h-full overflow-hidden">
-      <ScrollArea className="relative z-10 h-full" contentClassName="pb-4" viewportRef={mergedViewportRef}>
+      <ScrollArea
+        className="relative z-10 h-full"
+        contentClassName={isRetainedEmptyState ? "h-full" : "pb-4"}
+        viewportRef={mergedViewportRef}
+      >
         <div
           key={contentMotionKey}
           data-testid="article-list-scroll-content"
-          className="motion-content-swap"
+          className={isRetainedEmptyState ? "motion-content-swap h-full" : "motion-content-swap"}
           data-motion-phase="entering"
           style={LIST_MOTION_STYLE}
         >
           {keepContentMountedWhileLoading ? (
             <ArticleListSkeleton label={loadingMessage} />
+          ) : groups.length === 0 ? (
+            <ArticleListEmptyState
+              variant={emptyStateVariant}
+              passiveCard={passiveCard}
+              message={emptyMessage}
+              description={emptyDescription}
+              actionLabel={emptyActionLabel}
+              onAction={onEmptyAction}
+            />
           ) : (
             <div
               ref={listRef}
