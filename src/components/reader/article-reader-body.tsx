@@ -302,11 +302,7 @@ export function ArticleReaderBody({
       viewportRef={viewportRef}
       onKeyDown={handleReaderKeyDown}
     >
-      <article
-        key={article.id}
-        data-article-slide-content="true"
-        className="w-full px-[clamp(1.75rem,3vw,4rem)] pb-20 pt-10 md:pt-13"
-      >
+      <article key={article.id} className="w-full px-[clamp(1.75rem,3vw,4rem)] pb-20 pt-10 md:pt-13">
         <ArticleMetaView
           title={article.title}
           author={article.author}

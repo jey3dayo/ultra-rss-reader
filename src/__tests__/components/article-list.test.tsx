@@ -382,6 +382,51 @@ describe("ArticleList", () => {
     });
   });
 
+  it("keeps article list content mounted while search results change", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      viewMode: "all",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+        case "list_articles":
+          return [];
+        case "search_articles": {
+          const query = typeof args.query === "string" ? args.query.toLowerCase() : "";
+          return query.includes("second")
+            ? [{ ...sampleArticles[1], id: "search-second", title: "Second search match", is_read: false }]
+            : [{ ...sampleArticles[0], id: "search-first", title: "First search match" }];
+        }
+        default:
+          return undefined;
+      }
+    });
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Search articles" }));
+    const searchInput = screen.getByRole("textbox", { name: "Search articles" });
+    await user.type(searchInput, "first");
+    await waitFor(() => expect(screen.getByText("First search match")).toBeInTheDocument());
+
+    const scrollContent = screen.getByTestId("article-list-scroll-content");
+    await user.clear(searchInput);
+    await user.type(searchInput, "second");
+
+    await waitFor(() => {
+      expect(screen.getByText("Second search match")).toBeInTheDocument();
+      expect(screen.queryByText("First search match")).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId("article-list-scroll-content")).toBe(scrollContent);
+  });
+
   it("focuses the article search input when clicking the active search button", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),

@@ -32,6 +32,7 @@ type ArticleListScreenViewProps = {
   viewportRef?: RefObject<HTMLDivElement | null>;
   onListKeyDownCapture?: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
+  keepContentMountedWhileLoading?: boolean;
   loadingMessage: string;
   emptyStateVariant?: ArticleListEmptyStateVariant;
   emptyMessage: string;
@@ -55,6 +56,7 @@ export function ArticleListScreenView({
   viewportRef,
   onListKeyDownCapture,
   isLoading,
+  keepContentMountedWhileLoading = false,
   loadingMessage,
   emptyStateVariant = "default",
   emptyMessage,
@@ -75,7 +77,7 @@ export function ArticleListScreenView({
   const mergedViewportRef = useMemo(() => mergeReaderPassiveLayoutRefs(viewportRef, bodyRef), [viewportRef, bodyRef]);
   const passiveCard = useReaderPassiveLayoutCard("list", contentMotionKey);
 
-  if (isLoading) {
+  if (isLoading && !keepContentMountedWhileLoading) {
     return (
       <ScrollArea className="h-full" viewportRef={mergedViewportRef}>
         <div>
@@ -85,7 +87,7 @@ export function ArticleListScreenView({
     );
   }
 
-  if (groups.length === 0) {
+  if (groups.length === 0 && !keepContentMountedWhileLoading) {
     return (
       <ScrollArea className="h-full" viewportRef={mergedViewportRef}>
         <ArticleListEmptyState
@@ -110,25 +112,29 @@ export function ArticleListScreenView({
           data-motion-phase="entering"
           style={LIST_MOTION_STYLE}
         >
-          <div
-            ref={listRef}
-            role="listbox"
-            tabIndex={-1}
-            data-article-list-root="true"
-            aria-label={listAriaLabel}
-            onKeyDownCapture={onListKeyDownCapture}
-          >
-            <ArticleGroupsView
-              groups={groups}
-              isActivePane={isActivePane}
-              dimArchived={dimArchived}
-              textPreview={textPreview}
-              imagePreviews={imagePreviews}
-              selectionStyle={selectionStyle}
-              onSelectArticle={onSelectArticle}
-              renderRow={renderRow}
-            />
-          </div>
+          {keepContentMountedWhileLoading ? (
+            <ArticleListSkeleton label={loadingMessage} />
+          ) : (
+            <div
+              ref={listRef}
+              role="listbox"
+              tabIndex={-1}
+              data-article-list-root="true"
+              aria-label={listAriaLabel}
+              onKeyDownCapture={onListKeyDownCapture}
+            >
+              <ArticleGroupsView
+                groups={groups}
+                isActivePane={isActivePane}
+                dimArchived={dimArchived}
+                textPreview={textPreview}
+                imagePreviews={imagePreviews}
+                selectionStyle={selectionStyle}
+                onSelectArticle={onSelectArticle}
+                renderRow={renderRow}
+              />
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>

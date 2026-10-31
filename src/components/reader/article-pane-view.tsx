@@ -2,14 +2,6 @@ import { cn } from "cn";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticlePaneController } from "@/components/reader/hooks/article/use-article-pane-controller";
 import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
-import {
-  MOTION_ARTICLE_SLIDE_CLASS_NAME,
-  MOTION_DATA_DIRECTION_ATTRIBUTE,
-  MOTION_DIRECTION_NEUTRAL,
-  MOTION_DIRECTION_NEXT,
-  MOTION_DIRECTION_PREV,
-  type MotionDirection,
-} from "@/constants/motion";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleReaderBody } from "./article-reader-body";
@@ -63,13 +55,6 @@ export function ArticleToolbar({
 
 export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: ArticlePaneProps) {
   const focusedPane = useUiStore((state) => state.focusedPane);
-  const articleNavigationDirection = useUiStore((state) => state.articleNavigationDirection);
-  const motionDirection: MotionDirection =
-    articleNavigationDirection === 1
-      ? MOTION_DIRECTION_NEXT
-      : articleNavigationDirection === -1
-        ? MOTION_DIRECTION_PREV
-        : MOTION_DIRECTION_NEUTRAL;
   const {
     toolbarProps,
     browserOverlayProps,
@@ -111,8 +96,7 @@ export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: 
             <div
               ref={bodyRef}
               {...readerBodyStateProps}
-              {...{ [MOTION_DATA_DIRECTION_ATTRIBUTE]: motionDirection }}
-              className={cn("h-full min-h-0 flex-1 overflow-hidden", MOTION_ARTICLE_SLIDE_CLASS_NAME)}
+              className="h-full min-h-0 flex-1 overflow-hidden"
               data-testid="article-reader-body"
             >
               <ArticleReaderBody

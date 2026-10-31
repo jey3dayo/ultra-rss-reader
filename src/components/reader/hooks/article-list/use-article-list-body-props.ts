@@ -146,6 +146,7 @@ export function useArticleListBodyProps({
     viewportRef,
     onListKeyDownCapture: handleListKeyDownCapture,
     isLoading: isLoadingArticles || isSearchLoading,
+    keepContentMountedWhileLoading: isSearchLoading,
     loadingMessage: tc("loading"),
     ...emptyStateProps,
     groups: articleGroups,

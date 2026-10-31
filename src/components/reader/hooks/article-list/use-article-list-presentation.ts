@@ -119,7 +119,7 @@ export function useArticleListPresentation({
   const contentMotionKey = [
     getArticleListSelectionMotionKey(selection),
     effectiveViewMode,
-    showSearch ? `search:${trimmedDebouncedQuery}` : "browse",
+    showSearch ? "search" : "browse",
   ].join("|");
 
   const { listRef, viewportRef, handleListKeyDownCapture } = useArticleListInteractions({

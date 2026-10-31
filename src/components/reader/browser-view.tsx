@@ -29,9 +29,20 @@ function prefersReducedMotion() {
   );
 }
 
-const BROWSER_THEME_WIPE_DURATION_MS = 500;
 const SYSTEM_COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const THEME_DURATION_TOKEN = "--motion-duration-theme";
+
+function getThemeWipeDurationMs() {
+  const duration = getComputedStyle(document.documentElement).getPropertyValue(THEME_DURATION_TOKEN).trim();
+  const match = /^(\d+(?:\.\d+)?)(ms|s)$/u.exec(duration);
+  if (match === null) {
+    return 0;
+  }
+
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value * (match[2] === "s" ? 1000 : 1) : 0;
+}
 
 function getSystemTheme() {
   return typeof window !== "undefined" &&
@@ -115,7 +126,7 @@ function BrowserThemeWipeOverlay() {
         return;
       }
       setWipeKey(0);
-    }, BROWSER_THEME_WIPE_DURATION_MS);
+    }, getThemeWipeDurationMs());
 
     return undefined;
   }, [reducedMotion, resolvedTheme]);
