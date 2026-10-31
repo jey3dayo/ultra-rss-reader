@@ -24,6 +24,6 @@ describe("FeedTreeRow unread counts", () => {
 
     expect(screen.getByText("9,999+")).toBeInTheDocument();
     expect(screen.getByTitle("12,345,678")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /12,345,678/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /International news.*12,345,678/ })).toBeInTheDocument();
   });
 });
