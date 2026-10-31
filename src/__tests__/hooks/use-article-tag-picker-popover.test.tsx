@@ -16,6 +16,7 @@ function HookHarness({ availableTagCount, onExpandedChange, onParentKeyDown, isE
   }));
   const { pickerRef, triggerRef, tagOptionRefs, handleListboxKeyDown } = useArticleTagPickerPopover({
     isExpanded,
+    availableTagIds: tags.map((tag) => tag.id),
     availableTagCount,
     onExpandedChange,
     onNewTagNameChange: vi.fn(),

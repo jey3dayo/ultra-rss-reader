@@ -15,8 +15,10 @@ type ArticleTagPickerPopoverProps = {
   isCreateTagPending: boolean;
   newTagInputRef: RefObject<HTMLInputElement | null>;
   tagOptionRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
+  activeTagId: string | null;
   onAssignTag: ArticleTagPickerViewProps["onAssignTag"];
   onNewTagNameChange: ArticleTagPickerViewProps["onNewTagNameChange"];
+  onTagOptionFocus: (tagId: string) => void;
   onCreateTag: () => void;
   onClosePicker: (restoreFocus?: boolean) => void;
   onListboxKeyDown: KeyboardEventHandler<HTMLDivElement>;
@@ -31,8 +33,10 @@ export function ArticleTagPickerPopover({
   isCreateTagPending,
   newTagInputRef,
   tagOptionRefs,
+  activeTagId,
   onAssignTag,
   onNewTagNameChange,
+  onTagOptionFocus,
   onCreateTag,
   onClosePicker,
   onListboxKeyDown,
@@ -93,7 +97,9 @@ export function ArticleTagPickerPopover({
             }}
             role="option"
             aria-selected="false"
+            tabIndex={tag.id === activeTagId ? 0 : -1}
             swatchColor={tag.color}
+            onFocus={() => onTagOptionFocus(tag.id)}
             onClick={() => {
               onAssignTag(tag.id);
             }}

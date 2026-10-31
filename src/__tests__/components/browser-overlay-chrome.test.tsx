@@ -160,7 +160,7 @@ describe("BrowserOverlayChrome", () => {
     expect(closeSurface).toHaveClass("shadow-none");
     expect(closeSurface).toHaveClass("hover:bg-transparent");
     expect(closeSurface).toHaveClass("has-[:focus-visible]:bg-transparent");
-    expect(closeSurface).toHaveClass("has-[:focus-visible]:ring-0");
+    expect(closeSurface).toHaveClass("has-[:focus-visible]:ring-2", "has-[:focus-visible]:ring-ring/45");
     expect(closeSurface).toHaveClass("has-[:active]:bg-transparent");
     expect(closeSurface).not.toHaveClass("border");
     expect(closeSurface).not.toHaveClass("border-transparent");

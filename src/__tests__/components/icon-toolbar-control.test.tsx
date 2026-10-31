@@ -239,7 +239,9 @@ describe("IconToolbarControl", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("supports a chrome variant for borderless browser chrome buttons", () => {
+  it("supports a chrome variant for borderless browser chrome buttons with visible keyboard focus", async () => {
+    const user = userEvent.setup();
+
     render(
       <TooltipProvider>
         <IconToolbarSurfaceButton label="Web back" onClick={vi.fn()} variant="chrome">
@@ -256,5 +258,10 @@ describe("IconToolbarControl", () => {
     expect(surface).not.toHaveClass("border-transparent");
     expect(surface?.className).toContain("hover:bg-transparent");
     expect(surface?.className).toContain("has-[:active]:bg-transparent");
+    expect(surface?.className).toContain("has-[:focus-visible]:ring-2");
+    expect(surface?.className).toContain("has-[:focus-visible]:ring-ring/45");
+
+    await user.tab();
+    expect(button).toHaveFocus();
   });
 });

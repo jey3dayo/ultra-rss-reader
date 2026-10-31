@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { getDefaultDocument } from "@/lib/dom/document";
 import { isOutsideElement } from "@/lib/dom/dom-target";
 import { focusRovingButton, getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
@@ -6,6 +6,7 @@ import type { ArticleTagPickerViewProps } from "../../article-tag-picker-view";
 
 type UseArticleTagPickerPopoverParams = {
   isExpanded: boolean;
+  availableTagIds: readonly string[];
   availableTagCount: number;
   onExpandedChange: ArticleTagPickerViewProps["onExpandedChange"];
   onNewTagNameChange: ArticleTagPickerViewProps["onNewTagNameChange"];
@@ -13,6 +14,7 @@ type UseArticleTagPickerPopoverParams = {
 
 export function useArticleTagPickerPopover({
   isExpanded,
+  availableTagIds,
   availableTagCount,
   onExpandedChange,
   onNewTagNameChange,
@@ -27,6 +29,9 @@ export function useArticleTagPickerPopover({
   const isMountedRef = useRef(true);
   const wasExpandedRef = useRef(isExpanded);
   const previousAvailableTagCountRef = useRef(availableTagCount);
+  const [focusedTagId, setFocusedTagId] = useState<string | null>(availableTagIds[0] ?? null);
+  const activeTagId =
+    focusedTagId && availableTagIds.includes(focusedTagId) ? focusedTagId : (availableTagIds[0] ?? null);
 
   const cancelRestoreFocusFrame = useCallback(() => {
     if (restoreFocusFrameRef.current !== null) {
@@ -45,6 +50,10 @@ export function useArticleTagPickerPopover({
 
   const requestFocusRestoreOnClose = useCallback(() => {
     restoreFocusOnCloseRef.current = true;
+  }, []);
+
+  const handleTagOptionFocus = useCallback((tagId: string) => {
+    setFocusedTagId(tagId);
   }, []);
 
   useEffect(() => {
@@ -131,7 +140,8 @@ export function useArticleTagPickerPopover({
       }
 
       if (availableTagCount > 0) {
-        tagOptionRefs.current[0]?.focus();
+        const activeTagIndex = activeTagId ? availableTagIds.indexOf(activeTagId) : -1;
+        focusRovingButton(tagOptionRefs, availableTagCount, Math.max(activeTagIndex, 0));
         return;
       }
 
@@ -139,7 +149,7 @@ export function useArticleTagPickerPopover({
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [availableTagCount, isExpanded]);
+  }, [activeTagId, availableTagCount, availableTagIds, isExpanded]);
 
   useEffect(() => {
     if (!isExpanded) {
@@ -231,8 +241,10 @@ export function useArticleTagPickerPopover({
     triggerRef,
     newTagInputRef,
     tagOptionRefs,
+    activeTagId,
     closePicker,
     requestFocusRestoreOnClose,
+    handleTagOptionFocus,
     handleTriggerKeyDown,
     handleListboxKeyDown,
   };
