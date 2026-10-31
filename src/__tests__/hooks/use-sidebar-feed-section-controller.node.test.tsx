@@ -165,4 +165,27 @@ describe("useSidebarFeedSectionController", () => {
     expect(selectFeed).toHaveBeenCalledWith(sampleFeeds[0].id);
     expect(selectAll).not.toHaveBeenCalled();
   });
+
+  it("ends a folder drag when the dragged folder disappears from the current list", () => {
+    const folders = ["folder-a", "folder-b", "folder-c"].map((id) => ({
+      ...sampleFolders[0],
+      id,
+      account_id: "acc-1",
+    }));
+    const params = createControllerParams({ folders });
+    const { result, rerender } = renderHook((currentParams) => useSidebarFeedSectionController(currentParams), {
+      initialProps: params,
+    });
+    const onDragStartFolder = result.current.feedTreeProps.onDragStartFolder;
+    if (!onDragStartFolder) {
+      throw new Error("Feed tree folder drag handler is unavailable");
+    }
+
+    act(() => onDragStartFolder(result.current.feedTreeProps.folders[0]));
+    expect(result.current.feedTreeProps.draggedFolderId).toBe("folder-a");
+
+    rerender({ ...params, folders: folders.slice(1) });
+
+    expect(result.current.feedTreeProps.draggedFolderId).toBeNull();
+  });
 });

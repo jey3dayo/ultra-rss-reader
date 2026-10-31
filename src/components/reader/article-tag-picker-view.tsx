@@ -55,12 +55,15 @@ export function ArticleTagPickerView({
     triggerRef,
     newTagInputRef,
     tagOptionRefs,
+    activeTagId,
     closePicker,
     requestFocusRestoreOnClose,
+    handleTagOptionFocus,
     handleTriggerKeyDown,
     handleListboxKeyDown,
   } = useArticleTagPickerPopover({
     isExpanded,
+    availableTagIds: availableTags.map((tag) => tag.id),
     availableTagCount: availableTags.length,
     onExpandedChange,
     onNewTagNameChange,
@@ -111,8 +114,10 @@ export function ArticleTagPickerView({
                 isCreateTagPending={isCreateTagPending}
                 newTagInputRef={newTagInputRef}
                 tagOptionRefs={tagOptionRefs}
+                activeTagId={activeTagId}
                 onAssignTag={onAssignTag}
                 onNewTagNameChange={onNewTagNameChange}
+                onTagOptionFocus={handleTagOptionFocus}
                 onCreateTag={handleCreateTag}
                 onClosePicker={closePicker}
                 onListboxKeyDown={handleListboxKeyDown}

@@ -1,3 +1,5 @@
+import { useShallow } from "zustand/react/shallow";
+import { getRenamedShortcutPreferenceKey, shortcutDefaults } from "@/lib/keyboard/keyboard-shortcuts";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -21,7 +23,15 @@ export function useArticleListUiState() {
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
 
-  const keyboardPrefs = usePreferencesStore((s) => s.prefs);
+  const keyboardPrefs = usePreferencesStore(
+    useShallow((s) =>
+      Object.fromEntries(
+        Object.entries(s.prefs).filter(
+          ([key]) => Object.hasOwn(shortcutDefaults, key) || getRenamedShortcutPreferenceKey(key) !== null,
+        ),
+      ),
+    ),
+  );
   const sortUnread = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reading_sort"));
   const groupBy = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "group_by"));
   const dimArchived = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "dim_archived"));

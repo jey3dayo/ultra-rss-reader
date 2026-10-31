@@ -62,6 +62,7 @@ export function useFolderTreeDrag({
   const [state, dispatch] = useReducer(folderTreeDragReducer, initialFolderTreeDragState);
   const { isPointerTracking, pointerDragPreview } = state;
   const pointerDragRef = useRef<ReturnType<typeof createFolderTreePointerDragSession> | null>(null);
+  const parentDragWasActiveRef = useRef(false);
   const { consumeSuppressedHandleClick, queueSuppressHandleClickReset } = useFeedTreeHandleClickSuppression();
 
   const clearPointerTracking = useCallback(() => {
@@ -99,6 +100,20 @@ export function useFolderTreeDrag({
       clearPointerTracking();
     }
   }, [canDragFolders, clearPointerTracking, isOpen]);
+
+  useEffect(() => {
+    if (normalizedDraggedFolderId !== null) {
+      parentDragWasActiveRef.current = true;
+      return;
+    }
+
+    if (parentDragWasActiveRef.current && pointerDragRef.current?.isDragging) {
+      queueSuppressHandleClickReset();
+      clearPointerTracking();
+      onDragEnd?.();
+    }
+    parentDragWasActiveRef.current = false;
+  }, [clearPointerTracking, normalizedDraggedFolderId, onDragEnd, queueSuppressHandleClickReset]);
 
   useFolderTreePointerDragEvents({
     isPointerTracking,

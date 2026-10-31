@@ -95,6 +95,12 @@ export function useFeedTreePointerDragEvents({
       if (!session.isDragging && shouldStartFeedTreePointerDrag(session, event.clientX, event.clientY)) {
         session.isDragging = true;
         onDragStartFeed?.(session.feed);
+        setPointerDragPreview({
+          feed: session.feed,
+          pointerId: event.pointerId,
+          x: event.clientX,
+          y: event.clientY,
+        });
       }
 
       if (!session.isDragging) {
@@ -116,12 +122,6 @@ export function useFeedTreePointerDragEvents({
           onDragEnterUnfoldered,
         });
       }
-
-      setPointerDragPreview({
-        feed: session.feed,
-        x: event.clientX,
-        y: event.clientY,
-      });
     };
 
     const handlePointerUp = (event: PointerEvent) => {

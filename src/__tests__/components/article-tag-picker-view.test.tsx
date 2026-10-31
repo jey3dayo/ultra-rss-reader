@@ -159,7 +159,10 @@ describe("ArticleTagPickerView", () => {
         };
       });
     const originalInnerWidth = window.innerWidth;
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 320 });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 320,
+    });
 
     render(
       <ArticleTagPickerView
@@ -186,10 +189,15 @@ describe("ArticleTagPickerView", () => {
     expect(listbox.closest("[data-open]")).toHaveClass("max-w-[calc(100vw-1rem)]");
     expect(screen.getByRole("textbox", { name: "New tag name" })).toBeInTheDocument();
     await waitFor(() => {
-      expect(listbox.closest("[data-open]")).toHaveStyle({ marginLeft: "-208px" });
+      expect(listbox.closest("[data-open]")).toHaveStyle({
+        marginLeft: "-208px",
+      });
     });
 
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: originalInnerWidth });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: originalInnerWidth,
+    });
     getBoundingClientRectSpy.mockRestore();
   });
 
@@ -751,6 +759,7 @@ describe("ArticleTagPickerView", () => {
   });
 
   it("closes the picker when an open option list loses tags", async () => {
+    const user = userEvent.setup();
     const onExpandedChange = vi.fn();
 
     const { rerender } = render(
@@ -777,7 +786,9 @@ describe("ArticleTagPickerView", () => {
       />,
     );
 
-    expect(screen.getByRole("option", { name: "Important" })).toBeInTheDocument();
+    const removedOption = screen.getByRole("option", { name: "Important" });
+    await user.click(removedOption);
+    expect(removedOption).toHaveFocus();
 
     rerender(
       <ArticleTagPickerView
@@ -801,6 +812,67 @@ describe("ArticleTagPickerView", () => {
     );
 
     expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
+  it("restores focus to a safe candidate after options disappear", async () => {
+    const user = userEvent.setup();
+    const labels = {
+      addTag: "Add tag",
+      availableTags: "Available tags",
+      newTagPlaceholder: "Create tag",
+      createTag: "Create tag",
+      removeTag: (name: string) => `Remove tag ${name}`,
+    };
+    const initialTags = [
+      { id: "tag-1", name: "Later", color: null },
+      { id: "tag-2", name: "Important", color: "#ff0000" },
+    ];
+    const onExpandedChange = vi.fn();
+    const renderPicker = (availableTags: typeof initialTags, isExpanded: boolean) => (
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={availableTags}
+        newTagName=""
+        isExpanded={isExpanded}
+        labels={labels}
+        onExpandedChange={onExpandedChange}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />
+    );
+    const { rerender } = render(renderPicker(initialTags, true));
+
+    await waitFor(() => expect(screen.getByRole("option", { name: "Later" })).toHaveFocus());
+    const removedOption = screen.getByRole("option", { name: "Important" });
+    await user.click(removedOption);
+    expect(removedOption).toHaveAttribute("tabindex", "0");
+
+    const remainingTags = [initialTags[0]];
+    rerender(renderPicker(remainingTags, true));
+    await waitFor(() => expect(onExpandedChange).toHaveBeenCalledWith(false));
+    rerender(renderPicker(remainingTags, false));
+    const trigger = screen.getByRole("button", { name: "Add tag" });
+    await waitFor(() => expect(trigger).toHaveFocus());
+
+    rerender(renderPicker(remainingTags, true));
+
+    const safeOption = screen.getByRole("option", { name: "Later" });
+    await waitFor(() => expect(safeOption).toHaveFocus());
+    expect(safeOption).toHaveAttribute("tabindex", "0");
+    expect(onExpandedChange).toHaveBeenCalledTimes(1);
+
+    await user.click(safeOption);
+    rerender(renderPicker([], true));
+    await waitFor(() => expect(onExpandedChange).toHaveBeenCalledTimes(2));
+    rerender(renderPicker([], false));
+    await waitFor(() => expect(trigger).toHaveFocus());
+    rerender(renderPicker([], true));
+
+    expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Create tag" })).toHaveFocus());
   });
 
   it("supports Arrow, Home, and End listbox navigation across available tags", async () => {
@@ -839,12 +911,19 @@ describe("ArticleTagPickerView", () => {
     await waitFor(() => {
       expect(firstOption).toHaveFocus();
     });
+    expect(firstOption).toHaveAttribute("tabindex", "0");
+    expect(middleOption).toHaveAttribute("tabindex", "-1");
+    expect(lastOption).toHaveAttribute("tabindex", "-1");
 
-    middleOption.focus();
+    await user.click(middleOption);
     expect(middleOption).toHaveFocus();
+    expect(firstOption).toHaveAttribute("tabindex", "-1");
+    expect(middleOption).toHaveAttribute("tabindex", "0");
 
     await user.keyboard("{ArrowDown}");
     expect(lastOption).toHaveFocus();
+    expect(middleOption).toHaveAttribute("tabindex", "-1");
+    expect(lastOption).toHaveAttribute("tabindex", "0");
 
     await user.keyboard("{ArrowUp}");
     expect(middleOption).toHaveFocus();

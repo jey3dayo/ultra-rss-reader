@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Profiler } from "react";
+import { Profiler, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedTreeView } from "@/components/reader/feed-tree-view";
 import i18n from "@/lib/i18n";
@@ -589,6 +589,7 @@ describe("FeedTreeView", () => {
 
   it("moves a feed with pointer drag onto a folder section", () => {
     const callSequence: string[] = [];
+    const onRender = vi.fn();
     const onDragStartFeed = vi.fn((feed: { id: string }) => {
       callSequence.push(`start:${feed.id}`);
     });
@@ -600,47 +601,49 @@ describe("FeedTreeView", () => {
     });
 
     render(
-      <FeedTreeView
-        isOpen={true}
-        canDragFeeds={true}
-        folders={[
-          {
-            id: "folder-target",
-            name: "Target",
-            accountId: "acc-1",
-            sortOrder: 0,
-            unreadCount: 0,
-            isExpanded: false,
-            isSelected: false,
-            feeds: [],
-          },
-        ]}
-        unfolderedFeeds={[
-          {
-            id: "feed-1",
-            accountId: "acc-1",
-            folderId: null,
-            title: "Alpha",
-            url: "https://example.com/alpha.xml",
-            siteUrl: "https://example.com/alpha",
-            unreadCount: 0,
-            readerMode: "on",
-            webPreviewMode: "off",
-            isSelected: false,
-            grayscaleFavicon: false,
-          },
-        ]}
-        onToggleFolder={vi.fn()}
-        onSelectFeed={vi.fn()}
-        onDragStartFeed={onDragStartFeed}
-        onDragEnterFolder={onDragEnterFolder}
-        onDragEnterUnfoldered={vi.fn()}
-        onDropToFolder={onDropToFolder}
-        onDropToUnfoldered={vi.fn()}
-        onDragEnd={vi.fn()}
-        displayFavicons={false}
-        emptyState={{ kind: "message", message: "No feeds yet" }}
-      />,
+      <Profiler id="feed-tree-pointer-drag" onRender={onRender}>
+        <FeedTreeView
+          isOpen={true}
+          canDragFeeds={true}
+          folders={[
+            {
+              id: "folder-target",
+              name: "Target",
+              accountId: "acc-1",
+              sortOrder: 0,
+              unreadCount: 0,
+              isExpanded: false,
+              isSelected: false,
+              feeds: [],
+            },
+          ]}
+          unfolderedFeeds={[
+            {
+              id: "feed-1",
+              accountId: "acc-1",
+              folderId: null,
+              title: "Alpha",
+              url: "https://example.com/alpha.xml",
+              siteUrl: "https://example.com/alpha",
+              unreadCount: 0,
+              readerMode: "on",
+              webPreviewMode: "off",
+              isSelected: false,
+              grayscaleFavicon: false,
+            },
+          ]}
+          onToggleFolder={vi.fn()}
+          onSelectFeed={vi.fn()}
+          onDragStartFeed={onDragStartFeed}
+          onDragEnterFolder={onDragEnterFolder}
+          onDragEnterUnfoldered={vi.fn()}
+          onDropToFolder={onDropToFolder}
+          onDropToUnfoldered={vi.fn()}
+          onDragEnd={vi.fn()}
+          displayFavicons={false}
+          emptyState={{ kind: "message", message: "No feeds yet" }}
+        />
+      </Profiler>,
     );
 
     const targetButton = screen.getByRole("button", {
@@ -664,11 +667,31 @@ describe("FeedTreeView", () => {
         clientY: 28,
         pointerId: 1,
       });
-      fireEvent.pointerUp(window, {
-        clientX: 28,
-        clientY: 28,
-        pointerId: 1,
-      });
+      const overlay = screen.getByTestId("feed-tree-drag-overlay");
+      const folderRow = document.querySelector('[data-feed-drop-kind="folder"]');
+      expect(folderRow).toHaveClass("bg-[var(--feed-tree-active-folder-surface)]");
+      const commitsAtDragStart = onRender.mock.calls.length;
+
+      fireEvent.pointerMove(window, { clientX: 100, clientY: 100, pointerId: 2 });
+      expect(overlay).toHaveStyle({ transform: "translate3d(40px, 40px, 0)" });
+
+      for (let offset = 1; offset <= 20; offset += 1) {
+        fireEvent.pointerMove(window, { clientX: 28 + offset, clientY: 28 + offset, pointerId: 1 });
+      }
+      expect(overlay).toHaveStyle({ transform: "translate3d(60px, 60px, 0)" });
+      expect(onRender.mock.calls.length).toBe(commitsAtDragStart);
+
+      Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => null });
+      fireEvent.pointerMove(window, { clientX: 60, clientY: 60, pointerId: 1 });
+      expect(folderRow).not.toHaveClass("bg-[var(--feed-tree-active-folder-surface)]");
+      expect(onRender.mock.calls.length).toBeGreaterThan(commitsAtDragStart);
+      expect(overlay).toHaveStyle({ transform: "translate3d(72px, 72px, 0)" });
+
+      Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => targetButton });
+      fireEvent.pointerUp(window, { clientX: 60, clientY: 60, pointerId: 1 });
+      expect(screen.queryByTestId("feed-tree-drag-overlay")).not.toBeInTheDocument();
+      fireEvent.pointerMove(window, { clientX: 100, clientY: 100, pointerId: 1 });
+      expect(overlay).toHaveStyle({ transform: "translate3d(72px, 72px, 0)" });
 
       expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1" }));
       expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");
@@ -680,6 +703,75 @@ describe("FeedTreeView", () => {
         value: originalElementFromPoint,
       });
     }
+  });
+
+  it("ends the pointer drag when its folder disappears from the list", () => {
+    const folders = ["folder-a", "folder-b", "folder-c"].map((id, sortOrder) => ({
+      id,
+      name: id,
+      accountId: "acc-1",
+      sortOrder,
+      unreadCount: 0,
+      isExpanded: false,
+      isSelected: false,
+      feeds: [],
+    }));
+    const onDropFolderReorder = vi.fn();
+    const onDragEnd = vi.fn();
+
+    function Harness() {
+      const [currentFolders, setCurrentFolders] = useState(folders);
+      const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentFolders(folders.slice(1));
+              setDraggedFolderId(null);
+            }}
+          >
+            Remove dragged folder
+          </button>
+          <FeedTreeView
+            isOpen={true}
+            canDragFolders={true}
+            folders={currentFolders}
+            unfolderedFeeds={[]}
+            onToggleFolder={vi.fn()}
+            onSelectFeed={vi.fn()}
+            onDragStartFolder={(folder) => setDraggedFolderId(folder.id)}
+            onDropFolderReorder={onDropFolderReorder}
+            onDragEnd={() => {
+              setDraggedFolderId(null);
+              onDragEnd();
+            }}
+            draggedFolderId={draggedFolderId}
+            displayFavicons={false}
+            emptyState={{ kind: "message", message: "No feeds yet" }}
+          />
+        </>
+      );
+    }
+
+    render(<Harness />);
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Select folder folder-a" }), {
+      button: 0,
+      clientX: 10,
+      clientY: 10,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(window, { clientX: 24, clientY: 24, pointerId: 1 });
+    expect(screen.getByTestId("feed-tree-folder-drag-overlay")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove dragged folder" }));
+
+    expect(screen.queryByTestId("feed-tree-folder-drag-overlay")).not.toBeInTheDocument();
+    expect(onDragEnd).toHaveBeenCalledOnce();
+    fireEvent.pointerUp(window, { clientX: 24, clientY: 24, pointerId: 1 });
+    expect(onDropFolderReorder).not.toHaveBeenCalled();
   });
 
   it("renders a drag overlay that follows the pointer while dragging", () => {
