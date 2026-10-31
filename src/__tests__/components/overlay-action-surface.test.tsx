@@ -54,7 +54,8 @@ describe("OverlayActionSurface", () => {
     const chrome = screen.getByTestId("chrome-action");
 
     expect(chrome).toHaveClass("bg-transparent", "text-foreground-soft", "shadow-none");
-    expect(chrome.className).toContain("has-[:focus-visible]:ring-0");
+    expect(chrome.className).toContain("has-[:focus-visible]:ring-2");
+    expect(chrome.className).toContain("has-[:focus-visible]:ring-ring/45");
     expect(chrome.className).toContain("has-[:active]:bg-transparent");
     expect(chrome).not.toHaveClass("border");
   });
