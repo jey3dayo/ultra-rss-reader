@@ -253,6 +253,20 @@ fn preserves_feed_supplied_dir_attribute_and_rejects_unknown_values() {
 }
 
 #[test]
+fn normalizes_feed_supplied_dir_attribute_whitespace_and_case() {
+    let input = r#"<p dir=" rtl ">RTL</p><p dir="LTR">Left</p><p dir=" AUTO ">Auto</p><p dir=" javascript:alert(1) ">bad</p>"#;
+    let output = sanitize_html(input);
+
+    assert!(output.contains(r#"dir="rtl""#));
+    assert!(output.contains(r#"dir="ltr""#));
+    assert!(output.contains(r#"dir="auto""#));
+    assert!(!output.contains(r#"dir=" rtl ""#));
+    assert!(!output.contains(r#"dir="LTR""#));
+    assert!(!output.contains(r#"dir=" AUTO ""#));
+    assert!(!output.contains(r#"dir="javascript:alert(1)""#));
+}
+
+#[test]
 fn untrusted_feed_html_fixture_corpus_matches_sanitizer_contract() {
     for fixture in SANITIZER_CORPUS {
         let sanitized = sanitize_html(fixture.raw);

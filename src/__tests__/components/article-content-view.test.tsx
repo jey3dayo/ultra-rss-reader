@@ -10,6 +10,28 @@ function dangerouslyBrandRawArticleHtmlForViewTest(rawHtml: string): SanitizedAr
   return fromSanitizedArticleHtml(rawHtml);
 }
 
+const PROSE_PLAINTEXT_BIDI_TARGET_SELECTOR = "blockquote,h1,h2,h3,h4,h5,h6,li,p,td,th";
+
+function shouldApplyProsePlaintextBidi(element: Element, proseRoot: Element): boolean {
+  if (!element.matches(PROSE_PLAINTEXT_BIDI_TARGET_SELECTOR)) {
+    return false;
+  }
+
+  if (element.hasAttribute("dir")) {
+    return false;
+  }
+
+  let parent = element.parentElement;
+  while (parent && parent !== proseRoot) {
+    if (parent.hasAttribute("dir")) {
+      return false;
+    }
+    parent = parent.parentElement;
+  }
+
+  return true;
+}
+
 describe("ArticleContentView", () => {
   it("renders a thumbnail and sanitized html content", () => {
     const { container } = render(
@@ -243,6 +265,26 @@ describe("ArticleContentView", () => {
     const explicitDirParagraph = container.querySelector('p[dir="rtl"]');
     expect(explicitDirParagraph).toHaveTextContent("English paragraph with explicit direction.");
     expect(explicitDirParagraph).toHaveAttribute("dir", "rtl");
+  });
+
+  it("skips plaintext bidi override for prose inside feed dir wrappers", () => {
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            '<div dir="rtl"><p>Wrapped English leading text.</p></div><p>Unwrapped auto-detect paragraph.</p>',
+        })}
+      />,
+    );
+
+    const prose = container.querySelector(".prose");
+    expect(prose).not.toBeNull();
+
+    const wrappedParagraph = screen.getByText("Wrapped English leading text.");
+    const unwrappedParagraph = screen.getByText("Unwrapped auto-detect paragraph.");
+
+    expect(shouldApplyProsePlaintextBidi(wrappedParagraph, prose as Element)).toBe(false);
+    expect(shouldApplyProsePlaintextBidi(unwrappedParagraph, prose as Element)).toBe(true);
   });
 
   it("smoke-renders a large sanitized article body with many remote images without expanding render wrappers", () => {

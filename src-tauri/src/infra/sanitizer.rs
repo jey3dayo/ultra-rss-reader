@@ -72,7 +72,7 @@ fn sanitize_article_html(raw: &str) -> String {
             }
 
             if attribute.eq_ignore_ascii_case("dir") {
-                return is_allowed_bidi_direction(value).then_some(Cow::Borrowed(value));
+                return normalize_bidi_direction(value).map(Cow::Borrowed);
             }
 
             Some(Cow::Borrowed(value))
@@ -175,11 +175,17 @@ fn is_reader_navigation_http_url(url: &str) -> bool {
         })
 }
 
-fn is_allowed_bidi_direction(value: &str) -> bool {
+fn normalize_bidi_direction(value: &str) -> Option<&'static str> {
     let trimmed = value.trim();
-    trimmed.eq_ignore_ascii_case("ltr")
-        || trimmed.eq_ignore_ascii_case("rtl")
-        || trimmed.eq_ignore_ascii_case("auto")
+    if trimmed.eq_ignore_ascii_case("ltr") {
+        Some("ltr")
+    } else if trimmed.eq_ignore_ascii_case("rtl") {
+        Some("rtl")
+    } else if trimmed.eq_ignore_ascii_case("auto") {
+        Some("auto")
+    } else {
+        None
+    }
 }
 
 fn is_public_absolute_http_url(url: &str) -> bool {
