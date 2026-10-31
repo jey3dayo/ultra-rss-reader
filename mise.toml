@@ -18,7 +18,7 @@ MD_EXCLUDE_TARGET = "#**/target/**"
 MD_EXCLUDE_TAURI_GEN = "#src-tauri/gen/**"
 
 [tools]
-node = "26.12.1"
+node = "26.13.0"
 rust = "stable"
 taplo = "latest"
 "github:jdx/jactionlint" = "2.1.0"
