@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { parse } from "valibot";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SanitizedArticleHtmlDtoSchema } from "@/api/schemas/article";
@@ -65,6 +65,56 @@ describe("ArticleContentView", () => {
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
     render(<ArticleContentView contentHtml={fromSanitizedArticleHtml("<pre>Code</pre>")} />);
     expect(screen.getByText("Code")).toHaveAttribute("tabindex", "0");
+  });
+
+  it("updates overflow keyboard access when an article image loads", () => {
+    let imageLoaded = false;
+    let observerDisconnected = false;
+    const observedElements = new Set<Element>();
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.matches("table") && imageLoaded ? 400 : 100;
+    });
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.matches("table") ? 200 : 100;
+    });
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe(target: Element) {
+          observedElements.add(target);
+        }
+        disconnect() {
+          observerDisconnected = true;
+        }
+      },
+    );
+
+    const { unmount } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtml(
+          "<table><tbody><tr><td><img src='https://example.com/chart.png' alt='Chart' /></td></tr></tbody></table>",
+        )}
+      />,
+    );
+    const table = screen.getByRole("table");
+    const tableChild = table.firstElementChild;
+    const image = screen.getByRole("img", { name: "Chart" });
+    if (!tableChild) throw new Error("Expected the overflowing table to have an element child");
+    expect(table).not.toHaveAttribute("data-reader-horizontal-scroll-region");
+    expect(table).not.toHaveAttribute("tabindex");
+    imageLoaded = true;
+    fireEvent.load(image);
+
+    expect(table).toHaveAttribute("data-reader-horizontal-scroll-region", "true");
+    expect(table).toHaveAttribute("tabindex", "0");
+    expect(observedElements.has(table)).toBe(true);
+    expect(observedElements.has(tableChild)).toBe(true);
+
+    unmount();
+    expect(observerDisconnected).toBe(true);
+    fireEvent.load(image);
+    expect(table).not.toHaveAttribute("data-reader-horizontal-scroll-region");
+    expect(table).not.toHaveAttribute("tabindex");
   });
 
   it("renders a thumbnail and sanitized html content", () => {

@@ -26,12 +26,6 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
     reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
   },
   {
-    storyId: "reader-article-articletoolbarview--mobile-preview-open",
-    ruleId: "color-contrast",
-    nodeCount: 1,
-    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
-  },
-  {
     storyId: "reader-article-list-articlelistscreenview--dense-narrow-viewport",
     ruleId: "color-contrast",
     nodeCount: 6,

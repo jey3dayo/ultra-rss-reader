@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
+import { SettingsNamespaceBoundary } from "@/components/storybook/settings-namespace-boundary";
 import { AddAccountFormView } from "./form-view";
 
 async function openCloudflareAccessHelp(canvasElement: HTMLElement) {
@@ -45,9 +46,11 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-[420px] bg-background p-4">
-        <Story />
-      </div>
+      <SettingsNamespaceBoundary>
+        <div className="w-full max-w-[420px] bg-background p-4">
+          <Story />
+        </div>
+      </SettingsNamespaceBoundary>
     ),
   ],
 } satisfies Meta<typeof AddAccountFormView>;

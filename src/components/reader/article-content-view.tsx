@@ -55,11 +55,20 @@ export function ArticleContentView({
       }
     };
     updateKeyboardAccess();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(updateKeyboardAccess);
-    for (const region of scrollRegions) observer.observe(region);
+    content.addEventListener("load", updateKeyboardAccess, true);
+    const fontSet = document.fonts;
+    fontSet?.addEventListener("loadingdone", updateKeyboardAccess);
+    const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(updateKeyboardAccess);
+    if (observer) {
+      for (const region of scrollRegions) {
+        observer.observe(region);
+        for (const child of region.children) observer.observe(child);
+      }
+    }
     return () => {
-      observer.disconnect();
+      content.removeEventListener("load", updateKeyboardAccess, true);
+      fontSet?.removeEventListener("loadingdone", updateKeyboardAccess);
+      observer?.disconnect();
       for (const region of keyboardAccessRegions) region.removeAttribute("tabindex");
       for (const region of scrollRegions) region.removeAttribute("data-reader-horizontal-scroll-region");
     };

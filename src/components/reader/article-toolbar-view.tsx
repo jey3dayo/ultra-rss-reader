@@ -149,7 +149,7 @@ function ArticleToolbarMobilePrimaryButton({
       aria-label={visibleLabel === label ? label : `${visibleLabel}: ${label}`}
       disabled={disabled}
       className={cn(
-        "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-foreground-soft select-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft sm:min-w-11 sm:px-2 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "inline-flex h-11 min-w-6 items-center justify-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-foreground-soft select-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft sm:min-w-11 sm:px-2 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         ghostUtilityActionInteractionClassName,
         articleToolbarUnavailableClassName,
         motionState && MOTION_STATE_TOGGLE_CLASS_NAME,

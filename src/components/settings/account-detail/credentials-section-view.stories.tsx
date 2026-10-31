@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
+import { SettingsNamespaceBoundary } from "@/components/storybook/settings-namespace-boundary";
 import type { AccountCloudflareAccessSection } from "./cloudflare-access-credential-fields";
 import { AccountCredentialsSectionView } from "./credentials-section-view";
 
@@ -77,9 +78,11 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-[640px] bg-background p-4">
-        <Story />
-      </div>
+      <SettingsNamespaceBoundary>
+        <div className="w-full max-w-[640px] bg-background p-4">
+          <Story />
+        </div>
+      </SettingsNamespaceBoundary>
     ),
   ],
 } satisfies Meta<typeof AccountCredentialsSectionView>;
