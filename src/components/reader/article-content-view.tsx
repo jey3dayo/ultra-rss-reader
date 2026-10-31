@@ -34,15 +34,23 @@ export function ArticleContentView({
     const content = contentRef.current;
     if (!content || !displayHtmlProp.__html) return;
 
-    const scrollRegions = Array.from(content.querySelectorAll<HTMLElement>("table, pre")).filter(
-      (region) => !region.hasAttribute("tabindex"),
-    );
+    const scrollRegions = Array.from(content.querySelectorAll<HTMLElement>("table, pre"));
+    const keyboardAccessRegions = new Set(scrollRegions.filter((region) => !region.hasAttribute("tabindex")));
     const updateKeyboardAccess = () => {
       for (const region of scrollRegions) {
-        if (region.scrollWidth > region.clientWidth) {
-          region.tabIndex = 0;
+        const hasHorizontalOverflow = region.scrollWidth > region.clientWidth;
+        if (hasHorizontalOverflow) {
+          region.setAttribute("data-reader-horizontal-scroll-region", "true");
         } else {
-          region.removeAttribute("tabindex");
+          region.removeAttribute("data-reader-horizontal-scroll-region");
+        }
+
+        if (keyboardAccessRegions.has(region)) {
+          if (hasHorizontalOverflow) {
+            region.tabIndex = 0;
+          } else {
+            region.removeAttribute("tabindex");
+          }
         }
       }
     };
@@ -52,7 +60,8 @@ export function ArticleContentView({
     for (const region of scrollRegions) observer.observe(region);
     return () => {
       observer.disconnect();
-      for (const region of scrollRegions) region.removeAttribute("tabindex");
+      for (const region of keyboardAccessRegions) region.removeAttribute("tabindex");
+      for (const region of scrollRegions) region.removeAttribute("data-reader-horizontal-scroll-region");
     };
   }, [displayHtmlProp]);
   const normalizedThumbnailUrl = useMemo(() => normalizeReaderContentImageUrl(thumbnailUrl), [thumbnailUrl]);

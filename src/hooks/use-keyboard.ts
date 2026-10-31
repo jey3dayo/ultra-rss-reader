@@ -316,6 +316,11 @@ export function useKeyboard() {
         return;
       }
 
+      const isHorizontalReaderScrollKey = e.key === "ArrowLeft" || e.key === "ArrowRight";
+      if (isHorizontalReaderScrollKey && targetElement?.closest('[data-reader-horizontal-scroll-region="true"]')) {
+        return;
+      }
+
       if (handleReaderFocusReturn(e, currentStore, targetElement)) {
         return;
       }

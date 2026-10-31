@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { ArticleReaderBody } from "@/components/reader/article-reader-body";
+import { useKeyboard } from "@/hooks/use-keyboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -44,6 +45,8 @@ const baseFeed: FeedDto = {
 };
 
 describe("ArticleReaderBody", () => {
+  afterEach(() => vi.restoreAllMocks());
+
   beforeEach(() => {
     openArticleInExternalBrowserMock.mockClear();
     useUiStore.setState({ ...useUiStore.getInitialState(), selectedArticleId: baseArticle.id, contentMode: "reader" });
@@ -200,6 +203,38 @@ describe("ArticleReaderBody", () => {
     }
     return viewport;
   }
+
+  it.each(["ArrowLeft", "ArrowRight"] as const)(
+    "keeps %s in an overflowing article code block for horizontal scrolling",
+    (key) => {
+      vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(400);
+      vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(200);
+      useUiStore.setState({ focusedPane: "content" });
+
+      render(
+        <ArticleReaderBody
+          article={{ ...baseArticle, content_sanitized: "<pre><code>wide code</code></pre>" }}
+          hasNextArticle={true}
+        />,
+      );
+      const codeBlock = screen.getByText("wide code").closest("pre");
+      if (!codeBlock) {
+        throw new Error("Expected the article code block");
+      }
+      const { unmount } = renderHook(() => useKeyboard());
+      codeBlock.focus();
+
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      const defaultAllowed = codeBlock.dispatchEvent(event);
+
+      expect(defaultAllowed).toBe(true);
+      expect(event.defaultPrevented).toBe(false);
+      expect(codeBlock).toHaveFocus();
+      expect(useUiStore.getState().focusedPane).toBe("content");
+      expect(codeBlock).toHaveAttribute("data-reader-horizontal-scroll-region", "true");
+      unmount();
+    },
+  );
 
   it("does not restore the pruned scroll entry through the unmount cleanup after the article is closed", () => {
     useUiStore.setState({

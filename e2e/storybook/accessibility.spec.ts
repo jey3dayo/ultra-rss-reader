@@ -79,9 +79,10 @@ for (const storyId of storyIds) {
         contentType: "application/json",
       });
     }
-    expect(
-      compareStorybookAccessibilityViolations(storyId, results.violations),
-      `Accessibility baseline drift in ${storyId}; fix new violations and remove resolved baseline entries`,
-    ).toEqual({ unexpectedRuleIds: [], staleRuleIds: [] });
+    const baselineDrift = compareStorybookAccessibilityViolations(storyId, results.violations);
+    expect(baselineDrift, `Accessibility baseline drift: ${JSON.stringify(baselineDrift)}`).toEqual({
+      unexpected: [],
+      stale: [],
+    });
   });
 }
