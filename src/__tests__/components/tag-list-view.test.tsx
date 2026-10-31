@@ -71,7 +71,7 @@ describe("TagListView", () => {
     expect(tagButton).toHaveClass("rounded-lg");
     expect(tagButton).toHaveClass("pl-0.5");
     expect(tagButton).not.toHaveClass("pr-0.5");
-    expect(screen.getByText("1")).toHaveClass("w-8", "justify-end", "text-right");
+    expect(screen.getByText("1")).toHaveClass("min-w-8", "justify-end", "text-right");
     expect(screen.getByText("1")).not.toHaveClass("mr-1");
   });
 

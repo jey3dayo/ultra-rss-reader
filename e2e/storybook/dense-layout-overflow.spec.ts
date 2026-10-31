@@ -1,5 +1,6 @@
 import { expect, type Page, test, type ViewportSize } from "@playwright/test";
 import {
+  expectedGoogleFaviconHttp404UrlMatchers,
   expectNoRuntimeErrors,
   expectNoStorybookRuntimeErrorDom,
   installRuntimeErrorGuard,
@@ -28,10 +29,20 @@ const denseLayoutOverflowCases = [
     storyId: "subscriptions-list-subscriptionslistpane--reader-aligned",
     viewport: { width: 900, height: 720 },
   },
+  {
+    storyId: "reader-article-articlecontentview--worst-case-article-typography",
+    viewport: { width: 784, height: 900 },
+  },
+  {
+    storyId: "reader-sidebar-feedtreeview--worst-case-unread-counts",
+    viewport: { width: 256, height: 480 },
+  },
 ] satisfies readonly DenseLayoutOverflowCase[];
 
 async function openStory(page: Page, storyId: string) {
-  const runtimeErrors = installRuntimeErrorGuard(page);
+  const runtimeErrors = installRuntimeErrorGuard(page, {
+    allowedHttp404UrlMatchers: expectedGoogleFaviconHttp404UrlMatchers,
+  });
 
   try {
     await expect(async () => {

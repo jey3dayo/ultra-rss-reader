@@ -43,7 +43,8 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
     expect(screen.getByText("9,274")).toHaveClass(
-      "w-8",
+      "min-w-8",
+      "shrink-0",
       "justify-end",
       "text-right",
       "text-[0.72rem]",

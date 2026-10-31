@@ -14,7 +14,7 @@ struct SrcsetContractCase {
     expected: Option<&'static str>,
 }
 
-const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 6;
+const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 7;
 
 const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
     SanitizerCorpusCase {
@@ -185,7 +185,7 @@ fn fixes_reader_media_and_link_privacy_attributes() {
 
 #[test]
 fn records_current_sanitizer_contract_version() {
-    assert_eq!(SANITIZER_VERSION, 6);
+    assert_eq!(SANITIZER_VERSION, 7);
 }
 
 #[test]
@@ -238,6 +238,32 @@ fn records_current_sanitizer_added_tag_and_attribute_policy() {
         SANITIZER_SOURCE_ATTRS,
         &["src", "srcset", "sizes", "type", "media"],
     );
+}
+
+#[test]
+fn preserves_feed_supplied_dir_attribute_and_rejects_unknown_values() {
+    let input = r#"<p dir="rtl">مرحبا 123 English.</p><p dir="ltr">Left</p><p dir="auto">mixed</p><p dir="javascript:alert(1)">bad</p>"#;
+    let output = sanitize_html(input);
+
+    assert!(output.contains(r#"dir="rtl""#));
+    assert!(output.contains(r#"dir="ltr""#));
+    assert!(output.contains(r#"dir="auto""#));
+    assert!(!output.contains(r#"dir="javascript:alert(1)""#));
+    assert!(output.contains("مرحبا"));
+}
+
+#[test]
+fn normalizes_feed_supplied_dir_attribute_whitespace_and_case() {
+    let input = r#"<p dir=" rtl ">RTL</p><p dir="LTR">Left</p><p dir=" AUTO ">Auto</p><p dir=" javascript:alert(1) ">bad</p>"#;
+    let output = sanitize_html(input);
+
+    assert!(output.contains(r#"dir="rtl""#));
+    assert!(output.contains(r#"dir="ltr""#));
+    assert!(output.contains(r#"dir="auto""#));
+    assert!(!output.contains(r#"dir=" rtl ""#));
+    assert!(!output.contains(r#"dir="LTR""#));
+    assert!(!output.contains(r#"dir=" AUTO ""#));
+    assert!(!output.contains(r#"dir="javascript:alert(1)""#));
 }
 
 #[test]

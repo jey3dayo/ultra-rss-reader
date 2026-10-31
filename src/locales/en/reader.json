@@ -206,6 +206,7 @@
   "mark_read_count_accessible_label_one": "Mark 1 article as read. Use Mark as unread to reverse individual articles.",
   "mark_read_count_accessible_label_other": "Mark {{count, count}} articles as read. Use Mark as unread to reverse individual articles.",
   "edit_feed": "Edit Feed",
+  "article_untitled_fallback": "Untitled article",
   "title": "Title",
   "title_required": "Title is required",
   "website_url": "Website URL",

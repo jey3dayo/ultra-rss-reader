@@ -2,6 +2,42 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fromSanitizedArticleHtml } from "@/lib/content/html";
 import { ArticleContentView } from "./article-content-view";
 
+const worstCaseArticleTypographyHtml = `<h1>International research briefing 📰</h1>
+<h2>Nested lists and headings</h2>
+<p>Intro paragraph with <strong>emphasis</strong>, a <a href="https://example.com/article">public link</a>, and inline <code>token_value</code>.</p>
+<ul>
+  <li>Top level with English
+    <ul>
+      <li>Nested item ألف باء</li>
+      <li>Nested item with numbers 12,345</li>
+    </ul>
+  </li>
+  <li>Second branch
+    <ol>
+      <li>Ordered nested one</li>
+      <li>Ordered nested two</li>
+    </ol>
+  </li>
+</ul>
+<h3>Wide table</h3>
+<table>
+  <thead>
+    <tr><th>Metric</th><th>Very long column value without breaks</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Latency</td><td>very_long_table_cell_value_without_breaks_abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvwxyz</td><td>ms</td></tr>
+    <tr><td>Throughput</td><td>another_extremely_long_table_cell_for_horizontal_scroll_verification_1234567890</td><td>rps</td></tr>
+  </tbody>
+</table>
+<h3>Long preformatted line</h3>
+<pre><code>const veryLongIdentifierWithoutBreaks = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';</code></pre>
+<p>longunbrokenwordwithoutanybreaks_abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvwxyz</p>
+<p dir="ltr">English paragraph with explicit left-to-right direction.</p>
+<p>أخبار العلوم 2026 — mixed English punctuation: 1,234.56?</p>
+<p dir="rtl">דיווח מעורב: 12,345 נקודות.</p>
+<blockquote>اقتباس طويل مع English tail — em dash test.</blockquote>
+<p><img src="https://placehold.co/640x360/d7dacd/2f3429.png?text=Inline+reader+media" alt="Inline reader media"></p>`;
+
 const meta = {
   title: "Reader/Article/ArticleContentView",
   component: ArticleContentView,
@@ -52,6 +88,44 @@ export const InlineImageMediaRail: Story = {
   decorators: [
     (Story) => (
       <article className="w-[min(100vw,1200px)] bg-background p-8">
+        <Story />
+      </article>
+    ),
+  ],
+};
+
+export const ProsePlaintextBidiContract: Story = {
+  name: "Prose plaintext bidi contract",
+  args: {
+    thumbnailUrl: null,
+    contentHtml: fromSanitizedArticleHtml(
+      '<div dir="rtl"><p data-testid="article-content-dir-wrapper-paragraph">English</p></div><p data-testid="article-content-plain-paragraph">Plain English</p>',
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <article
+        className="mx-auto max-w-3xl bg-background p-8 text-foreground"
+        data-testid="article-content-dir-bidi-contract"
+      >
+        <Story />
+      </article>
+    ),
+  ],
+};
+
+export const WorstCaseArticleTypography: Story = {
+  name: "Break UI / Worst-case typography (720px)",
+  args: {
+    thumbnailUrl: null,
+    contentHtml: fromSanitizedArticleHtml(worstCaseArticleTypographyHtml),
+  },
+  decorators: [
+    (Story) => (
+      <article
+        className="box-border w-full max-w-[720px] bg-background p-8 text-foreground"
+        data-testid="article-content-worst-case-typography"
+      >
         <Story />
       </article>
     ),

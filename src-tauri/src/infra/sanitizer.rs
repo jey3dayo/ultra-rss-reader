@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::domain::url_policy;
 
-pub const SANITIZER_VERSION: u32 = 6;
+pub const SANITIZER_VERSION: u32 = 7;
 const SANITIZER_ADDED_TAGS: &[&str] = &[
     "img",
     "picture",
@@ -26,6 +26,7 @@ const SANITIZER_IMG_ATTRS: &[&str] = &[
 ];
 const SANITIZER_VIDEO_ATTRS: &[&str] = &["src", "controls", "width", "height"];
 const SANITIZER_SOURCE_ATTRS: &[&str] = &["src", "srcset", "sizes", "type", "media"];
+const SANITIZER_GENERIC_ATTRS: &[&str] = &["dir"];
 const REDACTED_LINK_TITLE: &str = "External link";
 const REDACTED_IMAGE_TITLE: &str = "External image";
 
@@ -48,6 +49,7 @@ fn sanitize_article_html(raw: &str) -> String {
 
     let sanitized = ammonia::Builder::default()
         .add_tags(SANITIZER_ADDED_TAGS)
+        .add_generic_attributes(SANITIZER_GENERIC_ATTRS)
         .add_tag_attributes("img", SANITIZER_IMG_ATTRS)
         .add_tag_attributes("video", SANITIZER_VIDEO_ATTRS)
         .add_tag_attributes("source", SANITIZER_SOURCE_ATTRS)
@@ -67,6 +69,10 @@ fn sanitize_article_html(raw: &str) -> String {
 
             if attribute.eq_ignore_ascii_case("title") {
                 return Some(Cow::Borrowed(redact_url_title(value).unwrap_or(value)));
+            }
+
+            if attribute.eq_ignore_ascii_case("dir") {
+                return normalize_bidi_direction(value).map(Cow::Borrowed);
             }
 
             Some(Cow::Borrowed(value))
@@ -167,6 +173,19 @@ fn is_reader_navigation_http_url(url: &str) -> bool {
             parsed.host_str().is_some()
                 && url_policy::validate_http_url_without_credentials(&parsed).is_ok()
         })
+}
+
+fn normalize_bidi_direction(value: &str) -> Option<&'static str> {
+    let trimmed = value.trim();
+    if trimmed.eq_ignore_ascii_case("ltr") {
+        Some("ltr")
+    } else if trimmed.eq_ignore_ascii_case("rtl") {
+        Some("rtl")
+    } else if trimmed.eq_ignore_ascii_case("auto") {
+        Some("auto")
+    } else {
+        None
+    }
 }
 
 fn is_public_absolute_http_url(url: &str) -> bool {

@@ -206,6 +206,7 @@
   "mark_read_count_accessible_label_one": "1件の記事を既読にします。個別の記事は未読にする操作で戻せます。",
   "mark_read_count_accessible_label_other": "{{count, count}}件の記事を既読にします。個別の記事は未読にする操作で戻せます。",
   "edit_feed": "フィードを編集",
+  "article_untitled_fallback": "タイトルなし",
   "title": "タイトル",
   "title_required": "タイトルを入力してください",
   "website_url": "サイトURL",

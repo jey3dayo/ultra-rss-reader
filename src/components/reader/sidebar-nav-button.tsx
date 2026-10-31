@@ -1,6 +1,7 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
+import { useId } from "react";
 import { MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE, MOTION_SIDEBAR_BADGE_CLASS_NAME } from "@/constants";
 import { MotionNumber, SIDEBAR_RIGHT_RAIL_CLASS_NAME } from "@/design-system";
 import { useUiStore } from "@/stores/ui-store";
@@ -21,6 +22,8 @@ type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
   contentClassName?: string;
   ref?: Ref<HTMLButtonElement>;
   trailingClassName?: string;
+  /** Tooltip for the trailing badge (e.g. exact unread count when the label is capped). */
+  trailingTitle?: string;
   /**
    * Keeps rendering the last non-empty `trailing` value, fading it out
    * instead of unmounting it the instant `trailing` becomes empty (e.g. an
@@ -35,16 +38,19 @@ type SidebarNavButtonTrailingBadgeProps = {
   trailing: ReactNode;
   isLeaving: boolean;
   className: string;
+  title?: string;
 };
 
-function SidebarNavButtonTrailingBadge({ trailing, isLeaving, className }: SidebarNavButtonTrailingBadgeProps) {
+function SidebarNavButtonTrailingBadge({ trailing, isLeaving, className, title }: SidebarNavButtonTrailingBadgeProps) {
   if (trailing === null || trailing === undefined) {
     return null;
   }
+  const hideAbbreviatedCountFromAccessibilityTree = isLeaving || Boolean(title);
   return (
     <span
-      className={MOTION_SIDEBAR_BADGE_CLASS_NAME}
-      aria-hidden={isLeaving ? "true" : undefined}
+      className={cn(MOTION_SIDEBAR_BADGE_CLASS_NAME, "shrink-0")}
+      title={title}
+      aria-hidden={hideAbbreviatedCountFromAccessibilityTree ? "true" : undefined}
       {...{ [MOTION_DATA_SIDEBAR_BADGE_LEAVING_ATTRIBUTE]: isLeaving ? "true" : undefined }}
     >
       {typeof trailing === "string" || typeof trailing === "number" ? (
@@ -85,10 +91,14 @@ export function SidebarNavButton({
   ref,
   trailing,
   trailingClassName,
+  trailingTitle,
   trailingKeepLastOnClear = false,
   type = "button",
+  "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: SidebarNavButtonProps) {
+  const exactUnreadCountId = useId();
   const tokens = getSidebarDensityTokens(density);
   const focusedPane = useUiStore((state) => state.focusedPane);
   const activePane = activePaneProp ?? focusedPane === "sidebar";
@@ -103,11 +113,16 @@ export function SidebarNavButton({
     trailing,
     keepLastOnClear: trailingKeepLastOnClear,
   });
+  const showExactUnreadCount = Boolean(trailingTitle) && !trailingIsLeaving;
+  const exactUnreadCountDescribedBy = showExactUnreadCount && ariaLabel ? exactUnreadCountId : undefined;
+  const mergedAriaDescribedBy = [ariaDescribedBy, exactUnreadCountDescribedBy].filter(Boolean).join(" ") || undefined;
 
   return (
     <button
       ref={ref}
       type={type}
+      aria-label={ariaLabel}
+      aria-describedby={mergedAriaDescribedBy}
       data-sidebar-navigation-target={registerSidebarNavigationTarget ? "true" : undefined}
       data-active-pane={selected ? String(activePane) : undefined}
       className={cn(
@@ -140,7 +155,13 @@ export function SidebarNavButton({
         trailing={resolvedTrailing}
         isLeaving={trailingIsLeaving}
         className={trailingClassNames}
+        title={trailingTitle}
       />
+      {showExactUnreadCount ? (
+        <span id={exactUnreadCountDescribedBy ? exactUnreadCountId : undefined} className="sr-only">
+          {trailingTitle}
+        </span>
+      ) : null}
     </button>
   );
 }

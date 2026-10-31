@@ -38,3 +38,25 @@ export const StaticTitle: Story = {
     onFeedClick: undefined,
   },
 };
+
+const breakUiFeedName = "Global technology and science reporting — 最新の科学技術と国際ニュースを詳しく伝えるフィード";
+
+export const WorstCaseMetaLayout: Story = {
+  name: "Break UI / Meta layout (320px)",
+  decorators: [
+    (Story) => (
+      <div className="w-[320px] bg-background p-6" data-testid="article-meta-break-ui-worst-case">
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    title: "International science and technology research report with a long headline 📰",
+    author: "Aleksandra Wiśniewska-Kowalczyk",
+    feedName: breakUiFeedName,
+    publishedLabel: "FRIDAY, OCTOBER 30, 2026 AT 10:00 AM",
+    onTitleClick: undefined,
+    onTitleAuxClick: undefined,
+    onFeedClick: undefined,
+  },
+};

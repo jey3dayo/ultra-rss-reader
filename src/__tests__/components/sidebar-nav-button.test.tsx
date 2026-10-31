@@ -121,8 +121,28 @@ describe("SidebarNavButton", () => {
     render(<SidebarNavButton trailing={12}>Feed row</SidebarNavButton>);
 
     expect(screen.getByText("12")).toHaveClass("motion-content-swap", "tabular-nums");
-    expect(screen.getByText("12")).toHaveClass("w-8", "justify-end", "text-right");
     expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
+  });
+
+  it("exposes the exact capped unread count to screen readers", () => {
+    render(
+      <SidebarNavButton trailing="9,999+" trailingTitle="12,345,678">
+        Feed row
+      </SidebarNavButton>,
+    );
+
+    expect(screen.getByRole("button", { name: /Feed row.*12,345,678/ })).toBeInTheDocument();
+    expect(screen.queryByText("9,999+")).toBeInTheDocument();
+  });
+
+  it("exposes the exact capped unread count via description when aria-label overrides the button name", () => {
+    render(
+      <SidebarNavButton aria-label="Folder row" trailing="9,999+" trailingTitle="12,345,678">
+        Visible folder label
+      </SidebarNavButton>,
+    );
+
+    expect(screen.getByRole("button", { name: "Folder row" })).toHaveAccessibleDescription("12,345,678");
   });
 
   it("removes the trailing badge immediately when trailing clears without opting in", () => {

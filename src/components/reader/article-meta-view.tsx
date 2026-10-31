@@ -1,4 +1,6 @@
 import type { MouseEventHandler } from "react";
+import { useTranslation } from "react-i18next";
+import { normalizeArticleDisplayTitle } from "@/lib/articles/article-list-item-presentation";
 import { FeedSiteLink } from "./feed-site-link";
 import { ReaderInlineActionButton } from "./reader-inline-action-button";
 
@@ -30,6 +32,11 @@ export function ArticleMetaView({
   onTitleAuxClick,
   onFeedClick,
 }: ArticleMetaViewProps) {
+  const { t } = useTranslation("reader");
+  const displayTitle = normalizeArticleDisplayTitle(title, t("article_untitled_fallback"));
+  const normalizedAuthor = author?.trim() ?? "";
+  const normalizedFeedName = feedName?.trim() ?? "";
+
   return (
     <div className="space-y-4">
       <div className="font-sans text-[0.8rem] font-medium leading-none tracking-[0.08em] tabular-nums text-foreground-soft">
@@ -38,23 +45,30 @@ export function ArticleMetaView({
       <h1 className="font-sans text-[1.66rem] font-normal leading-[1.07] tracking-[-0.04em] text-foreground sm:text-[2.06rem]">
         {onTitleClick ? (
           <ReaderInlineActionButton variant="title" onClick={onTitleClick} onAuxClick={onTitleAuxClick}>
-            {title}
+            {displayTitle}
           </ReaderInlineActionButton>
         ) : (
-          title
+          displayTitle
         )}
       </h1>
-      {(feedName || siteLink || author) && (
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.95rem] leading-[1.7] text-foreground-soft">
-          {feedName &&
+      {(normalizedFeedName || siteLink || normalizedAuthor) && (
+        <div className="flex flex-wrap items-baseline justify-start gap-x-2.5 gap-y-1 text-left text-[0.95rem] leading-[1.7] text-foreground-soft">
+          {normalizedFeedName &&
             (onFeedClick ? (
-              <ReaderInlineActionButton variant="feed" onClick={onFeedClick}>
-                {feedName}
+              <ReaderInlineActionButton
+                variant="feed"
+                onClick={onFeedClick}
+                className="min-w-0 max-w-full truncate text-left"
+                title={normalizedFeedName}
+              >
+                {normalizedFeedName}
               </ReaderInlineActionButton>
             ) : (
-              <span>{feedName}</span>
+              <span className="min-w-0 max-w-full truncate" dir="auto" title={normalizedFeedName}>
+                {normalizedFeedName}
+              </span>
             ))}
-          {feedName && siteLink ? <MetaSeparator /> : null}
+          {normalizedFeedName && siteLink ? <MetaSeparator /> : null}
           {siteLink ? (
             <FeedSiteLink
               href={siteLink.href}
@@ -66,8 +80,14 @@ export function ArticleMetaView({
               {siteLink.label}
             </FeedSiteLink>
           ) : null}
-          {(feedName || siteLink) && author ? <MetaSeparator /> : null}
-          {author && <p>{author}</p>}
+          {normalizedAuthor ? (
+            <span className="inline-flex max-w-full min-w-0 items-baseline gap-x-2.5 whitespace-nowrap">
+              {normalizedFeedName || siteLink ? <MetaSeparator /> : null}
+              <span className="truncate" title={normalizedAuthor}>
+                {normalizedAuthor}
+              </span>
+            </span>
+          ) : null}
         </div>
       )}
     </div>
