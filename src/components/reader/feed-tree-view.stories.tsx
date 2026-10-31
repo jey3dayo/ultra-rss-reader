@@ -397,11 +397,11 @@ const breakUiWorstCaseFolders: FeedTreeFolderViewModel[] = [
   },
 ];
 
-export const WorstCaseUnreadCountsNarrow: Story = {
+export const WorstCaseUnreadCounts: Story = {
   name: "Break UI / Unread counts (240px)",
   decorators: [
     (Story) => (
-      <div className="w-[240px] bg-sidebar p-2 text-sidebar-foreground" data-testid="feed-tree-break-ui-narrow">
+      <div className="w-[240px] bg-sidebar p-2 text-sidebar-foreground" data-testid="feed-tree-break-ui-worst-case">
         <Story />
       </div>
     ),
@@ -411,16 +411,4 @@ export const WorstCaseUnreadCountsNarrow: Story = {
     unfolderedFeeds: [],
     displayFavicons: true,
   },
-};
-
-export const WorstCaseUnreadCountsWide: Story = {
-  name: "Break UI / Unread counts (900px)",
-  decorators: [
-    (Story) => (
-      <div className="w-[900px] bg-sidebar p-2 text-sidebar-foreground" data-testid="feed-tree-break-ui-wide">
-        <Story />
-      </div>
-    ),
-  ],
-  args: WorstCaseUnreadCountsNarrow.args,
 };

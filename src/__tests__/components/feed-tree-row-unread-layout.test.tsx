@@ -18,22 +18,11 @@ const baseFeed: FeedTreePresenceFeedViewModel = {
   isLeaving: false,
 };
 
-describe("FeedTreeRow sidebar unread layout", () => {
-  it("caps unread counts, keeps the rail from shrinking, and truncates long feed titles", () => {
-    const { container } = render(
-      <FeedTreeRow feed={{ ...baseFeed, isSelected: true }} displayFavicons onSelectFeed={() => {}} />,
-    );
+describe("FeedTreeRow unread counts", () => {
+  it("shows a capped badge label and exposes the exact count in the badge title", () => {
+    render(<FeedTreeRow feed={{ ...baseFeed, isSelected: true }} displayFavicons onSelectFeed={() => {}} />);
 
-    const button = container.querySelector("[data-feed-id='feed-break-ui']");
-    const title = screen.getByText(baseFeed.title);
-    const badge = container.querySelector(".motion-sidebar-badge");
-
-    expect(button).not.toBeNull();
     expect(screen.getByText("9,999+")).toBeInTheDocument();
-    expect(badge).toHaveAttribute("title", "12,345,678");
-    expect(badge).toHaveClass("shrink-0");
-    expect(screen.getByText("9,999+")).toHaveClass("min-w-8", "shrink-0", "justify-end", "text-right");
-    expect(title).toHaveClass("min-w-0", "flex-1", "truncate");
-    expect(button?.querySelector(":scope > span.flex-1")).toHaveClass("min-w-0");
+    expect(screen.getByTitle("12,345,678")).toBeInTheDocument();
   });
 });

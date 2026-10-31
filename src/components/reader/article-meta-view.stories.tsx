@@ -41,43 +41,11 @@ export const StaticTitle: Story = {
 
 const breakUiFeedName = "Global technology and science reporting — 最新の科学技術と国際ニュースを詳しく伝えるフィード";
 
-export const WorstCaseEmptyTitleNarrow: Story = {
-  name: "Break UI / Empty title (320px)",
+export const WorstCaseMetaLayout: Story = {
+  name: "Break UI / Meta layout (320px)",
   decorators: [
     (Story) => (
-      <div className="w-[320px] bg-background p-6" data-testid="article-meta-empty-title-narrow">
-        <Story />
-      </div>
-    ),
-  ],
-  args: {
-    title: "",
-    author: null,
-    feedName: null,
-    publishedLabel: "FRIDAY, OCTOBER 30, 2026 AT 10:00 AM",
-    onTitleClick: undefined,
-    onTitleAuxClick: undefined,
-    onFeedClick: undefined,
-  },
-};
-
-export const WorstCaseEmptyTitleWide: Story = {
-  name: "Break UI / Empty title (900px)",
-  decorators: [
-    (Story) => (
-      <div className="max-w-[900px] bg-background p-8" data-testid="article-meta-empty-title-wide">
-        <Story />
-      </div>
-    ),
-  ],
-  args: WorstCaseEmptyTitleNarrow.args,
-};
-
-export const WorstCaseOrphanSeparatorNarrow: Story = {
-  name: "Break UI / Meta separator (320px)",
-  decorators: [
-    (Story) => (
-      <div className="w-[320px] bg-background p-6" data-testid="article-meta-separator-narrow">
+      <div className="w-[320px] bg-background p-6" data-testid="article-meta-break-ui-worst-case">
         <Story />
       </div>
     ),
@@ -91,16 +59,4 @@ export const WorstCaseOrphanSeparatorNarrow: Story = {
     onTitleAuxClick: undefined,
     onFeedClick: undefined,
   },
-};
-
-export const WorstCaseOrphanSeparatorWide: Story = {
-  name: "Break UI / Meta separator (900px)",
-  decorators: [
-    (Story) => (
-      <div className="max-w-[900px] bg-background p-8" data-testid="article-meta-separator-wide">
-        <Story />
-      </div>
-    ),
-  ],
-  args: WorstCaseOrphanSeparatorNarrow.args,
 };

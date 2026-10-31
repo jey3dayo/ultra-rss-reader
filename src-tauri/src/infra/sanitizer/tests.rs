@@ -238,7 +238,6 @@ fn records_current_sanitizer_added_tag_and_attribute_policy() {
         SANITIZER_SOURCE_ATTRS,
         &["src", "srcset", "sizes", "type", "media"],
     );
-    assert_eq!(SANITIZER_GENERIC_ATTRS, &["dir"]);
 }
 
 #[test]

@@ -92,35 +92,6 @@ export const InlineImageMediaRail: Story = {
   ],
 };
 
-export const MixedScriptPlaintextBidiNarrow: Story = {
-  name: "Break UI / Mixed-script bidi (320px)",
-  args: {
-    thumbnailUrl: null,
-    contentHtml: fromSanitizedArticleHtml(
-      '<p>أخبار العلوم والتكنولوجيا 2026 — English numbers and punctuation should follow each paragraph.</p><p dir="rtl">דיווח מעורב: 12,345 נקודות.</p><blockquote>اقتباس طويل مع English tail — em dash test.</blockquote><table><thead><tr><th>عنوان</th><th>Value</th></tr></thead><tbody><tr><td>خلية 1</td><td>999</td></tr></tbody></table>',
-    ),
-  },
-  decorators: [
-    (Story) => (
-      <article className="w-[320px] bg-background p-6" data-testid="article-content-bidi-narrow">
-        <Story />
-      </article>
-    ),
-  ],
-};
-
-export const MixedScriptPlaintextBidiWide: Story = {
-  name: "Break UI / Mixed-script bidi (900px)",
-  decorators: [
-    (Story) => (
-      <article className="max-w-[900px] bg-background p-8" data-testid="article-content-bidi-wide">
-        <Story />
-      </article>
-    ),
-  ],
-  args: MixedScriptPlaintextBidiNarrow.args,
-};
-
 export const WorstCaseArticleTypography: Story = {
   name: "Break UI / Worst-case typography (720px)",
   args: {

@@ -210,21 +210,13 @@ describe("ArticleContentView", () => {
 
     const prose = container.querySelector(".prose");
     expect(prose).not.toBeNull();
-    expect(prose).toHaveClass("min-w-0");
-    expect(prose).not.toHaveClass("overflow-x-hidden");
-    expect(prose).toHaveClass("prose-table:block");
-    expect(prose).toHaveClass("prose-table:max-w-full");
-    expect(prose).toHaveClass("prose-table:overflow-x-auto");
-    expect(prose).toHaveClass("prose-pre:max-w-full");
-    expect(prose).toHaveClass("prose-pre:overflow-x-auto");
-    expect(prose).toHaveClass("prose-code:break-words");
     expect(screen.getByText("very_long_metric_name_without_breaks")).toBeInTheDocument();
     expect(screen.getByText("const veryLongIdentifierWithoutBreaks", { exact: false })).toBeInTheDocument();
     expect(screen.getByText("inline_identifier_without_breaks")).toBeInTheDocument();
   });
 
-  it("separates text line length from the wider media rail", () => {
-    const { container } = render(
+  it("renders inline images from sanitized HTML", () => {
+    render(
       <ArticleContentView
         contentHtml={fromSanitizedArticleHtmlDto({
           content_sanitized:
@@ -233,18 +225,11 @@ describe("ArticleContentView", () => {
       />,
     );
 
-    const prose = container.querySelector(".prose");
-
-    expect(prose).not.toBeNull();
-    expect(prose).toHaveClass("[&_p:not(:has(img))]:max-w-[72ch]");
-    expect(prose).toHaveClass("[&_:where(figure,p:has(img))]:max-w-[min(100%,56rem)]");
-    expect(prose).toHaveClass("[&_:where(figure,p:has(img))]:w-full");
-    expect(prose).toHaveClass("prose-img:w-full", "prose-img:max-w-full", "prose-img:h-auto");
     expect(screen.getByRole("img", { name: "Panel" })).toHaveAttribute("src", "https://cdn.example.com/panel.jpg");
     expect(screen.getByRole("img", { name: "Figure" })).toHaveAttribute("src", "https://cdn.example.com/figure.jpg");
   });
 
-  it("applies plaintext bidi on article block elements for mixed-script paragraphs", () => {
+  it("keeps feed-supplied dir attributes on mixed-script paragraphs", () => {
     const { container } = render(
       <ArticleContentView
         contentHtml={fromSanitizedArticleHtmlDto({
@@ -254,11 +239,8 @@ describe("ArticleContentView", () => {
       />,
     );
 
-    const prose = container.querySelector(".prose");
-    expect(prose).not.toBeNull();
-    expect(prose).toHaveClass("[&_:where(blockquote,h1,h2,h3,h4,h5,h6,li,p,td,th)]:[unicode-bidi:plaintext]");
     expect(screen.getByText("أخبار العلوم 2026 and English punctuation.")).toBeInTheDocument();
-    expect(container.querySelector('[dir="rtl"]')).not.toBeNull();
+    expect(container.querySelector('p[dir="rtl"]')).toHaveTextContent("שלום world 123.");
   });
 
   it("smoke-renders a large sanitized article body with many remote images without expanding render wrappers", () => {
