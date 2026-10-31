@@ -76,7 +76,7 @@ describe("ArticleReaderBody", () => {
   it("lets the reader content expand across the right pane with viewport-responsive padding", () => {
     const { container } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
 
-    const readerContent = container.querySelector("[data-article-slide-content]");
+    const readerContent = container.querySelector("article");
 
     expect(readerContent).toHaveClass("w-full", "px-[clamp(1.75rem,3vw,4rem)]");
     expect(readerContent).not.toHaveClass("max-w-[44rem]");

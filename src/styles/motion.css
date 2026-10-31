@@ -27,11 +27,11 @@ html.vertical-wipe-transition::view-transition-old(root) {
 
 html.vertical-wipe-transition::view-transition-new(root) {
   z-index: 2;
-  animation: vertical-wipe 500ms ease-in-out forwards;
+  animation: vertical-wipe var(--motion-duration-theme) ease-in-out forwards;
 }
 
 .motion-browser-theme-wipe-overlay {
-  animation: vertical-wipe 500ms ease-in-out forwards;
+  animation: vertical-wipe var(--motion-duration-theme) ease-in-out forwards;
   will-change: clip-path;
 }
 
@@ -229,47 +229,6 @@ html.vertical-wipe-transition::view-transition-new(root) {
  */
 .motion-list-item-enter {
   animation: motion-list-item-enter var(--motion-duration-contextual) var(--motion-ease-standard);
-}
-
-@keyframes motion-article-slide-next {
-  from {
-    opacity: 0;
-    transform: translateY(var(--motion-article-slide-offset));
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes motion-article-slide-prev {
-  from {
-    opacity: 0;
-    transform: translateY(calc(var(--motion-article-slide-offset) * -1));
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.motion-article-slide {
-  overflow: hidden;
-}
-
-.motion-article-slide [data-article-slide-content="true"] {
-  transform: translateY(0);
-  will-change: transform, opacity;
-}
-
-.motion-article-slide[data-motion-direction="next"] [data-article-slide-content="true"] {
-  animation: motion-article-slide-next var(--motion-duration-article-slide) var(--motion-ease-standard);
-}
-
-.motion-article-slide[data-motion-direction="prev"] [data-article-slide-content="true"] {
-  animation: motion-article-slide-prev var(--motion-duration-article-slide) var(--motion-ease-standard);
 }
 
 @keyframes motion-settings-modal-enter {
@@ -800,14 +759,6 @@ html.vertical-wipe-transition::view-transition-new(root) {
   }
 
   .motion-content-swap[data-motion-phase="entering"] {
-    animation: none;
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .motion-article-slide[data-motion-direction="next"],
-  .motion-article-slide[data-motion-direction="prev"],
-  .motion-article-slide [data-article-slide-content="true"] {
     animation: none;
     opacity: 1;
     transform: translateY(0);

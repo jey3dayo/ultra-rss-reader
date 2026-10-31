@@ -346,7 +346,8 @@ Manual/a11y smoke:
 - Prefer app-wide paint transitions on `color`, `background-color`, `border-color`, and `box-shadow` only when switching between light and dark themes.
 - Keep theme transition duration short, typically in the 150-200ms range.
 - Use smooth easing that feels editorial and restrained rather than playful or bouncy.
-- Avoid layout shifts, content movement, large transforms, blurs, zooms, or full-screen wipes for theme switching.
+- A short vertical wipe may mask the theme change across app and browser surfaces. Keep it restrained and use the shared theme duration, typically 180ms.
+- Avoid layout shifts, content movement, large transforms, blurs, zooms, or multi-stage reveals during theme switching.
 - Respect `prefers-reduced-motion` by switching immediately or reducing theme transition animation to the minimum paint change needed.
 
 ## Responsive Behavior

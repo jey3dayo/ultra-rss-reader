@@ -18,7 +18,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { clearManualUnreadAutoMarkSuppressionsForTests } from "@/components/reader/hooks/article/use-article-auto-mark";
 import { readerPassiveCardClassName, readerPassiveCardPaddingClassName } from "@/components/reader/reader-passive-card";
-import { BROWSER_OVERLAY_CLOSE_DELAY_MS, MOTION_ARTICLE_SLIDE_CLASS_NAME } from "@/constants/motion";
+import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -3143,7 +3143,7 @@ describe("ArticleView", () => {
     }
   });
 
-  it("marks the reader body with the next-article slide direction", async () => {
+  it.each([1, -1, null] as const)("keeps article detail still when navigation direction is %s", async (direction) => {
     setupTauriMocks((cmd) => {
       switch (cmd) {
         case "list_tags":
@@ -3154,29 +3154,7 @@ describe("ArticleView", () => {
           return undefined;
       }
     });
-    useUiStore.setState({ articleNavigationDirection: 1 });
-
-    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
-      wrapper: createWrapper(),
-    });
-
-    await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
-    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "next");
-  });
-
-  it("keeps article detail switching limited to the reader body slide contract", async () => {
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        default:
-          return undefined;
-      }
-    });
-    useUiStore.setState({ articleNavigationDirection: 1 });
+    useUiStore.setState({ articleNavigationDirection: direction });
 
     render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
       wrapper: createWrapper(),
@@ -3184,42 +3162,24 @@ describe("ArticleView", () => {
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
     const readerBody = screen.getByTestId("article-reader-body");
-    expect(readerBody).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
-    expect(readerBody).not.toHaveClass(
-      "motion-content-swap",
-      "motion-contextual-surface",
-      "motion-interactive-surface",
-      "motion-static-hover-surface",
-    );
+    expect(readerBody).not.toHaveClass("motion-article-slide");
+    expect(readerBody).not.toHaveAttribute("data-motion-direction");
   });
 
-  it("marks the reader body with the previous-article slide direction", async () => {
-    setupTauriMocks((cmd) => {
+  it("keeps the article reader still across repeated next and previous selections", async () => {
+    setupTauriMocks((cmd, args) => {
       switch (cmd) {
+        case "list_articles":
+          return listSampleArticlesByFeedId(args.feedId);
+        case "list_account_articles":
+          return listSampleArticlesByAccountId(args.accountId);
+        case "list_feeds":
+          return listAccountFeedsWithFeedOneModes({
+            accountId: args.accountId,
+            readerMode: "on",
+            webPreviewMode: "off",
+          });
         case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        default:
-          return undefined;
-      }
-    });
-    useUiStore.setState({ articleNavigationDirection: -1 });
-
-    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
-      wrapper: createWrapper(),
-    });
-
-    await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
-    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "prev");
-  });
-
-  it("uses the neutral article slide direction for direct selection", async () => {
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_tags":
-          return [];
         case "get_article_tags":
           return [];
         default:
@@ -3227,13 +3187,31 @@ describe("ArticleView", () => {
       }
     });
 
-    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
-      wrapper: createWrapper(),
-    });
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
 
+    render(<ArticleView />, { wrapper: createWrapper() });
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.getByTestId("article-reader-body")).toHaveClass(MOTION_ARTICLE_SLIDE_CLASS_NAME);
-    expect(screen.getByTestId("article-reader-body")).toHaveAttribute("data-motion-direction", "neutral");
+
+    const navigationSteps = [
+      { articleId: "art-2", direction: 1, title: "Second Article" },
+      { articleId: "art-1", direction: -1, title: "First Article" },
+      { articleId: "art-2", direction: 1, title: "Second Article" },
+      { articleId: "art-1", direction: -1, title: "First Article" },
+    ] as const;
+
+    for (const { articleId, direction, title } of navigationSteps) {
+      act(() => useUiStore.getState().selectArticle(articleId, { navigationDirection: direction }));
+
+      await screen.findByRole("heading", { level: 1, name: title });
+      expect(useUiStore.getState().articleNavigationDirection).toBe(direction);
+
+      const readerBody = screen.getByTestId("article-reader-body");
+      expect(readerBody).not.toHaveClass("motion-article-slide");
+      expect(readerBody).not.toHaveAttribute("data-motion-direction");
+    }
   });
 
   it("renders the subscriptions index page instead of the reader when the subscriptions workspace is open", async () => {

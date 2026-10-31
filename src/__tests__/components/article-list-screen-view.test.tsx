@@ -177,6 +177,63 @@ describe("ArticleListScreenView", () => {
     expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
   });
 
+  it("keeps the content motion wrapper mounted across empty search results", () => {
+    const groups = [
+      {
+        id: "today",
+        label: "Today",
+        showLabel: true,
+        items: [
+          {
+            article: sampleArticles[0],
+            feedName: "Tech Blog",
+            isSelected: false,
+            isRecentlyRead: false,
+          },
+        ],
+      },
+    ];
+    const renderView = (viewGroups: typeof groups, contentMotionKey: string) => (
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isActivePane
+        isLoading={false}
+        keepContentMotionMountedWhileEmpty
+        emptyMessage="No results"
+        loadingMessage="Loading articles"
+        groups={viewGroups}
+        contentMotionKey={contentMotionKey}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />
+    );
+
+    const { rerender } = render(renderView(groups, "feed:one|unread|search"));
+    const initialContent = screen.getByTestId("article-list-scroll-content");
+
+    rerender(renderView([], "feed:one|unread|search"));
+    expect(screen.getByText("No results")).toBeInTheDocument();
+    expect(screen.getByTestId("article-list-scroll-content")).toBe(initialContent);
+    expect(initialContent).toHaveClass("h-full");
+    expect(initialContent.parentElement).toHaveClass("h-full");
+    expect(
+      screen.getByText("No results").closest('[data-testid="article-list-empty-state"]')?.parentElement,
+    ).toHaveClass("h-full", "items-center", "p-6");
+
+    rerender(renderView(groups, "feed:one|unread|search"));
+    expect(screen.getByRole("option", { name: /First Article/i })).toBeInTheDocument();
+    expect(screen.getByTestId("article-list-scroll-content")).toBe(initialContent);
+
+    rerender(renderView(groups, "feed:two|unread|search"));
+    expect(screen.getByTestId("article-list-scroll-content")).not.toBe(initialContent);
+    expect(screen.getByTestId("article-list-scroll-content")).toHaveAttribute("data-motion-phase", "entering");
+  });
+
   it("renders a quieter setup placeholder when the list is waiting for initial setup", () => {
     render(
       <ArticleListScreenView

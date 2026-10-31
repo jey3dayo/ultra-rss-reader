@@ -223,8 +223,11 @@ const browserViewToolbarActions: BrowserOverlayToolbarAction[] = [
 describe("BrowserView", () => {
   let commands: MockTauriCommandCall[];
   let getBoundingClientRectSpy: ReturnType<typeof vi.spyOn>;
+  let previousThemeDuration: string;
 
   beforeEach(() => {
+    previousThemeDuration = document.documentElement.style.getPropertyValue("--motion-duration-theme");
+    document.documentElement.style.setProperty("--motion-duration-theme", "180ms");
     commands = [];
     listenMock.mockClear();
     registeredHandlers.clear();
@@ -268,6 +271,11 @@ describe("BrowserView", () => {
 
   afterEach(() => {
     getBoundingClientRectSpy.mockRestore();
+    if (previousThemeDuration === "") {
+      document.documentElement.style.removeProperty("--motion-duration-theme");
+    } else {
+      document.documentElement.style.setProperty("--motion-duration-theme", previousThemeDuration);
+    }
     vi.useRealTimers();
   });
 
@@ -615,9 +623,10 @@ describe("BrowserView", () => {
     expect(wipeOverlay).toHaveClass(MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME);
     expect(wipeOverlay).toHaveAttribute("aria-hidden", "true");
 
-    act(() => {
-      vi.runOnlyPendingTimers();
-    });
+    act(() => vi.advanceTimersByTime(179));
+    expect(screen.getByTestId("browser-theme-wipe-overlay")).toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(1));
 
     expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
   });

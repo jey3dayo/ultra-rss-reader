@@ -76,6 +76,14 @@ const expectGlobalCssToContainMotionContract = () => {
 };
 
 describe("Design-themed UI primitives", () => {
+  it("uses the shared theme duration for both theme wipes and keeps reduced motion immediate", () => {
+    expectGlobalCssToContain("--motion-duration-theme: 180ms;");
+    expectMotionCssToContain("animation: vertical-wipe var(--motion-duration-theme) ease-in-out forwards;");
+    expectMotionCssToContain(
+      "html.vertical-wipe-transition::view-transition-new(root),\n  .motion-browser-theme-wipe-overlay {\n    animation: none;",
+    );
+  });
+
   it("uses warm surface styling for shared button variants", () => {
     render(
       <>
