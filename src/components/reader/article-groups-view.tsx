@@ -47,10 +47,7 @@ export function ArticleGroupsView({
     >
       {group.showLabel && (
         <div data-group-header="true" className="sticky top-0 z-10 flex h-7 select-none items-center px-4">
-          <span
-            id={`${groupLabelIdPrefix}-${group.id}`}
-            className="text-[11px] font-medium uppercase tracking-[0.12em] text-foreground-soft"
-          >
+          <span id={`${groupLabelIdPrefix}-${group.id}`} className="system-micro text-foreground-soft">
             {group.label}
           </span>
         </div>

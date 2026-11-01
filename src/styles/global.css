@@ -101,6 +101,14 @@
   }
 }
 
+/* DESIGN.md System Micro */
+@utility system-micro {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.048px;
+  text-transform: uppercase;
+}
+
 @utility prose {
   --tw-prose-body: var(--foreground);
   --tw-prose-headings: var(--foreground);

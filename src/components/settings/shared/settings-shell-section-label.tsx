@@ -7,7 +7,7 @@ export function SettingsShellSectionLabel({ children, className }: SettingsShell
   return (
     <p
       className={cn(
-        "mb-2 select-none px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]",
+        "mb-2 select-none px-1 font-sans system-micro text-[color:var(--settings-shell-section-label)]",
         className,
       )}
     >

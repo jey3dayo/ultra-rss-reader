@@ -18,9 +18,7 @@ function AccountPaneShellSkeleton({ label, headingLabel }: { label: string; head
     >
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="px-4 pt-4 pb-3">
-        <p className="text-[0.68rem] font-medium tracking-[0.12em] text-sidebar-foreground/54 uppercase">
-          {headingLabel}
-        </p>
+        <p className="system-micro text-sidebar-foreground/54">{headingLabel}</p>
       </div>
       <div aria-hidden="true" className="min-h-0 flex-1 space-y-1 overflow-hidden px-2 pb-3">
         {ACCOUNT_PANE_ROW_META_WIDTH_CLASS_NAMES.map((metaWidthClassName) => (

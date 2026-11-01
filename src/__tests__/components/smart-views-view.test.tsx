@@ -23,8 +23,7 @@ describe("SmartViewsView", () => {
     expect(screen.getByText("Smart views")).toHaveClass(
       "select-none",
       "px-1.5",
-      "text-[0.72rem]",
-      "font-semibold",
+      "system-micro",
       "text-sidebar-foreground/56",
     );
 

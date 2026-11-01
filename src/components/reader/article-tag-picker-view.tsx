@@ -81,9 +81,7 @@ export function ArticleTagPickerView({
     <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-1">
       <div className="flex max-w-full items-center gap-2">
         {hasAssignedTags ? null : (
-          <h2 className="shrink-0 text-[0.72rem] font-medium leading-5 tracking-[0.14em] text-foreground-soft uppercase">
-            {labels.sectionTitle ?? "Tags"}
-          </h2>
+          <h2 className="shrink-0 system-micro leading-5 text-foreground-soft">{labels.sectionTitle ?? "Tags"}</h2>
         )}
         <div
           className={`flex min-w-0 flex-wrap items-center ${hasAssignedTags ? "gap-x-2 gap-y-1.5" : "gap-x-1.5 gap-y-1.5"}`}

@@ -104,9 +104,7 @@ export function AccountSyncSectionView({
                 SETTINGS_DIVIDER_CLASS,
               )}
             >
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-soft">
-                {row.label}
-              </div>
+              <div className="system-micro text-foreground-soft">{row.label}</div>
               <div className="break-words text-[13px] leading-5 text-foreground">{row.value}</div>
             </div>
           ))}
