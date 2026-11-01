@@ -122,7 +122,7 @@ describe("CI workflow contract", () => {
       expect(jobSection, `${jobId} should keep Tauri dependency setup Linux-only`).toContain(
         "if: matrix.os == 'ubuntu-latest'",
       );
-      expect(jobSection).toContain("bash scripts/ci/install-tauri-deps.sh");
+      expect(jobSection).toContain("uses: ./.github/actions/setup-tauri-linux-deps");
       const dependencyScript = readRepoFile("scripts/ci/install-tauri-deps.sh");
       expect(dependencyScript, `${jobId} should check apt source files before editing`).toContain(
         'if [ -f "$apt_source" ]; then',

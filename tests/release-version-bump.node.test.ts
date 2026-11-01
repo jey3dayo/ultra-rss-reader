@@ -284,6 +284,8 @@ describe("release version bump contract", () => {
     });
   });
 
+  // Spawns a python process per rejected mutation; Windows runners have hit the
+  // default 15s timeout here, so it gets the same budget as the CLI test above.
   it("python verify-version agrees with TS parity on every rejected owner mutation", () => {
     const fixtures: string[] = [];
     try {
@@ -307,7 +309,7 @@ describe("release version bump contract", () => {
         rmSync(fixtureRoot, { recursive: true, force: true });
       }
     }
-  });
+  }, 60_000);
 
   it.each([
     {
