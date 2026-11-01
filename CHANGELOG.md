@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.18] - 2026-11-01
+
+### Bug Fixes
+
+- 最近のフィードのボタンにカーソルを載せたとき浮き上がらないようにし、背景と枠線の変化だけで反応を示すようにしました。設定のトグルスイッチの easing と、フィード未登録時のカードの色・影をデザイン token に揃えました。英語表記の `Add Feed` / `Add Account` を `Add feed` / `Add account` にし、フィードが無いときの説明文を事実を述べる文にしました。コマンドパレットとショートカット検索の placeholder から末尾の「…」を外しました。 (#565)
+
+### Maintenance
+
+- 大文字の小見出し 16 か所を、サイズ・字間がまちまちだった状態から共通の `system-micro`（11px / 字間 0.048px）に統一しました。 (#564)
+
 ## [0.67.17] - 2026-11-01
 
 ### Bug Fixes
