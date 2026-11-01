@@ -785,7 +785,7 @@ describe("useKeyboard", () => {
     await waitFor(() => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
     });
-    expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Search commands")).toBeInTheDocument();
   });
 
   it("uses Ctrl+K instead of Meta+K for the command palette on Windows", async () => {
@@ -809,7 +809,7 @@ describe("useKeyboard", () => {
     await waitFor(() => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
     });
-    expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Search commands")).toBeInTheDocument();
   });
 
   it("pressing question mark opens the shortcuts help overlay", async () => {
@@ -831,7 +831,7 @@ describe("useKeyboard", () => {
     renderAppShell(calls);
     useUiStore.setState({ commandPaletteOpen: true });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
 
     fireEvent.keyDown(input, { key: "?" });
 

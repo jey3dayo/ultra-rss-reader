@@ -2264,7 +2264,7 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     const quietFeedButton = within(summary).getByRole("button", { name: /Quiet Feed/ });
-    expect(quietFeedButton).toHaveClass("motion-reduce:hover:translate-y-0", "motion-reduce:active:scale-100");
+    expect(quietFeedButton).toHaveClass("motion-reduce:active:scale-100");
     await user.click(quietFeedButton);
 
     await waitFor(() => {
@@ -2606,11 +2606,11 @@ describe("ArticleView", () => {
       "--motion-duration-content-swap": "260ms",
     });
     expect(
-      screen.getByText("Your account is ready. Add the first feed and the reading queue will come to life."),
+      screen.getByText("Your account is ready. Add the first feed and new articles will appear in the list."),
     ).toBeInTheDocument();
     expect(screen.getByText("Use the + button in the top-left to add a feed.")).toBeInTheDocument();
     expect(screen.getByText("Paste a site URL or feed URL to discover feeds automatically.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Feed" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add feed" })).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 

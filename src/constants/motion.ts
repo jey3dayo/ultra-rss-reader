@@ -197,6 +197,7 @@ export const MOTION_TRANSITION_TOKEN_DECLARATIONS = [
   "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
   "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
   "--motion-ease-collapse: cubic-bezier(0.4, 0, 0.2, 1);",
+  "--motion-ease-switch: cubic-bezier(0.26, 0.75, 0.38, 0.45);",
 ] as const;
 export type MotionTransitionTokenDeclaration = (typeof MOTION_TRANSITION_TOKEN_DECLARATIONS)[number];
 

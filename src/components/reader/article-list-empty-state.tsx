@@ -38,7 +38,7 @@ function EmptyStateAction({ actionLabel, onAction }: Pick<EmptyStateContentProps
 
 function ArticleListSetupEmptyCard({ message, description, actionLabel, onAction }: EmptyStateContentProps) {
   return (
-    <ReaderPassiveCard className="w-full max-w-sm rounded-md border border-border/65 bg-surface-1/48 px-7 py-6 text-left shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none">
+    <ReaderPassiveCard className="w-full max-w-sm rounded-md border border-border/65 bg-surface-1/48 px-7 py-6 text-left shadow-elevation-1 dark:border-border/75 dark:bg-surface-2/50 dark:shadow-none">
       <p className="text-base font-medium leading-6 tracking-[-0.01em] text-foreground">{message}</p>
       {description ? <p className="mt-2 text-sm leading-6 text-foreground-soft">{description}</p> : null}
       <EmptyStateAction actionLabel={actionLabel} onAction={onAction} />

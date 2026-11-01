@@ -24,7 +24,7 @@ const localeMockState = vi.hoisted(() => ({ language: "en" as "en" | "ja" }));
 vi.mock("react-i18next", () => {
   const settingsAccountTranslations: Record<"en" | "ja", Record<string, string>> = {
     en: {
-      "account.heading": "Add Account",
+      "account.heading": "Add account",
       "account.category_local": "Local",
       "account.category_self_hosted": "Self-Hosted",
       "account.local_feeds": "Local Feeds",

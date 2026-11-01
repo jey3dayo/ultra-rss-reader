@@ -8,7 +8,7 @@ describe("AddAccountFormView", () => {
   it("renders credential fields only when a credentials section is provided", () => {
     const { container, rerender } = render(
       <AddAccountFormView
-        title="Add Account"
+        title="Add account"
         accountHeading="Account"
         accountType={{
           label: "Type",
@@ -45,7 +45,7 @@ describe("AddAccountFormView", () => {
 
     rerender(
       <AddAccountFormView
-        title="Add Account"
+        title="Add account"
         accountHeading="Account"
         accountType={{
           label: "Type",
@@ -101,7 +101,7 @@ describe("AddAccountFormView", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { level: 2, name: "Add Account" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Add account" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Type" })).toHaveTextContent("FreshRSS");
     expect(screen.getByLabelText("Server URL")).toHaveValue("https://example.com");
     expect(screen.getByLabelText("Name")).toHaveClass("w-full");
@@ -126,7 +126,7 @@ describe("AddAccountFormView", () => {
 
     render(
       <AddAccountFormView
-        title="Add Account"
+        title="Add account"
         accountHeading="Account"
         accountType={{
           label: "Type",
@@ -176,7 +176,7 @@ describe("AddAccountFormView", () => {
   it("associates field errors with their input row", () => {
     render(
       <AddAccountFormView
-        title="Add Account"
+        title="Add account"
         accountHeading="Account"
         accountType={{
           label: "Type",
@@ -241,7 +241,7 @@ describe("AddAccountFormView", () => {
     const onSubmit = vi.fn();
     const { container } = render(
       <AddAccountFormView
-        title="Add Account"
+        title="Add account"
         accountHeading="Account"
         accountType={{
           label: "Type",
