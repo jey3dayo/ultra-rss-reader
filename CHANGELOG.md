@@ -13,6 +13,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 ### Maintenance
 
 - 大文字の小見出し 16 か所を、サイズ・字間がまちまちだった状態から共通の `system-micro`（11px / 字間 0.048px）に統一しました。 (#564)
+- CI で Linux の apt パッケージをキャッシュし、rust-cache の保存を main だけに限定しました。 (#561)
 
 ## [0.67.17] - 2026-11-01
 
