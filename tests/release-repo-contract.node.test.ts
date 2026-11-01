@@ -1155,9 +1155,11 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(linuxDepsAction).toContain("run: bash scripts/ci/install-tauri-deps.sh install");
     expect(linuxDepsAction).toContain("uses: actions/cache/restore@");
     expect(linuxDepsAction).toContain("uses: actions/cache/save@");
-    expect(linuxDepsAction).toContain("if: steps.restore.outputs.cache-hit != 'true'");
+    expect(linuxDepsAction).toContain(
+      "if: steps.restore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'",
+    );
     expect(dependencyScript).toContain('-o "Dir::Cache::Archives=$TAURI_APT_ARCHIVE_DIR"');
-    expect(dependencyScript).toContain("/etc/apt/apt-mirrors.txt");
+    expect(dependencyScript).toContain('"$apt_etc/apt-mirrors.txt"');
     expect(dependencyScript).toContain("apt_options=(-o Acquire::Retries=3");
     expect(dependencyScript).toContain("if ! timeout 300s sudo apt-get update");
     expect(dependencyScript).toContain("mirror.math.princeton.edu/pub/ubuntu");
@@ -1165,6 +1167,15 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(dependencyScript).toContain(
       `timeout 300s sudo apt-get install -y --no-install-recommends "${shellDollar}{apt_options[@]}" "${shellDollar}{tauri_deps[@]}"`,
     );
+  });
+
+  it("cancels superseded CI runs only for pull requests", () => {
+    const githubExpressionOpen = `${String.fromCharCode(36)}{{`;
+    // A shared group would still replace a pending main run with the next one.
+    expect(ciWorkflow).toContain(
+      `group: ${githubExpressionOpen} github.workflow }}-${githubExpressionOpen} github.event_name == 'pull_request' && github.ref || github.run_id }}`,
+    );
+    expect(ciWorkflow).toContain(`cancel-in-progress: ${githubExpressionOpen} github.event_name == 'pull_request' }}`);
   });
 
   it("keeps jactionlint shellcheck disabled only with a paired shell gate", () => {

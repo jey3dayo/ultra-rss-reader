@@ -26,11 +26,11 @@ runs:
         TAURI_APT_ARCHIVE_DIR: ${{ runner.temp }}/tauri-apt-archives
       run: bash scripts/ci/install-tauri-deps.sh install
 
-    # Saved from any ref: the entry is small (~60 MB), apt re-verifies every
-    # .deb against the signed lists, and the exact key means each .deb set is
-    # stored once per OS image.
+    # Saved from main only, like rust-cache: PR caches are scoped to their
+    # merge ref and nobody else can read them. PRs restore main's entry (or
+    # the newest one via restore-keys) and download only what changed.
     - name: Save apt archive cache
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/tauri-apt-archives

@@ -9,10 +9,11 @@ on:
 permissions:
   contents: read
 
-# Superseded PR pushes are cancelled; main pushes always finish so every main
-# commit gets a result and the caches PRs restore from get saved.
+# Superseded PR pushes are cancelled. Every other run gets its own group (run
+# id): a shared group would still replace a *pending* main run with the next
+# one, so some main commits would never get a result or save main's caches.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:

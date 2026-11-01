@@ -16,10 +16,12 @@ set -euo pipefail
 mode="${1:-all}"
 apt_options=(-o Acquire::Retries=3 -o Acquire::ForceIPv4=true -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
 read -r -a tauri_deps <<< "$TAURI_SYSTEM_DEPS"
-apt_sources=(/etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources /etc/apt/apt-mirrors.txt)
+# TAURI_APT_ETC only exists so tests can point the mirror rewrites at fixtures.
+apt_etc="${TAURI_APT_ETC:-/etc/apt}"
+apt_sources=("$apt_etc/sources.list" "$apt_etc/sources.list.d/ubuntu.sources" "$apt_etc/apt-mirrors.txt")
 
 refresh_lists() {
-  for apt_source in /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+  for apt_source in "$apt_etc/sources.list" "$apt_etc/sources.list.d/ubuntu.sources"; do
     if [ -f "$apt_source" ]; then
       sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' "$apt_source"
     fi
@@ -52,10 +54,10 @@ plan() {
   uris="$(sudo apt-get install -y --no-install-recommends --print-uris -qq \
     -o "Dir::Cache::Archives=$empty_archive" "${tauri_deps[@]}")"
   rm -rf "$empty_archive"
-  printf '%s\n' "$uris" | awk '{print $2}' | sort > "${RUNNER_TEMP:-/tmp}/tauri-apt-debs.txt"
+  printf '%s\n' "$uris" | awk '{print $2}' | LC_ALL=C sort > "${RUNNER_TEMP:-/tmp}/tauri-apt-debs.txt"
   local deb_key
-  deb_key="$(printf '%s\n' "$uris" | awk '{print $2, $4}' | sort | sha256sum | cut -c1-16)"
-  echo "planned $(wc -l < "${RUNNER_TEMP:-/tmp}/tauri-apt-debs.txt") .deb files, key ${deb_key}"
+  deb_key="$(printf '%s\n' "$uris" | awk '{print $2, $4}' | LC_ALL=C sort | sha256sum | cut -c1-16)"
+  echo "planned $(wc -l < "${RUNNER_TEMP:-/tmp}/tauri-apt-debs.txt" | tr -d " ") .deb files, key ${deb_key}"
   if [ -n "${GITHUB_OUTPUT:-}" ]; then
     echo "deb-key=${deb_key}" >> "$GITHUB_OUTPUT"
     echo "image=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
@@ -66,12 +68,10 @@ install() {
   if [ -n "${TAURI_APT_ARCHIVE_DIR:-}" ]; then
     mkdir -p "$TAURI_APT_ARCHIVE_DIR"
     sudo mkdir -p "$TAURI_APT_ARCHIVE_DIR/partial"
-    # apt downloads as the unprivileged _apt user into partial/.
-    if id _apt > /dev/null 2>&1; then
-      sudo chown _apt "$TAURI_APT_ARCHIVE_DIR/partial"
-    fi
-    apt_options+=(-o "Dir::Cache::Archives=$TAURI_APT_ARCHIVE_DIR")
-    echo "reusing $(find "$TAURI_APT_ARCHIVE_DIR" -maxdepth 1 -name '*.deb' | wc -l) cached .deb files"
+    # _apt cannot reach a dir under the runner's home, so apt would fall back
+    # to downloading as root with a warning; say so explicitly instead.
+    apt_options+=(-o "Dir::Cache::Archives=$TAURI_APT_ARCHIVE_DIR" -o APT::Sandbox::User=root)
+    echo "reusing $(find "$TAURI_APT_ARCHIVE_DIR" -maxdepth 1 -name '*.deb' | wc -l | tr -d ' ') cached .deb files"
   fi
   local status=0
   timeout 300s sudo apt-get install -y --no-install-recommends "${apt_options[@]}" "${tauri_deps[@]}" || status=$?
@@ -92,8 +92,12 @@ install() {
     sudo rm -rf "$TAURI_APT_ARCHIVE_DIR/partial" "$TAURI_APT_ARCHIVE_DIR/lock"
     local plan_file="${RUNNER_TEMP:-/tmp}/tauri-apt-debs.txt"
     if [ -s "$plan_file" ]; then
-      find "$TAURI_APT_ARCHIVE_DIR" -maxdepth 1 -name '*.deb' -printf '%f\n' | sort \
-        | comm -23 - "$plan_file" | while read -r stale; do sudo rm -f "$TAURI_APT_ARCHIVE_DIR/$stale"; done
+      for deb in "$TAURI_APT_ARCHIVE_DIR"/*.deb; do
+        [ -e "$deb" ] || continue
+        if ! grep -qxF "$(basename "$deb")" "$plan_file"; then
+          sudo rm -f "$deb"
+        fi
+      done
     fi
     sudo chown -R "$(id -u):$(id -g)" "$TAURI_APT_ARCHIVE_DIR"
   fi
