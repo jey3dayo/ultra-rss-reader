@@ -59,9 +59,7 @@ export function ArticleEmptyStateView({
         )}
         style={animateCardEntrance ? EMPTY_STATE_MOTION_STYLE : undefined}
       >
-        {eyebrow ? (
-          <p className="mb-3 text-[0.68rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">{eyebrow}</p>
-        ) : null}
+        {eyebrow ? <p className="mb-3 system-micro text-foreground-soft">{eyebrow}</p> : null}
         <p className="text-[1.6rem] font-semibold leading-[1.15] tracking-[-0.02em] text-foreground">{message}</p>
         {description ? <p className="mt-2.5 text-[0.97rem] leading-6 text-foreground-soft">{description}</p> : null}
         {actions.length > 0 ? (

@@ -13,8 +13,7 @@ type SidebarSectionToggleProps = {
   contextMenu?: ReactNode;
 };
 
-export const sidebarSectionLabelClassName =
-  "text-[0.72rem] font-semibold tracking-[0.12em] text-sidebar-foreground/56 uppercase";
+export const sidebarSectionLabelClassName = "system-micro text-sidebar-foreground/56";
 
 export function SidebarSectionToggle({
   label,

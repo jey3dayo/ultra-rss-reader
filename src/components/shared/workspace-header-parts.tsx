@@ -38,7 +38,7 @@ const layerPointerEventClassNames = LAYER_POINTER_EVENT_CLASS_NAMES;
 const workspaceHeaderStackingClassNames = WORKSPACE_HEADER_STACKING_CLASS_NAMES;
 
 const motionTextClassNames: Record<MotionTextVariant, string> = {
-  eyebrow: "font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase",
+  eyebrow: "font-sans system-micro text-foreground-soft",
   title: "font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground",
   subtitle: `max-w-2xl text-[0.95rem] leading-[1.42] text-foreground-soft ${PHRASE_AWARE_TEXT_CLASS_NAME}`,
 };

@@ -68,7 +68,7 @@ describe("ArticleEmptyStateView", () => {
     expect(container).not.toHaveClass("border");
     expect(container).not.toHaveClass("shadow-[var(--shadow-elevation-1)]");
     expect(layout).toHaveClass("-translate-y-[14%]");
-    expect(screen.getByText("Reader ready")).toHaveClass("uppercase");
+    expect(screen.getByText("Reader ready")).toHaveClass("system-micro");
   });
 
   it("applies passive card chrome when the default detail state provides it", () => {

@@ -88,9 +88,7 @@ export function AccountPane() {
       onKeyDown={handleKeyDown}
     >
       <div className="px-4 pt-4 pb-3">
-        <p className="text-[0.68rem] font-medium tracking-[0.12em] text-sidebar-foreground/54 uppercase">
-          {t("accounts")}
-        </p>
+        <p className="system-micro text-sidebar-foreground/54">{t("accounts")}</p>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">

@@ -32,7 +32,7 @@ export function FeedDetailRow({ label, value, surface = "card", className }: Fee
         className,
       )}
     >
-      <dt className="font-sans text-[10px] tracking-[0.1em] text-foreground-soft uppercase">{label}</dt>
+      <dt className="font-sans system-micro text-foreground-soft">{label}</dt>
       <dd className="mt-1 truncate text-[0.95rem] font-medium leading-5 text-foreground">{value}</dd>
     </div>
   );

@@ -50,7 +50,7 @@ const summaryToneClassNames = {
 const summaryTextVariants = cva("", {
   variants: {
     variant: {
-      label: "text-[10px] font-semibold tracking-[0.12em] text-foreground-soft uppercase",
+      label: "system-micro text-foreground-soft",
       actionableValue: "mt-1 block text-[1.42rem] font-semibold tracking-[-0.032em] text-foreground sm:text-[1.58rem]",
       staticValue: "mt-1 text-[1.36rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.48rem]",
       actionableCaption:
@@ -259,7 +259,7 @@ function SummaryFilterCardButton({
           <span data-testid="subscriptions-summary-card-badge-slot" className="flex min-w-[3.75rem] justify-end">
             <span
               className={cn(
-                "inline-flex h-5 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
+                "inline-flex h-5 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2 system-micro text-foreground shadow-[var(--subscriptions-summary-badge-shadow)]",
                 summaryCard.isActive && toneClasses.activeBadge,
                 !summaryCard.isActive && "invisible",
               )}

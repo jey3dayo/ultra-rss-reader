@@ -114,7 +114,7 @@ describe("ArticleGroupsView", () => {
 
     const headings = screen.getAllByText("Tech Blog");
     expect(headings.length).toBeGreaterThan(0);
-    expect(headings[0]).toHaveClass("text-[11px]", "tracking-[0.12em]", "text-foreground-soft");
+    expect(headings[0]).toHaveClass("system-micro", "text-foreground-soft");
     expect(headings[0].parentElement).toHaveClass("sticky", "top-0", "z-10", "h-7");
     expect(headings[0].parentElement).not.toHaveClass(
       "bg-[color-mix(in_srgb,var(--background)_64%,var(--surface-2)_36%)]",
