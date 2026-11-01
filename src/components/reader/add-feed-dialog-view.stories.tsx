@@ -49,7 +49,7 @@ const meta = {
     isDiscoverDisabled: false,
     isSubmitDisabled: false,
     labels: {
-      title: "Add Feed",
+      title: "Add feed",
       description: "Add a feed from a URL or website",
       urlLabel: "Feed",
       urlPlaceholder: "https://example.com/feed.xml",

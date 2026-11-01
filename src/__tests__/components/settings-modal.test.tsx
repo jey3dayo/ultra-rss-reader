@@ -463,7 +463,7 @@ describe("SettingsModal", () => {
       expect(useUiStore.getState().settingsAddAccount).toBe(true);
     });
 
-    expect(screen.getByRole("heading", { level: 2, name: /Add Account/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: /Add account/i })).toBeInTheDocument();
   });
 
   it("opens the FreshRSS config form directly when an initial provider is preset", async () => {
@@ -557,7 +557,7 @@ describe("SettingsModal", () => {
     });
 
     expect(await screen.findByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { level: 2, name: /Add Account/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: /Add account/i })).not.toBeInTheDocument();
   });
 
   it("locks settings navigation while add-account credential verification is pending", async () => {

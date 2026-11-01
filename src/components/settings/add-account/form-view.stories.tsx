@@ -16,7 +16,7 @@ const meta = {
   tags: ["autodocs"],
   loaders: [loadSettingsNamespace],
   args: {
-    title: "Add Account",
+    title: "Add account",
     accountHeading: "Account",
     accountType: {
       label: "Type",

@@ -236,7 +236,7 @@
   "confirm_unsubscribe": "<strong>{{title}}</strong> の購読を解除しますか？このフィードのすべての記事が削除されます。元に戻せません。",
   "unsubscribe_feed_accessible_label": "「{{title}}」の購読を解除します。元に戻せません。",
   "command_palette": {
-    "placeholder": "コマンドを検索…",
+    "placeholder": "コマンドを検索",
     "no_results": "結果が見つかりません",
     "results_label": "コマンドパレットの結果",
     "recent_actions": "最近のアクション",
@@ -267,7 +267,7 @@
   "shortcuts_help": {
     "title": "キーボードショートカット",
     "description": "ショートカットを検索できます。? でこのヘルプを再表示できます。",
-    "placeholder": "ショートカットを検索…",
+    "placeholder": "ショートカットを検索",
     "results_label": "キーボードショートカットの結果",
     "no_results": "ショートカットが見つかりません",
     "run_hint": "操作の実行はコマンドパレットから",

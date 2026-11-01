@@ -72,6 +72,7 @@
   --shadow-active-inset-highlight: var(--shadow-active-inset-highlight);
   --ease-standard: var(--motion-ease-standard);
   --ease-emphasized: var(--motion-ease-emphasized);
+  --ease-switch: var(--motion-ease-switch);
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -166,6 +167,8 @@
      A collapse needs a gentler start so the shrink stays visible; this
      curve is for exit/collapse transitions, not entrances. */
   --motion-ease-collapse: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Track fill of the toggle switch; not an entrance or collapse curve. */
+  --motion-ease-switch: cubic-bezier(0.26, 0.75, 0.38, 0.45);
   --theme-canvas: #f2f1ed;
   --theme-canvas-rgb: 242 241 237;
   --theme-foreground: #26251e;

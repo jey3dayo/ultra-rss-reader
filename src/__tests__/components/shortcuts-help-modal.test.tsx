@@ -52,7 +52,7 @@ describe("ShortcutsHelpModal", () => {
     const dialog = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
     expect(dialog).toHaveClass("popup-dialog-top-anchored");
     expect(screen.getByRole("button", { name: "Close dialog" })).toHaveClass("size-11");
-    const input = screen.getByRole("searchbox", { name: "Search shortcuts…" });
+    const input = screen.getByRole("searchbox", { name: "Search shortcuts" });
     await user.type(input, "settings");
 
     const row = await screen.findByRole("row", { name: /open settings/i });
@@ -84,7 +84,7 @@ describe("ShortcutsHelpModal", () => {
 
     await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
 
-    expect(screen.getByRole("searchbox", { name: "Search shortcuts…" })).toHaveValue("");
+    expect(screen.getByRole("searchbox", { name: "Search shortcuts" })).toHaveValue("");
 
     expect(
       within(screen.getByTestId("shortcuts-help-results"))
@@ -193,12 +193,12 @@ describe("ShortcutsHelpModal", () => {
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
     expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search shortcuts…")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search shortcuts")).toBeInTheDocument();
 
     await i18n.changeLanguage("ja");
 
     expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search shortcuts…")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search shortcuts")).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "キーボードショートカット" })).not.toBeInTheDocument();
   });
 
@@ -225,13 +225,13 @@ describe("ShortcutsHelpModal", () => {
 
     const { rerender } = renderShortcutsHelpModal(<RerenderingShortcutsHelpModal rerenderCount={0} />);
 
-    const input = await screen.findByPlaceholderText("Search shortcuts…");
+    const input = await screen.findByPlaceholderText("Search shortcuts");
     await user.type(input, "settings");
     expect(input).toHaveValue("settings");
 
     rerender(<RerenderingShortcutsHelpModal rerenderCount={1} />);
 
-    expect(await screen.findByPlaceholderText("Search shortcuts…")).toHaveValue("settings");
+    expect(await screen.findByPlaceholderText("Search shortcuts")).toHaveValue("settings");
   });
 
   it("resets search and refocuses the input after reopen", async () => {
@@ -252,7 +252,7 @@ describe("ShortcutsHelpModal", () => {
 
     renderShortcutsHelpModal(<ControlledShortcutsHelpModal />);
 
-    const input = await screen.findByPlaceholderText("Search shortcuts…");
+    const input = await screen.findByPlaceholderText("Search shortcuts");
     await waitFor(() => expect(input).toHaveFocus());
 
     await user.type(input, "settings");
@@ -264,7 +264,7 @@ describe("ShortcutsHelpModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Open help" }));
 
-    const reopenedInput = await screen.findByPlaceholderText("Search shortcuts…");
+    const reopenedInput = await screen.findByPlaceholderText("Search shortcuts");
     await waitFor(() => expect(reopenedInput).toHaveFocus());
     expect(reopenedInput).toHaveValue("");
     expect(await screen.findByRole("row", { name: /next article/i })).toBeInTheDocument();
@@ -275,7 +275,7 @@ describe("ShortcutsHelpModal", () => {
 
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
-    const input = await screen.findByRole("searchbox", { name: "Search shortcuts…" });
+    const input = await screen.findByRole("searchbox", { name: "Search shortcuts" });
     await user.type(input, "NAVIGATION");
 
     const results = screen.getByTestId("shortcuts-help-results");
@@ -310,7 +310,7 @@ describe("ShortcutsHelpModal", () => {
 
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
-    const input = await screen.findByRole("searchbox", { name: "Search shortcuts…" });
+    const input = await screen.findByRole("searchbox", { name: "Search shortcuts" });
     await waitFor(() => expect(input).toHaveFocus());
 
     await user.tab();

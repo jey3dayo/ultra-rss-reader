@@ -115,14 +115,14 @@ describe("CommandPalette", () => {
 
     const dialog = screen.getByRole("dialog", {
       name: "Open command palette",
-      description: "Search commands…",
+      description: "Search commands",
     });
 
     expect(dialog).toHaveClass("rounded-2xl");
     expect(dialog).toHaveClass("popup-dialog-top-anchored");
     expect(dialog).toHaveClass("bg-surface-2/96", "shadow-elevation-3");
-    expect(screen.getByPlaceholderText("Search commands…")).toHaveClass("placeholder:text-foreground-soft");
-    expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
+    expect(screen.getByPlaceholderText("Search commands")).toHaveClass("placeholder:text-foreground-soft");
+    expect(screen.getByPlaceholderText("Search commands").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
       "bg-surface-1/72",
     );
     expect(
@@ -141,7 +141,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     const results = screen.getByTestId("command-palette-results");
 
     await user.type(input, ">settings");
@@ -154,7 +154,7 @@ describe("CommandPalette", () => {
   it("caps the results list height so the top-anchored palette fits short windows", async () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await screen.findByPlaceholderText("Search commands…");
+    await screen.findByPlaceholderText("Search commands");
 
     expect(screen.getByTestId("command-palette-results")).toHaveClass("max-h-[min(320px,calc(88dvh-9rem))]");
   });
@@ -165,7 +165,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">sett");
 
     const openSettings = screen.getByRole("option", { name: /Open settings/ });
@@ -192,7 +192,7 @@ describe("CommandPalette", () => {
 
     const dialog = screen.getByRole("dialog", {
       name: "Open command palette",
-      description: "Search commands…",
+      description: "Search commands",
     });
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
@@ -209,7 +209,7 @@ describe("CommandPalette", () => {
     expect(
       await screen.findByRole("dialog", {
         name: "Open command palette",
-        description: "Search commands…",
+        description: "Search commands",
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Account settings/ })).toBeInTheDocument();
@@ -218,11 +218,11 @@ describe("CommandPalette", () => {
     await i18n.changeLanguage("ja");
 
     expect(screen.getByRole("dialog", { name: "Open command palette" })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search commands…")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search commands")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Account settings/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "コマンドパレットを開く" })).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("コマンドを検索…")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("コマンドを検索")).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /アカウント設定/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /テーマ: ライト/ })).not.toBeInTheDocument();
   });
@@ -296,7 +296,7 @@ describe("CommandPalette", () => {
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(requestedCommands).not.toContain("list_feeds");
-    expect(screen.queryByRole("option", { name: /Add Feed/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Add feed/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Sync/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Mark all as read/ })).not.toBeInTheDocument();
   });
@@ -318,7 +318,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("option", { name: /Add Feed/ })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Add feed/ })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Sync/ })).not.toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Mark all as read/ })).toBeInTheDocument();
   });
@@ -357,7 +357,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, "zzzzzz");
 
     expect(await screen.findByText("No results found")).toHaveClass("text-foreground-soft");
@@ -401,7 +401,7 @@ describe("CommandPalette", () => {
     expect(recentSettings.querySelector("span")).toHaveClass("min-w-0", "truncate");
     expect(recentSettings.querySelector('[data-slot="command-shortcut"]')).toHaveAttribute("aria-hidden", "true");
 
-    const input = screen.getByPlaceholderText("Search commands…");
+    const input = screen.getByPlaceholderText("Search commands");
     await user.clear(input);
     await user.type(input, "zzzzzz");
 
@@ -412,7 +412,7 @@ describe("CommandPalette", () => {
     const user = userEvent.setup();
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, "@Tech");
     await user.click(await screen.findByRole("option", { name: /Tech Blog/ }));
 
@@ -446,7 +446,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    let input = await screen.findByPlaceholderText("Search commands…");
+    let input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">settings");
     await user.click(await screen.findByRole("option", { name: /Open settings/ }));
 
@@ -460,7 +460,7 @@ describe("CommandPalette", () => {
     // again (paletteSessionId invalidation, see use-command-palette-controller.ts).
     useUiStore.getState().openCommandPalette();
 
-    input = await screen.findByPlaceholderText("Search commands…");
+    input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">settings");
     await user.click(await screen.findByRole("option", { name: /Open settings/ }));
 
@@ -476,7 +476,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">settings");
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
@@ -498,7 +498,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">shortcuts");
     await user.click(await screen.findByRole("option", { name: /Open shortcuts help/ }));
 
@@ -515,7 +515,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">サイドバー");
 
     expect(await screen.findByRole("option", { name: /Open settings/ })).toBeInTheDocument();
@@ -541,7 +541,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">テーマ");
 
     expect(await screen.findByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
@@ -559,7 +559,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">account");
     await user.click(await screen.findByRole("option", { name: /Account settings/ }));
 
@@ -578,7 +578,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, ">account");
     await user.click(await screen.findByRole("option", { name: /Account settings/ }));
 
@@ -596,7 +596,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, "#lat");
 
     expect(await screen.findByText("Tags", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
@@ -679,7 +679,7 @@ describe("CommandPalette", () => {
   it("keeps the backdrop readable for feed lookup by disabling blur on the overlay", async () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await screen.findByPlaceholderText("Search commands…");
+    await screen.findByPlaceholderText("Search commands");
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
     const dialog = screen.getByRole("dialog");
@@ -718,7 +718,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, "add");
 
     expect(await screen.findByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
@@ -773,7 +773,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands…");
+    const input = await screen.findByPlaceholderText("Search commands");
     await user.type(input, "add");
     await user.click(await screen.findByRole("option", { name: /Open add feed dialog/ }));
 

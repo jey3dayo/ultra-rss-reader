@@ -29,14 +29,14 @@ function getScenarioContent(scenario: EmptyStateScenario) {
     return {
       eyebrow: "Feed setup",
       message: "Add your first feed",
-      description: "Your account is ready. Add the first feed and the reading queue will come to life.",
+      description: "Your account is ready. Add the first feed and new articles will appear in the list.",
       hints: [
         "Use the + button in the top-left to add a feed.",
         "Paste a site URL or feed URL to discover feeds automatically.",
       ],
       containerClassName: undefined,
       cardClassName: undefined,
-      actions: [{ label: "Add Feed", onClick: () => {} }],
+      actions: [{ label: "Add feed", onClick: () => {} }],
     };
   }
 
