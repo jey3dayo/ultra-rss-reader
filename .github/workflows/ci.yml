@@ -9,9 +9,11 @@ on:
 permissions:
   contents: read
 
+# Superseded PR pushes are cancelled; main pushes always finish so every main
+# commit gets a result and the caches PRs restore from get saved.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TAURI_SYSTEM_DEPS: >-
@@ -149,7 +151,8 @@ jobs:
 
       - name: Install Tauri system dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: bash scripts/ci/install-tauri-deps.sh
+        uses: ./.github/actions/setup-tauri-linux-deps
+        timeout-minutes: 15
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
@@ -168,6 +171,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
+          # PRs restore main's cache but never write their own, keeping the
+          # repo under the 10 GB Actions cache limit (each target is 0.3-1.4 GB).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - run: pnpm install --frozen-lockfile
 
@@ -234,7 +240,8 @@ jobs:
 
       - name: Install Tauri system dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: bash scripts/ci/install-tauri-deps.sh
+        uses: ./.github/actions/setup-tauri-linux-deps
+        timeout-minutes: 15
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
@@ -246,6 +253,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
+          # PRs restore main's cache but never write their own, keeping the
+          # repo under the 10 GB Actions cache limit (each target is 0.3-1.4 GB).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - run: pnpm install --frozen-lockfile
 
@@ -399,6 +409,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
+          # PRs restore main's cache but never write their own, keeping the
+          # repo under the 10 GB Actions cache limit (each target is 0.3-1.4 GB).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - run: pnpm install --frozen-lockfile
 
@@ -448,9 +461,6 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable branch: toolchain input defaults to stable
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: src-tauri
 
       - run: pnpm install --frozen-lockfile
 

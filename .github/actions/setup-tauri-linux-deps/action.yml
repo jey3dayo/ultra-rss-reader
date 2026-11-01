@@ -1,0 +1,37 @@
+name: Install Tauri Linux system dependencies
+description: >-
+  Install $TAURI_SYSTEM_DEPS with apt, caching the downloaded .deb files so a
+  warm run does not depend on the Ubuntu mirror. The cache key is the exact
+  .deb set apt resolves, so it rolls over only when Ubuntu ships new builds.
+runs:
+  using: composite
+  steps:
+    - name: Plan apt packages
+      id: plan
+      shell: bash
+      run: bash scripts/ci/install-tauri-deps.sh plan
+
+    - name: Restore apt archive cache
+      id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/tauri-apt-archives
+        key: tauri-apt-${{ runner.os }}-${{ runner.arch }}-${{ steps.plan.outputs.image }}-${{ steps.plan.outputs.deb-key }}
+        restore-keys: |
+          tauri-apt-${{ runner.os }}-${{ runner.arch }}-${{ steps.plan.outputs.image }}-
+
+    - name: Install apt packages
+      shell: bash
+      env:
+        TAURI_APT_ARCHIVE_DIR: ${{ runner.temp }}/tauri-apt-archives
+      run: bash scripts/ci/install-tauri-deps.sh install
+
+    # Saved from any ref: the entry is small (~60 MB), apt re-verifies every
+    # .deb against the signed lists, and the exact key means each .deb set is
+    # stored once per OS image.
+    - name: Save apt archive cache
+      if: steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/tauri-apt-archives
+        key: ${{ steps.restore.outputs.cache-primary-key }}

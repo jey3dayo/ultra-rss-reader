@@ -1144,9 +1144,20 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
   });
 
-  it("keeps CI apt mirror failures bounded with a fallback mirror", () => {
+  it("keeps CI apt mirror failures bounded with a fallback mirror and a .deb cache", () => {
     const dependencyScript = readText("scripts/ci/install-tauri-deps.sh");
-    expect(ciWorkflow.match(/bash scripts\/ci\/install-tauri-deps.sh/g)).toHaveLength(2);
+    const linuxDepsAction = readText(".github/actions/setup-tauri-linux-deps/action.yml");
+    expect(
+      ciWorkflow.match(/uses: \.\/\.github\/actions\/setup-tauri-linux-deps\n\s+timeout-minutes: 15/g),
+    ).toHaveLength(2);
+    expect(ciWorkflow).not.toContain("bash scripts/ci/install-tauri-deps.sh");
+    expect(linuxDepsAction).toContain("run: bash scripts/ci/install-tauri-deps.sh plan");
+    expect(linuxDepsAction).toContain("run: bash scripts/ci/install-tauri-deps.sh install");
+    expect(linuxDepsAction).toContain("uses: actions/cache/restore@");
+    expect(linuxDepsAction).toContain("uses: actions/cache/save@");
+    expect(linuxDepsAction).toContain("if: steps.restore.outputs.cache-hit != 'true'");
+    expect(dependencyScript).toContain('-o "Dir::Cache::Archives=$TAURI_APT_ARCHIVE_DIR"');
+    expect(dependencyScript).toContain("/etc/apt/apt-mirrors.txt");
     expect(dependencyScript).toContain("apt_options=(-o Acquire::Retries=3");
     expect(dependencyScript).toContain("if ! timeout 300s sudo apt-get update");
     expect(dependencyScript).toContain("mirror.math.princeton.edu/pub/ubuntu");
@@ -1192,6 +1203,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(rustJob).toContain("mise run test:rust");
     expect(rustJob).toContain("dtolnay/rust-toolchain");
     expect(rustJob).toContain("Swatinem/rust-cache");
+    expect(rustJob).toContain(`save-if: ${githubExpressionOpen} github.ref == 'refs/heads/main' }}`);
     expect(rustJob).toContain("Install Tauri system dependencies");
     for (const block of [nodeJob, jsdomJob]) {
       expect(block).not.toContain("Swatinem/rust-cache");
