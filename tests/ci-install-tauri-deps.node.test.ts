@@ -77,7 +77,14 @@ function setup() {
   mkdirSync(aptEtc);
   // ubuntu-24.04 keeps its mirrors here; the stub sudo logs the sed calls.
   writeFileSync(join(aptEtc, "apt-mirrors.txt"), "http://azure.archive.ubuntu.com/ubuntu/\tpriority:1\n");
-  for (const [name, body] of Object.entries(stubs)) {
+  const binaries = { ...stubs };
+  // macOS before 15 has no sha256sum; shasum gives the same output format.
+  if (spawnSync("sh", ["-c", "command -v sha256sum"]).status !== 0) {
+    binaries.sha256sum = `#!/usr/bin/env bash
+exec shasum -a 256 "$@"
+`;
+  }
+  for (const [name, body] of Object.entries(binaries)) {
     writeFileSync(join(binDir, name), body);
     chmodSync(join(binDir, name), 0o755);
   }
