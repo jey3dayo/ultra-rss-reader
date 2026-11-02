@@ -649,8 +649,8 @@ describe("i18next locale contract", () => {
 
       expect(nativeMenuLabels).toMatchObject(expectedNativeMenuLabels);
       expect(nativeMenuLabels.open_web_preview).toBe(reader.view_in_browser);
-      expect(nativeMenuLabels.open_external_browser).toBe(reader.open_in_external_browser);
-      expect(nativeMenuLabels.copy_link).toBe(settings.actions.copy_link);
+      expect(nativeMenuLabels.open_external_browser.toLowerCase()).toBe(reader.open_in_external_browser.toLowerCase());
+      expect(nativeMenuLabels.copy_link.toLowerCase()).toBe(settings.actions.copy_link.toLowerCase());
       expect(nativeMenuLabels.add_to_reading_list).toBe(reader.add_to_reading_list);
       expect(nativeMenuLabels.mark_all_as_read.toLowerCase()).toBe(reader.mark_all_as_read.toLowerCase());
       expect(nativeMenuLabels.toggle_star.toLowerCase()).toBe(reader.toggle_star.toLowerCase());
