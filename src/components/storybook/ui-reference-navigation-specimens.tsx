@@ -188,9 +188,7 @@ export function NavigationButtonPatternsSpecimen() {
       <SectionHeading className="mb-2">Navigation row buttons</SectionHeading>
       <div data-testid="reference-navigation-button-patterns" className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            NavRowButton
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">NavRowButton</div>
           <div className="space-y-2">
             <NavRowButton
               title="General"
@@ -203,9 +201,7 @@ export function NavigationButtonPatternsSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/45 uppercase">
-            SidebarNavButton
-          </div>
+          <div className="mb-2 text-sidebar-foreground/45 system-micro">SidebarNavButton</div>
           <div className="space-y-1">
             <SidebarNavButton selected activePane trailing="7">
               <UnreadIcon unread forceTone className="size-3.5" />
@@ -218,9 +214,7 @@ export function NavigationButtonPatternsSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/45 uppercase">
-            Sidebar footer actions
-          </div>
+          <div className="mb-2 text-sidebar-foreground/45 system-micro">Sidebar footer actions</div>
           <div className="overflow-hidden rounded-md">
             <SidebarFooterActions
               subscriptionsIndexLabel="購読一覧"
@@ -243,9 +237,7 @@ export function AccountArticleNavigationAlignmentSpecimen() {
       <SectionHeading className="mb-2">Account / article navigation alignment</SectionHeading>
       <div data-testid="reference-account-article-nav-alignment" className="grid gap-3 lg:grid-cols-3">
         <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-2 text-sidebar-foreground shadow-elevation-1">
-          <div className="mb-2 px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
-            Settings accounts
-          </div>
+          <div className="mb-2 px-2 text-sidebar-foreground/50 system-micro">Settings accounts</div>
           <AccountsNavView
             accounts={ACCOUNT_CARDS}
             addAccountLabel="アカウントを追加…"
@@ -255,9 +247,7 @@ export function AccountArticleNavigationAlignmentSpecimen() {
           />
         </div>
         <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-2 text-sidebar-foreground shadow-elevation-1">
-          <div className="mb-2 px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
-            Reader account pane
-          </div>
+          <div className="mb-2 px-2 text-sidebar-foreground/50 system-micro">Reader account pane</div>
           <div className="space-y-1">
             <SidebarNavButton
               selected
@@ -285,9 +275,7 @@ export function AccountArticleNavigationAlignmentSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-2 text-sidebar-foreground shadow-elevation-1">
-          <div className="mb-2 px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
-            Article nav rows
-          </div>
+          <div className="mb-2 px-2 text-sidebar-foreground/50 system-micro">Article nav rows</div>
           <SmartViewsView
             views={[
               {

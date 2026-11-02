@@ -113,15 +113,13 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 p-4 shadow-elevation-1 sm:p-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Dialog shell</div>
+          <div className="mb-2 system-micro text-foreground/72">Dialog shell</div>
           <p className="mb-3 text-xs leading-[1.45] text-foreground/72">
             Outer shell only. Keep the inner dialog component surface separate and smaller-radius.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Dialog shell frame</div>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">
-              Inner dialog component surface
-            </div>
+            <div className="mb-2 system-micro text-foreground/72">Dialog shell frame</div>
+            <div className="mb-2 system-micro text-foreground/72">Inner dialog component surface</div>
             <div className="mx-auto grid w-full max-w-[300px] gap-4 rounded-lg border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3">
               <div className="flex flex-col items-center gap-4 py-2 text-center">
                 <div className="flex size-11 items-center justify-center rounded-xl bg-primary/15">
@@ -144,15 +142,13 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 p-4 shadow-elevation-1 sm:p-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Utility action chrome</div>
+          <div className="mb-2 system-micro text-foreground/72">Utility action chrome</div>
           <p className="mb-3 text-xs leading-[1.45] text-foreground/72">
             Resting state stays borderless. Selection comes from tonal fill and semantic icon tint, while focus remains
             a separate layer.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">
-              Sidebar or toolbar chrome
-            </div>
+            <div className="mb-2 system-micro text-foreground/72">Sidebar or toolbar chrome</div>
             <div
               data-testid="reference-utility-action-chrome-strip"
               className="flex items-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--foreground)_86%,var(--background))] p-3 text-[color:var(--background)]"
@@ -210,15 +206,13 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 p-4 shadow-elevation-1 sm:p-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/72">Context menu shell</div>
+          <div className="mb-2 system-micro text-foreground/72">Context menu shell</div>
           <p className="mb-3 text-xs leading-[1.45] text-foreground/72">
             This is the workspace frame around the menu body, not the reusable menu body itself.
           </p>
           <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">
-              Context menu shell frame
-            </div>
-            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Inner menu body</div>
+            <div className="mb-2 system-micro text-foreground/72">Context menu shell frame</div>
+            <div className="mb-2 system-micro text-foreground/72">Inner menu body</div>
             <div className="inline-flex rounded-md border border-border px-3 py-2 text-sm text-foreground">Feed</div>
             <div className="mt-3 min-w-[200px] rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-elevation-2 outline-none">
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Edit…</div>
@@ -381,9 +375,7 @@ export function UpdateToastStabilitySpecimen() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-4">
           {updateToastSpecimens.map((specimen) => (
             <div key={specimen.testId} className="min-w-0 space-y-2">
-              <div className="text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-                {specimen.label}
-              </div>
+              <div className="text-foreground-soft system-micro">{specimen.label}</div>
               <AppToastView
                 toastMessage={specimen.toast}
                 onClose={() => {}}
@@ -422,7 +414,7 @@ export function MotionTransitionsSpecimen() {
 
       <div className="grid gap-3 xl:grid-cols-3">
         <div className="rounded-md border border-border/70 bg-background/70 p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Resize surface</div>
+          <div className="mb-3 system-micro text-foreground/72">Resize surface</div>
           <div
             className={cn(
               "motion-resize-surface overflow-hidden rounded-md border border-border bg-surface-2 shadow-elevation-1",
@@ -445,7 +437,7 @@ export function MotionTransitionsSpecimen() {
         </div>
 
         <div className="rounded-md border border-border/70 bg-background/70 p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Popup surface</div>
+          <div className="mb-3 system-micro text-foreground/72">Popup surface</div>
           <Button size="sm" variant="outline" aria-expanded={popupOpen}>
             Feed
           </Button>
@@ -469,7 +461,7 @@ export function MotionTransitionsSpecimen() {
         </div>
 
         <div className="rounded-md border border-border/70 bg-background/70 p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/72">Dialog and popover</div>
+          <div className="mb-3 system-micro text-foreground/72">Dialog and popover</div>
           <div className="relative h-[210px] overflow-hidden rounded-md border border-border/70 bg-surface-1/80">
             <div
               className="motion-popup-overlay absolute inset-0 bg-dialog-overlay bg-dialog-scrim"

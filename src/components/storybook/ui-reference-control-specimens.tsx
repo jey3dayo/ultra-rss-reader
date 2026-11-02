@@ -151,9 +151,7 @@ export function ButtonVariantMatrixSpecimen() {
       <div data-testid="reference-button-variant-matrix" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {BUTTON_VARIANTS.map((variant) => (
           <div key={variant} className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-              {variant}
-            </div>
+            <div className="mb-2 text-foreground-soft system-micro">{variant}</div>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant={variant}>Action</Button>
               <Button variant={variant} disabled>
@@ -179,7 +177,7 @@ export function ButtonSizeMatrixSpecimen() {
       <div data-testid="reference-button-size-matrix" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {BUTTON_SIZES.map((size) => (
           <div key={size} className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">{size}</div>
+            <div className="mb-2 text-foreground-soft system-micro">{size}</div>
             {size.startsWith("icon") ? (
               <Button size={size} variant="outline" aria-label={`${size} action`}>
                 <RefreshCw className="size-4" />
@@ -202,9 +200,7 @@ export function SettingsActionButtonSpecimen() {
       <SectionHeading className="mb-2">Settings action buttons</SectionHeading>
       <div data-testid="reference-settings-action-button-matrix" className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Content and header
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Content and header</div>
           <div className="flex flex-wrap items-center gap-2">
             <SettingsActionButton>Open log directory</SettingsActionButton>
             <SettingsActionButton tone="header">Reset to defaults</SettingsActionButton>
@@ -217,9 +213,7 @@ export function SettingsActionButtonSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/45 uppercase">
-            Rail action
-          </div>
+          <div className="mb-2 text-sidebar-foreground/45 system-micro">Rail action</div>
           <div className="inline-flex rounded-lg border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-surface)] p-1 shadow-elevation-1">
             <SettingsActionButton tone="rail" size="icon" aria-label="Close settings">
               <X className="size-4" />
@@ -237,9 +231,7 @@ export function LoadingAndFormActionsSpecimen() {
       <SectionHeading className="mb-2">Form and loading actions</SectionHeading>
       <div data-testid="reference-form-loading-actions" className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Form footer
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Form footer</div>
           <FormActionButtons
             cancelLabel="Cancel"
             submitLabel="Save"
@@ -248,9 +240,7 @@ export function LoadingAndFormActionsSpecimen() {
           />
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Loading settings action
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Loading settings action</div>
           <div className="flex flex-wrap items-center gap-2">
             <SettingsLoadingActionButton loading loadingLabel="Syncing">
               Sync now
@@ -293,7 +283,7 @@ export function IconUtilityButtonSpecimen() {
       <TooltipProvider>
         <div data-testid="reference-icon-utility-buttons" className="grid gap-3 lg:grid-cols-3">
           <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">Toolbar</div>
+            <div className="mb-2 text-foreground-soft system-micro">Toolbar</div>
             <div className="flex items-center gap-2">
               <IconToolbarButton label="Refresh feeds" onClick={() => undefined}>
                 <RefreshCw className="size-4" />
@@ -304,9 +294,7 @@ export function IconUtilityButtonSpecimen() {
             </div>
           </div>
           <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-              Overlay surface
-            </div>
+            <div className="mb-2 text-foreground-soft system-micro">Overlay surface</div>
             <div className="flex items-center gap-2">
               <IconToolbarSurfaceButton label="Close Web Preview" onClick={() => undefined}>
                 <X className="size-4" />
@@ -318,7 +306,7 @@ export function IconUtilityButtonSpecimen() {
             className="rounded-md border border-border/60 bg-[#1e2324] p-3 text-[#f2f1ed]"
             style={darkReaderToolbarTokens}
           >
-            <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium tracking-[0.14em] text-[#f2f1ed]/60 uppercase">
+            <div className="mb-2 flex items-center justify-between gap-3 text-[#f2f1ed]/60 system-micro">
               <span>Browser chrome</span>
               <span>44px target / 20px icon</span>
             </div>
@@ -343,9 +331,7 @@ export function IconUtilityButtonSpecimen() {
             </div>
           </div>
           <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-            <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-              Workspace header
-            </div>
+            <div className="mb-2 text-foreground-soft system-micro">Workspace header</div>
             <div className="flex items-center gap-2">
               <WorkspaceHeaderActionButton aria-label="Close workspace">
                 <X className="size-4" />
@@ -365,9 +351,7 @@ export function ArticleFilterToggleButtonSpecimen() {
       <SectionHeading className="mb-2">Article filter toggle buttons</SectionHeading>
       <div data-testid="reference-article-filter-toggle-buttons" className="grid gap-3 lg:grid-cols-3">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Ghost state filters
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Ghost state filters</div>
           <div className="flex flex-wrap items-center gap-2">
             <ArticleFilterToggleButton mode="unread" pressed value="unread" aria-label="Unread">
               Unread
@@ -381,9 +365,7 @@ export function ArticleFilterToggleButtonSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Compact inactive states
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Compact inactive states</div>
           <div className="flex flex-wrap items-center gap-2">
             <ArticleFilterToggleButton mode="unread" pressed={false} size="compact" value="unread" aria-label="Unread">
               Unread
@@ -400,9 +382,7 @@ export function ArticleFilterToggleButtonSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Inset selection target
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Inset selection target</div>
           <div data-testid="reference-article-filter-inset-selection" className="flex min-h-11 items-center gap-1">
             <ArticleFilterToggleButton
               mode="unread"
@@ -566,9 +546,7 @@ export function SpecializedButtonPatternsSpecimen() {
       <SectionHeading className="mb-2">Specialized button patterns</SectionHeading>
       <div data-testid="reference-specialized-button-patterns" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Tag chip action
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Tag chip action</div>
           <div className="flex flex-wrap items-center gap-2">
             <TagChip
               label="design"
@@ -580,9 +558,7 @@ export function SpecializedButtonPatternsSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Tag picker trigger
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Tag picker trigger</div>
           <div className="flex flex-col items-start gap-2">
             <TagPickerTriggerButton
               expanded={tagPickerExpanded}
@@ -603,9 +579,7 @@ export function SpecializedButtonPatternsSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Tag color swatches
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Tag color swatches</div>
           <TagColorPicker
             color={tagColor}
             colorOptions={TAG_COLOR_PRESETS.slice(0, 5)}
@@ -615,9 +589,7 @@ export function SpecializedButtonPatternsSpecimen() {
           />
         </div>
         <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/58 uppercase">
-            Account switcher trigger
-          </div>
+          <div className="mb-2 text-sidebar-foreground/58 system-micro">Account switcher trigger</div>
           <div className="space-y-3">
             <AccountSwitcherTriggerButton
               accountName="Local"
@@ -635,9 +607,7 @@ export function SpecializedButtonPatternsSpecimen() {
           </div>
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
-          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Shortcut key capture
-          </div>
+          <div className="mb-2 text-foreground-soft system-micro">Shortcut key capture</div>
           <div className="flex flex-wrap items-start gap-2">
             <ShortcutKeyButton>⌘K</ShortcutKeyButton>
             <ShortcutKeyButton recording>Press a key</ShortcutKeyButton>

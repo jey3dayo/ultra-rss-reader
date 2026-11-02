@@ -16,7 +16,7 @@ function ReferenceTypeScaleBlock({
   return (
     <div className="rounded-md border border-border/70 bg-surface-1/88 p-4 shadow-none">
       <div className="mb-3">
-        <p className="font-sans text-[11px] font-medium tracking-[0.16em] text-foreground-soft uppercase">{label}</p>
+        <p className="font-sans text-foreground-soft system-micro">{label}</p>
         <p className="mt-1 text-xs leading-[1.45] text-foreground/72">{hint}</p>
       </div>
       <div className={sampleClassName}>{sampleText}</div>
@@ -88,7 +88,7 @@ export function TypographyScaleSpecimen() {
         <ReferenceTypeScaleBlock
           label="Caption"
           hint="Micro labels and metadata."
-          sampleClassName="font-sans text-[11px] leading-[1.45] tracking-[0.08em] text-foreground/72 uppercase"
+          sampleClassName="font-sans leading-[1.45] text-foreground/72 system-micro"
           sampleText="Caption"
         />
         <ReferenceTypeScaleBlock
