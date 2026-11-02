@@ -372,7 +372,7 @@ function withoutAsciiTrailingEllipsis(value: string): string {
 const readerBrowserMeaningCopy = {
   en: {
     previewAction: "Open Web Preview",
-    externalBrowserAction: "Open in External Browser",
+    externalBrowserAction: "Open in external browser",
     readerDisplayMode: "Article text only",
     previewDisplayMode: "Article text + Web Preview",
     inAppBrowserTarget: "Web Preview",
@@ -649,7 +649,7 @@ describe("i18next locale contract", () => {
 
       expect(nativeMenuLabels).toMatchObject(expectedNativeMenuLabels);
       expect(nativeMenuLabels.open_web_preview).toBe(reader.view_in_browser);
-      expect(nativeMenuLabels.open_external_browser).toBe(reader.open_in_external_browser);
+      expect(nativeMenuLabels.open_external_browser.toLowerCase()).toBe(reader.open_in_external_browser.toLowerCase());
       expect(nativeMenuLabels.copy_link).toBe(settings.actions.copy_link);
       expect(nativeMenuLabels.add_to_reading_list).toBe(reader.add_to_reading_list);
       expect(nativeMenuLabels.mark_all_as_read.toLowerCase()).toBe(reader.mark_all_as_read.toLowerCase());
@@ -740,19 +740,19 @@ describe("i18next locale contract", () => {
       {
         key: "reader:unread_items",
         count: 0,
-        en: "0 Unread Items",
+        en: "0 unread items",
         ja: "未読 0 件",
       },
       {
         key: "reader:unread_items",
         count: 1,
-        en: "1 Unread Item",
+        en: "1 unread item",
         ja: "未読 1 件",
       },
       {
         key: "reader:unread_items",
         count: 1234,
-        en: "1,234 Unread Items",
+        en: "1,234 unread items",
         ja: "未読 1,234 件",
       },
       {

@@ -337,7 +337,7 @@ describe("ArticleView", () => {
 
     fireEvent.contextMenu(await screen.findByTestId("article-reader-body"));
 
-    expect(await screen.findByRole("menuitem", { name: "Mark as Read" })).toHaveAttribute(
+    expect(await screen.findByRole("menuitem", { name: "Mark as read" })).toHaveAttribute(
       "data-action-id",
       "article-toggle-read",
     );
@@ -772,7 +772,7 @@ describe("ArticleView", () => {
     expect(within(overlayChrome).getByRole("button", { name: "Reload page" })).toBeInTheDocument();
     expect(
       within(overlayActions).getByRole("button", {
-        name: "Open in External Browser",
+        name: "Open in external browser",
       }),
     ).toBeInTheDocument();
     expect(within(overlayActions).getByRole("button", { name: "Copy link" })).toBeInTheDocument();
@@ -833,7 +833,7 @@ describe("ArticleView", () => {
       ...within(overlayActions).getAllByRole("button"),
     ]
       .filter((button) =>
-        ["Reload page", "Open in External Browser", "Copy link"].includes(
+        ["Reload page", "Open in external browser", "Copy link"].includes(
           button.getAttribute("aria-label") ?? button.textContent ?? "",
         ),
       )
@@ -1304,7 +1304,7 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("button", { name: "Copy link" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in external browser" })).toBeInTheDocument();
   });
 
   it("opens the external browser from the toolbar button", async () => {
@@ -1346,7 +1346,7 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
-    await user.click(await screen.findByRole("button", { name: "Open in External Browser" }));
+    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -1390,7 +1390,7 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Open in External Browser" }));
+    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
@@ -2072,8 +2072,8 @@ describe("ArticleView", () => {
     expect(within(summary).getByText("Tech Blog")).toHaveClass("text-xl", "font-semibold");
     expect(within(summary).getByRole("link", { name: "example.com" })).toHaveAttribute("href", "https://example.com");
     expect(within(summary).queryByRole("button", { name: /Manage subscription.*Tech Blog/i })).not.toBeInTheDocument();
-    expect(within(summary).queryByText("Latest Article")).not.toBeInTheDocument();
-    expectLatestUpdateHeader(summary, "Latest Update");
+    expect(within(summary).queryByText("Latest article")).not.toBeInTheDocument();
+    expectLatestUpdateHeader(summary, "Latest update");
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2206,7 +2206,7 @@ describe("ArticleView", () => {
     expectSummaryMetricMotionValue(summary, "New this week", "0");
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Quiet Feed")).toBeInTheDocument();
-    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(within(summary).getByText("Latest update")).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2531,7 +2531,7 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(summary).not.toHaveAttribute("data-selection-identity-accent");
-    expectSummaryScopeLabel(summary, /^(Recently Viewed|recent_articles)$/i);
+    expectSummaryScopeLabel(summary, /^(Recently viewed|recent_articles)$/i);
     expect(within(summary).queryByRole("heading", { level: 3, name: /^Starred$/i })).not.toBeInTheDocument();
     expect(within(summary).queryByTestId("article-selection-leading-visual")).not.toBeInTheDocument();
     expectSummaryMetricMotionValue(summary, "Published today", "0");

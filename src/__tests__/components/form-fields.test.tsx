@@ -172,6 +172,6 @@ describe("Form fields", () => {
 
     await user.click(await screen.findByRole("combobox", { name: "Folder" }));
 
-    expect(await screen.findByRole("option", { name: "New Folder…" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "New folder…" })).toBeInTheDocument();
   });
 });

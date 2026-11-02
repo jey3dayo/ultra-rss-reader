@@ -24,7 +24,7 @@ describe("ActionsSettings", () => {
     expect(screen.getAllByText("Show in toolbar")).toHaveLength(1);
     const toggle = screen.getByRole("switch", { name: "Show in toolbar: Copy Link" });
     expect(toggle).toBeInTheDocument();
-    expect(screen.queryByText("Open in External Browser")).not.toBeInTheDocument();
+    expect(screen.queryByText("Open in external browser")).not.toBeInTheDocument();
     expect(screen.queryByText("Share Menu")).not.toBeInTheDocument();
 
     await user.click(toggle);
