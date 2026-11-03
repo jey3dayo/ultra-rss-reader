@@ -219,7 +219,7 @@ WHEN lower(trim(NEW.name)) <> lower(trim(OLD.name))
     AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
 BEGIN
     INSERT INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
-    SELECT kind, account_id, key, lower(trim(NEW.name)), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    SELECT kind, account_id, key, lower(trim(NEW.name)), removed_at
     FROM local_sync_tombstones
     WHERE kind = 'article_tag' AND key2 = lower(trim(OLD.name))
     ON CONFLICT (kind, account_id, key, key2) DO UPDATE SET

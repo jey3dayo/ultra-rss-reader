@@ -1483,7 +1483,7 @@ fn import_keeps_article_tag_removal_made_before_the_tag_was_renamed() {
 }
 
 #[test]
-fn import_keeps_link_removal_over_a_remote_link_added_between_the_removal_and_the_tag_rename() {
+fn import_shows_a_remote_link_added_between_the_removal_and_the_tag_rename() {
     let importer = import_after_divergent_edits(
         "UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust';
          UPDATE article_tags SET changed_at = '2025-01-01T00:00:00.000Z'
@@ -1495,8 +1495,27 @@ fn import_keeps_link_removal_over_a_remote_link_added_between_the_removal_and_th
 
     let pairs = article_tag_pairs(&importer);
     assert!(
-        !pairs.contains(&"article-x:rustlang".to_string()),
-        "the rename is a local change newer than the remote link, so the removal must hold under the new name: {pairs:?}"
+        pairs.contains(&"article-x:rustlang".to_string()),
+        "known gap: the tombstone keeps its original time under the new name, so a remote link added after the removal is shown: {pairs:?}"
+    );
+}
+
+#[test]
+fn import_applies_a_remote_link_when_a_recreated_tag_is_renamed_to_the_remote_name() {
+    let importer = import_after_divergent_edits(
+        "INSERT INTO tags (id, name) VALUES ('tag-b', 'b');
+         INSERT INTO article_tags (article_id, tag_id, changed_at)
+         VALUES ('article-x', 'tag-b', '2025-01-01T00:00:00.000Z')",
+        "DELETE FROM tags WHERE id = 'tag-rust';
+         INSERT INTO tags (id, name) VALUES ('tag-rust-2', 'rust');
+         UPDATE local_sync_tombstones SET removed_at = '2020-01-01T00:00:00.000Z';
+         UPDATE tags SET name = 'b' WHERE id = 'tag-rust-2'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        pairs.contains(&"article-x:b".to_string()),
+        "the old generation's removal must not suppress an independent remote link: {pairs:?}"
     );
 }
 

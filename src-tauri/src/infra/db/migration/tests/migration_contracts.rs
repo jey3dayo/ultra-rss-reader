@@ -619,7 +619,7 @@ fn v29_tag_rename_restamps_the_article_links_whose_sync_identity_changed() {
 }
 
 #[test]
-fn v29_tag_rename_carries_link_tombstones_to_the_new_name_at_the_rename_time() {
+fn v29_tag_rename_carries_link_tombstones_to_the_new_name_at_their_original_time() {
     let db = migrated_with_local_sync_fixture();
     let conn = db.writer();
     conn.execute_batch(
@@ -643,9 +643,10 @@ fn v29_tag_rename_carries_link_tombstones_to_the_new_name_at_the_rename_time() {
         Some("2020-01-01T00:00:00.000Z"),
         "the old name keeps its tombstone"
     );
-    assert!(
-        removed_at("rustlang").is_some_and(|value| value.as_str() > "2020-01-01T00:00:00.000Z"),
-        "the absent link takes the rename time, like the links that exist under the renamed tag"
+    assert_eq!(
+        removed_at("rustlang").as_deref(),
+        Some("2020-01-01T00:00:00.000Z"),
+        "the new name takes the removal time, so an old removal is not promoted to the rename time"
     );
 }
 
