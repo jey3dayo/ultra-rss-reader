@@ -1327,3 +1327,45 @@ fn import_keeps_unexported_local_mute_keyword_deletion_and_applies_remote_one() 
         "a local mute keyword deletion that was never exported must not be undone: {keywords:?}"
     );
 }
+
+#[test]
+fn import_keeps_unexported_local_tag_rename_and_applies_remote_tag() {
+    let importer = import_after_divergent_edits(
+        REMOTE_TAG_SQL,
+        "UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+    );
+
+    let tags = query_strings(&importer, "SELECT name FROM tags ORDER BY name");
+    assert!(
+        tags.contains(&"remote-new".to_string()),
+        "the other device's new tag should be applied: {tags:?}"
+    );
+    assert!(
+        tags.contains(&"rustlang".to_string()) && !tags.contains(&"rust".to_string()),
+        "a local tag rename that was never exported must not be undone by re-creating the old name: {tags:?}"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_mute_keyword_scope_change_and_applies_remote_one() {
+    let importer = import_after_divergent_edits(
+        REMOTE_MUTE_SQL,
+        "UPDATE mute_keywords SET scope = 'body', updated_at = '2026-01-04T00:00:00Z'
+         WHERE id = 'mute-spam'",
+    );
+
+    let keywords = mute_keywords(&importer);
+    let spam_scopes = query_strings(
+        &importer,
+        "SELECT scope FROM mute_keywords WHERE keyword = 'spam' ORDER BY scope",
+    );
+    assert!(
+        keywords.contains(&"remote-kw".to_string()),
+        "the other device's new mute keyword should be applied: {keywords:?}"
+    );
+    assert_eq!(
+        spam_scopes,
+        ["body"],
+        "a local scope change that was never exported must not re-create the old scope"
+    );
+}

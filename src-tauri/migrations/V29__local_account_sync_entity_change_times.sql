@@ -158,6 +158,26 @@ BEGIN
     WHERE kind = 'tag' AND key = lower(trim(NEW.name));
 END;
 
+CREATE TRIGGER IF NOT EXISTS tags_tombstone_on_rename
+AFTER UPDATE OF name ON tags
+FOR EACH ROW
+WHEN lower(trim(NEW.name)) <> lower(trim(OLD.name))
+    AND NOT EXISTS (SELECT 1 FROM tags WHERE lower(trim(name)) = lower(trim(OLD.name)))
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+    VALUES ('tag', '', lower(trim(OLD.name)), '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS tags_clear_tombstone_on_rename
+AFTER UPDATE OF name ON tags
+FOR EACH ROW
+WHEN NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    DELETE FROM local_sync_tombstones
+    WHERE kind = 'tag' AND key = lower(trim(NEW.name));
+END;
+
 CREATE TRIGGER IF NOT EXISTS article_tags_tombstone_on_delete
 AFTER DELETE ON article_tags
 FOR EACH ROW
@@ -197,6 +217,25 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS mute_keywords_clear_tombstone_on_insert
 AFTER INSERT ON mute_keywords
+FOR EACH ROW
+WHEN NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    DELETE FROM local_sync_tombstones
+    WHERE kind = 'mute_keyword' AND key = lower(trim(NEW.keyword)) AND key2 = NEW.scope;
+END;
+
+CREATE TRIGGER IF NOT EXISTS mute_keywords_tombstone_on_update
+AFTER UPDATE OF keyword, scope ON mute_keywords
+FOR EACH ROW
+WHEN (lower(trim(NEW.keyword)) <> lower(trim(OLD.keyword)) OR NEW.scope <> OLD.scope)
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+    VALUES ('mute_keyword', '', lower(trim(OLD.keyword)), OLD.scope, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS mute_keywords_clear_tombstone_on_update
+AFTER UPDATE OF keyword, scope ON mute_keywords
 FOR EACH ROW
 WHEN NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
 BEGIN
