@@ -57,7 +57,7 @@ vi.mock("react-i18next", () => {
       "account.error_server_url_invalid": "Enter a valid server URL",
       "account.error_username_required": "Username is required",
       "account.error_password_required": "Password is required",
-      "account.error_network": "Cannot connect to server. Please check the URL",
+      "account.error_network": "Cannot connect to server. Check the URL.",
       "account.error_auth":
         "Authentication was rejected. Check FreshRSS credentials and, if configured, Cloudflare Access credentials.",
       "account.failed_to_add": "Failed to add account: {{message}}",
@@ -546,7 +546,7 @@ describe("AddAccountForm", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: "Cannot connect to server. Please check the URL",
+        message: "Cannot connect to server. Check the URL.",
       });
       expect(useUiStore.getState().accountSetupSession).toBeNull();
     });
