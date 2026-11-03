@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS local_sync_apply_guard (
 INSERT OR IGNORE INTO local_sync_apply_guard (id, active) VALUES (1, 0);
 
 CREATE TABLE IF NOT EXISTS local_sync_tombstones (
-    kind TEXT NOT NULL CHECK (kind IN ('folder', 'tag', 'article_tag', 'mute_keyword')),
+    kind TEXT NOT NULL CHECK (kind IN ('folder', 'feed', 'tag', 'article_tag', 'mute_keyword')),
     account_id TEXT NOT NULL DEFAULT '',
     key TEXT NOT NULL,
     key2 TEXT NOT NULL DEFAULT '',
@@ -149,6 +149,36 @@ WHEN NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
 BEGIN
     DELETE FROM local_sync_tombstones
     WHERE kind = 'folder' AND account_id = NEW.account_id AND key = lower(trim(NEW.name));
+END;
+
+CREATE TRIGGER IF NOT EXISTS feeds_tombstone_on_delete
+AFTER DELETE ON feeds
+FOR EACH ROW
+WHEN EXISTS (SELECT 1 FROM accounts WHERE id = OLD.account_id)
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+    VALUES ('feed', OLD.account_id, OLD.url, '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS feeds_clear_tombstone_on_insert
+AFTER INSERT ON feeds
+FOR EACH ROW
+WHEN NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    DELETE FROM local_sync_tombstones
+    WHERE kind = 'feed' AND account_id = NEW.account_id AND key = NEW.url;
+END;
+
+CREATE TRIGGER IF NOT EXISTS article_tags_stamp_changed_at_on_tag_rename
+AFTER UPDATE OF name ON tags
+FOR EACH ROW
+WHEN lower(trim(NEW.name)) <> lower(trim(OLD.name))
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    UPDATE article_tags
+    SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE tag_id = NEW.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS tags_tombstone_on_delete

@@ -542,3 +542,63 @@ fn v29_stamps_only_real_value_changes_and_keeps_explicit_times() {
         Some("2020-05-06T07:08:09.123Z")
     );
 }
+
+#[test]
+fn v29_unsubscribing_a_feed_tombstones_its_url_and_resubscribing_clears_it() {
+    let db = migrated_with_local_sync_fixture();
+    let conn = db.writer();
+
+    conn.execute_batch("DELETE FROM feeds WHERE id = 'feed-1'")
+        .unwrap();
+    assert_eq!(tombstones(conn), ["feed:a1:https://example.com/1:"]);
+
+    conn.execute_batch(
+        "INSERT INTO feeds (id, account_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-1b', 'a1', 'Feed', 'https://example.com/1', '', 'inherit', 'inherit')",
+    )
+    .unwrap();
+    assert!(tombstones(conn).is_empty());
+
+    conn.execute_batch("DELETE FROM accounts WHERE id = 'a2'")
+        .unwrap();
+    assert!(
+        tombstones(conn).is_empty(),
+        "deleting an account must not leave tombstones for its feeds"
+    );
+}
+
+#[test]
+fn v29_tag_rename_restamps_the_article_links_whose_sync_identity_changed() {
+    let db = migrated_with_local_sync_fixture();
+    let conn = db.writer();
+    conn.execute_batch(
+        "UPDATE article_tags SET changed_at = '2020-01-01T00:00:00.000Z' WHERE tag_id = 't1';
+         UPDATE article_tags SET changed_at = '2020-01-01T00:00:00.000Z' WHERE tag_id = 't2';
+         UPDATE tags SET name = 'RUST' WHERE id = 't1';",
+    )
+    .unwrap();
+    let stale_links = |conn: &Connection, tag_id: &str| -> i64 {
+        conn.query_row(
+            "SELECT COUNT(*) FROM article_tags
+             WHERE tag_id = ?1 AND changed_at = '2020-01-01T00:00:00.000Z'",
+            [tag_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        stale_links(conn, "t1"),
+        2,
+        "a case-only rename keeps the same sync identity"
+    );
+
+    conn.execute_batch("UPDATE tags SET name = 'Rustlang' WHERE id = 't1'")
+        .unwrap();
+
+    assert_eq!(stale_links(conn, "t1"), 0);
+    assert_eq!(
+        stale_links(conn, "t2"),
+        1,
+        "links of other tags are untouched"
+    );
+}

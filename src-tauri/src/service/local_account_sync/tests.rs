@@ -1393,3 +1393,22 @@ fn import_keeps_unexported_local_new_feed_over_an_older_remote_snapshot() {
         Some("Tech")
     );
 }
+
+#[test]
+fn import_keeps_unexported_local_feed_unsubscribe_and_applies_remote_feed() {
+    let importer = import_after_divergent_edits(
+        "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-3', 'account-1', NULL, 'Feed 3', 'https://example.com/feed3.xml', 'https://example.com', 'inherit', 'inherit')",
+        "DELETE FROM feeds WHERE id = 'feed-2'",
+    );
+
+    let urls = query_strings(&importer, "SELECT url FROM feeds ORDER BY url");
+    assert!(
+        urls.contains(&"https://example.com/feed3.xml".to_string()),
+        "the other device's new feed should be applied: {urls:?}"
+    );
+    assert!(
+        !urls.contains(&"https://example.com/feed2.xml".to_string()),
+        "a local unsubscribe that was never exported must not be undone: {urls:?}"
+    );
+}

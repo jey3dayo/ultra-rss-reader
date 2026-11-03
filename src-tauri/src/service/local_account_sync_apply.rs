@@ -235,9 +235,23 @@ fn upsert_feeds(
 ) -> DomainResult<()> {
     for (normalized_feed_url, feed) in feeds {
         let existing = find_feed_by_url(conn, account_id, normalized_feed_url)?;
-        if let Some(existing) = &existing {
-            if !file_wins(existing.changed_at, feed.updated_at) {
-                continue;
+        match &existing {
+            Some(existing) => {
+                if !file_wins(existing.changed_at, feed.updated_at) {
+                    continue;
+                }
+            }
+            None => {
+                if local_removal_is_newer(
+                    conn,
+                    "feed",
+                    &account_id.0,
+                    normalized_feed_url,
+                    "",
+                    feed.updated_at,
+                )? {
+                    continue;
+                }
             }
         }
         let resolved_folder_id = feed
