@@ -1,6 +1,6 @@
 import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
 
-export const MAX_SELECTION_HISTORY_ENTRIES = 50;
+const MAX_SELECTION_HISTORY_ENTRIES = 50;
 
 export type SelectionHistory = {
   entries: readonly ReaderQuerySelection[];
@@ -13,7 +13,7 @@ export function createSelectionHistory(selection: ReaderQuerySelection): Selecti
   return { entries: [selection], index: 0 };
 }
 
-export function isSameSelection(a: ReaderQuerySelection, b: ReaderQuerySelection): boolean {
+function isSameSelection(a: ReaderQuerySelection, b: ReaderQuerySelection): boolean {
   switch (a.type) {
     case "feed":
       return b.type === "feed" && a.feedId === b.feedId;
