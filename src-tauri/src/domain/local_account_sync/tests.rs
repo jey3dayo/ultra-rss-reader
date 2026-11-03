@@ -259,6 +259,52 @@ fn tag_and_article_tag_merge_preserves_remove_tombstones() {
 }
 
 #[test]
+fn article_tag_merge_keeps_the_latest_add_time_and_drops_it_on_removal() {
+    let key = article_key();
+    let tag = normalize_tag_name("Rust").expect("tag should normalize");
+    let entity_key = LocalSyncEntityKey::ArticleTag {
+        article_key: key.clone(),
+        normalized_tag_name: tag.clone(),
+    };
+    let pair = (key, tag);
+
+    let added = merge_local_account_sync_operations([
+        op(
+            "add-new",
+            ts(30),
+            entity_key.clone(),
+            LocalSyncAction::AddArticleTag,
+        ),
+        op(
+            "add-old",
+            ts(10),
+            entity_key.clone(),
+            LocalSyncAction::AddArticleTag,
+        ),
+    ]);
+    assert_eq!(
+        added.projection.article_tag_added_at.get(&pair).copied(),
+        Some(ts(30))
+    );
+
+    let removed = merge_local_account_sync_operations([
+        op(
+            "add",
+            ts(10),
+            entity_key.clone(),
+            LocalSyncAction::AddArticleTag,
+        ),
+        op(
+            "remove",
+            ts(20),
+            entity_key,
+            LocalSyncAction::RemoveArticleTag,
+        ),
+    ]);
+    assert!(!removed.projection.article_tag_added_at.contains_key(&pair));
+}
+
+#[test]
 fn mute_keyword_merge_preserves_remove_tombstones() {
     let keyword = normalize_mute_keyword(" Kindle ").expect("keyword should normalize");
     let scope = "title".to_string();

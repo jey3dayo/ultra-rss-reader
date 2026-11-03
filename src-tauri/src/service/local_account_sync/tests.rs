@@ -419,9 +419,7 @@ fn compute_digest_is_stable_across_differing_operation_ids_and_timestamps() {
         LocalSyncEntityKey::Tag {
             normalized_name: "rust".to_string(),
         },
-        LocalSyncAction::AddTag {
-            display_name: "Rust".to_string(),
-        },
+        LocalSyncAction::RemoveTag,
     );
     let operation_b = LocalAccountSyncOperation {
         operation_id: LocalSyncOperationId("op-2".to_string()),

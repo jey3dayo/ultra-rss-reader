@@ -129,6 +129,11 @@ pub(super) fn apply_operation(
                 .get(&key)
                 .is_some_and(|removed_at| *removed_at > operation.occurred_at);
             if !tombstone_is_newer {
+                projection
+                    .article_tag_added_at
+                    .entry(key.clone())
+                    .and_modify(|added_at| *added_at = (*added_at).max(operation.occurred_at))
+                    .or_insert(operation.occurred_at);
                 projection.article_tags.insert(key);
             }
             Ok(())
@@ -142,6 +147,7 @@ pub(super) fn apply_operation(
         ) => {
             let key = (article_key.clone(), normalized_tag_name.clone());
             projection.article_tags.remove(&key);
+            projection.article_tag_added_at.remove(&key);
             projection
                 .article_tag_tombstones
                 .insert(key, operation.occurred_at);

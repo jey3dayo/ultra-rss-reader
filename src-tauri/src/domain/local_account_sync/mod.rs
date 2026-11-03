@@ -133,6 +133,7 @@ pub struct LocalAccountSyncProjection {
     pub articles: BTreeMap<LocalSyncArticleKey, LocalSyncArticleState>,
     pub tags: BTreeMap<String, LocalSyncTagState>,
     pub article_tags: BTreeSet<(LocalSyncArticleKey, String)>,
+    pub article_tag_added_at: BTreeMap<(LocalSyncArticleKey, String), DateTime<Utc>>,
     pub article_tag_tombstones: BTreeMap<(LocalSyncArticleKey, String), DateTime<Utc>>,
     pub mute_keywords: BTreeMap<(String, String), LocalSyncMuteKeywordState>,
     pub mute_keyword_tombstones: BTreeMap<(String, String), DateTime<Utc>>,
