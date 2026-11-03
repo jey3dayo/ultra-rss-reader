@@ -65,7 +65,7 @@ describe("ArticleReaderBody", () => {
     render(<ArticleReaderBody article={baseArticle} feed={baseFeed} feedName="Tech Blog" hasNextArticle={true} />);
 
     const link = screen.getByRole("link", { name: /example\.com/ });
-    expect(link).toHaveAttribute("title", "Open in external browser — example.com");
+    expect(link).toHaveAttribute("title", "Open in external browser (example.com)");
 
     fireEvent.click(link);
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledTimes(1);
@@ -142,7 +142,7 @@ describe("ArticleReaderBody", () => {
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
     expect(useUiStore.getState().browserUrl).toBe("https://example.com/posts/1");
     const site = screen.getByRole("link", { name: /example\.com/ });
-    expect(site).toHaveAttribute("title", "Open in app — example.com");
+    expect(site).toHaveAttribute("title", "Open in app (example.com)");
     fireEvent.click(site);
     expect(useUiStore.getState().browserUrl).toBe(baseFeed.site_url);
     expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe("ArticleReaderBody", () => {
     firstConfirm.onConfirm?.();
     expect(useUiStore.getState().browserUrl).toBeNull();
     const site = screen.getByRole("link", { name: "localhost" });
-    expect(site).toHaveAttribute("title", "Confirmation required for a private host — localhost");
+    expect(site).toHaveAttribute("title", "Confirmation required for a private host (localhost)");
     fireEvent.click(site);
     useUiStore.getState().confirmDialog.onConfirm?.();
     expect(useUiStore.getState().browserUrl).toBe("http://localhost/private?token=secret");

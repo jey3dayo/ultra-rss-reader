@@ -67,14 +67,14 @@ describe("ArticleMetaView", () => {
         siteLink={{
           href: "https://example.com/",
           label: "example.com",
-          title: "Open in external browser — example.com",
+          title: "Open in external browser (example.com)",
           onOpen: onSiteClick,
         }}
       />,
     );
 
     const link = screen.getByRole("link", { name: /example\.com/ });
-    expect(link).toHaveAttribute("title", "Open in external browser — example.com");
+    expect(link).toHaveAttribute("title", "Open in external browser (example.com)");
     expect(fireEvent.click(link)).toBe(false);
     expect(onSiteClick).toHaveBeenCalledWith("https://example.com/", { external: false });
     fireEvent.click(link, { metaKey: true });

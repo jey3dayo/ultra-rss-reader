@@ -2125,7 +2125,7 @@ describe("ArticleView", () => {
       const hostLink = within(summary).getByRole("link", { name: "www.example.com" });
       expect(hostLink).toHaveAttribute(
         "title",
-        openLinks === "in_app" ? "Open in app — www.example.com" : "Open in external browser — www.example.com",
+        openLinks === "in_app" ? "Open in app (www.example.com)" : "Open in external browser (www.example.com)",
       );
 
       fireEvent.click(hostLink, { metaKey: true });
