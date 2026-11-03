@@ -40,6 +40,7 @@ pub fn apply_local_account_sync_projection(
         ..LocalAccountSyncApplyReport::default()
     };
 
+    set_apply_guard(&tx, true)?;
     let folder_ids = upsert_folders(&tx, account_id, &projection.folders, &mut report)?;
     upsert_feeds(&tx, account_id, &projection.feeds, &folder_ids, &mut report)?;
     upsert_tags(&tx, &projection.tags, &mut report)?;
@@ -53,8 +54,60 @@ pub fn apply_local_account_sync_projection(
         recalculate_unread_count_with_conn(&tx, &FeedId(feed_id))?;
     }
 
+    set_apply_guard(&tx, false)?;
     tx.commit()?;
     Ok(report)
+}
+
+/// While the guard is active, change-stamp and tombstone triggers stay silent so that import
+/// writes are not recorded as local changes. The flag is set and cleared inside the import
+/// transaction, so a rollback never leaves it on.
+fn set_apply_guard(conn: &Connection, active: bool) -> DomainResult<()> {
+    conn.execute(
+        "UPDATE local_sync_apply_guard SET active = ?1 WHERE id = 1",
+        params![active],
+    )?;
+    Ok(())
+}
+
+fn parse_change_time(
+    label: &str,
+    changed_at: Option<String>,
+) -> DomainResult<Option<DateTime<Utc>>> {
+    changed_at
+        .map(|value| {
+            DateTime::parse_from_rfc3339(&value)
+                .map(|parsed| parsed.with_timezone(&Utc))
+                .map_err(|error| DomainError::Parse(format!("invalid {label} {value:?}: {error}")))
+        })
+        .transpose()
+}
+
+/// The file value replaces the local one only when it is not older than the local change.
+/// A value never changed locally (NULL) always yields to the file.
+fn file_wins(local_changed_at: Option<DateTime<Utc>>, file_updated_at: DateTime<Utc>) -> bool {
+    local_changed_at.is_none_or(|local| file_updated_at >= local)
+}
+
+/// A local deletion newer than the file's value must not be undone by the import.
+fn local_removal_is_newer(
+    conn: &Connection,
+    kind: &str,
+    account_id: &str,
+    key: &str,
+    key2: &str,
+    file_updated_at: DateTime<Utc>,
+) -> DomainResult<bool> {
+    let removed_at: Option<String> = conn
+        .query_row(
+            "SELECT removed_at FROM local_sync_tombstones
+             WHERE kind = ?1 AND account_id = ?2 AND key = ?3 AND key2 = ?4",
+            params![kind, account_id, key, key2],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let removed_at = parse_change_time("tombstone removed_at", removed_at)?;
+    Ok(removed_at.is_some_and(|removed_at| removed_at > file_updated_at))
 }
 
 fn upsert_folders(
@@ -66,18 +119,25 @@ fn upsert_folders(
     // (account_id, sort_order) is unique, so imported orders are written only after every row
     // is parked on a distinct temporary value.
     let mut requested_order: BTreeMap<String, (i32, String)> = BTreeMap::new();
+    let mut local_changed_at: BTreeMap<String, Option<DateTime<Utc>>> = BTreeMap::new();
     {
-        let mut stmt =
-            conn.prepare("SELECT id, name, sort_order FROM folders WHERE account_id = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, name, sort_order, changed_at FROM folders WHERE account_id = ?1",
+        )?;
         let rows = stmt.query_map(params![account_id.0], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
                 row.get::<_, i32>(2)?,
+                row.get::<_, Option<String>>(3)?,
             ))
         })?;
         for row in rows {
-            let (id, name, sort_order) = row?;
+            let (id, name, sort_order, changed_at) = row?;
+            local_changed_at.insert(
+                id.clone(),
+                parse_change_time("folder changed_at", changed_at)?,
+            );
             requested_order.insert(id, (sort_order, name.to_ascii_lowercase()));
         }
     }
@@ -85,18 +145,44 @@ fn upsert_folders(
 
     let mut folder_ids = BTreeMap::new();
     for (normalized_name, folder) in folders {
-        let folder_id = find_folder_id_by_normalized_name(conn, account_id, normalized_name)?
-            .unwrap_or_else(FolderId::new);
+        let existing_id = find_folder_id_by_normalized_name(conn, account_id, normalized_name)?;
+        match &existing_id {
+            Some(id) => {
+                if !file_wins(
+                    local_changed_at.get(&id.0).copied().flatten(),
+                    folder.updated_at,
+                ) {
+                    folder_ids.insert(normalized_name.clone(), id.clone());
+                    continue;
+                }
+            }
+            None => {
+                if local_removal_is_newer(
+                    conn,
+                    "folder",
+                    &account_id.0,
+                    normalized_name,
+                    "",
+                    folder.updated_at,
+                )? {
+                    continue;
+                }
+            }
+        }
+        let folder_id = existing_id.unwrap_or_else(FolderId::new);
         let parked_sort_order = i32::MIN + i32::try_from(folder_ids.len()).unwrap_or(0);
         conn.execute(
-            "INSERT INTO folders (id, account_id, name, sort_order)
-             VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(id) DO UPDATE SET name = excluded.name",
+            "INSERT INTO folders (id, account_id, name, sort_order, changed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(id) DO UPDATE SET
+               name = excluded.name,
+               changed_at = excluded.changed_at",
             params![
                 folder_id.0,
                 account_id.0,
                 folder.display_name,
-                parked_sort_order
+                parked_sort_order,
+                format_change_time(folder.updated_at)
             ],
         )?;
         requested_order.insert(
@@ -148,23 +234,35 @@ fn upsert_feeds(
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<()> {
     for (normalized_feed_url, feed) in feeds {
-        let feed_id =
-            find_feed_id_by_url(conn, account_id, normalized_feed_url)?.unwrap_or_else(FeedId::new);
-        let folder_id = feed
+        let existing = find_feed_by_url(conn, account_id, normalized_feed_url)?;
+        if let Some(existing) = &existing {
+            if !file_wins(existing.changed_at, feed.updated_at) {
+                continue;
+            }
+        }
+        let resolved_folder_id = feed
             .folder_name
             .as_deref()
             .map(|name| name.trim().to_ascii_lowercase())
             .and_then(|normalized_name| folder_ids.get(&normalized_name).cloned());
+        let folder_id = match (&resolved_folder_id, &feed.folder_name, &existing) {
+            (None, Some(_), Some(existing)) => existing.folder_id.clone(),
+            _ => resolved_folder_id,
+        };
+        let feed_id = existing
+            .map(|existing| existing.id)
+            .unwrap_or_else(FeedId::new);
         conn.execute(
             "INSERT INTO feeds (
-                id, account_id, folder_id, title, url, site_url, icon_url, unread_count, reader_mode, web_preview_mode
+                id, account_id, folder_id, title, url, site_url, icon_url, unread_count, reader_mode, web_preview_mode, changed_at
              )
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 'inherit', 'inherit')
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 'inherit', 'inherit', ?8)
              ON CONFLICT(account_id, url) DO UPDATE SET
                folder_id = excluded.folder_id,
                title = excluded.title,
                site_url = excluded.site_url,
-               icon_url = COALESCE(excluded.icon_url, feeds.icon_url)",
+               icon_url = COALESCE(excluded.icon_url, feeds.icon_url),
+               changed_at = excluded.changed_at",
             params![
                 feed_id.0,
                 account_id.0,
@@ -173,11 +271,51 @@ fn upsert_feeds(
                 normalized_feed_url,
                 feed.site_url,
                 feed.icon_url,
+                format_change_time(feed.updated_at),
             ],
         )?;
         report.feeds_upserted += 1;
     }
     Ok(())
+}
+
+struct ExistingFeed {
+    id: FeedId,
+    folder_id: Option<FolderId>,
+    changed_at: Option<DateTime<Utc>>,
+}
+
+fn find_feed_by_url(
+    conn: &Connection,
+    account_id: &AccountId,
+    feed_url: &str,
+) -> DomainResult<Option<ExistingFeed>> {
+    let row = conn
+        .query_row(
+            "SELECT id, folder_id, changed_at
+             FROM feeds
+             WHERE account_id = ?1
+               AND url = ?2
+             ORDER BY id ASC
+             LIMIT 1",
+            params![account_id.0, feed_url],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
+        )
+        .optional()?;
+    row.map(|(id, folder_id, changed_at)| {
+        Ok(ExistingFeed {
+            id: FeedId(id),
+            folder_id: folder_id.map(FolderId),
+            changed_at: parse_change_time("feed changed_at", changed_at)?,
+        })
+    })
+    .transpose()
 }
 
 fn upsert_tags(
@@ -190,13 +328,31 @@ fn upsert_tags(
             report.skipped_removed_tags += 1;
             continue;
         }
-        let tag_id =
-            find_tag_id_by_normalized_name(conn, normalized_name)?.unwrap_or_else(TagId::new);
+        let existing = find_tag_by_normalized_name(conn, normalized_name)?;
+        match &existing {
+            Some((_, local_changed_at)) => {
+                if !file_wins(*local_changed_at, tag.updated_at) {
+                    continue;
+                }
+            }
+            None => {
+                if local_removal_is_newer(conn, "tag", "", normalized_name, "", tag.updated_at)? {
+                    continue;
+                }
+            }
+        }
+        let tag_id = existing.map(|(id, _)| id).unwrap_or_else(TagId::new);
         conn.execute(
-            "INSERT INTO tags (id, name)
-             VALUES (?1, ?2)
-             ON CONFLICT(id) DO UPDATE SET name = excluded.name",
-            params![tag_id.0, tag.display_name],
+            "INSERT INTO tags (id, name, changed_at)
+             VALUES (?1, ?2, ?3)
+             ON CONFLICT(id) DO UPDATE SET
+               name = excluded.name,
+               changed_at = excluded.changed_at",
+            params![
+                tag_id.0,
+                tag.display_name,
+                format_change_time(tag.updated_at)
+            ],
         )?;
         report.tags_upserted += 1;
     }
@@ -209,8 +365,29 @@ fn apply_mute_keywords(
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<()> {
     for ((normalized_keyword, scope), rule) in mute_keywords {
-        let existing_id = find_mute_keyword_id(conn, normalized_keyword, scope)?;
-        let id = existing_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        let existing = find_mute_keyword(conn, normalized_keyword, scope)?;
+        match &existing {
+            Some((_, local_updated_at)) => {
+                if !file_wins(Some(*local_updated_at), rule.updated_at) {
+                    continue;
+                }
+            }
+            None => {
+                if local_removal_is_newer(
+                    conn,
+                    "mute_keyword",
+                    "",
+                    normalized_keyword,
+                    scope,
+                    rule.updated_at,
+                )? {
+                    continue;
+                }
+            }
+        }
+        let id = existing
+            .map(|(id, _)| id)
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         conn.execute(
             "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?4)
@@ -227,17 +404,19 @@ fn apply_mute_keywords(
 
 fn remove_mute_keywords(
     conn: &Connection,
-    tombstones: &BTreeMap<(String, String), chrono::DateTime<chrono::Utc>>,
+    tombstones: &BTreeMap<(String, String), DateTime<Utc>>,
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<()> {
-    for (normalized_keyword, scope) in tombstones.keys() {
-        let deleted = conn.execute(
-            "DELETE FROM mute_keywords
-             WHERE lower(trim(keyword)) = ?1
-               AND scope = ?2",
-            params![normalized_keyword, scope],
-        )?;
-        report.mute_keywords_removed += deleted;
+    for ((normalized_keyword, scope), removed_at) in tombstones {
+        let Some((id, local_updated_at)) = find_mute_keyword(conn, normalized_keyword, scope)?
+        else {
+            continue;
+        };
+        if local_updated_at > *removed_at {
+            continue;
+        }
+        report.mute_keywords_removed +=
+            conn.execute("DELETE FROM mute_keywords WHERE id = ?1", params![id])?;
     }
     Ok(())
 }
@@ -317,7 +496,7 @@ fn apply_article_states(
                     "UPDATE articles SET is_read = ?1, read_changed_at = ?2 WHERE id = ?3",
                     params![
                         is_read,
-                        format_article_change_time(read_updated_at),
+                        format_change_time(read_updated_at),
                         target.article_id.0
                     ],
                 )?;
@@ -338,7 +517,7 @@ fn apply_article_states(
                     "UPDATE articles SET is_starred = ?1, starred_changed_at = ?2 WHERE id = ?3",
                     params![
                         is_starred,
-                        format_article_change_time(starred_updated_at),
+                        format_change_time(starred_updated_at),
                         target.article_id.0
                     ],
                 )?;
@@ -373,7 +552,7 @@ fn is_newer_than_local_change(
     Ok(file_updated_at >= local_changed_at)
 }
 
-fn format_article_change_time(time: DateTime<Utc>) -> String {
+fn format_change_time(time: DateTime<Utc>) -> String {
     time.to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
@@ -383,29 +562,61 @@ fn apply_article_tags(
     projection: &LocalAccountSyncProjection,
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<()> {
-    for (article_key, normalized_tag_name) in &projection.article_tags {
-        let Some(article_id) = article_ids.get(&article_key.0) else {
+    for (key, normalized_tag_name) in &projection.article_tags {
+        let Some(article_id) = article_ids.get(&key.0) else {
             report.unmatched_article_keys += 1;
             continue;
         };
-        let Some(tag_id) = find_tag_id_by_normalized_name(conn, normalized_tag_name)? else {
+        let Some((tag_id, _)) = find_tag_by_normalized_name(conn, normalized_tag_name)? else {
             continue;
         };
+        let added_at = projection
+            .article_tag_added_at
+            .get(&(key.clone(), normalized_tag_name.clone()))
+            .copied()
+            .unwrap_or(DateTime::UNIX_EPOCH);
+        if local_removal_is_newer(
+            conn,
+            "article_tag",
+            "",
+            &article_id.article_id.0,
+            normalized_tag_name,
+            added_at,
+        )? {
+            continue;
+        }
         let inserted = conn.execute(
-            "INSERT OR IGNORE INTO article_tags (article_id, tag_id)
-             VALUES (?1, ?2)",
-            params![article_id.article_id.0, tag_id.0],
+            "INSERT OR IGNORE INTO article_tags (article_id, tag_id, changed_at)
+             VALUES (?1, ?2, ?3)",
+            params![
+                article_id.article_id.0,
+                tag_id.0,
+                format_change_time(added_at)
+            ],
         )?;
         report.article_tags_added += inserted;
     }
-    for (article_key, normalized_tag_name) in projection.article_tag_tombstones.keys() {
-        let Some(article_id) = article_ids.get(&article_key.0) else {
+    for ((key, normalized_tag_name), removed_at) in &projection.article_tag_tombstones {
+        let Some(article_id) = article_ids.get(&key.0) else {
             report.unmatched_article_keys += 1;
             continue;
         };
-        let Some(tag_id) = find_tag_id_by_normalized_name(conn, normalized_tag_name)? else {
+        let Some((tag_id, _)) = find_tag_by_normalized_name(conn, normalized_tag_name)? else {
             continue;
         };
+        let local_added_at: Option<String> = conn
+            .query_row(
+                "SELECT changed_at FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
+                params![article_id.article_id.0, tag_id.0],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten();
+        if parse_change_time("article tag changed_at", local_added_at)?
+            .is_some_and(|added_at| added_at > *removed_at)
+        {
+            continue;
+        }
         let deleted = conn.execute(
             "DELETE FROM article_tags
              WHERE article_id = ?1
@@ -436,59 +647,48 @@ fn find_folder_id_by_normalized_name(
     .map_err(Into::into)
 }
 
-fn find_feed_id_by_url(
-    conn: &Connection,
-    account_id: &AccountId,
-    feed_url: &str,
-) -> DomainResult<Option<FeedId>> {
-    conn.query_row(
-        "SELECT id
-         FROM feeds
-         WHERE account_id = ?1
-           AND url = ?2
-         ORDER BY id ASC
-         LIMIT 1",
-        params![account_id.0, feed_url],
-        |row| row.get::<_, String>(0).map(FeedId),
-    )
-    .optional()
-    .map_err(Into::into)
-}
-
-fn find_tag_id_by_normalized_name(
+fn find_tag_by_normalized_name(
     conn: &Connection,
     normalized_name: &str,
-) -> DomainResult<Option<TagId>> {
-    conn.query_row(
-        "SELECT id
-         FROM tags
-         WHERE lower(trim(name)) = ?1
-         ORDER BY id ASC
-         LIMIT 1",
-        params![normalized_name],
-        |row| row.get::<_, String>(0).map(TagId),
-    )
-    .optional()
-    .map_err(Into::into)
+) -> DomainResult<Option<(TagId, Option<DateTime<Utc>>)>> {
+    let row = conn
+        .query_row(
+            "SELECT id, changed_at
+             FROM tags
+             WHERE lower(trim(name)) = ?1
+             ORDER BY id ASC
+             LIMIT 1",
+            params![normalized_name],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .optional()?;
+    row.map(|(id, changed_at)| Ok((TagId(id), parse_change_time("tag changed_at", changed_at)?)))
+        .transpose()
 }
 
-fn find_mute_keyword_id(
+fn find_mute_keyword(
     conn: &Connection,
     normalized_keyword: &str,
     scope: &str,
-) -> DomainResult<Option<String>> {
-    conn.query_row(
-        "SELECT id
-         FROM mute_keywords
-         WHERE lower(trim(keyword)) = ?1
-           AND scope = ?2
-         ORDER BY id ASC
-         LIMIT 1",
-        params![normalized_keyword, scope],
-        |row| row.get(0),
-    )
-    .optional()
-    .map_err(Into::into)
+) -> DomainResult<Option<(String, DateTime<Utc>)>> {
+    let row = conn
+        .query_row(
+            "SELECT id, updated_at
+             FROM mute_keywords
+             WHERE lower(trim(keyword)) = ?1
+               AND scope = ?2
+             ORDER BY id ASC
+             LIMIT 1",
+            params![normalized_keyword, scope],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .optional()?;
+    row.map(|(id, updated_at)| {
+        let updated_at = parse_change_time("mute keyword updated_at", Some(updated_at))?
+            .unwrap_or(DateTime::UNIX_EPOCH);
+        Ok((id, updated_at))
+    })
+    .transpose()
 }
 
 #[cfg(test)]

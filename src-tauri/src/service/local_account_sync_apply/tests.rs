@@ -472,8 +472,9 @@ fn apply_reorders_existing_folders_despite_the_unique_sort_order_index() {
     let sync_account_id = LocalSyncAccountId("sync-account".to_string());
     seed_account(conn, &account_id);
     conn.execute(
-        "INSERT INTO folders (id, account_id, name, sort_order)
-         VALUES ('folder-a', ?1, 'A', 0), ('folder-b', ?1, 'B', 1)",
+        "INSERT INTO folders (id, account_id, name, sort_order, changed_at)
+         VALUES ('folder-a', ?1, 'A', 0, '1970-01-01T00:00:00.000Z'),
+                ('folder-b', ?1, 'B', 1, '1970-01-01T00:00:00.000Z')",
         params![account_id.0],
     )
     .unwrap();
@@ -580,7 +581,7 @@ fn set_local_read_change(db: &DbManager, changed_at: DateTime<Utc>) {
     db.writer()
         .execute(
             "UPDATE articles SET is_read = 1, read_changed_at = ?1 WHERE id = 'article-existing'",
-            params![format_article_change_time(changed_at)],
+            params![format_change_time(changed_at)],
         )
         .unwrap();
 }
@@ -652,4 +653,49 @@ fn apply_takes_the_file_value_when_both_changes_share_a_time() {
         !article_is_read(&db),
         "a tie must resolve to the file value, as the merge does for competing files"
     );
+}
+
+#[test]
+fn apply_records_the_file_change_time_and_no_local_tombstone() {
+    let db = DbManager::new_in_memory().unwrap();
+    let conn = db.writer();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    seed_account(conn, &account_id);
+    conn.execute(
+        "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+         VALUES ('mute-1', 'spam', 'title', '1970-01-01T00:00:00Z', '1970-01-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    let projection = merge_local_account_sync_operations([
+        folder_upsert("folder", &sync_account_id, "Tech", 0),
+        operation(
+            "mute",
+            &sync_account_id,
+            LocalSyncEntityKey::MuteKeyword {
+                normalized_keyword: normalize_mute_keyword("spam").unwrap(),
+                scope: "title".to_string(),
+            },
+            LocalSyncAction::RemoveMuteKeyword,
+        ),
+    ])
+    .projection;
+
+    apply_local_account_sync_projection(&db, &account_id, &sync_account_id, &projection).unwrap();
+
+    let changed_at: String = conn
+        .query_row(
+            "SELECT changed_at FROM folders WHERE name = 'Tech'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(changed_at, format_change_time(ts(10)));
+    let tombstones: i64 = conn
+        .query_row("SELECT COUNT(*) FROM local_sync_tombstones", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(tombstones, 0, "an import deletion is not a local deletion");
 }
