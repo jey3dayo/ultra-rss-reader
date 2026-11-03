@@ -2379,7 +2379,7 @@ describe("Sidebar", () => {
       await Promise.resolve();
     });
     expect(useUiStore.getState().toastMessage).toEqual({
-      message: "Please wait a moment before syncing again",
+      message: "Wait a moment before syncing again",
     });
 
     await act(async () => {

@@ -190,7 +190,7 @@ export function getPendingSaveLockReason(
 ): string | null {
   if (dirtyStateSnapshot.pending) {
     return t("dirty_state.pending_lock_message", {
-      defaultValue: "Saving changes. Please wait before leaving settings.",
+      defaultValue: "Saving changes. Wait before leaving settings.",
     });
   }
 
