@@ -54,9 +54,9 @@ const summaryTextVariants = cva("", {
       actionableValue: "mt-1 block text-[1.42rem] font-semibold tracking-[-0.032em] text-foreground sm:text-[1.58rem]",
       staticValue: "mt-1 text-[1.36rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.48rem]",
       actionableCaption:
-        "mt-0.5 max-w-[28ch] text-[12px] leading-[1.35] text-foreground-soft sm:max-w-[30ch] sm:text-[12px]",
+        "mt-0.5 max-w-[28ch] text-(length:--font-size-xs) leading-[1.35] text-foreground-soft sm:max-w-[30ch] sm:text-(length:--font-size-xs)",
       staticCaption:
-        "mt-0.5 max-w-[28ch] text-[12px] leading-[1.35] text-foreground-soft sm:max-w-[30ch] sm:text-[12px]",
+        "mt-0.5 max-w-[28ch] text-(length:--font-size-xs) leading-[1.35] text-foreground-soft sm:max-w-[30ch] sm:text-(length:--font-size-xs)",
     },
   },
 });

@@ -185,7 +185,7 @@ export function FocusDebugHudView({
         ) : (
           <div className="border-b border-white/10 px-3 py-2">
             <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2")}>
-              <div className="line-clamp-2 text-[12px] font-medium leading-5 text-white/84">
+              <div className="line-clamp-2 text-(length:--font-size-xs) font-medium leading-5 text-white/84">
                 {collapsedSummary.label}
               </div>
               {collapsedSummary.meta ? (

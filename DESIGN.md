@@ -92,12 +92,13 @@ Detailed hierarchy:
 | Caption         | System UI Sans | 11px (0.69rem)    | 400-500 | 1.50           | normal         | Small captions, metadata             |
 | System Heading  | system-ui      | 20px (1.25rem)    | 700     | 1.55           | normal         | System UI headings                   |
 | System Caption  | system-ui      | 13px (0.81rem)    | 500-600 | 1.33           | normal         | System UI labels                     |
+| System Compact  | system-ui      | 12px (0.75rem)    | 400-500 | 1.33           | normal         | Chips, tags, notes, shortcut keys    |
 | System Micro    | system-ui      | 11px (0.69rem)    | 500     | 1.27 (tight)   | 0.048px        | Uppercase micro labels               |
 | Mono Body       | System Mono    | 12px (0.75rem)    | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
 | Mono Small      | System Mono    | 11px (0.69rem)    | 400     | 1.33           | -0.275px       | Inline code, terminal                |
 
-Implementation tokens: System Caption (13px) is `--font-size-sm` and System Micro (11px) is `--font-size-2xs`, both defined in `src/styles/global.css`.
-Use them as `text-(length:--font-size-sm)` / `text-(length:--font-size-2xs)`; a `text-` prefixed custom name is treated as a color by `cn`.
+Implementation tokens: System Caption (13px) is `--font-size-sm`, System Compact (12px) is `--font-size-xs`, and System Micro (11px) is `--font-size-2xs`, all defined in `src/styles/global.css`.
+Use them as `text-(length:--font-size-sm)` / `text-(length:--font-size-xs)` / `text-(length:--font-size-2xs)`; a `text-` prefixed custom name is treated as a color by `cn`.
 
 Typography principles:
 

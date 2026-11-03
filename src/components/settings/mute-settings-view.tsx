@@ -138,7 +138,7 @@ export function MuteSettingsView({
                     <SettingsInfoPopover title={keywordLabel} content={keywordHelp} ariaLabel={keywordInfoAriaLabel} />
                   }
                   className="min-h-0 border-b-0 py-0 lg:grid-cols-1 lg:gap-y-1.5"
-                  labelClassName="text-[12px]"
+                  labelClassName="text-(length:--font-size-xs)"
                 >
                   {({ descriptionId }) => (
                     <Input
