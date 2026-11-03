@@ -28,7 +28,7 @@ describe("ArticleMetaView", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("text-[0.8rem]");
     expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("font-sans");
-    expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tracking-[0.08em]");
+    expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tracking-[0.02em]");
     expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tabular-nums");
     expect(screen.getByText("2026年3月25日 10:00").parentElement).not.toHaveClass("uppercase");
     expect(screen.getByText("Alice").parentElement?.parentElement).toHaveClass("text-[0.95rem]");
