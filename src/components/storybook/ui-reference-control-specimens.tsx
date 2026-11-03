@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { Check, ChevronLeft, Clock3, ExternalLink, Plus, RefreshCw, Save, Share, Trash2, X } from "lucide-react";
 import { type CSSProperties, useEffect, useReducer, useState } from "react";
 import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
@@ -27,6 +28,7 @@ import {
 } from "@/design-system";
 import { Menu } from "@/design-system/menu";
 import { useUiStore } from "@/stores/ui-store";
+import { SIDEBAR_SPECIMEN_FRAME_CLASS } from "./sidebar-specimen-frame";
 
 export {
   UI_REFERENCE_DECORATIVE_TEST_IDS,
@@ -212,7 +214,7 @@ export function SettingsActionButtonSpecimen() {
             </SettingsActionButton>
           </div>
         </div>
-        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
+        <div className={cn(SIDEBAR_SPECIMEN_FRAME_CLASS, "p-3")}>
           <div className="mb-2 text-sidebar-foreground/45 system-micro">Rail action</div>
           <div className="inline-flex rounded-lg border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-surface)] p-1 shadow-elevation-1">
             <SettingsActionButton tone="rail" size="icon" aria-label="Close settings">
@@ -588,7 +590,7 @@ export function SpecializedButtonPatternsSpecimen() {
             onChange={setTagColor}
           />
         </div>
-        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
+        <div className={cn(SIDEBAR_SPECIMEN_FRAME_CLASS, "p-3")}>
           <div className="mb-2 text-sidebar-foreground/58 system-micro">Account switcher trigger</div>
           <div className="space-y-3">
             <AccountSwitcherTriggerButton
