@@ -231,7 +231,7 @@ export function MuteSettingsView({
                     )}
                   >
                     <span
-                      className="min-w-0 flex-1 truncate text-[13px] leading-[1.35] text-[color:var(--form-row-label)]"
+                      className="min-w-0 flex-1 truncate text-(length:--font-size-sm) leading-[1.35] text-[color:var(--form-row-label)]"
                       dir="auto"
                       title={rule.keyword}
                     >

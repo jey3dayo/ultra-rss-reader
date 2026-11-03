@@ -11,7 +11,7 @@ describe("ArticleFilterToggleButton class contracts", () => {
     expect(className).toContain("motion-filter-toggle");
     expect(className).toContain("rounded-md");
     expect(className).toContain("min-h-11");
-    expect(className).toContain("text-[13px]");
+    expect(className).toContain("text-(length:--font-size-sm)");
     expect(className).toContain("data-[pressed]:bg-transparent");
     expect(className).toContain("data-[pressed]:text-foreground");
     expect(className).toContain("border-0");
@@ -45,7 +45,9 @@ describe("ArticleFilterToggleButton class contracts", () => {
 
   it("keeps the article filter size contract on supported shared chip sizes", () => {
     expect(articleFilterToggleButtonClassName({ mode: "all", size: "compact" })).toContain("text-xs");
-    expect(articleFilterToggleButtonClassName({ mode: "all", size: "filter" })).toContain("text-[13px]");
+    expect(articleFilterToggleButtonClassName({ mode: "all", size: "filter" })).toContain(
+      "text-(length:--font-size-sm)",
+    );
     expect(articleFilterToggleButtonClassName({ mode: "all", size: "comfortable" })).toContain("text-sm");
   });
 

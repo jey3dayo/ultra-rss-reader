@@ -8,7 +8,7 @@ describe("SectionHeading", () => {
 
     expect(screen.getByRole("heading", { level: 3, name: "Appearance" })).toHaveClass(
       "font-sans",
-      "text-[13px]",
+      "text-(length:--font-size-sm)",
       "text-[color:var(--section-heading-color)]",
     );
   });

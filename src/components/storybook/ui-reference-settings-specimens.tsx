@@ -377,7 +377,7 @@ export function DisabledSwitchSpecimen() {
       >
         <LabeledControlRow label="ミュート時に自動既読">
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-[11px] text-foreground/72">
+            <span className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-(length:--font-size-2xs) text-foreground/72">
               工事中
             </span>
             <GradientSwitch checked={false} disabled aria-label="ミュート時に自動既読" />

@@ -35,7 +35,7 @@ export function LabeledControlRow({
   const generatedDescriptionId = useId();
   const resolvedDescriptionId = description ? (descriptionId ?? generatedDescriptionId) : undefined;
   const labelClasses = cn(
-    "select-none font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)]",
+    "select-none font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]",
     labelClassName,
   );
   const resolvedChildren =
@@ -43,7 +43,10 @@ export function LabeledControlRow({
   const descriptionContent = description ? (
     <span
       id={resolvedDescriptionId}
-      className={cn("font-sans text-[13px] leading-[1.5] text-foreground-soft", PHRASE_AWARE_TEXT_CLASS_NAME)}
+      className={cn(
+        "font-sans text-(length:--font-size-sm) leading-[1.5] text-foreground-soft",
+        PHRASE_AWARE_TEXT_CLASS_NAME,
+      )}
     >
       {description}
     </span>
