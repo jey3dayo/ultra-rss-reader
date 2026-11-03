@@ -1,4 +1,5 @@
 -- destructive-migration: only trigger bodies delete rows (tombstone cleanup); existing data is untouched.
+-- Existing rows keep a NULL changed_at on purpose: a migration cannot know when they changed, and a guessed time would beat newer values from other devices (same as V28's article change times).
 ALTER TABLE folders ADD COLUMN changed_at TEXT;
 ALTER TABLE feeds ADD COLUMN changed_at TEXT;
 ALTER TABLE tags ADD COLUMN changed_at TEXT;
