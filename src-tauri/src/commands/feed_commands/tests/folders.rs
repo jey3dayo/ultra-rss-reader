@@ -539,7 +539,7 @@ fn create_folder_classifies_concurrent_sort_order_constraint() {
     assert!(matches!(
         error,
         AppError::UserVisible { message }
-            if message == "Folder order changed while creating the folder. Please retry."
+            if message == "Folder order changed while creating the folder. Try again."
     ));
 
     let folder_count: i64 = db
@@ -700,7 +700,7 @@ fn reorder_folders_rejects_empty_ordered_ids_when_folders_exist() {
     assert!(matches!(
         error,
         AppError::UserVisible { message }
-            if message == "Folder list is out of date. Please retry."
+            if message == "Folder list is out of date. Try again."
     ));
 }
 
@@ -727,7 +727,7 @@ fn reorder_folders_rejects_duplicate_ids() {
     assert!(matches!(
         error,
         AppError::UserVisible { message }
-            if message == "Folder list is out of date. Please retry."
+            if message == "Folder list is out of date. Try again."
     ));
 
     let folder_b_sort_order: i32 = db

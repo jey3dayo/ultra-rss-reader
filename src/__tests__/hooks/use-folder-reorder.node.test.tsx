@@ -46,7 +46,7 @@ describe("useReorderFolders", () => {
 
   it("shows the backend rejection and restores the cached folder order when saving fails", async () => {
     suppressConsoleError();
-    const appError: AppError = { type: "UserVisible", message: "Folder list is out of date. Please retry." };
+    const appError: AppError = { type: "UserVisible", message: "Folder list is out of date. Try again." };
     setupTauriMocks((cmd) => {
       if (cmd === "reorder_folders") {
         throw appError;
@@ -65,15 +65,13 @@ describe("useReorderFolders", () => {
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
     });
-    expect(showToastMock).toHaveBeenCalledWith(
-      "Failed to save folder order: Folder list is out of date. Please retry.",
-    );
+    expect(showToastMock).toHaveBeenCalledWith("Failed to save folder order: Folder list is out of date. Try again.");
     expect(queryClient.getQueryData<FolderDto[]>(folderQueryKey)).toEqual(folders);
   });
 
   it("does not restore an earlier unsaved order when queued reorders fail in a row", async () => {
     suppressConsoleError();
-    const appError: AppError = { type: "UserVisible", message: "Folder list is out of date. Please retry." };
+    const appError: AppError = { type: "UserVisible", message: "Folder list is out of date. Try again." };
     const ipcCalls: ReturnType<typeof createDeferred<unknown>>[] = [];
     setupTauriMocks((cmd) => {
       if (cmd === "reorder_folders") {
