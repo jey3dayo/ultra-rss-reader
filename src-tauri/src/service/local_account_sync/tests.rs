@@ -1369,3 +1369,27 @@ fn import_keeps_unexported_local_mute_keyword_scope_change_and_applies_remote_on
         "a local scope change that was never exported must not re-create the old scope"
     );
 }
+
+#[test]
+fn import_keeps_unexported_local_new_feed_over_an_older_remote_snapshot() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET title = 'Remote title' WHERE id = 'feed-2'",
+        "DELETE FROM feeds WHERE id = 'feed-2';
+         INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-2b', 'account-1', 'folder-tech', 'Local title', 'https://example.com/feed2.xml', 'https://example.com', 'inherit', 'inherit')",
+    );
+
+    let titles = query_strings(
+        &importer,
+        "SELECT title FROM feeds WHERE url = 'https://example.com/feed2.xml'",
+    );
+    assert_eq!(
+        titles,
+        ["Local title"],
+        "a feed subscribed locally and never exported must not be overwritten by an older snapshot"
+    );
+    assert_eq!(
+        feed_folder_name(&importer, "feed-2b").as_deref(),
+        Some("Tech")
+    );
+}

@@ -492,8 +492,8 @@ fn v29_triggers_record_nothing_while_the_apply_guard_is_active() {
         )
         .unwrap();
     assert_eq!(
-        guarded_stamps, 1,
-        "only the pre-guard fixture insert of f1 carries a stamp"
+        guarded_stamps, 2,
+        "only the pre-guard fixture inserts of f1 and feed-1 carry a stamp"
     );
 }
 
@@ -509,23 +509,29 @@ fn v29_stamps_only_real_value_changes_and_keeps_explicit_times() {
         )
         .unwrap()
     };
-    assert_eq!(
-        feed_changed_at(conn),
-        None,
-        "inserted feeds are not stamped"
+    let inserted_at = feed_changed_at(conn);
+    assert!(
+        inserted_at
+            .as_deref()
+            .is_some_and(|value| value.ends_with('Z')),
+        "inserted feeds are stamped"
     );
 
     conn.execute_batch("UPDATE feeds SET title = title, unread_count = 5 WHERE id = 'feed-1'")
         .unwrap();
     assert_eq!(
         feed_changed_at(conn),
-        None,
+        inserted_at,
         "rewriting identical values is not a change"
     );
 
+    conn.execute_batch(
+        "UPDATE feeds SET changed_at = '2020-01-01T00:00:00.000Z' WHERE id = 'feed-1'",
+    )
+    .unwrap();
     conn.execute_batch("UPDATE feeds SET title = 'Renamed' WHERE id = 'feed-1'")
         .unwrap();
-    assert!(feed_changed_at(conn).is_some_and(|value| value.ends_with('Z')));
+    assert!(feed_changed_at(conn).is_some_and(|value| value.as_str() > "2020-01-01T00:00:00.000Z"));
 
     conn.execute_batch(
         "UPDATE feeds SET title = 'Again', changed_at = '2020-05-06T07:08:09.123Z' WHERE id = 'feed-1'",

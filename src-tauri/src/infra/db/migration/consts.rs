@@ -172,6 +172,17 @@ BEGIN
     WHERE id = NEW.id;
 END;
 
+CREATE TRIGGER IF NOT EXISTS feeds_stamp_changed_at_on_insert
+AFTER INSERT ON feeds
+FOR EACH ROW
+WHEN NEW.changed_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    UPDATE feeds
+    SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = NEW.id;
+END;
+
 CREATE TRIGGER IF NOT EXISTS tags_stamp_changed_at_on_insert
 AFTER INSERT ON tags
 FOR EACH ROW
