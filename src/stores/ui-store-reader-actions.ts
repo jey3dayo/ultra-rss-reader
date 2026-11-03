@@ -332,11 +332,16 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
         }
 
         const expandedFolderId = selection.type === "folder" ? selection.folderId : options?.expandFolderId;
-        return getReaderScopeResetState(state, selection, {
-          selectionHistory: { entries: state.selectionHistory.entries, index },
-          viewMode: selection.type === "smart" ? getSmartViewMode(selection.kind) : getContextAwareScopeViewMode(state),
-          ...(expandedFolderId ? { expandedFolderIds: new Set(state.expandedFolderIds).add(expandedFolderId) } : {}),
-        });
+        return {
+          ...getReaderScopeResetState(state, selection, {
+            selectionHistory: { entries: state.selectionHistory.entries, index },
+            viewMode:
+              selection.type === "smart" ? getSmartViewMode(selection.kind) : getContextAwareScopeViewMode(state),
+            ...(expandedFolderId ? { expandedFolderIds: new Set(state.expandedFolderIds).add(expandedFolderId) } : {}),
+          }),
+          ...(selection.type === "feed" || selection.type === "folder" ? { isFeedsSectionOpen: true } : {}),
+          ...(selection.type === "tag" ? { isTagsSectionOpen: true } : {}),
+        };
       }),
     selectArticle: (id, options) =>
       set((state) =>

@@ -418,6 +418,26 @@ describe("executeAction", () => {
       expect(visibleFeedIds(selection.type === "feed" ? selection.feedId : null)).toEqual(["feed-a", "feed-b"]);
     });
 
+    it("reopens the collapsed sidebar section that holds the restored selection", () => {
+      seedFeeds(["feed-a", "feed-b"]);
+      startInAccount();
+      useUiStore.getState().selectFeed("feed-a");
+      useUiStore.getState().selectTag("tag-1");
+      useUiStore.getState().selectFeed("feed-b");
+      useUiStore.getState().setIsFeedsSectionOpen(false);
+      useUiStore.getState().setIsTagsSectionOpen(false);
+
+      executeAction("mouse-back");
+
+      expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+      expect(useUiStore.getState().isTagsSectionOpen).toBe(true);
+
+      executeAction("mouse-back");
+
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-a" });
+      expect(useUiStore.getState().isFeedsSectionOpen).toBe(true);
+    });
+
     it("never restores a deleted tag, even while the cached tag list is still stale", () => {
       queryClient.setQueryData(TAGS_QUERY_KEY, [
         { id: "tag-1", name: "one" },
