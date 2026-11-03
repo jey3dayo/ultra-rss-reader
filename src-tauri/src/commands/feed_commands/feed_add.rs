@@ -306,6 +306,6 @@ fn rollback_added_feed_after_command_error(
 fn rollback_added_feed_in_db(db: &Mutex<DbManager>, feed_id: &FeedId) -> Result<(), AppError> {
     let db = lock_db(db)?;
     let feed_repo = SqliteFeedRepository::new(db.writer());
-    feed_repo.delete(feed_id)?;
+    feed_repo.discard_failed_subscription(feed_id)?;
     Ok(())
 }

@@ -157,15 +157,21 @@ fn write_operation_files(
 /// Computes a deterministic digest over the canonical operation set,
 /// excluding `operation_id` and `occurred_at` since both are regenerated on
 /// every export and would otherwise make every digest unique. The exception is
-/// an article's read/starred change time: it is recorded data, and a change that
-/// restores the exported value still has to be exported to win the import merge.
+/// the recorded change time of upserts and additions: a change that restores an
+/// exported value still has to be exported to win the import merge.
 pub fn compute_local_account_sync_digest(operations: &[LocalAccountSyncOperation]) -> String {
     let mut entries: Vec<String> = operations
         .iter()
         .map(|operation| {
             let recorded_change_time = matches!(
                 operation.action,
-                LocalSyncAction::SetRead { .. } | LocalSyncAction::SetStarred { .. }
+                LocalSyncAction::SetRead { .. }
+                    | LocalSyncAction::SetStarred { .. }
+                    | LocalSyncAction::UpsertFolder { .. }
+                    | LocalSyncAction::UpsertFeed { .. }
+                    | LocalSyncAction::AddTag { .. }
+                    | LocalSyncAction::AddArticleTag
+                    | LocalSyncAction::UpsertMuteKeyword
             )
             .then_some(operation.occurred_at);
             serde_json::to_string(&(
@@ -190,26 +196,29 @@ fn build_current_state_operations(
     sync_account_id: &LocalSyncAccountId,
     device_id: &LocalSyncDeviceId,
 ) -> DomainResult<Vec<LocalAccountSyncOperation>> {
-    let now = Utc::now();
     let mut operations = Vec::new();
     let conn = db.reader();
 
     let mut folder_stmt = conn.prepare(
-        "SELECT name, sort_order
+        "SELECT name, sort_order, changed_at
          FROM folders
          WHERE account_id = ?1
          ORDER BY sort_order ASC, name COLLATE NOCASE ASC, id ASC",
     )?;
     let folders = folder_stmt
         .query_map(params![account_id.0], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i32>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    for (name, sort_order) in folders {
+    for (name, sort_order, changed_at) in folders {
         operations.push(operation(
             sync_account_id,
             device_id,
-            now,
+            change_time(changed_at)?,
             LocalSyncEntityKey::Folder {
                 normalized_name: normalize_tag_name(&name)?,
             },
@@ -221,7 +230,7 @@ fn build_current_state_operations(
     }
 
     let mut feed_stmt = conn.prepare(
-        "SELECT f.url, f.title, f.site_url, f.icon_url, folders.name
+        "SELECT f.url, f.title, f.site_url, f.icon_url, folders.name, f.changed_at
          FROM feeds f
          LEFT JOIN folders ON folders.id = f.folder_id
          WHERE f.account_id = ?1
@@ -235,14 +244,15 @@ fn build_current_state_operations(
                 row.get::<_, String>(2)?,
                 row.get::<_, Option<String>>(3)?,
                 row.get::<_, Option<String>>(4)?,
+                row.get::<_, Option<String>>(5)?,
             ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    for (url, title, site_url, icon_url, folder_name) in feeds {
+    for (url, title, site_url, icon_url, folder_name, changed_at) in feeds {
         operations.push(operation(
             sync_account_id,
             device_id,
-            now,
+            change_time(changed_at)?,
             LocalSyncEntityKey::Feed {
                 normalized_feed_url: normalize_feed_url(&url)?,
             },
@@ -289,7 +299,7 @@ fn build_current_state_operations(
         operations.push(operation(
             sync_account_id,
             device_id,
-            article_change_time(read_changed_at)?,
+            change_time(read_changed_at)?,
             LocalSyncEntityKey::Article {
                 article_key: article_key.clone(),
             },
@@ -298,22 +308,24 @@ fn build_current_state_operations(
         operations.push(operation(
             sync_account_id,
             device_id,
-            article_change_time(starred_changed_at)?,
+            change_time(starred_changed_at)?,
             LocalSyncEntityKey::Article { article_key },
             LocalSyncAction::SetStarred { is_starred },
         ));
     }
 
     let mut tag_stmt =
-        conn.prepare("SELECT name FROM tags ORDER BY name COLLATE NOCASE ASC, id ASC")?;
+        conn.prepare("SELECT name, changed_at FROM tags ORDER BY name COLLATE NOCASE ASC, id ASC")?;
     let tags = tag_stmt
-        .query_map([], |row| row.get::<_, String>(0))?
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+        })?
         .collect::<Result<Vec<_>, _>>()?;
-    for name in tags {
+    for (name, changed_at) in tags {
         operations.push(operation(
             sync_account_id,
             device_id,
-            now,
+            change_time(changed_at)?,
             LocalSyncEntityKey::Tag {
                 normalized_name: normalize_tag_name(&name)?,
             },
@@ -322,7 +334,7 @@ fn build_current_state_operations(
     }
 
     let mut article_tag_stmt = conn.prepare(
-        "SELECT f.url, a.remote_id, a.url, a.title, t.name
+        "SELECT f.url, a.remote_id, a.url, a.title, t.name, at.changed_at
          FROM article_tags at
          JOIN articles a ON a.id = at.article_id
          JOIN feeds f ON f.id = a.feed_id
@@ -338,10 +350,11 @@ fn build_current_state_operations(
                 row.get::<_, Option<String>>(2)?,
                 row.get::<_, Option<String>>(3)?,
                 row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5)?,
             ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    for (feed_url, guid, url, title, tag_name) in article_tags {
+    for (feed_url, guid, url, title, tag_name, changed_at) in article_tags {
         let article_key = generate_local_sync_article_key(
             sync_account_id,
             &feed_url,
@@ -351,7 +364,7 @@ fn build_current_state_operations(
         operations.push(operation(
             sync_account_id,
             device_id,
-            now,
+            change_time(changed_at)?,
             LocalSyncEntityKey::ArticleTag {
                 article_key,
                 normalized_tag_name: normalize_tag_name(&tag_name)?,
@@ -361,20 +374,24 @@ fn build_current_state_operations(
     }
 
     let mut mute_stmt = conn.prepare(
-        "SELECT keyword, scope
+        "SELECT keyword, scope, updated_at
          FROM mute_keywords
          ORDER BY lower(trim(keyword)) ASC, scope ASC, id ASC",
     )?;
     let mute_keywords = mute_stmt
         .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    for (keyword, scope) in mute_keywords {
+    for (keyword, scope, updated_at) in mute_keywords {
         operations.push(operation(
             sync_account_id,
             device_id,
-            now,
+            change_time(Some(updated_at))?,
             LocalSyncEntityKey::MuteKeyword {
                 normalized_keyword: normalize_mute_keyword(&keyword)?,
                 scope,
@@ -386,19 +403,15 @@ fn build_current_state_operations(
     Ok(operations)
 }
 
-/// A state that was never changed on this device exports as the epoch, so any recorded change on
+/// A value that was never changed on this device exports as the epoch, so any recorded change on
 /// another device wins on import.
-fn article_change_time(changed_at: Option<String>) -> DomainResult<DateTime<Utc>> {
+fn change_time(changed_at: Option<String>) -> DomainResult<DateTime<Utc>> {
     let Some(changed_at) = changed_at else {
         return Ok(DateTime::UNIX_EPOCH);
     };
     DateTime::parse_from_rfc3339(&changed_at)
         .map(|parsed| parsed.with_timezone(&Utc))
-        .map_err(|error| {
-            DomainError::Parse(format!(
-                "invalid article change time {changed_at:?}: {error}"
-            ))
-        })
+        .map_err(|error| DomainError::Parse(format!("invalid change time {changed_at:?}: {error}")))
 }
 
 fn operation(

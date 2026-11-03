@@ -1212,3 +1212,114 @@ fn rename_rejects_missing_feed() {
     assert_eq!(feed_count, 0);
     assert!(matches!(error, DomainError::Validation(message) if message == "feed not found"));
 }
+
+fn feed_tombstone_count(db: &DbManager, url: &str) -> i64 {
+    db.reader()
+        .query_row(
+            "SELECT COUNT(*) FROM local_sync_tombstones WHERE kind = 'feed' AND key = ?1",
+            params![url],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+#[test]
+fn discard_failed_subscription_removes_the_feed_without_an_unsubscribe_tombstone() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+    let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+    repo.save(&feed).unwrap();
+
+    repo.discard_failed_subscription(&feed.id).unwrap();
+
+    assert!(repo.find_by_id(&feed.id).unwrap().is_none());
+    assert_eq!(
+        feed_tombstone_count(&db, "http://f.com/rss"),
+        0,
+        "a subscription that never completed must not block later imports of the URL"
+    );
+}
+
+#[test]
+fn delete_records_an_unsubscribe_tombstone() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+    let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+    repo.save(&feed).unwrap();
+
+    repo.delete(&feed.id).unwrap();
+
+    assert_eq!(feed_tombstone_count(&db, "http://f.com/rss"), 1);
+}
+
+fn feed_tombstone_removed_at(db: &DbManager, url: &str) -> Option<String> {
+    db.reader()
+        .query_row(
+            "SELECT removed_at FROM local_sync_tombstones WHERE kind = 'feed' AND key = ?1",
+            params![url],
+            |row| row.get(0),
+        )
+        .optional()
+        .unwrap()
+}
+
+#[test]
+fn discard_failed_subscription_keeps_the_tombstone_of_an_earlier_unsubscribe() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+    let first = make_feed(&account_id, "Feed", "http://f.com/rss");
+    repo.save(&first).unwrap();
+    repo.delete(&first.id).unwrap();
+    db.writer()
+        .execute(
+            "UPDATE local_sync_tombstones SET removed_at = '2026-01-01T00:00:00.000Z'
+             WHERE kind = 'feed' AND key = 'http://f.com/rss'",
+            [],
+        )
+        .unwrap();
+
+    let resubscribed = make_feed(&account_id, "Feed", "http://f.com/rss");
+    repo.save(&resubscribed).unwrap();
+    repo.discard_failed_subscription(&resubscribed.id).unwrap();
+
+    assert_eq!(
+        feed_tombstone_removed_at(&db, "http://f.com/rss").as_deref(),
+        Some("2026-01-01T00:00:00.000Z"),
+        "rolling back a failed resubscribe must leave the earlier unsubscribe as it was"
+    );
+}
+
+#[test]
+fn changing_a_feed_url_tombstones_the_old_url_and_stamps_the_feed() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+    let mut feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+    repo.save(&feed).unwrap();
+    db.writer()
+        .execute(
+            "UPDATE feeds SET changed_at = '2000-01-01T00:00:00.000Z'",
+            [],
+        )
+        .unwrap();
+
+    feed.url = "http://f.com/atom".to_string();
+    repo.save(&feed).unwrap();
+
+    assert!(feed_tombstone_removed_at(&db, "http://f.com/rss").is_some());
+    let changed_at: String = db
+        .reader()
+        .query_row(
+            "SELECT changed_at FROM feeds WHERE id = ?1",
+            params![feed.id.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        changed_at.as_str() > "2000-01-01T00:00:00.000Z",
+        "a changed URL changes the sync identity, so the change time must move: {changed_at}"
+    );
+}

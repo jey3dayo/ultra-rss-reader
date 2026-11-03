@@ -472,8 +472,9 @@ fn apply_reorders_existing_folders_despite_the_unique_sort_order_index() {
     let sync_account_id = LocalSyncAccountId("sync-account".to_string());
     seed_account(conn, &account_id);
     conn.execute(
-        "INSERT INTO folders (id, account_id, name, sort_order)
-         VALUES ('folder-a', ?1, 'A', 0), ('folder-b', ?1, 'B', 1)",
+        "INSERT INTO folders (id, account_id, name, sort_order, changed_at)
+         VALUES ('folder-a', ?1, 'A', 0, '1970-01-01T00:00:00.000Z'),
+                ('folder-b', ?1, 'B', 1, '1970-01-01T00:00:00.000Z')",
         params![account_id.0],
     )
     .unwrap();
@@ -580,7 +581,7 @@ fn set_local_read_change(db: &DbManager, changed_at: DateTime<Utc>) {
     db.writer()
         .execute(
             "UPDATE articles SET is_read = 1, read_changed_at = ?1 WHERE id = 'article-existing'",
-            params![format_article_change_time(changed_at)],
+            params![format_change_time(changed_at)],
         )
         .unwrap();
 }
@@ -651,5 +652,105 @@ fn apply_takes_the_file_value_when_both_changes_share_a_time() {
     assert!(
         !article_is_read(&db),
         "a tie must resolve to the file value, as the merge does for competing files"
+    );
+}
+
+#[test]
+fn apply_records_the_file_change_time_and_no_local_tombstone() {
+    let db = DbManager::new_in_memory().unwrap();
+    let conn = db.writer();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    seed_account(conn, &account_id);
+    conn.execute(
+        "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+         VALUES ('mute-1', 'spam', 'title', '1970-01-01T00:00:00Z', '1970-01-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    let projection = merge_local_account_sync_operations([
+        folder_upsert("folder", &sync_account_id, "Tech", 0),
+        operation(
+            "mute",
+            &sync_account_id,
+            LocalSyncEntityKey::MuteKeyword {
+                normalized_keyword: normalize_mute_keyword("spam").unwrap(),
+                scope: "title".to_string(),
+            },
+            LocalSyncAction::RemoveMuteKeyword,
+        ),
+    ])
+    .projection;
+
+    apply_local_account_sync_projection(&db, &account_id, &sync_account_id, &projection).unwrap();
+
+    let changed_at: String = conn
+        .query_row(
+            "SELECT changed_at FROM folders WHERE name = 'Tech'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(changed_at, format_change_time(ts(10)));
+    let tombstones: i64 = conn
+        .query_row("SELECT COUNT(*) FROM local_sync_tombstones", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(tombstones, 0, "an import deletion is not a local deletion");
+}
+
+#[test]
+fn apply_refreshes_an_existing_article_tag_time_so_a_later_add_beats_an_older_removal() {
+    let db = DbManager::new_in_memory().unwrap();
+    let conn = db.writer();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    let article_key = seed_unread_article_with_key(conn, &account_id, &sync_account_id);
+    conn.execute(
+        "INSERT INTO tags (id, name) VALUES ('tag-rust', 'rust')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO article_tags (article_id, tag_id, changed_at)
+         VALUES ('article-existing', 'tag-rust', ?1)",
+        params![format_change_time(ts(5))],
+    )
+    .unwrap();
+    let entity_key = LocalSyncEntityKey::ArticleTag {
+        article_key,
+        normalized_tag_name: normalize_tag_name("rust").unwrap(),
+    };
+    let mut removal = operation(
+        "remove",
+        &sync_account_id,
+        entity_key.clone(),
+        LocalSyncAction::RemoveArticleTag,
+    );
+    removal.occurred_at = ts(10);
+    let mut addition = operation(
+        "add",
+        &sync_account_id,
+        entity_key,
+        LocalSyncAction::AddArticleTag,
+    );
+    addition.occurred_at = ts(20);
+    let projection = merge_local_account_sync_operations([removal, addition]).projection;
+
+    apply_local_account_sync_projection(&db, &account_id, &sync_account_id, &projection).unwrap();
+
+    let changed_at: Option<String> = conn
+        .query_row(
+            "SELECT changed_at FROM article_tags
+             WHERE article_id = 'article-existing' AND tag_id = 'tag-rust'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        changed_at,
+        Some(format_change_time(ts(20))),
+        "the latest add in the projection must win over its older removal"
     );
 }

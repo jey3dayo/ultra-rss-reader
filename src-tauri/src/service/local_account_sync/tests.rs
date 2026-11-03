@@ -419,9 +419,7 @@ fn compute_digest_is_stable_across_differing_operation_ids_and_timestamps() {
         LocalSyncEntityKey::Tag {
             normalized_name: "rust".to_string(),
         },
-        LocalSyncAction::AddTag {
-            display_name: "Rust".to_string(),
-        },
+        LocalSyncAction::RemoveTag,
     );
     let operation_b = LocalAccountSyncOperation {
         operation_id: LocalSyncOperationId("op-2".to_string()),
@@ -448,6 +446,51 @@ fn compute_digest_changes_when_an_article_state_change_time_changes() {
         compute_local_account_sync_digest(&[operation_a]),
         compute_local_account_sync_digest(&[operation_b])
     );
+}
+
+#[test]
+fn compute_digest_changes_when_an_entity_change_time_changes() {
+    let cases = [
+        (
+            LocalSyncEntityKey::Folder {
+                normalized_name: "tech".to_string(),
+            },
+            LocalSyncAction::UpsertFolder {
+                display_name: "Tech".to_string(),
+                sort_order: 0,
+            },
+        ),
+        (
+            LocalSyncEntityKey::Tag {
+                normalized_name: "rust".to_string(),
+            },
+            LocalSyncAction::AddTag {
+                display_name: "rust".to_string(),
+            },
+        ),
+        (
+            LocalSyncEntityKey::MuteKeyword {
+                normalized_keyword: "spam".to_string(),
+                scope: "title".to_string(),
+            },
+            LocalSyncAction::UpsertMuteKeyword,
+        ),
+    ];
+
+    for (entity_key, action) in cases {
+        let before = operation_with("sync-account-a", "op-1", entity_key, action);
+        let after = LocalAccountSyncOperation {
+            occurred_at: ts(999),
+            ..before.clone()
+        };
+
+        assert_ne!(
+            compute_local_account_sync_digest(&[before.clone()]),
+            compute_local_account_sync_digest(&[after]),
+            "a restored value must re-export once its recorded change time moves: {:?}",
+            before.action
+        );
+    }
 }
 
 #[test]
@@ -1028,5 +1071,494 @@ fn export_if_changed_writes_when_a_restored_article_state_has_a_newer_change_tim
             .unwrap()
             .is_some(),
         "an article change that restores the exported value carries a newer change time and must be exported"
+    );
+}
+
+fn seed_entity_fixture(db: &DbManager, account_id: &AccountId) {
+    seed_two_unread_articles(db, account_id);
+    db.writer()
+        .execute_batch(
+            "INSERT INTO folders (id, account_id, name, sort_order) VALUES
+               ('folder-tech', 'account-1', 'Tech', 0),
+               ('folder-news', 'account-1', 'News', 1),
+               ('folder-misc', 'account-1', 'Misc', 2);
+             UPDATE feeds SET folder_id = 'folder-tech' WHERE id = 'feed-1';
+             INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+             VALUES ('feed-2', 'account-1', 'folder-news', 'Feed 2', 'https://example.com/feed2.xml', 'https://example.com', 'inherit', 'inherit');
+             INSERT INTO tags (id, name) VALUES ('tag-rust', 'rust'), ('tag-swift', 'swift');
+             INSERT INTO article_tags (article_id, tag_id) VALUES
+               ('article-x', 'tag-rust'), ('article-y', 'tag-swift');
+             INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+             VALUES ('mute-spam', 'spam', 'title', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');",
+        )
+        .unwrap();
+}
+
+/// Both devices start from the same state; the exporter edits and exports, then the importer
+/// makes its own never-exported edit and imports the exporter's files.
+fn import_after_divergent_edits(exporter_sql: &str, importer_sql: &str) -> DbManager {
+    let account_id = AccountId("account-1".to_string());
+    let exporter = DbManager::new_in_memory().unwrap();
+    let importer = DbManager::new_in_memory().unwrap();
+    seed_entity_fixture(&exporter, &account_id);
+    seed_entity_fixture(&importer, &account_id);
+    let dir = tempfile::tempdir().unwrap();
+    let settings = LocalAccountSyncSettings {
+        device_id: LocalSyncDeviceId("device-b".to_string()),
+        ..seeded_settings(&dir.path().to_string_lossy(), &account_id)
+    };
+
+    SqliteLocalAccountSyncSettingsRepository::new(exporter.writer())
+        .save(&settings)
+        .unwrap();
+    exporter.writer().execute_batch(exporter_sql).unwrap();
+    export_local_account_sync_folder(&exporter, &account_id, &settings).unwrap();
+
+    importer.writer().execute_batch(importer_sql).unwrap();
+    import_local_account_sync_folder(
+        &importer,
+        &account_id,
+        &settings.sync_account_id,
+        dir.path(),
+    )
+    .unwrap();
+    importer
+}
+
+fn query_strings(db: &DbManager, sql: &str) -> Vec<String> {
+    let conn = db.reader();
+    let mut stmt = conn.prepare(sql).unwrap();
+    let values = stmt
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<String>, _>>()
+        .unwrap();
+    values
+}
+
+fn folder_names_in_order(db: &DbManager) -> Vec<String> {
+    query_strings(db, "SELECT name FROM folders ORDER BY sort_order")
+}
+
+fn feed_folder_name(db: &DbManager, feed_id: &str) -> Option<String> {
+    db.reader()
+        .query_row(
+            "SELECT folders.name FROM feeds LEFT JOIN folders ON folders.id = feeds.folder_id
+             WHERE feeds.id = ?1",
+            [feed_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+fn article_tag_pairs(db: &DbManager) -> Vec<String> {
+    query_strings(
+        db,
+        "SELECT at.article_id || ':' || t.name FROM article_tags at
+         JOIN tags t ON t.id = at.tag_id ORDER BY 1",
+    )
+}
+
+fn mute_keywords(db: &DbManager) -> Vec<String> {
+    query_strings(db, "SELECT keyword FROM mute_keywords ORDER BY keyword")
+}
+
+#[test]
+fn import_keeps_unexported_local_folder_rename_and_applies_remote_folder_rename() {
+    let importer = import_after_divergent_edits(
+        "UPDATE folders SET name = 'Daily' WHERE id = 'folder-news'",
+        "UPDATE folders SET name = 'Dev' WHERE id = 'folder-tech'",
+    );
+
+    let names = folder_names_in_order(&importer);
+    assert!(
+        names.contains(&"Daily".to_string()),
+        "the other device's renamed folder should be applied: {names:?}"
+    );
+    assert!(
+        !names.contains(&"Tech".to_string()),
+        "a local folder rename that was never exported must not be undone by re-creating the old name: {names:?}"
+    );
+    assert_eq!(
+        feed_folder_name(&importer, "feed-1").as_deref(),
+        Some("Dev"),
+        "the feed must stay in the locally renamed folder"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_folder_order_and_applies_remote_new_folder() {
+    let importer = import_after_divergent_edits(
+        "INSERT INTO folders (id, account_id, name, sort_order)
+         VALUES ('folder-daily', 'account-1', 'Daily', 3)",
+        "UPDATE folders SET sort_order = sort_order + 10;
+         UPDATE folders SET sort_order = CASE id
+           WHEN 'folder-misc' THEN 0 WHEN 'folder-tech' THEN 1 ELSE 2 END",
+    );
+
+    let order = folder_names_in_order(&importer);
+    assert!(
+        order.contains(&"Daily".to_string()),
+        "the other device's new folder should be applied: {order:?}"
+    );
+    assert_eq!(
+        &order[..3],
+        ["Misc", "Tech", "News"],
+        "a local folder reorder that was never exported must survive the import: {order:?}"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_feed_folder_move_and_applies_remote_feed_move() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET folder_id = 'folder-tech' WHERE id = 'feed-2'",
+        "UPDATE feeds SET folder_id = 'folder-news' WHERE id = 'feed-1'",
+    );
+
+    assert_eq!(
+        feed_folder_name(&importer, "feed-2").as_deref(),
+        Some("Tech"),
+        "the other device's feed move should be applied"
+    );
+    assert_eq!(
+        feed_folder_name(&importer, "feed-1").as_deref(),
+        Some("News"),
+        "a local feed move that was never exported must survive the import"
+    );
+}
+
+const REMOTE_TAG_SQL: &str = "INSERT INTO tags (id, name) VALUES ('tag-remote', 'remote-new');
+     INSERT INTO article_tags (article_id, tag_id) VALUES ('article-y', 'tag-remote')";
+
+#[test]
+fn import_keeps_unexported_local_tag_addition_and_applies_remote_tag() {
+    let importer = import_after_divergent_edits(
+        REMOTE_TAG_SQL,
+        "INSERT INTO tags (id, name) VALUES ('tag-local', 'local-only');
+         INSERT INTO article_tags (article_id, tag_id) VALUES ('article-x', 'tag-local')",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        pairs.contains(&"article-y:remote-new".to_string()),
+        "the other device's new tag and its article link should be applied: {pairs:?}"
+    );
+    assert!(
+        pairs.contains(&"article-x:local-only".to_string()),
+        "a local tag and article link that were never exported must survive the import: {pairs:?}"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_tag_deletion_and_applies_remote_tag() {
+    let importer = import_after_divergent_edits(
+        REMOTE_TAG_SQL,
+        "DELETE FROM article_tags WHERE tag_id = 'tag-rust';
+         DELETE FROM tags WHERE id = 'tag-rust'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    let tags = query_strings(&importer, "SELECT name FROM tags ORDER BY name");
+    assert!(
+        pairs.contains(&"article-y:remote-new".to_string()),
+        "the other device's new tag and its article link should be applied: {pairs:?}"
+    );
+    assert!(
+        !tags.contains(&"rust".to_string()) && !pairs.contains(&"article-x:rust".to_string()),
+        "a local tag deletion that was never exported must not be undone: tags={tags:?} links={pairs:?}"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_article_tag_removal_and_applies_remote_tag() {
+    let importer = import_after_divergent_edits(
+        REMOTE_TAG_SQL,
+        "DELETE FROM article_tags WHERE article_id = 'article-y' AND tag_id = 'tag-swift'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        pairs.contains(&"article-y:remote-new".to_string()),
+        "the other device's new article link should be applied: {pairs:?}"
+    );
+    assert!(
+        !pairs.contains(&"article-y:swift".to_string()),
+        "a local article-tag removal that was never exported must not be undone: {pairs:?}"
+    );
+}
+
+const REMOTE_MUTE_SQL: &str =
+    "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+     VALUES ('mute-remote', 'remote-kw', 'title', '2026-01-02T00:00:00Z', '2026-01-02T00:00:00Z')";
+
+#[test]
+fn import_keeps_unexported_local_mute_keyword_addition_and_applies_remote_one() {
+    let importer = import_after_divergent_edits(
+        REMOTE_MUTE_SQL,
+        "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+         VALUES ('mute-local', 'local-kw', 'title', '2026-01-03T00:00:00Z', '2026-01-03T00:00:00Z')",
+    );
+
+    let keywords = mute_keywords(&importer);
+    assert!(
+        keywords.contains(&"remote-kw".to_string()),
+        "the other device's new mute keyword should be applied: {keywords:?}"
+    );
+    assert!(
+        keywords.contains(&"local-kw".to_string()),
+        "a local mute keyword that was never exported must survive the import: {keywords:?}"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_mute_keyword_deletion_and_applies_remote_one() {
+    let importer = import_after_divergent_edits(
+        REMOTE_MUTE_SQL,
+        "DELETE FROM mute_keywords WHERE id = 'mute-spam'",
+    );
+
+    let keywords = mute_keywords(&importer);
+    assert!(
+        keywords.contains(&"remote-kw".to_string()),
+        "the other device's new mute keyword should be applied: {keywords:?}"
+    );
+    assert!(
+        !keywords.contains(&"spam".to_string()),
+        "a local mute keyword deletion that was never exported must not be undone: {keywords:?}"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_tag_rename_and_applies_remote_tag() {
+    let importer = import_after_divergent_edits(
+        REMOTE_TAG_SQL,
+        "UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+    );
+
+    let tags = query_strings(&importer, "SELECT name FROM tags ORDER BY name");
+    assert!(
+        tags.contains(&"remote-new".to_string()),
+        "the other device's new tag should be applied: {tags:?}"
+    );
+    assert!(
+        tags.contains(&"rustlang".to_string()) && !tags.contains(&"rust".to_string()),
+        "a local tag rename that was never exported must not be undone by re-creating the old name: {tags:?}"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_mute_keyword_scope_change_and_applies_remote_one() {
+    let importer = import_after_divergent_edits(
+        REMOTE_MUTE_SQL,
+        "UPDATE mute_keywords SET scope = 'body', updated_at = '2026-01-04T00:00:00Z'
+         WHERE id = 'mute-spam'",
+    );
+
+    let keywords = mute_keywords(&importer);
+    let spam_scopes = query_strings(
+        &importer,
+        "SELECT scope FROM mute_keywords WHERE keyword = 'spam' ORDER BY scope",
+    );
+    assert!(
+        keywords.contains(&"remote-kw".to_string()),
+        "the other device's new mute keyword should be applied: {keywords:?}"
+    );
+    assert_eq!(
+        spam_scopes,
+        ["body"],
+        "a local scope change that was never exported must not re-create the old scope"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_new_feed_over_an_older_remote_snapshot() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET title = 'Remote title' WHERE id = 'feed-2'",
+        "DELETE FROM feeds WHERE id = 'feed-2';
+         INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-2b', 'account-1', 'folder-tech', 'Local title', 'https://example.com/feed2.xml', 'https://example.com', 'inherit', 'inherit')",
+    );
+
+    let titles = query_strings(
+        &importer,
+        "SELECT title FROM feeds WHERE url = 'https://example.com/feed2.xml'",
+    );
+    assert_eq!(
+        titles,
+        ["Local title"],
+        "a feed subscribed locally and never exported must not be overwritten by an older snapshot"
+    );
+    assert_eq!(
+        feed_folder_name(&importer, "feed-2b").as_deref(),
+        Some("Tech")
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_feed_unsubscribe_and_applies_remote_feed() {
+    let importer = import_after_divergent_edits(
+        "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-3', 'account-1', NULL, 'Feed 3', 'https://example.com/feed3.xml', 'https://example.com', 'inherit', 'inherit')",
+        "DELETE FROM feeds WHERE id = 'feed-2'",
+    );
+
+    let urls = query_strings(&importer, "SELECT url FROM feeds ORDER BY url");
+    assert!(
+        urls.contains(&"https://example.com/feed3.xml".to_string()),
+        "the other device's new feed should be applied: {urls:?}"
+    );
+    assert!(
+        !urls.contains(&"https://example.com/feed2.xml".to_string()),
+        "a local unsubscribe that was never exported must not be undone: {urls:?}"
+    );
+}
+
+const REMOTE_FEED_4_SQL: &str =
+    "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+     VALUES ('feed-4', 'account-1', NULL, 'Remote Feed 4', 'https://example.com/feed4.xml', 'https://example.com', 'inherit', 'inherit')";
+
+#[test]
+fn import_keeps_unexported_local_unsubscribe_of_a_feed_stored_with_a_fragment() {
+    let importer = import_after_divergent_edits(
+        REMOTE_FEED_4_SQL,
+        "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-4', 'account-1', NULL, 'Feed 4', 'https://example.com/feed4.xml#section', 'https://example.com', 'inherit', 'inherit');
+         DELETE FROM feeds WHERE id = 'feed-4'",
+    );
+
+    let urls = query_strings(&importer, "SELECT url FROM feeds ORDER BY url");
+    assert!(
+        !urls.iter().any(|url| url.starts_with("https://example.com/feed4.xml")),
+        "the sync identity drops the fragment, so the unexported unsubscribe must still hold: {urls:?}"
+    );
+}
+
+#[test]
+fn import_updates_a_local_feed_stored_with_a_fragment_instead_of_duplicating_it() {
+    let importer = import_after_divergent_edits(
+        REMOTE_FEED_4_SQL,
+        "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode, changed_at)
+         VALUES ('feed-4', 'account-1', NULL, 'Feed 4', 'https://example.com/feed4.xml#section', 'https://example.com', 'inherit', 'inherit', '1970-01-01T00:00:00.000Z')",
+    );
+
+    let rows = query_strings(
+        &importer,
+        "SELECT url || ' ' || title FROM feeds WHERE url LIKE 'https://example.com/feed4.xml%'",
+    );
+    assert_eq!(
+        rows,
+        vec!["https://example.com/feed4.xml#section Remote Feed 4".to_string()],
+        "the feed with the same sync identity must be updated in place, not inserted again"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_feed_url_change() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET title = 'Remote title' WHERE id = 'feed-2'",
+        "UPDATE feeds SET url = 'https://example.com/feed2-moved.xml' WHERE id = 'feed-2'",
+    );
+
+    let urls = query_strings(&importer, "SELECT url FROM feeds ORDER BY url");
+    assert!(
+        urls.contains(&"https://example.com/feed2-moved.xml".to_string())
+            && !urls.contains(&"https://example.com/feed2.xml".to_string()),
+        "a local URL change that was never exported must not be undone by re-creating the old URL: {urls:?}"
+    );
+}
+
+#[test]
+fn import_keeps_article_tag_removal_made_before_the_tag_was_renamed() {
+    let importer = import_after_divergent_edits(
+        "UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+        "DELETE FROM article_tags WHERE article_id = 'article-x' AND tag_id = 'tag-rust';
+         UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        !pairs.contains(&"article-x:rustlang".to_string()),
+        "a removal made under the old tag name must still hold under the renamed tag: {pairs:?}"
+    );
+}
+
+#[test]
+fn import_shows_a_remote_link_added_between_the_removal_and_the_tag_rename() {
+    let importer = import_after_divergent_edits(
+        "UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust';
+         UPDATE article_tags SET changed_at = '2025-01-01T00:00:00.000Z'
+         WHERE article_id = 'article-x' AND tag_id = 'tag-rust'",
+        "DELETE FROM article_tags WHERE article_id = 'article-x' AND tag_id = 'tag-rust';
+         UPDATE local_sync_tombstones SET removed_at = '2020-01-01T00:00:00.000Z';
+         UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        pairs.contains(&"article-x:rustlang".to_string()),
+        "known gap: the tombstone keeps its original time under the new name, so a remote link added after the removal is shown: {pairs:?}"
+    );
+}
+
+#[test]
+fn import_applies_a_remote_link_when_a_recreated_tag_is_renamed_to_the_remote_name() {
+    let importer = import_after_divergent_edits(
+        "INSERT INTO tags (id, name) VALUES ('tag-b', 'b');
+         INSERT INTO article_tags (article_id, tag_id, changed_at)
+         VALUES ('article-x', 'tag-b', '2025-01-01T00:00:00.000Z')",
+        "DELETE FROM tags WHERE id = 'tag-rust';
+         INSERT INTO tags (id, name) VALUES ('tag-rust-2', 'rust');
+         UPDATE local_sync_tombstones SET removed_at = '2020-01-01T00:00:00.000Z';
+         UPDATE tags SET name = 'b' WHERE id = 'tag-rust-2'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        pairs.contains(&"article-x:b".to_string()),
+        "the old generation's removal must not suppress an independent remote link: {pairs:?}"
+    );
+}
+
+#[test]
+fn import_does_not_restore_links_of_a_tag_deleted_and_created_again() {
+    let importer = import_after_divergent_edits(
+        REMOTE_TAG_SQL,
+        "DELETE FROM tags WHERE id = 'tag-rust';
+         INSERT INTO tags (id, name) VALUES ('tag-rust-again', 'rust')",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        !pairs.contains(&"article-x:rust".to_string()),
+        "deleting a tag removes its links, and creating the same name again must not bring them back: {pairs:?}"
+    );
+}
+
+#[test]
+fn import_keeps_the_folder_of_a_feed_when_the_folder_was_renamed_after_the_remote_move() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET folder_id = NULL WHERE id = 'feed-2'",
+        "UPDATE folders SET name = 'Headlines' WHERE id = 'folder-news'",
+    );
+
+    assert_eq!(
+        feed_folder_name(&importer, "feed-2").as_deref(),
+        Some("Headlines"),
+        "renaming a folder changes the folder name its feeds export, so it must outrank an older remote move"
+    );
+}
+
+#[test]
+fn import_keeps_article_read_state_when_the_feed_url_changed_after_the_remote_change() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET url = 'https://example.com/feed-new.xml' WHERE id = 'feed-1';
+         UPDATE articles SET is_read = 1 WHERE id = 'article-x'",
+        "UPDATE articles SET read_changed_at = '2020-01-01T00:00:00.000Z' WHERE id = 'article-x';
+         UPDATE feeds SET url = 'https://example.com/feed-new.xml' WHERE id = 'feed-1'",
+    );
+
+    assert!(
+        !article_flag(&importer, "article-x", "is_read"),
+        "a URL change changes every article sync key, so the local state kept under the new URL must outrank an older remote change"
     );
 }

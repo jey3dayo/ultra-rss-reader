@@ -264,6 +264,7 @@ mod tests {
             "update_sanitized",
             "rename",
             "delete",
+            "discard_failed_subscription",
             "delete_by_account_remote_entry_ids_and_axis",
             "upsert",
             "record_view",
