@@ -64,10 +64,10 @@ async function openSubscriptionsIndex(page: Page) {
   // Browser state changes stay sequential; only post-navigation assertions below are parallelized.
   const manageSubscriptionsButton = page
     .locator('button:not([tabindex="-1"])')
-    .filter({ hasText: /Manage Subscriptions|購読一覧/i })
+    .filter({ hasText: /Manage subscriptions|購読一覧/i })
     .or(
       page.locator(
-        'button:not([tabindex="-1"])[aria-label="Manage Subscriptions"], button:not([tabindex="-1"])[aria-label="購読一覧"]',
+        'button:not([tabindex="-1"])[aria-label="Manage subscriptions"], button:not([tabindex="-1"])[aria-label="購読一覧"]',
       ),
     )
     .first();
@@ -330,7 +330,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
       await page.goto("/", { waitUntil: "load" });
       const wideSidebar = page.getByTestId("wide-sidebar-content");
       await expect(wideSidebar).toBeVisible();
-      await wideSidebar.getByRole("button", { name: /Manage Subscriptions|購読を管理/i }).click();
+      await wideSidebar.getByRole("button", { name: /Manage subscriptions|購読を管理/i }).click();
       await expect(
         page.getByTestId("workspace-header-title-group").getByRole("heading", { name: /^Subscriptions$|^購読一覧$/i }),
       ).toBeVisible();
@@ -362,7 +362,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expectLocatorsVisibleInParallel([
       page.getByRole("menuitem", { name: /Copy link|リンクをコピー/i }),
       page.getByRole("menuitem", {
-        name: /Open in External Browser|外部ブラウザで開く/i,
+        name: /Open in external browser|外部ブラウザで開く/i,
       }),
     ]);
   });

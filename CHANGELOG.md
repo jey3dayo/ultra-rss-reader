@@ -4,6 +4,31 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.19] - 2026-11-03
+
+### Bug Fixes
+
+- 英語表記のラベルを sentence case に揃えました（`Edit Feed` → `Edit feed`、`Danger Zone` → `Danger zone`、`Sync Now` → `Sync now` など。リーダー、サイドバー、設定の 59 件）。 (#568, #569)
+- 英語の文言から em dash と "successfully" を取り除き、記事リンクのツールチップのホスト名を括弧で示すようにしました。 (#571)
+- 英語の "Please ..." を命令形の短文にしました。画面に出る Rust 側のエラー 3 件（Reading List への追加失敗、フォルダー作成時の並び順の競合など）も同様です。 (#577, #579)
+- 小さい文字の字間を整理しました。補足ラベルと購読詳細のバッジの字間を詰め、記事の日付とショートカット表記の字間を狭めました。 (#576)
+- 10px だった小さい文字 7 か所を 11px（System Micro）に揃えました。購読サマリーのバッジ、購読詳細のバッジ、favicon の代替文字などが、1px 大きくなります。 (#581)
+- 既読・スターの切替アイコンの弾みを抑えました。最大 scale を 1.08 から 1.04 に、スターの最大回転を -10° から -4° にしています。 (#583)
+- 記事本文の見出しにかかる負の字間を、大きい見出し（h1〜h3）だけにしました。h4〜h6 は字間を指定しません。 (#584)
+- `tauri-plugin-updater` を 2.14.1 に更新し、zip の脆弱性 RUSTSEC-2026-0429 を解消しました。 (#574)
+
+### Documentation
+
+- DESIGN.md に、メッセージを原因別に書き分ける指針と、認証情報ストアをプラットフォームごとの名前（Keychain / Windows Credential Manager / OS の資格情報ストア / ローカルファイル）で呼ぶ指針を追加しました。 (#572)
+- DESIGN.md の Typography に System Compact（12px）を追加しました。 (#580)
+- フォルダーの並べ替えモード（`folder_order_mode`）が端末ごとの設定で、ローカル同期の対象外であることを明記しました。 (#573)
+
+### Maintenance
+
+- Storybook の見本、stories、開発用 HUD の大文字の小見出しを `system-micro` に統一しました。 (#567)
+- Storybook で繰り返していた className を共有の定数にまとめました。 (#570, #575)
+- `text-[13px]` / `text-[11px]` / `text-[12px]` を `--font-size-*` トークンに置き換えました。見た目は変わりません。 (#578, #580)
+
 ## [0.67.18] - 2026-11-01
 
 ### Bug Fixes

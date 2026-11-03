@@ -206,7 +206,7 @@ export function SubscriptionsListPane({
             {heading}
           </h2>
           {hasRows ? (
-            <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-surface-1/58 px-2 font-sans text-[11px] font-medium tabular-nums text-foreground-soft shadow-none">
+            <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-surface-1/58 px-2 font-sans text-(length:--font-size-2xs) font-medium tabular-nums text-foreground-soft shadow-none">
               {totalRowCount}
             </span>
           ) : null}
@@ -320,7 +320,7 @@ export function SubscriptionsListPane({
                               </div>
                             }
                             description={
-                              <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
+                              <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-(length:--font-size-2xs) text-foreground-soft">
                                 <LabelChip
                                   tone={row.fetchError ? "danger" : resolveStatusTone(row.status.labelKey)}
                                   size="compact"

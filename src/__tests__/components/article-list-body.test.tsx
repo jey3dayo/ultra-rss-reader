@@ -102,7 +102,7 @@ describe("ArticleListBody", () => {
     expect(screen.getByTestId("article-list-scroll-content")).toHaveAttribute("data-motion-phase", "entering");
 
     fireEvent.contextMenu(row);
-    expect(await screen.findByRole("menuitem", { name: "Mark as Read" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "Mark as read" })).toBeInTheDocument();
     expect(onSelectArticle).not.toHaveBeenCalled();
 
     await user.click(row);
@@ -219,7 +219,7 @@ describe("ArticleListBody", () => {
     fireEvent.contextMenu(screen.getByTestId("article-list-scroll-content"));
 
     const markAllReadItem = await screen.findByRole("menuitem", { name: "Mark all as read" });
-    expect(screen.queryByRole("menuitem", { name: "Mark as Read" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Mark as read" })).not.toBeInTheDocument();
     expect(markAllReadItem.closest('[role="menu"]')?.parentElement).toHaveClass("z-50");
     expect(onSelectArticle).not.toHaveBeenCalled();
 

@@ -339,7 +339,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Manage Subscriptions" }));
+    await user.click(await screen.findByRole("button", { name: "Manage subscriptions" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
@@ -726,7 +726,7 @@ describe("Sidebar", () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.contextMenu(await screen.findByRole("button", { name: /Recently Viewed/ }));
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /Recently viewed/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Clear history" }));
     expect(screen.getAllByText("Clear history").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: /^Clear history\./ }));
@@ -2379,7 +2379,7 @@ describe("Sidebar", () => {
       await Promise.resolve();
     });
     expect(useUiStore.getState().toastMessage).toEqual({
-      message: "Please wait a moment before syncing again",
+      message: "Wait a moment before syncing again",
     });
 
     await act(async () => {
@@ -2787,7 +2787,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
-    const subscriptionsIndexButton = await screen.findByRole("button", { name: "Manage Subscriptions" });
+    const subscriptionsIndexButton = await screen.findByRole("button", { name: "Manage subscriptions" });
     const settingsButton = screen.getByRole("button", { name: "Settings" });
     const footerRow = subscriptionsIndexButton.parentElement;
 
@@ -2809,7 +2809,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Manage Subscriptions" }));
+    await user.click(await screen.findByRole("button", { name: "Manage subscriptions" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
@@ -2829,7 +2829,7 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(useUiStore.getState().settingsOpen).toBe(true);
 
-    await user.click(screen.getByRole("button", { name: "Manage Subscriptions" }));
+    await user.click(screen.getByRole("button", { name: "Manage subscriptions" }));
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
     });

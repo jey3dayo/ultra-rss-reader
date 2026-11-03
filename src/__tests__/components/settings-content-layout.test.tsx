@@ -21,7 +21,7 @@ describe("SettingsContentLayout", () => {
     expect(screen.getByTestId("settings-content-header")).not.toHaveClass("border-b");
     expect(screen.getByRole("heading", { name: "General" })).toHaveClass("text-[22px]", "sm:text-[24px]");
     expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-[color:var(--settings-shell-section-label)]");
-    expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-[13px]");
+    expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-(length:--font-size-sm)");
   });
 
   it("keeps the trailing overflow fade decorative and token-driven", () => {

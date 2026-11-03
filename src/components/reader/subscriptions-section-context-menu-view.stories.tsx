@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import { CONTEXT_MENU_STORY_TRIGGER_CLASS } from "@/components/storybook/context-menu-story-trigger";
 import { ContextMenu } from "@/design-system/context-menu";
 import { SubscriptionsSectionContextMenuView } from "./subscriptions-section-context-menu-view";
 
@@ -16,9 +17,7 @@ const meta = {
   render: (args) => (
     <div className="min-h-48 bg-background p-16">
       <ContextMenu.Root open>
-        <ContextMenu.Trigger className="inline-flex rounded-md border border-border px-3 py-2 text-sm text-foreground">
-          Subscriptions
-        </ContextMenu.Trigger>
+        <ContextMenu.Trigger className={CONTEXT_MENU_STORY_TRIGGER_CLASS}>Subscriptions</ContextMenu.Trigger>
         <SubscriptionsSectionContextMenuView {...args} />
       </ContextMenu.Root>
     </div>

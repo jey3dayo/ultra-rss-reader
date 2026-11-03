@@ -273,7 +273,7 @@ html.vertical-wipe-transition::view-transition-new(root) {
   }
 
   60% {
-    transform: rotate(-10deg) scale(var(--motion-state-toggle-scale-active));
+    transform: rotate(-4deg) scale(var(--motion-state-toggle-scale-active));
     opacity: 1;
   }
 

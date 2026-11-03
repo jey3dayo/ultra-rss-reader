@@ -142,7 +142,7 @@ export function SettingsContentLayout({
                 {title}
               </h2>
               {subtitle ? (
-                <p className="max-w-[42rem] font-sans text-[13px] leading-5 text-[color:var(--settings-shell-section-label)]">
+                <p className="max-w-[42rem] font-sans text-(length:--font-size-sm) leading-5 text-[color:var(--settings-shell-section-label)]">
                   {subtitle}
                 </p>
               ) : null}

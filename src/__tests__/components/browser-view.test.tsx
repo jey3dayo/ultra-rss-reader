@@ -1343,7 +1343,7 @@ describe("BrowserView", () => {
     expect(
       screen.getByText("Use the desktop app for the native preview, or open this page in your external browser."),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Open in External Browser" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Open in external browser" })).toHaveLength(2);
   });
 
   it("hides technical browser failure details unless debug hud is enabled", async () => {

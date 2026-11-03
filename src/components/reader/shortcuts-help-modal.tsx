@@ -170,7 +170,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
                                 >
                                   <th
                                     scope="row"
-                                    className="py-1.5 pr-4 text-left font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)]"
+                                    className="py-1.5 pr-4 text-left font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]"
                                   >
                                     {shortcut.label}
                                   </th>

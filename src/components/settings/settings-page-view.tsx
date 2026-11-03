@@ -131,7 +131,7 @@ function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPa
       >
         <span
           className={cn(
-            "block max-w-full text-left text-[13px] leading-[1.55] break-words text-foreground",
+            "block max-w-full text-left text-(length:--font-size-sm) leading-[1.55] break-words text-foreground",
             usesCodeValue && "font-mono",
             control.valueClassName,
           )}
@@ -147,7 +147,7 @@ function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPa
       <span
         className={cn(
           "block text-right text-sm leading-[1.45] whitespace-nowrap text-foreground sm:max-w-[30rem]",
-          usesCodeValue && "font-mono text-[13px]",
+          usesCodeValue && "font-mono text-(length:--font-size-sm)",
           control.valueClassName,
         )}
       >
@@ -178,8 +178,11 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
           (section.density === "compact" ? "px-3 py-2 sm:px-3 sm:py-2" : "px-3 py-2.5 sm:px-4 sm:py-3"),
         !usesSectionGrid && index !== sections.length - 1 && "mb-4 sm:mb-5",
       )}
-      headingClassName={cn("text-[11px] tracking-[0.04em]", section.density === "compact" ? "mb-1 sm:mb-1" : undefined)}
-      noteClassName={section.density === "compact" ? "mt-1 text-[12px] leading-4 sm:mt-1" : undefined}
+      headingClassName={cn(
+        "text-(length:--font-size-2xs) tracking-[0.04em]",
+        section.density === "compact" ? "mb-1 sm:mb-1" : undefined,
+      )}
+      noteClassName={section.density === "compact" ? "mt-1 text-(length:--font-size-xs) leading-4 sm:mt-1" : undefined}
     >
       {section.controls.map((control) =>
         control.type === "select" ? (

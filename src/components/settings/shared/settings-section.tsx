@@ -30,7 +30,7 @@ export function SettingsSection({
   contentClassName,
 }: SettingsSectionProps) {
   const defaultNoteClassName = cn(
-    "mt-1.5 font-sans text-[13px] leading-[1.5] text-foreground-soft sm:mt-2",
+    "mt-1.5 font-sans text-(length:--font-size-sm) leading-[1.5] text-foreground-soft sm:mt-2",
     PHRASE_AWARE_TEXT_CLASS_NAME,
   );
   const sectionHeading = headingAccessory ? (

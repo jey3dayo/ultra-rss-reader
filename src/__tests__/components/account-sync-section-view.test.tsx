@@ -5,7 +5,7 @@ import { AccountSyncSectionView } from "@/components/settings/account-detail/syn
 
 function expectStandardSettingsActionButton(button: HTMLElement) {
   expect(button).toHaveClass("h-9", "min-h-9", "px-3");
-  expect(button).toHaveClass("text-[13px]", "font-medium");
+  expect(button).toHaveClass("text-(length:--font-size-sm)", "font-medium");
   expect(button).not.toHaveClass("h-11", "px-4");
 }
 

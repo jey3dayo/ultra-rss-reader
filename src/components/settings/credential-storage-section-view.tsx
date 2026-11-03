@@ -51,9 +51,14 @@ export function CredentialStorageSectionView({
         disabled={saving}
         triggerClassName="sm:min-w-[220px]"
       />
-      <p className="text-[13px] leading-[1.5] text-foreground-soft">{description}</p>
+      <p className="text-(length:--font-size-sm) leading-[1.5] text-foreground-soft">{description}</p>
       {storage === "local_file" && (
-        <p className={cn("font-sans text-[13px] leading-[1.5] text-foreground-soft", PHRASE_AWARE_TEXT_CLASS_NAME)}>
+        <p
+          className={cn(
+            "font-sans text-(length:--font-size-sm) leading-[1.5] text-foreground-soft",
+            PHRASE_AWARE_TEXT_CLASS_NAME,
+          )}
+        >
           {localFileWarning}
         </p>
       )}

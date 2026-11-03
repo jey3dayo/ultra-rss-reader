@@ -13,7 +13,7 @@ const DEBUG_HUD_INNER_CARD_CLASS =
 const DEBUG_HUD_INNER_CARD_LIGHT_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-white/[0.045]`;
 const DEBUG_HUD_INNER_CARD_DARK_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-black/24`;
 const DEBUG_HUD_QUIET_BADGE_CLASS =
-  "rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58";
+  "rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono system-micro text-white/58";
 const DEBUG_HUD_ICON_ACTION_CLASS = "size-11 px-0";
 const DEBUG_HUD_POSITIONS = ["bottom-right", "top-left", "top-right", "bottom-left"] as const;
 const DEBUG_HUD_COPY = {
@@ -113,9 +113,7 @@ export function FocusDebugHudView({
       >
         <header className="flex items-start justify-between gap-3 border-b border-white/10 px-3 py-2">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/48">
-              {DEBUG_HUD_COPY.title}
-            </p>
+            <p className="system-micro text-white/48">{DEBUG_HUD_COPY.title}</p>
             <div className="mt-1 flex flex-wrap gap-1.5">
               <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`pane=${focusedPane}`}</span>
               <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`mode=${contentMode}`}</span>
@@ -165,10 +163,10 @@ export function FocusDebugHudView({
             <div
               className={cn(
                 DEBUG_HUD_INNER_CARD_LIGHT_CLASS,
-                "px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84",
+                "px-2.5 py-2 font-mono text-(length:--font-size-2xs) leading-5 text-white/84",
               )}
             >
-              <div className="mb-1 whitespace-nowrap text-[10px] tracking-[0.12em] text-white/42">
+              <div className="mb-1 whitespace-nowrap text-(length:--font-size-2xs) tracking-[0.12em] text-white/42">
                 {DEBUG_HUD_COPY.focusedElement}
               </div>
               <div className="truncate">{`article=${selectedArticleId ?? "none"}`}</div>
@@ -187,13 +185,11 @@ export function FocusDebugHudView({
         ) : (
           <div className="border-b border-white/10 px-3 py-2">
             <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2")}>
-              <div className="line-clamp-2 text-[12px] font-medium leading-5 text-white/84">
+              <div className="line-clamp-2 text-(length:--font-size-xs) font-medium leading-5 text-white/84">
                 {collapsedSummary.label}
               </div>
               {collapsedSummary.meta ? (
-                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/34">
-                  {collapsedSummary.meta}
-                </div>
+                <div className="mt-1 font-mono system-micro text-white/34">{collapsedSummary.meta}</div>
               ) : null}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`closing=${String(browserCloseInFlight)}`}</span>
@@ -207,15 +203,13 @@ export function FocusDebugHudView({
           <div className="border-b border-white/10 px-3 py-2">
             <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2")}>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
-                  {DEBUG_HUD_COPY.geometry}
-                </div>
+                <div className="font-mono system-micro text-white/42">{DEBUG_HUD_COPY.geometry}</div>
                 <DebugHudActionButton
                   type="button"
                   onClick={() => setShowGeometry((current) => !current)}
                   aria-expanded={showGeometry}
                   aria-controls={geometryPanelId}
-                  className="min-h-11 border-transparent bg-transparent px-3 text-[11px] text-white/56 shadow-none hover:border-transparent hover:bg-white/[0.04] hover:text-white/82 focus-visible:border-transparent focus-visible:bg-white/[0.04] focus-visible:text-white/82"
+                  className="min-h-11 border-transparent bg-transparent px-3 text-(length:--font-size-2xs) text-white/56 shadow-none hover:border-transparent hover:bg-white/[0.04] hover:text-white/82 focus-visible:border-transparent focus-visible:bg-white/[0.04] focus-visible:text-white/82"
                 >
                   {showGeometry ? DEBUG_HUD_COPY.hideGeometry : DEBUG_HUD_COPY.showGeometry}
                 </DebugHudActionButton>
@@ -223,7 +217,7 @@ export function FocusDebugHudView({
               {showGeometry ? (
                 <div
                   id={geometryPanelId}
-                  className="grid gap-x-3 gap-y-1.5 font-mono text-[11px] leading-5 sm:grid-cols-[auto_minmax(0,1fr)]"
+                  className="grid gap-x-3 gap-y-1.5 font-mono text-(length:--font-size-2xs) leading-5 sm:grid-cols-[auto_minmax(0,1fr)]"
                 >
                   {browserGeometryRows.map((row) => (
                     <div key={`${row.label}:${row.value}`} className="contents">
@@ -233,7 +227,7 @@ export function FocusDebugHudView({
                   ))}
                 </div>
               ) : (
-                <div className="font-mono text-[11px] leading-5 text-white/56">
+                <div className="font-mono text-(length:--font-size-2xs) leading-5 text-white/56">
                   {browserGeometryRows.map((row) => row.label).join(" · ")}
                 </div>
               )}
@@ -244,12 +238,12 @@ export function FocusDebugHudView({
         {expanded ? (
           <div id={tracePanelId} className="min-h-0 flex-1 p-2">
             <div className={cn(DEBUG_HUD_INNER_CARD_DARK_CLASS, "flex h-full min-h-0 flex-col overflow-hidden")}>
-              <div className="border-b border-white/8 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
+              <div className="border-b border-white/8 px-2.5 py-1.5 font-mono system-micro text-white/42">
                 {DEBUG_HUD_COPY.recentEvents}
               </div>
               <ScrollArea
                 keyboardScrollable
-                className="min-h-0 flex-1 font-mono text-[11px] leading-5 text-white/68"
+                className="min-h-0 flex-1 font-mono text-(length:--font-size-2xs) leading-5 text-white/68"
                 contentClassName="px-2.5 py-2"
               >
                 {visibleTraces.length > 0 ? (
@@ -267,15 +261,11 @@ export function FocusDebugHudView({
         ) : (
           <div className="px-3 py-2">
             <div className={cn(DEBUG_HUD_INNER_CARD_DARK_CLASS, "px-2.5 py-2")}>
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
-                {DEBUG_HUD_COPY.recentEvents}
-              </div>
-              <div className="mt-1.5 font-mono text-[11px] leading-5 text-white/68">
+              <div className="font-mono system-micro text-white/42">{DEBUG_HUD_COPY.recentEvents}</div>
+              <div className="mt-1.5 font-mono text-(length:--font-size-2xs) leading-5 text-white/68">
                 <div className="line-clamp-2 break-words">{latestTrace}</div>
                 {visibleTraces.length > 1 ? (
-                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/34">
-                    +{visibleTraces.length - 1} more
-                  </div>
+                  <div className="mt-1 system-micro text-white/34">+{visibleTraces.length - 1} more</div>
                 ) : null}
               </div>
             </div>

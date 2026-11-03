@@ -733,7 +733,7 @@ describe("AccountDetail", () => {
       );
     });
 
-    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+    await user.click(await screen.findByRole("button", { name: "Sync now" }));
 
     await waitFor(() => {
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
@@ -930,16 +930,16 @@ describe("AccountDetail", () => {
       expect(calls).not.toContain("trigger_sync_account");
       expect(calls).not.toContain("update_account_credentials");
       expect(useUiStore.getState().accountSetupSession?.state).toBe("failed");
-      expect(useUiStore.getState().toastMessage?.message).toContain("Save & Test Connection");
+      expect(useUiStore.getState().toastMessage?.message).toContain("Save & test connection");
       expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveFocus();
-      expect(screen.queryByRole("button", { name: "Check Connection" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Check connection" })).not.toBeInTheDocument();
 
-      await user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
+      await user.click(screen.getByRole("button", { name: "Save & test connection" }));
       await waitFor(() => expect(calls).toContain("test_account_connection"));
       useUiStore.setState({ toastMessage: null });
       await user.click(screen.getByRole("button", { name: "Retry setup" }));
       expect(calls).not.toContain("trigger_sync_account");
-      expect(useUiStore.getState().toastMessage?.message).toContain("Save & Test Connection");
+      expect(useUiStore.getState().toastMessage?.message).toContain("Save & test connection");
       expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveFocus();
 
       await act(async () => verification.resolve({ ...account, connection_verification_status: "verified" }));
@@ -1079,7 +1079,7 @@ describe("AccountDetail", () => {
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
 
-    const clickPromise = user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
+    const clickPromise = user.click(screen.getByRole("button", { name: "Save & test connection" }));
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
@@ -1116,10 +1116,10 @@ describe("AccountDetail", () => {
 
       render(<AccountDetailWithSaveBarHarness />, { wrapper: createWrapper() });
 
-      expect(await screen.findByRole("button", { name: "Check Connection" })).toBeEnabled();
+      expect(await screen.findByRole("button", { name: "Check connection" })).toBeEnabled();
       expect(screen.queryByText("You have unsaved changes")).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Save & Test Connection" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Save & test connection" })).not.toBeInTheDocument();
     });
 
     it("swaps to discard and save-and-test with a status message once a draft exists, and discard restores the saved state", async () => {
@@ -1133,12 +1133,12 @@ describe("AccountDetail", () => {
       await user.type(passwordInput, "new-secret");
 
       expect(screen.getByText("You have unsaved changes")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Save & Test Connection" })).toBeEnabled();
-      expect(screen.queryByRole("button", { name: "Check Connection" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save & test connection" })).toBeEnabled();
+      expect(screen.queryByRole("button", { name: "Check connection" })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Discard" }));
 
-      expect(await screen.findByRole("button", { name: "Check Connection" })).toBeEnabled();
+      expect(await screen.findByRole("button", { name: "Check connection" })).toBeEnabled();
       expect(screen.queryByText("You have unsaved changes")).not.toBeInTheDocument();
       expect(await findPasswordInput()).toHaveValue("••••••••");
     });
@@ -1167,12 +1167,12 @@ describe("AccountDetail", () => {
       const passwordInput = await findPasswordInput();
       await user.click(passwordInput);
       await user.type(passwordInput, "new-secret");
-      await user.click(screen.getByRole("button", { name: "Save & Test Connection" }));
+      await user.click(screen.getByRole("button", { name: "Save & test connection" }));
 
       const testingButton = await screen.findByRole("button", { name: "Checking…" });
       expect(testingButton).toBeDisabled();
       expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
-      expect(screen.queryByRole("button", { name: "Check Connection" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Check connection" })).not.toBeInTheDocument();
 
       await user.click(testingButton);
       expect(calls.filter((cmd) => cmd === "update_account_credentials")).toHaveLength(1);
@@ -1243,7 +1243,7 @@ describe("AccountDetail", () => {
     const passwordInput = await findPasswordInput();
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
-    await user.click(await screen.findByRole("button", { name: "Save & Test Connection" }));
+    await user.click(await screen.findByRole("button", { name: "Save & test connection" }));
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
@@ -1324,7 +1324,7 @@ describe("AccountDetail", () => {
     });
     await user.clear(serverUrlInput);
     await user.type(serverUrlInput, "https://first-draft.example.com");
-    const firstSaveClick = user.click(await screen.findByRole("button", { name: "Save & Test Connection" }));
+    const firstSaveClick = user.click(await screen.findByRole("button", { name: "Save & test connection" }));
 
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
@@ -1333,7 +1333,7 @@ describe("AccountDetail", () => {
 
     await user.clear(serverUrlInput);
     await user.type(serverUrlInput, "https://second-draft.example.com");
-    await user.click(screen.getByRole("button", { name: "Copy Server URL" }));
+    await user.click(screen.getByRole("button", { name: "Copy server URL" }));
 
     expect(calls).toContainEqual({
       cmd: "copy_to_clipboard",
@@ -1351,7 +1351,7 @@ describe("AccountDetail", () => {
       expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(0);
     });
 
-    const secondSaveButton = await screen.findByRole("button", { name: "Save & Test Connection" });
+    const secondSaveButton = await screen.findByRole("button", { name: "Save & test connection" });
     await waitFor(() => expect(secondSaveButton).toBeEnabled());
     const secondSaveClick = user.click(secondSaveButton);
 
@@ -1592,7 +1592,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Check Connection" }));
+    await user.click(await screen.findByRole("button", { name: "Check connection" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).not.toBeNull();
@@ -1632,7 +1632,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Copy Server URL" }));
+    await user.click(await screen.findByRole("button", { name: "Copy server URL" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -1673,7 +1673,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Copy Server URL" }));
+    await user.click(await screen.findByRole("button", { name: "Copy server URL" }));
 
     expect(calls.some((call) => call.cmd === "copy_to_clipboard")).toBe(false);
     expect(showToast).toHaveBeenCalledWith("Failed to copy server URL: Server URL is required");
@@ -1903,7 +1903,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+    await user.click(await screen.findByRole("button", { name: "Sync now" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
@@ -1953,7 +1953,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+    await user.click(await screen.findByRole("button", { name: "Sync now" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
@@ -1996,7 +1996,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+    await user.click(await screen.findByRole("button", { name: "Sync now" }));
 
     expect(useUiStore.getState().settingsLoading).toBe(false);
   });
@@ -2042,7 +2042,7 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+    await user.click(await screen.findByRole("button", { name: "Sync now" }));
     expect(await screen.findByRole("button", { name: /Syncing/ })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: /Syncing/ }));
 
@@ -2054,7 +2054,7 @@ describe("AccountDetail", () => {
     resolveSync();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Sync Now" })).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Sync now" })).not.toBeDisabled();
     });
   });
 

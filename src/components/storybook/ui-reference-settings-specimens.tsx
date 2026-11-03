@@ -24,6 +24,9 @@ import {
 } from "@/design-system";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
+const PRIMITIVE_STATE_ROW_CLASS =
+  "flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2";
+
 type FormRowsSpecimenProps = {
   livePreview: boolean;
   onLivePreviewChange: (next: boolean) => void;
@@ -318,19 +321,19 @@ export function PrimitiveControlMatrixSpecimen() {
             </SelectPopup>
           </Select>
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+        <div className={PRIMITIVE_STATE_ROW_CLASS}>
           <span className="font-sans text-xs text-foreground/72">Checkbox / checked</span>
           <Checkbox aria-label="Primitive checkbox checked" checked onCheckedChange={() => {}} />
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+        <div className={PRIMITIVE_STATE_ROW_CLASS}>
           <span className="font-sans text-xs text-foreground/72">Checkbox / disabled</span>
           <Checkbox aria-label="Primitive checkbox disabled" disabled />
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+        <div className={PRIMITIVE_STATE_ROW_CLASS}>
           <span className="font-sans text-xs text-foreground/72">Switch / checked</span>
           <Switch aria-label="Primitive switch checked" checked onCheckedChange={() => {}} />
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/70 px-3 py-2">
+        <div className={PRIMITIVE_STATE_ROW_CLASS}>
           <span className="font-sans text-xs text-foreground/72">Switch / disabled</span>
           <Switch aria-label="Primitive switch disabled" disabled />
         </div>
@@ -374,7 +377,7 @@ export function DisabledSwitchSpecimen() {
       >
         <LabeledControlRow label="ミュート時に自動既読">
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-[11px] text-foreground/72">
+            <span className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-(length:--font-size-2xs) text-foreground/72">
               工事中
             </span>
             <GradientSwitch checked={false} disabled aria-label="ミュート時に自動既読" />
