@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { TAGS_QUERY_KEY } from "@/lib/query/query-keys";
 import { getVisibleSidebarFeeds } from "@/lib/sidebar/sidebar-feed-tree";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenMock } = vi.hoisted(() => ({
@@ -436,6 +437,22 @@ describe("executeAction", () => {
 
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-a" });
       expect(useUiStore.getState().isFeedsSectionOpen).toBe(true);
+    });
+
+    it("skips smart views hidden by sidebar preferences", () => {
+      const { prefs } = usePreferencesStore.getState();
+      prefs.show_sidebar_starred = "false";
+      try {
+        startInAccount();
+        useUiStore.getState().selectSmartView("starred");
+        useUiStore.getState().selectSmartView("recent");
+
+        executeAction("mouse-back");
+
+        expect(useUiStore.getState().selection).toEqual({ type: "all" });
+      } finally {
+        delete prefs.show_sidebar_starred;
+      }
     });
 
     it("never restores a deleted tag, even while the cached tag list is still stale", () => {
