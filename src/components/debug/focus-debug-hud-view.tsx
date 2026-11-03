@@ -166,7 +166,7 @@ export function FocusDebugHudView({
                 "px-2.5 py-2 font-mono text-(length:--font-size-2xs) leading-5 text-white/84",
               )}
             >
-              <div className="mb-1 whitespace-nowrap text-[10px] tracking-[0.12em] text-white/42">
+              <div className="mb-1 whitespace-nowrap text-(length:--font-size-2xs) tracking-[0.12em] text-white/42">
                 {DEBUG_HUD_COPY.focusedElement}
               </div>
               <div className="truncate">{`article=${selectedArticleId ?? "none"}`}</div>

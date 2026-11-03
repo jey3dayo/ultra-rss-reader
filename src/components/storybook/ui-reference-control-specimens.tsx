@@ -615,7 +615,7 @@ export function SpecializedButtonPatternsSpecimen() {
             <ShortcutKeyButton recording>Press a key</ShortcutKeyButton>
             <div className="flex flex-col items-stretch gap-1">
               <ShortcutKeyButton conflict>⌘R</ShortcutKeyButton>
-              <span className="text-[10px] text-state-danger-foreground">Conflict</span>
+              <span className="text-(length:--font-size-2xs) text-state-danger-foreground">Conflict</span>
             </div>
           </div>
         </div>

@@ -353,7 +353,7 @@ export function SubscriptionsOverviewSummary({
                   <SummaryText as="p" variant="label">
                     {card.label}
                   </SummaryText>
-                  <span className="rounded-full border border-border/55 bg-background/70 px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-foreground-soft">
+                  <span className="rounded-full border border-border/55 bg-background/70 px-2.5 py-1 text-(length:--font-size-2xs) font-medium tracking-[0.12em] text-foreground-soft">
                     {resolveStaticBadgeLabel(labels)}
                   </span>
                 </div>
