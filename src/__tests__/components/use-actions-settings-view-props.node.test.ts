@@ -21,8 +21,8 @@ describe("useActionsSettingsViewProps", () => {
     expect(props.services[0]).toEqual(
       expect.objectContaining({
         id: "action-copy-link",
-        label: "Copy Link",
-        toggleAriaLabel: "Show in toolbar: Copy Link",
+        label: "Copy link",
+        toggleAriaLabel: "Show in toolbar: Copy link",
         checked: true,
       }),
     );

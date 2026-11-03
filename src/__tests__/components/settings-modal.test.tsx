@@ -929,7 +929,7 @@ describe("SettingsModal", () => {
     );
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Delete Account" }));
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
     // AppConfirmDialog titles the dialog with the pending action's label, so the
     // delete confirmation's accessible name is the delete action, not a generic word.
     const confirmDialog = await screen.findByRole("dialog", {
@@ -995,7 +995,7 @@ describe("SettingsModal", () => {
     );
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Delete Account" }));
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
     await holdToConfirmRealTime(
       within(await screen.findByRole("dialog", { name: "Delete" })).getByRole("button", { name: /^Delete\b/ }),
     );
@@ -1042,7 +1042,7 @@ describe("SettingsModal", () => {
     await user.click(screen.getByRole("button", { name: "Development" }));
 
     expect(screen.getByRole("button", { name: "Development" })).toBeInTheDocument();
-    expect(await screen.findByRole("switch", { name: "Developer Mode" })).toBeInTheDocument();
+    expect(await screen.findByRole("switch", { name: "Developer mode" })).toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Show layout HUD" })).not.toBeInTheDocument();
   });
 
@@ -1056,7 +1056,7 @@ describe("SettingsModal", () => {
     await user.click(screen.getByRole("button", { name: "Development" }));
 
     expect(await screen.findByRole("switch", { name: "Show layout HUD" })).toBeInTheDocument();
-    expect(screen.queryByText("Developer Overlays")).not.toBeInTheDocument();
+    expect(screen.queryByText("Developer overlays")).not.toBeInTheDocument();
   });
 
   it("keeps direct debug selection on the debug page when developer mode is disabled", async () => {
@@ -1072,7 +1072,7 @@ describe("SettingsModal", () => {
     });
 
     expect(screen.getByRole("button", { name: "Development" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Developer Mode" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Developer mode" })).toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Show layout HUD" })).not.toBeInTheDocument();
   });
 

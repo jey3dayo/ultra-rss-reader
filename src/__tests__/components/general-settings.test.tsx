@@ -17,10 +17,10 @@ describe("GeneralSettings", () => {
 
     render(<GeneralSettings />, { wrapper: createWrapper() });
 
-    const unread = screen.getByRole("switch", { name: "Show Unread in sidebar" });
-    const starred = screen.getByRole("switch", { name: "Show Starred in sidebar" });
-    const recent = screen.getByRole("switch", { name: "Show Recently Viewed in sidebar" });
-    const tags = screen.getByRole("switch", { name: "Show Tags in sidebar" });
+    const unread = screen.getByRole("switch", { name: "Show unread in sidebar" });
+    const starred = screen.getByRole("switch", { name: "Show starred in sidebar" });
+    const recent = screen.getByRole("switch", { name: "Show recently viewed in sidebar" });
+    const tags = screen.getByRole("switch", { name: "Show tags in sidebar" });
 
     expect(unread).toBeChecked();
     expect(starred).toBeChecked();

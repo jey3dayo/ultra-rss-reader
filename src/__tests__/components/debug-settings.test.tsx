@@ -62,7 +62,7 @@ describe("DebugSettings", () => {
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("Developer Overlays")).toBeInTheDocument();
+    expect(screen.getByText("Developer overlays")).toBeInTheDocument();
     const visibilitySelect = screen.getByRole("combobox", { name: "Agentation" });
     expect(visibilitySelect).toHaveTextContent("Always show");
 

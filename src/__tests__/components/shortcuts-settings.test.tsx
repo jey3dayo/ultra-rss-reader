@@ -50,12 +50,12 @@ describe("ShortcutsSettings", () => {
     render(<ShortcutsSettings />, { wrapper: createWrapper() });
 
     expect(screen.getByRole("heading", { name: "Shortcuts" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset to defaults" })).toBeInTheDocument();
 
     await i18n.changeLanguage("ja");
 
     expect(screen.getByRole("heading", { name: "Shortcuts" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset to defaults" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "ショートカット" })).not.toBeInTheDocument();
   });
 
@@ -119,7 +119,7 @@ describe("ShortcutsSettings", () => {
     render(<ShortcutsSettings />, { wrapper: createWrapper() });
 
     expect(screen.getByTestId("shortcut-badge-open_settings")).toHaveTextContent("⌘ ,");
-    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset to defaults" })).toBeDisabled();
 
     usePreferencesStore.setState({
       prefs: {
@@ -130,7 +130,7 @@ describe("ShortcutsSettings", () => {
       setPref,
     });
 
-    await user.click(screen.getByRole("button", { name: "Reset to Defaults" }));
+    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
 
     expect(setPref).toHaveBeenCalledWith("shortcut_next_article", "j");
     expect(setPref).not.toHaveBeenCalledWith("shortcut_open_settings", "⌘,");
