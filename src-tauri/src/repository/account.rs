@@ -29,6 +29,7 @@ pub trait AccountRepository {
     ) -> DomainResult<()>;
     fn rename(&self, id: &AccountId, name: &str) -> DomainResult<()>;
     fn delete(&self, id: &AccountId) -> DomainResult<()>;
+    /// A per-device setting: local account sync neither exports nor imports it, so each device keeps its own mode.
     fn get_folder_order_mode(&self, id: &AccountId) -> DomainResult<FolderOrderMode>;
     fn set_folder_order_mode(&self, id: &AccountId, mode: FolderOrderMode) -> DomainResult<()>;
 }
