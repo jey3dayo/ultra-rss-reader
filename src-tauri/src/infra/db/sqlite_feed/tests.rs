@@ -1212,3 +1212,44 @@ fn rename_rejects_missing_feed() {
     assert_eq!(feed_count, 0);
     assert!(matches!(error, DomainError::Validation(message) if message == "feed not found"));
 }
+
+fn feed_tombstone_count(db: &DbManager, url: &str) -> i64 {
+    db.reader()
+        .query_row(
+            "SELECT COUNT(*) FROM local_sync_tombstones WHERE kind = 'feed' AND key = ?1",
+            params![url],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+#[test]
+fn discard_failed_subscription_removes_the_feed_without_an_unsubscribe_tombstone() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+    let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+    repo.save(&feed).unwrap();
+
+    repo.discard_failed_subscription(&feed.id).unwrap();
+
+    assert!(repo.find_by_id(&feed.id).unwrap().is_none());
+    assert_eq!(
+        feed_tombstone_count(&db, "http://f.com/rss"),
+        0,
+        "a subscription that never completed must not block later imports of the URL"
+    );
+}
+
+#[test]
+fn delete_records_an_unsubscribe_tombstone() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let repo = SqliteFeedRepository::new(db.writer());
+    let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+    repo.save(&feed).unwrap();
+
+    repo.delete(&feed.id).unwrap();
+
+    assert_eq!(feed_tombstone_count(&db, "http://f.com/rss"), 1);
+}

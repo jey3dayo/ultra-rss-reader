@@ -247,6 +247,19 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         Ok(())
     }
 
+    fn discard_failed_subscription(&self, feed_id: &FeedId) -> DomainResult<()> {
+        let feed = self.find_by_id(feed_id)?;
+        self.delete(feed_id)?;
+        if let Some(feed) = feed {
+            self.conn.execute(
+                "DELETE FROM local_sync_tombstones
+                 WHERE kind = 'feed' AND account_id = ?1 AND key = ?2",
+                params![feed.account_id.0, feed.url],
+            )?;
+        }
+        Ok(())
+    }
+
     fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()> {
         let affected_rows = self.conn.execute(
             "UPDATE feeds SET title = ?1 WHERE id = ?2",

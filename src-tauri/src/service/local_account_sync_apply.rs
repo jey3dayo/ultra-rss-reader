@@ -609,6 +609,9 @@ fn apply_article_tags(
             ],
         )?;
         report.article_tags_added += inserted;
+        if inserted == 0 {
+            refresh_article_tag_change_time(conn, &article_id.article_id.0, &tag_id.0, added_at)?;
+        }
     }
     for ((key, normalized_tag_name), removed_at) in &projection.article_tag_tombstones {
         let Some(article_id) = article_ids.get(&key.0) else {
@@ -618,15 +621,7 @@ fn apply_article_tags(
         let Some((tag_id, _)) = find_tag_by_normalized_name(conn, normalized_tag_name)? else {
             continue;
         };
-        let local_added_at: Option<String> = conn
-            .query_row(
-                "SELECT changed_at FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
-                params![article_id.article_id.0, tag_id.0],
-                |row| row.get(0),
-            )
-            .optional()?
-            .flatten();
-        if parse_change_time("article tag changed_at", local_added_at)?
+        if article_tag_changed_at(conn, &article_id.article_id.0, &tag_id.0)?
             .is_some_and(|added_at| added_at > *removed_at)
         {
             continue;
@@ -639,6 +634,38 @@ fn apply_article_tags(
         )?;
         report.article_tags_removed += deleted;
     }
+    Ok(())
+}
+
+fn article_tag_changed_at(
+    conn: &Connection,
+    article_id: &str,
+    tag_id: &str,
+) -> DomainResult<Option<DateTime<Utc>>> {
+    let changed_at: Option<String> = conn
+        .query_row(
+            "SELECT changed_at FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
+            params![article_id, tag_id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .flatten();
+    parse_change_time("article tag changed_at", changed_at)
+}
+
+fn refresh_article_tag_change_time(
+    conn: &Connection,
+    article_id: &str,
+    tag_id: &str,
+    added_at: DateTime<Utc>,
+) -> DomainResult<()> {
+    if article_tag_changed_at(conn, article_id, tag_id)?.is_some_and(|local| local >= added_at) {
+        return Ok(());
+    }
+    conn.execute(
+        "UPDATE article_tags SET changed_at = ?3 WHERE article_id = ?1 AND tag_id = ?2",
+        params![article_id, tag_id, format_change_time(added_at)],
+    )?;
     Ok(())
 }
 

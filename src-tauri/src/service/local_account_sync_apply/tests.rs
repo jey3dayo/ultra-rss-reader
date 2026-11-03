@@ -699,3 +699,58 @@ fn apply_records_the_file_change_time_and_no_local_tombstone() {
         .unwrap();
     assert_eq!(tombstones, 0, "an import deletion is not a local deletion");
 }
+
+#[test]
+fn apply_refreshes_an_existing_article_tag_time_so_a_later_add_beats_an_older_removal() {
+    let db = DbManager::new_in_memory().unwrap();
+    let conn = db.writer();
+    let account_id = AccountId("local-account".to_string());
+    let sync_account_id = LocalSyncAccountId("sync-account".to_string());
+    let article_key = seed_unread_article_with_key(conn, &account_id, &sync_account_id);
+    conn.execute(
+        "INSERT INTO tags (id, name) VALUES ('tag-rust', 'rust')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO article_tags (article_id, tag_id, changed_at)
+         VALUES ('article-existing', 'tag-rust', ?1)",
+        params![format_change_time(ts(5))],
+    )
+    .unwrap();
+    let entity_key = LocalSyncEntityKey::ArticleTag {
+        article_key,
+        normalized_tag_name: normalize_tag_name("rust").unwrap(),
+    };
+    let mut removal = operation(
+        "remove",
+        &sync_account_id,
+        entity_key.clone(),
+        LocalSyncAction::RemoveArticleTag,
+    );
+    removal.occurred_at = ts(10);
+    let mut addition = operation(
+        "add",
+        &sync_account_id,
+        entity_key,
+        LocalSyncAction::AddArticleTag,
+    );
+    addition.occurred_at = ts(20);
+    let projection = merge_local_account_sync_operations([removal, addition]).projection;
+
+    apply_local_account_sync_projection(&db, &account_id, &sync_account_id, &projection).unwrap();
+
+    let changed_at: Option<String> = conn
+        .query_row(
+            "SELECT changed_at FROM article_tags
+             WHERE article_id = 'article-existing' AND tag_id = 'tag-rust'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        changed_at,
+        Some(format_change_time(ts(20))),
+        "the latest add in the projection must win over its older removal"
+    );
+}

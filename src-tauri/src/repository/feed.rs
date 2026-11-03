@@ -16,6 +16,9 @@ pub trait FeedRepository {
     ) -> DomainResult<Option<Feed>>;
     fn find_by_url(&self, account_id: &AccountId, url: &str) -> DomainResult<Option<Feed>>;
     fn delete(&self, feed_id: &FeedId) -> DomainResult<()>;
+    /// Removes a feed whose subscription never completed, leaving no unsubscribe record for
+    /// local account sync.
+    fn discard_failed_subscription(&self, feed_id: &FeedId) -> DomainResult<()>;
     fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()>;
     fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()>;
     fn update_display_settings(
