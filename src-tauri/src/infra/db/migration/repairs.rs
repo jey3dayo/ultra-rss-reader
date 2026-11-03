@@ -9,7 +9,9 @@ use super::consts::{
     V22_LAST_EXPORT_DIGEST_COLUMN, V22_LAST_EXPORT_DIGEST_SQL, V24_FEED_ICON_URL_COLUMN,
     V24_FEED_ICON_URL_SQL, V27_FOLDER_ORDER_MODE_COLUMN, V27_FOLDER_ORDER_MODE_SQL,
     V28_READ_CHANGED_AT_COLUMN, V28_READ_CHANGED_AT_SQL, V28_STAMP_TRIGGERS_SQL,
-    V28_STARRED_CHANGED_AT_COLUMN, V28_STARRED_CHANGED_AT_SQL, V8_READER_MODE_COLUMN,
+    V28_STARRED_CHANGED_AT_COLUMN, V28_STARRED_CHANGED_AT_SQL, V29_ARTICLE_TAGS_CHANGED_AT_SQL,
+    V29_CHANGED_AT_COLUMN, V29_FEEDS_CHANGED_AT_SQL, V29_FOLDERS_CHANGED_AT_SQL,
+    V29_LOCAL_SYNC_TABLES_SQL, V29_TAGS_CHANGED_AT_SQL, V29_TRIGGERS_SQL, V8_READER_MODE_COLUMN,
     V8_WEB_PREVIEW_MODE_COLUMN,
 };
 use super::{set_schema_version, table_exists, table_has_column};
@@ -199,6 +201,22 @@ pub(super) fn apply_v28_article_state_change_times(conn: &Connection) -> DomainR
     conn.execute_batch(V28_STAMP_TRIGGERS_SQL)?;
 
     set_schema_version(conn, 28)?;
+    Ok(())
+}
+
+pub(super) fn apply_v29_local_sync_entity_change_times(conn: &Connection) -> DomainResult<()> {
+    for (table_name, sql) in [
+        ("folders", V29_FOLDERS_CHANGED_AT_SQL),
+        ("feeds", V29_FEEDS_CHANGED_AT_SQL),
+        ("tags", V29_TAGS_CHANGED_AT_SQL),
+        ("article_tags", V29_ARTICLE_TAGS_CHANGED_AT_SQL),
+    ] {
+        add_column_if_missing(conn, table_name, V29_CHANGED_AT_COLUMN, sql)?;
+    }
+    conn.execute_batch(V29_LOCAL_SYNC_TABLES_SQL)?;
+    conn.execute_batch(V29_TRIGGERS_SQL)?;
+
+    set_schema_version(conn, 29)?;
     Ok(())
 }
 

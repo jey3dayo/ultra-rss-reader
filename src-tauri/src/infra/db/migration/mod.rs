@@ -18,8 +18,8 @@ use repairs::{
     apply_v16_account_connection_verification, apply_v20_article_account_ordered_indexes,
     apply_v22_local_account_sync_export_state, apply_v24_feed_icon_url,
     apply_v27_account_folder_order_mode, apply_v28_article_state_change_times,
-    apply_v8_feed_reader_preview_modes, feed_mode_columns_need_repair,
-    repair_missing_feed_mode_columns,
+    apply_v29_local_sync_entity_change_times, apply_v8_feed_reader_preview_modes,
+    feed_mode_columns_need_repair, repair_missing_feed_mode_columns,
 };
 
 /// Result of a migration run.
@@ -40,7 +40,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 28;
+pub const LATEST_VERSION: i32 = 29;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -146,6 +146,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 28 {
         apply_v28_article_state_change_times(&tx)?;
+    }
+    if from_version < 29 {
+        apply_v29_local_sync_entity_change_times(&tx)?;
     }
 
     let to_version = read_schema_version(&tx)?;
