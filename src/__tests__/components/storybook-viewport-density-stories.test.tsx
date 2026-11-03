@@ -132,7 +132,7 @@ describe("Storybook viewport density fixtures", () => {
 
     expect(screen.getByText("Web Preview could not load.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry Web Preview" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Open in External Browser" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Open in external browser" }).length).toBeGreaterThan(0);
   });
 
   it("keeps the settings modal narrow fixture focused on modal controls and rails", () => {

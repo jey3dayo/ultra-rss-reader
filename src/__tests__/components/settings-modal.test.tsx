@@ -781,7 +781,7 @@ describe("SettingsModal", () => {
     await user.click(screen.getByRole("button", { name: "Edit Tech" }));
 
     const renameDialog = await screen.findByRole("dialog", {
-      name: "Edit Tag",
+      name: "Edit tag",
     });
     const renameInput = within(renameDialog).getByRole("textbox", {
       name: "Name",
@@ -797,7 +797,7 @@ describe("SettingsModal", () => {
     await user.click(screen.getByRole("button", { name: "Delete Later" }));
 
     const deleteDialog = await screen.findByRole("dialog", {
-      name: "Delete Tag",
+      name: "Delete tag",
     });
     await user.click(
       within(deleteDialog).getByRole("button", {

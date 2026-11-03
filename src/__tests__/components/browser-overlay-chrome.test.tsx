@@ -287,7 +287,7 @@ describe("BrowserOverlayChrome", () => {
       "Web back",
       "Web forward",
       "Reload page",
-      "Open in External Browser",
+      "Open in external browser",
       "Share",
     ]);
   });
@@ -426,7 +426,7 @@ describe("BrowserOverlayChrome", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in external browser" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Custom Action A" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Custom Action B" })).not.toBeInTheDocument();
   });
@@ -444,7 +444,7 @@ describe("BrowserOverlayChrome", () => {
       />,
     );
 
-    expect(getToolbarButtonLabels()).toEqual(["Open in External Browser", "Share"]);
+    expect(getToolbarButtonLabels()).toEqual(["Open in external browser", "Share"]);
   });
 
   it("keeps trailing chrome tooltips out of the native webview area", async () => {
@@ -459,9 +459,9 @@ describe("BrowserOverlayChrome", () => {
       />,
     );
 
-    await user.hover(screen.getByRole("button", { name: "Open in External Browser" }));
+    await user.hover(screen.getByRole("button", { name: "Open in external browser" }));
 
-    expect(await screen.findByText("Open in External Browser")).toHaveAttribute("data-app-tooltip-side", "left");
+    expect(await screen.findByText("Open in external browser")).toHaveAttribute("data-app-tooltip-side", "left");
   });
 
   it("keeps leading chrome tooltips out of the native webview area", async () => {

@@ -12,7 +12,7 @@ describe("DeleteTagDialogView", () => {
     render(<DeleteTagDialogView open={true} tagName="Work" onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Delete Tag")).toBeInTheDocument();
+    expect(screen.getByText("Delete tag")).toBeInTheDocument();
     expect(screen.getByText(/Work/)).toBeInTheDocument();
     expect(screen.getByText(/This cannot be undone/)).toBeInTheDocument();
     expect(screen.getByText(/Work/).closest("p")).toHaveClass("text-foreground-soft");

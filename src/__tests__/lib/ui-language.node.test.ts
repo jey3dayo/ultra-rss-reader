@@ -87,7 +87,7 @@ describe("resolveUiLanguage", () => {
     expect(copy).toBe(browserMeaningCopyByLanguage[language]);
     expect(copy).toMatchObject({
       previewAction: language === "ja" ? "Webプレビューを開く" : "Open Web Preview",
-      externalBrowserAction: language === "ja" ? "外部ブラウザで開く" : "Open in External Browser",
+      externalBrowserAction: language === "ja" ? "外部ブラウザで開く" : "Open in external browser",
       readerDisplayMode: language === "ja" ? "本文のみ" : "Article text only",
       previewDisplayMode: language === "ja" ? "本文 + Webプレビュー" : "Article text + Web Preview",
       inAppBrowserTarget: language === "ja" ? "Webプレビュー" : "Web Preview",
