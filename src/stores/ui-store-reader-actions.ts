@@ -6,7 +6,11 @@ import {
   getRetainedArticleIdsAfterSelectingArticle,
 } from "@/lib/articles/article-retention";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
-import { createSelectionHistory, pushSelectionHistory } from "@/lib/reader/selection-history";
+import {
+  createSelectionHistory,
+  pushSelectionHistory,
+  removeSelectionsFromHistory,
+} from "@/lib/reader/selection-history";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import type {
@@ -309,11 +313,15 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
       ),
     handleTagDeleted: (deletedTagId) =>
       set((state) => {
+        const selectionHistory = removeSelectionsFromHistory(
+          state.selectionHistory,
+          (selection) => selection.type === "tag" && selection.tagId === deletedTagId,
+        );
         if (state.selection.type !== "tag" || state.selection.tagId !== deletedTagId) {
-          return state;
+          return selectionHistory === state.selectionHistory ? state : { selectionHistory };
         }
 
-        return getReaderScopeResetState(state, { type: "all" });
+        return getReaderScopeResetState({ selectionHistory }, { type: "all" });
       }),
     selectAll: () => set((state) => getReaderScopeResetState(state, { type: "all" })),
     restoreSelectionFromHistory: (index, options) =>

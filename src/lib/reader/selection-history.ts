@@ -63,3 +63,17 @@ export function findSelectionHistoryTarget(
   }
   return null;
 }
+
+/** Drops entries matching `shouldRemove` and keeps the cursor on the same surviving entry (or just before it). */
+export function removeSelectionsFromHistory(
+  history: SelectionHistory,
+  shouldRemove: (selection: ReaderQuerySelection) => boolean,
+): SelectionHistory {
+  const entries = history.entries.filter((entry) => !shouldRemove(entry));
+  if (entries.length === history.entries.length) {
+    return history;
+  }
+
+  const index = history.entries.slice(0, history.index + 1).filter((entry) => !shouldRemove(entry)).length - 1;
+  return { entries, index };
+}

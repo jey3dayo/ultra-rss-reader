@@ -7,6 +7,7 @@ import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { queryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
+import { TAGS_QUERY_KEY } from "@/lib/query/query-keys";
 import { getVisibleSidebarFeeds } from "@/lib/sidebar/sidebar-feed-tree";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -415,6 +416,21 @@ describe("executeAction", () => {
 
       const { selection } = useUiStore.getState();
       expect(visibleFeedIds(selection.type === "feed" ? selection.feedId : null)).toEqual(["feed-a", "feed-b"]);
+    });
+
+    it("never restores a deleted tag, even while the cached tag list is still stale", () => {
+      queryClient.setQueryData(TAGS_QUERY_KEY, [
+        { id: "tag-1", name: "one" },
+        { id: "tag-2", name: "two" },
+      ]);
+      startInAccount();
+      useUiStore.getState().selectTag("tag-1");
+      useUiStore.getState().selectTag("tag-2");
+
+      useUiStore.getState().handleTagDeleted("tag-1");
+      executeAction("mouse-back");
+
+      expect(useUiStore.getState().selection).toEqual({ type: "all" });
     });
 
     it("skips history entries whose folder was deleted", () => {

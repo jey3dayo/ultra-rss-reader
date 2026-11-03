@@ -1,23 +1,11 @@
 import { Result } from "@praha/byethrow";
-import {
-  type FeedDto,
-  type FolderDto,
-  goBackBrowserWebview,
-  goForwardBrowserWebview,
-  reloadBrowserWebview,
-  restartApp,
-  type TagDto,
-} from "@/api/tauri-commands";
+import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview, restartApp } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import type { AppAction } from "@/lib/app-actions";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
-import { queryClient } from "@/lib/query/query-client";
-import { normalizeQueryAccountId, queryKeys } from "@/lib/query/query-invalidation";
-import { TAGS_QUERY_KEY } from "@/lib/query/query-keys";
-import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
-import { findSelectionHistoryTarget, type SelectionHistoryDirection } from "@/lib/reader/selection-history";
+import { getFeedFolderId, moveSelectionHistory } from "@/lib/reader/selection-history-navigation";
 import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
@@ -104,53 +92,6 @@ function focusSidebarSelection(): void {
   scheduleReaderFocusFrame(() => {
     focusSelectedSidebarTarget();
   });
-}
-
-function getFeedFolderId(feedId: string, accountId: string | null): string | null {
-  const feeds = queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount(accountId));
-  return feeds?.find((feed) => feed.id === feedId)?.folder_id ?? null;
-}
-
-function isSelectionStillAvailable(selection: ReaderQuerySelection, accountId: string | null): boolean {
-  switch (selection.type) {
-    case "feed": {
-      const feeds = queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount(accountId));
-      return feeds === undefined || feeds.some((feed) => feed.id === selection.feedId);
-    }
-    case "folder": {
-      const folders = queryClient.getQueryData<FolderDto[]>([
-        ...queryKeys.folders.root,
-        normalizeQueryAccountId(accountId),
-      ]);
-      return folders === undefined || folders.some((folder) => folder.id === selection.folderId);
-    }
-    case "tag": {
-      const tags = queryClient.getQueryData<TagDto[]>(TAGS_QUERY_KEY);
-      return tags === undefined || tags.some((tag) => tag.id === selection.tagId);
-    }
-    default:
-      return true;
-  }
-}
-
-function moveSelectionHistory(store: UiStoreState, direction: SelectionHistoryDirection): boolean {
-  if (store.subscriptionsWorkspace !== null) {
-    return false;
-  }
-
-  const targetIndex = findSelectionHistoryTarget(store.selectionHistory, direction, store.selection, (selection) =>
-    isSelectionStillAvailable(selection, store.selectedAccountId),
-  );
-  const target = targetIndex === null ? undefined : store.selectionHistory.entries[targetIndex];
-  if (targetIndex === null || target === undefined) {
-    return false;
-  }
-
-  store.restoreSelectionFromHistory(targetIndex, {
-    expandFolderId: target.type === "feed" ? getFeedFolderId(target.feedId, store.selectedAccountId) : null,
-  });
-  focusSidebarSelection();
-  return true;
 }
 
 async function navigateBrowserBackOrClose(): Promise<void> {
@@ -273,6 +214,7 @@ function handleMouseBack(store: UiStoreState): void {
     return;
   }
   if (moveSelectionHistory(store, "back")) {
+    focusSidebarSelection();
     return;
   }
   if (store.selection.type === "feed") {
@@ -496,7 +438,9 @@ function runNavigationBrowserAction(action: AppAction, store: UiStoreState): boo
       if (store.contentMode === "browser") {
         void navigateBrowserForward();
       } else {
-        moveSelectionHistory(store, "forward");
+        if (moveSelectionHistory(store, "forward")) {
+          focusSidebarSelection();
+        }
       }
       return true;
     default:
