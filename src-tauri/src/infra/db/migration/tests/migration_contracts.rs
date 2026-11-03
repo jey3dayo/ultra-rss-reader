@@ -617,3 +617,38 @@ fn v29_tag_rename_restamps_the_article_links_whose_sync_identity_changed() {
         "links of other tags are untouched"
     );
 }
+
+#[test]
+fn v29_feed_url_change_restamps_only_the_article_times_that_were_recorded() {
+    let db = migrated_with_local_sync_fixture();
+    let conn = db.writer();
+    conn.execute_batch(
+        "UPDATE articles SET read_changed_at = '2020-01-01T00:00:00.000Z',
+                             starred_changed_at = NULL
+         WHERE id = 'art-1';
+         UPDATE article_tags SET changed_at = '2020-01-01T00:00:00.000Z';
+         UPDATE articles SET read_changed_at = '2020-01-01T00:00:00.000Z' WHERE id = 'art-3';
+         UPDATE feeds SET url = 'https://example.com/moved' WHERE id = 'feed-1';",
+    )
+    .unwrap();
+
+    let time = |sql: &str| -> Option<String> { conn.query_row(sql, [], |row| row.get(0)).unwrap() };
+    assert!(
+        time("SELECT read_changed_at FROM articles WHERE id = 'art-1'")
+            .is_some_and(|value| value.as_str() > "2020-01-01T00:00:00.000Z")
+    );
+    assert_eq!(
+        time("SELECT starred_changed_at FROM articles WHERE id = 'art-1'"),
+        None,
+        "a state never changed locally carries no intent to protect"
+    );
+    assert!(
+        time("SELECT changed_at FROM article_tags WHERE article_id = 'art-1'")
+            .is_some_and(|value| value.as_str() > "2020-01-01T00:00:00.000Z")
+    );
+    assert_eq!(
+        time("SELECT read_changed_at FROM articles WHERE id = 'art-3'").as_deref(),
+        Some("2020-01-01T00:00:00.000Z"),
+        "articles of other feeds are untouched"
+    );
+}

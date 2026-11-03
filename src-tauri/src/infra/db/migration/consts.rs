@@ -218,6 +218,17 @@ BEGIN
     WHERE article_id = NEW.article_id AND tag_id = NEW.tag_id;
 END;
 
+CREATE TRIGGER IF NOT EXISTS feeds_stamp_changed_at_on_folder_rename
+AFTER UPDATE OF name ON folders
+FOR EACH ROW
+WHEN lower(trim(NEW.name)) <> lower(trim(OLD.name))
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    UPDATE feeds
+    SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE folder_id = NEW.id;
+END;
+
 CREATE TRIGGER IF NOT EXISTS folders_tombstone_on_delete
 AFTER DELETE ON folders
 FOR EACH ROW
@@ -282,6 +293,24 @@ WHEN NEW.url <> OLD.url
 BEGIN
     INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
     VALUES ('feed', OLD.account_id, OLD.url, '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS articles_stamp_changed_at_on_feed_url_change
+AFTER UPDATE OF url ON feeds
+FOR EACH ROW
+WHEN NEW.url <> OLD.url
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    UPDATE articles
+    SET read_changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE feed_id = NEW.id AND read_changed_at IS NOT NULL;
+    UPDATE articles
+    SET starred_changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE feed_id = NEW.id AND starred_changed_at IS NOT NULL;
+    UPDATE article_tags
+    SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE changed_at IS NOT NULL
+        AND article_id IN (SELECT id FROM articles WHERE feed_id = NEW.id);
 END;
 
 CREATE TRIGGER IF NOT EXISTS article_tags_stamp_changed_at_on_tag_rename

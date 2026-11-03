@@ -1496,3 +1496,32 @@ fn import_does_not_restore_links_of_a_tag_deleted_and_created_again() {
         "deleting a tag removes its links, and creating the same name again must not bring them back: {pairs:?}"
     );
 }
+
+#[test]
+fn import_keeps_the_folder_of_a_feed_when_the_folder_was_renamed_after_the_remote_move() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET folder_id = NULL WHERE id = 'feed-2'",
+        "UPDATE folders SET name = 'Headlines' WHERE id = 'folder-news'",
+    );
+
+    assert_eq!(
+        feed_folder_name(&importer, "feed-2").as_deref(),
+        Some("Headlines"),
+        "renaming a folder changes the folder name its feeds export, so it must outrank an older remote move"
+    );
+}
+
+#[test]
+fn import_keeps_article_read_state_when_the_feed_url_changed_after_the_remote_change() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET url = 'https://example.com/feed-new.xml' WHERE id = 'feed-1';
+         UPDATE articles SET is_read = 1 WHERE id = 'article-x'",
+        "UPDATE articles SET read_changed_at = '2020-01-01T00:00:00.000Z' WHERE id = 'article-x';
+         UPDATE feeds SET url = 'https://example.com/feed-new.xml' WHERE id = 'feed-1'",
+    );
+
+    assert!(
+        !article_flag(&importer, "article-x", "is_read"),
+        "a URL change changes every article sync key, so the local state kept under the new URL must outrank an older remote change"
+    );
+}
