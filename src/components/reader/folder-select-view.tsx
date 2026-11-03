@@ -29,7 +29,7 @@ export type FolderSelectViewProps = {
 const FOLDER_SELECT_INLINE_ROW_CLASS_NAME =
   "grid min-h-[52px] grid-cols-1 items-start gap-y-2.5 border-b-0 py-2.5 sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)] sm:items-center sm:gap-x-8 sm:gap-y-3 [&>div]:sm:flex [&>div]:sm:items-center [&>div]:sm:justify-end";
 const FOLDER_SELECT_INLINE_LABEL_CLASS_NAME =
-  "mb-0 whitespace-nowrap font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)] lg:pt-0";
+  "mb-0 whitespace-nowrap font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)] lg:pt-0";
 const FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME = "sm:ml-auto sm:w-[20rem] sm:max-w-[20rem]";
 const FOLDER_SELECT_INLINE_INPUT_CLASS_NAME = "min-h-11 w-full bg-surface-1/78 shadow-none";
 const FOLDER_SELECT_INLINE_TRIGGER_CLASS_NAME = "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem]";
@@ -37,7 +37,7 @@ const FOLDER_SELECT_INLINE_POPUP_CLASS_NAME = "w-[var(--anchor-width)]";
 const FOLDER_SELECT_COMPACT_INLINE_ROW_CLASS_NAME =
   "grid min-h-10 grid-cols-1 items-start gap-y-1.5 border-b-0 py-1.5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-x-5 lg:grid-cols-[8.5rem_minmax(0,1fr)] lg:items-center lg:gap-x-5 [&>div]:sm:flex [&>div]:sm:items-center [&>div]:sm:justify-end";
 const FOLDER_SELECT_COMPACT_INLINE_LABEL_CLASS_NAME =
-  "mb-0 whitespace-nowrap font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)] lg:pt-0";
+  "mb-0 whitespace-nowrap font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)] lg:pt-0";
 const FOLDER_SELECT_COMPACT_INLINE_CONTROL_CLASS_NAME = "sm:ml-auto sm:w-[17rem] sm:max-w-[17rem]";
 const FOLDER_SELECT_COMPACT_INLINE_INPUT_CLASS_NAME = "min-h-10 w-full bg-surface-1/78 shadow-none";
 const FOLDER_SELECT_COMPACT_INLINE_TRIGGER_CLASS_NAME =

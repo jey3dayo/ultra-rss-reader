@@ -152,7 +152,7 @@ function ShortcutKeyBadge({ item, pressAKeyLabel, resetDisabled }: ShortcutKeyBa
 function ShortcutSettingRow({ children, item }: { children: ReactNode; item: ShortcutsSettingsItem }) {
   return (
     <div className="grid min-h-10 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 border-b border-border/55 py-1.5 last:border-b-0">
-      <span className="min-w-0 truncate font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)]">
+      <span className="min-w-0 truncate font-sans text-(length:--font-size-sm) leading-[1.35] font-medium text-[color:var(--form-row-label)]">
         {item.label}
       </span>
       <div className="min-w-0">{children}</div>

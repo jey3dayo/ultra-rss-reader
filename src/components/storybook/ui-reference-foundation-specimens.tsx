@@ -94,7 +94,7 @@ export function TypographyScaleSpecimen() {
         <ReferenceTypeScaleBlock
           label="Mono Small"
           hint="Inline technical text and compact identifiers."
-          sampleClassName="font-mono text-[11px] leading-[1.35] tracking-[-0.02em] text-foreground/72"
+          sampleClassName="font-mono text-(length:--font-size-2xs) leading-[1.35] tracking-[-0.02em] text-foreground/72"
           sampleText="Mono Small"
         />
       </div>

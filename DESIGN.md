@@ -96,6 +96,9 @@ Detailed hierarchy:
 | Mono Body       | System Mono    | 12px (0.75rem)    | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
 | Mono Small      | System Mono    | 11px (0.69rem)    | 400     | 1.33           | -0.275px       | Inline code, terminal                |
 
+Implementation tokens: System Caption (13px) is `--font-size-sm` and System Micro (11px) is `--font-size-2xs`, both defined in `src/styles/global.css`.
+Use them as `text-(length:--font-size-sm)` / `text-(length:--font-size-2xs)`; a `text-` prefixed custom name is treated as a color by `cn`.
+
 Typography principles:
 
 - Desktop-app UI should prefer platform-native font rendering for settings, navigation, forms, dialogs, and dense controls.

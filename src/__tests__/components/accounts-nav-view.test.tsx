@@ -188,7 +188,7 @@ describe("AccountsNavView", () => {
     expect(within(archiveButton).queryByText("Account", { exact: true })).not.toBeInTheDocument();
     expect(localButton).toHaveClass("rounded-md");
     expect(localButton).toHaveClass("shrink-0");
-    expect(localButton).toHaveClass("text-[13px]");
+    expect(localButton).toHaveClass("text-(length:--font-size-sm)");
     expect(localButton).toHaveClass("focus-visible:ring-2", "focus-visible:ring-border-strong/45");
     expect(freshRssButton).toHaveClass("rounded-md");
     expect(freshRssButton).toHaveClass("shrink-0");

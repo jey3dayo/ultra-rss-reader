@@ -35,7 +35,7 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
     requestSize: 32,
   },
   md: {
-    fallback: "h-6 w-6 text-[11px]",
+    fallback: "h-6 w-6 text-(length:--font-size-2xs)",
     image: "h-6 w-6",
     pixels: 24,
     requestSize: 40,

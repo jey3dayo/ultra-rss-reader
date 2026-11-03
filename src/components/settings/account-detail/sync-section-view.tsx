@@ -105,7 +105,7 @@ export function AccountSyncSectionView({
               )}
             >
               <div className="system-micro text-foreground-soft">{row.label}</div>
-              <div className="break-words text-[13px] leading-5 text-foreground">{row.value}</div>
+              <div className="break-words text-(length:--font-size-sm) leading-5 text-foreground">{row.value}</div>
             </div>
           ))}
         </div>
