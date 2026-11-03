@@ -79,7 +79,7 @@ export const ChromeVariantComparison: Story = {
   render: () => (
     <div className="space-y-4">
       <div>
-        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-foreground/55">Default Surface</div>
+        <div className="mb-2 system-micro text-foreground/55">Default Surface</div>
         <div className="flex items-center gap-3">
           <IconToolbarSurfaceButton label="Close Web Preview" onClick={fn()}>
             <X className="size-4" />
@@ -90,7 +90,7 @@ export const ChromeVariantComparison: Story = {
         </div>
       </div>
       <div>
-        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-foreground/55">Chrome Variant</div>
+        <div className="mb-2 system-micro text-foreground/55">Chrome Variant</div>
         <div className="flex items-center gap-3">
           <IconToolbarSurfaceButton label="Close Web Preview" onClick={fn()} variant="chrome">
             <X className="size-4" />

@@ -205,15 +205,13 @@ export const SelectionPriorityReview: Story = {
         }
       `}</style>
       <div className="space-y-1">
-        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">Selected idle</p>
+        <p className="text-sidebar-foreground/40 system-micro">Selected idle</p>
         <div className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2">
           <FeedTreeView {...args} />
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
-          Selected hover priority
-        </p>
+        <p className="text-sidebar-foreground/40 system-micro">Selected hover priority</p>
         <div
           className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2"
           data-story-preview="selected-hover"
@@ -222,9 +220,7 @@ export const SelectionPriorityReview: Story = {
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
-          Unselected hover
-        </p>
+        <p className="text-sidebar-foreground/40 system-micro">Unselected hover</p>
         <div
           className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2"
           data-story-preview="unselected-hover"
@@ -243,9 +239,7 @@ export const FolderSelectionReview: Story = {
     return (
       <div className="space-y-4">
         <div className="space-y-1">
-          <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
-            Folder selected
-          </p>
+          <p className="text-sidebar-foreground/40 system-micro">Folder selected</p>
           <div className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2">
             <FeedTreeView {...args} {...folderSelectedArgs} />
           </div>

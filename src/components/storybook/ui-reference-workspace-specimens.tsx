@@ -441,11 +441,11 @@ export function WorkspaceTwoPaneSpecimen() {
           <div className="rounded-md border border-border/70 bg-surface-1/88 p-3 shadow-none">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-md border border-border/70 bg-background/90 p-3">
-                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">要確認</p>
+                <p className="text-muted-foreground system-micro">要確認</p>
                 <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground">6</p>
               </div>
               <div className="rounded-md border border-border/70 bg-background/90 p-3">
-                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">90日停止</p>
+                <p className="text-muted-foreground system-micro">90日停止</p>
                 <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground">1</p>
               </div>
             </div>

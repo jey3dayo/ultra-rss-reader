@@ -162,9 +162,7 @@ export function SettingsWorkspaceCanvas() {
             body="This canvas is the interface reference for the settings modal as a whole: left rail, account stack, header summary, right-side control rail, and add-account flow should be judged here together."
           />
           <div className="rounded-md border border-border/70 bg-surface-1/84 p-4 shadow-none">
-            <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-              Settings actions
-            </p>
+            <p className="font-sans text-foreground-soft system-micro">Settings actions</p>
             <p className="mt-1 text-sm leading-[1.45] text-foreground/68">
               Shell close stays borderless in the rail. Content-side secondary actions use a quiet filled treatment so
               they remain visible without feeling like heavy outline buttons.
@@ -181,9 +179,7 @@ export function SettingsWorkspaceCanvas() {
           <div className="grid gap-6">
             <div className="space-y-3">
               <div className="px-1">
-                <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-                  Account detail state
-                </p>
+                <p className="font-sans text-foreground-soft system-micro">Account detail state</p>
                 <p className="mt-1 text-sm leading-[1.45] text-foreground/68">
                   Verified account detail with credentials, sync controls, and a single primary action rail.
                 </p>
@@ -297,9 +293,7 @@ export function SettingsWorkspaceCanvas() {
 
             <div className="space-y-3">
               <div className="px-1">
-                <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-                  Add-account state
-                </p>
+                <p className="font-sans text-foreground-soft system-micro">Add-account state</p>
                 <p className="mt-1 text-sm leading-[1.45] text-foreground/68">
                   FreshRSS onboarding should still sit inside the same shell and right-side content discipline.
                 </p>
