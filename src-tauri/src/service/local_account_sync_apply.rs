@@ -5,8 +5,9 @@ use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::local_account_sync::{
-    generate_local_sync_article_key, LocalAccountSyncProjection, LocalSyncAccountId,
-    LocalSyncEntryIdentity, LocalSyncFeedState, LocalSyncFolderState, LocalSyncMuteKeywordState,
+    generate_local_sync_article_key, normalize_feed_url, LocalAccountSyncProjection,
+    LocalSyncAccountId, LocalSyncEntryIdentity, LocalSyncFeedState, LocalSyncFolderState,
+    LocalSyncMuteKeywordState,
 };
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId, TagId};
 use crate::infra::db::connection::DbManager;
@@ -108,6 +109,35 @@ fn local_removal_is_newer(
         .optional()?;
     let removed_at = parse_change_time("tombstone removed_at", removed_at)?;
     Ok(removed_at.is_some_and(|removed_at| removed_at > file_updated_at))
+}
+
+/// Feed tombstones keep the URL as stored, while sync identities drop the fragment and
+/// normalize the URL, so tombstones are matched after normalizing them the same way.
+fn local_feed_removal_is_newer(
+    conn: &Connection,
+    account_id: &AccountId,
+    normalized_feed_url: &str,
+    file_updated_at: DateTime<Utc>,
+) -> DomainResult<bool> {
+    let mut stmt = conn.prepare(
+        "SELECT key, removed_at FROM local_sync_tombstones
+         WHERE kind = 'feed' AND account_id = ?1",
+    )?;
+    let rows = stmt
+        .query_map(params![account_id.0], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    for (key, removed_at) in rows {
+        if normalize_feed_url(&key).ok().as_deref() != Some(normalized_feed_url) {
+            continue;
+        }
+        let removed_at = parse_change_time("tombstone removed_at", Some(removed_at))?;
+        if removed_at.is_some_and(|removed_at| removed_at > file_updated_at) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn upsert_folders(
@@ -233,8 +263,9 @@ fn upsert_feeds(
     folder_ids: &BTreeMap<String, FolderId>,
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<()> {
+    let mut existing_feeds = load_existing_feeds(conn, account_id)?;
     for (normalized_feed_url, feed) in feeds {
-        let existing = find_feed_by_url(conn, account_id, normalized_feed_url)?;
+        let existing = existing_feeds.remove(normalized_feed_url);
         match &existing {
             Some(existing) => {
                 if !file_wins(existing.changed_at, feed.updated_at) {
@@ -242,12 +273,10 @@ fn upsert_feeds(
                 }
             }
             None => {
-                if local_removal_is_newer(
+                if local_feed_removal_is_newer(
                     conn,
-                    "feed",
-                    &account_id.0,
+                    account_id,
                     normalized_feed_url,
-                    "",
                     feed.updated_at,
                 )? {
                     continue;
@@ -263,31 +292,45 @@ fn upsert_feeds(
             (None, Some(_), Some(existing)) => existing.folder_id.clone(),
             _ => resolved_folder_id,
         };
-        let feed_id = existing
-            .map(|existing| existing.id)
-            .unwrap_or_else(FeedId::new);
-        conn.execute(
-            "INSERT INTO feeds (
-                id, account_id, folder_id, title, url, site_url, icon_url, unread_count, reader_mode, web_preview_mode, changed_at
-             )
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 'inherit', 'inherit', ?8)
-             ON CONFLICT(account_id, url) DO UPDATE SET
-               folder_id = excluded.folder_id,
-               title = excluded.title,
-               site_url = excluded.site_url,
-               icon_url = COALESCE(excluded.icon_url, feeds.icon_url),
-               changed_at = excluded.changed_at",
-            params![
-                feed_id.0,
-                account_id.0,
-                folder_id.as_ref().map(|id| id.0.as_str()),
-                feed.title,
-                normalized_feed_url,
-                feed.site_url,
-                feed.icon_url,
-                format_change_time(feed.updated_at),
-            ],
-        )?;
+        match existing {
+            Some(existing) => {
+                conn.execute(
+                    "UPDATE feeds
+                     SET folder_id = ?2,
+                         title = ?3,
+                         site_url = ?4,
+                         icon_url = COALESCE(?5, icon_url),
+                         changed_at = ?6
+                     WHERE id = ?1",
+                    params![
+                        existing.id.0,
+                        folder_id.as_ref().map(|id| id.0.as_str()),
+                        feed.title,
+                        feed.site_url,
+                        feed.icon_url,
+                        format_change_time(feed.updated_at),
+                    ],
+                )?;
+            }
+            None => {
+                conn.execute(
+                    "INSERT INTO feeds (
+                        id, account_id, folder_id, title, url, site_url, icon_url, unread_count, reader_mode, web_preview_mode, changed_at
+                     )
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 'inherit', 'inherit', ?8)",
+                    params![
+                        FeedId::new().0,
+                        account_id.0,
+                        folder_id.as_ref().map(|id| id.0.as_str()),
+                        feed.title,
+                        normalized_feed_url,
+                        feed.site_url,
+                        feed.icon_url,
+                        format_change_time(feed.updated_at),
+                    ],
+                )?;
+            }
+        }
         report.feeds_upserted += 1;
     }
     Ok(())
@@ -299,37 +342,42 @@ struct ExistingFeed {
     changed_at: Option<DateTime<Utc>>,
 }
 
-fn find_feed_by_url(
+/// Local feeds keyed by their sync identity. A stored URL may still carry a fragment, so the
+/// key is the normalized URL; when several rows share one identity the lowest id wins.
+fn load_existing_feeds(
     conn: &Connection,
     account_id: &AccountId,
-    feed_url: &str,
-) -> DomainResult<Option<ExistingFeed>> {
-    let row = conn
-        .query_row(
-            "SELECT id, folder_id, changed_at
-             FROM feeds
-             WHERE account_id = ?1
-               AND url = ?2
-             ORDER BY id ASC
-             LIMIT 1",
-            params![account_id.0, feed_url],
-            |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, Option<String>>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                ))
-            },
-        )
-        .optional()?;
-    row.map(|(id, folder_id, changed_at)| {
-        Ok(ExistingFeed {
-            id: FeedId(id),
-            folder_id: folder_id.map(FolderId),
-            changed_at: parse_change_time("feed changed_at", changed_at)?,
-        })
-    })
-    .transpose()
+) -> DomainResult<BTreeMap<String, ExistingFeed>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, folder_id, url, changed_at
+         FROM feeds
+         WHERE account_id = ?1
+         ORDER BY id ASC",
+    )?;
+    let rows = stmt
+        .query_map(params![account_id.0], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut existing_feeds = BTreeMap::new();
+    for (id, folder_id, url, changed_at) in rows {
+        let Ok(normalized_url) = normalize_feed_url(&url) else {
+            continue;
+        };
+        existing_feeds
+            .entry(normalized_url)
+            .or_insert(ExistingFeed {
+                id: FeedId(id),
+                folder_id: folder_id.map(FolderId),
+                changed_at: parse_change_time("feed changed_at", changed_at)?,
+            });
+    }
+    Ok(existing_feeds)
 }
 
 fn upsert_tags(

@@ -404,15 +404,19 @@ fn v29_tombstones_record_direct_local_deletions_only() {
         .unwrap();
     assert_eq!(
         tombstones(conn),
-        ["article_tag::art-2:rust", "tag::rust:"],
-        "the cascade that removes art-1's link must not add its own tombstone"
+        [
+            "article_tag::art-1:rust",
+            "article_tag::art-2:rust",
+            "tag::rust:"
+        ],
+        "deleting a tag records the links it takes with it, since the cascade fires after the tag is gone"
     );
 
     conn.execute_batch("DELETE FROM articles WHERE id = 'art-3'")
         .unwrap();
     assert_eq!(
         tombstones(conn).len(),
-        2,
+        3,
         "deleting an article must not tombstone its tag links"
     );
 
@@ -422,7 +426,12 @@ fn v29_tombstones_record_direct_local_deletions_only() {
         .unwrap();
     assert_eq!(
         tombstones(conn),
-        ["article_tag::art-2:rust", "folder:a1:tech:", "tag::rust:"],
+        [
+            "article_tag::art-1:rust",
+            "article_tag::art-2:rust",
+            "folder:a1:tech:",
+            "tag::rust:"
+        ],
         "deleting an account must not leave tombstones for its folders"
     );
 }
@@ -544,7 +553,8 @@ fn v29_stamps_only_real_value_changes_and_keeps_explicit_times() {
 }
 
 #[test]
-fn v29_unsubscribing_a_feed_tombstones_its_url_and_resubscribing_clears_it() {
+fn v29_unsubscribing_a_feed_tombstones_its_url_and_resubscribing_keeps_it_below_the_new_change_time(
+) {
     let db = migrated_with_local_sync_fixture();
     let conn = db.writer();
 
@@ -557,12 +567,17 @@ fn v29_unsubscribing_a_feed_tombstones_its_url_and_resubscribing_clears_it() {
          VALUES ('feed-1b', 'a1', 'Feed', 'https://example.com/1', '', 'inherit', 'inherit')",
     )
     .unwrap();
-    assert!(tombstones(conn).is_empty());
+    assert_eq!(
+        tombstones(conn),
+        ["feed:a1:https://example.com/1:"],
+        "the tombstone stays: the live feed's change time supersedes it, and a failed subscription rolls back to it"
+    );
 
     conn.execute_batch("DELETE FROM accounts WHERE id = 'a2'")
         .unwrap();
-    assert!(
-        tombstones(conn).is_empty(),
+    assert_eq!(
+        tombstones(conn).len(),
+        1,
         "deleting an account must not leave tombstones for its feeds"
     );
 }

@@ -156,11 +156,12 @@ BEGIN
 END;
 
 CREATE TRIGGER IF NOT EXISTS feeds_stamp_changed_at_on_update
-AFTER UPDATE OF folder_id, title, site_url, icon_url ON feeds
+AFTER UPDATE OF folder_id, title, url, site_url, icon_url ON feeds
 FOR EACH ROW
 WHEN (
         NEW.folder_id IS NOT OLD.folder_id
         OR NEW.title IS NOT OLD.title
+        OR NEW.url IS NOT OLD.url
         OR NEW.site_url IS NOT OLD.site_url
         OR NEW.icon_url IS NOT OLD.icon_url
     )
@@ -273,13 +274,14 @@ BEGIN
     VALUES ('feed', OLD.account_id, OLD.url, '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
 END;
 
-CREATE TRIGGER IF NOT EXISTS feeds_clear_tombstone_on_insert
-AFTER INSERT ON feeds
+CREATE TRIGGER IF NOT EXISTS feeds_tombstone_on_url_change
+AFTER UPDATE OF url ON feeds
 FOR EACH ROW
-WHEN NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+WHEN NEW.url <> OLD.url
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
 BEGIN
-    DELETE FROM local_sync_tombstones
-    WHERE kind = 'feed' AND account_id = NEW.account_id AND key = NEW.url;
+    INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+    VALUES ('feed', OLD.account_id, OLD.url, '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
 END;
 
 CREATE TRIGGER IF NOT EXISTS article_tags_stamp_changed_at_on_tag_rename
@@ -291,6 +293,31 @@ BEGIN
     UPDATE article_tags
     SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
     WHERE tag_id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS article_tag_tombstone_follow_tag_rename
+AFTER UPDATE OF name ON tags
+FOR EACH ROW
+WHEN lower(trim(NEW.name)) <> lower(trim(OLD.name))
+    AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    INSERT INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+    SELECT kind, account_id, key, lower(trim(NEW.name)), removed_at
+    FROM local_sync_tombstones
+    WHERE kind = 'article_tag' AND key2 = lower(trim(OLD.name))
+    ON CONFLICT (kind, account_id, key, key2) DO UPDATE SET
+        removed_at = max(local_sync_tombstones.removed_at, excluded.removed_at);
+END;
+
+CREATE TRIGGER IF NOT EXISTS article_tags_tombstone_on_tag_delete
+BEFORE DELETE ON tags
+FOR EACH ROW
+WHEN NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
+BEGIN
+    INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+    SELECT 'article_tag', '', article_id, lower(trim(OLD.name)), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    FROM article_tags
+    WHERE tag_id = OLD.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS tags_tombstone_on_delete

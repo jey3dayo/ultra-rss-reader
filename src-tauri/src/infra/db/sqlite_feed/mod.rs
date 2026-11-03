@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::feed::Feed;
@@ -249,13 +249,32 @@ impl FeedRepository for SqliteFeedRepository<'_> {
 
     fn discard_failed_subscription(&self, feed_id: &FeedId) -> DomainResult<()> {
         let feed = self.find_by_id(feed_id)?;
+        let previous_removed_at: Option<String> = match &feed {
+            Some(feed) => self
+                .conn
+                .query_row(
+                    "SELECT removed_at FROM local_sync_tombstones
+                     WHERE kind = 'feed' AND account_id = ?1 AND key = ?2",
+                    params![feed.account_id.0, feed.url],
+                    |row| row.get(0),
+                )
+                .optional()?,
+            None => None,
+        };
         self.delete(feed_id)?;
         if let Some(feed) = feed {
-            self.conn.execute(
-                "DELETE FROM local_sync_tombstones
-                 WHERE kind = 'feed' AND account_id = ?1 AND key = ?2",
-                params![feed.account_id.0, feed.url],
-            )?;
+            match previous_removed_at {
+                Some(removed_at) => self.conn.execute(
+                    "INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+                     VALUES ('feed', ?1, ?2, '', ?3)",
+                    params![feed.account_id.0, feed.url, removed_at],
+                )?,
+                None => self.conn.execute(
+                    "DELETE FROM local_sync_tombstones
+                     WHERE kind = 'feed' AND account_id = ?1 AND key = ?2",
+                    params![feed.account_id.0, feed.url],
+                )?,
+            };
         }
         Ok(())
     }

@@ -1412,3 +1412,87 @@ fn import_keeps_unexported_local_feed_unsubscribe_and_applies_remote_feed() {
         "a local unsubscribe that was never exported must not be undone: {urls:?}"
     );
 }
+
+const REMOTE_FEED_4_SQL: &str =
+    "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+     VALUES ('feed-4', 'account-1', NULL, 'Remote Feed 4', 'https://example.com/feed4.xml', 'https://example.com', 'inherit', 'inherit')";
+
+#[test]
+fn import_keeps_unexported_local_unsubscribe_of_a_feed_stored_with_a_fragment() {
+    let importer = import_after_divergent_edits(
+        REMOTE_FEED_4_SQL,
+        "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+         VALUES ('feed-4', 'account-1', NULL, 'Feed 4', 'https://example.com/feed4.xml#section', 'https://example.com', 'inherit', 'inherit');
+         DELETE FROM feeds WHERE id = 'feed-4'",
+    );
+
+    let urls = query_strings(&importer, "SELECT url FROM feeds ORDER BY url");
+    assert!(
+        !urls.iter().any(|url| url.starts_with("https://example.com/feed4.xml")),
+        "the sync identity drops the fragment, so the unexported unsubscribe must still hold: {urls:?}"
+    );
+}
+
+#[test]
+fn import_updates_a_local_feed_stored_with_a_fragment_instead_of_duplicating_it() {
+    let importer = import_after_divergent_edits(
+        REMOTE_FEED_4_SQL,
+        "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode, changed_at)
+         VALUES ('feed-4', 'account-1', NULL, 'Feed 4', 'https://example.com/feed4.xml#section', 'https://example.com', 'inherit', 'inherit', '1970-01-01T00:00:00.000Z')",
+    );
+
+    let rows = query_strings(
+        &importer,
+        "SELECT url || ' ' || title FROM feeds WHERE url LIKE 'https://example.com/feed4.xml%'",
+    );
+    assert_eq!(
+        rows,
+        vec!["https://example.com/feed4.xml#section Remote Feed 4".to_string()],
+        "the feed with the same sync identity must be updated in place, not inserted again"
+    );
+}
+
+#[test]
+fn import_keeps_unexported_local_feed_url_change() {
+    let importer = import_after_divergent_edits(
+        "UPDATE feeds SET title = 'Remote title' WHERE id = 'feed-2'",
+        "UPDATE feeds SET url = 'https://example.com/feed2-moved.xml' WHERE id = 'feed-2'",
+    );
+
+    let urls = query_strings(&importer, "SELECT url FROM feeds ORDER BY url");
+    assert!(
+        urls.contains(&"https://example.com/feed2-moved.xml".to_string())
+            && !urls.contains(&"https://example.com/feed2.xml".to_string()),
+        "a local URL change that was never exported must not be undone by re-creating the old URL: {urls:?}"
+    );
+}
+
+#[test]
+fn import_keeps_article_tag_removal_made_before_the_tag_was_renamed() {
+    let importer = import_after_divergent_edits(
+        "UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+        "DELETE FROM article_tags WHERE article_id = 'article-x' AND tag_id = 'tag-rust';
+         UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        !pairs.contains(&"article-x:rustlang".to_string()),
+        "a removal made under the old tag name must still hold under the renamed tag: {pairs:?}"
+    );
+}
+
+#[test]
+fn import_does_not_restore_links_of_a_tag_deleted_and_created_again() {
+    let importer = import_after_divergent_edits(
+        REMOTE_TAG_SQL,
+        "DELETE FROM tags WHERE id = 'tag-rust';
+         INSERT INTO tags (id, name) VALUES ('tag-rust-again', 'rust')",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        !pairs.contains(&"article-x:rust".to_string()),
+        "deleting a tag removes its links, and creating the same name again must not bring them back: {pairs:?}"
+    );
+}
