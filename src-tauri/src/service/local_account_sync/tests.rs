@@ -449,6 +449,51 @@ fn compute_digest_changes_when_an_article_state_change_time_changes() {
 }
 
 #[test]
+fn compute_digest_changes_when_an_entity_change_time_changes() {
+    let cases = [
+        (
+            LocalSyncEntityKey::Folder {
+                normalized_name: "tech".to_string(),
+            },
+            LocalSyncAction::UpsertFolder {
+                display_name: "Tech".to_string(),
+                sort_order: 0,
+            },
+        ),
+        (
+            LocalSyncEntityKey::Tag {
+                normalized_name: "rust".to_string(),
+            },
+            LocalSyncAction::AddTag {
+                display_name: "rust".to_string(),
+            },
+        ),
+        (
+            LocalSyncEntityKey::MuteKeyword {
+                normalized_keyword: "spam".to_string(),
+                scope: "title".to_string(),
+            },
+            LocalSyncAction::UpsertMuteKeyword,
+        ),
+    ];
+
+    for (entity_key, action) in cases {
+        let before = operation_with("sync-account-a", "op-1", entity_key, action);
+        let after = LocalAccountSyncOperation {
+            occurred_at: ts(999),
+            ..before.clone()
+        };
+
+        assert_ne!(
+            compute_local_account_sync_digest(&[before.clone()]),
+            compute_local_account_sync_digest(&[after]),
+            "a restored value must re-export once its recorded change time moves: {:?}",
+            before.action
+        );
+    }
+}
+
+#[test]
 fn compute_digest_changes_when_action_changes() {
     let unread = operation("op-1");
     let read = LocalAccountSyncOperation {
