@@ -15,8 +15,8 @@ const labelChipVariants = cva(
         danger: stateToneSurfaceClassNames.danger,
       },
       size: {
-        compact: "px-2 py-0.5 text-[11px]",
-        default: "px-2.5 py-1 text-[11px]",
+        compact: "px-2 py-0.5 text-(length:--font-size-2xs)",
+        default: "px-2.5 py-1 text-(length:--font-size-2xs)",
       },
     },
     defaultVariants: {

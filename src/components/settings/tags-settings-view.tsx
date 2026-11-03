@@ -86,7 +86,10 @@ export function TagsSettingsView({
             contentClassName="space-y-3"
           >
             <div className="space-y-1.5">
-              <label htmlFor={nameInputId} className="block text-[12px] font-medium text-[color:var(--form-row-label)]">
+              <label
+                htmlFor={nameInputId}
+                className="block text-(length:--font-size-xs) font-medium text-[color:var(--form-row-label)]"
+              >
                 {nameLabel}
               </label>
               <div className="flex min-w-0 gap-2">
@@ -105,7 +108,9 @@ export function TagsSettingsView({
             </div>
 
             <div className="space-y-1.5">
-              <span className="block text-[12px] font-medium text-[color:var(--form-row-label)]">{colorLabel}</span>
+              <span className="block text-(length:--font-size-xs) font-medium text-[color:var(--form-row-label)]">
+                {colorLabel}
+              </span>
               <TagColorPicker
                 color={colorValue}
                 colorOptions={colorOptions}
@@ -156,7 +161,7 @@ export function TagsSettingsView({
                       />
                     ) : null}
                     <span
-                      className="max-w-full truncate text-[13px] leading-[1.35] text-[color:var(--form-row-label)]"
+                      className="max-w-full truncate text-(length:--font-size-sm) leading-[1.35] text-[color:var(--form-row-label)]"
                       dir="auto"
                       title={tag.name}
                     >

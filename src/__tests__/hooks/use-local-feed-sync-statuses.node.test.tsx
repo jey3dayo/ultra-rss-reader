@@ -152,7 +152,7 @@ describe("useLocalFeedSyncStatuses", () => {
 
   it.each([
     [alreadySyncing, "A sync is already in progress. Retry after it finishes."],
-    [failedSync, "Retry did not complete successfully. Check the result."],
+    [failedSync, "Retry did not complete. Check the result."],
     [successfulSync, "Feed fetched again"],
   ] as const)("gives distinct retry feedback for the sync result", async (syncResult, expectedToast) => {
     vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));

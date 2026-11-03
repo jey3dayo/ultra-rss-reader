@@ -29,13 +29,13 @@ const GOOGLE_FAVICON_ENDPOINT = "https://www.google.com/s2/favicons";
 
 const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   sm: {
-    fallback: "h-5 w-5 text-[10px]",
+    fallback: "h-5 w-5 text-(length:--font-size-2xs)",
     image: "h-5 w-5",
     pixels: 20,
     requestSize: 32,
   },
   md: {
-    fallback: "h-6 w-6 text-[11px]",
+    fallback: "h-6 w-6 text-(length:--font-size-2xs)",
     image: "h-6 w-6",
     pixels: 24,
     requestSize: 40,

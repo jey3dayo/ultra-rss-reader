@@ -15,16 +15,16 @@ describe("ActionsSettings", () => {
     const user = userEvent.setup();
     render(<ActionsSettings />);
 
-    const copyLinkLabel = screen.getByText("Copy Link");
+    const copyLinkLabel = screen.getByText("Copy link");
 
     expect(screen.queryByText("Open Web Preview")).not.toBeInTheDocument();
     expect(copyLinkLabel).toBeInTheDocument();
     expect(copyLinkLabel).toHaveClass("text-[color:var(--form-row-label)]");
     expect(copyLinkLabel.closest(".grid")).toHaveClass("lg:grid-cols-[minmax(180px,220px)_minmax(0,1fr)]");
     expect(screen.getAllByText("Show in toolbar")).toHaveLength(1);
-    const toggle = screen.getByRole("switch", { name: "Show in toolbar: Copy Link" });
+    const toggle = screen.getByRole("switch", { name: "Show in toolbar: Copy link" });
     expect(toggle).toBeInTheDocument();
-    expect(screen.queryByText("Open in External Browser")).not.toBeInTheDocument();
+    expect(screen.queryByText("Open in external browser")).not.toBeInTheDocument();
     expect(screen.queryByText("Share Menu")).not.toBeInTheDocument();
 
     await user.click(toggle);

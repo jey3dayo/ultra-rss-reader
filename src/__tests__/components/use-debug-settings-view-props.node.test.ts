@@ -75,7 +75,7 @@ describe("useDebugSettingsViewProps", () => {
       expect.objectContaining({
         id: "debug-developer-mode-toggle",
         type: "switch",
-        label: "Developer Mode",
+        label: "Developer mode",
         checked: false,
       }),
     );

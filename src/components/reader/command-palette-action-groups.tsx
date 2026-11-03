@@ -32,7 +32,7 @@ function CommandPaletteActionItems({
       >
         <Icon />
         <span className="min-w-0 truncate">{action.label}</span>
-        {action.shortcut ? <CommandShortcut>{action.shortcut}</CommandShortcut> : null}
+        {action.shortcut ? <CommandShortcut className="tracking-wide">{action.shortcut}</CommandShortcut> : null}
       </CommandItem>
     );
   });

@@ -33,7 +33,7 @@ describe("ArticleContextMenu", () => {
     fireEvent.contextMenu(screen.getByRole("button", { name: "Article row" }));
     await user.click(await screen.findByRole("menuitem", { name: "Edit source feed…" }));
 
-    expect(await screen.findByRole("heading", { name: "Edit Feed" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Edit feed" })).toBeInTheDocument();
   });
 
   it("does not offer source-feed editing when the article feed is no longer resolved", async () => {
@@ -61,7 +61,7 @@ describe("ArticleContextMenu", () => {
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "Article row" }));
 
-    expect(await screen.findByRole("menuitem", { name: "Open in Browser" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "Open in browser" })).toBeInTheDocument();
   });
 
   it("reuses article actions when opening the browser from the context menu", async () => {
@@ -86,7 +86,7 @@ describe("ArticleContextMenu", () => {
 
     const user = userEvent.setup();
     fireEvent.contextMenu(screen.getByRole("button", { name: "Article row" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Open in Browser" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Open in browser" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -226,7 +226,7 @@ describe("ArticleContextMenu", () => {
       </ArticleContextMenu>,
     );
 
-    await user.click(await screen.findByRole("menuitem", { name: "Open in Browser" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Open in browser" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({

@@ -126,7 +126,7 @@ describe("CommandPalette", () => {
       "bg-surface-1/72",
     );
     expect(
-      await screen.findByText("Recent Actions", {
+      await screen.findByText("Recent actions", {
         selector: "[cmdk-group-heading]",
       }),
     ).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe("CommandPalette", () => {
     expect(within(feedsGroup).getAllByRole("option", { name: /Tech Blog/ })).toHaveLength(1);
     expect(within(tagsGroup).getAllByRole("option", { name: /Later/ })).toHaveLength(1);
     expect(within(articlesGroup).getAllByRole("option", { name: /First Article/ })).toHaveLength(1);
-    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recent actions")).not.toBeInTheDocument();
   });
 
   it("adds feed context to article resource results", async () => {
@@ -258,7 +258,7 @@ describe("CommandPalette", () => {
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
-    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recent actions")).not.toBeInTheDocument();
   });
 
   it("falls back to the normal action list when recent history entries are stale", async () => {
@@ -268,7 +268,7 @@ describe("CommandPalette", () => {
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
-    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recent actions")).not.toBeInTheDocument();
   });
 
   it("does not request feeds when no account is selected", async () => {
@@ -394,7 +394,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const results = await screen.findByRole("listbox", { name: "Command palette results" });
-    const recentGroup = screen.getByRole("group", { name: "Recent Actions" });
+    const recentGroup = screen.getByRole("group", { name: "Recent actions" });
     const recentSettings = within(recentGroup).getByRole("option", { name: "Open settings" });
 
     expect(results).toContainElement(recentGroup);
@@ -621,7 +621,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("option", { name: /Manage Subscriptions/ }));
+    await user.click(await screen.findByRole("option", { name: /Manage subscriptions/ }));
 
     await waitFor(() => {
       expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
@@ -694,7 +694,7 @@ describe("CommandPalette", () => {
     const first = render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
-    expect(screen.queryByText("Dev Scenarios")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dev scenarios")).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
     expect(loadCommandPaletteDevScenariosMock).not.toHaveBeenCalled();
 
@@ -704,7 +704,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(
-      await screen.findByText("Dev Scenarios", {
+      await screen.findByText("Dev scenarios", {
         selector: "[cmdk-group-heading]",
       }),
     ).toBeInTheDocument();

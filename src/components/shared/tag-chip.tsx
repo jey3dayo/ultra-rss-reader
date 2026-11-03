@@ -13,7 +13,7 @@ export function TagChip({ label, color, onRemove, removeLabel, className }: TagC
   return (
     <span
       className={cn(
-        "group/tag-chip inline-flex min-h-6 items-center gap-1 rounded-full border border-border/38 bg-transparent px-2.5 pr-1.5 text-[12px] leading-none text-foreground/86 transition-[border-color,background-color,color] duration-150 ease-standard hover:border-border/54 hover:bg-background/14 focus-within:border-border/54 motion-reduce:transition-none",
+        "group/tag-chip inline-flex min-h-6 items-center gap-1 rounded-full border border-border/38 bg-transparent px-2.5 pr-1.5 text-(length:--font-size-xs) leading-none text-foreground/86 transition-[border-color,background-color,color] duration-150 ease-standard hover:border-border/54 hover:bg-background/14 focus-within:border-border/54 motion-reduce:transition-none",
         className,
       )}
     >

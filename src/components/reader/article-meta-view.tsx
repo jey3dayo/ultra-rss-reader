@@ -39,7 +39,7 @@ export function ArticleMetaView({
 
   return (
     <div className="space-y-4">
-      <div className="font-sans text-[0.8rem] font-medium leading-none tracking-[0.08em] tabular-nums text-foreground-soft">
+      <div className="font-sans text-[0.8rem] font-medium leading-none tracking-[0.02em] tabular-nums text-foreground-soft">
         <p>{publishedLabel}</p>
       </div>
       <h1 className="font-sans text-[1.66rem] font-normal leading-[1.07] tracking-[-0.04em] text-foreground sm:text-[2.06rem]">

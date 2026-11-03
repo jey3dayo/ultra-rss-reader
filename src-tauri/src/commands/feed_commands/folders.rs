@@ -57,7 +57,7 @@ fn classify_create_folder_persistence_error(error: DomainError, name: &str) -> A
                 || message.contains("folders.account_id, folders.sort_order") =>
         {
             AppError::UserVisible {
-                message: "Folder order changed while creating the folder. Please retry.".into(),
+                message: "Folder order changed while creating the folder. Try again.".into(),
             }
         }
         _ => AppError::from(error),
@@ -333,7 +333,7 @@ fn apply_folder_sort_order_ids(
         });
     if !is_exact_folder_set {
         return Err(AppError::UserVisible {
-            message: "Folder list is out of date. Please retry.".into(),
+            message: "Folder list is out of date. Try again.".into(),
         });
     }
 

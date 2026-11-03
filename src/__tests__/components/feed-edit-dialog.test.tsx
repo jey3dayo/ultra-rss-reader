@@ -475,8 +475,8 @@ describe("FeedEditDialog", () => {
       wrapper: createQueryWrapper().wrapper,
     });
 
-    await user.click(screen.getByRole("button", { name: "Copy Website URL" }));
-    await user.click(screen.getByRole("button", { name: "Copy Feed URL" }));
+    await user.click(screen.getByRole("button", { name: "Copy website URL" }));
+    await user.click(screen.getByRole("button", { name: "Copy feed URL" }));
 
     expect(calls).toContainEqual({
       cmd: "copy_to_clipboard",

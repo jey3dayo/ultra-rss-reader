@@ -6,8 +6,7 @@ use crate::domain::url_policy::validate_user_navigation_url;
 const READING_LIST_URL_ERROR: &str =
     "Only http:// and https:// URLs without newlines are supported";
 #[cfg(any(target_os = "macos", test))]
-const READING_LIST_COMMAND_ERROR: &str =
-    "Failed to add to Reading List. Please try again from Safari.";
+const READING_LIST_COMMAND_ERROR: &str = "Failed to add to Reading List. Try again from Safari.";
 const CLIPBOARD_TEXT_ERROR: &str = "Invalid clipboard text";
 pub(crate) const CLIPBOARD_TEXT_MAX_CHARS: usize = 2048;
 pub(crate) const CLIPBOARD_TEXT_MAX_BYTES: usize = CLIPBOARD_TEXT_MAX_CHARS * 4;

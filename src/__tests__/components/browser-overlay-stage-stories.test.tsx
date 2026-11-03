@@ -35,7 +35,7 @@ describe("BrowserOverlayStage stories", () => {
     expect(screen.getByText("Web Preview could not load.")).toBeInTheDocument();
     expect(screen.getByText("Technical detail")).toBeInTheDocument();
     expect(stateCard.getByRole("button", { name: "Retry Web Preview" })).toBeInTheDocument();
-    expect(stateCard.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(stateCard.getByRole("button", { name: "Open in external browser" })).toBeInTheDocument();
   });
 
   it("renders the runtime unavailable issue story with external action only", () => {
@@ -46,6 +46,6 @@ describe("BrowserOverlayStage stories", () => {
     expect(screen.getByText("Embedded Web Preview is unavailable in this runtime.")).toBeInTheDocument();
     expect(screen.queryByText("Technical detail")).not.toBeInTheDocument();
     expect(stateCard.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
-    expect(stateCard.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(stateCard.getByRole("button", { name: "Open in external browser" })).toBeInTheDocument();
   });
 });
