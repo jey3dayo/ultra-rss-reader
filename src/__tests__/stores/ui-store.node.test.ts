@@ -270,6 +270,7 @@ describe("useUiStore", () => {
         UiStoreState,
         | "selectedAccountId"
         | "selection"
+        | "selectionHistory"
         | "selectedArticleId"
         | "articleEngagement"
         | "viewMode"
@@ -307,6 +308,7 @@ describe("useUiStore", () => {
         | "selectTagFromCurrentContext"
         | "handleTagDeleted"
         | "selectAll"
+        | "restoreSelectionFromHistory"
         | "selectArticle"
         | "clearArticle"
         | "openBrowser"

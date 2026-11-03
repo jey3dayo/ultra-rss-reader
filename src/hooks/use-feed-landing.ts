@@ -34,6 +34,7 @@ type FeedLandingUiSnapshot = Pick<
   | "focusedPane"
   | "selectedArticleId"
   | "selection"
+  | "selectionHistory"
   | "viewMode"
   | "webPreviewSessionMode"
 >;
@@ -45,6 +46,7 @@ function captureFeedLandingUiSnapshot(store: ReturnType<typeof useUiStore.getSta
     focusedPane: store.focusedPane,
     selectedArticleId: store.selectedArticleId,
     selection: store.selection,
+    selectionHistory: store.selectionHistory,
     viewMode: store.viewMode,
     webPreviewSessionMode: store.webPreviewSessionMode,
   };
