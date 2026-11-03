@@ -69,7 +69,7 @@ function SummaryMetric({ label, value }: SummaryIdentityProps) {
       <p className="font-sans text-[1.55rem] font-medium leading-tight tracking-tight text-foreground tabular-nums">
         {value}
       </p>
-      <p className="mt-1 text-[0.7rem] leading-tight tracking-wide text-foreground/85">{label}</p>
+      <p className="mt-1 text-[0.7rem] leading-tight text-foreground/85">{label}</p>
     </div>
   );
 }
@@ -232,7 +232,7 @@ function SummaryEmptyState({
                   </div>
                 </div>
                 <div className="shrink-0 pl-3 text-right">
-                  <p className="text-[0.7rem] leading-tight tracking-wide text-foreground/85">{latestUpdateLabel}</p>
+                  <p className="text-[0.7rem] leading-tight text-foreground/85">{latestUpdateLabel}</p>
                   <p className="mt-0.5 font-sans text-[0.95rem] font-medium leading-tight tracking-tight text-foreground tabular-nums">
                     {latestUpdateValue}
                   </p>

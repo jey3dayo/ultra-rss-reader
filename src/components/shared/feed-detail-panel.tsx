@@ -204,7 +204,7 @@ function FeedDetailHeader({
               <LabelChip
                 data-testid="feed-detail-status"
                 tone={resolveBadgeClassName(badgeTone)}
-                className="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
+                className="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px]"
               >
                 {badgeLabel}
               </LabelChip>
