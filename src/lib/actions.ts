@@ -14,7 +14,7 @@ import type { AppAction } from "@/lib/app-actions";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { queryClient } from "@/lib/query/query-client";
-import { queryKeys } from "@/lib/query/query-invalidation";
+import { normalizeQueryAccountId, queryKeys } from "@/lib/query/query-invalidation";
 import { TAGS_QUERY_KEY } from "@/lib/query/query-keys";
 import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
 import { findSelectionHistoryTarget, type SelectionHistoryDirection } from "@/lib/reader/selection-history";
@@ -118,7 +118,10 @@ function isSelectionStillAvailable(selection: ReaderQuerySelection, accountId: s
       return feeds === undefined || feeds.some((feed) => feed.id === selection.feedId);
     }
     case "folder": {
-      const folders = queryClient.getQueryData<FolderDto[]>([...queryKeys.folders.root, accountId]);
+      const folders = queryClient.getQueryData<FolderDto[]>([
+        ...queryKeys.folders.root,
+        normalizeQueryAccountId(accountId),
+      ]);
       return folders === undefined || folders.some((folder) => folder.id === selection.folderId);
     }
     case "tag": {

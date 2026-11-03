@@ -1,11 +1,13 @@
 import { Result } from "@praha/byethrow";
 import { waitFor } from "@testing-library/react";
+import { createSampleFeeds } from "@tests/helpers/fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { queryClient } from "@/lib/query/query-client";
 import { queryKeys } from "@/lib/query/query-invalidation";
+import { getVisibleSidebarFeeds } from "@/lib/sidebar/sidebar-feed-tree";
 import { useUiStore } from "@/stores/ui-store";
 
 const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenMock } = vi.hoisted(() => ({
@@ -386,6 +388,40 @@ describe("executeAction", () => {
       useUiStore.getState().selectFeed("feed-a");
       useUiStore.getState().selectFeed("feed-b");
       seedFeeds(["feed-b"]);
+
+      executeAction("mouse-back");
+
+      expect(useUiStore.getState().selection).toEqual({ type: "all" });
+    });
+
+    it("shows the feed that was read down to zero unread in the unread sidebar after going back", () => {
+      const [template] = createSampleFeeds();
+      if (!template) {
+        throw new Error("sample feed fixture is empty");
+      }
+      const feeds = [
+        { ...template, id: "feed-a", account_id: "acc-1", folder_id: "folder-1", unread_count: 0 },
+        { ...template, id: "feed-b", account_id: "acc-1", folder_id: "folder-1", unread_count: 3 },
+      ];
+      const visibleFeedIds = (selectedFeedId: string | null) =>
+        getVisibleSidebarFeeds(feeds, "unread", (list) => list, selectedFeedId).map((feed) => feed.id);
+      queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), feeds);
+      startInAccount();
+      useUiStore.getState().selectFeed("feed-a");
+      useUiStore.getState().selectFeed("feed-b");
+      expect(visibleFeedIds("feed-b")).toEqual(["feed-b"]);
+
+      executeAction("mouse-back");
+
+      const { selection } = useUiStore.getState();
+      expect(visibleFeedIds(selection.type === "feed" ? selection.feedId : null)).toEqual(["feed-a", "feed-b"]);
+    });
+
+    it("skips history entries whose folder was deleted", () => {
+      queryClient.setQueryData([...queryKeys.folders.root, "acc-1"], [{ id: "folder-2", account_id: "acc-1" }]);
+      startInAccount();
+      useUiStore.getState().selectFolder("folder-1");
+      useUiStore.getState().selectFolder("folder-2");
 
       executeAction("mouse-back");
 
