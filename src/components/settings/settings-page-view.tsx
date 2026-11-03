@@ -182,7 +182,7 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
         "text-(length:--font-size-2xs) tracking-[0.04em]",
         section.density === "compact" ? "mb-1 sm:mb-1" : undefined,
       )}
-      noteClassName={section.density === "compact" ? "mt-1 text-[12px] leading-4 sm:mt-1" : undefined}
+      noteClassName={section.density === "compact" ? "mt-1 text-(length:--font-size-xs) leading-4 sm:mt-1" : undefined}
     >
       {section.controls.map((control) =>
         control.type === "select" ? (

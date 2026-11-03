@@ -92,7 +92,7 @@ export function ShortcutKeyButton({
       ref={ref}
       type={type}
       className={cn(
-        "min-h-8 min-w-10 rounded-md border px-2.5 py-1 text-center font-mono text-[12px] leading-none font-medium tracking-[0.02em] transition-colors duration-150 ease-standard motion-reduce:transition-none",
+        "min-h-8 min-w-10 rounded-md border px-2.5 py-1 text-center font-mono text-(length:--font-size-xs) leading-none font-medium tracking-[0.02em] transition-colors duration-150 ease-standard motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         recording
           ? "animate-pulse border-ring bg-ring/14 text-foreground"
@@ -189,7 +189,10 @@ export function ShortcutsSettingsView({
               <ShortcutResetButton item={item} disabled={true} forceVisible={showLockedReset} />
               <Kbd
                 data-testid={`shortcut-badge-${item.id}`}
-                className={cn("min-h-8 min-w-10 px-2.5 py-1 text-[12px]", SETTINGS_CONTROL_SURFACE_CLASS)}
+                className={cn(
+                  "min-h-8 min-w-10 px-2.5 py-1 text-(length:--font-size-xs)",
+                  SETTINGS_CONTROL_SURFACE_CLASS,
+                )}
               >
                 {item.displayKey}
               </Kbd>
