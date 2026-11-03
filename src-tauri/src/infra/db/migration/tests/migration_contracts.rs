@@ -619,14 +619,45 @@ fn v29_tag_rename_restamps_the_article_links_whose_sync_identity_changed() {
 }
 
 #[test]
-fn v29_feed_url_change_restamps_only_the_article_times_that_were_recorded() {
+fn v29_tag_rename_carries_link_tombstones_to_the_new_name_at_the_rename_time() {
+    let db = migrated_with_local_sync_fixture();
+    let conn = db.writer();
+    conn.execute_batch(
+        "DELETE FROM article_tags WHERE article_id = 'art-2';
+         UPDATE local_sync_tombstones SET removed_at = '2020-01-01T00:00:00.000Z';
+         UPDATE tags SET name = 'Rustlang' WHERE id = 't1'",
+    )
+    .unwrap();
+
+    let removed_at = |key2: &str| -> Option<String> {
+        conn.query_row(
+            "SELECT removed_at FROM local_sync_tombstones
+             WHERE kind = 'article_tag' AND key = 'art-2' AND key2 = ?1",
+            [key2],
+            |row| row.get(0),
+        )
+        .ok()
+    };
+    assert_eq!(
+        removed_at("rust").as_deref(),
+        Some("2020-01-01T00:00:00.000Z"),
+        "the old name keeps its tombstone"
+    );
+    assert!(
+        removed_at("rustlang").is_some_and(|value| value.as_str() > "2020-01-01T00:00:00.000Z"),
+        "the absent link takes the rename time, like the links that exist under the renamed tag"
+    );
+}
+
+#[test]
+fn v29_feed_url_change_restamps_recorded_article_times_and_every_tag_link() {
     let db = migrated_with_local_sync_fixture();
     let conn = db.writer();
     conn.execute_batch(
         "UPDATE articles SET read_changed_at = '2020-01-01T00:00:00.000Z',
                              starred_changed_at = NULL
          WHERE id = 'art-1';
-         UPDATE article_tags SET changed_at = '2020-01-01T00:00:00.000Z';
+         UPDATE article_tags SET changed_at = NULL;
          UPDATE articles SET read_changed_at = '2020-01-01T00:00:00.000Z' WHERE id = 'art-3';
          UPDATE feeds SET url = 'https://example.com/moved' WHERE id = 'feed-1';",
     )
@@ -644,7 +675,13 @@ fn v29_feed_url_change_restamps_only_the_article_times_that_were_recorded() {
     );
     assert!(
         time("SELECT changed_at FROM article_tags WHERE article_id = 'art-1'")
-            .is_some_and(|value| value.as_str() > "2020-01-01T00:00:00.000Z")
+            .is_some_and(|value| value.as_str() > "2020-01-01T00:00:00.000Z"),
+        "a link that predates V29 has no recorded time yet, but its sync key changes with the URL"
+    );
+    assert_eq!(
+        time("SELECT changed_at FROM article_tags WHERE article_id = 'art-3'"),
+        None,
+        "links of other feeds are untouched"
     );
     assert_eq!(
         time("SELECT read_changed_at FROM articles WHERE id = 'art-3'").as_deref(),

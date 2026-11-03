@@ -309,8 +309,7 @@ BEGIN
     WHERE feed_id = NEW.id AND starred_changed_at IS NOT NULL;
     UPDATE article_tags
     SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-    WHERE changed_at IS NOT NULL
-        AND article_id IN (SELECT id FROM articles WHERE feed_id = NEW.id);
+    WHERE article_id IN (SELECT id FROM articles WHERE feed_id = NEW.id);
 END;
 
 CREATE TRIGGER IF NOT EXISTS article_tags_stamp_changed_at_on_tag_rename
@@ -331,7 +330,7 @@ WHEN lower(trim(NEW.name)) <> lower(trim(OLD.name))
     AND NOT EXISTS (SELECT 1 FROM local_sync_apply_guard WHERE active = 1)
 BEGIN
     INSERT INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
-    SELECT kind, account_id, key, lower(trim(NEW.name)), removed_at
+    SELECT kind, account_id, key, lower(trim(NEW.name)), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
     FROM local_sync_tombstones
     WHERE kind = 'article_tag' AND key2 = lower(trim(OLD.name))
     ON CONFLICT (kind, account_id, key, key2) DO UPDATE SET

@@ -1483,6 +1483,24 @@ fn import_keeps_article_tag_removal_made_before_the_tag_was_renamed() {
 }
 
 #[test]
+fn import_keeps_link_removal_over_a_remote_link_added_between_the_removal_and_the_tag_rename() {
+    let importer = import_after_divergent_edits(
+        "UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust';
+         UPDATE article_tags SET changed_at = '2025-01-01T00:00:00.000Z'
+         WHERE article_id = 'article-x' AND tag_id = 'tag-rust'",
+        "DELETE FROM article_tags WHERE article_id = 'article-x' AND tag_id = 'tag-rust';
+         UPDATE local_sync_tombstones SET removed_at = '2020-01-01T00:00:00.000Z';
+         UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'",
+    );
+
+    let pairs = article_tag_pairs(&importer);
+    assert!(
+        !pairs.contains(&"article-x:rustlang".to_string()),
+        "the rename is a local change newer than the remote link, so the removal must hold under the new name: {pairs:?}"
+    );
+}
+
+#[test]
 fn import_does_not_restore_links_of_a_tag_deleted_and_created_again() {
     let importer = import_after_divergent_edits(
         REMOTE_TAG_SQL,
