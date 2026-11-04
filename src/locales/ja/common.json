@@ -24,6 +24,7 @@
     "unsupported_http_url": "http:// または https:// の URL のみ使用できます",
     "article_url_credentials": "記事の URL にユーザー名やパスワードを含めることはできません",
     "invalid_clipboard_text": "コピーできないテキストです",
+    "response_validation": "応答の形式が想定と異なるため、処理できませんでした。診断ログを確認してください。",
     "unknown": "不明なエラー"
   },
   "updater": {
