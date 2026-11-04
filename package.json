@@ -108,7 +108,7 @@
     "lefthook": "2.2.1",
     "markdownlint-cli2": "^0.24.0",
     "portless": "^0.15.13",
-    "react-doctor": "0.9.22",
+    "react-doctor": "0.9.18",
     "shadcn": "^4.23.0",
     "storybook": "^10.6.5",
     "tailwindcss": "^4.3.4",
