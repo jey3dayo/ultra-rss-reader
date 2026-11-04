@@ -28,6 +28,12 @@ export const Pending: Story = {
   },
 };
 
+export const WithError: Story = {
+  args: {
+    errorMessage: "Failed to delete feed: The database is locked.",
+  },
+};
+
 export const LongCopy: Story = {
   args: {
     title: "Remove account",

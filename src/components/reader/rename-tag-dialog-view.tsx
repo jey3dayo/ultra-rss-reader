@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
-import { FormDialogShell, StackedInputField, TagColorPicker } from "@/design-system";
+import { FormDialogShell, StackedInputField, SurfaceCard, TagColorPicker } from "@/design-system";
 import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
 
 const EMPTY_COLOR_OPTIONS: string[] = [];
@@ -18,6 +18,7 @@ type RenameTagDialogViewProps = {
   onColorChange?: (value: string | null) => void;
   colorOptions?: string[];
   noColorLabel?: string;
+  errorMessage?: string | null;
   onSubmit: () => void;
 };
 
@@ -33,6 +34,7 @@ export function RenameTagDialogView({
   onColorChange = NO_OP_COLOR_CHANGE,
   colorOptions = EMPTY_COLOR_OPTIONS,
   noColorLabel,
+  errorMessage,
   onSubmit,
 }: RenameTagDialogViewProps) {
   const { t } = useTranslation("reader");
@@ -77,6 +79,11 @@ export function RenameTagDialogView({
           onChange={onColorChange}
         />
       )}
+      {errorMessage ? (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{errorMessage}</p>
+        </SurfaceCard>
+      ) : null}
     </FormDialogShell>
   );
 }

@@ -9,6 +9,7 @@ type DeleteTagDialogViewProps = {
   loading?: boolean;
   confirmDisabled?: boolean;
   confirmDisabledReason?: string;
+  errorMessage?: string | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 };
@@ -21,6 +22,7 @@ export function DeleteTagDialogView({
   loading = false,
   confirmDisabled = false,
   confirmDisabledReason,
+  errorMessage,
   onOpenChange,
   onConfirm,
 }: DeleteTagDialogViewProps) {
@@ -46,6 +48,7 @@ export function DeleteTagDialogView({
       })}
       confirmDisabled={confirmDisabled}
       confirmDisabledReason={confirmDisabledReason}
+      errorMessage={errorMessage}
       pending={loading}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}

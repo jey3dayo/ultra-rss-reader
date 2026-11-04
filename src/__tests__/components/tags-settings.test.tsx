@@ -317,4 +317,112 @@ describe("TagsSettings", () => {
     expect(tagHooks.deleteTagMutateAsync).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
   });
+
+  it("keeps a tag creation failure visible in the create section, not only in the toast", async () => {
+    const user = userEvent.setup();
+    tagHooks.createTagMutateAsync.mockRejectedValueOnce(new Error("name already used"));
+
+    render(<TagsSettings />);
+
+    const nameInput = screen.getByRole("textbox");
+    await user.type(nameInput, "Review");
+    await user.click(screen.getByRole("button", { name: /^(Create|tags\.create)$/ }));
+
+    const createForm = nameInput.closest("form");
+    if (!createForm) {
+      throw new Error("Expected tag creation input to be inside a form");
+    }
+    expect(await within(createForm).findByRole("alert")).toHaveTextContent("Failed to create tag: name already used");
+  });
+
+  it("clears the creation failure when the user edits the tag name", async () => {
+    const user = userEvent.setup();
+    tagHooks.createTagMutateAsync.mockRejectedValueOnce(new Error("name already used"));
+
+    render(<TagsSettings />);
+
+    const nameInput = screen.getByRole("textbox");
+    await user.type(nameInput, "Review");
+    await user.click(screen.getByRole("button", { name: /^(Create|tags\.create)$/ }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.type(nameInput, "s");
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps a tag rename failure visible in the edit dialog, not only in the toast", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    tagHooks.renameTagMutateAsync.mockRejectedValueOnce(new Error("database is locked"));
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByRole("textbox");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Reading");
+    await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Failed to update tag: database is locked");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("clears the rename failure when the user edits the tag name in the dialog", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    tagHooks.renameTagMutateAsync.mockRejectedValueOnce(new Error("database is locked"));
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByRole("textbox");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Reading");
+    await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
+    expect(await within(dialog).findByRole("alert")).toBeInTheDocument();
+
+    await user.type(nameInput, "!");
+
+    expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps a tag delete failure visible in the delete dialog, not only in the toast", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    tagHooks.deleteTagMutateAsync.mockRejectedValueOnce(new Error("database is locked"));
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Delete/ }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: 'Delete "Review". This cannot be undone.' }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Failed to delete tag: database is locked");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("does not show a stale delete failure after the dialog is closed and reopened", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    tagHooks.deleteTagMutateAsync.mockRejectedValueOnce(new Error("database is locked"));
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Delete/ }));
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: 'Delete "Review". This cannot be undone.' }),
+    );
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: /^(Cancel|common\.cancel)$/ }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /Delete/ }));
+
+    expect(within(screen.getByRole("dialog")).queryByRole("alert")).not.toBeInTheDocument();
+  });
 });

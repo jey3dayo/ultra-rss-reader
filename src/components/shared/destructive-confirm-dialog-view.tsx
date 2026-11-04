@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 
@@ -15,6 +16,7 @@ export type DestructiveConfirmDialogViewProps = {
   confirmAccessibleLabel?: string;
   confirmDisabled?: boolean;
   confirmDisabledReason?: string;
+  errorMessage?: string | null;
   pending?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void | Promise<void>;
@@ -31,6 +33,7 @@ export function DestructiveConfirmDialogView({
   confirmAccessibleLabel,
   confirmDisabled = false,
   confirmDisabledReason,
+  errorMessage,
   pending = false,
   onOpenChange,
   onConfirm,
@@ -111,6 +114,11 @@ export function DestructiveConfirmDialogView({
           <p id={confirmDescriptionId} className="text-sm text-state-danger-foreground">
             {confirmDisabledReason}
           </p>
+        ) : null}
+        {errorMessage ? (
+          <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+            <p className="text-sm leading-[1.5]">{errorMessage}</p>
+          </SurfaceCard>
         ) : null}
         <DestructiveDialogFooter
           cancelLabel={cancelLabel}

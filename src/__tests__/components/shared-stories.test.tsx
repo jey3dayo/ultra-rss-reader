@@ -70,7 +70,7 @@ const requiredSharedStoryExportsByFilePath = {
   ],
   "/src/components/shared/copyable-readonly-field-list.stories.tsx": ["CardSurface", "Plain"],
   "/src/components/shared/copyable-readonly-field.stories.tsx": ["Default", "Disabled", "EmptyValue"],
-  "/src/components/shared/destructive-confirm-dialog-view.stories.tsx": ["Default", "LongCopy", "Pending"],
+  "/src/components/shared/destructive-confirm-dialog-view.stories.tsx": ["Default", "LongCopy", "Pending", "WithError"],
   "/src/components/shared/destructive-dialog-footer.stories.tsx": ["Default", "LongConfirmLabel", "Pending"],
   "/src/components/shared/form-action-buttons.stories.tsx": ["Default", "Disabled", "Loading", "LongLocalizedLabels"],
   "/src/components/shared/gradient-switch.stories.tsx": [
