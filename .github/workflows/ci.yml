@@ -420,7 +420,7 @@ jobs:
         run: bash scripts/ci/run-logged.sh tmp/ci-artifacts/rust/lint.log mise run lint:clippy
 
       - name: Verify macOS credential session policy with dummy values
-        if: needs.change-plan.outputs.credentials == 'true'
+        if: runner.os == 'macOS' && needs.change-plan.outputs.credentials == 'true'
         run: mise run test:keychain-session
 
       - name: Run native smoke debug build
