@@ -1640,3 +1640,81 @@ fn import_keeps_a_tag_and_its_link_when_an_article_was_tagged_locally_after_the_
     assert_eq!(report.apply_report.tags_removed, 0);
     assert_eq!(report.apply_report.skipped_removed_tags, 1);
 }
+
+#[test]
+fn import_keeps_a_tag_when_the_same_file_tags_an_article_after_the_removal() {
+    let account_id = AccountId("account-1".to_string());
+    let exporter = DbManager::new_in_memory().unwrap();
+    seed_entity_fixture(&exporter, &account_id);
+    let export_dir = tempfile::tempdir().unwrap();
+    let settings = seeded_settings(&export_dir.path().to_string_lossy(), &account_id);
+    SqliteLocalAccountSyncSettingsRepository::new(exporter.writer())
+        .save(&settings)
+        .unwrap();
+    export_local_account_sync_folder(&exporter, &account_id, &settings).unwrap();
+    let exported =
+        crate::infra::local_account_sync_files::load_local_sync_operation_dir(export_dir.path())
+            .unwrap();
+    let article_key = exported
+        .operations
+        .iter()
+        .find_map(|operation| match &operation.entity_key {
+            LocalSyncEntityKey::ArticleTag {
+                article_key,
+                normalized_tag_name,
+            } if normalized_tag_name == "rust" => Some(article_key.clone()),
+            _ => None,
+        })
+        .expect("the exporter should emit an article tag operation for rust");
+
+    let importer = DbManager::new_in_memory().unwrap();
+    seed_entity_fixture(&importer, &account_id);
+    importer
+        .writer()
+        .execute_batch(
+            "UPDATE tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 5, 'unixepoch') WHERE id = 'tag-rust';
+             UPDATE article_tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 5, 'unixepoch')
+             WHERE tag_id = 'tag-rust'",
+        )
+        .unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let removal = operation_with(
+        &settings.sync_account_id.0,
+        "remove-rust",
+        LocalSyncEntityKey::Tag {
+            normalized_name: "rust".to_string(),
+        },
+        LocalSyncAction::RemoveTag,
+    );
+    let mut tagging = operation_with(
+        &settings.sync_account_id.0,
+        "tag-article-x-rust",
+        LocalSyncEntityKey::ArticleTag {
+            article_key,
+            normalized_tag_name: "rust".to_string(),
+        },
+        LocalSyncAction::AddArticleTag,
+    );
+    tagging.occurred_at = ts(20);
+    write_local_sync_operation_file(dir.path(), &removal, 1).unwrap();
+    write_local_sync_operation_file(dir.path(), &tagging, 2).unwrap();
+
+    let report = import_local_account_sync_folder(
+        &importer,
+        &account_id,
+        &settings.sync_account_id,
+        dir.path(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        query_strings(&importer, "SELECT name FROM tags ORDER BY name"),
+        ["rust", "swift"]
+    );
+    assert_eq!(
+        article_tag_pairs(&importer),
+        ["article-x:rust", "article-y:swift"]
+    );
+    assert_eq!(report.apply_report.tags_removed, 0);
+    assert_eq!(report.apply_report.skipped_removed_tags, 1);
+}
