@@ -1914,6 +1914,7 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Sync completed with warnings",
+        severity: "warning",
       });
     });
   });
@@ -1964,6 +1965,7 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Sync completed, but some changes will retry next sync",
+        severity: "warning",
       });
     });
   });
