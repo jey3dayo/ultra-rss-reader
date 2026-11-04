@@ -324,7 +324,8 @@ test("workflow connects every planned lane to the gate and keeps Windows/full re
   assert.ok(workflow.includes(`PR_HEAD_SHA: ${expression("github.event.pull_request.head.sha")}`));
   assert.ok(workflow.includes(`CI_NEEDS: ${expression("toJSON(needs)")}`));
   assert.ok(workflow.includes("needs.change-plan.outputs.credentials == 'true'"));
-  assert.ok(workflow.includes("os: [macos-latest, windows-latest]"));
+  assert.ok(workflow.includes("job_timeout_minutes: 45"));
+  assert.ok(workflow.includes("matrix.os == 'macos-latest'"));
   assert.ok(!workflow.includes("run: |"));
 });
 
