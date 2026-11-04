@@ -19,6 +19,7 @@ pub struct LocalAccountSyncApplyReport {
     pub feeds_upserted: usize,
     pub article_states_applied: usize,
     pub tags_upserted: usize,
+    pub tags_removed: usize,
     pub article_tags_added: usize,
     pub article_tags_removed: usize,
     pub mute_keywords_upserted: usize,
@@ -44,7 +45,7 @@ pub fn apply_local_account_sync_projection(
     set_apply_guard(&tx, true)?;
     let folder_ids = upsert_folders(&tx, account_id, &projection.folders, &mut report)?;
     upsert_feeds(&tx, account_id, &projection.feeds, &folder_ids, &mut report)?;
-    upsert_tags(&tx, &projection.tags, &mut report)?;
+    upsert_tags(&tx, projection, &mut report)?;
     apply_mute_keywords(&tx, &projection.mute_keywords, &mut report)?;
     remove_mute_keywords(&tx, &projection.mute_keyword_tombstones, &mut report)?;
 
@@ -382,12 +383,24 @@ fn load_existing_feeds(
 
 fn upsert_tags(
     conn: &Connection,
-    tags: &BTreeMap<String, crate::domain::local_account_sync::LocalSyncTagState>,
+    projection: &LocalAccountSyncProjection,
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<()> {
-    for (normalized_name, tag) in tags {
-        if tag.removed_at.is_some() {
-            report.skipped_removed_tags += 1;
+    for (normalized_name, tag) in &projection.tags {
+        if let Some(removed_at) = tag.removed_at {
+            let incoming_link_added_at = projection
+                .article_tag_added_at
+                .iter()
+                .filter(|((_, tag_name), _)| tag_name == normalized_name)
+                .map(|(_, added_at)| *added_at)
+                .max();
+            remove_tag(
+                conn,
+                normalized_name,
+                removed_at,
+                incoming_link_added_at,
+                report,
+            )?;
             continue;
         }
         let existing = find_tag_by_normalized_name(conn, normalized_name)?;
@@ -418,6 +431,38 @@ fn upsert_tags(
         )?;
         report.tags_upserted += 1;
     }
+    Ok(())
+}
+
+/// A tag counts as changed when it was renamed or when an article was tagged with it, locally
+/// or in the same import, so a removal older than that activity keeps the tag instead of
+/// cascading over newer links.
+fn remove_tag(
+    conn: &Connection,
+    normalized_name: &str,
+    removed_at: DateTime<Utc>,
+    incoming_link_added_at: Option<DateTime<Utc>>,
+    report: &mut LocalAccountSyncApplyReport,
+) -> DomainResult<()> {
+    let Some((tag_id, tag_changed_at)) = find_tag_by_normalized_name(conn, normalized_name)? else {
+        return Ok(());
+    };
+    let latest_link_change: Option<String> = conn.query_row(
+        "SELECT MAX(changed_at) FROM article_tags WHERE tag_id = ?1",
+        params![tag_id.0],
+        |row| row.get(0),
+    )?;
+    let latest_link_change = parse_change_time("article tag changed_at", latest_link_change)?;
+    let latest_change = tag_changed_at
+        .into_iter()
+        .chain(latest_link_change)
+        .chain(incoming_link_added_at)
+        .max();
+    if !file_wins(latest_change, removed_at) {
+        report.skipped_removed_tags += 1;
+        return Ok(());
+    }
+    report.tags_removed += conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id.0])?;
     Ok(())
 }
 
