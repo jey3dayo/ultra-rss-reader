@@ -37,6 +37,8 @@ export const QUERY_KEY_ROOTS = {
   localFeedSyncStatuses: createSchemaVersionedQueryKey("localFeedSyncStatuses"),
 } as const satisfies Record<string, QueryInvalidationKey>;
 
+export const TAGS_QUERY_KEY = ["tags"] as const;
+
 export const queryKeys = {
   accounts: {
     root: QUERY_KEY_ROOTS.accounts,

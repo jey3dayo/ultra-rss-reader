@@ -6,6 +6,11 @@ import {
   getRetainedArticleIdsAfterSelectingArticle,
 } from "@/lib/articles/article-retention";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
+import {
+  createSelectionHistory,
+  pushSelectionHistory,
+  removeSelectionsFromHistory,
+} from "@/lib/reader/selection-history";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 import type {
@@ -71,6 +76,7 @@ type ReaderScopeResetState = Pick<
   UiState,
   | "accountPaneOpen"
   | "selection"
+  | "selectionHistory"
   | "selectedArticleId"
   | "contentMode"
   | "focusedPane"
@@ -87,15 +93,18 @@ type ReaderScopeResetState = Pick<
   Partial<Pick<UiState, "viewMode" | "expandedFolderIds">>;
 
 function getReaderScopeResetState(
+  state: Pick<UiState, "selectionHistory">,
   selection: UiStoreReaderSelection,
   options: {
     viewMode?: ViewMode;
     expandedFolderIds?: Set<string>;
+    selectionHistory?: UiState["selectionHistory"];
   } = {},
 ): ReaderScopeResetState {
   const nextState: ReaderScopeResetState = {
     accountPaneOpen: false,
     selection,
+    selectionHistory: options.selectionHistory ?? pushSelectionHistory(state.selectionHistory, selection),
     selectedArticleId: null,
     contentMode: "empty",
     focusedPane: "list",
@@ -121,6 +130,7 @@ type AccountSelectionResetState = Pick<
   | "accountPaneOpen"
   | "commandPaletteOpen"
   | "selection"
+  | "selectionHistory"
   | "viewMode"
   | "selectedArticleId"
   | "contentMode"
@@ -154,6 +164,7 @@ function getAccountSelectionResetState({
     accountPaneOpen: false,
     commandPaletteOpen: false,
     selection,
+    selectionHistory: createSelectionHistory(selection),
     viewMode,
     selectedArticleId: null,
     contentMode: "empty",
@@ -262,17 +273,22 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
       ),
     selectFeed: (feedId) =>
       set((state) =>
-        state.subscriptionsWorkspace !== null ? state : getReaderScopeResetState({ type: "feed", feedId }),
+        state.subscriptionsWorkspace !== null ? state : getReaderScopeResetState(state, { type: "feed", feedId }),
       ),
     selectFeedFromCurrentContext: (feedId) =>
       set((state) =>
         state.subscriptionsWorkspace !== null
           ? state
-          : getReaderScopeResetState({ type: "feed", feedId }, { viewMode: getContextAwareScopeViewMode(state) }),
+          : getReaderScopeResetState(
+              state,
+              { type: "feed", feedId },
+              { viewMode: getContextAwareScopeViewMode(state) },
+            ),
       ),
     selectFolder: (folderId) =>
       set((state) =>
         getReaderScopeResetState(
+          state,
           { type: "folder", folderId },
           { expandedFolderIds: new Set(state.expandedFolderIds).add(folderId) },
         ),
@@ -280,6 +296,7 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
     selectFolderFromCurrentContext: (folderId) =>
       set((state) =>
         getReaderScopeResetState(
+          state,
           { type: "folder", folderId },
           {
             viewMode: getContextAwareScopeViewMode(state),
@@ -288,23 +305,44 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
         ),
       ),
     selectSmartView: (kind) =>
-      set(getReaderScopeResetState({ type: "smart", kind }, { viewMode: getSmartViewMode(kind) })),
-    selectTag: (tagId) => set(getReaderScopeResetState({ type: "tag", tagId })),
+      set((state) => getReaderScopeResetState(state, { type: "smart", kind }, { viewMode: getSmartViewMode(kind) })),
+    selectTag: (tagId) => set((state) => getReaderScopeResetState(state, { type: "tag", tagId })),
     selectTagFromCurrentContext: (tagId) =>
       set((state) =>
-        getReaderScopeResetState({ type: "tag", tagId }, { viewMode: getContextAwareScopeViewMode(state) }),
+        getReaderScopeResetState(state, { type: "tag", tagId }, { viewMode: getContextAwareScopeViewMode(state) }),
       ),
     handleTagDeleted: (deletedTagId) =>
       set((state) => {
+        const selectionHistory = removeSelectionsFromHistory(
+          state.selectionHistory,
+          (selection) => selection.type === "tag" && selection.tagId === deletedTagId,
+        );
         if (state.selection.type !== "tag" || state.selection.tagId !== deletedTagId) {
+          return selectionHistory === state.selectionHistory ? state : { selectionHistory };
+        }
+
+        return getReaderScopeResetState({ selectionHistory }, { type: "all" });
+      }),
+    selectAll: () => set((state) => getReaderScopeResetState(state, { type: "all" })),
+    restoreSelectionFromHistory: (index, options) =>
+      set((state) => {
+        const selection = state.selectionHistory.entries[index];
+        if (selection === undefined) {
           return state;
         }
 
+        const expandedFolderId = selection.type === "folder" ? selection.folderId : options?.expandFolderId;
         return {
-          ...getReaderScopeResetState({ type: "all" }),
+          ...getReaderScopeResetState(state, selection, {
+            selectionHistory: { entries: state.selectionHistory.entries, index },
+            viewMode:
+              selection.type === "smart" ? getSmartViewMode(selection.kind) : getContextAwareScopeViewMode(state),
+            ...(expandedFolderId ? { expandedFolderIds: new Set(state.expandedFolderIds).add(expandedFolderId) } : {}),
+          }),
+          ...(selection.type === "feed" || selection.type === "folder" ? { isFeedsSectionOpen: true } : {}),
+          ...(selection.type === "tag" ? { isTagsSectionOpen: true } : {}),
         };
       }),
-    selectAll: () => set(getReaderScopeResetState({ type: "all" })),
     selectArticle: (id, options) =>
       set((state) =>
         state.subscriptionsWorkspace !== null

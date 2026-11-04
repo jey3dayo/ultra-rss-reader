@@ -1,18 +1,11 @@
 import { Result } from "@praha/byethrow";
-import {
-  type FeedDto,
-  goBackBrowserWebview,
-  goForwardBrowserWebview,
-  reloadBrowserWebview,
-  restartApp,
-} from "@/api/tauri-commands";
+import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview, restartApp } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import type { AppAction } from "@/lib/app-actions";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
-import { queryClient } from "@/lib/query/query-client";
-import { queryKeys } from "@/lib/query/query-invalidation";
+import { getFeedFolderId, moveSelectionHistory } from "@/lib/reader/selection-history-navigation";
 import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
@@ -58,6 +51,8 @@ function emitArticleShareEvent(
   emitEvent(name);
 }
 
+type UiStoreState = ReturnType<typeof useUiStore.getState>;
+
 function logGlobalActionFailure(action: AppAction, category: GlobalActionDiagnosticCategory, error: unknown): void {
   logRuntimeDiagnostic(actionDiagnosticPolicyByCategory[category], `[actions:${category}] ${action} failed.`, error);
 }
@@ -97,11 +92,6 @@ function focusSidebarSelection(): void {
   scheduleReaderFocusFrame(() => {
     focusSelectedSidebarTarget();
   });
-}
-
-function getFeedFolderId(feedId: string, accountId: string | null): string | null {
-  const feeds = queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount(accountId));
-  return feeds?.find((feed) => feed.id === feedId)?.folder_id ?? null;
 }
 
 async function navigateBrowserBackOrClose(): Promise<void> {
@@ -212,7 +202,7 @@ function navigateUnlessBrowserCloseQueued(
   emitNavigationEvent(eventName, direction);
 }
 
-function handleMouseBack(store: ReturnType<typeof useUiStore.getState>): void {
+function handleMouseBack(store: UiStoreState): void {
   if (store.contentMode === "browser") {
     void navigateBrowserBackOrClose();
     return;
@@ -221,6 +211,10 @@ function handleMouseBack(store: ReturnType<typeof useUiStore.getState>): void {
     const previousArticleId = store.selectedArticleId;
     store.clearArticle();
     focusArticleListAfterClearingArticle(previousArticleId);
+    return;
+  }
+  if (moveSelectionHistory(store, "back")) {
+    focusSidebarSelection();
     return;
   }
   if (store.selection.type === "feed") {
@@ -257,8 +251,6 @@ export function executeAction(action: AppAction): void {
 
   console.warn(`[actions] Unknown action: ${action}`);
 }
-
-type UiStoreState = ReturnType<typeof useUiStore.getState>;
 
 function runViewPreferenceAction(action: AppAction, store: UiStoreState): boolean {
   switch (action) {
@@ -445,6 +437,10 @@ function runNavigationBrowserAction(action: AppAction, store: UiStoreState): boo
     case "mouse-forward":
       if (store.contentMode === "browser") {
         void navigateBrowserForward();
+      } else {
+        if (moveSelectionHistory(store, "forward")) {
+          focusSidebarSelection();
+        }
       }
       return true;
     default:

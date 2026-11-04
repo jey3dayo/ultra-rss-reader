@@ -26,6 +26,7 @@ import {
   normalizeQueryAccountId,
   queryKeys,
 } from "@/lib/query/query-invalidation";
+import { TAGS_QUERY_KEY } from "@/lib/query/query-keys";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 import { requireEnabledQueryValue } from "@/lib/require-enabled-query-value";
 import { useUiStore } from "@/stores/ui-store";
@@ -54,7 +55,7 @@ type TagMutationInvalidationScope = "create" | "articleAssignment" | "metadata";
 type TagQueryKey = readonly unknown[];
 
 const TAG_QUERY_KEYS = {
-  tags: ["tags"],
+  tags: TAGS_QUERY_KEY,
   articleTags: ["articleTags"],
   articlesByTag: queryKeys.articlesByTag.root,
   tagArticleCounts: queryKeys.tagArticleCounts.root,

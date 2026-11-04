@@ -1,6 +1,7 @@
 import { parse } from "valibot";
 import { create } from "zustand";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
+import { createSelectionHistory } from "@/lib/reader/selection-history";
 import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
 import type {
   NativeLifecycleBlockerEntry,
@@ -97,6 +98,7 @@ const initialState: UiState = {
   contentMode: "empty",
   selectedAccountId: null,
   selection: { type: "all" },
+  selectionHistory: createSelectionHistory({ type: "all" }),
   selectedArticleId: null,
   articleEngagement: "reading",
   viewMode: "unread",

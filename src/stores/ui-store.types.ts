@@ -13,6 +13,7 @@ import type {
   PendingBrowserCloseAction,
 } from "@/lib/layout/layout-state.types";
 import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
+import type { SelectionHistory } from "@/lib/reader/selection-history";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
@@ -79,6 +80,7 @@ export type UiState = {
   contentMode: ContentMode;
   selectedAccountId: string | null;
   selection: UiStoreReaderSelection;
+  selectionHistory: SelectionHistory;
   selectedArticleId: string | null;
   articleEngagement: ArticleEngagement;
   viewMode: ViewMode;
@@ -148,6 +150,7 @@ export type UiActions = {
   selectTagFromCurrentContext: (tagId: string) => void;
   handleTagDeleted: (deletedTagId: string) => void;
   selectAll: () => void;
+  restoreSelectionFromHistory: (index: number, options?: { expandFolderId?: string | null }) => void;
   selectArticle: (
     id: string,
     options?: {
@@ -249,6 +252,7 @@ export type UiStoreReaderState = Pick<
   UiStoreState,
   | "selectedAccountId"
   | "selection"
+  | "selectionHistory"
   | "selectedArticleId"
   | "articleEngagement"
   | "viewMode"
@@ -329,6 +333,7 @@ export type UiStoreReaderActions = Pick<
   | "selectTagFromCurrentContext"
   | "handleTagDeleted"
   | "selectAll"
+  | "restoreSelectionFromHistory"
   | "selectArticle"
   | "clearArticle"
   | "openBrowser"
@@ -369,6 +374,7 @@ export type UiStoreReaderSelectionActions = Pick<
   | "selectTagFromCurrentContext"
   | "handleTagDeleted"
   | "selectAll"
+  | "restoreSelectionFromHistory"
   | "selectArticle"
   | "clearArticle"
   | "openBrowser"
