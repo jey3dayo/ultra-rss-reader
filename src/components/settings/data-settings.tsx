@@ -29,6 +29,8 @@ export function DataSettings() {
       loaded={credentialStorage.loaded}
       configurable={credentialStorage.configurable}
       saving={credentialStorage.saving}
+      errorMessage={credentialStorage.errorMessage}
+      cleanupNotice={credentialStorage.cleanupNotice}
       onStorageChange={(next) => void credentialStorage.handleChange(next)}
     />
   );

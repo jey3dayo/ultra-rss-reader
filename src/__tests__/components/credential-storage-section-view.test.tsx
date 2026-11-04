@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
@@ -51,6 +51,39 @@ describe("CredentialStorageSectionView", () => {
     });
 
     expect(container.firstChild).toBeNull();
+  });
+
+  it("shows a switch failure as an alert inside the section", () => {
+    render(<CredentialStorageSectionView {...baseProps} errorMessage="Failed to switch: keyring unavailable" />, {
+      wrapper: createWrapper(),
+    });
+
+    const section = screen.getByRole("heading", { name: "Credentials" }).closest("section");
+    if (!section) {
+      throw new Error("expected the heading to be inside a section");
+    }
+    expect(within(section).getByRole("alert")).toHaveTextContent("Failed to switch: keyring unavailable");
+    expect(within(section).queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("shows an incomplete cleanup as a status, not an alert", () => {
+    render(<CredentialStorageSectionView {...baseProps} cleanupNotice="Old storage could not be cleared." />, {
+      wrapper: createWrapper(),
+    });
+
+    const section = screen.getByRole("heading", { name: "Credentials" }).closest("section");
+    if (!section) {
+      throw new Error("expected the heading to be inside a section");
+    }
+    expect(within(section).getByRole("status")).toHaveTextContent("Old storage could not be cleared.");
+    expect(within(section).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows neither an alert nor a status when no failure or notice is given", () => {
+    render(<CredentialStorageSectionView {...baseProps} />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("selects local_file and reports the change through onStorageChange", async () => {

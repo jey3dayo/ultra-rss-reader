@@ -19,6 +19,16 @@ function createT(): TFunction<"settings"> {
   return ((key: string, _values?: Record<string, unknown>) => key) as TFunction<"settings">;
 }
 
+type SetCredentialStorageResult = Awaited<ReturnType<typeof tauriCommands.setCredentialStorage>>;
+
+function deferredSetCredentialStorageResult() {
+  let resolve: (value: SetCredentialStorageResult) => void = () => undefined;
+  const promise = new Promise<SetCredentialStorageResult>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 describe("useCredentialStorageSetting", () => {
   let queryClient: QueryClient;
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
@@ -66,6 +76,8 @@ describe("useCredentialStorageSetting", () => {
     expect(showToast).toHaveBeenCalledWith("data.credential_storage_saved");
     expect(result.current.storage).toBe("local_file");
     expect(result.current.saving).toBe(false);
+    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.cleanupNotice).toBeNull();
   });
 
   it("shows the cleanup_incomplete toast and still invalidates account sync status when cleanup is incomplete", async () => {
@@ -87,6 +99,8 @@ describe("useCredentialStorageSetting", () => {
     expect(showToast).not.toHaveBeenCalledWith("data.credential_storage_saved");
     expect(result.current.storage).toBe("local_file");
     expect(result.current.saving).toBe(false);
+    expect(result.current.cleanupNotice).toBe("data.credential_storage_cleanup_incomplete");
+    expect(result.current.errorMessage).toBeNull();
   });
 
   it("does not invalidate account sync status when the storage switch fails", async () => {
@@ -106,5 +120,61 @@ describe("useCredentialStorageSetting", () => {
     expect(invalidateQueriesSpy).not.toHaveBeenCalled();
     expect(showToast).toHaveBeenCalledWith("data.credential_storage_failed");
     expect(result.current.saving).toBe(false);
+    expect(result.current.errorMessage).toBe("data.credential_storage_failed");
+    expect(result.current.cleanupNotice).toBeNull();
+  });
+
+  it("clears a previous failure as soon as the next storage change starts", async () => {
+    vi.spyOn(tauriCommands, "getCredentialStorage").mockResolvedValue(Result.succeed(keychainDto));
+    const retry = deferredSetCredentialStorageResult();
+    vi.spyOn(tauriCommands, "setCredentialStorage")
+      .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "keyring unavailable" }))
+      .mockReturnValueOnce(retry.promise);
+
+    const { result } = renderSettingHook();
+
+    await act(async () => {
+      await result.current.handleChange("local_file");
+    });
+    expect(result.current.errorMessage).toBe("data.credential_storage_failed");
+
+    let inFlight: Promise<void> = Promise.resolve();
+    await act(async () => {
+      inFlight = result.current.handleChange("local_file");
+    });
+    expect(result.current.saving).toBe(true);
+    expect(result.current.errorMessage).toBeNull();
+
+    await act(async () => {
+      retry.resolve(Result.succeed(localFileDto));
+      await inFlight;
+    });
+  });
+
+  it("clears a previous cleanup notice as soon as the next storage change starts", async () => {
+    vi.spyOn(tauriCommands, "getCredentialStorage").mockResolvedValue(Result.succeed(keychainDto));
+    const next = deferredSetCredentialStorageResult();
+    vi.spyOn(tauriCommands, "setCredentialStorage")
+      .mockResolvedValueOnce(Result.succeed({ ...localFileDto, cleanup_incomplete: true }))
+      .mockReturnValueOnce(next.promise);
+
+    const { result } = renderSettingHook();
+
+    await act(async () => {
+      await result.current.handleChange("local_file");
+    });
+    expect(result.current.cleanupNotice).toBe("data.credential_storage_cleanup_incomplete");
+
+    let inFlight: Promise<void> = Promise.resolve();
+    await act(async () => {
+      inFlight = result.current.handleChange("os_keychain");
+    });
+    expect(result.current.saving).toBe(true);
+    expect(result.current.cleanupNotice).toBeNull();
+
+    await act(async () => {
+      next.resolve(Result.succeed(keychainDto));
+      await inFlight;
+    });
   });
 });
