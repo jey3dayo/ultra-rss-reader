@@ -92,7 +92,7 @@ describe("article-browser-actions", () => {
       successMessage: "Link copied",
     });
 
-    expect(showToast).toHaveBeenCalledWith("Clipboard unavailable");
+    expect(showToast).toHaveBeenCalledWith({ message: "Clipboard unavailable", severity: "error" });
   });
 
   it("logs categorized clipboard runtime failures when copying fails", async () => {
@@ -116,7 +116,7 @@ describe("article-browser-actions", () => {
         message: "Clipboard unavailable",
       }),
     );
-    expect(showToast).toHaveBeenCalledWith("Clipboard unavailable");
+    expect(showToast).toHaveBeenCalledWith({ message: "Clipboard unavailable", severity: "error" });
   });
 
   it("preserves clipboard categories when copy link reports them", () => {
@@ -136,7 +136,7 @@ describe("article-browser-actions", () => {
     });
 
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
+    expect(showToast).toHaveBeenCalledWith({ message: "Invalid clipboard text", severity: "error" });
   });
 
   it.each([
@@ -153,7 +153,7 @@ describe("article-browser-actions", () => {
     });
 
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith(expectedMessage);
+    expect(showToast).toHaveBeenCalledWith({ message: expectedMessage, severity: "error" });
   });
 
   it("shows a success toast after adding a link to the reading list", async () => {
@@ -222,7 +222,7 @@ describe("article-browser-actions", () => {
 
     expect(result).toSatisfy(Result.isFailure);
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith(expectedMessage);
+    expect(showToast).toHaveBeenCalledWith({ message: expectedMessage, severity: "error" });
   });
 
   it("shows the command error when adding to the reading list fails", async () => {
@@ -238,7 +238,7 @@ describe("article-browser-actions", () => {
       successMessage: "Added to reading list",
     });
 
-    expect(showToast).toHaveBeenCalledWith("Reading list unavailable");
+    expect(showToast).toHaveBeenCalledWith({ message: "Reading list unavailable", severity: "error" });
   });
 
   it("logs and surfaces rejected reading-list commands for fire-and-forget callers", async () => {
@@ -259,7 +259,7 @@ describe("article-browser-actions", () => {
         message: "Reading list command rejected",
       }),
     );
-    expect(showToast).toHaveBeenCalledWith("Reading list command rejected");
+    expect(showToast).toHaveBeenCalledWith({ message: "Reading list command rejected", severity: "error" });
     addToReadingListSpy.mockRestore();
   });
 
@@ -279,7 +279,10 @@ describe("article-browser-actions", () => {
     expect(serialized).not.toContain("user:pass");
     expect(serialized).not.toContain("token=raw");
     expect(serialized).not.toContain("#frag");
-    expect(showToast).toHaveBeenCalledWith("osascript failed for https://user:pass@example.com/private?token=raw#frag");
+    expect(showToast).toHaveBeenCalledWith({
+      message: "osascript failed for https://user:pass@example.com/private?token=raw#frag",
+      severity: "error",
+    });
     addToReadingListSpy.mockRestore();
   });
 
@@ -380,7 +383,7 @@ describe("article-browser-actions", () => {
     });
 
     expect(calls.filter((call) => call.cmd === "open_in_browser")).toHaveLength(2);
-    expect(showToast).toHaveBeenCalledWith("Browser unavailable");
+    expect(showToast).toHaveBeenCalledWith({ message: "Browser unavailable", severity: "error" });
   });
 
   it.each([
@@ -409,7 +412,10 @@ describe("article-browser-actions", () => {
 
       expect(result).toSatisfy(Result.isFailure);
       expect(calls).toEqual([]);
-      expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+      expect(showToast).toHaveBeenCalledWith({
+        message: "Only http:// and https:// URLs are supported",
+        severity: "error",
+      });
     },
   );
 
@@ -422,7 +428,10 @@ describe("article-browser-actions", () => {
       errorLabel: "Failed to open in browser",
     });
 
-    expect(showToast).toHaveBeenCalledWith("http:// または https:// の URL のみ使用できます");
+    expect(showToast).toHaveBeenCalledWith({
+      message: "http:// または https:// の URL のみ使用できます",
+      severity: "error",
+    });
   });
 
   it("rejects article external-browser URLs with credentials before invoking Tauri", async () => {
@@ -439,7 +448,7 @@ describe("article-browser-actions", () => {
 
     expect(result).toSatisfy(Result.isFailure);
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith("Article URLs must not include credentials");
+    expect(showToast).toHaveBeenCalledWith({ message: "Article URLs must not include credentials", severity: "error" });
   });
 
   it("opens an article in the background when the background preference is enabled", async () => {
@@ -481,7 +490,7 @@ describe("article-browser-actions", () => {
       errorLabel: "Failed to open in browser",
     });
 
-    expect(showToast).toHaveBeenCalledWith("Browser unavailable");
+    expect(showToast).toHaveBeenCalledWith({ message: "Browser unavailable", severity: "error" });
   });
 
   it("logs and surfaces rejected external-browser commands for fire-and-forget callers", async () => {
@@ -503,7 +512,7 @@ describe("article-browser-actions", () => {
         message: "Browser command rejected",
       }),
     );
-    expect(showToast).toHaveBeenCalledWith("Browser command rejected");
+    expect(showToast).toHaveBeenCalledWith({ message: "Browser command rejected", severity: "error" });
     openInBrowserSpy.mockRestore();
   });
 
@@ -532,7 +541,10 @@ describe("article-browser-actions", () => {
         message: "Only http:// and https:// URLs are supported",
       }),
     );
-    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+    expect(showToast).toHaveBeenCalledWith({
+      message: "Only http:// and https:// URLs are supported",
+      severity: "error",
+    });
   });
 
   it("classifies action error categories shared by copy and open actions", () => {

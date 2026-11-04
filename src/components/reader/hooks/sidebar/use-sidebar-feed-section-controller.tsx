@@ -19,6 +19,7 @@ import {
   FOLDER_REORDER_TARGET_ATTRIBUTE,
 } from "@/lib/sidebar/folder-tree-drop-target";
 import { captureFolderReorderSnapshot, watchFolderReorderAnimation } from "@/lib/sidebar/folder-tree-reorder-animation";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -238,11 +239,11 @@ export function useSidebarFeedSectionController({
         void openFeedLanding(feedId)
           .then((result) => {
             if (Result.isFailure(result)) {
-              showToast(getFeedLandingFailureMessage(Result.unwrapError(result)));
+              showToast({ message: getFeedLandingFailureMessage(Result.unwrapError(result)), severity: "error" });
             }
           })
           .catch((error: unknown) => {
-            showToast(error instanceof Error ? error.message : "Unknown error");
+            showToast({ message: getErrorMessage(error), severity: "error" });
           });
         return;
       }

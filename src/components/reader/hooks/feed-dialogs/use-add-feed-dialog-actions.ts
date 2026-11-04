@@ -9,6 +9,7 @@ import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-
 import { invalidateAddFeedQueries } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastData } from "@/lib/ui/toast.types";
 import type {
   AddFeedDialogAction,
   AddFeedDialogControllerDerived,
@@ -29,7 +30,7 @@ type UseAddFeedDialogActionsParams = {
   availableFolderIds?: readonly string[];
   queryClient: QueryClient;
   onOpenChange: (open: boolean) => void;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
   t: TFunction<"reader">;
 };
 
@@ -224,7 +225,7 @@ export function useAddFeedDialogActions({
           });
           if (isLatestSubmit()) {
             dispatch({ type: "set-submit-error", error: message });
-            showToast(message);
+            showToast({ message, severity: "error" });
           }
           return;
         }
@@ -259,9 +260,12 @@ export function useAddFeedDialogActions({
             Result.inspectError((error) => {
               console.error("Failed to assign folder:", error.type);
               if (isLatestSubmit()) {
-                showToast(
-                  t("feed_added_folder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }),
-                );
+                showToast({
+                  message: t("feed_added_folder_failed", {
+                    message: localizeUserVisibleAppErrorMessage(error.message),
+                  }),
+                  severity: "warning",
+                });
               }
             }),
           );

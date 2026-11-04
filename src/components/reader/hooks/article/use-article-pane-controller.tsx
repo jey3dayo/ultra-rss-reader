@@ -99,7 +99,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
       {
         onError: (error) => {
           recordedSelectionRef.current = null;
-          showToast(localizeUserVisibleAppErrorMessage(error.message));
+          showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
         },
       },
     );

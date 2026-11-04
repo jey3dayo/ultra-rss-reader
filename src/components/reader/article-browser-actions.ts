@@ -9,10 +9,11 @@ import {
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-export type ArticleStatusToast = (message: string) => void;
+export type ArticleStatusToast = (message: string | ToastData) => void;
 
 export type ArticleToastActionParams = {
   showToast: ArticleStatusToast;
@@ -36,7 +37,7 @@ function logArticleActionFailure(errorLabel: string, error: ArticleActionError):
 function resolveArticleBrowserFailure(errorLabel: string, showToast: ArticleStatusToast, error: unknown) {
   const actionError = toArticleActionError(error);
   logArticleActionFailure(errorLabel, actionError);
-  showToast(localizeUserVisibleAppErrorMessage(actionError.message));
+  showToast({ message: localizeUserVisibleAppErrorMessage(actionError.message), severity: "error" });
   return Result.fail(actionError);
 }
 
@@ -52,7 +53,7 @@ function runToastOperation<T>(
         Result.inspect(() => showToast(successMessage)),
         Result.inspectError((error) => {
           logArticleActionFailure(errorLabel, categorizeArticleActionError(error));
-          showToast(localizeUserVisibleAppErrorMessage(error.message));
+          showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
         }),
       ),
     )
@@ -69,7 +70,7 @@ function runExternalBrowserOperation(
         result,
         Result.inspectError((error) => {
           logArticleActionFailure(errorLabel, categorizeArticleActionError(error));
-          showToast(localizeUserVisibleAppErrorMessage(error.message));
+          showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
         }),
       ),
     )
@@ -97,7 +98,7 @@ export function openUrlInExternalBrowser(
   if (Result.isFailure(normalizedUrlResult)) {
     const actionError = Result.unwrapError(normalizedUrlResult);
     logArticleActionFailure(errorLabel, actionError);
-    showToast(localizeUserVisibleAppErrorMessage(actionError.message));
+    showToast({ message: localizeUserVisibleAppErrorMessage(actionError.message), severity: "error" });
     return Promise.resolve(Result.fail(actionError));
   }
 
@@ -131,7 +132,7 @@ export function copyArticleLink(url: string, { showToast, successMessage }: Arti
   if (Result.isFailure(normalizedUrlResult)) {
     const actionError = Result.unwrapError(normalizedUrlResult);
     logArticleActionFailure("Copy failed", actionError);
-    showToast(localizeUserVisibleAppErrorMessage(actionError.message));
+    showToast({ message: localizeUserVisibleAppErrorMessage(actionError.message), severity: "error" });
     return Promise.resolve(Result.fail(actionError));
   }
 
@@ -149,7 +150,7 @@ export function addArticleToReadingList(url: string, { showToast, successMessage
   if (Result.isFailure(normalizedUrlResult)) {
     const actionError = Result.unwrapError(normalizedUrlResult);
     logArticleActionFailure("Add to reading list failed", actionError);
-    showToast(localizeUserVisibleAppErrorMessage(actionError.message));
+    showToast({ message: localizeUserVisibleAppErrorMessage(actionError.message), severity: "error" });
     return Promise.resolve(Result.fail(actionError));
   }
 

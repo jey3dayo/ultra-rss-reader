@@ -249,7 +249,7 @@ function scheduleEligibleAutoMark({
           if (retainPlan.shouldRollbackOnError) {
             removeRetainedArticle(articleId);
           }
-          showToast(localizeUserVisibleAppErrorMessage(error.message));
+          showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
         },
       },
     );

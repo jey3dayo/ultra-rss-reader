@@ -99,7 +99,7 @@ export function useFeedEditDialogController({
       Result.inspect(() => showToast(t("copied_to_clipboard"))),
       Result.inspectError((error) => {
         console.error("Copy failed:", error);
-        showToast(localizeUserVisibleAppErrorMessage(error.message));
+        showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
       }),
     );
   };

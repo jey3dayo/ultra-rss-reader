@@ -71,7 +71,7 @@ export function useArticleCommands(article: ArticleDto | null): ArticleCommands 
             if (retainPlan.shouldRollbackOnError) {
               removeRetainedArticle(articleId);
             }
-            showToast(localizeUserVisibleAppErrorMessage(error.message));
+            showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
           },
         },
       );
@@ -94,7 +94,7 @@ export function useArticleCommands(article: ArticleDto | null): ArticleCommands 
             }
           },
           onError: (error) => {
-            showToast(localizeUserVisibleAppErrorMessage(error.message));
+            showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
           },
         },
       );

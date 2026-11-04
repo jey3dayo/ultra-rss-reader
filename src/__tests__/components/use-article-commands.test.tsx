@@ -128,7 +128,12 @@ describe("useArticleCommands", () => {
 
     act(() => result.current.setRead(true));
 
-    await waitFor(() => expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy")));
+    await waitFor(() =>
+      expect(showToast).toHaveBeenCalledWith({
+        message: i18n.t("errors.database_maintenance_busy"),
+        severity: "error",
+      }),
+    );
     expect(useUiStore.getState().retainedArticleIds.has(unreadArticle.id)).toBe(false);
   });
 
@@ -175,7 +180,12 @@ describe("useArticleCommands", () => {
 
     act(() => result.current.setStarred(false));
 
-    await waitFor(() => expect(showToast).toHaveBeenCalledWith(i18n.t("errors.database_maintenance_busy")));
+    await waitFor(() =>
+      expect(showToast).toHaveBeenCalledWith({
+        message: i18n.t("errors.database_maintenance_busy"),
+        severity: "error",
+      }),
+    );
     expect(useUiStore.getState().retainedArticleIds.has(starredArticle.id)).toBe(false);
   });
 

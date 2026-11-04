@@ -135,7 +135,7 @@ describe("useFeedEditDialogController copy action", () => {
       await result.current.handleCopy(category === "invalid_text" ? "" : "https://example.com/feed.xml");
     });
 
-    expect(showToast).toHaveBeenCalledWith(message);
+    expect(showToast).toHaveBeenCalledWith({ message, severity: "error" });
     expect(consoleError).toHaveBeenCalledWith("Copy failed:", error);
     expect(copyTextToClipboardMock).toHaveBeenCalledWith(
       category === "invalid_text" ? "" : "https://example.com/feed.xml",

@@ -204,7 +204,7 @@ describe("useBrowserViewActions", () => {
       await result.current.handleReload();
     });
 
-    expect(showToast).toHaveBeenCalledWith("Reload failed");
+    expect(showToast).toHaveBeenCalledWith({ message: "Reload failed", severity: "error" });
   });
 
   it("restores webview focus after toolbar navigation when focus retention is enabled", async () => {
@@ -608,7 +608,7 @@ describe("useBrowserViewActions", () => {
     expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
     expect(syncBrowserWebview).toHaveBeenCalledWith("https://example.com/article", "create");
     expect(consoleError).toHaveBeenCalledWith("Failed to retry embedded browser webview:", error);
-    expect(showToast).toHaveBeenCalledWith("retry rejected");
+    expect(showToast).toHaveBeenCalledWith({ message: "retry rejected", severity: "error" });
   });
 
   it("ignores late retry rejections after the overlay URL changes", async () => {

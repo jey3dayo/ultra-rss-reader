@@ -118,7 +118,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       }
 
       if (failedCount > 0) {
-        showToast(t("failed_to_mark_same_site_feeds_read", { count: failedCount }));
+        showToast({ message: t("failed_to_mark_same_site_feeds_read", { count: failedCount }), severity: "error" });
       }
     };
 

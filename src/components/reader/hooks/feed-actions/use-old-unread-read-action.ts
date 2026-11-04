@@ -19,7 +19,7 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
     async (olderThanDays: OldUnreadDayPreset) => {
       const countOldUnread = async () => {
         const countResult = await countOldUnreadArticles(scopeKind, targetId, olderThanDays).catch((error: unknown) => {
-          showToast(getErrorMessage(error));
+          showToast({ message: getErrorMessage(error), severity: "error" });
           return null;
         });
         if (countResult === null) {
@@ -27,7 +27,10 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
         }
 
         if (Result.isFailure(countResult)) {
-          showToast(localizeUserVisibleAppErrorMessage(Result.unwrapError(countResult).message));
+          showToast({
+            message: localizeUserVisibleAppErrorMessage(Result.unwrapError(countResult).message),
+            severity: "error",
+          });
           return null;
         }
 
@@ -60,13 +63,13 @@ export function useOldUnreadReadAction(scopeKind: OldUnreadScopeKind, targetId: 
               { scopeKind, targetId, olderThanDays },
               {
                 onError: (error) => {
-                  showToast(localizeUserVisibleAppErrorMessage(error.message));
+                  showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
                 },
               },
             );
           })
           .catch((error: unknown) => {
-            showToast(getErrorMessage(error));
+            showToast({ message: getErrorMessage(error), severity: "error" });
           });
       };
 

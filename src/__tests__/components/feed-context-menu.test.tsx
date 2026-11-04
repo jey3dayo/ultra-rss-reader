@@ -150,7 +150,7 @@ describe("FeedContextMenuContent", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open example.com" }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("Browser unavailable");
+      expect(showToast).toHaveBeenCalledWith({ message: "Browser unavailable", severity: "error" });
     });
     expect(calls).toContainEqual({
       cmd: "open_in_browser",
@@ -168,7 +168,7 @@ describe("FeedContextMenuContent", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open example.com" }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("Native command rejected");
+      expect(showToast).toHaveBeenCalledWith({ message: "Native command rejected", severity: "error" });
     });
   });
 

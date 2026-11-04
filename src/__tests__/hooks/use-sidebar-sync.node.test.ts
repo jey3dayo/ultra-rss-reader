@@ -177,6 +177,41 @@ describe("resolveSidebarLastSyncedLabel", () => {
     });
   });
 
+  it("reports a failed manual sync as an error toast", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onError({ type: "UserVisible", message: "boom" });
+    });
+    const showToast = vi.fn();
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ showToast })), {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+
+    expect(showToast).toHaveBeenCalledWith({ message: expect.any(String), severity: "error" });
+  });
+
+  it("keeps the manual sync cooldown notice as a plain toast without a severity", async () => {
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onCooldown();
+    });
+    const showToast = vi.fn();
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ showToast })), {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+
+    expect(showToast).toHaveBeenCalledWith(expect.any(String));
+  });
+
   it("logs manual account sync status invalidation failures with the manual sync owner", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const invalidationError = new Error("manual sync status cache refresh failed");

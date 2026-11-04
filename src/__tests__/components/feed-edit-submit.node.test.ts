@@ -85,7 +85,7 @@ describe("submitFeedEdits", () => {
       cmd: "rename_feed",
       args: { feedId: feed.id, title: "Renamed" },
     });
-    expect(showToast).toHaveBeenCalledWith("Rename failed: Name already exists");
+    expect(showToast).toHaveBeenCalledWith({ message: "Rename failed: Name already exists", severity: "error" });
     expectTauriCommandError(consoleError, "rename_feed", appError);
   });
 

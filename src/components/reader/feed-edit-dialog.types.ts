@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { RefObject } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption, TriStateDisplayMode } from "@/lib/articles/article-display";
+import type { ToastData } from "@/lib/ui/toast.types";
 import type {
   FeedDialogControllerFolderSelectProps,
   FeedDialogFolderSelectionParams,
@@ -25,7 +26,7 @@ export type SubmitFeedEditsParams = {
   displayPreset: FeedEditDisplayPreset;
   folderSelection: FeedEditFolderSelectionParams;
   queryClient: QueryClient;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
   createFolderErrorMessage: (error: FeedEditErrorLike) => string;
   renameErrorMessage: (error: FeedEditErrorLike) => string;
   updateFeedFolder: (args: { feedId: string; folderId: string | null }) => Promise<boolean>;

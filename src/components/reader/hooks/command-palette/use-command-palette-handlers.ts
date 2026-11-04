@@ -7,6 +7,7 @@ import { isAppActionAvailable } from "@/lib/app-actions";
 import { createCommandPaletteHistoryValue } from "@/lib/command-palette/command-history";
 import { addToHistory } from "@/lib/command-palette/command-history-storage";
 import i18n from "@/lib/i18n";
+import { getErrorMessage } from "@/lib/ui/errors";
 import type { ToastData } from "@/lib/ui/toast.types";
 import enReader from "@/locales/en/reader.json";
 import jaReader from "@/locales/ja/reader.json";
@@ -39,10 +40,6 @@ type UseCommandPaletteHandlersResult = {
   handleArticleSelect: (feedId: string, articleId: string) => void;
   handleDevScenarioSelect: (scenarioId: RuntimeDevScenario["id"]) => void;
 };
-
-function getUnknownErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Unknown error";
-}
 
 const commandPaletteMessages = {
   en: enReader.command_palette,
@@ -238,12 +235,13 @@ export function useCommandPaletteHandlers({
 
         if (Result.isFailure(result)) {
           const message = getFeedLandingFailureMessage(Result.unwrapError(result));
-          showToast(
-            translateCommandPaletteMessage("feed_landing_failed", {
+          showToast({
+            message: translateCommandPaletteMessage("feed_landing_failed", {
               feedId,
               message,
             }),
-          );
+            severity: "error",
+          });
         }
       })
       .catch((error) => {
@@ -251,12 +249,13 @@ export function useCommandPaletteHandlers({
           return;
         }
 
-        showToast(
-          translateCommandPaletteMessage("feed_landing_failed", {
+        showToast({
+          message: translateCommandPaletteMessage("feed_landing_failed", {
             feedId,
-            message: getUnknownErrorMessage(error),
+            message: getErrorMessage(error),
           }),
-        );
+          severity: "error",
+        });
       });
     closePalette();
   }
@@ -322,12 +321,13 @@ export function useCommandPaletteHandlers({
         return;
       }
 
-      showToast(
-        translateCommandPaletteMessage("dev_scenario_failed", {
+      showToast({
+        message: translateCommandPaletteMessage("dev_scenario_failed", {
           scenarioId,
-          message: getUnknownErrorMessage(error),
+          message: getErrorMessage(error),
         }),
-      );
+        severity: "error",
+      });
     });
     closePalette();
   }

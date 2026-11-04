@@ -218,7 +218,10 @@ describe("useCommandPaletteHandlers", () => {
 
     expect(closePalette).toHaveBeenCalledOnce();
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith('Failed to run dev scenario "open-add-feed-dialog": boom');
+      expect(showToast).toHaveBeenCalledWith({
+        message: 'Failed to run dev scenario "open-add-feed-dialog": boom',
+        severity: "error",
+      });
     });
   });
 
@@ -235,9 +238,14 @@ describe("useCommandPaletteHandlers", () => {
     staleScenario.reject(new Error("stale boom"));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith('Failed to run dev scenario "open-command-palette": latest boom');
+      expect(showToast).toHaveBeenCalledWith({
+        message: 'Failed to run dev scenario "open-command-palette": latest boom',
+        severity: "error",
+      });
     });
-    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("stale boom"));
+    expect(showToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining("stale boom") }),
+    );
   });
 
   it("suppresses dev scenario failures after the palette session changes", async () => {
@@ -333,8 +341,13 @@ describe("useCommandPaletteHandlers", () => {
     handlers.handleDevScenarioSelect("open-add-feed-dialog");
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith('Failed to run dev scenario "open-add-feed-dialog": boom');
+      expect(showToast).toHaveBeenCalledWith({
+        message: 'Failed to run dev scenario "open-add-feed-dialog": boom',
+        severity: "error",
+      });
     });
-    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("command_palette."));
+    expect(showToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining("command_palette.") }),
+    );
   });
 });

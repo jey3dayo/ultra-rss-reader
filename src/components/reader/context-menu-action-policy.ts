@@ -1,6 +1,7 @@
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { getErrorMessage } from "@/lib/ui/errors";
+import type { ToastData } from "@/lib/ui/toast.types";
 
 export const CONTEXT_MENU_ACTION_IDS = {
   accountOpenSettings: "account-open-settings",
@@ -42,7 +43,7 @@ export const CONTEXT_MENU_ACTION_IDS = {
 export type ContextMenuActionId = (typeof CONTEXT_MENU_ACTION_IDS)[keyof typeof CONTEXT_MENU_ACTION_IDS];
 
 type MenuActionOptions = {
-  showToast?: (message: string) => void;
+  showToast?: (message: string | ToastData) => void;
   getToastMessage?: (error: unknown) => string;
 };
 
@@ -78,7 +79,7 @@ export function createMenuActionHandler(
       .then(action)
       .catch((error: unknown) => {
         logMenuActionFailureOnce(actionId, error);
-        options.showToast?.((options.getToastMessage ?? getErrorMessage)(error));
+        options.showToast?.({ message: (options.getToastMessage ?? getErrorMessage)(error), severity: "error" });
       });
   };
 }
