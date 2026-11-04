@@ -97,6 +97,8 @@ Detailed hierarchy:
 | Mono Body       | System Mono    | 12px (0.75rem)    | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
 | Mono Small      | System Mono    | 11px (0.69rem)    | 400     | 1.33           | -0.275px       | Inline code, terminal                |
 
+The reader's article body is the exception to Body Reading: `article-content-view.tsx` sets it to 1.02rem (16.32px), weight 400, line height 2rem, since the reader pane simplification of 2026-04-15, and it scales with the `font_size` preference. Raising it to Body Reading would enlarge every article by about 18% at the default size, so change it only after comparing real articles on screen.
+
 Implementation tokens: System Caption (13px) is `--font-size-sm`, System Compact (12px) is `--font-size-xs`, and System Micro (11px) is `--font-size-2xs`, all defined in `src/styles/global.css`.
 Use them as `text-(length:--font-size-sm)` / `text-(length:--font-size-xs)` / `text-(length:--font-size-2xs)`; a `text-` prefixed custom name is treated as a color by `cn`.
 
