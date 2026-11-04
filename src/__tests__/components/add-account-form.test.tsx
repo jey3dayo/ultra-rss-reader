@@ -547,6 +547,7 @@ describe("AddAccountForm", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Cannot connect to server. Check the URL.",
+        severity: "error",
       });
       expect(useUiStore.getState().accountSetupSession).toBeNull();
     });

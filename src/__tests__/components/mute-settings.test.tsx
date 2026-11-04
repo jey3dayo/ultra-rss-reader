@@ -150,6 +150,30 @@ describe("MuteSettings", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("toasts a mute keyword creation failure as an error and a success without severity", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    useUiStore.setState({ showToast });
+    createMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("create failed"));
+
+    render(<MuteSettings />);
+
+    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "spoiler alert");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith({
+        message: "Failed to add mute keyword: create failed",
+        severity: "error",
+      });
+    });
+
+    createMuteKeywordMutateAsyncMock.mockResolvedValueOnce({});
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await waitFor(() => {
+      expect(showToast).toHaveBeenLastCalledWith("Mute keyword added");
+    });
+  });
+
   it("keeps the add draft when mute keyword creation fails", async () => {
     const user = userEvent.setup();
     createMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("create failed"));
@@ -347,7 +371,9 @@ describe("MuteSettings", () => {
       await firstUpdate.promise.catch(() => undefined);
     });
     expect(showToast).toHaveBeenCalledTimes(1);
-    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("first failed"));
+    expect(showToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining("first failed") }),
+    );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -472,7 +498,9 @@ describe("MuteSettings", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith(expect.stringContaining("delete failed"));
+      expect(showToast).toHaveBeenCalledWith(
+        expect.objectContaining({ message: expect.stringContaining("delete failed"), severity: "error" }),
+      );
     });
     // busy is released even on failure, so the confirmation controls become interactive again.
     await waitFor(() => {
@@ -563,7 +591,9 @@ describe("MuteSettings", () => {
     });
 
     expect(switchControl).not.toBeChecked();
-    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("first failed"));
+    expect(showToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining("first failed") }),
+    );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

@@ -106,7 +106,7 @@ export function MuteSettings() {
     } catch (error) {
       const message = t("mute.add_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-add-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     } finally {
       createInFlightRef.current = false;
     }
@@ -142,7 +142,7 @@ export function MuteSettings() {
     } catch (error) {
       const message = t("mute.delete_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-delete-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     } finally {
       confirmDeleteInFlightRef.current = false;
       setConfirmDeleteInFlight(false);
@@ -177,7 +177,7 @@ export function MuteSettings() {
       }
       const message = t("mute.update_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-rule-scope-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     }
   };
 
@@ -201,7 +201,7 @@ export function MuteSettings() {
       }));
       const message = t("mute.auto_mark_read_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-auto-mark-read-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     }
   };
 

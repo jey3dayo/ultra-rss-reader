@@ -120,6 +120,29 @@ describe("TagsSettings", () => {
     expect(screen.queryByRole("button", { name: /Delete/ })).not.toBeInTheDocument();
   });
 
+  it.each([
+    {
+      outcome: "failure",
+      settle: () => tagHooks.createTagMutateAsync.mockRejectedValueOnce(new Error("boom")),
+      toast: { message: "Failed to create tag: boom", severity: "error" },
+    },
+    { outcome: "success", settle: () => tagHooks.createTagMutateAsync.mockResolvedValueOnce({}), toast: "Tag created" },
+  ])("toasts tag creation $outcome with the matching severity", async ({ settle, toast }) => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    settle();
+    useUiStore.setState({ showToast });
+
+    render(<TagsSettings />);
+
+    await user.type(screen.getByRole("textbox"), "Review");
+    await user.click(screen.getByRole("button", { name: /^(Create|tags\.create)$/ }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(toast);
+    });
+  });
+
   it("does not reset or toast from a stale tag creation after the draft changes", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
@@ -284,7 +307,9 @@ describe("TagsSettings", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
     expect(tagHooks.renameTagMutateAsync).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("Failed to update tag: This tag was already removed.");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Failed to update tag: This tag was already removed.", severity: "error" }),
+    );
   });
 
   it("keeps delete dialog visible but disabled when the target tag disappears", async () => {

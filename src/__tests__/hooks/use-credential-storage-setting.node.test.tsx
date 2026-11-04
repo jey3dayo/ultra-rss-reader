@@ -9,6 +9,7 @@ import type { CredentialStorageDto } from "@/api/schemas";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useCredentialStorageSetting } from "@/components/settings/hooks/use-credential-storage-setting";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import type { ToastData } from "@/lib/ui/toast.types";
 
 setupBrowserTestDom();
 
@@ -32,7 +33,7 @@ function deferredSetCredentialStorageResult() {
 describe("useCredentialStorageSetting", () => {
   let queryClient: QueryClient;
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
-  let showToast: (message: string) => void;
+  let showToast: (message: string | ToastData) => void;
   const queryClients = new Set<QueryClient>();
 
   function renderSettingHook() {
@@ -120,7 +121,10 @@ describe("useCredentialStorageSetting", () => {
 
     expect(setCredentialStorageSpy).toHaveBeenCalledWith("local_file");
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: accountSyncStatusQueryKey() });
-    expect(showToast).toHaveBeenCalledWith("data.credential_storage_cleanup_incomplete");
+    expect(showToast).toHaveBeenCalledWith({
+      message: "data.credential_storage_cleanup_incomplete",
+      severity: "warning",
+    });
     expect(showToast).not.toHaveBeenCalledWith("data.credential_storage_saved");
     expect(result.current.storage).toBe("local_file");
     expect(result.current.saving).toBe(false);
@@ -143,7 +147,7 @@ describe("useCredentialStorageSetting", () => {
 
     expect(setCredentialStorageSpy).toHaveBeenCalledWith("local_file");
     expect(invalidateQueriesSpy).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("data.credential_storage_failed");
+    expect(showToast).toHaveBeenCalledWith({ message: "data.credential_storage_failed", severity: "error" });
     expect(result.current.saving).toBe(false);
     expect(result.current.errorMessage).toBe("data.credential_storage_failed");
     expect(result.current.cleanupNotice).toBeNull();

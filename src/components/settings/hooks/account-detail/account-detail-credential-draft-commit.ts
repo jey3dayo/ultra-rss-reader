@@ -116,7 +116,7 @@ export function createCredentialDraftCommitter(
       if (validationErrorKey === null) {
         return null;
       }
-      useUiStore.getState().showToast(t(validationErrorKey));
+      useUiStore.getState().showToast({ message: t(validationErrorKey), severity: "error" });
       return { saved: false, updatedAccount: null };
     };
 

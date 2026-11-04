@@ -23,10 +23,11 @@ type AccountDetailErrorToastKey =
 
 export function createAccountDetailErrorToast(t: TFunction<"settings">, key: AccountDetailErrorToastKey) {
   return (error: AccountDetailError) => {
-    useUiStore.getState().showToast(
-      t(key, {
+    useUiStore.getState().showToast({
+      message: t(key, {
         message: redactProviderRuntimeDiagnosticText(localizeUserVisibleAppErrorMessage(error.message)),
       }),
-    );
+      severity: key === "account.saved_connection_unconfirmed" ? "warning" : "error",
+    });
   };
 }

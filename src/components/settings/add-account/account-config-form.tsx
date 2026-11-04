@@ -252,7 +252,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
         const message = t(formatAddAccountValidationError(form.kind, error));
         dispatchUi({ type: "set-error-message", value: message });
         dispatchUi({ type: "set-validation-error", value: error });
-        useUiStore.getState().showToast(message);
+        useUiStore.getState().showToast({ message, severity: "error" });
         return null;
       },
     });
@@ -292,7 +292,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
             message = t("account.failed_to_add", { message: e.message });
           }
           dispatchUi({ type: "set-error-message", value: message });
-          useUiStore.getState().showToast(message);
+          useUiStore.getState().showToast({ message, severity: "error" });
           useUiStore.getState().clearAccountSetup();
         },
         onSuccess: (account) => {
