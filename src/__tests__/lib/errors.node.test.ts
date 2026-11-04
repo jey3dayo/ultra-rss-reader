@@ -1,7 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import i18n from "@/lib/i18n";
 import { getErrorMessage } from "@/lib/ui/errors";
 
 describe("errors", () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  it("returns the localized fallback when the error has no usable message", async () => {
+    await i18n.changeLanguage("ja");
+
+    expect(getErrorMessage(undefined)).toBe("不明なエラー");
+  });
+
   it("returns Error messages", () => {
     expect(getErrorMessage(new Error("boom"))).toBe("boom");
   });

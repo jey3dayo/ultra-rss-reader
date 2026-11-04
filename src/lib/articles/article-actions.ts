@@ -1,16 +1,18 @@
 import { Result } from "@praha/byethrow";
 import { normalizeHttpCommandUrl } from "@/api/schemas/commands";
 import type { AppError } from "@/api/tauri-commands";
-import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
+import {
+  ARTICLE_URL_CREDENTIALS_MESSAGE,
+  classifyRuntimeActionErrorCategory,
+  type RuntimeActionErrorCategory,
+  UNSUPPORTED_HTTP_URL_MESSAGE,
+} from "@/lib/ui-errors";
 
 type ArticleActionErrorCategory = RuntimeActionErrorCategory;
 
 export type ArticleActionError = AppError & {
   category: ArticleActionErrorCategory;
 };
-
-const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE = "Only http:// and https:// URLs are supported";
-const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE = "Article URLs must not include credentials";
 
 function isArticleActionErrorCategory(value: unknown): value is ArticleActionErrorCategory {
   return (
@@ -37,7 +39,7 @@ function isAppError(error: unknown): error is AppError {
   );
 }
 
-function toInvalidArticleUrlError(message = ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE): ArticleActionError {
+function toInvalidArticleUrlError(message = UNSUPPORTED_HTTP_URL_MESSAGE): ArticleActionError {
   return {
     type: "UserVisible",
     message,
@@ -54,7 +56,7 @@ export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<s
   try {
     const parsedUrl = new URL(normalizedUrl);
     if (parsedUrl.username || parsedUrl.password) {
-      return Result.fail(toInvalidArticleUrlError(ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE));
+      return Result.fail(toInvalidArticleUrlError(ARTICLE_URL_CREDENTIALS_MESSAGE));
     }
 
     return Result.succeed(normalizedUrl);

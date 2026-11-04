@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "@/lib/i18n";
 import { getErrorMessage, projectUiErrorToast } from "@/lib/ui/errors";
 import {
   classifyAppRecoveryCategory,
@@ -11,6 +12,10 @@ import {
 } from "@/lib/ui-errors";
 
 describe("ui error projection", () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
   it("classifies command schema parse errors by user-facing surface", () => {
     expect(classifySchemaParseErrorSurface("args")).toBe("user-facing");
     expect(classifySchemaParseErrorSurface("response")).toBe("diagnostics");

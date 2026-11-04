@@ -15,6 +15,7 @@ import {
   normalizeArticleExternalBrowserUrl,
   resolveArticleActionErrorCategory,
 } from "@/lib/articles/article-actions";
+import i18n from "@/lib/i18n";
 import { resolveClipboardErrorCategory } from "@/lib/runtime/clipboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
@@ -22,7 +23,8 @@ describe("article-browser-actions", () => {
   const showToast = vi.fn();
   let calls: MockTauriCommandCall[] = [];
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     calls = [];
     showToast.mockReset();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -410,6 +412,18 @@ describe("article-browser-actions", () => {
       expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
     },
   );
+
+  it("shows the Japanese message when a non-http article URL is rejected in the ja locale", async () => {
+    await i18n.changeLanguage("ja");
+
+    await openUrlInExternalBrowser("mailto:hello@example.com", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+
+    expect(showToast).toHaveBeenCalledWith("http:// または https:// の URL のみ使用できます");
+  });
 
   it("rejects article external-browser URLs with credentials before invoking Tauri", async () => {
     setupTauriMocks((cmd, args) => {

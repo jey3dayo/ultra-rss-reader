@@ -2,7 +2,12 @@ import { Result } from "@praha/byethrow";
 import type { AppError } from "@/api/schemas";
 import { normalizeHttpCommandUrl, SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import { copyToClipboard } from "@/api/tauri-commands";
-import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
+import {
+  classifyRuntimeActionErrorCategory,
+  INVALID_CLIPBOARD_TEXT_MESSAGE,
+  type RuntimeActionErrorCategory,
+  UNSUPPORTED_HTTP_URL_MESSAGE,
+} from "@/lib/ui-errors";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 export type ClipboardErrorCategory = RuntimeActionErrorCategory;
@@ -12,7 +17,6 @@ export type ClipboardCopyError = AppError & {
 };
 
 export const CLIPBOARD_TEXT_MAX_CHARS = SHARE_COMMAND_TEXT_MAX_CHARS;
-const INVALID_CLIPBOARD_TEXT_MESSAGE = "Invalid clipboard text";
 const graphemeSegmenter = new Intl.Segmenter(undefined, {
   granularity: "grapheme",
 });
@@ -86,7 +90,7 @@ function validateClipboardText(value: string, category: ClipboardTextCategory): 
   }
 
   if (category === "article_link" && !normalizeHttpCommandUrl(value)) {
-    return invalidClipboardTextError("Only http:// and https:// URLs are supported", "invalid_url");
+    return invalidClipboardTextError(UNSUPPORTED_HTTP_URL_MESSAGE, "invalid_url");
   }
 
   return null;
