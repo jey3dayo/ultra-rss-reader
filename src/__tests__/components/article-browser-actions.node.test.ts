@@ -122,7 +122,6 @@ describe("article-browser-actions", () => {
       type: "UserVisible",
       message: "Clipboard permission denied",
       category: "permission_denied",
-      localeKey: "article_actions.errors.permission_denied",
     } satisfies ArticleActionError;
 
     expect(categorizeArticleActionError(error)).toBe(error);
@@ -560,7 +559,6 @@ describe("article-browser-actions", () => {
     ).toEqual(
       expect.objectContaining({
         category: "runtime_unavailable",
-        localeKey: "article_actions.errors.runtime_unavailable",
       }),
     );
     expect(
@@ -571,7 +569,6 @@ describe("article-browser-actions", () => {
     ).toEqual(
       expect.objectContaining({
         category: "unknown",
-        localeKey: "article_actions.errors.unknown",
       }),
     );
   });

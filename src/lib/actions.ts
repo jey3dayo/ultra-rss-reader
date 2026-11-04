@@ -34,7 +34,6 @@ type GlobalActionRuntimeError = {
   type: "UserVisible";
   message: string;
   category: RuntimeActionErrorCategory;
-  localeKey: `app_actions.errors.${RuntimeActionErrorCategory}`;
 };
 
 /** Emit a keyboard-style DOM event that existing components already listen for. */
@@ -64,7 +63,6 @@ function toGlobalActionRuntimeError(error: unknown): GlobalActionRuntimeError {
     type: "UserVisible",
     message,
     category,
-    localeKey: `app_actions.errors.${category}`,
   };
 }
 

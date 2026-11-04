@@ -284,7 +284,6 @@ describe("ArticleShareMenu", () => {
       "Failed to open email client:",
       expect.objectContaining({
         category: "runtime_unavailable",
-        localeKey: "article_actions.errors.runtime_unavailable",
       }),
     );
   });
@@ -314,7 +313,6 @@ describe("ArticleShareMenu", () => {
       "Copy failed",
       expect.objectContaining({
         category: "runtime_unavailable",
-        localeKey: "article_actions.errors.runtime_unavailable",
       }),
     );
   });
@@ -336,7 +334,6 @@ describe("ArticleShareMenu", () => {
       "Add to reading list failed",
       expect.objectContaining({
         category: "permission_denied",
-        localeKey: "article_actions.errors.permission_denied",
       }),
     );
   });

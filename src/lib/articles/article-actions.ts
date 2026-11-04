@@ -5,27 +5,12 @@ import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } f
 
 type ArticleActionErrorCategory = RuntimeActionErrorCategory;
 
-type ArticleActionErrorLocaleKey =
-  | "article_actions.errors.runtime_unavailable"
-  | "article_actions.errors.permission_denied"
-  | "article_actions.errors.invalid_text"
-  | "article_actions.errors.invalid_url"
-  | "article_actions.errors.unknown";
-
 export type ArticleActionError = AppError & {
   category: ArticleActionErrorCategory;
-  localeKey: ArticleActionErrorLocaleKey;
 };
 
 const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE = "Only http:// and https:// URLs are supported";
 const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE = "Article URLs must not include credentials";
-const ARTICLE_ACTION_ERROR_LOCALE_KEYS = {
-  runtime_unavailable: "article_actions.errors.runtime_unavailable",
-  permission_denied: "article_actions.errors.permission_denied",
-  invalid_text: "article_actions.errors.invalid_text",
-  invalid_url: "article_actions.errors.invalid_url",
-  unknown: "article_actions.errors.unknown",
-} as const satisfies Record<ArticleActionErrorCategory, ArticleActionErrorLocaleKey>;
 
 function isArticleActionErrorCategory(value: unknown): value is ArticleActionErrorCategory {
   return (
@@ -38,7 +23,7 @@ function isArticleActionErrorCategory(value: unknown): value is ArticleActionErr
 }
 
 function isCategorizedActionError(error: AppError): error is ArticleActionError {
-  return "category" in error && isArticleActionErrorCategory(error.category) && "localeKey" in error;
+  return "category" in error && isArticleActionErrorCategory(error.category);
 }
 
 function isAppError(error: unknown): error is AppError {
@@ -82,18 +67,11 @@ export function resolveArticleActionErrorCategory(message: string): ArticleActio
   return classifyRuntimeActionErrorCategory(message, { validationCategory: "invalid_text" });
 }
 
-function resolveArticleActionErrorLocaleKey(category: ArticleActionErrorCategory): ArticleActionErrorLocaleKey {
-  return ARTICLE_ACTION_ERROR_LOCALE_KEYS[category];
-}
-
 function resolveArticleActionErrorMetadata(
   message: string,
   category = resolveArticleActionErrorCategory(message),
-): Pick<ArticleActionError, "category" | "localeKey"> {
-  return {
-    category,
-    localeKey: resolveArticleActionErrorLocaleKey(category),
-  };
+): Pick<ArticleActionError, "category"> {
+  return { category };
 }
 
 export function categorizeArticleActionError(error: AppError): ArticleActionError {
