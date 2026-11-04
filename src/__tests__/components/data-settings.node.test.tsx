@@ -33,6 +33,11 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useQueryClient: () => mocks.queryClient,
 }));
 
+vi.mock("@/api/tauri-commands", () => ({
+  getCredentialStorage: () => new Promise(() => undefined),
+  setCredentialStorage: vi.fn(),
+}));
+
 vi.mock("@/components/settings/data-settings-view", () => ({
   DataSettingsView: (props: unknown) => mocks.dataSettingsView(props),
 }));
