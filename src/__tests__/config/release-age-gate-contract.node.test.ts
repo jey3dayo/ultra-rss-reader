@@ -78,7 +78,14 @@ describe("release-age gate contract", () => {
     // Auto-approving would write the exception instead of preventing it. Match the spawned
     // argument list rather than the file, so the doc comment can name the flags it rules out.
     const spawnedArguments = guardedPnpmUpdateRunner.match(/spawnSync\("pnpm",\s*(\[[^\]]*\])/)?.[1];
-    expect(spawnedArguments).toBe('["update", "--include-github-actions"]');
+    expect(spawnedArguments).toBe('["update"]');
+  });
+
+  it("leaves GitHub Actions refs to the actions.lock procedure instead of letting pnpm rewrite them", () => {
+    // --include-github-actions rewrites tag refs to SHAs and skips the release-age wait (pnpm#13923).
+    const spawnedArguments = guardedPnpmUpdateRunner.match(/spawnSync\("pnpm",\s*(\[[^\]]*\])/)?.[1];
+    expect(spawnedArguments).not.toContain("--include-github-actions");
+    expect(depsUpdateCommands.filter((command) => command.includes("--include-github-actions"))).toEqual([]);
   });
 
   it("propagates the update's exit code instead of masking it", () => {

@@ -46,8 +46,7 @@
       "src/dev/prod-stubs/*.ts",
       "scripts/check-toolchain-contract.ts",
       "scripts/ci/check-shell.ts",
-      "scripts/report-dependency-licenses.ts",
-      "scripts/verify-action-pins.ts"
+      "scripts/report-dependency-licenses.ts"
     ],
     "ignoreIssues": {
       "src/components/ui/{button,collapsible,dialog,input,scroll-area,select}.tsx": [

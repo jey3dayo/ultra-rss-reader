@@ -938,6 +938,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
           "    steps:",
           "      - uses: 'actions/checkout@v6.1.0' # lockfile-covered tag",
           '      - uses: "jdx/mise-action@v4.3.0"',
+          "      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # allowlisted: no tag at this commit",
           "      - uses: $/.github/actions/local-tool",
           "      - uses: ./.github/actions/local-tool",
           "      - uses: owner/repo/.github/workflows/reusable.yml@1234567890abcdef1234567890abcdef12345678",
@@ -969,6 +970,30 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       expect(() => runWorkflowPinChecker(tempDir)).toThrow(
         /owner\/repo\/\.github\/workflows\/reusable\.yml@v6 must use a 40-character commit SHA/,
       );
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  it("keeps workflow pin checker rejecting action refs that are neither a version tag nor an allowlisted bare SHA", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-workflow-pins-"));
+    try {
+      writeFileSync(
+        join(tempDir, "invalid.yml"),
+        [
+          "name: invalid",
+          "on: workflow_dispatch",
+          "jobs:",
+          "  check:",
+          "    runs-on: ubuntu-latest",
+          "    steps:",
+          "      - uses: actions/checkout@main",
+          "      - uses: actions/cache@1234567890abcdef1234567890abcdef12345678",
+        ].join("\n"),
+      );
+
+      expect(() => runWorkflowPinChecker(tempDir)).toThrow(/actions\/checkout@main must use a version tag/);
+      expect(() => runWorkflowPinChecker(tempDir)).toThrow(/actions\/cache@1234567890abcdef\w+ must use a version tag/);
     } finally {
       rmSync(tempDir, { force: true, recursive: true });
     }

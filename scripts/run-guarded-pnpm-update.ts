@@ -23,12 +23,16 @@ import { spawnSync } from "node:child_process";
  * Auto-answering the prompt (`--yes` and friends) is not an alternative: it approves the bypass
  * instead of preventing it.
  *
+ * GitHub Actions are deliberately not updated here. `--include-github-actions` rewrites `uses:`
+ * to commit SHAs, which the `actions.lock` convention replaces with version tags, and it ignores
+ * `minimumReleaseAge` (pnpm/pnpm#13923). The Actions procedure is in `.claude/rules/release-workflow.md`.
+ *
  * A legitimate exception is still possible, but it goes through review: add the exact
  * package@version to `minimumReleaseAgeExclude` in a commit that records the reason, owner, date,
  * and expiry, and have someone else review it. This runner does not decide that; it only stops the
  * exception from being written as a side effect of running an update.
  */
-const result = spawnSync("pnpm", ["update", "--include-github-actions"], {
+const result = spawnSync("pnpm", ["update"], {
   env: { ...process.env, CI: "true" },
   // Detach stdin so pnpm cannot see a TTY even when the task is launched from an interactive
   // terminal. Both this and CI are needed: CI alone is an env var a caller can drop, and a
