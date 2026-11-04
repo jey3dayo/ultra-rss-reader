@@ -11,10 +11,14 @@ type UseMuteSettingsViewPropsParams = {
   rules: MuteKeywordDto[];
   addDisabled: boolean;
   addPending?: boolean;
+  addErrorMessage?: string | null;
+  ruleScopeErrorMessage?: string | null;
+  autoMarkReadErrorMessage?: string | null;
   autoMarkReadChecked: boolean;
   autoMarkReadDisabled: boolean;
   confirmRule: MuteKeywordDto | null;
   confirmPending?: boolean;
+  confirmErrorMessage?: string | null;
   onKeywordChange: (value: string) => void;
   onScopeChange: (value: MuteKeywordScope) => void;
   onRuleScopeChange: (ruleId: string, value: MuteKeywordScope) => void;
@@ -32,10 +36,14 @@ export function useMuteSettingsViewProps({
   rules,
   addDisabled,
   addPending,
+  addErrorMessage,
+  ruleScopeErrorMessage,
+  autoMarkReadErrorMessage,
   autoMarkReadChecked,
   autoMarkReadDisabled,
   confirmRule,
   confirmPending,
+  confirmErrorMessage,
   onKeywordChange,
   onScopeChange,
   onRuleScopeChange,
@@ -77,9 +85,11 @@ export function useMuteSettingsViewProps({
     onAdd,
     addDisabled,
     addPending,
+    addErrorMessage,
     savedHeading: t("mute.saved"),
     emptyState: t("mute.empty_state"),
     rules: savedRules,
+    ruleScopeErrorMessage,
     savedScopeAriaLabel: (savedKeyword: string) =>
       t("mute.saved_scope_aria_label", {
         keyword: savedKeyword,
@@ -95,6 +105,7 @@ export function useMuteSettingsViewProps({
     autoMarkReadHint: t("mute.auto_mark_read_note"),
     autoMarkReadSummary: t("mute.auto_mark_read_summary"),
     autoMarkReadInfoAriaLabel: t("mute.auto_mark_read_info_aria_label"),
+    autoMarkReadErrorMessage,
     onAutoMarkReadChange,
     confirmOpen: confirmRule !== null,
     confirmMessage: confirmRule
@@ -105,6 +116,7 @@ export function useMuteSettingsViewProps({
       : "",
     confirmActionLabel: t("mute.delete"),
     confirmPending,
+    confirmErrorMessage,
     cancelLabel: t("mute.cancel"),
     onConfirmDelete,
     onCancelDelete,
