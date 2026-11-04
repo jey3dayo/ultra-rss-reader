@@ -2,8 +2,8 @@ import { type ChangeEvent, type ReactNode, useRef } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledControlRow, SettingsInfoPopover } from "@/design-system";
-import type { DatabaseSizeStatus } from "./hooks/use-data-settings-controller";
+import { LabeledControlRow, SettingsInfoPopover, SurfaceCard } from "@/design-system";
+import type { DatabaseSizeStatus, DataSettingsActionFailures } from "./hooks/use-data-settings-controller";
 
 type DataSettingsViewProps = {
   title: string;
@@ -48,6 +48,7 @@ type DataSettingsViewProps = {
   openLogDirLabel: string;
   openLogDirActionLabel?: string;
   openingLogDir: boolean;
+  actionFailures?: DataSettingsActionFailures;
   onVacuum: () => void;
   onBackupDatabase: () => void;
   onOpenLogDir: () => void;
@@ -57,6 +58,18 @@ type DataSettingsViewProps = {
 
 const DATA_ACTION_ROW_CLASS_NAME =
   "lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 [&>div:last-child]:lg:justify-end [&>div:last-child]:lg:pr-0";
+
+function DataSettingsErrorAlert({ message }: { message?: string | null }) {
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" className="mt-2.5">
+      <p className="text-sm leading-[1.5]">{message}</p>
+    </SurfaceCard>
+  );
+}
 
 export function DataSettingsView({
   title,
@@ -101,6 +114,7 @@ export function DataSettingsView({
   openLogDirLabel,
   openLogDirActionLabel,
   openingLogDir,
+  actionFailures,
   onVacuum,
   onBackupDatabase,
   onOpenLogDir,
@@ -174,6 +188,7 @@ export function DataSettingsView({
               </SettingsLoadingActionButton>
             )}
           </LabeledControlRow>
+          <DataSettingsErrorAlert message={actionFailures?.vacuum} />
         </SettingsSection>
 
         {credentialStorageSection}
@@ -223,6 +238,7 @@ export function DataSettingsView({
               </SettingsLoadingActionButton>
             )}
           </LabeledControlRow>
+          <DataSettingsErrorAlert message={actionFailures?.backup} />
         </SettingsSection>
 
         <SettingsSection heading={settingsProfileHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
@@ -248,6 +264,7 @@ export function DataSettingsView({
               {settingsProfileExportActionLabel ?? settingsProfileExportLabel}
             </SettingsLoadingActionButton>
           </LabeledControlRow>
+          <DataSettingsErrorAlert message={actionFailures?.exportProfile} />
           <LabeledControlRow
             label={settingsProfileImportLabel}
             description={settingsProfileFileInputLabel}
@@ -272,6 +289,7 @@ export function DataSettingsView({
               {settingsProfileImportActionLabel ?? settingsProfileImportLabel}
             </SettingsLoadingActionButton>
           </LabeledControlRow>
+          <DataSettingsErrorAlert message={actionFailures?.importProfile} />
         </SettingsSection>
 
         <SettingsSection heading={logsHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
@@ -290,6 +308,7 @@ export function DataSettingsView({
               {openLogDirActionLabel ?? openLogDirLabel}
             </SettingsLoadingActionButton>
           </LabeledControlRow>
+          <DataSettingsErrorAlert message={actionFailures?.openLogDir} />
         </SettingsSection>
       </div>
     </SettingsContentLayout>

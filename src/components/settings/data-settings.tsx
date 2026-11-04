@@ -98,6 +98,7 @@ export function DataSettings() {
       openLogDirLabel={t("data.open_log_dir")}
       openLogDirActionLabel={controller.openingLogDir ? t("data.opening_log_dir") : t("data.open_log_dir")}
       openingLogDir={controller.openingLogDir}
+      actionFailures={controller.actionFailures}
       onVacuum={() => void controller.handleVacuum()}
       onBackupDatabase={() => void controller.handleBackupDatabase()}
       onOpenLogDir={() => void controller.handleOpenLogDir()}
