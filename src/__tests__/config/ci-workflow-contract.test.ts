@@ -154,15 +154,18 @@ describe("CI workflow contract", () => {
     expect(ciWorkflow).toContain(matrixArtifactName("frontend", "build-log"));
     expect(ciWorkflow).toContain(matrixArtifactName("rust", "lint-log"));
     expect(ciWorkflow).toContain(matrixArtifactName("rust", "test-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("native-smoke", "debug-log"));
-    expect(ciWorkflow).toContain(matrixArtifactName("native-smoke", "debug-build-artifacts"));
+    expect(ciWorkflow).toContain("native-smoke-windows-latest-debug-log");
+    expect(ciWorkflow).toContain("native-smoke-macos-latest-debug-log");
+    expect(ciWorkflow).toContain("native-smoke-macos-latest-debug-build-artifacts");
     expect(ciWorkflow.match(/retention-days: 7/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     expect(ciWorkflow.match(/retention-days: 14/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(ciWorkflow.match(/retention-days: 21/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 
   it("uploads native smoke debug build logs and artifacts only on failure", () => {
-    const nativeSmokeSection = extractWorkflowJobSection(readRepoFile(".github/workflows/ci.yml"), "native-smoke");
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const nativeSmokeSection = extractWorkflowJobSection(ciWorkflow, "native-smoke");
+    const macosNativeSection = extractWorkflowJobSection(ciWorkflow, "macos-native");
 
     expect(nativeSmokeSection).toContain(
       "bash scripts/ci/run-logged.sh tmp/ci-artifacts/native-smoke/debug-build.log mise run app:build:debug",
@@ -170,5 +173,8 @@ describe("CI workflow contract", () => {
     expect(nativeSmokeSection).toContain("tmp/ci-artifacts/native-smoke/debug-build.log");
     expect(nativeSmokeSection).toContain("src-tauri/target/debug/bundle/");
     expect(nativeSmokeSection.match(/if: failure\(\)/g)?.length ?? 0).toBe(2);
+    expect(macosNativeSection).toContain("mise run lint:clippy");
+    expect(macosNativeSection).toContain("mise run app:build:debug");
+    expect(macosNativeSection.match(/if: failure\(\)/g)?.length ?? 0).toBe(3);
   });
 });

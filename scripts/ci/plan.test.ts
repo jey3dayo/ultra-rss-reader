@@ -36,6 +36,7 @@ test("UI-only runs the complete Ubuntu frontend lane without native compilation"
     format: true,
     lint: true,
     "rust-clippy": false,
+    "macos-native": false,
     "test-node": true,
     "test-rust": false,
     "test-jsdom": true,
@@ -324,13 +325,14 @@ test("workflow connects every planned lane to the gate and keeps Windows/full re
   assert.ok(workflow.includes(`PR_HEAD_SHA: ${expression("github.event.pull_request.head.sha")}`));
   assert.ok(workflow.includes(`CI_NEEDS: ${expression("toJSON(needs)")}`));
   assert.ok(workflow.includes("needs.change-plan.outputs.credentials == 'true'"));
-  assert.ok(workflow.includes("os: [macos-latest, windows-latest]"));
+  assert.ok(workflow.includes("  macos-native:"));
+  assert.ok(workflow.includes("Check: macOS native (clippy + smoke)"));
   assert.ok(!workflow.includes("run: |"));
 });
 
 test("Storybook audit runs independently on static output and retains failure evidence", () => {
   const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
-  const job = workflow.slice(workflow.indexOf("  storybook-a11y:"), workflow.indexOf("  native-smoke:"));
+  const job = workflow.slice(workflow.indexOf("  storybook-a11y:"), workflow.indexOf("  macos-native:"));
   assert.ok(job.includes("needs.change-plan.outputs.storybook == 'true'"));
   assert.ok(job.includes("runs-on: ubuntu-latest"));
   assert.ok(job.includes("pnpm exec playwright install --with-deps chromium"));
