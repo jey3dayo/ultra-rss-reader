@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import type { TFunction } from "i18next";
@@ -56,6 +56,31 @@ describe("useCredentialStorageSetting", () => {
     }
     queryClients.clear();
     cleanup();
+  });
+
+  it("reports a load failure without toasting and keeps the setting unloaded", async () => {
+    vi.spyOn(tauriCommands, "getCredentialStorage").mockResolvedValue(
+      Result.fail({ type: "UserVisible", message: "keyring unavailable" }),
+    );
+
+    const { result } = renderSettingHook();
+
+    await waitFor(() => {
+      expect(result.current.loadErrorMessage).toBe("data.credential_storage_load_failed");
+    });
+    expect(result.current.loaded).toBe(false);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("has no load error after the storage setting loads", async () => {
+    vi.spyOn(tauriCommands, "getCredentialStorage").mockResolvedValue(Result.succeed(keychainDto));
+
+    const { result } = renderSettingHook();
+
+    await waitFor(() => {
+      expect(result.current.loaded).toBe(true);
+    });
+    expect(result.current.loadErrorMessage).toBeNull();
   });
 
   it("invalidates the root account sync status query after a successful storage switch", async () => {

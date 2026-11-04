@@ -66,6 +66,26 @@ describe("CredentialStorageSectionView", () => {
     expect(within(section).queryByRole("status")).not.toBeInTheDocument();
   });
 
+  it("shows a load failure as an alert inside the section without the select", () => {
+    render(
+      <CredentialStorageSectionView
+        {...baseProps}
+        loaded={false}
+        configurable={false}
+        storage={null}
+        loadErrorMessage="Couldn't load the credential storage setting."
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const section = screen.getByRole("heading", { name: "Credentials" }).closest("section");
+    if (!section) {
+      throw new Error("expected the heading to be inside a section");
+    }
+    expect(within(section).getByRole("alert")).toHaveTextContent("Couldn't load the credential storage setting.");
+    expect(within(section).queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
   it("shows an incomplete cleanup as a status, not an alert", () => {
     render(<CredentialStorageSectionView {...baseProps} cleanupNotice="Old storage could not be cleared." />, {
       wrapper: createWrapper(),

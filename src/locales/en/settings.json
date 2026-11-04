@@ -492,7 +492,8 @@
     "credential_storage_local_file_warning": "A local file is less secure than the OS keychain. It is stored in the app data folder, readable only by your user.",
     "credential_storage_saved": "Credential storage changed",
     "credential_storage_cleanup_incomplete": "Credential storage changed, but credentials could not be removed from the previous store. Switch again or remove them manually",
-    "credential_storage_failed": "Could not change credential storage: {{message}}"
+    "credential_storage_failed": "Could not change credential storage: {{message}}",
+    "credential_storage_load_failed": "Couldn't load the credential storage setting. Saved credentials and the storage location are unchanged. Reopen Data settings to try loading again."
   },
   "debug": {
     "heading": "Development",

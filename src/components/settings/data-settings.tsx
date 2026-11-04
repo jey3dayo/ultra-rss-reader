@@ -27,6 +27,7 @@ export function DataSettings() {
       localFileWarning={t("data.credential_storage_local_file_warning")}
       storage={credentialStorage.storage}
       loaded={credentialStorage.loaded}
+      loadErrorMessage={credentialStorage.loadErrorMessage}
       configurable={credentialStorage.configurable}
       saving={credentialStorage.saving}
       errorMessage={credentialStorage.errorMessage}
