@@ -22,6 +22,7 @@ node = "26.13.0"
 rust = "stable"
 taplo = "latest"
 "github:jdx/jactionlint" = "2.1.0"
+gh-actions-lock = { version = "0.4.0", bin = "gh-actions-lock" }
 shellcheck = "latest"
 uv = "latest"
 "pipx:yamllint" = "latest"
@@ -31,6 +32,9 @@ uv = "latest"
 "cargo:similarity-ts" = "0.5.0"
 "cargo:similarity-css" = { version = "0.5.0", os = ["linux", "macos"] }
 "cargo:similarity-rs" = { version = "0.5.0", os = ["linux", "macos"] }
+
+[tool_alias]
+gh-actions-lock = "github:github/gh-actions-lock"
 
 [task_config]
 includes = [

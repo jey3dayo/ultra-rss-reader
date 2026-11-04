@@ -1018,6 +1018,7 @@ describe("repository static contracts", () => {
     const ciTasks = extractMiseRunTasks(readRepoFile(".github/workflows/ci.yml"));
 
     expect([...new Set(ciTasks)].toSorted()).toEqual([
+      "actions-lock:verify",
       "app:build:debug",
       "audit:deps",
       "audit:deps:rust",
@@ -1898,9 +1899,7 @@ describe("repository static contracts", () => {
     expect(extractIssueTemplateCheckboxLabels(issueTestTemplate, "follow-up-labels")).toEqual(
       expect.arrayContaining(["manual-verification が必要", "release-readiness に入る"]),
     );
-    expect(prInsightsLabelerWorkflow).toContain(
-      "uses: jey3dayo/pr-insights-labeler@19045111c0318d811e60d49706878074df2c3593",
-    );
+    expect(prInsightsLabelerWorkflow).toContain("uses: jey3dayo/pr-insights-labeler@v1.15.1");
     expect(prInsightsLabelerWorkflow).toContain('file_size_limit: "100KB"');
     expect(prInsightsLabelerWorkflow).toContain('pr_files_limit: "50"');
   });

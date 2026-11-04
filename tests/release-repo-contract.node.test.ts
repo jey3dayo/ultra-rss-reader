@@ -1,15 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -290,14 +281,13 @@ const readReleaseSkillCorpus = (): string =>
     .join("\n");
 const readSha256 = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
 
-const runWorkflowPinChecker = (workflowsDir: string, actionsDir = ".github/actions"): string =>
+const runWorkflowPinChecker = (workflowsDir: string): string =>
   execFileSync("node", ["scripts/check-workflow-pins.mjs"], {
     cwd: process.cwd(),
     encoding: "utf8",
     env: {
       ...process.env,
       WORKFLOW_PINS_WORKFLOWS_DIR: workflowsDir,
-      WORKFLOW_PINS_ACTIONS_DIR: actionsDir,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -446,6 +436,16 @@ const extractTaskBlock = (source: string, taskName: string): string => {
     throw new Error(`Missing mise task block: ${taskName}`);
   }
   return value;
+};
+
+const extractWorkflowLockEntries = (lockfile: string, workflowFile: string): string[] => {
+  const section = lockfile.match(
+    new RegExp(`'\\.github/workflows/${escapeRegExp(workflowFile)}':\\n(?<entries>(?: {8}- '[^']+'\\n)+)`),
+  )?.groups?.entries;
+  if (!section) {
+    throw new Error(`Missing actions.lock entries for ${workflowFile}`);
+  }
+  return [...section.matchAll(/- '([^']+)'/g)].map((match) => match[1] ?? "");
 };
 
 const extractWorkflowUses = (source: string): string[] => {
@@ -598,9 +598,8 @@ const extractYamlScalarBlockEntries = (block: string): Record<string, string> =>
 };
 
 const extractTauriActionBlock = (source: string): string => {
-  const value = source.match(
-    /- uses: tauri-apps\/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5[^\n]*\n(?<block>(?: {8}.+\n?)*)/,
-  )?.groups?.block;
+  const value = source.match(/- uses: tauri-apps\/tauri-action@v0\.6\.2[^\n]*\n(?<block>(?: {8}.+\n?)*)/)?.groups
+    ?.block;
   if (!value) {
     throw new Error("Missing release tauri-action block");
   }
@@ -610,10 +609,7 @@ const extractTauriActionBlock = (source: string): string => {
 const assertReleaseTokenUseScope = (source: string): void => {
   const bindings = new Map([
     ["name: Reject duplicate or published release builds", "GH_TOKEN: $" + "{{ github.token }}"],
-    [
-      "uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
-      "GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
-    ],
+    ["uses: tauri-apps/tauri-action@v0.6.2", "GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}"],
     ...[
       "Upload Linux release provenance",
       "Upload updater asset checksums",
@@ -914,21 +910,21 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     for (const section of jobSections.filter((job) => job.includes("pnpm install --frozen-lockfile"))) {
       const miseIndex = section.indexOf("uses: jdx/mise-action@");
-      const setupIndex = section.indexOf("uses: ./.github/actions/setup-pnpm");
+      const setupIndex = section.indexOf("uses: $/.github/actions/setup-pnpm");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
       expect(miseIndex).toBeGreaterThanOrEqual(0);
       expect(miseIndex).toBeLessThan(setupIndex);
       expect(setupIndex).toBeLessThan(installIndex);
     }
     const sourceValidationIndex = releaseWorkflow.indexOf("run: node ./scripts/release/validate-source.ts");
-    const firstSetupIndex = releaseWorkflow.indexOf("uses: ./.github/actions/setup-pnpm");
+    const firstSetupIndex = releaseWorkflow.indexOf("uses: $/.github/actions/setup-pnpm");
     expect(sourceValidationIndex).toBeLessThan(firstSetupIndex);
-    expect(setupAction).toContain("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
+    expect(setupAction).toContain("uses: pnpm/setup@");
     expect(setupAction).toContain("cache: true");
     expect(setupAction).toContain("install: false");
   });
 
-  it("keeps workflow pin checker parsing quoted uses, inline comments, and local actions", () => {
+  it("keeps workflow pin checker leaving lockfile-covered action refs to actions.lock", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-workflow-pins-"));
     try {
       writeFileSync(
@@ -940,8 +936,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
           "  check:",
           "    runs-on: ubuntu-latest",
           "    steps:",
-          "      - uses: 'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd' # pinned checkout",
-          '      - uses: "jdx/mise-action@1648a7812b9aeae629881980618f079932869151"',
+          "      - uses: 'actions/checkout@v6.1.0' # lockfile-covered tag",
+          '      - uses: "jdx/mise-action@v4.3.0"',
+          "      - uses: $/.github/actions/local-tool",
           "      - uses: ./.github/actions/local-tool",
           "      - uses: owner/repo/.github/workflows/reusable.yml@1234567890abcdef1234567890abcdef12345678",
         ].join("\n"),
@@ -953,7 +950,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     }
   });
 
-  it("keeps workflow pin checker rejecting floating quoted uses", () => {
+  it("keeps workflow pin checker rejecting floating quoted reusable workflow refs", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-workflow-pins-"));
     try {
       writeFileSync(
@@ -965,53 +962,12 @@ describe("release repository contract", { timeout: 30_000 }, () => {
           "  check:",
           "    runs-on: ubuntu-latest",
           "    steps:",
-          "      - uses: 'actions/checkout@v6' # floating ref",
+          "      - uses: 'owner/repo/.github/workflows/reusable.yml@v6' # floating ref",
         ].join("\n"),
       );
 
-      expect(() => runWorkflowPinChecker(tempDir)).toThrow(/actions\/checkout@v6 must use a 40-character commit SHA/);
-    } finally {
-      rmSync(tempDir, { force: true, recursive: true });
-    }
-  });
-
-  it("requires composite action references to use pinned commit SHAs", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-action-pins-"));
-    const workflowsDir = join(tempDir, "workflows");
-    const actionsDir = join(tempDir, "actions");
-    const actionDir = join(actionsDir, "setup");
-    const actionFile = join(actionDir, "action.yml");
-    try {
-      mkdirSync(workflowsDir);
-      mkdirSync(actionDir, { recursive: true });
-      writeFileSync(
-        join(workflowsDir, "valid.yml"),
-        ["name: valid", "jobs:", "  check:", "    steps:", "      - uses: ./.github/actions/setup"].join("\n"),
-      );
-      writeFileSync(
-        actionFile,
-        ["name: setup", "runs:", "  using: composite", "  steps:", "    - uses: vendor/tool@v1"].join("\n"),
-      );
-
-      expect(() => runWorkflowPinChecker(workflowsDir, actionsDir)).toThrow(
-        /vendor\/tool@v1 must use a 40-character commit SHA/,
-      );
-      writeFileSync(
-        actionFile,
-        [
-          "name: setup",
-          "runs:",
-          "  using: composite",
-          "  steps:",
-          "    - uses: vendor/tool@1234567890abcdef1234567890abcdef12345678",
-        ].join("\n"),
-      );
-      expect(runWorkflowPinChecker(workflowsDir, actionsDir)).toBe("");
-      expect(() => runWorkflowPinChecker(join(tempDir, "missing-workflows"), actionsDir)).toThrow(
-        /Required directory does not exist/,
-      );
-      expect(() => runWorkflowPinChecker(workflowsDir, join(tempDir, "missing-actions"))).toThrow(
-        /Required directory does not exist/,
+      expect(() => runWorkflowPinChecker(tempDir)).toThrow(
+        /owner\/repo\/\.github\/workflows\/reusable\.yml@v6 must use a 40-character commit SHA/,
       );
     } finally {
       rmSync(tempDir, { force: true, recursive: true });
@@ -1045,26 +1001,27 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const releaseUsesValues = extractWorkflowUses(releaseWorkflow);
     const expectedReleaseActions = [
       // preflight job: source/version/signing preflight
-      "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
-      "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "./.github/actions/setup-pnpm",
+      "actions/checkout@v6.1.0",
+      "jdx/mise-action@v4.3.0",
+      "$/.github/actions/setup-pnpm",
       // quality job: parallel format/lint/test preflight (gated by should_build)
-      "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
-      "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "./.github/actions/setup-pnpm",
+      "actions/checkout@v6.1.0",
+      "jdx/mise-action@v4.3.0",
+      "$/.github/actions/setup-pnpm",
       // release job: matrix artifact build + draft upload
-      "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
-      "jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c",
-      "./.github/actions/setup-pnpm",
+      "actions/checkout@v6.1.0",
+      "jdx/mise-action@v4.3.0",
+      "$/.github/actions/setup-pnpm",
       "dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9",
-      "Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
-      "tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
+      "Swatinem/rust-cache@v2.9.2",
+      "tauri-apps/tauri-action@v0.6.2",
     ];
 
     expect(releaseUsesValues).toEqual(expectedReleaseActions);
+    const releaseLockEntries = extractWorkflowLockEntries(readText(".github/workflows/actions.lock"), "release.yml");
     for (const usesValue of releaseUsesValues) {
-      if (usesValue.startsWith("./")) continue;
-      expect(usesValue).toMatch(/@[0-9a-f]{40}$/i);
+      if (usesValue.startsWith("$/")) continue;
+      expect(releaseLockEntries).toContain(usesValue.toLowerCase());
     }
     expect(releaseWorkflow).not.toContain("actions/upload-artifact");
     assertReleaseTokenUseScope(releaseWorkflow);
@@ -1148,7 +1105,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const dependencyScript = readText("scripts/ci/install-tauri-deps.sh");
     const linuxDepsAction = readText(".github/actions/setup-tauri-linux-deps/action.yml");
     expect(
-      ciWorkflow.match(/uses: \.\/\.github\/actions\/setup-tauri-linux-deps\n\s+timeout-minutes: 15/g),
+      ciWorkflow.match(/uses: \$\/\.github\/actions\/setup-tauri-linux-deps\n\s+timeout-minutes: 15/g),
     ).toHaveLength(2);
     expect(ciWorkflow).not.toContain("bash scripts/ci/install-tauri-deps.sh");
     expect(linuxDepsAction).toContain("run: bash scripts/ci/install-tauri-deps.sh plan");

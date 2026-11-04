@@ -26,7 +26,7 @@ paths:
 - release workflow は Draft を維持する。両 entry point の Phase 4 が、元の build run・必須ゲート・アーティファクト・適用される手動確認と公開承認を確認し、認証済み CLI または GitHub UI で Publish する
 - `generateReleaseNotes` は `false`。Local CLI は `gh release edit/create`、Actions は reviewed `CHANGELOG.md` の version section から本文を管理する
 - 失敗・再試行・dry run・asset 再利用の判断は [Actions runbook の Failure and recovery](../../docs/release-actions-start.md#failure-and-recovery) を正本にする。ここでは条件を重複定義しない
-- GitHub Actions の uses にはコミットハッシュ pin + バージョンコメントを付与する
+- GitHub Actions の action 参照は `.github/workflows/actions.lock` で固定する。uses は完全なバージョンタグか、同一 repo の `$/` 参照にし、lockfile は `mise run actions-lock:generate` で再生成する。コミット SHA を直接書くのは、対応する tag が無い参照（SHA + バージョンコメント）と、lockfile が固定しない別 repo の reusable workflow 呼び出しだけにする
 - `fail-fast: false` で一部のプラットフォーム失敗が他に波及しないようにする
 - macOS は Developer ID なし前提でリリースする。`src-tauri/tauri.release.conf.json` は ad-hoc signing (`signingIdentity: "-"`) を使い、workflow は `codesign --verify --deep --strict` を必須検証にする
 - Gatekeeper / notarization 評価は Apple 公証情報が設定されている場合のみ必須。未設定時の `spctl` reject は既知の配布制約として記録し、release failure 扱いにしない

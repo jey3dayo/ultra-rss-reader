@@ -36,8 +36,19 @@ run = "jactionlint"
 description = "ShellCheck CI script bodies on all platforms"
 run = "node scripts/ci/check-shell.ts"
 
+["actions-lock:generate"]
+description = "Regenerate .github/workflows/actions.lock and verify it upstream (needs gh login)"
+run = [
+  "gh-actions-lock --migrate-local-actions --no-interactive",
+  "gh-actions-lock --verify",
+]
+
+["actions-lock:verify"]
+description = "Offline check: every uses: has a lockfile entry and the lockfile parses"
+run = "gh-actions-lock --verify-local"
+
 ["lint:workflow-pins"]
-description = "Workflow action references must be pinned to commit SHAs"
+description = "Cross-repository reusable workflow calls must be pinned to commit SHAs (actions are covered by actions.lock)"
 run = "node scripts/check-workflow-pins.mjs"
 
 ["audit:deps"]
