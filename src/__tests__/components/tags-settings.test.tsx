@@ -284,7 +284,7 @@ describe("TagsSettings", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
     expect(tagHooks.renameTagMutateAsync).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("Failed to update tag: Tag no longer exists.");
+    expect(showToast).toHaveBeenCalledWith("Failed to update tag: This tag was already removed.");
   });
 
   it("keeps delete dialog visible but disabled when the target tag disappears", async () => {
