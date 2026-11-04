@@ -95,6 +95,7 @@ export function resetPreferencesStoreRuntimeForTests(): void {
   preferencePersistRequestIds.clear();
   preferenceMutationGenerations.clear();
   preferenceStorageFailureMessages.clear();
+  usePreferencesStore.setState({ failedPreferenceSaveKeys: [] });
 }
 
 function resolveErrorMessage(error: unknown): string {
@@ -292,6 +293,7 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
   prefs: {},
   loaded: false,
   pendingPreferenceSaves: 0,
+  failedPreferenceSaveKeys: [],
 
   loadPreferences: async () => {
     if (preferencesLoadPromise) {
@@ -361,6 +363,7 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
     set((state) => ({
       prefs: { ...state.prefs, [key]: normalizedValue },
       pendingPreferenceSaves: state.pendingPreferenceSaves + 1,
+      failedPreferenceSaveKeys: state.failedPreferenceSaveKeys.filter((failedKey) => failedKey !== key),
     }));
 
     applyPreferenceRuntimeEffect(key, normalizedValue);
@@ -383,6 +386,9 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       preferencePersistRequestIds.delete(key);
       set((state) => ({
         pendingPreferenceSaves: Math.max(0, state.pendingPreferenceSaves - 1),
+        failedPreferenceSaveKeys: state.failedPreferenceSaveKeys.includes(key)
+          ? state.failedPreferenceSaveKeys
+          : [...state.failedPreferenceSaveKeys, key],
       }));
       notifyPreferencePersistFailure(key, error);
     };
@@ -408,6 +414,15 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
         ),
       (error: unknown) => notifyLatestPersistFailure(error),
     );
+  },
+
+  retryFailedPreferenceSaves: () => {
+    for (const key of getState().failedPreferenceSaveKeys) {
+      const value = getState().prefs[key];
+      if (value !== undefined) {
+        getState().setPref(key, value);
+      }
+    }
   },
 
   theme: () => resolvePreferenceValue(getState().prefs, "theme"),

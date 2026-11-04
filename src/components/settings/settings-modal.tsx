@@ -24,6 +24,7 @@ import {
 } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import { useSettingsModalViewProps } from "@/components/settings/hooks/use-settings-modal-view-props";
 import { MuteSettings } from "@/components/settings/mute-settings";
+import { PreferenceSaveFailureBanner } from "@/components/settings/preference-save-failure-banner";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { SettingsUnsavedChangesFooter } from "@/components/settings/settings-unsaved-changes-bar";
@@ -168,6 +169,9 @@ function SettingsModalContent() {
   const settingsLoading = useUiStore((s) => s.settingsLoading);
   const accountSetupSession = useUiStore((s) => s.accountSetupSession);
   const pendingPreferenceSaves = usePreferencesStore((s) => s.pendingPreferenceSaves);
+  const hasFailedPreferenceSaves = usePreferencesStore((s) => s.failedPreferenceSaveKeys.length > 0);
+  const retryFailedPreferenceSaves = usePreferencesStore((s) => s.retryFailedPreferenceSaves);
+  const { t: tCommon } = useTranslation();
   const [deletedAccountIds, setDeletedAccountIds] = useState<string[]>([]);
   const { data: accounts } = useAccounts();
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
@@ -334,6 +338,13 @@ function SettingsModalContent() {
       />
     ),
     footer,
+    statusBanner: hasFailedPreferenceSaves ? (
+      <PreferenceSaveFailureBanner
+        message={tCommon("preference_save_failed_banner")}
+        retryLabel={tCommon("preference_save_retry")}
+        onRetry={retryFailedPreferenceSaves}
+      />
+    ) : undefined,
     guardLeave,
     leaveConfirmation,
     closeSettings,

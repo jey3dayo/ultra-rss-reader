@@ -15,6 +15,8 @@
   "mark_as_read_action": "既読にする",
   "back": "戻る",
   "failed_to_save_setting": "設定の保存に失敗しました: {{message}}",
+  "preference_save_failed_banner": "設定の変更を保存できませんでした。画面には変更後の値を表示していますが、保存されていません。",
+  "preference_save_retry": "再試行",
   "connection_testing": "接続を確認中…",
   "errors": {
     "database_maintenance_busy": "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。",

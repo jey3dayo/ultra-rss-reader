@@ -4,11 +4,13 @@ export type PreferencesState = {
   prefs: PreferenceRecord;
   loaded: boolean;
   pendingPreferenceSaves: number;
+  failedPreferenceSaveKeys: readonly PreferenceWritableKey[];
 };
 
 export type PreferencesActions = {
   loadPreferences: () => Promise<void>;
   setPref: <K extends PreferenceWritableKey>(key: K, value: string) => void;
+  retryFailedPreferenceSaves: () => void;
   theme: () => Theme;
   sortUnread: () => string;
   groupBy: () => string;

@@ -15,6 +15,8 @@
   "mark_as_read_action": "Mark as Read",
   "back": "Back",
   "failed_to_save_setting": "Failed to save setting: {{message}}",
+  "preference_save_failed_banner": "Couldn't save your settings change. The screen shows the new value, but it isn't saved.",
+  "preference_save_retry": "Retry",
   "connection_testing": "Testing connection…",
   "errors": {
     "database_maintenance_busy": "Database maintenance is unavailable while syncing. Try again after sync completes.",
