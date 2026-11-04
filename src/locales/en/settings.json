@@ -288,7 +288,7 @@
     "exporting_opml": "Exporting OPML…",
     "local_sync_heading": "Local sync folder",
     "local_sync_summary": "Sync files contain subscription and article URLs plus article state.",
-    "local_sync_description": "Stores private subscription URLs, article URLs, tags, read state, and star state as Ultra RSS Reader operation files. It never writes the SQLite database, WAL/SHM files, or credentials.",
+    "local_sync_description": "Stores private subscription URLs, article URLs, tags, read state, and star state as Ultra RSS Reader operation files. It never writes the SQLite database, WAL/SHM files, or credentials. Deletions and renames are not applied on other devices. After a rename, other devices get an item with the new name and keep the old one.",
     "local_sync_info_aria_label": "Show local sync folder details",
     "local_sync_enabled_label": "Sync automatically",
     "local_sync_enabled_summary": "Runs automatically when this account syncs.",
