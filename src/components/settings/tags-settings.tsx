@@ -176,7 +176,7 @@ export function TagsSettings() {
 
     if (!tagsRef.current.some((tag) => tag.id === editingTag.id)) {
       dispatch({ type: "close-edit" });
-      showToast(t("tags.rename_failed", { message: "Tag no longer exists." }));
+      showToast(t("tags.rename_failed", { message: t("tags.deleted_resource_noop") }));
       return;
     }
 
@@ -218,7 +218,7 @@ export function TagsSettings() {
 
     if (!tagsRef.current.some((tag) => tag.id === deletingTag.id)) {
       dispatch({ type: "close-delete" });
-      showToast(t("tags.delete_failed", { message: "Tag no longer exists." }));
+      showToast(t("tags.delete_failed", { message: t("tags.deleted_resource_noop") }));
       return;
     }
 
