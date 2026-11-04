@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 
 use crate::domain::local_account_sync::{
-    LocalAccountSyncOperation, LocalSyncAccountId, LocalSyncAction, LocalSyncArticleKey,
-    LocalSyncDeviceId, LocalSyncEntityKey, LocalSyncOperationId,
+    generate_local_sync_article_key, LocalAccountSyncOperation, LocalSyncAccountId,
+    LocalSyncAction, LocalSyncArticleKey, LocalSyncDeviceId, LocalSyncEntityKey,
+    LocalSyncEntryIdentity, LocalSyncOperationId,
 };
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
@@ -416,10 +417,12 @@ fn compute_digest_is_stable_across_differing_operation_ids_and_timestamps() {
     let operation_a = operation_with(
         "sync-account-a",
         "op-1",
-        LocalSyncEntityKey::Tag {
-            normalized_name: "rust".to_string(),
+        LocalSyncEntityKey::Feed {
+            normalized_feed_url: "https://example.com/feed.xml".to_string(),
         },
-        LocalSyncAction::RemoveTag,
+        LocalSyncAction::ReportFeedFolderConflict {
+            reason: "folder".to_string(),
+        },
     );
     let operation_b = LocalAccountSyncOperation {
         operation_id: LocalSyncOperationId("op-2".to_string()),
@@ -474,6 +477,26 @@ fn compute_digest_changes_when_an_entity_change_time_changes() {
                 scope: "title".to_string(),
             },
             LocalSyncAction::UpsertMuteKeyword,
+        ),
+        (
+            LocalSyncEntityKey::Tag {
+                normalized_name: "rust".to_string(),
+            },
+            LocalSyncAction::RemoveTag,
+        ),
+        (
+            LocalSyncEntityKey::ArticleTag {
+                article_key: LocalSyncArticleKey("article".to_string()),
+                normalized_tag_name: "rust".to_string(),
+            },
+            LocalSyncAction::RemoveArticleTag,
+        ),
+        (
+            LocalSyncEntityKey::MuteKeyword {
+                normalized_keyword: "spam".to_string(),
+                scope: "title".to_string(),
+            },
+            LocalSyncAction::RemoveMuteKeyword,
         ),
     ];
 
@@ -1717,4 +1740,372 @@ fn import_keeps_a_tag_when_the_same_file_tags_an_article_after_the_removal() {
     );
     assert_eq!(report.apply_report.tags_removed, 0);
     assert_eq!(report.apply_report.skipped_removed_tags, 1);
+}
+
+const OLD_TIMES_SQL: &str = "UPDATE tags SET changed_at = '2026-01-01T00:00:00.000Z';
+     UPDATE article_tags SET changed_at = '2026-01-01T00:00:00.000Z';
+     UPDATE mute_keywords SET updated_at = '2026-01-01T00:00:00.000Z';";
+const REMOVED_AT_SQL: &str =
+    "UPDATE local_sync_tombstones SET removed_at = '2026-06-01T00:00:00.000Z';";
+const NEWER_THAN_REMOVAL: &str = "2026-09-01T00:00:00.000Z";
+
+/// Two devices that start from the same state, with every tag, link and mute time pinned before
+/// the removals the exporter records.
+struct RemovalDevices {
+    exporter: DbManager,
+    importer: DbManager,
+    dir: tempfile::TempDir,
+    settings: LocalAccountSyncSettings,
+    account_id: AccountId,
+}
+
+impl RemovalDevices {
+    fn new() -> Self {
+        let account_id = AccountId("account-1".to_string());
+        let exporter = DbManager::new_in_memory().unwrap();
+        let importer = DbManager::new_in_memory().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let settings = LocalAccountSyncSettings {
+            device_id: LocalSyncDeviceId("device-b".to_string()),
+            ..seeded_settings(&dir.path().to_string_lossy(), &account_id)
+        };
+        for db in [&exporter, &importer] {
+            seed_entity_fixture(db, &account_id);
+            db.writer().execute_batch(OLD_TIMES_SQL).unwrap();
+        }
+        SqliteLocalAccountSyncSettingsRepository::new(exporter.writer())
+            .save(&settings)
+            .unwrap();
+        Self {
+            exporter,
+            importer,
+            dir,
+            settings,
+            account_id,
+        }
+    }
+
+    /// Applies `removals_sql` on the exporter, pins the time of the tombstones it recorded, and
+    /// exports.
+    fn export_removals(&self, removals_sql: &str) {
+        self.exporter
+            .writer()
+            .execute_batch(&format!("{removals_sql};{REMOVED_AT_SQL}"))
+            .unwrap();
+        export_local_account_sync_folder(&self.exporter, &self.account_id, &self.settings).unwrap();
+    }
+
+    fn import(&self) {
+        import_local_account_sync_folder(
+            &self.importer,
+            &self.account_id,
+            &self.settings.sync_account_id,
+            self.dir.path(),
+        )
+        .unwrap();
+    }
+}
+
+fn tag_names(db: &DbManager) -> Vec<String> {
+    query_strings(db, "SELECT name FROM tags ORDER BY name")
+}
+
+#[test]
+fn import_applies_a_tag_deleted_on_the_exporting_device() {
+    let devices = RemovalDevices::new();
+    devices.export_removals("DELETE FROM tags WHERE id = 'tag-rust'");
+
+    devices.import();
+
+    assert_eq!(tag_names(&devices.importer), ["swift"]);
+    assert_eq!(article_tag_pairs(&devices.importer), ["article-y:swift"]);
+}
+
+#[test]
+fn import_applies_a_mute_keyword_deleted_on_the_exporting_device() {
+    let devices = RemovalDevices::new();
+    devices.export_removals("DELETE FROM mute_keywords WHERE id = 'mute-spam'");
+
+    devices.import();
+
+    assert!(mute_keywords(&devices.importer).is_empty());
+}
+
+#[test]
+fn import_applies_an_article_tag_removed_on_the_exporting_device_and_keeps_the_tag() {
+    let devices = RemovalDevices::new();
+    devices.export_removals(
+        "DELETE FROM article_tags WHERE article_id = 'article-x' AND tag_id = 'tag-rust'",
+    );
+
+    devices.import();
+
+    assert_eq!(tag_names(&devices.importer), ["rust", "swift"]);
+    assert_eq!(article_tag_pairs(&devices.importer), ["article-y:swift"]);
+}
+
+#[test]
+fn import_keeps_an_article_tagged_locally_after_the_remote_tag_deletion() {
+    let devices = RemovalDevices::new();
+    devices
+        .importer
+        .writer()
+        .execute_batch(&format!(
+            "INSERT INTO article_tags (article_id, tag_id, changed_at)
+             VALUES ('article-y', 'tag-rust', '{NEWER_THAN_REMOVAL}')"
+        ))
+        .unwrap();
+    devices.export_removals("DELETE FROM tags WHERE id = 'tag-rust'");
+
+    devices.import();
+
+    assert_eq!(tag_names(&devices.importer), ["rust", "swift"]);
+    assert_eq!(
+        article_tag_pairs(&devices.importer),
+        ["article-y:rust", "article-y:swift"],
+        "the link made after the removal survives, the older link is removed with it"
+    );
+}
+
+#[test]
+fn import_keeps_a_tag_recreated_locally_after_the_remote_tag_deletion() {
+    let devices = RemovalDevices::new();
+    devices
+        .importer
+        .writer()
+        .execute_batch(&format!(
+            "DELETE FROM tags WHERE id = 'tag-rust';
+             INSERT INTO tags (id, name, changed_at)
+             VALUES ('tag-rust-again', 'rust', '{NEWER_THAN_REMOVAL}')"
+        ))
+        .unwrap();
+    devices.export_removals("DELETE FROM tags WHERE id = 'tag-rust'");
+
+    devices.import();
+
+    assert_eq!(tag_names(&devices.importer), ["rust", "swift"]);
+}
+
+#[test]
+fn import_keeps_a_mute_keyword_changed_locally_after_the_remote_deletion() {
+    let devices = RemovalDevices::new();
+    devices
+        .importer
+        .writer()
+        .execute_batch(&format!(
+            "UPDATE mute_keywords SET updated_at = '{NEWER_THAN_REMOVAL}' WHERE id = 'mute-spam'"
+        ))
+        .unwrap();
+    devices.export_removals("DELETE FROM mute_keywords WHERE id = 'mute-spam'");
+
+    devices.import();
+
+    assert_eq!(mute_keywords(&devices.importer), ["spam"]);
+}
+
+#[test]
+fn import_does_not_delete_again_a_tag_recreated_after_receiving_the_deletion() {
+    let devices = RemovalDevices::new();
+    devices.export_removals("DELETE FROM tags WHERE id = 'tag-rust'");
+    devices.import();
+    assert_eq!(tag_names(&devices.importer), ["swift"]);
+
+    devices
+        .importer
+        .writer()
+        .execute_batch(&format!(
+            "INSERT INTO tags (id, name, changed_at)
+             VALUES ('tag-rust-again', 'rust', '{NEWER_THAN_REMOVAL}');
+             INSERT INTO article_tags (article_id, tag_id, changed_at)
+             VALUES ('article-x', 'tag-rust-again', '{NEWER_THAN_REMOVAL}')"
+        ))
+        .unwrap();
+    devices.import();
+
+    assert_eq!(tag_names(&devices.importer), ["rust", "swift"]);
+    assert_eq!(
+        article_tag_pairs(&devices.importer),
+        ["article-x:rust", "article-y:swift"]
+    );
+}
+
+#[test]
+fn import_applies_a_tag_rename_as_a_new_tag_and_a_removed_old_one() {
+    let devices = RemovalDevices::new();
+    devices.export_removals("UPDATE tags SET name = 'rustlang' WHERE id = 'tag-rust'");
+
+    devices.import();
+
+    assert_eq!(tag_names(&devices.importer), ["rustlang", "swift"]);
+    assert_eq!(
+        article_tag_pairs(&devices.importer),
+        ["article-x:rustlang", "article-y:swift"]
+    );
+}
+
+#[test]
+fn import_applies_a_mute_keyword_scope_change_as_a_new_scope_and_a_removed_old_one() {
+    let devices = RemovalDevices::new();
+    devices.export_removals(
+        "UPDATE mute_keywords SET scope = 'body', updated_at = '2026-06-02T00:00:00.000Z'
+         WHERE id = 'mute-spam'",
+    );
+
+    devices.import();
+
+    assert_eq!(
+        query_strings(
+            &devices.importer,
+            "SELECT scope FROM mute_keywords WHERE keyword = 'spam' ORDER BY scope"
+        ),
+        ["body"]
+    );
+}
+
+fn removal_operations(
+    operations: &[LocalAccountSyncOperation],
+) -> Vec<(LocalSyncEntityKey, DateTime<Utc>)> {
+    operations
+        .iter()
+        .filter(|operation| {
+            matches!(
+                operation.action,
+                LocalSyncAction::RemoveTag
+                    | LocalSyncAction::RemoveArticleTag
+                    | LocalSyncAction::RemoveMuteKeyword
+            )
+        })
+        .map(|operation| (operation.entity_key.clone(), operation.occurred_at))
+        .collect()
+}
+
+fn export_operations(db: &DbManager) -> Vec<LocalAccountSyncOperation> {
+    build_current_state_operations(
+        db,
+        &AccountId("account-1".to_string()),
+        &LocalSyncAccountId("sync-account-a".to_string()),
+        &LocalSyncDeviceId("device-a".to_string()),
+    )
+    .unwrap()
+}
+
+#[test]
+fn export_emits_removals_only_for_values_that_are_gone_and_addressable() {
+    let db = DbManager::new_in_memory().unwrap();
+    seed_entity_fixture(&db, &AccountId("account-1".to_string()));
+    db.writer()
+        .execute_batch(
+            "INSERT INTO local_sync_tombstones (kind, account_id, key, key2, removed_at) VALUES
+               ('tag', '', 'gone', '', '2026-06-01T00:00:00.000Z'),
+               ('tag', '', 'rust', '', '2026-06-01T00:00:00.000Z'),
+               ('article_tag', '', 'article-y', 'gone', '2026-06-01T00:00:00.000Z'),
+               ('article_tag', '', 'article-x', 'rust', '2026-06-01T00:00:00.000Z'),
+               ('article_tag', '', 'article-missing', 'swift', '2026-06-01T00:00:00.000Z'),
+               ('mute_keyword', '', 'old', 'title', '2026-06-01T00:00:00.000Z'),
+               ('mute_keyword', '', 'spam', 'title', '2026-06-01T00:00:00.000Z'),
+               ('folder', 'account-1', 'removed-folder', '', '2026-06-01T00:00:00.000Z'),
+               ('feed', 'account-1', 'https://example.com/removed.xml', '', '2026-06-01T00:00:00.000Z');",
+        )
+        .unwrap();
+    let article_y = generate_local_sync_article_key(
+        &LocalSyncAccountId("sync-account-a".to_string()),
+        "https://example.com/feed.xml",
+        LocalSyncEntryIdentity {
+            guid: Some("guid-y".to_string()),
+            url: None,
+            title: Some("article-y".to_string()),
+        },
+    )
+    .unwrap()
+    .key;
+    let removed_at = DateTime::parse_from_rfc3339("2026-06-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+
+    let removals = removal_operations(&export_operations(&db));
+
+    assert_eq!(
+        removals,
+        [
+            (
+                LocalSyncEntityKey::Tag {
+                    normalized_name: "gone".to_string()
+                },
+                removed_at
+            ),
+            (
+                LocalSyncEntityKey::ArticleTag {
+                    article_key: article_y,
+                    normalized_tag_name: "gone".to_string()
+                },
+                removed_at
+            ),
+            (
+                LocalSyncEntityKey::MuteKeyword {
+                    normalized_keyword: "old".to_string(),
+                    scope: "title".to_string()
+                },
+                removed_at
+            ),
+        ]
+    );
+}
+
+#[test]
+fn export_digest_changes_when_only_the_time_of_a_removal_changes() {
+    let db = DbManager::new_in_memory().unwrap();
+    seed_entity_fixture(&db, &AccountId("account-1".to_string()));
+    let digest_removed_at = |removed_at: &str| {
+        db.writer()
+            .execute(
+                "INSERT OR REPLACE INTO local_sync_tombstones (kind, account_id, key, key2, removed_at)
+                 VALUES ('tag', '', 'gone', '', ?1)",
+                [removed_at],
+            )
+            .unwrap();
+        compute_local_account_sync_digest(&export_operations(&db))
+    };
+
+    let first = digest_removed_at("2026-06-01T00:00:00.000Z");
+    let second = digest_removed_at("2026-06-02T00:00:00.000Z");
+
+    assert_ne!(
+        first, second,
+        "a delete, re-create and delete again must be exported once more"
+    );
+}
+
+#[test]
+fn export_tag_time_includes_the_latest_article_link_change() {
+    let db = DbManager::new_in_memory().unwrap();
+    seed_entity_fixture(&db, &AccountId("account-1".to_string()));
+    db.writer()
+        .execute_batch(
+            "UPDATE tags SET changed_at = '2026-01-01T00:00:00.000Z' WHERE id = 'tag-rust';
+             UPDATE article_tags SET changed_at = '2026-09-01T00:00:00.000Z' WHERE tag_id = 'tag-rust';
+             UPDATE tags SET changed_at = '2026-03-01T00:00:00.000Z' WHERE id = 'tag-swift';
+             UPDATE article_tags SET changed_at = '2026-02-01T00:00:00.000Z' WHERE tag_id = 'tag-swift';",
+        )
+        .unwrap();
+
+    let tag_times = export_operations(&db)
+        .into_iter()
+        .filter_map(
+            |operation| match (&operation.entity_key, &operation.action) {
+                (LocalSyncEntityKey::Tag { normalized_name }, LocalSyncAction::AddTag { .. }) => {
+                    Some((normalized_name.clone(), operation.occurred_at.to_rfc3339()))
+                }
+                _ => None,
+            },
+        )
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        tag_times,
+        [
+            ("rust".to_string(), "2026-09-01T00:00:00+00:00".to_string()),
+            ("swift".to_string(), "2026-03-01T00:00:00+00:00".to_string()),
+        ],
+        "tagging an article stamps only the link, so the tag must export the newer of the two"
+    );
 }

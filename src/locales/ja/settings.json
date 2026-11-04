@@ -288,7 +288,7 @@
     "exporting_opml": "OPMLをエクスポート中…",
     "local_sync_heading": "ローカル同期フォルダ",
     "local_sync_summary": "購読・記事URLと記事の状態を同期用ファイルに保存します。",
-    "local_sync_description": "購読URL、記事URL、タグ、既読、スター状態をUltra RSS Reader専用の操作ファイルとして保存します。SQLiteデータベース、WAL/SHM、認証情報は書き込みません。削除と名前の変更は他の端末に反映されません。名前を変えると、他の端末には新しい名前の項目が追加され、元の項目は残ります。",
+    "local_sync_description": "購読URL、記事URL、タグ、既読、スター状態をUltra RSS Reader専用の操作ファイルとして保存します。SQLiteデータベース、WAL/SHM、認証情報は書き込みません。タグとミュートキーワードの削除、記事のタグ外しは、他の端末にも反映されます。タグの名前を変えると、他の端末では新しい名前のタグが追加され、元のタグは削除されます。フォルダとフィードの削除は反映されません。フォルダ名を変えると、他の端末には新しい名前のフォルダが追加され、元のフォルダは残ります。",
     "local_sync_info_aria_label": "ローカル同期フォルダの詳細を表示",
     "local_sync_enabled_label": "自動同期",
     "local_sync_enabled_summary": "アカウント同期時に自動で実行します。",
