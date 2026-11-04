@@ -40,8 +40,41 @@ The unmerged-path case comes from react-doctor refusing to build a diff plan whi
 wrapper's mode check reports as `mode drift`.
 
 Not reproduced: the degraded run Issue #431 saw in CI, and the code paths for a failed head or base
-lint, a `--max-duration` budget, and base files that cannot be extracted. The fixtures were local
-clones; no GitHub Actions run was observed.
+lint and base files that cannot be extracted. A `--max-duration` expiry on a cold cache was
+reproduced afterwards and is covered below. The fixtures were local clones; no GitHub Actions run
+was observed.
+
+## What The Wrapper Does With A Degraded Run
+
+`baselineDegraded: true` means a baseline run was intended and no comparison was produced, so the
+report lists every finding in the changed files and its counts look like a delta but are not one.
+`quality:react-doctor:diff` runs the wrapper with `failOnDrift` set (`scripts/quality-baseline.ts`),
+locally and anywhere else it is invoked; on a degraded report it prints a distinct failure naming the
+missing comparison and exits 1, instead of passing on counts that cannot be trusted. Without
+`failOnDrift` it only prints the notice.
+
+Two causes are reproduced on react-doctor 0.9.18 (0.9.17 behaves the same):
+
+- Unmerged paths in the working tree, for example in the middle of a merge.
+- A `--max-duration` budget expiring on a cold cache.
+
+The failure message lists both as possibilities, since the report does not say which one happened.
+The wrapper passes no `--max-duration` itself.
+
+`REACT_DOCTOR_DIFF_BASE` overrides the `--base` value; unset, it stays `origin/main`, and a set but
+empty value is an error. A shallow PR merge-ref checkout has no `origin/main`, and react-doctor
+rejects `HEAD^1` passed as a string, so the healthy invocation observed on a local fixture is:
+
+```sh
+# actions/checkout with fetch-depth: 2
+REACT_DOCTOR_DIFF_BASE="$(git rev-parse HEAD^1)" mise run quality:react-doctor:diff
+```
+
+Without a resolvable base the run does not degrade; it falls back to `mode: "full"`, which the
+wrapper already fails as `mode drift`.
+
+The diff gate is not required in CI. `ci.yml` has no job for it, and requiring it waits on an observed
+PR run of the invocation above; the fixtures were local clones.
 
 ## scanSha Re-Pin Gating: What The Old Contract Cost
 
