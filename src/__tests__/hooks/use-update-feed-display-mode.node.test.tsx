@@ -117,7 +117,12 @@ describe("useUpdateFeedDisplaySettings", () => {
     ]);
     expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
     expect(cancelQueriesSpy.mock.calls[0]?.[0]?.queryKey).toStrictEqual(queryKeys.feeds.root);
-    expect(showToastMock).toHaveBeenCalledWith(`failed_to_update_display_settings:${localizedApiHtmlAuthErrorMessage}`);
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: `failed_to_update_display_settings:${localizedApiHtmlAuthErrorMessage}`,
+        severity: "error",
+      }),
+    );
   });
 
   it("stops before optimistic update when feed query cancellation rejects", async () => {
@@ -270,7 +275,9 @@ describe("useUpdateFeedDisplaySettings", () => {
         web_preview_mode: "off",
       }),
     ]);
-    expect(showToastMock).not.toHaveBeenCalledWith("failed_to_update_display_settings:stale boom");
+    expect(showToastMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: "failed_to_update_display_settings:stale boom", severity: "error" }),
+    );
   });
 
   it("does not let an older successful update invalidate feeds or restore the earlier preset", async () => {

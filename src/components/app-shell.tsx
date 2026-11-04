@@ -66,7 +66,7 @@ const MAIN_WINDOW_CLOSE_BLOCKED_EVENT = "main-window-close-blocked";
 const MAIN_WINDOW_CLOSE_BLOCKED_TOAST = "未保存または実行中の処理があるため、終了前に確認してください。";
 
 function reportLazyChunkFailure(message: string) {
-  useUiStore.getState().showToast(message);
+  useUiStore.getState().showToast({ message, severity: "error" });
 }
 
 async function startDesktopTitlebarDrag() {
@@ -264,7 +264,7 @@ export function AppShell() {
 
   useEffect(() => {
     const handleTauriEventListenerFailure = () => {
-      useUiStore.getState().showToast(TAURI_EVENT_LISTENER_FAILURE_TOAST);
+      useUiStore.getState().showToast({ message: TAURI_EVENT_LISTENER_FAILURE_TOAST, severity: "error" });
     };
 
     window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, handleTauriEventListenerFailure);

@@ -139,7 +139,9 @@ describe("useUpdateFeedFolder", () => {
       }),
     ]);
     await waitFor(() => {
-      expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: cancel boom");
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to update folder: cancel boom", severity: "error" }),
+      );
     });
   });
 
@@ -158,7 +160,9 @@ describe("useUpdateFeedFolder", () => {
     await expect(result.current.mutateAsync({ feedId: "feed-1", folderId: null })).rejects.toBeDefined();
 
     await waitFor(() => {
-      expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: boom");
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to update folder: boom", severity: "error" }),
+      );
     });
     expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
@@ -197,7 +201,9 @@ describe("useUpdateFeedFolder", () => {
     });
 
     await waitFor(() => {
-      expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: boom");
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to update folder: boom", severity: "error" }),
+      );
     });
 
     await waitFor(() => {
@@ -271,7 +277,9 @@ describe("useUpdateFeedFolder", () => {
         folder_id: "folder-b",
       }),
     ]);
-    expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: first failed");
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Failed to update folder: first failed", severity: "error" }),
+    );
     expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 
@@ -330,7 +338,9 @@ describe("useUpdateFeedFolder", () => {
         folder_id: "folder-b",
       }),
     ]);
-    expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: stale failed");
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Failed to update folder: stale failed", severity: "error" }),
+    );
     expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 

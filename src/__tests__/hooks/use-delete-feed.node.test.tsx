@@ -137,7 +137,12 @@ describe("useDeleteFeed", () => {
 
     expect(deleteFeedSpy).toHaveBeenCalledWith("feed-1");
     expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
-    expect(showToastMock).toHaveBeenCalledWith("Unsubscribe completed, but UI cleanup failed: callback boom");
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Unsubscribe completed, but UI cleanup failed: callback boom",
+        severity: "warning",
+      }),
+    );
     expect(consoleErrorSpy).toHaveBeenCalledWith("Delete feed success callback failed", expect.any(Error));
     expect(onSuccess).toHaveBeenCalledTimes(1);
     await waitFor(() => {
@@ -194,7 +199,9 @@ describe("useDeleteFeed", () => {
     ).rejects.toBeDefined();
 
     await waitFor(() => {
-      expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: boom");
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to unsubscribe: boom", severity: "error" }),
+      );
     });
     expect(onError).toHaveBeenCalledTimes(1);
   });
@@ -218,7 +225,12 @@ describe("useDeleteFeed", () => {
     ).rejects.toBeDefined();
 
     await waitFor(() => {
-      expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: translated:errors.database_maintenance_busy");
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Failed to unsubscribe: translated:errors.database_maintenance_busy",
+          severity: "error",
+        }),
+      );
     });
   });
 
@@ -240,8 +252,15 @@ describe("useDeleteFeed", () => {
       }),
     ).rejects.toMatchObject({ message: "boom" });
 
-    expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: boom");
-    expect(showToastMock).toHaveBeenCalledWith("Unsubscribe failed, and UI cleanup failed: callback boom");
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Failed to unsubscribe: boom", severity: "error" }),
+    );
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Unsubscribe failed, and UI cleanup failed: callback boom",
+        severity: "error",
+      }),
+    );
     expect(consoleErrorSpy).toHaveBeenCalledWith("Delete feed error callback failed", expect.any(Error));
     expect(onError).toHaveBeenCalledTimes(1);
   });
@@ -260,7 +279,9 @@ describe("useDeleteFeed", () => {
     ).rejects.toMatchObject({ message: "Feed id is required" });
 
     expect(deleteFeedSpy).not.toHaveBeenCalled();
-    expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: Feed id is required");
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Failed to unsubscribe: Feed id is required", severity: "error" }),
+    );
   });
 
   it("falls back to the feed id when the success toast title is blank", async () => {

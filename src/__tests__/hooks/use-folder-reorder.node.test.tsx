@@ -65,7 +65,12 @@ describe("useReorderFolders", () => {
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
     });
-    expect(showToastMock).toHaveBeenCalledWith("Failed to save folder order: Folder list is out of date. Try again.");
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Failed to save folder order: Folder list is out of date. Try again.",
+        severity: "error",
+      }),
+    );
     expect(queryClient.getQueryData<FolderDto[]>(folderQueryKey)).toEqual(folders);
   });
 

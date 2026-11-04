@@ -1571,7 +1571,12 @@ describe("recent article history mutations", () => {
       expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "starred"))).toEqual(
         previousRecentArticles.starred,
       );
-      expect(showToastMock).toHaveBeenCalledWith("Failed to clear recently viewed history: clear failed");
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Failed to clear recently viewed history: clear failed",
+          severity: "error",
+        }),
+      );
     });
   });
 

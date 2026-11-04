@@ -360,7 +360,7 @@ describe("executeAction node contracts", () => {
         );
       });
       expect(setWindowFullscreenMock).not.toHaveBeenCalled();
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
     });
 
     it("absorbs rejected fullscreen writes at the global action boundary", async () => {
@@ -379,7 +379,7 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
     });
   });
 
@@ -406,7 +406,7 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
     });
 
     it("reuses the shared manual update-check helper for check-for-updates", () => {
@@ -432,7 +432,7 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
     });
 
     it("uses the translated already-in-progress toast", async () => {
@@ -592,6 +592,7 @@ describe("executeAction node contracts", () => {
       await vi.waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:sidebar:sync_failed_with_message:boom",
+          severity: "error",
         });
       });
 
@@ -620,7 +621,7 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message });
+      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
     });
   });
 });
