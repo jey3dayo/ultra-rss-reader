@@ -17,6 +17,7 @@ type UseCredentialStorageSettingResult = {
   storage: string | null;
   configurable: boolean;
   loaded: boolean;
+  loadErrorMessage: string | null;
   saving: boolean;
   errorMessage: string | null;
   cleanupNotice: string | null;
@@ -27,6 +28,7 @@ type CredentialStorageSettingState = {
   storage: CredentialStorageKind | null;
   configurable: boolean;
   loaded: boolean;
+  loadFailed: boolean;
   saving: boolean;
   errorMessage: string | null;
   cleanupNotice: string | null;
@@ -36,6 +38,7 @@ const initialCredentialStorageState: CredentialStorageSettingState = {
   storage: null,
   configurable: false,
   loaded: false,
+  loadFailed: false,
   saving: false,
   errorMessage: null,
   cleanupNotice: null,
@@ -59,6 +62,7 @@ export function useCredentialStorageSetting({
       }
       if (Result.isFailure(result)) {
         console.error("Failed to get credential storage:", Result.unwrapError(result));
+        setState((prev) => ({ ...prev, loadFailed: true }));
         return;
       }
       const dto = Result.unwrap(result);
@@ -66,6 +70,7 @@ export function useCredentialStorageSetting({
         storage: dto.storage,
         configurable: dto.configurable,
         loaded: true,
+        loadFailed: false,
         saving: false,
         errorMessage: null,
         cleanupNotice: null,
@@ -105,6 +110,7 @@ export function useCredentialStorageSetting({
         storage: dto.storage,
         configurable: dto.configurable,
         loaded: true,
+        loadFailed: false,
         saving: false,
         errorMessage: null,
         cleanupNotice,
@@ -119,6 +125,7 @@ export function useCredentialStorageSetting({
     storage: state.storage,
     configurable: state.configurable,
     loaded: state.loaded,
+    loadErrorMessage: state.loadFailed ? t("data.credential_storage_load_failed") : null,
     saving: state.saving,
     errorMessage: state.errorMessage,
     cleanupNotice: state.cleanupNotice,

@@ -13,6 +13,7 @@ type CredentialStorageSectionViewProps = {
   localFileWarning: string;
   storage: string | null;
   loaded: boolean;
+  loadErrorMessage?: string | null;
   configurable: boolean;
   saving: boolean;
   errorMessage?: string | null;
@@ -29,12 +30,23 @@ export function CredentialStorageSectionView({
   localFileWarning,
   storage,
   loaded,
+  loadErrorMessage,
   configurable,
   saving,
   errorMessage,
   cleanupNotice,
   onStorageChange,
 }: CredentialStorageSectionViewProps) {
+  if (loadErrorMessage) {
+    return (
+      <SettingsSection heading={heading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{loadErrorMessage}</p>
+        </SurfaceCard>
+      </SettingsSection>
+    );
+  }
+
   if (!loaded || !configurable || storage === null) {
     return null;
   }
