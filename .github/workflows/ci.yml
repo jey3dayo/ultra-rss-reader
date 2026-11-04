@@ -144,17 +144,12 @@ jobs:
     needs: change-plan
     if: needs.change-plan.outputs.native == 'true'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.job_timeout_minutes }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            job_timeout_minutes: 60
-          - os: windows-latest
-            job_timeout_minutes: 60
-          - os: macos-latest
-            job_timeout_minutes: 90
+        os: [ubuntu-latest, windows-latest]
+
     steps:
       - uses: actions/checkout@v6.1.0
 
@@ -173,11 +168,6 @@ jobs:
           toolchain: stable
           components: clippy
 
-      - name: Repair macOS Rustup bootstrap
-        if: runner.os == 'macOS'
-        shell: bash
-        run: bash scripts/ci/repair-macos-rustup.sh
-
       - uses: Swatinem/rust-cache@v2.9.2
         with:
           workspaces: src-tauri
@@ -188,7 +178,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Run lint
-        timeout-minutes: ${{ matrix.os == 'macos-latest' && 45 || 35 }}
+        timeout-minutes: 35
         shell: bash
         run: bash scripts/ci/run-logged.sh tmp/ci-artifacts/rust/lint.log mise run lint:clippy
 
@@ -393,22 +383,87 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  macos-native:
+    name: "Check: macOS native (clippy + smoke)"
+    needs: change-plan
+    if: needs.change-plan.outputs.native == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v6.1.0
+
+      - uses: jdx/mise-action@v4.3.0
+
+      - uses: $/.github/actions/setup-pnpm
+        timeout-minutes: 10
+
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # v1 line: toolchain input is required
+        with:
+          toolchain: stable
+          components: clippy
+
+      - name: Repair macOS Rustup bootstrap
+        shell: bash
+        run: bash scripts/ci/repair-macos-rustup.sh
+
+      - uses: Swatinem/rust-cache@v2.9.2
+        with:
+          workspaces: src-tauri
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run clippy
+        timeout-minutes: 45
+        shell: bash
+        run: bash scripts/ci/run-logged.sh tmp/ci-artifacts/rust/lint.log mise run lint:clippy
+
+      - name: Verify macOS credential session policy with dummy values
+        if: needs.change-plan.outputs.credentials == 'true'
+        run: mise run test:keychain-session
+
+      - name: Run native smoke debug build
+        timeout-minutes: 40
+        shell: bash
+        run: bash scripts/ci/run-logged.sh tmp/ci-artifacts/native-smoke/debug-build.log mise run app:build:debug
+
+      - name: Upload Rust failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: rust-macos-latest-lint-log
+          path: tmp/ci-artifacts/rust/lint.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload native smoke failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: native-smoke-macos-latest-debug-log
+          path: tmp/ci-artifacts/native-smoke/debug-build.log
+          if-no-files-found: ignore
+          retention-days: 21
+
+      - name: Upload native smoke debug build artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: native-smoke-macos-latest-debug-build-artifacts
+          path: |
+            src-tauri/target/debug/bundle/
+            src-tauri/target/debug/*.exe
+            src-tauri/target/debug/ultra-rss-reader
+          if-no-files-found: ignore
+          retention-days: 21
+
   native-smoke:
     name: "Check: Native Smoke"
-    # After rust-clippy so only one macOS job is queued at a time; parallel macOS
-    # clippy + smoke both hit the ~15m hosted queue cancel with zero steps.
-    needs: [change-plan, rust-clippy]
+    needs: change-plan
     if: needs.change-plan.outputs.native == 'true'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.job_timeout_minutes }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            job_timeout_minutes: 45
-          - os: windows-latest
-            job_timeout_minutes: 30
+    runs-on: windows-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v6.1.0
@@ -422,11 +477,6 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Repair macOS Rustup bootstrap
-        if: runner.os == 'macOS'
-        shell: bash
-        run: bash scripts/ci/repair-macos-rustup.sh
-
       - uses: Swatinem/rust-cache@v2.9.2
         with:
           workspaces: src-tauri
@@ -436,12 +486,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Verify macOS credential session policy with dummy values
-        if: runner.os == 'macOS' && needs.change-plan.outputs.credentials == 'true'
-        run: mise run test:keychain-session
-
       - name: Run native smoke debug build
-        timeout-minutes: ${{ matrix.os == 'macos-latest' && 40 || 25 }}
+        timeout-minutes: 25
         shell: bash
         run: bash scripts/ci/run-logged.sh tmp/ci-artifacts/native-smoke/debug-build.log mise run app:build:debug
 
@@ -449,7 +495,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: native-smoke-${{ matrix.os }}-debug-log
+          name: native-smoke-windows-latest-debug-log
           path: tmp/ci-artifacts/native-smoke/debug-build.log
           if-no-files-found: ignore
           retention-days: 21
@@ -458,7 +504,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: native-smoke-${{ matrix.os }}-debug-build-artifacts
+          name: native-smoke-windows-latest-debug-build-artifacts
           path: |
             src-tauri/target/debug/bundle/
             src-tauri/target/debug/*.exe
@@ -503,7 +549,7 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [change-plan, toolchain, format, lint, rust-clippy, test-node, test-rust, test-jsdom, build, storybook-a11y, native-smoke, audit]
+    needs: [change-plan, toolchain, format, lint, rust-clippy, macos-native, test-node, test-rust, test-jsdom, build, storybook-a11y, native-smoke, audit]
     if: always()
 
     steps:
