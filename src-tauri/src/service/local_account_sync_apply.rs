@@ -19,6 +19,7 @@ pub struct LocalAccountSyncApplyReport {
     pub feeds_upserted: usize,
     pub article_states_applied: usize,
     pub tags_upserted: usize,
+    pub tags_removed: usize,
     pub article_tags_added: usize,
     pub article_tags_removed: usize,
     pub mute_keywords_upserted: usize,
@@ -386,8 +387,8 @@ fn upsert_tags(
     report: &mut LocalAccountSyncApplyReport,
 ) -> DomainResult<()> {
     for (normalized_name, tag) in tags {
-        if tag.removed_at.is_some() {
-            report.skipped_removed_tags += 1;
+        if let Some(removed_at) = tag.removed_at {
+            remove_tag(conn, normalized_name, removed_at, report)?;
             continue;
         }
         let existing = find_tag_by_normalized_name(conn, normalized_name)?;
@@ -418,6 +419,32 @@ fn upsert_tags(
         )?;
         report.tags_upserted += 1;
     }
+    Ok(())
+}
+
+/// A tag counts as changed locally when it was renamed or when an article was tagged with it,
+/// so a removal older than that activity keeps the tag instead of cascading over newer links.
+fn remove_tag(
+    conn: &Connection,
+    normalized_name: &str,
+    removed_at: DateTime<Utc>,
+    report: &mut LocalAccountSyncApplyReport,
+) -> DomainResult<()> {
+    let Some((tag_id, tag_changed_at)) = find_tag_by_normalized_name(conn, normalized_name)? else {
+        return Ok(());
+    };
+    let latest_link_change: Option<String> = conn.query_row(
+        "SELECT MAX(changed_at) FROM article_tags WHERE tag_id = ?1",
+        params![tag_id.0],
+        |row| row.get(0),
+    )?;
+    let latest_link_change = parse_change_time("article tag changed_at", latest_link_change)?;
+    let local_changed_at = tag_changed_at.into_iter().chain(latest_link_change).max();
+    if !file_wins(local_changed_at, removed_at) {
+        report.skipped_removed_tags += 1;
+        return Ok(());
+    }
+    report.tags_removed += conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id.0])?;
     Ok(())
 }
 

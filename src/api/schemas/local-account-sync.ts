@@ -23,6 +23,7 @@ export const LocalAccountSyncImportReportDtoSchema = s.object({
   feeds_upserted: CountResponseSchema,
   article_states_applied: CountResponseSchema,
   tags_upserted: CountResponseSchema,
+  tags_removed: CountResponseSchema,
   article_tags_added: CountResponseSchema,
   article_tags_removed: CountResponseSchema,
   mute_keywords_upserted: CountResponseSchema,

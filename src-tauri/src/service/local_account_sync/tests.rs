@@ -14,7 +14,7 @@ use crate::repository::local_account_sync_settings::{
 use crate::service::local_account_sync::{
     build_current_state_operations, compute_local_account_sync_digest,
     export_local_account_sync_folder, export_local_account_sync_folder_if_changed,
-    import_local_account_sync_folder,
+    import_local_account_sync_folder, LocalAccountSyncImportReport,
 };
 
 fn ts(seconds: i64) -> DateTime<Utc> {
@@ -1561,4 +1561,82 @@ fn import_keeps_article_read_state_when_the_feed_url_changed_after_the_remote_ch
         !article_flag(&importer, "article-x", "is_read"),
         "a URL change changes every article sync key, so the local state kept under the new URL must outrank an older remote change"
     );
+}
+
+/// A file removing the `rust` tag at `ts(10)` is imported into a device whose tag and link
+/// times were pinned by `local_times_sql`.
+fn import_rust_tag_removal(local_times_sql: &str) -> (DbManager, LocalAccountSyncImportReport) {
+    let account_id = AccountId("account-1".to_string());
+    let importer = DbManager::new_in_memory().unwrap();
+    seed_entity_fixture(&importer, &account_id);
+    importer.writer().execute_batch(local_times_sql).unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let removal = operation_with(
+        "sync-account-a",
+        "remove-rust",
+        LocalSyncEntityKey::Tag {
+            normalized_name: "rust".to_string(),
+        },
+        LocalSyncAction::RemoveTag,
+    );
+    write_local_sync_operation_file(dir.path(), &removal, 1).unwrap();
+    let report = import_local_account_sync_folder(
+        &importer,
+        &account_id,
+        &LocalSyncAccountId("sync-account-a".to_string()),
+        dir.path(),
+    )
+    .unwrap();
+    (importer, report)
+}
+
+#[test]
+fn import_removes_a_tag_and_its_article_links_when_the_removal_is_newer_than_local_changes() {
+    let (importer, report) = import_rust_tag_removal(
+        "UPDATE tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 5, 'unixepoch') WHERE id = 'tag-rust';
+         UPDATE article_tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 5, 'unixepoch')
+         WHERE tag_id = 'tag-rust'",
+    );
+
+    let tags = query_strings(&importer, "SELECT name FROM tags ORDER BY name");
+    assert_eq!(tags, ["swift"], "only the removed tag should be deleted");
+    assert_eq!(article_tag_pairs(&importer), ["article-y:swift"]);
+    assert_eq!(report.apply_report.tags_removed, 1);
+    assert_eq!(report.apply_report.skipped_removed_tags, 0);
+}
+
+#[test]
+fn import_keeps_a_tag_changed_locally_after_the_removal() {
+    let (importer, report) = import_rust_tag_removal(
+        "UPDATE tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 20, 'unixepoch') WHERE id = 'tag-rust';
+         UPDATE article_tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 5, 'unixepoch')
+         WHERE tag_id = 'tag-rust'",
+    );
+
+    let tags = query_strings(&importer, "SELECT name FROM tags ORDER BY name");
+    assert_eq!(tags, ["rust", "swift"]);
+    assert_eq!(
+        article_tag_pairs(&importer),
+        ["article-x:rust", "article-y:swift"]
+    );
+    assert_eq!(report.apply_report.tags_removed, 0);
+    assert_eq!(report.apply_report.skipped_removed_tags, 1);
+}
+
+#[test]
+fn import_keeps_a_tag_and_its_link_when_an_article_was_tagged_locally_after_the_removal() {
+    let (importer, report) = import_rust_tag_removal(
+        "UPDATE tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 5, 'unixepoch') WHERE id = 'tag-rust';
+         UPDATE article_tags SET changed_at = strftime('%Y-%m-%dT%H:%M:%fZ', 20, 'unixepoch')
+         WHERE tag_id = 'tag-rust'",
+    );
+
+    let tags = query_strings(&importer, "SELECT name FROM tags ORDER BY name");
+    assert_eq!(tags, ["rust", "swift"]);
+    assert_eq!(
+        article_tag_pairs(&importer),
+        ["article-x:rust", "article-y:swift"]
+    );
+    assert_eq!(report.apply_report.tags_removed, 0);
+    assert_eq!(report.apply_report.skipped_removed_tags, 1);
 }

@@ -920,6 +920,7 @@ export function setupDevMocks(): RestoreDevMocks {
           feeds_upserted: 0,
           article_states_applied: 0,
           tags_upserted: 0,
+          tags_removed: 0,
           article_tags_added: 0,
           article_tags_removed: 0,
           mute_keywords_upserted: 0,
