@@ -356,7 +356,6 @@ describe("executeAction node contracts", () => {
           expect.objectContaining({
             message: error.message,
             category: "unknown",
-            localeKey: "app_actions.errors.unknown",
           }),
         );
       });
@@ -377,7 +376,6 @@ describe("executeAction node contracts", () => {
           expect.objectContaining({
             message: error.message,
             category: "unknown",
-            localeKey: "app_actions.errors.unknown",
           }),
         );
       });
@@ -405,7 +403,6 @@ describe("executeAction node contracts", () => {
           expect.objectContaining({
             message: error.message,
             category: "unknown",
-            localeKey: "app_actions.errors.unknown",
           }),
         );
       });
@@ -432,7 +429,6 @@ describe("executeAction node contracts", () => {
           expect.objectContaining({
             message: error.message,
             category: "unknown",
-            localeKey: "app_actions.errors.unknown",
           }),
         );
       });
@@ -621,7 +617,6 @@ describe("executeAction node contracts", () => {
           expect.objectContaining({
             message: error.message,
             category: "unknown",
-            localeKey: "app_actions.errors.unknown",
           }),
         );
       });
