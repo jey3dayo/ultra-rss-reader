@@ -88,7 +88,9 @@ totals add up while the sets behind them disagree. Adopted 2026-09-18 under Issu
 
 ### When The Diff Gate Degrades
 
-`quality:react-doctor:diff` prints an extra line when react-doctor sets `baselineDegraded`:
+`quality:react-doctor:diff` runs with `failOnDrift`, so when react-doctor sets `baselineDegraded` it
+fails with a "no baseline comparison was made" message naming the possible causes. Only a run without
+`failOnDrift` prints the notice below instead:
 
 ```text
 React Doctor reported no baseline comparison, so this run lists every finding in the changed files rather than only new ones.
@@ -104,13 +106,12 @@ shallow checkout with no merge base falls back to a full scan without setting th
 fails that case as `mode drift`. The measured conditions per state are in
 [../../docs/react-doctor-gate-mechanics.md](../../docs/react-doctor-gate-mechanics.md).
 
-A green diff gate that prints the degraded line means no findings at all in the changed files, which
-is stricter than "no new findings" and still safe to gate on. A red one in that state may be listing
-findings the base already had.
+A degraded run fails the gate whatever its counts, because they cannot be told apart from a real
+delta. `REACT_DOCTOR_DIFF_BASE` overrides the `--base` value for checkouts without `origin/main`.
 
 Before putting the diff gate in CI, deepen the checkout (a PR merge ref needs both parents) and
-check that `git merge-base <base> HEAD` succeeds in a step ahead of the scan; the CI behaviour
-itself has not been observed. Tracking: [#431](https://github.com/jey3dayo/ultra-rss-reader/issues/431).
+pass the parent as a SHA through `REACT_DOCTOR_DIFF_BASE`; the CI behaviour itself has not been
+observed. Tracking: [#431](https://github.com/jey3dayo/ultra-rss-reader/issues/431).
 
 ### Recording An Accepted Risk So The Gate Can See It
 

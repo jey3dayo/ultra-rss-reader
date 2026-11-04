@@ -7,6 +7,7 @@ import { formatKnipIssue, parseKnipReport } from "../../../scripts/quality/knip.
 import {
   buildReactDoctorRuleCounts,
   isExpectedReactDoctorReportMode,
+  reactDoctorDegradedFailure,
   reactDoctorDegradedNotice,
   reactDoctorScopeArgs,
   readReactDoctorJsonOutReport,
@@ -24,7 +25,7 @@ describe("quality-baseline", () => {
   // already-accepted finding in a touched file stop failing the gate, and `--include-untracked`
   // is what keeps a brand-new file from passing unscanned; losing either is silent.
   it("scans only findings new against origin/main, including untracked files, in diff mode", () => {
-    expect(reactDoctorScopeArgs("diff")).toEqual([
+    expect(reactDoctorScopeArgs("diff", {})).toEqual([
       "--scope",
       "changed",
       "--base",
@@ -34,7 +35,27 @@ describe("quality-baseline", () => {
   });
 
   it("scans the whole project in full mode", () => {
-    expect(reactDoctorScopeArgs("full")).toEqual(["--scope", "full"]);
+    expect(reactDoctorScopeArgs("full", {})).toEqual(["--scope", "full"]);
+  });
+
+  // CI has no `origin/main` in a shallow merge-ref checkout and passes the parent SHA instead.
+  it("takes the diff base from REACT_DOCTOR_DIFF_BASE and leaves the full scan unaffected", () => {
+    const sha = "0123456789abcdef0123456789abcdef01234567";
+    expect(reactDoctorScopeArgs("diff", { REACT_DOCTOR_DIFF_BASE: sha })).toEqual([
+      "--scope",
+      "changed",
+      "--base",
+      sha,
+      "--include-untracked",
+    ]);
+    expect(reactDoctorScopeArgs("full", { REACT_DOCTOR_DIFF_BASE: sha })).toEqual(["--scope", "full"]);
+  });
+
+  // An empty value is what an unresolved `$BASE` looks like; falling back to origin/main there
+  // would hide the misconfiguration.
+  it("rejects a blank REACT_DOCTOR_DIFF_BASE instead of falling back to origin/main", () => {
+    expect(() => reactDoctorScopeArgs("diff", { REACT_DOCTOR_DIFF_BASE: "" })).toThrow(/REACT_DOCTOR_DIFF_BASE/);
+    expect(() => reactDoctorScopeArgs("diff", { REACT_DOCTOR_DIFF_BASE: "  " })).toThrow(/REACT_DOCTOR_DIFF_BASE/);
   });
 
   // Under `--scope changed` react-doctor reports `baseline` as soon as it has findings to
@@ -74,6 +95,16 @@ describe("quality-baseline", () => {
     expect(reactDoctorDegradedNotice({ baselineDegraded: true })).toContain("no baseline comparison");
     expect(reactDoctorDegradedNotice({ baselineDegraded: true })).toContain("every finding in the changed files");
     expect(reactDoctorDegradedNotice({ baselineDegraded: false })).toBeNull();
+  });
+
+  // A degraded run's counts look like a delta, so the gate (failOnDrift) must not pass on them.
+  it("fails a degraded run only when the gate enforces drift, naming the missing comparison and both causes", () => {
+    const failure = reactDoctorDegradedFailure({ baselineDegraded: true }, true);
+    expect(failure).toContain("no baseline comparison");
+    expect(failure).toContain("unmerged paths");
+    expect(failure).toContain("time budget");
+    expect(reactDoctorDegradedFailure({ baselineDegraded: true }, false)).toBeNull();
+    expect(reactDoctorDegradedFailure({ baselineDegraded: false }, true)).toBeNull();
   });
 
   it("keeps nested braces and braces inside strings inside the JSON payload", () => {

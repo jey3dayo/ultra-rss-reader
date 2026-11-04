@@ -30,16 +30,35 @@ type ReactDoctorReport = {
   diagnostics: ReactDoctorDiagnostic[];
 };
 
+const reactDoctorDiffBaseEnvVar = "REACT_DOCTOR_DIFF_BASE";
+const reactDoctorDefaultDiffBase = "origin/main";
+
 // Typed as readonly string[] rather than a literal tuple so an arbitrary severity string
 // from the report can be looked up without a cast.
 const reactDoctorSeverityOrder: readonly string[] = ["error", "warning"];
 
+// CI checks out a shallow merge ref with no `origin/main`; it resolves the base to a full SHA
+// (`git rev-parse HEAD^1`) and passes it here, because react-doctor rejects `HEAD^1` as a string.
+function reactDoctorDiffBase(env: Readonly<Record<string, string | undefined>>): string {
+  const override = env[reactDoctorDiffBaseEnvVar];
+  if (override === undefined) {
+    return reactDoctorDefaultDiffBase;
+  }
+  if (override.trim() === "") {
+    throw new Error(`${reactDoctorDiffBaseEnvVar} is set but empty; unset it to use ${reactDoctorDefaultDiffBase}.`);
+  }
+  return override;
+}
+
 // `changed` reports only findings new against the base. A finding inside a rewritten function
 // still counts as new; clear it with the inline record in .claude/rules/react-doctor-triage.md,
 // not a baseline bump. `--include-untracked` is required or a brand-new file passes unscanned.
-export function reactDoctorScopeArgs(mode: ReactDoctorMode): string[] {
+export function reactDoctorScopeArgs(
+  mode: ReactDoctorMode,
+  env: Readonly<Record<string, string | undefined>>,
+): string[] {
   if (mode === "diff") {
-    return ["--scope", "changed", "--base", "origin/main", "--include-untracked"];
+    return ["--scope", "changed", "--base", reactDoctorDiffBase(env), "--include-untracked"];
   }
 
   return ["--scope", "full"];
@@ -63,6 +82,22 @@ export function reactDoctorDegradedNotice(report: Pick<ReactDoctorReport, "basel
   }
 
   return "React Doctor reported no baseline comparison, so this run lists every finding in the changed files rather than only new ones.";
+}
+
+// The diff gate is only trustworthy when it compared against a base, so a degraded run fails it
+// instead of passing on counts that cannot be told apart from a real delta.
+export function reactDoctorDegradedFailure(
+  report: Pick<ReactDoctorReport, "baselineDegraded">,
+  failOnDrift: boolean,
+): string | null {
+  if (!failOnDrift || !report.baselineDegraded) {
+    return null;
+  }
+
+  return [
+    "React Doctor diff gate failed: no baseline comparison was made, so this run lists every finding in the changed files rather than only new ones.",
+    "Possible causes: unmerged paths in the working tree, or the time budget expiring before the base could be scanned.",
+  ].join("\n");
 }
 
 /**
@@ -89,7 +124,7 @@ export function readReactDoctorJsonOutReport(reportPath: string): ReactDoctorRep
 }
 
 export function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
-  const scopeArgs = reactDoctorScopeArgs(mode);
+  const scopeArgs = reactDoctorScopeArgs(mode, process.env);
   const reportPath = `tmp/react-doctor-${mode}.json`;
   const result = spawnSync(
     "pnpm",
@@ -145,6 +180,12 @@ export function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): voi
     `files=${report.summary.affectedFileCount}`,
   ].join(" ");
   console.log(summary);
+
+  const degradedFailure = reactDoctorDegradedFailure(report, failOnDrift);
+  if (degradedFailure !== null) {
+    console.error(degradedFailure);
+    process.exit(1);
+  }
 
   const degradedNotice = reactDoctorDegradedNotice(report);
   if (degradedNotice !== null) {
