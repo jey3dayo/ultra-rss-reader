@@ -13,16 +13,19 @@ type TagSectionContextMenuProps = {
 type TagSectionContextMenuState = {
   showCreateDialog: boolean;
   createName: string;
+  createError: string | null;
 };
 
 type TagSectionContextMenuAction =
   | { type: "open-create-dialog" }
   | { type: "close-create-dialog" }
-  | { type: "set-create-name"; value: string };
+  | { type: "set-create-name"; value: string }
+  | { type: "set-create-error"; message: string | null };
 
 const initialTagSectionContextMenuState: TagSectionContextMenuState = {
   showCreateDialog: false,
   createName: "",
+  createError: null,
 };
 
 function tagSectionContextMenuReducer(
@@ -31,11 +34,13 @@ function tagSectionContextMenuReducer(
 ): TagSectionContextMenuState {
   switch (action.type) {
     case "open-create-dialog":
-      return { ...state, showCreateDialog: true };
+      return { ...state, showCreateDialog: true, createError: null };
     case "close-create-dialog":
-      return { showCreateDialog: false, createName: "" };
+      return { showCreateDialog: false, createName: "", createError: null };
     case "set-create-name":
-      return { ...state, createName: action.value };
+      return { ...state, createName: action.value, createError: null };
+    case "set-create-error":
+      return { ...state, createError: action.message };
     default:
       return state;
   }
@@ -45,17 +50,20 @@ export function TagSectionContextMenu({ onManageTags }: TagSectionContextMenuPro
   const { t } = useTranslation("sidebar");
   const { t: ts } = useTranslation("settings");
   const [state, dispatch] = useReducer(tagSectionContextMenuReducer, initialTagSectionContextMenuState);
-  const { showCreateDialog, createName } = state;
+  const { showCreateDialog, createName, createError } = state;
   const showToast = useUiStore((state) => state.showToast);
   const createTag = useCreateTag();
 
   const handleCreate = async () => {
+    dispatch({ type: "set-create-error", message: null });
     try {
       await createTag.mutateAsync({ name: createName.trim() });
       dispatch({ type: "close-create-dialog" });
       showToast(ts("tags.create_success"));
     } catch (error) {
-      showToast(ts("tags.create_failed", { message: getErrorMessage(error) }));
+      const message = ts("tags.create_failed", { message: getErrorMessage(error) });
+      dispatch({ type: "set-create-error", message });
+      showToast(message);
     }
   };
 
@@ -71,6 +79,7 @@ export function TagSectionContextMenu({ onManageTags }: TagSectionContextMenuPro
         open={showCreateDialog}
         name={createName}
         loading={createTag.isPending}
+        errorMessage={createError}
         onOpenChange={(open) => {
           dispatch({ type: open ? "open-create-dialog" : "close-create-dialog" });
         }}

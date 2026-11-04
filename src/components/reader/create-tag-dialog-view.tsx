@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { FormDialogShell, StackedInputField } from "@/design-system";
+import { FormDialogShell, StackedInputField, SurfaceCard } from "@/design-system";
 import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
 
 type CreateTagDialogViewProps = {
   open: boolean;
   name: string;
   loading: boolean;
+  errorMessage?: string | null;
   onOpenChange: (open: boolean) => void;
   onNameChange: (value: string) => void;
   onSubmit: () => void;
@@ -15,6 +16,7 @@ export function CreateTagDialogView({
   open,
   name,
   loading,
+  errorMessage,
   onOpenChange,
   onNameChange,
   onSubmit,
@@ -46,6 +48,11 @@ export function CreateTagDialogView({
         inputClassName="mt-1"
         disabled={loading}
       />
+      {errorMessage ? (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{errorMessage}</p>
+        </SurfaceCard>
+      ) : null}
     </FormDialogShell>
   );
 }

@@ -32,3 +32,9 @@ export const Loading: Story = {
     loading: true,
   },
 };
+
+export const WithError: Story = {
+  args: {
+    errorMessage: "Failed to create tag: name already used",
+  },
+};

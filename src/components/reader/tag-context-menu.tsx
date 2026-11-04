@@ -20,6 +20,8 @@ type TagContextMenuState = {
   showDeleteDialog: boolean;
   renameName: string;
   renameColor: string | null;
+  renameError: string | null;
+  deleteError: string | null;
 };
 
 type TagContextMenuAction =
@@ -28,7 +30,9 @@ type TagContextMenuAction =
   | { type: "sync-rename-draft"; name: string; color: string | null }
   | { type: "set-delete-dialog"; value: boolean }
   | { type: "set-rename-name"; value: string }
-  | { type: "set-rename-color"; value: string | null };
+  | { type: "set-rename-color"; value: string | null }
+  | { type: "set-rename-error"; message: string | null }
+  | { type: "set-delete-error"; message: string | null };
 
 const DEFAULT_RENAME_TAG_COLOR = TAG_COLOR_PRESETS[0] ?? null;
 
@@ -42,6 +46,8 @@ function createInitialTagContextMenuState(tag: TagDto): TagContextMenuState {
     showDeleteDialog: false,
     renameName: tag.name,
     renameColor: getEditableTagColor(tag.color),
+    renameError: null,
+    deleteError: null,
   };
 }
 
@@ -53,9 +59,10 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
         showRenameDialog: true,
         renameName: action.tag.name,
         renameColor: getEditableTagColor(action.tag.color),
+        renameError: null,
       };
     case "close-rename-dialog":
-      return { ...state, showRenameDialog: false };
+      return { ...state, showRenameDialog: false, renameError: null };
     case "sync-rename-draft":
       return {
         ...state,
@@ -63,11 +70,15 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
         renameColor: action.color,
       };
     case "set-delete-dialog":
-      return { ...state, showDeleteDialog: action.value };
+      return { ...state, showDeleteDialog: action.value, deleteError: null };
     case "set-rename-name":
-      return { ...state, renameName: action.value };
+      return { ...state, renameName: action.value, renameError: null };
     case "set-rename-color":
-      return { ...state, renameColor: action.value };
+      return { ...state, renameColor: action.value, renameError: null };
+    case "set-rename-error":
+      return { ...state, renameError: action.message };
+    case "set-delete-error":
+      return { ...state, deleteError: action.message };
     default:
       return state;
   }
@@ -76,7 +87,7 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
 export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(tagContextMenuReducer, tag, createInitialTagContextMenuState);
-  const { showRenameDialog, showDeleteDialog, renameName, renameColor } = state;
+  const { showRenameDialog, showDeleteDialog, renameName, renameColor, renameError, deleteError } = state;
   const showToast = useUiStore((s) => s.showToast);
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
@@ -125,6 +136,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
       return;
     }
 
+    dispatch({ type: "set-rename-error", message: null });
     renameTag.mutate(
       { tagId: tag.id, name: trimmed, color: nextColor },
       {
@@ -132,7 +144,9 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
           handleRenameOpenChange(false);
         },
         onError: (error: unknown) => {
-          showToast(t("failed_to_rename_tag", { message: getErrorMessage(error) }));
+          const message = t("failed_to_rename_tag", { message: getErrorMessage(error) });
+          dispatch({ type: "set-rename-error", message });
+          showToast(message);
         },
       },
     );
@@ -145,11 +159,14 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
 
     deleteInFlightRef.current = true;
     setDeleteInFlight(true);
+    dispatch({ type: "set-delete-error", message: null });
     try {
       await deleteTag.mutateAsync({ tagId: tag.id });
       dispatch({ type: "set-delete-dialog", value: false });
     } catch (error) {
-      showToast(t("failed_to_delete_tag", { message: getErrorMessage(error) }));
+      const message = t("failed_to_delete_tag", { message: getErrorMessage(error) });
+      dispatch({ type: "set-delete-error", message });
+      showToast(message);
     } finally {
       deleteInFlightRef.current = false;
       setDeleteInFlight(false);
@@ -169,12 +186,14 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
         onColorChange={(value) => dispatch({ type: "set-rename-color", value })}
         colorOptions={[...TAG_COLOR_PRESETS]}
         noColorLabel={t("no_color")}
+        errorMessage={renameError}
         onSubmit={handleRenameSubmit}
       />
       <DeleteTagDialogView
         open={showDeleteDialog}
         tagName={tag.name}
         loading={deleteInFlight || deleteTag.isPending}
+        errorMessage={deleteError}
         onOpenChange={handleDeleteOpenChange}
         onConfirm={() => void handleDeleteConfirm()}
       />
