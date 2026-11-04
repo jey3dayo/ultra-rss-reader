@@ -191,7 +191,7 @@ describe("ArticleShareMenu", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
 
     expect(openExternalUrlMock).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("Article URLs must not include credentials");
+    expect(showToast).toHaveBeenCalledWith({ message: "Article URLs must not include credentials", severity: "error" });
   });
 
   it("shows the Japanese URL policy toast before email share in the ja locale", async () => {
@@ -210,7 +210,10 @@ describe("ArticleShareMenu", () => {
     await user.click(screen.getByRole("button", { name: "Share" }));
     await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
 
-    expect(showToast).toHaveBeenCalledWith("記事の URL にユーザー名やパスワードを含めることはできません");
+    expect(showToast).toHaveBeenCalledWith({
+      message: "記事の URL にユーザー名やパスワードを含めることはできません",
+      severity: "error",
+    });
   });
 
   it("encodes and trims long email share subject and body inputs on grapheme boundaries before opening mail", async () => {
@@ -276,7 +279,7 @@ describe("ArticleShareMenu", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("Mail client unavailable");
+      expect(showToast).toHaveBeenCalledWith({ message: "Mail client unavailable", severity: "error" });
     });
     expect(openInBrowserMock).not.toHaveBeenCalled();
     expect(copyArticleLinkMock).not.toHaveBeenCalled();
@@ -298,7 +301,7 @@ describe("ArticleShareMenu", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("opener plugin not available");
+      expect(showToast).toHaveBeenCalledWith({ message: "opener plugin not available", severity: "error" });
     });
     expect(console.error).toHaveBeenCalledWith(
       "Failed to open email client:",
@@ -321,7 +324,7 @@ describe("ArticleShareMenu", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Copy link" }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("clipboard plugin not available");
+      expect(showToast).toHaveBeenCalledWith({ message: "clipboard plugin not available", severity: "error" });
     });
     window.removeEventListener(APP_EVENTS.debugInputTrace, listener);
     expect(String(listener.mock.calls[0]?.[0].detail)).toMatch(/ menu-action article-copy-link$/);
@@ -348,7 +351,7 @@ describe("ArticleShareMenu", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Add to Reading List" }));
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("permission denied");
+      expect(showToast).toHaveBeenCalledWith({ message: "permission denied", severity: "error" });
     });
     expect(console.error).toHaveBeenCalledWith(
       "Add to reading list failed",

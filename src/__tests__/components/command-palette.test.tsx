@@ -797,6 +797,7 @@ describe("CommandPalette", () => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expect(useUiStore.getState().toastMessage).toEqual({
         message: 'Failed to run dev scenario "open-add-feed-dialog": boom',
+        severity: "error",
       });
     });
   });

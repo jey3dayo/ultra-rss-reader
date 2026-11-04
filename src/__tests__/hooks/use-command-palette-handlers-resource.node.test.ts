@@ -74,7 +74,7 @@ describe("useCommandPaletteHandlers resource history", () => {
     expect(closePalette).toHaveBeenCalledTimes(1);
     expectCommandHistory(["feed:feed-1"]);
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith('Failed to open feed "feed-1": boom');
+      expect(showToast).toHaveBeenCalledWith({ message: 'Failed to open feed "feed-1": boom', severity: "error" });
     });
     expectCommandHistory(["feed:feed-1"]);
   });
@@ -92,7 +92,10 @@ describe("useCommandPaletteHandlers resource history", () => {
     handlers.handleFeedSelect("missing-feed");
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith('Failed to open feed "missing-feed": Feed not found.');
+      expect(showToast).toHaveBeenCalledWith({
+        message: 'Failed to open feed "missing-feed": Feed not found.',
+        severity: "error",
+      });
     });
   });
 
@@ -145,9 +148,11 @@ describe("useCommandPaletteHandlers resource history", () => {
     );
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith('Failed to open feed "feed-2": new boom');
+      expect(showToast).toHaveBeenCalledWith({ message: 'Failed to open feed "feed-2": new boom', severity: "error" });
     });
-    expect(showToast).not.toHaveBeenCalledWith('Failed to open feed "feed-1": old boom');
+    expect(showToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Failed to open feed "feed-1": old boom' }),
+    );
   });
 
   it("records tag and article resource history before selection and closes after navigation", () => {

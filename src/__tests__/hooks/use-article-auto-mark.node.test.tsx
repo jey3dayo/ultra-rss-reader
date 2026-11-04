@@ -845,7 +845,7 @@ describe("useArticleAutoMark", () => {
     });
 
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
-    expect(showToast).toHaveBeenCalledWith("Failed to mark read");
+    expect(showToast).toHaveBeenCalledWith({ message: "Failed to mark read", severity: "error" });
   });
 
   it("keeps pre-existing retained unread articles when auto mark mutation fails", () => {

@@ -377,7 +377,7 @@ export function useSidebarSync({
       onError: (error) => {
         invalidateAccountSyncStatuses("manual-sync-completed");
         console.error("Sync failed:", error);
-        showToast(t("sync_failed"));
+        showToast({ message: t("sync_failed"), severity: "error" });
       },
     });
   }, [invalidateAccountSyncStatuses, selectedAccountId, showToast, syncProgress.active, t]);

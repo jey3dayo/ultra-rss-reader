@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TagSectionContextMenu } from "@/components/reader/tag-section-context-menu";
@@ -43,6 +43,26 @@ describe("TagSectionContextMenu", () => {
     const { dialog } = await submitFailingCreate(user);
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("Failed to create tag: name already used");
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Failed to create tag: name already used",
+      severity: "error",
+    });
+  });
+
+  it("announces a created tag as a plain toast without a severity", async () => {
+    const user = userEvent.setup();
+    tagHooks.createTagMutateAsync.mockResolvedValue(undefined);
+
+    render(
+      <ContextMenu.Root open>
+        <TagSectionContextMenu onManageTags={vi.fn()} />
+      </ContextMenu.Root>,
+    );
+    await submitFailingCreate(user);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({ message: "Tag created" });
+    });
   });
 
   it("clears the creation failure when the user edits the tag name", async () => {

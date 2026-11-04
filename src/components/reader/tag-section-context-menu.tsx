@@ -63,7 +63,7 @@ export function TagSectionContextMenu({ onManageTags }: TagSectionContextMenuPro
     } catch (error) {
       const message = ts("tags.create_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-create-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     }
   };
 

@@ -12,6 +12,7 @@ import { useUiStore } from "@/stores/ui-store";
 async function expectErrorInInlineAndToast(message: string): Promise<HTMLElement> {
   const toastHost = await screen.findByTestId("test-toast-host");
   expect(within(toastHost).getByText(message)).toBeInTheDocument();
+  expect(useUiStore.getState().toastMessage).toEqual({ message, severity: "error" });
   return waitFor(() => {
     const inlineError = screen.getAllByText(message).find((element) => !toastHost.contains(element));
     if (!inlineError) {

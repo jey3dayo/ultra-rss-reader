@@ -38,7 +38,7 @@ export async function submitFeedEdits({
   });
 
   if (Result.isFailure(folderResult)) {
-    showToast(createFolderErrorMessage(Result.unwrapError(folderResult)));
+    showToast({ message: createFolderErrorMessage(Result.unwrapError(folderResult)), severity: "error" });
     return false;
   }
 
@@ -59,7 +59,7 @@ export async function submitFeedEdits({
       }),
       Result.inspectError((error) => {
         renameSucceeded = false;
-        showToast(renameErrorMessage(error));
+        showToast({ message: renameErrorMessage(error), severity: "error" });
       }),
     );
   }

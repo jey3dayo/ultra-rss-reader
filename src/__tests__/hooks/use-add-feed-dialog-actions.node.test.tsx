@@ -4,7 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
+import { addLocalFeed, createFolder, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import {
   getAddFeedDialogRestartBlockerSnapshot,
   resolveAddFeedDiscoveryAction,
@@ -15,6 +15,7 @@ import { resolveAddFeedInvalidationQueryKeys } from "@/lib/query/query-invalidat
 
 vi.mock("@/api/tauri-commands", () => ({
   addLocalFeed: vi.fn(),
+  createFolder: vi.fn(),
   discoverFeeds: vi.fn(),
   updateFeedFolder: vi.fn(),
 }));
@@ -30,6 +31,7 @@ setupBrowserTestDom();
 describe("useAddFeedDialogActions", () => {
   beforeEach(() => {
     vi.mocked(addLocalFeed).mockReset();
+    vi.mocked(createFolder).mockReset();
     vi.mocked(discoverFeeds).mockReset();
     vi.mocked(updateFeedFolder).mockReset();
   });
@@ -603,9 +605,69 @@ describe("useAddFeedDialogActions", () => {
 
     expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/feed.xml");
     expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
-    expect(showToast).toHaveBeenCalledWith(t("feed_added_folder_failed", { message: "folder was deleted" }));
+    expect(showToast).toHaveBeenCalledWith({
+      message: t("feed_added_folder_failed", { message: "folder was deleted" }),
+      severity: "warning",
+    });
     expect(consoleError).toHaveBeenCalledWith("Failed to assign folder:", "UserVisible");
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("shows folder creation failures as an error toast before adding the feed", async () => {
+    vi.mocked(createFolder).mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "folder name taken",
+      }),
+    );
+
+    const showToast = vi.fn();
+
+    const { result } = renderHook(() =>
+      useAddFeedDialogActions({
+        accountId: "account-1",
+        state: {
+          url: "https://example.com/feed.xml",
+          error: null,
+          successMessage: null,
+          loading: false,
+          discovering: false,
+          discoveryRequestId: null,
+          discoveredFeeds: [],
+          selectedFeedUrl: null,
+        },
+        dispatch: vi.fn(),
+        derived: {
+          hasManualUrl: true,
+          isManualUrlValid: true,
+          urlHint: null,
+          urlHintTone: "muted",
+          isSubmitDisabled: false,
+          isDiscoverDisabled: false,
+          discoveredFeedOptions: [],
+        },
+        trimmedUrl: "https://example.com/feed.xml",
+        folderSelection: {
+          selectedFolderId: null,
+          isCreatingFolder: true,
+          newFolderName: "News",
+        },
+        queryClient: new QueryClient(),
+        onOpenChange: vi.fn(),
+        showToast,
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(addLocalFeed).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith({
+      message: t("failed_to_create_folder", { message: "folder name taken" }),
+      severity: "error",
+    });
   });
 
   it("ignores repeated submit calls while the first add feed request is in flight", async () => {

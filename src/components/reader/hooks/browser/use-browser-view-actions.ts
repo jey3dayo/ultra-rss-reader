@@ -10,6 +10,7 @@ import {
 } from "@/api/tauri-commands";
 import { isMissingEmbeddedBrowserWebviewError } from "@/lib/browser/browser-webview-state";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -25,7 +26,7 @@ type UseBrowserViewActionsParams = {
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
   resetBrowserWebviewSyncState: () => void;
   clearSurfaceIssue: () => void;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
   syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
   initialBrowserState: (url: string) => BrowserWebviewState;
   fallbackInFlightRef: MutableRefObject<boolean>;
@@ -115,7 +116,7 @@ export function useBrowserViewActions({
       }
 
       console.error(errorLabel, error);
-      showToast(localizeUserVisibleAppErrorMessage(error.message));
+      showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
     },
     [applyBrowserState, keepWebPreviewFocus, recoverMissingEmbeddedBrowserWebview, showToast],
   );
@@ -154,7 +155,10 @@ export function useBrowserViewActions({
       }
 
       console.error("Failed to retry embedded browser webview:", error);
-      showToast(error instanceof Error ? error.message : "Failed to retry embedded browser webview.");
+      showToast({
+        message: error instanceof Error ? error.message : "Failed to retry embedded browser webview.",
+        severity: "error",
+      });
     });
   }, [
     browserStateRef,

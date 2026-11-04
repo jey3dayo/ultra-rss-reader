@@ -5,6 +5,7 @@ import { Menu } from "@/design-system/menu";
 import { toArticleActionError } from "@/lib/articles/article-actions";
 import { openArticleEmailShare } from "@/lib/articles/article-share";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
@@ -24,7 +25,7 @@ type ArticleShareMenuLabels = {
 type ArticleShareMenuProps = {
   article: ArticleDto | null;
   supportsReadingList: boolean;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
   labels: ArticleShareMenuLabels;
 };
 

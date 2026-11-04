@@ -107,7 +107,7 @@ describe("useSidebarFeedSectionController", () => {
     expect(openFeedLandingMock).toHaveBeenCalledWith("feed-1");
     expect(selectFeed).not.toHaveBeenCalled();
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("Feed not found.");
+      expect(showToast).toHaveBeenCalledWith({ message: "Feed not found.", severity: "error" });
     });
   });
 

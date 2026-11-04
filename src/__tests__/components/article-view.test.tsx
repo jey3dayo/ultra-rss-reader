@@ -1395,6 +1395,7 @@ describe("ArticleView", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Could not launch browser",
+        severity: "error",
       });
     });
   });

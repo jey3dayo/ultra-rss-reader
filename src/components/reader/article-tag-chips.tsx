@@ -75,7 +75,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
         onError: (error) => {
           const message = toArticleTagAssignErrorMessage(error);
           dispatch({ type: "set-new-tag-error", value: message });
-          showToast(message);
+          showToast({ message, severity: "error" });
         },
       },
     );
@@ -103,7 +103,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
         onError: (error) => {
           const message = toArticleTagAssignErrorMessage(error);
           dispatch({ type: "set-new-tag-error", value: message });
-          showToast(message);
+          showToast({ message, severity: "error" });
         },
       },
     );
@@ -137,7 +137,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
               showToast(t("article_tag_removed_recovery"));
             },
             onError: (error) => {
-              showToast(toArticleTagAssignErrorMessage(error));
+              showToast({ message: toArticleTagAssignErrorMessage(error), severity: "error" });
             },
           },
         );

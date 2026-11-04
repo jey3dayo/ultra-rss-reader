@@ -146,7 +146,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
         onError: (error: unknown) => {
           const message = t("failed_to_rename_tag", { message: getErrorMessage(error) });
           dispatch({ type: "set-rename-error", message });
-          showToast(message);
+          showToast({ message, severity: "error" });
         },
       },
     );
@@ -166,7 +166,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
     } catch (error) {
       const message = t("failed_to_delete_tag", { message: getErrorMessage(error) });
       dispatch({ type: "set-delete-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     } finally {
       deleteInFlightRef.current = false;
       setDeleteInFlight(false);

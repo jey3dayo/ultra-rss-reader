@@ -92,7 +92,7 @@ describe("useOldUnreadReadAction", () => {
       await result.current(30);
     });
 
-    expect(showToast).toHaveBeenCalledWith("Failed to count old unread");
+    expect(showToast).toHaveBeenCalledWith({ message: "Failed to count old unread", severity: "error" });
     expect(markOldUnreadReadMutate).not.toHaveBeenCalled();
   });
 
@@ -123,7 +123,7 @@ describe("useOldUnreadReadAction", () => {
         onError: expect.any(Function),
       }),
     );
-    expect(showToast).toHaveBeenCalledWith("Failed to mark old unread");
+    expect(showToast).toHaveBeenCalledWith({ message: "Failed to mark old unread", severity: "error" });
   });
 
   it("rechecks old unread count after confirm and skips a stale zero-count mutation", async () => {
@@ -201,7 +201,7 @@ describe("useOldUnreadReadAction", () => {
       expect(countOldUnreadArticlesMock).toHaveBeenCalledTimes(2);
     });
     expect(markOldUnreadReadMutate).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("Folder no longer exists");
+    expect(showToast).toHaveBeenCalledWith({ message: "Folder no longer exists", severity: "error" });
   });
 
   it("shows a toast and does not mutate when old unread count returns Result.fail", async () => {
@@ -218,7 +218,7 @@ describe("useOldUnreadReadAction", () => {
       await result.current(7);
     });
 
-    expect(showToast).toHaveBeenCalledWith("Count failed");
+    expect(showToast).toHaveBeenCalledWith({ message: "Count failed", severity: "error" });
     expect(markOldUnreadReadMutate).not.toHaveBeenCalled();
   });
 

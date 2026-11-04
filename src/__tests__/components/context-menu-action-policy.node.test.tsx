@@ -52,8 +52,8 @@ describe("context menu action policy", () => {
 
     expect(listener).toHaveBeenCalledTimes(2);
     expect(String(listener.mock.calls[0]?.[0].detail)).toMatch(/ menu-action feed-open-site$/);
-    expect(showToast).toHaveBeenNthCalledWith(1, "Native action failed");
-    expect(showToast).toHaveBeenNthCalledWith(2, "Native action failed");
+    expect(showToast).toHaveBeenNthCalledWith(1, { message: "Native action failed", severity: "error" });
+    expect(showToast).toHaveBeenNthCalledWith(2, { message: "Native action failed", severity: "error" });
     expect(consoleError.mock.calls.filter((call) => call[0] === "Menu action failed: feed-open-site")).toHaveLength(1);
   });
 });
