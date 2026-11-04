@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use chrono::{DateTime, Utc};
-use rusqlite::params;
+use rusqlite::{params, Connection};
 use sha2::{Digest, Sha256};
 
 use crate::domain::error::{DomainError, DomainResult};
@@ -157,7 +157,7 @@ fn write_operation_files(
 /// Computes a deterministic digest over the canonical operation set,
 /// excluding `operation_id` and `occurred_at` since both are regenerated on
 /// every export and would otherwise make every digest unique. The exception is
-/// the recorded change time of upserts and additions: a change that restores an
+/// the recorded change time of upserts, additions and removals: a change that restores an
 /// exported value still has to be exported to win the import merge.
 pub fn compute_local_account_sync_digest(operations: &[LocalAccountSyncOperation]) -> String {
     let mut entries: Vec<String> = operations
@@ -170,8 +170,11 @@ pub fn compute_local_account_sync_digest(operations: &[LocalAccountSyncOperation
                     | LocalSyncAction::UpsertFolder { .. }
                     | LocalSyncAction::UpsertFeed { .. }
                     | LocalSyncAction::AddTag { .. }
+                    | LocalSyncAction::RemoveTag
                     | LocalSyncAction::AddArticleTag
+                    | LocalSyncAction::RemoveArticleTag
                     | LocalSyncAction::UpsertMuteKeyword
+                    | LocalSyncAction::RemoveMuteKeyword
             )
             .then_some(operation.occurred_at);
             serde_json::to_string(&(
@@ -314,24 +317,36 @@ fn build_current_state_operations(
         ));
     }
 
-    let mut tag_stmt =
-        conn.prepare("SELECT name, changed_at FROM tags ORDER BY name COLLATE NOCASE ASC, id ASC")?;
+    // Tagging an article only stamps article_tags, so the tag's own time alone would lose
+    // to an older removal on import.
+    let mut tag_stmt = conn.prepare(
+        "SELECT t.name, t.changed_at,
+                (SELECT MAX(at.changed_at) FROM article_tags at WHERE at.tag_id = t.id)
+         FROM tags t
+         ORDER BY t.name COLLATE NOCASE ASC, t.id ASC",
+    )?;
     let tags = tag_stmt
         .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-    for (name, changed_at) in tags {
+    for (name, changed_at, latest_link_changed_at) in tags {
+        let occurred_at = change_time(changed_at)?.max(change_time(latest_link_changed_at)?);
         operations.push(operation(
             sync_account_id,
             device_id,
-            change_time(changed_at)?,
+            occurred_at,
             LocalSyncEntityKey::Tag {
                 normalized_name: normalize_tag_name(&name)?,
             },
             LocalSyncAction::AddTag { display_name: name },
         ));
     }
+    operations.extend(tag_removal_operations(conn, sync_account_id, device_id)?);
 
     let mut article_tag_stmt = conn.prepare(
         "SELECT f.url, a.remote_id, a.url, a.title, t.name, at.changed_at
@@ -373,6 +388,13 @@ fn build_current_state_operations(
         ));
     }
 
+    operations.extend(article_tag_removal_operations(
+        conn,
+        account_id,
+        sync_account_id,
+        device_id,
+    )?);
+
     let mut mute_stmt = conn.prepare(
         "SELECT keyword, scope, updated_at
          FROM mute_keywords
@@ -400,7 +422,143 @@ fn build_current_state_operations(
         ));
     }
 
+    operations.extend(mute_keyword_removal_operations(
+        conn,
+        sync_account_id,
+        device_id,
+    )?);
+
     Ok(operations)
+}
+
+/// Tombstones whose name exists again are skipped: the triggers normally clear them, and the
+/// live value must not be exported as removed.
+fn tag_removal_operations(
+    conn: &Connection,
+    sync_account_id: &LocalSyncAccountId,
+    device_id: &LocalSyncDeviceId,
+) -> DomainResult<Vec<LocalAccountSyncOperation>> {
+    let mut stmt = conn.prepare(
+        "SELECT ts.key, ts.removed_at
+         FROM local_sync_tombstones ts
+         WHERE ts.kind = 'tag'
+           AND NOT EXISTS (SELECT 1 FROM tags t WHERE lower(trim(t.name)) = ts.key)
+         ORDER BY ts.key ASC",
+    )?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    rows.into_iter()
+        .map(|(key, removed_at)| {
+            Ok(operation(
+                sync_account_id,
+                device_id,
+                change_time(Some(removed_at))?,
+                LocalSyncEntityKey::Tag {
+                    normalized_name: normalize_tag_name(&key)?,
+                },
+                LocalSyncAction::RemoveTag,
+            ))
+        })
+        .collect()
+}
+
+/// Tombstones of articles that are gone (or belong to another account) are not exported:
+/// there is no article key to address them by.
+fn article_tag_removal_operations(
+    conn: &Connection,
+    account_id: &AccountId,
+    sync_account_id: &LocalSyncAccountId,
+    device_id: &LocalSyncDeviceId,
+) -> DomainResult<Vec<LocalAccountSyncOperation>> {
+    let mut stmt = conn.prepare(
+        "SELECT f.url, a.remote_id, a.url, a.title, ts.key2, ts.removed_at
+         FROM local_sync_tombstones ts
+         JOIN articles a ON a.id = ts.key
+         JOIN feeds f ON f.id = a.feed_id
+         WHERE ts.kind = 'article_tag'
+           AND f.account_id = ?1
+           AND NOT EXISTS (
+               SELECT 1 FROM article_tags at
+               JOIN tags t ON t.id = at.tag_id
+               WHERE at.article_id = a.id AND lower(trim(t.name)) = ts.key2
+           )
+         ORDER BY f.url ASC, a.id ASC, ts.key2 ASC",
+    )?;
+    let rows = stmt
+        .query_map(params![account_id.0], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    rows.into_iter()
+        .map(|(feed_url, guid, url, title, tag_name, removed_at)| {
+            let article_key = generate_local_sync_article_key(
+                sync_account_id,
+                &feed_url,
+                LocalSyncEntryIdentity { guid, url, title },
+            )?
+            .key;
+            Ok(operation(
+                sync_account_id,
+                device_id,
+                change_time(Some(removed_at))?,
+                LocalSyncEntityKey::ArticleTag {
+                    article_key,
+                    normalized_tag_name: normalize_tag_name(&tag_name)?,
+                },
+                LocalSyncAction::RemoveArticleTag,
+            ))
+        })
+        .collect()
+}
+
+fn mute_keyword_removal_operations(
+    conn: &Connection,
+    sync_account_id: &LocalSyncAccountId,
+    device_id: &LocalSyncDeviceId,
+) -> DomainResult<Vec<LocalAccountSyncOperation>> {
+    let mut stmt = conn.prepare(
+        "SELECT ts.key, ts.key2, ts.removed_at
+         FROM local_sync_tombstones ts
+         WHERE ts.kind = 'mute_keyword'
+           AND NOT EXISTS (
+               SELECT 1 FROM mute_keywords m
+               WHERE lower(trim(m.keyword)) = ts.key AND m.scope = ts.key2
+           )
+         ORDER BY ts.key ASC, ts.key2 ASC",
+    )?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    rows.into_iter()
+        .map(|(keyword, scope, removed_at)| {
+            Ok(operation(
+                sync_account_id,
+                device_id,
+                change_time(Some(removed_at))?,
+                LocalSyncEntityKey::MuteKeyword {
+                    normalized_keyword: normalize_mute_keyword(&keyword)?,
+                    scope,
+                },
+                LocalSyncAction::RemoveMuteKeyword,
+            ))
+        })
+        .collect()
 }
 
 /// A value that was never changed on this device exports as the epoch, so any recorded change on
