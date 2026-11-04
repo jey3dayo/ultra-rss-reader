@@ -242,4 +242,31 @@ describe("AppToastView", () => {
     expect(screen.getByRole("button", { name: "Update now" })).toBeDisabled();
     expect(onUpdate).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { severity: "error" as const, border: "border-state-danger-border", icon: "text-state-danger-foreground" },
+    { severity: "warning" as const, border: "border-state-warning-border", icon: "text-state-warning-foreground" },
+  ])("marks $severity toasts with a state border and a decorative icon", ({ severity, border, icon }) => {
+    render(<AppToastView toastMessage={{ message: "Sync failed", severity }} onClose={vi.fn()} />);
+
+    const toast = screen.getByTestId("app-toast");
+    const severityIcon = screen.getByTestId("app-toast-severity-icon");
+    expect(toast).toHaveClass(border);
+    expect(toast).not.toHaveClass("border-border");
+    expect(severityIcon).toHaveClass(icon, "shrink-0");
+    expect(severityIcon).toHaveAttribute("aria-hidden", "true");
+    expect(toast).not.toHaveAttribute("role");
+  });
+
+  it.each([undefined, "info" as const, "success" as const])(
+    "keeps the neutral border and no icon for severity %s",
+    (severity) => {
+      render(<AppToastView toastMessage={{ message: "Saved", severity }} onClose={vi.fn()} />);
+
+      const toast = screen.getByTestId("app-toast");
+      expect(screen.queryByTestId("app-toast-severity-icon")).toBeNull();
+      expect(toast).toHaveClass("border-border");
+      expect(toast.className).not.toMatch(/state-(danger|warning)/);
+    },
+  );
 });

@@ -1,8 +1,9 @@
+import { cva } from "class-variance-authority";
 import { cn } from "cn";
-import { X } from "lucide-react";
+import { CircleAlert, type LucideIcon, TriangleAlert, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
-import type { ToastData } from "@/lib/ui/toast.types";
+import type { ToastData, ToastSeverity } from "@/lib/ui/toast.types";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 import { Button } from "../ui/button";
 import { APP_TOAST_PLACEMENTS, type AppToastPlacement } from "./app-toast-placement";
@@ -18,6 +19,34 @@ type AppToastViewProps = {
 };
 
 const UPDATE_TOAST_WIDTH_CLASS_NAME = "w-[min(320px,calc(100vw-2rem))]";
+
+const toastBorderVariants = cva("", {
+  variants: {
+    severity: {
+      info: "border-border",
+      success: "border-border",
+      warning: "border-state-warning-border",
+      error: "border-state-danger-border",
+    },
+  },
+  defaultVariants: { severity: "info" },
+});
+
+const toastSeverityIconVariants = cva("size-4 shrink-0", {
+  variants: {
+    severity: {
+      info: "",
+      success: "",
+      warning: "text-state-warning-foreground",
+      error: "text-state-danger-foreground",
+    },
+  },
+});
+
+const TOAST_SEVERITY_ICONS: Partial<Record<ToastSeverity, LucideIcon>> = {
+  warning: TriangleAlert,
+  error: CircleAlert,
+};
 
 function clampProgressWidth(progress: number) {
   return Math.min(Math.max(progress, 0), 100);
@@ -37,7 +66,8 @@ export function AppToastView({
   ending = false,
 }: AppToastViewProps) {
   const { t } = useTranslation("common");
-  const { message, progress, actions, variant } = toastMessage;
+  const { message, progress, actions, variant, severity } = toastMessage;
+  const SeverityIcon = severity ? TOAST_SEVERITY_ICONS[severity] : undefined;
   const hasProgress = progress !== undefined;
   const showInBrowserRail = position === "fixed" && placement === APP_TOAST_PLACEMENTS.browserRail;
   // A decision toast (primary + trailing dismiss action) uses the form action-pair pattern:
@@ -60,7 +90,9 @@ export function AppToastView({
         showInBrowserRail && "fixed top-1 right-20",
         position === "fixed" && APP_STACKING_CLASS_NAMES.toast,
         position === "static" && "relative",
-        "flex max-w-[min(22rem,calc(100vw-2rem))] flex-col gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-elevation-2",
+        "flex max-w-[min(22rem,calc(100vw-2rem))] flex-col gap-2 rounded-md border",
+        toastBorderVariants({ severity }),
+        "bg-card px-3 py-2 text-sm text-foreground shadow-elevation-2",
         showInBrowserRail &&
           "max-w-[min(22rem,calc(100vw-12rem))] gap-0 rounded-md px-3 py-1 text-xs shadow-elevation-1",
         variant === "update" && UPDATE_TOAST_WIDTH_CLASS_NAME,
@@ -68,6 +100,13 @@ export function AppToastView({
       )}
     >
       <div className="flex items-center gap-2">
+        {SeverityIcon && (
+          <SeverityIcon
+            aria-hidden="true"
+            data-testid={`${testId}-severity-icon`}
+            className={toastSeverityIconVariants({ severity })}
+          />
+        )}
         <span className="min-w-0 flex-1 break-words leading-snug">{message}</span>
         {!isDecision && (
           <Button

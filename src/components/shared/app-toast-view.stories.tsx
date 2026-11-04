@@ -33,3 +33,21 @@ export const SingleActionInformational: Story = {
     },
   },
 };
+
+export const ErrorSeverity: Story = {
+  args: {
+    toastMessage: {
+      message: "同期に失敗しました",
+      severity: "error",
+    },
+  },
+};
+
+export const WarningSeverity: Story = {
+  args: {
+    toastMessage: {
+      message: "一部のフィードを更新できませんでした",
+      severity: "warning",
+    },
+  },
+};
