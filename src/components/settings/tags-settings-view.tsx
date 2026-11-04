@@ -5,7 +5,7 @@ import { SettingsActionButton } from "@/components/settings/shared/settings-acti
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
-import { Input, TagColorPicker } from "@/design-system";
+import { Input, SurfaceCard, TagColorPicker } from "@/design-system";
 import type { TagViewItem } from "@/lib/tags.types";
 
 type TagsSettingsListItem = TagViewItem;
@@ -26,6 +26,7 @@ type TagsSettingsViewProps = {
   onColorChange: (value: string | null) => void;
   onCreate: () => void;
   createDisabled: boolean;
+  createErrorMessage?: string | null;
   savedHeading: string;
   emptyState: string;
   loadFailureState?: string | null;
@@ -54,6 +55,7 @@ export function TagsSettingsView({
   onColorChange,
   onCreate,
   createDisabled,
+  createErrorMessage,
   savedHeading,
   emptyState,
   loadFailureState,
@@ -121,6 +123,12 @@ export function TagsSettingsView({
                 onChange={onColorChange}
               />
             </div>
+
+            {createErrorMessage ? (
+              <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+                <p className="text-sm leading-[1.5]">{createErrorMessage}</p>
+              </SurfaceCard>
+            ) : null}
           </SettingsSection>
         </form>
 

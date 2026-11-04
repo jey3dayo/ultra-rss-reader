@@ -26,6 +26,9 @@ type TagsSettingsState = {
   deletingTag: TagDto | null;
   renameName: string;
   renameColor: string | null;
+  createError: string | null;
+  renameError: string | null;
+  deleteError: string | null;
 };
 
 type TagsSettingsAction =
@@ -37,7 +40,10 @@ type TagsSettingsAction =
   | { type: "set-rename-name"; value: string }
   | { type: "set-rename-color"; value: string | null }
   | { type: "start-delete"; tag: TagDto | null }
-  | { type: "close-delete" };
+  | { type: "close-delete" }
+  | { type: "set-create-error"; message: string | null }
+  | { type: "set-rename-error"; message: string | null }
+  | { type: "set-delete-error"; message: string | null };
 
 const initialTagsSettingsState: TagsSettingsState = {
   name: "",
@@ -48,6 +54,9 @@ const initialTagsSettingsState: TagsSettingsState = {
   deletingTag: null,
   renameName: "",
   renameColor: null,
+  createError: null,
+  renameError: null,
+  deleteError: null,
 };
 
 function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsAction): TagsSettingsState {
@@ -57,12 +66,14 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
         ...state,
         name: action.value,
         createRevision: state.createRevision + 1,
+        createError: null,
       };
     case "set-color":
       return {
         ...state,
         color: action.value,
         createRevision: state.createRevision + 1,
+        createError: null,
       };
     case "reset-create":
       return {
@@ -78,6 +89,7 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
         editRevision: state.editRevision + 1,
         renameName: action.tag?.name ?? "",
         renameColor: getEditableTagColor(action.tag?.color),
+        renameError: null,
       };
     case "close-edit":
       return {
@@ -86,23 +98,32 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
         editRevision: state.editRevision + 1,
         renameName: "",
         renameColor: null,
+        renameError: null,
       };
     case "set-rename-name":
       return {
         ...state,
         renameName: action.value,
         editRevision: state.editRevision + 1,
+        renameError: null,
       };
     case "set-rename-color":
       return {
         ...state,
         renameColor: action.value,
         editRevision: state.editRevision + 1,
+        renameError: null,
       };
     case "start-delete":
-      return { ...state, deletingTag: action.tag };
+      return { ...state, deletingTag: action.tag, deleteError: null };
     case "close-delete":
-      return { ...state, deletingTag: null };
+      return { ...state, deletingTag: null, deleteError: null };
+    case "set-create-error":
+      return { ...state, createError: action.message };
+    case "set-rename-error":
+      return { ...state, renameError: action.message };
+    case "set-delete-error":
+      return { ...state, deleteError: action.message };
     default:
       return state;
   }
@@ -127,7 +148,19 @@ export function TagsSettings() {
     stateRef.current = state;
     tagsRef.current = tags;
   });
-  const { name, color, createRevision, editingTag, editRevision, deletingTag, renameName, renameColor } = state;
+  const {
+    name,
+    color,
+    createRevision,
+    editingTag,
+    editRevision,
+    deletingTag,
+    renameName,
+    renameColor,
+    createError,
+    renameError,
+    deleteError,
+  } = state;
   const createDirty = name.trim().length > 0;
   const editDirty =
     editingTag !== null &&
@@ -149,6 +182,7 @@ export function TagsSettings() {
 
     const requestRevision = createRevision;
     createInFlightRef.current = true;
+    dispatch({ type: "set-create-error", message: null });
     try {
       await createTag.mutateAsync({
         name: trimmedName,
@@ -163,7 +197,9 @@ export function TagsSettings() {
       if (stateRef.current.createRevision !== requestRevision) {
         return;
       }
-      showToast(t("tags.create_failed", { message: getErrorMessage(error) }));
+      const message = t("tags.create_failed", { message: getErrorMessage(error) });
+      dispatch({ type: "set-create-error", message });
+      showToast(message);
     } finally {
       createInFlightRef.current = false;
     }
@@ -192,6 +228,7 @@ export function TagsSettings() {
 
     const requestTagId = editingTag.id;
     const requestRevision = editRevision;
+    dispatch({ type: "set-rename-error", message: null });
     try {
       await renameTag.mutateAsync({
         tagId: requestTagId,
@@ -207,7 +244,9 @@ export function TagsSettings() {
       if (stateRef.current.editingTag?.id !== requestTagId || stateRef.current.editRevision !== requestRevision) {
         return;
       }
-      showToast(t("tags.rename_failed", { message: getErrorMessage(error) }));
+      const message = t("tags.rename_failed", { message: getErrorMessage(error) });
+      dispatch({ type: "set-rename-error", message });
+      showToast(message);
     }
   };
 
@@ -222,12 +261,15 @@ export function TagsSettings() {
       return;
     }
 
+    dispatch({ type: "set-delete-error", message: null });
     try {
       await deleteTag.mutateAsync({ tagId: deletingTag.id });
       dispatch({ type: "close-delete" });
       showToast(t("tags.delete_success"));
     } catch (error) {
-      showToast(t("tags.delete_failed", { message: getErrorMessage(error) }));
+      const message = t("tags.delete_failed", { message: getErrorMessage(error) });
+      dispatch({ type: "set-delete-error", message });
+      showToast(message);
     }
   };
 
@@ -248,6 +290,7 @@ export function TagsSettings() {
         onNameChange={(value) => dispatch({ type: "set-name", value })}
         onColorChange={(value) => dispatch({ type: "set-color", value })}
         onCreate={() => void handleCreate()}
+        createErrorMessage={createError}
         createDisabled={createTag.isPending || name.trim().length === 0}
         savedHeading={t("tags.saved")}
         emptyState={t("tags.empty_state")}
@@ -282,6 +325,7 @@ export function TagsSettings() {
         onColorChange={(value) => dispatch({ type: "set-rename-color", value })}
         colorOptions={[...TAG_COLOR_PRESETS]}
         noColorLabel={tr("no_color")}
+        errorMessage={renameError}
         onSubmit={() => void handleRename()}
       />
       <DeleteTagDialogView
@@ -292,6 +336,7 @@ export function TagsSettings() {
         loading={deleteTag.isPending}
         confirmDisabled={!deleteTargetKnown}
         confirmDisabledReason={t("tags.delete_target_unavailable")}
+        errorMessage={deleteError}
         onOpenChange={(open) => !open && dispatch({ type: "close-delete" })}
         onConfirm={() => void handleDelete()}
       />
