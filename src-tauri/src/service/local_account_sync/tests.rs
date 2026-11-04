@@ -2109,3 +2109,101 @@ fn export_tag_time_includes_the_latest_article_link_change() {
         "tagging an article stamps only the link, so the tag must export the newer of the two"
     );
 }
+
+const TOMBSTONE_KINDS_AND_KEYS_SQL: &str =
+    "SELECT kind || ':' || key FROM local_sync_tombstones ORDER BY kind, key";
+
+fn seed_tombstones_for_pruning(db: &DbManager) {
+    seed_entity_fixture(db, &AccountId("account-1".to_string()));
+    db.writer()
+        .execute_batch(
+            "INSERT INTO local_sync_tombstones (kind, account_id, key, key2, removed_at) VALUES
+               ('article_tag', '', 'article-missing', 'swift', '2026-06-01T00:00:00.000Z'),
+               ('article_tag', '', 'article-y', 'gone', '2026-06-01T00:00:00.000Z'),
+               ('tag', '', 'article-missing', '', '2026-06-01T00:00:00.000Z'),
+               ('mute_keyword', '', 'article-missing', 'title', '2026-06-01T00:00:00.000Z'),
+               ('feed', 'account-1', 'article-missing', '', '2026-06-01T00:00:00.000Z'),
+               ('folder', 'account-1', 'article-missing', '', '2026-06-01T00:00:00.000Z');",
+        )
+        .unwrap();
+}
+
+fn export_to_temp_folder(db: &DbManager) {
+    let account_id = AccountId("account-1".to_string());
+    let dir = tempfile::tempdir().unwrap();
+    let settings = seeded_settings(&dir.path().to_string_lossy(), &account_id);
+    SqliteLocalAccountSyncSettingsRepository::new(db.writer())
+        .save(&settings)
+        .unwrap();
+    export_local_account_sync_folder(db, &account_id, &settings).unwrap();
+}
+
+#[test]
+fn export_drops_article_tag_tombstones_of_articles_that_no_longer_exist() {
+    let db = DbManager::new_in_memory().unwrap();
+    seed_tombstones_for_pruning(&db);
+
+    export_to_temp_folder(&db);
+
+    assert!(
+        !query_strings(&db, TOMBSTONE_KINDS_AND_KEYS_SQL)
+            .contains(&"article_tag:article-missing".to_string()),
+        "no article remains to export this tombstone for"
+    );
+}
+
+#[test]
+fn export_keeps_article_tag_tombstones_of_articles_that_still_exist() {
+    let db = DbManager::new_in_memory().unwrap();
+    seed_tombstones_for_pruning(&db);
+
+    export_to_temp_folder(&db);
+
+    assert!(
+        query_strings(&db, TOMBSTONE_KINDS_AND_KEYS_SQL)
+            .contains(&"article_tag:article-y".to_string()),
+        "the article can still be tagged again and must keep its removal record"
+    );
+}
+
+#[test]
+fn export_keeps_tombstones_of_other_kinds_even_when_their_key_is_not_an_article_id() {
+    let db = DbManager::new_in_memory().unwrap();
+    seed_tombstones_for_pruning(&db);
+
+    export_to_temp_folder(&db);
+
+    assert_eq!(
+        query_strings(&db, TOMBSTONE_KINDS_AND_KEYS_SQL),
+        [
+            "article_tag:article-y",
+            "feed:article-missing",
+            "folder:article-missing",
+            "mute_keyword:article-missing",
+            "tag:article-missing",
+        ],
+        "an old device that returns later still needs these to avoid bringing the values back"
+    );
+}
+
+#[test]
+fn failed_export_keeps_article_tag_tombstones_of_missing_articles() {
+    let db = DbManager::new_in_memory().unwrap();
+    seed_tombstones_for_pruning(&db);
+    let account_id = AccountId("account-1".to_string());
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("ops"), "blocks the operations directory").unwrap();
+    let settings = seeded_settings(&dir.path().to_string_lossy(), &account_id);
+    SqliteLocalAccountSyncSettingsRepository::new(db.writer())
+        .save(&settings)
+        .unwrap();
+
+    export_local_account_sync_folder(&db, &account_id, &settings)
+        .expect_err("a file write failure should fail the export");
+
+    assert!(
+        query_strings(&db, TOMBSTONE_KINDS_AND_KEYS_SQL)
+            .contains(&"article_tag:article-missing".to_string()),
+        "pruning runs only after the export succeeded"
+    );
+}

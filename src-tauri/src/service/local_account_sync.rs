@@ -134,7 +134,20 @@ fn write_export_snapshot(
     // previous digest intact, allowing a harmless retry rather than losing state.
     let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
     settings_repo.save_export_digest(account_id, digest)?;
+    prune_orphan_article_tag_tombstones(db.writer())?;
     Ok(report)
+}
+
+/// Export skips article-tag tombstones whose article is gone, so nothing ever reads them again.
+/// Other kinds stay: an old device returning later still needs them to avoid resurrecting values.
+fn prune_orphan_article_tag_tombstones(conn: &Connection) -> DomainResult<()> {
+    conn.execute(
+        "DELETE FROM local_sync_tombstones
+         WHERE kind = 'article_tag'
+           AND NOT EXISTS (SELECT 1 FROM articles a WHERE a.id = local_sync_tombstones.key)",
+        [],
+    )?;
+    Ok(())
 }
 
 /// Writes the given operations as sequential files under `account_root` for
