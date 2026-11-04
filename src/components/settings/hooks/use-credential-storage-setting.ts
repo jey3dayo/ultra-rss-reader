@@ -7,10 +7,11 @@ import { getCredentialStorage, setCredentialStorage } from "@/api/tauri-commands
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastData } from "@/lib/ui/toast.types";
 
 type UseCredentialStorageSettingParams = {
   t: TFunction<"settings">;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
 };
 
 type UseCredentialStorageSettingResult = {
@@ -100,7 +101,7 @@ export function useCredentialStorageSetting({
         const failureMessage = t("data.credential_storage_failed", {
           message: localizeUserVisibleAppErrorMessage(Result.unwrapError(result).message),
         });
-        showToast(failureMessage);
+        showToast({ message: failureMessage, severity: "error" });
         setState((prev) => ({ ...prev, saving: false, errorMessage: failureMessage }));
         return;
       }
@@ -115,7 +116,7 @@ export function useCredentialStorageSetting({
         errorMessage: null,
         cleanupNotice,
       });
-      showToast(cleanupNotice ?? t("data.credential_storage_saved"));
+      showToast(cleanupNotice ? { message: cleanupNotice, severity: "warning" } : t("data.credential_storage_saved"));
       await invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()]);
     },
     [queryClient, showToast, t],

@@ -22,6 +22,7 @@ import {
 } from "@/components/settings/hooks/use-data-settings-controller";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { showSaveDialog } from "@/lib/platform/save-dialog";
+import type { ToastData } from "@/lib/ui/toast.types";
 
 setupBrowserTestDom();
 
@@ -354,7 +355,7 @@ describe("useDataSettingsController", () => {
     showToast = vi.fn(),
   }: {
     setSettingsLoading?: (loading: boolean) => void;
-    showToast?: (message: string) => void;
+    showToast?: (message: string | ToastData) => void;
   } = {}) =>
     renderHook(() =>
       useDataSettingsController({
@@ -488,7 +489,9 @@ describe("useDataSettingsController", () => {
       await result.current.handleBackupDatabase();
     });
 
-    expect(showToast).toHaveBeenCalledWith("data.backup_failed");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "data.backup_failed", severity: "error" }),
+    );
     expect(result.current.databaseRuntimeRecoverySurface).toMatchObject({
       failureKind: "disk_full",
       mode: "free_disk_space",
@@ -619,7 +622,9 @@ describe("useDataSettingsController", () => {
 
     expect(readFile).not.toHaveBeenCalled();
     expect(importSettingsProfile).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("data.settings_profile_import_failed");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "data.settings_profile_import_failed", severity: "error" }),
+    );
     expect(result.current.importingSettingsProfile).toBe(false);
   });
 
@@ -655,7 +660,9 @@ describe("useDataSettingsController", () => {
       mode: "read_only_degraded",
       actions: ["run_integrity_check", "restore_backup"],
     });
-    expect(showToast).toHaveBeenCalledWith("data.vacuum_failed");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "data.vacuum_failed", severity: "error" }),
+    );
     expect(consoleWarn).toHaveBeenCalledWith(
       "Database runtime recovery surface detected",
       expect.objectContaining({
@@ -763,8 +770,13 @@ describe("useDataSettingsController", () => {
       await result.current.handleOpenLogDir();
     });
 
-    expect(showToast).toHaveBeenCalledWith("Failed to open log directory: Check OS permissions and try again.");
-    expect(showToast.mock.calls[0]?.[0].match(/Failed to open log directory/g)).toHaveLength(1);
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Failed to open log directory: Check OS permissions and try again.",
+        severity: "error",
+      }),
+    );
+    expect(showToast.mock.calls[0]?.[0].message.match(/Failed to open log directory/g)).toHaveLength(1);
   });
 
   it("tracks log directory pending state and suppresses duplicate data actions", async () => {
@@ -1258,7 +1270,7 @@ describe("useDataSettingsController action failures", () => {
 
     const expected = `${op.failureKey}: disk is read-only`;
     expect(result.current.actionFailures).toEqual({ ...noFailures, [op.operation]: expected });
-    expect(showToast).toHaveBeenCalledWith(expected);
+    expect(showToast).toHaveBeenCalledWith(expect.objectContaining({ message: expected, severity: "error" }));
   });
 
   it.each(operations)("keeps a thrown $operation failure in actionFailures and the toast", async (op) => {
@@ -1271,7 +1283,7 @@ describe("useDataSettingsController action failures", () => {
 
     const expected = `${op.failureKey}: bridge closed`;
     expect(result.current.actionFailures).toEqual({ ...noFailures, [op.operation]: expected });
-    expect(showToast).toHaveBeenCalledWith(expected);
+    expect(showToast).toHaveBeenCalledWith(expect.objectContaining({ message: expected, severity: "error" }));
   });
 
   it.each(operations)("clears the $operation failure when the operation is retried", async (op) => {
@@ -1357,7 +1369,7 @@ describe("useDataSettingsController action failures", () => {
 
     const expected = "data.settings_profile_import_failed: too large (max 1.0 MiB)";
     expect(result.current.actionFailures.importProfile).toBe(expected);
-    expect(showToast).toHaveBeenCalledWith(expected);
+    expect(showToast).toHaveBeenCalledWith(expect.objectContaining({ message: expected, severity: "error" }));
     expect(importSettingsProfile).not.toHaveBeenCalled();
   });
 });

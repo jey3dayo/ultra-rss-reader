@@ -28,7 +28,24 @@ describe("account-detail-toast", () => {
       title: "Rename failed",
     });
 
-    expect(showToast).toHaveBeenCalledWith("Failed to rename account: boom");
+    expect(showToast).toHaveBeenCalledWith({ message: "Failed to rename account: boom", severity: "error" });
+  });
+
+  it("marks a saved-but-unconfirmed connection as a warning, not an error", () => {
+    const showToast = vi.fn();
+    const t = ((key: string, values?: Record<string, unknown>) =>
+      `${key}: ${String(values?.message)}`) as TFunction<"settings">;
+    useUiStore.setState({ showToast });
+
+    createAccountDetailErrorToast(
+      t,
+      "account.saved_connection_unconfirmed",
+    )({ message: "timeout", title: "Connection failed" });
+
+    expect(showToast).toHaveBeenCalledWith({
+      message: "account.saved_connection_unconfirmed: timeout",
+      severity: "warning",
+    });
   });
 
   it("redacts provider credentials, server URL, and account identifiers before showing error toasts", async () => {
@@ -48,7 +65,8 @@ describe("account-detail-toast", () => {
       title: "Connection failed",
     });
 
-    const toastMessage = showToast.mock.calls[0]?.[0] as string;
+    const toastMessage = showToast.mock.calls[0]?.[0]?.message;
+    expect(toastMessage).toEqual(expect.any(String));
     expect(toastMessage).toContain("server_url=<redacted>");
     expect(toastMessage).toContain("username=<redacted>");
     expect(toastMessage).toContain("account_id=<redacted>");
@@ -76,8 +94,10 @@ describe("account-detail-toast", () => {
       });
 
       const localizedBusyMessage = i18n.t("errors.database_maintenance_busy", { ns: "common" });
-      expect(showToast).toHaveBeenCalledWith(`Sync failed: ${localizedBusyMessage}`);
-      expect(showToast).not.toHaveBeenCalledWith(`Sync failed: ${DATABASE_MAINTENANCE_BUSY_MESSAGE}`);
+      expect(showToast).toHaveBeenCalledWith({ message: `Sync failed: ${localizedBusyMessage}`, severity: "error" });
+      expect(showToast).not.toHaveBeenCalledWith(
+        expect.objectContaining({ message: `Sync failed: ${DATABASE_MAINTENANCE_BUSY_MESSAGE}` }),
+      );
     } finally {
       await i18n.changeLanguage("en");
     }

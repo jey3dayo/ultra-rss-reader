@@ -329,7 +329,10 @@ export function useAccountDetailSyncControls({
       if (!isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
         return;
       }
-      useUiStore.getState().showToast(t("account.dev_credentials_reset_failed", { message: getErrorMessage(error) }));
+      useUiStore.getState().showToast({
+        message: t("account.dev_credentials_reset_failed", { message: getErrorMessage(error) }),
+        severity: "error",
+      });
     } finally {
       if (isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
         syncActionInFlightRef.current = false;

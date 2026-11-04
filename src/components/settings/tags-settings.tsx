@@ -199,7 +199,7 @@ export function TagsSettings() {
       }
       const message = t("tags.create_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-create-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     } finally {
       createInFlightRef.current = false;
     }
@@ -212,7 +212,7 @@ export function TagsSettings() {
 
     if (!tagsRef.current.some((tag) => tag.id === editingTag.id)) {
       dispatch({ type: "close-edit" });
-      showToast(t("tags.rename_failed", { message: t("tags.deleted_resource_noop") }));
+      showToast({ message: t("tags.rename_failed", { message: t("tags.deleted_resource_noop") }), severity: "error" });
       return;
     }
 
@@ -246,7 +246,7 @@ export function TagsSettings() {
       }
       const message = t("tags.rename_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-rename-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     }
   };
 
@@ -257,7 +257,7 @@ export function TagsSettings() {
 
     if (!tagsRef.current.some((tag) => tag.id === deletingTag.id)) {
       dispatch({ type: "close-delete" });
-      showToast(t("tags.delete_failed", { message: t("tags.deleted_resource_noop") }));
+      showToast({ message: t("tags.delete_failed", { message: t("tags.deleted_resource_noop") }), severity: "error" });
       return;
     }
 
@@ -269,7 +269,7 @@ export function TagsSettings() {
     } catch (error) {
       const message = t("tags.delete_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-delete-error", message });
-      showToast(message);
+      showToast({ message, severity: "error" });
     }
   };
 

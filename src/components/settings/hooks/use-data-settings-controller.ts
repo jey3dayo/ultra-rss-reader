@@ -14,6 +14,7 @@ import {
 } from "@/api/tauri-commands";
 import { showSaveDialog } from "@/lib/platform/save-dialog";
 import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
+import type { ToastData } from "@/lib/ui/toast.types";
 import {
   type DataSettingsActionOwnerId,
   getDataSettingsActionLifecycle,
@@ -42,7 +43,7 @@ export { reconcileDatabaseRestoreFrontendState } from "./restore-reconciliation"
 
 type UseDataSettingsControllerParams = {
   t: TFunction<"settings">;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
   setSettingsLoading?: (loading: boolean) => void;
 };
 
@@ -114,7 +115,7 @@ export function useDataSettingsController({
 
   const reportActionFailure = (operation: DataSettingsActionFailureOperation, message: string) => {
     dispatch({ type: "set-action-failure", operation, message });
-    showToast(message);
+    showToast({ message, severity: "error" });
   };
 
   const fetchDbInfo = useCallback(async () => {

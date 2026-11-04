@@ -88,7 +88,9 @@ describe("DataSettings failures", () => {
     expect(await within(getSection("Database")).findByRole("alert")).toHaveTextContent(
       "Optimization failed: database is locked",
     );
-    expect(showToast).toHaveBeenCalledWith("Optimization failed: database is locked");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Optimization failed: database is locked", severity: "error" }),
+    );
     expect(within(getSection("Backup and restore")).queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -116,7 +118,9 @@ describe("DataSettings failures", () => {
     expect(await within(getSection("Backup and restore")).findByRole("alert")).toHaveTextContent(
       "Backup failed: no space left on device",
     );
-    expect(showToast).toHaveBeenCalledWith("Backup failed: no space left on device");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Backup failed: no space left on device", severity: "error" }),
+    );
     expect(within(getSection("Database")).queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -144,7 +148,12 @@ describe("DataSettings failures", () => {
     expect(await within(getSection("Logs")).findByRole("alert")).toHaveTextContent(
       "Failed to open log directory: Check OS permissions and try again.",
     );
-    expect(showToast).toHaveBeenCalledWith("Failed to open log directory: Check OS permissions and try again.");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Failed to open log directory: Check OS permissions and try again.",
+        severity: "error",
+      }),
+    );
   });
 
   it("clears the open-log-folder failure when the user tries again", async () => {
@@ -171,7 +180,9 @@ describe("DataSettings failures", () => {
     expect(await within(getSection("Settings profile")).findByRole("alert")).toHaveTextContent(
       "Failed to export settings profile: permission denied",
     );
-    expect(showToast).toHaveBeenCalledWith("Failed to export settings profile: permission denied");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Failed to export settings profile: permission denied", severity: "error" }),
+    );
   });
 
   it("clears the export failure when the user exports again", async () => {
@@ -216,7 +227,12 @@ describe("DataSettings failures", () => {
     expect(await within(getSection("Settings profile")).findByRole("alert")).toHaveTextContent(
       "Failed to import settings profile: unsupported profile version",
     );
-    expect(showToast).toHaveBeenCalledWith("Failed to import settings profile: unsupported profile version");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Failed to import settings profile: unsupported profile version",
+        severity: "error",
+      }),
+    );
   });
 
   it("clears the import failure when the user imports again", async () => {

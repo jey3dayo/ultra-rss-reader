@@ -1676,7 +1676,9 @@ describe("AccountDetail", () => {
     await user.click(await screen.findByRole("button", { name: "Copy server URL" }));
 
     expect(calls.some((call) => call.cmd === "copy_to_clipboard")).toBe(false);
-    expect(showToast).toHaveBeenCalledWith("Failed to copy server URL: Server URL is required");
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Failed to copy server URL: Server URL is required", severity: "error" }),
+    );
   });
 
   it.each(accountDetailCopyFailureLocaleCases)(
@@ -1719,9 +1721,11 @@ describe("AccountDetail", () => {
       );
 
       await waitFor(() => {
-        expect(showToast).toHaveBeenCalledWith(expectedMessage);
+        expect(showToast).toHaveBeenCalledWith(
+          expect.objectContaining({ message: expectedMessage, severity: "error" }),
+        );
       });
-      expect(showToast).not.toHaveBeenCalledWith("Clipboard unavailable");
+      expect(showToast).not.toHaveBeenCalledWith(expect.objectContaining({ message: "Clipboard unavailable" }));
     },
   );
 
@@ -1859,7 +1863,9 @@ describe("AccountDetail", () => {
     });
 
     await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith("Failed to import OPML: Invalid OPML");
+      expect(showToast).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Failed to import OPML: Invalid OPML", severity: "error" }),
+      );
     });
   });
 
