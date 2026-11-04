@@ -434,7 +434,7 @@ export function ArticleToolbarActionStrip({
   };
 
   return (
-    <div className={cn("flex items-center gap-1", isMobile && "min-w-0 flex-1 justify-end gap-0.5")}>
+    <div className={cn("flex items-center gap-1", isMobile && "min-w-0 justify-end gap-0.5")}>
       {isMobile ? (
         <ArticleToolbarMobileActionGroup {...primaryActionGroupProps} />
       ) : (
