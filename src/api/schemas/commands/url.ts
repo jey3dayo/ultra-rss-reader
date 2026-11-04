@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { type HostPrivacyPolicy, isHostBlockedByPolicy } from "@/lib/runtime/host-privacy";
+import { UNSUPPORTED_HTTP_URL_MESSAGE } from "@/lib/ui-errors";
 import { controlCharPattern, READING_LIST_URL_MAX_BYTES, textEncoder, whitespacePattern } from "./shared";
 
 export function hasHttpUrlCredentials(value: string): boolean {
@@ -47,9 +48,9 @@ const httpUrlSchema = v.pipe(
   v.trim(),
   v.check(
     (url) => url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://"),
-    "Only http:// and https:// URLs are supported",
+    UNSUPPORTED_HTTP_URL_MESSAGE,
   ),
-  v.check(isValidHttpUrl, "Only http:// and https:// URLs are supported"),
+  v.check(isValidHttpUrl, UNSUPPORTED_HTTP_URL_MESSAGE),
   v.check((url) => !url.includes("\n") && !url.includes("\r"), "HTTP URLs must not contain newlines"),
 );
 

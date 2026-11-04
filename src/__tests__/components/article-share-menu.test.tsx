@@ -8,6 +8,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import { ArticleShareMenu } from "@/components/reader/article-share-menu";
 import { APP_EVENTS } from "@/constants/events";
 import { TooltipProvider } from "@/design-system";
+import i18n from "@/lib/i18n";
 
 const { addArticleToReadingListMock, copyArticleLinkMock, openExternalUrlMock, openInBrowserMock } = vi.hoisted(() => ({
   addArticleToReadingListMock: vi.fn(),
@@ -191,6 +192,25 @@ describe("ArticleShareMenu", () => {
 
     expect(openExternalUrlMock).not.toHaveBeenCalled();
     expect(showToast).toHaveBeenCalledWith("Article URLs must not include credentials");
+  });
+
+  it("shows the Japanese URL policy toast before email share in the ja locale", async () => {
+    await i18n.changeLanguage("ja");
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+
+    renderShareMenu({
+      article: {
+        ...article,
+        url: "https://user:pass@example.com/article",
+      },
+      showToast,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+
+    expect(showToast).toHaveBeenCalledWith("記事の URL にユーザー名やパスワードを含めることはできません");
   });
 
   it("encodes and trims long email share subject and body inputs on grapheme boundaries before opening mail", async () => {

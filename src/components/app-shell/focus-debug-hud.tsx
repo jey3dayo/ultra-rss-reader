@@ -15,6 +15,7 @@ import {
 } from "@/lib/debug/debug-input-trace";
 import { copyValueToClipboard } from "@/lib/runtime/clipboard";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import {
   bindWindowEvents,
   createCustomEventDetailListener,
@@ -198,7 +199,7 @@ export function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = fa
       onError: (message, error) => {
         emitDebugInputTrace(`hud-copy error category=${error.category} message=${message}`);
         console.error("Failed to copy focus debug HUD:", error);
-        showToast(message);
+        showToast(localizeUserVisibleAppErrorMessage(message));
       },
     });
   };

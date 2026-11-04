@@ -3,6 +3,9 @@ import type { AppError } from "@/api/schemas/error";
 export type SchemaParseErrorSurface = "user-facing" | "diagnostics";
 
 export const RESPONSE_VALIDATION_MESSAGE = "Response validation failed. See diagnostics for details.";
+export const UNSUPPORTED_HTTP_URL_MESSAGE = "Only http:// and https:// URLs are supported";
+export const ARTICLE_URL_CREDENTIALS_MESSAGE = "Article URLs must not include credentials";
+export const INVALID_CLIPBOARD_TEXT_MESSAGE = "Invalid clipboard text";
 
 export function classifySchemaParseErrorSurface(boundary: "args" | "response"): SchemaParseErrorSurface {
   return boundary === "args" ? "user-facing" : "diagnostics";

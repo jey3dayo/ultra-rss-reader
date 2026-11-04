@@ -38,6 +38,24 @@ describe("localizeUserVisibleAppErrorMessage", () => {
     }
   });
 
+  it.each([
+    ["Only http:// and https:// URLs are supported", "http:// または https:// の URL のみ使用できます"],
+    ["Article URLs must not include credentials", "記事の URL にユーザー名やパスワードを含めることはできません"],
+    ["Invalid clipboard text", "コピーできないテキストです"],
+  ])("localizes the frontend-owned message %j in ja and keeps English in en", async (message, japanese) => {
+    const originalLanguage = i18n.language;
+    try {
+      await i18n.changeLanguage("ja");
+      expect(isLocalizableUserVisibleAppErrorMessage(message)).toBe(true);
+      expect(localizeUserVisibleAppErrorMessage(message)).toBe(japanese);
+
+      await i18n.changeLanguage("en");
+      expect(localizeUserVisibleAppErrorMessage(message)).toBe(message);
+    } finally {
+      await i18n.changeLanguage(originalLanguage);
+    }
+  });
+
   it("leaves unknown messages unchanged", () => {
     expect(localizeUserVisibleAppErrorMessage("something else")).toBe("something else");
     expect(isLocalizableUserVisibleAppErrorMessage("something else")).toBe(false);

@@ -20,7 +20,11 @@
   "connection_testing": "接続を確認中…",
   "errors": {
     "database_maintenance_busy": "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。",
-    "api_html_auth": "認証エラー: サーバーから想定外の応答が返されました。サーバーURLとアクセス認証の設定を確認してください。"
+    "api_html_auth": "認証エラー: サーバーから想定外の応答が返されました。サーバーURLとアクセス認証の設定を確認してください。",
+    "unsupported_http_url": "http:// または https:// の URL のみ使用できます",
+    "article_url_credentials": "記事の URL にユーザー名やパスワードを含めることはできません",
+    "invalid_clipboard_text": "コピーできないテキストです",
+    "unknown": "不明なエラー"
   },
   "updater": {
     "later": "後で",

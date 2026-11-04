@@ -97,7 +97,7 @@ export function openUrlInExternalBrowser(
   if (Result.isFailure(normalizedUrlResult)) {
     const actionError = Result.unwrapError(normalizedUrlResult);
     logArticleActionFailure(errorLabel, actionError);
-    showToast(actionError.message);
+    showToast(localizeUserVisibleAppErrorMessage(actionError.message));
     return Promise.resolve(Result.fail(actionError));
   }
 
@@ -131,7 +131,7 @@ export function copyArticleLink(url: string, { showToast, successMessage }: Arti
   if (Result.isFailure(normalizedUrlResult)) {
     const actionError = Result.unwrapError(normalizedUrlResult);
     logArticleActionFailure("Copy failed", actionError);
-    showToast(actionError.message);
+    showToast(localizeUserVisibleAppErrorMessage(actionError.message));
     return Promise.resolve(Result.fail(actionError));
   }
 
@@ -149,7 +149,7 @@ export function addArticleToReadingList(url: string, { showToast, successMessage
   if (Result.isFailure(normalizedUrlResult)) {
     const actionError = Result.unwrapError(normalizedUrlResult);
     logArticleActionFailure("Add to reading list failed", actionError);
-    showToast(actionError.message);
+    showToast(localizeUserVisibleAppErrorMessage(actionError.message));
     return Promise.resolve(Result.fail(actionError));
   }
 

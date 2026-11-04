@@ -4,6 +4,7 @@ import { IconToolbarMenuTrigger } from "@/design-system";
 import { Menu } from "@/design-system/menu";
 import { toArticleActionError } from "@/lib/articles/article-actions";
 import { openArticleEmailShare } from "@/lib/articles/article-share";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
@@ -43,7 +44,7 @@ function runArticleShareMenuAction(
       getToastMessage: (error: unknown) => {
         const actionError = toArticleActionError(error);
         console.error(errorLabel, actionError);
-        return actionError.message;
+        return localizeUserVisibleAppErrorMessage(actionError.message);
       },
     },
   );

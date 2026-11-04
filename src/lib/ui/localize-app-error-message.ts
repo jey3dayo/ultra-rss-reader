@@ -1,4 +1,9 @@
 import i18n from "@/lib/i18n";
+import {
+  ARTICLE_URL_CREDENTIALS_MESSAGE,
+  INVALID_CLIPBOARD_TEXT_MESSAGE,
+  UNSUPPORTED_HTTP_URL_MESSAGE,
+} from "@/lib/ui-errors";
 
 // Backend still returns this English UserVisible message; map it to locale copy for display.
 const DATABASE_MAINTENANCE_BUSY_MESSAGE =
@@ -6,18 +11,19 @@ const DATABASE_MAINTENANCE_BUSY_MESSAGE =
 const API_HTML_AUTH_ERROR_MESSAGE =
   "Auth error: The API returned an HTML page. Check the server URL and any access gateway settings.";
 
+// The English text stays the internal contract because error classification matches on it.
+const LOCALIZED_MESSAGE_BY_ENGLISH: ReadonlyMap<string, () => string> = new Map([
+  [DATABASE_MAINTENANCE_BUSY_MESSAGE, () => i18n.t("errors.database_maintenance_busy")],
+  [API_HTML_AUTH_ERROR_MESSAGE, () => i18n.t("errors.api_html_auth")],
+  [UNSUPPORTED_HTTP_URL_MESSAGE, () => i18n.t("errors.unsupported_http_url")],
+  [ARTICLE_URL_CREDENTIALS_MESSAGE, () => i18n.t("errors.article_url_credentials")],
+  [INVALID_CLIPBOARD_TEXT_MESSAGE, () => i18n.t("errors.invalid_clipboard_text")],
+]);
+
 export function localizeUserVisibleAppErrorMessage(message: string): string {
-  if (message === DATABASE_MAINTENANCE_BUSY_MESSAGE) {
-    return i18n.t("errors.database_maintenance_busy");
-  }
-
-  if (message === API_HTML_AUTH_ERROR_MESSAGE) {
-    return i18n.t("errors.api_html_auth");
-  }
-
-  return message;
+  return LOCALIZED_MESSAGE_BY_ENGLISH.get(message)?.() ?? message;
 }
 
 export function isLocalizableUserVisibleAppErrorMessage(message: string): boolean {
-  return message === DATABASE_MAINTENANCE_BUSY_MESSAGE || message === API_HTML_AUTH_ERROR_MESSAGE;
+  return LOCALIZED_MESSAGE_BY_ENGLISH.has(message);
 }

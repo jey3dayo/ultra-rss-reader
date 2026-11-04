@@ -74,7 +74,7 @@ function runGlobalActionBoundary(
   void Promise.resolve(operation()).catch((error: unknown) => {
     const actionError = toGlobalActionRuntimeError(error);
     logGlobalActionFailure(action, category, actionError);
-    useUiStore.getState().showToast(actionError.message);
+    useUiStore.getState().showToast(localizeUserVisibleAppErrorMessage(actionError.message));
   });
 }
 

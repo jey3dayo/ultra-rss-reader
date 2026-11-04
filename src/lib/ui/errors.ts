@@ -1,21 +1,24 @@
+import i18n from "@/lib/i18n";
 import type { ToastData, ToastSeverity } from "@/lib/ui/toast.types";
 
-const UNKNOWN_ERROR_MESSAGE = "Unknown error";
+function unknownErrorMessage(): string {
+  return i18n.t("errors.unknown");
+}
 
 function normalizeErrorMessage(message: unknown): string {
   if (typeof message !== "string") {
-    return UNKNOWN_ERROR_MESSAGE;
+    return unknownErrorMessage();
   }
 
   const normalizedMessage = message.trim();
-  return normalizedMessage.length > 0 ? normalizedMessage : UNKNOWN_ERROR_MESSAGE;
+  return normalizedMessage.length > 0 ? normalizedMessage : unknownErrorMessage();
 }
 
 function getObjectErrorMessage(error: object): string {
   try {
     return normalizeErrorMessage(Reflect.get(error, "message"));
   } catch {
-    return UNKNOWN_ERROR_MESSAGE;
+    return unknownErrorMessage();
   }
 }
 
@@ -26,7 +29,7 @@ export function getErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "message" in error) {
     return getObjectErrorMessage(error);
   }
-  return UNKNOWN_ERROR_MESSAGE;
+  return unknownErrorMessage();
 }
 
 export type UiErrorProjectionInput = {
