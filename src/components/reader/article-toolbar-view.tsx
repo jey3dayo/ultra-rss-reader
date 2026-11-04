@@ -63,7 +63,7 @@ const articleToolbarVisualActiveClassNames: Record<ArticleToolbarVisualActiveTon
   neutral:
     "bg-transparent text-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent focus-visible:text-foreground",
   accent:
-    "bg-transparent text-primary hover:bg-transparent hover:text-primary focus-visible:bg-transparent focus-visible:text-primary",
+    "bg-transparent text-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] hover:bg-transparent hover:text-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))] focus-visible:bg-transparent focus-visible:text-[color-mix(in_srgb,var(--primary)_70%,var(--foreground))]",
   starred:
     "bg-transparent text-[var(--semantic-tone-starred-content-foreground)] hover:bg-transparent hover:text-[var(--semantic-tone-starred-content-foreground)] focus-visible:bg-transparent focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
 };
@@ -434,7 +434,7 @@ export function ArticleToolbarActionStrip({
   };
 
   return (
-    <div className={cn("flex items-center gap-1", isMobile && "min-w-0 flex-1 justify-end gap-0.5")}>
+    <div className={cn("flex items-center gap-1", isMobile && "min-w-0 justify-end gap-0.5")}>
       {isMobile ? (
         <ArticleToolbarMobileActionGroup {...primaryActionGroupProps} />
       ) : (
