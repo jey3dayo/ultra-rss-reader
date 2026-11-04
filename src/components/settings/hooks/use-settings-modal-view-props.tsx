@@ -28,6 +28,7 @@ type UseSettingsModalViewPropsParams = {
   accounts: AccountDto[] | undefined;
   content: ReactNode;
   footer?: ReactNode;
+  statusBanner?: ReactNode;
   guardLeave?: (leave: () => void) => void;
   leaveConfirmation?: ReactNode;
   closeSettings: () => void;
@@ -68,6 +69,7 @@ export function useSettingsModalViewProps({
   accounts,
   content,
   footer,
+  statusBanner,
   guardLeave = (leave) => leave(),
   leaveConfirmation,
   closeSettings,
@@ -140,6 +142,7 @@ export function useSettingsModalViewProps({
     ),
     content,
     footer,
+    statusBanner,
     leaveConfirmation,
     contentResetKey: buildSettingsContentResetKey({
       settingsCategory,

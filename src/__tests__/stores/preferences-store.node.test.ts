@@ -177,6 +177,7 @@ describe("usePreferencesStore preferences", () => {
       prefs: {},
       loaded: false,
       pendingPreferenceSaves: 0,
+      failedPreferenceSaveKeys: [],
     });
     useUiStore.setState({ toastMessage: null });
     document.documentElement.classList.remove("dark", "theme-transitioning", "vertical-wipe-transition");
@@ -1342,6 +1343,144 @@ describe("usePreferencesStore preferences", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  describe("failed preference save keys", () => {
+    type SetPreferenceResult = Awaited<ReturnType<typeof setPreference>>;
+
+    const failedKeys = () => usePreferencesStore.getState().failedPreferenceSaveKeys;
+    const settlePendingSaves = () =>
+      vi.waitFor(() => {
+        expect(usePreferencesStore.getState().pendingPreferenceSaves).toBe(0);
+      });
+
+    let consoleError: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      consoleError.mockRestore();
+    });
+
+    it.each([
+      {
+        path: "Result.fail",
+        arrange: () =>
+          vi.mocked(setPreference).mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "db failed" })),
+      },
+      {
+        path: "rejected promise",
+        arrange: () => vi.mocked(setPreference).mockRejectedValueOnce(new Error("transport down")),
+      },
+      {
+        path: "synchronous throw",
+        arrange: () =>
+          vi.mocked(setPreference).mockImplementationOnce(() => {
+            throw new Error("sync write failed");
+          }),
+      },
+    ])("records the key when the latest save fails by $path", async ({ arrange }) => {
+      arrange();
+
+      usePreferencesStore.getState().setPref("theme", "dark");
+
+      await vi.waitFor(() => {
+        expect(failedKeys()).toEqual(["theme"]);
+      });
+    });
+
+    it("does not record a key when an outdated save fails after a newer save started", async () => {
+      const outdated = createResultDeferred<SetPreferenceResult>();
+      const latest = createResultDeferred<SetPreferenceResult>();
+      vi.mocked(setPreference).mockReturnValueOnce(outdated.promise).mockReturnValueOnce(latest.promise);
+
+      usePreferencesStore.getState().setPref("theme", "dark");
+      usePreferencesStore.getState().setPref("theme", "light");
+      outdated.resolve(Result.fail({ type: "UserVisible", message: "db failed" }));
+      await vi.waitFor(() => {
+        expect(usePreferencesStore.getState().pendingPreferenceSaves).toBe(1);
+      });
+      latest.resolve(Result.succeed(null));
+      await settlePendingSaves();
+
+      expect(failedKeys()).toEqual([]);
+    });
+
+    it("clears a failed key as soon as the next save of the same key starts, and records it again if that fails", async () => {
+      const retry = createResultDeferred<SetPreferenceResult>();
+      vi.mocked(setPreference)
+        .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "db failed" }))
+        .mockReturnValueOnce(retry.promise);
+
+      usePreferencesStore.getState().setPref("theme", "dark");
+      await vi.waitFor(() => {
+        expect(failedKeys()).toEqual(["theme"]);
+      });
+
+      usePreferencesStore.getState().setPref("theme", "light");
+      expect(failedKeys()).toEqual([]);
+
+      retry.resolve(Result.fail({ type: "UserVisible", message: "still failing" }));
+      await vi.waitFor(() => {
+        expect(failedKeys()).toEqual(["theme"]);
+      });
+    });
+
+    it("keeps a failed key when a different key is saved, and tracks each failed key once", async () => {
+      vi.mocked(setPreference)
+        .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "theme failed" }))
+        .mockResolvedValueOnce(Result.succeed(null))
+        .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "font failed" }));
+
+      usePreferencesStore.getState().setPref("theme", "dark");
+      await vi.waitFor(() => {
+        expect(failedKeys()).toEqual(["theme"]);
+      });
+
+      usePreferencesStore.getState().setPref("font_size", "large");
+      await settlePendingSaves();
+      expect(failedKeys()).toEqual(["theme"]);
+
+      usePreferencesStore.getState().setPref("font_size", "small");
+      await vi.waitFor(() => {
+        expect(failedKeys()).toEqual(["theme", "font_size"]);
+      });
+    });
+
+    it("retries every failed key with its current optimistic value and empties the list when they succeed", async () => {
+      vi.mocked(setPreference)
+        .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "theme failed" }))
+        .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "font failed" }));
+
+      usePreferencesStore.getState().setPref("theme", "dark");
+      usePreferencesStore.getState().setPref("font_size", "large");
+      await vi.waitFor(() => {
+        expect(failedKeys()).toEqual(["theme", "font_size"]);
+      });
+
+      usePreferencesStore.getState().retryFailedPreferenceSaves();
+      expect(failedKeys()).toEqual([]);
+      await settlePendingSaves();
+
+      expect(setPreference).toHaveBeenCalledTimes(4);
+      expect(setPreference).toHaveBeenNthCalledWith(3, "theme", "dark");
+      expect(setPreference).toHaveBeenNthCalledWith(4, "font_size", "large");
+      expect(failedKeys()).toEqual([]);
+    });
+
+    it("empties the failed keys when the store runtime is reset", async () => {
+      vi.mocked(setPreference).mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "db failed" }));
+      usePreferencesStore.getState().setPref("theme", "dark");
+      await vi.waitFor(() => {
+        expect(failedKeys()).toEqual(["theme"]);
+      });
+
+      resetPreferencesStoreRuntimeForTests();
+
+      expect(failedKeys()).toEqual([]);
+    });
   });
 
   it("reports synchronous latest manual preference persist failures", async () => {

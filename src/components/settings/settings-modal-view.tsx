@@ -32,6 +32,7 @@ export type SettingsModalViewProps = {
   contentResetKey?: string;
   contentScrollBehavior?: SettingsModalContentScrollBehavior;
   footer?: ReactNode;
+  statusBanner?: ReactNode;
   leaveConfirmation?: ReactNode;
   isLoading?: boolean;
   isCloseDisabled?: boolean;
@@ -53,6 +54,7 @@ export function SettingsModalView({
   contentResetKey = "",
   contentScrollBehavior = "auto",
   footer,
+  statusBanner,
   leaveConfirmation,
   isLoading,
   isCloseDisabled = false,
@@ -187,6 +189,7 @@ export function SettingsModalView({
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           style={{ backgroundColor: "var(--settings-shell-content)" }}
         >
+          {statusBanner}
           <div
             key={contentResetKey}
             data-testid="settings-content-motion"

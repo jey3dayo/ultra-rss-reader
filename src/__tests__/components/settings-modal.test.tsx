@@ -29,6 +29,7 @@ vi.mock("@/components/settings/settings-modal-view", () => ({
     accountsNavigation,
     content,
     footer,
+    statusBanner,
     leaveConfirmation,
     contentResetKey,
     onClose,
@@ -41,6 +42,7 @@ vi.mock("@/components/settings/settings-modal-view", () => ({
         </button>
         <div>{navigation}</div>
         <div>{accountsNavigation}</div>
+        {statusBanner}
         <div key={contentResetKey}>{content}</div>
         {footer}
         {leaveConfirmation}
@@ -52,7 +54,7 @@ describe("SettingsModal", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("en");
     useUiStore.setState(useUiStore.getInitialState());
-    usePreferencesStore.setState({ pendingPreferenceSaves: 0 });
+    usePreferencesStore.setState({ pendingPreferenceSaves: 0, failedPreferenceSaveKeys: [] });
     useUiStore.getState().openSettings();
     setupTauriMocks();
   });
@@ -71,6 +73,25 @@ describe("SettingsModal", () => {
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(false);
     });
+  });
+
+  it("shows a save-failure alert in the modal while a preference save has failed, and retries from it", async () => {
+    const user = userEvent.setup();
+    usePreferencesStore.setState({ prefs: { theme: "dark" }, failedPreferenceSaveKeys: ["theme"] });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Couldn't save your settings change.");
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows no save-failure alert when no preference save has failed", () => {
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("keeps open modal chrome on one locale while language changes", async () => {
