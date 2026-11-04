@@ -165,6 +165,20 @@ describe("useLocalFeedSyncStatuses", () => {
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expectedToast));
   });
 
+  it("reports a failed retry request as an error toast while the account is still selected", async () => {
+    vi.spyOn(tauriCommands, "getLocalFeedSyncStatuses").mockResolvedValue(Result.succeed([]));
+    vi.spyOn(tauriCommands, "syncFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "sync failed" }));
+    const toastSpy = vi.spyOn(useUiStore.getState(), "showToast");
+    const { result } = renderHook(() => useLocalFeedSyncStatuses("acc-1"), { wrapper });
+
+    await waitFor(() => expect(result.current.statusQuery.isSuccess).toBe(true));
+    act(() => result.current.retryFeed("feed-1"));
+
+    await waitFor(() =>
+      expect(toastSpy).toHaveBeenCalledWith({ message: "Could not retry this feed", severity: "error" }),
+    );
+  });
+
   it("retries against the original account and suppresses stale failure feedback after switching", async () => {
     let resolveSync: ((result: Awaited<ReturnType<typeof tauriCommands.syncFeed>>) => void) | undefined;
     const syncFeedSpy = vi.spyOn(tauriCommands, "syncFeed").mockImplementation(

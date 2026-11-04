@@ -199,7 +199,7 @@ export function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = fa
       onError: (message, error) => {
         emitDebugInputTrace(`hud-copy error category=${error.category} message=${message}`);
         console.error("Failed to copy focus debug HUD:", error);
-        showToast(localizeUserVisibleAppErrorMessage(message));
+        showToast({ message: localizeUserVisibleAppErrorMessage(message), severity: "error" });
       },
     });
   };

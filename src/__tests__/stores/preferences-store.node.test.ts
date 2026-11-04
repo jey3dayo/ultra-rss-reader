@@ -1062,7 +1062,7 @@ describe("usePreferencesStore preferences", () => {
       usePreferencesStore.getState().setPref("theme", "dark");
       await vi.waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
-          message: "設定の保存に失敗しました: Unknown error",
+          message: "設定の保存に失敗しました: 不明なエラー",
         });
       });
 
@@ -1090,7 +1090,7 @@ describe("usePreferencesStore preferences", () => {
       });
 
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: "設定の保存に失敗しました: Unknown error",
+        message: "設定の保存に失敗しました: 不明なエラー",
       });
     } finally {
       consoleError.mockRestore();

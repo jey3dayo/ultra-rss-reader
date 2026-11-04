@@ -206,6 +206,7 @@ describe("executeAction", () => {
       await waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:errors.database_maintenance_busy",
+          severity: "error",
         });
       });
     });

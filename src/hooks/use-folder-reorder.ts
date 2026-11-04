@@ -102,7 +102,10 @@ function useFolderOrderMutation<TArgs extends ReorderFoldersArgs>(params: {
           queryClient.setQueryData(queryKeys.accounts.root, context.previousAccounts);
         }
       }
-      showToast(t("folder_reorder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }));
+      showToast({
+        message: t("folder_reorder_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+        severity: "error",
+      });
     },
     onSettled: () => {
       pendingReorderCount -= 1;

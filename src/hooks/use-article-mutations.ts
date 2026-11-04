@@ -249,7 +249,10 @@ export function useClearArticleViewHistory() {
           qc.setQueryData(queryKey, previousData);
         }
       }
-      showToast(t("clear_recent_history_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }));
+      showToast({
+        message: t("clear_recent_history_failed", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+        severity: "error",
+      });
     },
   });
 }

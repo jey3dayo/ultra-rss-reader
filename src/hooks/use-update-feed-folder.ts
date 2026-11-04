@@ -60,7 +60,10 @@ export function useUpdateFeedFolder() {
           });
         });
       }
-      showToast(t("failed_to_update_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }));
+      showToast({
+        message: t("failed_to_update_folder", { message: localizeUserVisibleAppErrorMessage(error.message) }),
+        severity: "error",
+      });
     },
   });
 }

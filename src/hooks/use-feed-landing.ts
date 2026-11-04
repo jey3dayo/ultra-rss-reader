@@ -10,6 +10,7 @@ import {
 } from "@/components/reader/feed-query-cache";
 import { useFeeds } from "@/hooks/use-feeds";
 import { resolveFeedLandingArticleResult, resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
+import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -77,7 +78,7 @@ function getLandingFailureMessage(error: unknown) {
   const message = readErrorMessage(error)
     ?.replace(/^Error:\s*/, "")
     .trim();
-  return message && message !== "[object Object]" ? message : "Unknown error";
+  return message && message !== "[object Object]" ? message : i18n.t("errors.unknown");
 }
 
 export function useFeedLanding() {

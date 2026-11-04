@@ -198,6 +198,7 @@ describe("AppShell", () => {
       await waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "画面の読み込みに失敗しました。アプリの再読み込みを試してください。",
+          severity: "error",
         });
       });
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
@@ -231,6 +232,7 @@ describe("AppShell", () => {
       expect(consoleError).toHaveBeenCalledWith("Failed to render lazy app shell surface.", expect.any(Error));
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "画面の読み込みに失敗しました。アプリの再読み込みを試してください。",
+        severity: "error",
       });
     } finally {
       consoleError.mockRestore();
@@ -245,6 +247,7 @@ describe("AppShell", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "デスクトップ連携の一部を開始できませんでした。",
+        severity: "error",
       });
     });
   });

@@ -246,7 +246,7 @@ export async function runManualUpdateCheck(): Promise<void> {
   const result = await performUpdateCheckResult();
   if (Result.isFailure(result)) {
     console.error("Manual update check failed:", Result.unwrapError(result));
-    store.showToast(i18n.t("updater.check_failed"));
+    store.showToast({ message: i18n.t("updater.check_failed"), severity: "error" });
     return;
   }
 

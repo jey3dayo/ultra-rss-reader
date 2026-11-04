@@ -35,11 +35,12 @@ export function useUpdateFeedDisplaySettings() {
         for (const [queryKey, previousFeeds] of previousFeedsQueries) {
           qc.setQueryData(queryKey, previousFeeds);
         }
-        showToast(
-          t("failed_to_update_display_settings", {
+        showToast({
+          message: t("failed_to_update_display_settings", {
             message: localizeUserVisibleAppErrorMessage(Result.unwrapError(result).message),
           }),
-        );
+          severity: "error",
+        });
         return false;
       }
 

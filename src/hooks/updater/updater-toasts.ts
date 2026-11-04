@@ -41,6 +41,7 @@ export function showUpdateFailureToast(message: string, onCheckAgain: () => void
   console.error("Update download failed:", message);
   const toast: ToastData = {
     message: getUpdateFailureToastMessage(message),
+    severity: "error",
     persistent: true,
     variant: "update",
     actions: [
@@ -81,6 +82,7 @@ function restartPreparedUpdate(ownerToast?: ToastData): void {
         console.error("App restart failed:", error);
         const failureToast: ToastData = {
           message,
+          severity: "error",
           persistent: true,
           variant: "update",
           actions: [

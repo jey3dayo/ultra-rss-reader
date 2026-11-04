@@ -35,7 +35,6 @@ import type { PreferencesActions, PreferencesState } from "@/stores/preferences-
 import { useUiStore } from "@/stores/ui-store";
 
 const THEME_VIEW_TRANSITION_CLASS = "vertical-wipe-transition";
-const UNKNOWN_PREFERENCE_ERROR_MESSAGE = "Unknown error";
 
 export type { AfterReadingPreference, SortSubscriptions, Theme };
 export { preferenceDefaults, resolvePreferenceValue };
@@ -108,7 +107,7 @@ function resolveErrorMessage(error: unknown): string {
     }
     return String(error);
   } catch {
-    return UNKNOWN_PREFERENCE_ERROR_MESSAGE;
+    return i18n.t("errors.unknown");
   }
 }
 

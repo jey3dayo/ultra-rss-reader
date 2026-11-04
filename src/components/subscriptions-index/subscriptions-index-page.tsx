@@ -87,7 +87,7 @@ function SubscriptionsIndexPageForAccount() {
     onCopyDiagnosticId: (diagnosticId) => {
       void copyValueToClipboard(diagnosticId, {
         onSuccess: () => showToast(t("detail_fetch_error_diagnostic_copied")),
-        onError: () => showToast(t("detail_fetch_error_diagnostic_copy_failed")),
+        onError: () => showToast({ message: t("detail_fetch_error_diagnostic_copy_failed"), severity: "error" }),
       });
     },
     closeSubscriptionsWorkspace,

@@ -76,14 +76,14 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
     },
     onError: (_error, variables) => {
       if (useUiStore.getState().selectedAccountId === variables.accountId) {
-        showToast(t("detail_fetch_error_retry_failed"));
+        showToast({ message: t("detail_fetch_error_retry_failed"), severity: "error" });
       }
     },
     onSettled: async (_data, _error, variables) => {
       try {
         const refreshed = await invalidateFeedRetryQueries(queryClient, variables.accountId, variables.feedId);
         if (!refreshed && useUiStore.getState().selectedAccountId === variables.accountId) {
-          showToast(t("fetch_error_refresh_failed"));
+          showToast({ message: t("fetch_error_refresh_failed"), severity: "error" });
         }
       } finally {
         pendingFeedRetryKeys.delete(getPendingFeedRetryKey(variables));

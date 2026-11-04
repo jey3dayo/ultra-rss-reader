@@ -74,7 +74,9 @@ function runGlobalActionBoundary(
   void Promise.resolve(operation()).catch((error: unknown) => {
     const actionError = toGlobalActionRuntimeError(error);
     logGlobalActionFailure(action, category, actionError);
-    useUiStore.getState().showToast(localizeUserVisibleAppErrorMessage(actionError.message));
+    useUiStore
+      .getState()
+      .showToast({ message: localizeUserVisibleAppErrorMessage(actionError.message), severity: "error" });
   });
 }
 
@@ -173,7 +175,9 @@ async function restartApplication(): Promise<void> {
   Result.pipe(
     result,
     Result.inspectError((error) => {
-      useUiStore.getState().showToast(localizeUserVisibleAppErrorMessage(error.message));
+      useUiStore
+        .getState()
+        .showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
       logRuntimeDiagnostic("app-action-window", "[actions:window] restart-app failed.", error);
     }),
   );
@@ -326,7 +330,10 @@ function runSyncAllAction(action: AppAction, store: UiStoreState): void {
       },
       onError: (e) => {
         logGlobalActionFailure(action, "sync", e);
-        store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
+        store.showToast({
+          message: i18n.t("sidebar:sync_failed_with_message", { message: e.message }),
+          severity: "error",
+        });
       },
     }),
   );

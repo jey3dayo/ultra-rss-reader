@@ -337,7 +337,10 @@ describe("use-updater background download flow", () => {
         await updaterModule.runManualUpdateCheck();
 
         expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
-        expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+        expect(useUiStore.getState().toastMessage).toMatchObject({
+          message: "アップデートの確認に失敗しました",
+          severity: "error",
+        });
       } finally {
         warnSpy.mockRestore();
         errorSpy.mockRestore();
@@ -360,6 +363,7 @@ describe("use-updater background download flow", () => {
 
         expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
         expect(useUiStore.getState().toastMessage?.message).toBe("最新バージョンです");
+        expect(useUiStore.getState().toastMessage?.severity).toBeUndefined();
       } finally {
         vi.useRealTimers();
       }
@@ -439,6 +443,7 @@ describe("use-updater background download flow", () => {
       await flushMicrotasksAndRealTimer();
 
       expect(useUiStore.getState().toastMessage?.message).toContain("現在のバージョンを引き続き使用します");
+      expect(useUiStore.getState().toastMessage?.severity).toBe("error");
       expect(useUiStore.getState().toastMessage?.persistent).toBe(true);
       expect(useUiStore.getState().toastMessage?.variant).toBe("update");
       expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
@@ -694,6 +699,7 @@ describe("use-updater background download flow", () => {
 
       expect(useUiStore.getState().toastMessage).toMatchObject({
         message: sharedOperationBusyMessageJa,
+        severity: "error",
         persistent: true,
         variant: "update",
       });
