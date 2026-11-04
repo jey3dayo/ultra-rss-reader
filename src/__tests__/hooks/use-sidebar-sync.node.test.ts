@@ -3,6 +3,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { SyncResultDto } from "@/api/schemas/sync-result";
 import {
   isSidebarSyncCompletedPayload,
   resetSidebarSyncDiagnosticsForTests,
@@ -193,6 +194,79 @@ describe("resolveSidebarLastSyncedLabel", () => {
     });
 
     expect(showToast).toHaveBeenCalledWith({ message: expect.any(String), severity: "error" });
+  });
+
+  it.each<[string, SyncResultDto, "error" | "warning"]>([
+    [
+      "partial failure",
+      {
+        synced: true,
+        total: 2,
+        succeeded: 1,
+        failed: [{ account_id: "a", account_name: "Local", message: "failed" }],
+        warnings: [],
+      },
+      "error",
+    ],
+    [
+      "retry pending",
+      {
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [
+          { account_id: "a", account_name: "FreshRSS", kind: "retry_pending", message: "Retry later", detail: null },
+        ],
+      },
+      "warning",
+    ],
+    [
+      "warnings",
+      {
+        synced: true,
+        total: 1,
+        succeeded: 1,
+        failed: [],
+        warnings: [{ account_id: "a", account_name: "FreshRSS", kind: "generic", message: "Warn", detail: null }],
+      },
+      "warning",
+    ],
+  ])("shows a %s manual sync result with a severity", async (_name, syncResult, severity) => {
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onSuccess(syncResult);
+    });
+    const showToast = vi.fn();
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ showToast })), {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+
+    expect(showToast).toHaveBeenCalledWith({ message: expect.any(String), severity });
+  });
+
+  it.each<[string, SyncResultDto]>([
+    ["clean success", { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] }],
+    ["already in progress", { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] }],
+  ])("keeps a %s manual sync result as a plain toast", async (_name, syncResult) => {
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onSuccess(syncResult);
+    });
+    const showToast = vi.fn();
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams({ showToast })), {
+      wrapper: createQueryWrapper().wrapper,
+    });
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+
+    expect(showToast).toHaveBeenCalledWith(expect.any(String));
   });
 
   it("keeps the manual sync cooldown notice as a plain toast without a severity", async () => {

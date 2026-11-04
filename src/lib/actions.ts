@@ -10,6 +10,7 @@ import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocus
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import {
+  buildSyncFeedbackToast,
   getSyncWarningDetailTranslationKey,
   resolveSyncFeedbackMessage,
   summarizeSyncResult,
@@ -326,7 +327,7 @@ function runSyncAllAction(action: AppAction, store: UiStoreState): void {
               i18n.t("sidebar:sync_local_feed_failures_details"),
             )
           : null;
-        store.showToast(action ? { message, actions: [action] } : message);
+        store.showToast(buildSyncFeedbackToast(feedback, message, action));
       },
       onError: (e) => {
         logGlobalActionFailure(action, "sync", e);

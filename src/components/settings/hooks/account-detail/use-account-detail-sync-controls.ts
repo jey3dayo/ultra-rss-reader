@@ -13,6 +13,7 @@ import {
   queryKeys,
 } from "@/lib/query/query-invalidation";
 import {
+  buildSyncFeedbackToast,
   getSyncWarningDetailTranslationKey,
   resolveSyncFeedbackMessage,
   summarizeSyncResult,
@@ -265,7 +266,7 @@ export function useAccountDetailSyncControls({
                 t("account.sync_local_feed_failures_details"),
               )
             : null;
-          useUiStore.getState().showToast(action ? { message, actions: [action] } : message);
+          useUiStore.getState().showToast(buildSyncFeedbackToast(feedback, message, action));
         }),
         Result.inspectError(showSyncError),
       );

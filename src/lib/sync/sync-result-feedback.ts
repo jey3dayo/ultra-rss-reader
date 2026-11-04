@@ -5,6 +5,7 @@ import type {
   SyncIssueOwner,
   SyncResultDto,
 } from "@/api/schemas/sync-result";
+import type { ToastAction, ToastData, ToastSeverity } from "@/lib/ui/toast.types";
 
 export type SyncFeedback = (
   | { kind: "already-in-progress" }
@@ -413,4 +414,36 @@ export function resolveSyncFeedbackMessage(feedback: SyncFeedback, messages: Syn
       break;
   }
   return appendLocalFeedSyncFailureSummary(message, feedback, messages);
+}
+
+export function resolveSyncFeedbackSeverity(
+  feedback: SyncFeedback,
+): Extract<ToastSeverity, "error" | "warning"> | undefined {
+  switch (feedback.kind) {
+    case "partial-failure":
+      return "error";
+    case "retry-scheduled":
+    case "retry-pending":
+    case "warnings":
+      return "warning";
+    case "already-in-progress":
+    case "success":
+      return undefined;
+  }
+}
+
+export function buildSyncFeedbackToast(
+  feedback: SyncFeedback,
+  message: string,
+  action: ToastAction | null,
+): string | ToastData {
+  const severity = resolveSyncFeedbackSeverity(feedback);
+  if (!action && !severity) {
+    return message;
+  }
+  return {
+    message,
+    ...(action ? { actions: [action] } : {}),
+    ...(severity ? { severity } : {}),
+  };
 }

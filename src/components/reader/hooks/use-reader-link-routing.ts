@@ -74,7 +74,7 @@ export function useReaderLinkRouting(scopeKey: string) {
       invalidatePendingConfirm();
       const url = resolveReaderLinkUrl(href, baseUrl);
       if (!url) {
-        useUiStore.getState().showToast(t("reader_link_invalid"));
+        useUiStore.getState().showToast({ message: t("reader_link_invalid"), severity: "error" });
         return;
       }
 

@@ -345,7 +345,7 @@ describe("FeedEditDialog", () => {
     await user.clear(screen.getByLabelText(/title/i));
     await user.click(screen.getByRole("button", { name: /save/i }));
 
-    expect(useUiStore.getState().toastMessage?.message).toBe("Title is required");
+    expect(useUiStore.getState().toastMessage).toMatchObject({ message: "Title is required", severity: "error" });
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(calls.find((call) => call.cmd === "rename_feed")).toBeUndefined();
   });

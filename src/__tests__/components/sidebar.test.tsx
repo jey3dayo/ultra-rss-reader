@@ -2410,6 +2410,7 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Sync completed with warnings for: FreshRSS",
+        severity: "warning",
       });
     });
   });
@@ -2427,6 +2428,7 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Sync completed with warnings for: FreshRSS, Local",
+        severity: "warning",
       });
     });
   });
