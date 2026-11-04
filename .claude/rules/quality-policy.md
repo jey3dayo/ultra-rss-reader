@@ -21,7 +21,6 @@ Knip runs as a ratchet gate in CI (`mise run quality:knip`, Toolchain job): it f
 | --- | --- |
 | `scripts/check-toolchain-contract.ts` | `mise/quality.toml` |
 | `scripts/report-dependency-licenses.ts` | `mise/quality.toml` |
-| `scripts/verify-action-pins.ts` | `mise/setup.toml` `deps:update` |
 | `scripts/ci/check-shell.ts` | `mise/lint.toml` |
 | `src/dev/prod-stubs/*.ts` | `vite.config.ts` production alias (covered by `production-dev-aliases.node.test.ts`) |
 | `src/dev/scenarios/index.ts` | dev scenario runner entry |

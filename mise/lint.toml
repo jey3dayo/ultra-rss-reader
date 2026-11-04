@@ -47,8 +47,12 @@ run = [
 description = "Offline check: every uses: has a lockfile entry and the lockfile parses"
 run = "gh-actions-lock --verify-local"
 
+["actions-lock:verify:online"]
+description = "Frozen check: lockfile covers every uses: and each locked commit is reachable upstream (needs GH_TOKEN; all locked actions must be public)"
+run = "gh-actions-lock --verify"
+
 ["lint:workflow-pins"]
-description = "Cross-repository reusable workflow calls must be pinned to commit SHAs (actions are covered by actions.lock)"
+description = "Action refs must be version tags covered by actions.lock (bare SHA only for allowlisted actions); reusable workflow calls must be commit SHAs"
 run = "node scripts/check-workflow-pins.mjs"
 
 ["audit:deps"]

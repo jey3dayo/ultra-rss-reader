@@ -1018,7 +1018,7 @@ describe("repository static contracts", () => {
     const ciTasks = extractMiseRunTasks(readRepoFile(".github/workflows/ci.yml"));
 
     expect([...new Set(ciTasks)].toSorted()).toEqual([
-      "actions-lock:verify",
+      "actions-lock:verify:online",
       "app:build:debug",
       "audit:deps",
       "audit:deps:rust",

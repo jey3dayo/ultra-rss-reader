@@ -70,7 +70,9 @@ jobs:
 
       - run: mise run quality:toolchain
 
-      - run: mise run actions-lock:verify
+      - run: mise run actions-lock:verify:online
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - run: mise run quality:react-doctor-pin
 

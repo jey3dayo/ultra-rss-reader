@@ -19,23 +19,22 @@ run = "ncu -p pnpm --target minor --format cooldown"
 description = "major 更新を含む latest 候補を確認する（何も変更しない）"
 run = "ncu -p pnpm --target latest --format cooldown"
 
-# verify-action-pins は pnpm#13923 の代償制御。--include-github-actions は
-# minimumReleaseAge を無視するため、npm deps が gate される一方で Actions の pin
-# だけが release-age の待機を素通りする。
-# 補えるのは参照の整合性だけである。SHA↔tag の照合と tag オブジェクト pin の検出は、
-# pin が指す実体が宣言どおりかを検査するもので、公開から 24 時間待つことの代替には
-# ならない。Actions 側の待機は依然として未実装であり、この検査で塞げるのは
-# pin のすり替えと可変 tag への依存だけである。
-# ネットワークと gh 認証を要するので lint / check / ci には入れない。
+# GitHub Actions の更新は pnpm では行わない。--include-github-actions は uses: を SHA へ書き換え、
+# minimumReleaseAge も無視する（pnpm#13923）。更新手順は .claude/rules/release-workflow.md。
+# 候補の確認だけを行う read-only の入口。Latest は release-age を見ないので、
+# 公開から 7 日以上の版かを確認してから上げる。古い依存があると pnpm は exit 1 を返す。
+["deps:outdated:actions"]
+description = "GitHub Actions を含む候補を確認する（何も変更しない。Latest は公開 7 日未満を含む）"
+run = "pnpm outdated --include-github-actions"
+
 # 更新の pnpm 呼び出しだけを run-guarded-pnpm-update.ts 経由にする。strict は TTY では
 # abort せず承認を求め、承認すると理由も owner も日付も無い例外が書き込まれて先へ進む。
 # runner は CI=true と非 TTY stdin を子プロセスにだけ与えて prompt を消し、pnpm の終了
 # コードをそのまま返す。CI は後続の mise run ci へは渡さない。
 ["deps:update"]
-description = "Update npm deps and GitHub Actions pins, then verify pins and run the full gate"
+description = "Update npm deps (GitHub Actions are not touched), then run the full gate"
 run = """
 node ./scripts/run-guarded-pnpm-update.ts
-node ./scripts/verify-action-pins.ts
 mise run ci
 git status --short
 """
