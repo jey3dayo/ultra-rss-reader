@@ -15,6 +15,7 @@ import {
   Input,
   LabeledControlRow,
   SettingsInfoPopover,
+  SurfaceCard,
 } from "@/design-system";
 import { handleMuteKeywordScopeSelectValue } from "./mute-keyword-scope-select";
 
@@ -49,9 +50,11 @@ export type MuteSettingsViewProps = {
   onAdd: () => void;
   addDisabled: boolean;
   addPending?: boolean;
+  addErrorMessage?: string | null;
   savedHeading: string;
   emptyState: string;
   rules: MuteSettingsKeywordRow[];
+  ruleScopeErrorMessage?: string | null;
   savedScopeAriaLabel: (keyword: string) => string;
   onRuleScopeChange: (ruleId: string, scope: MuteKeywordScope) => void;
   deleteLabel: string;
@@ -63,15 +66,29 @@ export type MuteSettingsViewProps = {
   autoMarkReadHint: string;
   autoMarkReadSummary: string;
   autoMarkReadInfoAriaLabel: string;
+  autoMarkReadErrorMessage?: string | null;
   onAutoMarkReadChange: (checked: boolean) => void;
   confirmOpen: boolean;
   confirmMessage: string;
   confirmActionLabel: string;
   confirmPending?: boolean;
+  confirmErrorMessage?: string | null;
   cancelLabel: string;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
 };
+
+function MuteSettingsErrorAlert({ message, className }: { message?: string | null; className?: string }) {
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" className={className}>
+      <p className="text-sm leading-[1.5]">{message}</p>
+    </SurfaceCard>
+  );
+}
 
 export function MuteSettingsView({
   title,
@@ -93,9 +110,11 @@ export function MuteSettingsView({
   onAdd,
   addDisabled,
   addPending = false,
+  addErrorMessage,
   savedHeading,
   emptyState,
   rules,
+  ruleScopeErrorMessage,
   savedScopeAriaLabel,
   onRuleScopeChange,
   deleteLabel,
@@ -107,11 +126,13 @@ export function MuteSettingsView({
   autoMarkReadHint,
   autoMarkReadSummary,
   autoMarkReadInfoAriaLabel,
+  autoMarkReadErrorMessage,
   onAutoMarkReadChange,
   confirmOpen,
   confirmMessage,
   confirmActionLabel,
   confirmPending = false,
+  confirmErrorMessage,
   cancelLabel,
   onConfirmDelete,
   onCancelDelete,
@@ -176,6 +197,7 @@ export function MuteSettingsView({
                     {addLabel}
                   </SettingsLoadingActionButton>
                 </div>
+                <MuteSettingsErrorAlert message={addErrorMessage} />
               </form>
             </SettingsSection>
 
@@ -198,6 +220,7 @@ export function MuteSettingsView({
                   onCheckedChange={onAutoMarkReadChange}
                 />
               </LabeledControlRow>
+              <MuteSettingsErrorAlert message={autoMarkReadErrorMessage} className="mt-2.5" />
             </SettingsSection>
           </div>
 
@@ -208,6 +231,7 @@ export function MuteSettingsView({
             headingClassName="mb-2"
             contentClassName="[&>*:first-child]:pt-0 [&>*:last-child]:pb-0"
           >
+            <MuteSettingsErrorAlert message={ruleScopeErrorMessage} className="mb-2" />
             {rules.length === 0 ? (
               <p
                 {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
@@ -279,6 +303,7 @@ export function MuteSettingsView({
         icon={AlertTriangle}
         confirmDisabled={confirmPending}
         cancelDisabled={confirmPending}
+        errorMessage={confirmErrorMessage}
         onOpenChange={(open) => !open && onCancelDelete()}
         onConfirm={onConfirmDelete}
         onCancel={onCancelDelete}

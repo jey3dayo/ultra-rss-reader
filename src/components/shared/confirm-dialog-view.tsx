@@ -13,6 +13,7 @@ import {
 } from "react";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { stateSurfaceButtonVariants } from "@/components/shared/state-surface-button";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -133,6 +134,7 @@ type ConfirmDialogViewProps = {
   icon?: ConfirmDialogIcon;
   confirmDisabled?: boolean;
   cancelDisabled?: boolean;
+  errorMessage?: string | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -234,6 +236,7 @@ export function ConfirmDialogView({
   icon,
   confirmDisabled = false,
   cancelDisabled = false,
+  errorMessage,
   onOpenChange,
   onConfirm,
   onCancel,
@@ -268,6 +271,11 @@ export function ConfirmDialogView({
       >
         <div className="flex min-w-0 flex-col gap-6 text-left">
           <ConfirmDialogHeader title={title} message={message} Icon={Icon} tone={tone} />
+          {errorMessage ? (
+            <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+              <p className="text-sm leading-[1.5]">{errorMessage}</p>
+            </SurfaceCard>
+          ) : null}
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <Button
               variant="ghost"

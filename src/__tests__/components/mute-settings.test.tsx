@@ -62,6 +62,15 @@ function getElementAt<T>(items: T[], index: number, label: string): T {
   return item;
 }
 
+function getSectionByHeading(name: string): HTMLElement {
+  const section = screen.getByRole("heading", { name }).closest("section");
+  if (!section) {
+    throw new Error(`expected heading "${name}" to be inside a section`);
+  }
+
+  return section;
+}
+
 function getDeleteButtonFrom(buttons: HTMLElement[], index: number): HTMLElement {
   const button = buttons[index];
   if (!button) {
@@ -138,6 +147,7 @@ describe("MuteSettings", () => {
     });
     expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveValue("");
     expect(screen.getByRole("combobox", { name: "Scope" })).toHaveTextContent("Body");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("keeps the add draft when mute keyword creation fails", async () => {
@@ -338,6 +348,7 @@ describe("MuteSettings", () => {
     });
     expect(showToast).toHaveBeenCalledTimes(1);
     expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("first failed"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("opens and cancels the delete confirmation without deleting", async () => {
@@ -553,5 +564,103 @@ describe("MuteSettings", () => {
 
     expect(switchControl).not.toBeChecked();
     expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("first failed"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps a mute keyword creation failure visible in the add form, not only in the toast", async () => {
+    const user = userEvent.setup();
+    createMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("keyword already muted"));
+
+    render(<MuteSettings />);
+
+    const keywordInput = screen.getByRole("textbox", { name: "Keyword" });
+    await user.type(keywordInput, "spoiler alert");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    const form = keywordInput.closest("form");
+    if (!form) {
+      throw new Error("Expected mute keyword input to be inside a form");
+    }
+    expect(await within(form).findByRole("alert")).toHaveTextContent(
+      "Failed to add mute keyword: keyword already muted",
+    );
+  });
+
+  it("clears the creation failure when the user edits the keyword", async () => {
+    const user = userEvent.setup();
+    createMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("keyword already muted"));
+
+    render(<MuteSettings />);
+
+    const keywordInput = screen.getByRole("textbox", { name: "Keyword" });
+    await user.type(keywordInput, "spoiler alert");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.type(keywordInput, "s");
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps a mute keyword deletion failure visible in the confirmation dialog, not only in the toast", async () => {
+    const user = userEvent.setup();
+    deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("database is locked"));
+
+    render(<MuteSettings />);
+
+    await user.click(getDeleteButtonAt(0));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Failed to delete mute keyword: database is locked",
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("clears the deletion failure when the confirmation dialog is closed and reopened", async () => {
+    const user = userEvent.setup();
+    deleteMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("database is locked"));
+
+    render(<MuteSettings />);
+
+    await user.click(getDeleteButtonAt(0));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
+    expect(await within(screen.getByRole("dialog")).findByRole("alert")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    await user.click(getDeleteButtonAt(0));
+
+    expect(within(screen.getByRole("dialog")).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps a saved rule scope update failure visible in the saved keywords section, not only in the toast", async () => {
+    const user = userEvent.setup();
+    updateMuteKeywordMutateAsyncMock.mockRejectedValueOnce(new Error("database is locked"));
+
+    render(<MuteSettings />);
+
+    await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
+    await user.click(await screen.findByRole("option", { name: "Body" }));
+
+    expect(await within(getSectionByHeading("Saved keywords")).findByRole("alert")).toHaveTextContent(
+      "Failed to update mute keyword: database is locked",
+    );
+  });
+
+  it("keeps an auto mark as read failure visible in the behavior section, not only in the toast", async () => {
+    const user = userEvent.setup();
+    setMuteAutoMarkReadMutateAsyncMock.mockRejectedValueOnce(new Error("preference write failed"));
+
+    render(<MuteSettings />);
+
+    await user.click(screen.getByRole("switch", { name: "Auto mark as read" }));
+
+    expect(await within(getSectionByHeading("Behavior")).findByRole("alert")).toHaveTextContent(
+      "Failed to update auto mark as read: preference write failed",
+    );
   });
 });

@@ -29,6 +29,15 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const WithError: Story = {
+  args: {
+    title: "Delete",
+    variant: "destructive",
+    actionLabel: "Delete",
+    errorMessage: "Failed to delete mute keyword: The database is locked.",
+  },
+};
+
 export const SuccessTone: Story = {
   args: {
     message: "Mark all selected articles as read?",

@@ -67,6 +67,7 @@ const requiredSharedStoryExportsByFilePath = {
     "FolderResetOrderConfirm",
     "SuccessTone",
     "WarningTone",
+    "WithError",
   ],
   "/src/components/shared/copyable-readonly-field-list.stories.tsx": ["CardSurface", "Plain"],
   "/src/components/shared/copyable-readonly-field.stories.tsx": ["Default", "Disabled", "EmptyValue"],
