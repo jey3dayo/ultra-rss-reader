@@ -74,6 +74,19 @@ export const Vacuuming: Story = {
   },
 };
 
+export const WithActionFailures: Story = {
+  args: {
+    actionFailures: {
+      vacuum: "Failed to optimize: database is locked",
+      backup: "Backup failed: no space left on device",
+      openLogDir: "Failed to open log directory: Check OS permissions and try again.",
+      exportProfile: "Failed to export settings profile: permission denied",
+      importProfile:
+        "Failed to import settings profile: The file is too large. Choose a settings file of 1.0 MiB or less.",
+    },
+  },
+};
+
 export const ProfileHelpOpen: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Show settings profile details" }));

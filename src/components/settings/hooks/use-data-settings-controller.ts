@@ -2,10 +2,7 @@ import { Result } from "@praha/byethrow";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { SettingsProfileImportResult } from "@/api/schemas";
-import {
-  SETTINGS_PROFILE_IMPORT_MAX_BYTES,
-  SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE,
-} from "@/api/schemas/commands/settings-profile";
+import { SETTINGS_PROFILE_IMPORT_MAX_BYTES } from "@/api/schemas/commands/settings-profile";
 import type { AppError } from "@/api/tauri-commands";
 import {
   backupDatabase,
@@ -31,10 +28,16 @@ import {
   formatBytes,
   logDatabaseRuntimeRecoverySurface,
 } from "./recovery";
-import { dataSettingsControllerReducer, initialDataSettingsControllerState } from "./reducer";
+import {
+  type DataSettingsActionFailureOperation,
+  type DataSettingsActionFailures,
+  dataSettingsControllerReducer,
+  initialDataSettingsControllerState,
+} from "./reducer";
 
 export type { DatabaseRecoveryActionSafety, DatabaseSizeStatus } from "./recovery";
 export { classifyDatabaseRuntimeRecoverySurface, formatBytes } from "./recovery";
+export type { DataSettingsActionFailures } from "./reducer";
 export { reconcileDatabaseRestoreFrontendState } from "./restore-reconciliation";
 
 type UseDataSettingsControllerParams = {
@@ -52,6 +55,7 @@ type UseDataSettingsControllerResult = {
   openingLogDir: boolean;
   exportingSettingsProfile: boolean;
   importingSettingsProfile: boolean;
+  actionFailures: DataSettingsActionFailures;
   handleVacuum: () => Promise<void>;
   handleBackupDatabase: () => Promise<void>;
   handleOpenLogDir: () => Promise<void>;
@@ -95,7 +99,7 @@ export function useDataSettingsController({
     ...getDataSettingsActionLifecycle(),
   });
   const { databaseSizeStatus, totalSize, databaseRuntimeRecoverySurface, vacuuming, openingLogDir } = state;
-  const { exportingSettingsProfile, importingSettingsProfile, backingUp } = state;
+  const { exportingSettingsProfile, importingSettingsProfile, backingUp, actionFailures } = state;
   const [controllerId] = useState<DataSettingsActionOwnerId>(() => Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
@@ -103,6 +107,15 @@ export function useDataSettingsController({
   const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
     return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
   }, []);
+
+  const clearActionFailure = (operation: DataSettingsActionFailureOperation) => {
+    dispatch({ type: "set-action-failure", operation, message: null });
+  };
+
+  const reportActionFailure = (operation: DataSettingsActionFailureOperation, message: string) => {
+    dispatch({ type: "set-action-failure", operation, message });
+    showToast(message);
+  };
 
   const fetchDbInfo = useCallback(async () => {
     databaseSizeRequestRevisionRef.current += 1;
@@ -170,6 +183,7 @@ export function useDataSettingsController({
     }
 
     setDataSettingsActionLifecycle("vacuuming", true, controllerId);
+    clearActionFailure("vacuum");
     const sizeBefore = totalSize;
     databaseSizeRequestRevisionRef.current += 1;
     const requestRevision = databaseSizeRequestRevisionRef.current;
@@ -204,13 +218,16 @@ export function useDataSettingsController({
             recoverySurface,
           });
           console.error("VACUUM failed:", error);
-          showToast(t("data.vacuum_failed", { message: getUserFacingAppErrorMessage(error) }));
+          reportActionFailure("vacuum", t("data.vacuum_failed", { message: getUserFacingAppErrorMessage(error) }));
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("VACUUM failed:", error);
-        showToast(t("data.vacuum_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }));
+        reportActionFailure(
+          "vacuum",
+          t("data.vacuum_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }),
+        );
       }
     } finally {
       setDataSettingsActionLifecycle("vacuuming", false, controllerId);
@@ -229,6 +246,7 @@ export function useDataSettingsController({
       return;
     }
 
+    clearActionFailure("backup");
     dispatch({ type: "set-backing-up", value: true });
     setSettingsLoading?.(true);
     try {
@@ -251,13 +269,16 @@ export function useDataSettingsController({
             recoverySurface,
           });
           console.error("Database backup failed:", error);
-          showToast(t("data.backup_failed", { message: getUserFacingAppErrorMessage(error) }));
+          reportActionFailure("backup", t("data.backup_failed", { message: getUserFacingAppErrorMessage(error) }));
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Database backup failed:", error);
-        showToast(t("data.backup_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }));
+        reportActionFailure(
+          "backup",
+          t("data.backup_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }),
+        );
       }
     } finally {
       if (mountedRef.current) {
@@ -273,6 +294,7 @@ export function useDataSettingsController({
     }
 
     setDataSettingsActionLifecycle("openingLogDir", true);
+    clearActionFailure("openLogDir");
     setSettingsLoading?.(true);
     dispatch({ type: "set-opening-log-dir", value: true });
     try {
@@ -283,13 +305,17 @@ export function useDataSettingsController({
             return;
           }
           console.error("Failed to open log directory:", error);
-          showToast(t("data.open_log_dir_failed", { message: getUserFacingAppErrorMessage(error) }));
+          reportActionFailure(
+            "openLogDir",
+            t("data.open_log_dir_failed", { message: getUserFacingAppErrorMessage(error) }),
+          );
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to open log directory:", error);
-        showToast(
+        reportActionFailure(
+          "openLogDir",
           t("data.open_log_dir_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }),
         );
       }
@@ -310,6 +336,7 @@ export function useDataSettingsController({
       return;
     }
 
+    clearActionFailure("exportProfile");
     dispatch({ type: "set-exporting-settings-profile", value: true });
     setSettingsLoading?.(true);
     try {
@@ -333,13 +360,17 @@ export function useDataSettingsController({
             return;
           }
           console.error("Failed to export settings profile:", error);
-          showToast(t("data.settings_profile_export_failed", { message: getUserFacingAppErrorMessage(error) }));
+          reportActionFailure(
+            "exportProfile",
+            t("data.settings_profile_export_failed", { message: getUserFacingAppErrorMessage(error) }),
+          );
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to export settings profile:", error);
-        showToast(
+        reportActionFailure(
+          "exportProfile",
           t("data.settings_profile_export_failed", {
             message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)),
           }),
@@ -364,11 +395,20 @@ export function useDataSettingsController({
       return;
     }
 
+    clearActionFailure("importProfile");
     dispatch({ type: "set-importing-settings-profile", value: true });
     setSettingsLoading?.(true);
     try {
       if (file.size > SETTINGS_PROFILE_IMPORT_MAX_BYTES) {
-        throw new Error(SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE);
+        reportActionFailure(
+          "importProfile",
+          t("data.settings_profile_import_failed", {
+            message: t("data.settings_profile_import_too_large", {
+              max: formatBytes(SETTINGS_PROFILE_IMPORT_MAX_BYTES),
+            }),
+          }),
+        );
+        return;
       }
       const profileJson = await file.text();
       Result.pipe(
@@ -385,13 +425,17 @@ export function useDataSettingsController({
             return;
           }
           console.error("Failed to import settings profile:", error);
-          showToast(t("data.settings_profile_import_failed", { message: getUserFacingAppErrorMessage(error) }));
+          reportActionFailure(
+            "importProfile",
+            t("data.settings_profile_import_failed", { message: getUserFacingAppErrorMessage(error) }),
+          );
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to import settings profile:", error);
-        showToast(
+        reportActionFailure(
+          "importProfile",
           t("data.settings_profile_import_failed", {
             message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)),
           }),
@@ -414,6 +458,7 @@ export function useDataSettingsController({
     openingLogDir,
     exportingSettingsProfile,
     importingSettingsProfile,
+    actionFailures,
     handleVacuum,
     handleBackupDatabase,
     handleOpenLogDir,

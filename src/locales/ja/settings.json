@@ -470,6 +470,7 @@
     "settings_profile_export_failed": "設定プロファイルの書き出しに失敗しました: {{message}}",
     "settings_profile_import_success": "設定プロファイルを読み込みました。アカウントは{{accountsCreated}}件追加、{{accountsUpdated}}件更新。設定は{{preferencesImported}}件、タグは{{tagsCreated}}件追加、{{tagsUpdated}}件更新。ミュートキーワードは{{muteKeywordsCreated}}件追加しました。",
     "settings_profile_import_failed": "設定プロファイルの読み込みに失敗しました: {{message}}",
+    "settings_profile_import_too_large": "ファイルが大きすぎます。{{max}} 以下の設定ファイルを選んでください。",
     "optimization": "最適化",
     "vacuum": "最適化",
     "vacuum_summary": "使われていない領域を回収します。",

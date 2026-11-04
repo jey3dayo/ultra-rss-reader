@@ -95,6 +95,36 @@ describe("DataSettings", () => {
     });
   });
 
+  it("passes the controller's per-operation failures to the view", () => {
+    const actionFailures = {
+      vacuum: "vacuum failed",
+      backup: null,
+      openLogDir: null,
+      exportProfile: "export failed",
+      importProfile: null,
+    };
+    const controller = {
+      databaseSizeStatus: "ready",
+      databaseSizeValue: "1.0 KB",
+      vacuuming: false,
+      backingUp: false,
+      openingLogDir: false,
+      exportingSettingsProfile: false,
+      importingSettingsProfile: false,
+      actionFailures,
+      handleVacuum: vi.fn(),
+      handleBackupDatabase: vi.fn(),
+      handleOpenLogDir: vi.fn(),
+      handleExportSettingsProfile: vi.fn(),
+      handleImportSettingsProfileFile: vi.fn(),
+    };
+    mocks.useDataSettingsController.mockReturnValueOnce(controller);
+
+    render(<DataSettings />);
+
+    expect(mocks.dataSettingsView).toHaveBeenCalledWith(expect.objectContaining({ actionFailures }));
+  });
+
   it("registers pending data actions as settings dirty-state blockers", () => {
     mocks.useDataSettingsController.mockReturnValueOnce({
       databaseSizeStatus: "ready",

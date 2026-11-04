@@ -1143,3 +1143,221 @@ describe("useDataSettingsController", () => {
     consoleError.mockRestore();
   });
 });
+
+describe("useDataSettingsController action failures", () => {
+  type FailureOperation = "vacuum" | "backup" | "openLogDir" | "exportProfile" | "importProfile";
+
+  const profileFile = () => new File(['{"version":1}'], "profile.json");
+  const infoSuccess = (size: number) =>
+    Result.succeed({
+      db_size_bytes: size,
+      wal_size_bytes: 0,
+      shm_size_bytes: 0,
+      total_size_bytes: size,
+    });
+  const importSuccess = Result.succeed({
+    accounts_created: 0,
+    accounts_updated: 0,
+    preferences_imported: 0,
+    preferences_skipped: 0,
+    tags_created: 0,
+    tags_updated: 0,
+    mute_keywords_created: 0,
+    mute_keywords_skipped: 0,
+  });
+
+  const operations = [
+    {
+      operation: "vacuum",
+      failureKey: "data.vacuum_failed",
+      run: (controller) => controller.handleVacuum(),
+      failOnce: (error) => vi.mocked(vacuumDatabase).mockResolvedValueOnce(Result.fail(error)),
+      rejectOnce: (error) => vi.mocked(vacuumDatabase).mockRejectedValueOnce(error),
+      succeedOnce: () => vi.mocked(vacuumDatabase).mockResolvedValueOnce(infoSuccess(512)),
+    },
+    {
+      operation: "backup",
+      failureKey: "data.backup_failed",
+      run: (controller) => controller.handleBackupDatabase(),
+      failOnce: (error) => vi.mocked(backupDatabase).mockResolvedValueOnce(Result.fail(error)),
+      rejectOnce: (error) => vi.mocked(backupDatabase).mockRejectedValueOnce(error),
+      succeedOnce: () => vi.mocked(backupDatabase).mockResolvedValueOnce(Result.succeed(null)),
+    },
+    {
+      operation: "openLogDir",
+      failureKey: "data.open_log_dir_failed",
+      run: (controller) => controller.handleOpenLogDir(),
+      failOnce: (error) => vi.mocked(openLogDir).mockResolvedValueOnce(Result.fail(error)),
+      rejectOnce: (error) => vi.mocked(openLogDir).mockRejectedValueOnce(error),
+      succeedOnce: () => vi.mocked(openLogDir).mockResolvedValueOnce(Result.succeed(null)),
+    },
+    {
+      operation: "exportProfile",
+      failureKey: "data.settings_profile_export_failed",
+      run: (controller) => controller.handleExportSettingsProfile(),
+      failOnce: (error) => vi.mocked(exportSettingsProfileToFile).mockResolvedValueOnce(Result.fail(error)),
+      rejectOnce: (error) => vi.mocked(exportSettingsProfileToFile).mockRejectedValueOnce(error),
+      succeedOnce: () => vi.mocked(exportSettingsProfileToFile).mockResolvedValueOnce(Result.succeed(null)),
+    },
+    {
+      operation: "importProfile",
+      failureKey: "data.settings_profile_import_failed",
+      run: (controller) => controller.handleImportSettingsProfileFile(profileFile()),
+      failOnce: (error) => vi.mocked(importSettingsProfile).mockResolvedValueOnce(Result.fail(error)),
+      rejectOnce: (error) => vi.mocked(importSettingsProfile).mockRejectedValueOnce(error),
+      succeedOnce: () => vi.mocked(importSettingsProfile).mockResolvedValueOnce(importSuccess),
+    },
+  ] satisfies {
+    operation: FailureOperation;
+    failureKey: string;
+    run: (controller: ReturnType<typeof useDataSettingsController>) => Promise<void>;
+    failOnce: (error: { type: "UserVisible"; message: string }) => unknown;
+    rejectOnce: (error: Error) => unknown;
+    succeedOnce: () => unknown;
+  }[];
+
+  const renderController = async () => {
+    const showToast = vi.fn();
+    const rendered = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string, options?: Record<string, string>) =>
+          options?.message === undefined ? key : `${key}: ${options.message}`) as never,
+        showToast,
+      }),
+    );
+    await waitFor(() => {
+      expect(rendered.result.current.databaseSizeStatus).toBe("ready");
+    });
+    return { ...rendered, showToast };
+  };
+
+  const noFailures = {
+    vacuum: null,
+    backup: null,
+    openLogDir: null,
+    exportProfile: null,
+    importProfile: null,
+  };
+
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each(operations)("keeps a $operation failure result in actionFailures and the toast", async (op) => {
+    op.failOnce({ type: "UserVisible", message: "disk is read-only" });
+    const { result, showToast } = await renderController();
+
+    await act(async () => {
+      await op.run(result.current);
+    });
+
+    const expected = `${op.failureKey}: disk is read-only`;
+    expect(result.current.actionFailures).toEqual({ ...noFailures, [op.operation]: expected });
+    expect(showToast).toHaveBeenCalledWith(expected);
+  });
+
+  it.each(operations)("keeps a thrown $operation failure in actionFailures and the toast", async (op) => {
+    op.rejectOnce(new Error("bridge closed"));
+    const { result, showToast } = await renderController();
+
+    await act(async () => {
+      await op.run(result.current);
+    });
+
+    const expected = `${op.failureKey}: bridge closed`;
+    expect(result.current.actionFailures).toEqual({ ...noFailures, [op.operation]: expected });
+    expect(showToast).toHaveBeenCalledWith(expected);
+  });
+
+  it.each(operations)("clears the $operation failure when the operation is retried", async (op) => {
+    op.failOnce({ type: "UserVisible", message: "disk is read-only" });
+    const { result } = await renderController();
+    await act(async () => {
+      await op.run(result.current);
+    });
+    expect(result.current.actionFailures[op.operation]).not.toBeNull();
+
+    op.succeedOnce();
+    await act(async () => {
+      await op.run(result.current);
+    });
+
+    expect(result.current.actionFailures).toEqual(noFailures);
+  });
+
+  it("keeps each operation's failure when another operation fails or succeeds afterwards", async () => {
+    vi.mocked(backupDatabase).mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "disk is full" }));
+    vi.mocked(vacuumDatabase).mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "locked" }));
+    vi.mocked(openLogDir).mockResolvedValueOnce(Result.succeed(null));
+    const { result } = await renderController();
+
+    await act(async () => {
+      await result.current.handleBackupDatabase();
+    });
+    await act(async () => {
+      await result.current.handleVacuum();
+    });
+    await act(async () => {
+      await result.current.handleOpenLogDir();
+    });
+
+    expect(result.current.actionFailures).toEqual({
+      ...noFailures,
+      backup: "data.backup_failed: disk is full",
+      vacuum: "data.vacuum_failed: locked",
+    });
+  });
+
+  it("shows no export failure when the save location picker is canceled after an earlier failure", async () => {
+    vi.mocked(exportSettingsProfileToFile).mockResolvedValueOnce(
+      Result.fail({ type: "UserVisible", message: "permission denied" }),
+    );
+    const { result, showToast } = await renderController();
+    await act(async () => {
+      await result.current.handleExportSettingsProfile();
+    });
+    expect(result.current.actionFailures.exportProfile).not.toBeNull();
+    showToast.mockClear();
+
+    vi.mocked(showSaveDialog).mockResolvedValueOnce(null);
+    await act(async () => {
+      await result.current.handleExportSettingsProfile();
+    });
+
+    expect(result.current.actionFailures).toEqual(noFailures);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("tells the user in their language that an oversized settings file is too large to import", async () => {
+    const file = new File(["a".repeat(SETTINGS_PROFILE_IMPORT_MAX_BYTES + 1)], "profile.json");
+    const showToast = vi.fn();
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string, options?: Record<string, string>) => {
+          if (key === "data.settings_profile_import_too_large") {
+            return `too large (max ${options?.max})`;
+          }
+          return options?.message === undefined ? key : `${key}: ${options.message}`;
+        }) as never,
+        showToast,
+      }),
+    );
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleImportSettingsProfileFile(file);
+    });
+
+    const expected = "data.settings_profile_import_failed: too large (max 1.0 MiB)";
+    expect(result.current.actionFailures.importProfile).toBe(expected);
+    expect(showToast).toHaveBeenCalledWith(expected);
+    expect(importSettingsProfile).not.toHaveBeenCalled();
+  });
+});

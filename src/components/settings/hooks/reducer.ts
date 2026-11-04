@@ -13,6 +13,10 @@ import type { DatabaseRuntimeRecoverySurface, DatabaseSizeStatus } from "./recov
  * reducer. A ready database size also clears an older recovery surface, while
  * an error preserves the classified surface for the view to render.
  */
+export type DataSettingsActionFailureOperation = "vacuum" | "backup" | "openLogDir" | "exportProfile" | "importProfile";
+
+export type DataSettingsActionFailures = Record<DataSettingsActionFailureOperation, string | null>;
+
 export type DataSettingsControllerState = {
   databaseSizeStatus: DatabaseSizeStatus;
   totalSize: number | null;
@@ -22,6 +26,7 @@ export type DataSettingsControllerState = {
   openingLogDir: boolean;
   exportingSettingsProfile: boolean;
   importingSettingsProfile: boolean;
+  actionFailures: DataSettingsActionFailures;
 };
 
 export type DataSettingsControllerAction =
@@ -38,7 +43,8 @@ export type DataSettingsControllerAction =
   | { type: "set-backing-up"; value: boolean }
   | { type: "set-opening-log-dir"; value: boolean }
   | { type: "set-exporting-settings-profile"; value: boolean }
-  | { type: "set-importing-settings-profile"; value: boolean };
+  | { type: "set-importing-settings-profile"; value: boolean }
+  | { type: "set-action-failure"; operation: DataSettingsActionFailureOperation; message: string | null };
 
 /**
  * The action union intentionally contains only render state. Native calls,
@@ -55,6 +61,13 @@ export const initialDataSettingsControllerState: DataSettingsControllerState = {
   openingLogDir: false,
   exportingSettingsProfile: false,
   importingSettingsProfile: false,
+  actionFailures: {
+    vacuum: null,
+    backup: null,
+    openLogDir: null,
+    exportProfile: null,
+    importProfile: null,
+  },
 };
 
 /**
@@ -95,6 +108,8 @@ export function dataSettingsControllerReducer(
       return { ...state, exportingSettingsProfile: action.value };
     case "set-importing-settings-profile":
       return { ...state, importingSettingsProfile: action.value };
+    case "set-action-failure":
+      return { ...state, actionFailures: { ...state.actionFailures, [action.operation]: action.message } };
     default:
       return state;
   }
