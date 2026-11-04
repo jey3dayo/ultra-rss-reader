@@ -492,6 +492,7 @@ describe("executeAction node contracts", () => {
       await vi.waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:sidebar:sync_partial_failure:Local",
+          severity: "error",
         });
       });
 
@@ -544,6 +545,7 @@ describe("executeAction node contracts", () => {
       await vi.waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:sidebar:sync_completed_with_warnings:FreshRSS",
+          severity: "warning",
         });
       });
 
@@ -575,6 +577,7 @@ describe("executeAction node contracts", () => {
       await vi.waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:sidebar:sync_completed_with_retry_pending:FreshRSS",
+          severity: "warning",
         });
       });
 

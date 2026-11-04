@@ -71,7 +71,7 @@ export function useLocalFeedSyncStatuses(accountId: string | null) {
       } else if (feedback.kind === "success") {
         showToast(t("fetch_error_retry_succeeded"));
       } else {
-        showToast(t("fetch_error_retry_incomplete"));
+        showToast({ message: t("fetch_error_retry_incomplete"), severity: "warning" });
       }
     },
     onError: (_error, variables) => {

@@ -524,6 +524,51 @@ describe("useAccountDetailDangerZone", () => {
     }
   });
 
+  it("shows the paused local sync import as a warning toast", async () => {
+    const queryClient = createTestQueryClient();
+    importLocalAccountSyncOperationsMock.mockResolvedValue(
+      Result.succeed({
+        loaded_operations: 4,
+        foreign_operations_skipped: 0,
+        applied_operations: 0,
+        rejected_operations: 2,
+        rejected_files: 1,
+        conflicted_candidates: 1,
+        applied: false,
+        folders_upserted: 0,
+        feeds_upserted: 0,
+        article_states_applied: 0,
+        tags_upserted: 0,
+        tags_removed: 0,
+        article_tags_added: 0,
+        article_tags_removed: 0,
+        mute_keywords_upserted: 0,
+        mute_keywords_removed: 0,
+        unmatched_article_keys: 0,
+        skipped_removed_tags: 0,
+        conflict_count: 1,
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient,
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleImportLocalSyncOperations();
+    });
+
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: t("account.local_sync_import_blocked", { rejected: 1, conflicted: 1 }),
+      severity: "warning",
+    });
+  });
+
   it("populates the local sync enabled toggle from loaded settings, defaulting to true when unset", async () => {
     getLocalAccountSyncSettingsMock.mockResolvedValue(
       Result.succeed({

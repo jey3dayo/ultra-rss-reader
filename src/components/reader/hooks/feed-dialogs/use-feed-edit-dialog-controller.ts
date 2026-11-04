@@ -111,7 +111,7 @@ export function useFeedEditDialogController({
 
     try {
       if (!title.trim()) {
-        showToast(t("title_required", { defaultValue: "Title is required" }));
+        showToast({ message: t("title_required", { defaultValue: "Title is required" }), severity: "error" });
         return;
       }
 

@@ -3,10 +3,13 @@ import type { AccountSyncWarning, AccountSyncWarningDetail } from "@/api/schemas
 import i18n from "@/lib/i18n";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
+  buildSyncFeedbackToast,
   getSyncIssueDiagnosticsDetails,
   getSyncWarningAccountNames,
   getSyncWarningDetailTranslationKey,
   resolveSyncFeedbackMessage,
+  resolveSyncFeedbackSeverity,
+  type SyncFeedback,
   type SyncFeedbackPublicCopy,
   summarizeSyncResult,
   summarizeSyncWarnings,
@@ -1063,4 +1066,56 @@ describe("sync_warning_detail locale rendering", () => {
       }
     },
   );
+});
+
+describe("resolveSyncFeedbackSeverity", () => {
+  const retryDetail = { detail: null, remainingWarningCount: 0 };
+
+  it.each<[string, SyncFeedback, "error" | "warning" | undefined]>([
+    ["already-in-progress", { kind: "already-in-progress" }, undefined],
+    ["partial-failure", { kind: "partial-failure", accounts: "Local" }, "error"],
+    [
+      "partial-failure with local feed failures",
+      { kind: "partial-failure", accounts: "Local", localFeedSyncFailureCount: 1 },
+      "error",
+    ],
+    ["retry-scheduled", { kind: "retry-scheduled", accounts: "FreshRSS", ...retryDetail }, "warning"],
+    ["retry-pending", { kind: "retry-pending", accounts: "FreshRSS", ...retryDetail }, "warning"],
+    ["warnings", { kind: "warnings", accounts: "FreshRSS", ...retryDetail }, "warning"],
+    ["success", { kind: "success" }, undefined],
+  ])("maps %s", (_name, feedback, expected) => {
+    expect(resolveSyncFeedbackSeverity(feedback)).toBe(expected);
+  });
+});
+
+describe("buildSyncFeedbackToast", () => {
+  const action = { label: "View details", onClick: () => undefined };
+
+  it("keeps a clean result without an action as a plain string", () => {
+    expect(buildSyncFeedbackToast({ kind: "success" }, "done", null)).toBe("done");
+  });
+
+  it("adds the severity only when the feedback has one", () => {
+    expect(buildSyncFeedbackToast({ kind: "partial-failure", accounts: "Local" }, "failed", null)).toEqual({
+      message: "failed",
+      severity: "error",
+    });
+  });
+
+  it("keeps the action on a result without a severity", () => {
+    expect(buildSyncFeedbackToast({ kind: "success" }, "done", action)).toEqual({
+      message: "done",
+      actions: [action],
+    });
+  });
+
+  it("carries both the action and the severity", () => {
+    expect(
+      buildSyncFeedbackToast(
+        { kind: "warnings", accounts: "FreshRSS", detail: null, remainingWarningCount: 0 },
+        "warn",
+        action,
+      ),
+    ).toEqual({ message: "warn", actions: [action], severity: "warning" });
+  });
 });

@@ -23,7 +23,7 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
-import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
+import { buildSyncFeedbackToast, summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
 import type { ToastData } from "@/lib/ui/toast.types";
 import type { SyncProgressUiState } from "@/stores/ui-store";
 import { resolveSidebarSyncFeedbackMessage } from "../../sidebar-sync-feedback";
@@ -330,7 +330,7 @@ export function useSidebarSync({
                 t("sync_local_feed_failures_details"),
               )
             : null;
-          showToast(action ? { message, actions: [action] } : message);
+          showToast(buildSyncFeedbackToast(feedback, message, action));
         }
       }),
     ]);
@@ -372,7 +372,7 @@ export function useSidebarSync({
         const action = feedback.localFeedSyncFailureAccountId
           ? createFetchErrorsToastAction(feedback.localFeedSyncFailureAccountId, t("sync_local_feed_failures_details"))
           : null;
-        showToast(action ? { message, actions: [action] } : message);
+        showToast(buildSyncFeedbackToast(feedback, message, action));
       },
       onError: (error) => {
         invalidateAccountSyncStatuses("manual-sync-completed");

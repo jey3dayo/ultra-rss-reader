@@ -374,10 +374,13 @@ export function useAccountDetailDangerZone({
           useUiStore.getState().showToast(
             report.applied
               ? t("account.local_sync_import_success", { count: report.applied_operations })
-              : t("account.local_sync_import_blocked", {
-                  rejected: report.rejected_files,
-                  conflicted: report.conflicted_candidates,
-                }),
+              : {
+                  message: t("account.local_sync_import_blocked", {
+                    rejected: report.rejected_files,
+                    conflicted: report.conflicted_candidates,
+                  }),
+                  severity: "warning",
+                },
           );
         }),
       );

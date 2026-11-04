@@ -68,6 +68,7 @@ describe("reader link navigation", () => {
     expect(useUiStore.getState().confirmDialog.open).toBe(false);
     expect(openInBrowserMock).not.toHaveBeenCalled();
     expect(useUiStore.getState().toastMessage?.message).not.toContain("secret");
+    expect(useUiStore.getState().toastMessage?.severity).toBe("error");
   });
 
   it("does not let confirmation cancel bypass the routing policy", () => {

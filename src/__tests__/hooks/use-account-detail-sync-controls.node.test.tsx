@@ -356,6 +356,48 @@ describe("useAccountDetailSyncControls", () => {
     expect(result.current.syncNowSucceeded).toBe(false);
   });
 
+  it.each([
+    [
+      "partial failure",
+      { ...successfulSyncResult, failed: [{ account_id: "acc-fail", account_name: "FreshRSS" }] },
+      "error",
+    ],
+    [
+      "retry pending",
+      {
+        ...successfulSyncResult,
+        warnings: [
+          { account_id: "acc-warn", account_name: "FreshRSS", kind: "retry_pending" as const, message: "Retry later" },
+        ],
+      },
+      "warning",
+    ],
+    [
+      "generic warning",
+      {
+        ...successfulSyncResult,
+        warnings: [{ account_id: "acc-warn", account_name: "FreshRSS", kind: "generic" as const, message: "Warn" }],
+      },
+      "warning",
+    ],
+    ["clean success", successfulSyncResult, undefined],
+  ] as const)("sets the manual sync toast severity for %s", async (_name, syncResult, expectedSeverity) => {
+    const account = sampleAccounts[1];
+    syncAccountMock.mockResolvedValue(Result.succeed(syncResult));
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    await act(async () => {
+      await result.current.handleSyncNow();
+    });
+
+    const toast = useUiStore.getState().toastMessage;
+    expect(toast?.severity).toBe(expectedSeverity);
+    expect(toast).not.toBeNull();
+  });
+
   it("shows the local feed count and opens fetch errors while preserving in-progress review decisions", async () => {
     const account = { ...sampleAccounts[0], id: "local-account", kind: "Local" };
     const queryClient = createTestQueryClient();
@@ -414,6 +456,7 @@ describe("useAccountDetailSyncControls", () => {
     expect(toast).toMatchObject({
       message: "Sync completed. Some feeds could not be updated (1).",
       actions: [{ label: "View details" }],
+      severity: "warning",
     });
     listAccountsMock.mockResolvedValue(Result.succeed([account]));
 
