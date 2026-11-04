@@ -155,12 +155,6 @@ jobs:
             job_timeout_minutes: 60
           - os: macos-latest
             job_timeout_minutes: 90
-    # macOS hosted runners are scarce; serialize macOS jobs in this workflow run so
-    # clippy and native-smoke do not queue two 15-minute cancels with zero steps.
-    concurrency:
-      group: ci-macos-hosted-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ matrix.os == 'macos-latest' && 'macos' || matrix.os }}
-      cancel-in-progress: false
-
     steps:
       - uses: actions/checkout@v6.1.0
 
@@ -401,7 +395,9 @@ jobs:
 
   native-smoke:
     name: "Check: Native Smoke"
-    needs: change-plan
+    # After rust-clippy so only one macOS job is queued at a time; parallel macOS
+    # clippy + smoke both hit the ~15m hosted queue cancel with zero steps.
+    needs: [change-plan, rust-clippy]
     if: needs.change-plan.outputs.native == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.job_timeout_minutes }}
@@ -413,9 +409,6 @@ jobs:
             job_timeout_minutes: 45
           - os: windows-latest
             job_timeout_minutes: 30
-    concurrency:
-      group: ci-macos-hosted-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-${{ matrix.os == 'macos-latest' && 'macos' || matrix.os }}
-      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v6.1.0
