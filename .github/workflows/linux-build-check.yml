@@ -29,17 +29,17 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@v6.1.0
 
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@v4.3.0
 
-      - uses: ./.github/actions/setup-pnpm
+      - uses: $/.github/actions/setup-pnpm
 
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # v1 line: toolchain input is required
         with:
           toolchain: stable
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@v2.9.2
         with:
           workspaces: src-tauri
           shared-key: linux-build-check-${{ hashFiles('src-tauri/Cargo.lock') }}
@@ -63,7 +63,7 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
+      - uses: tauri-apps/tauri-action@v0.6.2
         with:
           args: >-
             --config src-tauri/tauri.release.conf.json
@@ -90,7 +90,7 @@ jobs:
 
           echo "::notice::found $deb_count .deb and $appimage_count .AppImage artifact(s)"
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: linux-build-check-bundles
           path: |

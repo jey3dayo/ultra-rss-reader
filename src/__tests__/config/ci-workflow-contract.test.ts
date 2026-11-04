@@ -48,7 +48,7 @@ describe("CI workflow contract", () => {
 
     for (const { jobId, section } of checkJobSections) {
       const miseIndex = section.indexOf("uses: jdx/mise-action@");
-      const setupIndex = section.indexOf("uses: ./.github/actions/setup-pnpm");
+      const setupIndex = section.indexOf("uses: $/.github/actions/setup-pnpm");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
       expect(miseIndex, `${jobId} should install Node through mise`).toBeGreaterThanOrEqual(0);
@@ -56,7 +56,7 @@ describe("CI workflow contract", () => {
       expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
     }
 
-    expect(setupAction).toContain("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
+    expect(setupAction).toContain("uses: pnpm/setup@");
     expect(setupAction).not.toContain("runtime:");
     expect(setupAction).toContain("cache: true");
     expect(setupAction).toContain("install: false");
@@ -122,7 +122,7 @@ describe("CI workflow contract", () => {
       expect(jobSection, `${jobId} should keep Tauri dependency setup Linux-only`).toContain(
         "if: matrix.os == 'ubuntu-latest'",
       );
-      expect(jobSection).toContain("uses: ./.github/actions/setup-tauri-linux-deps");
+      expect(jobSection).toContain("uses: $/.github/actions/setup-tauri-linux-deps");
       const dependencyScript = readRepoFile("scripts/ci/install-tauri-deps.sh");
       expect(dependencyScript, `${jobId} should check apt source files before editing`).toContain(
         'if [ -f "$apt_source" ]; then',

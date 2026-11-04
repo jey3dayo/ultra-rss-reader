@@ -3,14 +3,9 @@ import path from "node:path";
 
 const errors = [];
 const workflowsDir = process.env.WORKFLOW_PINS_WORKFLOWS_DIR ?? ".github/workflows";
-const hasActionsDirOverride = process.env.WORKFLOW_PINS_ACTIONS_DIR !== undefined;
-const actionsDir = process.env.WORKFLOW_PINS_ACTIONS_DIR ?? ".github/actions";
 
-function collectYamlPaths(directory, recursive = false, optional = false) {
+function collectWorkflowPaths(directory) {
   if (!fs.existsSync(directory)) {
-    if (optional) {
-      return [];
-    }
     throw new Error(`Required directory does not exist: ${directory}`);
   }
   if (!fs.statSync(directory).isDirectory()) {
@@ -19,20 +14,11 @@ function collectYamlPaths(directory, recursive = false, optional = false) {
 
   return fs
     .readdirSync(directory, { withFileTypes: true })
-    .flatMap((entry) => {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory() && recursive) {
-        return collectYamlPaths(entryPath, recursive);
-      }
-      return entry.isFile() && /\.ya?ml$/.test(entry.name) ? [entryPath] : [];
-    })
+    .flatMap((entry) => (entry.isFile() && /\.ya?ml$/.test(entry.name) ? [path.join(directory, entry.name)] : []))
     .sort();
 }
 
-const sourcePaths = [
-  ...collectYamlPaths(workflowsDir),
-  ...collectYamlPaths(actionsDir, true, !hasActionsDirOverride),
-].sort();
+const sourcePaths = collectWorkflowPaths(workflowsDir);
 
 function readYamlScalar(rest) {
   const trimmed = rest.trimStart();
@@ -58,8 +44,10 @@ function extractWorkflowUses(workflow) {
   });
 }
 
+// actions.lock covers action references (checked by `mise run actions-lock:verify`);
+// it does not lock cross-repository reusable workflow calls, so those stay SHA-pinned.
 function shouldRequirePinnedRef(usesValue) {
-  return !usesValue.startsWith("./") && !usesValue.startsWith("../");
+  return usesValue.includes("/.github/workflows/") && !usesValue.startsWith("./");
 }
 
 for (const sourcePath of sourcePaths) {
