@@ -18,6 +18,8 @@ type UseCredentialStorageSettingResult = {
   configurable: boolean;
   loaded: boolean;
   saving: boolean;
+  errorMessage: string | null;
+  cleanupNotice: string | null;
   handleChange: (next: string) => Promise<void>;
 };
 
@@ -26,6 +28,8 @@ type CredentialStorageSettingState = {
   configurable: boolean;
   loaded: boolean;
   saving: boolean;
+  errorMessage: string | null;
+  cleanupNotice: string | null;
 };
 
 const initialCredentialStorageState: CredentialStorageSettingState = {
@@ -33,6 +37,8 @@ const initialCredentialStorageState: CredentialStorageSettingState = {
   configurable: false,
   loaded: false,
   saving: false,
+  errorMessage: null,
+  cleanupNotice: null,
 };
 
 export function useCredentialStorageSetting({
@@ -61,6 +67,8 @@ export function useCredentialStorageSetting({
         configurable: dto.configurable,
         loaded: true,
         saving: false,
+        errorMessage: null,
+        cleanupNotice: null,
       });
     })();
     return () => {
@@ -77,31 +85,31 @@ export function useCredentialStorageSetting({
         return;
       }
       savingRef.current = true;
-      setState((prev) => ({ ...prev, saving: true }));
+      setState((prev) => ({ ...prev, saving: true, errorMessage: null, cleanupNotice: null }));
       const result = await setCredentialStorage(next);
       savingRef.current = false;
       if (!mountedRef.current) {
         return;
       }
       if (Result.isFailure(result)) {
-        showToast(
-          t("data.credential_storage_failed", {
-            message: localizeUserVisibleAppErrorMessage(Result.unwrapError(result).message),
-          }),
-        );
-        setState((prev) => ({ ...prev, saving: false }));
+        const failureMessage = t("data.credential_storage_failed", {
+          message: localizeUserVisibleAppErrorMessage(Result.unwrapError(result).message),
+        });
+        showToast(failureMessage);
+        setState((prev) => ({ ...prev, saving: false, errorMessage: failureMessage }));
         return;
       }
       const dto = Result.unwrap(result);
+      const cleanupNotice = dto.cleanup_incomplete ? t("data.credential_storage_cleanup_incomplete") : null;
       setState({
         storage: dto.storage,
         configurable: dto.configurable,
         loaded: true,
         saving: false,
+        errorMessage: null,
+        cleanupNotice,
       });
-      showToast(
-        dto.cleanup_incomplete ? t("data.credential_storage_cleanup_incomplete") : t("data.credential_storage_saved"),
-      );
+      showToast(cleanupNotice ?? t("data.credential_storage_saved"));
       await invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()]);
     },
     [queryClient, showToast, t],
@@ -112,6 +120,8 @@ export function useCredentialStorageSetting({
     configurable: state.configurable,
     loaded: state.loaded,
     saving: state.saving,
+    errorMessage: state.errorMessage,
+    cleanupNotice: state.cleanupNotice,
     handleChange,
   };
 }

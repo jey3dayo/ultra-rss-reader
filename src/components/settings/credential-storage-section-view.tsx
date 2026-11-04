@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
-import { LabeledSelectRow } from "@/design-system";
+import { LabeledSelectRow, SurfaceCard } from "@/design-system";
 import type { OptionWithLabel } from "@/lib/ui/options";
 
 type CredentialStorageSectionViewProps = {
@@ -15,6 +15,8 @@ type CredentialStorageSectionViewProps = {
   loaded: boolean;
   configurable: boolean;
   saving: boolean;
+  errorMessage?: string | null;
+  cleanupNotice?: string | null;
   onStorageChange: (next: string) => void;
 };
 
@@ -29,6 +31,8 @@ export function CredentialStorageSectionView({
   loaded,
   configurable,
   saving,
+  errorMessage,
+  cleanupNotice,
   onStorageChange,
 }: CredentialStorageSectionViewProps) {
   if (!loaded || !configurable || storage === null) {
@@ -51,6 +55,16 @@ export function CredentialStorageSectionView({
         disabled={saving}
         triggerClassName="sm:min-w-[220px]"
       />
+      {errorMessage && (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{errorMessage}</p>
+        </SurfaceCard>
+      )}
+      {cleanupNotice && (
+        <SurfaceCard variant="info" tone="warning" padding="compact" role="status">
+          <p className="text-sm leading-[1.5]">{cleanupNotice}</p>
+        </SurfaceCard>
+      )}
       <p className="text-(length:--font-size-sm) leading-[1.5] text-foreground-soft">{description}</p>
       {storage === "local_file" && (
         <p
