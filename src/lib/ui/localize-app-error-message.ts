@@ -2,6 +2,7 @@ import i18n from "@/lib/i18n";
 import {
   ARTICLE_URL_CREDENTIALS_MESSAGE,
   INVALID_CLIPBOARD_TEXT_MESSAGE,
+  RESPONSE_VALIDATION_MESSAGE,
   UNSUPPORTED_HTTP_URL_MESSAGE,
 } from "@/lib/ui-errors";
 
@@ -18,6 +19,7 @@ const LOCALIZED_MESSAGE_BY_ENGLISH: ReadonlyMap<string, () => string> = new Map(
   [UNSUPPORTED_HTTP_URL_MESSAGE, () => i18n.t("errors.unsupported_http_url")],
   [ARTICLE_URL_CREDENTIALS_MESSAGE, () => i18n.t("errors.article_url_credentials")],
   [INVALID_CLIPBOARD_TEXT_MESSAGE, () => i18n.t("errors.invalid_clipboard_text")],
+  [RESPONSE_VALIDATION_MESSAGE, () => i18n.t("errors.response_validation")],
 ]);
 
 export function localizeUserVisibleAppErrorMessage(message: string): string {

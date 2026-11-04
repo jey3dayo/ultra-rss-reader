@@ -24,6 +24,7 @@
     "unsupported_http_url": "Only http:// and https:// URLs are supported",
     "article_url_credentials": "Article URLs must not include credentials",
     "invalid_clipboard_text": "Invalid clipboard text",
+    "response_validation": "The response had an unexpected format and could not be processed. Check the diagnostic log.",
     "unknown": "Unknown error"
   },
   "updater": {
