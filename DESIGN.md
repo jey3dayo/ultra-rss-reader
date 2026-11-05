@@ -267,7 +267,7 @@ Surface governance:
 
 ### Focus States
 
-- In the default themes, focus uses the `--ring` and `--focus-ring` tokens: a restrained muted blue-gray ring, paired with border emphasis where the control has a border. Components use the tokens and do not hard-code a focus color.
+- In the default themes, shared controls focus with the `--ring` and `--focus-ring` tokens: a restrained muted blue-gray ring, paired with border emphasis where the control has a border. Components use the tokens and do not hard-code a focus color. A semantic variant (the destructive button keeps its danger ring) or a control that shows focus through background and text color instead of a ring is a deliberate exception.
 - Do not choose the primary orange as a component's own focus color, and do not leave the browser's default vivid blue ring in place.
 - Loading (the progress blue) and ring (focus) are different roles. Do not borrow one for the other.
 - High-contrast and forced-colors modes redefine the same tokens in `src/styles/global.css` (a primary-tinted ring, or the system highlight color). Components keep using the tokens and do not special-case those modes.
@@ -376,7 +376,7 @@ Manual/a11y smoke:
 
 ### Breakpoints
 
-The responsive layout is chosen as a `layoutMode` by `resolveResponsiveLayoutMode` in `src/hooks/use-layout.ts`. The boundaries are `MOBILE_LAYOUT_BREAKPOINT_PX` and `COMPACT_LAYOUT_BREAKPOINT_PX` in `src/constants/ui-layout.ts`; do not copy the pixel values here. At or above the compact boundary, the `layout` preference chooses between `wide` and `compact`; `automatic` and `wide` resolve to `wide`.
+The reader screen's responsive layout is chosen as a `layoutMode` by `resolveResponsiveLayoutMode` in `src/hooks/use-layout.ts`. The boundaries are `MOBILE_LAYOUT_BREAKPOINT_PX` and `COMPACT_LAYOUT_BREAKPOINT_PX` in `src/constants/ui-layout.ts`; do not copy the pixel values here. At or above the compact boundary, the `layout` preference chooses between `wide` and `compact`; `automatic` and `wide` resolve to `wide`. The subscriptions workspace is the exception: it shows only its content pane in every `layoutMode`.
 
 | layoutMode | Selected when                                                                                    | Key Changes                                                                                                                                         |
 | ---------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
