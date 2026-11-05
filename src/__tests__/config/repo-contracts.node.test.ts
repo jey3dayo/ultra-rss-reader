@@ -1299,6 +1299,7 @@ describe("repository static contracts", () => {
       ".claude/rules/rust-test-unwrap-policy.md",
       ".claude/rules/schema-boundary.md",
       ".claude/rules/similarity-false-positives.md",
+      ".claude/rules/tauri-ipc-error-handling.md",
     ]);
     expect(missingFromIndex).toEqual([]);
   });

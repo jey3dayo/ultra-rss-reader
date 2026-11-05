@@ -36,8 +36,8 @@ paths:
 
 ## Local Quality Gates
 
-- React Doctor diff scan reports findings new against `origin/main`: `mise run quality:react-doctor:diff`. Manual — no CI job or hook runs it.
-- React Doctor full scan is an informational baseline report: `mise run quality:react-doctor:full`.
+- React Doctor diff scan reports findings new against `origin/main`: `mise run quality:react-doctor:diff`. CI runs it as `Check: React Doctor Diff` on pull requests with frontend changes, and Quality Gate requires it.
+- React Doctor full scan is an informational baseline report and runs manually: `mise run quality:react-doctor:full`.
 - Knip baseline drift is reported with `mise run report:knip`; humans decide how to triage the findings.
 - Similarity baseline drift is reported with `mise run report:similarity`.
 - Tool versions and baseline counts are fixed in `package.json`, `pnpm-lock.yaml`, `scripts/quality/knip.ts`, and `scripts/quality/react-doctor-triage.ts`; update them together only after intentional triage.

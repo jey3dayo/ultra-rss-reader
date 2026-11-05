@@ -9,12 +9,7 @@ This file is the short repository-local workflow guide for agents.
 - Prefer existing files and local patterns. Keep changes scoped to the requested task.
 - Default desktop development entry point: `mise run app:dev`.
 - Browser-only UI debugging entry point: `mise run app:dev:browser`.
-- Default fast local verification gate before finishing or committing: `mise run check`.
-- Use `mise run test:unit:dom` for jsdom-affected changes, and `mise run ci` when release, native, Storybook, build output, PR handoff, broad UI behavior, or full repository confidence is affected.
-- Definition of Done quality checks follow the PR template quality gate checklist (`.github/PULL_REQUEST_TEMPLATE.md`): run `mise run check`;
-  when formatter/linter stability or WSL parity matters, also run `mise run check:wsl`;
-  for jsdom, DOM, React rendering, PR handoff, release, native, or Storybook impact,
-  record `mise run test:unit:dom`, `mise run ci`, or a focused test in the PR verification notes.
+- Verify before finishing or committing with the gates in Quality Gates below; the default is `mise run check`.
 - If a configured external notification tool is unavailable in the current agent runtime, skip the
   notification and continue; do not report the skipped notification as a result.
 
@@ -50,13 +45,12 @@ and compatibility regex next to the parser or schema that owns the fallback.
 
 ## Quality Gates
 
-- `mise run check` is the default day-to-day fast gate for the current OS and covers format, lint, Rust tests, and node Vitest.
-- `mise run check:wsl` is the WSL-backed static-analysis gate for formatter/linter stability. On Windows it delegates to a WSL checkout via `WSL_REPO_DIR`.
-- `mise run test:unit:dom` runs the jsdom Vitest suite separately when DOM, React rendering, Testing Library, or browser global behavior is affected.
-- `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
-- React Doctor tasks (`quality:react-doctor:*`): read [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md) before running or interpreting them.
+- `mise run check` is the default day-to-day fast gate for the current OS: format (with autofix), lint, Rust tests, CI planner tests, and node Vitest.
+- Escalate by impact. Add `mise run test:unit:dom` for jsdom, DOM, React rendering, Testing Library, or browser global changes. Use `mise run ci` for release, native, Storybook, build output, PR handoff, broad UI behavior, or full repository confidence. Add `mise run check:wsl` when formatter/linter stability or WSL parity matters. Per-area detail is in the Verification Matrix of [CONTRIBUTING.md](CONTRIBUTING.md#verification-matrix).
+- Record the checks you ran in the `確認済み` checklist of the PR template (`.github/PULL_REQUEST_TEMPLATE.md`).
+- React Doctor: CI runs `mise run quality:react-doctor:diff` as `Check: React Doctor Diff` on pull requests with frontend changes, and Quality Gate requires it. The full scan is manual.
 - `mise run report:knip` produces the Knip baseline drift report; humans triage the findings. `mise run quality:knip` (CI Toolchain job) fails only when findings exceed `knipBaseline`.
-- `mise run report:similarity` reports the similarity-ts TODO baseline. Treat 0.95 as near-copy, 0.9 as TODO triage, and 0.87 as broad discovery; increase size thresholds before extracting helpers from tiny callback-shape matches.
+- `mise run report:similarity` reports the similarity-ts TODO baseline; thresholds and false-positive triage live in the similarity rules listed under Rule Routing.
 - Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
 ## High-Signal Rules
@@ -99,12 +93,13 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - TODO priority taxonomy, Knip findings and ignores, similarity report baselines, or the React Doctor scan scope: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
 - Similarity false positives and when to extract a shared helper: [.claude/rules/similarity-false-positives.md](.claude/rules/similarity-false-positives.md).
 - Before running or interpreting any React Doctor task, classifying a finding, adding a `react-doctor-disable` record, or re-pinning a React Doctor baseline, read [.claude/rules/react-doctor-triage.md](.claude/rules/react-doctor-triage.md). It is path-scoped, so a run that reads none of its files does not load it.
+- Tauri IPC error handling and how failures are shown to the user (pairs with the failure display rules in [DESIGN.md](DESIGN.md)): [.claude/rules/tauri-ipc-error-handling.md](.claude/rules/tauri-ipc-error-handling.md).
 - Rust test `unwrap` / `expect` usage: [.claude/rules/rust-test-unwrap-policy.md](.claude/rules/rust-test-unwrap-policy.md).
 - TypeScript version, React Compiler, ES2023 copy methods, dependency advisory: [.claude/rules/code-policy.md](.claude/rules/code-policy.md).
 
 ## Task Tracking
 
-- `todo.txt` (tuxedo format) tracks in-progress and upcoming work as one-line entries: `(priority) YYYY-MM-DD summary +<domain-shard> note:<issue URL or docs path>`. Priority mapping: P0→(A), P1→(B), P2→(C), P3→(D).
+- `todo.txt` (tuxedo format) tracks in-progress and upcoming work as one-line entries: `(priority) YYYY-MM-DD summary +<domain-shard> note:<issue URL or docs path>`. Priority taxonomy and aging live in [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).
 - Tasks needing multi-line context (background, acceptance criteria, verification steps, decisions) live in GitHub Issues, referenced from `todo.txt` via `note:`.
 - `CHANGELOG.md` records completed user-visible changes.
 - On completion: `tuxedo done` then `archive` (moves to `done.txt`), close the linked issue, and add a `CHANGELOG.md` entry once the work stabilizes.
