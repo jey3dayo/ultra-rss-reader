@@ -93,8 +93,8 @@ A degraded run fails the gate whatever its counts, because they cannot be told a
 delta. `REACT_DOCTOR_DIFF_BASE` overrides the `--base` value for checkouts without `origin/main`.
 
 CI checks out the PR merge ref at depth 2, resolves its first parent to a SHA, verifies a merge
-base, and passes the SHA through `REACT_DOCTOR_DIFF_BASE`. The first GitHub Actions PR run is
-pending. Tracking: [#431](https://github.com/jey3dayo/ultra-rss-reader/issues/431).
+base, and passes the SHA through `REACT_DOCTOR_DIFF_BASE`. The behaviour was observed on PR #622
+(healthy comparison, and red on a new warning); evidence is in `docs/react-doctor-gate-mechanics.md`. Tracking: [#431](https://github.com/jey3dayo/ultra-rss-reader/issues/431).
 
 ### Recording An Accepted Risk So The Gate Can See It
 

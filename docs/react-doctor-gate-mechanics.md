@@ -76,7 +76,14 @@ wrapper already fails as `mode drift`.
 The diff gate runs for frontend pull requests and is required by Quality Gate. The job verifies the
 merge base and logs the report mode, degradation flag, and base SHA. The fixtures were local clones.
 
-PR run evidence: TBD
+PR run evidence (PR #622, 2026-11-05):
+
+- Healthy comparison: [run 41970288248](https://github.com/jey3dayo/ultra-rss-reader/actions/runs/41970288248/job/127056765334)
+  logged `mode=baseline baselineDegraded=false base=1c4021ebb82e0b5ca6ed684af8bafc1d89812b20`.
+- A temporary commit adding one warning turned the job red:
+  [run 41970949000](https://github.com/jey3dayo/ultra-rss-reader/actions/runs/41970949000/job/127059028814)
+  logged `warnings=1 files=1`, `mode=baseline baselineDegraded=false`, and `warningCount drift: expected 0, actual 1`.
+  The commit was then reverted.
 
 ## scanSha Re-Pin Gating: What The Old Contract Cost
 
