@@ -286,7 +286,13 @@ export function useAccountDetailDangerZone({
         return;
       }
 
-      Result.pipe(exportResult, Result.inspectError(showExportError));
+      Result.pipe(
+        exportResult,
+        Result.inspectError(showExportError),
+        Result.inspect(() => {
+          setDataSectionErrorMessage(null);
+        }),
+      );
     } catch (error) {
       if (mountedRef.current) {
         showExportError({ message: getErrorMessage(error) });
@@ -307,6 +313,7 @@ export function useAccountDetailDangerZone({
         await setLocalAccountSyncSettings(account.id, localSyncFolderPath, localSyncEnabled),
         Result.inspectError(showLocalSyncSettingsError),
         Result.inspect((settings) => {
+          setDataSectionErrorMessage(null);
           setLocalSyncFolderPath(settings.sync_folder_path);
           setLocalSyncEnabled(settings.enabled);
           useUiStore.getState().showToast(t("account.local_sync_settings_saved"));
@@ -339,6 +346,7 @@ export function useAccountDetailDangerZone({
           result,
           Result.inspectError(showLocalSyncSettingsError),
           Result.inspect((settings) => {
+            setDataSectionErrorMessage(null);
             setLocalSyncFolderPath(settings.sync_folder_path);
             setLocalSyncEnabled(settings.enabled);
             useUiStore
@@ -364,6 +372,7 @@ export function useAccountDetailDangerZone({
         await exportLocalAccountSyncOperations(account.id),
         Result.inspectError(showLocalSyncExportError),
         Result.inspect((report) => {
+          setDataSectionErrorMessage(null);
           useUiStore.getState().showToast(t("account.local_sync_export_success", { count: report.operations_written }));
         }),
       );
@@ -382,6 +391,7 @@ export function useAccountDetailDangerZone({
         await importLocalAccountSyncOperations(account.id),
         Result.inspectError(showLocalSyncImportError),
         Result.inspect((report) => {
+          setDataSectionErrorMessage(null);
           if (report.applied) {
             invalidateLocalAccountSyncImportQueries(queryClient);
           }
