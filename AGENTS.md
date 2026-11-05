@@ -37,7 +37,7 @@ Do not duplicate the same fact across documents; update the owning source and ke
 | Build, verification commands, and tool versions | [mise.toml](mise.toml), `mise/*.toml`, and [package.json](package.json) | mise tasks, package scripts, package manager version, engines, and toolchain contract |
 | Active work tracking | [todo.txt](todo.txt) and GitHub Issues | Lightweight one-line tasks in `todo.txt` (tuxedo); rich context, decisions, and discussion in GitHub Issues linked via `note:<issue URL>` |
 | Completed user-visible changes | [CHANGELOG.md](CHANGELOG.md) | Completed user-visible changes and release readiness notes |
-| Generated artifacts | `dist/` and `src-tauri/gen/schemas/` | Not source of truth; regenerate from owning source before reviewing or committing artifact drift |
+| Generated artifacts | `dist/` and `src-tauri/gen/schemas/` | Not source of truth; rebuild from owning source as needed. Tauri capability schemas are ignored generated output and are not tracked |
 
 Keep UI display messages, AI/dev prompt text, storage keys, protocol/action markers, and compatibility regex separate.
 Display copy belongs in locale resources, storage keys in storage constants, protocol markers in their action or IPC owners,
@@ -67,7 +67,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 ## Placement And Boundaries
 
 - Follow the repository structure rules in [.claude/rules/repository-structure.md](.claude/rules/repository-structure.md) before moving code or creating shared surfaces.
-- Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output, not source. Do not hand-edit files there; change `src-tauri/capabilities/` or the owning Tauri permission/config source, rerun the Tauri CLI command that generated the schema drift, and review the resulting schema diff as generated output before committing.
+- Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output, not source. Do not hand-edit or commit files there; change `src-tauri/capabilities/` or the owning Tauri permission/config source.
 - Keep frontend-owned runtime schemas in `src/schemas/`; keep Tauri IPC request/response schemas in `src/api/schemas/`.
 - Do not move React props or hook params/results to `src/schemas/` unless they validate runtime input.
 - Keep one-consumer component or hook types local. Use `.types.ts` only for contracts shared across views, hooks, stories, tests, stores, or runtime boundaries.
