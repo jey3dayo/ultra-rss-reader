@@ -1,7 +1,15 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 
 const credentialsSectionFailureStoryId = "settings-section-accountcredentialssectionview--section-failure";
 const minimumFailureBannerHeightPx = 44;
+const credentialsFailureScreenshotDir = join(process.cwd(), "tmp", "screenshots");
+
+function credentialsFailureScreenshotPath(theme: "light" | "dark"): string {
+  mkdirSync(credentialsFailureScreenshotDir, { recursive: true });
+  return join(credentialsFailureScreenshotDir, `storybook-account-credentials-section-failure-${theme}.png`);
+}
 
 async function applyStoryTheme(page: import("@playwright/test").Page, theme: "light" | "dark") {
   await page.evaluate((resolvedTheme) => {
@@ -36,7 +44,7 @@ test.describe("credentials section failure banner", () => {
       expect(Math.abs(metrics.paddingTop - metrics.paddingBottom)).toBeLessThanOrEqual(2);
 
       await alert.screenshot({
-        path: `/opt/cursor/artifacts/storybook-account-credentials-section-failure-${theme}.png`,
+        path: credentialsFailureScreenshotPath(theme),
       });
     });
   }
