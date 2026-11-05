@@ -180,6 +180,11 @@ export function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): voi
     `files=${report.summary.affectedFileCount}`,
   ].join(" ");
   console.log(summary);
+  if (mode === "diff") {
+    console.log(
+      `React Doctor comparison: mode=${report.mode} baselineDegraded=${report.baselineDegraded} base=${reactDoctorDiffBase(process.env)}`,
+    );
+  }
 
   const degradedFailure = reactDoctorDegradedFailure(report, failOnDrift);
   if (degradedFailure !== null) {

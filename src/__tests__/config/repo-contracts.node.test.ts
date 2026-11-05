@@ -1035,6 +1035,7 @@ describe("repository static contracts", () => {
       "lint:yaml",
       "quality:knip",
       "quality:react-doctor-pin",
+      "quality:react-doctor:diff",
       "quality:toolchain",
       "test:change-plan",
       "test:keychain-session",

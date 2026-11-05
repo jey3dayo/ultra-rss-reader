@@ -40,7 +40,7 @@ export function validateGate(planValue: unknown, needsValue: unknown, event: str
   if (!isRecord(needsValue)) return ["Missing job results"];
   const planner = needsValue["change-plan"];
   if (!isRecord(planner) || planner.result !== "success") failures.push("change-plan must succeed");
-  const expected = requiredJobs(plan);
+  const expected = requiredJobs(plan, event);
   for (const job of checkJobs) {
     const value = needsValue[job];
     const result = isRecord(value) ? value.result : undefined;

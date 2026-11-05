@@ -141,6 +141,36 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  react-doctor-diff:
+    name: "Check: React Doctor Diff"
+    needs: change-plan
+    if: github.event_name == 'pull_request' && needs.change-plan.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 2
+
+      - uses: jdx/mise-action@v4.3.0
+
+      - uses: $/.github/actions/setup-pnpm
+        timeout-minutes: 10
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run React Doctor diff gate
+        shell: bash
+        run: |
+          base="$(git rev-parse HEAD^1)"
+          if ! git merge-base "$base" HEAD >/dev/null; then
+            echo "::error::React Doctor base has no merge base with HEAD"
+            exit 1
+          fi
+          export REACT_DOCTOR_DIFF_BASE="$base"
+          mise run quality:react-doctor:diff
+
   rust-clippy:
     name: "Check: Rust Clippy"
     needs: change-plan
@@ -551,7 +581,7 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [change-plan, toolchain, format, lint, rust-clippy, macos-native, test-node, test-rust, test-jsdom, build, storybook-a11y, native-smoke, audit]
+    needs: [change-plan, toolchain, format, lint, react-doctor-diff, rust-clippy, macos-native, test-node, test-rust, test-jsdom, build, storybook-a11y, native-smoke, audit]
     if: always()
 
     steps:

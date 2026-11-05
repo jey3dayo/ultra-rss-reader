@@ -62,29 +62,12 @@ Classify every React Doctor warning before suppressing or fixing it:
 
 Suppression records belong in the narrowest durable place: local code comment for one-line false positives, `.claude/rules/` for repeated project policy, or `scripts/quality/react-doctor-triage.ts` only for pinned baseline count changes. Re-run the matching pinned React Doctor task after changing suppressions or baseline counts.
 
-### No Scan Task Runs Automatically
+### CI And Manual Scans
 
-Both React Doctor *scan* tasks — `quality:react-doctor:diff` and `quality:react-doctor:full` —
-are manual (verified 2026-09-10 against the primary sources): `lefthook.yml` runs
-format, `test:unit:ci`, `lint`, `test:rust`, and `build`, and mentions no `react-doctor` task. So
-"gate" below and in `AGENTS.md` names what those tasks are *for*, not something that stops a
-merge: a reintroduced finding reaches `main` unless a person runs the task or an ordinary test
-catches it.
-
-Two consequences. A fix for a React Doctor finding needs its own durable guard — an ordinary
-test that fails when the fix is reverted — because the scan will not notice; a source-shape
-contract test is the usual shape when the defect itself is not reachable from a sequential
-test. And a stale `reactDoctorBaselines` pin fails nothing, so re-pinning after a fix lands has
-to be tracked as work rather than assumed.
-
-One `quality:` task does run in CI, and it is not a scan of the current code.
-`.github/workflows/ci.yml` invokes `quality:toolchain` and `quality:react-doctor-pin`. The second
-checks that the pin describes the tree it names: it materializes `scanSha` with `git archive`,
-re-runs the pinned `scanCommand` and `auditScanCommand` there, and compares the totals *and* the
-diagnostic identity set against the classification records. It says nothing about findings in the
-PR's own code, so neither consequence above is weakened — a new finding on the branch still
-reaches `main` unnoticed. What it removes is the third failure mode this file records: a pin whose
-totals add up while the sets behind them disagree. Adopted 2026-09-18 under Issue #324.
+`quality:react-doctor:diff` runs in CI for pull requests with frontend changes and is required by
+Quality Gate. The full scan remains manual. Fixes still need durable tests for their behavior;
+the diff scan detects new findings, not every regression. `quality:react-doctor-pin` runs in CI
+and verifies the pinned scan and classification records against their named tree.
 
 ### When The Diff Gate Degrades
 
@@ -109,9 +92,9 @@ fails that case as `mode drift`. The measured conditions per state are in
 A degraded run fails the gate whatever its counts, because they cannot be told apart from a real
 delta. `REACT_DOCTOR_DIFF_BASE` overrides the `--base` value for checkouts without `origin/main`.
 
-Before putting the diff gate in CI, deepen the checkout (a PR merge ref needs both parents) and
-pass the parent as a SHA through `REACT_DOCTOR_DIFF_BASE`; the CI behaviour itself has not been
-observed. Tracking: [#431](https://github.com/jey3dayo/ultra-rss-reader/issues/431).
+CI checks out the PR merge ref at depth 2, resolves its first parent to a SHA, verifies a merge
+base, and passes the SHA through `REACT_DOCTOR_DIFF_BASE`. The behaviour was observed on PR #622
+(healthy comparison, and red on a new warning); evidence is in `docs/react-doctor-gate-mechanics.md`. Tracking: [#431](https://github.com/jey3dayo/ultra-rss-reader/issues/431).
 
 ### Recording An Accepted Risk So The Gate Can See It
 

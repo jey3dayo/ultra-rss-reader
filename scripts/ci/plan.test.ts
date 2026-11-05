@@ -15,10 +15,10 @@ function temporaryDirectory(context: TestContext): string {
 }
 
 const ui = planChanges("pull_request", ["src/components/reader/article.tsx", "src/styles/global.css"]);
-function results(plan: Plan): Record<string, { result: string }> {
+function results(plan: Plan, event = "pull_request"): Record<string, { result: string }> {
   return Object.fromEntries([
     ["change-plan", { result: "success" }],
-    ...checkJobs.map((job) => [job, { result: requiredJobs(plan)[job] ? "success" : "skipped" }]),
+    ...checkJobs.map((job) => [job, { result: requiredJobs(plan, event)[job] ? "success" : "skipped" }]),
   ]);
 }
 
@@ -35,6 +35,7 @@ test("UI-only runs the complete Ubuntu frontend lane without native compilation"
     toolchain: true,
     format: true,
     lint: true,
+    "react-doctor-diff": true,
     "rust-clippy": false,
     "macos-native": false,
     "test-node": true,
@@ -255,7 +256,16 @@ test("gate accepts only explicitly unneeded skips; failure, cancellation, missin
   for (const result of ["failure", "cancelled", "skipped"])
     assert.ok(validateGate(ui, { ...results(ui), "change-plan": { result } }, "pull_request").length);
   assert.ok(validateGate(ui, results(ui), "push").length);
-  assert.deepEqual(validateGate(fullPlan(), results(fullPlan()), "workflow_dispatch"), []);
+  assert.deepEqual(validateGate(fullPlan(), results(fullPlan(), "workflow_dispatch"), "workflow_dispatch"), []);
+});
+
+test("React Doctor diff is required for frontend PRs and may be skipped otherwise", () => {
+  assert.ok(validateGate(ui, { ...results(ui), "react-doctor-diff": { result: "skipped" } }, "pull_request").length);
+  for (const event of ["push", "workflow_dispatch"]) {
+    assert.deepEqual(validateGate(fullPlan(), results(fullPlan(), event), event), []);
+  }
+  const noFrontend = { ...ui, frontend: false };
+  assert.equal(requiredJobs(noFrontend, "pull_request")["react-doctor-diff"], false);
 });
 
 test("malformed or contradictory plans cannot bypass required checks", () => {
@@ -327,7 +337,12 @@ test("workflow connects every planned lane to the gate and keeps Windows/full re
   assert.ok(workflow.includes("needs.change-plan.outputs.credentials == 'true'"));
   assert.ok(workflow.includes("  macos-native:"));
   assert.ok(workflow.includes("Check: macOS native (clippy + smoke)"));
-  assert.ok(!workflow.includes("run: |"));
+  const diffJob = workflow.slice(workflow.indexOf("  react-doctor-diff:"), workflow.indexOf("  rust-clippy:"));
+  assert.ok(diffJob.includes("fetch-depth: 2"));
+  assert.ok(diffJob.includes("github.event_name == 'pull_request' && needs.change-plan.outputs.frontend == 'true'"));
+  assert.ok(diffJob.includes('git merge-base "$base" HEAD'));
+  assert.ok(diffJob.includes("mise run quality:react-doctor:diff"));
+  assert.ok(!workflow.replace(diffJob, "").includes("run: |"));
 });
 
 test("Storybook audit runs independently on static output and retains failure evidence", () => {
