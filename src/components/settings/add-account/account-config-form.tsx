@@ -169,7 +169,7 @@ function getFreshRssLiveValidationError(form: {
   );
 }
 
-// react-doctor-disable-next-line react-doctor/no-giant-component -- accepted-risk, docs/react-doctor-complexity-classification.md (AccountConfigForm async submit guard)
+// react-doctor-disable-next-line react-doctor/no-giant-component -- accepted-risk, docs/react-doctor-complexity-classification.md:187
 export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFormProps) {
   const { t } = useTranslation("settings");
   const { t: tc } = useTranslation("common");
