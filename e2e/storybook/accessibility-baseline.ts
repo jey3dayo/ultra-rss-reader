@@ -128,6 +128,12 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
     reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
   },
   {
+    storyId: "settings-section-accountdangerzoneview--data-import-failure",
+    ruleId: "color-contrast",
+    nodeCount: 1,
+    reason: "失敗状態の SurfaceCard でも既存 danger トーンのコントラスト前提は変えず、デザイン判断待ちの既知違反として記録する。",
+  },
+  {
     storyId: "settings-shell-settingsmodalview--dense-narrow-viewport",
     ruleId: "color-contrast",
     nodeCount: 1,
