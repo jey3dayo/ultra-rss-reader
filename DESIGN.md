@@ -151,7 +151,7 @@ The shadow values are owned by `--shadow-elevation-1` through `--shadow-elevatio
 - Dense Workspace Hover: In subscriptions, cleanup, settings, and other high-density workspace panels, hover feedback should stay geometrically stable. Prefer tone, border, text, and shadow changes over hover lift so repeated rows do not shimmer, feel nauseating, or clip against nearby edges.
 - Lists and Navigation: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
 - Media and Preview Surfaces: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels. Embedded browser/WebView chrome should keep app-owned header height, safe lanes, and icon centering consistent across browser preview and native runtime; platform titlebar or traffic-light reserves should not leak into browser-mode mock geometry.
-- Feed Favicons: The appearance setting may disable favicon display entirely before this component renders. When favicons are shown, candidates are tried in order: the feed's own `icon_url` first, then the external Google favicon endpoint. If every candidate fails, or none exists, the component switches to a text fallback (the first grapheme of the feed title). Only public feed/site hosts may be sent to the Google endpoint; localhost, `.localhost`, `.local`, private IPv4, link-local IPv4, loopback IPv6, link-local IPv6, and unique-local IPv6 hosts are never sent, so for those hosts the candidate list is the `icon_url` alone and the text fallback applies when it is missing or fails. The external request must include only the host and size, use `referrerPolicy="no-referrer"`, stay on the browser image request path without app-owned custom user-agent headers, fall back offline after image failure, keep failure caching scoped to the mounted favicon instance until the source changes or remounts, and apply grayscale only to successfully resolved images.
+- Feed Favicons: The appearance setting may disable favicon display entirely before this component renders. When favicons are shown, candidates are tried in order: the feed's own `icon_url` first, then the external Google favicon endpoint. If every candidate fails, or none exists, the component switches to a text fallback (the first grapheme of the feed title). Only public feed/site hosts may be sent to the Google endpoint; localhost, `.localhost`, `.local`, private IPv4, link-local IPv4, loopback IPv6, link-local IPv6, and unique-local IPv6 hosts are never sent, so when the host chosen for the feed (the site URL's host, else the feed URL's host) is one of those, the candidate list is the `icon_url` alone and the text fallback applies when it is missing or fails. The external request must include only the host and size, use `referrerPolicy="no-referrer"`, stay on the browser image request path without app-owned custom user-agent headers, fall back offline after image failure, keep failure caching scoped to the mounted favicon instance until the source changes or remounts, and apply grayscale only to successfully resolved images.
 - Dialog and Popup Shells: Dialogs, command palettes, and other popup shells should use named scrim roles from the token layer instead of ad hoc alpha literals. Use the standard dialog scrim for modal separation and the readable scrim only when the content behind the popup needs to stay legible as a softened surface instead of falling into darkness.
 - Confirmation Dialogs: Build the hierarchy from a compact semantic icon badge beside a visible left-aligned title, followed by one visible secondary description. Do not duplicate visible copy with hidden or `aria-hidden` text; the title and description remain the dialog's accessible name and description.
 - Confirmation Actions: Keep cancel first in source and Tab order, then place the compact tonal confirmation action at the trailing edge. Keep both controls at least 44px high, use an 8px gap, and allow labels to wrap and the group to reflow in narrow viewports without stretching desktop actions to full width. Place hold-to-confirm guidance below the action group.
@@ -233,7 +233,7 @@ Radius comes from the Tailwind `rounded-*` utilities, whose values are owned by 
 | `rounded-2xl` and larger | Confirmation dialogs, the command palette, and context menus                                                 |
 | `rounded-full`           | Pills and switches                                                                                           |
 
-The scrollbar thumb in `src/styles/global.css` is the only place that uses a small px radius literal. Components do not use one.
+The scrollbar thumb in `src/styles/global.css` is the only place that uses a small px radius literal. Components use no small px radius literal either.
 
 Surface governance:
 
@@ -267,10 +267,10 @@ Surface governance:
 
 ### Focus States
 
-- Focus uses the `--ring` and `--focus-ring` tokens: a restrained muted blue-gray ring, paired with border emphasis where the control has a border. Do not hard-code a focus color in a component.
-- Do not use the primary orange for focus rings, and do not leave the browser's default vivid blue ring in place.
+- In the default themes, focus uses the `--ring` and `--focus-ring` tokens: a restrained muted blue-gray ring, paired with border emphasis where the control has a border. Components use the tokens and do not hard-code a focus color.
+- Do not choose the primary orange as a component's own focus color, and do not leave the browser's default vivid blue ring in place.
 - Loading (the progress blue) and ring (focus) are different roles. Do not borrow one for the other.
-- High-contrast and forced-colors modes redefine the same tokens in `src/styles/global.css`; components do not special-case them.
+- High-contrast and forced-colors modes redefine the same tokens in `src/styles/global.css` (a primary-tinted ring, or the system highlight color). Components keep using the tokens and do not special-case those modes.
 
 ### Accessibility Baseline Checklist
 
@@ -312,7 +312,7 @@ Manual/a11y smoke:
 
 - The shared easing tokens are not interchangeable. Pick by what the motion has to communicate, not by whichever token is nearest.
 - `--motion-ease-standard` and `--motion-ease-emphasized` are entrance curves: both spend most of their progress in the opening moments so an arriving element lands quickly and settles. Measured on a 36px row over 180ms, the two are effectively the same curve — 14.5px and 14.2px remaining at 30ms — so swapping one for the other is not a way to change how a transition reads.
-- A collapse or fold needs a curve that starts slowly, otherwise the element is perceptually gone before the fold is legible and the motion reads as the same abrupt removal it was meant to replace. `--motion-ease-collapse` exists for that case; the same measurement leaves 32.9px at 30ms.
+- A collapse or fold of an element that leaves the tree needs a curve that starts slowly, otherwise the element is perceptually gone before the fold is legible and the motion reads as the same abrupt removal it was meant to replace. `--motion-ease-collapse` exists for that case; the same measurement leaves 32.9px at 30ms. A disclosure section that opens and closes in place is not that case: it keeps the standard curve in both directions, as the disclosure rules below describe.
 - Introduce a new easing token only when an existing one cannot express the intent, and record the intent at the token rather than at one call site. Do not inline a `cubic-bezier()` in a component.
 - Keep a departing element's opacity on the same curve as its size. Fading faster than the fold hides the motion that explains where the element went.
 
