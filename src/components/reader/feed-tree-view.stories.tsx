@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useRef, useState } from "react";
 import { fn } from "storybook/test";
 import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FeedTreeView } from "./feed-tree-view";
+import { useFeedMoveMotion } from "./hooks/sidebar/use-feed-move-motion";
 
 const baseFolders: FeedTreeFolderViewModel[] = [
   {
@@ -405,4 +407,97 @@ export const WorstCaseUnreadCounts: Story = {
     unfolderedFeeds: [],
     displayFavicons: true,
   },
+};
+
+const motionFolders: FeedTreeFolderViewModel[] = ["最新ニュースと国際情勢 🌏", "科学技術とデザインの調査 🔬"].map(
+  (name, folderIndex) => {
+    const folderId = `motion-folder-${folderIndex}`;
+    return {
+      id: folderId,
+      name,
+      accountId: "acc-1",
+      sortOrder: folderIndex,
+      unreadCount: 12_345_678,
+      isExpanded: true,
+      isSelected: false,
+      feeds: Array.from({ length: 3 }, (_, feedIndex) => ({
+        ...baseFolders[0].feeds[0],
+        id: `motion-feed-${folderIndex}-${feedIndex}`,
+        folderId,
+        title: `世界のニュースと長いフィード名 📰 ${folderIndex + 1}-${feedIndex + 1}`,
+        unreadCount: 12_345_678,
+        isSelected: false,
+      })),
+    };
+  },
+);
+
+function FeedMoveMotionDemo(args: React.ComponentProps<typeof FeedTreeView>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tree, setTree] = useState({ folders: motionFolders, unfolderedFeeds: baseUnfolderedFeeds });
+  const move = (feedId: string, folderId: string | null) => {
+    setTree((current) => {
+      const feed = [...current.folders.flatMap((folder) => folder.feeds), ...current.unfolderedFeeds].find(
+        (item) => item.id === feedId,
+      );
+      if (!feed || feed.folderId === folderId) return current;
+      const moved = { ...feed, folderId };
+      return {
+        folders: current.folders.map((folder) => ({
+          ...folder,
+          feeds: [...folder.feeds.filter((item) => item.id !== feedId), ...(folder.id === folderId ? [moved] : [])],
+        })),
+        unfolderedFeeds: [
+          ...current.unfolderedFeeds.filter((item) => item.id !== feedId),
+          ...(folderId === null ? [moved] : []),
+        ],
+      };
+    });
+    return Promise.resolve();
+  };
+  const motion = useFeedMoveMotion({
+    containerRef,
+    scopeKey: "feed-move-story",
+    moveFeedToFolder: move,
+    moveFeedToUnfoldered: (feedId) => move(feedId, null),
+  });
+  const folderId = tree.folders.find((folder) => folder.feeds.some((feed) => feed.id === "motion-feed-0-0"))?.id;
+
+  return (
+    <div data-testid="feed-move-story">
+      <div className="mb-2 flex flex-col gap-1">
+        <button
+          type="button"
+          data-testid="move-between-folders"
+          onClick={() =>
+            void motion.moveFeedToFolder(
+              "motion-feed-0-0",
+              folderId === "motion-folder-1" ? "motion-folder-0" : "motion-folder-1",
+            )
+          }
+        >
+          Move between folders
+        </button>
+        <button
+          type="button"
+          data-testid="move-unfoldered"
+          onClick={() =>
+            void (folderId
+              ? motion.moveFeedToUnfoldered("motion-feed-0-0")
+              : motion.moveFeedToFolder("motion-feed-0-0", "motion-folder-0"))
+          }
+        >
+          Move to unfoldered / back
+        </button>
+      </div>
+      <div ref={containerRef} className="max-h-[600px] overflow-y-auto">
+        <FeedTreeView {...args} {...tree} displayFavicons={false} />
+      </div>
+    </div>
+  );
+}
+
+export const FeedMoveMotionWorstCase: Story = {
+  name: "Feed move motion / Worst case",
+  render: (args) => <FeedMoveMotionDemo {...args} />,
 };

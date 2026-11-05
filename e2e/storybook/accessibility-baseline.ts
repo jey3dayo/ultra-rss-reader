@@ -68,6 +68,12 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
     reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
   },
   {
+    storyId: "reader-sidebar-feedtreeview--feed-move-motion-worst-case",
+    ruleId: "color-contrast",
+    nodeCount: 8,
+    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
+  },
+  {
     storyId: "reader-sidebar-feedtreeview--folder-reorder-insertion-line",
     ruleId: "color-contrast",
     nodeCount: 1,
