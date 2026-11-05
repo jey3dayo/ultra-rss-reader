@@ -198,6 +198,7 @@ export function useAccountDetailSyncControls({
     setSyncNowSuccess(null);
     // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:228（判定）
     setDevCredentialsRecoveryInFlight(false);
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:228（判定）
     setSyncSectionErrorMessage(null);
   }, [account.id]);
 

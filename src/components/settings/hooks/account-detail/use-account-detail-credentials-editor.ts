@@ -179,6 +179,7 @@ export function useAccountDetailCredentialsEditor({
 
   useEffect(() => {
     if (state.credentialFailure !== null) {
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- structured failure replaces generic section copy, docs/react-doctor-warning-classification-249.md:228（判定）
       setCredentialsSectionErrorMessage(null);
     }
   }, [state.credentialFailure]);
