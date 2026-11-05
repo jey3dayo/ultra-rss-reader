@@ -29,6 +29,7 @@
   --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-focus-ring: var(--focus-ring);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -230,6 +231,7 @@
   --border-strong: rgba(38, 37, 30, 0.2);
   --input: rgba(38, 37, 30, 0.12);
   --ring: rgba(112, 132, 158, 0.38);
+  --focus-ring: #61758b;
   --sidebar: var(--theme-surface-3);
   --sidebar-foreground: var(--theme-foreground);
   --sidebar-foreground-muted-strong: var(--foreground-soft);
@@ -599,6 +601,7 @@
   --border-strong: rgba(243, 239, 230, 0.22);
   --input: rgba(243, 239, 230, 0.14);
   --ring: rgba(159, 187, 224, 0.42);
+  --focus-ring: #8fa5bb;
   --sidebar: #171410;
   --sidebar-foreground: #efe8db;
   --sidebar-foreground-muted-strong: var(--foreground-soft);
@@ -909,6 +912,7 @@
     --border-strong: color-mix(in srgb, var(--foreground) 42%, transparent);
     --input: color-mix(in srgb, var(--foreground) 34%, transparent);
     --ring: color-mix(in srgb, var(--primary) 70%, var(--foreground));
+    --focus-ring: var(--ring);
     --sidebar-border: color-mix(in srgb, var(--sidebar-foreground) 28%, transparent);
     --browser-overlay-rail-border: color-mix(in srgb, var(--foreground) 32%, transparent);
     --browser-overlay-state-detail-border: color-mix(in srgb, var(--foreground) 34%, transparent);
@@ -945,6 +949,7 @@
     --border-strong: CanvasText;
     --input: ButtonBorder;
     --ring: Highlight;
+    --focus-ring: Highlight;
     --settings-field-changed-border: Highlight;
     --sidebar: Canvas;
     --sidebar-foreground: CanvasText;
