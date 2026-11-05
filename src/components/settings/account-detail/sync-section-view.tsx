@@ -7,7 +7,7 @@ import {
   SETTINGS_DIVIDER_CLASS,
   SETTINGS_INFO_SURFACE_CLASS,
 } from "@/components/settings/shared/settings-surface";
-import { LabeledSelectRow, type LabeledSelectRowProps, LabeledSwitchRow } from "@/design-system";
+import { LabeledSelectRow, type LabeledSelectRowProps, LabeledSwitchRow, SurfaceCard } from "@/design-system";
 
 const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
 
@@ -48,6 +48,7 @@ type AccountSyncSectionViewProps = {
   devCredentialsRecoveryLoadingLabel?: string;
   onDevCredentialsRecoveryAction?: () => void;
   isDevCredentialsRecoveryInFlight?: boolean;
+  errorMessage?: string | null;
 };
 
 type AccountSelectRowProps = {
@@ -74,6 +75,7 @@ export function AccountSyncSectionView({
   devCredentialsRecoveryLoadingLabel,
   onDevCredentialsRecoveryAction,
   isDevCredentialsRecoveryInFlight,
+  errorMessage,
 }: AccountSyncSectionViewProps) {
   const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
   const devCredentialsRecoveryDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
@@ -94,6 +96,11 @@ export function AccountSyncSectionView({
         disabled={syncOnWake.disabled}
       />
       <AccountSelectRow control={keepReadItems} />
+      {errorMessage ? (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{errorMessage}</p>
+        </SurfaceCard>
+      ) : null}
       {statusRows && statusRows.length > 0 ? (
         <div className={cn(CONTROL_RAIL_CLASS, "mt-4 px-4 py-3 text-sm", SETTINGS_INFO_SURFACE_CLASS)}>
           {statusRows.map((row) => (

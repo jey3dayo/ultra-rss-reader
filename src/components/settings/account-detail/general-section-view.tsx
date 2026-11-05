@@ -2,7 +2,7 @@ import type { KeyboardEvent, RefObject } from "react";
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
-import { LabeledInputRow } from "@/design-system";
+import { LabeledInputRow, SurfaceCard } from "@/design-system";
 
 type AccountGeneralInfoRow = {
   label: string;
@@ -25,6 +25,7 @@ type AccountGeneralSectionViewProps = {
   onCommitName: () => void;
   onNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
   disabled?: boolean;
+  errorMessage?: string | null;
 };
 
 export function AccountGeneralSectionView({
@@ -42,6 +43,7 @@ export function AccountGeneralSectionView({
   onCommitName,
   onNameKeyDown,
   disabled = false,
+  errorMessage,
 }: AccountGeneralSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
 
@@ -62,6 +64,11 @@ export function AccountGeneralSectionView({
         inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
         disabled={disabled || isSavingName}
       />
+      {errorMessage ? (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{errorMessage}</p>
+        </SurfaceCard>
+      ) : null}
       {infoRows.map((row) => (
         <AccountDetailSettingsRow
           key={row.label}

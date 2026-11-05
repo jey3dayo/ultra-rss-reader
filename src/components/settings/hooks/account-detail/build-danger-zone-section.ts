@@ -63,5 +63,6 @@ export function buildDangerZoneSection({
     importing: controller.importingOpml,
     exporting: controller.exportingOpml,
     disabled: isSetupActive,
+    dataSectionErrorMessage: controller.dataSectionErrorMessage,
   };
 }

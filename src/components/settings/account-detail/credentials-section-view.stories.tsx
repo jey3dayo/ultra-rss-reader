@@ -223,3 +223,9 @@ export const JapaneseNarrow: Story = {
     ),
   ],
 };
+
+export const SectionFailure: Story = {
+  args: {
+    sectionErrorMessage: "Connection failed: Cannot reach server",
+  },
+};

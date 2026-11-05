@@ -99,5 +99,6 @@ export function buildGeneralSection({
     onCommitName: controller.commitRename,
     onNameKeyDown: controller.handleNameKeyDown,
     disabled: isSetupActive || isQuarantined,
+    errorMessage: controller.renameErrorMessage,
   };
 }

@@ -56,6 +56,7 @@ export type AccountDetailDangerZoneResult = {
   savingLocalSyncSettings: boolean;
   exportingLocalSyncOperations: boolean;
   importingLocalSyncOperations: boolean;
+  dataSectionErrorMessage: string | null;
 };
 
 export function buildOpmlExportFilename(accountName: string): string {
@@ -149,24 +150,35 @@ export function useAccountDetailDangerZone({
   const [savingLocalSyncSettings, setSavingLocalSyncSettings] = useState(false);
   const [exportingLocalSyncOperations, setExportingLocalSyncOperations] = useState(false);
   const [importingLocalSyncOperations, setImportingLocalSyncOperations] = useState(false);
+  const [dataSectionErrorMessage, setDataSectionErrorMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
   const { t: tc } = useTranslation("common");
   const showConfirm = useUiStore((state) => state.showConfirm);
-  const showImportError = createAccountDetailErrorToast(t, "account.failed_to_import_opml");
-  const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
+  const showImportError = createAccountDetailErrorToast(t, "account.failed_to_import_opml", {
+    persistMessage: setDataSectionErrorMessage,
+  });
+  const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml", {
+    persistMessage: setDataSectionErrorMessage,
+  });
   const showLocalSyncSettingsError = useCallback(
     // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (frozen t, unreachable language change), docs/react-doctor-warning-classification-249.md:146（B. useCallback(factory(t, key), [])）
-    createAccountDetailErrorToast(t, "account.local_sync_settings_failed"),
+    createAccountDetailErrorToast(t, "account.local_sync_settings_failed", {
+      persistMessage: setDataSectionErrorMessage,
+    }),
     [],
   );
   const showLocalSyncExportError = useCallback(
     // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (frozen t, unreachable language change), docs/react-doctor-warning-classification-249.md:146（B. useCallback(factory(t, key), [])）
-    createAccountDetailErrorToast(t, "account.local_sync_export_failed"),
+    createAccountDetailErrorToast(t, "account.local_sync_export_failed", {
+      persistMessage: setDataSectionErrorMessage,
+    }),
     [],
   );
   const showLocalSyncImportError = useCallback(
     // react-doctor-disable-next-line react-doctor/exhaustive-deps -- accepted risk (frozen t, unreachable language change), docs/react-doctor-warning-classification-249.md:146（B. useCallback(factory(t, key), [])）
-    createAccountDetailErrorToast(t, "account.local_sync_import_failed"),
+    createAccountDetailErrorToast(t, "account.local_sync_import_failed", {
+      persistMessage: setDataSectionErrorMessage,
+    }),
     [],
   );
   const showDeleteError = createAccountDetailErrorToast(t, "account.failed_to_delete");
@@ -181,6 +193,7 @@ export function useAccountDetailDangerZone({
   }, []);
 
   useEffect(() => {
+    setDataSectionErrorMessage(null);
     if (account.kind !== "Local") {
       setLocalSyncFolderPath("");
       setLocalSyncEnabled(true);
@@ -231,6 +244,7 @@ export function useAccountDetailDangerZone({
         importResult,
         Result.inspectError(showImportError),
         Result.inspect(() => {
+          setDataSectionErrorMessage(null);
           invalidateOpmlImportQueries(queryClient);
           useUiStore.getState().showToast(t("account.import_opml_success"));
         }),
@@ -443,5 +457,6 @@ export function useAccountDetailDangerZone({
     savingLocalSyncSettings,
     exportingLocalSyncOperations,
     importingLocalSyncOperations,
+    dataSectionErrorMessage,
   };
 }

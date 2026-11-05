@@ -1237,8 +1237,8 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const credentialPolicyStep = extractWorkflowStepBlocks(ciWorkflow).find((step) =>
       step.includes("mise run test:keychain-session"),
     );
-    expect(credentialPolicyStep).toContain("runner.os == 'macOS'");
     expect(credentialPolicyStep).toContain("needs.change-plan.outputs.credentials == 'true'");
+    expect(credentialPolicyStep).not.toContain("runner.os == 'macOS'");
     expect(ciWorkflow).not.toMatch(/mise run test:unit:ci:dom\b(?!:shard)/);
   });
 

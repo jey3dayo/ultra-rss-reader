@@ -95,6 +95,7 @@ export function buildCredentialsSection({
       onPasswordBlur={controller.onPasswordBlur}
       changedFields={controller.changedFields}
       changedFieldLabel={t("dirty_state.field_changed")}
+      sectionErrorMessage={controller.credentialsSectionErrorMessage}
       cloudflareAccess={{
         status: controller.cloudflareAccessStatus,
         changedIndicator: controller.changedFields.cloudflareAccess ? (

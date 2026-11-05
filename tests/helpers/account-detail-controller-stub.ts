@@ -15,6 +15,7 @@ export function createAccountDetailControllerStub(
     startEditingName: noop,
     commitRename: async () => {},
     handleNameKeyDown: noop,
+    renameErrorMessage: null,
     credServerUrl: null,
     credUsername: null,
     credPassword: null,
@@ -60,6 +61,7 @@ export function createAccountDetailControllerStub(
     onPasswordFocus: noop,
     onPasswordBlur: noop,
     focusCredentialsEditor: noop,
+    credentialsSectionErrorMessage: null,
     handleSyncUpdate: async () => {},
     handleSyncNow: async () => {},
     handleSetupRetry: async () => {},
@@ -69,6 +71,7 @@ export function createAccountDetailControllerStub(
     devCredentialsRecoveryInFlight: false,
     syncIntervalOptions: [],
     keepReadItemsOptions: [],
+    syncSectionErrorMessage: null,
     handleImportOpml: async () => {},
     handleExportOpml: async () => {},
     localSyncFolderPath: "",
@@ -85,6 +88,7 @@ export function createAccountDetailControllerStub(
     savingLocalSyncSettings: false,
     exportingLocalSyncOperations: false,
     importingLocalSyncOperations: false,
+    dataSectionErrorMessage: null,
     ...overrides,
   };
 }

@@ -1,5 +1,14 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent, type RefObject, useCallback, useEffect, useLayoutEffect, useReducer, useRef } from "react";
+import {
+  type KeyboardEvent,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { scheduleInputFocus } from "@/lib/dom/input-focus";
@@ -20,6 +29,7 @@ export type AccountDetailNameEditorResult = {
   startEditingName: () => void;
   commitRename: () => Promise<void>;
   handleNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  renameErrorMessage: string | null;
 };
 
 type AccountDetailNameEditorState = {
@@ -72,11 +82,15 @@ export function useAccountDetailNameEditor({
   const cancelScheduledFocusRef = useRef<(() => void) | null>(null);
   const editSessionRef = useRef(0);
   const activeAccountIdRef = useRef(account.id);
-  const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
+  const [renameErrorMessage, setRenameErrorMessage] = useState<string | null>(null);
+  const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename", {
+    persistMessage: setRenameErrorMessage,
+  });
   const editSessionAtRender = editSessionRef.current;
 
   useLayoutEffect(() => {
     activeAccountIdRef.current = account.id;
+    setRenameErrorMessage(null);
   });
 
   const cancelScheduledFocus = useCallback(() => {
@@ -88,6 +102,7 @@ export function useAccountDetailNameEditor({
 
   const startEditingName = () => {
     editSessionRef.current += 1;
+    setRenameErrorMessage(null);
     dispatch({ type: "start-edit", value: account.name });
     cancelScheduledFocus();
     cancelScheduledFocusRef.current = scheduleInputFocus(nameInputRef);
@@ -153,11 +168,13 @@ export function useAccountDetailNameEditor({
     nameDraft,
     setNameDraft: (value) => {
       editSessionRef.current += 1;
+      setRenameErrorMessage(null);
       dispatch({ type: "set-name-draft", value });
     },
     nameInputRef,
     startEditingName,
     commitRename,
     handleNameKeyDown,
+    renameErrorMessage,
   };
 }

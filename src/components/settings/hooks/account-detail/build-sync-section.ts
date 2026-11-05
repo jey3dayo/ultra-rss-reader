@@ -193,5 +193,6 @@ export function buildSyncSection({
       isWaitingForCredentialAccess && !isQuarantined && !isSetupActive,
     ),
     ...buildDevCredentialsRecovery(controller, t, canShowDevCredentialsRecovery),
+    errorMessage: controller.syncSectionErrorMessage,
   };
 }

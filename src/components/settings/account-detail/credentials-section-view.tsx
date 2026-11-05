@@ -7,7 +7,7 @@ import {
   SETTINGS_CHANGED_CONTROL_CLASS,
   SETTINGS_CONTROL_SURFACE_CLASS,
 } from "@/components/settings/shared/settings-surface";
-import { LabeledInputRow } from "@/design-system";
+import { LabeledInputRow, SurfaceCard } from "@/design-system";
 import type { AccountCloudflareAccessSection, AccountCredentialInputRow } from "./cloudflare-access-credential-fields";
 import { CloudflareAccessCredentialFields } from "./cloudflare-access-credential-fields";
 import { CredentialFailureNoticeView, type CredentialFailureNoticeViewModel } from "./credential-failure-notice-view";
@@ -57,6 +57,7 @@ type AccountCredentialsSectionViewProps = {
   changedFields?: ChangedFieldState;
   changedFieldLabel?: string;
   cloudflareAccess?: AccountCloudflareAccessSection;
+  sectionErrorMessage?: string | null;
 };
 
 export function AccountCredentialsSectionView({
@@ -88,6 +89,7 @@ export function AccountCredentialsSectionView({
   changedFields,
   changedFieldLabel,
   cloudflareAccess,
+  sectionErrorMessage,
 }: AccountCredentialsSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
   const resolvedExtraRows = extraRows ?? EMPTY_EXTRA_ROWS;
@@ -172,6 +174,11 @@ export function AccountCredentialsSectionView({
           labelClassName={labelColumnClassName}
         />
       )}
+      {sectionErrorMessage ? (
+        <SurfaceCard variant="info" tone="danger" padding="compact" role="alert">
+          <p className="text-sm leading-[1.5]">{sectionErrorMessage}</p>
+        </SurfaceCard>
+      ) : null}
     </SettingsSection>
   );
 }

@@ -66,3 +66,9 @@ export const Narrow: Story = {
     ),
   ],
 };
+
+export const DataImportFailure: Story = {
+  args: {
+    dataSectionErrorMessage: "Failed to import OPML: Invalid OPML",
+  },
+};

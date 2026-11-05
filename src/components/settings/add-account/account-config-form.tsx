@@ -18,6 +18,7 @@ import {
 import { matchCloudflareAccessUpdate } from "@/lib/account/cloudflare-access";
 import { isCloudflareAccessRecoveryRequired } from "@/lib/account/cloudflare-access-error";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 import { upsertCachedAccount } from "../account-detail/query-cache";
 import { matchAddAccountCommand } from "./account-config-actions";
@@ -289,7 +290,9 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           } else if (payload.cloudflareAccess?.action === "replace") {
             message = t("account.cloudflare_access_save_failed");
           } else {
-            message = t("account.failed_to_add", { message: e.message });
+            message = t("account.failed_to_add", {
+              message: localizeUserVisibleAppErrorMessage(e.message),
+            });
           }
           dispatchUi({ type: "set-error-message", value: message });
           useUiStore.getState().showToast({ message, severity: "error" });

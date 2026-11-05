@@ -90,3 +90,11 @@ export const SyncSucceeded: Story = {
     isSyncing: false,
   },
 };
+
+export const SyncFailure: Story = {
+  args: {
+    syncNowLabel: "Sync Now",
+    onSyncNow: fn(),
+    errorMessage: "Sync failed: Cannot reach server",
+  },
+};

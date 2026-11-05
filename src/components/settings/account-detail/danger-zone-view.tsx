@@ -1,7 +1,7 @@
 import { type ChangeEvent, useId, useRef } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { DeleteButton, LabeledSwitchRow, SettingsInfoPopover } from "@/design-system";
+import { DeleteButton, LabeledSwitchRow, SettingsInfoPopover, SurfaceCard } from "@/design-system";
 
 type AccountDangerZoneViewProps = {
   dataHeading: string;
@@ -45,6 +45,7 @@ type AccountDangerZoneViewProps = {
   exporting?: boolean;
   disabled?: boolean;
   disabledReason?: string;
+  dataSectionErrorMessage?: string | null;
 };
 
 export function AccountDangerZoneView({
@@ -89,6 +90,7 @@ export function AccountDangerZoneView({
   exporting = false,
   disabled = false,
   disabledReason,
+  dataSectionErrorMessage,
 }: AccountDangerZoneViewProps) {
   const disabledReasonId = useId();
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -123,6 +125,11 @@ export function AccountDangerZoneView({
   return (
     <>
       <SettingsSection heading={dataHeading} surface="flat" className="mt-6" contentClassName="pt-1">
+        {dataSectionErrorMessage ? (
+          <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" className="mb-4">
+            <p className="text-sm leading-[1.5]">{dataSectionErrorMessage}</p>
+          </SurfaceCard>
+        ) : null}
         {hasLocalSyncControls ? (
           <div className="mb-4 flex flex-col gap-3 rounded-md border border-border-subtle/70 p-3">
             <div>
