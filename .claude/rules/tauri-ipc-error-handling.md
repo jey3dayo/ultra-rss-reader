@@ -10,7 +10,8 @@ paths:
 - 全ての Tauri invoke 呼び出しは `safeInvoke` 経由で行う（api/tauri-commands.ts に集約）
 - 呼び出し元では `Result.pipe` + `Result.inspectError` でエラーを処理する
 - fire-and-forget（戻り値を待たない）パターンでも最低限 `console.error` でログを残す
-- ユーザーに見せるべきエラーは `showToast` または `window.alert` で通知する
+- ユーザーに見せるべきエラーは `showToast` または `window.alert` で通知する。表示先がある失敗はその場のバナーを使い、toast だけにしない（`DESIGN.md` の失敗表示を参照）
+- backend のエラーを種類で分けて表示するときは、`Network error:` などの接頭辞で分類する現行方式を使う。エラーコード化は IPC 契約の変更になるのでやらない。接頭辞で分類しきれなくなったら、別 issue を立てて扱う
 
 ## 根拠
 
