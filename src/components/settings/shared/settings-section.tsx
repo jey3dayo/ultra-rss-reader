@@ -53,7 +53,9 @@ export function SettingsSection({
         )}
       >
         {sectionHeading}
-        <div className={cn("[&>*:first-child]:pt-0 [&>*:last-child:not([role=alert])]:pb-0", contentClassName)}>{children}</div>
+        <div className={cn("[&>*:first-child]:pt-0 [&>*:last-child:not([role=alert])]:pb-0", contentClassName)}>
+          {children}
+        </div>
         {note ? <p className={cn(defaultNoteClassName, noteClassName)}>{note}</p> : null}
       </section>
     );
