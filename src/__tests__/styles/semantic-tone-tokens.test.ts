@@ -50,6 +50,7 @@ const REQUIRED_THEME_COLOR_ALIASES = [
   { aliasName: "--color-border-strong", tokenName: "--border-strong" },
   { aliasName: "--color-input", tokenName: "--input" },
   { aliasName: "--color-ring", tokenName: "--ring" },
+  { aliasName: "--color-focus-ring", tokenName: "--focus-ring" },
   { aliasName: "--color-sidebar", tokenName: "--sidebar" },
   { aliasName: "--color-sidebar-foreground", tokenName: "--sidebar-foreground" },
   { aliasName: "--color-sidebar-accent", tokenName: "--sidebar-accent" },
