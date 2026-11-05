@@ -232,6 +232,7 @@ export function useAccountDetailCredentialsEditor({
     cloudflareAccessUpdate,
     cloudflareAccessDirty,
     showCredentialSaveError,
+    clearCredentialsSectionError: () => setCredentialsSectionErrorMessage(null),
     pendingCredentialSaveRef,
     pendingCredentialSaveRevisionRef,
     cloudflareAccessRequestIdRef,
@@ -280,6 +281,7 @@ export function useAccountDetailCredentialsEditor({
         return false;
       }
 
+      setCredentialsSectionErrorMessage(null);
       setSuccessfulConnectionTest({
         accountId: requestAccountId,
         accountGeneration: requestAccountGeneration,
@@ -310,6 +312,7 @@ export function useAccountDetailCredentialsEditor({
     Result.pipe(
       await copyToClipboard(value),
       Result.inspect(() => {
+        setCredentialsSectionErrorMessage(null);
         useUiStore.getState().showToast(t("account.copied_to_clipboard"));
       }),
       Result.inspectError(showCopyServerUrlError),

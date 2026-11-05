@@ -40,6 +40,7 @@ export type CredentialDraftCommitContext = {
   cloudflareAccessUpdate: ReturnType<typeof deriveCloudflareAccessDraftState>["update"];
   cloudflareAccessDirty: ReturnType<typeof deriveCloudflareAccessDraftState>["dirty"];
   showCredentialSaveError: ReturnType<typeof createAccountDetailErrorToast>;
+  clearCredentialsSectionError: () => void;
   pendingCredentialSaveRef: RefObject<Promise<CredentialCommitOutcome> | null>;
   pendingCredentialSaveRevisionRef: RefObject<number | null>;
   cloudflareAccessRequestIdRef: RefObject<number>;
@@ -64,6 +65,7 @@ export function createCredentialDraftCommitter(
     cloudflareAccessUpdate,
     cloudflareAccessDirty,
     showCredentialSaveError,
+    clearCredentialsSectionError,
     pendingCredentialSaveRef,
     pendingCredentialSaveRevisionRef,
     cloudflareAccessRequestIdRef,
@@ -182,6 +184,7 @@ export function createCredentialDraftCommitter(
       updated: AccountDetailCredentialsEditorParams["account"],
       credentialValues: CredentialDraftValues,
     ): CredentialCommitOutcome => {
+      clearCredentialsSectionError();
       if (cloudflareAccessUpdate !== undefined && cloudflareAccessUpdate.action !== "keep") {
         cloudflareAccessRequestIdRef.current += 1;
         dispatch({
