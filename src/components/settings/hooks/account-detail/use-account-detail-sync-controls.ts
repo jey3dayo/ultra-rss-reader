@@ -255,6 +255,9 @@ export function useAccountDetailSyncControls({
           invalidateAccountSyncNowQueries(queryClient);
           onSyncStatusChanged?.();
           const feedback = summarizeSyncResult(syncResult);
+          if (feedback.kind === "success") {
+            setSyncSectionErrorMessage(null);
+          }
           setSyncNowSuccess(
             feedback.kind === "success" ? { accountId: requestAccountId, generation: requestGeneration } : null,
           );
@@ -334,6 +337,7 @@ export function useAccountDetailSyncControls({
       useUiStore
         .getState()
         .showToast(t(moved ? "account.dev_credentials_reset_success" : "account.dev_credentials_reset_noop"));
+      setSyncSectionErrorMessage(null);
     } catch (error) {
       if (!isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
         return;

@@ -82,6 +82,7 @@ export function useAccountDetailNameEditor({
   const cancelScheduledFocusRef = useRef<(() => void) | null>(null);
   const editSessionRef = useRef(0);
   const activeAccountIdRef = useRef(account.id);
+  const trackedAccountIdRef = useRef(account.id);
   const [renameErrorMessage, setRenameErrorMessage] = useState<string | null>(null);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename", {
     persistMessage: setRenameErrorMessage,
@@ -90,7 +91,10 @@ export function useAccountDetailNameEditor({
 
   useLayoutEffect(() => {
     activeAccountIdRef.current = account.id;
-    setRenameErrorMessage(null);
+    if (trackedAccountIdRef.current !== account.id) {
+      trackedAccountIdRef.current = account.id;
+      setRenameErrorMessage(null);
+    }
   });
 
   const cancelScheduledFocus = useCallback(() => {

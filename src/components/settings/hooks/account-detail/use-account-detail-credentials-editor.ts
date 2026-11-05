@@ -88,6 +88,7 @@ export function useAccountDetailCredentialsEditor({
   const pendingConnectionTestRef = useRef(false);
   const cloudflareAccessRequestIdRef = useRef(0);
   const activeAccountIdRef = useRef(account.id);
+  const trackedAccountIdRef = useRef(account.id);
   const connectionTestAccountIdRef = useRef(account.id);
   const connectionTestAccountGenerationRef = useRef(0);
   const draftRevisionRef = useRef(state.draftRevision);
@@ -163,7 +164,10 @@ export function useAccountDetailCredentialsEditor({
     }
     activeAccountIdRef.current = account.id;
     draftRevisionRef.current = state.draftRevision;
-    setCredentialsSectionErrorMessage(null);
+    if (trackedAccountIdRef.current !== account.id) {
+      trackedAccountIdRef.current = account.id;
+      setCredentialsSectionErrorMessage(null);
+    }
   });
 
   useEffect(() => {
