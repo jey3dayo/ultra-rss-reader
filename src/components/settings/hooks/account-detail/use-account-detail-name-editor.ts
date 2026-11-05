@@ -139,6 +139,7 @@ export function useAccountDetailNameEditor({
       Result.inspectError(showRenameError),
       Result.inspect((updated) => {
         renameSucceeded = true;
+        setRenameErrorMessage(null);
         editSessionRef.current += 1;
         dispatch({ type: "finish-edit", value: updated.name });
         updateCachedAccount(queryClient, updated);

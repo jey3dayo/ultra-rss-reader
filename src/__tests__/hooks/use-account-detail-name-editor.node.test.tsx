@@ -239,6 +239,36 @@ describe("useAccountDetailNameEditor", () => {
     expect(result.current.nameDraft).toBe("FreshRSS Personal");
   });
 
+  it("clears the rename section error after a successful retry without changing the draft", async () => {
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    renameAccountMock.mockResolvedValueOnce(Result.fail({ message: "network down" }));
+    renameAccountMock.mockResolvedValueOnce(Result.succeed({ ...account, name: "FreshRSS Personal" }));
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("FreshRSS Personal");
+    });
+    await act(async () => {
+      await result.current.commitRename();
+    });
+
+    expect(result.current.renameErrorMessage).toBe("Failed to rename account: network down");
+
+    await act(async () => {
+      await result.current.commitRename();
+    });
+
+    expect(result.current.renameErrorMessage).toBeNull();
+    expect(result.current.editingName).toBe(false);
+  });
+
   it("commits the backend-normalized account name instead of the optimistic draft", async () => {
     const account = { ...sampleAccounts[1], name: "FreshRSS" };
     const queryClient = createTestQueryClient();
