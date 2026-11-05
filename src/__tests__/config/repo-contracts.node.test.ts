@@ -925,10 +925,9 @@ describe("repository static contracts", () => {
     }
 
     expect(claudeGuidance).toContain("Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output");
-    expect(claudeGuidance).toContain("Do not hand-edit files there");
+    expect(claudeGuidance).toContain("Tauri capability schemas are ignored generated output and are not tracked");
+    expect(claudeGuidance).toContain("Do not hand-edit or commit files there");
     expect(claudeGuidance).toContain("change `src-tauri/capabilities/` or the owning Tauri permission/config source");
-    expect(claudeGuidance).toContain("rerun the Tauri CLI command that generated the schema drift");
-    expect(claudeGuidance).toContain("review the resulting schema diff as generated output before committing");
     expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TARGET");
     expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TAURI_GEN");
     expect(extractMiseTaskCommand(miseSource, "quality:markdownlint-contract")).toContain("$MD_EXCLUDE_TARGET");

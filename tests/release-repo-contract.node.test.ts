@@ -1331,14 +1331,10 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(viteConfig).toContain("port: 1421");
   });
 
-  it("keeps Windows manifest, build script, and generated capability schema in the local release gate", () => {
+  it("keeps Windows manifest, build script, and capability configuration in the local release gate", () => {
     const buildScript = readText("src-tauri/build.rs");
     const windowsManifest = readText("src-tauri/windows-test-manifest.xml");
     const defaultCapabilitySource = readText("src-tauri/capabilities/default.json");
-    const desktopSchema = JSON.parse(readText("src-tauri/gen/schemas/desktop-schema.json")) as unknown;
-    const windowsSchema = JSON.parse(readText("src-tauri/gen/schemas/windows-schema.json")) as unknown;
-    const macosSchema = JSON.parse(readText("src-tauri/gen/schemas/macOS-schema.json")) as unknown;
-    const aclManifests = JSON.parse(readText("src-tauri/gen/schemas/acl-manifests.json")) as Record<string, unknown>;
 
     expect(buildScript).toContain('join("windows-test-manifest.xml")');
     expect(buildScript).toContain("cargo:rerun-if-changed={}");
@@ -1362,9 +1358,6 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(windowsManifest).toContain('name="Microsoft.Windows.Common-Controls"');
     expect(windowsManifest).toContain('version="6.0.0.0"');
     expect(defaultCapabilitySource).toContain('"$schema": "../gen/schemas/desktop-schema.json"');
-    expect(desktopSchema).toEqual(windowsSchema);
-    expect(desktopSchema).toEqual(macosSchema);
-    expect(Object.keys(aclManifests)).toEqual(expect.arrayContaining(["core", "opener", "updater"]));
   });
 
   it("keeps bundle identifier, release updater artifacts, and updater endpoint in one release contract", () => {
