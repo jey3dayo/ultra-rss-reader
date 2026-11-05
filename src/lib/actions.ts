@@ -75,9 +75,11 @@ function runGlobalActionBoundary(
   void Promise.resolve(operation()).catch((error: unknown) => {
     const actionError = toGlobalActionRuntimeError(error);
     logGlobalActionFailure(action, category, actionError);
-    useUiStore
-      .getState()
-      .showToast({ message: localizeUserVisibleAppErrorMessage(actionError.message), severity: "error" });
+    useUiStore.getState().showToast({
+      message: localizeUserVisibleAppErrorMessage(actionError.message),
+      severity: "error",
+      persistent: true,
+    });
   });
 }
 
@@ -178,7 +180,7 @@ async function restartApplication(): Promise<void> {
     Result.inspectError((error) => {
       useUiStore
         .getState()
-        .showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error" });
+        .showToast({ message: localizeUserVisibleAppErrorMessage(error.message), severity: "error", persistent: true });
       logRuntimeDiagnostic("app-action-window", "[actions:window] restart-app failed.", error);
     }),
   );

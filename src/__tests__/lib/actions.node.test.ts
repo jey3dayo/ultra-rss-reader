@@ -23,6 +23,7 @@ const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenM
   setWindowFullscreenMock: vi.fn(),
 }));
 
+const restartAppMock = vi.fn<() => Promise<Result.Result<null, { message: string }>>>(async () => Result.succeed(null));
 const runManualUpdateCheckMock = vi.fn();
 const performUpdateCheckMock = vi.fn();
 const reloadBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
@@ -136,7 +137,7 @@ function isSnakeCase(value: string): boolean {
 
 vi.mock("@/api/tauri-commands", () => ({
   reloadBrowserWebview: reloadBrowserWebviewMock,
-  restartApp: vi.fn(async () => Result.succeed(null)),
+  restartApp: restartAppMock,
   triggerSync: triggerSyncMock,
   listAccounts: vi.fn(async () => Result.succeed([])),
 }));
@@ -174,6 +175,8 @@ let isAppAction: (value: unknown) => value is AppAction;
 
 beforeEach(async () => {
   useUiStore.setState(useUiStore.getInitialState());
+  restartAppMock.mockReset();
+  restartAppMock.mockResolvedValue(Result.succeed(null));
   runManualUpdateCheckMock.mockReset();
   runManualUpdateCheckMock.mockResolvedValue(undefined);
   performUpdateCheckMock.mockReset();
@@ -201,10 +204,26 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
 describe("executeAction node contracts", () => {
+  it("keeps restart failures visible", async () => {
+    vi.stubEnv("DEV", false);
+    restartAppMock.mockResolvedValueOnce(Result.fail({ message: "restart failed" }));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    executeAction("restart-app");
+    await useUiStore.getState().confirmDialog.onConfirm?.();
+
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "restart failed",
+      severity: "error",
+      persistent: true,
+    });
+  });
+
   describe("preference toggle actions", () => {
     it("toggles reading_sort preference", async () => {
       const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
@@ -360,7 +379,11 @@ describe("executeAction node contracts", () => {
         );
       });
       expect(setWindowFullscreenMock).not.toHaveBeenCalled();
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: error.message,
+        severity: "error",
+        persistent: true,
+      });
     });
 
     it("absorbs rejected fullscreen writes at the global action boundary", async () => {
@@ -379,7 +402,11 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: error.message,
+        severity: "error",
+        persistent: true,
+      });
     });
   });
 
@@ -406,7 +433,11 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: error.message,
+        severity: "error",
+        persistent: true,
+      });
     });
 
     it("reuses the shared manual update-check helper for check-for-updates", () => {
@@ -432,7 +463,11 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: error.message,
+        severity: "error",
+        persistent: true,
+      });
     });
 
     it("uses the translated already-in-progress toast", async () => {
@@ -624,7 +659,11 @@ describe("executeAction node contracts", () => {
           }),
         );
       });
-      expect(useUiStore.getState().toastMessage).toEqual({ message: error.message, severity: "error" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: error.message,
+        severity: "error",
+        persistent: true,
+      });
     });
   });
 });

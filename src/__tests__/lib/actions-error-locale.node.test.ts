@@ -38,6 +38,7 @@ describe("global action boundary error locale", () => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "コピーできないテキストです",
         severity: "error",
+        persistent: true,
       });
     });
   });
@@ -52,7 +53,7 @@ describe("global action boundary error locale", () => {
     executeAction("toggle-fullscreen");
 
     await vi.waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({ message, severity: "error" });
+      expect(useUiStore.getState().toastMessage).toEqual({ message, severity: "error", persistent: true });
     });
   });
 });

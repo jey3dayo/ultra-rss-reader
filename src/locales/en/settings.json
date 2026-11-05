@@ -466,6 +466,7 @@
     "settings_profile_import": "Import",
     "settings_profile_importing": "Importing…",
     "settings_profile_file_input": "Choose settings profile JSON",
+    "settings_profile_export_canceled": "Settings profile export canceled",
     "settings_profile_export_success": "Settings profile exported",
     "settings_profile_export_failed": "Failed to export settings profile: {{message}}",
     "settings_profile_import_success": "Settings profile imported: {{accountsCreated}} accounts created/{{accountsUpdated}} updated, {{preferencesImported}} preferences, {{tagsCreated}} tags created/{{tagsUpdated}} updated, {{muteKeywordsCreated}} mute keywords created",
