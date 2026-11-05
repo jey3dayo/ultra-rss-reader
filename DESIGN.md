@@ -19,7 +19,7 @@ When no exact token applies, prefer these defaults:
 The base palette names in this section are for Stitch-style design system description and are not a 1:1 mapping to the current CSS token names in `src/styles/global.css`.
 
 - Primary (`#f54e00`): CTAs, active states, brand-highlight moments, key interactive emphasis
-- Secondary (`#c08532`): Supporting highlights, premium accents, secondary emphasis
+- Secondary (`#c08532`): Supporting highlights, premium accents, secondary emphasis; implemented as `--control-active-warm`. The `--secondary` token is a different color (`--card`)
 - Tertiary (`#cf2d56`): Hover emphasis, destructive/error-adjacent accents, expressive interaction feedback
 - Neutral (`#26251e`): Text anchor, dark surfaces, border base, tonal reference for the whole system
 - Text selection (`#ead2bc` light / `#765435` dark): Native selected text highlight. Keep this softer than primary so input editing does not flash as a CTA-colored block.
@@ -29,11 +29,11 @@ Derived roles used across the product:
 - Canvas (`#f2f1ed`): Default page background and primary warm cream surface
 - Surface 100 (`#f7f7f4`): Lightest surface for popovers and subtle controls
 - Surface 300 (`#ebeae5`): Muted interactive surface, default button background, list emphasis
-- Surface 400 (`#e6e5e0`): Card background and secondary surface
-- Surface 500 (`#e1e0db`): Selected surface, tertiary emphasis, deeper muted surface
+- Surface 400 (`#e6e5e0`): Card background and secondary surface; implemented as `--card` / `--theme-card`. `--surface-4` is a different, darker surface
+- Surface 500 (`#e1e0db`): Selected surface, tertiary emphasis, deeper muted surface; implemented as `--surface-selected` / `--theme-surface-selected`
 - Text / Foreground (`#26251e`): Primary text and icon color
 - Muted Foreground (`rgba(38, 37, 30, 0.74)`): Secondary text and helper copy
-- Soft Foreground (`rgba(38, 37, 30, 0.58)`): Tertiary labels and lighter metadata
+- Soft Foreground (`rgba(38, 37, 30, 0.58)`): Tertiary labels and lighter metadata; implemented as `--text-tertiary`. `--foreground-soft` is a different, higher-contrast value
 - Text Muted (`rgba(38, 37, 30, 0.44)`): Lowest-emphasis metadata; implemented as `--text-muted`
 - Border (`rgba(38, 37, 30, 0.12)`): Default border and divider tone
 - Border Strong (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
@@ -49,7 +49,7 @@ Feature and timeline accents:
 - Thinking (`#dfa88f`): AI or background processing state
 - Grep (`#9fc9a2`): Search and indexing state
 - Read / Unread Context (`#9fbbe0`): Reading-related state, unread indicators, and reading-context navigation accents
-- Loading (`#9fbbe0`): Generic loading and sync-progress feedback that needs stronger visibility than the warm accent ring
+- Loading (`#9fbbe0`): Generic loading and sync-progress feedback; implemented as `--tone-loading`. It is the progress color, not a focus color
 - Edit (`#c0a8dd`): Edit and mutation state
 
 Unread/read context and loading intentionally share `#9fbbe0`, but they must stay separate semantic roles. Use the role name, not the hue, to decide where the color appears.
@@ -59,7 +59,7 @@ Color governance:
 - If an existing semantic token can express a color, use the token instead of a literal value in code.
 - If a repeated UI meaning needs a new color role, add it here and to the token layer before spreading literals in code.
 - Unread and starred UI are fixed semantic roles. Define them in `DESIGN.md` and the shared token layer before using them in multiple components.
-- Loading is a fixed semantic role for indeterminate progress feedback. Keep it separate from the warm `ring` accent and from unread-reading context.
+- Loading is a fixed semantic role for indeterminate progress feedback. Keep it separate from the focus ring tokens (`--ring` / `--focus-ring`) and from unread-reading context.
 - Tag palettes and provider brand colors are exceptions and should be managed as central palettes, not mixed into the base theme colors.
 
 ## Typography
@@ -120,14 +120,16 @@ Shadow philosophy:
 
 Elevation scale:
 
-| Level                    | Treatment                                                                   | Use                                       |
-| ------------------------ | --------------------------------------------------------------------------- | ----------------------------------------- |
-| Flat (Level 0)           | No shadow                                                                   | Page background, text blocks              |
-| Border Ring (Level 1)    | `oklab(0.263 / 0.1) 0px 0px 0px 1px`                                        | Standard card/container border            |
-| Border Medium (Level 1b) | `oklab(0.263 / 0.2) 0px 0px 0px 1px`                                        | Emphasized borders, active states         |
-| Ambient (Level 2)        | `rgba(0,0,0,0.02) 0px 0px 16px, rgba(0,0,0,0.008) 0px 0px 8px`              | Floating elements, subtle glow            |
-| Elevated Card (Level 3)  | `rgba(0,0,0,0.14) 0px 28px 70px, rgba(0,0,0,0.1) 0px 14px 32px, oklab ring` | Modals, popovers, elevated cards          |
-| Focus                    | `rgba(0,0,0,0.1) 0px 4px 12px`                                              | Focus feedback for primary interactive UI |
+The shadow values are owned by `--shadow-elevation-1` through `--shadow-elevation-3` in `src/styles/global.css` (light, dark, and `none` under forced colors). The table names the role of each token, not its value.
+
+| Level         | Token                  | Use                                                                            |
+| ------------- | ---------------------- | ------------------------------------------------------------------------------ |
+| Flat          | None                   | Page background, text blocks                                                   |
+| Border        | `--border`             | Standard card/container border                                                 |
+| Border Strong | `--border-strong`      | Emphasized borders, active states                                              |
+| Elevation 1   | `--shadow-elevation-1` | Resting buttons, inputs, and select triggers; tooltips; passive cards          |
+| Elevation 2   | `--shadow-elevation-2` | Floating surfaces such as select popups, the account switcher menu, and toasts |
+| Elevation 3   | `--shadow-elevation-3` | Dialogs, the command palette, context menus, and the settings shell            |
 
 ## Components
 
@@ -139,8 +141,8 @@ Elevation scale:
 - Chips and Tags: Secondary and filter chips should read as pill elements by default. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma. In dense workspace toolbars and cleanup-style filter clusters, compact filter chips may step down to `rounded-md`, and their count badges may step down again to `rounded-sm` so the controls feel more editorial and less soft.
 - Dense Names: User-created feed, folder, account, and tag names in dense lists should live inside a `min-w-0` row region, cap at the available row width, and truncate with ellipsis instead of pushing action controls. Use `dir="auto"` on the visible name. Pointer tooltip/title may expose the full display name when the value is a user-created name; do not use that policy for URLs, tokens, paths, or other privacy-sensitive values.
 - Mobile Filter Controls: On small screens, filter and segmented controls should usually keep their resting state transparent or only lightly surfaced. Keep the outer hit target comfortably sized, but let the visible selected surface live on a smaller inner label pill when the control sits in compact reader or toolbar chrome. Use tonal fill, text emphasis, and semantic accenting for the selected state, and avoid making every option look like a boxed button at rest. Desktop treatments with stronger borders, shadows, or label density should not be mechanically scaled down into mobile chrome.
-- Cards and Containers: Use warm cream surfaces, a warm border ring, and border-led separation by default. Shared section and info containers should default to `rounded-md` so structural surfaces stay on the same baseline as settings-form controls unless a shell role explicitly needs a larger frame. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
-- Inputs and Forms: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis and a muted blue-gray focus ring over saturated primary-orange rings; primary is too CTA-like for routine text-editing focus. Text selection should use the dedicated softer selection token rather than `primary`; primary is too CTA-like for selected editable text. Shared input-like primitives should use `rounded-md`; switches remain `rounded-full`. Loading bars are the exception: they may use the dedicated loading blue when the warm ring is not legible enough.
+- Cards and Containers: Use warm cream surfaces, a warm border ring, and border-led separation by default. Shared section and info containers should default to `rounded-md` so structural surfaces stay on the same baseline as settings-form controls unless a shell role explicitly needs a larger frame. Elevated cards may use `--shadow-elevation-3`. `rounded-xl` and larger belong to separate shell roles rather than standard cards.
+- Inputs and Forms: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis and the muted blue-gray focus ring (`--ring` / `--focus-ring`) over saturated primary-orange rings; primary is too CTA-like for routine text-editing focus. Text selection should use the dedicated softer selection token rather than `primary`; primary is too CTA-like for selected editable text. Shared input-like primitives should use `rounded-md`; switches remain `rounded-full`. Loading bars use the loading role, not the focus ring; the two roles are separate.
 - Settings Forms: Treat settings pages as desktop-app settings panels, not generic web forms. The canonical row is a stable left label column plus a stable right control column. Controls in one dialog or form group should share a single visible start and end rail across composite input-and-action controls, selects, and conditional follow-up inputs. Invisible button padding or local margin compensation may enlarge a hit area, but must not shift those visible content edges. Long controls may cap their width instead of stretching edge-to-edge, but compact controls must still live on the same control rail rather than floating at arbitrary intermediate positions. Do not let compact controls such as switches force natural one-line setting labels to wrap while there is unused horizontal space in the row; keep those desktop labels on one line unless the available content lane is genuinely too narrow. Explanatory or safety copy inside settings should not sit as a centered prose block between controls. Treat it as part of the same row-group language: a short lead line followed by compact divided rows, numbered confirmations, or label/detail rows when the content asks the user to verify steps. The desired rhythm is: section gap first, then heading-to-first-row gap, then a consistent row cadence, with a fixed label-to-control column gap.
 - Entity Edit Dialogs: Order content by user intent: mutable settings first, quieter read-only reference information second, and destructive actions last. Keep reference information available through a compact disclosure group when it would otherwise compete with editable controls. Separate destructive actions with spacing or a divider, pair them with concise consequence copy, and keep the action visually compact rather than stretching it across the control rail. Destructive actions that remove user data must open a focused confirmation step instead of executing directly from the editor.
 - Settings Borders and Shadows: Settings should follow a low-wire desktop preferences model, closer to Inoreader-style grouped preferences than card-heavy web forms. The outer modal shell may carry the visible frame and ambient shadow, but the content pane should avoid repeated card outlines. Right-pane settings should read as section label plus a quiet rounded row group: group separation comes from surface tone, row cadence, and subtle internal dividers, not from heavy outer borders around every section. Use `--settings-shell-divider-border` for shell/header/nav and row dividers, `--settings-shell-section-border` only as a nearly invisible group edge, and `--settings-shell-control-border` for controls that still need a boxed affordance. Use `--settings-shell-shadow` for the outer modal shell; keep `--settings-shell-section-shadow` and `--settings-shell-control-shadow` very quiet or none so sections, selects, shortcut key badges, and content/header action buttons do not compete with the shell. Settings scroll affordances must not create a per-page shadow mismatch: do not add a top fade or header drop shadow only when content overflows. If scrolling needs an affordance, keep it at the trailing edge or use the existing divider so tag, shortcut, and account pages share the same header depth. Avoid arbitrary per-section shadows or stacking multiple adjacent borders where a single divider or tonal group can carry the separation.
@@ -149,14 +151,14 @@ Elevation scale:
 - Dense Workspace Hover: In subscriptions, cleanup, settings, and other high-density workspace panels, hover feedback should stay geometrically stable. Prefer tone, border, text, and shadow changes over hover lift so repeated rows do not shimmer, feel nauseating, or clip against nearby edges.
 - Lists and Navigation: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
 - Media and Preview Surfaces: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels. Embedded browser/WebView chrome should keep app-owned header height, safe lanes, and icon centering consistent across browser preview and native runtime; platform titlebar or traffic-light reserves should not leak into browser-mode mock geometry.
-- Feed Favicons: The appearance setting may disable favicon display entirely before this component renders. When favicons are shown, only public feed/site hosts may be sent to the external Google favicon endpoint; localhost, `.localhost`, `.local`, private IPv4, link-local IPv4, loopback IPv6, link-local IPv6, and unique-local IPv6 hosts must use the text fallback instead. The external request must include only the host and size, use `referrerPolicy="no-referrer"`, stay on the browser image request path without app-owned custom user-agent headers, fall back offline after image failure, keep failure caching scoped to the mounted favicon instance until the source changes or remounts, and apply grayscale only to successfully resolved images.
+- Feed Favicons: The appearance setting may disable favicon display entirely before this component renders. When favicons are shown, candidates are tried in order: the feed's own `icon_url` first, then the external Google favicon endpoint. If every candidate fails, or none exists, the component switches to a text fallback (the first grapheme of the feed title). Only public feed/site hosts may be sent to the Google endpoint; localhost, `.localhost`, `.local`, private IPv4, link-local IPv4, loopback IPv6, link-local IPv6, and unique-local IPv6 hosts are never sent, so when the host chosen for the feed (the site URL's host, else the feed URL's host) is one of those, the candidate list is the `icon_url` alone and the text fallback applies when it is missing or fails. The external request must include only the host and size, use `referrerPolicy="no-referrer"`, stay on the browser image request path without app-owned custom user-agent headers, fall back offline after image failure, keep failure caching scoped to the mounted favicon instance until the source changes or remounts, and apply grayscale only to successfully resolved images.
 - Dialog and Popup Shells: Dialogs, command palettes, and other popup shells should use named scrim roles from the token layer instead of ad hoc alpha literals. Use the standard dialog scrim for modal separation and the readable scrim only when the content behind the popup needs to stay legible as a softened surface instead of falling into darkness.
 - Confirmation Dialogs: Build the hierarchy from a compact semantic icon badge beside a visible left-aligned title, followed by one visible secondary description. Do not duplicate visible copy with hidden or `aria-hidden` text; the title and description remain the dialog's accessible name and description.
 - Confirmation Actions: Keep cancel first in source and Tab order, then place the compact tonal confirmation action at the trailing edge. Keep both controls at least 44px high, use an 8px gap, and allow labels to wrap and the group to reflow in narrow viewports without stretching desktop actions to full width. Place hold-to-confirm guidance below the action group.
 - Confirmation Semantics: Warning and destructive badges and actions use their existing semantic state tokens, with icon or text communicating meaning in addition to color. Confirmation dialogs use the readable scrim when background context should remain legible; do not change the global dialog preset for this local need.
 - Settings Unsaved Changes: While a settings editor holds unsaved edits, show a bar pinned to the bottom of the settings content pane (outside the scroll region) with a short status line ("You have unsaved changes") and the form action pair: the quiet discard action precedes the trailing primary "Save & test connection" action. The bar appears only while edits exist and stays reachable regardless of scroll position. A FreshRSS account pane keeps its own bar in the same position at all times instead: with no edits it offers only "Check connection", and with edits it switches to the status line and action pair; the mode stays fixed while a check is in flight so buttons do not jump under the pointer. Do not lock navigation or show a separate lock message for dirty state; only a save that is actually in flight may disable leaving.
 - Changed Field Highlight: Mark each edited input with the changed-field border token (`--settings-field-changed-border`) plus a small dot indicator with an accessible "Changed" label beside the field label. Clear both as soon as the value returns to its saved state, so the highlight always reflects the real diff rather than "touched" state.
-- Leave Confirmation: Leaving settings with unsaved edits (close button, Escape, outside click, switching category or account, add account) opens a confirmation dialog titled "Save your changes?" with Cancel, Discard, and the trailing primary Save, in that source and Tab order, following the Confirmation Dialogs and Confirmation Actions rules. Initial focus goes to Save. Escape or outside click inside the confirmation means Cancel and returns to the editor with the edits intact. If saving or its connection test fails, close the confirmation and keep the user on the edited screen with the error visible instead of navigating away.
+- Leave Confirmation: Leaving settings with unsaved edits (close button, Escape, outside click, switching category or account, add account) opens a confirmation dialog titled "Save your changes?" with Cancel, Discard, and the trailing Save, in that source and Tab order, following the Confirmation Dialogs and Confirmation Actions rules. Save uses the default (primary) button variant and appears only when every edited entry has a save action. When Save is shown, initial focus goes to Save. When it is not, the dialog shows only Cancel and Discard, and initial focus goes to Discard. Escape or outside click inside the confirmation means Cancel and returns to the editor with the edits intact. If saving or its connection test fails, close the confirmation and keep the user on the edited screen with the error visible instead of navigating away.
 - Inline Action Progress: For short actions such as "Sync now", express progress on the triggering button itself (spinner plus in-progress label while running, then a brief success check) instead of adding a separate progress card or indeterminate bar that cannot report real progress. Reserve progress bars for long operations that can report measurable progress.
 - Toast and Banner Actions: Informational toasts with a single optional action may align the action label optically with the message text edge, using tone (primary text vs soft text) for hierarchy. Toasts that present a decision (two actions, e.g. restart now / later) use the form action-pair pattern instead: actions sit right-aligned in a trailing row, share height, minimum inline size, and `rounded-md`, with the quiet secondary (outline) preceding the trailing primary. Offer exactly one dismiss affordance: when a secondary action already dismisses (e.g. "Later"), omit the corner ×; keep the × only for toasts without an explicit dismiss action. Reserve primary orange fill for the single CTA in the toast. In `ToastData.actions`, list the primary action first and the dismissing action last; the view handles visual ordering.
 - Toast Severity: Error and warning toasts mark their severity with a state-token border and a leading icon, so the meaning never rests on color alone; the primary orange is not used for severity. Info, success, and unspecified toasts keep the neutral border and no icon. Severity changes only the look: screen-reader announcement stays polite. Where a failure may appear is set in Failure and Status Messages.
@@ -224,13 +226,18 @@ Elevation scale:
 
 ### Border Radius Scale
 
-- Micro: 1.5px
-- Small: 2px
-- Medium: 3px
-- Standard: 4px
-- Comfortable: 8px
-- Featured: 10px
-- Full Pill: 9999px
+Radius comes from the Tailwind `rounded-*` utilities, whose values are owned by `--radius` and `--radius-sm` through `--radius-4xl` in the `@theme` block of `src/styles/global.css`. Do not copy the values here.
+
+| Utility                  | Use                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `rounded-sm`             | Compact details inside a control, such as select items and skeleton placeholders                             |
+| `rounded-md`             | Shared controls, buttons, inputs, selects, section and info containers, and icon badges inside dialogs       |
+| `rounded-lg`             | Icon toolbar controls and sidebar rows, including feed, folder, tag, and smart-view rows and section toggles |
+| `rounded-xl`             | Dialog, form dialog, and settings modal shells; the account switcher menu                                    |
+| `rounded-2xl` and larger | Confirmation dialogs, the command palette, and context menus                                                 |
+| `rounded-full`           | Pills and switches                                                                                           |
+
+The scrollbar thumb in `src/styles/global.css` is the only place that uses a small px radius literal. Components use no small px radius literal either.
 
 Surface governance:
 
@@ -240,14 +247,14 @@ Surface governance:
 - Shared switches should use `rounded-full`.
 - Shared segmented controls, toggle groups, and radio-like choice chips should use `rounded-md` in settings-form contexts unless a pill treatment is intentionally documented for that component family.
 - Dense workspace filter chips may use `rounded-md`. Their inline count badges may use `rounded-sm` when a full pill would feel too soft for the surrounding UI.
-- 20px+ radii are reserved for distinct shell roles, such as modal shells, command palettes, or other app-level outer frames, not standard cards or section containers.
+- `rounded-xl` and larger are reserved for distinct shell roles, such as modal shells, command palettes, or other app-level outer frames, not standard cards or section containers.
 - Prefer radius scale utilities such as `rounded-md`, `rounded-lg`, `rounded-xl`, and `rounded-2xl` over pixel literals in component code. Do not use px radius literals for reusable shared primitives.
 
 ### Shell Roles
 
 - Shell roles are the app-level outer frames that contain the inner section containers.
 - Use them for left rail shells, main content shells, dialog shells, context menus, command palettes, and other workspace-level surfaces that frame a screen.
-- Shell roles may use 20px+ radii and slightly stronger ambient separation than section containers, but they should keep the same warm surface language.
+- Shell roles may use `rounded-xl` and larger radii and slightly stronger ambient separation than section containers, but they should keep the same warm surface language.
 - Section containers remain the inner structural units. Keep their `rounded-md` baseline and do not reuse shell-level framing language on them.
 - In Storybook shell examples, treat the outer frame as the reusable shell pattern; the inner dialog or menu body may still use a smaller radius and should not be copied as the shell.
 
@@ -264,8 +271,10 @@ Surface governance:
 
 ### Focus States
 
-- Prefer warm border emphasis or soft depth-based focus
-- Avoid cold blue default focus rings unless an accessibility layer specifically requires them
+- In the default themes, shared controls focus with the `--ring` and `--focus-ring` tokens: a restrained muted blue-gray ring, paired with border emphasis where the control has a border. Components use the tokens and do not hard-code a focus color. A semantic variant (the destructive button keeps its danger ring) or a control that shows focus through background and text color instead of a ring is a deliberate exception.
+- Do not choose the primary orange as a component's own focus color, and do not leave the browser's default vivid blue ring in place.
+- Loading (the progress blue) and ring (focus) are different roles. Do not borrow one for the other.
+- High-contrast and forced-colors modes redefine the same tokens in `src/styles/global.css` (a primary-tinted ring, or the system highlight color). Components keep using the tokens and do not special-case those modes.
 
 ### Accessibility Baseline Checklist
 
@@ -307,7 +316,7 @@ Manual/a11y smoke:
 
 - The shared easing tokens are not interchangeable. Pick by what the motion has to communicate, not by whichever token is nearest.
 - `--motion-ease-standard` and `--motion-ease-emphasized` are entrance curves: both spend most of their progress in the opening moments so an arriving element lands quickly and settles. Measured on a 36px row over 180ms, the two are effectively the same curve — 14.5px and 14.2px remaining at 30ms — so swapping one for the other is not a way to change how a transition reads.
-- A collapse or fold needs a curve that starts slowly, otherwise the element is perceptually gone before the fold is legible and the motion reads as the same abrupt removal it was meant to replace. `--motion-ease-collapse` exists for that case; the same measurement leaves 32.9px at 30ms.
+- A collapse or fold of an element that leaves the tree needs a curve that starts slowly, otherwise the element is perceptually gone before the fold is legible and the motion reads as the same abrupt removal it was meant to replace. `--motion-ease-collapse` exists for that case; the same measurement leaves 32.9px at 30ms. A disclosure section that opens and closes in place is not that case: it keeps the standard curve in both directions, as the disclosure rules below describe.
 - Introduce a new easing token only when an existing one cannot express the intent, and record the intent at the token rather than at one call site. Do not inline a `cubic-bezier()` in a component.
 - Keep a departing element's opacity on the same curve as its size. Fading faster than the fold hides the motion that explains where the element went.
 
@@ -345,8 +354,9 @@ Manual/a11y smoke:
 ### Expandable Sections
 
 - Section and sidebar disclosure patterns should feel calm and mechanical, not springy or theatrical.
-- Use one shared easing family for disclosure UI: `cubic-bezier(0.22, 1, 0.36, 1)`.
-- Chevron rotation, section header emphasis, and body reveal should usually complete in about 200ms.
+- Use `--motion-ease-standard` for disclosure UI in both directions, with `--motion-duration-disclosure`, through the `motion-disclosure-*` classes in `src/styles/motion.css`. Do not inline a curve in a component.
+- A disclosure section stays mounted and opens and closes in place, so it uses that standard curve both ways. A row that leaves the tree, such as a sidebar feed or folder row that is removed, collapses with `--motion-ease-collapse` and `--motion-duration-contextual` for both height and opacity (`motion-sidebar-row-collapse`).
+- Chevron rotation, section header emphasis, and body reveal should complete together within the disclosure duration.
 - Expandable content should prefer layout-safe reveal patterns such as `grid-template-rows`, opacity, and a small vertical translate instead of abrupt mount/unmount swaps when the component family benefits from continuity.
 - Chevron icons should rotate to communicate state, but the motion should stay compact. A quarter-turn is preferred for collapsed side-rail toggles and folder rows.
 - Revealed content should move only slightly. A small upward offset while collapsing is preferred over large slide distances.
@@ -370,13 +380,13 @@ Manual/a11y smoke:
 
 ### Breakpoints
 
-| Name          | Width      | Key Changes                                        |
-| ------------- | ---------- | -------------------------------------------------- |
-| Mobile        | <600px     | Single column, reduced padding, stacked navigation |
-| Tablet Small  | 600-768px  | 2-column grids begin                               |
-| Tablet        | 768-900px  | Expanded card grids, sidebar appears               |
-| Desktop Small | 900-1279px | Full layout forming                                |
-| Desktop       | >1279px    | Full layout, maximum content width                 |
+The reader screen's responsive layout is chosen as a `layoutMode` by `resolveResponsiveLayoutMode` in `src/hooks/use-layout.ts`. The boundaries are `MOBILE_LAYOUT_BREAKPOINT_PX` and `COMPACT_LAYOUT_BREAKPOINT_PX` in `src/constants/ui-layout.ts`; do not copy the pixel values here. At or above the compact boundary, the `layout` preference chooses between `wide` and `compact`; `automatic` and `wide` resolve to `wide`. The subscriptions workspace is the exception: it shows only its content pane in every `layoutMode`.
+
+| layoutMode | Selected when                                                                                    | Key Changes                                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mobile`   | The viewport is narrower than `MOBILE_LAYOUT_BREAKPOINT_PX`                                      | One pane (sidebar, list, or content) fills the width and the panes slide between each other; no account pane                                        |
+| `compact`  | Between the two boundaries, or at or above the compact boundary when the preference is `compact` | Sliding panes: sidebar with list, or list with content once the content pane is focused; sidebar and list keep fixed widths; account pane available |
+| `wide`     | At or above `COMPACT_LAYOUT_BREAKPOINT_PX` unless the preference is `compact`                    | Sidebar, list, and content side by side (list and content only in browser mode); the sidebar and account pane open and close in place               |
 
 ### Touch Targets
 
@@ -444,14 +454,10 @@ Provider and service icon backgrounds may use brand or near-brand colors as expl
 
 - Local feeds: warm orange accent (`bg-orange-500` in current implementation)
 - FreshRSS: `#0062BE`
-- Feedly: `#2BB24C`
-- Fever: neutral gray placeholder (`bg-gray-500` in current implementation)
 
-`PROVIDER_ICON_BG_CLASS` in `src/components/shared/exception-palettes.ts` is the source of truth
-for this list; `ProviderKind` in `src-tauri/src/domain/provider.rs` is the source of truth for
-which providers exist.
-
-These colors should be centralized as provider brand tokens or a dedicated exception map, not treated as part of the core UI palette.
+`PROVIDER_ICON_BG_CLASS` in `src/components/shared/exception-palettes.ts` owns these colors, and
+`ProviderKind` in `src-tauri/src/domain/provider.rs` is the source of truth for which providers
+exist. Do not add a color for a provider that `ProviderKind` does not list.
 
 ### Agent Prompt Guide
 
