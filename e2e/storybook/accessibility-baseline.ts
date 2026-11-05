@@ -131,7 +131,8 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
     storyId: "settings-section-accountdangerzoneview--data-import-failure",
     ruleId: "color-contrast",
     nodeCount: 1,
-    reason: "失敗状態の SurfaceCard でも既存 danger トーンのコントラスト前提は変えず、デザイン判断待ちの既知違反として記録する。",
+    reason:
+      "失敗状態の SurfaceCard でも既存 danger トーンのコントラスト前提は変えず、デザイン判断待ちの既知違反として記録する。",
   },
   {
     storyId: "settings-shell-settingsmodalview--dense-narrow-viewport",
