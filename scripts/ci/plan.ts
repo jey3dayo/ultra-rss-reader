@@ -2,6 +2,7 @@ export const checkJobs = [
   "toolchain",
   "format",
   "lint",
+  "react-doctor-diff",
   "rust-clippy",
   "macos-native",
   "test-node",
@@ -144,11 +145,12 @@ export function planChanges(event: string, paths: readonly string[]): Plan {
   return plan;
 }
 
-export function requiredJobs(plan: Plan): Record<string, boolean> {
+export function requiredJobs(plan: Plan, event = "pull_request"): Record<string, boolean> {
   return {
     toolchain: true,
     format: true,
     lint: plan.frontend,
+    "react-doctor-diff": event === "pull_request" && plan.frontend,
     "rust-clippy": plan.native,
     "macos-native": plan.native,
     "test-node": plan.frontend,

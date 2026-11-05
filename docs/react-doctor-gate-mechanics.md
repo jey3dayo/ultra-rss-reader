@@ -73,8 +73,10 @@ REACT_DOCTOR_DIFF_BASE="$(git rev-parse HEAD^1)" mise run quality:react-doctor:d
 Without a resolvable base the run does not degrade; it falls back to `mode: "full"`, which the
 wrapper already fails as `mode drift`.
 
-The diff gate is not required in CI. `ci.yml` has no job for it, and requiring it waits on an observed
-PR run of the invocation above; the fixtures were local clones.
+The diff gate runs for frontend pull requests and is required by Quality Gate. The job verifies the
+merge base and logs the report mode, degradation flag, and base SHA. The fixtures were local clones.
+
+PR run evidence: TBD
 
 ## scanSha Re-Pin Gating: What The Old Contract Cost
 
