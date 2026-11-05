@@ -21,13 +21,31 @@ type AccountDetailErrorToastKey =
   | "account.local_sync_import_failed"
   | "account.failed_to_delete";
 
-export function createAccountDetailErrorToast(t: TFunction<"settings">, key: AccountDetailErrorToastKey) {
+type AccountDetailErrorToastOptions = {
+  persistMessage?: (message: string) => void;
+};
+
+function formatAccountDetailErrorMessage(
+  t: TFunction<"settings">,
+  key: AccountDetailErrorToastKey,
+  error: AccountDetailError,
+): string {
+  return t(key, {
+    message: redactProviderRuntimeDiagnosticText(localizeUserVisibleAppErrorMessage(error.message)),
+  });
+}
+
+export function createAccountDetailErrorToast(
+  t: TFunction<"settings">,
+  key: AccountDetailErrorToastKey,
+  options?: AccountDetailErrorToastOptions,
+) {
   return (error: AccountDetailError) => {
+    const message = formatAccountDetailErrorMessage(t, key, error);
     useUiStore.getState().showToast({
-      message: t(key, {
-        message: redactProviderRuntimeDiagnosticText(localizeUserVisibleAppErrorMessage(error.message)),
-      }),
+      message,
       severity: key === "account.saved_connection_unconfirmed" ? "warning" : "error",
     });
+    options?.persistMessage?.(message);
   };
 }

@@ -30,12 +30,14 @@ type AccountDetailViewMockProps = {
     onNameDraftChange: (value: string) => void;
     onCommitName: () => void;
     onNameKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+    errorMessage?: string | null;
   };
   credentialsSection?: ReactNode;
   footer?: ReactNode;
   syncSection: {
     heading: string;
     note?: string;
+    errorMessage?: string | null;
     isSyncing?: boolean;
     syncNowLabel?: string;
     syncingLabel?: string;
@@ -63,6 +65,7 @@ type AccountDetailViewMockProps = {
     onImport: (file: File) => Promise<void>;
     onExport: () => void;
     disabled?: boolean;
+    dataSectionErrorMessage?: string | null;
   };
 };
 
@@ -121,10 +124,12 @@ vi.mock("@/components/settings/account-detail/view", () => ({
             {props.generalSection.nameValue}
           </button>
         )}
+        {props.generalSection.errorMessage ? <p role="alert">{props.generalSection.errorMessage}</p> : null}
         {props.credentialsSection}
         {props.footer}
         <div>{props.syncSection.heading}</div>
         {props.syncSection.note ? <p>{props.syncSection.note}</p> : null}
+        {props.syncSection.errorMessage ? <p role="alert">{props.syncSection.errorMessage}</p> : null}
         <button type="button" onClick={() => props.syncSection.syncOnStartup.onChange(true)}>
           Enable startup sync
         </button>
@@ -182,6 +187,9 @@ vi.mock("@/components/settings/account-detail/view", () => ({
             }
           }}
         />
+        {props.dangerZone.dataSectionErrorMessage ? (
+          <p role="alert">{props.dangerZone.dataSectionErrorMessage}</p>
+        ) : null}
         <button type="button" onClick={() => {}} disabled={props.dangerZone.disabled}>
           {props.dangerZone.importLabel}
         </button>
@@ -1866,6 +1874,7 @@ describe("AccountDetail", () => {
       expect(showToast).toHaveBeenCalledWith(
         expect.objectContaining({ message: "Failed to import OPML: Invalid OPML", severity: "error" }),
       );
+      expect(screen.getByRole("alert")).toHaveTextContent("Failed to import OPML: Invalid OPML");
     });
   });
 

@@ -420,7 +420,7 @@ jobs:
     needs: change-plan
     if: needs.change-plan.outputs.native == 'true'
     runs-on: macos-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v6.1.0
@@ -452,7 +452,7 @@ jobs:
         run: bash scripts/ci/run-logged.sh tmp/ci-artifacts/rust/lint.log mise run lint:clippy
 
       - name: Verify macOS credential session policy with dummy values
-        if: runner.os == 'macOS' && needs.change-plan.outputs.credentials == 'true'
+        if: needs.change-plan.outputs.credentials == 'true'
         run: mise run test:keychain-session
 
       - name: Run native smoke debug build

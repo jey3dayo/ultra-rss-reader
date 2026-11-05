@@ -28,6 +28,7 @@ paths:
   - "src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts"
   - "src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts"
   - "src/components/settings/hooks/account-detail/use-account-detail-sync-controls.ts"
+  - "src/components/settings/add-account/account-config-form.tsx"
   - "src/components/shared/confirm-dialog-view.tsx"
   - "src/components/shared/destructive-confirm-dialog-view.tsx"
   - "src/components/storybook/ui-reference-shell-specimens.tsx"

@@ -996,6 +996,34 @@ describe("AddAccountForm", () => {
     });
   });
 
+  it("localizes a backend maintenance-busy add-account failure in the ja locale", async () => {
+    const user = userEvent.setup();
+    const DATABASE_MAINTENANCE_BUSY_MESSAGE =
+      "Database maintenance is unavailable while syncing. Try again after sync completes.";
+    localeMockState.language = "ja";
+    await i18n.changeLanguage("ja");
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_account") {
+        throw { type: "UserVisible", message: DATABASE_MAINTENANCE_BUSY_MESSAGE };
+      }
+      return null;
+    });
+
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("サーバーURL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("パスワード"), "secret");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    const localizedBusyMessage = i18n.t("errors.database_maintenance_busy", { ns: "common" });
+    await waitFor(() => {
+      expect(screen.getByText(`アカウントの追加に失敗しました: ${localizedBusyMessage}`)).toBeInTheDocument();
+    });
+  });
+
   it("starts an account setup session after successful registration", async () => {
     const user = userEvent.setup();
     let releaseSync = () => {};

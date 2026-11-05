@@ -50,6 +50,7 @@ export type AccountDetailSyncControlsResult = {
   devCredentialsRecoveryInFlight: boolean;
   syncIntervalOptions: OptionWithLabel[];
   keepReadItemsOptions: OptionWithLabel[];
+  syncSectionErrorMessage: string | null;
 };
 
 type RunAccountSetupSyncParams = {
@@ -164,8 +165,13 @@ export function useAccountDetailSyncControls({
   onSyncStatusChanged,
   accountSetupState,
 }: AccountDetailSyncControlsParams): AccountDetailSyncControlsResult {
-  const showSyncUpdateError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
-  const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed");
+  const [syncSectionErrorMessage, setSyncSectionErrorMessage] = useState<string | null>(null);
+  const showSyncUpdateError = createAccountDetailErrorToast(t, "account.failed_to_update_sync", {
+    persistMessage: setSyncSectionErrorMessage,
+  });
+  const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed", {
+    persistMessage: setSyncSectionErrorMessage,
+  });
   const syncActionInFlightRef = useRef(false);
   const syncUpdateRevisionRef = useRef(0);
   const selectedAccountGenerationRef = useRef(0);
@@ -192,6 +198,8 @@ export function useAccountDetailSyncControls({
     setSyncNowSuccess(null);
     // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:228（判定）
     setDevCredentialsRecoveryInFlight(false);
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- accepted risk (account-change reset), docs/react-doctor-warning-classification-249.md:228（判定）
+    setSyncSectionErrorMessage(null);
   }, [account.id]);
 
   const isCurrentSelectedAccountGeneration = (generation: number, accountId: string) =>
@@ -221,6 +229,7 @@ export function useAccountDetailSyncControls({
         if (revision !== syncUpdateRevisionRef.current) {
           return;
         }
+        setSyncSectionErrorMessage(null);
         updateCachedAccount(queryClient, updated);
       }),
     );
@@ -247,6 +256,9 @@ export function useAccountDetailSyncControls({
           invalidateAccountSyncNowQueries(queryClient);
           onSyncStatusChanged?.();
           const feedback = summarizeSyncResult(syncResult);
+          if (feedback.kind === "success") {
+            setSyncSectionErrorMessage(null);
+          }
           setSyncNowSuccess(
             feedback.kind === "success" ? { accountId: requestAccountId, generation: requestGeneration } : null,
           );
@@ -326,6 +338,7 @@ export function useAccountDetailSyncControls({
       useUiStore
         .getState()
         .showToast(t(moved ? "account.dev_credentials_reset_success" : "account.dev_credentials_reset_noop"));
+      setSyncSectionErrorMessage(null);
     } catch (error) {
       if (!isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
         return;
@@ -334,6 +347,7 @@ export function useAccountDetailSyncControls({
         message: t("account.dev_credentials_reset_failed", { message: getErrorMessage(error) }),
         severity: "error",
       });
+      setSyncSectionErrorMessage(t("account.dev_credentials_reset_failed", { message: getErrorMessage(error) }));
     } finally {
       if (isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
         syncActionInFlightRef.current = false;
@@ -372,5 +386,6 @@ export function useAccountDetailSyncControls({
       { value: "365", label: t("account.one_year") },
       { value: "0", label: t("account.forever") },
     ],
+    syncSectionErrorMessage,
   };
 }

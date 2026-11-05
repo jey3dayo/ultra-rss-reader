@@ -1481,6 +1481,73 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(useUiStore.getState().toastMessage?.message).toBe("Connection failed: test account not found");
   });
 
+  it("clears the credentials section error after a successful connection test retry", async () => {
+    const account = sampleAccounts[1];
+    testAccountConnectionMock.mockResolvedValueOnce(Result.fail({ message: "invalid credentials" }));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+
+    expect(result.current.credentialsSectionErrorMessage).toBe("Connection failed: invalid credentials");
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+
+    expect(result.current.credentialsSectionErrorMessage).toBeNull();
+    expect(result.current.connectionTestSucceeded).toBe(true);
+  });
+
+  it("clears the credentials section error after a successful server URL copy retry", async () => {
+    const account = sampleAccounts[1];
+    copyToClipboardMock.mockResolvedValueOnce(Result.fail({ message: "clipboard denied" }));
+    copyToClipboardMock.mockResolvedValueOnce(Result.succeed(null));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    await act(async () => {
+      await result.current.handleCopyServerUrl();
+    });
+
+    expect(result.current.credentialsSectionErrorMessage).toBe("Failed to copy server URL: clipboard denied");
+
+    await act(async () => {
+      await result.current.handleCopyServerUrl();
+    });
+
+    expect(result.current.credentialsSectionErrorMessage).toBeNull();
+  });
+
+  it("clears the credentials section error after a successful credential save retry", async () => {
+    const account = sampleAccounts[1];
+    updateAccountCredentialsMock.mockRejectedValueOnce(new Error("network unavailable"));
+    updateAccountCredentialsMock.mockResolvedValueOnce(Result.succeed({ ...account, username: "reader" }));
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({ account, queryClient: createTestQueryClient(), t }),
+    );
+
+    act(() => {
+      result.current.setCredUsername("reader");
+    });
+
+    await act(async () => {
+      expect(await result.current.commitCredentials()).toBe(false);
+    });
+
+    expect(result.current.credentialsSectionErrorMessage).toBe("Couldn’t save credentials: network unavailable");
+
+    await act(async () => {
+      expect(await result.current.commitCredentials()).toBe(true);
+    });
+
+    expect(result.current.credentialsSectionErrorMessage).toBeNull();
+  });
+
   it("invalidates the account sync status query after a successful connection test and not after a failure", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();

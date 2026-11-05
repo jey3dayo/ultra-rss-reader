@@ -12,6 +12,23 @@ describe("account-detail-toast", () => {
     useUiStore.setState(useUiStore.getInitialState());
   });
 
+  it("persists account detail errors through persistMessage", () => {
+    const showToast = vi.fn();
+    const persistMessage = vi.fn();
+    const t = ((key: string, values?: Record<string, unknown>) =>
+      key === "account.failed_to_rename"
+        ? `Failed to rename account: ${String(values?.message)}`
+        : key) as TFunction<"settings">;
+    useUiStore.setState({ showToast });
+
+    createAccountDetailErrorToast(t, "account.failed_to_rename", { persistMessage })({
+      message: "boom",
+      title: "Rename failed",
+    });
+
+    expect(persistMessage).toHaveBeenCalledWith("Failed to rename account: boom");
+  });
+
   it("shows translated account detail errors as toasts", async () => {
     const showToast = vi.fn();
     const t = ((key: string, values?: Record<string, unknown>) =>

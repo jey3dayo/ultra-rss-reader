@@ -41,3 +41,10 @@ export const Editing: Story = {
     isEditingName: true,
   },
 };
+
+export const RenameFailure: Story = {
+  args: {
+    isEditingName: true,
+    errorMessage: "Failed to rename account: Name already exists",
+  },
+};

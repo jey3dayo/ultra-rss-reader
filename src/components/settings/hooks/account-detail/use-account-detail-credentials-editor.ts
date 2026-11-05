@@ -67,6 +67,7 @@ export type AccountDetailCredentialsEditorResult = {
   onPasswordFocus: () => void;
   onPasswordBlur: () => void;
   focusCredentialsEditor: () => void;
+  credentialsSectionErrorMessage: string | null;
 };
 
 export function useAccountDetailCredentialsEditor({
@@ -87,16 +88,26 @@ export function useAccountDetailCredentialsEditor({
   const pendingConnectionTestRef = useRef(false);
   const cloudflareAccessRequestIdRef = useRef(0);
   const activeAccountIdRef = useRef(account.id);
+  const trackedAccountIdRef = useRef(account.id);
   const connectionTestAccountIdRef = useRef(account.id);
   const connectionTestAccountGenerationRef = useRef(0);
   const draftRevisionRef = useRef(state.draftRevision);
   const mountedRef = useRef(true);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
-  const showCredentialSaveError = createAccountDetailErrorToast(t, "account.credential_save_failed");
-  const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
-  const showSavedConnectionError = createAccountDetailErrorToast(t, "account.saved_connection_unconfirmed");
-  const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed");
+  const [credentialsSectionErrorMessage, setCredentialsSectionErrorMessage] = useState<string | null>(null);
+  const showCredentialSaveError = createAccountDetailErrorToast(t, "account.credential_save_failed", {
+    persistMessage: setCredentialsSectionErrorMessage,
+  });
+  const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed", {
+    persistMessage: setCredentialsSectionErrorMessage,
+  });
+  const showSavedConnectionError = createAccountDetailErrorToast(t, "account.saved_connection_unconfirmed", {
+    persistMessage: setCredentialsSectionErrorMessage,
+  });
+  const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed", {
+    persistMessage: setCredentialsSectionErrorMessage,
+  });
   const savedPasswordPresence = accountMayHaveSavedPassword(account);
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
   const currentServerUrl = (credServerUrl ?? account.server_url ?? "").trim();
@@ -153,6 +164,10 @@ export function useAccountDetailCredentialsEditor({
     }
     activeAccountIdRef.current = account.id;
     draftRevisionRef.current = state.draftRevision;
+    if (trackedAccountIdRef.current !== account.id) {
+      trackedAccountIdRef.current = account.id;
+      setCredentialsSectionErrorMessage(null);
+    }
   });
 
   useEffect(() => {
@@ -161,6 +176,13 @@ export function useAccountDetailCredentialsEditor({
       value: savedPasswordPresence,
     });
   }, [savedPasswordPresence]);
+
+  useEffect(() => {
+    if (state.credentialFailure !== null) {
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- structured failure replaces generic section copy, docs/react-doctor-warning-classification-249.md:228（判定）
+      setCredentialsSectionErrorMessage(null);
+    }
+  }, [state.credentialFailure]);
 
   const retryCloudflareAccessLoad = useAccountDetailCloudflareAccessLoader({
     account,
@@ -211,6 +233,7 @@ export function useAccountDetailCredentialsEditor({
     cloudflareAccessUpdate,
     cloudflareAccessDirty,
     showCredentialSaveError,
+    clearCredentialsSectionError: () => setCredentialsSectionErrorMessage(null),
     pendingCredentialSaveRef,
     pendingCredentialSaveRevisionRef,
     cloudflareAccessRequestIdRef,
@@ -259,6 +282,7 @@ export function useAccountDetailCredentialsEditor({
         return false;
       }
 
+      setCredentialsSectionErrorMessage(null);
       setSuccessfulConnectionTest({
         accountId: requestAccountId,
         accountGeneration: requestAccountGeneration,
@@ -289,6 +313,7 @@ export function useAccountDetailCredentialsEditor({
     Result.pipe(
       await copyToClipboard(value),
       Result.inspect(() => {
+        setCredentialsSectionErrorMessage(null);
         useUiStore.getState().showToast(t("account.copied_to_clipboard"));
       }),
       Result.inspectError(showCopyServerUrlError),
@@ -338,9 +363,18 @@ export function useAccountDetailCredentialsEditor({
     changedFields,
     serverUrlInputRef,
     usernameInputRef,
-    setCredServerUrl: (value) => dispatch({ type: "set-cred-server-url", value }),
-    setCredUsername: (value) => dispatch({ type: "set-cred-username", value }),
-    setCredPassword: (value) => dispatch({ type: "set-cred-password", value }),
+    setCredServerUrl: (value) => {
+      setCredentialsSectionErrorMessage(null);
+      dispatch({ type: "set-cred-server-url", value });
+    },
+    setCredUsername: (value) => {
+      setCredentialsSectionErrorMessage(null);
+      dispatch({ type: "set-cred-username", value });
+    },
+    setCredPassword: (value) => {
+      setCredentialsSectionErrorMessage(null);
+      dispatch({ type: "set-cred-password", value });
+    },
     setCloudflareAccessRecoveryAction: (value) => dispatch({ type: "set-cloudflare-access-recovery-action", value }),
     setCloudflareAccessEnabled: (value) => dispatch({ type: "set-cloudflare-access-enabled", value }),
     setCloudflareAccessClientId: (value) => dispatch({ type: "set-cloudflare-access-client-id", value }),
@@ -355,5 +389,6 @@ export function useAccountDetailCredentialsEditor({
     onPasswordFocus,
     onPasswordBlur,
     focusCredentialsEditor,
+    credentialsSectionErrorMessage,
   };
 }

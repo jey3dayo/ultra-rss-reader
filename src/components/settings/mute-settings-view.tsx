@@ -229,7 +229,7 @@ export function MuteSettingsView({
             surface="flat"
             className="px-3 py-2.5 sm:px-4 sm:py-3"
             headingClassName="mb-2"
-            contentClassName="[&>*:first-child]:pt-0 [&>*:last-child]:pb-0"
+            contentClassName="[&>*:first-child]:pt-0 [&>*:last-child:not([role=alert])]:pb-0"
           >
             <MuteSettingsErrorAlert message={ruleScopeErrorMessage} className="mb-2" />
             {rules.length === 0 ? (

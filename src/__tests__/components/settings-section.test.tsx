@@ -33,4 +33,17 @@ describe("SettingsSection", () => {
     expect(screen.getByText("Flat body content")).toBeInTheDocument();
     expect(screen.getByText("Compact layout.")).toBeInTheDocument();
   });
+
+  it("keeps alert padding when the section error banner is the last child", () => {
+    render(
+      <SettingsSection heading="Server" surface="flat">
+        <p data-testid="row">Row</p>
+        <div role="alert" data-testid="alert">
+          Connection failed
+        </div>
+      </SettingsSection>,
+    );
+
+    expect(screen.getByTestId("alert")).not.toHaveClass("pb-0");
+  });
 });
