@@ -10,7 +10,8 @@ paths:
 - 全ての Tauri invoke 呼び出しは `safeInvoke` 経由で行う（api/tauri-commands.ts に集約）
 - 呼び出し元では `Result.pipe` + `Result.inspectError` でエラーを処理する
 - fire-and-forget（戻り値を待たない）パターンでも最低限 `console.error` でログを残す
-- ユーザーに見せるべきエラーは、表示先がある場合はその場（フィールド直下、セクション内のバナーなど）に出し、表示先がない場合は `showToast` または `window.alert` で通知する。表示先がある失敗を toast だけにしない（`DESIGN.md` の失敗表示を参照）
+- ユーザーに見せるべきエラーは、表示先がある場合はその場（フィールド直下、セクション内のバナーなど）に出し、表示先がない場合は `showToast` または `window.alert` で通知する。表示先がある失敗を toast だけにしない（`DESIGN.md` の「Failure and Status Messages」を参照）
+- 設定の Data 画面（`src/components/settings/hooks/`）では、行の操作の失敗を行ごとの `actionFailures` のバナーに出す。`recoverySurface`（`classifyDatabaseRuntimeRecoverySurface` の分類結果）は分類とログ専用で、Data 画面には表示しない。起動が止まる経路で画面が要るようになったら、Database recovery panel として表示を改めて決める
 - 保存済みの同期エラー文字列のように、文字列で届く backend のエラーを種類で分けて表示するときは、`Network error:` などの接頭辞で分類する現行方式を使う。`credential_failure` のように構造化済みの分類がある場合はそれを使う。エラーコード化は IPC 契約の変更になるのでやらない。接頭辞で分類しきれなくなったら、別 issue を立てて扱う
 
 ## 根拠
