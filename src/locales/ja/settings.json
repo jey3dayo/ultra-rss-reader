@@ -466,6 +466,7 @@
     "settings_profile_import": "読み込む",
     "settings_profile_importing": "読み込み中…",
     "settings_profile_file_input": "設定プロファイルのJSONファイルを選択",
+    "settings_profile_export_canceled": "書き出しをキャンセルしました",
     "settings_profile_export_success": "設定プロファイルを書き出しました",
     "settings_profile_export_failed": "設定プロファイルの書き出しに失敗しました: {{message}}",
     "settings_profile_import_success": "設定プロファイルを読み込みました。アカウントは{{accountsCreated}}件追加、{{accountsUpdated}}件更新。設定は{{preferencesImported}}件、タグは{{tagsCreated}}件追加、{{tagsUpdated}}件更新。ミュートキーワードは{{muteKeywordsCreated}}件追加しました。",

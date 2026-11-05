@@ -553,48 +553,24 @@ describe("MuteSettings", () => {
     }
   });
 
-  it("does not let an older failed auto-mark update roll back a newer successful value", async () => {
-    const user = userEvent.setup();
-    const showToast = vi.fn();
-    useUiStore.setState({ showToast });
-    const firstUpdate = createDeferred<void>();
-    const secondUpdate = createDeferred<void>();
-    setMuteAutoMarkReadMutateAsyncMock
-      .mockReturnValueOnce(firstUpdate.promise)
-      .mockReturnValueOnce(secondUpdate.promise);
+  it("ignores a second auto-mark change while the first is in flight", async () => {
+    const update = createDeferred<void>();
+    setMuteAutoMarkReadMutateAsyncMock.mockReturnValueOnce(update.promise);
 
     render(<MuteSettings />);
+    const switchControl = screen.getByRole("switch", { name: "Auto mark as read" });
+    fireEvent.click(switchControl);
+    fireEvent.click(switchControl);
 
-    const switchControl = screen.getByRole("switch", {
-      name: "Auto mark as read",
-    });
-    await user.click(switchControl);
-    await user.click(switchControl);
-
-    await waitFor(() => {
-      expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenCalledTimes(2);
-    });
-    expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenNthCalledWith(1, {
-      enabled: true,
-    });
-    expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenNthCalledWith(2, {
-      enabled: false,
-    });
+    expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenCalledTimes(1);
+    expect(setMuteAutoMarkReadMutateAsyncMock).toHaveBeenCalledWith({ enabled: true });
+    expect(switchControl).toBeChecked();
 
     await act(async () => {
-      secondUpdate.resolve();
-      await secondUpdate.promise;
+      update.resolve();
+      await update.promise;
     });
-    await act(async () => {
-      firstUpdate.reject(new Error("first failed"));
-      await firstUpdate.promise.catch(() => undefined);
-    });
-
-    expect(switchControl).not.toBeChecked();
-    expect(showToast).not.toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining("first failed") }),
-    );
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(switchControl).toBeChecked();
   });
 
   it("keeps a mute keyword creation failure visible in the add form, not only in the toast", async () => {

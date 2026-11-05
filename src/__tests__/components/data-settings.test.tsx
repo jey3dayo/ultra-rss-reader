@@ -199,7 +199,7 @@ describe("DataSettings failures", () => {
     });
   });
 
-  it("shows no failure when the user cancels the export location picker", async () => {
+  it("shows an info toast when the user cancels the export location picker", async () => {
     const user = userEvent.setup();
     commands.showSaveDialog.mockResolvedValueOnce(null);
     await renderDataSettings();
@@ -211,7 +211,9 @@ describe("DataSettings failures", () => {
     });
     expect(commands.exportSettingsProfileToFile).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(showToast).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Settings profile export canceled", severity: "info" }),
+    );
   });
 
   it("keeps a settings profile import failure in the settings profile section, not only in the toast", async () => {

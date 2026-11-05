@@ -567,7 +567,8 @@ describe("useDataSettingsController", () => {
 
     expect(showSaveDialog).toHaveBeenCalledTimes(1);
     expect(exportSettingsProfileToFile).not.toHaveBeenCalled();
-    expect(showToast).not.toHaveBeenCalledWith("data.settings_profile_export_success");
+    expect(showToast).toHaveBeenCalledWith({ message: "data.settings_profile_export_canceled", severity: "info" });
+    expect(result.current.actionFailures.exportProfile).toBeNull();
   });
 
   it("imports settings profile files and reports merged counts", async () => {
@@ -1342,7 +1343,7 @@ describe("useDataSettingsController action failures", () => {
     });
 
     expect(result.current.actionFailures).toEqual(noFailures);
-    expect(showToast).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith({ message: "data.settings_profile_export_canceled", severity: "info" });
   });
 
   it("tells the user in their language that an oversized settings file is too large to import", async () => {

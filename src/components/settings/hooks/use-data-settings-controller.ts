@@ -345,7 +345,11 @@ export function useDataSettingsController({
         defaultPath: SETTINGS_PROFILE_EXPORT_FILENAME,
         filters: [{ name: "JSON", extensions: ["json"] }],
       });
-      if (path === null || !mountedRef.current) {
+      if (!mountedRef.current) {
+        return;
+      }
+      if (path === null) {
+        showToast({ message: t("data.settings_profile_export_canceled"), severity: "info" });
         return;
       }
       Result.pipe(

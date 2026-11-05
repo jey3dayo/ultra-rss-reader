@@ -79,6 +79,7 @@ export function MuteSettings() {
   const updateMuteKeyword = useUpdateMuteKeyword();
   const ruleScopeUpdateRevisionRef = useRef<Record<string, number>>({});
   const autoMarkReadRevisionRef = useRef(0);
+  const autoMarkReadInFlightRef = useRef(false);
   const createInFlightRef = useRef(false);
   const confirmDeleteInFlightRef = useRef(false);
   const [confirmDeleteInFlight, setConfirmDeleteInFlight] = useState(false);
@@ -182,6 +183,10 @@ export function MuteSettings() {
   };
 
   const handleAutoMarkReadChange = async (checked: boolean) => {
+    if (autoMarkReadInFlightRef.current) {
+      return;
+    }
+    autoMarkReadInFlightRef.current = true;
     const revision = autoMarkReadRevisionRef.current + 1;
     autoMarkReadRevisionRef.current = revision;
     const previousValue = autoMarkReadEnabled;
@@ -202,6 +207,8 @@ export function MuteSettings() {
       const message = t("mute.auto_mark_read_failed", { message: getErrorMessage(error) });
       dispatch({ type: "set-auto-mark-read-error", message });
       showToast({ message, severity: "error" });
+    } finally {
+      autoMarkReadInFlightRef.current = false;
     }
   };
 
