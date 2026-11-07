@@ -28,6 +28,9 @@
     "unknown": "不明なエラー"
   },
   "updater": {
+    "restart_pending_after_sync": "同期が終わったら、アップデートを適用して再起動します",
+    "download_pending_after_sync": "同期が終わったら、アップデートのダウンロードを再開します",
+    "cancel_restart_pending": "キャンセル",
     "later": "後で",
     "download_failed_keep_current": "アップデートに失敗しました。現在のバージョンを引き続き使用します。",
     "check_again": "もう一度確認",

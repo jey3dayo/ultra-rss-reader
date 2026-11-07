@@ -60,6 +60,7 @@ const requiredSharedStoryExportsByFilePath = {
     "ErrorSeverity",
     "SingleActionInformational",
     "UpdateReadyDecision",
+    "UpdateRestartPendingAfterSync",
     "WarningSeverity",
   ],
   "/src/components/shared/confirm-dialog-view.stories.tsx": [

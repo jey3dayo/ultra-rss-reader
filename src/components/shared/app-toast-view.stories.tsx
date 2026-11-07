@@ -25,6 +25,17 @@ export const UpdateReadyDecision: Story = {
   },
 };
 
+export const UpdateRestartPendingAfterSync: Story = {
+  args: {
+    toastMessage: {
+      message: "同期が終わったら、アップデートを適用して再起動します",
+      persistent: true,
+      variant: "update",
+      actions: [{ label: "キャンセル", onClick: fn() }],
+    },
+  },
+};
+
 export const SingleActionInformational: Story = {
   args: {
     toastMessage: {

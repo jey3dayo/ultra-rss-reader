@@ -7,6 +7,7 @@ import {
   UpdateReadyEventPayloadSchema,
 } from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadUpdate } from "@/api/tauri-commands";
+import { waitForSyncRetry } from "@/hooks/updater/retry-after-sync";
 import {
   clearActiveDownload,
   rememberStaleDownloadSession,
@@ -20,6 +21,7 @@ import {
 } from "@/hooks/updater/updater-toasts";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
+import { isDatabaseMaintenanceBusyMessage } from "@/lib/ui/localize-app-error-message";
 import { useUiStore } from "@/stores/ui-store";
 
 export { showRestartToast } from "@/hooks/updater/updater-toasts";
@@ -27,6 +29,7 @@ export { showRestartToast } from "@/hooks/updater/updater-toasts";
 type UpdateInfo = UpdateInfoDto;
 
 const STARTUP_UPDATE_CHECK_DELAY_MS = 1_500;
+let pendingDownloadIsActive: (() => boolean) | undefined;
 
 function completeActiveDownloadAsReady(downloadRequestId: number): void {
   if (updaterState.activeDownloadRequestId !== downloadRequestId) {
@@ -63,11 +66,13 @@ function getErrorMessage(error: unknown): string {
  * checks pass `silent: false` to surface the existing progress/failure UX.
  * The ready toast fires exactly once regardless of trigger.
  */
-function startDownload(version: string, options: { silent: boolean }): void {
-  if (updaterState.downloadInFlight || updaterState.checkInFlight) {
-    return;
-  }
+async function startDownload(
+  version: string,
+  options: { silent: boolean; isPending?: () => boolean },
+): Promise<boolean> {
+  if (updaterState.downloadInFlight || updaterState.checkInFlight) return true;
 
+  pendingDownloadIsActive = options.isPending;
   updaterState.downloadInFlight = true;
   updaterState.activeDownloadSessionId = null;
   updaterState.activeDownloadProgressPercent = 0;
@@ -75,9 +80,9 @@ function startDownload(version: string, options: { silent: boolean }): void {
   updaterState.nextDownloadRequestId = updaterState.activeDownloadRequestId;
   const downloadRequestId = updaterState.activeDownloadRequestId;
   updaterState.activeDownloadVersion = version;
-  updaterState.activeDownloadSilent = options.silent;
+  updaterState.activeDownloadSilent = options.silent || Boolean(options.isPending);
 
-  if (!options.silent) {
+  if (!options.silent && !options.isPending) {
     useUiStore.getState().showToast({
       message: i18n.t("updater.downloading_percent", { percent: 0 }),
       persistent: true,
@@ -86,41 +91,37 @@ function startDownload(version: string, options: { silent: boolean }): void {
     });
   }
 
-  void downloadUpdate()
-    .then((result) =>
-      Result.pipe(
-        result,
-        Result.inspect(() => {
-          completeActiveDownloadAsReady(downloadRequestId);
-        }),
-        Result.inspectError((e) => {
-          if (updaterState.activeDownloadRequestId !== downloadRequestId) {
-            return;
-          }
-
-          rememberStaleDownloadSession();
-          if (updaterState.activeDownloadSilent) {
-            console.warn("Silent update download failed:", e.message);
-          } else {
-            showUpdateFailureToast(e.message, onUpdateFailureCheckAgain);
-          }
-          clearActiveDownload();
-        }),
-      ),
-    )
-    .catch((error: unknown) => {
-      if (updaterState.activeDownloadRequestId !== downloadRequestId) {
-        return;
-      }
-
-      rememberStaleDownloadSession();
-      if (updaterState.activeDownloadSilent) {
-        console.warn("Silent update download failed:", getErrorMessage(error));
-      } else {
-        showUpdateFailureToast(getErrorMessage(error), onUpdateFailureCheckAgain);
-      }
-      clearActiveDownload();
-    });
+  let failure: string | null = null;
+  try {
+    const result = await downloadUpdate();
+    if (updaterState.activeDownloadRequestId !== downloadRequestId) return false;
+    if (Result.isFailure(result)) failure = Result.unwrapError(result).message;
+    else {
+      if (!options.isPending || options.isPending()) completeActiveDownloadAsReady(downloadRequestId);
+      else clearActiveDownload();
+      return false;
+    }
+  } catch (error: unknown) {
+    if (updaterState.activeDownloadRequestId !== downloadRequestId) return false;
+    failure = getErrorMessage(error);
+  }
+  rememberStaleDownloadSession();
+  clearActiveDownload();
+  if (options.isPending && !options.isPending()) return false;
+  if (options.silent) {
+    console.warn("Silent update download failed:", failure);
+  } else if (isDatabaseMaintenanceBusyMessage(failure)) {
+    if (!options.isPending) {
+      waitForSyncRetry({
+        message: i18n.t("updater.download_pending_after_sync"),
+        retry: (isPending) => startDownload(version, { silent: false, isPending }),
+      });
+    }
+    return true;
+  } else {
+    showUpdateFailureToast(failure, onUpdateFailureCheckAgain);
+  }
+  return false;
 }
 
 function normalizeDownloadProgressPercent(percent: number | null): number | null {
@@ -141,7 +142,7 @@ function trackDownloadProgressPercent(payload: unknown): number | null | undefin
     return undefined;
   }
 
-  if (!updaterState.downloadInFlight) {
+  if (!updaterState.downloadInFlight || (pendingDownloadIsActive && !pendingDownloadIsActive())) {
     return undefined;
   }
 
@@ -177,7 +178,7 @@ function trackDownloadProgressPercent(payload: unknown): number | null | undefin
 
 function claimCurrentDownloadReady(payload: unknown): boolean {
   const result = safeParse(UpdateReadyEventPayloadSchema, payload);
-  if (!result.success || !updaterState.downloadInFlight) {
+  if (!result.success || !updaterState.downloadInFlight || (pendingDownloadIsActive && !pendingDownloadIsActive())) {
     return false;
   }
 
@@ -252,7 +253,7 @@ export async function runManualUpdateCheck(): Promise<void> {
 
   const info = Result.unwrap(result);
   if (info) {
-    startDownload(info.version, { silent: false });
+    void startDownload(info.version, { silent: false });
     return;
   }
   store.showToast(i18n.t("updater.up_to_date"));
@@ -287,7 +288,7 @@ export function useUpdater(): void {
                 result,
                 Result.inspect((info) => {
                   if (info) {
-                    startDownload(info.version, { silent: true });
+                    void startDownload(info.version, { silent: true });
                   }
                 }),
                 Result.inspectError((error) => {

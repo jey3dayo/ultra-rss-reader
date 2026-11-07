@@ -36,8 +36,6 @@ type UpdateInfo = {
 } | null;
 
 const sharedOperationBusyMessage = "Database maintenance is unavailable while syncing. Try again after sync completes.";
-const sharedOperationBusyMessageJa =
-  "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。";
 const startupUpdateCheckDelayMs = 1_500;
 
 function updateInfo(version: string): NonNullable<UpdateInfo> {
@@ -67,6 +65,9 @@ async function changeTestLanguage(language: "en" | "ja"): Promise<void> {
 
 describe("use-updater background download flow", () => {
   beforeEach(async () => {
+    const { resetSyncRetryForTests } = await import("@/hooks/updater/retry-after-sync");
+    resetSyncRetryForTests();
+    vi.useRealTimers();
     vi.resetModules();
     mockCheckForUpdate.mockReset();
     mockDownloadUpdate.mockReset();
@@ -449,25 +450,25 @@ describe("use-updater background download flow", () => {
       expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
     });
 
-    it("surfaces the shared sync maintenance busy state when a manual download is guarded", async () => {
+    it.each([false, true])("waits for sync before retrying a manual download (cancel: %s)", async (cancel) => {
       mockCheckForUpdate.mockResolvedValue(Result.succeed(updateInfo("1.2.3")));
-      mockDownloadUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
-
+      mockDownloadUpdate
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.succeed(null));
       const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
-      useUiStore.setState(useUiStore.getInitialState());
-
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
       await updaterModule.runManualUpdateCheck();
       await flushMicrotasksAndRealTimer();
-
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: sharedOperationBusyMessageJa,
-        persistent: true,
+        message: "同期が終わったら、アップデートのダウンロードを再開します",
         variant: "update",
+        persistent: true,
       });
-      expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
-        "もう一度確認",
-        "後で",
-      ]);
+      expect(useUiStore.getState().toastMessage?.severity).toBeUndefined();
+      if (cancel) useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await flushMicrotasksAndRealTimer();
+      expect(mockDownloadUpdate).toHaveBeenCalledTimes(cancel ? 1 : 2);
     });
 
     it("starts the update download even while sync is active", async () => {
@@ -684,29 +685,84 @@ describe("use-updater background download flow", () => {
       expect(useUiStore.getState().confirmDialog.open).toBe(false);
     });
 
-    it("surfaces the shared sync maintenance busy state when prepared update restart is guarded", async () => {
-      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
-
+    it.each([false, true])("waits for sync before restart (cancel: %s)", async (cancel) => {
+      mockRestartApp
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.succeed(null));
       const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
-      useUiStore.setState(useUiStore.getInitialState());
-
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
       updaterModule.showRestartToast("1.2.3");
-      useUiStore
-        .getState()
-        .toastMessage?.actions?.find((action) => action.label === "今すぐ再起動")
-        ?.onClick();
+      const restart = useUiStore.getState().toastMessage?.actions?.[0];
+      restart?.onClick();
+      restart?.onClick();
       await flushMicrotasksAndRealTimer();
-
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: sharedOperationBusyMessageJa,
-        severity: "error",
+        message: "同期が終わったら、アップデートを適用して再起動します",
         persistent: true,
         variant: "update",
       });
+      expect(useUiStore.getState().toastMessage?.severity).toBeUndefined();
+      expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual(["キャンセル"]);
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+      if (cancel) {
+        useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+        expect(useUiStore.getState().toastMessage?.message).toContain("v1.2.3");
+      }
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await flushMicrotasksAndRealTimer();
+      expect(mockRestartApp).toHaveBeenCalledTimes(cancel ? 1 : 2);
+    });
+
+    it("does not retry after cancellation when the fallback timer elapses", async () => {
+      vi.useFakeTimers();
+      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries maintenance held outside sync until it succeeds", async () => {
+      vi.useFakeTimers();
+      mockRestartApp
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.succeed(null));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockRestartApp).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(3);
+      expect(useUiStore.getState().toastMessage?.actions?.[0]?.label).toBe("キャンセル");
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(4);
+    });
+
+    it("shows the existing failure toast and stops retrying on a different restart error", async () => {
+      vi.useFakeTimers();
+      mockRestartApp
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.fail(testUserVisibleAppError("restart failed")));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await vi.advanceTimersByTimeAsync(10_000);
       expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
         "もう一度再起動",
         "後で",
       ]);
+      expect(mockRestartApp).toHaveBeenCalledTimes(2);
     });
 
     it("blocks prepared update restart while settings have dirty or pending changes", async () => {

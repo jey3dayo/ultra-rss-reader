@@ -28,6 +28,9 @@
     "unknown": "Unknown error"
   },
   "updater": {
+    "restart_pending_after_sync": "Restart will apply the update after sync finishes",
+    "download_pending_after_sync": "Update download will resume after sync finishes",
+    "cancel_restart_pending": "Cancel",
     "later": "Later",
     "download_failed_keep_current": "Update failed. You can keep using the current version.",
     "check_again": "Check again",
