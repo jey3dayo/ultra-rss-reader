@@ -786,6 +786,29 @@ describe("AppShell", () => {
     expect(useUpdaterPendingStore.getState().pending.status).toBe("idle");
   });
 
+  it("announces pending update waiting and failure states to screen readers", async () => {
+    const { useUpdaterPendingStore } = await import("@/hooks/updater/updater-pending-store");
+    act(() => {
+      useUpdaterPendingStore.setState({ pending: { status: "waiting", kind: "restart", version: "1", requestId: 1 } });
+    });
+    render(<AppShell />, { wrapper: createWrapper() });
+    const region = screen.getByTestId("updater-pending").parentElement?.querySelector("output[aria-live='polite']");
+    if (!region) throw new Error("Missing pending live region");
+    expect(region.textContent).not.toBe("");
+    act(() => {
+      useUpdaterPendingStore.setState({
+        pending: { status: "failed", kind: "restart", version: "1", reason: "boom", requestId: 2 },
+      });
+    });
+    const failedRegion = screen
+      .getByTestId("updater-pending")
+      .parentElement?.querySelector("output[aria-live='polite']");
+    expect(failedRegion?.textContent).toBe(screen.getByTestId("updater-pending").querySelector("span")?.textContent);
+    act(() => {
+      useUpdaterPendingStore.setState({ pending: { status: "idle" } });
+    });
+  });
+
   it("copies the debug HUD contents when clicked", async () => {
     enableDebugHud();
     setDebugHudUiState();

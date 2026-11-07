@@ -1,39 +1,56 @@
+import type { TFunction } from "i18next";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { AppToastView } from "@/design-system";
 import { cancelPendingUpdate, retryPendingUpdate } from "@/hooks/updater/updater-pending-coordinator";
-import { useUpdaterPendingStore } from "@/hooks/updater/updater-pending-store";
+import { type PendingState, useUpdaterPendingStore } from "@/hooks/updater/updater-pending-store";
 import {
   isLocalizableUserVisibleAppErrorMessage,
   localizeUserVisibleAppErrorMessage,
 } from "@/lib/ui/localize-app-error-message";
 
+function getPendingMessage(pending: Exclude<PendingState, { status: "idle" }>, t: TFunction<"common">): string {
+  if (pending.status === "failed") {
+    return isLocalizableUserVisibleAppErrorMessage(pending.reason)
+      ? localizeUserVisibleAppErrorMessage(pending.reason)
+      : t(pending.kind === "restart" ? "updater.restart_failed_ready" : "updater.download_failed_keep_current");
+  }
+  if (pending.status === "attempting") {
+    return t("updater.restarting");
+  }
+  return t(pending.kind === "restart" ? "updater.restart_pending_after_sync" : "updater.download_pending_after_sync");
+}
+
 export function UpdaterPendingView() {
   const pending = useUpdaterPendingStore((state) => state.pending);
   const { t } = useTranslation("common");
   const announcement = useRef<HTMLOutputElement>(null);
-  const announced = useRef(false);
+  const announcedWaiting = useRef(false);
+  const announcedFailureRequestId = useRef<number | null>(null);
   useEffect(() => {
+    const region = announcement.current;
+    if (!region) return;
     if (pending.status === "idle") {
-      announced.current = false;
-      if (announcement.current) announcement.current.textContent = "";
-    } else if (pending.status === "waiting" && !announced.current && announcement.current) {
-      announcement.current.textContent = t(
-        pending.kind === "restart" ? "updater.restart_pending_after_sync" : "updater.download_pending_after_sync",
-      );
-      announced.current = true;
+      announcedWaiting.current = false;
+      announcedFailureRequestId.current = null;
+      region.textContent = "";
+      return;
+    }
+    // Announce entering the waiting state once per request (fallback retries cycle
+    // through attempting/waiting) and every transition into a failure.
+    if (pending.status === "waiting" && !announcedWaiting.current) {
+      region.textContent = getPendingMessage(pending, t);
+      announcedWaiting.current = true;
+    } else if (pending.status === "failed" && announcedFailureRequestId.current !== pending.requestId) {
+      region.textContent = getPendingMessage(pending, t);
+      announcedFailureRequestId.current = pending.requestId;
+      announcedWaiting.current = false;
     }
   }, [pending, t]);
   const liveRegion = <output ref={announcement} aria-live="polite" className="sr-only" />;
   if (pending.status === "idle" || (pending.status === "attempting" && pending.kind === "download")) return liveRegion;
   const failed = pending.status === "failed";
-  const message = failed
-    ? isLocalizableUserVisibleAppErrorMessage(pending.reason)
-      ? localizeUserVisibleAppErrorMessage(pending.reason)
-      : t(pending.kind === "restart" ? "updater.restart_failed_ready" : "updater.download_failed_keep_current")
-    : pending.status === "attempting"
-      ? t("updater.restarting")
-      : t(pending.kind === "restart" ? "updater.restart_pending_after_sync" : "updater.download_pending_after_sync");
+  const message = getPendingMessage(pending, t);
   const actions = failed
     ? [
         {
