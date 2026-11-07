@@ -13,6 +13,4 @@ export type ToastData = {
   actions?: ToastAction[];
   variant?: "update";
   severity?: ToastSeverity;
-  /** Called when the user dismisses the toast with its close button. */
-  onDismiss?: () => void;
 };

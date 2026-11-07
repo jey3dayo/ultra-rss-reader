@@ -7,7 +7,7 @@ import {
   UpdateReadyEventPayloadSchema,
 } from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadUpdate } from "@/api/tauri-commands";
-import { waitForSyncRetry } from "@/hooks/updater/retry-after-sync";
+import { isUpdatePending, startPendingUpdate } from "@/hooks/updater/updater-pending-coordinator";
 import {
   clearActiveDownload,
   rememberStaleDownloadSession,
@@ -80,9 +80,9 @@ async function startDownload(
   updaterState.nextDownloadRequestId = updaterState.activeDownloadRequestId;
   const downloadRequestId = updaterState.activeDownloadRequestId;
   updaterState.activeDownloadVersion = version;
-  updaterState.activeDownloadSilent = options.silent || Boolean(options.isPending);
+  updaterState.activeDownloadSilent = options.silent;
 
-  if (!options.silent && !options.isPending) {
+  if (!options.silent) {
     useUiStore.getState().showToast({
       message: i18n.t("updater.downloading_percent", { percent: 0 }),
       persistent: true,
@@ -111,13 +111,25 @@ async function startDownload(
   if (options.silent) {
     console.warn("Silent update download failed:", failure);
   } else if (isDatabaseMaintenanceBusyMessage(failure)) {
+    const toast = useUiStore.getState().toastMessage;
+    if (toast?.variant === "update" && toast.progress !== undefined) useUiStore.getState().clearToast();
     if (!options.isPending) {
-      waitForSyncRetry({
-        message: i18n.t("updater.download_pending_after_sync"),
-        retry: (isPending) => startDownload(version, { silent: false, isPending }),
-      });
+      startPendingUpdate(
+        {
+          kind: "download",
+          version,
+          onRetry: onUpdateFailureCheckAgain,
+          run: async (isCurrent) => {
+            const busy = await startDownload(version, { silent: false, isPending: isCurrent });
+            return busy ? { type: "busy" } : { type: "done" };
+          },
+        },
+        true,
+      );
     }
     return true;
+  } else if (options.isPending) {
+    throw new Error(failure);
   } else {
     showUpdateFailureToast(failure, onUpdateFailureCheckAgain);
   }
@@ -205,6 +217,7 @@ function isUpdaterRuntimeUnavailable(): boolean {
 }
 
 export async function performUpdateCheckResult(): Result.ResultAsync<UpdateInfo | null, AppError> {
+  if (isUpdatePending()) return Result.succeed(null);
   if (updaterState.checkInFlight) return updaterState.checkInFlight;
 
   updaterState.updateCheckGeneration += 1;
@@ -238,7 +251,7 @@ export async function runManualUpdateCheck(): Promise<void> {
     return;
   }
 
-  if (updaterState.downloadInFlight) {
+  if (updaterState.downloadInFlight || isUpdatePending()) {
     return;
   }
 
@@ -274,7 +287,7 @@ export function useUpdater(): void {
     const startupCheckTimer = isUpdaterRuntimeUnavailable()
       ? null
       : window.setTimeout(() => {
-          if (startupCheckGeneration !== updaterState.updateCheckGeneration) {
+          if (isUpdatePending() || startupCheckGeneration !== updaterState.updateCheckGeneration) {
             return;
           }
 

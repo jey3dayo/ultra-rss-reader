@@ -28,7 +28,7 @@ export const UpdateReadyDecision: Story = {
 export const UpdateRestartPendingAfterSync: Story = {
   args: {
     toastMessage: {
-      message: "同期が終わったら、アップデートを適用して再起動します",
+      message: "実行中の処理が終わったら、アップデートを適用して再起動します",
       persistent: true,
       variant: "update",
       actions: [{ label: "キャンセル", onClick: fn() }],
@@ -61,4 +61,18 @@ export const WarningSeverity: Story = {
       severity: "warning",
     },
   },
+};
+
+export const UpdateRestarting: Story = {
+  args: { hideClose: true, toastMessage: { message: "アップデートを適用して再起動しています…", variant: "update" } },
+};
+
+export const UpdatePendingWithToast: Story = {
+  args: UpdateRestartPendingAfterSync.args,
+  render: (args) => (
+    <div className="flex flex-col items-end gap-2">
+      <AppToastView {...args} />
+      <AppToastView position="static" onClose={fn()} toastMessage={{ message: "同期が完了しました" }} />
+    </div>
+  ),
 };

@@ -770,17 +770,20 @@ describe("AppShell", () => {
     }
   });
 
-  it("calls the toast dismiss handler when the close button is pressed", async () => {
-    const onDismiss = vi.fn();
-    render(<AppShell />, { wrapper: createWrapper() });
-
+  it("keeps the pending update visible when ordinary notifications change", async () => {
+    const { useUpdaterPendingStore } = await import("@/hooks/updater/updater-pending-store");
     act(() => {
-      useUiStore.getState().showToast({ message: "Waiting for sync", persistent: true, variant: "update", onDismiss });
+      useUpdaterPendingStore.setState({ pending: { status: "waiting", kind: "restart", version: "1", requestId: 1 } });
+      useUiStore.getState().showToast("Other notification");
     });
-    fireEvent.click(await screen.findByRole("button", { name: "Close" }));
-
-    expect(onDismiss).toHaveBeenCalledTimes(1);
-    expect(useUiStore.getState().toastMessage).toBeNull();
+    render(<AppShell />, { wrapper: createWrapper() });
+    expect(screen.getByTestId("updater-pending")).toBeInTheDocument();
+    act(() => useUiStore.getState().clearToast());
+    expect(screen.getByTestId("updater-pending")).toBeInTheDocument();
+    const close = screen.getByTestId("updater-pending").querySelector("button[aria-label]");
+    if (!close) throw new Error("Missing pending close button");
+    fireEvent.click(close);
+    expect(useUpdaterPendingStore.getState().pending.status).toBe("idle");
   });
 
   it("copies the debug HUD contents when clicked", async () => {
@@ -1030,7 +1033,7 @@ describe("AppShell", () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     const toast = screen.getByTestId("app-toast");
-    expect(toast.className).toContain("bottom-4");
+    expect(toast.closest(".bottom-4")).not.toBeNull();
     expect(toast.className).not.toContain("top-1");
   });
 

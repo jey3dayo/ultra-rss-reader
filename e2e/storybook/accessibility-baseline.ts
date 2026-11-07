@@ -165,6 +165,12 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
     reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
   },
   {
+    storyId: "shared-feedback-apptoastview--update-pending-with-toast",
+    ruleId: "color-contrast",
+    nodeCount: 1,
+    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
+  },
+  {
     storyId: "shared-feedback-apptoastview--update-restart-pending-after-sync",
     ruleId: "color-contrast",
     nodeCount: 1,

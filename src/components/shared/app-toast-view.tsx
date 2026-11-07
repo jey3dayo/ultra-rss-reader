@@ -16,6 +16,7 @@ type AppToastViewProps = {
   testId?: string;
   syncActionState?: boolean;
   ending?: boolean;
+  hideClose?: boolean;
 };
 
 const UPDATE_TOAST_WIDTH_CLASS_NAME = "w-[min(320px,calc(100vw-2rem))]";
@@ -64,6 +65,7 @@ export function AppToastView({
   testId = "app-toast",
   syncActionState = false,
   ending = false,
+  hideClose = false,
 }: AppToastViewProps) {
   const { t } = useTranslation("common");
   const { message, progress, actions, variant, severity } = toastMessage;
@@ -108,7 +110,7 @@ export function AppToastView({
           />
         )}
         <span className="min-w-0 flex-1 break-words leading-snug">{message}</span>
-        {!isDecision && (
+        {!isDecision && !hideClose && (
           <Button
             type="button"
             onClick={onClose}

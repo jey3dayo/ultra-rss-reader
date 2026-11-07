@@ -59,8 +59,10 @@ const requiredSharedStoryExportsByFilePath = {
   "/src/components/shared/app-toast-view.stories.tsx": [
     "ErrorSeverity",
     "SingleActionInformational",
+    "UpdatePendingWithToast",
     "UpdateReadyDecision",
     "UpdateRestartPendingAfterSync",
+    "UpdateRestarting",
     "WarningSeverity",
   ],
   "/src/components/shared/confirm-dialog-view.stories.tsx": [

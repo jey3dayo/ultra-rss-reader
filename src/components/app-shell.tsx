@@ -5,6 +5,7 @@ import {
   resetSettingsModalPreloadSession,
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
+import { UpdaterPendingView } from "@/components/app-shell/updater-pending-view";
 import { TOAST_EXIT_DURATION_MS } from "@/constants/ui-runtime";
 import { APP_TOAST_PLACEMENTS, AppToastView } from "@/design-system";
 import { registerBrowserWebviewDevCleanup } from "@/lib/browser/browser-webview-dev-cleanup";
@@ -161,23 +162,21 @@ function Toast() {
 
   if (!renderedToast) return null;
 
-  const handleClose = () => {
-    toastMessage?.onDismiss?.();
-    clearToast();
-  };
-
   return (
-    <AppToastView
-      toastMessage={renderedToast}
-      onClose={handleClose}
-      placement={
-        browserUrl && renderedToast.variant !== "update"
-          ? APP_TOAST_PLACEMENTS.browserRail
-          : APP_TOAST_PLACEMENTS.bottomRight
-      }
-      syncActionState={syncActive}
-      ending={isExiting}
-    />
+    <div className="pointer-events-auto">
+      <AppToastView
+        toastMessage={renderedToast}
+        onClose={clearToast}
+        position={browserUrl && renderedToast.variant !== "update" ? "fixed" : "static"}
+        placement={
+          browserUrl && renderedToast.variant !== "update"
+            ? APP_TOAST_PLACEMENTS.browserRail
+            : APP_TOAST_PLACEMENTS.bottomRight
+        }
+        syncActionState={syncActive}
+        ending={isExiting}
+      />
+    </div>
   );
 }
 
@@ -369,7 +368,15 @@ export function AppShell() {
         </Suspense>
       ) : null}
       <ToastLiveRegion />
-      <Toast />
+      <div
+        className={cn(
+          "pointer-events-none fixed right-4 bottom-4 flex flex-col items-end gap-2",
+          APP_STACKING_CLASS_NAMES.toast,
+        )}
+      >
+        <UpdaterPendingView />
+        <Toast />
+      </div>
       {commandPaletteOpen ? (
         <AppShellErrorBoundary onTelemetryError={reportLazyChunkBoundaryError}>
           <Suspense fallback={null}>

@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { restartApp } from "@/api/tauri-commands";
 import { getAddFeedDialogRestartBlockerSnapshot } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
 import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/settings-dirty-state-registry";
-import { isWaitingForSyncRetry, waitForSyncRetry } from "@/hooks/updater/retry-after-sync";
+import { isUpdatePending, startPendingUpdate } from "@/hooks/updater/updater-pending-coordinator";
 import i18n from "@/lib/i18n";
 import {
   isDatabaseMaintenanceBusyMessage,
@@ -68,79 +68,20 @@ export function showUpdateFailureToast(message: string, onCheckAgain: () => void
   store.showToast(toast);
 }
 
-let restartInFlight = false;
-
-function restartPreparedUpdate(version: string, ownerToast?: ToastData): void {
-  restartInFlight = true;
-  void restartApp()
-    .then((result) =>
-      Result.pipe(
-        result,
-        Result.inspectError((error) => {
-          if (ownerToast && !isCurrentToast(ownerToast)) {
-            return;
-          }
-
-          if (isDatabaseMaintenanceBusyMessage(error.message)) {
-            waitForSyncRetry({
-              message: i18n.t("updater.restart_pending_after_sync"),
-              onCancel: () => showRestartToast(version),
-              retry: async (isPending) => {
-                if (isPreparedUpdateRestartBlocked()) {
-                  showBlockedRestartToast(version);
-                  return false;
-                }
-                const retryResult = await restartApp();
-                if (!isPending()) return false;
-                if (Result.isFailure(retryResult)) {
-                  const retryError = Result.unwrapError(retryResult);
-                  if (isDatabaseMaintenanceBusyMessage(retryError.message)) return true;
-                  showRestartFailureToast(version, retryError.message);
-                }
-                return false;
-              },
-            });
-            return;
-          }
-          showRestartFailureToast(version, error.message);
-        }),
-      ),
-    )
-    .catch((error: unknown) => {
-      console.error("App restart failed:", error);
-      if (!ownerToast || isCurrentToast(ownerToast)) showRestartFailureToast(version, String(error));
-    })
-    .finally(() => {
-      restartInFlight = false;
-    });
-}
-
-function showRestartFailureToast(version: string, errorMessage: string): void {
-  const message = isLocalizableUserVisibleAppErrorMessage(errorMessage)
-    ? localizeUserVisibleAppErrorMessage(errorMessage)
-    : i18n.t("updater.restart_failed_ready");
-  console.error("App restart failed:", errorMessage);
-  const failureToast: ToastData = {
-    message,
-    severity: "error",
-    persistent: true,
-    variant: "update",
-    actions: [
-      {
-        label: i18n.t("updater.restart_again"),
-        onClick: () => {
-          requestPreparedUpdateRestart(version, failureToast);
-        },
-      },
-      {
-        label: i18n.t("updater.later"),
-        onClick: () => {
-          clearToastIfCurrent(failureToast);
-        },
-      },
-    ],
-  };
-  useUiStore.getState().showToast(failureToast);
+function restartPreparedUpdate(version: string): void {
+  startPendingUpdate({
+    kind: "restart",
+    version,
+    onCancel: () => showRestartToast(version),
+    onBlocked: () => showBlockedRestartToast(version),
+    run: async () => {
+      if (isPreparedUpdateRestartBlocked()) return { type: "blocked" };
+      const result = await restartApp();
+      if (Result.isSuccess(result)) return { type: "done" };
+      const message = Result.unwrapError(result).message;
+      return isDatabaseMaintenanceBusyMessage(message) ? { type: "busy" } : { type: "failed", reason: message };
+    },
+  });
 }
 
 function isPreparedUpdateRestartBlocked(): boolean {
@@ -165,7 +106,7 @@ function showBlockedRestartToast(version: string): void {
       {
         label: i18n.t("updater.restart"),
         onClick: () => {
-          requestPreparedUpdateRestart(version, blockedToast);
+          requestPreparedUpdateRestart(version);
         },
       },
       {
@@ -179,13 +120,14 @@ function showBlockedRestartToast(version: string): void {
   useUiStore.getState().showToast(blockedToast);
 }
 
-function requestPreparedUpdateRestart(version: string, ownerToast: ToastData): void {
-  if (restartInFlight || isWaitingForSyncRetry()) return;
+function requestPreparedUpdateRestart(version: string): void {
+  if (isUpdatePending()) return;
   if (isPreparedUpdateRestartBlocked()) {
     showBlockedRestartToast(version);
     return;
   }
-  restartPreparedUpdate(version, ownerToast);
+  useUiStore.getState().clearToast();
+  restartPreparedUpdate(version);
 }
 
 export function showRestartToast(version: string): void {
@@ -202,7 +144,7 @@ export function showRestartToast(version: string): void {
             return;
           }
 
-          requestPreparedUpdateRestart(version, toast);
+          requestPreparedUpdateRestart(version);
         },
       },
       {
