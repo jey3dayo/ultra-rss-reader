@@ -770,6 +770,69 @@ describe("AppShell", () => {
     }
   });
 
+  it("keeps the pending update visible when ordinary notifications change", async () => {
+    const { useUpdaterPendingStore } = await import("@/hooks/updater/updater-pending-store");
+    act(() => {
+      useUpdaterPendingStore.setState({ pending: { status: "waiting", kind: "restart", version: "1", requestId: 1 } });
+      useUiStore.getState().showToast("Other notification");
+    });
+    render(<AppShell />, { wrapper: createWrapper() });
+    expect(screen.getByTestId("updater-pending")).toBeInTheDocument();
+    act(() => useUiStore.getState().clearToast());
+    expect(screen.getByTestId("updater-pending")).toBeInTheDocument();
+    const close = screen.getByTestId("updater-pending").querySelector("button[aria-label]");
+    if (!close) throw new Error("Missing pending close button");
+    fireEvent.click(close);
+    expect(useUpdaterPendingStore.getState().pending.status).toBe("idle");
+  });
+
+  it("announces pending update waiting and failure states to screen readers", async () => {
+    const { useUpdaterPendingStore } = await import("@/hooks/updater/updater-pending-store");
+    act(() => {
+      useUpdaterPendingStore.setState({ pending: { status: "waiting", kind: "restart", version: "1", requestId: 1 } });
+    });
+    render(<AppShell />, { wrapper: createWrapper() });
+    const region = screen.getByTestId("updater-pending-live-region");
+    expect(region.textContent).not.toBe("");
+    act(() => {
+      useUpdaterPendingStore.setState({
+        pending: { status: "failed", kind: "restart", version: "1", reason: "boom", requestId: 2 },
+      });
+    });
+    expect(screen.getByTestId("updater-pending-live-region").textContent).toBe(
+      screen.getByTestId("updater-pending").querySelector("span")?.textContent,
+    );
+    act(() => {
+      useUpdaterPendingStore.setState({ pending: { status: "idle" } });
+    });
+  });
+
+  it("keeps the pending live region mounted across download attempts", async () => {
+    const { useUpdaterPendingStore } = await import("@/hooks/updater/updater-pending-store");
+    act(() => {
+      useUpdaterPendingStore.setState({
+        pending: { status: "attempting", kind: "download", version: "1", requestId: 1 },
+      });
+    });
+    try {
+      render(<AppShell />, { wrapper: createWrapper() });
+      const regionBefore = screen.getByTestId("updater-pending-live-region");
+      expect(screen.queryByTestId("updater-pending")).toBeNull();
+      act(() => {
+        useUpdaterPendingStore.setState({
+          pending: { status: "waiting", kind: "download", version: "1", requestId: 1 },
+        });
+      });
+      const regionAfter = screen.getByTestId("updater-pending-live-region");
+      expect(regionAfter).toBe(regionBefore);
+      expect(regionAfter.textContent).toBe(screen.getByTestId("updater-pending").querySelector("span")?.textContent);
+    } finally {
+      act(() => {
+        useUpdaterPendingStore.setState({ pending: { status: "idle" } });
+      });
+    }
+  });
+
   it("copies the debug HUD contents when clicked", async () => {
     enableDebugHud();
     setDebugHudUiState();
@@ -1017,7 +1080,7 @@ describe("AppShell", () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     const toast = screen.getByTestId("app-toast");
-    expect(toast.className).toContain("bottom-4");
+    expect(toast.closest(".bottom-4")).not.toBeNull();
     expect(toast.className).not.toContain("top-1");
   });
 

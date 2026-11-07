@@ -28,6 +28,10 @@
     "unknown": "不明なエラー"
   },
   "updater": {
+    "restarting": "アップデートを適用して再起動しています…",
+    "restart_pending_after_sync": "実行中の処理が終わったら、アップデートを適用して再起動します",
+    "download_pending_after_sync": "実行中の処理が終わったら、アップデートのダウンロードを開始します",
+    "cancel_restart_pending": "キャンセル",
     "later": "後で",
     "download_failed_keep_current": "アップデートに失敗しました。現在のバージョンを引き続き使用します。",
     "check_again": "もう一度確認",

@@ -36,8 +36,6 @@ type UpdateInfo = {
 } | null;
 
 const sharedOperationBusyMessage = "Database maintenance is unavailable while syncing. Try again after sync completes.";
-const sharedOperationBusyMessageJa =
-  "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。";
 const startupUpdateCheckDelayMs = 1_500;
 
 function updateInfo(version: string): NonNullable<UpdateInfo> {
@@ -48,6 +46,13 @@ function updateInfo(version: string): NonNullable<UpdateInfo> {
     prerelease: false,
     source: "github-latest-json",
   };
+}
+
+async function pendingState() {
+  return (await import("@/hooks/updater/updater-pending-store")).useUpdaterPendingStore.getState().pending;
+}
+async function cancelPending() {
+  (await import("@/hooks/updater/updater-pending-coordinator")).cancelPendingUpdate();
 }
 
 async function getUiStore() {
@@ -67,6 +72,9 @@ async function changeTestLanguage(language: "en" | "ja"): Promise<void> {
 
 describe("use-updater background download flow", () => {
   beforeEach(async () => {
+    const { resetPendingUpdateForTests } = await import("@/hooks/updater/updater-pending-coordinator");
+    resetPendingUpdateForTests();
+    vi.useRealTimers();
     vi.resetModules();
     mockCheckForUpdate.mockReset();
     mockDownloadUpdate.mockReset();
@@ -449,25 +457,20 @@ describe("use-updater background download flow", () => {
       expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
     });
 
-    it("surfaces the shared sync maintenance busy state when a manual download is guarded", async () => {
+    it.each([false, true])("waits for sync before retrying a manual download (cancel: %s)", async (cancel) => {
       mockCheckForUpdate.mockResolvedValue(Result.succeed(updateInfo("1.2.3")));
-      mockDownloadUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
-
+      mockDownloadUpdate
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.succeed(null));
       const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
-      useUiStore.setState(useUiStore.getInitialState());
-
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
       await updaterModule.runManualUpdateCheck();
       await flushMicrotasksAndRealTimer();
-
-      expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: sharedOperationBusyMessageJa,
-        persistent: true,
-        variant: "update",
-      });
-      expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
-        "もう一度確認",
-        "後で",
-      ]);
+      expect(await pendingState()).toMatchObject({ status: "waiting", kind: "download" });
+      if (cancel) await cancelPending();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await flushMicrotasksAndRealTimer();
+      expect(mockDownloadUpdate).toHaveBeenCalledTimes(cancel ? 1 : 2);
     });
 
     it("starts the update download even while sync is active", async () => {
@@ -649,15 +652,7 @@ describe("use-updater background download flow", () => {
       expect(useUiStore.getState().confirmDialog.open).toBe(false);
       await flushMicrotasksAndRealTimer();
 
-      expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "再起動に失敗しました。更新の準備は完了しています。",
-        persistent: true,
-        variant: "update",
-      });
-      expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
-        "もう一度再起動",
-        "後で",
-      ]);
+      expect(await pendingState()).toMatchObject({ status: "failed", kind: "restart" });
     });
 
     it("retries restart directly without a confirm dialog from the restart-failed toast", async () => {
@@ -675,38 +670,119 @@ describe("use-updater background download flow", () => {
         ?.onClick();
       await flushMicrotasksAndRealTimer();
 
-      useUiStore
-        .getState()
-        .toastMessage?.actions?.find((action) => action.label === "もう一度再起動")
-        ?.onClick();
+      (await import("@/hooks/updater/updater-pending-coordinator")).retryPendingUpdate();
 
       expect(mockRestartApp).toHaveBeenCalledTimes(2);
       expect(useUiStore.getState().confirmDialog.open).toBe(false);
     });
 
-    it("surfaces the shared sync maintenance busy state when prepared update restart is guarded", async () => {
-      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
-
+    it.each([false, true])("waits for sync before restart (cancel: %s)", async (cancel) => {
+      mockRestartApp
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.succeed(null));
       const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
-      useUiStore.setState(useUiStore.getInitialState());
-
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
       updaterModule.showRestartToast("1.2.3");
-      useUiStore
-        .getState()
-        .toastMessage?.actions?.find((action) => action.label === "今すぐ再起動")
-        ?.onClick();
+      const restart = useUiStore.getState().toastMessage?.actions?.[0];
+      restart?.onClick();
+      restart?.onClick();
       await flushMicrotasksAndRealTimer();
+      expect(await pendingState()).toMatchObject({ status: "waiting", kind: "restart" });
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+      if (cancel) {
+        await cancelPending();
+        expect(useUiStore.getState().toastMessage?.message).toContain("v1.2.3");
+      }
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await flushMicrotasksAndRealTimer();
+      expect(mockRestartApp).toHaveBeenCalledTimes(cancel ? 1 : 2);
+    });
 
-      expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: sharedOperationBusyMessageJa,
-        severity: "error",
-        persistent: true,
-        variant: "update",
+    it("stops waiting and shows the blocked toast when settings become busy before the retry", async () => {
+      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await flushMicrotasksAndRealTimer();
+      expect(await pendingState()).toMatchObject({ status: "waiting", kind: "restart" });
+      useUiStore.setState({
+        settingsOpen: true,
+        accountSetupSession: { accountId: "account-1", owner: "account-detail", state: "syncing" },
       });
-      expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
-        "もう一度再起動",
-        "後で",
-      ]);
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await flushMicrotasksAndRealTimer();
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+      expect(await pendingState()).toMatchObject({ status: "idle" });
+      expect(useUiStore.getState().toastMessage?.message).toBe(
+        "編集中または保存中の変更があるため、再起動できません。",
+      );
+    });
+
+    it("cancels the pending restart when the waiting toast is dismissed", async () => {
+      vi.useFakeTimers();
+      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await pendingState()).toMatchObject({ status: "waiting", kind: "restart" });
+      (await import("@/hooks/updater/updater-pending-coordinator")).cancelPendingUpdate();
+      useUiStore.getState().clearToast();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+      expect(useUiStore.getState().toastMessage).toBeNull();
+    });
+
+    it("does not retry after cancellation when the fallback timer elapses", async () => {
+      vi.useFakeTimers();
+      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      await cancelPending();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries maintenance held outside sync until it succeeds", async () => {
+      vi.useFakeTimers();
+      mockRestartApp
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.succeed(null));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockRestartApp).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(3);
+      expect(await pendingState()).toMatchObject({ status: "waiting" });
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(4);
+    });
+
+    it("shows the existing failure toast and stops retrying on a different restart error", async () => {
+      vi.useFakeTimers();
+      mockRestartApp
+        .mockResolvedValueOnce(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)))
+        .mockResolvedValue(Result.fail(testUserVisibleAppError("restart failed")));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(await pendingState()).toMatchObject({ status: "failed", kind: "restart" });
+      expect(mockRestartApp).toHaveBeenCalledTimes(2);
     });
 
     it("blocks prepared update restart while settings have dirty or pending changes", async () => {
@@ -914,12 +990,7 @@ describe("use-updater background download flow", () => {
       expect(mockRestartApp).toHaveBeenCalledTimes(1);
       await flushMicrotasksAndRealTimer();
 
-      expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: "再起動に失敗しました。更新の準備は完了しています。",
-        persistent: true,
-        variant: "update",
-      });
-      expect(useUiStore.getState().toastMessage?.progress).toBeUndefined();
+      expect(await pendingState()).toMatchObject({ status: "failed", kind: "restart" });
     });
 
     it("does not let a stale restart failure overwrite a newer ready toast", async () => {

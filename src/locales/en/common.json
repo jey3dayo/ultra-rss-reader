@@ -28,6 +28,10 @@
     "unknown": "Unknown error"
   },
   "updater": {
+    "restarting": "Applying the update and restarting…",
+    "restart_pending_after_sync": "The update will be applied and the app will restart when the current operation finishes.",
+    "download_pending_after_sync": "The update download will start when the current operation finishes.",
+    "cancel_restart_pending": "Cancel",
     "later": "Later",
     "download_failed_keep_current": "Update failed. You can keep using the current version.",
     "check_again": "Check again",

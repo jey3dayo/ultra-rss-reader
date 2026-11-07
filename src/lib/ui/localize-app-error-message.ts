@@ -29,3 +29,7 @@ export function localizeUserVisibleAppErrorMessage(message: string): string {
 export function isLocalizableUserVisibleAppErrorMessage(message: string): boolean {
   return LOCALIZED_MESSAGE_BY_ENGLISH.has(message);
 }
+
+export function isDatabaseMaintenanceBusyMessage(message: string): boolean {
+  return message === DATABASE_MAINTENANCE_BUSY_MESSAGE;
+}
