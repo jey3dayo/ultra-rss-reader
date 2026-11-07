@@ -698,6 +698,27 @@ describe("use-updater background download flow", () => {
       expect(mockRestartApp).toHaveBeenCalledTimes(cancel ? 1 : 2);
     });
 
+    it("stops waiting and shows the blocked toast when settings become busy before the retry", async () => {
+      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await flushMicrotasksAndRealTimer();
+      expect(await pendingState()).toMatchObject({ status: "waiting", kind: "restart" });
+      useUiStore.setState({
+        settingsOpen: true,
+        accountSetupSession: { accountId: "account-1", owner: "account-detail", state: "syncing" },
+      });
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await flushMicrotasksAndRealTimer();
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+      expect(await pendingState()).toMatchObject({ status: "idle" });
+      expect(useUiStore.getState().toastMessage?.message).toBe(
+        "編集中または保存中の変更があるため、再起動できません。",
+      );
+    });
+
     it("cancels the pending restart when the waiting toast is dismissed", async () => {
       vi.useFakeTimers();
       mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));

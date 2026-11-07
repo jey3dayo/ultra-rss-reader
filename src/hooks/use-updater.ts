@@ -7,7 +7,7 @@ import {
   UpdateReadyEventPayloadSchema,
 } from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadUpdate } from "@/api/tauri-commands";
-import { isUpdatePending, startPendingUpdate } from "@/hooks/updater/updater-pending-coordinator";
+import { cancelPendingUpdate, isUpdatePending, startPendingUpdate } from "@/hooks/updater/updater-pending-coordinator";
 import {
   clearActiveDownload,
   rememberStaleDownloadSession,
@@ -82,7 +82,9 @@ async function startDownload(
   updaterState.activeDownloadVersion = version;
   updaterState.activeDownloadSilent = options.silent;
 
-  if (!options.silent) {
+  // Retries from the pending state skip the initial 0% toast; progress events
+  // still surface the progress toast once the transfer actually starts.
+  if (!options.silent && !options.isPending) {
     useUiStore.getState().showToast({
       message: i18n.t("updater.downloading_percent", { percent: 0 }),
       persistent: true,
@@ -129,6 +131,7 @@ async function startDownload(
     }
     return true;
   } else if (options.isPending) {
+    console.error("Update download failed:", failure);
     throw new Error(failure);
   } else {
     showUpdateFailureToast(failure, onUpdateFailureCheckAgain);
@@ -254,6 +257,9 @@ export async function runManualUpdateCheck(): Promise<void> {
   if (updaterState.downloadInFlight || isUpdatePending()) {
     return;
   }
+  // A new check replaces a failed pending request; its pending update handle on
+  // the native side is reset by the check anyway.
+  cancelPendingUpdate();
 
   const store = useUiStore.getState();
 

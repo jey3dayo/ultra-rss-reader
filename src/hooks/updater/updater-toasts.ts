@@ -79,7 +79,9 @@ function restartPreparedUpdate(version: string): void {
       const result = await restartApp();
       if (Result.isSuccess(result)) return { type: "done" };
       const message = Result.unwrapError(result).message;
-      return isDatabaseMaintenanceBusyMessage(message) ? { type: "busy" } : { type: "failed", reason: message };
+      if (isDatabaseMaintenanceBusyMessage(message)) return { type: "busy" };
+      console.error("App restart failed:", message);
+      return { type: "failed", reason: message };
     },
   });
 }

@@ -792,21 +792,45 @@ describe("AppShell", () => {
       useUpdaterPendingStore.setState({ pending: { status: "waiting", kind: "restart", version: "1", requestId: 1 } });
     });
     render(<AppShell />, { wrapper: createWrapper() });
-    const region = screen.getByTestId("updater-pending").parentElement?.querySelector("output[aria-live='polite']");
-    if (!region) throw new Error("Missing pending live region");
+    const region = screen.getByTestId("updater-pending-live-region");
     expect(region.textContent).not.toBe("");
     act(() => {
       useUpdaterPendingStore.setState({
         pending: { status: "failed", kind: "restart", version: "1", reason: "boom", requestId: 2 },
       });
     });
-    const failedRegion = screen
-      .getByTestId("updater-pending")
-      .parentElement?.querySelector("output[aria-live='polite']");
-    expect(failedRegion?.textContent).toBe(screen.getByTestId("updater-pending").querySelector("span")?.textContent);
+    expect(screen.getByTestId("updater-pending-live-region").textContent).toBe(
+      screen.getByTestId("updater-pending").querySelector("span")?.textContent,
+    );
     act(() => {
       useUpdaterPendingStore.setState({ pending: { status: "idle" } });
     });
+  });
+
+  it("keeps the pending live region mounted across download attempts", async () => {
+    const { useUpdaterPendingStore } = await import("@/hooks/updater/updater-pending-store");
+    act(() => {
+      useUpdaterPendingStore.setState({
+        pending: { status: "attempting", kind: "download", version: "1", requestId: 1 },
+      });
+    });
+    try {
+      render(<AppShell />, { wrapper: createWrapper() });
+      const regionBefore = screen.getByTestId("updater-pending-live-region");
+      expect(screen.queryByTestId("updater-pending")).toBeNull();
+      act(() => {
+        useUpdaterPendingStore.setState({
+          pending: { status: "waiting", kind: "download", version: "1", requestId: 1 },
+        });
+      });
+      const regionAfter = screen.getByTestId("updater-pending-live-region");
+      expect(regionAfter).toBe(regionBefore);
+      expect(regionAfter.textContent).toBe(screen.getByTestId("updater-pending").querySelector("span")?.textContent);
+    } finally {
+      act(() => {
+        useUpdaterPendingStore.setState({ pending: { status: "idle" } });
+      });
+    }
   });
 
   it("copies the debug HUD contents when clicked", async () => {

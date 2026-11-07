@@ -47,8 +47,14 @@ export function UpdaterPendingView() {
       announcedWaiting.current = false;
     }
   }, [pending, t]);
-  const liveRegion = <output ref={announcement} aria-live="polite" className="sr-only" />;
-  if (pending.status === "idle" || (pending.status === "attempting" && pending.kind === "download")) return liveRegion;
+  // Keep the live region mounted at a stable position so announcements are not
+  // lost when the visible surface appears or disappears.
+  const liveRegion = (
+    <output ref={announcement} aria-live="polite" className="sr-only" data-testid="updater-pending-live-region" />
+  );
+  if (pending.status === "idle" || (pending.status === "attempting" && pending.kind === "download")) {
+    return liveRegion;
+  }
   const failed = pending.status === "failed";
   const message = getPendingMessage(pending, t);
   const actions = failed
@@ -63,15 +69,17 @@ export function UpdaterPendingView() {
       ? [{ label: t("updater.cancel_restart_pending"), onClick: cancelPendingUpdate }]
       : [];
   return (
-    <div className="pointer-events-auto">
+    <>
       {liveRegion}
-      <AppToastView
-        position="static"
-        testId="updater-pending"
-        hideClose={pending.status === "attempting"}
-        onClose={cancelPendingUpdate}
-        toastMessage={{ message, actions, variant: "update", severity: failed ? "error" : undefined }}
-      />
-    </div>
+      <div className="pointer-events-auto">
+        <AppToastView
+          position="static"
+          testId="updater-pending"
+          hideClose={pending.status === "attempting"}
+          onClose={cancelPendingUpdate}
+          toastMessage={{ message, actions, variant: "update", severity: failed ? "error" : undefined }}
+        />
+      </div>
+    </>
   );
 }
