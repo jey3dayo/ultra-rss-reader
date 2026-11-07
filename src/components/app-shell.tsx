@@ -161,10 +161,15 @@ function Toast() {
 
   if (!renderedToast) return null;
 
+  const handleClose = () => {
+    toastMessage?.onDismiss?.();
+    clearToast();
+  };
+
   return (
     <AppToastView
       toastMessage={renderedToast}
-      onClose={clearToast}
+      onClose={handleClose}
       placement={
         browserUrl && renderedToast.variant !== "update"
           ? APP_TOAST_PLACEMENTS.browserRail

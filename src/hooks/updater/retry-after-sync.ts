@@ -2,7 +2,7 @@ import i18n from "@/lib/i18n";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
-export const RETRY_AFTER_SYNC_INTERVAL_MS = 5_000;
+const RETRY_AFTER_SYNC_INTERVAL_MS = 5_000;
 
 let cancelPending: (() => void) | null = null;
 
@@ -26,6 +26,10 @@ export function waitForSyncRetry(options: {
     message: options.message,
     persistent: true,
     variant: "update",
+    // Dismissing the pending toast cancels the wait so a hidden restart never fires.
+    onDismiss: () => {
+      if (pending) stop();
+    },
     actions: [
       {
         label: i18n.t("updater.cancel_restart_pending"),

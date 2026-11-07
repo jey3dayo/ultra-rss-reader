@@ -770,6 +770,19 @@ describe("AppShell", () => {
     }
   });
 
+  it("calls the toast dismiss handler when the close button is pressed", async () => {
+    const onDismiss = vi.fn();
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    act(() => {
+      useUiStore.getState().showToast({ message: "Waiting for sync", persistent: true, variant: "update", onDismiss });
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
   it("copies the debug HUD contents when clicked", async () => {
     enableDebugHud();
     setDebugHudUiState();

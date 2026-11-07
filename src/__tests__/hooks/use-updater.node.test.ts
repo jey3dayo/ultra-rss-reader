@@ -713,6 +713,23 @@ describe("use-updater background download flow", () => {
       expect(mockRestartApp).toHaveBeenCalledTimes(cancel ? 1 : 2);
     });
 
+    it("cancels the pending restart when the waiting toast is dismissed", async () => {
+      vi.useFakeTimers();
+      mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+      const { updaterModule, useUiStore } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: true } });
+      updaterModule.showRestartToast("1.2.3");
+      useUiStore.getState().toastMessage?.actions?.[0]?.onClick();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(useUiStore.getState().toastMessage?.message).toBe("同期が終わったら、アップデートを適用して再起動します");
+      useUiStore.getState().toastMessage?.onDismiss?.();
+      useUiStore.getState().clearToast();
+      useUiStore.setState({ syncProgress: { ...useUiStore.getState().syncProgress, active: false } });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(mockRestartApp).toHaveBeenCalledTimes(1);
+      expect(useUiStore.getState().toastMessage).toBeNull();
+    });
+
     it("does not retry after cancellation when the fallback timer elapses", async () => {
       vi.useFakeTimers();
       mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
