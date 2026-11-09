@@ -38,6 +38,23 @@ const worstCaseArticleTypographyHtml = `<h1>International research briefing 📰
 <blockquote>اقتباس طويل مع English tail — em dash test.</blockquote>
 <p><img src="https://placehold.co/640x360/d7dacd/2f3429.png?text=Inline+reader+media" alt="Inline reader media"></p>`;
 
+// Shape of a FreshRSS 1.30.4 GReader item for a GitHub Releases entry: the 60px avatar from
+// <media:thumbnail> is appended as an enclosure figure without width/height attributes.
+const freshRssGitHubReleaseHtml = `<p>Thanks to <a href="https://github.com/octocat">@octocat</a> and <a href="https://github.com/hubot">@hubot</a> for this release.</p>
+<h2>What's Changed</h2>
+<ul>
+  <li>Fix feed refresh when the server returns 304 by <a href="https://github.com/octocat">@octocat</a></li>
+  <li>Improve keyboard navigation in the article list by <a href="https://github.com/hubot">@hubot</a></li>
+  <li>Update dependencies</li>
+</ul>
+<p><strong>Full Changelog</strong>: <a href="https://github.com/example/project/compare/v1.2.0...v1.3.0">v1.2.0...v1.3.0</a></p>
+<figure class="enclosure"><p><img class="enclosure-thumbnail" src="https://placehold.co/60x60/24292f/ffffff.png?text=60" alt="" title="https://avatars.githubusercontent.com/u/1008324?s=60&amp;v=4" /></p></figure>`;
+
+const largeImagesFitColumnHtml = `<p>An image wider than the column shrinks to fit.</p>
+<p><img src="https://placehold.co/1600x900/d7dacd/2f3429.png?text=1600x900" alt="Intrinsic 1600x900"></p>
+<p>Width and height attributes larger than the column also shrink and keep their aspect ratio.</p>
+<p><img src="https://placehold.co/1200x900/2f3429/d7dacd.png?text=width%3D12000" width="12000" height="9000" alt="Attribute 12000x9000"></p>`;
+
 const meta = {
   title: "Reader/Article/ArticleContentView",
   component: ArticleContentView,
@@ -92,6 +109,22 @@ export const InlineImageMediaRail: Story = {
       </article>
     ),
   ],
+};
+
+export const FreshRssGitHubReleaseEnclosureAvatar: Story = {
+  name: "FreshRSS GitHub release with enclosure avatar",
+  args: {
+    thumbnailUrl: null,
+    contentHtml: fromSanitizedArticleHtml(freshRssGitHubReleaseHtml),
+  },
+};
+
+export const LargeImagesFitColumn: Story = {
+  name: "Large images fit column",
+  args: {
+    thumbnailUrl: null,
+    contentHtml: fromSanitizedArticleHtml(largeImagesFitColumnHtml),
+  },
 };
 
 export const ProsePlaintextBidiContract: Story = {

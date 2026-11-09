@@ -335,6 +335,21 @@ describe("ArticleContentView", () => {
     expect(screen.getByRole("img", { name: "Figure" })).toHaveAttribute("src", "https://cdn.example.com/figure.jpg");
   });
 
+  it("shrinks wide body images to the column without stretching small ones to full width", () => {
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            '<figure class="enclosure"><p><img class="enclosure-thumbnail" src="https://avatars.githubusercontent.com/u/1008324?s=60&amp;v=4" alt="" /></p></figure>',
+        })}
+      />,
+    );
+
+    const prose = container.querySelector(".prose");
+    expect(prose).toHaveClass("prose-img:max-w-full", "prose-img:h-auto");
+    expect(prose).not.toHaveClass("prose-img:w-full");
+  });
+
   it("keeps feed-supplied dir attributes on mixed-script paragraphs", () => {
     const { container } = render(
       <ArticleContentView
