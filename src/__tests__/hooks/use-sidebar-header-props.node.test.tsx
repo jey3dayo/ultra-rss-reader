@@ -32,7 +32,7 @@ describe("useSidebarHeaderProps", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns to idle when the selected account feeds refetch settles", async () => {
+  it("stays idle while selected account feeds load and after they settle", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const deferred = createDeferred<readonly unknown[]>();
     const { result } = renderHook(() => useSidebarHeaderProps(createHeaderParams()), { wrapper });
@@ -46,8 +46,9 @@ describe("useSidebarHeaderProps", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.syncState.status).toBe("syncing");
+      expect(queryClient.getQueryState(queryKeys.feeds.byAccount("acc-1"))?.fetchStatus).toBe("fetching");
     });
+    expect(result.current.syncState.status).toBe("idle");
     deferred.resolve([]);
     await fetchPromise;
 
@@ -56,7 +57,7 @@ describe("useSidebarHeaderProps", () => {
     });
   });
 
-  it("returns to idle when the selected account feeds refetch fails", async () => {
+  it("stays idle while selected account feeds refetch and fail", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const deferred = createDeferred<readonly unknown[]>();
     const { result } = renderHook(() => useSidebarHeaderProps(createHeaderParams()), { wrapper });
@@ -69,9 +70,10 @@ describe("useSidebarHeaderProps", () => {
       });
     });
     await waitFor(() => {
-      expect(result.current.syncState.status).toBe("syncing");
+      expect(queryClient.getQueryState(queryKeys.feeds.byAccount("acc-1"))?.fetchStatus).toBe("fetching");
     });
 
+    expect(result.current.syncState.status).toBe("idle");
     const fetchError = new Error("feed refetch failed");
     deferred.reject(fetchError);
     await fetchPromise?.catch(() => undefined);
@@ -81,7 +83,7 @@ describe("useSidebarHeaderProps", () => {
     });
   });
 
-  it("returns to idle when the selected account feeds refetch is cancelled", async () => {
+  it("stays idle while selected account feeds refetch and are cancelled", async () => {
     const { queryClient, wrapper } = createQueryWrapper();
     const deferred = createDeferred<readonly unknown[]>();
     const { result } = renderHook(() => useSidebarHeaderProps(createHeaderParams()), { wrapper });
@@ -101,15 +103,37 @@ describe("useSidebarHeaderProps", () => {
     void fetchPromise?.catch(() => undefined);
 
     await waitFor(() => {
-      expect(result.current.syncState.status).toBe("syncing");
+      expect(queryClient.getQueryState(queryKeys.feeds.byAccount("acc-1"))?.fetchStatus).toBe("fetching");
     });
 
+    expect(result.current.syncState.status).toBe("idle");
     await act(async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.feeds.byAccount("acc-1"), exact: true });
     });
 
     await waitFor(() => {
       expect(result.current.syncState.status).toBe("idle");
+    });
+  });
+
+  it("stops spinning when sync finishes even while feed refetch is pending", async () => {
+    const { queryClient, wrapper } = createQueryWrapper();
+    const deferred = createDeferred<readonly unknown[]>();
+    const { result, rerender } = renderHook(
+      ({ active }) => useSidebarHeaderProps(createHeaderParams({ syncProgress: { active, kind: "manual_all" } })),
+      { initialProps: { active: true }, wrapper },
+    );
+    expect(result.current.syncState.status).toBe("syncing");
+    const fetching = queryClient.fetchQuery({
+      queryKey: queryKeys.feeds.byAccount("acc-1"),
+      queryFn: () => deferred.promise,
+    });
+    rerender({ active: false });
+    expect(queryClient.getQueryState(queryKeys.feeds.byAccount("acc-1"))?.fetchStatus).toBe("fetching");
+    expect(result.current.syncState.status).toBe("idle");
+    await act(async () => {
+      deferred.resolve([]);
+      await fetching;
     });
   });
 

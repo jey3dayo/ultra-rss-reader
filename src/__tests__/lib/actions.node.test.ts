@@ -486,6 +486,7 @@ describe("executeAction node contracts", () => {
       await vi.waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
           message: "translated:sidebar:sync_already_in_progress",
+          severity: "info",
         });
       });
 

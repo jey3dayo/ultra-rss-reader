@@ -95,7 +95,6 @@ describe("reader UI state hooks", () => {
 
     expect(result.current.open).toBe(true);
     expect(result.current.selectedAccountId).toBe("acc-1");
-    expect(result.current.isSyncing).toBe(true);
     expect(result.current.platformKind).toBe("macos");
     expect(result.current.shortcutPrefs).toEqual({
       shortcut_open_command_palette: "Meta+K",

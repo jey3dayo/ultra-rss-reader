@@ -198,6 +198,7 @@ fn command_db_lock_policy_classifies_command_categories() {
             "trigger_sync_account",
             CommandDbLockPolicy::AsyncCommandBlockingLock,
         ),
+        ("get_sync_state", CommandDbLockPolicy::NoDatabaseLock),
         ("open_in_browser", CommandDbLockPolicy::NoDatabaseLock),
         ("discover_feeds", CommandDbLockPolicy::NoDatabaseLock),
         ("check_for_update", CommandDbLockPolicy::NoDatabaseLock),

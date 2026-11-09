@@ -175,6 +175,20 @@ describe("SidebarHeaderView", () => {
     expect(icon).not.toHaveClass("animate-spin");
   });
 
+  it("keeps the syncing button keyboard and pointer actionable with busy state", async () => {
+    const user = userEvent.setup();
+    const onSync = vi.fn();
+    render(<SidebarHeaderView {...defaultProps} onSync={onSync} syncState={{ status: "syncing" }} />);
+    const syncButton = screen.getByRole("button", { name: "Sync feeds" });
+    expect(syncButton).not.toBeDisabled();
+    expect(syncButton).toHaveAttribute("aria-busy", "true");
+    expect(syncButton).not.toHaveAttribute("aria-disabled");
+    expect(syncButton.querySelector("svg")).toHaveClass("animate-spin");
+    await user.click(syncButton);
+    await user.keyboard("{Enter}");
+    expect(onSync).toHaveBeenCalledTimes(2);
+  });
+
   it("disables add feed through the action availability boundary", async () => {
     const user = userEvent.setup();
     const onAddFeed = vi.fn();

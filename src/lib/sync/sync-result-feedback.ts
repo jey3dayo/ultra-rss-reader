@@ -418,7 +418,7 @@ export function resolveSyncFeedbackMessage(feedback: SyncFeedback, messages: Syn
 
 export function resolveSyncFeedbackSeverity(
   feedback: SyncFeedback,
-): Extract<ToastSeverity, "error" | "warning"> | undefined {
+): Extract<ToastSeverity, "error" | "warning" | "info"> | undefined {
   switch (feedback.kind) {
     case "partial-failure":
       return "error";
@@ -426,9 +426,10 @@ export function resolveSyncFeedbackSeverity(
     case "retry-pending":
     case "warnings":
       return "warning";
-    case "already-in-progress":
     case "success":
       return undefined;
+    case "already-in-progress":
+      return "info";
   }
 }
 

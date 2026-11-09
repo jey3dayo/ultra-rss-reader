@@ -40,6 +40,7 @@ import {
   type getLocalAccountSyncSettings,
   getPlatformInfo,
   getPreferences,
+  getSyncState,
   type importLocalAccountSyncOperations,
   listAccountArticles,
   listAccounts,
@@ -779,7 +780,6 @@ describe("safeInvoke response validation", () => {
       settingsOpen: false,
       shortcutsHelpOpen: false,
       isAddFeedDialogOpen: false,
-      isSyncing: false,
     } as const;
 
     expect(isAppActionAvailable("sync-all", "dispatcher", fallbackContext)).toBe(false);
@@ -871,6 +871,14 @@ describe("safeInvoke response validation", () => {
       expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
+  });
+
+  it.each([false, true, "false"])("validates native sync state %j", async (value) => {
+    suppressConsoleError();
+    setupTauriMocks((cmd) => (cmd === "get_sync_state" ? value : null));
+    const result = await getSyncState();
+    expect(Result.isSuccess(result)).toBe(typeof value === "boolean");
+    if (Result.isSuccess(result)) expect(Result.unwrap(result)).toBe(value);
   });
 
   it("validates account command group sync status responses", async () => {

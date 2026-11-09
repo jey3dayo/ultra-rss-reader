@@ -11,7 +11,6 @@ const useCommandPaletteUiStoreSlice = createUiStoreSliceHook((state) => ({
   openShortcutsHelp: state.openShortcutsHelp,
   showToast: state.showToast,
   selectedAccountId: state.selectedAccountId,
-  isSyncing: state.syncProgress.active,
   selectFeedFromCurrentContext: state.selectFeedFromCurrentContext,
   selectFolderFromCurrentContext: state.selectFolderFromCurrentContext,
   selectTagFromCurrentContext: state.selectTagFromCurrentContext,

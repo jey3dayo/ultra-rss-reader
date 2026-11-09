@@ -1,4 +1,5 @@
 import {
+  BooleanResponseSchema,
   exportOpmlToFileArgs,
   FeedDtoListSchema,
   importOpmlArgs,
@@ -9,6 +10,8 @@ import {
   syncFeedArgs,
 } from "@/api/schemas";
 import { safeInvoke } from "./runtime";
+
+export const getSyncState = () => safeInvoke("get_sync_state", { response: BooleanResponseSchema });
 
 export const triggerSync = () => safeInvoke("trigger_sync", { response: SyncResultSchema });
 

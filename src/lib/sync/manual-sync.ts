@@ -137,7 +137,12 @@ function shouldStartManualSyncCooldown(result: Result.Result<SyncResultDto, AppE
   // Retryable failures still mean native sync accepted user intent and may have
   // scheduled provider backoff. Keep cooldown aligned with successful triggers
   // to avoid tight manual retry loops.
-  return Result.isSuccess(result) || Result.unwrapError(result).type === "Retryable";
+  if (Result.isFailure(result)) {
+    return Result.unwrapError(result).type === "Retryable";
+  }
+
+  const syncResult = Result.unwrap(result);
+  return syncResult.synced || syncResult.total > 0;
 }
 
 export async function triggerManualSyncWithCooldownResult(

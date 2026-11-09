@@ -23,7 +23,6 @@ type UseCommandPaletteActionsParams = {
   platformKind: PlatformInfo["kind"];
   shortcutPrefs: Record<string, string>;
   selectedAccountId: string | null;
-  isSyncing: boolean;
 };
 
 type UseCommandPaletteActionsResult = PaletteAction[];
@@ -33,7 +32,6 @@ export function useCommandPaletteActions({
   platformKind,
   shortcutPrefs,
   selectedAccountId,
-  isSyncing,
 }: UseCommandPaletteActionsParams): UseCommandPaletteActionsResult {
   const t = useStableOpenTranslation("reader", open);
   const tSidebar = useStableOpenTranslation("sidebar", open);
@@ -187,7 +185,7 @@ export function useCommandPaletteActions({
         keywords: ["subscriptions", "feeds", "management"],
         icon: RssIcon,
       },
-      ...(selectedAccountId && !isSyncing
+      ...(selectedAccountId
         ? [
             {
               id: "sync-all" as const,
@@ -220,5 +218,5 @@ export function useCommandPaletteActions({
     }
 
     return actions;
-  }, [isSyncing, platformKind, selectedAccountId, shortcutPrefs, t, tSettings, tSidebar]);
+  }, [platformKind, selectedAccountId, shortcutPrefs, t, tSettings, tSidebar]);
 }

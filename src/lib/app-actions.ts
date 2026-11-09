@@ -64,7 +64,6 @@ export type AppActionAvailabilityContext = {
   settingsOpen: boolean;
   shortcutsHelpOpen: boolean;
   isAddFeedDialogOpen: boolean;
-  isSyncing: boolean;
 };
 
 type AppActionAvailabilityRule = {
@@ -72,7 +71,6 @@ type AppActionAvailabilityRule = {
   requiresAccount?: boolean;
   requiresArticle?: boolean;
   requiresBrowser?: boolean;
-  blocksWhenSyncing?: boolean;
   blocksWhenModalOpen?: boolean;
 };
 
@@ -99,7 +97,6 @@ const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailability
       requiresAccount: accountScopedActionSet.has(action),
       requiresArticle: articleScopedActionSet.has(action),
       requiresBrowser: action === "reload-webview" || action === "close-browser",
-      blocksWhenSyncing: action === "sync-all",
       blocksWhenModalOpen:
         action !== "open-settings" && action !== "open-command-palette" && action !== "check-for-updates",
     },
@@ -126,7 +123,6 @@ export function isAppActionAvailable(
     (!rule.requiresAccount || context.selectedAccountId !== null) &&
     (!rule.requiresArticle || context.selectedArticleId !== null) &&
     (!rule.requiresBrowser || context.contentMode === "browser") &&
-    (!rule.blocksWhenSyncing || !context.isSyncing) &&
     (!rule.blocksWhenModalOpen || !modalOpen)
   );
 }

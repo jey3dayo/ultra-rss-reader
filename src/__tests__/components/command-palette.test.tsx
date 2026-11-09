@@ -301,7 +301,7 @@ describe("CommandPalette", () => {
     expect(screen.queryByRole("option", { name: /Mark all as read/ })).not.toBeInTheDocument();
   });
 
-  it("hides sync actions while a sync is active", async () => {
+  it("keeps sync actions available while a sync is active", async () => {
     useUiStore.setState({
       syncProgress: {
         active: true,
@@ -319,7 +319,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("option", { name: /Add feed/ })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Sync/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Sync/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Mark all as read/ })).toBeInTheDocument();
   });
 
@@ -332,7 +332,6 @@ describe("CommandPalette", () => {
         openShortcutsHelp: vi.fn(),
         showToast: vi.fn(),
         selectedAccountId: null,
-        isSyncing: true,
         selectFeedFromCurrentContext: vi.fn(),
         selectFolderFromCurrentContext: vi.fn(),
         selectTagFromCurrentContext: vi.fn(),
@@ -350,6 +349,37 @@ describe("CommandPalette", () => {
     expect(executeAction).not.toHaveBeenCalled();
     expect(closePalette).not.toHaveBeenCalled();
     expectCommandHistoryCleared();
+  });
+
+  it("dispatches sync from the command palette while frontend sync progress is active", () => {
+    useUiStore.setState((state) => ({
+      syncProgress: {
+        ...state.syncProgress,
+        active: true,
+      },
+    }));
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
+    const closePalette = vi.fn();
+    const { result } = renderHook(() =>
+      useCommandPaletteHandlers({
+        closePalette,
+        openShortcutsHelp: vi.fn(),
+        showToast: vi.fn(),
+        selectedAccountId: "acc-1",
+        selectFeedFromCurrentContext: vi.fn(),
+        selectFolderFromCurrentContext: vi.fn(),
+        selectTagFromCurrentContext: vi.fn(),
+        selectArticle: vi.fn(),
+        openFeedLanding: vi.fn(),
+        paletteSessionId: 1,
+        canSelectArticle: () => true,
+      }),
+    );
+
+    result.current.handleActionSelect("sync-all");
+
+    expect(executeAction).toHaveBeenCalledWith("sync-all");
+    expect(closePalette).toHaveBeenCalledOnce();
   });
 
   it("renders the no-results helper in foreground-soft tone", async () => {

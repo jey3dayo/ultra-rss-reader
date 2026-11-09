@@ -19,7 +19,6 @@ type UseCommandPaletteHandlersParams = {
   openShortcutsHelp: () => void;
   showToast: (message: string | ToastData) => void;
   selectedAccountId: string | null;
-  isSyncing: boolean;
   selectFeedFromCurrentContext: (feedId: string) => void;
   selectTagFromCurrentContext: (tagId: string) => void;
   selectArticle: (articleId: string) => void;
@@ -95,7 +94,6 @@ export function useCommandPaletteHandlers({
   openShortcutsHelp,
   showToast,
   selectedAccountId,
-  isSyncing,
   selectFeedFromCurrentContext,
   selectTagFromCurrentContext,
   selectArticle,
@@ -200,11 +198,9 @@ export function useCommandPaletteHandlers({
         settingsOpen: uiState.settingsOpen,
         shortcutsHelpOpen: uiState.shortcutsHelpOpen,
         isAddFeedDialogOpen: uiState.isAddFeedDialogOpen,
-        isSyncing,
       }) ||
       (!selectedAccountIdRef.current &&
-        (action === "open-add-feed" || action === "sync-all" || action === "mark-all-read")) ||
-      (isSyncing && action === "sync-all")
+        (action === "open-add-feed" || action === "sync-all" || action === "mark-all-read"))
     ) {
       return;
     }

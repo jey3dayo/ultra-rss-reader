@@ -96,11 +96,11 @@ export function SidebarHeaderView({
   };
 
   const handleSyncClick = () => {
-    if (isSyncing || isSyncDisabled) {
+    if (isSyncDisabled) {
       return;
     }
 
-    if (isSyncCoolingDown) {
+    if (isSyncing || isSyncCoolingDown) {
       onSync();
       return;
     }
@@ -122,7 +122,8 @@ export function SidebarHeaderView({
           label={syncButtonLabel}
           tooltipLabel={syncTooltipLabel ?? syncButtonLabel}
           onClick={handleSyncClick}
-          disabled={isSyncing || isSyncDisabled}
+          disabled={isSyncDisabled}
+          ariaBusy={isSyncing}
           ariaDisabled={isSyncCoolingDown}
           allowAriaDisabledClick={true}
           className={cn(

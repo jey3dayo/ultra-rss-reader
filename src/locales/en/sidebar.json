@@ -36,7 +36,7 @@
   "sync_retry_scheduled_soon": "Background sync failed for {{accounts}}. Retrying automatically soon",
   "account_retry_scheduled_short": "Retrying at {{time}}",
   "account_retry_scheduled_short_soon": "Retrying automatically soon",
-  "sync_already_in_progress": "Sync already in progress",
+  "sync_already_in_progress": "Sync is already in progress. It will finish automatically.",
   "sync_cooldown_active": "Wait a moment before syncing again",
   "sync_cooldown_remaining": "Sync available in {{seconds}}s",
   "sync_failed": "Sync failed",

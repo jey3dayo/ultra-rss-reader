@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { useState } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
-import { SidebarHeaderView } from "./sidebar-header-view";
+import { AppToastView } from "@/design-system";
+import i18n from "@/lib/i18n";
+import { type SidebarHeaderProps, SidebarHeaderView } from "./sidebar-header-view";
 
 const meta = {
   title: "Reader/Sidebar/SidebarHeaderView",
@@ -46,7 +49,40 @@ export const ClickToSpin: Story = {
   },
 };
 
+function SyncingFeedbackStory(args: SidebarHeaderProps) {
+  const [toastOpen, setToastOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-4">
+      <SidebarHeaderView
+        {...args}
+        onSync={() => {
+          args.onSync();
+          setToastOpen(true);
+        }}
+      />
+      {toastOpen && (
+        <AppToastView
+          position="static"
+          toastMessage={{ message: i18n.getFixedT("en", "sidebar")("sync_already_in_progress"), severity: "info" }}
+          onClose={() => setToastOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 export const Syncing: Story = {
+  render: (args) => <SyncingFeedbackStory {...args} />,
+  play: async ({ canvasElement, args }) => {
+    const button = within(canvasElement).getByRole("button", { name: "Sync feeds" });
+    await expect(button).toBeEnabled();
+    await expect(button).toHaveAttribute("aria-busy", "true");
+    await userEvent.click(button);
+    await expect(args.onSync).toHaveBeenCalled();
+    await expect(
+      within(canvasElement).getByText(i18n.getFixedT("en", "sidebar")("sync_already_in_progress")),
+    ).toBeVisible();
+  },
   args: {
     syncState: {
       status: "syncing",

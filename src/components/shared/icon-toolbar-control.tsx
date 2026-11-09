@@ -20,6 +20,7 @@ type IconToolbarControlBaseProps = {
   ariaDisabled?: boolean;
   allowAriaDisabledClick?: boolean;
   ariaPressed?: boolean;
+  ariaBusy?: boolean;
   className?: string;
   children: ReactNode;
 };
@@ -75,6 +76,7 @@ export const IconToolbarButton = forwardRef<HTMLButtonElement, IconToolbarButton
     ariaDisabled,
     allowAriaDisabledClick = false,
     ariaPressed,
+    ariaBusy,
     className,
     children,
     onClick,
@@ -107,6 +109,7 @@ export const IconToolbarButton = forwardRef<HTMLButtonElement, IconToolbarButton
         disabled={disabled}
         aria-disabled={ariaDisabled || undefined}
         aria-pressed={ariaPressed}
+        aria-busy={ariaBusy || undefined}
         aria-label={label}
       >
         {children}

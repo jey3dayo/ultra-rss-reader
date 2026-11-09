@@ -368,6 +368,8 @@ export function setupDevMocks(): RestoreDevMocks {
         return null;
       }
 
+      case "get_sync_state":
+        return false;
       case "get_account_sync_status": {
         const { accountId } = parseBrowserMockArgs("get_account_sync_status", rawIpcPayload);
         const account = mockAccounts.find((item) => item.id === accountId);
