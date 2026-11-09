@@ -4,6 +4,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.24] - 2026-11-09
+
+### Bug Fixes
+
+- macOS でアップデート後の再起動が失敗することがあった問題を直しました。LaunchServices の解放を待ってから `open` を再試し、必要なら最後に `open -n` へフォールバックします。 (#637)
+- 記事本文の小さい画像（アバターなど）が本文幅いっぱいに引き伸ばされないようにしました。 (#640)
+- 同期ボタンが回り続けて止まらないようにしました。同期中に押しても info の toast を出し、クールダウンは実際に同期を始めたときだけ始まります。 (#641)
+
+### Maintenance
+
+- rusqlite を 0.41 に上げて RUSTSEC-2026-0459（bundled SQLite）を解消し、reqwest・sha2・dirs など上げられる Rust crate も更新しました。 (#643)
+
+
 ## [0.67.23] - 2026-11-07
 
 ### Bug Fixes
