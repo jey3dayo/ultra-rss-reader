@@ -55,12 +55,18 @@ async fn stalled_http_url(path: &str) -> String {
     let addr = listener
         .local_addr()
         .expect("stalled server should expose local address");
+    // Accept in a loop so parallel suite load / client retries cannot drop the stall.
     tokio::spawn(async move {
-        if let Ok((socket, _)) = listener.accept().await {
-            let mut request_buffer = [0_u8; 1024];
-            let _ = socket.readable().await;
-            let _ = socket.try_read(&mut request_buffer);
-            tokio::time::sleep(Duration::from_millis(200)).await;
+        loop {
+            let Ok((socket, _)) = listener.accept().await else {
+                break;
+            };
+            tokio::spawn(async move {
+                let mut request_buffer = [0_u8; 1024];
+                let _ = socket.readable().await;
+                let _ = socket.try_read(&mut request_buffer);
+                std::future::pending::<()>().await;
+            });
         }
     });
 
@@ -87,21 +93,29 @@ async fn head_rejected_then_stalled_get_url(path: &str) -> String {
     let addr = listener
         .local_addr()
         .expect("fallback server should expose local address");
+    // Accept every connection: respond 405 to HEAD, stall forever on GET.
+    // A single accept-once path flakes under parallel cargo test load when the
+    // client retries or opens the GET before the HEAD accept finishes.
     tokio::spawn(async move {
-        if let Ok((mut head_socket, _)) = listener.accept().await {
-            let mut request_buffer = [0_u8; 1024];
-            let _ = head_socket.readable().await;
-            let _ = head_socket.try_read(&mut request_buffer);
-            let _ = head_socket
-                .write_all(b"HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Length: 0\r\n\r\n")
-                .await;
-        }
-
-        if let Ok((get_socket, _)) = listener.accept().await {
-            let mut request_buffer = [0_u8; 1024];
-            let _ = get_socket.readable().await;
-            let _ = get_socket.try_read(&mut request_buffer);
-            tokio::time::sleep(Duration::from_millis(200)).await;
+        loop {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                break;
+            };
+            tokio::spawn(async move {
+                let mut request_buffer = [0_u8; 1024];
+                let _ = socket.readable().await;
+                let read = socket.try_read(&mut request_buffer).unwrap_or(0);
+                let request = String::from_utf8_lossy(&request_buffer[..read]);
+                if request.starts_with("HEAD") {
+                    let _ = socket
+                        .write_all(
+                            b"HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Length: 0\r\n\r\n",
+                        )
+                        .await;
+                    return;
+                }
+                std::future::pending::<()>().await;
+            });
         }
     });
 
@@ -309,36 +323,44 @@ async fn embed_support_keeps_success_get_response_policy_after_head_fallback() {
 async fn embed_support_surfaces_head_request_timeout() {
     let error = check_browser_embed_support_for_url(
         test_http_url(stalled_http_url("/article").await),
-        Duration::from_millis(20),
+        Duration::from_millis(1500),
         &[],
     )
     .await
     .expect_err("stalled HEAD response should time out");
 
-    assert!(matches!(
-        error,
-        AppError::Retryable { ref message }
-            | AppError::RetryableWithMetadata { ref message, .. }
-            if message == "Network error: Request timed out. Check the server URL or your network connection."
-    ));
+    let message = match &error {
+        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+            message.as_str()
+        }
+        other => panic!("expected retryable timeout, got {other:?}"),
+    };
+    assert_eq!(
+        message,
+        "Network error: Request timed out. Check the server URL or your network connection."
+    );
 }
 
 #[tokio::test]
 async fn embed_support_surfaces_get_fallback_timeout() {
     let error = check_browser_embed_support_for_url(
         test_http_url(head_rejected_then_stalled_get_url("/article").await),
-        Duration::from_millis(20),
+        Duration::from_millis(1500),
         &[],
     )
     .await
     .expect_err("stalled GET fallback response should time out");
 
-    assert!(matches!(
-        error,
-        AppError::Retryable { ref message }
-            | AppError::RetryableWithMetadata { ref message, .. }
-            if message == "Network error: Request timed out. Check the server URL or your network connection."
-    ));
+    let message = match &error {
+        AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+            message.as_str()
+        }
+        other => panic!("expected retryable timeout, got {other:?}"),
+    };
+    assert_eq!(
+        message,
+        "Network error: Request timed out. Check the server URL or your network connection."
+    );
 }
 
 #[tokio::test]

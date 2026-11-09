@@ -94,6 +94,8 @@
       "*.json",
       "!!tests/fixtures/sanitizer",
       "!!tests/fixtures/quality-baseline",
+      "!!tmp",
+      "!!.tmp",
       "!!node_modules",
       "!!.pnpm-store",
       "!!dist",
