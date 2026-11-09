@@ -38,8 +38,8 @@ const worstCaseArticleTypographyHtml = `<h1>International research briefing 📰
 <blockquote>اقتباس طويل مع English tail — em dash test.</blockquote>
 <p><img src="https://placehold.co/640x360/d7dacd/2f3429.png?text=Inline+reader+media" alt="Inline reader media"></p>`;
 
-// Shape of a FreshRSS 1.30.4 GReader item for a GitHub Releases entry: the 60px avatar from
-// <media:thumbnail> is appended as an enclosure figure without width/height attributes.
+// FreshRSS GReader item for a GitHub Releases entry: the small avatar from <media:thumbnail>
+// is appended as an enclosure figure without width/height attributes.
 const freshRssGitHubReleaseHtml = `<p>Thanks to <a href="https://github.com/octocat">@octocat</a> and <a href="https://github.com/hubot">@hubot</a> for this release.</p>
 <h2>What's Changed</h2>
 <ul>
@@ -53,7 +53,9 @@ const freshRssGitHubReleaseHtml = `<p>Thanks to <a href="https://github.com/octo
 const largeImagesFitColumnHtml = `<p>An image wider than the column shrinks to fit.</p>
 <p><img src="https://placehold.co/1600x900/d7dacd/2f3429.png?text=1600x900" alt="Intrinsic 1600x900"></p>
 <p>Width and height attributes larger than the column also shrink and keep their aspect ratio.</p>
-<p><img src="https://placehold.co/1200x900/2f3429/d7dacd.png?text=width%3D12000" width="12000" height="9000" alt="Attribute 12000x9000"></p>`;
+<p><img src="https://placehold.co/1200x900/2f3429/d7dacd.png?text=width%3D12000" width="12000" height="9000" alt="Attribute 12000x9000"></p>
+<p>Responsive picture sources fit the column the same way.</p>
+<p><picture><source srcset="https://placehold.co/1800x600/d7dacd/2f3429.png?text=picture+source" media="(min-width: 1px)"><img src="https://placehold.co/600x200/d7dacd/2f3429.png?text=picture+fallback" alt="Picture 1800x600"></picture></p>`;
 
 const meta = {
   title: "Reader/Article/ArticleContentView",
