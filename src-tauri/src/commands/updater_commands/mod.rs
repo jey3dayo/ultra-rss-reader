@@ -1,5 +1,5 @@
 use tauri::{AppHandle, Manager};
-use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_updater::{Updater, UpdaterExt};
 use tracing::warn;
 
 use super::dto::AppError;
@@ -24,6 +24,15 @@ pub use state::PendingUpdate;
 pub(crate) use state::{resolve_post_download_install, PostDownloadInstall};
 
 pub(crate) use state::{DownloadGuard, PendingUpdateHandle, SyncInstallGuard};
+
+fn build_updater(app: &AppHandle) -> Result<Updater, AppError> {
+    app.updater_builder()
+        .configure_client(|client| client.tls_backend_rustls())
+        .build()
+        .map_err(|error| AppError::Retryable {
+            message: updater_initialization_error_message(error),
+        })
+}
 
 // Module compiles on all platforms so its tests run in CI, but the
 // restart_preserving_dock_icon function is macOS-only.
@@ -91,9 +100,7 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
         return Ok(None);
     }
 
-    let updater = app.updater().map_err(|e| AppError::Retryable {
-        message: updater_initialization_error_message(e),
-    })?;
+    let updater = build_updater(&app)?;
 
     let update = updater.check().await.map_err(|e| AppError::Retryable {
         message: updater_endpoint_error_message(e),
@@ -148,9 +155,7 @@ async fn do_download_update(
     let pending_update = match update {
         Some(handle) => handle,
         None => {
-            let updater = app.updater().map_err(|e| AppError::Retryable {
-                message: updater_initialization_error_message(e),
-            })?;
+            let updater = build_updater(app)?;
             updater
                 .check()
                 .await

@@ -28,11 +28,11 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
 
     loop {
         match reader.read_event() {
-            Ok(Event::Start(ref e)) if e.name().as_ref() == b"opml" => {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == "opml" => {
                 saw_opml_root = true;
                 saw_root_element = true;
             }
-            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"opml" => {
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == "opml" => {
                 saw_opml_root = true;
                 saw_root_element = true;
             }
@@ -42,10 +42,10 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
             Ok(Event::Decl(_)) if saw_root_element => {
                 return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
             }
-            Ok(Event::Start(ref e)) if e.name().as_ref() == b"body" && body_depth == 0 => {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == "body" && body_depth == 0 => {
                 body_depth = 1;
             }
-            Ok(Event::Start(ref e)) if e.name().as_ref() == b"outline" => {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == "outline" => {
                 if body_depth == 0 {
                     continue;
                 }
@@ -56,7 +56,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 let attrs = parse_outline_attrs(e)?;
                 outline_stack.push(push_start_outline(&attrs, &outline_stack, &mut feeds));
             }
-            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"outline" => {
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == "outline" => {
                 if body_depth == 0 {
                     continue;
                 }
@@ -65,7 +65,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 feeds.extend(outline_feed(&attrs, &outline_stack));
             }
             Ok(Event::DocType(_)) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),
-            Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" && body_depth > 0 => {
+            Ok(Event::End(ref e)) if e.name().as_ref() == "outline" && body_depth > 0 => {
                 outline_stack
                     .pop()
                     .ok_or_else(|| OPML_MALFORMED_XML_ERROR_MESSAGE.to_string())?;
@@ -139,7 +139,7 @@ fn parse_outline_attrs(
     for attr in e.attributes() {
         let attr =
             attr.map_err(|error| format!("OPML parse error: invalid outline attribute: {error}"))?;
-        let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
+        let key = attr.key.as_ref().to_string();
         let value = attr
             .normalized_value(quick_xml::XmlVersion::Implicit1_0)
             .map_err(|error| format!("OPML parse error: invalid outline attribute value: {error}"))?
