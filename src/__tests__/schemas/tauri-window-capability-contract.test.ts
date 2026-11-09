@@ -77,6 +77,7 @@ const expectedCommandOwnerAllowlists = {
     "trigger_sync",
     "trigger_startup_sync",
     "get_account_sync_status",
+    "get_sync_state",
     "get_local_feed_sync_statuses",
     "get_account_cloudflare_access",
     "trigger_sync_account",

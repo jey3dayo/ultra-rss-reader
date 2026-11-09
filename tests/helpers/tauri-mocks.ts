@@ -447,6 +447,8 @@ function createDefaultHandler(): MockHandler {
         return { status: "loaded", client_id: null };
       case "delete_account":
         return null;
+      case "get_sync_state":
+        return false;
       case "get_account_sync_status":
         return {
           last_success_at: null,

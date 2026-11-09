@@ -22,7 +22,6 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     selectArticle,
     platformKind,
     shortcutPrefs,
-    isSyncing,
   } = useCommandPaletteUiState();
   const t = useStableOpenTranslation("reader", open);
   const openFeedLanding = useFeedLanding();
@@ -48,7 +47,6 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     platformKind,
     shortcutPrefs,
     selectedAccountId,
-    isSyncing,
   });
   const closePalette = () => {
     closeCommandPalette();
@@ -110,7 +108,6 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     openShortcutsHelp,
     showToast,
     selectedAccountId,
-    isSyncing,
     selectFeedFromCurrentContext,
     selectFolderFromCurrentContext,
     selectTagFromCurrentContext,

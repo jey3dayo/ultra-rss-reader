@@ -24,7 +24,9 @@ use crate::repository::sync_state::{SyncStateRepository, SyncStateScopeKey};
 use super::account_sync::{
     run_sync_for_accounts_with_mode, sync_account_with_mode, sync_feed_with_mode,
 };
-use super::failure_log::{log_sync_completion, log_sync_failure, log_sync_warning, SyncTrigger};
+use super::failure_log::{
+    log_sync_completion, log_sync_failure, log_sync_request, log_sync_warning, SyncTrigger,
+};
 use super::finish_plan::{plan_finish, FinishInput, SyncEntry};
 use super::progress::{
     emit_sync_event_log_only, emit_sync_warnings, SyncGuard, SyncProgressReporter,
@@ -100,6 +102,11 @@ pub async fn trigger_sync(
 }
 
 #[tauri::command]
+pub fn get_sync_state(state: State<'_, AppState>) -> Result<bool, AppError> {
+    Ok(state.syncing.load(Ordering::SeqCst))
+}
+
+#[tauri::command]
 pub fn get_account_sync_status(
     state: State<'_, AppState>,
     account_id: String,
@@ -135,6 +142,7 @@ pub async fn trigger_sync_account(
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
     {
+        log_sync_request(SyncTrigger::ManualAccount, None, false);
         return Ok(SyncResult {
             synced: false,
             total: 0,
@@ -154,6 +162,7 @@ pub async fn trigger_sync_account(
                 message: format!("Account not found: {}", account_id.as_ref()),
             })?
     };
+    log_sync_request(SyncTrigger::ManualAccount, Some(&account.kind), true);
     let reporter =
         SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAccount, 1);
     reporter.emit_started(Some(&account));
@@ -240,6 +249,7 @@ pub async fn trigger_sync_feed(
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
     {
+        log_sync_request(SyncTrigger::ManualFeed, None, false);
         return Ok(SyncResult {
             synced: false,
             total: 0,
@@ -269,6 +279,7 @@ pub async fn trigger_sync_feed(
         (account, feed)
     };
 
+    log_sync_request(SyncTrigger::ManualFeed, Some(&account.kind), true);
     let reporter =
         SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAccount, 1);
     reporter.emit_started(Some(&account));

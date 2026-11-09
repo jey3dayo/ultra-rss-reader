@@ -24,7 +24,9 @@ use crate::infra::keyring_store::CredentialLookupMode;
 use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 
-use super::failure_log::{log_sync_completion, log_sync_failure, log_sync_warning, SyncTrigger};
+use super::failure_log::{
+    log_sync_completion, log_sync_failure, log_sync_request, log_sync_warning, SyncTrigger,
+};
 use super::local_import_export::{
     local_feed_sync_warning, local_provider, run_local_account_auto_export,
     run_local_account_auto_import,
@@ -267,7 +269,11 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
     {
-        tracing::info!("Sync already in progress, skipping");
+        if matches!(trigger, SyncTrigger::ManualAll) {
+            log_sync_request(trigger, None, false);
+        } else {
+            tracing::info!("Sync already in progress, skipping");
+        }
         return Ok(SyncResult {
             synced: false,
             total: 0,
@@ -277,6 +283,9 @@ pub(crate) async fn run_sync_for_accounts_with_mode(
         });
     }
     let _guard = SyncGuard(syncing);
+    if matches!(trigger, SyncTrigger::ManualAll) {
+        log_sync_request(trigger, None, true);
+    }
 
     let result =
         run_sync_for_accounts_guarded_with_mode(db, accounts, reporter, mode, trigger).await?;

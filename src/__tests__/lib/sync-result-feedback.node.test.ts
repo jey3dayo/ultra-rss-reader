@@ -1071,8 +1071,8 @@ describe("sync_warning_detail locale rendering", () => {
 describe("resolveSyncFeedbackSeverity", () => {
   const retryDetail = { detail: null, remainingWarningCount: 0 };
 
-  it.each<[string, SyncFeedback, "error" | "warning" | undefined]>([
-    ["already-in-progress", { kind: "already-in-progress" }, undefined],
+  it.each<[string, SyncFeedback, "error" | "warning" | "info" | undefined]>([
+    ["already-in-progress", { kind: "already-in-progress" }, "info"],
     ["partial-failure", { kind: "partial-failure", accounts: "Local" }, "error"],
     [
       "partial-failure with local feed failures",
@@ -1099,6 +1099,13 @@ describe("buildSyncFeedbackToast", () => {
     expect(buildSyncFeedbackToast({ kind: "partial-failure", accounts: "Local" }, "failed", null)).toEqual({
       message: "failed",
       severity: "error",
+    });
+  });
+
+  it("marks already-running feedback as informational", () => {
+    expect(buildSyncFeedbackToast({ kind: "already-in-progress" }, "syncing", null)).toEqual({
+      message: "syncing",
+      severity: "info",
     });
   });
 

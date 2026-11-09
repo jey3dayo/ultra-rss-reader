@@ -180,6 +180,27 @@ describe("manual-sync", () => {
     expect(onCooldown).toHaveBeenCalledTimes(1);
   });
 
+  it("does not cool down after an already-running rejection, so repeated triggers reach the backend", async () => {
+    const alreadyRunningResult = {
+      synced: false,
+      total: 0,
+      succeeded: 0,
+      failed: [],
+      warnings: [],
+    };
+    triggerSyncMock.mockResolvedValue(Result.succeed(alreadyRunningResult));
+    const onCooldown = vi.fn();
+    const onSuccess = vi.fn();
+    const params = { onCooldown, onSuccess, onError: vi.fn() };
+    await triggerManualSyncWithCooldown(params);
+    await triggerManualSyncWithCooldown(params);
+
+    expect(triggerSyncMock).toHaveBeenCalledTimes(2);
+    expect(onSuccess).toHaveBeenCalledTimes(2);
+    expect(onCooldown).not.toHaveBeenCalled();
+    expect(isManualSyncCoolingDown()).toBe(false);
+  });
+
   it("stops before triggerSync when request-start callback fails", async () => {
     const requestStartError = new Error("request-start callback failed");
     const onRequestStart = vi.fn(() => {

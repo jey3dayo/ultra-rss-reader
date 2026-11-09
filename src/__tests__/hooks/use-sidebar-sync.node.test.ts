@@ -1,9 +1,12 @@
+import { Result } from "@praha/byethrow";
 import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncResultDto } from "@/api/schemas/sync-result";
+import { getSyncState } from "@/api/tauri-commands";
 import {
   isSidebarSyncCompletedPayload,
   resetSidebarSyncDiagnosticsForTests,
@@ -13,6 +16,7 @@ import {
   useSidebarSync,
 } from "@/components/reader/hooks/sidebar/use-sidebar-sync";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import {
   getManualSyncCooldownUntil,
@@ -38,6 +42,11 @@ vi.mock("@/lib/sync/manual-sync", () => ({
   setManualSyncCooldownListenerErrorReporterForDiagnostics: vi.fn(() => () => {}),
   subscribeManualSyncCooldown: vi.fn(() => () => {}),
   triggerManualSyncWithCooldown: vi.fn(),
+}));
+
+vi.mock("@/api/tauri-commands", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/api/tauri-commands")>()),
+  getSyncState: vi.fn(),
 }));
 
 const labels = {
@@ -109,6 +118,7 @@ describe("resolveSidebarLastSyncedLabel", () => {
     vi.restoreAllMocks();
     listenMock.mockReset().mockResolvedValue(() => {});
     vi.mocked(triggerManualSyncWithCooldown).mockReset();
+    vi.mocked(getSyncState).mockReset().mockResolvedValue(Result.succeed(true));
     vi.mocked(getManualSyncCooldownUntil).mockReturnValue(0);
     vi.mocked(setManualSyncCooldownListenerErrorReporterForDiagnostics).mockReturnValue(() => {});
     vi.mocked(subscribeManualSyncCooldown).mockReturnValue(() => {});
@@ -251,7 +261,6 @@ describe("resolveSidebarLastSyncedLabel", () => {
 
   it.each<[string, SyncResultDto]>([
     ["clean success", { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] }],
-    ["already in progress", { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] }],
   ])("keeps a %s manual sync result as a plain toast", async (_name, syncResult) => {
     vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
       params.onSuccess(syncResult);
@@ -573,6 +582,244 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(consoleWarn).toHaveBeenCalledWith(
       "Ignored malformed sync-warning payload: payloadType=array issue=0.message",
     );
+  });
+
+  it.each([true, false])(
+    "shows an info toast for backend busy rejection when frontend active is %s",
+    async (active) => {
+      const showToast = vi.fn();
+      vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+        params.onSuccess({ synced: false, total: 0, succeeded: 0, failed: [], warnings: [] });
+      });
+      const { result } = renderHook(
+        () =>
+          useSidebarSync(
+            createSyncHookParams({
+              showToast,
+              syncProgress: { ...createSyncHookParams().syncProgress, active },
+            }),
+          ),
+        { wrapper: createQueryWrapper().wrapper },
+      );
+      await act(async () => {
+        await result.current.handleSync();
+      });
+      expect(showToast).toHaveBeenCalledExactlyOnceWith({
+        message: i18n.t("sidebar:sync_already_in_progress"),
+        severity: "info",
+      });
+      expect(triggerManualSyncWithCooldown).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("allows manual sync with stale active frontend progress when the backend accepts it", async () => {
+    const showToast = vi.fn();
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onSuccess({ synced: true, total: 1, succeeded: 1, failed: [], warnings: [] });
+    });
+    const { result } = renderHook(
+      () =>
+        useSidebarSync(
+          createSyncHookParams({
+            selectedAccountId: "acc-1",
+            showToast,
+            syncProgress: { ...createSyncHookParams().syncProgress, active: true },
+          }),
+        ),
+      { wrapper: createQueryWrapper().wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+
+    expect(triggerManualSyncWithCooldown).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ selectedAccountId: "acc-1" }),
+    );
+    expect(showToast).toHaveBeenCalledExactlyOnceWith(i18n.t("sidebar:sync_completed"));
+  });
+
+  it.each(["focus", "visibilitychange"])(
+    "clears missed completion on %s only when native state is idle",
+    async (event) => {
+      const { queryClient, wrapper } = createQueryWrapper();
+      const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+      const clearSyncProgress = vi.fn();
+      const params = createSyncHookParams({ clearSyncProgress });
+      params.syncProgress = { ...params.syncProgress, active: true, sessionId: 1 };
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      renderHook(() => useSidebarSync(params), { wrapper });
+      const resume = () => (event === "focus" ? window : document).dispatchEvent(new Event(event));
+      await act(async () => {
+        resume();
+      });
+      expect(getSyncState).toHaveBeenCalledOnce();
+      expect(clearSyncProgress).not.toHaveBeenCalled();
+      vi.mocked(getSyncState).mockResolvedValue(Result.succeed(false));
+      await act(async () => {
+        resume();
+      });
+      expect(clearSyncProgress).toHaveBeenCalledOnce();
+      expect(countQueryInvalidations(invalidate, accountSyncStatusQueryKey())).toBe(1);
+      expect(countQueryInvalidations(invalidate, queryKeys.feeds.root)).toBe(0);
+    },
+  );
+
+  it("ignores an idle response after a newer progress event before React rerenders", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const idle = createDeferred<Awaited<ReturnType<typeof getSyncState>>>();
+    vi.mocked(getSyncState).mockReturnValue(idle.promise);
+    const params = createSyncHookParams({ syncProgress: { ...createSyncHookParams().syncProgress, active: true } });
+    renderHook(() => useSidebarSync(params), { wrapper: createQueryWrapper().wrapper });
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      getRegisteredListener("sync-progress")({ payload: { ...syncProgressPayload, session_id: 2 } });
+      idle.resolve(Result.succeed(false));
+    });
+    expect(params.clearSyncProgress).not.toHaveBeenCalled();
+    vi.mocked(getSyncState).mockResolvedValueOnce(Result.succeed(false));
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(params.clearSyncProgress).toHaveBeenCalledOnce();
+  });
+
+  it("does not repeat completion invalidation when an earlier idle query settles", async () => {
+    const idle = createDeferred<Awaited<ReturnType<typeof getSyncState>>>();
+    vi.mocked(getSyncState).mockReturnValue(idle.promise);
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const params = createSyncHookParams({ syncProgress: { ...createSyncHookParams().syncProgress, active: true } });
+    renderHook(() => useSidebarSync(params), { wrapper });
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      getRegisteredListener("sync-completed")({ payload: null });
+      idle.resolve(Result.succeed(false));
+    });
+    expect(params.clearSyncProgress).toHaveBeenCalledOnce();
+    expect(countQueryInvalidations(invalidate, accountSyncStatusQueryKey())).toBe(1);
+  });
+
+  it("ignores hidden visibility changes and idle frontend state", async () => {
+    const params = createSyncHookParams();
+    const { rerender } = renderHook(() => useSidebarSync(params), { wrapper: createQueryWrapper().wrapper });
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(getSyncState).not.toHaveBeenCalled();
+    params.syncProgress = { ...params.syncProgress, active: true };
+    rerender();
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(getSyncState).not.toHaveBeenCalled();
+    visibility.mockRestore();
+  });
+
+  it("ignores older overlapping state queries and results after unmount", async () => {
+    const first = createDeferred<Awaited<ReturnType<typeof getSyncState>>>();
+    const last = createDeferred<Awaited<ReturnType<typeof getSyncState>>>();
+    vi.mocked(getSyncState)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce(Result.succeed(true))
+      .mockReturnValueOnce(last.promise);
+    const params = createSyncHookParams({ syncProgress: { ...createSyncHookParams().syncProgress, active: true } });
+    const { unmount } = renderHook(() => useSidebarSync(params), { wrapper: createQueryWrapper().wrapper });
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    await act(async () => {
+      first.resolve(Result.succeed(false));
+    });
+    expect(params.clearSyncProgress).not.toHaveBeenCalled();
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    unmount();
+    await act(async () => {
+      last.resolve(Result.succeed(false));
+    });
+    expect(params.clearSyncProgress).not.toHaveBeenCalled();
+    window.dispatchEvent(new Event("focus"));
+    expect(getSyncState).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(["failure", "rejection"])("retains progress on state query %s and allows retry", async (kind) => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const params = createSyncHookParams({ syncProgress: { ...createSyncHookParams().syncProgress, active: true } });
+    if (kind === "failure")
+      vi.mocked(getSyncState).mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "Unavailable" }));
+    else vi.mocked(getSyncState).mockRejectedValueOnce(new Error("Unavailable"));
+    renderHook(() => useSidebarSync(params), { wrapper: createQueryWrapper().wrapper });
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(params.clearSyncProgress).not.toHaveBeenCalled();
+    vi.mocked(getSyncState).mockResolvedValueOnce(Result.succeed(false));
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(params.clearSyncProgress).toHaveBeenCalledOnce();
+  });
+
+  it("does not let a fallback timer clear newer progress before effect cleanup", () => {
+    vi.useFakeTimers();
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const params = createSyncHookParams({
+      syncProgress: { ...createSyncHookParams().syncProgress, active: true, sessionId: 1 },
+    });
+    renderHook(() => useSidebarSync(params), { wrapper });
+
+    act(() => {
+      vi.advanceTimersByTime(10 * 60_000 - 1);
+      getRegisteredListener("sync-progress")({ payload: { ...syncProgressPayload, session_id: 2 } });
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(params.applySyncProgress).toHaveBeenCalledOnce();
+    expect(params.clearSyncProgress).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("keeps fallback recovery after the store rejects a stale progress event", () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      syncProgress: {
+        ...createSyncHookParams().syncProgress,
+        active: true,
+        sessionId: 2,
+        lastSettledSessionId: 1,
+      },
+    });
+    const params = createSyncHookParams({
+      applySyncProgress: useUiStore.getState().applySyncProgress,
+      clearSyncProgress: useUiStore.getState().clearSyncProgress,
+    });
+    renderHook(() => useSidebarSync({ ...params, syncProgress: useUiStore((state) => state.syncProgress) }), {
+      wrapper,
+    });
+    const progressBefore = useUiStore.getState().syncProgress;
+
+    act(() => {
+      vi.advanceTimersByTime(10 * 60_000 - 1);
+      getRegisteredListener("sync-progress")({ payload: syncProgressPayload });
+      vi.advanceTimersByTime(1);
+    });
+    expect(useUiStore.getState().syncProgress).toBe(progressBefore);
+    expect(invalidate).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(10 * 60_000);
+    });
+    expect(useUiStore.getState().syncProgress.active).toBe(false);
+    expect(countQueryInvalidations(invalidate, accountSyncStatusQueryKey())).toBe(1);
   });
 
   it("clears stuck sync progress when sync-completed is missing", async () => {

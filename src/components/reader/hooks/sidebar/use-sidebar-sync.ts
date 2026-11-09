@@ -1,5 +1,6 @@
+import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import type { IssuePathItem } from "valibot";
 import { safeParse } from "valibot";
@@ -10,6 +11,7 @@ import {
   type SyncWarningPayload,
   SyncWarningPayloadSchema,
 } from "@/api/schemas/sync-result";
+import { getSyncState } from "@/api/tauri-commands";
 import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { createFetchErrorsToastAction } from "@/lib/actions";
@@ -233,6 +235,7 @@ export function useSidebarSync({
   );
   const [state, dispatch] = useReducer(sidebarSyncReducer, undefined, createInitialSidebarSyncState);
   const { cooldownTick } = state;
+  const syncEventRevision = useRef(0);
   const invalidateAccountSyncStatuses = useCallback(
     (actionOwner: SidebarSyncStatusInvalidationOwner) => {
       invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()], { actionOwner });
@@ -283,19 +286,89 @@ export function useSidebarSync({
     return restoreReporter;
   }, []);
 
+  // Reconcile progress with native state when the app returns to the foreground.
   useEffect(() => {
     if (!syncProgress.active || typeof window === "undefined") {
       return;
     }
 
-    const timer = window.setTimeout(() => {
+    let disposed = false;
+    let requestSequence = 0;
+    let timer: number | null = null;
+    const recover = () => {
+      if (disposed) {
+        return;
+      }
+      disposed = true;
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
       reportStuckSyncProgressRecovery(syncProgress);
       clearSyncProgress();
       invalidateAccountSyncStatuses("background-sync-completed");
-    }, SYNC_PROGRESS_STUCK_RECOVERY_MS);
+    };
+    const checkNativeSyncState = async () => {
+      if (disposed) {
+        return;
+      }
+      const request = ++requestSequence;
+      const eventRevision = syncEventRevision.current;
+      try {
+        const result = await getSyncState();
+        if (disposed || request !== requestSequence || syncEventRevision.current !== eventRevision) {
+          return;
+        }
+        if (Result.isFailure(result)) {
+          console.warn("Could not check native sync state:", Result.unwrapError(result));
+          return;
+        }
+        if (!Result.unwrap(result)) {
+          recover();
+        }
+      } catch (error) {
+        if (!disposed) {
+          console.warn("Could not check native sync state:", error);
+        }
+      }
+    };
+    const onResume = () => {
+      if (typeof document === "undefined" || document.visibilityState !== "hidden") {
+        void checkNativeSyncState();
+      }
+    };
+    const scheduleRecovery = () => {
+      const eventRevision = syncEventRevision.current;
+      const handle = window.setTimeout(() => {
+        if (disposed || timer !== handle) {
+          return;
+        }
+        timer = null;
+        if (syncEventRevision.current !== eventRevision) {
+          // Rejected stale events may not rerender, so keep fallback recovery armed.
+          scheduleRecovery();
+          return;
+        }
+        recover();
+      }, SYNC_PROGRESS_STUCK_RECOVERY_MS);
+      timer = handle;
+    };
+    scheduleRecovery();
+    window.addEventListener("focus", onResume);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onResume);
+    }
 
     return () => {
-      window.clearTimeout(timer);
+      disposed = true;
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
+      window.removeEventListener("focus", onResume);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onResume);
+      }
     };
   }, [clearSyncProgress, invalidateAccountSyncStatuses, syncProgress]);
 
@@ -306,12 +379,14 @@ export function useSidebarSync({
         if (!payload) {
           return;
         }
+        syncEventRevision.current += 1;
         applySyncProgress(payload);
       }),
       listenTauriEvent<SidebarSyncCompletedPayload>("sync-completed", (event) => {
         if (!isSidebarSyncCompletedPayload(event)) {
           return;
         }
+        syncEventRevision.current += 1;
         clearSyncProgress();
         invalidateAccountSyncStatuses("background-sync-completed");
       }),
@@ -337,10 +412,7 @@ export function useSidebarSync({
   }, [applySyncProgress, clearSyncProgress, invalidateAccountSyncStatuses, showToast, t]);
 
   const handleSync = useCallback(async () => {
-    if (syncProgress.active) {
-      return;
-    }
-
+    // Native sync arbitration lets a manual press recover from stale frontend progress.
     await triggerManualSyncWithCooldown({
       selectedAccountId,
       onCooldown: () => {
@@ -348,25 +420,12 @@ export function useSidebarSync({
       },
       onSuccess: (syncResult) => {
         invalidateAccountSyncStatuses("manual-sync-completed");
-        // Deliberately no feed-list invalidation here: the native
-        // `sync-completed` event (handled in App.tsx) is the single owner.
-        //
-        // Do not re-add a fallback invalidation on this path: because `sync-completed` is
-        // intentionally suppressed for zero-success or unsynced results
-        // (`should_emit_manual_single_sync_completion`), a fallback here has to
-        // decide when the event "should have arrived", and every version of
-        // that races with the listener — a late onSuccess from an earlier run
-        // re-arms the timer and double-invalidates, and query-core cancels the
-        // in-flight refetch on the second invalidate, so `listFeeds` (a Tauri
-        // invoke that ignores AbortSignal) runs twice. Making it safe needs
-        // per-run tokens plus serialization, which is more machinery than the
-        // abnormal case is worth: a dropped event is recovered by the
-        // stuck-progress timer above and by the next sync.
-        //
-        // The user-visible symptom this issue was about — the list looking
-        // stale right after the spinner stops — is handled by keeping the sync
-        // button spinning until the feed list refetch settles, not here. See
-        // buildSidebarHeaderProps.
+        // Feed-list invalidation belongs to App's sync-completed listener. A late
+        // command result must not cancel its in-flight refetch with another invalidate.
+        if (!syncResult.synced && syncResult.total === 0) {
+          showToast({ message: t("sync_already_in_progress"), severity: "info" });
+          return;
+        }
         const feedback = summarizeSyncResult(syncResult);
         const message = resolveSidebarSyncFeedbackMessage(t, feedback);
         const action = feedback.localFeedSyncFailureAccountId
@@ -380,7 +439,7 @@ export function useSidebarSync({
         showToast({ message: t("sync_failed"), severity: "error" });
       },
     });
-  }, [invalidateAccountSyncStatuses, selectedAccountId, showToast, syncProgress.active, t]);
+  }, [invalidateAccountSyncStatuses, selectedAccountId, showToast, t]);
 
   return {
     handleSync,

@@ -27,6 +27,42 @@ impl SyncTrigger {
     }
 }
 
+fn sync_request_diagnostic(
+    trigger: SyncTrigger,
+    provider: Option<&ProviderKind>,
+    accepted: bool,
+) -> String {
+    let provider = provider.map_or(
+        if matches!(trigger, SyncTrigger::ManualAll) {
+            "all"
+        } else {
+            "unknown"
+        },
+        ProviderKind::diagnostic_label,
+    );
+    if accepted {
+        format!(
+            "event=sync-started trigger={} provider={}",
+            trigger.label(),
+            provider
+        )
+    } else {
+        format!(
+            "event=sync-rejected trigger={} provider={} reason=already_running",
+            trigger.label(),
+            provider
+        )
+    }
+}
+
+pub(crate) fn log_sync_request(
+    trigger: SyncTrigger,
+    provider: Option<&ProviderKind>,
+    accepted: bool,
+) {
+    log::info!(target: "sync", "{}", sync_request_diagnostic(trigger, provider, accepted));
+}
+
 fn sync_failure_diagnostic(
     trigger: SyncTrigger,
     provider: &ProviderKind,

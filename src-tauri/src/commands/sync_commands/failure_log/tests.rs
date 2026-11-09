@@ -4,6 +4,22 @@ use crate::infra::log_capture_test_support::{child_scenario, run_in_isolated_pro
 const SENTINEL: &str = "https://secret-sentinel.invalid/acct-42";
 
 #[test]
+fn sync_request_diagnostics_use_fixed_fields_for_started_and_rejected_requests() {
+    assert_eq!(
+        sync_request_diagnostic(SyncTrigger::ManualAll, None, true),
+        "event=sync-started trigger=manual-all provider=all"
+    );
+    assert_eq!(
+        sync_request_diagnostic(SyncTrigger::ManualAccount, None, false),
+        "event=sync-rejected trigger=manual-account provider=unknown reason=already_running"
+    );
+    assert_eq!(
+        sync_request_diagnostic(SyncTrigger::ManualFeed, Some(&ProviderKind::FreshRss), true),
+        "event=sync-started trigger=manual-feed provider=freshrss"
+    );
+}
+
+#[test]
 fn sync_and_feed_failure_lines_carry_only_fixed_fields() {
     if child_scenario().is_some() {
         let error = AppError::from(crate::domain::error::DomainError::Keychain(

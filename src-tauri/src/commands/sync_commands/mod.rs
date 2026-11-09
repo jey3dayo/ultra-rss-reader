@@ -27,8 +27,9 @@ pub(crate) use local_feed_health::{
 };
 #[cfg(not(test))]
 pub(crate) use manual::{
-    __cmd__get_account_sync_status, __cmd__trigger_sync, __cmd__trigger_sync_account,
-    __cmd__trigger_sync_feed, __tauri_command_name_get_account_sync_status,
+    __cmd__get_account_sync_status, __cmd__get_sync_state, __cmd__trigger_sync,
+    __cmd__trigger_sync_account, __cmd__trigger_sync_feed,
+    __tauri_command_name_get_account_sync_status, __tauri_command_name_get_sync_state,
     __tauri_command_name_trigger_sync, __tauri_command_name_trigger_sync_account,
     __tauri_command_name_trigger_sync_feed,
 };
@@ -63,7 +64,9 @@ use account_sync::{
     run_sync_for_accounts_with_mode, run_sync_for_accounts_with_progress,
 };
 pub use local_feed_health::get_local_feed_sync_statuses;
-pub use manual::{get_account_sync_status, trigger_sync, trigger_sync_account, trigger_sync_feed};
+pub use manual::{
+    get_account_sync_status, get_sync_state, trigger_sync, trigger_sync_account, trigger_sync_feed,
+};
 #[cfg(test)]
 use progress::{
     next_sync_progress_completed, next_sync_progress_session_id, sync_event_emit_warning, SyncGuard,

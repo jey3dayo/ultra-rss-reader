@@ -31,6 +31,7 @@ export const TAURI_COMMAND_NAMES = [
   "focus_browser_webview",
   "get_account_cloudflare_access",
   "get_account_sync_status",
+  "get_sync_state",
   "get_article",
   "get_article_tags",
   "get_credential_storage",

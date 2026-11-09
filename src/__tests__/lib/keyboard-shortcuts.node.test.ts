@@ -423,7 +423,6 @@ describe("keyboard shortcut resolver", () => {
       settingsOpen: false,
       shortcutsHelpOpen: false,
       isAddFeedDialogOpen: false,
-      isSyncing: false,
     };
 
     expect(APP_ACTIONS).toContain("sync-all");
@@ -437,9 +436,8 @@ describe("keyboard shortcut resolver", () => {
     expect(
       isAppActionAvailable("sync-all", "nativeMenu", {
         ...baseContext,
-        isSyncing: true,
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isAppActionAvailable("toggle-star", "keyboardShortcut", {
         ...baseContext,
