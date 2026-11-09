@@ -241,30 +241,35 @@ fn article_list_query_plans_keep_index_and_fts_coverage() {
         ],
     );
 
-    let search_plan = explain_query_plan(
-        &db,
-        &format!(
-            "WITH matched(article_id, published_at, fetched_at) AS (
-                   SELECT a.id, a.published_at, a.fetched_at FROM articles a
-                   JOIN feeds f ON a.feed_id = f.id
-                   JOIN articles_fts fts ON a.rowid = fts.rowid
-                   WHERE f.account_id = '{}' AND articles_fts MATCH 'representative'
-                   UNION
-                   SELECT a.id, a.published_at, a.fetched_at FROM articles a
-                   JOIN feeds f ON a.feed_id = f.id
-                   WHERE f.account_id = '{}'
-                     AND (a.title LIKE '%representative%' ESCAPE '\\'
-                       OR a.content_text LIKE '%representative%' ESCAPE '\\')
-                 )
-                 SELECT {select_cols_prefixed} FROM articles a
-                 JOIN matched m ON m.article_id = a.id
-                 ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
-                 LIMIT 30 OFFSET 0",
-            account_id.0, account_id.0
+    // LIKE '%x%' cannot use a regular index; the plan check still rejects full article scans.
+    for (sql, query, requires_fts) in [
+        (
+            build_search_fts_sql(&select_cols_prefixed, "1 = 1"),
+            build_fts_query("representative").unwrap(),
+            true,
         ),
-    );
-    assert_no_unindexed_article_scan(&search_plan);
-    assert_plan_uses_any(&search_plan, &["VIRTUAL TABLE INDEX", "articles_fts"]);
+        (
+            build_search_like_sql(&select_cols_prefixed, "1 = 1"),
+            escaped_like_pattern("representative"),
+            false,
+        ),
+    ] {
+        let mut stmt = db
+            .writer()
+            .prepare(&format!("EXPLAIN QUERY PLAN {sql}"))
+            .unwrap();
+        let plan = stmt
+            .query_map(params![account_id.0, query, 30_i64, 0_i64], |row| {
+                row.get::<_, String>(3)
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_no_unindexed_article_scan(&plan);
+        if requires_fts {
+            assert_plan_uses_any(&plan, &["VIRTUAL TABLE INDEX", "articles_fts"]);
+        }
+    }
 }
 
 #[test]
