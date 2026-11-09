@@ -16,7 +16,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 - rusqlite を 0.41 に上げて RUSTSEC-2026-0459（bundled SQLite）を解消し、reqwest・sha2・dirs など上げられる Rust crate も更新しました。 (#643)
 
-
 ## [0.67.23] - 2026-11-07
 
 ### Bug Fixes
