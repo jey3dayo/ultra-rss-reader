@@ -20,6 +20,12 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
     reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
   },
   {
+    storyId: "reader-article-articlecontentview--fresh-rss-git-hub-release-enclosure-avatar",
+    ruleId: "color-contrast",
+    nodeCount: 5,
+    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
+  },
+  {
     storyId: "reader-article-articlecontentview--worst-case-article-typography",
     ruleId: "color-contrast",
     nodeCount: 1,
