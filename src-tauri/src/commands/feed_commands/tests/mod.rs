@@ -23,6 +23,7 @@ pub(super) use super::{
     UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
 };
 pub(super) use crate::commands::dto::AppError;
+pub(super) use crate::commands::sync_providers::{GReaderSession, SessionError};
 pub(super) use crate::domain::account::{Account, ConnectionVerificationStatus};
 pub(super) use crate::domain::error::{DomainError, DomainResult};
 pub(super) use crate::domain::provider::{
@@ -35,9 +36,31 @@ pub(super) use crate::infra::db::sqlite_account::SqliteAccountRepository;
 pub(super) use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 pub(super) use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 pub(super) use crate::infra::keyring_store;
+pub(super) use crate::infra::keyring_store::CredentialLookupMode;
 pub(super) use crate::infra::provider::local::LocalProvider;
 pub(super) use crate::infra::provider::traits::{Credentials, FeedProvider};
 pub(super) use crate::repository::account::AccountRepository;
 pub(super) use crate::repository::feed::FeedRepository;
 pub(super) use crate::repository::folder::FolderRepository;
 pub(super) use mockito::Matcher;
+
+pub(super) fn canceled_interactive_session_establishment(
+    account: Account,
+    expected_account_id: &AccountId,
+    mode: CredentialLookupMode,
+) -> std::future::Ready<Result<GReaderSession, SessionError>> {
+    use crate::domain::error::{CredentialFailure, CredentialFailureCause, CredentialTarget};
+
+    assert_eq!(account.id, *expected_account_id);
+    assert_eq!(mode, CredentialLookupMode::Interactive);
+    std::future::ready(Err(SessionError::Credential(
+        DomainError::CredentialStore {
+            failure: CredentialFailure::new(
+                CredentialTarget::Password,
+                CredentialFailureCause::Canceled,
+            ),
+            message: "dummy credential prompt canceled".into(),
+        }
+        .into(),
+    )))
+}

@@ -12,6 +12,7 @@ use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::keyring_store::CredentialLookupMode;
 use crate::infra::provider::traits::FeedProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
@@ -114,6 +115,22 @@ pub(crate) async fn delete_feed_with_remote_sync_boundary(
     syncing: &AtomicBool,
     feed_id: String,
 ) -> Result<(), AppError> {
+    delete_feed_with_session(db, syncing, feed_id, |account, mode| async move {
+        GReaderSession::establish_with_mode(&account, mode).await
+    })
+    .await
+}
+
+pub(super) async fn delete_feed_with_session<F, Fut>(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+    establish_session: F,
+) -> Result<(), AppError>
+where
+    F: FnOnce(Account, CredentialLookupMode) -> Fut,
+    Fut: std::future::Future<Output = Result<GReaderSession, SessionError>>,
+{
     let _guard = crate::commands::start_database_maintenance(syncing)?;
     let feed_id = FeedId(feed_id);
     let feed = {
@@ -126,7 +143,7 @@ pub(crate) async fn delete_feed_with_remote_sync_boundary(
         load_delete_feed_account(&db, &feed.account_id)?
     };
     if matches!(account.kind, ProviderKind::FreshRss) {
-        let session = GReaderSession::establish(&account)
+        let session = establish_session(account, CredentialLookupMode::Interactive)
             .await
             .map_err(SessionError::into_user_visible)?;
         return delete_feed_after_provider_unsubscribe(db, feed_id.0, session.provider()).await;
@@ -151,6 +168,23 @@ pub(crate) async fn rename_feed_with_remote_sync_boundary(
     feed_id: String,
     title: String,
 ) -> Result<(), AppError> {
+    rename_feed_with_session(db, syncing, feed_id, title, |account, mode| async move {
+        GReaderSession::establish_with_mode(&account, mode).await
+    })
+    .await
+}
+
+pub(super) async fn rename_feed_with_session<F, Fut>(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+    title: String,
+    establish_session: F,
+) -> Result<(), AppError>
+where
+    F: FnOnce(Account, CredentialLookupMode) -> Fut,
+    Fut: std::future::Future<Output = Result<GReaderSession, SessionError>>,
+{
     let _guard = crate::commands::start_database_maintenance(syncing)?;
     let title = validate_feed_title(&title)?;
     let feed_id_typed = FeedId(feed_id.clone());
@@ -165,7 +199,7 @@ pub(crate) async fn rename_feed_with_remote_sync_boundary(
 
     if matches!(account.kind, ProviderKind::FreshRss) {
         if let Some(remote_id) = feed.remote_id.clone() {
-            let session = GReaderSession::establish(&account)
+            let session = establish_session(account, CredentialLookupMode::Interactive)
                 .await
                 .map_err(SessionError::into_user_visible)?;
             session

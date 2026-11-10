@@ -144,6 +144,18 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn interactive_attempt_with_an_expired_lease_falls_back_to_the_credential_store() {
+        let account = account("lease-interactive-expired-dummy", "https://localhost");
+        lease(&account);
+        session_cache::expire_for_test(&account).expect("fixture should expire the lease");
+
+        let outcome = try_lease(&account, CredentialLookupMode::Interactive).await;
+
+        assert!(matches!(outcome, Ok(None)));
+        assert!(session_cache::get_leased(&account).is_err());
+    }
+
+    #[tokio::test]
     async fn interactive_attempt_drops_a_rejected_lease_and_falls_back() {
         let (server, login) = login_server(401).await;
         let account = account("lease-interactive-rejected-dummy", &server.url());

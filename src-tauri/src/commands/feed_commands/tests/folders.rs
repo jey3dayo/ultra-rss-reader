@@ -75,6 +75,68 @@ async fn update_feed_folder_command_rejects_while_sync_boundary_is_busy() {
     assert!(syncing.load(Ordering::SeqCst));
 }
 
+#[tokio::test]
+async fn update_feed_folder_without_a_lease_requests_interactive_auth_and_preserves_cancel() {
+    use crate::commands::sync_providers::SessionError;
+    use crate::domain::error::{CredentialFailure, CredentialFailureCause, CredentialTarget};
+    use crate::infra::keyring_store::{session_cache, CredentialLookupMode};
+
+    let db = Mutex::new(test_db());
+    let (account_id, feed_id, folder_id) = {
+        let guard = db.lock().expect("folder move fixture should lock");
+        let account_id = insert_freshrss_account(&guard, "https://example.com");
+        let feed_id = insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss");
+        let folder_id = FolderId::new();
+        guard
+            .writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "New", 0],
+            )
+            .expect("folder move target fixture should be stored");
+        (account_id, feed_id, folder_id)
+    };
+    session_cache::invalidate(account_id.as_ref())
+        .expect("fixture should have no credential lease");
+    let syncing = AtomicBool::new(false);
+
+    let error = super::super::folders::update_feed_folder_with_session(
+        &db,
+        &syncing,
+        feed_id.0.clone(),
+        Some(folder_id.0),
+        |account, mode| {
+            assert_eq!(account.id, account_id);
+            assert_eq!(mode, CredentialLookupMode::Interactive);
+            std::future::ready(Err(SessionError::Credential(
+                DomainError::CredentialStore {
+                    failure: CredentialFailure::new(
+                        CredentialTarget::Password,
+                        CredentialFailureCause::Canceled,
+                    ),
+                    message: "dummy credential prompt canceled".into(),
+                }
+                .into(),
+            )))
+        },
+    )
+    .await
+    .expect_err("canceling interactive authorization should reject the folder move");
+
+    assert!(matches!(
+        error,
+        AppError::CredentialStore { credential_failure, .. }
+            if credential_failure == CredentialFailure::new(CredentialTarget::Password, CredentialFailureCause::Canceled)
+    ));
+    assert!(!syncing.load(Ordering::SeqCst));
+    let guard = db.lock().expect("saved feed should be readable");
+    let feed = SqliteFeedRepository::new(guard.reader())
+        .find_by_id(&feed_id)
+        .expect("saved feed lookup should succeed")
+        .expect("the feed should remain after canceled authorization");
+    assert_eq!(feed.folder_id, None);
+}
+
 #[test]
 fn update_feed_folder_command_rejects_missing_folder() {
     let db = test_db();
