@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.25] - 2026-11-10
+
+### Bug Fixes
+
+- トーストの閉じるボタンと本文の配置を揃え、アクションの文字コントラストを改善しました。日本語が単語の途中で改行されないようにしました。 (#645)
+
 ## [0.67.24] - 2026-11-09
 
 ### Bug Fixes
