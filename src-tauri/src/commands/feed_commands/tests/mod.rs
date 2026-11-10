@@ -1,6 +1,7 @@
 mod feed_add;
 mod feed_mutations;
 mod fixtures;
+mod folder_rename;
 mod folders;
 
 pub(super) use async_trait::async_trait;

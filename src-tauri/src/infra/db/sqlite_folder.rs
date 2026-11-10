@@ -246,6 +246,36 @@ fn row_to_folder(row: &rusqlite::Row) -> rusqlite::Result<Folder> {
 }
 
 impl FolderRepository for SqliteFolderRepository<'_> {
+    fn find_by_id(&self, id: &FolderId) -> DomainResult<Option<Folder>> {
+        self.conn
+            .query_row(
+                "SELECT id, account_id, remote_id, name, sort_order FROM folders WHERE id = ?1",
+                params![id.0],
+                row_to_folder,
+            )
+            .optional()
+            .map_err(Into::into)
+    }
+
+    fn rename(&self, folder: &Folder) -> DomainResult<()> {
+        self.ensure_name_case_contract(folder)?;
+        let changed = self.conn.execute(
+            "UPDATE folders SET name = ?1, remote_id = ?2 WHERE id = ?3 AND account_id = ?4",
+            params![
+                folder.name,
+                folder.remote_id,
+                folder.id.0,
+                folder.account_id.0
+            ],
+        )?;
+        if changed == 0 {
+            return Err(crate::domain::error::DomainError::Validation(
+                "Folder not found".into(),
+            ));
+        }
+        Ok(())
+    }
+
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Folder>> {
         self.ensure_order_contract()?;
         let mut stmt = self.conn.prepare(

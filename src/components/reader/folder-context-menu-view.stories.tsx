@@ -12,6 +12,8 @@ const meta = {
     markAllReadLabel: "Mark all as read",
     markOldUnreadReadLabel: "Mark old unread as read",
     oldUnreadDayLabel: (days: 7 | 30 | 90) => `${days} days`,
+    editLabel: "Edit…",
+    onRename: fn(),
     resetOrderLabel: "Reset folder order",
     folderOrderMode: "manual" as const,
     onMarkAllRead: fn(),

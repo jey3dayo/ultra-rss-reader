@@ -66,6 +66,7 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "list_articles_by_tag",
   "rename_account",
   "rename_feed",
+  "rename_folder",
   "restart_app",
   "tag_article",
   "untag_article",

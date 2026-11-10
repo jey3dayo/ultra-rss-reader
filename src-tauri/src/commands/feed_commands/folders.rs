@@ -44,6 +44,108 @@ pub(crate) fn validate_folder_name(
     Ok(name.to_string())
 }
 
+#[tauri::command]
+pub async fn rename_folder(
+    state: State<'_, AppState>,
+    folder_id: String,
+    name: String,
+) -> Result<(), AppError> {
+    rename_folder_with_remote_sync_boundary(&state.db, state.syncing.as_ref(), folder_id, name)
+        .await
+}
+
+fn prepare_folder_rename(
+    conn: &Connection,
+    folder_id: &str,
+    name: &str,
+) -> Result<crate::domain::folder::Folder, AppError> {
+    let repo = SqliteFolderRepository::new(conn);
+    let mut folder = repo
+        .find_by_id(&FolderId(folder_id.to_string()))?
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Folder not found".into(),
+        })?;
+    let existing_names = conn
+        .prepare("SELECT name FROM folders WHERE account_id = ?1 AND id != ?2")
+        .map_err(DomainError::from)?
+        .query_map(params![folder.account_id.0, folder.id.0], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(DomainError::from)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(DomainError::from)?;
+    folder.name = validate_folder_name(name, &existing_names)?;
+    if folder.remote_id.is_some() && folder.name.contains('/') {
+        return Err(AppError::UserVisible {
+            message: "Remote folder name cannot contain /".into(),
+        });
+    }
+    Ok(folder)
+}
+
+pub(crate) fn rename_folder_in_db(
+    db: &DbManager,
+    folder_id: &str,
+    name: &str,
+) -> Result<(), AppError> {
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(DomainError::from)?;
+    let mut folder = prepare_folder_rename(&tx, folder_id, name)?;
+    if folder.remote_id.is_some() {
+        folder.remote_id = Some(format!("user/-/label/{}", folder.name));
+    }
+    SqliteFolderRepository::new(&tx).rename(&folder)?;
+    tx.commit().map_err(DomainError::from)?;
+    Ok(())
+}
+
+pub(crate) async fn rename_folder_with_remote_sync_boundary(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    folder_id: String,
+    name: String,
+) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
+    let (folder, account, unchanged) = {
+        let db = lock_db(db)?;
+        let folder = prepare_folder_rename(db.reader(), &folder_id, &name)?;
+        let previous = SqliteFolderRepository::new(db.reader()).find_by_id(&folder.id)?;
+        let unchanged = previous.is_some_and(|previous| previous.name == folder.name);
+        let account = load_delete_feed_account(&db, &folder.account_id)?;
+        (folder, account, unchanged)
+    };
+    if unchanged {
+        return Ok(());
+    }
+    let remote_rename =
+        matches!(account.kind, ProviderKind::FreshRss) && folder.remote_id.is_some();
+    if remote_rename {
+        if let Some(remote_id) = folder.remote_id.as_deref() {
+            let session = GReaderSession::establish_interactive(&account)
+                .await
+                .map_err(SessionError::into_user_visible)?;
+            session
+                .provider()
+                .rename_folder(remote_id, &folder.name)
+                .await?;
+        }
+    }
+    let result = (|| {
+        let db = lock_db(db)?;
+        rename_folder_in_db(&db, &folder_id, &folder.name)
+    })();
+    result.map_err(|error| {
+        if remote_rename {
+            log::warn!("Remote folder rename succeeded but local save failed: {}", error.diagnostic_kind());
+            AppError::UserVisible { message: "Folder renamed on the server, but the local update failed. Sync the account before trying again.".into() }
+        } else {
+            error
+        }
+    })
+}
+
 fn classify_create_folder_persistence_error(error: DomainError, name: &str) -> AppError {
     match &error {
         DomainError::Persistence(message)

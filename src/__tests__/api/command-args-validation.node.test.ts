@@ -28,6 +28,7 @@ import {
   READING_LIST_URL_MAX_BYTES,
   renameAccountArgs,
   renameFeedArgs,
+  renameFolderArgs,
   renameTagArgs,
   SHARE_COMMAND_TEXT_MAX_BYTES,
   SHARE_COMMAND_TEXT_MAX_CHARS,
@@ -82,6 +83,19 @@ describe("command args validation parity", () => {
 
     expect(source).toContain("return options.args && args ? parseWithSchema(options.args, args) : args;");
     expect(source).toContain("preferredAccountId === undefined ? undefined : { preferredAccountId }");
+  });
+
+  it("validates renamed folder names and IDs before IPC", () => {
+    expect(parse(renameFolderArgs, { folderId: " folder-1 ", name: " Reading " })).toEqual({
+      folderId: "folder-1",
+      name: "Reading",
+    });
+    for (const args of [
+      { folderId: "", name: "Reading" },
+      { folderId: "folder-1", name: " " },
+      { folderId: "folder-1", name: "a".repeat(FOLDER_NAME_MAX_CHARS + 1) },
+    ])
+      expect(() => parse(renameFolderArgs, args)).toThrow();
   });
 
   it("keeps frontend command name lengths aligned with Rust validation", () => {

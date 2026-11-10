@@ -9,6 +9,8 @@ type FolderContextMenuViewProps = {
   markOldUnreadReadLabel: string;
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
   resetOrderLabel: string;
+  editLabel: string;
+  onRename: () => void;
   hasUnreadArticles?: boolean;
   folderOrderMode: FolderOrderMode;
   onMarkAllRead: () => void;
@@ -21,6 +23,8 @@ export function FolderContextMenuView({
   markOldUnreadReadLabel,
   oldUnreadDayLabel,
   resetOrderLabel,
+  editLabel,
+  onRename,
   hasUnreadArticles = true,
   folderOrderMode,
   onMarkAllRead,
@@ -31,6 +35,14 @@ export function FolderContextMenuView({
     <ContextMenu.Portal>
       <ContextMenu.Positioner className={contextMenuStyles.positioner}>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
+          <ContextMenu.Item
+            data-action-id={CONTEXT_MENU_ACTION_IDS.folderRename}
+            className={contextMenuStyles.item}
+            onClick={onRename}
+          >
+            {editLabel}
+          </ContextMenu.Item>
+          <ContextMenu.Separator className={contextMenuStyles.separator} />
           {hasUnreadArticles && (
             <ContextMenu.Item
               data-action-id={CONTEXT_MENU_ACTION_IDS.folderMarkAllRead}

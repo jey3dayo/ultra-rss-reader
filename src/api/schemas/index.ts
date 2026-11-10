@@ -92,6 +92,7 @@ export {
   recordReadDiagnosticsBatchArgs,
   renameAccountArgs,
   renameFeedArgs,
+  renameFolderArgs,
   renameTagArgs,
   reorderFoldersArgs,
   resetFolderOrderArgs,

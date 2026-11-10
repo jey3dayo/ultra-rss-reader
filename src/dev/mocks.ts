@@ -428,6 +428,22 @@ export function setupDevMocks(): RestoreDevMocks {
         return cloneMockResponse(folder);
       }
 
+      case "rename_folder": {
+        const { folderId, name } = parseBrowserMockArgs("rename_folder", rawIpcPayload);
+        const folder = mockFolders.find((candidate) => candidate.id === folderId);
+        if (!folder) throw new Error("Folder not found");
+        if (
+          mockFolders.some(
+            (candidate) =>
+              candidate.id !== folderId && candidate.account_id === folder.account_id && candidate.name === name,
+          )
+        ) {
+          throw new Error("Folder name already exists");
+        }
+        folder.name = name;
+        return null;
+      }
+
       case "reorder_folders": {
         const { accountId, orderedFolderIds } = parseBrowserMockArgs("reorder_folders", rawIpcPayload);
         const accountFolders = mockFolders.filter((folder) => folder.account_id === accountId);

@@ -75,6 +75,7 @@ export const TAURI_COMMAND_NAMES = [
   "reload_browser_webview",
   "rename_account",
   "rename_feed",
+  "rename_folder",
   "rename_tag",
   "reorder_folders",
   "reset_folder_order",
