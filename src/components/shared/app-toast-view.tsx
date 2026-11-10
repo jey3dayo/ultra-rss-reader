@@ -1,9 +1,11 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import { CircleAlert, type LucideIcon, TriangleAlert, X } from "lucide-react";
+import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import type { ToastData, ToastSeverity } from "@/lib/ui/toast.types";
+import { segmentToastMessage } from "@/lib/ui/toast-message";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 import { Button } from "../ui/button";
 import { APP_TOAST_PLACEMENTS, type AppToastPlacement } from "./app-toast-placement";
@@ -67,8 +69,10 @@ export function AppToastView({
   ending = false,
   hideClose = false,
 }: AppToastViewProps) {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const { message, progress, actions, variant, severity } = toastMessage;
+  const messageSegments = segmentToastMessage(message, i18n.language);
+  let segmentOffset = 0;
   const SeverityIcon = severity ? TOAST_SEVERITY_ICONS[severity] : undefined;
   const showInBrowserRail = position === "fixed" && placement === APP_TOAST_PLACEMENTS.browserRail;
   // A decision toast (primary + trailing dismiss action) uses the form action-pair pattern:
@@ -112,7 +116,20 @@ export function AppToastView({
               className={toastSeverityIconVariants({ severity })}
             />
           )}
-          <span className="min-w-0 flex-1 break-keep break-words [word-break:auto-phrase]">{message}</span>
+          <span className="min-w-0 flex-1 break-keep whitespace-normal [overflow-wrap:anywhere]">
+            {messageSegments
+              ? messageSegments.map((segment, index) => {
+                  const startOffset = segmentOffset;
+                  segmentOffset += segment.length;
+                  return (
+                    <Fragment key={startOffset}>
+                      {segment}
+                      {index < messageSegments.length - 1 && <wbr />}
+                    </Fragment>
+                  );
+                })
+              : message}
+          </span>
           {showClose && (
             <Button
               type="button"

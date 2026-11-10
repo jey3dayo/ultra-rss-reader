@@ -109,7 +109,7 @@ describe("AppToastView", () => {
       />,
     );
 
-    expect(screen.getByText(/really\/long\/path/)).toHaveClass("min-w-0", "break-words");
+    expect(screen.getByText(/really\/long\/path/)).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("shrink-0");
     expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8", "focus-visible:border-transparent");
   });
@@ -132,9 +132,26 @@ describe("AppToastView", () => {
     const progressTrack = toast.querySelector(".animate-indeterminate")?.parentElement;
 
     expect(toast).toHaveClass("w-[min(320px,calc(100vw-2rem))]");
-    expect(screen.getByText(/very long update package/)).toHaveClass("min-w-0", "break-words");
+    expect(screen.getByText(/very long update package/)).toHaveClass("min-w-0", "[overflow-wrap:anywhere]");
     expect(closeButton).toHaveClass("size-8", "shrink-0");
     expect(progressTrack).toHaveClass("h-1.5", "w-full");
+  });
+
+  it("adds Japanese word break opportunities while keeping the original accessible message text", () => {
+    const message = "利用可能なアップデートを適用して再起動しています…";
+    render(<AppToastView toastMessage={{ message, variant: "update" }} onClose={vi.fn()} position="static" />);
+
+    const messageElement = screen.getByText(message);
+    const updateWordNode = Array.from(messageElement.childNodes).find(
+      (node) => node.nodeType === Node.TEXT_NODE && node.textContent === "アップデート",
+    );
+
+    expect(messageElement.textContent).toBe(message);
+    expect(messageElement.querySelectorAll("wbr").length).toBeGreaterThan(0);
+    expect(updateWordNode).toBeDefined();
+    expect(updateWordNode?.previousSibling?.nodeName).toBe("WBR");
+    expect(updateWordNode?.nextSibling?.nodeName).toBe("WBR");
+    expect(messageElement).toHaveClass("min-w-0", "break-keep", "[overflow-wrap:anywhere]");
   });
 
   it("focuses the progress dismiss button with Tab and dismisses with Enter, Space, or pointer without canceling", async () => {
