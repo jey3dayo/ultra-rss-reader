@@ -10,6 +10,8 @@ type StackedInputFieldProps = {
   placeholder?: string;
   disabled?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
   onChange: (value: string) => void;
   className?: string;
   labelClassName?: string;
@@ -24,6 +26,8 @@ export function StackedInputField({
   placeholder,
   disabled,
   inputRef,
+  ariaInvalid,
+  ariaDescribedBy,
   onChange,
   className,
   labelClassName,
@@ -40,6 +44,8 @@ export function StackedInputField({
         name={name}
         type={type}
         value={value}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className={cn("min-h-11", inputClassName)}

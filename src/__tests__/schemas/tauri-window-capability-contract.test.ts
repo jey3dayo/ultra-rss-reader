@@ -65,6 +65,7 @@ const expectedCommandOwnerAllowlists = {
     "delete_account",
     "list_folders",
     "create_folder",
+    "rename_folder",
     "reorder_folders",
     "reset_folder_order",
     "list_feeds",

@@ -11,6 +11,8 @@ function renderMenu(folderOrderMode: FolderOrderMode) {
         markAllReadLabel="Mark all as read"
         markOldUnreadReadLabel="Mark old unread as read"
         oldUnreadDayLabel={(days) => `${days} days`}
+        editLabel="Edit…"
+        onRename={vi.fn()}
         resetOrderLabel="Reset folder order"
         folderOrderMode={folderOrderMode}
         onMarkAllRead={vi.fn()}

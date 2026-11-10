@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FolderDto } from "@/api/tauri-commands";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
@@ -9,12 +10,16 @@ import { useUiStore } from "@/stores/ui-store";
 const markFolderReadMutate = vi.fn();
 const confirmMarkAllReadMock = vi.fn();
 const translations = new Map<string, string>([
+  ["edit_ellipsis", "Edit…"],
+  ["edit_folder", "Edit folder"],
+  ["name", "Name"],
   ["mark_all_as_read", "Mark all as read"],
   ["mark_old_unread_read", "Mark old unread as read"],
   ["old_unread_older_than_days", "{{count}} days"],
 ]);
 
-vi.mock("react-i18next", () => ({
+vi.mock("react-i18next", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-i18next")>()),
   initReactI18next: {
     type: "3rdParty",
     init: () => undefined,
@@ -58,6 +63,26 @@ describe("FolderContextMenuContent", () => {
     name: "Work",
     sort_order: 0,
   };
+
+  it("opens a rename dialog with the current folder name from the context menu", async () => {
+    const user = userEvent.setup();
+    const { wrapper } = createQueryWrapper();
+    render(
+      <ContextMenu.Root open>
+        <FolderContextMenuContent
+          folder={folder}
+          folderUnread={0}
+          feeds={[]}
+          folderOrderMode="name"
+          onResetFolderOrder={vi.fn()}
+        />
+      </ContextMenu.Root>,
+      { wrapper },
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
+    expect(screen.getByRole("dialog", { name: "Edit folder" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Work");
+  });
 
   it("confirms marking every folder feed as read", async () => {
     const user = userEvent.setup();

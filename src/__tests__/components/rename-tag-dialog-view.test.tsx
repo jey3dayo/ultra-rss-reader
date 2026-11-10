@@ -66,6 +66,27 @@ describe("RenameTagDialogView", () => {
     expect(screen.queryByText("Tag already exists")).not.toBeInTheDocument();
   });
 
+  it("associates a rename failure with the name field", () => {
+    render(
+      <RenameTagDialogView
+        open={true}
+        name="Work"
+        color={null}
+        loading={false}
+        errorMessage="Tag already exists"
+        onOpenChange={vi.fn()}
+        onNameChange={vi.fn()}
+        onColorChange={vi.fn()}
+        colorOptions={[]}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Tag already exists");
+    expect(screen.getByLabelText("Name")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Name")).toHaveAccessibleDescription("Tag already exists");
+  });
+
   it("disables color selection while saving", async () => {
     const user = userEvent.setup();
     const onColorChange = vi.fn();

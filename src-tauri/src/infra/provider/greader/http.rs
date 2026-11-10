@@ -165,7 +165,8 @@ fn html_mime_mutation_success(path: &str, text: &str) -> bool {
     if text.trim() == "OK" {
         return quickadd
             || path.ends_with("/reader/api/0/edit-tag")
-            || path.ends_with("/reader/api/0/subscription/edit");
+            || path.ends_with("/reader/api/0/subscription/edit")
+            || path.ends_with("/reader/api/0/rename-tag");
     }
     if !quickadd {
         return false;

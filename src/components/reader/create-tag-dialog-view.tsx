@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { FormDialogShell, StackedInputField, SurfaceCard } from "@/design-system";
-import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
+import { FormDialogShell, StackedInputField, SurfaceCard, useDialogAutofocus } from "@/design-system";
 
 type CreateTagDialogViewProps = {
   open: boolean;
@@ -23,7 +22,7 @@ export function CreateTagDialogView({
 }: CreateTagDialogViewProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
-  const inputRef = useTagDialogAutofocus(open);
+  const inputRef = useDialogAutofocus(open);
 
   return (
     <FormDialogShell

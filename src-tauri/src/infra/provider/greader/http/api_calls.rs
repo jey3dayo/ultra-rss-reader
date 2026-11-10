@@ -3,6 +3,42 @@
 use super::*;
 
 impl GReaderProvider {
+    pub(crate) async fn rename_folder(&self, remote_id: &str, name: &str) -> DomainResult<()> {
+        if !remote_id.starts_with(LABEL_PREFIX)
+            || remote_id
+                .strip_prefix(LABEL_PREFIX)
+                .is_none_or(|label| label.is_empty() || label.contains('/'))
+            || name.trim().is_empty()
+            || name.contains('/')
+        {
+            return Err(DomainError::Validation(
+                "Invalid remote folder identifier".into(),
+            ));
+        }
+        let url = self.api_url("/reader/api/0/rename-tag");
+        let body = format!(
+            "s={}&dest={}{}",
+            urlencoded(remote_id),
+            urlencoded(LABEL_PREFIX),
+            urlencoded(name)
+        );
+        let response = self
+            .request(reqwest::Method::POST, &url)?
+            .header("Authorization", self.auth_header()?)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .map_err(|error| self.map_request_error(error))
+            .and_then(Self::ensure_success_response)?;
+        if Self::read_text_response(response).await?.trim() != "OK" {
+            return Err(DomainError::Parse(
+                "Unexpected folder rename response".into(),
+            ));
+        }
+        Ok(())
+    }
+
     pub(in crate::infra::provider::greader) async fn authenticate_with_client_login(
         &mut self,
         credentials: &ProviderCredentials,

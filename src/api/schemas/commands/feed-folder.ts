@@ -16,6 +16,10 @@ export const createFolderArgs = s.object({
   accountId: nonBlankTrimmedIdSchema,
   name: folderNameSchema,
 });
+export const renameFolderArgs = s.object({
+  folderId: nonBlankTrimmedIdSchema,
+  name: folderNameSchema,
+});
 export const deleteFeedArgs = s.object({ feedId: nonBlankTrimmedIdSchema });
 export const renameFeedArgs = s.object({
   feedId: nonBlankTrimmedIdSchema,

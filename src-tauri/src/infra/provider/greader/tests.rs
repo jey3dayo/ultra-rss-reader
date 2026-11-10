@@ -3653,3 +3653,81 @@ async fn edit_subscription_maps_non_success_status_to_domain_error() {
 
     assert!(!matches!(error, DomainError::Validation(_)));
 }
+
+#[tokio::test]
+async fn rename_folder_encodes_remote_label_and_unicode_destination() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_body("Auth=tok\n")
+        .create_async()
+        .await;
+    let request = server
+        .mock("POST", "/api/greader.php/reader/api/0/rename-tag")
+        .match_header("Authorization", "GoogleLogin auth=tok")
+        .match_header("Content-Type", "application/x-www-form-urlencoded")
+        .match_body(mockito::Matcher::Exact(format!(
+            "s={}&dest={}",
+            urlencoded("user/-/label/Old & News"),
+            urlencoded("user/-/label/日本語 & News")
+        )))
+        .with_header("Content-Type", "text/html; charset=UTF-8")
+        .with_body("OK")
+        .create_async()
+        .await;
+    let mut provider = GReaderProvider::for_freshrss(&server.url());
+    provider
+        .authenticate(&Credentials {
+            password: Some("p".into()),
+            token: Some("u".into()),
+        })
+        .await
+        .unwrap();
+    let result = provider
+        .rename_folder("user/-/label/Old & News", "日本語 & News")
+        .await;
+    assert!(result.is_ok(), "{result:?}");
+    request.assert_async().await;
+}
+
+#[tokio::test]
+async fn rename_folder_rejects_http_and_non_acknowledgement_responses() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_body("Auth=tok\n")
+        .create_async()
+        .await;
+    let mut provider = GReaderProvider::for_freshrss(&server.url());
+    provider
+        .authenticate(&Credentials {
+            password: Some("p".into()),
+            token: Some("u".into()),
+        })
+        .await
+        .unwrap();
+    for (status, mime, body) in [
+        (401, "text/plain", "OK"),
+        (500, "text/plain", "OK"),
+        (200, "text/plain", ""),
+        (200, "text/plain", "NOT OK"),
+        (200, "text/html", "<!DOCTYPE html><html>Login</html>"),
+    ] {
+        let request = server
+            .mock("POST", "/api/greader.php/reader/api/0/rename-tag")
+            .with_status(status)
+            .with_header("Content-Type", mime)
+            .with_body(body)
+            .create_async()
+            .await;
+        let error = provider
+            .rename_folder("user/-/label/Old", "New")
+            .await
+            .expect_err("unacknowledged folder rename must fail");
+        if status == 401 {
+            assert!(matches!(error, DomainError::Auth(_)));
+        }
+        request.assert_async().await;
+        request.remove_async().await;
+    }
+}

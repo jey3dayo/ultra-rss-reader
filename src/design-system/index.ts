@@ -19,6 +19,7 @@ export * from "@/components/shared/delete-button";
 export * from "@/components/shared/destructive-confirm-dialog-view";
 export * from "@/components/shared/destructive-dialog-footer";
 export * from "@/components/shared/dialog.types";
+export * from "@/components/shared/edit-name-dialog-view";
 export * from "@/components/shared/exception-palettes";
 export * from "@/components/shared/feed-detail-card";
 export * from "@/components/shared/feed-detail-panel";
