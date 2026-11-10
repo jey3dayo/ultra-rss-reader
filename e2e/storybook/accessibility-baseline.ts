@@ -165,30 +165,6 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
     reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
   },
   {
-    storyId: "shared-feedback-apptoastview--single-action-informational",
-    ruleId: "color-contrast",
-    nodeCount: 1,
-    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
-  },
-  {
-    storyId: "shared-feedback-apptoastview--update-pending-with-toast",
-    ruleId: "color-contrast",
-    nodeCount: 1,
-    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
-  },
-  {
-    storyId: "shared-feedback-apptoastview--update-restart-pending-after-sync",
-    ruleId: "color-contrast",
-    nodeCount: 1,
-    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
-  },
-  {
-    storyId: "shared-feedback-apptoastview--update-ready-decision",
-    ruleId: "color-contrast",
-    nodeCount: 1,
-    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
-  },
-  {
     storyId: "ui-reference-button-controls-canvas--button-controls-canvas",
     ruleId: "color-contrast",
     nodeCount: 7,
@@ -220,18 +196,6 @@ export const storybookAccessibilityBaseline: readonly StorybookAccessibilityBase
   },
   {
     storyId: "ui-reference-settings-workspace-canvas--settings-workspace-canvas",
-    ruleId: "color-contrast",
-    nodeCount: 2,
-    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
-  },
-  {
-    storyId: "ui-reference-shell-overlay-canvas--default",
-    ruleId: "color-contrast",
-    nodeCount: 2,
-    reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
-  },
-  {
-    storyId: "ui-reference-shell-overlay-canvas--shell-overlay-canvas",
     ruleId: "color-contrast",
     nodeCount: 2,
     reason: "既存の配色トークンと状態表現の見直しにはデザイン判断が必要なため、現状のコントラスト違反を記録する。",
