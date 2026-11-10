@@ -137,6 +137,44 @@ async fn add_freshrss_feed_keeps_local_feed_when_initial_sync_fails() {
     assert!(persisted_feed.is_some());
 }
 
+#[tokio::test]
+async fn add_freshrss_feed_without_a_lease_requests_interactive_auth_before_remote_create() {
+    let db = Mutex::new(test_db());
+    let account_id = {
+        let guard = db.lock().expect("FreshRSS add fixture should lock");
+        insert_freshrss_account(&guard, "https://example.com")
+    };
+    keyring_store::session_cache::invalidate(account_id.as_ref())
+        .expect("fixture should have no credential lease");
+
+    let error = super::super::feed_add::add_freshrss_feed_with_session(
+        &db,
+        {
+            let guard = db.lock().expect("FreshRSS account should be readable");
+            SqliteAccountRepository::new(guard.reader())
+                .find_by_id(&account_id)
+                .expect("FreshRSS account lookup should succeed")
+                .expect("FreshRSS account fixture should exist")
+        },
+        "https://example.com/feed.xml".to_string(),
+        |account, mode| canceled_interactive_session_establishment(account, &account_id, mode),
+    )
+    .await
+    .expect_err("canceling interactive authorization should reject the feed add");
+
+    assert!(matches!(
+        error,
+        AppError::CredentialStore { credential_failure, .. }
+            if credential_failure.cause == crate::domain::error::CredentialFailureCause::Canceled
+    ));
+    let guard = db.lock().expect("feed table should be readable");
+    let feed_count: i64 = guard
+        .reader()
+        .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+        .expect("feed count query should succeed");
+    assert_eq!(feed_count, 0);
+}
+
 #[test]
 fn add_local_feed_preflight_accepts_local_accounts() {
     let db = test_db();

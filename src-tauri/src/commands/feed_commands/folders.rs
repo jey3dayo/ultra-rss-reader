@@ -6,6 +6,7 @@ use tauri::State;
 use crate::commands::dto::{AppError, FolderDto};
 use crate::commands::sync_providers::{GReaderSession, SessionError};
 use crate::commands::AppState;
+use crate::domain::account::Account;
 use crate::domain::account::FolderOrderMode;
 use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
@@ -15,6 +16,7 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
+use crate::infra::keyring_store::CredentialLookupMode;
 use crate::infra::provider::traits::FeedProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
@@ -156,6 +158,27 @@ pub(crate) async fn update_feed_folder_with_remote_sync_boundary(
     feed_id: String,
     folder_id: Option<String>,
 ) -> Result<(), AppError> {
+    update_feed_folder_with_session(
+        db,
+        syncing,
+        feed_id,
+        folder_id,
+        |account, mode| async move { GReaderSession::establish_with_mode(&account, mode).await },
+    )
+    .await
+}
+
+pub(super) async fn update_feed_folder_with_session<F, Fut>(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+    folder_id: Option<String>,
+    establish_session: F,
+) -> Result<(), AppError>
+where
+    F: FnOnce(Account, CredentialLookupMode) -> Fut,
+    Fut: std::future::Future<Output = Result<GReaderSession, SessionError>>,
+{
     let _guard = crate::commands::start_database_maintenance(syncing)?;
     let feed_id_typed = FeedId(feed_id.clone());
     let feed = {
@@ -174,7 +197,7 @@ pub(crate) async fn update_feed_folder_with_remote_sync_boundary(
                 resolve_folder_edit_labels(&db, &feed, folder_id.as_deref())?
             };
             if add_label.is_some() || remove_label.is_some() {
-                let session = GReaderSession::establish(&account)
+                let session = establish_session(account, CredentialLookupMode::Interactive)
                     .await
                     .map_err(SessionError::into_user_visible)?;
                 session

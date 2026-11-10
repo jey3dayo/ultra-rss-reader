@@ -223,5 +223,16 @@ pub(crate) fn grant(
 }
 
 #[cfg(test)]
+pub(crate) fn expire_for_test(account: &Account) -> DomainResult<()> {
+    CACHE
+        .lock()
+        .map_err(|_| needs_auth())?
+        .leases
+        .get_mut(account.id.as_ref())
+        .map(|lease| lease.expires = Instant::now() - Duration::from_millis(1))
+        .ok_or_else(needs_auth)
+}
+
+#[cfg(test)]
 #[path = "session_cache/tests.rs"]
 mod tests;

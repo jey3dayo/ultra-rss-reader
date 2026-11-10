@@ -78,6 +78,41 @@ async fn delete_feed_command_unsubscribes_remote_feed_before_local_delete() {
 }
 
 #[tokio::test]
+async fn delete_freshrss_feed_without_a_lease_requests_interactive_auth_before_unsubscribe() {
+    let db = Mutex::new(test_db());
+    let (account_id, feed_id) = {
+        let guard = db.lock().expect("FreshRSS delete fixture should lock");
+        let account_id = insert_freshrss_account(&guard, "https://example.com");
+        let feed_id = insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss");
+        (account_id, feed_id)
+    };
+    keyring_store::session_cache::invalidate(account_id.as_ref())
+        .expect("fixture should have no credential lease");
+    let syncing = AtomicBool::new(false);
+
+    let error = super::super::feed_mutations::delete_feed_with_session(
+        &db,
+        &syncing,
+        feed_id.0.clone(),
+        |account, mode| canceled_interactive_session_establishment(account, &account_id, mode),
+    )
+    .await
+    .expect_err("canceling interactive authorization should reject the feed delete");
+
+    assert!(matches!(
+        error,
+        AppError::CredentialStore { credential_failure, .. }
+            if credential_failure.cause == crate::domain::error::CredentialFailureCause::Canceled
+    ));
+    assert!(!syncing.load(Ordering::SeqCst));
+    let guard = db.lock().expect("saved feed should be readable");
+    assert!(SqliteFeedRepository::new(guard.reader())
+        .find_by_id(&feed_id)
+        .expect("saved feed lookup should succeed")
+        .is_some());
+}
+
+#[tokio::test]
 async fn delete_feed_command_resolves_missing_remote_id_before_local_delete() {
     let db = Mutex::new(test_db());
     let account_id = {
@@ -260,6 +295,43 @@ async fn rename_feed_command_pushes_title_to_freshrss_before_local_write() {
     let feed_repo = SqliteFeedRepository::new(guard.reader());
     let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
     assert_eq!(feed.title, "Renamed Feed");
+}
+
+#[tokio::test]
+async fn rename_freshrss_feed_without_a_lease_requests_interactive_auth_before_remote_edit() {
+    let db = Mutex::new(test_db());
+    let (account_id, feed_id) = {
+        let guard = db.lock().expect("FreshRSS rename fixture should lock");
+        let account_id = insert_freshrss_account(&guard, "https://example.com");
+        let feed_id = insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss");
+        (account_id, feed_id)
+    };
+    keyring_store::session_cache::invalidate(account_id.as_ref())
+        .expect("fixture should have no credential lease");
+    let syncing = AtomicBool::new(false);
+
+    let error = super::super::feed_mutations::rename_feed_with_session(
+        &db,
+        &syncing,
+        feed_id.0.clone(),
+        "Renamed Feed".to_string(),
+        |account, mode| canceled_interactive_session_establishment(account, &account_id, mode),
+    )
+    .await
+    .expect_err("canceling interactive authorization should reject the feed rename");
+
+    assert!(matches!(
+        error,
+        AppError::CredentialStore { credential_failure, .. }
+            if credential_failure.cause == crate::domain::error::CredentialFailureCause::Canceled
+    ));
+    assert!(!syncing.load(Ordering::SeqCst));
+    let guard = db.lock().expect("saved feed should be readable");
+    let feed = SqliteFeedRepository::new(guard.reader())
+        .find_by_id(&feed_id)
+        .expect("saved feed lookup should succeed")
+        .expect("the feed should remain after canceled authorization");
+    assert_ne!(feed.title, "Renamed Feed");
 }
 
 #[tokio::test]

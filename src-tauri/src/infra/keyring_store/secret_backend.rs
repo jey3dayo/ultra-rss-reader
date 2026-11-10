@@ -5,6 +5,7 @@ use zeroize::Zeroizing;
 use super::cloudflare_access;
 use super::dev_store_file::{read_dev_store, write_dev_store};
 use super::dev_store_lock::with_dev_store_lock;
+#[cfg(not(target_os = "macos"))]
 use super::diagnostics::{log_keyring_error, KeyringOp};
 use super::storage_mode::{self, CredentialStorage};
 use super::CredentialKind;
@@ -45,21 +46,31 @@ fn keyring_service(kind: SecretKind) -> &'static str {
     }
 }
 
-fn os_keyring_failure(error: &keyring::Error) -> DomainError {
-    DomainError::Keychain(format!("Failed to access OS credential store: {error}"))
+fn os_keyring_failure(entry: &SecretEntry, step: &str, reason: &str) -> DomainError {
+    DomainError::Keychain(format!(
+        "OS credential store failed: step={step} service={} credential_kind={} reason={reason}",
+        keyring_service(entry.kind),
+        credential_kind(entry.kind).label()
+    ))
 }
 
 pub(crate) struct OsKeyringBackend;
 
 impl OsKeyringBackend {
+    #[cfg(not(target_os = "macos"))]
     fn keyring_entry(entry: &SecretEntry, op: KeyringOp) -> DomainResult<keyring::Entry> {
         keyring::Entry::new(keyring_service(entry.kind), &entry.account_id).map_err(|error| {
             log_keyring_error(credential_kind(entry.kind), op, &error);
-            os_keyring_failure(&error)
+            os_keyring_failure(
+                entry,
+                "create-entry",
+                super::diagnostics::keyring_failure_reason(&error),
+            )
         })
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 impl SecretBackend for OsKeyringBackend {
     fn read(&self, entry: &SecretEntry) -> DomainResult<Option<String>> {
         let credential_kind = credential_kind(entry.kind);
@@ -68,7 +79,11 @@ impl SecretBackend for OsKeyringBackend {
             Err(keyring::Error::NoEntry) => Ok(None),
             Err(error) => {
                 log_keyring_error(credential_kind, KeyringOp::Load, &error);
-                Err(os_keyring_failure(&error))
+                Err(os_keyring_failure(
+                    entry,
+                    "find",
+                    super::diagnostics::keyring_failure_reason(&error),
+                ))
             }
         }
     }
@@ -79,7 +94,11 @@ impl SecretBackend for OsKeyringBackend {
             .set_password(value)
             .map_err(|error| {
                 log_keyring_error(credential_kind, KeyringOp::Save, &error);
-                os_keyring_failure(&error)
+                os_keyring_failure(
+                    entry,
+                    "set",
+                    super::diagnostics::keyring_failure_reason(&error),
+                )
             })
     }
 
@@ -90,8 +109,83 @@ impl SecretBackend for OsKeyringBackend {
             Err(keyring::Error::NoEntry) => Ok(()),
             Err(error) => {
                 log_keyring_error(credential_kind, KeyringOp::Remove, &error);
-                Err(os_keyring_failure(&error))
+                Err(os_keyring_failure(
+                    entry,
+                    "delete",
+                    super::diagnostics::keyring_failure_reason(&error),
+                ))
             }
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl OsKeyringBackend {
+    fn failure(
+        entry: &SecretEntry,
+        step: &str,
+        error: security_framework::base::Error,
+    ) -> DomainError {
+        let reason = format!("os-status={}", error.code());
+        let failure = os_keyring_failure(entry, step, &reason);
+        tracing::warn!("{failure}");
+        failure
+    }
+
+    fn keychain(
+        entry: &SecretEntry,
+    ) -> DomainResult<security_framework::os::macos::keychain::SecKeychain> {
+        use security_framework::os::macos::keychain::{SecKeychain, SecPreferencesDomain};
+        SecKeychain::default_for_domain(SecPreferencesDomain::User)
+            .map_err(|error| Self::failure(entry, "get-default-keychain", error))
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl SecretBackend for OsKeyringBackend {
+    fn read(&self, entry: &SecretEntry) -> DomainResult<Option<String>> {
+        use security_framework::os::macos::passwords::find_generic_password;
+        let keychain = Self::keychain(entry)?;
+        match find_generic_password(
+            Some(&[keychain]),
+            keyring_service(entry.kind),
+            &entry.account_id,
+        ) {
+            Ok((value, _)) => String::from_utf8(value.to_vec())
+                .map(Some)
+                .map_err(|_| os_keyring_failure(entry, "find", "invalid-utf8")),
+            Err(error) if error.code() == -25300 => Ok(None),
+            Err(error) => Err(Self::failure(entry, "find", error)),
+        }
+    }
+
+    fn write(&self, entry: &SecretEntry, value: &str) -> DomainResult<()> {
+        Self::keychain(entry)?
+            .set_generic_password(
+                keyring_service(entry.kind),
+                &entry.account_id,
+                value.as_bytes(),
+            )
+            .map_err(|error| Self::failure(entry, "set", error))
+    }
+
+    fn delete(&self, entry: &SecretEntry) -> DomainResult<()> {
+        use security_framework::os::macos::passwords::find_generic_password;
+        let keychain = Self::keychain(entry)?;
+        match find_generic_password(
+            Some(&[keychain]),
+            keyring_service(entry.kind),
+            &entry.account_id,
+        ) {
+            Ok((_, item)) => {
+                item.delete();
+                if self.read(entry)?.is_some() {
+                    return Err(os_keyring_failure(entry, "delete", "item-still-present"));
+                }
+                Ok(())
+            }
+            Err(error) if error.code() == -25300 => Ok(()),
+            Err(error) => Err(Self::failure(entry, "find-for-delete", error)),
         }
     }
 }
@@ -277,6 +371,15 @@ mod tests {
     use super::MigrationReport;
     use super::{SecretBackend, SecretEntry, SecretKind, MIGRATION_COPY_FAILURE};
     use crate::domain::error::{DomainError, DomainResult};
+
+    #[test]
+    fn keyring_failure_identifies_step_and_kind_without_account_or_secret() {
+        let entry = password_entry("private-account");
+        let error =
+            super::os_keyring_failure(&entry, "get-default-keychain", "os-status=-43").to_string();
+        assert!(error.contains("step=get-default-keychain service=ultra-rss-reader credential_kind=freshrss-password reason=os-status=-43"));
+        assert!(!error.contains("private-account"));
+    }
 
     const MEMORY_WRITE_FAILURE: &str = "memory backend write failure";
     const MEMORY_DELETE_FAILURE: &str = "memory backend delete failure";

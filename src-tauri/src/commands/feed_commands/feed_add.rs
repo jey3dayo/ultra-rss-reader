@@ -11,6 +11,7 @@ use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::keyring_store::CredentialLookupMode;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::FeedProvider;
 use crate::repository::account::AccountRepository;
@@ -197,12 +198,28 @@ async fn add_freshrss_feed_with_account(
     account: crate::domain::account::Account,
     url: String,
 ) -> Result<FeedDto, AppError> {
+    add_freshrss_feed_with_session(db, account, url, |account, mode| async move {
+        GReaderSession::establish_with_mode(&account, mode).await
+    })
+    .await
+}
+
+pub(super) async fn add_freshrss_feed_with_session<F, Fut>(
+    db: &Mutex<DbManager>,
+    account: crate::domain::account::Account,
+    url: String,
+    establish_session: F,
+) -> Result<FeedDto, AppError>
+where
+    F: FnOnce(crate::domain::account::Account, CredentialLookupMode) -> Fut,
+    Fut: std::future::Future<Output = Result<GReaderSession, SessionError>>,
+{
     {
         let db = lock_db(db)?;
         validate_add_freshrss_feed_preflight_in_db(&db, &account.id, &url)?;
     }
 
-    let session = GReaderSession::establish(&account)
+    let session = establish_session(account.clone(), CredentialLookupMode::Interactive)
         .await
         .map_err(SessionError::into_user_visible)?;
 

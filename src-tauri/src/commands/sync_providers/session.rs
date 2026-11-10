@@ -37,7 +37,7 @@ impl GReaderSession {
         Self::establish_with_mode(account, CredentialLookupMode::Interactive).await
     }
 
-    async fn establish_with_mode(
+    pub(crate) async fn establish_with_mode(
         account: &Account,
         mode: CredentialLookupMode,
     ) -> Result<Self, SessionError> {
