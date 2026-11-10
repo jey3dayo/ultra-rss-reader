@@ -1,4 +1,4 @@
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import {
   renderStory as renderStoryHelper,
@@ -9,6 +9,7 @@ import {
 } from "@tests/helpers/render-story";
 import { storybookStoryExportRegistry } from "@tests/helpers/storybook-story-export-registry";
 import { describe, expect, it } from "vitest";
+import appToastMeta, { AllVariants as AppToastAllVariants } from "@/components/shared/app-toast-view.stories";
 import copyableReadonlyFieldMeta, {
   Default as CopyableReadonlyFieldDefault,
   Disabled as CopyableReadonlyFieldDisabled,
@@ -57,7 +58,16 @@ const sharedStoryModules = import.meta.glob<unknown>("/src/components/shared/*.s
 
 const requiredSharedStoryExportsByFilePath = {
   "/src/components/shared/app-toast-view.stories.tsx": [
+    "AllVariants",
+    "BrowserRail",
+    "Dark",
     "ErrorSeverity",
+    "IndeterminateProgress",
+    "Light",
+    "NarrowLongContent",
+    "NeutralSeverities",
+    "Progress",
+    "SeveritySingleAction",
     "SingleActionInformational",
     "UpdatePendingWithToast",
     "UpdateReadyDecision",
@@ -134,6 +144,22 @@ function renderStoryWithWrapper<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>,
 }
 
 describe("Shared stories", () => {
+  it("shows representative toast configurations together in the gallery", () => {
+    renderStory(appToastMeta, AppToastAllVariants);
+    const section = (name: string) => within(screen.getByRole("region", { name }));
+    expect(section("Update ready · two actions").getAllByRole("button")).toHaveLength(2);
+    expect(section("Restarting · no close").queryAllByRole("button")).toHaveLength(0);
+    expect(section("Error · single action").getByRole("button", { name: "再試行" })).toBeInTheDocument();
+    expect(section("Neutral · success, info, default").getAllByTestId("app-toast")).toHaveLength(3);
+    expect(section("Pending with another toast").getAllByTestId("app-toast")).toHaveLength(2);
+    expect(section("Browser rail · compact fixed").getByTestId("app-toast")).toHaveClass("fixed", "top-1");
+    expect(section("Determinate progress").getByTestId("app-toast").querySelector(".bg-primary")).toHaveStyle({
+      transform: "scaleX(0.43)",
+    });
+    expect(
+      section("Indeterminate progress").getByTestId("app-toast").querySelector(".animate-indeterminate"),
+    ).toBeInTheDocument();
+  });
   it("keeps shared component stories registered with required coverage", () => {
     const sharedStoryFilePaths = Object.keys(sharedStoryModules).toSorted();
     const requiredSharedStoryFilePaths = Object.keys(requiredSharedStoryExportsByFilePath).toSorted();

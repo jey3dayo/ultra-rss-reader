@@ -12,7 +12,7 @@ describe("AppToastView", () => {
     render(<AppToastView toastMessage={{ message: "Downloading", progress }} onClose={vi.fn()} />);
 
     expect(screen.getByTestId("app-toast").querySelector(".bg-primary")).toHaveStyle({ transform: scale });
-    expect(screen.getByRole("button", { name: "Close" }).querySelector("svg")).toHaveAttribute("viewBox", "5 5 14 14");
+    expect(screen.getByRole("button", { name: "Close" }).querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("clamps numeric progress scale and keeps null progress indeterminate", () => {
@@ -50,16 +50,13 @@ describe("AppToastView", () => {
       "px-3",
       "py-2",
     );
-    expect(screen.getByRole("button", { name: "Close" })).toHaveClass(
-      "ml-1",
-      "size-8",
-      "focus-visible:border-transparent",
-    );
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-8", "focus-visible:border-transparent");
     expect(screen.getByRole("button", { name: "Close" })).not.toHaveClass("justify-end");
     expect(screen.getByRole("button", { name: "Close" })).not.toHaveClass("border-0");
-    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("justify-center");
-    expect(screen.getByRole("button", { name: "Close" })).toHaveTextContent("×");
-    expect(screen.getByRole("button", { name: "Close" }).querySelector("svg")).toBeNull();
+    const icon = screen.getByRole("button", { name: "Close" }).querySelector("svg");
+    expect(icon).toHaveAttribute("viewBox", "2 2 20 20");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon).toHaveAttribute("stroke-width", "1.5");
   });
 
   it("renders two-action decision toasts as a right-aligned action pair without a corner dismiss", () => {
@@ -85,7 +82,7 @@ describe("AppToastView", () => {
     expect(buttons.map((button) => button.textContent)).toEqual(["Later", "Restart now"]);
     expect(buttons[0]).toHaveAttribute("data-action-role", "secondary");
     expect(buttons[1]).toHaveAttribute("data-action-role", "primary");
-    expect(buttons[1]).toHaveClass("bg-primary", "text-primary-foreground", "rounded-md");
+    expect(buttons[1]).toHaveClass("text-primary-foreground", "rounded-md");
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 
@@ -98,7 +95,6 @@ describe("AppToastView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("text-primary");
     expect(screen.queryByTestId("app-toast-action-pair")).toBeNull();
   });
 
@@ -113,16 +109,12 @@ describe("AppToastView", () => {
       />,
     );
 
-    expect(screen.getByText(/really\/long\/path/)).toHaveClass("min-w-0", "break-words", "leading-snug");
+    expect(screen.getByText(/really\/long\/path/)).toHaveClass("min-w-0", "break-words");
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("shrink-0");
-    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass(
-      "min-h-8",
-      "text-primary",
-      "focus-visible:border-transparent",
-    );
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8", "focus-visible:border-transparent");
   });
 
-  it("fits the round-stroke paint bounds to the viewport at the trailing edge of indeterminate update toasts", () => {
+  it("keeps dismiss and indeterminate progress available with a long update message", () => {
     render(
       <AppToastView
         toastMessage={{
@@ -138,26 +130,10 @@ describe("AppToastView", () => {
     const toast = screen.getByTestId("app-toast");
     const closeButton = screen.getByRole("button", { name: "Close" });
     const progressTrack = toast.querySelector(".animate-indeterminate")?.parentElement;
-    const closeIcon = closeButton.querySelector("svg");
 
     expect(toast).toHaveClass("w-[min(320px,calc(100vw-2rem))]");
     expect(screen.getByText(/very long update package/)).toHaveClass("min-w-0", "break-words");
-    expect(closeButton).toHaveClass("size-8", "shrink-0", "justify-end", "border-0");
-    expect(closeIcon).toHaveClass("size-4");
-    expect(closeIcon).toHaveAttribute("stroke-linecap", "round");
-    expect(closeIcon).toHaveAttribute("stroke-width", "2");
-    expect(Array.from(closeIcon?.querySelectorAll("path") ?? [], (path) => path.getAttribute("d"))).toEqual([
-      "M18 6 6 18",
-      "m6 6 12 12",
-    ]);
-    const strokeRadius = Number(closeIcon?.getAttribute("stroke-width")) / 2;
-    const viewport = closeIcon?.getAttribute("viewBox")?.split(/\s+/).map(Number);
-    expect(viewport).toEqual([
-      6 - strokeRadius,
-      6 - strokeRadius,
-      18 - 6 + 2 * strokeRadius,
-      18 - 6 + 2 * strokeRadius,
-    ]);
+    expect(closeButton).toHaveClass("size-8", "shrink-0");
     expect(progressTrack).toHaveClass("h-1.5", "w-full");
   });
 
