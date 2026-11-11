@@ -71,6 +71,13 @@ describe("AccountCredentialsSectionView", () => {
     expect(onUsernameBlur).toHaveBeenCalled();
     expect(onPasswordChange).toHaveBeenCalled();
     expect(onPasswordBlur).toHaveBeenCalled();
+    expect(usernameInput).toHaveAttribute("autocomplete", "username");
+    expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+    for (const input of [usernameInput, passwordInput]) {
+      expect(input).not.toHaveAttribute("data-1p-ignore");
+      expect(input).not.toHaveAttribute("data-lpignore");
+      expect(input).not.toHaveAttribute("data-form-type");
+    }
   });
 
   it("does not trigger persistence when blur callbacks are absent", async () => {
@@ -94,6 +101,10 @@ describe("AccountCredentialsSectionView", () => {
     );
 
     const serverUrlInput = screen.getByRole("textbox", { name: "Server URL" });
+    expect(serverUrlInput).toHaveAttribute("autocomplete", "url");
+    expect(serverUrlInput).not.toHaveAttribute("data-1p-ignore");
+    expect(serverUrlInput).not.toHaveAttribute("data-lpignore");
+    expect(serverUrlInput).not.toHaveAttribute("data-form-type");
     await user.type(serverUrlInput, "/changed");
     serverUrlInput.blur();
 

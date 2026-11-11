@@ -409,6 +409,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
                 ? {
                     label: t("account.server_url"),
                     name: "server-url",
+                    autoComplete: "url",
                     value: form.serverUrl,
                     onChange: (value) => handleFieldChange("serverUrl", value),
                     placeholder: t("account.server_url_placeholder"),
@@ -419,6 +420,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
               credential: {
                 label: formConfig.credentialLabel ?? "",
                 name: formConfig.credentialName ?? "",
+                autoComplete: "username",
                 value: form.username,
                 onChange: (value) => handleFieldChange("username", value),
                 disabled: submitting,
@@ -428,6 +430,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
                 label: t("account.password"),
                 name: "password",
                 type: "password",
+                autoComplete: "current-password",
                 value: form.password,
                 onChange: (value) => handleFieldChange("password", value),
                 disabled: submitting,
@@ -442,6 +445,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
                 clientId: {
                   label: t("account.cloudflare_access_client_id"),
                   name: "cloudflare-access-client-id",
+                  autoComplete: "off",
                   value: form.cloudflareAccessClientId,
                   onChange: (value) => handleFieldChange("cloudflareAccessClientId", value),
                   disabled: submitting,
@@ -451,6 +455,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
                   label: t("account.cloudflare_access_secret"),
                   name: "cloudflare-access-client-secret",
                   type: "password",
+                  autoComplete: "off",
                   value: form.cloudflareAccessClientSecret,
                   onChange: (value) => handleFieldChange("cloudflareAccessClientSecret", value),
                   disabled: submitting,

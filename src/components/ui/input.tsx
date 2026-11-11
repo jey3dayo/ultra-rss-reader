@@ -4,10 +4,18 @@ import { cn } from "cn";
 
 export type InputProps = InputPrimitive.Props;
 
-function Input({ className, ...props }: InputProps) {
+function Input({ className, type, autoComplete, ...props }: InputProps) {
+  const hasSemanticAutoComplete = autoComplete !== undefined && autoComplete !== "" && autoComplete !== "off";
+  const disableAutofill = autoComplete === "off" || (type !== "password" && !hasSemanticAutoComplete);
+
   return (
     <InputPrimitive
       data-slot="input"
+      type={type}
+      autoComplete={autoComplete ?? (type === "password" ? undefined : "off")}
+      data-1p-ignore={disableAutofill ? "true" : undefined}
+      data-lpignore={disableAutofill ? "true" : undefined}
+      data-form-type={disableAutofill ? "other" : undefined}
       className={cn(
         "h-9 w-full min-w-0 rounded-md border border-border bg-surface-1 px-3 py-1 text-sm text-foreground shadow-elevation-1 transition-[color,background-color,border-color,box-shadow] duration-150 ease-standard outline-none placeholder:text-foreground-soft selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none",
         "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",

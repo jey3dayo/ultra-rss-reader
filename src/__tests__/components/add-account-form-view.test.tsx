@@ -71,6 +71,7 @@ describe("AddAccountFormView", () => {
           serverUrl: {
             label: "Server URL",
             name: "server-url",
+            autoComplete: "url",
             value: "https://example.com",
             placeholder: "https://your-freshrss.com",
             onChange: () => {},
@@ -79,6 +80,7 @@ describe("AddAccountFormView", () => {
           credential: {
             label: "Username",
             name: "username",
+            autoComplete: "username",
             value: "alice",
             onChange: () => {},
             disabled: false,
@@ -88,6 +90,7 @@ describe("AddAccountFormView", () => {
             name: "password",
             value: "secret",
             type: "password",
+            autoComplete: "current-password",
             onChange: () => {},
             disabled: false,
           },
@@ -114,6 +117,15 @@ describe("AddAccountFormView", () => {
     expect(screen.getByText("Server URL")).toHaveClass("sm:w-40");
     expect(screen.getByLabelText("Username")).toHaveValue("alice");
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
+    expect(screen.getByLabelText("Server URL")).toHaveAttribute("autocomplete", "url");
+    expect(screen.getByLabelText("Username")).toHaveAttribute("autocomplete", "username");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "current-password");
+    for (const label of ["Server URL", "Username", "Password"]) {
+      const input = screen.getByLabelText(label);
+      expect(input).not.toHaveAttribute("data-1p-ignore");
+      expect(input).not.toHaveAttribute("data-lpignore");
+      expect(input).not.toHaveAttribute("data-form-type");
+    }
     expect(container.querySelectorAll('[data-surface-card="section"]')).toHaveLength(2);
   });
 

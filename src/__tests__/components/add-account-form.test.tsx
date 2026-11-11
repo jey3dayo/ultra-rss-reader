@@ -449,6 +449,15 @@ describe("AddAccountForm", () => {
     expect(screen.getByLabelText("Server URL")).toHaveClass("h-11");
     expect(screen.getByLabelText("Username")).toHaveClass("h-11");
     expect(screen.getByLabelText("Password")).toHaveClass("h-11");
+    expect(screen.getByLabelText("Server URL")).toHaveAttribute("autocomplete", "url");
+    expect(screen.getByLabelText("Username")).toHaveAttribute("autocomplete", "username");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "current-password");
+    for (const label of ["Server URL", "Username", "Password"]) {
+      const input = screen.getByLabelText(label);
+      expect(input).not.toHaveAttribute("data-1p-ignore");
+      expect(input).not.toHaveAttribute("data-lpignore");
+      expect(input).not.toHaveAttribute("data-form-type");
+    }
     expect(screen.getByText("Server URL")).toHaveClass("sm:w-40");
 
     await user.click(screen.getByRole("button", { name: /Back/ }));
