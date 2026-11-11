@@ -19,6 +19,7 @@ export type AddAccountInputControl = {
   value: string;
   placeholder?: string;
   type?: string;
+  autoComplete?: "url" | "username" | "current-password" | "off";
   onChange: (value: string) => void;
   disabled: boolean;
   errorText?: string;
@@ -87,6 +88,7 @@ function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
       label={control.label}
       name={control.name}
       type={control.type}
+      autoComplete={control.autoComplete}
       value={control.value}
       onChange={control.onChange}
       placeholder={control.placeholder}

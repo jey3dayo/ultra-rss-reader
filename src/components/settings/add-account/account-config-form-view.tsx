@@ -37,6 +37,7 @@ function AccountConfigInputRow({ control }: { control: AddAccountInputControl })
       label={control.label}
       name={control.name}
       type={control.type}
+      autoComplete={control.autoComplete}
       value={control.value}
       onChange={control.onChange}
       placeholder={control.placeholder}

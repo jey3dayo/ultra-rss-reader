@@ -105,6 +105,7 @@ export function AccountCredentialsSectionView({
           label={serverUrlLabel}
           name="server-url"
           type="url"
+          autoComplete="url"
           value={serverUrlValue ?? ""}
           placeholder={serverUrlPlaceholder}
           inputRef={serverUrlInputRef}
@@ -144,6 +145,7 @@ export function AccountCredentialsSectionView({
       ))}
       <LabeledInputRow
         label={usernameLabel}
+        autoComplete="username"
         value={usernameValue}
         inputRef={usernameInputRef}
         onChange={onUsernameChange}
@@ -156,6 +158,7 @@ export function AccountCredentialsSectionView({
       <LabeledInputRow
         label={passwordLabel}
         type="password"
+        autoComplete="current-password"
         value={passwordValue}
         onChange={onPasswordChange}
         onFocus={!disabled ? onPasswordFocus : undefined}

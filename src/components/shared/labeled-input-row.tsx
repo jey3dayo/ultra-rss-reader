@@ -14,7 +14,7 @@ import {
 } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, type InputProps } from "@/components/ui/input";
 import { AppTooltip } from "@/components/ui/tooltip";
 
 type LabeledInputRowProps = {
@@ -22,6 +22,7 @@ type LabeledInputRowProps = {
   label: string;
   name?: string;
   type?: string;
+  autoComplete?: InputProps["autoComplete"];
   value: string;
   placeholder?: string;
   disabled?: boolean;
@@ -214,6 +215,7 @@ export function LabeledInputRow({
   label,
   name,
   type,
+  autoComplete,
   value,
   placeholder,
   disabled,
@@ -292,6 +294,7 @@ export function LabeledInputRow({
               ref={inputRef}
               name={name}
               type={type}
+              autoComplete={autoComplete}
               value={value}
               readOnly={readOnly}
               title={title}

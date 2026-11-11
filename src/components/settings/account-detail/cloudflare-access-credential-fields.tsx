@@ -193,6 +193,7 @@ function CloudflareAccessSecretEditor({
         label={clientSecret.label}
         name="cloudflare-access-client-secret"
         type={section.secretVisible ? "text" : "password"}
+        autoComplete="off"
         value={clientSecret.value}
         inputRef={inputRef}
         onChange={clientSecret.onChange}
@@ -313,6 +314,7 @@ function CloudflareAccessInputRows({ section, disabled, labelClassName }: Cloudf
         label={clientId.label}
         name="cloudflare-access-client-id"
         type="text"
+        autoComplete="off"
         value={clientId.value}
         onChange={clientId.onChange}
         onBlur={!disabled ? clientId.onBlur : undefined}
