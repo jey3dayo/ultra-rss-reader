@@ -70,6 +70,39 @@ fn rename_folder_allows_case_only_and_same_name_in_another_account() {
     assert_eq!(saved.name, "OLD");
 }
 
+#[test]
+fn rename_local_folder_allows_name_used_by_remote_folder_but_not_by_local_folder() {
+    let db = test_db();
+    let account_id = insert_test_account_with_kind(&db, "FreshRSS", "FreshRSS");
+    db.writer()
+        .execute(
+            "INSERT INTO folders (id, account_id, remote_id, name, sort_order)
+              VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                "remote-tech",
+                account_id.0.clone(),
+                "user/-/label/Tech",
+                "Tech",
+                0
+            ],
+        )
+        .unwrap();
+    let folder = create_folder_in_db(&db, account_id.0.clone(), "Old".into()).unwrap();
+    create_folder_in_db(&db, account_id.0, "Other".into()).unwrap();
+
+    rename_folder_in_db(&db, &folder.id, "tech").unwrap();
+    assert!(matches!(
+        rename_folder_in_db(&db, &folder.id, "other"),
+        Err(AppError::UserVisible { .. })
+    ));
+
+    let saved = SqliteFolderRepository::new(db.reader())
+        .find_by_id(&FolderId(folder.id))
+        .unwrap()
+        .unwrap();
+    assert_eq!((saved.name.as_str(), saved.remote_id), ("tech", None));
+}
+
 #[tokio::test]
 async fn rename_folder_rejects_busy_sync_boundary() {
     let syncing = AtomicBool::new(true);
@@ -223,10 +256,7 @@ async fn rename_remote_folder_validates_and_skips_unchanged_before_credentials()
     let folder = create_folder_in_db(&db, account_id.0.clone(), "Old".into()).unwrap();
     create_folder_in_db(&db, account_id.0, "Other".into()).unwrap();
     db.writer()
-        .execute(
-            "UPDATE folders SET remote_id = 'user/-/label/Old' WHERE id = ?1",
-            params![folder.id],
-        )
+        .execute("UPDATE folders SET remote_id = 'user/-/label/' || name", [])
         .unwrap();
     let db = Mutex::new(db);
     let syncing = AtomicBool::new(false);

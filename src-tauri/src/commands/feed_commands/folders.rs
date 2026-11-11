@@ -66,11 +66,15 @@ fn prepare_folder_rename(
             message: "Folder not found".into(),
         })?;
     let existing_names = conn
-        .prepare("SELECT name FROM folders WHERE account_id = ?1 AND id != ?2")
+        .prepare(
+            "SELECT name FROM folders
+             WHERE account_id = ?1 AND id != ?2 AND (remote_id IS NULL) = ?3",
+        )
         .map_err(DomainError::from)?
-        .query_map(params![folder.account_id.0, folder.id.0], |row| {
-            row.get::<_, String>(0)
-        })
+        .query_map(
+            params![folder.account_id.0, folder.id.0, folder.remote_id.is_none()],
+            |row| row.get::<_, String>(0),
+        )
         .map_err(DomainError::from)?
         .collect::<Result<Vec<_>, _>>()
         .map_err(DomainError::from)?;
