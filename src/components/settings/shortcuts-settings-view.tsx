@@ -95,7 +95,7 @@ export function ShortcutKeyButton({
         "min-h-8 min-w-10 rounded-md border px-2.5 py-1 text-center font-mono text-(length:--font-size-xs) leading-none font-medium tracking-[0.02em] transition-colors duration-150 ease-standard motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         recording
-          ? "animate-pulse border-ring bg-ring/14 text-foreground"
+          ? "animate-pulse motion-reduce:animate-none border-ring bg-ring/14 text-foreground"
           : conflict
             ? "border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
             : cn(
