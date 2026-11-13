@@ -1,4 +1,8 @@
 #[cfg(windows)]
+#[path = "build_support/webview2_loader.rs"]
+mod webview2_loader;
+
+#[cfg(windows)]
 fn copy_webview2_loader() -> Result<(), String> {
     use std::fs;
     use std::path::PathBuf;
@@ -27,7 +31,7 @@ fn copy_webview2_loader() -> Result<(), String> {
         }
     };
 
-    let source = find_webview2_loader(&build_dir, webview2_arch);
+    let source = webview2_loader::find_webview2_loader(&build_dir, webview2_arch);
     let Some(source) = source else {
         return Err("Could not find WebView2Loader.dll to copy".to_string());
     };
@@ -50,22 +54,6 @@ fn copy_webview2_loader() -> Result<(), String> {
     }
 
     Ok(())
-}
-
-#[cfg(windows)]
-fn find_webview2_loader(build_dir: &std::path::Path, arch: &str) -> Option<std::path::PathBuf> {
-    let entries = std::fs::read_dir(build_dir).ok()?;
-    for entry in entries.flatten() {
-        let candidate = entry
-            .path()
-            .join("out")
-            .join(arch)
-            .join("WebView2Loader.dll");
-        if candidate.exists() {
-            return Some(candidate);
-        }
-    }
-    None
 }
 
 #[cfg(windows)]

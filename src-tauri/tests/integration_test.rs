@@ -29,7 +29,87 @@ use ultra_rss_reader_lib::repository::pending_mutation::{
     PendingMutation, PendingMutationRepository, PendingMutationType,
 };
 
+#[path = "../build_support/webview2_loader.rs"]
+mod webview2_loader;
+
 const TEMP_DIR_CLEANUP_RETRIES: usize = 2;
+
+#[test]
+fn webview2_loader_finds_legacy_and_rust_100_layouts_for_requested_arch() {
+    for (layout, versioned_layout) in [("legacy", false), ("Rust 1.100", true)] {
+        let build_dir = tempfile::tempdir().expect("WebView2 build fixture should be created");
+        let out_dir = if versioned_layout {
+            build_dir.path().join("package").join("hash").join("out")
+        } else {
+            build_dir.path().join("package-hash").join("out")
+        };
+
+        for arch in ["x64", "x86", "arm64"] {
+            let loader = out_dir.join(arch).join("WebView2Loader.dll");
+            std::fs::create_dir_all(loader.parent().expect("loader should have a parent"))
+                .expect("WebView2 architecture fixture should be created");
+            std::fs::write(&loader, []).expect("WebView2 loader fixture should be written");
+
+            assert_eq!(
+                webview2_loader::find_webview2_loader(build_dir.path(), arch),
+                Some(loader),
+                "search should select the requested architecture in the {layout} layout",
+            );
+        }
+    }
+}
+
+#[test]
+fn webview2_loader_returns_none_when_dll_is_absent() {
+    let build_dir = tempfile::tempdir().expect("WebView2 build fixture should be created");
+
+    assert_eq!(
+        webview2_loader::find_webview2_loader(build_dir.path(), "x64"),
+        None,
+        "missing WebView2 loader should keep the build fail-fast path active",
+    );
+}
+
+#[test]
+fn webview2_loader_rejects_directory_named_like_dll() {
+    let build_dir = tempfile::tempdir().expect("WebView2 build fixture should be created");
+    let loader_dir = build_dir
+        .path()
+        .join("package-hash")
+        .join("out")
+        .join("x64")
+        .join("WebView2Loader.dll");
+    std::fs::create_dir_all(&loader_dir)
+        .expect("WebView2 loader directory fixture should be created");
+
+    assert_eq!(
+        webview2_loader::find_webview2_loader(build_dir.path(), "x64"),
+        None,
+        "a directory named WebView2Loader.dll is not a loader file",
+    );
+}
+
+#[test]
+fn webview2_loader_ignores_paths_beyond_supported_depth() {
+    let build_dir = tempfile::tempdir().expect("WebView2 build fixture should be created");
+    let loader = build_dir
+        .path()
+        .join("package")
+        .join("hash")
+        .join("extra")
+        .join("out")
+        .join("x64")
+        .join("WebView2Loader.dll");
+    std::fs::create_dir_all(loader.parent().expect("loader should have a parent"))
+        .expect("deep WebView2 architecture fixture should be created");
+    std::fs::write(&loader, []).expect("deep WebView2 loader fixture should be written");
+
+    assert_eq!(
+        webview2_loader::find_webview2_loader(build_dir.path(), "x64"),
+        None,
+        "search should not recurse past Cargo package and hash directories",
+    );
+}
 
 #[cfg(not(target_os = "macos"))]
 struct MockOsCredentials;
