@@ -6,6 +6,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [0.67.28] - 2026-11-13
 
+### Security
+
+- 記事 HTML の無害化に使う ammonia を 4.2.5 に更新し、RUSTSEC-2026-0533 に対応しました。
+
 ### Bug Fixes
 
 - Cargo 1.100 で WebView2 loader が配置されない問題を修正しました。 (#655)
