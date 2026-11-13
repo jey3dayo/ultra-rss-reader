@@ -12,7 +12,7 @@ owner: project-maintainers
 # Documentation Index
 
 Use this page as the documentation index outside the main [README.md](../README.md).
-When current product behavior, architecture, commands, or verification scope matters, start with `README.md` first and use this page to find focused operational or historical documents.
+For the product overview, start with `README.md`; for architecture, commands, and verification scope, start with [CONTRIBUTING.md](../CONTRIBUTING.md). Use this page to find focused operational or historical documents.
 
 ## Top-Level Docs
 

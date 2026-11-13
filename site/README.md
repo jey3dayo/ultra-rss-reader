@@ -6,16 +6,15 @@ Static product landing page for Ultra RSS Reader, deployed to Cloudflare Pages a
 ## Deployment
 
 Cloudflare Pages project `ultra-rss-reader`, account `4e7695e2370bc9cef6ae9f2802517dd3`.
-Deploys are direct uploads, not a GitHub integration, so a push to `main` does not
-publish anything on its own:
+The project does not use Cloudflare's Git integration. To deploy manually, run:
 
 ```bash
 dotenvx run -- mise run deploy:site
 ```
 
-The repository also deploys the site automatically through
-`.github/workflows/deploy-site.yml` when a push to `main` changes `site/**`. The
-workflow can also be started with `workflow_dispatch`, uses the
+The repository deploys automatically through `.github/workflows/deploy-site.yml`
+when a push to `main` changes `site/**`. The workflow can also be started with
+`workflow_dispatch`, uses the
 `CLOUDFLARE_API_TOKEN` GitHub Actions secret, and checks both public language pages
 after deployment, retrying transient edge propagation failures.
 

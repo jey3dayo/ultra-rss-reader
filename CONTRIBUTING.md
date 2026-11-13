@@ -37,15 +37,15 @@ mise run app:dev
 `mise run app:dev` is the default development entry point. It wraps the Tauri dev configuration used by this repository.
 Under the hood, Tauri starts the Vite dev server with `beforeDevCommand` and loads the frontend from `devUrl`
 (`http://localhost:1420`).
-By default, `mise run app:dev` uses `DEV_CREDENTIALS=1`, so FreshRSS account credentials go to the dev file store instead of the native OS keyring.
-Use `mise run app:dev:native-keyring` when you need to verify Keychain or Credential Manager behavior in development.
+By default, `mise run app:dev` sets `DEV_CREDENTIALS=1`, so FreshRSS account credentials go to the dev file store instead of the native OS keyring.
+Use `mise run app:dev:native-keyring` when you need to verify Keychain or Credential Manager behavior in development. For keyring validation, ensure the dev override is disabled and select OS keyring in Data settings; with the override disabled, these tasks follow the selected credential storage mode.
 
 ## Development Modes
 
 - Live desktop development: `mise run app:dev`
   Recommended default. Launches the Tauri shell with the repository dev config and hot reload, using file-based dev credentials.
 - Native keyring desktop development: `mise run app:dev:native-keyring`
-  Launches the same Tauri dev flow without `DEV_CREDENTIALS`, so credentials use the OS keyring backend.
+  Launches the same Tauri dev flow without setting `DEV_CREDENTIALS`; when the dev override is disabled, credentials use the selected storage mode.
 - macOS signed dev run: `mise run app:dev:signed`
   Builds, codesigns with `UltraRSSReader-Dev`, and runs the dev binary to suppress Keychain access dialogs. macOS only and one-shot (no file watching). Initial setup is documented in [.claude/rules/macos-dev-codesign.md](.claude/rules/macos-dev-codesign.md).
 - Subscriptions index development: `mise run app:dev:subscriptions-index`
@@ -67,8 +67,8 @@ Use this table when you need to decide whether you are optimizing for iteration 
 | Mode | Main use | Data environment | Database / app data | Credential backend | Signing | Watch / reload |
 | --- | --- | --- | --- | --- | --- | --- |
 | `mise run app:dev` | Default day-to-day development | Dev-like credentials, shared local article/account DB | Same native app data DB used by the dev Tauri app | Dev file credentials (`DEV_CREDENTIALS=1`) | No | Yes |
-| `mise run app:dev:native-keyring` | Verify real account access against the OS keyring without leaving the normal dev loop | Production-like credentials, shared local article/account DB | Same native app data DB used by the dev Tauri app | OS keyring | No | Yes |
-| `mise run app:dev:signed` | macOS-only, more production-like validation for Keychain and signed-app behavior | Most production-like dev mode for credentials and macOS runtime behavior | Same native app data DB used by the dev Tauri app | OS keyring | Yes (`UltraRSSReader-Dev`) | No, one-shot run |
+| `mise run app:dev:native-keyring` | Verify real account access against the OS keyring without leaving the normal dev loop | Production-like credentials, shared local article/account DB | Same native app data DB used by the dev Tauri app | Selected storage mode when the dev override is disabled; otherwise dev file store | No | Yes |
+| `mise run app:dev:signed` | macOS-only, more production-like validation for Keychain and signed-app behavior | Most production-like dev mode for credentials and macOS runtime behavior | Same native app data DB used by the dev Tauri app | Selected storage mode when the dev override is disabled; otherwise dev file store | Yes (`UltraRSSReader-Dev`) | No, one-shot run |
 
 Practical guidance:
 
@@ -196,14 +196,14 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 
 ### Sync & Concurrency
 
-| Mechanism                  | Location                     | Purpose                                                           |
-| -------------------------- | ---------------------------- | ----------------------------------------------------------------- |
-| `AtomicBool` + `SyncGuard` | `commands/feed_commands.rs`  | Prevents overlapping sync runs (scheduler vs manual trigger)      |
-| WAL journal mode           | `infra/db/connection/mod.rs` | Allows concurrent reads during writes                             |
-| `busy_timeout = 5000`      | `infra/db/connection/mod.rs` | Retries on lock contention for up to 5 seconds                    |
-| Reader/writer split        | `DbManager`                  | Dedicated connections for reads and writes                        |
-| Scoped `Mutex` locks       | All command handlers         | Locks released before `.await` points (see `rust-async-mutex.md`) |
-| Pending mutations dedup    | `sqlite_pending_mutation.rs` | Latest mutation wins per `(account_id, remote_entry_id)`          |
+| Mechanism                  | Location                              | Purpose                                                           |
+| -------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| `AtomicBool` + `SyncGuard` | `commands/sync_commands/progress.rs`  | Prevents overlapping sync runs (scheduler vs manual trigger)      |
+| WAL journal mode           | `infra/db/connection/mod.rs`          | Allows concurrent reads during writes                             |
+| `busy_timeout = 5000`      | `infra/db/connection/mod.rs`          | Retries on lock contention for up to 5 seconds                    |
+| Reader/writer split        | `DbManager`                           | Dedicated connections for reads and writes                        |
+| Scoped `Mutex` locks       | All command handlers                  | Locks released before `.await` points (see `rust-async-mutex.md`) |
+| Pending mutations dedup    | `sqlite_pending_mutation.rs`          | Latest mutation wins per `(account_id, remote_entry_id)`          |
 
 #### Current Sync Consistency Rules
 
@@ -269,9 +269,9 @@ Keep labels short enough for dense controls, prefer natural Japanese over litera
 - The current CSP policy is compatibility-first for feed content: scripts stay locked to `'self'`, while remote `http:` / `https:` images and frames are allowed so sanitized articles and the in-app browser can load external pages.
 - Feed content privacy expectations and future tightening rules are documented in [docs/feed-content-privacy.md](docs/feed-content-privacy.md).
 - Tightening CSP further requires checking article rendering, thumbnail loading, and embedded browser behavior across the supported providers.
-- Credentials (FreshRSS passwords, tokens) are stored in the OS keyring, never in SQLite.
-- Setting `DEV_CREDENTIALS=1` switches development builds to a file-based credential store; production builds continue to use the OS keyring.
-- Cloudflare Access Service Token credentials always use the OS keyring, including in development; `DEV_CREDENTIALS=1` never routes them to the dev file store.
+- Credentials (FreshRSS passwords, tokens, and Cloudflare Access Service Tokens) use the OS keyring by default, never SQLite. Users can select local-file storage in settings; this stores credentials without encryption in the app data directory, including in production builds.
+- Setting `DEV_CREDENTIALS=1` switches development builds to a separate file-based credential store and disables storage-mode selection. Production builds ignore this development override.
+- Cloudflare Access Service Tokens follow the selected storage mode, except that the development credential override keeps them in the OS keyring rather than the dev file store.
 - `.env` is encrypted with dotenvx and safe to commit; only encrypted `encrypted:` values ever land in git. Never commit plaintext secrets, `.env.keys` (the decryption key), or `.env.local`.
 
 ## Release
