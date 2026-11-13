@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.28] - 2026-11-13
+
+### Bug Fixes
+
+- Cargo 1.100 で WebView2 loader が配置されない問題を修正しました。 (#655)
+
+### Documentation
+
+- 実際の動作に合わせて、ランタイムとデプロイの開発者向けガイドを更新しました。 (#656)
+- 開発用の資格情報上書きに使える別名と、上書きを無効にする条件を明記しました。 (#658)
+
 ## [0.67.27] - 2026-11-11
 
 ### Bug Fixes
