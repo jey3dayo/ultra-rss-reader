@@ -38,7 +38,7 @@ mise run app:dev
 Under the hood, Tauri starts the Vite dev server with `beforeDevCommand` and loads the frontend from `devUrl`
 (`http://localhost:1420`).
 By default, `mise run app:dev` sets `DEV_CREDENTIALS=1`, so FreshRSS account credentials go to the dev file store instead of the native OS keyring.
-Use `mise run app:dev:native-keyring` when you need to verify Keychain or Credential Manager behavior in development. For keyring validation, ensure the dev override is disabled and select OS keyring in Data settings; with the override disabled, these tasks follow the selected credential storage mode.
+Use `mise run app:dev:native-keyring` when you need to verify Keychain or Credential Manager behavior in development. For keyring validation, ensure the dev override is disabled (neither `DEV_CREDENTIALS` nor its alias `ULTRA_RSS_DEV_CREDENTIALS` is set to `1`, `true`, `yes`, or `on` in the environment that launches the app) and select OS keyring in Data settings; with the override disabled, these tasks follow the selected credential storage mode.
 
 ## Development Modes
 
@@ -270,7 +270,7 @@ Keep labels short enough for dense controls, prefer natural Japanese over litera
 - Feed content privacy expectations and future tightening rules are documented in [docs/feed-content-privacy.md](docs/feed-content-privacy.md).
 - Tightening CSP further requires checking article rendering, thumbnail loading, and embedded browser behavior across the supported providers.
 - Credentials (FreshRSS passwords, tokens, and Cloudflare Access Service Tokens) use the OS keyring by default, never SQLite. Users can select local-file storage in settings; this stores credentials without encryption in the app data directory, including in production builds.
-- Setting `DEV_CREDENTIALS=1` switches development builds to a separate file-based credential store and disables storage-mode selection. Production builds ignore this development override.
+- Setting `DEV_CREDENTIALS=1` (or its alias `ULTRA_RSS_DEV_CREDENTIALS`) switches development builds to a separate file-based credential store and disables storage-mode selection. Production builds ignore this development override.
 - Cloudflare Access Service Tokens follow the selected storage mode, except that the development credential override keeps them in the OS keyring rather than the dev file store.
 - `.env` is encrypted with dotenvx and safe to commit; only encrypted `encrypted:` values ever land in git. Never commit plaintext secrets, `.env.keys` (the decryption key), or `.env.local`.
 
