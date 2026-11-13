@@ -27,7 +27,7 @@ This directory stores dated design and implementation records created during fea
 ## Notes On Command References
 
 Some older records refer to direct commands such as `pnpm tauri dev` or `pnpm dev`.
-For current day-to-day work in this repository, prefer the equivalent `mise` tasks from [../../README.md](../../README.md):
+For current day-to-day work in this repository, prefer the equivalent `mise` tasks from [../../CONTRIBUTING.md](../../CONTRIBUTING.md):
 
 - `pnpm tauri dev` → `mise run app:dev`
 - `pnpm dev --host 127.0.0.1 --port 4173 --strictPort` → `mise run app:dev:browser`
