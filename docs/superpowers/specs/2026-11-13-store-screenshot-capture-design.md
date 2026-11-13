@@ -246,22 +246,28 @@ Issue の完了条件「Win / Mac のどちらで実行しても同一結果に�
 
 | # | 内容 | 主な変更 | 確認 |
 | --- | --- | --- | --- |
-| T0 | 前提の確認（spike） | なし | `VITE_DEV_MOCK_LOCALE=en` で起動し、`selectSmartView("unread")` 後の一覧で `art-en-3` が画面内に入るか、起動時の自動着地とシナリオの選択が競合しないかを確かめる。結果で T2 の記事 ID を確定する |
 | T1 | シードと preference の整備 | `mock-data-demo-en.ts`（表示名、Video フィードの URL）、`mock-state.ts`（`theme`、`debug_agentation_visibility`） | `dev-mock-data-demo-en.node.test.ts` のガード 2 つと preference の確認。`mise run check` |
 | T2 | 撮影用シナリオ | `scenario-ids.ts`、`registry.ts`、`import-registry.ts`、`scenarios/types.ts`（`selectArticle` の `options`）、シナリオ本体 | runner / registry / intent のテスト。`mise run check` |
-| T3 | 撮影スクリプト | `scripts/capture-store-screenshots.ts`、`package.json` の 2 script | macOS と Windows の両方で `capture:screenshots` を実行し、DOM 検査が通ること、4 ファイルが 3200 × 1800 で出ることを確かめる |
+| T3 | 撮影スクリプト | `scripts/capture-store-screenshots.ts`、`package.json` の 2 script | macOS と Windows の両方で `capture:screenshots` を実行し、DOM 検査が通ること（シナリオで選んだ記事が起動時の自動着地に上書きされないことを含む）、4 ファイルが 3200 × 1800 で出ることを確かめる |
 | T4 | 撮影規約ドキュメント | `docs/store-screenshots.md`、`docs/README.md`、`site/README.md` | markdownlint |
 | T5 | 画像の差し替え | `docs/assets/`、`docs/assets/store/`、`site/assets/` | 正本 OS で `capture:screenshots:publish` を実行し、規約のチェックリストで目視確認する。`mise run ci` |
 
 T3 の Windows 確認は、`.claude/rules/rust-cfg-split-policy.md` と同じ理由（開発機で通っても他 OS で通る保証にならない）で省略しない。
 
-## 未検証の前提
+## 設計時の spike（2026-11-13、macOS）
 
-設計時点では実際に撮影していない（worktree に依存が未導入のため）。次は T0 で確かめる。
+src を変えずに、`VITE_DEV_MOCK_LOCALE=en` で vite を起動し（port 4199）、上の撮影条件（viewport、`deviceScaleFactor`、`colorScheme`、`locale`、`timezoneId`、`reducedMotion`、`page.clock.setFixedTime("2026-08-17T15:00:00Z")`、外部通信の遮断）で起動直後の画面を撮った。
 
-- Unread スマートビューで `art-en-3` が 1600 × 900 の画面内に表示されること（現行画像では 4 件目に見えている）
-- 起動時の自動着地（`article-view.tsx` の landing）が、シナリオで選んだ記事を上書きしないこと
-- `page.clock.setFixedTime` を使ったとき、React Query のタイマーや遅延処理が止まらないこと
+| 確かめたこと | 結果 |
+| --- | --- |
+| 起動直後の状態 | 先頭アカウント（`FreshRSS`）、Unread スマートビュー（15 件）、先頭記事 `Remote work surveys show a plateau...` が自動で開いた状態に着地する。`h1` は表示名と記事タイトルの 2 つ |
+| `art-en-3` の位置 | Unread の一覧で 4 件目に表示され、1600 × 900 の画面内に入る |
+| 時計の固定 | ページ内の `new Date()` が固定値を返し、記事の日付も固定値から計算される。表示の崩れや pageerror はない |
+| テーマ | `colorScheme: "dark"` でも light のまま描画される。`theme` の既定値が `"light"` だからで、決定 2 の `theme: "system"` が必要 |
+| Agentation | 表示される。`127.0.0.1:4747` へ通信しようとする。外部通信の遮断は「4173 番以外」を対象にする必要がある |
+| 外部通信 | `https://www.google.com/s2/favicons` へのリクエストが出る（遮断した） |
+
+T0 で残る確認は、撮影用シナリオで選んだ記事が、起動時の自動着地で上書きされないことだけである。シナリオを実装したあと、撮影スクリプトの DOM 検査（開いた記事のタイトル）で確かめる。
 
 ## Follow-ups
 
