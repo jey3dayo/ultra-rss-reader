@@ -1,16 +1,18 @@
 # Store Screenshot Capture Design
 
-Issue: [#657](https://github.com/jey3dayo/ultra-rss-reader/issues/657)
+Issue: [#657](https://github.com/jey3dayo/ultra-rss-reader/issues/657)（macOS 版）、[#660](https://github.com/jey3dayo/ultra-rss-reader/issues/660)（Windows 版）
 
 ## Summary
 
-Microsoft Store 掲載用スクリーンショットを、規約に沿った撮影用シードから、コマンド 1 回で再生成できるようにする。
+Microsoft Store 掲載用スクリーンショットを、規約に沿った撮影用シードから、コマンド 1 回で再生成できるようにする。アプリには macOS 版と Windows 版があるので、画像も両 OS で撮った 2 種類を用意する。
 
 - アカウント表示名は、EN シードの `name` だけを中立な名前（`Personal`）に変える。実アプリでも表示名はユーザーが付けるものなので、実態と矛盾しない
 - 撮影する状態は、撮影用 dev シナリオを 1 つ追加して固定する。既存の `open-feed-first-article` は構図が変わり、選ばれるフィードも安定しないので使わない
 - テーマは、EN デモの preference を `theme: "system"` にしたうえで、Playwright の `colorScheme` で dark / light を切り替える
-- 撮影スクリプトは Node から vite と Playwright を直接起動する。時計・タイムゾーン・外部通信を固定し、撮影後に DOM を検査してから画像を書き出す
-- Store 提出用は PNG（Store の必須形式）、README / LP 用は JPG とし、同じ描画状態から両方を書き出す
+- 撮影スクリプトは Node から vite と Playwright を直接起動する。時計・タイムゾーン・外部通信を固定し、撮影後に DOM を検査してから画像を書き出す。実行中の OS を判定し、ファイル名の末尾に `-mac` / `-windows` を付ける
+- Store 提出用は Windows で撮った PNG（Store の必須形式）、README と LP 用は JPG とする
+- LP は OS ごとの画像を重ねて置き、2 種類そろうと macOS / Windows の切り替えが出る構造にする。macOS 版だけの間も 1 枚の画像として成立する
+- #657 では macOS 版を撮ってコミットする。Windows 版は #660 で、Windows 上で撮ってコミットする
 
 ## Problem
 
@@ -31,16 +33,18 @@ Store 再提出（v0.67.27.0）で、英語（米国）掲載のスクリーン�
 ## Goals
 
 - 第三者の製品名・ロゴ・実在サイトのコンテンツが写らない撮影用シードにする
-- 撮影状態（データ、選択中の記事、テーマ、日時、サイズ）をコードで固定し、誰が実行しても同じ状態・構図の画像が出る
+- 撮影状態（データ、選択中の記事、テーマ、日時、サイズ）をコードで固定し、macOS でも Windows でも同じ状態・構図の画像が出る
 - `pnpm run capture:screenshots` 1 回で dark / light の 2 枚を生成する
+- macOS 版と Windows 版の画像を、同じコマンドと同じ命名規則で撮り分ける
 - 撮影規約を `docs/` に明文化する
 
 ## Non-goals
 
-- Partner Center での画像差し替えと再提出（Issue の範囲外）
+- Partner Center での画像差し替えと再提出。Windows 版の PNG が #660 でそろってから行う
+- #657 の中での Windows 撮影（#660 で行う）
 - JA シード（`src/dev/mock-data.ts`）の整備。撮影には使わない（決定 1 を参照）
 - 4 枚以上の Store 用スクリーンショットの追加
-- 画素単位で OS 間一致させること（決定 6 を参照）
+- macOS 版と Windows 版の画素を一致させること。書体が OS ごとに違うのは実物どおりであり、それを見せるために 2 種類撮る（決定 6）
 
 ## 決定 1: アカウント表示名
 
@@ -138,7 +142,7 @@ Issue は `mise run app:dev:browser`（port 4173）での起動を指定して�
 
 そこでスクリプトは、`app:dev:browser` と同じ引数（`--host 127.0.0.1 --port 4173 --strictPort`）で vite を自分で起動する。
 
-- `child_process.spawn(process.execPath, [<vite の bin>, ...])` で起動し、環境変数は `spawn` の `env` で渡す。シェルを経由しないので、Win / Mac で同じように動く
+- `child_process.spawn(process.execPath, [<vite の bin>, ...])` で起動し、環境変数は `spawn` の `env` で渡す。シェルを経由しないので、macOS と Windows で同じように動く（決定 6「Windows での実行の担保」）
 - `--strictPort` なので、4173 番を他のサーバーが使っていたら起動に失敗する。そのときは「既存の `app:dev:browser` を止めてから実行する」旨のエラーを出して終える。環境変数の異なる既存サーバーを再利用すると別のシードで撮ってしまうので、再利用はしない
 - 撮影が終わったら、成功でも失敗でも vite のプロセスを止める
 
@@ -170,23 +174,46 @@ Issue は `mise run app:dev:browser`（port 4173）での起動を指定して�
 
 同じ描画状態から `page.screenshot()` を 2 回呼び、PNG と JPG を書き出す。画像変換の依存は追加しない。`animations: "disabled"` と `caret: "hide"` を指定する。
 
-| 形式 | 用途 | 出力先 |
-| --- | --- | --- |
-| PNG | Store 提出（PNG 必須） | `docs/assets/store/screenshot-reader-{dark,light}.png` |
-| JPG | README、README.ja、LP | `docs/assets/screenshot-reader-{dark,light}.jpg` と `site/assets/` の同名ファイル |
+ファイル名は `screenshot-reader-<theme>-<os>.<ext>` とする。`<theme>` は `light` / `dark`、`<os>` は `mac` / `windows`。`<os>` はスクリプトが `process.platform` から決める（`darwin` → `mac`、`win32` → `windows`）。どちらにも当たらない OS では、試し撮りは `-<process.platform>` を付けて書き出し、publish はエラーで終える。接尾辞のないファイル名は使わない。「接尾辞なし＝macOS」という暗黙の決まりは、Windows 側の作業者が推測できないからである。
+
+| 形式 | 用途 | publish する OS | 出力先 |
+| --- | --- | --- | --- |
+| PNG | Store 提出（PNG 必須） | Windows だけ | `docs/assets/store/screenshot-reader-{light,dark}-windows.png` |
+| JPG | LP（両 OS）、README（macOS 版だけ） | macOS と Windows | `docs/assets/screenshot-reader-{light,dark}-{mac,windows}.jpg` と `site/assets/` の同名ファイル |
+
+- macOS の publish は JPG だけを書く。Store は Windows 版の画像を使うので、macOS 版の PNG はコミットしない
+- 試し撮り（`tmp/` への出力）は、OS を問わず PNG と JPG の両方を書く。PNG を書くコードを #657 の中で macOS で一度動かしておき、#660 で初めて動く状態を避けるためである
+- OS と出力パスの対応（どの OS で、どのモードのとき、どのファイルを書くか）は副作用のない関数に切り出し、単体テストで固定する
 
 JPG の `quality` は、現行画像（各約 330 KB）と同程度のサイズになる値を実装時に決め、定数にする。書き出した画像は、ファイルヘッダーから幅と高さを読み、3200 × 1800 であることを確かめる。
 
-`site/README.md` は `docs/assets/` を正本、`site/assets/` をそのコピーと定めているので、スクリプトは `docs/assets/` に書いたファイルを `site/assets/` へコピーする。
+`site/README.md` は `docs/assets/` を正本、`site/assets/` をそのコピーと定めているので、スクリプトは `docs/assets/` に書いた JPG を `site/assets/` へコピーする。
+
+### 既存の JPG
+
+現行の `screenshot-reader-{light,dark}.jpg`（`docs/assets/` と `site/assets/`）は、差し戻された `FreshRSS` の看板が写った画像である。#657 で削除し、参照を `-mac` の JPG に置き換える。残すと、LP のデプロイ後も旧 URL で公開され続ける。
+
+| 参照元 | 変更後 |
+| --- | --- |
+| `README.md`、`README.ja.md` | `docs/assets/screenshot-reader-{light,dark}-mac.jpg`。README は今後も macOS 版だけを載せ、#660 では変えない |
+| `site/index.html`、`site/ja/index.html` の `<picture>` | 決定 7 の構造に置き換える |
+| 同 2 ページの `og:image`、`twitter:image` | `https://ultra-rss.jey3dayo.net/assets/screenshot-reader-light-mac.jpg` |
+| `site/README.md` の Assets 節 | 新しいファイル名と、OS ごとの命名規則 |
+
+`og:image` の URL が変わっても、SNS は次に共有されたときに取り直すだけで、壊れるものはない。Partner Center へは URL ではなくファイルをアップロードするので、Store 側にも影響しない。
 
 ### コマンド
 
 | package.json script | 動作 |
 | --- | --- |
-| `capture:screenshots` | `node ./scripts/capture-store-screenshots.ts`。`tmp/screenshots/store/` に 4 ファイル（PNG / JPG × dark / light）を書き出す。試し撮り用 |
-| `capture:screenshots:publish` | `node ./scripts/capture-store-screenshots.ts --publish`。上の出力先表のとおり `docs/assets/` と `site/assets/` に書き出す |
+| `capture:screenshots` | `node ./scripts/capture-store-screenshots.ts`。`tmp/screenshots/store/` に 4 ファイル（PNG / JPG × light / dark）を書き出す。試し撮り用 |
+| `capture:screenshots:publish` | `node ./scripts/capture-store-screenshots.ts --publish`。上の出力先表のうち、実行中の OS の分を書き出す |
 
-Issue の規約「試し撮りはコミットしない（`tmp/screenshots/` に出す）」に合わせ、既定の出力先は `tmp/` にする。
+どちらのコマンドも macOS と Windows で同じ名前で使う。Issue の規約「試し撮りはコミットしない（`tmp/screenshots/` に出す）」に合わせ、既定の出力先は `tmp/` にする。
+
+### macOS 版の画像が表すもの
+
+撮影はブラウザモード（`app:dev:browser` と同じ vite）で行うので、Tauri のウィンドウ外観（macOS のオーバーレイタイトルバーと信号ボタンの余白）は写らない。macOS 版の画像は「macOS 上の Chromium で描いたアプリ画面」であり、書体は macOS のもの（SF）になる。Windows 版も同様に、書体は Windows のもの（Segoe UI Variable）になる。現行画像も同じ条件で撮っているので、今回の変更で悪くなる点ではない。撮影規約にもこの前提を書く。
 
 ## 決定 4: 撮影規約ドキュメント
 
@@ -198,10 +225,11 @@ Issue の規約「試し撮りはコミットしない（`tmp/screenshots/` に�
 2. **Policy background** — 10.1.1.3 の指摘内容（Microsoft の注記の原文）と Issue #657 の経緯。「FreshRSS という単語が禁止なのではなく、第三者の製品名が画面の主役になったことが問題」という整理
 3. **Data rules** — 撮影は EN シードの撮影用状態だけで行う。実データ、実アカウント、実サーバーで撮らない。JA シードは実在サイト名を含むので使わない
 4. **Brand rules** — 第三者の製品名・ロゴ・ワードマークを主役にしない。アカウント表示名は中立な名前にする。実在サイトの記事本文・ロゴ・ファビコンを写さない。互換サービス名を説明文で挙げるのは可、画像内の看板にするのは不可。Store のガイドライン「スクリーンショットにロゴやマーケティング文言を追加しない」
-5. **Fixed state** — ロケール、テーマ、選択中のアカウント・ビュー・記事、日時、タイムゾーン、サイズ、外部通信の遮断。値の正本はスクリプトの定数とし、文書には項目と理由だけを書く
-6. **Capture procedure** — 2 つのコマンドと出力先。4173 番が使用中のときの対処
-7. **Asset management** — コミット済みファイルを正とし、Partner Center へはコミット済みの PNG をアップロードする。試し撮りはコミットしない
-8. **Post-capture checklist** — 第三者ブランドが主役になっていない、実在コンテンツが写っていない、個人情報がない、現行バージョンの UI である、3200 × 1800 である、正本 OS で撮った
+5. **Fixed state** — ロケール、テーマ、選択中のアカウント・ビュー・記事、日時、タイムゾーン、サイズ、外部通信の遮断。値の正本はスクリプトの定数とし、文書には項目と理由だけを書く。ブラウザモードで撮るのでウィンドウ外観は写らないこと（決定 3「macOS 版の画像が表すもの」）
+6. **Platforms and file names** — macOS 版と Windows 版を撮り分ける理由（書体が OS ごとに違い、それが実物どおりの見え方であること）。命名規則 `screenshot-reader-<theme>-<os>.<ext>` と、OS ごとに書き出すファイルの一覧。Store には Windows 版の PNG を使い、README には macOS 版だけを載せること
+7. **Capture procedure** — 2 つのコマンドと出力先。macOS と Windows それぞれの前提（Windows は Windows 11、Playwright の Chromium の導入）。4173 番が使用中のときの対処
+8. **Asset management** — コミット済みファイルを正とし、Partner Center へはコミット済みの PNG をアップロードする。試し撮りはコミットしない。LP に OS 別の画像を追加する手順（`data-platform` 付きの `<picture>` を足す。決定 7）
+9. **Post-capture checklist** — 第三者ブランドが主役になっていない、実在コンテンツが写っていない、個人情報がない、現行バージョンの UI である、3200 × 1800 である、ファイル名の OS 接尾辞が撮影した OS と一致する
 
 ## 決定 5: 影響範囲
 
@@ -213,46 +241,143 @@ Issue の規約「試し撮りはコミットしない（`tmp/screenshots/` に�
 | `src/__tests__/config/repo-contracts.node.test.ts` | valibot を使うテストファイルの許可一覧がある | 新しいテストファイルで valibot を使う場合だけ登録する |
 | `src/__tests__/schemas/package-scripts.test.ts` | package.json の scripts と mise タスクの契約テスト | script 追加で落ちないかを確認する |
 | knip | 新しいスクリプトファイル | package.json の script から参照されるので通常は検出される。`mise run quality:knip` で確認し、必要なら `knip.entry` に足す |
-| 本番コード | なし | 変更は `src/dev/` とテスト、スクリプト、docs、画像だけ |
+| 出力パスの決定 | 新しい純粋関数 | OS（`darwin` / `win32` / それ以外）× モード（試し撮り / publish）ごとに、書き出すファイルの一覧を固定する単体テストを足す。publish が macOS で PNG を含まないこと、Windows で PNG を含むこと、それ以外の OS で拒否されることを含める |
+| README、LP、`site/README.md` | 画像のファイル名が変わる | 決定 3「既存の JPG」のとおり置き換える |
+| 本番コード | なし | 変更は `src/dev/` とテスト、スクリプト、docs、LP、画像だけ |
 
 `"FreshRSS"` という文字列を含むテストは約 30 ファイルあるが、多くは `tests/helpers/fixtures.ts` の fixture を使っている。JA シードを変えないので、いずれも影響しない。
 
-## 決定 6: 「Win / Mac で同一結果」の定義（要判断）
+## 決定 6: macOS 版と Windows 版の運用
 
-Issue の完了条件「Win / Mac のどちらで実行しても同一結果になる」は、画素単位では満たせない。
+初版で提案した「コミットする画像を 1 つの OS で撮る」案は採らない（2026-11-13 のユーザー判断）。アプリには macOS 版と Windows 版があり、書体は OS ごとに違う（`--font-sans` は OS 標準のフォントスタックで、同梱フォントはない）。どちらの OS の画像も、その OS で動かしたときの実物どおりの見え方なので、両方を撮って用途ごとに使い分ける。
 
-- `--font-sans` は OS 標準のフォントスタック（macOS は SF、Windows は Segoe UI Variable）で、同梱フォントがない
-- 同じフォントでも、Chromium のアンチエイリアスとヒンティングは OS ごとに違う
-
-撮影用にだけ Web フォントを同梱して画素を揃える案もあるが、採らない。実アプリが使わないフォントで撮ることになり、それ自体が「実物と違う見せ方」になるうえ、依存の追加も要る。
-
-そこで次のように定義し直すことを提案する。
-
-- **同一の状態・構図**: データ、選択状態、テーマ、日時、サイズ、外部通信を固定し、撮影前の DOM 検査で確かめる。これはどの OS でも同じになる
-- **コミットする画像は正本 OS で撮る**: 書体の違いはこれで扱う
-
-正本 OS の推奨は **Windows** とする。
-
-| 案 | 長所 | 短所 |
+| 画像 | 撮る場所 | 使う場所 |
 | --- | --- | --- |
-| Windows（推奨） | Store の利用者が見るのと同じ書体（Segoe UI）。10.1.1.3 の「実物どおりの見せ方」に最も近い | 日常の開発機（macOS）とは別の機械で撮る必要がある |
-| macOS | 日常の開発機で撮れる。現行画像との連続性がある | Windows 版 Store の掲載画像が macOS の書体になる。前回の差し戻しで書体は指摘されていない |
+| macOS 版 JPG | #657（macOS の開発機） | README、README.ja、LP |
+| Windows 版 JPG | #660（Windows 11） | LP |
+| Windows 版 PNG | #660（Windows 11） | Microsoft Store の掲載画像 |
 
-この定義の変更は Issue の完了条件の解釈を変えるので、確定はユーザーが行い、Issue 本文へ反映する。
+「macOS と Windows で同一」とするのは、データ、選択状態、テーマ、日時、サイズ、通信といった状態と構図である。画素は一致しない。状態と構図はスクリプトの固定値と撮影前の DOM 検査で担保する。
+
+### Windows での実行の担保
+
+この worktree は macOS 上にあり、#657 では Windows でスクリプトを実行できない。そこで次の 3 つで担保し、実際の Windows 実行は #660 で行う。
+
+1. 書き方で担保する。vite はシェルを経由せず `process.execPath` から `vite.js` を起動する。パスは `node:path` で組み立てる。環境変数は `spawn` の `env` で渡し、POSIX 形式の `VAR=value cmd` を使わない。プロセスの終了は `ChildProcess.kill()` で行い、`SIGTERM` などのシグナル名に頼らない
+2. OS と出力パスの対応を単体テストで固定する（決定 5）。`process.platform` を引数で受け取る関数にして、macOS 上のテストで `win32` の場合も確かめる
+3. #660 に「Windows 特有の理由で失敗したら、この範囲でスクリプトを直してよい」と明記する（#660 の「撮影スクリプトを直してよい範囲」）
+
+`workflow_dispatch` だけで動く `windows-latest` のスモーク（試し撮りをして `tmp/` を artifact に上げる）を足せば、#657 の中で Windows 実行を確かめられる。ただし workflow の pin と CI 契約テストの更新が要り、GitHub Actions の Windows ランナーは Windows Server なので書体も Windows 11 と同じとは限らない。#660 の最初の試し撮りで同じことを確かめられるので、採らない。
+
+### 担当と順序
+
+| 段階 | 担当 | 内容 |
+| --- | --- | --- |
+| #657 | この worktree（macOS） | シード、シナリオ、スクリプト、撮影規約、LP の構造、macOS 版 JPG の撮影とコミット |
+| #660 | ユーザーが Windows 上で Claude を動かして行う | Windows 版 JPG と PNG の撮影とコミット、LP への `<picture>` の追加 |
+| 再提出 | ユーザー | #660 の PNG で Partner Center の画像を差し替えて再提出する。「認定へのメモ」に、FreshRSS は任意で接続する外部サーバーで本製品の一部ではない旨を英文で添える |
+
+#660 は #657 の実装 PR が main にマージされてから着手する。
+
+## 決定 7: LP の表示
+
+LP（`site/index.html`、`site/ja/index.html`）では、macOS 版と Windows 版の画像を同じ枠に重ねて置き、2 種類そろったときだけ切り替えを出す。#657 の時点では macOS 版だけなので、切り替えは出ず、今と同じ 1 枚の画像に見える。表示の設計は emil-design-eng の観点で決めた。
+
+### 構造
+
+```html
+<div class="screenshot-switcher" data-screenshot-switcher>
+  <div class="screenshot-platforms" role="radiogroup" aria-label="Screenshot platform" hidden>
+    <!-- JS が data-platform ごとにボタンを作る -->
+  </div>
+  <div class="screenshot-frame">
+    <picture data-platform="mac" data-active>
+      <source srcset="assets/screenshot-reader-dark-mac.jpg" media="(prefers-color-scheme: dark)" />
+      <img src="assets/screenshot-reader-light-mac.jpg" width="1600" height="900" alt="Ultra RSS Reader on macOS: ..." />
+    </picture>
+    <!-- #660 で data-platform="windows" の <picture> をここに足す -->
+  </div>
+</div>
+```
+
+- 枠の中の `<picture>` は CSS Grid の同じセル（`grid-area: 1 / 1`）に重ねる。2 枚とも 1600 × 900 なので、重ねてもレイアウトはずれない
+- 表示する 1 枚は `data-active` 属性で決める。属性のない `<picture>` は `opacity: 0` と `visibility: hidden` にする。`visibility: hidden` にした要素は支援技術からも隠れるので、`aria-hidden` は付けない
+- `<picture>` ごとに `<source media="(prefers-color-scheme: dark)">` を持つ。テーマの切り替えは今と同じく OS の外観設定に従う
+- 切り替えのボタンは HTML に書かず、JS が `data-platform` の数を数えて 2 つ以上のときだけ作り、`hidden` を外す。#660 で HTML に足すのは `<picture>` 1 つだけで済む
+- JS が動かない環境では、`data-active` の付いた macOS 版だけが見える
+- ボタンの表示名は `macOS` / `Windows`（JA ページも同じ）。`aria-label` は EN が `Screenshot platform`、JA が `スクリーンショットの OS`。`alt` は OS 名を含めて画像ごとに変える
+
+### 初期選択と OS 判定
+
+既存のスクリプトの `detectPlatform()`（ダウンロードボタンの出し分けに使っている）で、最初に選ぶ OS を決める。判定できない環境（Linux、モバイルなど）と、判定した OS の画像がないときは macOS を選ぶ。
+
+既存の IIFE は、判定結果が `null` のとき `if (!platform) return;` で抜ける。切り替えの初期化をこの後ろに書くと、Linux やモバイルで切り替えが動かない。`detectPlatform()` を IIFE の外に出して共有し、切り替えは別の IIFE で初期化する。
+
+初期選択は遷移を無効にしたまま適用し、次のフレームで `data-ready` を付けてから遷移を有効にする。読み込み直後に画像がフェードして入れ替わるのを防ぐためである。
+
+### 操作とアクセシビリティ
+
+- WAI-ARIA の radio group パターンにする。容器が `role="radiogroup"`、各ボタンが `role="radio"` と `aria-checked` を持つ。tabs パターンは各パネルに `role="tabpanel"` が要るが、`<picture>` には role を付けられず、包む要素を足すと #660 で追加するマークアップが増えるので採らない
+- 選択中のボタンだけ `tabindex="0"` にし、左右の矢印キーで隣のボタンへ移ると同時に選択も切り替える（切り替えるのは画像 1 枚だけで、待ち時間がないため）
+- 選んだ OS は保存しない。ページを開くたびに OS 判定から始める
+
+### 見た目
+
+- 切り替えは枠の上に中央寄せで置く、2 つのボタンからなる角丸の小さな区切りボタン（segmented control）。背景は `--surface-3`、枠線は `--border`。文字は 0.85rem 前後
+- 選択中を示す下地（インジケーター）を 1 枚だけ置き、選択に合わせて横に動かす。2 つのボタンは同じ幅（`grid-template-columns: 1fr 1fr`）にし、インジケーターは `translateX(0)` と `translateX(100%)` の 2 位置だけを取る
+- 選択中の文字は `--foreground`、非選択は不透明度を下げる
+- LP の既存のトークン（`--surface-*`、`--border`、`--foreground`）だけを使い、新しい色は足さない
+
+### モーション
+
+切り替えは 1 回の訪問で数回押される程度で、頻度は低い。目的は、どの OS の画像に変わったかを知らせることと、急な入れ替わりを避けることである。
+
+| 対象 | 動き | 値 |
+| --- | --- | --- |
+| インジケーター | `transform` の移動 | 200ms、`cubic-bezier(0.23, 1, 0.32, 1)` |
+| ボタンの文字色 | `color` の変化 | 200ms、`ease` |
+| ボタンを押したとき | `:active` で `transform: scale(0.97)` | 160ms、`ease-out` |
+| ボタンの hover | 背景色の変化 | `@media (hover: hover) and (pointer: fine)` の中だけで有効にする |
+| 画像 | `opacity` のクロスフェード | 150ms、`cubic-bezier(0.23, 1, 0.32, 1)`。隠す側は `visibility` を遷移の終わりに切り替える（`transition: opacity 150ms ..., visibility 0s linear 150ms`） |
+
+- `transition: all` は使わず、動かすプロパティを列挙する。キーフレームではなく transition にする。連続して押されても途中から向きを変えられるからである
+- 2 枚の画像はレイアウトが同じで書体だけが違うので、クロスフェードの途中で文字が二重に見えることがある。実装後に遷移を 5 倍に伸ばして確かめ、二重に見えたら隠れる側に `filter: blur(2px)` を足す。それでも気になるときは、画像だけ遷移なしで切り替える
+- `prefers-reduced-motion: reduce` では、インジケーターの移動とボタンの縮小をなくし、画像の opacity の変化だけを残す。LP の既存の書き方（`@media (prefers-reduced-motion: no-preference)` の中で遷移を有効にする）に合わせ、`transform` の遷移はこのメディアクエリの中にだけ書く
+
+### 読み込み
+
+`<picture>` は現在のテーマに合う画像を 1 枚ずつ読むので、Windows 版を足すと読み込みは JPG 1 枚分（約 350 KB）増える。非選択の画像も先に読んでおけば、切り替えた瞬間に表示できる。増える量は許容し、遅延読み込みはしない。
+
+### #657 での確かめ方
+
+#657 の時点では Windows 版の画像がなく、切り替えが表示されない。そこで、`tmp/` に macOS 版の画像の複製を置き、`data-platform="windows"` の `<picture>` を一時的に足したページで確かめる。複製と一時的な変更はコミットしない。
+
+- 切り替えが表示され、クリックと矢印キーで選択が変わる
+- 初期選択が OS 判定に従う（macOS のブラウザでは macOS）
+- light / dark の両方で、インジケーターと文字の色が読める
+- 5 倍に伸ばした遷移で、インジケーターの動きと画像の切り替えに不自然さがない
+- `prefers-reduced-motion: reduce` で、移動がなくなり opacity だけが変わる
+- 画像を 1 つに戻すと、切り替えが消え、今と同じ 1 枚の表示になる
 
 ## 実装タスク
 
-1 つの PR にまとめ、タスクごとにコミットを分ける。T1 から順に進める。
+#657 の中で、1 つの PR にまとめ、タスクごとにコミットを分ける。T1 から順に進める。
 
 | # | 内容 | 主な変更 | 確認 |
 | --- | --- | --- | --- |
 | T1 | シードと preference の整備 | `mock-data-demo-en.ts`（表示名、Video フィードの URL）、`mock-state.ts`（`theme`、`debug_agentation_visibility`） | `dev-mock-data-demo-en.node.test.ts` のガード 2 つと preference の確認。`mise run check` |
 | T2 | 撮影用シナリオ | `scenario-ids.ts`、`registry.ts`、`import-registry.ts`、`scenarios/types.ts`（`selectArticle` の `options`）、シナリオ本体 | runner / registry / intent のテスト。`mise run check` |
-| T3 | 撮影スクリプト | `scripts/capture-store-screenshots.ts`、`package.json` の 2 script | macOS と Windows の両方で `capture:screenshots` を実行し、DOM 検査が通ること（シナリオで選んだ記事が起動時の自動着地に上書きされないことを含む）、4 ファイルが 3200 × 1800 で出ることを確かめる |
+| T3 | 撮影スクリプト | `scripts/capture-store-screenshots.ts`、`package.json` の 2 script | 出力パスの単体テスト（`win32` を含む）。macOS で `capture:screenshots` を実行し、DOM 検査が通ること（シナリオで選んだ記事が起動時の自動着地に上書きされないことを含む）、4 ファイルが 3200 × 1800 で `-mac` 付きで出ることを確かめる |
 | T4 | 撮影規約ドキュメント | `docs/store-screenshots.md`、`docs/README.md`、`site/README.md` | markdownlint |
-| T5 | 画像の差し替え | `docs/assets/`、`docs/assets/store/`、`site/assets/` | 正本 OS で `capture:screenshots:publish` を実行し、規約のチェックリストで目視確認する。`mise run ci` |
+| T5 | macOS 版の画像 | `capture:screenshots:publish` の出力、旧 `screenshot-reader-{light,dark}.jpg` の削除、`README.md`、`README.ja.md`、LP 2 ページの画像パスと `og:image`、`twitter:image` | 撮影規約のチェックリストで目視確認する。旧ファイル名の参照が残っていないことを検索で確かめる |
+| T6 | LP の構造 | `site/index.html`、`site/ja/index.html`（決定 7 の構造） | 決定 7「#657 での確かめ方」。`ui-design-review-loop.md` の観点ごとの確認。最後に `mise run ci` |
 
-T3 の Windows 確認は、`.claude/rules/rust-cfg-split-policy.md` と同じ理由（開発機で通っても他 OS で通る保証にならない）で省略しない。
+初版からの差分は次のとおり。
+
+- T3: 確認から Windows での実行を外し、出力パスの単体テストを足した。Windows での実行は #660 で行う
+- T5（初版の T5）: 撮るのは macOS 版だけにした。Store 用の PNG はコミットしない。旧 JPG を削除し、README と LP の参照を置き換える
+- T6（新規）: LP を OS 別の画像を重ねる構造にする
+- Windows 版の撮影、LP への Windows 版 `<picture>` の追加、Store 用 PNG のコミットは #660 に移した
 
 ## 設計時の spike（2026-11-13、macOS）
 
@@ -268,7 +393,7 @@ src を変えずに、`VITE_DEV_MOCK_LOCALE=en` で vite を起動し（port 419
 | Agentation | 表示される。`127.0.0.1:4747` へ通信しようとする。外部通信の遮断は「4173 番以外」を対象にする必要がある |
 | 外部通信 | `https://www.google.com/s2/favicons` へのリクエストが出る（遮断した） |
 
-T0 で残る確認は、撮影用シナリオで選んだ記事が、起動時の自動着地で上書きされないことだけである。シナリオを実装したあと、撮影スクリプトの DOM 検査（開いた記事のタイトル）で確かめる。
+残る確認は、撮影用シナリオで選んだ記事が、起動時の自動着地で上書きされないことだけである。シナリオを実装したあと、T3 で撮影スクリプトの DOM 検査（開いた記事のタイトル）によって確かめる。
 
 ## Follow-ups
 
