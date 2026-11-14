@@ -6,6 +6,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { type Browser, chromium, type Page } from "@playwright/test";
+import { SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION, STORAGE_KEYS } from "../src/constants/storage.ts";
 import {
   EXPECTED_IMAGE_SIZE,
   type PlannedOutput,
@@ -29,6 +30,10 @@ const SCENARIO_ID = "open-unread-showcase-article";
 const EXPECTED_ACCOUNT_NAME = "Personal";
 // Keep in sync with SHOWCASE_ARTICLE_ID in src/dev/scenarios/constants.ts.
 const EXPECTED_ARTICLE_TITLE = "Why teams are rethinking their end-to-end test suites this year";
+// Keep in sync with the English demo seed (src/dev/mock-data-demo-en.ts). The expanded Dev folder fills the sidebar
+// that would otherwise leave a large empty area below the tags.
+const SEED_ACCOUNT_ID = "acc-freshrss";
+const EXPANDED_FOLDER_ID = "folder-dev";
 const FORBIDDEN_BRAND_PATTERN = /freshrss/i;
 // Tuned so the JPG size lands near the screenshots it replaces; body text was checked to stay crisp at this value.
 const JPEG_QUALITY = 55;
@@ -149,6 +154,8 @@ type PageFindings = {
   articleHeading: string | null;
   selectedNavLabels: string[];
   darkClass: boolean;
+  expandedFolderIds: string[];
+  articleOverflowPx: number | null;
   agentationVisible: boolean;
   toastVisible: boolean;
   bodyText: string;
@@ -165,6 +172,20 @@ async function collectFindings(page: Page): Promise<PageFindings> {
         (node) => node.textContent?.trim() ?? "",
       ),
       darkClass: document.documentElement.classList.contains("dark"),
+      articleOverflowPx: (() => {
+        let node: HTMLElement | null = [...document.querySelectorAll("h1")].at(-1)?.parentElement ?? null;
+        while (node) {
+          const overflowY = getComputedStyle(node).overflowY;
+          if (overflowY === "auto" || overflowY === "scroll") {
+            return node.scrollHeight - node.clientHeight;
+          }
+          node = node.parentElement;
+        }
+        return null;
+      })(),
+      expandedFolderIds: [...document.querySelectorAll("[data-folder-row-id] button[aria-expanded='true']")].map(
+        (node) => node.closest("[data-folder-row-id]")?.getAttribute("data-folder-row-id") ?? "",
+      ),
       agentationVisible: document.querySelector(".ultra-agentation-toolbar, [data-agentation-toolbar]") !== null,
       toastVisible: toastNodes.length > 0 && [...toastNodes].some((node) => (node.textContent ?? "").trim().length > 0),
       bodyText: document.body.innerText,
@@ -188,6 +209,16 @@ function validateFindings(theme: ScreenshotTheme, findings: PageFindings): strin
   }
   if (findings.darkClass !== (theme === "dark")) {
     problems.push(`the html dark class does not match the "${theme}" color scheme`);
+  }
+  if (findings.expandedFolderIds.join() !== EXPANDED_FOLDER_ID) {
+    problems.push(
+      `expanded folders are ${JSON.stringify(findings.expandedFolderIds)}, expected only "${EXPANDED_FOLDER_ID}"`,
+    );
+  }
+  if (findings.articleOverflowPx === null || findings.articleOverflowPx > 0) {
+    problems.push(
+      `the article does not fit its pane (overflow: ${findings.articleOverflowPx}px); shorten the showcase article so no text is cut off`,
+    );
   }
   if (findings.agentationVisible) {
     problems.push("the dev-only Agentation toolbar is visible");
@@ -214,6 +245,14 @@ async function capture(
     reducedMotion: "reduce",
   });
   try {
+    // Read back at startup because the English seed sets startup_folder_expansion to "restore_previous".
+    await context.addInitScript(({ key, value }) => window.localStorage.setItem(key, value), {
+      key: STORAGE_KEYS.sidebarExpandedFolders,
+      value: JSON.stringify({
+        version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+        accounts: { [SEED_ACCOUNT_ID]: [EXPANDED_FOLDER_ID] },
+      }),
+    });
     // Block everything except the local dev server so favicons fall back to initials and nothing real is captured.
     await context.route("**/*", (route) => {
       const url = route.request().url();

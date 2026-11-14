@@ -1,5 +1,5 @@
 export type ScreenshotTheme = "light" | "dark";
-export type ScreenshotFormat = "png" | "jpg";
+type ScreenshotFormat = "png" | "jpg";
 export type CaptureMode = "trial" | "publish";
 
 export const SCREENSHOT_THEMES: readonly ScreenshotTheme[] = ["light", "dark"];

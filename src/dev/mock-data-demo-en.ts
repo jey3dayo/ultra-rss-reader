@@ -10,6 +10,11 @@
  */
 
 import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
+import gridThumbnail from "@/dev/assets/demo-thumbnails/grid.svg?no-inline";
+import hillsThumbnail from "@/dev/assets/demo-thumbnails/hills.svg?no-inline";
+import ringsThumbnail from "@/dev/assets/demo-thumbnails/rings.svg?no-inline";
+import stripesThumbnail from "@/dev/assets/demo-thumbnails/stripes.svg?no-inline";
+import wavesThumbnail from "@/dev/assets/demo-thumbnails/waves.svg?no-inline";
 import {
   createMockArticle,
   type DevMockSeedState,
@@ -213,6 +218,15 @@ const longReaderKeyboardContentEn = longReaderKeyboardContentParagraphsEn
   .map((paragraph) => `<p>${paragraph}</p>`)
   .join("");
 
+const showcaseArticleContentEn = [
+  "<p>Teams that made the switch describe a slow build-up rather than a single rewrite. Suites grew flaky one merge at a time, and the fix came the same way.</p>",
+  "<h2>Ownership mattered more than tooling</h2>",
+  "<p>The common thread was ownership. Healthy suites had a clear owner who triaged failures within a day or two; suites that were nobody's job quietly accumulated skipped tests.</p>",
+  "<blockquote><p>Flaky tests erode trust faster than slow ones.</p></blockquote>",
+  "<p>Several teams now reserve end-to-end runs for a small set of critical journeys:</p>",
+  "<ul><li>Keep a handful of browser-driven checks for the flows that matter most</li><li>Push everything else down to faster unit and component tests</li><li>Give every suite an owner who triages failures within a day</li></ul>",
+].join("");
+
 const mockArticleSeedsEn = [
   createMockArticleEn({
     id: "art-en-1",
@@ -229,6 +243,7 @@ const mockArticleSeedsEn = [
     minutes: 12,
     isRead: false,
     isStarred: false,
+    thumbnail: ringsThumbnail,
   }),
   createMockArticleEn({
     id: "art-en-2",
@@ -250,7 +265,7 @@ const mockArticleSeedsEn = [
     title: "Why teams are rethinking their end-to-end test suites this year",
     summary:
       "Slow, flaky end-to-end tests are pushing more teams toward a layered testing strategy that leans harder on fast unit and component tests.",
-    contentHtml: longReaderKeyboardContentEn,
+    contentHtml: showcaseArticleContentEn,
     url: "https://example.com/dev-weekly/rethinking-e2e-tests",
     author: "Dev Weekly Editors",
     date: now,
@@ -300,6 +315,7 @@ const mockArticleSeedsEn = [
     minutes: 50,
     isRead: false,
     isStarred: false,
+    thumbnail: hillsThumbnail,
   }),
   createMockArticleEn({
     id: "art-en-7",
@@ -314,6 +330,7 @@ const mockArticleSeedsEn = [
     minutes: 30,
     isRead: false,
     isStarred: false,
+    thumbnail: wavesThumbnail,
   }),
   createMockArticleEn({
     id: "art-en-8",
@@ -342,6 +359,7 @@ const mockArticleSeedsEn = [
     minutes: 48,
     isRead: false,
     isStarred: false,
+    thumbnail: stripesThumbnail,
   }),
   createMockArticleEn({
     id: "art-en-10",
@@ -370,6 +388,7 @@ const mockArticleSeedsEn = [
     minutes: 10,
     isRead: false,
     isStarred: false,
+    thumbnail: gridThumbnail,
   }),
   createMockArticleEn({
     id: "art-en-12",
@@ -482,6 +501,7 @@ const mockArticleSeedsEn = [
     date: addLocalDays(now, -140),
     hours: 8,
     minutes: 20,
+    contentHtml: longReaderKeyboardContentEn,
     isRead: true,
     isStarred: false,
   }),

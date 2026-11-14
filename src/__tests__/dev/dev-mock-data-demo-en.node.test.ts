@@ -70,6 +70,15 @@ describe("dev mock data (English demo locale)", () => {
     expect(hasLongArticle).toBe(true);
   });
 
+  it("serves seed thumbnails as paths, because article thumbnails reject data: URIs", () => {
+    const thumbnails = mockDataSeedsEn.articles.flatMap((article) => (article.thumbnail ? [article.thumbnail] : []));
+
+    expect(thumbnails.length).toBeGreaterThan(0);
+    for (const thumbnail of thumbnails) {
+      expect(thumbnail.startsWith("/")).toBe(true);
+    }
+  });
+
   it("does not attribute fictional headlines to real news organizations", () => {
     const realOrganizationNames = ["NHK", "The Verge", "Ars Technica", "TechCrunch", "Reuters", "BBC", "CNN"];
 
@@ -171,6 +180,7 @@ describe("dev mock data locale switching (mock-data.ts seam)", () => {
     expect(mockPreferences.get("language")).toBe("en");
     expect(mockPreferences.get("theme")).toBe("system");
     expect(mockPreferences.get("debug_agentation_visibility")).toBe("off");
+    expect(mockPreferences.get("startup_folder_expansion")).toBe("restore_previous");
   });
 
   it("leaves the language preference unset (frontend default) under the default Japanese locale", async () => {
@@ -179,6 +189,7 @@ describe("dev mock data locale switching (mock-data.ts seam)", () => {
     expect(mockPreferences.has("language")).toBe(false);
     expect(mockPreferences.has("theme")).toBe(false);
     expect(mockPreferences.has("debug_agentation_visibility")).toBe(false);
+    expect(mockPreferences.has("startup_folder_expansion")).toBe(false);
   });
 
   it("seeds an English mute keyword list under VITE_DEV_MOCK_LOCALE=en", async () => {
