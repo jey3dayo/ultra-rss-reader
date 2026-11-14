@@ -11,6 +11,8 @@
   "scripts": {
     "dev": "pnpm exec vite",
     "dev:tauri:vite": "node ./scripts/tauri-dev-vite-manager.ts",
+    "capture:screenshots": "node ./scripts/capture-store-screenshots.ts",
+    "capture:screenshots:publish": "node ./scripts/capture-store-screenshots.ts --publish",
     "build": "pnpm exec tsc && pnpm exec vite build",
     "typecheck": "pnpm exec tsc --noEmit",
     "preview": "pnpm exec vite preview",
