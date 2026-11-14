@@ -1,12 +1,13 @@
 export type ScreenshotTheme = "light" | "dark";
 type ScreenshotFormat = "png" | "jpg";
 export type CaptureMode = "trial" | "publish";
+export type ScreenshotLanguage = "en" | "ja";
 
 export const SCREENSHOT_THEMES: readonly ScreenshotTheme[] = ["light", "dark"];
 export const EXPECTED_IMAGE_SIZE = { width: 3200, height: 1800 } as const;
 
 const TRIAL_OUTPUT_DIR = "tmp/screenshots/store";
-const DOCS_ASSETS_DIR = "docs/assets";
+const DOCS_SCREENSHOTS_DIR = "docs/assets/screenshots";
 const DOCS_STORE_DIR = "docs/assets/store";
 const SITE_ASSETS_DIR = "site/assets";
 
@@ -15,7 +16,7 @@ export type PlannedOutput = {
   format: ScreenshotFormat;
   /** Repo-root-relative path, always with forward slashes. */
   path: string;
-  /** Repo-root-relative copy destinations (the LP serves `site/assets/`, which mirrors `docs/assets/`). */
+  /** Repo-root-relative copy destinations for the matching landing-page language. */
   copyTo: string[];
 };
 
@@ -37,13 +38,19 @@ function fileName(theme: ScreenshotTheme, suffix: string, format: ScreenshotForm
 /**
  * Decides which files a capture run writes.
  *
- * - trial: PNG and JPG under `tmp/screenshots/store/` on every OS (an unknown OS keeps its `process.platform` as suffix).
- * - publish on macOS: JPG only (`docs/assets/` plus the `site/assets/` copy).
- * - publish on Windows: JPG as on macOS, plus the Store PNG under `docs/assets/store/`.
+ * - trial: PNG and JPG under `tmp/screenshots/store/<language>/` on every OS.
+ * - publish on macOS: JPG only (`docs/assets/screenshots/<language>/` plus the `site/assets/<language>/` copy).
+ * - publish English on Windows: JPG as on macOS, plus the Store PNG at its established path.
+ * - publish Japanese on Windows: localized JPGs only; the Store PNG path is reserved for English.
  * - publish elsewhere: rejected, because a file name without a known OS suffix would be ambiguous.
  */
-export function planOutputs(platform: NodeJS.Platform, mode: CaptureMode): PlannedOutput[] {
+export function planOutputs(
+  platform: NodeJS.Platform,
+  mode: CaptureMode,
+  language: ScreenshotLanguage = "en",
+): PlannedOutput[] {
   const osSuffix = resolveOsSuffix(platform);
+  const languageDir = language;
 
   if (mode === "trial") {
     const suffix = osSuffix ?? platform;
@@ -51,7 +58,7 @@ export function planOutputs(platform: NodeJS.Platform, mode: CaptureMode): Plann
       (["png", "jpg"] as const).map((format) => ({
         theme,
         format,
-        path: `${TRIAL_OUTPUT_DIR}/${fileName(theme, suffix, format)}`,
+        path: `${TRIAL_OUTPUT_DIR}/${languageDir}/${fileName(theme, suffix, format)}`,
         copyTo: [],
       })),
     );
@@ -68,10 +75,10 @@ export function planOutputs(platform: NodeJS.Platform, mode: CaptureMode): Plann
     const jpg: PlannedOutput = {
       theme,
       format: "jpg",
-      path: `${DOCS_ASSETS_DIR}/${fileName(theme, osSuffix, "jpg")}`,
-      copyTo: [`${SITE_ASSETS_DIR}/${fileName(theme, osSuffix, "jpg")}`],
+      path: `${DOCS_SCREENSHOTS_DIR}/${languageDir}/${fileName(theme, osSuffix, "jpg")}`,
+      copyTo: [`${SITE_ASSETS_DIR}/${languageDir}/${fileName(theme, osSuffix, "jpg")}`],
     };
-    if (osSuffix !== "windows") {
+    if (osSuffix !== "windows" || language === "ja") {
       return [jpg];
     }
     return [

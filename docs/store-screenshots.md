@@ -17,10 +17,10 @@ This document fixes how the product screenshots are produced, so they can be reg
 
 It covers every committed screenshot:
 
-- `docs/assets/screenshot-reader-<theme>-<os>.jpg`, used by the READMEs and mirrored to `site/assets/` for the landing page
+- `docs/assets/screenshots/<language>/screenshot-reader-<theme>-<os>.jpg`, used by the matching README and mirrored to `site/assets/<language>/` for the landing page
 - `docs/assets/store/screenshot-reader-<theme>-windows.png`, uploaded to Partner Center for the Microsoft Store listing
 
-`<theme>` is `light` or `dark`, and `<os>` is `mac` or `windows`.
+`<language>` is `en` or `ja`; `<theme>` is `light` or `dark`, and `<os>` is `mac` or `windows`.
 
 ## Policy Background
 
@@ -34,11 +34,11 @@ The word "FreshRSS" is not forbidden as such. The problem was a third-party prod
 
 ## Data Rules
 
-- Capture only from the store fixtures (`src/dev/store-screenshot-fixtures.ts`), selected with `VITE_DEV_MOCK_LOCALE=store`. They are the only data the capture loads. Never capture a real account, real data, or a real server.
-- The everyday English demo seed (`src/dev/mock-data-demo-en.ts`) is built on top of the fixtures and adds only articles that other dev checks need. Edit those extras freely; editing the fixtures changes the store images.
-- Do not capture the Japanese seed (`src/dev/mock-data.ts`). It contains real site names and is the default data of everyday development and many tests.
-- The fixtures' account display name is `Personal`. A display name is whatever the user types when adding an account, so a neutral name is a faithful picture of the product.
-- Seed feeds and articles use `example.com` hosts only. Guard tests in `src/__tests__/dev/store-screenshot-fixtures.node.test.ts` fail if any name or text the fixtures can show matches `FreshRSS` or any English feed or article URL leaves `example.com`.
+- Capture only from the language-specific store fixtures (`src/dev/store-screenshot-fixtures.ts` for English or `src/dev/store-screenshot-fixtures-ja.ts` for Japanese), selected with `VITE_DEV_MOCK_LOCALE=store` or `store-ja`. They are the only data the capture loads. Never capture a real account, real data, or a real server.
+- The everyday English demo seed (`src/dev/mock-data-demo-en.ts`) is built on top of the English fixtures and adds only articles that other dev checks need. Edit those extras freely; editing the fixtures changes the matching language's store images.
+- Do not capture the everyday Japanese seed (`src/dev/mock-data.ts`). It contains real site names and is the default data of everyday development and many tests.
+- The English and Japanese fixture account display names are `Personal` and `個人用`. A display name is whatever the user types when adding an account, so neutral names are faithful pictures of the product.
+- Seed feeds and articles use `example.com` hosts only. Guard tests in `src/__tests__/dev/store-screenshot-fixtures.node.test.ts` check both fixture sets for third-party product names and off-example URLs.
 
 ## Brand Rules
 
@@ -53,13 +53,13 @@ The word "FreshRSS" is not forbidden as such. The problem was a third-party prod
 
 | Item | Why it is fixed |
 | --- | --- |
-| Seed locale `store` | Same data and copy on every machine, and on every OS, from fixtures that nothing else edits |
+| Seed locale `store` or `store-ja` | Same language-specific data on every machine and OS from dedicated fixtures |
 | Scenario `open-unread-showcase-article` | Opens the Unread smart view with a fixed article as a preview, so the read state and the unread badges do not change while capturing |
 | Preferences `theme: "system"`, `debug_agentation_visibility: "off"` | `system` lets the browser color scheme switch dark and light; the dev-only Agentation toolbar stays out of the image |
 | Preference `startup_folder_expansion: "restore_previous"` and a pre-seeded expanded-folder key | The Dev folder is open in the sidebar without a click. Clicking a folder row also selects it and leaves the Unread view |
-| Account sync time | The English seeds report a recent successful sync, so the sidebar shows a time instead of "Not synced yet" |
+| Account sync time | The screenshot fixtures report a recent successful sync, so the sidebar shows a time instead of the never-synced label |
 | Viewport and device scale factor | Output is 3200 × 1800, the size of the previous screenshots and within the Store desktop limits |
-| Locale and time zone | Date and number formats do not depend on the machine |
+| Browser locale (`en-US` or `ja-JP`) and time zone | Date and number formats do not depend on the machine |
 | Fixed clock | The seed's relative dates and the "Today" group do not depend on the capture day; the time is later than every seed article published today |
 | Reduced motion | No frame is captured mid-transition |
 | External requests blocked | Favicons fall back to initials; no real logo or network state leaks in |
@@ -75,7 +75,7 @@ The state above fixes what is true; the composition decides what looks good in a
 
 The capture runs in a browser, not in the Tauri window, so the native window chrome (title bar, traffic lights) is not part of the image. What the image shows is the app screen drawn by Chromium on the capture OS.
 
-Before writing any file, the script inspects the live page and fails if any of these does not hold: the sidebar heading is `Personal` and no page text matches `FreshRSS`; the article heading is the showcase article; the Unread smart view is selected; only the Dev folder is expanded; the article text does not overflow the reader pane; the `html` theme matches the color scheme; no Agentation toolbar or toast is visible; no page error occurred.
+Before writing any file, the script inspects the live page and fails if any of these does not hold: the sidebar heading matches the selected language's store fixture and no page text matches `FreshRSS`; the article heading is the localized showcase article; the Unread or 未読 smart view is selected; only the Dev or 開発 folder is expanded; the article text does not overflow the reader pane; the `html` theme matches the color scheme; no Agentation toolbar or toast is visible; no page error occurred.
 
 ## Platforms And File Names
 
@@ -83,13 +83,16 @@ The app ships for macOS and Windows and draws with each OS's system fonts, so th
 
 | File | Captured on | Used by |
 | --- | --- | --- |
-| `docs/assets/screenshot-reader-{light,dark}-mac.jpg` (and the `site/assets/` copy) | macOS | READMEs, landing page |
-| `docs/assets/screenshot-reader-{light,dark}-windows.jpg` (and the `site/assets/` copy) | Windows 11 | landing page |
+| `docs/assets/screenshots/en/screenshot-reader-{light,dark}-mac.jpg` (and the `site/assets/en/` copy) | macOS | English README and landing page |
+| `docs/assets/screenshots/en/screenshot-reader-{light,dark}-windows.jpg` (and the `site/assets/en/` copy) | Windows 11 | English landing page |
+| `docs/assets/screenshots/ja/screenshot-reader-{light,dark}-mac.jpg` (and the `site/assets/ja/` copy) | macOS | Japanese README and landing page |
+| `docs/assets/screenshots/ja/screenshot-reader-{light,dark}-windows.jpg` (and the `site/assets/ja/` copy) | Windows 11 | Optional Japanese Windows landing-page image |
 | `docs/assets/store/screenshot-reader-{light,dark}-windows.png` | Windows 11 | Microsoft Store listing (PNG is required) |
 
 - The script picks the OS suffix from `process.platform` (`darwin` → `mac`, `win32` → `windows`). There is no file name without a suffix.
-- Publishing is supported on macOS and Windows only. macOS writes JPG only; Windows writes JPG and the Store PNG.
-- The README shows the macOS image only.
+- Publishing is supported on macOS and Windows only. macOS writes JPG only; English Windows writes JPG and the Store PNG at its established path. Japanese Windows writes localized JPGs only.
+- Each README shows the macOS image for its language. The Japanese landing page uses Japanese macOS images and the existing English Windows images until Japanese Windows captures are available.
+- The Store PNG path is fixed for the English Microsoft Store listing and is not language-scoped.
 - What stays equal across OSes is the state and the composition. Pixels differ because the fonts differ.
 
 ## Capture Procedure
@@ -97,13 +100,15 @@ The app ships for macOS and Windows and draws with each OS's system fonts, so th
 Prerequisites: dependencies installed (`pnpm install`) and the Playwright Chromium (`pnpm exec playwright install chromium`). On Windows, use Windows 11.
 
 ```bash
-pnpm run capture:screenshots           # trial run: PNG and JPG into tmp/screenshots/store/
-pnpm run capture:screenshots:publish   # commit-ready files for the running OS
+pnpm run capture:screenshots -- --lang en        # English trial into tmp/screenshots/store/en/
+pnpm run capture:screenshots -- --lang ja        # Japanese trial into tmp/screenshots/store/ja/
+pnpm run capture:screenshots:publish -- --lang ja # Japanese files for the running OS
+pnpm run capture:screenshots:publish             # English files for the running OS
 ```
 
 - The script starts its own vite on port 4173 with the arguments of `mise run app:dev:browser`. If that port is taken, pass another one: `pnpm run capture:screenshots -- --port 4180`. Other servers are never stopped or reused.
 - A trial run writes both PNG and JPG on every OS and is never committed.
-- Publish copies each JPG to `site/assets/` as well; `docs/assets/` is the source of truth.
+- `--lang` defaults to `en`. Publish copies each JPG to the matching `site/assets/<language>/` folder; `docs/assets/screenshots/<language>/` is the source of truth.
 - Re-run the trial after any change to the fixtures, the scenario, or the app UI, and look at the images before publishing.
 
 ## Asset Management
@@ -114,12 +119,12 @@ pnpm run capture:screenshots:publish   # commit-ready files for the running OS
 
 ```html
 <picture data-platform="windows">
-  <source srcset="assets/screenshot-reader-dark-windows.jpg" media="(prefers-color-scheme: dark)" />
-  <img src="assets/screenshot-reader-light-windows.jpg" width="1600" height="900" alt="Ultra RSS Reader on Windows: ..." />
+  <source srcset="assets/en/screenshot-reader-dark-windows.jpg" media="(prefers-color-scheme: dark)" />
+  <img src="assets/en/screenshot-reader-light-windows.jpg" width="1600" height="900" alt="Ultra RSS Reader on Windows: ..." />
 </picture>
 ```
 
-The platform switch appears by itself once two or more `<picture data-platform>` elements exist. `site/ja/index.html` uses `../assets/` paths and a Japanese `alt`.
+The platform switch appears by itself once two or more `<picture data-platform>` elements exist. `site/ja/index.html` uses `../assets/ja/` paths and a Japanese `alt`.
 
 ## Post-Capture Checklist
 
