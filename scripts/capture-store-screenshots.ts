@@ -43,11 +43,13 @@ const FORBIDDEN_BRAND_PATTERN = /freshrss/i;
 const JPEG_QUALITY = 55;
 const SERVER_READY_TIMEOUT_MS = 60_000;
 const SERVER_POLL_INTERVAL_MS = 250;
-const SERVER_POLL_REQUEST_TIMEOUT_MS = 3000;
-// The first module transform after a cold start blocks vite for ~2 minutes on a Windows dev machine; wait it out before opening the browser.
+// Upper bound for the single warm-up request (cold start: about 30 s to 90 s on a Windows dev machine).
 const SERVER_WARMUP_TIMEOUT_MS = 300_000;
 // The first load after a cold vite start transforms every module and can take over a minute on slower disks.
 const PAGE_READY_TIMEOUT_MS = 120_000;
+const SETTLE_POLL_INTERVAL_MS = 500;
+const NAVIGATION_ATTEMPT_TIMEOUT_MS = 45_000;
+const NAVIGATION_ATTEMPTS = 6;
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -124,31 +126,26 @@ async function startVite(port: number): Promise<ViteServer> {
     },
   };
 
-  const ready = (async () => {
+  // Polls the socket only. An HTTP poll would start vite's slow first transform again on every retry.
+  const listening = (async () => {
     const deadline = Date.now() + SERVER_READY_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      try {
-        // A first request can stall while vite warms up; a fresh connection after a timeout goes through.
-        const response = await fetch(`http://${HOST}:${port}/`, {
-          signal: AbortSignal.timeout(SERVER_POLL_REQUEST_TIMEOUT_MS),
-        });
-        if (response.ok) {
-          return;
-        }
-      } catch {
-        // Not listening yet.
+      if (await isPortInUse(port)) {
+        return;
       }
       await new Promise((resolve) => setTimeout(resolve, SERVER_POLL_INTERVAL_MS));
     }
-    throw new Error(`vite did not become ready on port ${port} within ${SERVER_READY_TIMEOUT_MS / 1000}s.`);
+    throw new Error(`vite did not listen on port ${port} within ${SERVER_READY_TIMEOUT_MS / 1000}s.`);
   })();
   const earlyExit = exited.then((code) => {
     throw new Error(`vite exited before it was ready (code ${code}). Check that port ${port} is free.`);
   });
 
+  // The first request after a cold start can take 30 s to 90 s while vite works. Send exactly one and wait it out,
+  // so the browser's navigation is not queued behind a pile of aborted retries.
   const warmUp = async () => {
-    await ready;
-    const response = await fetch(`http://${HOST}:${port}/src/main.tsx`, {
+    await listening;
+    const response = await fetch(`http://${HOST}:${port}/`, {
       signal: AbortSignal.timeout(SERVER_WARMUP_TIMEOUT_MS),
     });
     if (!response.ok) {
@@ -245,6 +242,22 @@ function validateFindings(theme: ScreenshotTheme, findings: PageFindings): strin
   return problems;
 }
 
+// On Windows the first document request from Chromium sometimes stalls for minutes while vite is still busy, and a
+// fresh navigation goes through. Retry instead of waiting out one long timeout.
+async function gotoWithRetry(page: Page, url: string): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAVIGATION_ATTEMPT_TIMEOUT_MS });
+      return;
+    } catch (error) {
+      if (!(error instanceof Error) || error.name !== "TimeoutError" || attempt >= NAVIGATION_ATTEMPTS) {
+        throw error;
+      }
+      console.error(`[capture-store-screenshots] navigation stalled (attempt ${attempt}), retrying.`);
+    }
+  }
+}
+
 async function capture(
   browser: Browser,
   port: number,
@@ -282,21 +295,20 @@ async function capture(
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.clock.setFixedTime(FIXED_TIME);
-    await page.goto(`${origin}/`, { waitUntil: "domcontentloaded", timeout: PAGE_READY_TIMEOUT_MS });
+    await gotoWithRetry(page, `${origin}/`);
 
-    await page
-      .waitForFunction(
-        (title) => [...document.querySelectorAll("h1")].some((node) => node.textContent?.trim() === title),
-        EXPECTED_ARTICLE_TITLE,
-        { timeout: PAGE_READY_TIMEOUT_MS },
-      )
-      .catch(() => {
-        // The inspection below reports what is actually on screen.
-      });
-    await page.evaluate(() => document.fonts.ready);
-
-    const findings = await collectFindings(page);
-    const problems = validateFindings(theme, findings);
+    // The sidebar, the folder expansion and the article render in separate steps after load, so wait until the
+    // whole screen passes the inspection instead of until its first piece appears.
+    const settleDeadline = Date.now() + PAGE_READY_TIMEOUT_MS;
+    let problems: string[];
+    for (;;) {
+      await page.evaluate(() => document.fonts.ready);
+      problems = validateFindings(theme, await collectFindings(page));
+      if (problems.length === 0 || Date.now() >= settleDeadline) {
+        break;
+      }
+      await page.waitForTimeout(SETTLE_POLL_INTERVAL_MS);
+    }
     if (pageErrors.length > 0) {
       problems.push(`page errors: ${pageErrors.join("; ")}`);
     }
