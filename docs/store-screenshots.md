@@ -55,15 +55,26 @@ The word "FreshRSS" is not forbidden as such. The problem was a third-party prod
 | Seed locale `en` | Same data and copy on every machine |
 | Scenario `open-unread-showcase-article` | Opens the Unread smart view with a fixed article as a preview, so the read state and the unread badges do not change while capturing |
 | Preferences `theme: "system"`, `debug_agentation_visibility: "off"` | `system` lets the browser color scheme switch dark and light; the dev-only Agentation toolbar stays out of the image |
+| Preference `startup_folder_expansion: "restore_previous"` and a pre-seeded expanded-folder key | The Dev folder is open in the sidebar without a click. Clicking a folder row also selects it and leaves the Unread view |
+| Account sync time | The English seed reports a recent successful sync, so the sidebar shows a time instead of "Not synced yet" |
 | Viewport and device scale factor | Output is 3200 × 1800, the size of the previous screenshots and within the Store desktop limits |
 | Locale and time zone | Date and number formats do not depend on the machine |
 | Fixed clock | The seed's relative dates and the "Today" group do not depend on the capture day; the time is later than every seed article published today |
 | Reduced motion | No frame is captured mid-transition |
 | External requests blocked | Favicons fall back to initials; no real logo or network state leaks in |
 
+## Composition
+
+The state above fixes what is true; the composition decides what looks good in a listing. Keep these when editing the seed:
+
+- The showcase article has a heading, a quote, and a list, and its text fits the reader pane with room to spare. The Store listing must not show text cut off at the bottom of the article.
+- The showcase article has no thumbnail. The reader pane draws an article thumbnail as a large hero image that pushes the text out of view.
+- Other unread articles carry the abstract SVG thumbnails in `src/dev/assets/demo-thumbnails/`. They are imported with the `?no-inline` suffix because article thumbnails accept only `http(s)` URLs or absolute paths, and vite would otherwise inline small files as `data:` URIs. They contain no text, logos, or real imagery.
+- The last row of the article list sits under the translucent filter bar and is cut there by design. That is the normal look of a scroll pane, so it is not a defect.
+
 The capture runs in a browser, not in the Tauri window, so the native window chrome (title bar, traffic lights) is not part of the image. What the image shows is the app screen drawn by Chromium on the capture OS.
 
-Before writing any file, the script inspects the live page and fails if any of these does not hold: the sidebar heading is `Personal` and no page text matches `FreshRSS`; the article heading is the showcase article; the Unread smart view is selected; the `html` theme matches the color scheme; no Agentation toolbar or toast is visible; no page error occurred.
+Before writing any file, the script inspects the live page and fails if any of these does not hold: the sidebar heading is `Personal` and no page text matches `FreshRSS`; the article heading is the showcase article; the Unread smart view is selected; only the Dev folder is expanded; the article text does not overflow the reader pane; the `html` theme matches the color scheme; no Agentation toolbar or toast is visible; no page error occurred.
 
 ## Platforms And File Names
 
@@ -117,6 +128,7 @@ Review each generated image in a clean browser or image viewer before committing
 - [ ] No real site content, logo, or favicon is visible
 - [ ] No personal information is visible
 - [ ] The UI is the current version
+- [ ] No text is cut off in the article pane, and the sidebar shows a sync time
 - [ ] No date or time in the image lies in the future of the fixed clock
 - [ ] The text uses the capture OS's system font (SF on macOS, Segoe UI Variable on Windows)
 - [ ] The size is 3200 × 1800
