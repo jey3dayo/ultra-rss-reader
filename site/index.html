@@ -31,6 +31,9 @@
     --primary: #f54e00;
     --primary-foreground: #fff7f2;
     --border: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --frame-ring: rgb(0 0 0 / 0.08);
+    --frame-shadow:
+      0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -8px rgb(0 0 0 / 0.12), 0 32px 64px -40px rgb(0 0 0 / 0.28);
     --font-sans:
       ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
       "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
@@ -48,6 +51,9 @@
       --primary: #f54e00;
       --primary-foreground: #1c1915;
       --border: color-mix(in oklab, var(--foreground) 14%, transparent);
+      --frame-ring: rgb(255 255 255 / 0.14);
+      --frame-shadow:
+        0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -12px rgb(0 0 0 / 0.55), 0 40px 80px -48px rgb(0 0 0 / 0.8);
     }
   }
 
@@ -211,19 +217,23 @@
   }
 
   .screenshot-section {
-    padding: 16px 0 56px;
-  }
-
-  .screenshot-frame {
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    background: var(--surface-1);
-    box-shadow: 0 20px 60px -30px rgba(0, 0, 0, 0.35);
+    padding: 24px 0 48px;
   }
 
   .screenshot-frame {
     display: grid;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--surface-1);
+    box-shadow: var(--frame-shadow);
+  }
+
+  .screenshot-frame::after {
+    content: "";
+    grid-area: 1 / 1;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px var(--frame-ring);
+    pointer-events: none;
   }
 
   .screenshot-frame picture {
@@ -443,6 +453,28 @@
       transform: scale(0.97);
     }
 
+    .screenshot-frame picture {
+      filter: blur(2px);
+    }
+
+    .screenshot-frame picture[data-active] {
+      filter: blur(0);
+    }
+
+    .screenshot-switcher[data-ready] .screenshot-frame picture {
+      transition:
+        opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
+        filter 150ms cubic-bezier(0.23, 1, 0.32, 1),
+        visibility 0s linear 150ms;
+    }
+
+    .screenshot-switcher[data-ready] .screenshot-frame picture[data-active] {
+      transition:
+        opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
+        filter 150ms cubic-bezier(0.23, 1, 0.32, 1),
+        visibility 0s;
+    }
+
     .screenshot-switcher[data-ready] .screenshot-platforms::before {
       transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
     }
@@ -451,6 +483,13 @@
   @media (max-width: 480px) {
     .wrap {
       padding: 0 16px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .screenshot-frame {
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.1), 0 10px 20px -12px rgb(0 0 0 / 0.3);
     }
   }
 </style>
