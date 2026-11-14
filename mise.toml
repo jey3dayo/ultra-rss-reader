@@ -116,6 +116,7 @@ run = "storybook build"
 description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json -f mcp-bridge"
+run_windows = '%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-tauri-dev-windows.ps1'
 
 [tasks."app:dev:native-keyring"]
 description = "Run native app in dev mode with the OS keyring backend"

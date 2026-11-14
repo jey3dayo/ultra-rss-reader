@@ -21,10 +21,6 @@ type ReadFileImpl = (targetPath: string, encoding: "utf8") => Promise<string>;
 type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
 type WarnImpl = (message: string) => void;
 
-export function buildPnpmCommand(platform: NodeJS.Platform = process.platform): string {
-  return platform === "win32" ? "pnpm.cmd" : "pnpm";
-}
-
 export function buildLocalTauriSpawnSpec(
   cliArgs: string[],
   scriptUrl: string = import.meta.url,
@@ -33,7 +29,7 @@ export function buildLocalTauriSpawnSpec(
   void scriptUrl;
 
   return {
-    command: buildPnpmCommand(platform),
+    command: "pnpm",
     args: ["exec", "tauri", ...cliArgs],
     shell: platform === "win32",
   };

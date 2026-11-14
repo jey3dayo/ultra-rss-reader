@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildChildEnvForSpawnSpec,
   buildLocalTauriSpawnSpec,
-  buildPnpmCommand,
   buildWslTauriSpawnSpec,
   hasMacosDevBundleIdentifierMarker,
   isWslEnvironment,
@@ -90,14 +89,14 @@ describe("buildLocalTauriSpawnSpec", () => {
     expect(spawnSpec.shell).toBe(false);
   });
 
-  it("uses the pnpm command shim on native Windows", () => {
+  it("resolves pnpm through the shell on native Windows", () => {
     const spawnSpec = buildLocalTauriSpawnSpec(
       ["build", "--debug"],
       "file:///C:/repo/scripts/tauri-cli-dispatch.ts",
       "win32",
     );
 
-    expect(spawnSpec.command).toBe("pnpm.cmd");
+    expect(spawnSpec.command).toBe("pnpm");
     expect(spawnSpec.args).toEqual(["exec", "tauri", "build", "--debug"]);
     expect(spawnSpec.shell).toBe(true);
   });
@@ -119,28 +118,17 @@ describe("buildLocalTauriSpawnSpec", () => {
 
   it("keeps allowed and rejected command args unchanged on native Windows", () => {
     expect(buildLocalTauriSpawnSpec(["dev"], "file:///C:/repo/scripts/tauri-cli-dispatch.ts", "win32")).toMatchObject({
-      command: "pnpm.cmd",
+      command: "pnpm",
       args: ["exec", "tauri", "dev"],
       shell: true,
     });
     expect(
       buildLocalTauriSpawnSpec(["unknown-command"], "file:///C:/repo/scripts/tauri-cli-dispatch.ts", "win32"),
     ).toMatchObject({
-      command: "pnpm.cmd",
+      command: "pnpm",
       args: ["exec", "tauri", "unknown-command"],
       shell: true,
     });
-  });
-});
-
-describe("buildPnpmCommand", () => {
-  it("uses pnpm directly outside native Windows", () => {
-    expect(buildPnpmCommand("darwin")).toBe("pnpm");
-    expect(buildPnpmCommand("linux")).toBe("pnpm");
-  });
-
-  it("uses pnpm.cmd on native Windows", () => {
-    expect(buildPnpmCommand("win32")).toBe("pnpm.cmd");
   });
 });
 
