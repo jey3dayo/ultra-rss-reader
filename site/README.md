@@ -49,8 +49,10 @@ injects the beacon at the edge — deliberately not in the HTML.
   pixels, so shipping the master would make the icon the heaviest asset on a
   page whose whole job is loading fast. Regenerate with
   `sips -Z 256 assets/app-icon.png --out site/assets/app-icon.png`.
-- `screenshot-reader-light.jpg` and `screenshot-reader-dark.jpg` copied from
-  `docs/assets/`.
+- `screenshot-reader-{light,dark}-<os>.jpg` (`<os>` is `mac` or `windows`) copied
+  from `docs/assets/` by `pnpm run capture:screenshots:publish`. The file name
+  rules and the capture procedure are in
+  [docs/store-screenshots.md](../docs/store-screenshots.md).
 
 **`docs/assets/` and `assets/app-icon.png` are the source of truth.** When those
 files change, re-copy (and for the icon, re-downscale) them into `site/assets/`
