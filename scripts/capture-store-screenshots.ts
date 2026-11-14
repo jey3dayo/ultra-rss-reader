@@ -30,8 +30,8 @@ const EXPECTED_ACCOUNT_NAME = "Personal";
 // Keep in sync with SHOWCASE_ARTICLE_ID in src/dev/scenarios/constants.ts.
 const EXPECTED_ARTICLE_TITLE = "Why teams are rethinking their end-to-end test suites this year";
 const FORBIDDEN_BRAND_PATTERN = /freshrss/i;
-// Chosen so a 3200x1800 JPG stays close to the ~330 KB of the previous screenshots.
-const JPEG_QUALITY = 85;
+// Lowest quality at which body text stays crisp; keeps the JPG size near the screenshots it replaces.
+const JPEG_QUALITY = 60;
 const SERVER_READY_TIMEOUT_MS = 60_000;
 const SERVER_POLL_INTERVAL_MS = 250;
 const SERVER_POLL_REQUEST_TIMEOUT_MS = 3000;
@@ -157,7 +157,7 @@ type PageFindings = {
 async function collectFindings(page: Page): Promise<PageFindings> {
   return page.evaluate(() => {
     const headings = [...document.querySelectorAll("h1")];
-    const toastNodes = document.querySelectorAll("[data-sonner-toast], [data-toast], [role='status']");
+    const toastNodes = document.querySelectorAll("[data-testid='app-toast']");
     return {
       sidebarHeading: headings[0]?.textContent?.trim() ?? null,
       articleHeading: headings.at(-1)?.textContent?.trim() ?? null,
