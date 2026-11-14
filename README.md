@@ -15,12 +15,12 @@
 
 </div>
 
-![Three-pane reader, light theme](docs/assets/screenshot-reader-light.jpg)
+![Three-pane reader, light theme](docs/assets/screenshot-reader-light-mac.jpg)
 
 <details>
 <summary>Dark theme</summary>
 
-![Three-pane reader, dark theme](docs/assets/screenshot-reader-dark.jpg)
+![Three-pane reader, dark theme](docs/assets/screenshot-reader-dark-mac.jpg)
 
 </details>
 

@@ -15,12 +15,12 @@
 
 </div>
 
-![3ペインリーダー（ライトテーマ）](docs/assets/screenshot-reader-light.jpg)
+![3ペインリーダー（ライトテーマ）](docs/assets/screenshot-reader-light-mac.jpg)
 
 <details>
 <summary>ダークテーマ</summary>
 
-![3ペインリーダー（ダークテーマ）](docs/assets/screenshot-reader-dark.jpg)
+![3ペインリーダー（ダークテーマ）](docs/assets/screenshot-reader-dark-mac.jpg)
 
 </details>
 
