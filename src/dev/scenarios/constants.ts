@@ -1,3 +1,5 @@
+import { STORE_SCREENSHOT_SHOWCASE_ARTICLE_ID } from "@/dev/store-screenshot-constants";
+
 export const OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS = 300;
 export const OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS = 1200;
 
@@ -9,5 +11,4 @@ export const DEV_FEED_HINT_SCORE_STEP = 100;
 export const DEV_FEED_DISPLAY_MODE_SCORE = 500;
 export const DEV_FEED_MAX_UNREAD_SCORE = 100;
 
-// Article opened by the store-screenshot scenario (English demo seed). Keep in sync with EXPECTED_ARTICLE_TITLE in scripts/capture-store-screenshots.ts.
-export const SHOWCASE_ARTICLE_ID = "art-en-3";
+export const SHOWCASE_ARTICLE_ID = STORE_SCREENSHOT_SHOWCASE_ARTICLE_ID;

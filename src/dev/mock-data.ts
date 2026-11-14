@@ -5,7 +5,7 @@
 
 import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { mockDataSeedsEn, relativeMockArticlePublishedAtEn } from "@/dev/mock-data-demo-en";
-import { readDevMockLocale } from "@/dev/mock-data-locale";
+import { type DevMockLocale, readDevMockLocale } from "@/dev/mock-data-locale";
 import {
   createMockArticle,
   type DevMockSeedState,
@@ -13,6 +13,7 @@ import {
   mockArticlePublishedAt,
   type RelativeMockArticlePublishedAtMap,
 } from "@/dev/mock-data-shared";
+import { relativeStoreScreenshotPublishedAt, storeScreenshotSeeds } from "@/dev/store-screenshot-fixtures";
 import { addLocalDays, getCurrentDate } from "@/lib/datetime";
 
 const now = getCurrentDate();
@@ -746,10 +747,21 @@ const mockDataSeedsJa: DevMockSeedState = {
 
 const activeDevMockLocale = readDevMockLocale();
 
-const relativeMockArticlePublishedAt: RelativeMockArticlePublishedAtMap =
-  activeDevMockLocale === "en" ? relativeMockArticlePublishedAtEn : relativeMockArticlePublishedAtJa;
+const relativeMockArticlePublishedAtByLocale = {
+  ja: relativeMockArticlePublishedAtJa,
+  en: relativeMockArticlePublishedAtEn,
+  store: relativeStoreScreenshotPublishedAt,
+} satisfies Record<DevMockLocale, RelativeMockArticlePublishedAtMap>;
 
-export const mockDataSeeds: DevMockSeedState = activeDevMockLocale === "en" ? mockDataSeedsEn : mockDataSeedsJa;
+const mockDataSeedsByLocale = {
+  ja: mockDataSeedsJa,
+  en: mockDataSeedsEn,
+  store: storeScreenshotSeeds,
+} satisfies Record<DevMockLocale, DevMockSeedState>;
+
+const relativeMockArticlePublishedAt = relativeMockArticlePublishedAtByLocale[activeDevMockLocale];
+
+export const mockDataSeeds: DevMockSeedState = mockDataSeedsByLocale[activeDevMockLocale];
 
 function syncUnreadCounts(feeds: FeedDto[], articles: readonly ArticleDto[]) {
   const unreadCountByFeedId = new Map<string, number>();

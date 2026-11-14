@@ -180,7 +180,6 @@ describe("dev mock data locale switching (mock-data.ts seam)", () => {
     expect(mockPreferences.get("language")).toBe("en");
     expect(mockPreferences.get("theme")).toBe("system");
     expect(mockPreferences.get("debug_agentation_visibility")).toBe("off");
-    expect(mockPreferences.get("startup_folder_expansion")).toBe("restore_previous");
   });
 
   it("leaves the language preference unset (frontend default) under the default Japanese locale", async () => {

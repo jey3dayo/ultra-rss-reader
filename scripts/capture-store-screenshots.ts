@@ -8,6 +8,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { type Browser, chromium, type Page } from "@playwright/test";
 import { SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION, STORAGE_KEYS } from "../src/constants/storage.ts";
 import {
+  STORE_SCREENSHOT_ACCOUNT_ID,
+  STORE_SCREENSHOT_ACCOUNT_NAME,
+  STORE_SCREENSHOT_EXPANDED_FOLDER_ID,
+  STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE,
+} from "../src/dev/store-screenshot-constants.ts";
+import {
   EXPECTED_IMAGE_SIZE,
   type PlannedOutput,
   planOutputs,
@@ -25,15 +31,13 @@ const DEVICE_SCALE_FACTOR = 2;
 const FIXED_TIME = "2026-08-17T18:00:00Z";
 const LOCALE = "en-US";
 const TIMEZONE = "UTC";
-const SEED_LOCALE = "en";
+const SEED_LOCALE = "store";
 const SCENARIO_ID = "open-unread-showcase-article";
-const EXPECTED_ACCOUNT_NAME = "Personal";
-// Keep in sync with SHOWCASE_ARTICLE_ID in src/dev/scenarios/constants.ts.
-const EXPECTED_ARTICLE_TITLE = "Why teams are rethinking their end-to-end test suites this year";
-// Keep in sync with the English demo seed (src/dev/mock-data-demo-en.ts). The expanded Dev folder fills the sidebar
-// that would otherwise leave a large empty area below the tags.
-const SEED_ACCOUNT_ID = "acc-freshrss";
-const EXPANDED_FOLDER_ID = "folder-dev";
+const EXPECTED_ACCOUNT_NAME = STORE_SCREENSHOT_ACCOUNT_NAME;
+const EXPECTED_ARTICLE_TITLE = STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE;
+// The expanded Dev folder fills the sidebar that would otherwise leave a large empty area below the tags.
+const SEED_ACCOUNT_ID = STORE_SCREENSHOT_ACCOUNT_ID;
+const EXPANDED_FOLDER_ID = STORE_SCREENSHOT_EXPANDED_FOLDER_ID;
 const FORBIDDEN_BRAND_PATTERN = /freshrss/i;
 // Tuned so the JPG size lands near the screenshots it replaces; body text was checked to stay crisp at this value.
 const JPEG_QUALITY = 55;

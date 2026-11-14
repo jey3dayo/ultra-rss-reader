@@ -7,7 +7,7 @@ import {
   mockFolders,
   resetMockDataForDevMocks,
 } from "@/dev/mock-data";
-import { readDevMockLocale } from "@/dev/mock-data-locale";
+import { isEnglishDevMockLocale, readDevMockLocale } from "@/dev/mock-data-locale";
 import { stripHtmlTags } from "@/lib/content/html";
 
 let nextAccountId = 100;
@@ -26,12 +26,14 @@ export const mockPreferences = new Map<string, string>();
  * mock content locale.
  */
 function seedDevMockPreferencesForLocale() {
-  if (readDevMockLocale() === "en") {
+  if (isEnglishDevMockLocale()) {
     mockPreferences.set("language", "en");
     // Follow prefers-color-scheme so screenshot capture can switch dark/light via the browser color scheme.
     mockPreferences.set("theme", "system");
     // The dev-only Agentation toolbar must not appear in demo/screenshot renders.
     mockPreferences.set("debug_agentation_visibility", "off");
+  }
+  if (readDevMockLocale() === "store") {
     // Lets the capture script pre-open a folder through the stored expansion state.
     mockPreferences.set("startup_folder_expansion", "restore_previous");
   }
@@ -136,7 +138,7 @@ const initialMockMuteKeywordsEn: MuteKeywordDto[] = [
 ];
 
 function initialMockMuteKeywordsForLocale(): MuteKeywordDto[] {
-  return readDevMockLocale() === "en" ? initialMockMuteKeywordsEn : initialMockMuteKeywordsJa;
+  return isEnglishDevMockLocale() ? initialMockMuteKeywordsEn : initialMockMuteKeywordsJa;
 }
 
 const initialMockArticleViewHistory: typeof mockArticleViewHistory = [
