@@ -34,7 +34,8 @@ injects the beacon at the edge — deliberately not in the HTML.
 ## Design constraints
 
 - Plain HTML with inline CSS. No React, no Tailwind, no build tool, no external CDN
-  dependency. The only script is the inline download-button logic in each page.
+  dependency. The only script is inline in each page: the download-button logic
+  and the screenshot platform switcher.
 - No build command. Cloudflare Pages serves this directory as-is; `site/` is the
   configured output directory.
 - Two pages: `index.html` (EN) and `ja/index.html` (JA), cross-linked with

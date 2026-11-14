@@ -224,9 +224,101 @@
     box-shadow: 0 20px 60px -30px rgba(0, 0, 0, 0.35);
   }
 
+  .screenshot-frame {
+    display: grid;
+  }
+
+  .screenshot-frame picture {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .screenshot-frame picture[data-active] {
+    opacity: 1;
+    visibility: visible;
+  }
+
   .screenshot-frame img {
+    display: block;
     width: 100%;
     height: auto;
+  }
+
+  .screenshot-switcher[data-ready] .screenshot-frame picture {
+    transition:
+      opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
+      visibility 0s linear 150ms;
+  }
+
+  .screenshot-switcher[data-ready] .screenshot-frame picture[data-active] {
+    transition:
+      opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
+      visibility 0s;
+  }
+
+  .screenshot-platforms {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: max-content;
+    margin: 0 auto 16px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-3);
+  }
+
+  .screenshot-platforms[hidden] {
+    display: none;
+  }
+
+  .screenshot-platforms::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    box-sizing: border-box;
+    width: calc((100% - 6px) / 2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-1);
+  }
+
+  .screenshot-platforms[data-index="1"]::before {
+    transform: translateX(100%);
+  }
+
+  .screenshot-platforms button {
+    position: relative;
+    z-index: 1;
+    appearance: none;
+    min-width: 96px;
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: color-mix(in oklab, var(--foreground) 72%, transparent);
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  .screenshot-platforms button[aria-checked="true"] {
+    color: var(--foreground);
+  }
+
+  .screenshot-platforms button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .screenshot-platforms button[aria-checked="false"]:hover {
+      background: color-mix(in oklab, var(--foreground) 6%, transparent);
+    }
   }
 
   section {
@@ -341,6 +433,21 @@
     .btn {
       transition: filter 120ms ease;
     }
+
+    .screenshot-platforms button {
+      transition:
+        color 200ms ease,
+        background-color 200ms ease,
+        transform 160ms ease-out;
+    }
+
+    .screenshot-platforms button:active {
+      transform: scale(0.97);
+    }
+
+    .screenshot-switcher[data-ready] .screenshot-platforms::before {
+      transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
   }
 
   @media (max-width: 480px) {
@@ -394,16 +501,19 @@
 
   <section class="screenshot-section">
     <div class="wrap">
-      <div class="screenshot-frame">
-        <picture>
-          <source srcset="../assets/screenshot-reader-dark-mac.jpg" media="(prefers-color-scheme: dark)" />
-          <img
-            src="../assets/screenshot-reader-light-mac.jpg"
-            width="1600"
-            height="900"
-            alt="Ultra RSS Reader の3ペイン表示: フィードサイドバー、記事一覧、リーディングペイン"
-          />
-        </picture>
+      <div class="screenshot-switcher" data-screenshot-switcher>
+        <div class="screenshot-platforms" role="radiogroup" aria-label="スクリーンショットの OS" hidden></div>
+        <div class="screenshot-frame">
+          <picture data-platform="mac" data-active>
+            <source srcset="../assets/screenshot-reader-dark-mac.jpg" media="(prefers-color-scheme: dark)" />
+            <img
+              src="../assets/screenshot-reader-light-mac.jpg"
+              width="1600"
+              height="900"
+              alt="macOS 上の Ultra RSS Reader の3ペイン表示: フィードサイドバー、記事一覧、リーディングペイン"
+            />
+          </picture>
+        </div>
       </div>
     </div>
   </section>
@@ -549,17 +659,17 @@
 </footer>
 
 <script>
+  function detectPlatform() {
+    var uaDataPlatform = navigator.userAgentData && navigator.userAgentData.platform;
+    var platform = (uaDataPlatform || navigator.userAgent || "").toLowerCase();
+    if (platform.indexOf("mac") !== -1) return "mac";
+    if (platform.indexOf("win") !== -1) return "windows";
+    return null;
+  }
+
   (function () {
     var btn = document.getElementById("download-btn");
     var fallbackUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest";
-
-    function detectPlatform() {
-      var uaDataPlatform = navigator.userAgentData && navigator.userAgentData.platform;
-      var platform = (uaDataPlatform || navigator.userAgent || "").toLowerCase();
-      if (platform.indexOf("mac") !== -1) return "mac";
-      if (platform.indexOf("win") !== -1) return "windows";
-      return null;
-    }
 
     function pickAsset(assets, platform) {
       if (!assets) return null;
@@ -600,6 +710,69 @@
       .catch(function () {
         btn.href = fallbackUrl;
       });
+  })();
+
+  (function () {
+    var switcher = document.querySelector("[data-screenshot-switcher]");
+    if (!switcher) return;
+    var pictures = Array.prototype.slice.call(switcher.querySelectorAll("picture[data-platform]"));
+    if (pictures.length < 2) return;
+
+    var group = switcher.querySelector(".screenshot-platforms");
+    var labels = { mac: "macOS", windows: "Windows" };
+    var buttons = pictures.map(function (picture) {
+      var name = picture.getAttribute("data-platform");
+      var button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("role", "radio");
+      button.textContent = labels[name] || name;
+      group.appendChild(button);
+      return button;
+    });
+
+    function select(index) {
+      pictures.forEach(function (picture, i) {
+        if (i === index) picture.setAttribute("data-active", "");
+        else picture.removeAttribute("data-active");
+      });
+      buttons.forEach(function (button, i) {
+        button.setAttribute("aria-checked", i === index ? "true" : "false");
+        button.tabIndex = i === index ? 0 : -1;
+      });
+      group.setAttribute("data-index", String(index));
+    }
+
+    function indexOfPlatform(name) {
+      return pictures.findIndex(function (picture) {
+        return picture.getAttribute("data-platform") === name;
+      });
+    }
+
+    var initial = indexOfPlatform(detectPlatform());
+    if (initial === -1) initial = indexOfPlatform("mac");
+    if (initial === -1) initial = 0;
+    select(initial);
+
+    buttons.forEach(function (button, i) {
+      button.addEventListener("click", function () {
+        select(i);
+      });
+      button.addEventListener("keydown", function (event) {
+        var step = 0;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") step = 1;
+        else if (event.key === "ArrowLeft" || event.key === "ArrowUp") step = -1;
+        if (step === 0) return;
+        event.preventDefault();
+        var next = (i + step + buttons.length) % buttons.length;
+        select(next);
+        buttons[next].focus();
+      });
+    });
+
+    group.hidden = false;
+    requestAnimationFrame(function () {
+      switcher.setAttribute("data-ready", "");
+    });
   })();
 </script>
 </body>
