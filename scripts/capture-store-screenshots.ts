@@ -30,8 +30,8 @@ const EXPECTED_ACCOUNT_NAME = "Personal";
 // Keep in sync with SHOWCASE_ARTICLE_ID in src/dev/scenarios/constants.ts.
 const EXPECTED_ARTICLE_TITLE = "Why teams are rethinking their end-to-end test suites this year";
 const FORBIDDEN_BRAND_PATTERN = /freshrss/i;
-// Lowest quality at which body text stays crisp; keeps the JPG size near the screenshots it replaces.
-const JPEG_QUALITY = 60;
+// Tuned so the JPG size lands near the screenshots it replaces; body text was checked to stay crisp at this value.
+const JPEG_QUALITY = 55;
 const SERVER_READY_TIMEOUT_MS = 60_000;
 const SERVER_POLL_INTERVAL_MS = 250;
 const SERVER_POLL_REQUEST_TIMEOUT_MS = 3000;

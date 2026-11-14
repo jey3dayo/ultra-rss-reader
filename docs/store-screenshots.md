@@ -37,7 +37,7 @@ The word "FreshRSS" is not forbidden as such. The problem was a third-party prod
 - Capture only from the English dev mock seed (`src/dev/mock-data-demo-en.ts`) in its capture state. Never capture a real account, real data, or a real server.
 - Do not capture the Japanese seed (`src/dev/mock-data.ts`). It contains real site names and is the default data of everyday development and many tests.
 - The English seed's account display name is `Personal`. A display name is whatever the user types when adding an account, so a neutral name is a faithful picture of the product.
-- Seed feeds and articles use `example.com` hosts only. A guard test in `src/__tests__/dev/dev-mock-data-demo-en.node.test.ts` fails if a third-party product name or a non-`example.com` host returns to the English seed.
+- Seed feeds and articles use `example.com` hosts only. Guard tests in `src/__tests__/dev/dev-mock-data-demo-en.node.test.ts` fail if an English account display name matches `FreshRSS` or any English feed or article URL leaves `example.com`.
 
 ## Brand Rules
 
@@ -98,7 +98,7 @@ pnpm run capture:screenshots:publish   # commit-ready files for the running OS
 
 - The committed files are the source of truth. Upload to Partner Center from the committed PNG files, not from a trial run.
 - Never commit anything from `tmp/screenshots/`.
-- To add an OS to the landing page, add one `<picture data-platform="<os>">` inside the `.screenshot-frame` of `site/index.html` and `site/ja/index.html`, next to the existing one:
+- To add an OS to the landing page, copy the existing `<picture data-platform="mac" data-active>` in the `.screenshot-frame` of `site/index.html` and `site/ja/index.html`, place it right after, and change the `data-platform` value, the `-mac` in the image paths, and the OS name in `alt`. Remove `data-active` from the copy: the page script decides which picture is active.
 
 ```html
 <picture data-platform="windows">
@@ -107,7 +107,7 @@ pnpm run capture:screenshots:publish   # commit-ready files for the running OS
 </picture>
 ```
 
-  The platform switch appears by itself once two or more `<picture data-platform>` elements exist. The `alt` text names the OS.
+The platform switch appears by itself once two or more `<picture data-platform>` elements exist. `site/ja/index.html` uses `../assets/` paths and a Japanese `alt`.
 
 ## Post-Capture Checklist
 
@@ -117,5 +117,7 @@ Review each generated image in a clean browser or image viewer before committing
 - [ ] No real site content, logo, or favicon is visible
 - [ ] No personal information is visible
 - [ ] The UI is the current version
+- [ ] No date or time in the image lies in the future of the fixed clock
+- [ ] The text uses the capture OS's system font (SF on macOS, Segoe UI Variable on Windows)
 - [ ] The size is 3200 × 1800
 - [ ] The file name suffix matches the OS the image was captured on

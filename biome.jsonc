@@ -52,6 +52,17 @@
       }
     },
     {
+      // The capture inspection reads rendered text (innerText) so hidden DOM text cannot trigger a false brand match.
+      "includes": ["scripts/capture-store-screenshots.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "useDomNodeTextContent": "off"
+          }
+        }
+      }
+    },
+    {
       // Module-scope hook factories (createQuery, createMutation) and test-local components that close over mocks.
       "includes": [
         "src/__tests__/**",
