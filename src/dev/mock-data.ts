@@ -14,6 +14,7 @@ import {
   type RelativeMockArticlePublishedAtMap,
 } from "@/dev/mock-data-shared";
 import { relativeStoreScreenshotPublishedAt, storeScreenshotSeeds } from "@/dev/store-screenshot-fixtures";
+import { relativeStoreScreenshotPublishedAtJa, storeScreenshotSeedsJa } from "@/dev/store-screenshot-fixtures-ja";
 import { addLocalDays, getCurrentDate } from "@/lib/datetime";
 
 const now = getCurrentDate();
@@ -751,12 +752,14 @@ const relativeMockArticlePublishedAtByLocale = {
   ja: relativeMockArticlePublishedAtJa,
   en: relativeMockArticlePublishedAtEn,
   store: relativeStoreScreenshotPublishedAt,
+  "store-ja": relativeStoreScreenshotPublishedAtJa,
 } satisfies Record<DevMockLocale, RelativeMockArticlePublishedAtMap>;
 
 const mockDataSeedsByLocale = {
   ja: mockDataSeedsJa,
   en: mockDataSeedsEn,
   store: storeScreenshotSeeds,
+  "store-ja": storeScreenshotSeedsJa,
 } satisfies Record<DevMockLocale, DevMockSeedState>;
 
 const relativeMockArticlePublishedAt = relativeMockArticlePublishedAtByLocale[activeDevMockLocale];

@@ -365,6 +365,16 @@ describe("setupDevMocks", () => {
     expect(parse(AccountSyncStatusSchema, status)).toEqual(status);
   });
 
+  it("reports a recent successful sync under the Japanese screenshot locale", async () => {
+    vi.stubEnv("VITE_DEV_MOCK_LOCALE", "store-ja");
+    setupDevMocks();
+
+    const status = Result.unwrap(await getAccountSyncStatus("acc-freshrss"));
+
+    expect(status.last_success_at).not.toBeNull();
+    expect(parse(AccountSyncStatusSchema, status)).toEqual(status);
+  });
+
   it("surfaces browser-only sync status failures for unknown, deleted, and local accounts", async () => {
     setupDevMocks();
 
