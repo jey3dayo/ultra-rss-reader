@@ -44,6 +44,8 @@ const JPEG_QUALITY = 55;
 const SERVER_READY_TIMEOUT_MS = 60_000;
 const SERVER_POLL_INTERVAL_MS = 250;
 const SERVER_POLL_REQUEST_TIMEOUT_MS = 3000;
+// The first module transform after a cold start blocks vite for ~2 minutes on a Windows dev machine; wait it out before opening the browser.
+const SERVER_WARMUP_TIMEOUT_MS = 300_000;
 // The first load after a cold vite start transforms every module and can take over a minute on slower disks.
 const PAGE_READY_TIMEOUT_MS = 120_000;
 
@@ -144,8 +146,18 @@ async function startVite(port: number): Promise<ViteServer> {
     throw new Error(`vite exited before it was ready (code ${code}). Check that port ${port} is free.`);
   });
 
+  const warmUp = async () => {
+    await ready;
+    const response = await fetch(`http://${HOST}:${port}/src/main.tsx`, {
+      signal: AbortSignal.timeout(SERVER_WARMUP_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      throw new Error(`vite warm-up request failed with status ${response.status}.`);
+    }
+  };
+
   try {
-    await Promise.race([ready, earlyExit, spawnFailed]);
+    await Promise.race([warmUp(), earlyExit, spawnFailed]);
   } catch (error) {
     server.stop();
     throw error;
