@@ -198,7 +198,7 @@ const storeArticleTagSeeds = [
 const storeShowcaseArticleContent = [
   "<p>Teams that made the switch describe a slow build-up rather than a single rewrite. Suites grew flaky one merge at a time, and the fix came the same way.</p>",
   "<h2>Ownership mattered more than tooling</h2>",
-  "<p>The common thread was ownership. Healthy suites had a clear owner who triaged failures within a day or two; suites that were nobody's job quietly accumulated skipped tests.</p>",
+  "<p>The common thread was ownership. Healthy suites had a clear owner who triaged failures quickly; unowned ones quietly piled up skipped tests.</p>",
   "<blockquote><p>Flaky tests erode trust faster than slow ones.</p></blockquote>",
   "<p>Several teams now reserve end-to-end runs for a small set of critical journeys:</p>",
   "<ul><li>Keep a handful of browser-driven checks for the flows that matter most</li><li>Push everything else down to faster unit and component tests</li><li>Give every suite an owner who triages failures within a day</li></ul>",
