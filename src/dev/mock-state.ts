@@ -19,7 +19,7 @@ let nextMuteKeywordId = 100;
 export const mockPreferences = new Map<string, string>();
 
 /**
- * Seeds the `language` preference default for the active dev-mock locale.
+ * Seeds the `language`, `theme`, and `debug_agentation_visibility` preference defaults for the active dev-mock locale.
  * `VITE_DEV_MOCK_LOCALE=en` demo runs need the UI to actually render in
  * English; leaving `language` unset falls back to the frontend schema
  * default of `"system"`, which does not force English regardless of the
@@ -28,6 +28,10 @@ export const mockPreferences = new Map<string, string>();
 function seedDevMockPreferencesForLocale() {
   if (readDevMockLocale() === "en") {
     mockPreferences.set("language", "en");
+    // Follow prefers-color-scheme so screenshot capture can switch dark/light via the browser color scheme.
+    mockPreferences.set("theme", "system");
+    // The dev-only Agentation toolbar must not appear in demo/screenshot renders.
+    mockPreferences.set("debug_agentation_visibility", "off");
   }
 }
 

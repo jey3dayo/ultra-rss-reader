@@ -83,6 +83,29 @@ describe("dev mock data (English demo locale)", () => {
     }
   });
 
+  it("keeps third-party product names out of the English demo account display names (store screenshot policy)", () => {
+    for (const account of mockDataSeedsEn.accounts) {
+      expect(account.name).not.toMatch(/freshrss/i);
+    }
+  });
+
+  it("keeps every English demo feed and article URL on example.com (no real-site favicons or logos)", () => {
+    const isExampleHost = (url: string) => {
+      const host = new URL(url).hostname;
+      return host === "example.com" || host.endsWith(".example.com");
+    };
+
+    for (const feed of mockDataSeedsEn.feeds) {
+      expect(isExampleHost(feed.url)).toBe(true);
+      expect(isExampleHost(feed.site_url)).toBe(true);
+    }
+    for (const article of mockDataSeedsEn.articles) {
+      if (article.url) {
+        expect(isExampleHost(article.url)).toBe(true);
+      }
+    }
+  });
+
   it("does not leak Japanese characters into English demo article text", () => {
     const containsJapanese = (value: string) => /[぀-ヿ一-龯]/.test(value);
 
@@ -146,12 +169,16 @@ describe("dev mock data locale switching (mock-data.ts seam)", () => {
     const { mockPreferences } = await import("@/dev/mock-state");
 
     expect(mockPreferences.get("language")).toBe("en");
+    expect(mockPreferences.get("theme")).toBe("system");
+    expect(mockPreferences.get("debug_agentation_visibility")).toBe("off");
   });
 
   it("leaves the language preference unset (frontend default) under the default Japanese locale", async () => {
     const { mockPreferences } = await import("@/dev/mock-state");
 
     expect(mockPreferences.has("language")).toBe(false);
+    expect(mockPreferences.has("theme")).toBe(false);
+    expect(mockPreferences.has("debug_agentation_visibility")).toBe(false);
   });
 
   it("seeds an English mute keyword list under VITE_DEV_MOCK_LOCALE=en", async () => {
