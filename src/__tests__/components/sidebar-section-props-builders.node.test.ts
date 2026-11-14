@@ -157,7 +157,7 @@ describe("sidebar section props builders", () => {
       viewportRef,
       navigation: {
         subscriptionsIndexLabel: t("subscriptions_index"),
-        subscriptionsIndexShortLabel: t("subscriptions_index"),
+        subscriptionsIndexShortLabel: t("subscriptions_index_short"),
         settingsLabel: t("settings"),
         themeToggleLabel: t("theme_toggle"),
         onOpenSubscriptionsIndex,

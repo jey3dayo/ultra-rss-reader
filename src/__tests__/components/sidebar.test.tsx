@@ -339,7 +339,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Manage subscriptions" }));
+    await user.click(await screen.findByRole("button", { name: "Feeds: Manage subscriptions" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
@@ -2789,7 +2789,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
-    const subscriptionsIndexButton = await screen.findByRole("button", { name: "Manage subscriptions" });
+    const subscriptionsIndexButton = await screen.findByRole("button", { name: "Feeds: Manage subscriptions" });
     const settingsButton = screen.getByRole("button", { name: "Settings" });
     const footerRow = subscriptionsIndexButton.parentElement;
 
@@ -2811,7 +2811,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Manage subscriptions" }));
+    await user.click(await screen.findByRole("button", { name: "Feeds: Manage subscriptions" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
@@ -2831,7 +2831,7 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(useUiStore.getState().settingsOpen).toBe(true);
 
-    await user.click(screen.getByRole("button", { name: "Manage subscriptions" }));
+    await user.click(screen.getByRole("button", { name: "Feeds: Manage subscriptions" }));
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
     });

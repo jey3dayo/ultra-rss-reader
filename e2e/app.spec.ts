@@ -64,10 +64,10 @@ async function openSubscriptionsIndex(page: Page) {
   // Browser state changes stay sequential; only post-navigation assertions below are parallelized.
   const manageSubscriptionsButton = page
     .locator('button:not([tabindex="-1"])')
-    .filter({ hasText: /Manage subscriptions|購読一覧/i })
+    .filter({ hasText: /^Feeds$|購読一覧/i })
     .or(
       page.locator(
-        'button:not([tabindex="-1"])[aria-label="Manage subscriptions"], button:not([tabindex="-1"])[aria-label="購読一覧"]',
+        'button:not([tabindex="-1"])[aria-label$="Manage subscriptions"], button:not([tabindex="-1"])[aria-label="購読一覧"]',
       ),
     )
     .first();

@@ -8,6 +8,7 @@
   "feeds": "Feeds",
   "subscriptions": "Subscriptions",
   "subscriptions_index": "Manage subscriptions",
+  "subscriptions_index_short": "Feeds",
   "expand_all_folders": "Expand all folders",
   "collapse_all_folders": "Collapse all folders",
   "no_folder": "No folder",

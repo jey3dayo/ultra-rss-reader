@@ -8,6 +8,7 @@
   "feeds": "フィード",
   "subscriptions": "購読",
   "subscriptions_index": "購読一覧",
+  "subscriptions_index_short": "購読一覧",
   "expand_all_folders": "すべてのフォルダを開く",
   "collapse_all_folders": "すべてのフォルダを畳む",
   "no_folder": "フォルダなし",
