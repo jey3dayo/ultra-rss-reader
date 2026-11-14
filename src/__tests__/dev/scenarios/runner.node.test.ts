@@ -3,6 +3,7 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import { SHOWCASE_ARTICLE_ID } from "@/dev/scenarios/constants";
 import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { tagQueryKeys } from "@/hooks/use-tags";
@@ -887,6 +888,57 @@ describe("runDevScenario", () => {
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);
     expect(ui.selectArticle).not.toHaveBeenCalled();
+  });
+
+  it("opens the showcase article from the Unread smart view with preview engagement", async () => {
+    const showcaseArticle: ArticleDto = { ...unreadArticle, id: SHOWCASE_ARTICLE_ID };
+    const ui = createUiStub();
+    const context = createContext({
+      ui,
+      actions: createActions({
+        listAccounts: vi.fn(async () => [account, otherAccount]),
+        listFeeds: vi.fn(async () => [genericFeed, mangaFeed]),
+        listArticles: vi.fn(async (feedId: string) => (feedId === mangaFeed.id ? [showcaseArticle] : [])),
+      }),
+    });
+
+    await runDevScenario("open-unread-showcase-article", { context });
+
+    expect(context.actions.listFeeds).toHaveBeenCalledWith(account.id);
+    expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(ui.selectSmartView).toHaveBeenCalledWith("unread");
+    expect(ui.selectArticle).toHaveBeenCalledWith(SHOWCASE_ARTICLE_ID, { engagement: "preview" });
+    expect(ui.setViewMode).not.toHaveBeenCalled();
+    expect(ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows an explicit toast when the showcase scenario cannot find any accounts", async () => {
+    const context = createContext();
+
+    await runDevScenario("open-unread-showcase-article", { context });
+
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-unread-showcase-article" could not find any accounts.',
+    );
+    expect(context.ui.selectArticle).not.toHaveBeenCalled();
+  });
+
+  it("shows an explicit toast when the showcase article does not exist", async () => {
+    const context = createContext({
+      actions: createActions({
+        listAccounts: vi.fn(async () => [account]),
+        listFeeds: vi.fn(async () => [genericFeed]),
+        listArticles: vi.fn(async () => [unreadArticle]),
+      }),
+    });
+
+    await runDevScenario("open-unread-showcase-article", { context });
+
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-unread-showcase-article" could not find the showcase article.',
+    );
+    expect(context.ui.selectArticle).not.toHaveBeenCalled();
+    expect(context.ui.selectSmartView).not.toHaveBeenCalled();
   });
 
   it("shows an explicit toast when the tag-view scenario cannot find any accounts", async () => {

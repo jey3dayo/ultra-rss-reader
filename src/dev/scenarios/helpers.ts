@@ -8,6 +8,7 @@ import {
   DEV_FEED_MAX_UNREAD_SCORE,
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS,
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
+  SHOWCASE_ARTICLE_ID,
 } from "@/dev/scenarios/constants";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { tagQueryKeys } from "@/hooks/use-tags";
@@ -386,6 +387,52 @@ export async function runOpenFeedFirstArticleWebPreviewScenario(ctx: DevScenario
     }
     console.error(`Failed to run dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticleWebPreview}":`, error);
     ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticleWebPreview}" failed to open a web preview.`);
+  }
+}
+
+export async function runOpenUnreadShowcaseArticleScenario(ctx: DevScenarioContext): Promise<void> {
+  const scenarioId = DEV_SCENARIO_ID.openUnreadShowcaseArticle;
+  try {
+    const accounts = await Promise.resolve(ctx.actions.listAccounts());
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    const account = accounts[0];
+    if (!account) {
+      ctx.ui.showToast(`Dev scenario "${scenarioId}" could not find any accounts.`);
+      return;
+    }
+
+    const feeds = await Promise.resolve(ctx.actions.listFeeds(account.id));
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    let found = false;
+    for (const feed of feeds) {
+      const articles = await Promise.resolve(ctx.actions.listArticles(feed.id));
+      if (!isCurrentDevScenarioRun(ctx)) {
+        return;
+      }
+      if (articles.some((article) => article.id === SHOWCASE_ARTICLE_ID)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      ctx.ui.showToast(`Dev scenario "${scenarioId}" could not find the showcase article.`);
+      return;
+    }
+
+    ctx.ui.selectAccount(account.id);
+    ctx.ui.selectSmartView("unread");
+    // "preview" keeps the article unread so the sidebar badge counts stay fixed while capturing.
+    ctx.ui.selectArticle(SHOWCASE_ARTICLE_ID, { engagement: "preview" });
+  } catch (error) {
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    console.error(`Failed to run dev scenario "${scenarioId}":`, error);
+    ctx.ui.showToast(`Dev scenario "${scenarioId}" failed to open the showcase article.`);
   }
 }
 

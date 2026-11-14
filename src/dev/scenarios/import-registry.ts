@@ -7,6 +7,7 @@ export const DEV_SCENARIO_MODULE_IMPORTERS = {
   [DEV_SCENARIO_ID.openWebPreviewUrl]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openFeedFirstArticle]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openFeedFirstArticleWebPreview]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.openUnreadShowcaseArticle]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openTagView]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openSettingsGeneral]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openSettingsAppearance]: loadDevScenariosRegistryModule,

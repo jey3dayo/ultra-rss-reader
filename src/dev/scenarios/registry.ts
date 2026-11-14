@@ -3,6 +3,7 @@ import {
   runOpenFeedFirstArticleScenario,
   runOpenFeedFirstArticleWebPreviewScenario,
   runOpenTagViewScenario,
+  runOpenUnreadShowcaseArticleScenario,
   runOpenWebPreviewUrlScenario,
 } from "@/dev/scenarios/helpers";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
@@ -96,6 +97,11 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     title: "Open feed first article web preview",
     keywords: ["feed", "article", "web", "preview", "browser"],
     run: runOpenFeedFirstArticleWebPreviewScenario,
+  },
+  [DEV_SCENARIO_ID.openUnreadShowcaseArticle]: {
+    title: "Open unread showcase article",
+    keywords: ["unread", "article", "screenshot", "showcase"],
+    run: runOpenUnreadShowcaseArticleScenario,
   },
   [DEV_SCENARIO_ID.openTagView]: {
     title: "Open tag view",

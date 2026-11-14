@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenarioId } from "@/dev/scenario-ids";
 import type { AppAction } from "@/lib/app-actions";
+import type { ArticleEngagement } from "@/stores/ui-store.types";
 
 export type { DevScenarioId };
 export { DEV_SCENARIO_ID, DEV_SCENARIO_IDS };
@@ -17,7 +18,7 @@ export type DevScenarioContext = {
     selectSmartView(kind: "unread" | "starred"): void;
     selectTag(tagId: string): void;
     selectAll(): void;
-    selectArticle(id: string): void;
+    selectArticle(id: string, options?: { engagement?: ArticleEngagement }): void;
     openBrowser(url: string): void;
     setViewMode(mode: "all" | "unread" | "starred"): void;
     openSettings(

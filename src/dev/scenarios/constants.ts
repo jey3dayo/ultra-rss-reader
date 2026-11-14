@@ -8,3 +8,6 @@ export const DEV_WINDOW_UNMAXIMIZE_SETTLE_DELAY_MS = 80;
 export const DEV_FEED_HINT_SCORE_STEP = 100;
 export const DEV_FEED_DISPLAY_MODE_SCORE = 500;
 export const DEV_FEED_MAX_UNREAD_SCORE = 100;
+
+// Article opened by the store-screenshot scenario (English demo seed). Keep in sync with docs/store-screenshots.md.
+export const SHOWCASE_ARTICLE_ID = "art-en-3";
