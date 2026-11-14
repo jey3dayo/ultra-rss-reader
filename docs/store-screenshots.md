@@ -34,10 +34,11 @@ The word "FreshRSS" is not forbidden as such. The problem was a third-party prod
 
 ## Data Rules
 
-- Capture only from the English dev mock seed (`src/dev/mock-data-demo-en.ts`) in its capture state. Never capture a real account, real data, or a real server.
+- Capture only from the store fixtures (`src/dev/store-screenshot-fixtures.ts`), selected with `VITE_DEV_MOCK_LOCALE=store`. They are the only data the capture loads. Never capture a real account, real data, or a real server.
+- The everyday English demo seed (`src/dev/mock-data-demo-en.ts`) is built on top of the fixtures and adds only articles that other dev checks need. Edit those extras freely; editing the fixtures changes the store images.
 - Do not capture the Japanese seed (`src/dev/mock-data.ts`). It contains real site names and is the default data of everyday development and many tests.
-- The English seed's account display name is `Personal`. A display name is whatever the user types when adding an account, so a neutral name is a faithful picture of the product.
-- Seed feeds and articles use `example.com` hosts only. Guard tests in `src/__tests__/dev/dev-mock-data-demo-en.node.test.ts` fail if an English account display name matches `FreshRSS` or any English feed or article URL leaves `example.com`.
+- The fixtures' account display name is `Personal`. A display name is whatever the user types when adding an account, so a neutral name is a faithful picture of the product.
+- Seed feeds and articles use `example.com` hosts only. Guard tests in `src/__tests__/dev/store-screenshot-fixtures.node.test.ts` fail if any name or text the fixtures can show matches `FreshRSS` or any English feed or article URL leaves `example.com`.
 
 ## Brand Rules
 
@@ -52,11 +53,11 @@ The word "FreshRSS" is not forbidden as such. The problem was a third-party prod
 
 | Item | Why it is fixed |
 | --- | --- |
-| Seed locale `en` | Same data and copy on every machine |
+| Seed locale `store` | Same data and copy on every machine, and on every OS, from fixtures that nothing else edits |
 | Scenario `open-unread-showcase-article` | Opens the Unread smart view with a fixed article as a preview, so the read state and the unread badges do not change while capturing |
 | Preferences `theme: "system"`, `debug_agentation_visibility: "off"` | `system` lets the browser color scheme switch dark and light; the dev-only Agentation toolbar stays out of the image |
 | Preference `startup_folder_expansion: "restore_previous"` and a pre-seeded expanded-folder key | The Dev folder is open in the sidebar without a click. Clicking a folder row also selects it and leaves the Unread view |
-| Account sync time | The English seed reports a recent successful sync, so the sidebar shows a time instead of "Not synced yet" |
+| Account sync time | The English seeds report a recent successful sync, so the sidebar shows a time instead of "Not synced yet" |
 | Viewport and device scale factor | Output is 3200 × 1800, the size of the previous screenshots and within the Store desktop limits |
 | Locale and time zone | Date and number formats do not depend on the machine |
 | Fixed clock | The seed's relative dates and the "Today" group do not depend on the capture day; the time is later than every seed article published today |
@@ -65,7 +66,7 @@ The word "FreshRSS" is not forbidden as such. The problem was a third-party prod
 
 ## Composition
 
-The state above fixes what is true; the composition decides what looks good in a listing. Keep these when editing the seed:
+The state above fixes what is true; the composition decides what looks good in a listing. Keep these when editing the fixtures:
 
 - The showcase article has a heading, a quote, and a list, and its text fits the reader pane with room to spare. The Store listing must not show text cut off at the bottom of the article.
 - The showcase article has no thumbnail. The reader pane draws an article thumbnail as a large hero image that pushes the text out of view.
@@ -103,7 +104,7 @@ pnpm run capture:screenshots:publish   # commit-ready files for the running OS
 - The script starts its own vite on port 4173 with the arguments of `mise run app:dev:browser`. If that port is taken, pass another one: `pnpm run capture:screenshots -- --port 4180`. Other servers are never stopped or reused.
 - A trial run writes both PNG and JPG on every OS and is never committed.
 - Publish copies each JPG to `site/assets/` as well; `docs/assets/` is the source of truth.
-- Re-run the trial after any change to the seed, the scenario, or the app UI, and look at the images before publishing.
+- Re-run the trial after any change to the fixtures, the scenario, or the app UI, and look at the images before publishing.
 
 ## Asset Management
 
