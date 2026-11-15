@@ -104,7 +104,7 @@ jobs:
               fi
               if [[ "$tag_sha" == "$head_sha" ]]; then
                 release_tag="$RELEASE_TAG"
-              elif [[ "$(jq -r '.draft' <<<"$release_json")" == "false" && "$(jq -r '.prerelease' <<<"$release_json")" == "false" ]]; then
+              else
                 echo "::error::Published release tag does not resolve to the checked-out commit"
                 exit 1
               fi

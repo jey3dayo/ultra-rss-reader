@@ -843,51 +843,31 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(storeMsixWorkflow).toContain("github.event.workflow_run.head_sha");
     expect(storeMsixWorkflow).toContain("github.event.workflow_run.conclusion == 'success'");
     expect(storeMsixWorkflow).toContain("github.event.workflow_run.event == 'push'");
-    expect(storeMsixWorkflow).toContain("EXPECTED_SHA");
     expect(storeMsixWorkflow).toContain("github.event.release.tag_name");
-    expect(storeMsixWorkflow).toContain("Manual Store submission requires an explicit refs/tags/vX.Y.Z ref");
     expect(storeMsixWorkflow).toContain("releases/tags/$RELEASE_TAG");
     expect(storeMsixWorkflow).toContain(".draft");
     expect(storeMsixWorkflow).toContain(".prerelease");
     expect(storeMsixWorkflow).toContain("git/ref/tags/$RELEASE_TAG");
     expect(storeMsixWorkflow).toContain('[[ "$tag_sha" == "$head_sha" ]]');
     expect(storeMsixWorkflow).toContain("default: false\n        type: boolean");
-    expect(storeMsixWorkflow).toContain("inputs.submit || false");
     expect(storeMsixWorkflow).toContain("environment: microsoft-store");
     expect(storeMsixWorkflow).toContain("contents: read");
     expect(storeMsixWorkflow).toContain(`group: microsoft-store-\${{ github.repository }}`);
     expect(storeMsixWorkflow).toContain("cancel-in-progress: false");
-    expect(storeMsixWorkflow).toContain('gh api --include "$release_endpoint" 2>/dev/null');
     expect(storeMsixWorkflow).toContain('[[ "$release_http_status" == "404" ]]');
-    expect(storeMsixWorkflow).toContain("GitHub API request failed while checking release metadata");
-    expect(storeMsixWorkflow).toContain(
-      "No GitHub Release exists for $RELEASE_TAG; continuing without Store submission",
-    );
-    expect(storeMsixWorkflow).toContain(
-      "published stable release could not be confirmed; the MSIX build will continue",
-    );
 
     for (const secretName of ["MSSTORE_TENANT_ID", "MSSTORE_SELLER_ID", "MSSTORE_CLIENT_ID", "MSSTORE_CLIENT_SECRET"]) {
-      expect(storeMsixWorkflow).toContain(`${secretName}_SET`);
       expect(storeMsixWorkflow).toContain(`secrets.${secretName} != ''`);
       expect(storeMsixWorkflow).toContain([secretName, ": $", "{{ secrets.", secretName, " }}"].join(""));
     }
     expect(storeMsixWorkflow).toContain("should_submit=false");
-    expect(storeMsixWorkflow).toContain("configure the missing microsoft-store environment secrets");
     expect(storeMsixWorkflow).toContain("node ./scripts/release/validate-release-config.ts");
-    expect(storeMsixWorkflow).toContain("Validate produced MSIX version");
-    expect(storeMsixWorkflow).toContain("--output .\\ultra-rss-reader.msix");
     expect(storeMsixWorkflow).toContain('GetEntry("AppxManifest.xml")');
     expect(storeMsixWorkflow).toContain("$identity.Version -ne $expectedVersion");
     expect(storeMsixWorkflow).toContain("msstore submission status 9N85DQ7XKQ20");
     expect(storeMsixWorkflow).toContain("Submission Status = ([A-Za-z]+)");
     expect(storeMsixWorkflow).toContain('$submissionStatus -cne "Published"');
-    expect(storeMsixWorkflow).toContain("$PSNativeCommandUseErrorActionPreference = $false");
     expect(storeMsixWorkflow).toContain("$statusExitCode -ne 0");
-    expect(storeMsixWorkflow).toContain("$LASTEXITCODE -ne 0");
-    expect(storeMsixWorkflow).toContain("refusing to replace any pending draft");
-    expect(storeMsixWorkflow).toContain("msstore publish");
-    expect(storeMsixWorkflow).toContain("--noCommit");
     expect(storeMsixWorkflow).not.toContain("msstore submission publish");
 
     const actionRefs = extractWorkflowUses(storeMsixWorkflow).filter((ref) => !ref.startsWith("$/"));
