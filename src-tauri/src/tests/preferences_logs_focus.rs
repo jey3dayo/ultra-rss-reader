@@ -61,8 +61,7 @@ fn startup_log_cleanup_removes_expired_files_and_preserves_current_app_log() {
 #[test]
 fn release_log_rotation_contract_matches_support_docs() {
     let lib_rs = include_str!("../lib.rs");
-    let file_logging_design =
-        include_str!("../../../docs/superpowers/specs/2026-03-30-file-logging-design.md");
+    let incident_runbook = include_str!("../../../docs/incident-runbook.md");
     let release_manual = include_str!("../../../docs/release-manual-verification.md");
 
     assert_eq!(RELEASE_LOG_MAX_FILE_SIZE_BYTES, 5_000_000);
@@ -79,10 +78,10 @@ fn release_log_rotation_contract_matches_support_docs() {
         .expect("startup cleanup should follow scheduler startup");
     assert!(startup_cleanup.contains("cleanup_startup_logs(&log_dir);"));
     assert!(!startup_cleanup.contains("#[cfg(not(debug_assertions))]"));
-    assert!(file_logging_design.contains("max_file_size = 5_000_000"));
-    assert!(file_logging_design.contains("7 days"));
-    assert!(file_logging_design.contains("KeepAll"));
-    assert!(file_logging_design.contains("TimezoneStrategy::UseLocal"));
+    assert!(incident_runbook.contains("max_file_size = 5_000_000"));
+    assert!(incident_runbook.contains("7 days"));
+    assert!(incident_runbook.contains("KeepAll"));
+    assert!(incident_runbook.contains("TimezoneStrategy::UseLocal"));
     assert!(release_manual.contains("TimezoneStrategy::UseLocal"));
     assert!(release_manual.contains("OS timezone and UTC offset"));
 }

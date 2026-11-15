@@ -102,7 +102,7 @@ CI failure artifact contract:
 
 Size and truncation contract:
 
-- Packaged release logs are capped at 5 MB per file and retained for 7 days, so the effective maximum retained release-log surface is 35 MB.
+- Packaged release logs are capped at 5 MB per file (`max_file_size = 5_000_000`) and rotated with `RotationStrategy::KeepAll`. Startup cleanup removes rotated files older than 7 days and never removes the current `app.log`, so the effective maximum retained release-log surface is 35 MB.
 - Runtime diagnostics events must be capped at 16 KiB per event before they enter support/debug copy.
 - In-memory diagnostics history must behave as a 256 KiB ring buffer and evict oldest entries before writing new diagnostics.
 - If support/debug copy still exceeds the cap or cannot be copied, truncate from the middle, include `[ultra-rss-reader:diagnostics-truncated]`, and direct the user to share a manually redacted app.log excerpt instead.
