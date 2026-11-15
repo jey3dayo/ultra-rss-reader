@@ -12,6 +12,7 @@ export type PlatformCapabilitiesShape = {
 export type PlatformInfoShape = {
   kind: PlatformKind;
   capabilities: PlatformCapabilitiesShape;
+  manual_update_check_available?: boolean;
 };
 
 export const DEFAULT_PLATFORM_CAPABILITIES = {

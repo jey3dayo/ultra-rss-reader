@@ -427,6 +427,9 @@ describe("keyboard shortcut resolver", () => {
 
     expect(APP_ACTIONS).toContain("sync-all");
     expect(isAppActionAvailable("sync-all", "dispatcher", baseContext)).toBe(true);
+    expect(isAppActionAvailable("check-for-updates", "nativeMenu", baseContext)).toBe(true);
+    expect(isAppActionAvailable("check-for-updates", "keyboardShortcut", baseContext)).toBe(true);
+    expect(isAppActionAvailable("check-for-updates", "dispatcher", baseContext)).toBe(true);
     expect(
       isAppActionAvailable("sync-all", "commandPalette", {
         ...baseContext,

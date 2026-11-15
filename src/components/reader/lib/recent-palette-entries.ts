@@ -12,6 +12,7 @@ type ProjectRecentPaletteEntriesParams<
 > = {
   history: string[];
   resourcesReady: boolean;
+  preserveActionIds?: readonly string[];
   actions: readonly A[];
   feeds: readonly F[];
   folders: readonly Fo[];
@@ -44,6 +45,7 @@ function createCollector<Item extends WithId>(items: readonly Item[]) {
 
 function existingHistoryKeys(params: {
   actions: readonly WithId[];
+  preserveActionIds: readonly string[];
   feeds: readonly WithId[];
   folders: readonly WithId[];
   tags: readonly WithId[];
@@ -51,6 +53,7 @@ function existingHistoryKeys(params: {
 }): Set<string> {
   return new Set<string>([
     ...params.actions.map((action) => `action:${action.id}`),
+    ...params.preserveActionIds.map((id) => `action:${id}`),
     ...params.feeds.map((feed) => `feed:${feed.id}`),
     ...params.folders.map((folder) => `folder:${folder.id}`),
     ...params.tags.map((tag) => `tag:${tag.id}`),
@@ -65,9 +68,9 @@ export function projectRecentPaletteEntries<
   T extends WithId,
   Ar extends WithId,
 >(params: ProjectRecentPaletteEntriesParams<A, F, Fo, T, Ar>): RecentPaletteEntries<A, F, Fo, T, Ar> {
-  const { history, resourcesReady, actions, feeds, folders, tags, articles } = params;
+  const { history, resourcesReady, preserveActionIds = [], actions, feeds, folders, tags, articles } = params;
   const historyEntries = resourcesReady
-    ? projectCommandHistoryForExistingEntries(history, existingHistoryKeys(params))
+    ? projectCommandHistoryForExistingEntries(history, existingHistoryKeys({ ...params, preserveActionIds }))
     : history;
   const historyProjection = resourcesReady ? { previous: history, next: historyEntries } : null;
 

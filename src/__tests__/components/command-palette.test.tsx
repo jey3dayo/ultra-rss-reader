@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import type { QueryClient } from "@tanstack/react-query";
 import { render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +14,7 @@ vi.mock("@/dev/scenario-runtime", () => ({
   runRuntimeDevScenario: runCommandPaletteDevScenarioMock,
 }));
 
-import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { CommandPalette } from "@/components/reader/command-palette";
@@ -21,6 +22,7 @@ import { useCommandPaletteHandlers } from "@/components/reader/hooks/command-pal
 import { STORAGE_KEYS } from "@/constants/storage";
 import * as actions from "@/lib/actions";
 import i18n from "@/lib/i18n";
+import { QUERY_KEY_ROOTS, TAGS_QUERY_KEY } from "@/lib/query/query-keys";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -50,6 +52,47 @@ function expectCommandHistoryCleared() {
   expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
 }
 
+function setPlatformUpdaterStatus({
+  available,
+  loaded,
+  loadError,
+}: {
+  available: boolean | undefined;
+  loaded: boolean;
+  loadError: boolean;
+}) {
+  usePlatformStore.setState((state) => ({
+    ...state,
+    platform: {
+      ...state.platform,
+      manual_update_check_available: available,
+    },
+    loaded,
+    loadError,
+    inFlightLoad: null,
+  }));
+}
+
+async function waitForPaletteResources(queryClient: QueryClient) {
+  const resourceRoots = [
+    QUERY_KEY_ROOTS.feeds,
+    QUERY_KEY_ROOTS.folders,
+    TAGS_QUERY_KEY,
+    QUERY_KEY_ROOTS.recentArticles,
+  ];
+
+  await waitFor(() => {
+    const queries = queryClient.getQueryCache().getAll();
+    const resourceQueriesAreReady = resourceRoots.every((root) =>
+      queries.some(
+        (query) => root.every((segment, index) => query.queryKey[index] === segment) && query.state.data !== undefined,
+      ),
+    );
+
+    expect(resourceQueriesAreReady).toBe(true);
+  });
+}
+
 describe("CommandPalette", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("en");
@@ -67,6 +110,7 @@ describe("CommandPalette", () => {
     usePlatformStore.setState({
       platform: {
         kind: "macos",
+        manual_update_check_available: true,
         capabilities: {
           supports_reading_list: false,
           supports_background_browser_open: false,
@@ -134,6 +178,82 @@ describe("CommandPalette", () => {
     expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
+  });
+
+  it("shows Check for Updates when the direct-download updater is configured", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await user.type(screen.getByPlaceholderText("Search commands"), "Check for updates");
+
+    expect(await screen.findByText("Check for updates")).toBeInTheDocument();
+  });
+
+  it("keeps update-check history while platform info is loading, then shows it for direct distribution", async () => {
+    seedCommandHistory(["action:check-for-updates"]);
+    setPlatformUpdaterStatus({ available: false, loaded: false, loadError: false });
+    const { queryClient, wrapper } = createQueryWrapper({ includeToastHost: true });
+
+    render(<CommandPalette />, { wrapper });
+    await waitForPaletteResources(queryClient);
+
+    expectCommandHistory(["action:check-for-updates"]);
+    expect(screen.queryByText("Check for updates")).not.toBeInTheDocument();
+
+    setPlatformUpdaterStatus({ available: true, loaded: true, loadError: false });
+
+    expect(
+      await screen.findByText("Recent actions", {
+        selector: "[cmdk-group-heading]",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Check for updates/ })).toBeInTheDocument();
+  });
+
+  it("keeps update-check history after platform-info failure until direct updater availability is confirmed", async () => {
+    seedCommandHistory(["action:check-for-updates"]);
+    setPlatformUpdaterStatus({ available: false, loaded: true, loadError: true });
+    const { queryClient, wrapper } = createQueryWrapper({ includeToastHost: true });
+
+    render(<CommandPalette />, { wrapper });
+    await waitForPaletteResources(queryClient);
+
+    expectCommandHistory(["action:check-for-updates"]);
+    expect(screen.queryByText("Check for updates")).not.toBeInTheDocument();
+
+    setPlatformUpdaterStatus({ available: true, loaded: true, loadError: false });
+
+    expect(
+      await screen.findByText("Recent actions", {
+        selector: "[cmdk-group-heading]",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Check for updates/ })).toBeInTheDocument();
+  });
+
+  it("keeps update-check history when updater availability is missing", async () => {
+    seedCommandHistory(["action:check-for-updates"]);
+    setPlatformUpdaterStatus({ available: undefined, loaded: true, loadError: false });
+    const { queryClient, wrapper } = createQueryWrapper({ includeToastHost: true });
+
+    render(<CommandPalette />, { wrapper });
+    await waitForPaletteResources(queryClient);
+
+    expectCommandHistory(["action:check-for-updates"]);
+    expect(screen.queryByText("Check for updates")).not.toBeInTheDocument();
+  });
+
+  it("hides Check for Updates and its stored history in the Store build", async () => {
+    seedCommandHistory(["action:check-for-updates"]);
+    setPlatformUpdaterStatus({ available: false, loaded: true, loadError: false });
+    const { queryClient, wrapper } = createQueryWrapper({ includeToastHost: true });
+
+    render(<CommandPalette />, { wrapper });
+    await waitForPaletteResources(queryClient);
+    await waitFor(() => expectCommandHistory([]));
+
+    expect(screen.queryByText("Check for updates")).not.toBeInTheDocument();
   });
 
   it("keeps results mounted while filtering to avoid per-keystroke motion", async () => {
@@ -332,6 +452,7 @@ describe("CommandPalette", () => {
         openShortcutsHelp: vi.fn(),
         showToast: vi.fn(),
         selectedAccountId: null,
+        manualUpdateCheckAvailable: false,
         selectFeedFromCurrentContext: vi.fn(),
         selectFolderFromCurrentContext: vi.fn(),
         selectTagFromCurrentContext: vi.fn(),
@@ -345,6 +466,7 @@ describe("CommandPalette", () => {
     result.current.handleActionSelect("sync-all");
     result.current.handleActionSelect("open-add-feed");
     result.current.handleActionSelect("mark-all-read");
+    result.current.handleActionSelect("check-for-updates");
 
     expect(executeAction).not.toHaveBeenCalled();
     expect(closePalette).not.toHaveBeenCalled();

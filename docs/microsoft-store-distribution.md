@@ -95,7 +95,7 @@ Not yet verified: saving a new credential from inside the package, and launching
 
 ### Command palette update action
 
-The native menu item is disabled in the Store build, but the command palette still offers "Check for Updates", and running it shows a failure toast. The frontend surface is not yet gated on the Store build.
+The Store build reports whether the updater has a configured endpoint and public key through `get_platform_info`. The command palette only offers "Check for Updates" when that flag is true; it also drops a stored history entry for the action when unavailable. The direct-download build keeps the action. The native menu item continues to be disabled in the Store build.
 
 ## Listing Notes
 

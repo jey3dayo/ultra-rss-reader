@@ -47,8 +47,9 @@ function extractPlatformCapabilitiesForKind(source: string, rustKind: string): R
 
 describe("platform mock parity", () => {
   it("keeps get_platform_info wired to the current native platform source", () => {
-    expect(platformCommandsSource).toContain("pub fn get_platform_info() -> PlatformInfoDto");
+    expect(platformCommandsSource).toContain("pub fn get_platform_info(app: AppHandle) -> PlatformInfoDto");
     expect(platformCommandsSource).toContain("PlatformInfoDto::from(crate::platform::PlatformInfo::current())");
+    expect(platformCommandsSource).toContain("is_updater_manual_check_configured(app.config())");
   });
 
   it("keeps mocked platform capabilities aligned with the real DTO field set", () => {
@@ -58,6 +59,12 @@ describe("platform mock parity", () => {
     const staleMockFields = mockCapabilityFields.filter((field) => !realCapabilityFields.includes(field));
 
     expect(parse(PlatformInfoSchema, mockPlatformInfo)).toEqual(mockPlatformInfo);
+    expect(
+      parse(PlatformInfoSchema, {
+        ...mockPlatformInfo,
+        manual_update_check_available: false,
+      }).manual_update_check_available,
+    ).toBe(false);
     expect(missingMockFields).toEqual([]);
     expect(staleMockFields).toEqual([]);
   });
@@ -69,6 +76,7 @@ describe("platform mock parity", () => {
   it("keeps mock and default platform capabilities aligned with native platform defaults", () => {
     expect(mockPlatformInfo).toEqual({
       kind: "windows",
+      manual_update_check_available: true,
       capabilities: extractPlatformCapabilitiesForKind(platformSource, "Windows"),
     });
     expect(DEFAULT_PLATFORM_INFO).toEqual({

@@ -21,6 +21,7 @@ export const PlatformInfoSchema = v.pipe(
   s.strictObject({
     kind: v.string(),
     capabilities: PlatformCapabilitiesSchema,
+    manual_update_check_available: v.optional(v.boolean()),
   }),
   v.transform((platform): PlatformInfo => {
     if (isPlatformKind(platform.kind)) {

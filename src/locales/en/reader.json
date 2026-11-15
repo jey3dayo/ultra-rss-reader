@@ -245,6 +245,7 @@
     "actions": "Actions",
     "dev_scenarios": "Dev scenarios",
     "restart_app": "Restart app",
+    "check_for_updates": "Check for updates",
     "theme_action": "Theme: {{theme}}",
     "filter_action": "Filter: {{filter}}",
     "feeds": "Feeds",

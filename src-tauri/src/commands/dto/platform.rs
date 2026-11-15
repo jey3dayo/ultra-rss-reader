@@ -22,6 +22,7 @@ pub struct PlatformCapabilitiesDto {
 pub struct PlatformInfoDto {
     pub kind: PlatformKindDto,
     pub capabilities: PlatformCapabilitiesDto,
+    pub manual_update_check_available: bool,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -68,7 +69,11 @@ impl From<crate::platform::PlatformInfo> for PlatformInfoDto {
             uses_dev_file_credentials: info.capabilities.uses_dev_file_credentials,
         };
 
-        Self { kind, capabilities }
+        Self {
+            kind,
+            capabilities,
+            manual_update_check_available: false,
+        }
     }
 }
 
@@ -87,11 +92,13 @@ mod tests {
                 supports_native_browser_navigation: true,
                 uses_dev_file_credentials: false,
             },
+            manual_update_check_available: true,
         };
 
         let value = serde_json::to_value(dto).expect("platform dto should serialize");
 
         assert_eq!(value["kind"], "macos");
+        assert_eq!(value["manual_update_check_available"], true);
         let capabilities = value["capabilities"]
             .as_object()
             .expect("capabilities should be an object");

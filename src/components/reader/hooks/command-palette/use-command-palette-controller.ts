@@ -21,6 +21,8 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     selectTagFromCurrentContext,
     selectArticle,
     platformKind,
+    manualUpdateCheckAvailable,
+    manualUpdateCheckAvailabilityKnown,
     shortcutPrefs,
   } = useCommandPaletteUiState();
   const t = useStableOpenTranslation("reader", open);
@@ -45,6 +47,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
   const actions = useCommandPaletteActions({
     open,
     platformKind,
+    manualUpdateCheckAvailable,
     shortcutPrefs,
     selectedAccountId,
   });
@@ -90,6 +93,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     hasVisibleResults,
   } = useCommandPaletteData({
     actions,
+    preserveManualUpdateCheckHistory: !manualUpdateCheckAvailabilityKnown,
     deferredQuery,
     devScenarios,
     prefix,
@@ -115,6 +119,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     openFeedLanding,
     paletteSessionId,
     commandPaletteOpen: open,
+    manualUpdateCheckAvailable,
     canSelectArticle: (feedId, articleId) =>
       selectableArticleFeedIds.has(feedId) && selectableArticleIds.has(articleId),
     canSelectTag: (tagId) => selectableTagIds.has(tagId),
