@@ -45,7 +45,6 @@ For the product overview, start with `README.md`; for architecture, commands, an
 - React Doctor error triage record: [react-doctor-error-triage.md](./react-doctor-error-triage.md).
 - React Doctor warning classification records: [react-doctor-warning-classification-249.md](./react-doctor-warning-classification-249.md) (first wave) and [react-doctor-warning-classification-300.md](./react-doctor-warning-classification-300.md) (second wave).
 - React Doctor diff-gate degradation evidence and `scanSha` re-pin gating options: [react-doctor-gate-mechanics.md](./react-doctor-gate-mechanics.md).
-- Dated design and implementation records: [superpowers/README.md](./superpowers/README.md).
 
 ## Operational Docs
 
@@ -102,11 +101,8 @@ For the product overview, start with `README.md`; for architecture, commands, an
   - Dev-only dependencies affect lint, format, reports, or local-only tooling. Use the owning quality task and baseline drift test; promote to build-only when the tool is also used during build, test, or release.
   - Transitive-risk updates are indirect dependency changes that alter lockfile-resolved runtime, build, native, security-sensitive, or parser packages. Classify by the highest-impact affected parent and run that smoke even when `package.json` did not change.
 
-## Historical Design And Planning Records
+## Removed Historical Records
 
-- [superpowers/README.md](./superpowers/README.md): entry point for historical specs and plans
-- `superpowers/specs/`: dated design documents created during feature exploration
-- `superpowers/plans/`: dated implementation plans paired with individual feature work
-
-These `superpowers/` documents are historical records, not the primary source of truth for current product behavior.
-When the current behavior matters, prefer `README.md`, the operational docs above, and the relevant code.
+Dated design documents and implementation plans from feature exploration used to live under `docs/superpowers/`.
+They were removed because the workflow that produced them is no longer used; current behavior is documented in `README.md`, the operational docs above, and the code.
+They remain in git history at commit `9b3b127e2`: list them with `git ls-tree -r --name-only 9b3b127e2 docs/superpowers` and read one with `git show 9b3b127e2:<path>`.
