@@ -10,8 +10,10 @@ import { SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION, STORAGE_KEYS } from "../src/c
 import {
   STORE_SCREENSHOT_ACCOUNT_ID,
   STORE_SCREENSHOT_ACCOUNT_NAME,
+  STORE_SCREENSHOT_ACCOUNT_NAME_JA,
   STORE_SCREENSHOT_EXPANDED_FOLDER_ID,
   STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE,
+  STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE_JA,
 } from "../src/dev/store-screenshot-constants.ts";
 import {
   EXPECTED_IMAGE_SIZE,
@@ -19,6 +21,7 @@ import {
   planOutputs,
   readImageSize,
   SCREENSHOT_THEMES,
+  type ScreenshotLanguage,
   type ScreenshotTheme,
 } from "./lib/store-screenshot-output.ts";
 
@@ -29,12 +32,36 @@ const VIEWPORT = { width: 1600, height: 900 } as const;
 const DEVICE_SCALE_FACTOR = 2;
 // 18:00 UTC is later than every EN seed article published "today" (the latest is 16:22).
 const FIXED_TIME = "2026-08-17T18:00:00Z";
-const LOCALE = "en-US";
 const TIMEZONE = "UTC";
-const SEED_LOCALE = "store";
 const SCENARIO_ID = "open-unread-showcase-article";
-const EXPECTED_ACCOUNT_NAME = STORE_SCREENSHOT_ACCOUNT_NAME;
-const EXPECTED_ARTICLE_TITLE = STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE;
+const SCREENSHOT_LANGUAGE = {
+  en: {
+    locale: "en-US",
+    seedLocale: "store",
+    accountName: STORE_SCREENSHOT_ACCOUNT_NAME,
+    articleTitle: STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE,
+    unreadLabel: /^unread\b/i,
+    unsyncedLabel: "Not synced yet",
+  },
+  ja: {
+    locale: "ja-JP",
+    seedLocale: "store-ja",
+    accountName: STORE_SCREENSHOT_ACCOUNT_NAME_JA,
+    articleTitle: STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE_JA,
+    unreadLabel: /^未読/,
+    unsyncedLabel: "未同期",
+  },
+} satisfies Record<
+  ScreenshotLanguage,
+  {
+    locale: string;
+    seedLocale: string;
+    accountName: string;
+    articleTitle: string;
+    unreadLabel: RegExp;
+    unsyncedLabel: string;
+  }
+>;
 // The expanded Dev folder fills the sidebar that would otherwise leave a large empty area below the tags.
 const SEED_ACCOUNT_ID = STORE_SCREENSHOT_ACCOUNT_ID;
 const EXPANDED_FOLDER_ID = STORE_SCREENSHOT_EXPANDED_FOLDER_ID;
@@ -53,11 +80,12 @@ const NAVIGATION_ATTEMPTS = 6;
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-type CliOptions = { publish: boolean; port: number };
+type CliOptions = { publish: boolean; port: number; language: ScreenshotLanguage };
 
 function parseArgs(argv: string[]): CliOptions {
   let publish = false;
   let port = DEFAULT_PORT;
+  let language: ScreenshotLanguage = "en";
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--") {
@@ -69,8 +97,21 @@ function parseArgs(argv: string[]): CliOptions {
     } else if (arg === "--port") {
       port = Number(argv[index + 1]);
       index += 1;
+    } else if (arg === "--lang") {
+      const value = argv[index + 1];
+      if (value !== "en" && value !== "ja") {
+        throw new Error('--lang must be either "en" or "ja".');
+      }
+      language = value;
+      index += 1;
     } else if (arg.startsWith("--port=")) {
       port = Number(arg.slice("--port=".length));
+    } else if (arg.startsWith("--lang=")) {
+      const value = arg.slice("--lang=".length);
+      if (value !== "en" && value !== "ja") {
+        throw new Error('--lang must be either "en" or "ja".');
+      }
+      language = value;
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -78,7 +119,7 @@ function parseArgs(argv: string[]): CliOptions {
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {
     throw new Error("--port must be an integer between 1 and 65535.");
   }
-  return { publish, port };
+  return { publish, port, language };
 }
 
 function resolveViteBin(): string {
@@ -100,7 +141,7 @@ function isPortInUse(port: number): Promise<boolean> {
 type ViteServer = { child: ChildProcess; exited: Promise<number | null>; stop: () => void };
 
 // Runs vite with the same arguments as `mise run app:dev:browser`, without a shell, so Windows and macOS behave alike.
-async function startVite(port: number): Promise<ViteServer> {
+async function startVite(port: number, language: ScreenshotLanguage): Promise<ViteServer> {
   if (await isPortInUse(port)) {
     throw new Error(
       `Port ${port} is already in use. A server started with other env vars would capture a different seed; ` +
@@ -111,7 +152,11 @@ async function startVite(port: number): Promise<ViteServer> {
   const child = spawn(process.execPath, [resolveViteBin(), "--host", HOST, "--port", String(port), "--strictPort"], {
     cwd: REPO_ROOT,
     stdio: ["ignore", "inherit", "inherit"],
-    env: { ...process.env, VITE_DEV_MOCK_LOCALE: SEED_LOCALE, VITE_DEV_INTENT: SCENARIO_ID },
+    env: {
+      ...process.env,
+      VITE_DEV_MOCK_LOCALE: SCREENSHOT_LANGUAGE[language].seedLocale,
+      VITE_DEV_INTENT: SCENARIO_ID,
+    },
   });
   const exited = new Promise<number | null>((resolve) => child.once("exit", (code) => resolve(code)));
   const spawnFailed = new Promise<never>((_, reject) => child.once("error", reject));
@@ -206,19 +251,27 @@ async function collectFindings(page: Page): Promise<PageFindings> {
   });
 }
 
-function validateFindings(theme: ScreenshotTheme, findings: PageFindings): string[] {
+function validateFindings(language: ScreenshotLanguage, theme: ScreenshotTheme, findings: PageFindings): string[] {
+  const expected = SCREENSHOT_LANGUAGE[language];
   const problems: string[] = [];
-  if (findings.sidebarHeading !== EXPECTED_ACCOUNT_NAME) {
-    problems.push(`sidebar heading is "${findings.sidebarHeading}", expected "${EXPECTED_ACCOUNT_NAME}"`);
+  if (findings.sidebarHeading !== expected.accountName) {
+    problems.push(`sidebar heading is "${findings.sidebarHeading}", expected "${expected.accountName}"`);
   }
   if (FORBIDDEN_BRAND_PATTERN.test(findings.bodyText)) {
     problems.push("the page text contains a third-party product name (FreshRSS)");
   }
-  if (findings.articleHeading !== EXPECTED_ARTICLE_TITLE) {
-    problems.push(`article heading is "${findings.articleHeading}", expected "${EXPECTED_ARTICLE_TITLE}"`);
+  if (findings.bodyText.includes(expected.unsyncedLabel)) {
+    problems.push(
+      'the account sync status is "' + expected.unsyncedLabel + '" instead of showing a successful sync time',
+    );
   }
-  if (!findings.selectedNavLabels.some((label) => /^unread\b/i.test(label))) {
-    problems.push(`the Unread smart view is not selected (selected: ${JSON.stringify(findings.selectedNavLabels)})`);
+  if (findings.articleHeading !== expected.articleTitle) {
+    problems.push(`article heading is "${findings.articleHeading}", expected "${expected.articleTitle}"`);
+  }
+  if (!findings.selectedNavLabels.some((label) => expected.unreadLabel.test(label))) {
+    problems.push(
+      `the ${language === "ja" ? "未読" : "Unread"} smart view is not selected (selected: ${JSON.stringify(findings.selectedNavLabels)})`,
+    );
   }
   if (findings.darkClass !== (theme === "dark")) {
     problems.push(`the html dark class does not match the "${theme}" color scheme`);
@@ -261,6 +314,7 @@ async function gotoWithRetry(page: Page, url: string): Promise<void> {
 async function capture(
   browser: Browser,
   port: number,
+  language: ScreenshotLanguage,
   theme: ScreenshotTheme,
   formats: Set<PlannedOutput["format"]>,
 ): Promise<Map<PlannedOutput["format"], Buffer>> {
@@ -269,12 +323,12 @@ async function capture(
     viewport: VIEWPORT,
     deviceScaleFactor: DEVICE_SCALE_FACTOR,
     colorScheme: theme,
-    locale: LOCALE,
+    locale: SCREENSHOT_LANGUAGE[language].locale,
     timezoneId: TIMEZONE,
     reducedMotion: "reduce",
   });
   try {
-    // Read back at startup because the English seed sets startup_folder_expansion to "restore_previous".
+    // The store fixtures restore the expanded folder from this persisted state at startup.
     await context.addInitScript(({ key, value }) => window.localStorage.setItem(key, value), {
       key: STORAGE_KEYS.sidebarExpandedFolders,
       value: JSON.stringify({
@@ -303,7 +357,7 @@ async function capture(
     let problems: string[];
     for (;;) {
       await page.evaluate(() => document.fonts.ready);
-      problems = validateFindings(theme, await collectFindings(page));
+      problems = validateFindings(language, theme, await collectFindings(page));
       if (problems.length === 0 || Date.now() >= settleDeadline) {
         break;
       }
@@ -335,10 +389,10 @@ async function capture(
 }
 
 async function main(): Promise<void> {
-  const { publish, port } = parseArgs(process.argv.slice(2));
-  const outputs = planOutputs(process.platform, publish ? "publish" : "trial");
+  const { publish, port, language } = parseArgs(process.argv.slice(2));
+  const outputs = planOutputs(process.platform, publish ? "publish" : "trial", language);
 
-  const server = await startVite(port);
+  const server = await startVite(port, language);
   let browser: Browser | null = null;
   try {
     browser = await chromium.launch();
@@ -346,7 +400,13 @@ async function main(): Promise<void> {
 
     for (const theme of SCREENSHOT_THEMES) {
       const themeOutputs = outputs.filter((output) => output.theme === theme);
-      const buffers = await capture(browser, port, theme, new Set(themeOutputs.map((output) => output.format)));
+      const buffers = await capture(
+        browser,
+        port,
+        language,
+        theme,
+        new Set(themeOutputs.map((output) => output.format)),
+      );
 
       for (const output of themeOutputs) {
         const buffer = buffers.get(output.format);

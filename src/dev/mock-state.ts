@@ -20,20 +20,19 @@ export const mockPreferences = new Map<string, string>();
 
 /**
  * Seeds the `language`, `theme`, `debug_agentation_visibility`, and `startup_folder_expansion` preference defaults for the active dev-mock locale.
- * `VITE_DEV_MOCK_LOCALE=en` demo runs need the UI to actually render in
- * English; leaving `language` unset falls back to the frontend schema
- * default of `"system"`, which does not force English regardless of the
- * mock content locale.
+ * English demos and screenshot fixtures force the UI language to match their
+ * seed; the frontend schema default of `"system"` does not follow mock data.
  */
 function seedDevMockPreferencesForLocale() {
-  if (isEnglishDevMockLocale()) {
-    mockPreferences.set("language", "en");
+  const locale = readDevMockLocale();
+  if (locale !== "ja") {
+    mockPreferences.set("language", isEnglishDevMockLocale() ? "en" : "ja");
     // Follow prefers-color-scheme so screenshot capture can switch dark/light via the browser color scheme.
     mockPreferences.set("theme", "system");
     // The dev-only Agentation toolbar must not appear in demo/screenshot renders.
     mockPreferences.set("debug_agentation_visibility", "off");
   }
-  if (readDevMockLocale() === "store") {
+  if (locale === "store" || locale === "store-ja") {
     // Lets the capture script pre-open a folder through the stored expansion state.
     mockPreferences.set("startup_folder_expansion", "restore_previous");
   }

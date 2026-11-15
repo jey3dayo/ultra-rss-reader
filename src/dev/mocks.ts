@@ -20,7 +20,7 @@ import { isInvokableCommandName } from "@/api/tauri-commands/command-names";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "@/dev/mock-data";
-import { isEnglishDevMockLocale } from "@/dev/mock-data-locale";
+import { isEnglishDevMockLocale, isStoreScreenshotDevMockLocale } from "@/dev/mock-data-locale";
 import {
   captureDevMockWindowGlobals,
   createDevMockWindowGlobalsRestore,
@@ -393,7 +393,10 @@ export function setupDevMocks(): RestoreDevMocks {
           } satisfies AccountSyncStatusDto;
         }
         return {
-          last_success_at: isEnglishDevMockLocale() ? toIsoTimestamp(addHours(getCurrentDate(), -0.2)) : null,
+          last_success_at:
+            isEnglishDevMockLocale() || isStoreScreenshotDevMockLocale()
+              ? toIsoTimestamp(addHours(getCurrentDate(), -0.2))
+              : null,
           last_error: null,
           error_count: 0,
           next_retry_at: null,

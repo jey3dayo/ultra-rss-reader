@@ -3,11 +3,14 @@ import { mockDataSeedsEn } from "@/dev/mock-data-demo-en";
 import {
   STORE_SCREENSHOT_ACCOUNT_ID,
   STORE_SCREENSHOT_ACCOUNT_NAME,
+  STORE_SCREENSHOT_ACCOUNT_NAME_JA,
   STORE_SCREENSHOT_EXPANDED_FOLDER_ID,
   STORE_SCREENSHOT_SHOWCASE_ARTICLE_ID,
   STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE,
+  STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE_JA,
 } from "@/dev/store-screenshot-constants";
 import { relativeStoreScreenshotPublishedAt, storeScreenshotSeeds } from "@/dev/store-screenshot-fixtures";
+import { relativeStoreScreenshotPublishedAtJa, storeScreenshotSeedsJa } from "@/dev/store-screenshot-fixtures-ja";
 
 const isExampleHost = (url: string) => {
   const host = new URL(url).hostname;
@@ -109,6 +112,64 @@ describe("store screenshot fixtures", () => {
       storeScreenshotSeeds.articles,
     );
   });
+
+  it("keeps the Japanese store fixture fictional, internally connected, and on example.com", () => {
+    const accountIds = new Set(storeScreenshotSeedsJa.accounts.map((account) => account.id));
+    const folderIds = new Set(storeScreenshotSeedsJa.folders.map((folder) => folder.id));
+    const feedIds = new Set(storeScreenshotSeedsJa.feeds.map((feed) => feed.id));
+    const articleIds = new Set(storeScreenshotSeedsJa.articles.map((article) => article.id));
+    const tagIds = new Set(storeScreenshotSeedsJa.tags.map((tag) => tag.id));
+    const shownText = [
+      ...storeScreenshotSeedsJa.accounts.map((account) => account.name),
+      ...storeScreenshotSeedsJa.folders.map((folder) => folder.name),
+      ...storeScreenshotSeedsJa.feeds.map((feed) => feed.title),
+      ...storeScreenshotSeedsJa.tags.map((tag) => tag.name),
+      ...storeScreenshotSeedsJa.articles.flatMap((article) => [
+        article.title,
+        article.summary ?? "",
+        article.author ?? "",
+        article.content_sanitized,
+      ]),
+    ];
+
+    for (const folder of storeScreenshotSeedsJa.folders) {
+      expect(accountIds.has(folder.account_id)).toBe(true);
+    }
+    for (const feed of storeScreenshotSeedsJa.feeds) {
+      expect(accountIds.has(feed.account_id)).toBe(true);
+      expect(feed.folder_id === null || folderIds.has(feed.folder_id)).toBe(true);
+      expect(isExampleHost(feed.url)).toBe(true);
+      expect(isExampleHost(feed.site_url)).toBe(true);
+    }
+    for (const article of storeScreenshotSeedsJa.articles) {
+      expect(feedIds.has(article.feed_id)).toBe(true);
+      if (article.url) {
+        expect(isExampleHost(article.url)).toBe(true);
+      }
+      expect(article.title).toMatch(/[ぁ-んァ-ヶ一-龠]/);
+    }
+    for (const articleTag of storeScreenshotSeedsJa.articleTags) {
+      expect(articleIds.has(articleTag.article_id)).toBe(true);
+      expect(tagIds.has(articleTag.tag_id)).toBe(true);
+    }
+    for (const articleId of Object.keys(relativeStoreScreenshotPublishedAtJa)) {
+      expect(articleIds.has(articleId)).toBe(true);
+    }
+    for (const text of shownText) {
+      expect(text).not.toMatch(/freshrss/i);
+    }
+    expect(storeScreenshotSeedsJa.accounts.find((account) => account.id === STORE_SCREENSHOT_ACCOUNT_ID)?.name).toBe(
+      STORE_SCREENSHOT_ACCOUNT_NAME_JA,
+    );
+    const showcase = storeScreenshotSeedsJa.articles.find(
+      (article) => article.id === STORE_SCREENSHOT_SHOWCASE_ARTICLE_ID,
+    );
+    expect(showcase?.title).toBe(STORE_SCREENSHOT_SHOWCASE_ARTICLE_TITLE_JA);
+    expect(showcase?.thumbnail).toBeNull();
+    expect(storeScreenshotSeedsJa.feeds.some((feed) => feed.folder_id === STORE_SCREENSHOT_EXPANDED_FOLDER_ID)).toBe(
+      true,
+    );
+  });
 });
 
 describe("store screenshot dataset selection", () => {
@@ -135,5 +196,17 @@ describe("store screenshot dataset selection", () => {
     vi.stubEnv("VITE_DEV_MOCK_LOCALE", "en");
     const en = await import("@/dev/mock-state");
     expect(en.mockPreferences.has("startup_folder_expansion")).toBe(false);
+  });
+
+  it("loads the Japanese screenshot dataset and Japanese UI preferences under store-ja", async () => {
+    vi.stubEnv("VITE_DEV_MOCK_LOCALE", "store-ja");
+    const { mockDataSeeds } = await import("@/dev/mock-data");
+    const { mockPreferences } = await import("@/dev/mock-state");
+
+    expect(mockDataSeeds).toEqual(storeScreenshotSeedsJa);
+    expect(mockPreferences.get("language")).toBe("ja");
+    expect(mockPreferences.get("theme")).toBe("system");
+    expect(mockPreferences.get("debug_agentation_visibility")).toBe("off");
+    expect(mockPreferences.get("startup_folder_expansion")).toBe("restore_previous");
   });
 });

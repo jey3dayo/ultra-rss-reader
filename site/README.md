@@ -50,15 +50,18 @@ injects the beacon at the edge — deliberately not in the HTML.
   pixels, so shipping the master would make the icon the heaviest asset on a
   page whose whole job is loading fast. Regenerate with
   `sips -Z 256 assets/app-icon.png --out site/assets/app-icon.png`.
-- `screenshot-reader-{light,dark}-<os>.jpg` (`<os>` is `mac` or `windows`) copied
-  from `docs/assets/` by `pnpm run capture:screenshots:publish`. The file name
-  rules and the capture procedure are in
-  [docs/store-screenshots.md](../docs/store-screenshots.md).
+- `screenshot-reader-{light,dark}-<os>.jpg` (`<os>` is `mac` or `windows`)
+  copied from `docs/assets/screenshots/<language>/` into `site/assets/<language>/`
+  by `pnpm run capture:screenshots:publish -- --lang <language>`. The English
+  landing page keeps its macOS/Windows switcher; Japanese uses Japanese macOS
+  images and falls back to the existing English Windows images. The file name
+  rules and capture procedure are in [docs/store-screenshots.md](../docs/store-screenshots.md).
 
-**`docs/assets/` and `assets/app-icon.png` are the source of truth.** When those
-files change, re-copy (and for the icon, re-downscale) them into `site/assets/`
-as well. This directory is intentionally out of the Vite build and out of
-`docs/`, so nothing keeps the copies in sync automatically.
+**`docs/assets/screenshots/<language>/` and `assets/app-icon.png` are the source
+of truth.** When those files change, re-copy (and for the icon, re-downscale)
+them into `site/assets/<language>/` and `site/assets/` respectively. This
+directory is intentionally out of the Vite build and out of `docs/`, so nothing
+keeps the copies in sync automatically.
 
 ## Analytics
 

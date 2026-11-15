@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { planOutputs, readImageSize, resolveOsSuffix } from "../../../scripts/lib/store-screenshot-output.ts";
 
-const paths = (platform: NodeJS.Platform, mode: "trial" | "publish") =>
-  planOutputs(platform, mode).map((output) => output.path);
+const paths = (platform: NodeJS.Platform, mode: "trial" | "publish", language: "en" | "ja" = "en") =>
+  planOutputs(platform, mode, language).map((output) => output.path);
 
 describe("resolveOsSuffix", () => {
   it("maps darwin and win32 and rejects everything else", () => {
@@ -13,30 +13,41 @@ describe("resolveOsSuffix", () => {
 });
 
 describe("planOutputs", () => {
-  it("writes PNG and JPG for both themes under tmp/ on a trial run, whatever the OS", () => {
-    const expected = (suffix: string) => [
-      `tmp/screenshots/store/screenshot-reader-light-${suffix}.png`,
-      `tmp/screenshots/store/screenshot-reader-light-${suffix}.jpg`,
-      `tmp/screenshots/store/screenshot-reader-dark-${suffix}.png`,
-      `tmp/screenshots/store/screenshot-reader-dark-${suffix}.jpg`,
+  it("writes PNG and JPG for both themes under the selected language on a trial run", () => {
+    const expected = (language: string, suffix: string) => [
+      `tmp/screenshots/store/${language}/screenshot-reader-light-${suffix}.png`,
+      `tmp/screenshots/store/${language}/screenshot-reader-light-${suffix}.jpg`,
+      `tmp/screenshots/store/${language}/screenshot-reader-dark-${suffix}.png`,
+      `tmp/screenshots/store/${language}/screenshot-reader-dark-${suffix}.jpg`,
     ];
 
-    expect(paths("darwin", "trial")).toEqual(expected("mac"));
-    expect(paths("win32", "trial")).toEqual(expected("windows"));
-    expect(paths("linux", "trial")).toEqual(expected("linux"));
+    expect(paths("darwin", "trial")).toEqual(expected("en", "mac"));
+    expect(paths("darwin", "trial", "ja")).toEqual(expected("ja", "mac"));
+    expect(paths("win32", "trial")).toEqual(expected("en", "windows"));
+    expect(paths("linux", "trial")).toEqual(expected("en", "linux"));
     expect(planOutputs("win32", "trial").every((output) => output.copyTo.length === 0)).toBe(true);
   });
 
-  it("publishes only JPGs on macOS, mirrored into site/assets", () => {
+  it("publishes only JPGs on macOS under the selected language and mirrors them to the matching LP folder", () => {
     const outputs = planOutputs("darwin", "publish");
 
     expect(outputs.map((output) => output.path)).toEqual([
-      "docs/assets/screenshot-reader-light-mac.jpg",
-      "docs/assets/screenshot-reader-dark-mac.jpg",
+      "docs/assets/screenshots/en/screenshot-reader-light-mac.jpg",
+      "docs/assets/screenshots/en/screenshot-reader-dark-mac.jpg",
     ]);
     expect(outputs.map((output) => output.copyTo)).toEqual([
-      ["site/assets/screenshot-reader-light-mac.jpg"],
-      ["site/assets/screenshot-reader-dark-mac.jpg"],
+      ["site/assets/en/screenshot-reader-light-mac.jpg"],
+      ["site/assets/en/screenshot-reader-dark-mac.jpg"],
+    ]);
+
+    const japaneseOutputs = planOutputs("darwin", "publish", "ja");
+    expect(japaneseOutputs.map((output) => output.path)).toEqual([
+      "docs/assets/screenshots/ja/screenshot-reader-light-mac.jpg",
+      "docs/assets/screenshots/ja/screenshot-reader-dark-mac.jpg",
+    ]);
+    expect(japaneseOutputs.map((output) => output.copyTo)).toEqual([
+      ["site/assets/ja/screenshot-reader-light-mac.jpg"],
+      ["site/assets/ja/screenshot-reader-dark-mac.jpg"],
     ]);
   });
 
@@ -45,16 +56,26 @@ describe("planOutputs", () => {
 
     expect(outputs.map((output) => output.path)).toEqual([
       "docs/assets/store/screenshot-reader-light-windows.png",
-      "docs/assets/screenshot-reader-light-windows.jpg",
+      "docs/assets/screenshots/en/screenshot-reader-light-windows.jpg",
       "docs/assets/store/screenshot-reader-dark-windows.png",
-      "docs/assets/screenshot-reader-dark-windows.jpg",
+      "docs/assets/screenshots/en/screenshot-reader-dark-windows.jpg",
     ]);
     expect(outputs.filter((output) => output.format === "png").every((output) => output.copyTo.length === 0)).toBe(
       true,
     );
     expect(outputs.filter((output) => output.format === "jpg").flatMap((output) => output.copyTo)).toEqual([
-      "site/assets/screenshot-reader-light-windows.jpg",
-      "site/assets/screenshot-reader-dark-windows.jpg",
+      "site/assets/en/screenshot-reader-light-windows.jpg",
+      "site/assets/en/screenshot-reader-dark-windows.jpg",
+    ]);
+
+    const japaneseOutputs = planOutputs("win32", "publish", "ja");
+    expect(japaneseOutputs.map((output) => output.path)).toEqual([
+      "docs/assets/screenshots/ja/screenshot-reader-light-windows.jpg",
+      "docs/assets/screenshots/ja/screenshot-reader-dark-windows.jpg",
+    ]);
+    expect(japaneseOutputs.filter((output) => output.format === "jpg").flatMap((output) => output.copyTo)).toEqual([
+      "site/assets/ja/screenshot-reader-light-windows.jpg",
+      "site/assets/ja/screenshot-reader-dark-windows.jpg",
     ]);
   });
 
