@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Features
+
+- Microsoft Store 版の配布を開始しました ([製品ページ](https://apps.microsoft.com/detail/9N85DQ7XKQ20))。README とランディングページから案内し、直接配布版は引き続き GitHub Releases から入手できます。 ([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
+
 ## [0.67.28] - 2026-11-13
 
 ### Security
