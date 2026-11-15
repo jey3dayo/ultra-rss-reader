@@ -739,6 +739,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   const cargoToml = readText("src-tauri/Cargo.toml");
   const cargoLock = readText("src-tauri/Cargo.lock");
   const releaseWorkflow = readText(".github/workflows/release.yml");
+  const storeMsixWorkflow = readText(".github/workflows/store-msix.yml");
   const releaseSourceCli = readText("scripts/release/validate-source.ts");
   const releaseSourceWorkflow = readText("scripts/release/workflows/validate-source.ts");
   const releaseConfigCli = readText("scripts/release/validate-release-config.ts");
@@ -832,6 +833,48 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(codexPhase2Reference).toContain("scripts/release/bump-version.ts <new_version>");
     expect(codexReleaseChecks).toContain("src-tauri/Cargo.lock");
     expect(codexReleaseChecks).toContain("msix/Package.appxmanifest");
+  });
+
+  it("limits Store submissions to published releases whose tags match the checked-out commit", () => {
+    expect(storeMsixWorkflow).toContain("release:");
+    expect(storeMsixWorkflow).toContain("types: [published]");
+    expect(storeMsixWorkflow).toContain("workflow_run:");
+    expect(storeMsixWorkflow).toContain("workflows: [Release]");
+    expect(storeMsixWorkflow).toContain("github.event.workflow_run.head_sha");
+    expect(storeMsixWorkflow).toContain("github.event.workflow_run.conclusion == 'success'");
+    expect(storeMsixWorkflow).toContain("github.event.workflow_run.event == 'push'");
+    expect(storeMsixWorkflow).toContain("github.event.release.tag_name");
+    expect(storeMsixWorkflow).toContain("releases/tags/$RELEASE_TAG");
+    expect(storeMsixWorkflow).toContain(".draft");
+    expect(storeMsixWorkflow).toContain(".prerelease");
+    expect(storeMsixWorkflow).toContain("git/ref/tags/$RELEASE_TAG");
+    expect(storeMsixWorkflow).toContain('[[ "$tag_sha" == "$head_sha" ]]');
+    expect(storeMsixWorkflow).toContain("default: false\n        type: boolean");
+    expect(storeMsixWorkflow).toContain("environment: microsoft-store");
+    expect(storeMsixWorkflow).toContain("contents: read");
+    expect(storeMsixWorkflow).toContain(`group: microsoft-store-\${{ github.repository }}`);
+    expect(storeMsixWorkflow).toContain("cancel-in-progress: false");
+    expect(storeMsixWorkflow).toContain('[[ "$release_http_status" == "404" ]]');
+
+    for (const secretName of ["MSSTORE_TENANT_ID", "MSSTORE_SELLER_ID", "MSSTORE_CLIENT_ID", "MSSTORE_CLIENT_SECRET"]) {
+      expect(storeMsixWorkflow).toContain(`secrets.${secretName} != ''`);
+      expect(storeMsixWorkflow).toContain([secretName, ": $", "{{ secrets.", secretName, " }}"].join(""));
+    }
+    expect(storeMsixWorkflow).toContain("should_submit=false");
+    expect(storeMsixWorkflow).toContain("node ./scripts/release/validate-release-config.ts");
+    expect(storeMsixWorkflow).toContain('GetEntry("AppxManifest.xml")');
+    expect(storeMsixWorkflow).toContain("$identity.Version -ne $expectedVersion");
+    expect(storeMsixWorkflow).toContain("msstore submission status 9N85DQ7XKQ20");
+    expect(storeMsixWorkflow).toContain("Submission Status = ([A-Za-z]+)");
+    expect(storeMsixWorkflow).toContain('$submissionStatus -cne "Published"');
+    expect(storeMsixWorkflow).toContain("$statusExitCode -ne 0");
+    expect(storeMsixWorkflow).not.toContain("msstore submission publish");
+
+    const actionRefs = extractWorkflowUses(storeMsixWorkflow).filter((ref) => !ref.startsWith("$/"));
+    const lockEntries = extractWorkflowLockEntries(readText(".github/workflows/actions.lock"), "store-msix.yml");
+    for (const actionRef of actionRefs) {
+      expect(lockEntries).toContain(actionRef.toLowerCase());
+    }
   });
 
   it("serializes tag push and manual release runs by release tag", () => {

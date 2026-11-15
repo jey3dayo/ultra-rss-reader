@@ -37,7 +37,7 @@ The Publisher value and the rest of the Product Identity are in `msix/Package.ap
 | --- | --- | --- |
 | `src-tauri/tauri.store.conf.json` | Merged over `tauri.conf.json` with `--config` | Turns off updater artifacts and replaces the updater config with an empty one |
 | `msix/Package.appxmanifest`, `msix/Assets/` | Generated once by `winapp manifest generate`, then committed | MSIX identity, version, capabilities, and tile assets |
-| `.github/workflows/store-msix.yml` | Manual `workflow_dispatch` | Builds the exe with the Store config, packs it with `winapp pack`, and uploads the `store-msix` artifact |
+| `.github/workflows/store-msix.yml` | Successful tag-push Release workflow completion, published stable GitHub Release, or manual `workflow_dispatch` | Builds and uploads the `store-msix` artifact; when a published stable release is verified and credentials exist, creates a Microsoft Store draft using `msstore` |
 
 The manifest lives under `msix/` instead of the repository root because `Assets/` would collide with the existing `assets/` directory on case-insensitive file systems.
 
@@ -59,11 +59,26 @@ The MSIX contains only the exe, `Assets/`, and the PRI file. `WebView2Loader.dll
 
 The Store version does not update itself. Each new version is a resubmission.
 
-1. Bump the version with `node scripts/release/bump-version.ts <version>`. It updates `msix/Package.appxmanifest` `Identity Version` to `<version>.0` together with the other four version sources. The contract test and the release preflight fail if they disagree.
-2. Run the **Store MSIX** workflow on the release commit and download the `store-msix` artifact.
-3. In Partner Center, open the submission, remove the old package, upload the new `.msix`, and confirm it shows as Validated.
-4. Check that every section still carries over (pricing, markets, category, age rating, listings, submission options), then submit for certification.
-5. Publishing is set to manual. After certification passes, press "Publish now" in Partner Center.
+1. Bump the version with `node scripts/release/bump-version.ts <version>`; it updates the MSIX manifest and the other version sources.
+2. Publishing a stable GitHub Release starts **Store MSIX**. A successful tag-push Release workflow also starts it, but submission is skipped unless the release is already published. The workflow checks the tag and built MSIX version, then uploads a Store draft without submitting it for certification. A Release workflow dispatch does not start the fallback.
+3. For a manual build, run **Store MSIX** with the default `submit: false`. To submit, select `submit: true` and an explicit published stable `refs/tags/vX.Y.Z` ref. Missing secrets skip submission while leaving the build successful.
+4. Configure these secrets under **Settings → Environments → microsoft-store**:
+
+   | Secret | Partner Center / Microsoft Entra value |
+   | --- | --- |
+   | `MSSTORE_TENANT_ID` | Microsoft Entra tenant ID |
+   | `MSSTORE_SELLER_ID` | Partner Center seller ID |
+   | `MSSTORE_CLIENT_ID` | Microsoft Entra application client ID |
+   | `MSSTORE_CLIENT_SECRET` | Microsoft Entra application client secret |
+
+   The Entra application needs submission permissions. The CLI stores configuration in the ephemeral runner profile and the client secret in Windows Credential Manager.
+5. Review the draft, including pricing, markets, listings, and submission options in Partner Center, then submit it for certification. After certification passes, press "Publish now".
+
+### Existing draft and status guard
+
+Submission 2 was observed as a draft; its current contents and whether `msstore publish` replaces it remain unverified. The workflow accepts only one `Submission Status = Published` line and fails closed on errors or other statuses. Once secrets are configured, first run only `msstore submission status 9N85DQ7XKQ20` and inspect the draft; do not publish during this check. Preserve Submission 2 until deciding whether to delete it manually or separately review a workflow change. Deleting it may lose edits; allowing a draft may replace them.
+
+After the guard passes, the workflow runs `msstore publish <msix-path> --appId 9N85DQ7XKQ20 --noCommit`. Coordinate manual Partner Center edits with workflow runs: status checking and upload are separate operations. Verify market prices before changing pricing or using a `--priceId` override.
 
 Partner Center allows only one pending submission. If a certified submission is waiting to be published and you want to ship a newer package instead, use "Cancel certification" to return it to draft, then replace the package in that same submission.
 

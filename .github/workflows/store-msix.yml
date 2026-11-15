@@ -1,47 +1,161 @@
 name: Store MSIX
 
-# Microsoft Store 提出用の MSIX を手動トリガーでビルドする。
-# GitHub Release とは独立した配布経路のため、タグ push には連動させない。
-# Store 提出用パッケージは Store 側が Microsoft 証明書で再署名するため、
-# このワークフローでは署名しない（sideload 検証用の署名はローカルで行う）。
-# 前提: Phase 2 (issue #57) で winapp が生成した msix/Package.appxmanifest と
-# msix/Assets/ がリポジトリにコミットされていること。
-
 on:
+  release:
+    types: [published]
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
   workflow_dispatch:
     inputs:
       ref:
-        description: "Git ref to build (branch, tag, or SHA). Defaults to the default branch."
+        description: "Git ref to build (branch, tag, or SHA). Defaults to the selected ref. Submission requires a published stable release tag."
         required: false
         type: string
+      submit:
+        description: "Upload the package to a Microsoft Store draft. This replaces any pending draft."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.ref || github.ref_name }}
+  group: microsoft-store-${{ github.repository }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   msix:
+    if: >-
+      github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    environment: microsoft-store
 
     steps:
       - uses: actions/checkout@v6.1.0
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch) || (github.event_name == 'workflow_dispatch' && inputs.ref) || github.ref }}
+          persist-credentials: false
+
+      - name: Resolve release submission intent
+        id: intent
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch) || (github.event_name == 'workflow_dispatch' && (inputs.ref || github.ref)) || github.ref_name }}
+          SELECTED_REF: ${{ github.event_name == 'workflow_dispatch' && (inputs.ref || github.ref) || '' }}
+          SUBMIT_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.submit || false }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
+          MSSTORE_TENANT_ID_SET: ${{ secrets.MSSTORE_TENANT_ID != '' }}
+          MSSTORE_SELLER_ID_SET: ${{ secrets.MSSTORE_SELLER_ID != '' }}
+          MSSTORE_CLIENT_ID_SET: ${{ secrets.MSSTORE_CLIENT_ID != '' }}
+          MSSTORE_CLIENT_SECRET_SET: ${{ secrets.MSSTORE_CLIENT_SECRET != '' }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_TAG="${RELEASE_TAG#refs/tags/}"
+          submit_requested=false
+          [[ "$EVENT_NAME" == "release" || "$EVENT_NAME" == "workflow_run" || "$SUBMIT_INPUT" == "true" ]] && submit_requested=true
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$submit_requested" == "true" && ! "$SELECTED_REF" =~ ^refs/tags/v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Manual Store submission requires an explicit refs/tags/vX.Y.Z ref"
+            exit 1
+          fi
+
+          release_tag=""
+          if [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            release_endpoint="repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG"
+            if release_response="$(gh api --include "$release_endpoint" 2>/dev/null)"; then
+              release_http_status="$(sed -n '1s#^HTTP/[0-9.]* \([0-9][0-9][0-9]\).*#\1#p' <<<"$release_response")"
+              if [[ "$release_http_status" != "200" ]]; then
+                echo "::error::GitHub API returned an unexpected response while checking release metadata (HTTP $release_http_status)"
+                exit 1
+              fi
+              release_json="$(awk 'BEGIN { in_body = 0 } in_body { print } /^\r?$/ { in_body = 1 }' <<<"$release_response")"
+            else
+              release_http_status="$(sed -n '1s#^HTTP/[0-9.]* \([0-9][0-9][0-9]\).*#\1#p' <<<"$release_response")"
+              if [[ "$release_http_status" == "404" ]]; then
+                release_json=""
+                echo "::notice::No GitHub Release exists for $RELEASE_TAG; continuing without Store submission"
+              else
+                echo "::error::GitHub API request failed while checking release metadata (HTTP ${release_http_status:-unknown})"
+                exit 1
+              fi
+            fi
+
+            if [[ -n "$release_json" && "$(jq -r '.tag_name' <<<"$release_json")" == "$RELEASE_TAG" && "$(jq -r '.draft' <<<"$release_json")" == "false" && "$(jq -r '.prerelease' <<<"$release_json")" == "false" ]]; then
+              tag_ref="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG")"
+              tag_sha="$(jq -r '.object.sha' <<<"$tag_ref")"
+              if [[ "$(jq -r '.object.type' <<<"$tag_ref")" == "tag" ]]; then
+                tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_sha" --jq .object.sha)"
+              fi
+              head_sha="$(git rev-parse HEAD)"
+              if [[ -n "$EXPECTED_SHA" && "$EXPECTED_SHA" != "$head_sha" ]]; then
+                echo "::error::Release workflow source SHA does not match the checked-out release tag"
+                exit 1
+              fi
+              if [[ "$tag_sha" == "$head_sha" ]]; then
+                release_tag="$RELEASE_TAG"
+              else
+                echo "::error::Published release tag does not resolve to the checked-out commit"
+                exit 1
+              fi
+            fi
+          fi
+
+          if [[ "$EVENT_NAME" == "workflow_run" && -z "$release_tag" ]]; then
+            submit_requested=false
+            echo "::notice::Store submission skipped because the Release workflow did not leave a published stable release for its source tag"
+          elif [[ "$EVENT_NAME" == "release" && -z "$release_tag" ]]; then
+            submit_requested=false
+            echo "::notice::Store submission skipped because the published stable release could not be confirmed; the MSIX build will continue"
+          elif [[ "$submit_requested" == "true" && -z "$release_tag" ]]; then
+            echo "::error::Store submission requires a published stable release tag resolving to the checked-out commit"
+            exit 1
+          fi
+
+          missing=()
+          for secret_name in MSSTORE_TENANT_ID MSSTORE_SELLER_ID MSSTORE_CLIENT_ID MSSTORE_CLIENT_SECRET; do
+            secret_status_name="${secret_name}_SET"
+            if [[ "${!secret_status_name}" != "true" ]]; then
+              missing+=("$secret_name")
+            fi
+          done
+
+          if [[ "$submit_requested" == "true" && ${#missing[@]} -gt 0 ]]; then
+            echo "should_submit=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets: $(IFS=,; echo "${missing[*]}")"
+          else
+            echo "should_submit=$submit_requested" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+
+      - uses: jdx/mise-action@v4.3.0
+
+      - name: Validate release version
+        if: steps.intent.outputs.release_tag != ''
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.intent.outputs.release_tag }}
+        run: node ./scripts/release/validate-release-config.ts
 
       - name: Validate MSIX manifest presence
         shell: bash
         run: |
           set -euo pipefail
           if [[ ! -f "msix/Package.appxmanifest" ]]; then
-            echo "::error::msix/Package.appxmanifest is missing. Run 'winapp manifest generate msix ...' on Windows and commit msix/Package.appxmanifest and msix/Assets/ first (issue #57)."
+            echo "::error::msix/Package.appxmanifest is missing. Run 'winapp manifest generate msix ...' and commit the manifest and assets first."
             exit 1
           fi
-
-      - uses: jdx/mise-action@v4.3.0
 
       - uses: $/.github/actions/setup-pnpm
 
@@ -56,13 +170,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Store 用 config で updater を無効化した exe をビルドする。
-      # インストーラーは不要なので --no-bundle で exe のみ生成する。
       - name: Build store executable
         shell: bash
         run: pnpm tauri build --no-bundle --config src-tauri/tauri.store.conf.json --ci
 
-      # CLI version pinned for reproducibility
       - uses: microsoft/setup-WinAppCli@v0.2
         with:
           version: v0.6.0
@@ -73,19 +184,37 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force -Path dist-msix | Out-Null
           Copy-Item src-tauri\target\release\ultra-rss-reader.exe dist-msix\
-          winapp pack .\dist-msix --manifest msix\Package.appxmanifest
+          winapp pack .\dist-msix --manifest msix\Package.appxmanifest --output .\ultra-rss-reader.msix
+
+      - name: Validate produced MSIX version
+        if: steps.intent.outputs.release_tag != ''
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ steps.intent.outputs.release_tag }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $expectedVersion = "$($env:RELEASE_TAG.Substring(1)).0"
+          $package = Get-Item .\ultra-rss-reader.msix -ErrorAction SilentlyContinue
+          if (-not $package) { throw "winapp pack did not produce the expected .msix package." }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($package.FullName)
+          try {
+            $manifestEntry = $archive.GetEntry("AppxManifest.xml")
+            if (-not $manifestEntry) { throw "Produced MSIX does not contain AppxManifest.xml." }
+            $reader = [System.IO.StreamReader]::new($manifestEntry.Open())
+            try { [xml]$manifest = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            $identity = $manifest.Package.Identity
+            if (-not $identity -or $identity.Version -ne $expectedVersion) {
+              throw "Produced MSIX manifest version '$($identity.Version)' does not match release '$expectedVersion'."
+            }
+          } finally { $archive.Dispose() }
 
       - name: Collect MSIX artifacts
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $msix = Get-ChildItem -Recurse -Include *.msix, *.msixbundle -File |
-            Where-Object { $_.FullName -notmatch '\\node_modules\\|\\target\\(?!.*msix)' }
-          if (-not $msix) {
-            Write-Error "No .msix or .msixbundle produced by winapp pack."
-          }
           New-Item -ItemType Directory -Force -Path msix-out | Out-Null
-          $msix | Copy-Item -Destination msix-out\
+          Copy-Item .\ultra-rss-reader.msix -Destination msix-out\
           Get-ChildItem msix-out
 
       - uses: actions/upload-artifact@v7.0.2
@@ -94,3 +223,53 @@ jobs:
           path: msix-out/
           if-no-files-found: error
           retention-days: 14
+
+      - uses: microsoft/microsoft-store-apppublisher@v1.4
+        if: steps.intent.outputs.should_submit == 'true'
+        with:
+          version: v0.4.2
+
+      - name: Configure Store credentials
+        if: steps.intent.outputs.should_submit == 'true'
+        shell: pwsh
+        env:
+          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
+          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $false
+          msstore reconfigure `
+            --tenantId $env:MSSTORE_TENANT_ID `
+            --sellerId $env:MSSTORE_SELLER_ID `
+            --clientId $env:MSSTORE_CLIENT_ID `
+            --clientSecret $env:MSSTORE_CLIENT_SECRET
+          if ($LASTEXITCODE -ne 0) { throw "Microsoft Store CLI credential configuration failed (exit $LASTEXITCODE)." }
+
+      - name: Submit Store draft
+        if: steps.intent.outputs.should_submit == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $false
+          $statusOutput = (& msstore submission status 9N85DQ7XKQ20 2>&1 | Out-String)
+          $statusExitCode = $LASTEXITCODE
+          if ($statusExitCode -ne 0) { throw "Could not verify Partner Center submission status; refusing to replace any pending draft (exit $statusExitCode)." }
+          $plainStatus = [System.Text.RegularExpressions.Regex]::Replace($statusOutput, "\u001b\[[0-9;]*[A-Za-z]", "")
+          $statusMatches = [regex]::Matches($plainStatus, '(?m)^\s*Submission Status = ([A-Za-z]+)\s*$')
+          if ($statusMatches.Count -ne 1) {
+            throw "Partner Center submission status output was not recognized; refusing to replace any pending draft."
+          }
+          $submissionStatus = $statusMatches[0].Groups[1].Value
+          if ($submissionStatus -cne "Published") {
+            throw "Partner Center reports a pending or unknown submission status '$submissionStatus'; refusing to replace any pending draft."
+          }
+          $package = Get-ChildItem msix-out -Filter *.msix -File | Select-Object -First 1
+          if (-not $package) {
+            throw "No .msix package is available for Store submission."
+          }
+          msstore publish $package.FullName `
+            --appId 9N85DQ7XKQ20 `
+            --noCommit
+          if ($LASTEXITCODE -ne 0) { throw "Microsoft Store draft submission failed (exit $LASTEXITCODE)." }
