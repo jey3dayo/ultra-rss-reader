@@ -269,8 +269,7 @@ jobs:
           if (-not $package) {
             throw "No .msix package is available for Store submission."
           }
-          msstore publish $env:GITHUB_WORKSPACE `
-            --inputFile $package.FullName `
+          msstore publish $package.FullName `
             --appId 9N85DQ7XKQ20 `
             --noCommit
           if ($LASTEXITCODE -ne 0) { throw "Microsoft Store draft submission failed (exit $LASTEXITCODE)." }

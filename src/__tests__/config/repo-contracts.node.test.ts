@@ -1709,6 +1709,15 @@ describe("repository static contracts", () => {
     expect(manifestVersion).toBe(`${packageJson.version}.0`);
   });
 
+  it("passes the MSIX path positionally to msstore publish", () => {
+    const workflow = readRepoFile(".github/workflows/store-msix.yml");
+
+    expect(workflow).toContain("msstore publish $package.FullName `");
+    expect(workflow).toContain("--appId 9N85DQ7XKQ20 `");
+    expect(workflow).toContain("--noCommit");
+    expect(workflow).not.toContain("--inputFile");
+  });
+
   it("keeps release dry-run version sources consistent", () => {
     const packageVersion = packageJson.version;
 
