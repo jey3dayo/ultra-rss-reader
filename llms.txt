@@ -71,6 +71,5 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 
 ## Historical Docs
 
-- `docs/superpowers/specs/`: dated design documents.
-- `docs/superpowers/plans/`: dated implementation plans and execution checklists.
+- Dated design documents and implementation plans were removed from the tree; see `docs/README.md` (Removed Historical Records) for how to read them from git history.
 - Historical docs are not the primary source of truth for current behavior. Prefer `CONTRIBUTING.md`, `docs/README.md`, operational docs, and code.

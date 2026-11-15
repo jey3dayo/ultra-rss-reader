@@ -14,7 +14,6 @@ export const markdownlintRepoContract = {
     ".kiro",
     ".plans",
     "plans",
-    "docs/superpowers",
     "apm_modules",
     ".agents/skills",
     ".claude/skills",
