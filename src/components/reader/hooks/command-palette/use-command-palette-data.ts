@@ -6,6 +6,7 @@ import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTags } from "@/hooks/use-tags";
+import { APP_ACTION_REGISTRY } from "@/lib/app-actions";
 import {
   getHistory,
   writeNormalizedHistoryAfterResourceProjection,
@@ -14,6 +15,7 @@ import type { PaletteAction } from "../../command-palette.types";
 
 type UseCommandPaletteDataParams = {
   actions: PaletteAction[];
+  preserveManualUpdateCheckHistory: boolean;
   deferredQuery: string;
   devScenarios: RuntimeDevScenario[];
   prefix: string | null;
@@ -145,6 +147,7 @@ function resolveHasVisiblePaletteResults(params: {
 
 export function useCommandPaletteData({
   actions,
+  preserveManualUpdateCheckHistory,
   deferredQuery,
   devScenarios,
   prefix,
@@ -220,13 +223,14 @@ export function useCommandPaletteData({
     return projectRecentPaletteEntries({
       history: getHistory(),
       resourcesReady,
+      preserveActionIds: preserveManualUpdateCheckHistory ? APP_ACTION_REGISTRY.updates : [],
       actions,
       feeds,
       folders,
       tags,
       articles: recentArticleCandidates,
     });
-  }, [actions, feeds, folders, recentArticleCandidates, resourcesReady, tags]);
+  }, [actions, feeds, folders, preserveManualUpdateCheckHistory, recentArticleCandidates, resourcesReady, tags]);
 
   useEffect(() => {
     if (!historyProjection) {

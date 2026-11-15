@@ -21,12 +21,18 @@ export function useCommandPaletteUiState() {
   const openCloseState = useCommandPaletteOpenCloseState();
   const uiState = useCommandPaletteUiStoreSlice();
   const platformKind = usePlatformStore((state) => state.platform.kind);
+  const manualUpdateCheckAvailable = usePlatformStore((state) => state.platform.manual_update_check_available === true);
+  const manualUpdateCheckAvailabilityKnown = usePlatformStore(
+    (state) => state.loaded && !state.loadError && state.platform.manual_update_check_available !== undefined,
+  );
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
 
   return {
     ...openCloseState,
     ...uiState,
     platformKind,
+    manualUpdateCheckAvailable,
+    manualUpdateCheckAvailabilityKnown,
     shortcutPrefs,
   };
 }

@@ -21,6 +21,7 @@ import type { PaletteAction } from "../../command-palette.types";
 type UseCommandPaletteActionsParams = {
   open: boolean;
   platformKind: PlatformInfo["kind"];
+  manualUpdateCheckAvailable: boolean;
   shortcutPrefs: Record<string, string>;
   selectedAccountId: string | null;
 };
@@ -30,6 +31,7 @@ type UseCommandPaletteActionsResult = PaletteAction[];
 export function useCommandPaletteActions({
   open,
   platformKind,
+  manualUpdateCheckAvailable,
   shortcutPrefs,
   selectedAccountId,
 }: UseCommandPaletteActionsParams): UseCommandPaletteActionsResult {
@@ -169,6 +171,16 @@ export function useCommandPaletteActions({
         keywords: ["filter", "starred", "フィルター", "スター"],
         icon: ListFilterIcon,
       },
+      ...(manualUpdateCheckAvailable
+        ? [
+            {
+              id: "check-for-updates" as const,
+              label: t("command_palette.check_for_updates"),
+              keywords: ["update", "updates", "version", "アップデート", "更新"],
+              icon: RefreshCwIcon,
+            },
+          ]
+        : []),
       ...(selectedAccountId
         ? [
             {
@@ -218,5 +230,5 @@ export function useCommandPaletteActions({
     }
 
     return actions;
-  }, [platformKind, selectedAccountId, shortcutPrefs, t, tSettings, tSidebar]);
+  }, [manualUpdateCheckAvailable, platformKind, selectedAccountId, shortcutPrefs, t, tSettings, tSidebar]);
 }

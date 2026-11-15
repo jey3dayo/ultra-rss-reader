@@ -8,6 +8,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/jey3dayo/ultra-rss-reader)](https://github.com/jey3dayo/ultra-rss-reader/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/jey3dayo/ultra-rss-reader/total)](https://github.com/jey3dayo/ultra-rss-reader/releases)
+[![Get it from Microsoft](https://get.microsoft.com/images/en-us%20dark.svg)](https://apps.microsoft.com/detail/9N85DQ7XKQ20) — Paid app
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey)
 

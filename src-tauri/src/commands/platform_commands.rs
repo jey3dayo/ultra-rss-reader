@@ -3,6 +3,8 @@ use crate::commands::dto::{
     DevRuntimeOptionsDto, PlatformInfoDto, PlatformPermissionDeniedRecoveryDto,
     PlatformPermissionDeniedSurfaceDto,
 };
+use crate::commands::updater_commands::is_updater_manual_check_configured;
+use tauri::AppHandle;
 
 const DEV_INTENT_ENV_KEYS: [&str; 2] = ["VITE_DEV_INTENT", "VITE_ULTRA_RSS_DEV_INTENT"];
 const DEV_WEB_URL_ENV_KEYS: [&str; 2] = ["VITE_DEV_WEB_URL", "VITE_ULTRA_RSS_DEV_WEB_URL"];
@@ -34,8 +36,10 @@ fn read_first_valid_dev_web_url(keys: &[&'static str]) -> Option<String> {
 }
 
 #[tauri::command]
-pub fn get_platform_info() -> PlatformInfoDto {
-    PlatformInfoDto::from(crate::platform::PlatformInfo::current())
+pub fn get_platform_info(app: AppHandle) -> PlatformInfoDto {
+    let mut info = PlatformInfoDto::from(crate::platform::PlatformInfo::current());
+    info.manual_update_check_available = is_updater_manual_check_configured(app.config());
+    info
 }
 
 #[tauri::command]

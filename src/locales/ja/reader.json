@@ -245,6 +245,7 @@
     "actions": "アクション",
     "dev_scenarios": "開発シナリオ",
     "restart_app": "アプリを再起動",
+    "check_for_updates": "アップデートを確認",
     "theme_action": "テーマ: {{theme}}",
     "filter_action": "フィルター: {{filter}}",
     "feeds": "フィード",

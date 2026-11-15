@@ -69,6 +69,7 @@ describe("useCommandPaletteData", () => {
     renderHook(() =>
       useCommandPaletteData({
         actions: [action],
+        preserveManualUpdateCheckHistory: false,
         deferredQuery: "",
         devScenarios: [],
         prefix: null,
@@ -97,6 +98,7 @@ describe("useCommandPaletteData", () => {
     const { result } = renderHook(() =>
       useCommandPaletteData({
         actions: [action],
+        preserveManualUpdateCheckHistory: false,
         deferredQuery: "",
         devScenarios: [],
         prefix: null,
@@ -127,6 +129,7 @@ describe("useCommandPaletteData", () => {
     const { result } = renderHook(() =>
       useCommandPaletteData({
         actions: [action],
+        preserveManualUpdateCheckHistory: false,
         deferredQuery: "",
         devScenarios: [],
         prefix: null,
@@ -154,6 +157,7 @@ describe("useCommandPaletteData", () => {
     const { result } = renderHook(() =>
       useCommandPaletteData({
         actions: [action],
+        preserveManualUpdateCheckHistory: false,
         deferredQuery: "article",
         devScenarios: [],
         prefix: null,
@@ -177,6 +181,7 @@ describe("useCommandPaletteData", () => {
     const queried = renderHook(() =>
       useCommandPaletteData({
         actions: [action],
+        preserveManualUpdateCheckHistory: false,
         deferredQuery: "tech",
         devScenarios: [],
         prefix: null,
@@ -187,6 +192,7 @@ describe("useCommandPaletteData", () => {
     const prefixed = renderHook(() =>
       useCommandPaletteData({
         actions: [action],
+        preserveManualUpdateCheckHistory: false,
         deferredQuery: "",
         devScenarios: [],
         prefix: "@",
@@ -203,6 +209,7 @@ describe("useCommandPaletteData", () => {
     const prefixed = renderHook(() =>
       useCommandPaletteData({
         actions: [],
+        preserveManualUpdateCheckHistory: false,
         deferredQuery: "",
         devScenarios: [],
         prefix: "@",

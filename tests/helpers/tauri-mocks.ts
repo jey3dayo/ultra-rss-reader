@@ -71,6 +71,7 @@ export function createTauriMockCallRecorder(handler?: MockHandler): {
 
 export const mockPlatformInfo = {
   kind: "windows",
+  manual_update_check_available: true,
   capabilities: {
     supports_reading_list: false,
     supports_background_browser_open: false,

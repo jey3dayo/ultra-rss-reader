@@ -19,6 +19,7 @@ type UseCommandPaletteHandlersParams = {
   openShortcutsHelp: () => void;
   showToast: (message: string | ToastData) => void;
   selectedAccountId: string | null;
+  manualUpdateCheckAvailable?: boolean;
   selectFeedFromCurrentContext: (feedId: string) => void;
   selectTagFromCurrentContext: (tagId: string) => void;
   selectArticle: (articleId: string) => void;
@@ -94,6 +95,7 @@ export function useCommandPaletteHandlers({
   openShortcutsHelp,
   showToast,
   selectedAccountId,
+  manualUpdateCheckAvailable,
   selectFeedFromCurrentContext,
   selectTagFromCurrentContext,
   selectArticle,
@@ -190,6 +192,7 @@ export function useCommandPaletteHandlers({
     }
     const uiState = useUiStore.getState();
     if (
+      (action === "check-for-updates" && manualUpdateCheckAvailable === false) ||
       !isAppActionAvailable(action, "commandPalette", {
         selectedAccountId: selectedAccountIdRef.current,
         selectedArticleId: uiState.selectedArticleId,
