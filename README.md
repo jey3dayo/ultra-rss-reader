@@ -36,7 +36,7 @@
 
 There are a lot of good RSS readers, and the right one depends on what you want to optimize for.
 
-Ultra RSS Reader is built for people who want their archive to live on their own machine and their hands to stay on the keyboard. Everything you have ever fetched stays in a local SQLite database and is searchable offline, and sync is optional — point it at your own FreshRSS server or run it with no account at all. It is free and MIT-licensed.
+Ultra RSS Reader is built for people who want their archive to live on their own machine and their hands to stay on the keyboard. Everything you have ever fetched stays in a local SQLite database and is searchable offline, and sync is optional — point it at your own FreshRSS server or run it with no account at all. The source code is MIT-licensed. The Microsoft Store version is a paid app.
 
 If you want a polished native reader on Apple platforms, [NetNewsWire](https://netnewswire.com/) and [Reeder](https://reederapp.com/) are excellent. If you want a hosted service with mobile apps and discovery features, [Feedly](https://feedly.com/) or [Inoreader](https://www.inoreader.com/) will serve you better. Ultra RSS Reader deliberately does none of the hosted parts.
 
