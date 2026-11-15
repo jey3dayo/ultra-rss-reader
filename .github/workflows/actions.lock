@@ -44,6 +44,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9'
         - 'jdx/mise-action@v4.3.0'
+        - 'microsoft/microsoft-store-apppublisher@v1.4'
         - 'microsoft/setup-winappcli@v0.2'
         - 'pnpm/setup@v1.0.0'
         - 'swatinem/rust-cache@v2.9.2'
@@ -83,6 +84,11 @@ dependencies:
         commit: 'sha1-19045111c0318d811e60d49706878074df2c3593'
         owner_id: 16203828
         repo_id: 1076550331
+    'microsoft/microsoft-store-apppublisher@v1.4':
+        ref: 'v1.4'
+        commit: 'sha1-cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0'
+        owner_id: 6154722
+        repo_id: 616699846
     'microsoft/setup-winappcli@v0.2':
         ref: 'v0.2'
         commit: 'sha1-b93bbddc1f7abc061ca0d3a8119e3a0c7dd71495'

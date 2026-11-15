@@ -37,7 +37,7 @@ The Publisher value and the rest of the Product Identity are in `msix/Package.ap
 | --- | --- | --- |
 | `src-tauri/tauri.store.conf.json` | Merged over `tauri.conf.json` with `--config` | Turns off updater artifacts and replaces the updater config with an empty one |
 | `msix/Package.appxmanifest`, `msix/Assets/` | Generated once by `winapp manifest generate`, then committed | MSIX identity, version, capabilities, and tile assets |
-| `.github/workflows/store-msix.yml` | Manual `workflow_dispatch` | Builds the exe with the Store config, packs it with `winapp pack`, and uploads the `store-msix` artifact |
+| `.github/workflows/store-msix.yml` | Successful tag-push Release workflow completion, published stable GitHub Release, or manual `workflow_dispatch` | Builds and uploads the `store-msix` artifact; when a published stable release is verified and credentials exist, creates a Microsoft Store draft using `msstore` |
 
 The manifest lives under `msix/` instead of the repository root because `Assets/` would collide with the existing `assets/` directory on case-insensitive file systems.
 
@@ -59,11 +59,22 @@ The MSIX contains only the exe, `Assets/`, and the PRI file. `WebView2Loader.dll
 
 The Store version does not update itself. Each new version is a resubmission.
 
-1. Bump the version with `node scripts/release/bump-version.ts <version>`. It updates `msix/Package.appxmanifest` `Identity Version` to `<version>.0` together with the other four version sources. The contract test and the release preflight fail if they disagree.
-2. Run the **Store MSIX** workflow on the release commit and download the `store-msix` artifact.
-3. In Partner Center, open the submission, remove the old package, upload the new `.msix`, and confirm it shows as Validated.
-4. Check that every section still carries over (pricing, markets, category, age rating, listings, submission options), then submit for certification.
-5. Publishing is set to manual. After certification passes, press "Publish now" in Partner Center.
+1. Bump the version with `node scripts/release/bump-version.ts <version>`. It updates `msix/Package.appxmanifest` `Identity Version` to `<version>.0` together with the other four version sources. The contract test and release preflight fail if they disagree.
+2. A successful tag-push **Release** workflow completion starts **Store MSIX** as a fallback for publication performed by that workflow with `GITHUB_TOKEN`; the Store workflow confirms the release is already published, stable, and points to the exact source SHA before submission. If the Release workflow leaves its release as a draft, this run skips submission. Publishing that draft manually emits `release.published` and starts **Store MSIX** through the direct trigger. A Release workflow dispatch (including dry runs) does not start the fallback route. Drafts and prereleases are never submitted. The workflow builds and uploads `store-msix`, verifies the version inside the produced package against the tag, then checks Partner Center before calling `msstore publish --noCommit`. The Store job never commits the draft for certification. Store workflow runs share one repository-wide concurrency group, so tags cannot submit concurrently through GitHub Actions. A missing release (GitHub API 404) keeps the MSIX build available and skips automated submission; other GitHub API failures stop the job. This cannot prevent a person from changing or submitting a Partner Center draft while the workflow is checking and replacing it, because Partner Center exposes no lock through this CLI flow. Coordinate manual Partner Center work before starting another submission.
+3. To build without submitting, run **Store MSIX** manually; its `submit` input defaults to `false`, and a branch or SHA ref remains build-only. Setting `submit` to `true` requires an explicit `refs/tags/vX.Y.Z` ref for a published stable release whose tag resolves to the checked-out commit. A missing credential secret leaves the build successful and records a notice that submission was skipped.
+4. Configure these environment secrets under repository **Settings → Environments → microsoft-store**:
+
+   | Secret | Partner Center / Microsoft Entra value |
+   | --- | --- |
+   | `MSSTORE_TENANT_ID` | Microsoft Entra tenant ID |
+   | `MSSTORE_SELLER_ID` | Partner Center seller ID |
+   | `MSSTORE_CLIENT_ID` | Microsoft Entra application client ID |
+   | `MSSTORE_CLIENT_SECRET` | Microsoft Entra application client secret |
+
+   The Store ID is already recorded above and is not secret. The Entra application must have Partner Center permissions that allow submissions. The CLI writes its non-secret configuration to the ephemeral runner profile and stores the client secret in Windows Credential Manager; the workflow does not write credential values into repository files or print them in commands/log messages.
+5. Review the generated draft and all carried-over sections (pricing, markets, category, age rating, listings, submission options) in Partner Center before committing it for certification. The Store job does not publish to certification or the public Store. After certification passes, press "Publish now" in Partner Center.
+
+`msstore publish` replaces an existing pending draft with a fresh draft based on the last published submission. Microsoft Store CLI v0.4.2's packaged-app status path prints `Submission Status = <status>` rather than JSON; the workflow accepts exactly one such line with status `Published`. A command error, missing/duplicate/unrecognized status line, or any other status fails closed. Native command exit codes are checked explicitly in PowerShell. Complete or commit any manually staged Partner Center edits before starting another Store submission. Microsoft Store CLI is currently unable to reproduce marketplace-specific pricing when the API returns only a base placeholder; in that case it fails safely and the draft must be uploaded/reviewed in Partner Center. Do not add a `--priceId` override without first validating all market prices.
 
 Partner Center allows only one pending submission. If a certified submission is waiting to be published and you want to ship a newer package instead, use "Cancel certification" to return it to draft, then replace the package in that same submission.
 
