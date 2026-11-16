@@ -190,6 +190,14 @@ The redundant `playwright.storybook.config.ts` entry was dropped.
 Knip findings before: 72 (7 files, 50 exports, 15 types). After: 3 (3 exports, all listed above as
 kept). `scripts/quality-baseline.ts` re-pins the Knip baseline to 3 issues / 3 findings.
 
+## 2026-11-16 re-baseline (Knip 6.45.1)
+
+Knip 6.45.1 reports one additional unused export with unchanged repository surface area; baseline raised to 4 issues / 4 findings.
+
+| Location | Name | Kind | Classification | Rationale |
+| --- | --- | --- | --- | --- |
+| `src/api/schemas/commands/settings-profile.ts:7` | `SETTINGS_PROFILE_IMPORT_TOO_LARGE_MESSAGE` | exports | narrow | Used only in the same file as the Valibot `message` for `SettingsProfileImportFileSchema`; no external importer. Left exported until a follow-up drops the modifier or inlines the string. |
+
 | Location | Name | Kind | Classification | Rationale |
 | --- | --- | --- | --- | --- |
 | `src/design-system/index.ts:1` | `Popover` | exports | narrow | Barrel re-export of `@base-ui/react/popover` with no consumer; `settings-info-popover.tsx` imports `Popover` from `@base-ui/react/popover` directly. Popover is a single primitive, not a family pinned by `ui-wrapper-public-api.node.test.ts`, so the barrel completeness precedent does not apply. Dropped from the barrel. |
