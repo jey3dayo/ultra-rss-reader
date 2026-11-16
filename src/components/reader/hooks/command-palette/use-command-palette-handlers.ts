@@ -201,6 +201,7 @@ export function useCommandPaletteHandlers({
         settingsOpen: uiState.settingsOpen,
         shortcutsHelpOpen: uiState.shortcutsHelpOpen,
         isAddFeedDialogOpen: uiState.isAddFeedDialogOpen,
+        confirmDialogOpen: uiState.confirmDialog.open,
       }) ||
       (!selectedAccountIdRef.current &&
         (action === "open-add-feed" || action === "sync-all" || action === "mark-all-read"))

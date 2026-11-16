@@ -781,6 +781,7 @@ describe("safeInvoke response validation", () => {
       settingsOpen: false,
       shortcutsHelpOpen: false,
       isAddFeedDialogOpen: false,
+      confirmDialogOpen: false,
     } as const;
 
     expect(isAppActionAvailable("sync-all", "dispatcher", fallbackContext)).toBe(false);

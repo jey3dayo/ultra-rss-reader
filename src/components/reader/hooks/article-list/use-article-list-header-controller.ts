@@ -10,7 +10,6 @@ export function useArticleListHeaderController({
   feeds,
   feedId,
   selectedFeed,
-  filteredArticles,
   layoutMode,
   sidebarOpen,
   showSearch,
@@ -27,7 +26,6 @@ export function useArticleListHeaderController({
     feeds,
     feedId,
     selectedFeed,
-    filteredArticles,
   });
 
   const headerControls = useArticleListHeaderControls({

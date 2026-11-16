@@ -19,6 +19,7 @@ import {
   formatRepositorySqlInventoryReport,
   readMigrationSources,
 } from "../scripts/repo-contract-inventory";
+import { APP_ACTIONS, getAppActionUnavailableReason } from "../src/lib/app-actions";
 import {
   generatedFixtureSnapshotSizeBudget,
   isGeneratedReportArtifactPath,
@@ -2632,5 +2633,57 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(releaseLabels.filter((label) => prInsightsOwnedPrefixes.some((prefix) => label.startsWith(prefix)))).toEqual(
       [],
     );
+  });
+
+  it("rejects every action whose only event receiver lives in the article pane when no article is selected", () => {
+    const actionsSource = readText("src/lib/actions.ts");
+    const runArticleActionSource = actionsSource.slice(actionsSource.indexOf("function runArticleAction"));
+    const eventNameByAction = new Map<string, string>();
+    for (const match of runArticleActionSource.matchAll(
+      /case "([^"]+)":\s*(?:emitEvent|emitArticleShareEvent)\(keyboardEvents\.(\w+)\)/g,
+    )) {
+      eventNameByAction.set(match[1], match[2]);
+    }
+
+    const receiverSourcesByEventName = new Map<string, string[]>();
+    const sourcePaths = readdirSync("src", { recursive: true, encoding: "utf8" }).filter(
+      (path) => /\.tsx?$/.test(path) && !/(^|\/)__tests__\/|\.(test|stories)\.tsx?$/.test(path),
+    );
+    for (const path of sourcePaths) {
+      const source = readText(join("src", path));
+      for (const match of source.matchAll(/(?:type:\s*|addEventListener\(\s*)keyboardEvents\.(\w+)/g)) {
+        receiverSourcesByEventName.set(match[1], [...(receiverSourcesByEventName.get(match[1]) ?? []), source]);
+      }
+    }
+
+    const articlePaneOnlyActions = [...eventNameByAction]
+      .filter(([, eventName]) => {
+        const receivers = receiverSourcesByEventName.get(eventName) ?? [];
+        return (
+          receivers.length > 0 &&
+          receivers.every((source) => source.includes("export function useArticlePaneShortcuts"))
+        );
+      })
+      .map(([action]) => action)
+      .sort();
+
+    const noArticleContext = {
+      selectedAccountId: "acc-1",
+      selectedArticleId: null,
+      contentMode: "reader",
+      commandPaletteOpen: false,
+      settingsOpen: false,
+      shortcutsHelpOpen: false,
+      isAddFeedDialogOpen: false,
+      confirmDialogOpen: false,
+    } as const;
+    const requiresArticleActions = APP_ACTIONS.filter(
+      (action) => getAppActionUnavailableReason(action, "nativeMenu", noArticleContext) === "requires-article",
+    ).sort();
+
+    expect(eventNameByAction.get("mark-all-read")).toBe("markAllRead");
+    expect(articlePaneOnlyActions).toContain("toggle-star");
+    expect(articlePaneOnlyActions).not.toContain("mark-all-read");
+    expect(requiresArticleActions).toEqual(articlePaneOnlyActions);
   });
 });

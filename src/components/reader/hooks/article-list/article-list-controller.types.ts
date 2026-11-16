@@ -190,7 +190,6 @@ export type UseArticleListHeaderActionsParams = {
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
-  filteredArticles: ArticleDto[];
 };
 
 export type UseArticleListHeaderActionsResult = {
@@ -203,7 +202,6 @@ export type UseArticleListHeaderControllerParams = {
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
-  filteredArticles: ArticleDto[];
   layoutMode: LayoutMode;
   sidebarOpen: boolean;
   showSearch: boolean;

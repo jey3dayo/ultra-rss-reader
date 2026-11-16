@@ -9,7 +9,6 @@ import {
   markAccountRead,
   markAccountStarredRead,
   markArticleRead,
-  markArticlesRead,
   markFeedRead,
   markFolderRead,
   markOldUnreadRead,
@@ -141,11 +140,6 @@ export function useSetRead() {
     },
   });
 }
-
-export const useMarkAllRead = createMutation(
-  (articleIds: string[]) => markArticlesRead(articleIds),
-  (qc) => invalidateArticleMutationQueries(qc, "article-read"),
-);
 
 export const useMarkAccountRead = createMutation(markAccountRead, (qc) =>
   invalidateArticleMutationQueries(qc, "article-read"),

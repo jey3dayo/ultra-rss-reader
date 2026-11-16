@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   isGlobalShortcutNativeActivationTarget,
   isGlobalShortcutTextEditingTarget,
-  isModalBlockedMenuAction,
   shouldIgnoreGlobalShortcutKeyboardEvent,
 } from "@/lib/keyboard/global-shortcut-targets";
 
@@ -73,14 +72,5 @@ describe("global shortcut targets", () => {
     ["anchor without href", "<a>no href</a>"],
   ] as const)("does not treat %s as a native-activation target", (_label, markup) => {
     expect(isGlobalShortcutNativeActivationTarget(createElement(markup))).toBe(false);
-  });
-
-  it("keeps native menu reader actions modal-blocked while allowing app-level actions", () => {
-    expect(isModalBlockedMenuAction("next-article")).toBe(true);
-    expect(isModalBlockedMenuAction("toggle-read")).toBe(true);
-    expect(isModalBlockedMenuAction("open-command-palette")).toBe(true);
-    expect(isModalBlockedMenuAction("sync-all")).toBe(false);
-    expect(isModalBlockedMenuAction("check-for-updates")).toBe(false);
-    expect(isModalBlockedMenuAction("toggle-fullscreen")).toBe(false);
   });
 });

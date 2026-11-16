@@ -64,14 +64,21 @@ export type AppActionAvailabilityContext = {
   settingsOpen: boolean;
   shortcutsHelpOpen: boolean;
   isAddFeedDialogOpen: boolean;
+  confirmDialogOpen: boolean;
 };
+
+type AppActionUnavailableReason =
+  | "unsupported-surface"
+  | "modal-open"
+  | "requires-article"
+  | "requires-account"
+  | "requires-browser";
 
 type AppActionAvailabilityRule = {
   surfaces: readonly AppActionSurface[];
-  requiresAccount?: boolean;
-  requiresArticle?: boolean;
-  requiresBrowser?: boolean;
-  blocksWhenModalOpen?: boolean;
+  requiresAccount: boolean;
+  requiresArticle: boolean;
+  requiresBrowser: boolean;
 };
 
 const accountScopedActions = ["sync-all", "open-add-feed", "mark-all-read"] as const satisfies readonly AppAction[];
@@ -89,6 +96,18 @@ const articleScopedActionSet: ReadonlySet<AppAction> = new Set(articleScopedActi
 
 const allSurfaces = ["commandPalette", "nativeMenu", "keyboardShortcut", "dispatcher"] as const;
 
+const modalAllowedActions: ReadonlySet<AppAction> = new Set([
+  "open-settings",
+  "open-command-palette",
+  "check-for-updates",
+]);
+const modalAllowedActionsBySurface: Record<AppActionSurface, ReadonlySet<AppAction>> = {
+  commandPalette: modalAllowedActions,
+  keyboardShortcut: modalAllowedActions,
+  dispatcher: modalAllowedActions,
+  nativeMenu: new Set<AppAction>(["check-for-updates", "sync-all", "toggle-fullscreen"]),
+};
+
 const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailabilityRule> = new Map(
   APP_ACTIONS.map((action) => [
     action,
@@ -97,34 +116,50 @@ const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailability
       requiresAccount: accountScopedActionSet.has(action),
       requiresArticle: articleScopedActionSet.has(action),
       requiresBrowser: action === "reload-webview" || action === "close-browser",
-      blocksWhenModalOpen:
-        action !== "open-settings" && action !== "open-command-palette" && action !== "check-for-updates",
     },
   ]),
 );
+
+function isModalOpenForSurface(surface: AppActionSurface, context: AppActionAvailabilityContext): boolean {
+  if (context.settingsOpen || context.shortcutsHelpOpen || context.isAddFeedDialogOpen) {
+    return true;
+  }
+  if (surface === "nativeMenu") {
+    return context.confirmDialogOpen || context.commandPaletteOpen;
+  }
+  return surface !== "commandPalette" && context.commandPaletteOpen;
+}
+
+export function getAppActionUnavailableReason(
+  action: AppAction,
+  surface: AppActionSurface,
+  context: AppActionAvailabilityContext,
+): AppActionUnavailableReason | null {
+  const rule = APP_ACTION_CAPABILITY_MATRIX.get(action);
+  if (!rule?.surfaces.includes(surface)) {
+    return "unsupported-surface";
+  }
+  if (isModalOpenForSurface(surface, context) && !modalAllowedActionsBySurface[surface].has(action)) {
+    return "modal-open";
+  }
+  if (rule.requiresArticle && context.selectedArticleId === null) {
+    return "requires-article";
+  }
+  if (rule.requiresAccount && context.selectedAccountId === null) {
+    return "requires-account";
+  }
+  if (rule.requiresBrowser && context.contentMode !== "browser") {
+    return "requires-browser";
+  }
+  return null;
+}
 
 export function isAppActionAvailable(
   action: AppAction,
   surface: AppActionSurface,
   context: AppActionAvailabilityContext,
 ): boolean {
-  const rule = APP_ACTION_CAPABILITY_MATRIX.get(action);
-  if (!rule) {
-    return false;
-  }
-  const modalOpen =
-    context.settingsOpen ||
-    context.shortcutsHelpOpen ||
-    context.isAddFeedDialogOpen ||
-    (surface !== "commandPalette" && context.commandPaletteOpen);
-
-  return (
-    rule.surfaces.includes(surface) &&
-    (!rule.requiresAccount || context.selectedAccountId !== null) &&
-    (!rule.requiresArticle || context.selectedArticleId !== null) &&
-    (!rule.requiresBrowser || context.contentMode === "browser") &&
-    (!rule.blocksWhenModalOpen || !modalOpen)
-  );
+  return getAppActionUnavailableReason(action, surface, context) === null;
 }
 
 /** Set of all valid action strings, used for runtime validation at IPC boundaries. */
