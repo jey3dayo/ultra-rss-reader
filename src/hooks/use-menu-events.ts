@@ -1,38 +1,30 @@
 import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { executeAction } from "@/lib/actions";
-import {
-  type AppAction,
-  type AppActionUnavailableReason,
-  getAppActionUnavailableReason,
-  isAppAction,
-} from "@/lib/app-actions";
+import { type AppAction, getAppActionUnavailableReason, isAppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { formatRuntimeDiagnosticPayload, logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
-function getMenuActionUnavailableReason(action: AppAction): AppActionUnavailableReason | null {
+function resolveMenuActionRejectionMessage(action: AppAction): string | null {
   const state = useUiStore.getState();
-  return getAppActionUnavailableReason(action, "nativeMenu", {
+  const reason = getAppActionUnavailableReason(action, "nativeMenu", {
     selectedAccountId: state.selectedAccountId,
     selectedArticleId: state.selectedArticleId,
     contentMode: state.contentMode,
     commandPaletteOpen: state.commandPaletteOpen,
     settingsOpen: state.settingsOpen,
-    confirmDialogOpen: state.confirmDialog.open,
     shortcutsHelpOpen: state.shortcutsHelpOpen,
     isAddFeedDialogOpen: state.isAddFeedDialogOpen,
+    confirmDialogOpen: state.confirmDialog.open,
   });
-}
-
-function getBlockedMenuActionMessage(reason: AppActionUnavailableReason | null): string | null {
   switch (reason) {
     case "modal-open":
-      return i18n.t("reader:menu_action_blocked_by_dialog");
+      return i18n.t("reader:menu_action_dialog_open");
     case "requires-article":
-      return i18n.t("reader:menu_action_requires_article");
+      return i18n.t("reader:menu_action_article_required");
     default:
       return null;
   }
@@ -46,15 +38,14 @@ export function useMenuEvents(): void {
           const formattedPayload = formatRuntimeDiagnosticPayload(event.payload);
           emitDebugInputTrace(`${APP_EVENTS.menuAction} ${formattedPayload}`);
           if (isAppAction(event.payload)) {
-            const store = useUiStore.getState();
-            if (event.payload === "open-settings" && store.settingsOpen) {
+            if (event.payload === "open-settings" && useUiStore.getState().settingsOpen) {
               emitDebugInputTrace(`${APP_EVENTS.menuAction} blocked ${formattedPayload}`);
               return;
             }
-            const blockedMessage = getBlockedMenuActionMessage(getMenuActionUnavailableReason(event.payload));
-            if (blockedMessage !== null) {
+            const rejectionMessage = resolveMenuActionRejectionMessage(event.payload);
+            if (rejectionMessage !== null) {
               emitDebugInputTrace(`${APP_EVENTS.menuAction} blocked ${formattedPayload}`);
-              store.showToast(blockedMessage);
+              useUiStore.getState().showToast(rejectionMessage);
               return;
             }
             try {

@@ -2,16 +2,31 @@ import { act, fireEvent, render, renderHook, screen } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import i18n from "@tests/helpers/i18n-setup";
+import { sampleFeedSeeds } from "@tests/helpers/reader-fixtures";
 import { createRef, useRef, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListHeader } from "@/components/reader/article-list-header";
+import { useArticleListGlobalEvents } from "@/components/reader/hooks/article-list/use-article-list-global-events";
+import { useArticleListHeaderActions } from "@/components/reader/hooks/article-list/use-article-list-header-actions";
 import {
   resolveArticleListHeaderControlAvailability,
   useArticleListHeaderControls,
 } from "@/components/reader/hooks/article-list/use-article-list-header-controls";
 import { useArticleListViewProps } from "@/components/reader/hooks/article-list/use-article-list-view-props";
+import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import type { LayoutMode } from "@/lib/layout/layout-state.types";
 import { useUiStore } from "@/stores/ui-store";
+
+const { markFeedReadMutateMock, markFolderReadMutateMock } = vi.hoisted(() => ({
+  markFeedReadMutateMock: vi.fn(),
+  markFolderReadMutateMock: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-articles", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/use-articles")>()),
+  useMarkFeedRead: () => ({ mutate: markFeedReadMutateMock }),
+  useMarkFolderRead: () => ({ mutate: markFolderReadMutateMock }),
+}));
 
 const articleListHeaderLabels = {
   markAllReadLabel: "Mark all as read",
@@ -717,5 +732,63 @@ describe("ArticleListHeader", () => {
     expect(screen.getByRole("button", { name: "Search articles" })).not.toHaveTextContent("Search");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("size-11", "rounded-md");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-foreground-soft");
+  });
+});
+
+describe("mark-all-read from the markAllRead event", () => {
+  const feedSelectionParams = {
+    feeds: [sampleFeedSeeds[0]],
+    feedId: sampleFeedSeeds[0].id,
+    selectedFeed: sampleFeedSeeds[0],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  function mountMarkAllReadListener(selection: Parameters<typeof useArticleListHeaderActions>[0]["selection"]) {
+    return renderHook(
+      () => {
+        const { handleMarkAllRead } = useArticleListHeaderActions({ ...feedSelectionParams, selection });
+        useArticleListGlobalEvents({
+          onNavigateArticle: vi.fn(),
+          onFocusSearch: vi.fn(),
+          onMarkAllRead: handleMarkAllRead,
+        });
+      },
+      { wrapper: createWrapper() },
+    );
+  }
+
+  it.each([
+    { name: "all articles", selection: { type: "all" } as const },
+    { name: "tag", selection: { type: "tag", tagId: "tag-1" } as const },
+    { name: "smart view", selection: { type: "smart", kind: "unread" } as const },
+  ])("toasts and marks nothing read for $name", ({ selection }) => {
+    mountMarkAllReadListener(selection);
+
+    act(() => {
+      window.dispatchEvent(new Event(keyboardEvents.markAllRead));
+    });
+
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: i18n.getFixedT("en", "reader")("mark_all_read_unavailable_in_view"),
+    });
+    expect(useUiStore.getState().confirmDialog.open).toBe(false);
+    expect(markFeedReadMutateMock).not.toHaveBeenCalled();
+    expect(markFolderReadMutateMock).not.toHaveBeenCalled();
+  });
+
+  it("opens the confirmation for a selected feed without a toast", () => {
+    mountMarkAllReadListener({ type: "feed", feedId: sampleFeedSeeds[0].id });
+
+    act(() => {
+      window.dispatchEvent(new Event(keyboardEvents.markAllRead));
+    });
+
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(useUiStore.getState().confirmDialog.open).toBe(true);
+    expect(markFeedReadMutateMock).not.toHaveBeenCalled();
   });
 });

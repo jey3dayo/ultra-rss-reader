@@ -15,7 +15,6 @@ export function useArticleListHeaderActions({
   feeds,
   feedId,
   selectedFeed,
-  filteredArticles,
 }: UseArticleListHeaderActionsParams): UseArticleListHeaderActionsResult {
   const { t } = useTranslation("reader");
   const showToast = useUiStore((s) => s.showToast);
@@ -35,7 +34,6 @@ export function useArticleListHeaderActions({
     selection,
     selectedFeedUnreadCount: selectedFeed?.unread_count ?? 0,
     folderUnreadCount,
-    filteredArticles,
   });
   const markAllReadDisabled = !canMarkArticleListSelectionRead(selection);
 

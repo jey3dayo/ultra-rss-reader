@@ -29,7 +29,6 @@ export type ArticleListMarkAllReadCountParams = {
   selection: ArticleListMarkAllReadSelection;
   selectedFeedUnreadCount: number;
   folderUnreadCount: number;
-  filteredArticles: ArticleDto[];
 };
 
 export type BuildArticleGroupItemsParams = {
@@ -86,18 +85,8 @@ export function countStarredArticles(articles: ArticleDto[]): number {
   return count;
 }
 
-export function getUnreadArticleIds(articles: ArticleDto[]): string[] {
-  const unreadArticleIds: string[] = [];
-  for (const article of articles) {
-    if (!article.is_read) {
-      unreadArticleIds.push(article.id);
-    }
-  }
-  return unreadArticleIds;
-}
-
 export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllReadCountParams): number {
-  const { selection, selectedFeedUnreadCount, folderUnreadCount, filteredArticles } = params;
+  const { selection, selectedFeedUnreadCount, folderUnreadCount } = params;
 
   if (selection.type === "feed") {
     return selectedFeedUnreadCount;
@@ -107,7 +96,7 @@ export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllRea
     return folderUnreadCount;
   }
 
-  return getUnreadArticleIds(filteredArticles).length;
+  return 0;
 }
 
 export function canMarkArticleListSelectionRead(selection: ArticleListMarkAllReadSelection): boolean {

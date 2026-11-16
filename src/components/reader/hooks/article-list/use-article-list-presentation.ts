@@ -103,7 +103,6 @@ export function useArticleListPresentation({
     feeds,
     feedId,
     selectedFeed,
-    filteredArticles,
     layoutMode,
     sidebarOpen,
     showSearch,

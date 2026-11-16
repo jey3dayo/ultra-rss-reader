@@ -62,29 +62,24 @@ export type AppActionAvailabilityContext = {
   contentMode: ContentMode;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
-  confirmDialogOpen: boolean;
   shortcutsHelpOpen: boolean;
   isAddFeedDialogOpen: boolean;
+  /** Counted as a modal for `nativeMenu` only; other surfaces ignore it. */
+  confirmDialogOpen?: boolean;
 };
 
-export type AppActionUnavailableReason =
-  | "surface"
-  | "requires-account"
-  | "requires-article"
-  | "requires-browser"
-  | "modal-open";
+type AppActionUnavailableReason = "modal-open" | "requires-article" | "unavailable";
 
 type AppActionAvailabilityRule = {
   surfaces: readonly AppActionSurface[];
   requiresAccount?: boolean;
   requiresArticle?: boolean;
   requiresBrowser?: boolean;
-  blocksWhenModalOpen?: boolean;
 };
 
 const accountScopedActions = ["sync-all", "open-add-feed", "mark-all-read"] as const satisfies readonly AppAction[];
 const accountScopedActionSet: ReadonlySet<AppAction> = new Set(accountScopedActions);
-export const articleScopedActions = [
+const articleScopedActions = [
   "open-in-reader",
   "open-in-browser",
   "toggle-star",
@@ -95,16 +90,18 @@ export const articleScopedActions = [
 ] as const satisfies readonly AppAction[];
 const articleScopedActionSet: ReadonlySet<AppAction> = new Set(articleScopedActions);
 
-// Native check menu items flip their mark on click, so blocking these would leave the mark out of sync with prefs.
-const nativeMenuModalAllowedActionSet: ReadonlySet<AppAction> = new Set<AppAction>([
+const allSurfaces = ["commandPalette", "nativeMenu", "keyboardShortcut", "dispatcher"] as const;
+
+const modalAllowedActions: ReadonlySet<AppAction> = new Set([
+  "open-settings",
+  "open-command-palette",
+  "check-for-updates",
+]);
+const nativeMenuModalAllowedActions: ReadonlySet<AppAction> = new Set([
   "check-for-updates",
   "sync-all",
   "toggle-fullscreen",
-  "toggle-sort-unread",
-  "toggle-group-by-feed",
 ]);
-
-const allSurfaces = ["commandPalette", "nativeMenu", "keyboardShortcut", "dispatcher"] as const;
 
 const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailabilityRule> = new Map(
   APP_ACTIONS.map((action) => [
@@ -114,36 +111,9 @@ const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailability
       requiresAccount: accountScopedActionSet.has(action),
       requiresArticle: articleScopedActionSet.has(action),
       requiresBrowser: action === "reload-webview" || action === "close-browser",
-      blocksWhenModalOpen:
-        action !== "open-settings" && action !== "open-command-palette" && action !== "check-for-updates",
     },
   ]),
 );
-
-function isModalOpen(surface: AppActionSurface, context: AppActionAvailabilityContext): boolean {
-  if (surface === "nativeMenu") {
-    return (
-      context.settingsOpen ||
-      context.confirmDialogOpen ||
-      context.shortcutsHelpOpen ||
-      context.commandPaletteOpen ||
-      context.isAddFeedDialogOpen
-    );
-  }
-  return (
-    context.settingsOpen ||
-    context.shortcutsHelpOpen ||
-    context.isAddFeedDialogOpen ||
-    (surface !== "commandPalette" && context.commandPaletteOpen)
-  );
-}
-
-function blocksWhenModalOpen(action: AppAction, surface: AppActionSurface, rule: AppActionAvailabilityRule): boolean {
-  if (surface === "nativeMenu") {
-    return !nativeMenuModalAllowedActionSet.has(action);
-  }
-  return rule.blocksWhenModalOpen === true;
-}
 
 export function getAppActionUnavailableReason(
   action: AppAction,
@@ -152,19 +122,26 @@ export function getAppActionUnavailableReason(
 ): AppActionUnavailableReason | null {
   const rule = APP_ACTION_CAPABILITY_MATRIX.get(action);
   if (!rule?.surfaces.includes(surface)) {
-    return "surface";
+    return "unavailable";
   }
-  if (blocksWhenModalOpen(action, surface, rule) && isModalOpen(surface, context)) {
+  const isNativeMenu = surface === "nativeMenu";
+  const modalOpen =
+    context.settingsOpen ||
+    context.shortcutsHelpOpen ||
+    context.isAddFeedDialogOpen ||
+    (isNativeMenu && context.confirmDialogOpen === true) ||
+    (surface !== "commandPalette" && context.commandPaletteOpen);
+  if (modalOpen && !(isNativeMenu ? nativeMenuModalAllowedActions : modalAllowedActions).has(action)) {
     return "modal-open";
-  }
-  if (rule.requiresAccount && context.selectedAccountId === null) {
-    return "requires-account";
   }
   if (rule.requiresArticle && context.selectedArticleId === null) {
     return "requires-article";
   }
-  if (rule.requiresBrowser && context.contentMode !== "browser") {
-    return "requires-browser";
+  if (
+    (rule.requiresAccount && context.selectedAccountId === null) ||
+    (rule.requiresBrowser && context.contentMode !== "browser")
+  ) {
+    return "unavailable";
   }
   return null;
 }

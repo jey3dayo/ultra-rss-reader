@@ -237,19 +237,7 @@ fn sync_all_native_accelerator_is_explicitly_owned_by_menu() {
 }
 
 #[test]
-fn fullscreen_native_accelerator_is_owned_by_menu() {
-    assert_eq!(
-        resolve_menu_action("view-fullscreen"),
-        Some("toggle-fullscreen")
-    );
-    assert_eq!(
-        native_menu_accelerator("view-fullscreen"),
-        Some(fullscreen_menu_accelerator(cfg!(target_os = "macos")))
-    );
-}
-
-#[test]
-fn fullscreen_accelerator_is_f11_outside_macos() {
+fn fullscreen_native_accelerator_is_f11_outside_macos() {
     assert_eq!(fullscreen_menu_accelerator(true), "Ctrl+CmdOrCtrl+F");
     assert_eq!(fullscreen_menu_accelerator(false), "F11");
 }

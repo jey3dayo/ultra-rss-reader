@@ -421,7 +421,6 @@ describe("keyboard shortcut resolver", () => {
       contentMode: "reader",
       commandPaletteOpen: false,
       settingsOpen: false,
-      confirmDialogOpen: false,
       shortcutsHelpOpen: false,
       isAddFeedDialogOpen: false,
     };
@@ -456,11 +455,11 @@ describe("keyboard shortcut resolver", () => {
       }),
     ).toBe(false);
     expect(
-      isAppActionAvailable("open-settings", "nativeMenu", {
+      isAppActionAvailable("open-settings", "commandPalette", {
         ...baseContext,
         settingsOpen: true,
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("disables a duplicate custom shortcut key instead of dispatching an ambiguous action", () => {

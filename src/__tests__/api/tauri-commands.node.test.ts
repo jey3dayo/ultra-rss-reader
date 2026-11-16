@@ -779,7 +779,6 @@ describe("safeInvoke response validation", () => {
       contentMode: "reader",
       commandPaletteOpen: false,
       settingsOpen: false,
-      confirmDialogOpen: false,
       shortcutsHelpOpen: false,
       isAddFeedDialogOpen: false,
     } as const;
