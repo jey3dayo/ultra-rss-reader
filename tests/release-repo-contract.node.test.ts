@@ -870,6 +870,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(storeMsixWorkflow).toContain('$submissionStatus -cne "Published"');
     expect(storeMsixWorkflow).toContain("$statusExitCode -ne 0");
     expect(storeMsixWorkflow).not.toContain("msstore submission publish");
+    expect(storeMsixWorkflow).toContain("version: v0.4.4");
+    expect(storeMsixWorkflow).toContain("MSSTORE_PRICE_ID: $" + "{{ vars.MSSTORE_PRICE_ID }}");
+    expect(storeMsixWorkflow).toContain("^Tier[0-9]+$");
 
     const actionRefs = extractWorkflowUses(storeMsixWorkflow).filter((ref) => !ref.startsWith("$/"));
     const lockEntries = extractWorkflowLockEntries(readText(".github/workflows/actions.lock"), "store-msix.yml");

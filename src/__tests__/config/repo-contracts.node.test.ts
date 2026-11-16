@@ -1714,6 +1714,7 @@ describe("repository static contracts", () => {
 
     expect(workflow).toContain("msstore publish $package.FullName `");
     expect(workflow).toContain("--appId 9N85DQ7XKQ20 `");
+    expect(workflow).toContain("--priceId $env:MSSTORE_PRICE_ID `");
     expect(workflow).toContain("--noCommit");
     expect(workflow).not.toContain("--inputFile");
   });
