@@ -85,10 +85,19 @@ fn is_toggle_check_menu_item(menu_id: &str) -> bool {
     )
 }
 
+fn fullscreen_menu_accelerator(is_macos: bool) -> &'static str {
+    if is_macos {
+        "Ctrl+CmdOrCtrl+F"
+    } else {
+        "F11"
+    }
+}
+
 #[cfg(test)]
 fn native_menu_accelerator(menu_id: &str) -> Option<&'static str> {
     match menu_id {
         ACCOUNTS_SYNC_MENU_ID => Some(ACCOUNTS_SYNC_ACCELERATOR),
+        VIEW_FULLSCREEN_MENU_ID => Some(fullscreen_menu_accelerator(cfg!(target_os = "macos"))),
         _ => None,
     }
 }
@@ -252,7 +261,7 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
             .checked(group_by_feed_checked)
             .build(app)?;
     let view_fullscreen = MenuItemBuilder::with_id(VIEW_FULLSCREEN_MENU_ID, labels.full_screen)
-        .accelerator("Ctrl+CmdOrCtrl+F")
+        .accelerator(fullscreen_menu_accelerator(cfg!(target_os = "macos")))
         .build(app)?;
 
     let view_submenu = SubmenuBuilder::new(app, labels.view_menu)
