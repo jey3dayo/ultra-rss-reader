@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   preloadSettingsModalModuleForDev,
   resetSettingsModalPreloadSession,
@@ -9,6 +10,7 @@ import { UpdaterPendingView } from "@/components/app-shell/updater-pending-view"
 import { TOAST_EXIT_DURATION_MS } from "@/constants/ui-runtime";
 import { APP_TOAST_PLACEMENTS, AppToastView } from "@/design-system";
 import { registerBrowserWebviewDevCleanup } from "@/lib/browser/browser-webview-dev-cleanup";
+import { getDefaultDocument } from "@/lib/dom/document";
 import i18n from "@/lib/i18n";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
@@ -201,12 +203,25 @@ function ToastLiveRegion() {
     };
   }, [clearToastAnnouncement, toastAnnouncements]);
 
-  return (
-    <output aria-live="polite" aria-atomic="false" className="sr-only" data-testid="toast-live-region">
+  const portalTarget = getDefaultDocument()?.body;
+  if (!portalTarget) {
+    return null;
+  }
+
+  // Rendered under body, not the app root: modal dialogs hide the root from assistive tech.
+  return createPortal(
+    <output
+      aria-live="polite"
+      aria-atomic="false"
+      className="sr-only"
+      data-testid="toast-live-region"
+      data-dialog-inert-exempt=""
+    >
       {toastAnnouncements.map((announcement) => (
         <div key={announcement.id}>{announcement.message}</div>
       ))}
-    </output>
+    </output>,
+    portalTarget,
   );
 }
 
