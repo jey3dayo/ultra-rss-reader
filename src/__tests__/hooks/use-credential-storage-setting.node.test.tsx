@@ -17,7 +17,7 @@ const keychainDto: CredentialStorageDto = { storage: "os_keychain", configurable
 const localFileDto: CredentialStorageDto = { storage: "local_file", configurable: true, cleanup_incomplete: false };
 
 function createT(): TFunction<"settings"> {
-  return ((key: string, _values?: Record<string, unknown>) => key) as TFunction<"settings">;
+  return ((key: string, _values?: Record<string, unknown>) => key) as unknown as TFunction<"settings">;
 }
 
 type SetCredentialStorageResult = Awaited<ReturnType<typeof tauriCommands.setCredentialStorage>>;

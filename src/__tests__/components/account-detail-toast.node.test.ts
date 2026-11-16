@@ -18,7 +18,7 @@ describe("account-detail-toast", () => {
     const t = ((key: string, values?: Record<string, unknown>) =>
       key === "account.failed_to_rename"
         ? `Failed to rename account: ${String(values?.message)}`
-        : key) as TFunction<"settings">;
+        : key) as unknown as TFunction<"settings">;
     useUiStore.setState({ showToast });
 
     createAccountDetailErrorToast(t, "account.failed_to_rename", { persistMessage })({
@@ -34,7 +34,7 @@ describe("account-detail-toast", () => {
     const t = ((key: string, values?: Record<string, unknown>) =>
       key === "account.failed_to_rename"
         ? `Failed to rename account: ${String(values?.message)}`
-        : key) as TFunction<"settings">;
+        : key) as unknown as TFunction<"settings">;
     useUiStore.setState({ showToast });
 
     createAccountDetailErrorToast(
@@ -51,7 +51,7 @@ describe("account-detail-toast", () => {
   it("marks a saved-but-unconfirmed connection as a warning, not an error", () => {
     const showToast = vi.fn();
     const t = ((key: string, values?: Record<string, unknown>) =>
-      `${key}: ${String(values?.message)}`) as TFunction<"settings">;
+      `${key}: ${String(values?.message)}`) as unknown as TFunction<"settings">;
     useUiStore.setState({ showToast });
 
     createAccountDetailErrorToast(
@@ -70,7 +70,7 @@ describe("account-detail-toast", () => {
     const t = ((key: string, values?: Record<string, unknown>) =>
       key === "account.connection_failed"
         ? `Connection failed: ${String(values?.message)}`
-        : key) as TFunction<"settings">;
+        : key) as unknown as TFunction<"settings">;
     useUiStore.setState({ showToast });
 
     createAccountDetailErrorToast(
@@ -99,7 +99,9 @@ describe("account-detail-toast", () => {
     try {
       const showToast = vi.fn();
       const t = ((key: string, values?: Record<string, unknown>) =>
-        key === "account.sync_failed" ? `Sync failed: ${String(values?.message)}` : key) as TFunction<"settings">;
+        key === "account.sync_failed"
+          ? `Sync failed: ${String(values?.message)}`
+          : key) as unknown as TFunction<"settings">;
       useUiStore.setState({ showToast });
 
       createAccountDetailErrorToast(
