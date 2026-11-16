@@ -27,7 +27,13 @@ const articleScopedMenuActions = [
   "add-to-reading-list",
 ] as const satisfies readonly AppAction[];
 
-const modalAllowedMenuActions: readonly AppAction[] = ["check-for-updates", "sync-all", "toggle-fullscreen"];
+const modalAllowedMenuActions: readonly AppAction[] = [
+  "check-for-updates",
+  "sync-all",
+  "toggle-fullscreen",
+  "toggle-sort-unread",
+  "toggle-group-by-feed",
+];
 
 const modalStates = [
   ["settings", { settingsOpen: true }],
@@ -46,7 +52,7 @@ describe("native menu action availability", () => {
   });
 
   it.each(modalStates)(
-    "rejects everything except the update check, sync and fullscreen while the %s is open",
+    "rejects everything except the update check, sync, fullscreen and the native check menu toggles while the %s is open",
     (_label, modalState) => {
       const context = { ...idleContext, ...modalState };
 
