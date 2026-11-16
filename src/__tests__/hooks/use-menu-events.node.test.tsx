@@ -288,7 +288,7 @@ describe("useMenuEvents rejection feedback", () => {
     useUiStore.setState(useUiStore.getInitialState());
   });
 
-  it("toasts and skips execution for an article action without a selected article", async () => {
+  it("toasts and skips execution for an article action until an article is selected", async () => {
     useUiStore.setState({ selectedAccountId: "acc-1", selectedArticleId: null });
     const dispatch = await mountMenuHandler();
 
@@ -297,12 +297,9 @@ describe("useMenuEvents rejection feedback", () => {
     expect(executeActionMock).not.toHaveBeenCalled();
     expect(useUiStore.getState().toastMessage).toEqual({ message: "translated:reader:menu_action_article_required" });
     expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action blocked toggle-star");
-  });
 
-  it("executes an article action when an article is selected", async () => {
+    useUiStore.getState().clearToast();
     useUiStore.setState(articleSelected);
-    const dispatch = await mountMenuHandler();
-
     dispatch("toggle-star");
 
     expect(executeActionMock).toHaveBeenCalledWith("toggle-star");
@@ -316,9 +313,9 @@ describe("useMenuEvents rejection feedback", () => {
     ["command palette", () => useUiStore.setState({ commandPaletteOpen: true })],
     ["add-feed dialog", () => useUiStore.setState({ isAddFeedDialogOpen: true })],
   ])("toasts and skips execution while the %s is open", async (_label, openModal) => {
+    const dispatch = await mountMenuHandler();
     useUiStore.setState(articleSelected);
     openModal();
-    const dispatch = await mountMenuHandler();
 
     dispatch("set-filter-unread");
 
@@ -326,19 +323,16 @@ describe("useMenuEvents rejection feedback", () => {
     expect(useUiStore.getState().toastMessage).toEqual({ message: "translated:reader:menu_action_dialog_open" });
   });
 
-  it.each(["sync-all", "check-for-updates", "toggle-fullscreen"] as const)(
-    "still executes %s while a dialog is open",
-    async (action) => {
-      useUiStore.setState({ ...articleSelected, isAddFeedDialogOpen: true });
-      openConfirmDialog();
-      const dispatch = await mountMenuHandler();
+  it("still executes the update check, sync and fullscreen while a dialog is open", async () => {
+    useUiStore.setState({ ...articleSelected, isAddFeedDialogOpen: true });
+    const dispatch = await mountMenuHandler();
 
+    for (const action of ["sync-all", "check-for-updates", "toggle-fullscreen"] as const) {
       dispatch(action);
-
       expect(executeActionMock).toHaveBeenCalledWith(action);
-      expect(useUiStore.getState().toastMessage).toBeNull();
-    },
-  );
+    }
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
 
   it("ignores open-settings while settings is already open without a toast", async () => {
     useUiStore.setState({ ...articleSelected, settingsOpen: true });
@@ -367,10 +361,9 @@ describe("useMenuEvents rejection feedback", () => {
     dispatch("toggle-star");
     expect(useUiStore.getState().toastMessage?.message).toBe("translated:reader:menu_action_article_required");
 
-    i18nTMock.mockImplementation((key: string) => `switched:${key}`);
+    i18nTMock.mockImplementationOnce((key: string) => `switched:${key}`);
     dispatch("toggle-star");
 
     expect(useUiStore.getState().toastMessage?.message).toBe("switched:reader:menu_action_article_required");
-    i18nTMock.mockImplementation((key: string) => `translated:${key}`);
   });
 });

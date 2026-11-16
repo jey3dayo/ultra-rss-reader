@@ -97,7 +97,6 @@ fn fullscreen_menu_accelerator(is_macos: bool) -> &'static str {
 fn native_menu_accelerator(menu_id: &str) -> Option<&'static str> {
     match menu_id {
         ACCOUNTS_SYNC_MENU_ID => Some(ACCOUNTS_SYNC_ACCELERATOR),
-        VIEW_FULLSCREEN_MENU_ID => Some(fullscreen_menu_accelerator(cfg!(target_os = "macos"))),
         _ => None,
     }
 }

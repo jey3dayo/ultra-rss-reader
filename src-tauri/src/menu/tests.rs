@@ -240,10 +240,6 @@ fn sync_all_native_accelerator_is_explicitly_owned_by_menu() {
 fn fullscreen_native_accelerator_is_f11_outside_macos() {
     assert_eq!(fullscreen_menu_accelerator(true), "Ctrl+CmdOrCtrl+F");
     assert_eq!(fullscreen_menu_accelerator(false), "F11");
-    assert_eq!(
-        native_menu_accelerator("view-fullscreen"),
-        Some(fullscreen_menu_accelerator(cfg!(target_os = "macos")))
-    );
 }
 
 #[test]

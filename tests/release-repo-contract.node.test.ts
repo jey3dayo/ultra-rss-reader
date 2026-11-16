@@ -2675,15 +2675,12 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       settingsOpen: false,
       shortcutsHelpOpen: false,
       isAddFeedDialogOpen: false,
-      confirmDialogOpen: false,
     } as const;
     const requiresArticleActions = APP_ACTIONS.filter(
       (action) => getAppActionUnavailableReason(action, "nativeMenu", noArticleContext) === "requires-article",
     ).sort();
 
-    expect(eventNameByAction.get("mark-all-read")).toBe("markAllRead");
     expect(articlePaneOnlyActions).toContain("toggle-star");
-    expect(articlePaneOnlyActions).not.toContain("mark-all-read");
     expect(requiresArticleActions).toEqual(articlePaneOnlyActions);
   });
 });

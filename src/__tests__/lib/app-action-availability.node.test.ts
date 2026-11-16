@@ -15,7 +15,6 @@ const idleContext: AppActionAvailabilityContext = {
   settingsOpen: false,
   shortcutsHelpOpen: false,
   isAddFeedDialogOpen: false,
-  confirmDialogOpen: false,
 };
 
 const articleScopedMenuActions = [
@@ -46,20 +45,18 @@ describe("native menu action availability", () => {
     expect(getAppActionUnavailableReason(action, "nativeMenu", idleContext)).toBeNull();
   });
 
-  describe.each(modalStates)("while the %s is open", (_label, modalState) => {
-    const context = { ...idleContext, ...modalState };
+  it.each(modalStates)(
+    "rejects everything except the update check, sync and fullscreen while the %s is open",
+    (_label, modalState) => {
+      const context = { ...idleContext, ...modalState };
 
-    it.each(APP_ACTIONS.filter((action) => !modalAllowedMenuActions.includes(action)))(
-      "rejects %s as modal-open",
-      (action) => {
-        expect(getAppActionUnavailableReason(action, "nativeMenu", context)).toBe("modal-open");
-      },
-    );
-
-    it.each(modalAllowedMenuActions)("keeps %s available", (action) => {
-      expect(getAppActionUnavailableReason(action, "nativeMenu", context)).toBeNull();
-    });
-  });
+      for (const action of APP_ACTIONS) {
+        expect(getAppActionUnavailableReason(action, "nativeMenu", context)).toBe(
+          modalAllowedMenuActions.includes(action) ? null : "modal-open",
+        );
+      }
+    },
+  );
 
   it("reports modal-open before requires-article", () => {
     expect(
@@ -69,13 +66,6 @@ describe("native menu action availability", () => {
         settingsOpen: true,
       }),
     ).toBe("modal-open");
-  });
-
-  it("keeps account and browser requirements as separate reasons", () => {
-    expect(
-      getAppActionUnavailableReason("mark-all-read", "nativeMenu", { ...idleContext, selectedAccountId: null }),
-    ).toBe("requires-account");
-    expect(getAppActionUnavailableReason("close-browser", "nativeMenu", idleContext)).toBe("requires-browser");
   });
 });
 

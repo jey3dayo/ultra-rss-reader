@@ -423,7 +423,6 @@ describe("keyboard shortcut resolver", () => {
       settingsOpen: false,
       shortcutsHelpOpen: false,
       isAddFeedDialogOpen: false,
-      confirmDialogOpen: false,
     };
 
     expect(APP_ACTIONS).toContain("sync-all");
