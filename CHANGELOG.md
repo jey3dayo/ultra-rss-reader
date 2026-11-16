@@ -4,9 +4,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.67.29] - 2026-11-16
+
 ### Features
 
 - Microsoft Store 版の配布を開始しました ([製品ページ](https://apps.microsoft.com/detail/9N85DQ7XKQ20))。README とランディングページから案内し、直接配布版は引き続き GitHub Releases から入手できます。 ([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
+- Microsoft Store 版では、アプリ内の更新確認を表示しないようにしました。 (#666)
+- ランディングページのスクリーンショットを、macOS 版と Windows 版で切り替えて見られるようにしました。
+
+### Bug Fixes
+
+- ネイティブメニューで実行できない操作を選んだとき、その理由をトーストで知らせるようにしました。Windows / Linux の全画面表示のショートカットは F11 になりました。 (#671)
+- サイドバー左下の購読ボタンの表示ラベルを短くしました。元の意味はアクセシビリティ用のラベルとツールチップに残しています。
+
+### Documentation
+
+- 日本語版のスクリーンショットを追加しました。 (#662)
+- Microsoft Store 配布の運用手順と既知の制約をまとめ、紹介文から「無料」の表記を外して MIT 公開と Store 版が有料であることを明記しました。
+- 使わなくなった `docs/superpowers` の過去記録を削除しました。 (#664)
+
+### Maintenance
+
+- Microsoft Store への下書き提出をリリースに連動して自動化しました。 (#665)
+- npm の依存関係を更新しました。 (#668, #669)
+- Windows で `app:dev` が起動しない問題を直し、ストア用スクリーンショットの撮影スクリプトとデータを整備しました。
 
 ## [0.67.28] - 2026-11-13
 
