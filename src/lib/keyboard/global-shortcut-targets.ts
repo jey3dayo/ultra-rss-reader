@@ -1,8 +1,6 @@
-import type { AppAction } from "@/lib/app-actions";
 import { isImeCommitKeyEvent } from "@/lib/keyboard/ime-key-event";
 
 const globalShortcutIgnoredKeys = new Set(["Dead", "Unidentified", "Process"]);
-const modalAllowedMenuActions = new Set<AppAction>(["check-for-updates", "sync-all", "toggle-fullscreen"]);
 
 type GlobalShortcutKeyboardEvent = {
   key: string;
@@ -61,8 +59,4 @@ export function isGlobalShortcutNativeActivationTarget(target: Element | null): 
   }
 
   return target.closest(nativeActivationClosestSelector) !== null;
-}
-
-export function isModalBlockedMenuAction(action: AppAction): boolean {
-  return !modalAllowedMenuActions.has(action);
 }

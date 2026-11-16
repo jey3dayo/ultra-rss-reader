@@ -31,7 +31,6 @@ export {
   useClearArticleViewHistory,
   useMarkAccountRead,
   useMarkAccountStarredRead,
-  useMarkAllRead,
   useMarkFeedRead,
   useMarkFolderRead,
   useMarkOldUnreadRead,

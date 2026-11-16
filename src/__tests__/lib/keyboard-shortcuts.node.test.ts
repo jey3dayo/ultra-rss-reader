@@ -455,7 +455,7 @@ describe("keyboard shortcut resolver", () => {
       }),
     ).toBe(false);
     expect(
-      isAppActionAvailable("open-settings", "nativeMenu", {
+      isAppActionAvailable("open-settings", "commandPalette", {
         ...baseContext,
         settingsOpen: true,
       }),

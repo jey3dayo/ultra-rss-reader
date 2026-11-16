@@ -21,7 +21,6 @@ import {
   formatArticleTime,
   getAdjacentArticleId,
   getAdjacentItemId,
-  getUnreadArticleIds,
   groupArticles,
   MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE,
   mergeResolvedArticlesWithRetained,
@@ -963,25 +962,17 @@ describe("article-list utils", () => {
     expect(areArticleListsEquivalent([articleWithThrowingId], [])).toBe(false);
   });
 
-  it("returns unread ids and unread count from the currently visible list", () => {
-    expect(getUnreadArticleIds(sampleArticles)).toEqual([requireSampleUnreadArticle().id]);
+  it("returns unread and starred counts from the currently visible list", () => {
     expect(countUnreadArticles(sampleArticles)).toBe(1);
     expect(countStarredArticles(sampleArticles)).toBe(1);
   });
 
-  it("resolves the mark-all-read confirmation count for each article list selection", () => {
-    const filteredArticles = [
-      { ...sampleArticles[0], is_read: false },
-      { ...sampleArticles[1], is_read: false },
-      { ...sampleArticles[2], is_read: true },
-    ];
-
+  it("resolves the mark-all-read confirmation count from the selected feed or folder totals", () => {
     expect(
       resolveArticleListMarkAllReadCount({
         selection: { type: "feed", feedId: "feed-1" },
         selectedFeedUnreadCount: 12,
         folderUnreadCount: 34,
-        filteredArticles,
       }),
     ).toBe(12);
     expect(
@@ -989,7 +980,6 @@ describe("article-list utils", () => {
         selection: { type: "folder", folderId: "folder-1" },
         selectedFeedUnreadCount: 12,
         folderUnreadCount: 34,
-        filteredArticles,
       }),
     ).toBe(34);
     expect(
@@ -997,28 +987,8 @@ describe("article-list utils", () => {
         selection: { type: "all" },
         selectedFeedUnreadCount: 12,
         folderUnreadCount: 34,
-        filteredArticles,
       }),
-    ).toBe(2);
-  });
-
-  it("uses selected source unread totals for feed and folder mark-all-read even when visible rows are empty", () => {
-    expect(
-      resolveArticleListMarkAllReadCount({
-        selection: { type: "feed", feedId: "feed-1" },
-        selectedFeedUnreadCount: 7,
-        folderUnreadCount: 13,
-        filteredArticles: [],
-      }),
-    ).toBe(7);
-    expect(
-      resolveArticleListMarkAllReadCount({
-        selection: { type: "folder", folderId: "folder-1" },
-        selectedFeedUnreadCount: 7,
-        folderUnreadCount: 13,
-        filteredArticles: [],
-      }),
-    ).toBe(13);
+    ).toBe(0);
   });
 
   it("retains the selected starred smart-view row in all mode", () => {
@@ -1349,31 +1319,6 @@ describe("article-list utils", () => {
     });
 
     expect(result).toBe(800);
-  });
-
-  it("uses the visible unread rows for non-feed and non-folder mark-all-read counts", () => {
-    const filteredArticles = [
-      { ...sampleArticles[0], id: "visible-unread", is_read: false },
-      { ...sampleArticles[1], id: "visible-read", is_read: true },
-      { ...sampleArticles[2], id: "another-visible-unread", is_read: false },
-    ];
-
-    expect(
-      resolveArticleListMarkAllReadCount({
-        selection: { type: "smart", kind: "recent" },
-        selectedFeedUnreadCount: 12,
-        folderUnreadCount: 34,
-        filteredArticles,
-      }),
-    ).toBe(2);
-    expect(
-      resolveArticleListMarkAllReadCount({
-        selection: { type: "tag", tagId: "tag-1" },
-        selectedFeedUnreadCount: 12,
-        folderUnreadCount: 34,
-        filteredArticles,
-      }),
-    ).toBe(2);
   });
 
   it("keeps retained articles visible in unread view even after they become read", () => {

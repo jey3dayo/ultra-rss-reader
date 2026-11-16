@@ -1,16 +1,33 @@
 import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { executeAction } from "@/lib/actions";
-import { isAppAction } from "@/lib/app-actions";
+import { type AppAction, getAppActionUnavailableReason, isAppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
-import { isModalBlockedMenuAction } from "@/lib/keyboard/global-shortcut-targets";
+import i18n from "@/lib/i18n";
 import { formatRuntimeDiagnosticPayload, logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
-function isMenuActionBlockedByModal(): boolean {
+function resolveMenuActionRejectionMessage(action: AppAction): string | null {
   const state = useUiStore.getState();
-  return state.settingsOpen || state.confirmDialog.open || state.shortcutsHelpOpen || state.commandPaletteOpen;
+  const reason = getAppActionUnavailableReason(action, "nativeMenu", {
+    selectedAccountId: state.selectedAccountId,
+    selectedArticleId: state.selectedArticleId,
+    contentMode: state.contentMode,
+    commandPaletteOpen: state.commandPaletteOpen,
+    settingsOpen: state.settingsOpen,
+    shortcutsHelpOpen: state.shortcutsHelpOpen,
+    isAddFeedDialogOpen: state.isAddFeedDialogOpen,
+    confirmDialogOpen: state.confirmDialog.open,
+  });
+  switch (reason) {
+    case "modal-open":
+      return i18n.t("reader:menu_action_dialog_open");
+    case "requires-article":
+      return i18n.t("reader:menu_action_article_required");
+    default:
+      return null;
+  }
 }
 
 export function useMenuEvents(): void {
@@ -21,8 +38,14 @@ export function useMenuEvents(): void {
           const formattedPayload = formatRuntimeDiagnosticPayload(event.payload);
           emitDebugInputTrace(`${APP_EVENTS.menuAction} ${formattedPayload}`);
           if (isAppAction(event.payload)) {
-            if (isMenuActionBlockedByModal() && isModalBlockedMenuAction(event.payload)) {
+            if (event.payload === "open-settings" && useUiStore.getState().settingsOpen) {
               emitDebugInputTrace(`${APP_EVENTS.menuAction} blocked ${formattedPayload}`);
+              return;
+            }
+            const rejectionMessage = resolveMenuActionRejectionMessage(event.payload);
+            if (rejectionMessage !== null) {
+              emitDebugInputTrace(`${APP_EVENTS.menuAction} blocked ${formattedPayload}`);
+              useUiStore.getState().showToast(rejectionMessage);
               return;
             }
             try {

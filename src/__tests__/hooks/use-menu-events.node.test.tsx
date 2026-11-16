@@ -1,14 +1,17 @@
 import { render, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_EVENTS } from "@/constants/events";
 import { useMenuEvents } from "@/hooks/use-menu-events";
+import type { AppAction } from "@/lib/app-actions";
+import { useUiStore } from "@/stores/ui-store";
 
-const { executeActionMock, emitDebugInputTraceMock, listenMock } = vi.hoisted(() => ({
+const { executeActionMock, emitDebugInputTraceMock, listenMock, i18nTMock } = vi.hoisted(() => ({
   executeActionMock: vi.fn(),
   emitDebugInputTraceMock: vi.fn(),
   listenMock: vi.fn(),
+  i18nTMock: vi.fn((key: string) => `translated:${key}`),
 }));
 
 type MenuActionHandler = (event: { payload: unknown }) => void;
@@ -20,6 +23,10 @@ vi.mock("@tauri-apps/api/event", () => ({
 vi.mock("@/lib/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/actions")>()),
   executeAction: executeActionMock,
+}));
+
+vi.mock("@/lib/i18n", () => ({
+  default: { t: i18nTMock },
 }));
 
 vi.mock("@/lib/debug/debug-input-trace", () => ({
@@ -248,5 +255,115 @@ describe("useMenuEvents", () => {
 
     expect(emitDebugInputTraceMock).not.toHaveBeenCalledWith("menu-action listener unavailable");
     expect(debugSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("useMenuEvents rejection feedback", () => {
+  const articleSelected = { selectedAccountId: "acc-1", selectedArticleId: "art-1" } as const;
+
+  async function mountMenuHandler(): Promise<(action: AppAction) => void> {
+    let handler: MenuActionHandler | null = null;
+    listenMock.mockImplementation((_eventName: string, nextHandler: MenuActionHandler) => {
+      handler = nextHandler;
+      return Promise.resolve(vi.fn());
+    });
+    render(<MenuEventsProbe />);
+    await waitFor(() => {
+      expect(listenMock).toHaveBeenCalledWith(APP_EVENTS.menuAction, expect.any(Function));
+    });
+    const dispatch = expectMenuActionHandler(handler);
+    return (action) => dispatch({ payload: action });
+  }
+
+  function openConfirmDialog() {
+    useUiStore.setState({ confirmDialog: { ...useUiStore.getState().confirmDialog, open: true } });
+  }
+
+  beforeEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  afterEach(() => {
+    useUiStore.getState().clearToast();
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  it("toasts and skips execution for an article action until an article is selected", async () => {
+    useUiStore.setState({ selectedAccountId: "acc-1", selectedArticleId: null });
+    const dispatch = await mountMenuHandler();
+
+    dispatch("toggle-star");
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "translated:reader:menu_action_article_required" });
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action blocked toggle-star");
+
+    useUiStore.getState().clearToast();
+    useUiStore.setState(articleSelected);
+    dispatch("toggle-star");
+
+    expect(executeActionMock).toHaveBeenCalledWith("toggle-star");
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it.each([
+    ["settings", () => useUiStore.setState({ settingsOpen: true })],
+    ["confirm dialog", openConfirmDialog],
+    ["shortcuts help", () => useUiStore.setState({ shortcutsHelpOpen: true })],
+    ["command palette", () => useUiStore.setState({ commandPaletteOpen: true })],
+    ["add-feed dialog", () => useUiStore.setState({ isAddFeedDialogOpen: true })],
+  ])("toasts and skips execution while the %s is open", async (_label, openModal) => {
+    const dispatch = await mountMenuHandler();
+    useUiStore.setState(articleSelected);
+    openModal();
+
+    dispatch("set-filter-unread");
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "translated:reader:menu_action_dialog_open" });
+  });
+
+  it("still executes the update check, sync and fullscreen while a dialog is open", async () => {
+    useUiStore.setState({ ...articleSelected, isAddFeedDialogOpen: true });
+    const dispatch = await mountMenuHandler();
+
+    for (const action of ["sync-all", "check-for-updates", "toggle-fullscreen"] as const) {
+      dispatch(action);
+      expect(executeActionMock).toHaveBeenCalledWith(action);
+    }
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("ignores open-settings while settings is already open without a toast", async () => {
+    useUiStore.setState({ ...articleSelected, settingsOpen: true });
+    const dispatch = await mountMenuHandler();
+
+    dispatch("open-settings");
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("lets mark-all-read through without an account so the list owns the feedback", async () => {
+    useUiStore.setState({ selectedAccountId: null, selectedArticleId: null });
+    const dispatch = await mountMenuHandler();
+
+    dispatch("mark-all-read");
+
+    expect(executeActionMock).toHaveBeenCalledWith("mark-all-read");
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("resolves the toast text when the toast is shown so a language change applies without remounting", async () => {
+    useUiStore.setState({ selectedAccountId: "acc-1", selectedArticleId: null });
+    const dispatch = await mountMenuHandler();
+
+    dispatch("toggle-star");
+    expect(useUiStore.getState().toastMessage?.message).toBe("translated:reader:menu_action_article_required");
+
+    i18nTMock.mockImplementationOnce((key: string) => `switched:${key}`);
+    dispatch("toggle-star");
+
+    expect(useUiStore.getState().toastMessage?.message).toBe("switched:reader:menu_action_article_required");
   });
 });
