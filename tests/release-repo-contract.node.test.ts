@@ -2640,7 +2640,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     const runArticleActionSource = actionsSource.slice(actionsSource.indexOf("function runArticleAction"));
     const eventNameByAction = new Map<string, string>();
     for (const match of runArticleActionSource.matchAll(
-      /case "([^"]+)":\s*(?:emitEvent|emitArticleShareEvent)\(keyboardEvents\.(\w+)\)/g,
+      /case "([^"]+)":\s*(?:emitEvent|emitArticleShareEvent)\(\s*keyboardEvents\.(\w+)\)/g,
     )) {
       eventNameByAction.set(match[1], match[2]);
     }

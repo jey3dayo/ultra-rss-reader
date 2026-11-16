@@ -740,7 +740,6 @@ describe("mark-all-read from the markAllRead event", () => {
     feeds: [sampleFeedSeeds[0]],
     feedId: sampleFeedSeeds[0].id,
     selectedFeed: sampleFeedSeeds[0],
-    filteredArticles: [],
   };
 
   beforeEach(() => {
