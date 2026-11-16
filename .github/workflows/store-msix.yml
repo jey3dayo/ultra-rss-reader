@@ -131,19 +131,23 @@ jobs:
             fi
           done
 
+          price_id_invalid=false
           if [[ -z "$MSSTORE_PRICE_ID" ]]; then
             missing+=("MSSTORE_PRICE_ID")
-          elif [[ "$submit_requested" == "true" && ! "$MSSTORE_PRICE_ID" =~ ^Tier[0-9]+$ ]]; then
-            echo "::error::MSSTORE_PRICE_ID must be a price tier such as Tier1052"
-            exit 1
+          elif [[ ! "$MSSTORE_PRICE_ID" =~ ^Tier[0-9]+$ ]]; then
+            price_id_invalid=true
           fi
 
+          should_submit="$submit_requested"
           if [[ "$submit_requested" == "true" && ${#missing[@]} -gt 0 ]]; then
-            echo "should_submit=false" >> "$GITHUB_OUTPUT"
+            should_submit=false
             echo "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets or variables: $(IFS=,; echo "${missing[*]}")"
-          else
-            echo "should_submit=$submit_requested" >> "$GITHUB_OUTPUT"
           fi
+          if [[ "$submit_requested" == "true" && "$price_id_invalid" == "true" ]]; then
+            should_submit=false
+            echo "::error::MSSTORE_PRICE_ID has an invalid format (expected Tier<number>, such as Tier1052); Store package submission skipped and the MSIX build continues"
+          fi
+          echo "should_submit=$should_submit" >> "$GITHUB_OUTPUT"
 
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
 

@@ -61,7 +61,7 @@ The Store version does not update itself. Each new version is a resubmission.
 
 1. Bump the version with `node scripts/release/bump-version.ts <version>`; it updates the MSIX manifest and the other version sources.
 2. Publishing a stable GitHub Release starts **Store MSIX**. A successful tag-push Release workflow also starts it, but submission is skipped unless the release is already published. The workflow checks the tag and built MSIX version, then uploads a Store draft without submitting it for certification. A Release workflow dispatch does not start the fallback.
-3. For a manual build, run **Store MSIX** with the default `submit: false`. To submit, select `submit: true` and an explicit published stable `refs/tags/vX.Y.Z` ref. Missing secrets or a missing `MSSTORE_PRICE_ID` skip submission while leaving the build successful; a value that is not `Tier<number>` fails the run.
+3. For a manual build, run **Store MSIX** with the default `submit: false`. To submit, select `submit: true` and an explicit published stable `refs/tags/vX.Y.Z` ref. Missing secrets or a missing `MSSTORE_PRICE_ID` skip submission while leaving the build successful. A `MSSTORE_PRICE_ID` that is not `Tier<number>` also skips only the submission and reports an error annotation, so the MSIX build and the `store-msix` artifact are kept for a manual submission.
 4. Configure these secrets and the variable under **Settings → Environments → microsoft-store**:
 
    | Secret | Partner Center / Microsoft Entra value |
@@ -92,6 +92,12 @@ The Store submission API returns this product's base price as `priceId = "Base"`
 - Before submitting any draft from this workflow, open **Pricing and availability** in Partner Center and check the base price and every market price (including the Japan price) against the published submission.
 - Tier IDs run `Tier1012` ($0.99) to `Tier1424` ($1,999.99). Between `Tier1012` and `Tier1102` the price rises by $0.10 per tier, so `$0.99 + 0.10 × (tier − 1012)` gives the price: `Tier1032` is $2.99 and `Tier1052` is $4.99. Microsoft publishes no table outside Partner Center ("view table" in **Pricing and availability**), so confirm the tier there before setting the variable.
 - Update `MSSTORE_PRICE_ID` whenever the base price changes in Partner Center. A stale value resets the draft to the old price.
+
+#### Check the draft, then submit or abandon it
+
+After a run that created a draft, open it in Partner Center and check three things before submitting: the package version matches the release, the base price matches the published submission, and every market price (including Japan and the United States) matches the published submission. `--priceId` may collapse per-market prices, so a matching base price alone is not enough.
+
+If any market price differs, do not submit the draft. Discard the draft and submit the release manually from Partner Center, where the existing per-market prices are carried over without going through `--priceId`. Do not edit the draft beyond checking it: editing an API-created draft in Partner Center takes it out of the API's control. After a price change or a tier correction, fix `MSSTORE_PRICE_ID` before the next run.
 
 Partner Center allows only one pending submission. If a certified submission is waiting to be published and you want to ship a newer package instead, use "Cancel certification" to return it to draft, then replace the package in that same submission.
 
