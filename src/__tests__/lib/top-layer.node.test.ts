@@ -102,6 +102,22 @@ describe("top-layer DOM helpers", () => {
     expect(background).not.toHaveAttribute("inert");
   });
 
+  it("leaves body children marked as dialog-inert exempt untouched", () => {
+    const background = document.createElement("main");
+    const liveRegion = document.createElement("output");
+    liveRegion.setAttribute("data-dialog-inert-exempt", "");
+    const dialogContent = document.createElement("div");
+    dialogContent.dataset.dialogStackId = "dialog-1";
+    dialogContent.dataset.slot = "dialog-content";
+    document.body.append(background, liveRegion, dialogContent);
+
+    hideElementsOutsideDialog("dialog-1");
+
+    expect(background).toHaveAttribute("aria-hidden", "true");
+    expect(liveRegion).not.toHaveAttribute("aria-hidden");
+    expect(liveRegion).not.toHaveAttribute("inert");
+  });
+
   it("keeps the app interactive when stacked dialog hides release in mount order", () => {
     // Regression: feed edit dialog + unsubscribe confirm both hide the app
     // root; when both close in one commit, cleanups run in mount order and the

@@ -19,6 +19,7 @@ import {
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
 import { APP_EVENTS } from "@/constants/events";
 import { TOAST_EXIT_DURATION_MS } from "@/constants/ui-runtime";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/design-system";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -1148,6 +1149,35 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-toast")).toHaveTextContent("Saved");
     expect(within(liveRegion).getByText("Downloading")).toBeInTheDocument();
     expect(within(liveRegion).getAllByText("Saved")).toHaveLength(1);
+  });
+
+  it("keeps the toast live region exposed to assistive tech while a modal dialog is open", async () => {
+    setDebugHudUiState();
+
+    render(
+      <>
+        <AppShell />
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Modal</DialogTitle>
+            <DialogDescription>Modal description</DialogDescription>
+          </DialogContent>
+        </Dialog>
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("App Layout").closest("[aria-hidden='true']")).not.toBeNull();
+    });
+
+    act(() => {
+      useUiStore.getState().showToast("Saved while dialog is open");
+    });
+
+    const liveRegion = screen.getByTestId("toast-live-region");
+    expect(within(liveRegion).getByText("Saved while dialog is open")).toBeInTheDocument();
+    expect(liveRegion.closest("[aria-hidden='true'], [inert]")).toBeNull();
   });
 
   it("keeps toast recovery actions keyboard reachable", async () => {

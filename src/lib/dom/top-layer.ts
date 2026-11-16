@@ -1,7 +1,7 @@
 import { getDefaultDocument, isOwnerDocumentHtmlElement } from "./document";
 
 const DIALOG_TOP_LAYER_SELECTOR = '[data-slot="dialog-content"][data-open]';
-const DIALOG_INERT_EXCLUSION_SELECTOR = "[data-agentation-root]";
+const DIALOG_INERT_EXCLUSION_SELECTOR = "[data-agentation-root],[data-dialog-inert-exempt]";
 const NESTED_ESCAPE_LAYER_SELECTOR = ['[role="dialog"]', "[data-radix-popper-content-wrapper]"].join(",");
 const FOCUS_OWNING_TOP_LAYER_SELECTOR = [
   '[data-stack-layer="dialog"]:not([data-closed])',
