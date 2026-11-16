@@ -870,6 +870,12 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(storeMsixWorkflow).toContain('$submissionStatus -cne "Published"');
     expect(storeMsixWorkflow).toContain("$statusExitCode -ne 0");
     expect(storeMsixWorkflow).not.toContain("msstore submission publish");
+    expect(storeMsixWorkflow).toContain("version: v0.4.4");
+    expect(storeMsixWorkflow).toContain(`MSSTORE_PRICE_ID: \${{ vars.MSSTORE_PRICE_ID }}`);
+    expect(storeMsixWorkflow).toContain("^Tier[0-9]+$");
+    expect(storeMsixWorkflow).toContain("::error::MSSTORE_PRICE_ID has an invalid format");
+    // A malformed variable must skip only the submission; failing here would also drop the MSIX artifact.
+    expect(storeMsixWorkflow).not.toMatch(/MSSTORE_PRICE_ID has an invalid format[^\n]*\n\s*exit 1/);
 
     const actionRefs = extractWorkflowUses(storeMsixWorkflow).filter((ref) => !ref.startsWith("$/"));
     const lockEntries = extractWorkflowLockEntries(readText(".github/workflows/actions.lock"), "store-msix.yml");

@@ -13,7 +13,7 @@ on:
         required: false
         type: string
       submit:
-        description: "Upload the package to a Microsoft Store draft. This replaces any pending draft."
+        description: "Upload the package to a Microsoft Store draft. Refused while another submission is pending."
         required: false
         default: false
         type: boolean
@@ -58,6 +58,7 @@ jobs:
           MSSTORE_SELLER_ID_SET: ${{ secrets.MSSTORE_SELLER_ID != '' }}
           MSSTORE_CLIENT_ID_SET: ${{ secrets.MSSTORE_CLIENT_ID != '' }}
           MSSTORE_CLIENT_SECRET_SET: ${{ secrets.MSSTORE_CLIENT_SECRET != '' }}
+          MSSTORE_PRICE_ID: ${{ vars.MSSTORE_PRICE_ID }}
         run: |
           set -euo pipefail
 
@@ -130,12 +131,23 @@ jobs:
             fi
           done
 
-          if [[ "$submit_requested" == "true" && ${#missing[@]} -gt 0 ]]; then
-            echo "should_submit=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets: $(IFS=,; echo "${missing[*]}")"
-          else
-            echo "should_submit=$submit_requested" >> "$GITHUB_OUTPUT"
+          price_id_invalid=false
+          if [[ -z "$MSSTORE_PRICE_ID" ]]; then
+            missing+=("MSSTORE_PRICE_ID")
+          elif [[ ! "$MSSTORE_PRICE_ID" =~ ^Tier[0-9]+$ ]]; then
+            price_id_invalid=true
           fi
+
+          should_submit="$submit_requested"
+          if [[ "$submit_requested" == "true" && ${#missing[@]} -gt 0 ]]; then
+            should_submit=false
+            echo "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets or variables: $(IFS=,; echo "${missing[*]}")"
+          fi
+          if [[ "$submit_requested" == "true" && "$price_id_invalid" == "true" ]]; then
+            should_submit=false
+            echo "::error::MSSTORE_PRICE_ID has an invalid format (expected Tier<number>, such as Tier1052); Store package submission skipped and the MSIX build continues"
+          fi
+          echo "should_submit=$should_submit" >> "$GITHUB_OUTPUT"
 
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
 
@@ -227,7 +239,7 @@ jobs:
       - uses: microsoft/microsoft-store-apppublisher@v1.4
         if: steps.intent.outputs.should_submit == 'true'
         with:
-          version: v0.4.2
+          version: v0.4.4
 
       - name: Configure Store credentials
         if: steps.intent.outputs.should_submit == 'true'
@@ -250,6 +262,8 @@ jobs:
       - name: Submit Store draft
         if: steps.intent.outputs.should_submit == 'true'
         shell: pwsh
+        env:
+          MSSTORE_PRICE_ID: ${{ vars.MSSTORE_PRICE_ID }}
         run: |
           $ErrorActionPreference = "Stop"
           $PSNativeCommandUseErrorActionPreference = $false
@@ -271,5 +285,6 @@ jobs:
           }
           msstore publish $package.FullName `
             --appId 9N85DQ7XKQ20 `
+            --priceId $env:MSSTORE_PRICE_ID `
             --noCommit
           if ($LASTEXITCODE -ne 0) { throw "Microsoft Store draft submission failed (exit $LASTEXITCODE)." }
