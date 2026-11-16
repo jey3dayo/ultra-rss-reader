@@ -1,9 +1,11 @@
 import { render, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import "@tests/helpers/i18n-setup";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_EVENTS } from "@/constants/events";
 import { useMenuEvents } from "@/hooks/use-menu-events";
+import { useUiStore } from "@/stores/ui-store";
 
 const { executeActionMock, emitDebugInputTraceMock, listenMock } = vi.hoisted(() => ({
   executeActionMock: vi.fn(),
@@ -41,8 +43,26 @@ function expectMenuActionHandler(handler: MenuActionHandler | null): MenuActionH
   return handler;
 }
 
+async function registerMenuActionHandler(): Promise<MenuActionHandler> {
+  let handler: MenuActionHandler | null = null;
+  listenMock.mockImplementation((_eventName: string, nextHandler: MenuActionHandler) => {
+    handler = nextHandler;
+    return Promise.resolve(vi.fn());
+  });
+  render(<MenuEventsProbe />);
+  await waitFor(() => {
+    expect(listenMock).toHaveBeenCalledWith(APP_EVENTS.menuAction, expect.any(Function));
+  });
+  return expectMenuActionHandler(handler);
+}
+
 describe("useMenuEvents", () => {
+  beforeEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
   afterEach(() => {
+    useUiStore.getState().clearToast();
     resetTauriRuntimeFlags();
     vi.clearAllMocks();
     vi.restoreAllMocks();
@@ -248,5 +268,51 @@ describe("useMenuEvents", () => {
 
     expect(emitDebugInputTraceMock).not.toHaveBeenCalledWith("menu-action listener unavailable");
     expect(debugSpy).not.toHaveBeenCalled();
+  });
+
+  describe("menu actions that cannot run", () => {
+    it("shows the dialog toast instead of running a menu action while the add-feed dialog is open", async () => {
+      useUiStore.setState({ isAddFeedDialogOpen: true });
+      const handler = await registerMenuActionHandler();
+
+      handler({ payload: "set-filter-unread" });
+
+      expect(executeActionMock).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage?.message).toBe("Close the dialog first.");
+      expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action blocked set-filter-unread");
+    });
+
+    it("shows the article toast instead of running an article action with no article selected", async () => {
+      useUiStore.setState({ selectedArticleId: null });
+      const handler = await registerMenuActionHandler();
+
+      handler({ payload: "toggle-star" });
+
+      expect(executeActionMock).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage?.message).toBe("Select an article first.");
+      expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action blocked toggle-star");
+    });
+
+    it("still syncs from the menu while a confirm dialog is open", async () => {
+      useUiStore.setState({ selectedAccountId: "account-1" });
+      useUiStore.getState().showConfirm("Mark as read?", vi.fn());
+      const handler = await registerMenuActionHandler();
+
+      handler({ payload: "sync-all" });
+
+      expect(executeActionMock).toHaveBeenCalledWith("sync-all");
+      expect(useUiStore.getState().toastMessage).toBeNull();
+    });
+
+    it("ignores open-settings silently while settings are already open", async () => {
+      useUiStore.setState({ settingsOpen: true });
+      const handler = await registerMenuActionHandler();
+
+      handler({ payload: "open-settings" });
+
+      expect(executeActionMock).not.toHaveBeenCalled();
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action blocked open-settings");
+    });
   });
 });

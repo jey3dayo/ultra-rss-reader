@@ -62,9 +62,17 @@ export type AppActionAvailabilityContext = {
   contentMode: ContentMode;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
+  confirmDialogOpen: boolean;
   shortcutsHelpOpen: boolean;
   isAddFeedDialogOpen: boolean;
 };
+
+export type AppActionUnavailableReason =
+  | "surface"
+  | "requires-account"
+  | "requires-article"
+  | "requires-browser"
+  | "modal-open";
 
 type AppActionAvailabilityRule = {
   surfaces: readonly AppActionSurface[];
@@ -76,7 +84,7 @@ type AppActionAvailabilityRule = {
 
 const accountScopedActions = ["sync-all", "open-add-feed", "mark-all-read"] as const satisfies readonly AppAction[];
 const accountScopedActionSet: ReadonlySet<AppAction> = new Set(accountScopedActions);
-const articleScopedActions = [
+export const articleScopedActions = [
   "open-in-reader",
   "open-in-browser",
   "toggle-star",
@@ -86,6 +94,15 @@ const articleScopedActions = [
   "add-to-reading-list",
 ] as const satisfies readonly AppAction[];
 const articleScopedActionSet: ReadonlySet<AppAction> = new Set(articleScopedActions);
+
+// Native check menu items flip their mark on click, so blocking these would leave the mark out of sync with prefs.
+const nativeMenuModalAllowedActionSet: ReadonlySet<AppAction> = new Set<AppAction>([
+  "check-for-updates",
+  "sync-all",
+  "toggle-fullscreen",
+  "toggle-sort-unread",
+  "toggle-group-by-feed",
+]);
 
 const allSurfaces = ["commandPalette", "nativeMenu", "keyboardShortcut", "dispatcher"] as const;
 
@@ -103,28 +120,61 @@ const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailability
   ]),
 );
 
+function isModalOpen(surface: AppActionSurface, context: AppActionAvailabilityContext): boolean {
+  if (surface === "nativeMenu") {
+    return (
+      context.settingsOpen ||
+      context.confirmDialogOpen ||
+      context.shortcutsHelpOpen ||
+      context.commandPaletteOpen ||
+      context.isAddFeedDialogOpen
+    );
+  }
+  return (
+    context.settingsOpen ||
+    context.shortcutsHelpOpen ||
+    context.isAddFeedDialogOpen ||
+    (surface !== "commandPalette" && context.commandPaletteOpen)
+  );
+}
+
+function blocksWhenModalOpen(action: AppAction, surface: AppActionSurface, rule: AppActionAvailabilityRule): boolean {
+  if (surface === "nativeMenu") {
+    return !nativeMenuModalAllowedActionSet.has(action);
+  }
+  return rule.blocksWhenModalOpen === true;
+}
+
+export function getAppActionUnavailableReason(
+  action: AppAction,
+  surface: AppActionSurface,
+  context: AppActionAvailabilityContext,
+): AppActionUnavailableReason | null {
+  const rule = APP_ACTION_CAPABILITY_MATRIX.get(action);
+  if (!rule?.surfaces.includes(surface)) {
+    return "surface";
+  }
+  if (blocksWhenModalOpen(action, surface, rule) && isModalOpen(surface, context)) {
+    return "modal-open";
+  }
+  if (rule.requiresAccount && context.selectedAccountId === null) {
+    return "requires-account";
+  }
+  if (rule.requiresArticle && context.selectedArticleId === null) {
+    return "requires-article";
+  }
+  if (rule.requiresBrowser && context.contentMode !== "browser") {
+    return "requires-browser";
+  }
+  return null;
+}
+
 export function isAppActionAvailable(
   action: AppAction,
   surface: AppActionSurface,
   context: AppActionAvailabilityContext,
 ): boolean {
-  const rule = APP_ACTION_CAPABILITY_MATRIX.get(action);
-  if (!rule) {
-    return false;
-  }
-  const modalOpen =
-    context.settingsOpen ||
-    context.shortcutsHelpOpen ||
-    context.isAddFeedDialogOpen ||
-    (surface !== "commandPalette" && context.commandPaletteOpen);
-
-  return (
-    rule.surfaces.includes(surface) &&
-    (!rule.requiresAccount || context.selectedAccountId !== null) &&
-    (!rule.requiresArticle || context.selectedArticleId !== null) &&
-    (!rule.requiresBrowser || context.contentMode === "browser") &&
-    (!rule.blocksWhenModalOpen || !modalOpen)
-  );
+  return getAppActionUnavailableReason(action, surface, context) === null;
 }
 
 /** Set of all valid action strings, used for runtime validation at IPC boundaries. */

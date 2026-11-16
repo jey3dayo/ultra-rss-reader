@@ -514,6 +514,26 @@ const extractAppActions = (source: string): Set<string> => {
   );
 };
 
+const extractRunArticleActionEvents = (source: string): Map<string, string> => {
+  const body = source.match(/function runArticleAction\(action: AppAction\): boolean \{(?<body>[\s\S]*?)\n\}/)?.groups
+    ?.body;
+  if (!body) {
+    throw new Error("Missing runArticleAction");
+  }
+  return new Map(
+    [...body.matchAll(/case "([^"]+)":\s*emit\w*Event\(keyboardEvents\.(\w+)\);/g)].flatMap((match) =>
+      match[1] && match[2] ? [[match[1], match[2]] as const] : [],
+    ),
+  );
+};
+
+const extractWindowEventBinders = (source: string): Set<string> =>
+  new Set(
+    [...source.matchAll(/(?:type:|addEventListener\()\s*keyboardEvents\.(\w+)/g)]
+      .map((match) => match[1])
+      .filter((value): value is string => !!value),
+  );
+
 const extractShortcutActionIds = (source: string): Set<string> => {
   const definitions = source.match(/export const shortcutDefinitions: ShortcutDefinition\[] = \[(?<body>[\s\S]*?)\n\];/)
     ?.groups?.body;
@@ -2462,6 +2482,33 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(appActions.has("disabled-runtime-action")).toBe(false);
     expect(appActionsSource).toContain('export type AppActionSurface = "commandPalette" | "nativeMenu"');
     expect(appActionsSource).toContain("APP_ACTION_CAPABILITY_MATRIX");
+  });
+
+  it("keeps article-scoped app actions aligned with the events only the article pane listens for", () => {
+    const articlePaneShortcutsPath = "src/components/reader/hooks/article/use-article-pane-shortcuts.ts";
+    const eventsByAction = extractRunArticleActionEvents(readText("src/lib/actions.ts"));
+    const bindersByEvent = new Map<string, Set<string>>();
+    for (const path of listRepoFiles("src")) {
+      if (!/\.tsx?$/.test(path) || path.startsWith("src/__tests__/")) {
+        continue;
+      }
+      for (const event of extractWindowEventBinders(readText(path))) {
+        bindersByEvent.set(event, new Set([...(bindersByEvent.get(event) ?? []), path]));
+      }
+    }
+
+    const articlePaneOnlyActions = [...eventsByAction]
+      .filter(([, event]) => {
+        const binders = bindersByEvent.get(event);
+        return binders?.size === 1 && binders.has(articlePaneShortcutsPath);
+      })
+      .map(([action]) => action)
+      .sort();
+
+    expect(articlePaneOnlyActions.length).toBeGreaterThan(0);
+    expect(articlePaneOnlyActions).toEqual(
+      [...extractTypeScriptStringArray(appActionsSource, "articleScopedActions")].sort(),
+    );
   });
 
   it("keeps native menu item action ids aligned with customizable shortcut definitions", () => {

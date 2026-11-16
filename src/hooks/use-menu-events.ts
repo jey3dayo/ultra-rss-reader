@@ -1,16 +1,41 @@
 import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { executeAction } from "@/lib/actions";
-import { isAppAction } from "@/lib/app-actions";
+import {
+  type AppAction,
+  type AppActionUnavailableReason,
+  getAppActionUnavailableReason,
+  isAppAction,
+} from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
-import { isModalBlockedMenuAction } from "@/lib/keyboard/global-shortcut-targets";
+import i18n from "@/lib/i18n";
 import { formatRuntimeDiagnosticPayload, logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
-function isMenuActionBlockedByModal(): boolean {
+function getMenuActionUnavailableReason(action: AppAction): AppActionUnavailableReason | null {
   const state = useUiStore.getState();
-  return state.settingsOpen || state.confirmDialog.open || state.shortcutsHelpOpen || state.commandPaletteOpen;
+  return getAppActionUnavailableReason(action, "nativeMenu", {
+    selectedAccountId: state.selectedAccountId,
+    selectedArticleId: state.selectedArticleId,
+    contentMode: state.contentMode,
+    commandPaletteOpen: state.commandPaletteOpen,
+    settingsOpen: state.settingsOpen,
+    confirmDialogOpen: state.confirmDialog.open,
+    shortcutsHelpOpen: state.shortcutsHelpOpen,
+    isAddFeedDialogOpen: state.isAddFeedDialogOpen,
+  });
+}
+
+function getBlockedMenuActionMessage(reason: AppActionUnavailableReason | null): string | null {
+  switch (reason) {
+    case "modal-open":
+      return i18n.t("reader:menu_action_blocked_by_dialog");
+    case "requires-article":
+      return i18n.t("reader:menu_action_requires_article");
+    default:
+      return null;
+  }
 }
 
 export function useMenuEvents(): void {
@@ -21,8 +46,15 @@ export function useMenuEvents(): void {
           const formattedPayload = formatRuntimeDiagnosticPayload(event.payload);
           emitDebugInputTrace(`${APP_EVENTS.menuAction} ${formattedPayload}`);
           if (isAppAction(event.payload)) {
-            if (isMenuActionBlockedByModal() && isModalBlockedMenuAction(event.payload)) {
+            const store = useUiStore.getState();
+            if (event.payload === "open-settings" && store.settingsOpen) {
               emitDebugInputTrace(`${APP_EVENTS.menuAction} blocked ${formattedPayload}`);
+              return;
+            }
+            const blockedMessage = getBlockedMenuActionMessage(getMenuActionUnavailableReason(event.payload));
+            if (blockedMessage !== null) {
+              emitDebugInputTrace(`${APP_EVENTS.menuAction} blocked ${formattedPayload}`);
+              store.showToast(blockedMessage);
               return;
             }
             try {

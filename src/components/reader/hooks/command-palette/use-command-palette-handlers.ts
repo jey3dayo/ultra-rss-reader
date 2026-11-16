@@ -199,6 +199,7 @@ export function useCommandPaletteHandlers({
         contentMode: uiState.contentMode,
         commandPaletteOpen: commandPaletteOpenRef.current,
         settingsOpen: uiState.settingsOpen,
+        confirmDialogOpen: uiState.confirmDialog.open,
         shortcutsHelpOpen: uiState.shortcutsHelpOpen,
         isAddFeedDialogOpen: uiState.isAddFeedDialogOpen,
       }) ||
