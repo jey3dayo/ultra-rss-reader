@@ -22,7 +22,7 @@ type SidebarHeaderDisplayState = {
 };
 
 type SidebarHeaderSyncState = {
-  status: "idle" | "syncing" | "disabled" | "cooldown";
+  status: "idle" | "syncing" | "cooldown";
 };
 
 type SidebarHeaderActionAvailability = {
@@ -67,7 +67,6 @@ export function SidebarHeaderView({
   const isMobile = displayState.layout === "mobile";
   const useDesktopOverlay = displayState.titlebar === "desktop-overlay";
   const isSyncing = syncState.status === "syncing";
-  const isSyncDisabled = syncState.status === "disabled";
   const isSyncCoolingDown = syncState.status === "cooldown";
   const isAddFeedDisabled = actionAvailability?.addFeed === "disabled";
   const feedbackSpinTimerRef = useRef<number | null>(null);
@@ -96,10 +95,6 @@ export function SidebarHeaderView({
   };
 
   const handleSyncClick = () => {
-    if (isSyncDisabled) {
-      return;
-    }
-
     if (isSyncing || isSyncCoolingDown) {
       onSync();
       return;
@@ -122,7 +117,6 @@ export function SidebarHeaderView({
           label={syncButtonLabel}
           tooltipLabel={syncTooltipLabel ?? syncButtonLabel}
           onClick={handleSyncClick}
-          disabled={isSyncDisabled}
           ariaBusy={isSyncing}
           ariaDisabled={isSyncCoolingDown}
           allowAriaDisabledClick={true}

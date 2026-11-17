@@ -96,7 +96,6 @@ export type SidebarControllerSectionsParams = {
   handleSync: SidebarSyncHandler;
   syncTooltipLabel: string | null;
   isSyncCoolingDown: boolean;
-  isSyncDisabled: boolean;
   handleAddFeed: SidebarHeaderAddFeedHandler;
   toggleFeedsSection: () => void;
   lastSyncedLabel: string;
@@ -127,7 +126,6 @@ export type SidebarHeaderPropsParams = {
   handleSync: SidebarSyncHandler;
   syncTooltipLabel: string | null;
   isSyncCoolingDown: boolean;
-  isSyncDisabled: boolean;
   handleAddFeed: SidebarHeaderAddFeedHandler;
 };
 

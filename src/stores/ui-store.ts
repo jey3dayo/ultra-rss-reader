@@ -3,14 +3,7 @@ import { create } from "zustand";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
 import { createSelectionHistory } from "@/lib/reader/selection-history";
 import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
-import type {
-  NativeLifecycleBlockerEntry,
-  NativeLifecycleBlockerOwner,
-  NativeLifecycleBlockerSnapshot,
-  UiActions,
-  UiState,
-  UiStoreState,
-} from "@/stores/ui-store.types";
+import type { UiActions, UiState, UiStoreState } from "@/stores/ui-store.types";
 import { createUiStoreDialogActions, type UiStoreDialogToastRuntime } from "@/stores/ui-store-dialog-actions";
 import { createUiStoreReaderActions } from "@/stores/ui-store-reader-actions";
 import { createUiStoreSettingsActions } from "@/stores/ui-store-settings-actions";
@@ -18,9 +11,6 @@ import { createUiStoreSyncActions, getIdleSyncProgress } from "@/stores/ui-store
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 export type {
-  NativeLifecycleBlockerEntry,
-  NativeLifecycleBlockerOwner,
-  NativeLifecycleBlockerSnapshot,
   SyncProgressEventDto,
   SyncProgressUiState,
   UiStoreAccountSetupActions,
@@ -79,17 +69,6 @@ const scheduleToastDismiss: UiStoreDialogToastRuntime["scheduleToastDismiss"] = 
   toastTimer = dismissTimer;
 };
 
-function createNativeLifecycleBlockerSnapshot(
-  entries: ReadonlyMap<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>,
-): NativeLifecycleBlockerSnapshot {
-  const activeEntries = [...entries.values()].filter((entry) => entry.dirty || entry.pending);
-  return {
-    dirty: activeEntries.some((entry) => entry.dirty),
-    pending: activeEntries.some((entry) => entry.pending),
-    owners: activeEntries.map((entry) => entry.owner),
-  };
-}
-
 const initialState: UiState = {
   layoutMode: "wide",
   focusedPane: "sidebar",
@@ -102,7 +81,6 @@ const initialState: UiState = {
   selectedArticleId: null,
   articleEngagement: "reading",
   viewMode: "unread",
-  searchQuery: "",
   browserUrl: null,
   browserArticleId: null,
   webPreviewSessionMode: "auto",
@@ -141,10 +119,9 @@ const initialState: UiState = {
     icon: null,
     onConfirm: null,
   },
-  nativeLifecycleBlockers: new Map(),
 };
 
-export const useUiStore = create<UiState & UiActions>()((set, get) => ({
+export const useUiStore = create<UiState & UiActions>()((set) => ({
   ...initialState,
   ...createUiStoreDialogActions(set, {
     clearToastDismissTimer,
@@ -196,26 +173,6 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
     })),
   openShortcutsHelp: () => set({ shortcutsHelpOpen: true, commandPaletteOpen: false }),
   closeShortcutsHelp: () => set({ shortcutsHelpOpen: false }),
-  setNativeLifecycleBlocker: (entry) =>
-    set((state) => {
-      const nativeLifecycleBlockers = new Map(state.nativeLifecycleBlockers);
-      if (entry.dirty || entry.pending) {
-        nativeLifecycleBlockers.set(entry.owner, entry);
-      } else {
-        nativeLifecycleBlockers.delete(entry.owner);
-      }
-      return { nativeLifecycleBlockers };
-    }),
-  clearNativeLifecycleBlocker: (owner) =>
-    set((state) => {
-      if (!state.nativeLifecycleBlockers.has(owner)) {
-        return state;
-      }
-      const nativeLifecycleBlockers = new Map(state.nativeLifecycleBlockers);
-      nativeLifecycleBlockers.delete(owner);
-      return { nativeLifecycleBlockers };
-    }),
-  getNativeLifecycleBlockerSnapshot: () => createNativeLifecycleBlockerSnapshot(get().nativeLifecycleBlockers),
 }));
 
 const setUiStoreState = useUiStore.setState;

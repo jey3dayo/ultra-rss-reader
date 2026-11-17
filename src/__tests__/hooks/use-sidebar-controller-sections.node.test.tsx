@@ -60,7 +60,6 @@ function createSectionsParams(
     handleSync: vi.fn(),
     syncTooltipLabel: null,
     isSyncCoolingDown: false,
-    isSyncDisabled: false,
     handleAddFeed: vi.fn(),
     toggleFeedsSection: vi.fn(),
     lastSyncedLabel: "Today",

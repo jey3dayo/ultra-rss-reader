@@ -85,7 +85,6 @@ export function useSidebarController(): SidebarControllerResult {
     lastSyncedLabel,
     syncTooltipLabel,
     isSyncCoolingDown,
-    isSyncDisabled,
   } = useSidebarRuntime();
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const accountFocusCleanupRef = useRef<(() => void) | null>(null);
@@ -286,7 +285,6 @@ export function useSidebarController(): SidebarControllerResult {
       handleSync,
       syncTooltipLabel,
       isSyncCoolingDown,
-      isSyncDisabled,
       handleAddFeed,
       toggleFeedsSection,
       lastSyncedLabel,

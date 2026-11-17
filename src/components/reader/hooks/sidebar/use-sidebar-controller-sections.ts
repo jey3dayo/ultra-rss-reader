@@ -52,7 +52,6 @@ export function useSidebarControllerSections({
   handleSync,
   syncTooltipLabel,
   isSyncCoolingDown,
-  isSyncDisabled,
   handleAddFeed,
   toggleFeedsSection,
   lastSyncedLabel,
@@ -160,7 +159,6 @@ export function useSidebarControllerSections({
     handleSync,
     syncTooltipLabel,
     isSyncCoolingDown,
-    isSyncDisabled,
     handleAddFeed,
   });
   const accountSectionProps = useSidebarAccountSectionProps({
