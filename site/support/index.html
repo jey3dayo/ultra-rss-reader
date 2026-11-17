@@ -9,9 +9,10 @@
 <meta property="og:title" content="Support — Ultra RSS Reader" />
 <meta property="og:description" content="Support for Ultra RSS Reader: contact information, FAQs, and privacy notes." />
 <meta property="og:url" content="https://ultra-rss.jey3dayo.net/support/" />
+<meta property="og:image" content="https://ultra-rss.jey3dayo.net/assets/en/screenshot-reader-light-mac.jpg" />
 <meta property="og:locale" content="en_US" />
 <meta property="og:locale:alternate" content="ja_JP" />
-<meta name="twitter:card" content="summary" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Support — Ultra RSS Reader" />
 <meta name="twitter:description" content="Support for Ultra RSS Reader: contact information, FAQs, and privacy notes." />
 <link rel="canonical" href="https://ultra-rss.jey3dayo.net/support/" />
@@ -152,7 +153,6 @@
     text-transform: uppercase;
     opacity: 0.7;
   }
-  .translation { margin-top: 0.35rem; font-size: 0.96rem; opacity: 0.82; }
   .route-chip {
     display: inline-block;
     width: fit-content;
@@ -255,7 +255,7 @@
       <div class="card" style="margin-bottom: 0">
         <div class="section-heading">
           <h2>What this page covers</h2>
-          <p>This page covers the first public support draft based on source-backed information.</p>
+          <p>This page summarizes support essentials based on the public source.</p>
         </div>
         <ul class="card-list">
           <li>
@@ -285,7 +285,7 @@
           </li>
           <li>
             <span class="mini-label">Your setup</span>
-            <p>Tell us whether the issue happened with Local feeds or FreshRSS, and which account was affected.</p>
+            <p>Tell us whether the issue happened with Local RSS/Atom feeds or FreshRSS, and which account was affected.</p>
           </li>
           <li>
             <span class="mini-label">Description of the issue</span>
@@ -320,7 +320,7 @@
           </li>
           <li>
             <span class="mini-label">Checking logs</span>
-            <p>If needed, open logs from <code>Settings &gt; Data Management &gt; Open Log Directory</code>.</p>
+            <p>If needed, open logs from <code>Settings &gt; Data &gt; Open log directory</code>.</p>
           </li>
         </ul>
       </div>
@@ -376,53 +376,29 @@
       </p>
     </section>
 
-    <div class="grid-two">
-      <div class="card" style="margin-bottom: 0">
-        <div class="section-heading">
-          <h2>Pages</h2>
-          <p>Each app is separated by path, so support, downloads, and privacy can all grow on the same host.</p>
-        </div>
-        <ul class="card-list">
-          <li>
-            <span class="mini-label">Support</span>
-            <a class="route-chip" href="/support/">/support/</a>
-            <p>A public page with contact information, FAQs, and troubleshooting guidance.</p>
-          </li>
-          <li>
-            <span class="mini-label">Download</span>
-            <a class="route-chip" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">GitHub Releases</a>
-            <p>The public download route. Check GitHub Releases for the latest release availability.</p>
-          </li>
-          <li>
-            <span class="mini-label">Privacy</span>
-            <a class="route-chip" href="/privacy/">/privacy/</a>
-            <p>A public page summarizing the current privacy policy and feed content policy.</p>
-          </li>
-        </ul>
+    <section class="card">
+      <div class="section-heading">
+        <h2>Pages</h2>
+        <p>Each app is separated by path, so support, downloads, and privacy can all grow on the same host.</p>
       </div>
-
-      <div class="card" style="margin-bottom: 0">
-        <div class="section-heading">
-          <h2>Still to be confirmed</h2>
-          <p>These items are still intentionally left open instead of being guessed.</p>
-        </div>
-        <ul class="card-list">
-          <li>
-            <span class="mini-label">Latest public release</span>
-            <p>The public download page is now available, but current release availability is still expected to be checked on GitHub Releases.</p>
-          </li>
-          <li>
-            <span class="mini-label">Dedicated privacy page</span>
-            <p>A more focused privacy summary is now available at <code>/privacy/</code>.</p>
-          </li>
-          <li>
-            <span class="mini-label">Copy based on public releases</span>
-            <p>On GitHub Releases, <code>v0.5.0</code> is the latest non-draft release and later versions are still
-            drafts, so public copy stays intentionally conservative.</p>
-          </li>
+      <ul class="card-list">
+        <li>
+          <span class="mini-label">Support</span>
+          <a class="route-chip" href="/support/">/support/</a>
+          <p>A public page with contact information, FAQs, and troubleshooting guidance.</p>
+        </li>
+        <li>
+          <span class="mini-label">Download</span>
+          <a class="route-chip" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">GitHub Releases</a>
+          <p>The public download route. Check GitHub Releases for the latest release availability.</p>
+        </li>
+        <li>
+          <span class="mini-label">Privacy</span>
+          <a class="route-chip" href="/privacy/">/privacy/</a>
+          <p>A public page summarizing the current privacy policy and feed content policy.</p>
+        </li>
         </ul>
-      </div>
-    </div>
+    </section>
   </div>
 </main>
 
