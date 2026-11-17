@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  # mise run would otherwise install every tool missing from install_args.
+  # Task runs would otherwise auto-install every tool missing from install_args.
   MISE_TASK_RUN_AUTO_INSTALL: "false"
   TAURI_SYSTEM_DEPS: >-
     libwebkit2gtk-4.1-dev
@@ -128,7 +128,7 @@ jobs:
 
       - uses: jdx/mise-action@v4.3.0
         with:
-          install_args: node github:jdx/jactionlint pipx:yamllint shellcheck
+          install_args: node github:jdx/jactionlint pipx:yamllint shellcheck uv
 
       - uses: $/.github/actions/setup-pnpm
         timeout-minutes: 10
