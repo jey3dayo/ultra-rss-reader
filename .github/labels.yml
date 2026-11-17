@@ -1,136 +1,137 @@
-# Canonical label definitions for this repository.
+# Canonical label definitions; .github/workflows/label-sync.yml applies them to GitHub.
+# - This file is the source of truth. Do not edit labels in the GitHub UI.
+# - Quote every color: YAML parses bare 5319e7 as a float and 555555 as an integer.
+# - To rename a label, keep the new name here and add `from_name: <old name>`.
+# - Deletion is manual (skip-delete): remove the entry here and delete the label in the UI in the same PR.
 # Automated labels are applied from .github/labeler.yml (areas/categories),
 # .github/workflows/pr-insights-labeler.yml (risk/*, size/*, auto/*), and the
-# issue templates (initial labels). This file defines every label's name,
-# color, and description so the full set is reviewable in one place.
-# Sync workflow is a follow-up; until then, keep this file in step with
-# label changes made in the GitHub UI.
+# issue templates (initial labels).
 - name: question
-  color: d876e3
+  color: "d876e3"
   description: "Further information is requested"
 - name: wontfix
-  color: ffffff
+  color: "ffffff"
   description: "This will not be worked on"
 - name: feature
-  color: 0e8a16
+  color: "0e8a16"
   description: "新機能"
 - name: fix
-  color: d73a4a
+  color: "d73a4a"
   description: "バグ修正"
 - name: docs
-  color: 0075ca
+  color: "0075ca"
   description: "ドキュメント"
 - name: chore
-  color: ededed
+  color: "ededed"
   description: "メンテナンス"
 - name: breaking
-  color: b60205
+  color: "b60205"
   description: "破壊的変更"
 - name: skip-changelog
-  color: c5def5
+  color: "c5def5"
   description: "リリースノート除外"
 - name: premortem
-  color: ff9800
+  color: "ff9800"
   description: "Premortem分析で発見されたブラインドスポット"
 - name: auto/too-many-files
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/feature
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/tests
-  color: ededed
+  color: "ededed"
   description: ""
 - name: size/large
-  color: ededed
+  color: "ededed"
   description: ""
 - name: frontend
-  color: ededed
+  color: "ededed"
   description: ""
 - name: ui
-  color: ededed
+  color: "ededed"
   description: ""
 - name: backend
-  color: ededed
+  color: "ededed"
   description: ""
 - name: dependencies
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/documentation
-  color: ededed
+  color: "ededed"
   description: ""
 - name: auto/too-many-lines
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/dependencies
-  color: ededed
+  color: "ededed"
   description: ""
 - name: ci
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/ci-cd
-  color: ededed
+  color: "ededed"
   description: ""
 - name: risk/medium
-  color: ededed
+  color: "ededed"
   description: ""
 - name: size/xlarge
-  color: ededed
+  color: "ededed"
   description: ""
 - name: i18n
-  color: ededed
+  color: "ededed"
   description: ""
 - name: risk/high
-  color: ededed
+  color: "ededed"
   description: ""
 - name: size/small
-  color: ededed
+  color: "ededed"
   description: ""
 - name: manual-verification
-  color: FBCA04
+  color: "fbca04"
   description: "Requires human/manual verification outside Codex"
 - name: release-readiness
-  color: 5319E7
+  color: "5319e7"
   description: "Release prep or pre-release validation work"
 - name: product
-  color: 1D76DB
+  color: "1d76db"
   description: "Product, distribution, or go-to-market work"
 - name: maintenance-family
-  color: ededed
+  color: "ededed"
   description: ""
 - name: size/medium
-  color: ededed
+  color: "ededed"
   description: ""
 - name: codex
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/security
-  color: ededed
+  color: "ededed"
   description: ""
 - name: auto/large-files
-  color: ededed
+  color: "ededed"
   description: ""
 - name: refactor
-  color: ededed
+  color: "ededed"
   description: ""
 - name: auto/excessive-changes
-  color: ededed
+  color: "ededed"
   description: ""
 - name: size/xxlarge
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/config
-  color: ededed
+  color: "ededed"
   description: ""
 - name: category/infrastructure
-  color: ededed
+  color: "ededed"
   description: ""
 - name: platform/macos
-  color: 555555
+  color: "555555"
   description: "macOS固有"
 - name: platform/windows
-  color: 0078D6
+  color: "0078d6"
   description: "Windows固有"
 - name: blocked
-  color: B60205
+  color: "b60205"
   description: "進められない（環境・外部の待ち）"

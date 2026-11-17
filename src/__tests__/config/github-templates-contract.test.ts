@@ -50,4 +50,22 @@ describe("GitHub templates contract", () => {
       expect(extractWorkflowJobIf(source, "label"), path).toBe(sameRepositoryPullRequestOnly);
     }
   });
+
+  describe("label-sync workflow", () => {
+    const source = readRepoFile(".github/workflows/label-sync.yml");
+
+    it("skips fork pull requests because the token cannot write labels", () => {
+      expect(extractWorkflowJobIf(source, "sync")).toBe(
+        "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository",
+      );
+    });
+
+    it("never prunes labels that are missing from labels.yml", () => {
+      expect(source).toMatch(/^ {10}skip-delete: true$/m);
+    });
+
+    it("applies changes only outside pull requests", () => {
+      expect(source).toContain("dry-run: $" + "{{ github.event_name == 'pull_request' }}");
+    });
+  });
 });
