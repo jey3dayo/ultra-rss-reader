@@ -54,7 +54,7 @@ describe("GitHub templates contract", () => {
   describe("label-sync workflow", () => {
     const source = readRepoFile(".github/workflows/label-sync.yml");
 
-    it("skips fork pull requests because the token cannot write labels", () => {
+    it("runs pull requests only from the same repository", () => {
       expect(extractWorkflowJobIf(source, "sync")).toBe(
         "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository",
       );
@@ -64,8 +64,8 @@ describe("GitHub templates contract", () => {
       expect(source).toMatch(/^ {10}skip-delete: true$/m);
     });
 
-    it("applies changes only outside pull requests", () => {
-      expect(source).toContain("dry-run: $" + "{{ github.event_name == 'pull_request' }}");
+    it("applies changes only on main and dry-runs every other ref", () => {
+      expect(source).toContain("dry-run: $" + "{{ github.ref != 'refs/heads/main' }}");
     });
   });
 });

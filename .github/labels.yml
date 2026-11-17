@@ -1,8 +1,9 @@
 # Canonical label definitions; .github/workflows/label-sync.yml applies them to GitHub.
-# - This file is the source of truth. Do not edit labels in the GitHub UI.
+# - This file is the source of truth. Do not create or edit labels in the GitHub UI; deletion is the only UI step (below).
 # - Quote every color: YAML parses bare 5319e7 as a float and 555555 as an integer.
 # - To rename a label, keep the new name here and add `from_name: <old name>`.
-# - Deletion is manual (skip-delete): remove the entry here and delete the label in the UI in the same PR.
+# - Deletion is the one exception: sync never deletes (skip-delete), so remove the entry here
+#   and delete the label in the UI in the same PR.
 # Automated labels are applied from .github/labeler.yml (areas/categories),
 # .github/workflows/pr-insights-labeler.yml (risk/*, size/*, auto/*), and the
 # issue templates (initial labels).
