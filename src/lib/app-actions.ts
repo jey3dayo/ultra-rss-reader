@@ -97,10 +97,13 @@ const modalAllowedActions: ReadonlySet<AppAction> = new Set([
   "open-command-palette",
   "check-for-updates",
 ]);
+// Native check menu items flip their mark on click, so blocking these would leave the mark out of sync with prefs.
 const nativeMenuModalAllowedActions: ReadonlySet<AppAction> = new Set([
   "check-for-updates",
   "sync-all",
   "toggle-fullscreen",
+  "toggle-sort-unread",
+  "toggle-group-by-feed",
 ]);
 
 const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailabilityRule> = new Map(
