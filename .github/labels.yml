@@ -5,7 +5,7 @@
 # - Deletion is the one exception: sync never deletes (skip-delete), so remove the entry here
 #   and delete the label in the UI in the same PR.
 # Automated labels are applied from .github/labeler.yml (areas/categories),
-# .github/workflows/pr-insights-labeler.yml (risk/*, size/*, auto/*), and the
+# .github/workflows/pr-insights-labeler.yml (risk/*, size/*, auto/*, category/*), and the
 # issue templates (initial labels).
 - name: question
   color: "d876e3"
@@ -125,6 +125,9 @@
   color: "ededed"
   description: ""
 - name: category/infrastructure
+  color: "ededed"
+  description: ""
+- name: category/spec
   color: "ededed"
   description: ""
 - name: platform/macos

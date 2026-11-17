@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parse as parseYaml } from "yaml";
 
 const repoRoot = process.cwd();
 function readRepoFile(path: string): string {
@@ -66,6 +67,131 @@ describe("GitHub templates contract", () => {
 
     it("applies changes only on main and dry-runs every other ref", () => {
       expect(source).toContain("dry-run: $" + "{{ github.ref != 'refs/heads/main' }}");
+    });
+  });
+
+  describe("labels.yml definitions", () => {
+    function isRecord(value: unknown): value is Record<string, unknown> {
+      return typeof value === "object" && value !== null;
+    }
+
+    function stringList(value: unknown): string[] {
+      if (typeof value === "string") {
+        return value
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter((entry) => entry.length > 0);
+      }
+      return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+    }
+
+    const labelsDocument: unknown = parseYaml(readRepoFile(".github/labels.yml"));
+    const labelEntries: Record<string, unknown>[] = Array.isArray(labelsDocument)
+      ? labelsDocument.filter(isRecord)
+      : [];
+    const definedNames = new Set(
+      labelEntries.map((entry) => entry.name).filter((name): name is string => typeof name === "string"),
+    );
+
+    it("defines every label referenced by labeler, release categories, and issue templates", () => {
+      const referencedBySource = new Map<string, Set<string>>([
+        ["labeler", new Set<string>()],
+        ["release", new Set<string>()],
+        ["issue templates", new Set<string>()],
+      ]);
+
+      const labelerDocument: unknown = parseYaml(readRepoFile(".github/labeler.yml"));
+      if (isRecord(labelerDocument)) {
+        for (const name of Object.keys(labelerDocument)) {
+          referencedBySource.get("labeler")?.add(name);
+        }
+      }
+
+      const releaseDocument: unknown = parseYaml(readRepoFile(".github/release.yml"));
+      const changelog = isRecord(releaseDocument) ? releaseDocument.changelog : undefined;
+      if (isRecord(changelog)) {
+        const exclude = changelog.exclude;
+        if (isRecord(exclude)) {
+          for (const name of stringList(exclude.labels)) {
+            referencedBySource.get("release")?.add(name);
+          }
+        }
+        const categories = Array.isArray(changelog.categories) ? changelog.categories : [];
+        for (const category of categories) {
+          if (!isRecord(category)) {
+            continue;
+          }
+          for (const name of stringList(category.labels)) {
+            if (name !== "*") {
+              referencedBySource.get("release")?.add(name);
+            }
+          }
+        }
+      }
+
+      const templateDir = join(repoRoot, ".github/ISSUE_TEMPLATE");
+      for (const file of readdirSync(templateDir)) {
+        if (!file.endsWith(".yml") && !file.endsWith(".yaml")) {
+          continue;
+        }
+        const templateDocument: unknown = parseYaml(readRepoFile(join(".github/ISSUE_TEMPLATE", file)));
+        if (isRecord(templateDocument)) {
+          for (const name of stringList(templateDocument.labels)) {
+            referencedBySource.get("issue templates")?.add(name);
+          }
+        }
+      }
+
+      // Guard against a source silently yielding no references after a
+      // structure change, which would let this test pass while checking
+      // nothing for that source.
+      for (const [source, names] of referencedBySource) {
+        expect(names.size, source).toBeGreaterThan(0);
+      }
+      const referenced = new Set([...referencedBySource.values()].flatMap((names) => [...names]));
+      const missing = [...referenced].filter((name) => !definedNames.has(name)).toSorted();
+      expect(missing).toEqual([]);
+    });
+
+    it("defines every label the pinned pr-insights-labeler can apply", () => {
+      // The complete emittable set of jey3dayo/pr-insights-labeler@v1.15.1
+      // (the version repo-contracts pins for pr-insights-labeler.yml), taken
+      // from its bundled category, size, risk, and violation configs. These
+      // labels are applied at runtime, so no static file references them by
+      // full name; if the action is bumped, re-derive this list.
+      const applicable = [
+        "auto/excessive-changes",
+        "auto/large-files",
+        "auto/too-many-files",
+        "auto/too-many-lines",
+        "category/ci-cd",
+        "category/config",
+        "category/dependencies",
+        "category/documentation",
+        "category/feature",
+        "category/infrastructure",
+        "category/security",
+        "category/spec",
+        "category/tests",
+        "risk/high",
+        "risk/medium",
+        "size/large",
+        "size/medium",
+        "size/small",
+        "size/xlarge",
+        "size/xxlarge",
+      ];
+      const missing = applicable.filter((name) => !definedNames.has(name)).toSorted();
+      expect(missing).toEqual([]);
+    });
+
+    it("stores every label color as a lowercase six-digit hex string", () => {
+      expect(labelEntries.length).toBeGreaterThan(0);
+      for (const entry of labelEntries) {
+        const name = typeof entry.name === "string" ? entry.name : "(unnamed)";
+        expect(typeof entry.color, name).toBe("string");
+        expect(entry.color, name).toMatch(/^[0-9a-f]{6}$/);
+      }
     });
   });
 });
