@@ -38,10 +38,10 @@ injects the beacon at the edge — deliberately not in the HTML.
   and the screenshot platform switcher.
 - No build command. Cloudflare Pages serves this directory as-is; `site/` is the
   configured output directory.
-- Landing pages are `index.html` (EN) and `ja/index.html` (JA). Bilingual support
-  and privacy pages live at `privacy/`, `support/`, `ja/privacy/`, and
-  `ja/support/`. All cross-link with `hreflang` and an on-page language switch.
-  No `Accept-Language` redirect.
+- Landing pages are `index.html` (EN) and `ja/index.html` (JA). Support and
+  privacy pages are single-language as well: `privacy/` and `support/` in
+  English, `ja/privacy/` and `ja/support/` in Japanese. All cross-link with
+  `hreflang` and an on-page language switch. No `Accept-Language` redirect.
 
 ## Assets
 
