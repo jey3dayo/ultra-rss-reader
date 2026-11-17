@@ -24,14 +24,13 @@ export function useSidebarRuntime(): SidebarRuntimeResult {
   const sources = useSidebarSources({ selectedAccountId });
   const feedViewportRef = useRef<HTMLDivElement>(null);
   const { intent: activeDevIntent } = useResolvedDevIntent();
-  const { handleSync, lastSyncedLabel, syncTooltipLabel, isSyncCoolingDown, isSyncDisabled }: SidebarSyncResult =
-    useSidebarSync({
-      selectedAccountId,
-      syncProgress,
-      applySyncProgress,
-      clearSyncProgress,
-      showToast,
-    });
+  const { handleSync, lastSyncedLabel, syncTooltipLabel, isSyncCoolingDown }: SidebarSyncResult = useSidebarSync({
+    selectedAccountId,
+    syncProgress,
+    applySyncProgress,
+    clearSyncProgress,
+    showToast,
+  });
   return {
     isAccountListOpen,
     accountDropdownRef,
@@ -48,6 +47,5 @@ export function useSidebarRuntime(): SidebarRuntimeResult {
     lastSyncedLabel,
     syncTooltipLabel,
     isSyncCoolingDown,
-    isSyncDisabled,
   };
 }

@@ -20,7 +20,6 @@ function createHeaderParams(
     handleSync: vi.fn(),
     syncTooltipLabel: null,
     isSyncCoolingDown: false,
-    isSyncDisabled: false,
     handleAddFeed: vi.fn(),
     ...overrides,
   };

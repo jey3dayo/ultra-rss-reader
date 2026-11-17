@@ -13,7 +13,7 @@ import {
   resolveVisiblePane,
 } from "../../hooks/use-layout";
 
-const CONTENT_MODES = ["empty", "reader", "loading"] as const;
+const CONTENT_MODES = ["empty", "reader"] as const;
 
 describe("resolveLayout", () => {
   it("wide: 3 panes", () => {

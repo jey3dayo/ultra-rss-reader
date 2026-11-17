@@ -415,7 +415,6 @@ export function createUiStoreReaderActions(set: UiStoreSet, runtime: UiStoreRead
         articleReaderScrollPositions: new Map(),
       }),
     setHasNextArticle: (hasNext) => set({ hasNextArticle: hasNext }),
-    setSearchQuery: (query) => set({ searchQuery: query }),
     toggleFolder: (folderId) =>
       set((state) => {
         const next = new Set(state.expandedFolderIds);

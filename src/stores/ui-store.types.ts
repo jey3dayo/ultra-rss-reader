@@ -41,20 +41,6 @@ type SubscriptionsWorkspace = {
   navigationRequest?: SubscriptionsIndexNavigationRequest;
 };
 
-export type NativeLifecycleBlockerOwner = "settings" | "add-feed" | "sync" | "updater" | "export" | "backup";
-
-export type NativeLifecycleBlockerEntry = {
-  owner: NativeLifecycleBlockerOwner;
-  dirty: boolean;
-  pending: boolean;
-};
-
-export type NativeLifecycleBlockerSnapshot = {
-  dirty: boolean;
-  pending: boolean;
-  owners: NativeLifecycleBlockerOwner[];
-};
-
 export type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
 
 type SyncProgressStage = "started" | "account_started" | "account_finished" | "finished";
@@ -84,7 +70,6 @@ export type UiState = {
   selectedArticleId: string | null;
   articleEngagement: ArticleEngagement;
   viewMode: ViewMode;
-  searchQuery: string;
   browserUrl: string | null;
   browserArticleId: string | null;
   webPreviewSessionMode: WebPreviewSessionMode;
@@ -125,7 +110,6 @@ export type UiState = {
     icon: ComponentType<{ className?: string }> | null;
     onConfirm: (() => void | Promise<void>) | null;
   };
-  nativeLifecycleBlockers: Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>;
 };
 
 export type UiActions = {
@@ -167,7 +151,6 @@ export type UiActions = {
   setPendingBrowserCloseAction: (action: PendingBrowserCloseAction | null) => void;
   setViewMode: (mode: ViewMode) => void;
   setHasNextArticle: (hasNext: boolean) => void;
-  setSearchQuery: (query: string) => void;
   toggleFolder: (folderId: string) => void;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   setIsFeedsSectionOpen: (open: boolean | ((current: boolean) => boolean)) => void;
@@ -225,22 +208,13 @@ export type UiActions = {
     },
   ) => void;
   closeConfirm: () => void;
-  setNativeLifecycleBlocker: (entry: NativeLifecycleBlockerEntry) => void;
-  clearNativeLifecycleBlocker: (owner: NativeLifecycleBlockerOwner) => void;
-  getNativeLifecycleBlockerSnapshot: () => NativeLifecycleBlockerSnapshot;
 };
 
 export type UiStoreState = UiState & UiActions;
 
 export type UiStoreShellState = Pick<
   UiStoreState,
-  | "layoutMode"
-  | "focusedPane"
-  | "sidebarOpen"
-  | "accountPaneOpen"
-  | "commandPaletteOpen"
-  | "shortcutsHelpOpen"
-  | "nativeLifecycleBlockers"
+  "layoutMode" | "focusedPane" | "sidebarOpen" | "accountPaneOpen" | "commandPaletteOpen" | "shortcutsHelpOpen"
 >;
 
 export type UiStoreLayoutState = Pick<
@@ -265,7 +239,6 @@ export type UiStoreReaderState = Pick<
   | "pendingBrowserCloseAction"
   | "pendingBrowserCloseActionQueue"
   | "articleNavigationDirection"
-  | "searchQuery"
   | "expandedFolderIds"
   | "isFeedsSectionOpen"
   | "isTagsSectionOpen"
@@ -343,7 +316,6 @@ export type UiStoreReaderActions = Pick<
   | "setBrowserCloseInFlight"
   | "setPendingBrowserCloseAction"
   | "setViewMode"
-  | "setSearchQuery"
   | "toggleFolder"
   | "setExpandedFolders"
   | "setIsFeedsSectionOpen"
@@ -384,7 +356,6 @@ export type UiStoreReaderSelectionActions = Pick<
   | "setBrowserCloseInFlight"
   | "setPendingBrowserCloseAction"
   | "setViewMode"
-  | "setSearchQuery"
   | "toggleFolder"
   | "setExpandedFolders"
   | "setIsFeedsSectionOpen"

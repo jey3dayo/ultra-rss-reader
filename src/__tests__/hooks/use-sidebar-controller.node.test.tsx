@@ -179,7 +179,6 @@ function createRuntime(overrides: Partial<SidebarRuntimeResult> = {}): SidebarRu
     lastSyncedLabel: "synced",
     syncTooltipLabel: null,
     isSyncCoolingDown: false,
-    isSyncDisabled: false,
   };
   Object.assign(runtime, overrides);
   return runtime;

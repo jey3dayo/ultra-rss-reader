@@ -15,7 +15,6 @@ export function useSidebarHeaderProps({
   handleSync,
   syncTooltipLabel,
   isSyncCoolingDown,
-  isSyncDisabled,
   handleAddFeed,
 }: SidebarHeaderPropsParams): SidebarHeaderProps {
   const isMobile = useUiStore((state) => state.layoutMode === "mobile");
@@ -27,7 +26,6 @@ export function useSidebarHeaderProps({
     handleSync,
     syncTooltipLabel,
     isSyncCoolingDown,
-    isSyncDisabled,
     handleAddFeed,
     hasTauriRuntime: hasTauriRuntime(),
     isMobile,

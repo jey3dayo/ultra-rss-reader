@@ -16,7 +16,6 @@ describe("useSidebarHeaderProps", () => {
       handleSync,
       syncTooltipLabel: "Cooling down",
       isSyncCoolingDown: true,
-      isSyncDisabled: true,
       handleAddFeed,
       hasTauriRuntime: false,
       isMobile: false,
@@ -53,7 +52,6 @@ describe("useSidebarHeaderProps", () => {
       handleSync: vi.fn(),
       syncTooltipLabel: null,
       isSyncCoolingDown: false,
-      isSyncDisabled: false,
       handleAddFeed: vi.fn(),
       hasTauriRuntime: false,
       isMobile: false,
@@ -73,7 +71,6 @@ describe("useSidebarHeaderProps", () => {
       handleSync: vi.fn(),
       syncTooltipLabel: null,
       isSyncCoolingDown: false,
-      isSyncDisabled: false,
       handleAddFeed: vi.fn(),
       hasTauriRuntime: true,
       isMobile: true,
@@ -87,7 +84,7 @@ describe("useSidebarHeaderProps", () => {
     expect(props.displayState.titlebar).toBe("desktop-overlay");
   });
 
-  it("prioritizes disabled before cooldown when sync is inactive", () => {
+  it("derives cooldown when sync is inactive and cooling down", () => {
     const props = buildSidebarHeaderProps({
       t,
       selectedAccountId: "acc-1",
@@ -95,7 +92,6 @@ describe("useSidebarHeaderProps", () => {
       handleSync: vi.fn(),
       syncTooltipLabel: "Cooling down",
       isSyncCoolingDown: true,
-      isSyncDisabled: true,
       handleAddFeed: vi.fn(),
       hasTauriRuntime: false,
       isMobile: false,
@@ -103,6 +99,6 @@ describe("useSidebarHeaderProps", () => {
       shouldUseDesktopOverlayTitlebar: () => false,
     });
 
-    expect(props.syncState.status).toBe("disabled");
+    expect(props.syncState.status).toBe("cooldown");
   });
 });
