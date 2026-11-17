@@ -1,6 +1,5 @@
 name: Feature Request
 description: 新機能、拡張、product/release umbrella を起票する
-title: "feat: "
 labels: ["feature"]
 body:
   - type: markdown

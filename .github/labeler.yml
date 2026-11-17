@@ -60,23 +60,17 @@ feature:
   - head-branch:
       - "^feat/"
       - "^feature/"
+      - "^enhancement/"
 
 fix:
   - head-branch:
       - "^fix/"
       - "^bugfix/"
-
-bug:
-  - head-branch:
       - "^bug/"
 
 breaking:
   - head-branch:
       - "^breaking/"
-
-enhancement:
-  - head-branch:
-      - "^enhancement/"
 
 chore:
   - head-branch:
