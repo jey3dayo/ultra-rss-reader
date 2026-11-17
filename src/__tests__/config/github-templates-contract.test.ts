@@ -94,12 +94,16 @@ describe("GitHub templates contract", () => {
     );
 
     it("defines every label referenced by labeler, release categories, and issue templates", () => {
-      const referenced = new Set<string>();
+      const referencedBySource = new Map<string, Set<string>>([
+        ["labeler", new Set<string>()],
+        ["release", new Set<string>()],
+        ["issue templates", new Set<string>()],
+      ]);
 
       const labelerDocument: unknown = parseYaml(readRepoFile(".github/labeler.yml"));
       if (isRecord(labelerDocument)) {
         for (const name of Object.keys(labelerDocument)) {
-          referenced.add(name);
+          referencedBySource.get("labeler")?.add(name);
         }
       }
 
@@ -109,7 +113,7 @@ describe("GitHub templates contract", () => {
         const exclude = changelog.exclude;
         if (isRecord(exclude)) {
           for (const name of stringList(exclude.labels)) {
-            referenced.add(name);
+            referencedBySource.get("release")?.add(name);
           }
         }
         const categories = Array.isArray(changelog.categories) ? changelog.categories : [];
@@ -119,7 +123,7 @@ describe("GitHub templates contract", () => {
           }
           for (const name of stringList(category.labels)) {
             if (name !== "*") {
-              referenced.add(name);
+              referencedBySource.get("release")?.add(name);
             }
           }
         }
@@ -133,22 +137,52 @@ describe("GitHub templates contract", () => {
         const templateDocument: unknown = parseYaml(readRepoFile(join(".github/ISSUE_TEMPLATE", file)));
         if (isRecord(templateDocument)) {
           for (const name of stringList(templateDocument.labels)) {
-            referenced.add(name);
+            referencedBySource.get("issue templates")?.add(name);
           }
         }
       }
 
+      // Guard against a source silently yielding no references after a
+      // structure change, which would let this test pass while checking
+      // nothing for that source.
+      for (const [source, names] of referencedBySource) {
+        expect(names.size, source).toBeGreaterThan(0);
+      }
+      const referenced = new Set([...referencedBySource.values()].flatMap((names) => [...names]));
       const missing = [...referenced].filter((name) => !definedNames.has(name)).toSorted();
       expect(missing).toEqual([]);
     });
 
-    it("keeps at least one definition for each dynamically applied label family", () => {
-      // risk/*, size/*, and auto/* are applied by pr-insights-labeler at
-      // runtime, so no static file references them by full name.
-      for (const prefix of ["risk/", "size/", "auto/"]) {
-        const hasDefinition = [...definedNames].some((name) => name.startsWith(prefix));
-        expect(hasDefinition, prefix).toBe(true);
-      }
+    it("defines every label the pinned pr-insights-labeler can apply", () => {
+      // The complete emittable set of jey3dayo/pr-insights-labeler@v1.15.1
+      // (the version repo-contracts pins for pr-insights-labeler.yml), taken
+      // from its bundled category, size, risk, and violation configs. These
+      // labels are applied at runtime, so no static file references them by
+      // full name; if the action is bumped, re-derive this list.
+      const applicable = [
+        "auto/excessive-changes",
+        "auto/large-files",
+        "auto/too-many-files",
+        "auto/too-many-lines",
+        "category/ci-cd",
+        "category/config",
+        "category/dependencies",
+        "category/documentation",
+        "category/feature",
+        "category/infrastructure",
+        "category/security",
+        "category/spec",
+        "category/tests",
+        "risk/high",
+        "risk/medium",
+        "size/large",
+        "size/medium",
+        "size/small",
+        "size/xlarge",
+        "size/xxlarge",
+      ];
+      const missing = applicable.filter((name) => !definedNames.has(name)).toSorted();
+      expect(missing).toEqual([]);
     });
 
     it("stores every label color as a lowercase six-digit hex string", () => {
