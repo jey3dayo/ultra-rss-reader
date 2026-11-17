@@ -9,9 +9,10 @@
 <meta property="og:title" content="プライバシー — Ultra RSS Reader" />
 <meta property="og:description" content="Ultra RSS Reader のプライバシー方針の要点。" />
 <meta property="og:url" content="https://ultra-rss.jey3dayo.net/ja/privacy/" />
+<meta property="og:image" content="https://ultra-rss.jey3dayo.net/assets/ja/screenshot-reader-light-mac.jpg" />
 <meta property="og:locale" content="ja_JP" />
 <meta property="og:locale:alternate" content="en_US" />
-<meta name="twitter:card" content="summary" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="プライバシー — Ultra RSS Reader" />
 <meta name="twitter:description" content="Ultra RSS Reader のプライバシー方針の要点。" />
 <link rel="canonical" href="https://ultra-rss.jey3dayo.net/ja/privacy/" />
@@ -151,7 +152,6 @@
     text-transform: uppercase;
     opacity: 0.7;
   }
-  .translation { margin-top: 0.35rem; font-size: 0.96rem; opacity: 0.82; }
   .route-chip {
     display: inline-block;
     width: fit-content;
@@ -206,7 +206,7 @@
           利用者向けに簡潔にまとめたものです。
         </p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="/ja/support/">Support</a>
+          <a class="btn btn-primary" href="/ja/support/">サポートページ</a>
           <a class="btn btn-secondary" href="mailto:support@jey3dayo.net">support@jey3dayo.net</a>
         </div>
       </div>
@@ -229,7 +229,7 @@
           </li>
           <li>
             <span class="mini-label">記事本文</span>
-            <p>Reader 表示では Rust 側でサニタイズ済みの HTML を利用します。</p>
+            <p>本文表示では Rust 側でサニタイズ済みの HTML を利用します。</p>
           </li>
         </ul>
       </div>
@@ -237,16 +237,16 @@
       <div class="card">
         <div class="section-heading">
           <h2>通信について</h2>
-          <p>Reader mode と Web Preview の挙動は、プライバシー上まったく同じではありません。</p>
+          <p>本文表示と Webプレビューの挙動は、プライバシー上まったく同じではありません。</p>
         </div>
         <ul class="card-list">
           <li>
-            <span class="mini-label">Reader mode</span>
+            <span class="mini-label">本文表示</span>
             <p>サニタイズ済みの記事を開いても、配信元が管理するリモート画像を読み込む場合があります。</p>
           </li>
           <li>
-            <span class="mini-label">Web Preview</span>
-            <p>Web Preview は埋め込みブラウザとして扱われ、配信元のページを開く操作に近い前提です。</p>
+            <span class="mini-label">Webプレビュー</span>
+            <p>Webプレビュー は埋め込みブラウザとして扱われ、配信元のページを開く操作に近い前提です。</p>
           </li>
           <li>
             <span class="mini-label">通信で見える情報</span>
@@ -269,7 +269,7 @@
           </li>
           <li>
             <span class="mini-label">守っていること</span>
-            <p>アプリのスクリプトは <code>'self'</code> のまま維持し、Reader の HTML はサニタイズ済みコンテンツを前提にしています。</p>
+            <p>アプリのスクリプトは <code>'self'</code> のまま維持し、本文表示の HTML はサニタイズ済みコンテンツを前提にしています。</p>
           </li>
           <li>
             <span class="mini-label">約束していないこと</span>
@@ -290,11 +290,11 @@
           </li>
           <li>
             <span class="mini-label">段階的な強化</span>
-            <p>プライバシー強化は段階的に進める方針で、Reader と Web Preview を同じスイッチで扱わない方向が示されています。</p>
+            <p>プライバシー強化は段階的に進める方針で、本文表示と Webプレビューを同じスイッチで扱わない方向が示されています。</p>
           </li>
           <li>
             <span class="mini-label">変更前の確認</span>
-            <p>プライバシーポリシーを厳しくする変更は、Reader mode、プレビューモード、パッケージビルドでの検証が前提です。</p>
+            <p>プライバシーポリシーを厳しくする変更は、本文表示、Webプレビュー、パッケージビルドでの検証が前提です。</p>
           </li>
         </ul>
       </div>
