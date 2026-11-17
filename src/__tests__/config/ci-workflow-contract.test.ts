@@ -186,8 +186,24 @@ describe("CI workflow contract", () => {
     expect(nativeSmokeSection).toContain("tmp/ci-artifacts/native-smoke/debug-build.log");
     expect(nativeSmokeSection).toContain("src-tauri/target/debug/bundle/");
     expect(nativeSmokeSection.match(/if: failure\(\)/g)?.length ?? 0).toBe(2);
-    expect(macosNativeSection).toContain("mise run lint:clippy");
+    expect(macosNativeSection).not.toContain("mise run lint:clippy");
     expect(macosNativeSection).toContain("mise run app:build:debug");
-    expect(macosNativeSection.match(/if: failure\(\)/g)?.length ?? 0).toBe(3);
+    expect(macosNativeSection.match(/if: failure\(\)/g)?.length ?? 0).toBe(2);
+  });
+
+  it("runs macOS clippy and the credential session policy in the rust-clippy matrix", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const clippySection = extractWorkflowJobSection(ciWorkflow, "rust-clippy");
+
+    expect(clippySection).toContain("os: [ubuntu-latest, windows-latest, macos-latest]");
+    expect(clippySection).toContain("mise run lint:clippy");
+    expect(clippySection).toMatch(
+      /if: matrix\.os == 'macos-latest'\n\s+shell: bash\n\s+run: bash scripts\/ci\/repair-macos-rustup\.sh/,
+    );
+    expect(clippySection).toContain(
+      "if: matrix.os == 'macos-latest' && needs.change-plan.outputs.credentials == 'true'",
+    );
+    expect(clippySection).toContain("run: mise run test:keychain-session");
+    expect(clippySection).toContain(matrixArtifactName("rust", "lint-log"));
   });
 });
