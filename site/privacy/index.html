@@ -1,10 +1,19 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Ultra RSS Reader Privacy — ultra-rss.jey3dayo.net</title>
-<meta name="description" content="Ultra RSS Reader のプライバシー方針の要点。" />
+<title>Privacy — Ultra RSS Reader</title>
+<meta name="description" content="A summary of Ultra RSS Reader's privacy and feed content policy." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Privacy — Ultra RSS Reader" />
+<meta property="og:description" content="A summary of Ultra RSS Reader's privacy and feed content policy." />
+<meta property="og:url" content="https://ultra-rss.jey3dayo.net/privacy/" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:locale:alternate" content="ja_JP" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Privacy — Ultra RSS Reader" />
+<meta name="twitter:description" content="A summary of Ultra RSS Reader's privacy and feed content policy." />
 <link rel="canonical" href="https://ultra-rss.jey3dayo.net/privacy/" />
 <link rel="alternate" hreflang="en" href="https://ultra-rss.jey3dayo.net/privacy/" />
 <link rel="alternate" hreflang="ja" href="https://ultra-rss.jey3dayo.net/ja/privacy/" />
@@ -191,14 +200,8 @@
     <section class="page-hero">
       <div class="eyebrow">Privacy</div>
       <div class="hero-copy">
-        <h1>Ultra RSS Reader の privacy 概要</h1>
-        <p>
-          このページは、Ultra RSS Reader の公開ソースにある privacy / feed content policy の要点を、
-          利用者向けに簡潔にまとめたものです。
-        </p>
-        <p class="translation">
-          This page summarizes the current privacy and feed content policy based on the public source of Ultra RSS Reader.
-        </p>
+        <h1>Privacy in Ultra RSS Reader</h1>
+        <p>This page summarizes the current privacy and feed content policy based on the public source of Ultra RSS Reader.</p>
         <div class="cta-row">
           <a class="btn btn-primary" href="/support/">Support</a>
           <a class="btn btn-secondary" href="mailto:support@jey3dayo.net">support@jey3dayo.net</a>
@@ -209,54 +212,42 @@
     <div class="grid-two">
       <div class="card">
         <div class="section-heading">
-          <h2>保存されるデータ</h2>
-          <p>現在の公開情報から確認できる保存先と扱いをまとめています。</p>
-          <p class="translation">These are the storage behaviors that can be confirmed from the current public source.</p>
+          <h2>What data is stored</h2>
+          <p>These are the storage behaviors that can be confirmed from the current public source.</p>
         </div>
         <ul class="card-list">
           <li>
-            <span class="mini-label">認証情報</span>
-            <p>FreshRSS の password / token は SQLite ではなく OS keyring に保存されます。</p>
-            <p class="translation">FreshRSS passwords and tokens are stored in the OS keyring, not in SQLite.</p>
+            <span class="mini-label">Credentials</span>
+            <p>FreshRSS passwords and tokens are stored in the OS keyring, not in SQLite.</p>
           </li>
           <li>
-            <span class="mini-label">ローカルデータ</span>
-            <p>フィードデータや記事データなど、アプリが扱うデータは SQLite ベースで保持されます。</p>
-            <p class="translation">App data such as feed and article data is stored through an embedded SQLite database.</p>
+            <span class="mini-label">Local data</span>
+            <p>App data such as feed and article data is stored through an embedded SQLite database.</p>
           </li>
           <li>
-            <span class="mini-label">記事本文</span>
-            <p>Reader 表示では Rust 側で sanitization 済みの HTML を利用します。</p>
-            <p class="translation">Reader mode uses HTML that has already been sanitized on the Rust side.</p>
+            <span class="mini-label">Article content</span>
+            <p>Reader mode uses HTML that has already been sanitized on the Rust side.</p>
           </li>
         </ul>
       </div>
 
       <div class="card">
         <div class="section-heading">
-          <h2>通信について</h2>
-          <p>Reader mode と Web Preview の挙動は privacy 上まったく同じではありません。</p>
-          <p class="translation">Reader mode and Web Preview do not have identical privacy behavior.</p>
+          <h2>Network connections</h2>
+          <p>Reader mode and Web Preview do not have identical privacy behavior.</p>
         </div>
         <ul class="card-list">
           <li>
             <span class="mini-label">Reader mode</span>
-            <p>sanitized article を開いても、publisher 管理下の remote images を読み込む場合があります。</p>
-            <p class="translation">
-              Even in Reader mode, opening a sanitized article may still load remote images from publisher-controlled hosts.
-            </p>
+            <p>Even in Reader mode, opening a sanitized article may still load remote images from publisher-controlled hosts.</p>
           </li>
           <li>
             <span class="mini-label">Web Preview</span>
-            <p>Web Preview は embedded browser として扱われ、publisher のページを開く操作に近い前提です。</p>
-            <p class="translation">Web Preview should be treated like visiting the publisher page in an embedded browser.</p>
+            <p>Web Preview should be treated like visiting the publisher page in an embedded browser.</p>
           </li>
           <li>
-            <span class="mini-label">通信上の露出</span>
-            <p>remote media request により、IP address、user agent、timing などが第三者ホストに見える可能性があります。</p>
-            <p class="translation">
-              Remote media requests may expose your IP address, user agent, and timing information to third-party hosts.
-            </p>
+            <span class="mini-label">What requests may expose</span>
+            <p>Remote media requests may expose your IP address, user agent, and timing information to third-party hosts.</p>
           </li>
         </ul>
       </div>
@@ -265,50 +256,43 @@
     <div class="grid-two">
       <div class="card">
         <div class="section-heading">
-          <h2>現在の policy</h2>
-          <p>利用前に知っておいてほしい、現在の前提を明示します。</p>
-          <p class="translation">These are the current privacy assumptions users should know today.</p>
+          <h2>Current policy</h2>
+          <p>These are the current privacy assumptions users should know today.</p>
         </div>
         <ul class="card-list">
           <li>
-            <span class="mini-label">現在の方針</span>
-            <p>Ultra RSS Reader は現時点で compatibility-first の feed content policy を採っています。</p>
-            <p class="translation">Ultra RSS Reader currently follows a compatibility-first policy for feed content.</p>
+            <span class="mini-label">Current approach</span>
+            <p>Ultra RSS Reader currently follows a compatibility-first policy for feed content.</p>
           </li>
           <li>
-            <span class="mini-label">守っていること</span>
-            <p>app scripts は <code>'self'</code> のまま維持し、Reader の HTML は sanitized content を前提にしています。</p>
-            <p class="translation">App scripts remain locked to <code>'self'</code>, and Reader HTML continues to come from sanitized content.</p>
+            <span class="mini-label">What stays protected</span>
+            <p>App scripts remain locked to <code>'self'</code>, and Reader HTML continues to come from sanitized content.</p>
           </li>
           <li>
-            <span class="mini-label">約束していないこと</span>
-            <p>記事を開いても third-party request が一切発生しない、という保証は現在の挙動ではしていません。</p>
-            <p class="translation">The app does not currently promise that opening an article avoids all third-party requests.</p>
+            <span class="mini-label">What is not promised</span>
+            <p>The app does not currently promise that opening an article avoids all third-party requests.</p>
           </li>
         </ul>
       </div>
 
       <div class="card">
         <div class="section-heading">
-          <h2>今後の方向性</h2>
-          <p>privacy を強化する場合も、互換性を見ながら段階的に進める方針です。</p>
-          <p class="translation">Future privacy changes are expected to be introduced gradually with compatibility in mind.</p>
+          <h2>Future direction</h2>
+          <p>Future privacy changes are expected to be introduced gradually with compatibility in mind.</p>
         </div>
         <ul class="card-list">
           <li>
-            <span class="mini-label">一括遮断はしない</span>
-            <p>remote images や frames を即座に全面遮断すると、readability や preview compatibility を大きく損なう可能性があります。</p>
-            <p class="translation">The project is intentionally avoiding an immediate blanket block on remote images and frames.</p>
+            <span class="mini-label">No blanket blocking</span>
+            <p>Blocking remote images and frames all at once could significantly harm readability and preview
+            compatibility, so the project is intentionally avoiding an immediate blanket block.</p>
           </li>
           <li>
-            <span class="mini-label">段階的な強化</span>
-            <p>privacy hardening は incremental に進める方針で、Reader と Web Preview を同じスイッチで扱わない方向が示されています。</p>
-            <p class="translation">Future privacy hardening is expected to be incremental, with Reader mode and Web Preview handled separately.</p>
+            <span class="mini-label">Gradual hardening</span>
+            <p>Future privacy hardening is expected to be incremental, with Reader mode and Web Preview handled separately.</p>
           </li>
           <li>
-            <span class="mini-label">変更前の確認</span>
-            <p>privacy policy を厳しくする変更は、Reader mode、preview mode、packaged builds での検証が前提です。</p>
-            <p class="translation">Any tighter privacy behavior should be verified in Reader mode, preview mode, and packaged builds first.</p>
+            <span class="mini-label">Verification first</span>
+            <p>Any tighter privacy behavior should be verified in Reader mode, preview mode, and packaged builds first.</p>
           </li>
         </ul>
       </div>
@@ -317,33 +301,32 @@
     <div class="grid-two">
       <div class="card">
         <div class="section-heading">
-          <h2>ページ一覧</h2>
-          <p>各 app は path ごとに分かれているため、support・download・privacy を同じ host 上で育てていけます。</p>
+          <h2>Pages</h2>
+          <p>Each app is separated by path, so support, downloads, and privacy can all grow on the same host.</p>
         </div>
         <ul class="card-list">
           <li>
             <span class="mini-label">Support</span>
             <a class="route-chip" href="/support/">/support/</a>
-            <p>問い合わせ窓口、FAQ、トラブルシュート案内をまとめた公開ページです。</p>
+            <p>A public page with contact information, FAQs, and troubleshooting guidance.</p>
           </li>
           <li>
             <span class="mini-label">Download</span>
             <a class="route-chip" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">GitHub Releases</a>
-            <p>公開 download 導線の案内ページです。最新版の availability は GitHub Releases 基準で確認します。</p>
+            <p>The public download route. Check GitHub Releases for the latest release availability.</p>
           </li>
           <li>
             <span class="mini-label">Privacy</span>
             <a class="route-chip" href="/privacy/">/privacy/</a>
-            <p>現在の privacy policy と feed content policy の要点をまとめた公開ページです。</p>
+            <p>A public page summarizing the current privacy policy and feed content policy.</p>
           </li>
         </ul>
       </div>
 
       <div class="card">
         <div class="section-heading">
-          <h2>問い合わせ先</h2>
-          <p>privacy に関する個別の質問や懸念があれば、support 窓口からご連絡ください。</p>
-          <p class="translation">If you have privacy-specific questions or concerns, please contact support.</p>
+          <h2>Contact</h2>
+          <p>If you have privacy-specific questions or concerns, please contact support.</p>
         </div>
         <div class="cta-row">
           <a class="btn btn-primary" href="mailto:support@jey3dayo.net">support@jey3dayo.net</a>
