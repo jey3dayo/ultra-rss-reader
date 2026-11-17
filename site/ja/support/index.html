@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ultra RSS Reader Support — ultra-rss.jey3dayo.net</title>
+<meta name="description" content="Ultra RSS Reader のサポート窓口、FAQ、プライバシー案内。" />
+<link rel="canonical" href="https://ultra-rss.jey3dayo.net/ja/support/" />
+<link rel="alternate" hreflang="en" href="https://ultra-rss.jey3dayo.net/support/" />
+<link rel="alternate" hreflang="ja" href="https://ultra-rss.jey3dayo.net/ja/support/" />
+<link rel="alternate" hreflang="x-default" href="https://ultra-rss.jey3dayo.net/support/" />
+<link rel="icon" href="../../assets/app-icon.png" />
+<style>
+  :root {
+    --canvas: #f2f1ed;
+    --foreground: #26251e;
+    --surface-1: #f7f7f4;
+    --surface-3: #ebeae5;
+    --card: #e6e5e0;
+    --primary: #f54e00;
+    --primary-foreground: #fff7f2;
+    --border: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --font-sans:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+      "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
+    --font-serif:
+      ui-serif, Georgia, Cambria, "Times New Roman", Times, "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #1c1915;
+      --foreground: #f3efe6;
+      --surface-1: #221e19;
+      --surface-3: #2d2822;
+      --card: #26221d;
+      --primary: #f54e00;
+      --primary-foreground: #1c1915;
+      --border: color-mix(in oklab, var(--foreground) 14%, transparent);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  header.site-header { padding: 20px 0; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; }
+  .brand img { width: 28px; height: 28px; border-radius: 8px; }
+  .lang-switch a {
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .lang-switch a:hover { background: var(--surface-3); }
+  main { display: block; padding-bottom: 24px; }
+  .page-hero {
+    margin: 8px 0 32px;
+    padding: clamp(24px, 4vw, 40px);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 12%, var(--surface-1));
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    line-height: 1.2;
+    margin: 0 0 12px;
+    text-align: left;
+  }
+  h2 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+    margin: 0 0 8px;
+    text-align: left;
+  }
+  p { margin: 0; }
+  .hero-copy { display: grid; gap: 12px; max-width: 44rem; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1rem;
+    border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--primary); color: var(--primary-foreground); }
+  .btn-secondary { background: var(--surface-1); border-color: var(--border); }
+  .btn:hover { filter: brightness(1.05); }
+  .grid-two {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr;
+    margin-bottom: 16px;
+  }
+  @media (min-width: 760px) {
+    .grid-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .section-heading { display: grid; gap: 6px; margin-bottom: 16px; }
+  .section-heading > p { font-size: 0.95rem; opacity: 0.88; }
+  .card-list { display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; }
+  .card-list li { padding-top: 12px; border-top: 1px solid var(--border); }
+  .card-list li:first-child { padding-top: 0; border-top: 0; }
+  .card-list li > p { font-size: 0.95rem; opacity: 0.9; }
+  .mini-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  .translation { margin-top: 0.35rem; font-size: 0.96rem; opacity: 0.82; }
+  .route-chip {
+    display: inline-block;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 4px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--surface-3);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+  .support-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .support-meta-item,
+  .privacy-item {
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--surface-1) 88%, var(--canvas));
+  }
+  .privacy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .note { margin-top: 1rem; font-size: 0.95rem; opacity: 0.9; }
+  .note a { text-decoration: underline; }
+  footer.site-footer {
+    padding: 32px 0 48px;
+    border-top: 1px solid var(--border);
+    font-size: 0.88rem;
+    opacity: 0.85;
+  }
+  .footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
+  .footer-links a { text-decoration: underline; }
+  @media (max-width: 760px) {
+    .support-meta,
+    .privacy-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 480px) { .wrap { padding: 0 16px; } }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="/ja/">
+      <img src="../../assets/app-icon.png" alt="" width="28" height="28" />
+      <span>Ultra RSS Reader</span>
+    </a>
+    <nav class="lang-switch" aria-label="Language">
+      <a href="/support/" hreflang="en">English</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <section class="page-hero">
+      <div class="eyebrow">Support</div>
+      <div class="hero-copy">
+        <h1>Ultra RSS Reader のサポート</h1>
+        <p>
+          Ultra RSS Reader は、Local RSS/Atom feeds と FreshRSS に対応した desktop-first RSS reader です。
+          困ったときはメールでご連絡ください。サポート窓口は email-first で、日本語中心ですが英語でも受け付けます。
+        </p>
+        <p class="translation">
+          Need help with Ultra RSS Reader? Please contact us by email. Japanese is primary, but English is welcome.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="mailto:support@jey3dayo.net">support@jey3dayo.net</a>
+          <a class="btn btn-secondary" href="/ja/">アプリ案内へ戻る</a>
+        </div>
+        <div class="support-meta">
+          <div class="support-meta-item">
+            <span class="mini-label">Primary channel</span>
+            <p>Email support</p>
+          </div>
+          <div class="support-meta-item">
+            <span class="mini-label">Platform</span>
+            <p>Desktop app</p>
+          </div>
+          <div class="support-meta-item">
+            <span class="mini-label">Languages</span>
+            <p>Japanese / English</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-two">
+      <div class="card" style="margin-bottom: 0">
+        <div class="section-heading">
+          <h2>このページで案内すること</h2>
+          <p>公開ソースから確認できた範囲で、support 初版に必要な要点をまとめています。</p>
+          <p class="translation">This page covers the first public support draft based on source-backed information.</p>
+        </div>
+        <ul class="card-list">
+          <li>
+            <span class="mini-label">対応アカウント</span>
+            <p>Local RSS/Atom feeds と FreshRSS をサポートしています。</p>
+            <p class="translation">Supports Local RSS/Atom feeds and FreshRSS.</p>
+          </li>
+          <li>
+            <span class="mini-label">よくある相談</span>
+            <p>同期、フィード追加、Web Preview、ログ確認まわりの問い合わせを想定しています。</p>
+            <p class="translation">Common topics include sync issues, adding feeds, Web Preview, and troubleshooting with logs.</p>
+          </li>
+          <li>
+            <span class="mini-label">英語対応</span>
+            <p>日本語中心ですが、English inquiries are also welcome.</p>
+            <p class="translation">Japanese is the primary language here, but English inquiries are welcome too.</p>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card" style="margin-bottom: 0">
+        <div class="section-heading">
+          <h2>問い合わせ時にあると助かる情報</h2>
+          <p>最初のメールに少し情報があるだけで、往復を減らしやすくなります。</p>
+          <p class="translation">A little context in the first email helps shorten the back-and-forth.</p>
+        </div>
+        <ul class="card-list">
+          <li>
+            <span class="mini-label">アプリ情報</span>
+            <p>アプリのバージョン、OS、入手元が分かると切り分けが早くなります。</p>
+            <p class="translation">Please include the app version, OS, and where you got the app if possible.</p>
+          </li>
+          <li>
+            <span class="mini-label">利用中の設定</span>
+            <p>Local feeds か FreshRSS か、どのアカウントで起きたかを書いてください。</p>
+            <p class="translation">Tell us whether the issue happened with Local feeds or FreshRSS, and which account was affected.</p>
+          </li>
+          <li>
+            <span class="mini-label">症状の説明</span>
+            <p>何をしようとして、何が起きたか、再現するかどうかを教えてください。</p>
+            <p class="translation">Explain what you tried to do, what happened, and whether it is reproducible.</p>
+          </li>
+          <li>
+            <span class="mini-label">添付すると助かるもの</span>
+            <p>スクリーンショット、表示されたメッセージ、共有しやすい範囲のログがあると助かります。</p>
+            <p class="translation">Screenshots, visible error messages, and shareable logs are especially helpful.</p>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-two">
+      <div class="card" style="margin-bottom: 0">
+        <div class="section-heading">
+          <h2>まず確認してほしいこと</h2>
+          <p>よくあるパターンは、いくつかの軽い確認で切り分けできます。</p>
+          <p class="translation">These quick checks often help narrow the issue before you contact support.</p>
+        </div>
+        <ul class="card-list">
+          <li>
+            <span class="mini-label">FreshRSS 接続</span>
+            <p>Server URL、ユーザー名、FreshRSS 側の API password を確認してください。</p>
+            <p class="translation">Check the server URL, username, and the FreshRSS API password first.</p>
+          </li>
+          <li>
+            <span class="mini-label">フィード追加</span>
+            <p>Feed URL または Site URL が <code>http(s)</code> の完全な URL か、ブラウザで開けるかを確認してください。</p>
+            <p class="translation">Make sure the feed URL or site URL is a full <code>http(s)</code> URL and opens in a browser.</p>
+          </li>
+          <li>
+            <span class="mini-label">Web Preview</span>
+            <p>一部のページはアプリ内表示に対応しません。再試行するか、外部ブラウザで開いて確認してください。</p>
+            <p class="translation">Some pages cannot be shown in the in-app view. Retry once or open them in your external browser.</p>
+          </li>
+          <li>
+            <span class="mini-label">ログ確認</span>
+            <p>必要に応じて <code>Settings &gt; Data Management &gt; Open Log Directory</code> からログを開いてください。</p>
+            <p class="translation">If needed, open logs from <code>Settings &gt; Data Management &gt; Open Log Directory</code>.</p>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card" style="margin-bottom: 0">
+        <div class="section-heading">
+          <h2>FAQ 候補</h2>
+          <p>アプリ repo の README・設定文言・runbook から、公開ページ向けに整理した初稿です。</p>
+          <p class="translation">These FAQ entries are adapted from the app repository, settings copy, and runbook.</p>
+        </div>
+        <ul class="card-list">
+          <li>
+            <span class="mini-label">どんなアプリですか</span>
+            <p>Ultra RSS Reader は desktop-first の RSS reader で、3 ペイン UI、全文検索、ショートカット、OPML export に対応しています。</p>
+            <p class="translation">Ultra RSS Reader is a desktop-first RSS reader with a three-pane UI, full-text search, shortcuts, and OPML export.</p>
+          </li>
+          <li>
+            <span class="mini-label">どのアカウント種類をサポートしていますか</span>
+            <p>公開ソースから確認できる範囲では Local RSS/Atom feeds と FreshRSS がサポート対象です。</p>
+            <p class="translation">Based on the public source, supported account types are Local RSS/Atom feeds and FreshRSS.</p>
+          </li>
+          <li>
+            <span class="mini-label">購読一覧をバックアップできますか</span>
+            <p>アカウント設定から OPML を export できます。購読一覧の控えを取りたいときに使えます。</p>
+            <p class="translation">Yes. You can export OPML from account settings to back up your subscriptions.</p>
+          </li>
+          <li>
+            <span class="mini-label">Web Preview が開けないときは</span>
+            <p>アプリ内表示に向かないページがあります。エラー時は再試行するか、外部ブラウザ導線を使ってください。</p>
+            <p class="translation">Some pages are not compatible with Web Preview. Retry or use the external browser route.</p>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="section-heading">
+        <h2>プライバシーとデータ</h2>
+        <p>ここでは support に必要な要点だけを案内します。より詳しい要約は privacy page を参照してください。</p>
+        <p class="translation">Only the key privacy and data notes are summarized here. See the privacy page for a more focused summary.</p>
+      </div>
+      <div class="privacy-grid">
+        <div class="privacy-item">
+          <span class="mini-label">認証情報</span>
+          <p>FreshRSS の password / token は SQLite ではなく OS keyring に保存されます。</p>
+          <p class="translation">FreshRSS passwords and tokens are stored in the OS keyring, not in SQLite.</p>
+        </div>
+        <div class="privacy-item">
+          <span class="mini-label">記事本文</span>
+          <p>Reader 表示の HTML は sanitization 済みの内容を使います。</p>
+          <p class="translation">Reader mode uses sanitized HTML content.</p>
+        </div>
+        <div class="privacy-item">
+          <span class="mini-label">通信上の注意</span>
+          <p>Reader の remote images や Web Preview は、publisher 側ホストへの通信を発生させる場合があります。</p>
+          <p class="translation">Remote images in Reader mode and Web Preview may still contact publisher-controlled hosts.</p>
+        </div>
+      </div>
+      <p class="note">
+        privacy に関する個別の質問は、<a href="/ja/privacy/">privacy page</a> を確認したうえで、
+        必要なら <a href="mailto:support@jey3dayo.net">support@jey3dayo.net</a> までご連絡ください。
+      </p>
+    </section>
+
+    <div class="grid-two">
+      <div class="card" style="margin-bottom: 0">
+        <div class="section-heading">
+          <h2>ページ一覧</h2>
+          <p>各 app は path ごとに分かれているため、support・download・privacy を同じ host 上で育てていけます。</p>
+        </div>
+        <ul class="card-list">
+          <li>
+            <span class="mini-label">Support</span>
+            <a class="route-chip" href="/ja/support/">/ja/support/</a>
+            <p>問い合わせ窓口、FAQ、トラブルシュート案内をまとめた公開ページです。</p>
+          </li>
+          <li>
+            <span class="mini-label">Download</span>
+            <a class="route-chip" href="https://github.com/jey3dayo/ultra-rss-reader/releases/latest">GitHub Releases</a>
+            <p>公開 download 導線の案内ページです。最新版の availability は GitHub Releases 基準で確認します。</p>
+          </li>
+          <li>
+            <span class="mini-label">Privacy</span>
+            <a class="route-chip" href="/ja/privacy/">/ja/privacy/</a>
+            <p>現在の privacy policy と feed content policy の要点をまとめた公開ページです。</p>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card" style="margin-bottom: 0">
+        <div class="section-heading">
+          <h2>要確認のこと</h2>
+          <p>推測で埋めないため、この初稿では次の点を明示的に保留しています。</p>
+          <p class="translation">These items are still intentionally left open instead of being guessed.</p>
+        </div>
+        <ul class="card-list">
+          <li>
+            <span class="mini-label">公開配布の最新版</span>
+            <p>公開 download page は用意していますが、最新版の availability は固定文言ではなく GitHub Releases 基準で確認する運用です。</p>
+            <p class="translation">The public download page is now available, but current release availability is still expected to be checked on GitHub Releases.</p>
+          </li>
+          <li>
+            <span class="mini-label">専用 privacy page</span>
+            <p>よりまとまった privacy の説明は <code>/ja/privacy/</code> で確認できます。</p>
+            <p class="translation">A more focused privacy summary is now available at <code>/ja/privacy/</code>.</p>
+          </li>
+          <li>
+            <span class="mini-label">公開リリース前提の文言</span>
+            <p>GitHub Releases では <code>v0.5.0</code> が Latest で、その後の <code>v0.6.0</code> 以降は Draft が並んでいます。機能説明は広めに書きつつ、公開済み導線は断定しすぎない方針にしています。</p>
+            <p class="translation">On GitHub Releases, <code>v0.5.0</code> is the latest non-draft release and later versions are still drafts, so public copy stays intentionally conservative.</p>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <div class="footer-links">
+      <a href="/ja/">ホーム</a>
+      <a href="/ja/privacy/">Privacy</a>
+      <a href="/ja/support/">Support</a>
+      <a href="https://github.com/jey3dayo/ultra-rss-reader">GitHub</a>
+      <a href="https://github.com/jey3dayo/ultra-rss-reader/releases">Releases</a>
+      <a href="https://github.com/jey3dayo/ultra-rss-reader/blob/main/LICENSE">ライセンス (MIT)</a>
+      <a href="/support/" hreflang="en">English</a>
+    </div>
+    <span>© 2026 jey3dayo</span>
+  </div>
+</footer>
+</body>
+</html>

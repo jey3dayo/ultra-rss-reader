@@ -64,3 +64,7 @@ jobs:
 
           check_url "https://ultra-rss.jey3dayo.net/"
           check_url "https://ultra-rss.jey3dayo.net/ja/"
+          check_url "https://ultra-rss.jey3dayo.net/privacy/"
+          check_url "https://ultra-rss.jey3dayo.net/support/"
+          check_url "https://ultra-rss.jey3dayo.net/ja/privacy/"
+          check_url "https://ultra-rss.jey3dayo.net/ja/support/"
