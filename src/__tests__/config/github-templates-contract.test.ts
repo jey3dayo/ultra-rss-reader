@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parse as parseYaml } from "yaml";
 
 const repoRoot = process.cwd();
 function readRepoFile(path: string): string {
@@ -66,6 +67,97 @@ describe("GitHub templates contract", () => {
 
     it("applies changes only on main and dry-runs every other ref", () => {
       expect(source).toContain("dry-run: $" + "{{ github.ref != 'refs/heads/main' }}");
+    });
+  });
+
+  describe("labels.yml definitions", () => {
+    function isRecord(value: unknown): value is Record<string, unknown> {
+      return typeof value === "object" && value !== null;
+    }
+
+    function stringList(value: unknown): string[] {
+      if (typeof value === "string") {
+        return value
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter((entry) => entry.length > 0);
+      }
+      return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+    }
+
+    const labelsDocument: unknown = parseYaml(readRepoFile(".github/labels.yml"));
+    const labelEntries: Record<string, unknown>[] = Array.isArray(labelsDocument)
+      ? labelsDocument.filter(isRecord)
+      : [];
+    const definedNames = new Set(
+      labelEntries.map((entry) => entry.name).filter((name): name is string => typeof name === "string"),
+    );
+
+    it("defines every label referenced by labeler, release categories, and issue templates", () => {
+      const referenced = new Set<string>();
+
+      const labelerDocument: unknown = parseYaml(readRepoFile(".github/labeler.yml"));
+      if (isRecord(labelerDocument)) {
+        for (const name of Object.keys(labelerDocument)) {
+          referenced.add(name);
+        }
+      }
+
+      const releaseDocument: unknown = parseYaml(readRepoFile(".github/release.yml"));
+      const changelog = isRecord(releaseDocument) ? releaseDocument.changelog : undefined;
+      if (isRecord(changelog)) {
+        const exclude = changelog.exclude;
+        if (isRecord(exclude)) {
+          for (const name of stringList(exclude.labels)) {
+            referenced.add(name);
+          }
+        }
+        const categories = Array.isArray(changelog.categories) ? changelog.categories : [];
+        for (const category of categories) {
+          if (!isRecord(category)) {
+            continue;
+          }
+          for (const name of stringList(category.labels)) {
+            if (name !== "*") {
+              referenced.add(name);
+            }
+          }
+        }
+      }
+
+      const templateDir = join(repoRoot, ".github/ISSUE_TEMPLATE");
+      for (const file of readdirSync(templateDir)) {
+        if (!file.endsWith(".yml") && !file.endsWith(".yaml")) {
+          continue;
+        }
+        const templateDocument: unknown = parseYaml(readRepoFile(join(".github/ISSUE_TEMPLATE", file)));
+        if (isRecord(templateDocument)) {
+          for (const name of stringList(templateDocument.labels)) {
+            referenced.add(name);
+          }
+        }
+      }
+
+      const missing = [...referenced].filter((name) => !definedNames.has(name)).toSorted();
+      expect(missing).toEqual([]);
+    });
+
+    it("keeps at least one definition for each dynamically applied label family", () => {
+      // risk/*, size/*, and auto/* are applied by pr-insights-labeler at
+      // runtime, so no static file references them by full name.
+      for (const prefix of ["risk/", "size/", "auto/"]) {
+        const hasDefinition = [...definedNames].some((name) => name.startsWith(prefix));
+        expect(hasDefinition, prefix).toBe(true);
+      }
+    });
+
+    it("stores every label color as a lowercase six-digit hex string", () => {
+      expect(labelEntries.length).toBeGreaterThan(0);
+      for (const entry of labelEntries) {
+        const name = typeof entry.name === "string" ? entry.name : "(unnamed)";
+        expect(typeof entry.color, name).toBe("string");
+        expect(entry.color, name).toMatch(/^[0-9a-f]{6}$/);
+      }
     });
   });
 });
