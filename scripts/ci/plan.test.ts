@@ -336,7 +336,7 @@ test("workflow connects every planned lane to the gate and keeps Windows/full re
   assert.ok(workflow.includes(`CI_NEEDS: ${expression("toJSON(needs)")}`));
   assert.ok(workflow.includes("needs.change-plan.outputs.credentials == 'true'"));
   assert.ok(workflow.includes("  macos-native:"));
-  assert.ok(workflow.includes("Check: macOS native (clippy + smoke)"));
+  assert.ok(workflow.includes("Check: macOS native smoke"));
   const diffJob = workflow.slice(workflow.indexOf("  react-doctor-diff:"), workflow.indexOf("  rust-clippy:"));
   assert.ok(diffJob.includes("fetch-depth: 2"));
   assert.ok(diffJob.includes("github.event_name == 'pull_request' && needs.change-plan.outputs.frontend == 'true'"));
