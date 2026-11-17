@@ -46,21 +46,34 @@ describe("CI workflow contract", () => {
     const setupAction = readRepoFile(".github/actions/setup-pnpm/action.yml");
     const checkJobSections = extractCheckJobSections(ciWorkflow);
 
+    const rustOnlyJobIds = ["rust-clippy", "test-rust"];
+    const installFreeJobIds = [...rustOnlyJobIds, "audit"];
+
     for (const { jobId, section } of checkJobSections) {
       const miseIndex = section.indexOf("uses: jdx/mise-action@");
       const setupIndex = section.indexOf("uses: $/.github/actions/setup-pnpm");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
       expect(miseIndex, `${jobId} should install Node through mise`).toBeGreaterThanOrEqual(0);
-      expect(setupIndex, `${jobId} should set up pnpm after mise`).toBeGreaterThan(miseIndex);
-      expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
+      if (rustOnlyJobIds.includes(jobId)) {
+        expect(setupIndex, `${jobId} runs no pnpm command and should not set up pnpm`).toBe(-1);
+      } else {
+        expect(setupIndex, `${jobId} should set up pnpm after mise`).toBeGreaterThan(miseIndex);
+      }
+      if (installFreeJobIds.includes(jobId)) {
+        expect(installIndex, `${jobId} uses no node_modules and should not install`).toBe(-1);
+      } else {
+        expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
+      }
     }
 
     expect(setupAction).toContain("uses: pnpm/setup@");
     expect(setupAction).not.toContain("runtime:");
     expect(setupAction).toContain("cache: true");
     expect(setupAction).toContain("install: false");
-    expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(checkJobSections.length);
+    expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(
+      checkJobSections.length - installFreeJobIds.length,
+    );
     expect(ciWorkflow).not.toContain("node_modules");
   });
 
