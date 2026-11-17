@@ -116,3 +116,8 @@ tauri-plugin-window-state = "2"
 flate2 = "1"
 mockito = "1"
 tempfile = "3"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
