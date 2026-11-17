@@ -144,7 +144,7 @@ owner: project-maintainers
 - 符号化: 独立した6系統 — `settingsOpen`／`commandPaletteOpen`／`shortcutsHelpOpen`／`isAddFeedDialogOpen`／`confirmDialog: {open, message, onConfirm}`／`subscriptionsWorkspace`。さらに `toastMessage` と UpdaterPendingView も同レイヤーに乗る。
 - 弱点: **排他がコード化されているのは1ペアだけ**（`openCommandPalette` は `shortcutsHelpOpen:false` を、`openShortcutsHelp` は `commandPaletteOpen:false` を同時設定）。それ以外は無防備。settings＋commandPalette 同時open、settings＋shortcutsHelp 同時open、AddFeed＋confirm 同時open 等の全組み合わせが通常アクション経由で到達可能。`AppShell` は settings→confirm→shortcuts→palette の順に全部描画するため、前後関係・フォーカス奪い合いはDOM順と stacking class 任せ。`use-keyboard.ts:34-55` は逆に「DOM上に dialog が居るか」をセレクタで実地検出してショートカットを止めており、storeのフラグ群とDOMの実在という二重の真実がある。
 - UX: Esc／フォーカス復帰先の競合、背面ダイアログへの誤操作、ショートカットが効く／効かないの条件が store から読めない。
-- 直し方: 排他ルールを1箇所の関数に集約する（既存の1ペアを一般化するだけ。挙動は「後から開いたものが勝つ」で固定すれば現状とほぼ変わらない）。
+- 直し方: 排他ルールを1箇所の関数に集約する（既存の1ペアを一般化する）。ただし一律の「後から開いたものが勝つ」は挙動を変えるため採らない。排他の対象は同格のピア同士（settings／commandPalette／shortcutsHelp／AddFeed 等）に限る。設定が意図的に開く子確認（ショートカットリセット `shortcuts-settings.tsx:181-185`、アカウント削除 `use-account-detail-danger-zone.ts:442-450` の confirm）は親子関係として保持し、親を閉じずに重ね、キャンセル時は親へ戻る現行挙動を維持する。
 
 ### 3.2 リーダー・コンテンツ表示マシン
 
@@ -671,7 +671,7 @@ OPML・データ設定・同期ボタン等、in-flight フラグがコンポー
 ### Phase 1 — 導出層での明示化（挙動を変えない、読み手側のみ）
 
 1. 同期: `deriveSyncStatus(...)` を1箇所に作り、4つの写し（イベント／結果DTO／永続DTO／boolean）を1つの判別共用体に寄せる。各画面の再解釈をそこへ移す。
-2. オーバーレイ: 排他ルールを1箇所の関数に集約（既存の commandPalette×shortcutsHelp の先例を一般化）。
+2. オーバーレイ: 排他ルールを1箇所の関数に集約（既存の commandPalette×shortcutsHelp の先例を一般化）。排他は同格のピア同士に限り、設定から開く子確認のような親子ダイアログは重なりを保持する（§3.1 参照）。
 3. 設定ロック: `isSettingsSetupLocked` の2実装を1つに統合。`failed` でも設定を閉じられる経路を明示する。
 4. ブラウザ閉鎖: `pendingBrowserCloseAction`（単体）と queue の二重表現を、queue を正本にして単体を導出にする。
 5. 不変条件をテストで固定する（既に ui-store のテストは厚いので、そこへ「到達してはいけない組み合わせ」の assert を足す）。
