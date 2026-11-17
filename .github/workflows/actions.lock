@@ -16,6 +16,9 @@ workflows:
         - 'actions/checkout@v6.1.0'
         - 'jdx/mise-action@v4.3.0'
         - 'pnpm/setup@v1.0.0'
+    '.github/workflows/label-sync.yml':
+        - 'actions/checkout@v6.1.0'
+        - 'crazy-max/ghaction-github-labeler@v6.0.0'
     '.github/workflows/labeler.yml':
         - 'actions/labeler@v6.2.0'
     '.github/workflows/linux-build-check.yml':
@@ -69,6 +72,11 @@ dependencies:
         commit: 'sha1-cf430e030ddbb5b0abf93d22962f4752f3646cd9'
         owner_id: 44036562
         repo_id: 192625955
+    'crazy-max/ghaction-github-labeler@v6.0.0':
+        ref: 'v6.0.0'
+        commit: 'sha1-548a7c3603594ec17c819e1239f281a3b801ab4d'
+        owner_id: 1951866
+        repo_id: 216050313
     'dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9':
         ref: 'master'
         commit: 'sha1-3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9'

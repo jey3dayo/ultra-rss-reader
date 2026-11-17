@@ -1611,6 +1611,13 @@ describe("repository static contracts", () => {
         },
       },
       {
+        path: ".github/workflows/label-sync.yml",
+        permissions: {
+          contents: "read",
+          issues: "write",
+        },
+      },
+      {
         path: ".github/workflows/labeler.yml",
         permissions: {
           contents: "read",
@@ -1649,6 +1656,7 @@ describe("repository static contracts", () => {
       },
     ]);
     expect(writePermissions).toEqual([
+      ".github/workflows/label-sync.yml:issues",
       ".github/workflows/labeler.yml:pull-requests",
       ".github/workflows/pr-insights-labeler.yml:issues",
       ".github/workflows/pr-insights-labeler.yml:pull-requests",
@@ -1658,6 +1666,7 @@ describe("repository static contracts", () => {
       ".github/workflows/release.yml:contents",
     ]);
     expect(writePermissions.filter((permission) => permission.endsWith(":issues"))).toEqual([
+      ".github/workflows/label-sync.yml:issues",
       ".github/workflows/pr-insights-labeler.yml:issues",
     ]);
   });
