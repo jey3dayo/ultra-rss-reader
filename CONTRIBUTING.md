@@ -91,7 +91,7 @@ mise run check:wsl    # WSL-backed static-analysis gate  (Windows delegates to W
 mise run ci           # unit-first format + lint + test + build  (full CI gate)
 mise run format       # Biome + cargo fmt + taplo
 mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings) + jactionlint + yamllint
-mise run test         # Vitest + cargo test
+mise run test         # Vitest + cargo nextest
 mise run test:ci      # quiet unit-first CI test gate
 mise run test:unit:dom # jsdom Vitest for DOM/rendering changes
 mise run test:e2e     # Playwright browser-mode E2E tests
@@ -148,7 +148,7 @@ Always run `mise run check` before committing. Run `mise run check:wsl` when for
 | Knip baseline gate                        | CI Toolchain job                               | `mise run quality:knip`                                     |
 | jev-lint diff review (LLM, advisory)      | Not part of default CI                         | `mise run report:jev` (needs `TYPESAFE_API_KEY`)            |
 
-> **Windows Rust scope:** Windows CI's `mise run test:rust` runs `cargo test --test integration_test` only. Full Rust library tests run in Linux CI and on macOS/Linux with `mise run check`.
+> **Windows Rust scope:** Windows CI's `mise run test:rust` runs `cargo nextest run --test integration_test` only. Full Rust library tests run in Linux CI and on macOS/Linux with `mise run check`.
 
 `mise run ci` intentionally covers format, lint, repository tests, and frontend build. It runs the quiet Vitest unit gate before lint, Rust tests, and build so unit failures surface before heavier checks. It does not run Playwright, Storybook static build, live-service tests, or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
