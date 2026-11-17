@@ -1,6 +1,5 @@
 name: Test / Verification Task
 description: 手動検証、release readiness、テスト観点整理の task を起票する
-title: "test: "
 labels: ["category/tests"]
 body:
   - type: markdown
