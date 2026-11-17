@@ -123,6 +123,8 @@ function createUiStub(overrides?: Partial<DevScenarioContext["ui"]>): DevScenari
     openBrowser: vi.fn(),
     setViewMode: vi.fn(),
     openSettings: vi.fn(),
+    openSettingsAccount: vi.fn(),
+    openSubscriptionsIndex: vi.fn(),
     openAddFeedDialog: vi.fn(),
     openCommandPalette: vi.fn(),
     openShortcutsHelp: vi.fn(),
@@ -1175,6 +1177,7 @@ describe("runDevScenario", () => {
     expectCachedQuery(context.queryClient, localFeedSyncStatusesQueryKey(localAccount.id), [
       expect.objectContaining({ feed_id: localFeed.id, error_kind: "network", error_count: 1 }),
     ]);
+    expect(context.ui.openSubscriptionsIndex).toHaveBeenCalled();
     expect(context.ui.selectAccount).toHaveBeenCalledWith(localAccount.id);
     expect(context.ui.selectFeed).toHaveBeenCalledWith(localFeed.id);
     expect(context.ui.showToast).not.toHaveBeenCalled();
@@ -1197,6 +1200,7 @@ describe("runDevScenario", () => {
     expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expectedStatus);
     expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expectedStatus);
     expect(context.ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(context.ui.openSettingsAccount).not.toHaveBeenCalled();
     expect(context.ui.showToast).not.toHaveBeenCalled();
     setDevMockAccountSyncStatusOverride(account.id, null);
   });
@@ -1219,6 +1223,7 @@ describe("runDevScenario", () => {
     expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expectedStatus);
     expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expectedStatus);
     expect(context.ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(context.ui.openSettingsAccount).toHaveBeenCalledWith(account.id);
     expect(context.ui.showToast).not.toHaveBeenCalled();
     setDevMockAccountSyncStatusOverride(account.id, null);
   });

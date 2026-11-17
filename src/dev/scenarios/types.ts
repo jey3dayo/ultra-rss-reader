@@ -34,6 +34,8 @@ export type DevScenarioContext = {
         | "tags"
         | "accounts",
     ): void;
+    openSettingsAccount(id: string): void;
+    openSubscriptionsIndex(): void;
     openAddFeedDialog(): void;
     openCommandPalette(): void;
     openShortcutsHelp(): void;

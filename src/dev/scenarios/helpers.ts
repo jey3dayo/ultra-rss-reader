@@ -541,6 +541,7 @@ export async function runShowFeedSyncFailureScenario(ctx: DevScenarioContext): P
     if (!isCurrentDevScenarioRun(ctx)) {
       return;
     }
+    ctx.ui.openSubscriptionsIndex();
     ctx.ui.selectAccount(localAccount.id);
     ctx.ui.selectFeed(feed.id);
   } catch (error) {
@@ -556,6 +557,7 @@ async function runShowAccountSyncStatusScenario(
   ctx: DevScenarioContext,
   scenarioId: string,
   status: AccountSyncStatusDto,
+  options?: { openAccountSettings?: boolean },
 ): Promise<void> {
   try {
     const seedDraft = createDevScenarioSeedDraft();
@@ -576,6 +578,9 @@ async function runShowAccountSyncStatusScenario(
       return;
     }
     ctx.ui.selectAccount(remoteAccount.id);
+    if (options?.openAccountSettings) {
+      ctx.ui.openSettingsAccount(remoteAccount.id);
+    }
   } catch (error) {
     if (!isCurrentDevScenarioRun(ctx)) {
       return;
@@ -598,13 +603,18 @@ export async function runShowAccountSyncFailureScenario(ctx: DevScenarioContext)
 
 export async function runShowAccountCredentialWaitScenario(ctx: DevScenarioContext): Promise<void> {
   const now = Date.now();
-  await runShowAccountSyncStatusScenario(ctx, DEV_SCENARIO_ID.showAccountCredentialWait, {
-    last_success_at: new Date(now - 60 * 60 * 1000).toISOString(),
-    last_error: null,
-    error_count: 0,
-    next_retry_at: null,
-    waiting_for_credential_access: true,
-  });
+  await runShowAccountSyncStatusScenario(
+    ctx,
+    DEV_SCENARIO_ID.showAccountCredentialWait,
+    {
+      last_success_at: new Date(now - 60 * 60 * 1000).toISOString(),
+      last_error: null,
+      error_count: 0,
+      next_retry_at: null,
+      waiting_for_credential_access: true,
+    },
+    { openAccountSettings: true },
+  );
 }
 
 export function runShowUpdaterReadyScenario(): void {

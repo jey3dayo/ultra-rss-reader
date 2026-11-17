@@ -28,6 +28,8 @@ function createScenarioContext(): DevScenarioContext {
       openBrowser: vi.fn(),
       setViewMode: vi.fn(),
       openSettings: vi.fn(),
+      openSettingsAccount: vi.fn(),
+      openSubscriptionsIndex: vi.fn(),
       openAddFeedDialog: vi.fn(),
       openCommandPalette: vi.fn(),
       openShortcutsHelp: vi.fn(),
