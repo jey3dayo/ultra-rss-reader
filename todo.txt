@@ -2,3 +2,6 @@
 (D) 2026-09-28 アップデート失敗時フォールバックの手動検証 +release note:https://github.com/jey3dayo/ultra-rss-reader/issues/18 @manual
 (C) 2026-10-10 macOS配布版で明示許可・再起動・期限切れ・拒否後の再試行・非ASCII認証情報をダミー値で実機検証 +keychain note:https://github.com/jey3dayo/ultra-rss-reader/issues/404 @manual
 (D) 2026-10-10 配布版app.logにsync-failed/keyring-*行が出ることと実FreshRSSアカウントでの同期を手動検証 +keychain note:https://github.com/jey3dayo/ultra-rss-reader/pull/394 @manual
+(C) 2026-11-17 暗黙ステートマシンのカタログを docs/ に置く +docs note:https://github.com/jey3dayo/ultra-rss-reader/issues/676
+(D) 2026-11-17 死に状態・未使用機構を整理する（contentMode loading / isSyncDisabled / nativeLifecycleBlockers / store searchQuery） +frontend note:https://github.com/jey3dayo/ultra-rss-reader/issues/677
+(D) 2026-11-17 エラー・中間状態の dev scenario を追加する +frontend note:https://github.com/jey3dayo/ultra-rss-reader/issues/678

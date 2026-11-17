@@ -38,6 +38,7 @@ For the product overview, start with `README.md`; for architecture, commands, an
 - Store, README, and landing page screenshots (capture rules, brand policy, commands, checklist): [store-screenshots.md](./store-screenshots.md).
 - Reader article source, scope, filter, hook, and paging order: [reader-article-scope-matrix.md](./reader-article-scope-matrix.md).
 - Reader pane keyboard navigation, focus return, and focus styling contracts: [reader-keyboard-navigation.md](./reader-keyboard-navigation.md).
+- Implicit state machines (sync, updater, overlays, settings, Rust backend state) and the plan to make them explicit: [state-machines.md](./state-machines.md).
 - Knip unused-export and unused-type triage record: [knip-export-classification.md](./knip-export-classification.md).
 - pnpm `trustPolicy` adoption preflight evidence: [pnpm-trust-policy-preflight.md](./pnpm-trust-policy-preflight.md).
 - React Doctor high-complexity function triage record: [react-doctor-complexity-classification.md](./react-doctor-complexity-classification.md).
@@ -57,6 +58,7 @@ For the product overview, start with `README.md`; for architecture, commands, an
 - [store-screenshots.md](./store-screenshots.md): policy and procedure for regenerating the Store, README, and landing page screenshots, including the third-party brand rules behind certification policy 10.1.1.3
 - [reader-keyboard-navigation.md](./reader-keyboard-navigation.md): source of truth for reader pane keyboard navigation, focus return behavior, and focus styling contracts
 - [reader-article-scope-matrix.md](./reader-article-scope-matrix.md): source of truth for reader article source, scope, and filter combinations
+- [state-machines.md](./state-machines.md): catalog of implicit state machines across the frontend and the Rust backend; update the relevant section when changing state encoding or transitions
 - [flaky-test-quarantine-policy.md](./flaky-test-quarantine-policy.md): policy for quarantining, documenting, and retiring flaky tests
 - [knip-export-classification.md](./knip-export-classification.md): dated record classifying every Knip unused-export and unused-type finding from Issue #249; the durable policy lives in [../.claude/rules/quality-policy.md](../.claude/rules/quality-policy.md)
 - [react-doctor-complexity-classification.md](./react-doctor-complexity-classification.md): dated record classifying every in-scope `no-high-complexity-react-function` finding from Issue #249; the durable families and triage method live in [../.claude/rules/react-doctor-triage.md](../.claude/rules/react-doctor-triage.md)
