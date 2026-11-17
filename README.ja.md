@@ -48,9 +48,10 @@ Apple プラットフォームで完成度の高いネイティブリーダー�
 | プラットフォーム | アーティファクト |
 | --- | --- |
 | macOS (Apple Silicon) | `.dmg` |
-| Windows | `.exe` / `.msi` |
+| Windows | `.exe` |
 
 > **macOS 注意**: 現在リリースは ad-hoc 署名（Apple Developer ID なし）のため、初回起動時に Gatekeeper の警告が出ます。アプリを右クリック →「開く」、または `xattr -dr com.apple.quarantine "/Applications/Ultra RSS Reader.app"` を実行してください。
+> **Windows 注意**: 新規インストールには `.exe`（NSIS）インストーラか [Microsoft Store](https://apps.microsoft.com/detail/9N85DQ7XKQ20) を使ってください。`.msi` は既存の MSI インストールがアップデータ経由で更新を受け取るためだけに Releases へ残しています。
 
 ソースからのビルドは [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
@@ -91,11 +92,6 @@ Tauri 2 (Rust) · React 19 · TypeScript · SQLite (rusqlite + FTS5) · Tailwind
 アーキテクチャ、開発モード、検証コマンドの詳細は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 ## ロードマップ
-
-現時点で予定しているもの(おおよその順序):
-
-- インストールの摩擦解消 — macOS の署名・notarization に加えて Homebrew cask と winget 対応。初回起動で Gatekeeper の回避操作が不要になる。これはパッケージング側ではなく Developer ID 署名証明書の取得が前提になっている
-- Microsoft Store 配布([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
 
 Linux パッケージングは release workflow の opt-in 入力 `build_linux`(既定 off)として利用でき、必要なときに `.deb` / `.AppImage` を生成します。配布済みの Linux インストール経路はまだないため、上記のインストール表は macOS と Windows のままです。Feedly 同期は予定していません。
 

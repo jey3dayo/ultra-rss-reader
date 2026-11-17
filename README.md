@@ -48,9 +48,10 @@ Download the latest installer from [**GitHub Releases**](https://github.com/jey3
 | Platform | Artifact |
 | --- | --- |
 | macOS (Apple Silicon) | `.dmg` |
-| Windows | `.exe` / `.msi` |
+| Windows | `.exe` |
 
 > **macOS note**: Releases are currently ad-hoc signed (no Apple Developer ID), so Gatekeeper will warn on first launch. Right-click the app → **Open**, or run `xattr -dr com.apple.quarantine "/Applications/Ultra RSS Reader.app"`.
+> **Windows note**: For new installs, use the `.exe` (NSIS) installer or the [Microsoft Store](https://apps.microsoft.com/detail/9N85DQ7XKQ20). The `.msi` package stays attached to Releases only so existing MSI installs keep receiving updates through the updater.
 
 To build from source instead, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -91,11 +92,6 @@ Tauri 2 (Rust) · React 19 · TypeScript · SQLite (rusqlite + FTS5) · Tailwind
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full architecture, development modes, and verification commands.
 
 ## Roadmap
-
-Currently planned, roughly in order:
-
-- Smoother installs — signed and notarized macOS builds, plus Homebrew cask and winget, so first launch stops needing a Gatekeeper workaround. This is gated on obtaining a Developer ID signing identity, not on packaging work.
-- Microsoft Store distribution ([#57](https://github.com/jey3dayo/ultra-rss-reader/issues/57))
 
 Linux packaging is available as an opt-in `build_linux` input on the release workflow (off by default), which produces `.deb` / `.AppImage` on demand. There is no published Linux install path yet, so the install table above stays macOS and Windows. Feedly sync is not planned.
 
