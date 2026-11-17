@@ -23,6 +23,11 @@ export const DEV_SCENARIO_ID = {
   openWebPreviewGeometryCheck: "open-web-preview-geometry-check",
   openAddFeedDialog: "open-add-feed-dialog",
   syncAllSmoke: "sync-all-smoke",
+  showFeedSyncFailure: "show-feed-sync-failure",
+  showAccountSyncFailure: "show-account-sync-failure",
+  showAccountCredentialWait: "show-account-credential-wait",
+  showUpdaterReady: "show-updater-ready",
+  showUpdaterFailed: "show-updater-failed",
 } as const;
 
 export type DevScenarioId = (typeof DEV_SCENARIO_ID)[keyof typeof DEV_SCENARIO_ID];
@@ -52,6 +57,11 @@ export const DEV_SCENARIO_IDS = [
   DEV_SCENARIO_ID.openWebPreviewGeometryCheck,
   DEV_SCENARIO_ID.openAddFeedDialog,
   DEV_SCENARIO_ID.syncAllSmoke,
+  DEV_SCENARIO_ID.showFeedSyncFailure,
+  DEV_SCENARIO_ID.showAccountSyncFailure,
+  DEV_SCENARIO_ID.showAccountCredentialWait,
+  DEV_SCENARIO_ID.showUpdaterReady,
+  DEV_SCENARIO_ID.showUpdaterFailed,
 ] as const satisfies readonly DevScenarioId[];
 
 const DEV_SCENARIO_ID_SET = new Set<string>(DEV_SCENARIO_IDS);

@@ -45,6 +45,7 @@ import {
   mockArticleViewHistory,
   mockMuteKeywords,
   mockPreferences,
+  readDevMockAccountSyncStatusOverride,
   readDevMockLocalFeedSyncStatus,
   recalcUnread,
   resetDevMockDataState,
@@ -373,6 +374,10 @@ export function setupDevMocks(): RestoreDevMocks {
         return false;
       case "get_account_sync_status": {
         const { accountId } = parseBrowserMockArgs("get_account_sync_status", rawIpcPayload);
+        const statusOverride = readDevMockAccountSyncStatusOverride(accountId);
+        if (statusOverride) {
+          return cloneMockResponse(statusOverride);
+        }
         const account = mockAccounts.find((item) => item.id === accountId);
         if (!account) {
           return {

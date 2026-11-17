@@ -3,9 +3,17 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import {
+  readDevMockAccountSyncStatusOverride,
+  readDevMockLocalFeedSyncStatus,
+  setDevMockAccountSyncStatusOverride,
+} from "@/dev/mock-state";
 import { SHOWCASE_ARTICLE_ID } from "@/dev/scenarios/constants";
 import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
+import { useUpdaterPendingStore } from "@/hooks/updater/updater-pending-store";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { localFeedSyncStatusesQueryKey } from "@/hooks/use-local-feed-sync-statuses";
 import { tagQueryKeys } from "@/hooks/use-tags";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -1147,5 +1155,102 @@ describe("runDevScenario", () => {
 
     expect(context.actions.executeAction).toHaveBeenCalledWith("sync-all");
     expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows a local feed sync failure", async () => {
+    const localAccount: AccountDto = { ...account, id: "acc-local", name: "Local", kind: "Local" };
+    const localFeed: FeedDto = { ...genericFeed, id: "feed-local", account_id: localAccount.id };
+    const context = createContext({
+      actions: createActions({
+        listAccounts: vi.fn(async () => [account, localAccount]),
+        listFeeds: vi.fn(async () => [localFeed]),
+      }),
+    });
+
+    await runDevScenario("show-feed-sync-failure", { context });
+
+    expect(readDevMockLocalFeedSyncStatus(localFeed.id)).toEqual(
+      expect.objectContaining({ feed_id: localFeed.id, error_kind: "network", error_count: 1 }),
+    );
+    expectCachedQuery(context.queryClient, localFeedSyncStatusesQueryKey(localAccount.id), [
+      expect.objectContaining({ feed_id: localFeed.id, error_kind: "network", error_count: 1 }),
+    ]);
+    expect(context.ui.selectAccount).toHaveBeenCalledWith(localAccount.id);
+    expect(context.ui.selectFeed).toHaveBeenCalledWith(localFeed.id);
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows an account sync failure", async () => {
+    const context = createContext({
+      actions: createActions({
+        listAccounts: vi.fn(async () => [account]),
+      }),
+    });
+
+    await runDevScenario("show-account-sync-failure", { context });
+
+    const expectedStatus = expect.objectContaining({
+      last_error: "Network request failed",
+      error_count: 3,
+      waiting_for_credential_access: false,
+    });
+    expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expectedStatus);
+    expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expectedStatus);
+    expect(context.ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+    setDevMockAccountSyncStatusOverride(account.id, null);
+  });
+
+  it("shows an account credential wait", async () => {
+    const context = createContext({
+      actions: createActions({
+        listAccounts: vi.fn(async () => [account]),
+      }),
+    });
+
+    await runDevScenario("show-account-credential-wait", { context });
+
+    const expectedStatus = expect.objectContaining({
+      last_error: null,
+      error_count: 0,
+      next_retry_at: null,
+      waiting_for_credential_access: true,
+    });
+    expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expectedStatus);
+    expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expectedStatus);
+    expect(context.ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+    setDevMockAccountSyncStatusOverride(account.id, null);
+  });
+
+  it("shows the updater ready prompt", async () => {
+    const context = createContext();
+
+    await runDevScenario("show-updater-ready", { context });
+
+    expect(useUpdaterPendingStore.getState().pending).toEqual({
+      status: "waiting",
+      kind: "restart",
+      version: "99.0.0",
+      requestId: 1,
+    });
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+    useUpdaterPendingStore.setState({ pending: { status: "idle" } });
+  });
+
+  it("shows the updater failure prompt", async () => {
+    const context = createContext();
+
+    await runDevScenario("show-updater-failed", { context });
+
+    expect(useUpdaterPendingStore.getState().pending).toEqual({
+      status: "failed",
+      kind: "download",
+      version: "99.0.0",
+      reason: "Network request failed",
+      requestId: 1,
+    });
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+    useUpdaterPendingStore.setState({ pending: { status: "idle" } });
   });
 });

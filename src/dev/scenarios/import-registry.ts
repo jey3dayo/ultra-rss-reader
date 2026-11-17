@@ -27,4 +27,9 @@ export const DEV_SCENARIO_MODULE_IMPORTERS = {
   [DEV_SCENARIO_ID.openWebPreviewGeometryCheck]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.openAddFeedDialog]: loadDevScenariosRegistryModule,
   [DEV_SCENARIO_ID.syncAllSmoke]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.showFeedSyncFailure]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.showAccountSyncFailure]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.showAccountCredentialWait]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.showUpdaterReady]: loadDevScenariosRegistryModule,
+  [DEV_SCENARIO_ID.showUpdaterFailed]: loadDevScenariosRegistryModule,
 } as const satisfies Record<DevScenarioId, () => Promise<unknown>>;

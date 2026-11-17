@@ -1,4 +1,4 @@
-import type { ArticleDto, LocalFeedSyncStatusDto, MuteKeywordDto } from "@/api/tauri-commands";
+import type { AccountSyncStatusDto, ArticleDto, LocalFeedSyncStatusDto, MuteKeywordDto } from "@/api/tauri-commands";
 import {
   mockAccounts,
   mockArticles,
@@ -70,6 +70,20 @@ export function failDevMockLocalFeedOnce(feedId: string, attemptedAt: string): v
     error_count: 1,
     diagnostic_id: "b52e8e15-b8c0-46d3-9949-44a6e5aab0b1",
   });
+}
+
+const mockAccountSyncStatusOverrides = new Map<string, AccountSyncStatusDto>();
+
+export function setDevMockAccountSyncStatusOverride(accountId: string, status: AccountSyncStatusDto | null): void {
+  if (status === null) {
+    mockAccountSyncStatusOverrides.delete(accountId);
+    return;
+  }
+  mockAccountSyncStatusOverrides.set(accountId, status);
+}
+
+export function readDevMockAccountSyncStatusOverride(accountId: string): AccountSyncStatusDto | undefined {
+  return mockAccountSyncStatusOverrides.get(accountId);
 }
 
 export function succeedDevMockLocalFeed(feedId: string, attemptedAt: string): void {
@@ -172,6 +186,7 @@ export function resetDevMockDataState() {
     ...initialMockArticleViewHistory.map((item) => structuredClone(item)),
   );
   mockLocalFeedSyncStatuses.clear();
+  mockAccountSyncStatusOverrides.clear();
   resetMockDataForDevMocks();
 }
 
