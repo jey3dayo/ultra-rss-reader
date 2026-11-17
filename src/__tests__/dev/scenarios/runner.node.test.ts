@@ -3,9 +3,17 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createDeferred } from "@tests/helpers/deferred";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import {
+  readDevMockAccountSyncStatusOverride,
+  readDevMockLocalFeedSyncStatus,
+  setDevMockAccountSyncStatusOverride,
+} from "@/dev/mock-state";
 import { SHOWCASE_ARTICLE_ID } from "@/dev/scenarios/constants";
 import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
+import { useUpdaterPendingStore } from "@/hooks/updater/updater-pending-store";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { localFeedSyncStatusesQueryKey } from "@/hooks/use-local-feed-sync-statuses";
 import { tagQueryKeys } from "@/hooks/use-tags";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -115,6 +123,8 @@ function createUiStub(overrides?: Partial<DevScenarioContext["ui"]>): DevScenari
     openBrowser: vi.fn(),
     setViewMode: vi.fn(),
     openSettings: vi.fn(),
+    openSettingsAccount: vi.fn(),
+    openSubscriptionsIndex: vi.fn(),
     openAddFeedDialog: vi.fn(),
     openCommandPalette: vi.fn(),
     openShortcutsHelp: vi.fn(),
@@ -1147,5 +1157,91 @@ describe("runDevScenario", () => {
 
     expect(context.actions.executeAction).toHaveBeenCalledWith("sync-all");
     expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows a local feed sync failure", async () => {
+    const localAccount: AccountDto = { ...account, id: "acc-local", name: "Local", kind: "Local" };
+    const localFeed: FeedDto = { ...genericFeed, id: "feed-local", account_id: localAccount.id };
+    const context = createContext({
+      actions: createActions({
+        listAccounts: vi.fn(async () => [account, localAccount]),
+        listFeeds: vi.fn(async () => [localFeed]),
+      }),
+    });
+
+    await runDevScenario("show-feed-sync-failure", { context });
+
+    expect(readDevMockLocalFeedSyncStatus(localFeed.id)).toEqual(
+      expect.objectContaining({ feed_id: localFeed.id, error_kind: "network", error_count: 1 }),
+    );
+    expectCachedQuery(context.queryClient, localFeedSyncStatusesQueryKey(localAccount.id), [
+      expect.objectContaining({ feed_id: localFeed.id, error_kind: "network", error_count: 1 }),
+    ]);
+    expect(context.ui.openSubscriptionsIndex).toHaveBeenCalled();
+    expect(context.ui.selectAccount).toHaveBeenCalledWith(localAccount.id);
+    expect(context.ui.selectFeed).toHaveBeenCalledWith(localFeed.id);
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: "an account sync failure",
+      scenarioId: "show-account-sync-failure",
+      expectedStatus: { last_error: "Network request failed", error_count: 3, waiting_for_credential_access: false },
+      opensAccountSettings: false,
+    },
+    {
+      name: "an account credential wait",
+      scenarioId: "show-account-credential-wait",
+      expectedStatus: { last_error: null, error_count: 0, next_retry_at: null, waiting_for_credential_access: true },
+      opensAccountSettings: true,
+    },
+  ] as const)("shows $name", async ({ scenarioId, expectedStatus, opensAccountSettings }) => {
+    const context = createContext({
+      actions: createActions({
+        listAccounts: vi.fn(async () => [account]),
+      }),
+    });
+
+    await runDevScenario(scenarioId, { context });
+
+    const expected = expect.objectContaining(expectedStatus);
+    expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expected);
+    expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expected);
+    expect(context.ui.selectAccount).toHaveBeenCalledWith(account.id);
+    if (opensAccountSettings) {
+      expect(context.ui.openSettingsAccount).toHaveBeenCalledWith(account.id);
+    } else {
+      expect(context.ui.openSettingsAccount).not.toHaveBeenCalled();
+    }
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+    setDevMockAccountSyncStatusOverride(account.id, null);
+  });
+
+  it.each([
+    {
+      name: "the updater ready prompt",
+      scenarioId: "show-updater-ready",
+      expectedPending: { status: "waiting", kind: "restart", version: "99.0.0", requestId: 1 },
+    },
+    {
+      name: "the updater failure prompt",
+      scenarioId: "show-updater-failed",
+      expectedPending: {
+        status: "failed",
+        kind: "download",
+        version: "99.0.0",
+        reason: "Network request failed",
+        requestId: 1,
+      },
+    },
+  ] as const)("shows $name", async ({ scenarioId, expectedPending }) => {
+    const context = createContext();
+
+    await runDevScenario(scenarioId, { context });
+
+    expect(useUpdaterPendingStore.getState().pending).toEqual(expectedPending);
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+    useUpdaterPendingStore.setState({ pending: { status: "idle" } });
   });
 });

@@ -651,6 +651,8 @@ OPML・データ設定・同期ボタン等、in-flight フラグがコンポー
 
 **AXの穴（この調査で最も大きい）**: 24件すべてが「開く／移動する」系＋ `sync-all-smoke` のみ。次に相当する ID は存在しない: エラー・失敗状態（同期失敗、認証エラー、接続検証失敗、フィード取得失敗。mock 側に local feed を1回失敗させる `failDevMockLocalFeedOnce` はあるが scenario から呼べない）、空状態（アカウント0件等）、ダイアログ中間状態（Add Feed の発見中／発見済み／送信中、設定の未保存／保存中／保存失敗、アカウント追加の検証中ロック）、ブラウザ中間状態（ローディング、リトライ可能エラー、close-in-flight／保留キュー）、同期進行中、アップデーター DL 中／ready、入力済み検索クエリ。
 
+**追記（2026-11-17、#678）**: エラー・中間状態の scenario を5件追加した: `show-feed-sync-failure`（local feed の同期失敗。`failDevMockLocalFeedOnce` を scenario から呼ぶ）、`show-account-sync-failure`（リモートアカウントの同期失敗。mock に account sync status の override を追加して再現）、`show-account-credential-wait`（`waiting_for_credential_access`）、`show-updater-ready` / `show-updater-failed`（updater pending store の waiting / failed）。Add Feed の発見済み、設定の未保存などダイアログ内のローカル状態は scenario context から到達できないため、引き続き未対応。
+
 - scenario で作れない状態は unit/store/story 側にテストはあるが名前付き再現手段がないため、実機・スクリーンショットでの再現はその都度手作業になる構造。
 - テストでの固定: scenario 層は「遷移そのもの」を fake context で検証（runner テスト全1151行）。アプリ本体は store/reducer の純粋遷移テストが厚い。e2e は scenario を一切使わず実クリックで、起動は `page.goto("/")` のみ。前提状態はブラウザ mock のデフォルト seed という暗黙依存。dev scenario の起動経路（env→実アプリ起動→到達状態）を通す Playwright テストはない。
 

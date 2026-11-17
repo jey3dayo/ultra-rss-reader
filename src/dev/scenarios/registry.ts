@@ -5,6 +5,11 @@ import {
   runOpenTagViewScenario,
   runOpenUnreadShowcaseArticleScenario,
   runOpenWebPreviewUrlScenario,
+  runShowAccountCredentialWaitScenario,
+  runShowAccountSyncFailureScenario,
+  runShowFeedSyncFailureScenario,
+  runShowUpdaterFailedScenario,
+  runShowUpdaterReadyScenario,
 } from "@/dev/scenarios/helpers";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
@@ -221,6 +226,31 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     title: "Sync all smoke",
     keywords: ["sync", "smoke"],
     run: createActionBackedDevScenarioRunner(DEV_SCENARIO_ACTION_ROUTES[DEV_SCENARIO_ID.syncAllSmoke]),
+  },
+  [DEV_SCENARIO_ID.showFeedSyncFailure]: {
+    title: "Show feed sync failure",
+    keywords: ["sync", "feed", "failure", "error", "offline"],
+    run: runShowFeedSyncFailureScenario,
+  },
+  [DEV_SCENARIO_ID.showAccountSyncFailure]: {
+    title: "Show account sync failure",
+    keywords: ["sync", "account", "failure", "error", "retry"],
+    run: runShowAccountSyncFailureScenario,
+  },
+  [DEV_SCENARIO_ID.showAccountCredentialWait]: {
+    title: "Show account credential wait",
+    keywords: ["sync", "account", "credential", "keychain", "waiting"],
+    run: runShowAccountCredentialWaitScenario,
+  },
+  [DEV_SCENARIO_ID.showUpdaterReady]: {
+    title: "Show updater ready",
+    keywords: ["updater", "update", "ready", "restart"],
+    run: runShowUpdaterReadyScenario,
+  },
+  [DEV_SCENARIO_ID.showUpdaterFailed]: {
+    title: "Show updater failed",
+    keywords: ["updater", "update", "failed", "download", "error"],
+    run: runShowUpdaterFailedScenario,
   },
 };
 

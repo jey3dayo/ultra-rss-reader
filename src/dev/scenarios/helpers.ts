@@ -1,6 +1,11 @@
 import type { QueryKey } from "@tanstack/react-query";
-import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import type { AccountDto, AccountSyncStatusDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { loadDevRuntimeOptions, readDevWebUrl } from "@/dev/intent";
+import {
+  failDevMockLocalFeedOnce,
+  readDevMockLocalFeedSyncStatus,
+  setDevMockAccountSyncStatusOverride,
+} from "@/dev/mock-state";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import {
   DEV_FEED_DISPLAY_MODE_SCORE,
@@ -11,6 +16,9 @@ import {
   SHOWCASE_ARTICLE_ID,
 } from "@/dev/scenarios/constants";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
+import { useUpdaterPendingStore } from "@/hooks/updater/updater-pending-store";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
+import { localFeedSyncStatusesQueryKey } from "@/hooks/use-local-feed-sync-statuses";
 import { tagQueryKeys } from "@/hooks/use-tags";
 import { resolveFeedLandingArticle } from "@/lib/feed/feed-landing";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -498,4 +506,125 @@ function scorePreferredDevFeed(feed: FeedDto): number {
   const displayModeScore =
     feed.reader_mode === "on" && feed.web_preview_mode === "on" ? DEV_FEED_DISPLAY_MODE_SCORE : 0;
   return displayModeScore + hintScore + unreadScore;
+}
+
+export async function runShowFeedSyncFailureScenario(ctx: DevScenarioContext): Promise<void> {
+  try {
+    const seedDraft = createDevScenarioSeedDraft();
+    const accounts = await stageAccounts(ctx, seedDraft);
+    if (!accounts) {
+      return;
+    }
+    const localAccount = accounts.find((account) => account.kind.toLowerCase() === "local");
+    if (!localAccount) {
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.showFeedSyncFailure}" could not find a local account.`);
+      return;
+    }
+
+    const feeds = await Promise.resolve(ctx.actions.listFeeds(localAccount.id));
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    const feed = feeds[0];
+    if (!feed) {
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.showFeedSyncFailure}" could not find any feeds.`);
+      return;
+    }
+
+    failDevMockLocalFeedOnce(feed.id, new Date().toISOString());
+    stageDevScenarioQueryData(
+      seedDraft,
+      localFeedSyncStatusesQueryKey(localAccount.id),
+      feeds.map((item) => readDevMockLocalFeedSyncStatus(item.id)),
+    );
+    commitDevScenarioSeedDraft(ctx, seedDraft);
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    ctx.ui.openSubscriptionsIndex();
+    ctx.ui.selectAccount(localAccount.id);
+    ctx.ui.selectFeed(feed.id);
+  } catch (error) {
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    console.error(`Failed to run dev scenario "${DEV_SCENARIO_ID.showFeedSyncFailure}":`, error);
+    ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.showFeedSyncFailure}" failed to show the feed sync failure.`);
+  }
+}
+
+async function runShowAccountSyncStatusScenario(
+  ctx: DevScenarioContext,
+  scenarioId: string,
+  status: AccountSyncStatusDto,
+  options?: { openAccountSettings?: boolean },
+): Promise<void> {
+  try {
+    const seedDraft = createDevScenarioSeedDraft();
+    const accounts = await stageAccounts(ctx, seedDraft);
+    if (!accounts) {
+      return;
+    }
+    const remoteAccount = accounts.find((account) => account.kind.toLowerCase() !== "local");
+    if (!remoteAccount) {
+      ctx.ui.showToast(`Dev scenario "${scenarioId}" could not find a remote account.`);
+      return;
+    }
+
+    setDevMockAccountSyncStatusOverride(remoteAccount.id, status);
+    stageDevScenarioQueryData(seedDraft, accountSyncStatusQueryKey(remoteAccount.id), status);
+    commitDevScenarioSeedDraft(ctx, seedDraft);
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    ctx.ui.selectAccount(remoteAccount.id);
+    if (options?.openAccountSettings) {
+      ctx.ui.openSettingsAccount(remoteAccount.id);
+    }
+  } catch (error) {
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    console.error(`Failed to run dev scenario "${scenarioId}":`, error);
+    ctx.ui.showToast(`Dev scenario "${scenarioId}" failed to show the account sync status.`);
+  }
+}
+
+export async function runShowAccountSyncFailureScenario(ctx: DevScenarioContext): Promise<void> {
+  const now = Date.now();
+  await runShowAccountSyncStatusScenario(ctx, DEV_SCENARIO_ID.showAccountSyncFailure, {
+    last_success_at: new Date(now - 60 * 60 * 1000).toISOString(),
+    last_error: "Network request failed",
+    error_count: 3,
+    next_retry_at: new Date(now + 5 * 60 * 1000).toISOString(),
+    waiting_for_credential_access: false,
+  });
+}
+
+export async function runShowAccountCredentialWaitScenario(ctx: DevScenarioContext): Promise<void> {
+  const now = Date.now();
+  await runShowAccountSyncStatusScenario(
+    ctx,
+    DEV_SCENARIO_ID.showAccountCredentialWait,
+    {
+      last_success_at: new Date(now - 60 * 60 * 1000).toISOString(),
+      last_error: null,
+      error_count: 0,
+      next_retry_at: null,
+      waiting_for_credential_access: true,
+    },
+    { openAccountSettings: true },
+  );
+}
+
+export function runShowUpdaterReadyScenario(): void {
+  useUpdaterPendingStore.setState({
+    pending: { status: "waiting", kind: "restart", version: "99.0.0", requestId: 1 },
+  });
+}
+
+export function runShowUpdaterFailedScenario(): void {
+  useUpdaterPendingStore.setState({
+    pending: { status: "failed", kind: "download", version: "99.0.0", reason: "Network request failed", requestId: 1 },
+  });
 }
