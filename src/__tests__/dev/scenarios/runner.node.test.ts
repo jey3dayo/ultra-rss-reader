@@ -1183,78 +1183,64 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 
-  it("shows an account sync failure", async () => {
+  it.each([
+    {
+      name: "an account sync failure",
+      scenarioId: "show-account-sync-failure",
+      expectedStatus: { last_error: "Network request failed", error_count: 3, waiting_for_credential_access: false },
+      opensAccountSettings: false,
+    },
+    {
+      name: "an account credential wait",
+      scenarioId: "show-account-credential-wait",
+      expectedStatus: { last_error: null, error_count: 0, next_retry_at: null, waiting_for_credential_access: true },
+      opensAccountSettings: true,
+    },
+  ] as const)("shows $name", async ({ scenarioId, expectedStatus, opensAccountSettings }) => {
     const context = createContext({
       actions: createActions({
         listAccounts: vi.fn(async () => [account]),
       }),
     });
 
-    await runDevScenario("show-account-sync-failure", { context });
+    await runDevScenario(scenarioId, { context });
 
-    const expectedStatus = expect.objectContaining({
-      last_error: "Network request failed",
-      error_count: 3,
-      waiting_for_credential_access: false,
-    });
-    expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expectedStatus);
-    expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expectedStatus);
+    const expected = expect.objectContaining(expectedStatus);
+    expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expected);
+    expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expected);
     expect(context.ui.selectAccount).toHaveBeenCalledWith(account.id);
-    expect(context.ui.openSettingsAccount).not.toHaveBeenCalled();
+    if (opensAccountSettings) {
+      expect(context.ui.openSettingsAccount).toHaveBeenCalledWith(account.id);
+    } else {
+      expect(context.ui.openSettingsAccount).not.toHaveBeenCalled();
+    }
     expect(context.ui.showToast).not.toHaveBeenCalled();
     setDevMockAccountSyncStatusOverride(account.id, null);
   });
 
-  it("shows an account credential wait", async () => {
-    const context = createContext({
-      actions: createActions({
-        listAccounts: vi.fn(async () => [account]),
-      }),
-    });
-
-    await runDevScenario("show-account-credential-wait", { context });
-
-    const expectedStatus = expect.objectContaining({
-      last_error: null,
-      error_count: 0,
-      next_retry_at: null,
-      waiting_for_credential_access: true,
-    });
-    expect(readDevMockAccountSyncStatusOverride(account.id)).toEqual(expectedStatus);
-    expectCachedQuery(context.queryClient, accountSyncStatusQueryKey(account.id), expectedStatus);
-    expect(context.ui.selectAccount).toHaveBeenCalledWith(account.id);
-    expect(context.ui.openSettingsAccount).toHaveBeenCalledWith(account.id);
-    expect(context.ui.showToast).not.toHaveBeenCalled();
-    setDevMockAccountSyncStatusOverride(account.id, null);
-  });
-
-  it("shows the updater ready prompt", async () => {
+  it.each([
+    {
+      name: "the updater ready prompt",
+      scenarioId: "show-updater-ready",
+      expectedPending: { status: "waiting", kind: "restart", version: "99.0.0", requestId: 1 },
+    },
+    {
+      name: "the updater failure prompt",
+      scenarioId: "show-updater-failed",
+      expectedPending: {
+        status: "failed",
+        kind: "download",
+        version: "99.0.0",
+        reason: "Network request failed",
+        requestId: 1,
+      },
+    },
+  ] as const)("shows $name", async ({ scenarioId, expectedPending }) => {
     const context = createContext();
 
-    await runDevScenario("show-updater-ready", { context });
+    await runDevScenario(scenarioId, { context });
 
-    expect(useUpdaterPendingStore.getState().pending).toEqual({
-      status: "waiting",
-      kind: "restart",
-      version: "99.0.0",
-      requestId: 1,
-    });
-    expect(context.ui.showToast).not.toHaveBeenCalled();
-    useUpdaterPendingStore.setState({ pending: { status: "idle" } });
-  });
-
-  it("shows the updater failure prompt", async () => {
-    const context = createContext();
-
-    await runDevScenario("show-updater-failed", { context });
-
-    expect(useUpdaterPendingStore.getState().pending).toEqual({
-      status: "failed",
-      kind: "download",
-      version: "99.0.0",
-      reason: "Network request failed",
-      requestId: 1,
-    });
+    expect(useUpdaterPendingStore.getState().pending).toEqual(expectedPending);
     expect(context.ui.showToast).not.toHaveBeenCalled();
     useUpdaterPendingStore.setState({ pending: { status: "idle" } });
   });
