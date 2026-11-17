@@ -4,8 +4,6 @@ import type { SyncProgressRuntimeEventDto } from "@/api/schemas";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
 import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
 import type {
-  NativeLifecycleBlockerEntry,
-  NativeLifecycleBlockerOwner,
   SyncProgressEventDto,
   SyncProgressUiState,
   UiStoreAccountSetupActions,
@@ -99,7 +97,6 @@ function expectInitialUiStateDefaults() {
     selectedArticleId: null,
     articleEngagement: "reading",
     viewMode: "unread",
-    searchQuery: "",
     browserUrl: null,
     browserArticleId: null,
     webPreviewSessionMode: "auto",
@@ -128,7 +125,6 @@ function expectInitialUiStateDefaults() {
     recentlyReadIds: new Set(),
     retainedArticleIds: new Set(),
     articleReaderScrollPositions: new Map(),
-    nativeLifecycleBlockers: new Map(),
   });
   expect(state.syncProgress).toEqual({
     active: false,
@@ -177,7 +173,6 @@ describe("useUiStore", () => {
       selectedArticleId: "article-1",
       articleEngagement: "preview",
       viewMode: "all",
-      searchQuery: "query",
       browserUrl: "https://example.com",
       webPreviewSessionMode: "forced-off",
       browserNavigationState: { canGoBack: true, canGoForward: true },
@@ -229,9 +224,6 @@ describe("useUiStore", () => {
         icon: null,
         onConfirm: () => undefined,
       },
-      nativeLifecycleBlockers: new Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>([
-        ["sync", { owner: "sync", dirty: true, pending: true }],
-      ]),
     });
 
     useUiStore.setState(useUiStore.getInitialState());
@@ -283,7 +275,6 @@ describe("useUiStore", () => {
         | "pendingBrowserCloseAction"
         | "pendingBrowserCloseActionQueue"
         | "articleNavigationDirection"
-        | "searchQuery"
         | "expandedFolderIds"
         | "isFeedsSectionOpen"
         | "isTagsSectionOpen"
@@ -318,7 +309,6 @@ describe("useUiStore", () => {
         | "setBrowserCloseInFlight"
         | "setPendingBrowserCloseAction"
         | "setViewMode"
-        | "setSearchQuery"
         | "toggleFolder"
         | "setExpandedFolders"
         | "setIsFeedsSectionOpen"
@@ -337,9 +327,6 @@ describe("useUiStore", () => {
     expectTypeOf<UiStoreSettingsModalActions>().toEqualTypeOf<UiStoreSettingsActions>();
     expectTypeOf<UiStoreReaderState>().toHaveProperty("selection").toEqualTypeOf<UiStoreReaderSelection>();
     expectTypeOf<UiStoreState>().toHaveProperty("selection").toEqualTypeOf<UiStoreReaderSelection>();
-    expectTypeOf<UiStoreState>()
-      .toHaveProperty("nativeLifecycleBlockers")
-      .toEqualTypeOf<Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>>();
 
     const state = useUiStore.getState();
     const shellState: UiStoreShellState = state;
@@ -466,44 +453,6 @@ describe("useUiStore", () => {
       }),
     );
     expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-2"]));
-  });
-
-  it("keeps native lifecycle blockers as a dirty and pending close/restart contract", () => {
-    useUiStore.getState().setNativeLifecycleBlocker({
-      owner: "settings",
-      dirty: true,
-      pending: false,
-    });
-    useUiStore.getState().setNativeLifecycleBlocker({
-      owner: "sync",
-      dirty: false,
-      pending: true,
-    });
-
-    expect(useUiStore.getState().getNativeLifecycleBlockerSnapshot()).toEqual({
-      dirty: true,
-      pending: true,
-      owners: ["settings", "sync"],
-    });
-
-    useUiStore.getState().setNativeLifecycleBlocker({
-      owner: "settings",
-      dirty: false,
-      pending: false,
-    });
-
-    expect(useUiStore.getState().getNativeLifecycleBlockerSnapshot()).toEqual({
-      dirty: false,
-      pending: true,
-      owners: ["sync"],
-    });
-
-    useUiStore.getState().clearNativeLifecycleBlocker("sync");
-    expect(useUiStore.getState().getNativeLifecycleBlockerSnapshot()).toEqual({
-      dirty: false,
-      pending: false,
-      owners: [],
-    });
   });
 
   it("keeps sync progress monotonic within a session and ignores older sessions", () => {

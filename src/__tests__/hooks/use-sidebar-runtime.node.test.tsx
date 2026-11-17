@@ -46,7 +46,6 @@ vi.mock("@/components/reader/hooks/sidebar/use-sidebar-sync", () => ({
     lastSyncedLabel: "",
     syncTooltipLabel: null,
     isSyncCoolingDown: false,
-    isSyncDisabled: false,
   }),
 }));
 

@@ -9,9 +9,9 @@ changelog:
     - title: "💥 Breaking Changes"
       labels: [breaking]
     - title: "🚀 Features"
-      labels: [feature, enhancement]
+      labels: [feature]
     - title: "🐛 Bug Fixes"
-      labels: [bug, fix]
+      labels: [fix]
     - title: "📚 Documentation"
       labels: [docs]
     - title: "📦 Dependencies"

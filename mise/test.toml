@@ -8,8 +8,8 @@ run_windows = "mise run test:unit:ci && mise run test:rust"
 
 ["test:rust"]
 description = "Run Rust tests; Windows CI is scoped to integration_test for native keyring/path coverage while Linux runs the full Rust suite"
-run = "cargo test --manifest-path src-tauri/Cargo.toml"
-run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
+run = "cargo nextest run --manifest-path src-tauri/Cargo.toml"
+run_windows = "cargo nextest run --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
 
 ["test:change-plan"]
 description = "Run CI change-plan script tests"

@@ -1,6 +1,5 @@
 name: Maintenance Task
 description: chore、運用整理、release prep、non-feature task を起票する
-title: "chore: "
 labels: ["chore"]
 body:
   - type: markdown

@@ -1,6 +1,5 @@
 name: Bug Report
 description: 不具合、回帰、hardening、failure-path 改善を起票する
-title: "fix: "
 labels: ["fix"]
 body:
   - type: markdown

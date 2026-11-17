@@ -550,11 +550,9 @@ const prInsightsManagedLabels = ["risk/*", "size/*"] as const;
 const issueTemplateDefaultLabels = ["feature", "fix", "category/tests", "chore"] as const;
 const releaseNoteLabelParityLabels = [
   "breaking",
-  "bug",
   "chore",
   "dependencies",
   "docs",
-  "enhancement",
   "feature",
   "fix",
   "refactor",
@@ -1990,17 +1988,7 @@ describe("repository static contracts", () => {
     const labelerRuleLabelSet = new Set(labelerRuleLabels);
     const excludedReleaseNoteLabelSet = new Set(excludedReleaseNoteLabels);
 
-    expect(releaseNoteLabels).toEqual([
-      "breaking",
-      "bug",
-      "chore",
-      "dependencies",
-      "docs",
-      "enhancement",
-      "feature",
-      "fix",
-      "refactor",
-    ]);
+    expect(releaseNoteLabels).toEqual(["breaking", "chore", "dependencies", "docs", "feature", "fix", "refactor"]);
     expect(releaseNoteLabelParityLabels.filter((label) => !releaseNoteLabelSet.has(label))).toEqual([]);
     expect(releaseNoteLabelParityLabels.filter((label) => !labelerRuleLabelSet.has(label))).toEqual([]);
     expect(releaseNoteLabelParityLabels.filter((label) => excludedReleaseNoteLabelSet.has(label))).toEqual([]);

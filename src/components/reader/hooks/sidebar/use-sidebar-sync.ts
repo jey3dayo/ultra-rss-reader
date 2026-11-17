@@ -35,7 +35,6 @@ export type SidebarSyncResult = {
   lastSyncedLabel: string;
   syncTooltipLabel: string | null;
   isSyncCoolingDown: boolean;
-  isSyncDisabled: boolean;
 };
 
 type SidebarSyncProgressPayload = SyncProgressEventDto;
@@ -446,6 +445,5 @@ export function useSidebarSync({
     lastSyncedLabel,
     syncTooltipLabel,
     isSyncCoolingDown,
-    isSyncDisabled: false,
   };
 }

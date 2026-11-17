@@ -15,7 +15,6 @@ export function buildSidebarHeaderProps({
   handleSync,
   syncTooltipLabel,
   isSyncCoolingDown,
-  isSyncDisabled,
   handleAddFeed,
   hasTauriRuntime,
   isMobile,
@@ -26,13 +25,7 @@ export function buildSidebarHeaderProps({
     platformKind,
     hasTauriRuntime,
   });
-  const syncStatus = syncProgress.active
-    ? "syncing"
-    : isSyncDisabled
-      ? "disabled"
-      : isSyncCoolingDown
-        ? "cooldown"
-        : "idle";
+  const syncStatus = syncProgress.active ? "syncing" : isSyncCoolingDown ? "cooldown" : "idle";
 
   return {
     onSync: handleSync,

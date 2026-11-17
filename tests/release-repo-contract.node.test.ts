@@ -1226,9 +1226,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     expect(rustTestTask).toContain("Windows CI is scoped to integration_test");
     expect(rustTestTask).toContain("Linux runs the full Rust suite");
-    expect(rustTestTask).toContain('run = "cargo test --manifest-path src-tauri/Cargo.toml"');
+    expect(rustTestTask).toContain('run = "cargo nextest run --manifest-path src-tauri/Cargo.toml"');
     expect(rustTestTask).toContain(
-      'run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
+      'run_windows = "cargo nextest run --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
     );
     const ciTestTask = extractTaskBlock(miseToml, "test:ci");
     expect(ciTestTask).toContain("mise run test:unit:ci\nmise run test:rust");
@@ -1261,15 +1261,12 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(nodeJob).toContain("bash scripts/ci/run-logged.sh tmp/ci-artifacts/frontend/test.log");
     expect(rustJob).toContain("bash scripts/ci/run-logged.sh tmp/ci-artifacts/rust/test.log");
     expect(jsdomJob).toContain("bash scripts/ci/run-logged.sh tmp/ci-artifacts/frontend/test.log");
-    const contaminationStep = extractWorkflowStepBlocks(rustJob).find((step) =>
-      step.includes("pnpm run check:release-contamination"),
-    );
+    const contaminationCommand = "node ./scripts/check-release-build-contamination.ts";
+    const contaminationStep = extractWorkflowStepBlocks(rustJob).find((step) => step.includes(contaminationCommand));
     expect(contaminationStep).toContain("timeout-minutes: 3");
     expect(contaminationStep).not.toContain("continue-on-error");
     expect(contaminationStep).not.toContain("if:");
-    expect(rustJob.indexOf("pnpm run check:release-contamination")).toBeGreaterThan(
-      rustJob.indexOf("mise run test:rust"),
-    );
+    expect(rustJob.indexOf(contaminationCommand)).toBeGreaterThan(rustJob.indexOf("mise run test:rust"));
     expect(ciWorkflow.match(/mise run test:unit:ci:node\b/g)).toHaveLength(1);
     expect(ciWorkflow.match(/mise run test:rust\b/g)).toHaveLength(1);
     expect(ciWorkflow.match(/mise run test:unit:ci:dom:shard\$\{\{ matrix\.shard \}\}/g)).toHaveLength(1);

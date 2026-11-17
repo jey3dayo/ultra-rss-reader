@@ -664,7 +664,7 @@ describe("AppShell", () => {
     expect(tauriEventNames).not.toContain("tauri://drag-leave");
   });
 
-  it("surfaces native close blocks through the dirty and pending lifecycle registry", async () => {
+  it("surfaces native close blocks as a persistent toast", async () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     const closeBlockedCall = vi
@@ -676,16 +676,6 @@ describe("AppShell", () => {
     }
 
     act(() => {
-      useUiStore.getState().setNativeLifecycleBlocker({
-        owner: "settings",
-        dirty: true,
-        pending: false,
-      });
-      useUiStore.getState().setNativeLifecycleBlocker({
-        owner: "sync",
-        dirty: false,
-        pending: true,
-      });
       closeBlockedListener({
         event: "main-window-close-blocked",
         id: 1,
