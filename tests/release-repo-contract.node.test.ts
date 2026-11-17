@@ -1226,9 +1226,9 @@ describe("release repository contract", { timeout: 30_000 }, () => {
 
     expect(rustTestTask).toContain("Windows CI is scoped to integration_test");
     expect(rustTestTask).toContain("Linux runs the full Rust suite");
-    expect(rustTestTask).toContain('run = "cargo test --manifest-path src-tauri/Cargo.toml"');
+    expect(rustTestTask).toContain('run = "cargo nextest run --manifest-path src-tauri/Cargo.toml"');
     expect(rustTestTask).toContain(
-      'run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
+      'run_windows = "cargo nextest run --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
     );
     const ciTestTask = extractTaskBlock(miseToml, "test:ci");
     expect(ciTestTask).toContain("mise run test:unit:ci\nmise run test:rust");
