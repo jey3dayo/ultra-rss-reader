@@ -582,7 +582,7 @@ export function setupDevMocks(): RestoreDevMocks {
           summaries.push({
             feed_id: feed.id,
             latest_article_at: findLatestPublishedAt(feedArticles),
-            last_seen_article_at: findLatestPublishedAt(feedArticles),
+            last_seen_article_at: findLatestPublishedAt(mockArticles.filter((article) => article.feed_id === feed.id)),
             starred_count: feedArticles.filter((article) => article.is_starred).length,
             recent_article_count: feedArticles.filter((article) => {
               const publishedMs = getDateInputTimeMs(article.published_at);

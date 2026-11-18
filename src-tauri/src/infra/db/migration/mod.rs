@@ -2,6 +2,8 @@ mod consts;
 mod repairs;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub(super) use tests::migrate_to_v17;
 
 use rusqlite::{params, Connection};
 use tracing::info;

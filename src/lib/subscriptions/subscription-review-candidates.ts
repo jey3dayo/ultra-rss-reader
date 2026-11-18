@@ -218,14 +218,7 @@ function resolveSubscriptionReviewReasonKeys({
   return reasonKeys;
 }
 
-/**
- * The newest article time known for a feed. `latest_article_at` only covers
- * articles still stored locally, so a feed whose read articles were purged
- * reports none even though it was fetched before; `last_seen_article_at` is
- * kept on the feed itself and survives those purges. Whichever is newer
- * describes the feed's last activity, and both being null means no article
- * was ever observed for the feed.
- */
+/** Includes activity retained after the latest locally stored article was purged. */
 export function resolveLatestKnownArticleAt(
   summary: Pick<FeedArticleSummaryDto, "latest_article_at" | "last_seen_article_at"> | null | undefined,
 ): string | null {

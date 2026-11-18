@@ -240,10 +240,9 @@ fn v30_backfills_last_seen_article_at_from_stored_articles() {
          VALUES ('feed-stale', 'acc-1', 'Stale', 'https://example.com/stale.xml', 'https://example.com');
          INSERT INTO feeds (id, account_id, title, url, site_url)
          VALUES ('feed-empty', 'acc-1', 'Empty', 'https://example.com/empty.xml', 'https://example.com');
-         INSERT INTO articles (id, feed_id, title, published_at, fetched_at)
-         VALUES ('a1', 'feed-stale', 'Old', '2023-01-01T00:00:00+00:00', '2023-01-02T00:00:00+00:00');
-         INSERT INTO articles (id, feed_id, title, published_at, fetched_at)
-         VALUES ('a2', 'feed-stale', 'Newer old', '2023-06-01T00:00:00+00:00', '2023-06-02T00:00:00+00:00');",
+         INSERT INTO articles (id, account_id, feed_id, title, published_at, fetched_at)
+         VALUES ('a1', 'acc-1', 'feed-stale', 'Old', '2023-01-01T00:00:00+00:00', '2023-01-02T00:00:00+00:00'),
+                ('a2', 'acc-1', 'feed-stale', 'Newer old', '2023-06-01T00:00:00+00:00', '2023-06-02T00:00:00+00:00');",
     )
     .unwrap();
 

@@ -2354,6 +2354,7 @@ describe("release repository contract", { timeout: 30_000 }, () => {
       "V27__account_folder_order_mode.sql",
       "V28__article_state_change_times.sql",
       "V29__local_account_sync_entity_change_times.sql",
+      "V30__feed_last_seen_article_at.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

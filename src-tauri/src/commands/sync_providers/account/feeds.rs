@@ -34,20 +34,18 @@ use super::db::{
     delete_pending_mutation, load_account_feeds, load_feed_ids_missing_last_seen,
     load_folder_remote_id_map, load_pending_mutations_for_account, provider_managed_feed_snapshots,
     recalculate_feed_unread_counts, recalculate_single_feed_unread_count,
-    record_feed_last_seen_article_at,
+    record_feed_last_seen_article_probe,
 };
 use super::entries::{sync_greader_account_entries, sync_greader_feed_entries};
 use super::remote_state::apply_remote_state_with_protection;
 use super::warnings::{dropped_pending_mutation_warning, pending_mutation_retry_warning};
 use super::GReaderAccountEntriesSyncOutcome;
 
-/// Recovers `last_seen_article_at` for provider-managed feeds that have no
-/// local trace of their last activity (their articles were purged before
-/// last-seen tracking existed, so entry syncs never observe them again).
-/// Each unknown feed's own stream is probed once for its newest entry;
-/// afterwards the regular entry sync keeps the value current. Probe and
-/// record failures are logged and skipped so one unreachable feed cannot
-/// fail the account sync.
+#[cfg(test)]
+mod tests;
+
+/// Recovers unknown activity once per feed, including successful undated probes.
+/// Failures retain eligibility; regular entry syncs keep known timestamps current.
 async fn backfill_missing_greader_last_seen(
     db: &Mutex<DbManager>,
     provider: &GReaderProvider,
@@ -75,22 +73,26 @@ async fn backfill_missing_greader_last_seen(
         let Some(remote_id) = feed.remote_id.as_deref() else {
             continue;
         };
-        match provider.fetch_latest_entry_published_at(remote_id).await {
-            Ok(Some(published_at)) => {
-                if let Err(error) = record_feed_last_seen_article_at(db, &feed.id, &published_at) {
+        match provider
+            .fetch_first_stream_entry_published_at(remote_id)
+            .await
+        {
+            Ok(published_at) => {
+                if let Err(error) =
+                    record_feed_last_seen_article_probe(db, &feed.id, published_at.as_ref())
+                {
                     warn!(
                         account_id = %account.id.as_ref(),
                         feed_id = %feed.id.as_ref(),
-                        "Failed to record last seen article time: {error}"
+                        "Failed to record last seen article probe: {error}"
                     );
                 }
             }
-            Ok(None) => {}
             Err(error) => {
                 warn!(
                     account_id = %account.id.as_ref(),
                     feed_id = %feed.id.as_ref(),
-                    "Failed to probe latest entry for last seen backfill: {error}"
+                    "Failed to probe first stream entry for last seen backfill: {error}"
                 );
             }
         }

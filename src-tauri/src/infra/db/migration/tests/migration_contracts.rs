@@ -1,6 +1,6 @@
 use super::super::consts::*;
 use super::super::*;
-use super::{normalize_sql, open_in_memory};
+use super::{migrate_to_v28, migrate_to_v29, normalize_sql, open_in_memory};
 
 #[test]
 fn fresh_db_migrates_to_latest() {
@@ -92,7 +92,7 @@ fn v22_file_migration_matches_inline_contract() {
 #[test]
 fn v22_allows_duplicate_last_export_digest_column_only() {
     let mut conn = open_in_memory();
-    run_migrations(&mut conn).unwrap();
+    migrate_to_v29(&conn);
     set_schema_version(&conn, 21).unwrap();
 
     let result = run_migrations(&mut conn).unwrap();
@@ -121,7 +121,7 @@ fn v24_file_migration_matches_inline_contract() {
 #[test]
 fn v24_allows_duplicate_feed_icon_url_column_only() {
     let mut conn = open_in_memory();
-    run_migrations(&mut conn).unwrap();
+    migrate_to_v29(&conn);
     set_schema_version(&conn, 23).unwrap();
 
     let result = run_migrations(&mut conn).unwrap();
@@ -165,7 +165,7 @@ fn v28_file_migration_matches_inline_contract() {
 #[test]
 fn v27_allows_duplicate_folder_order_mode_column_only() {
     let mut conn = open_in_memory();
-    run_migrations(&mut conn).unwrap();
+    migrate_to_v29(&conn);
     set_schema_version(&conn, 26).unwrap();
 
     let first = run_migrations(&mut conn).unwrap();
@@ -295,22 +295,6 @@ fn v29_trigger_names(conn: &Connection) -> Vec<String> {
     names
 }
 
-fn downgrade_to_v28(conn: &Connection) {
-    for name in v29_trigger_names(conn) {
-        conn.execute_batch(&format!("DROP TRIGGER {name}")).unwrap();
-    }
-    conn.execute_batch(
-        "DROP TABLE local_sync_tombstones;
-         DROP TABLE local_sync_apply_guard;
-         ALTER TABLE folders DROP COLUMN changed_at;
-         ALTER TABLE feeds DROP COLUMN changed_at;
-         ALTER TABLE tags DROP COLUMN changed_at;
-         ALTER TABLE article_tags DROP COLUMN changed_at;",
-    )
-    .unwrap();
-    set_schema_version(conn, 28).unwrap();
-}
-
 fn v29_changed_at_column_count(conn: &Connection) -> usize {
     ["folders", "feeds", "tags", "article_tags"]
         .iter()
@@ -320,11 +304,13 @@ fn v29_changed_at_column_count(conn: &Connection) -> usize {
 
 #[test]
 fn v29_upgrade_from_v28_adds_change_tracking_and_is_idempotent() {
-    let mut conn = open_in_memory();
-    run_migrations(&mut conn).unwrap();
-    let expected_triggers = v29_trigger_names(&conn);
+    let mut installed_v29 = open_in_memory();
+    migrate_to_v29(&installed_v29);
+    let expected_triggers = v29_trigger_names(&installed_v29);
     assert!(!expected_triggers.is_empty());
-    downgrade_to_v28(&conn);
+
+    let mut conn = open_in_memory();
+    migrate_to_v28(&conn);
     assert_eq!(v29_changed_at_column_count(&conn), 0);
     assert!(v29_trigger_names(&conn).is_empty());
 
@@ -346,11 +332,11 @@ fn v29_upgrade_from_v28_adds_change_tracking_and_is_idempotent() {
         .unwrap();
     assert_eq!(inactive_guard_rows, 1);
 
-    set_schema_version(&conn, 28).unwrap();
-    let rerun = run_migrations(&mut conn).unwrap();
+    set_schema_version(&installed_v29, 28).unwrap();
+    let rerun = run_migrations(&mut installed_v29).unwrap();
     assert_eq!(rerun.to_version, LATEST_VERSION);
-    assert_eq!(v29_changed_at_column_count(&conn), 4);
-    assert_eq!(v29_trigger_names(&conn), expected_triggers);
+    assert_eq!(v29_changed_at_column_count(&installed_v29), 4);
+    assert_eq!(v29_trigger_names(&installed_v29), expected_triggers);
 }
 
 fn migrated_with_local_sync_fixture() -> crate::infra::db::connection::DbManager {

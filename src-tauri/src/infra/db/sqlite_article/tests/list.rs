@@ -524,8 +524,7 @@ fn list_feed_article_summaries_keeps_last_seen_after_articles_are_purged() {
         .with_timezone(&Utc);
     repo.upsert(&[old_article]).unwrap();
 
-    // Retention purge (scheduler's purge_old_articles): read articles past
-    // the keep window are deleted, leaving the feed with no stored articles.
+    // Recreate a feed whose articles were purged before retention kept the newest row.
     db.writer()
         .execute(
             "DELETE FROM articles WHERE feed_id = ?1",
@@ -536,13 +535,9 @@ fn list_feed_article_summaries_keeps_last_seen_after_articles_are_purged() {
     let summaries = repo
         .list_feed_article_summaries_by_account(&account_id)
         .unwrap();
-    let summary_by_feed_id = summaries
-        .into_iter()
-        .map(|summary| (summary.feed_id.0.clone(), summary))
-        .collect::<std::collections::HashMap<_, _>>();
-
-    let stale_summary = summary_by_feed_id
-        .get(&stale_feed_id.0)
+    let stale_summary = summaries
+        .iter()
+        .find(|summary| summary.feed_id == stale_feed_id)
         .expect("stale feed summary should exist");
     assert_eq!(stale_summary.latest_article_at, None);
     assert_eq!(
@@ -551,9 +546,11 @@ fn list_feed_article_summaries_keeps_last_seen_after_articles_are_purged() {
         "the last observed article time must survive the purge"
     );
     assert_eq!(
-        summary_by_feed_id
-            .get(&empty_feed_id.0)
-            .and_then(|summary| summary.last_seen_article_at.as_deref()),
+        summaries
+            .iter()
+            .find(|summary| summary.feed_id == empty_feed_id)
+            .expect("empty feed summary should exist")
+            .last_seen_article_at,
         None,
         "a feed that was never fetched has no last seen article time"
     );

@@ -3733,7 +3733,7 @@ async fn rename_folder_rejects_http_and_non_acknowledgement_responses() {
 }
 
 #[tokio::test]
-async fn fetch_latest_entry_published_at_returns_newest_item_time_or_none() {
+async fn fetch_first_stream_entry_published_at_returns_first_item_time_or_none() {
     let mut server = mockito::Server::new_async().await;
     server
         .mock("POST", "/api/greader.php/accounts/ClientLogin")
@@ -3789,7 +3789,7 @@ async fn fetch_latest_entry_published_at_returns_newest_item_time_or_none() {
         .unwrap();
 
     let stale = provider
-        .fetch_latest_entry_published_at("feed/https://example.com/stale.xml")
+        .fetch_first_stream_entry_published_at("feed/https://example.com/stale.xml")
         .await
         .unwrap();
     assert_eq!(
@@ -3798,7 +3798,7 @@ async fn fetch_latest_entry_published_at_returns_newest_item_time_or_none() {
     );
 
     let empty = provider
-        .fetch_latest_entry_published_at("feed/https://example.com/empty.xml")
+        .fetch_first_stream_entry_published_at("feed/https://example.com/empty.xml")
         .await
         .unwrap();
     assert_eq!(empty, None);

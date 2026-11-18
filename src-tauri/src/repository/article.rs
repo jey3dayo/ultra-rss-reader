@@ -50,9 +50,7 @@ impl Default for Pagination {
 pub struct FeedArticleSummary {
     pub feed_id: FeedId,
     pub latest_article_at: Option<String>,
-    /// Newest article publication time ever observed for the feed, kept on
-    /// the feed row itself so it survives retention purges of read articles.
-    /// `None` until any sync has observed an article for the feed.
+    /// Newest recorded publication time, retained across article purges.
     pub last_seen_article_at: Option<String>,
     pub starred_count: i32,
     /// Number of visible articles published within the recent activity window

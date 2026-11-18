@@ -61,11 +61,9 @@ impl GReaderProvider {
             .collect())
     }
 
-    /// Fetches only the newest entry of one feed's own stream and returns
-    /// its publication time. Used to recover a feed's last known activity
-    /// when no entry for it has ever been materialized locally (e.g. its
-    /// read articles were all purged before last-seen tracking existed).
-    pub(crate) async fn fetch_latest_entry_published_at(
+    /// Estimates feed activity from the first entry in provider order.
+    /// FreshRSS orders by entry ID, so this may differ from the latest publication time.
+    pub(crate) async fn fetch_first_stream_entry_published_at(
         &self,
         remote_id: &str,
     ) -> DomainResult<Option<DateTime<Utc>>> {

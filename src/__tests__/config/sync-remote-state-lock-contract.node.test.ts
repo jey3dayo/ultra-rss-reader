@@ -78,7 +78,7 @@ const SYNC_PROVIDERS_LOCK_DB_ALLOWLIST: ReadonlyArray<readonly [string, string]>
   ["commands/sync_providers/account/db.rs", "recalculate_feed_unread_counts"],
   ["commands/sync_providers/account/db.rs", "recalculate_provider_managed_feed_unread_counts"],
   ["commands/sync_providers/account/db.rs", "recalculate_single_feed_unread_count"],
-  ["commands/sync_providers/account/db.rs", "record_feed_last_seen_article_at"],
+  ["commands/sync_providers/account/db.rs", "record_feed_last_seen_article_probe"],
   ["commands/sync_providers/account/db.rs", "save_feed_sync_state"],
   ["commands/sync_providers/account/db.rs", "save_greader_folders_snapshot"],
   ["commands/sync_providers/account/remote_state.rs", "apply_remote_state_with_protection"],

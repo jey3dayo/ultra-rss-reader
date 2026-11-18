@@ -135,8 +135,7 @@ pub(super) fn load_account_feeds(
     Ok(feed_repo.find_by_account(account_id)?)
 }
 
-/// Read the ids of feeds in the account whose `last_seen_article_at` is
-/// still unknown, inside a single reader lock scope.
+/// Read feeds with unknown activity whose best-effort recovery has not completed.
 pub(super) fn load_feed_ids_missing_last_seen(
     db: &Mutex<DbManager>,
     account_id: &AccountId,
@@ -144,7 +143,10 @@ pub(super) fn load_feed_ids_missing_last_seen(
     let db_guard = lock_db(db)?;
     let conn = db_guard.reader();
     let mut stmt = conn
-        .prepare("SELECT id FROM feeds WHERE account_id = ?1 AND last_seen_article_at IS NULL")
+        .prepare(
+            "SELECT id FROM feeds WHERE account_id = ?1 AND last_seen_article_at IS NULL
+             AND last_seen_article_probe_completed = 0",
+        )
         .map_err(crate::domain::error::DomainError::from)
         .map_err(AppError::from)?;
     let rows = stmt
@@ -160,16 +162,27 @@ pub(super) fn load_feed_ids_missing_last_seen(
     Ok(ids.into_iter().map(FeedId).collect())
 }
 
-/// Record an observed publication time as one feed's last seen article
-/// time, inside a single writer lock scope. Raise-only: an older probe
-/// result never moves the stored value backwards.
-pub(super) fn record_feed_last_seen_article_at(
+/// Raise the known activity time, or finish recovery without inventing a timestamp.
+pub(super) fn record_feed_last_seen_article_probe(
     db: &Mutex<DbManager>,
     feed_id: &FeedId,
-    published_at: &chrono::DateTime<chrono::Utc>,
+    published_at: Option<&chrono::DateTime<chrono::Utc>>,
 ) -> Result<(), AppError> {
     let db_guard = lock_db(db)?;
-    record_feed_last_seen_article_at_with_conn(db_guard.writer(), feed_id, published_at)?;
+    match published_at {
+        Some(published_at) => {
+            record_feed_last_seen_article_at_with_conn(db_guard.writer(), feed_id, published_at)?;
+        }
+        None => {
+            db_guard
+                .writer()
+                .execute(
+                    "UPDATE feeds SET last_seen_article_probe_completed = 1 WHERE id = ?1",
+                    rusqlite::params![feed_id.0],
+                )
+                .map_err(crate::domain::error::DomainError::from)?;
+        }
+    }
     Ok(())
 }
 

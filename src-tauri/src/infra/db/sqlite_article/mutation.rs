@@ -45,7 +45,16 @@ pub(crate) fn upsert_articles_with_conn(
            thumbnail = excluded.thumbnail,
            fetched_at = excluded.fetched_at",
     )?;
+    let mut affected_feeds = HashSet::new();
+    let mut existing_feed_stmt = conn.prepare("SELECT feed_id FROM articles WHERE id = ?1")?;
     for article in articles {
+        if let Some(feed_id) = existing_feed_stmt
+            .query_row(params![article.id.0], |row| row.get::<_, String>(0))
+            .optional()?
+        {
+            affected_feeds.insert(feed_id);
+        }
+        affected_feeds.insert(article.feed_id.0.clone());
         stmt.execute(params![
             article.id.0,
             article.feed_id.0,
@@ -65,40 +74,27 @@ pub(crate) fn upsert_articles_with_conn(
             article_body_text(&article.content_sanitized, article.summary.as_deref()),
         ])?;
     }
-    record_last_seen_article_at_for_batch(conn, articles)?;
-    Ok(())
-}
 
-/// Raises each feed's `last_seen_article_at` to the newest publication time
-/// in the batch. The value lives on the feed row so retention purges of read
-/// articles cannot erase the feed's last known activity.
-fn record_last_seen_article_at_for_batch(
-    conn: &Connection,
-    articles: &[Article],
-) -> DomainResult<()> {
-    let mut latest_by_feed: std::collections::HashMap<&str, &Article> =
-        std::collections::HashMap::new();
-    for article in articles {
-        match latest_by_feed.get(article.feed_id.0.as_str()) {
-            Some(current) if current.published_at >= article.published_at => {}
-            _ => {
-                latest_by_feed.insert(article.feed_id.0.as_str(), article);
-            }
-        }
-    }
-    for (feed_id, article) in latest_by_feed {
-        record_feed_last_seen_article_at_with_conn(
-            conn,
-            &FeedId(feed_id.to_string()),
-            &article.published_at,
+    for feed_id in affected_feeds {
+        conn.execute(
+            "UPDATE feeds
+             SET last_seen_article_at = (
+                 SELECT CASE
+                     WHEN latest IS NULL THEN last_seen_unstored_article_at
+                     WHEN julianday(last_seen_unstored_article_at) > julianday(latest)
+                         THEN last_seen_unstored_article_at
+                     ELSE latest
+                 END
+                 FROM (SELECT MAX(published_at) AS latest FROM articles WHERE feed_id = ?1)
+             )
+             WHERE id = ?1",
+            params![feed_id],
         )?;
     }
     Ok(())
 }
 
-/// Raises one feed's `last_seen_article_at` when `published_at` is newer
-/// than the stored value. Never lowers it: an older article observed later
-/// (e.g. a backfill page) must not move the feed's last activity backwards.
+/// Records activity observed without materializing an article, preserving it across later upserts.
 pub(crate) fn record_feed_last_seen_article_at_with_conn(
     conn: &Connection,
     feed_id: &FeedId,
@@ -106,10 +102,14 @@ pub(crate) fn record_feed_last_seen_article_at_with_conn(
 ) -> DomainResult<()> {
     conn.execute(
         "UPDATE feeds
-         SET last_seen_article_at = ?2
-         WHERE id = ?1
-           AND (last_seen_article_at IS NULL
-                OR julianday(last_seen_article_at) < julianday(?2))",
+         SET last_seen_article_at = CASE
+                 WHEN last_seen_article_at IS NULL OR julianday(last_seen_article_at) < julianday(?2)
+                     THEN ?2 ELSE last_seen_article_at END,
+             last_seen_unstored_article_at = CASE
+                 WHEN last_seen_unstored_article_at IS NULL
+                     OR julianday(last_seen_unstored_article_at) < julianday(?2)
+                     THEN ?2 ELSE last_seen_unstored_article_at END
+         WHERE id = ?1",
         params![feed_id.0, published_at.to_rfc3339()],
     )?;
     Ok(())

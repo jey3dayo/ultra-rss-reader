@@ -14,7 +14,7 @@ fn open_in_memory() -> Connection {
     conn
 }
 
-fn migrate_to_v19(conn: &Connection) {
+pub(in crate::infra::db) fn migrate_to_v17(conn: &Connection) {
     use super::consts::*;
     use super::repairs::*;
     use super::set_schema_version;
@@ -36,11 +36,17 @@ fn migrate_to_v19(conn: &Connection) {
     conn.execute_batch(MIGRATION_V15).unwrap();
     apply_v16_account_connection_verification(conn).unwrap();
     conn.execute_batch(MIGRATION_V17).unwrap();
+}
+
+fn migrate_to_v19(conn: &Connection) {
+    use super::consts::{MIGRATION_V18, MIGRATION_V19};
+
+    migrate_to_v17(conn);
     conn.execute_batch(MIGRATION_V18).unwrap();
     conn.execute_batch(MIGRATION_V19).unwrap();
 }
 
-fn migrate_to_v29(conn: &Connection) {
+fn migrate_to_v28(conn: &Connection) {
     use super::consts::*;
     use super::repairs::*;
 
@@ -54,7 +60,11 @@ fn migrate_to_v29(conn: &Connection) {
     conn.execute_batch(MIGRATION_V26).unwrap();
     apply_v27_account_folder_order_mode(conn).unwrap();
     apply_v28_article_state_change_times(conn).unwrap();
-    apply_v29_local_sync_entity_change_times(conn).unwrap();
+}
+
+fn migrate_to_v29(conn: &Connection) {
+    migrate_to_v28(conn);
+    super::repairs::apply_v29_local_sync_entity_change_times(conn).unwrap();
 }
 
 fn normalize_sql(sql: &str) -> String {

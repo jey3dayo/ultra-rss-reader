@@ -188,29 +188,23 @@ function createDefaultHandler(): MockHandler {
       case "list_feed_article_summaries": {
         return mockFeeds
           .filter((feed) => feed.account_id === args.accountId)
-          .map(
-            (feed) =>
-              ({
-                feed_id: feed.id,
-                latest_article_at:
-                  mockArticles
-                    .filter((article) => article.feed_id === feed.id)
-                    .map((article) => article.published_at)
-                    .toSorted()
-                    .slice(-1)[0] ?? null,
-                last_seen_article_at:
-                  mockArticles
-                    .filter((article) => article.feed_id === feed.id)
-                    .map((article) => article.published_at)
-                    .toSorted()
-                    .slice(-1)[0] ?? null,
-                starred_count: mockArticles.filter((article) => article.feed_id === feed.id && article.is_starred)
-                  .length,
-                // Deterministic stand-in for the backend's 30-day windowed count:
-                // the mock article set is small and recent, so total-per-feed is a fine proxy.
-                recent_article_count: mockArticles.filter((article) => article.feed_id === feed.id).length,
-              }) satisfies FeedArticleSummaryDto,
-          );
+          .map((feed): FeedArticleSummaryDto => {
+            const feedArticles = mockArticles.filter((article) => article.feed_id === feed.id);
+            const latestArticleAt =
+              feedArticles
+                .map((article) => article.published_at)
+                .toSorted()
+                .at(-1) ?? null;
+            return {
+              feed_id: feed.id,
+              latest_article_at: latestArticleAt,
+              last_seen_article_at: latestArticleAt,
+              starred_count: feedArticles.filter((article) => article.is_starred).length,
+              // Deterministic stand-in for the backend's 30-day windowed count:
+              // the mock article set is small and recent, so total-per-feed is a fine proxy.
+              recent_article_count: feedArticles.length,
+            };
+          });
       }
       case "list_recent_articles": {
         return structuredClone(
