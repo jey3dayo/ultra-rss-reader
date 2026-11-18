@@ -509,3 +509,49 @@ fn find_and_count_starred_by_account_ignore_unstarred_and_other_accounts() {
     );
     assert_eq!(repo.count_starred_by_account(&account_a).unwrap(), 2);
 }
+
+#[test]
+fn list_feed_article_summaries_keeps_last_seen_after_articles_are_purged() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let stale_feed_id = insert_test_feed(&db, &account_id);
+    let empty_feed_id = insert_test_feed(&db, &account_id);
+    let repo = SqliteArticleRepository::new(db.writer());
+
+    let mut old_article = make_article(&stale_feed_id, "Old article");
+    old_article.published_at = DateTime::parse_from_rfc3339("2023-01-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    repo.upsert(&[old_article]).unwrap();
+
+    // Recreate a feed whose articles were purged before retention kept the newest row.
+    db.writer()
+        .execute(
+            "DELETE FROM articles WHERE feed_id = ?1",
+            params![stale_feed_id.0],
+        )
+        .unwrap();
+
+    let summaries = repo
+        .list_feed_article_summaries_by_account(&account_id)
+        .unwrap();
+    let stale_summary = summaries
+        .iter()
+        .find(|summary| summary.feed_id == stale_feed_id)
+        .expect("stale feed summary should exist");
+    assert_eq!(stale_summary.latest_article_at, None);
+    assert_eq!(
+        stale_summary.last_seen_article_at.as_deref(),
+        Some("2023-01-01T00:00:00+00:00"),
+        "the last observed article time must survive the purge"
+    );
+    assert_eq!(
+        summaries
+            .iter()
+            .find(|summary| summary.feed_id == empty_feed_id)
+            .expect("empty feed summary should exist")
+            .last_seen_article_at,
+        None,
+        "a feed that was never fetched has no last seen article time"
+    );
+}

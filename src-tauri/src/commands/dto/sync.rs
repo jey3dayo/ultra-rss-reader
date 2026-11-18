@@ -6,6 +6,7 @@ pub const COUNT_RESPONSE_MAX_VALUE: i64 = 9_007_199_254_740_991;
 pub struct FeedArticleSummaryDto {
     pub feed_id: String,
     pub latest_article_at: Option<String>,
+    pub last_seen_article_at: Option<String>,
     pub starred_count: i32,
     pub recent_article_count: i32,
 }

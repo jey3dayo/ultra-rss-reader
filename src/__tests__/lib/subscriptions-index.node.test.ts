@@ -159,24 +159,28 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
   {
     feed_id: "feed-stale",
     latest_article_at: "2025-11-01T10:00:00Z",
+    last_seen_article_at: null,
     starred_count: 1,
     recent_article_count: 0,
   },
   {
     feed_id: "feed-active",
     latest_article_at: "2026-04-01T09:00:00Z",
+    last_seen_article_at: null,
     starred_count: 1,
     recent_article_count: 0,
   },
   {
     feed_id: "feed-mid",
     latest_article_at: "2026-01-01T12:00:00Z",
+    last_seen_article_at: null,
     starred_count: 0,
     recent_article_count: 0,
   },
   {
     feed_id: "feed-dormant",
     latest_article_at: "2026-03-15T12:00:00Z",
+    last_seen_article_at: null,
     starred_count: 0,
     recent_article_count: 0,
   },
@@ -216,6 +220,7 @@ describe("subscriptions index helpers", () => {
         {
           feed_id: "feed-stale",
           latest_article_at: "2026-01-01T23:30:00-02:00",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -335,6 +340,7 @@ describe("subscriptions index helpers", () => {
         {
           feed_id: "feed-attention",
           latest_article_at: "2026-03-06T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -469,6 +475,7 @@ describe("subscriptions index helpers", () => {
     const summary = {
       feed_id: "feed-stale",
       latest_article_at: "2025-01-01T00:00:00Z",
+      last_seen_article_at: null,
       starred_count: 7,
       recent_article_count: 0,
     };
@@ -1013,11 +1020,23 @@ describe("subscriptions index helpers", () => {
       feedArticleSummaryMap: new Map([
         [
           "feed-quiet-overloaded",
-          { feed_id: "feed-quiet-overloaded", latest_article_at: null, starred_count: 0, recent_article_count: 90 },
+          {
+            feed_id: "feed-quiet-overloaded",
+            latest_article_at: null,
+            last_seen_article_at: null,
+            starred_count: 0,
+            recent_article_count: 90,
+          },
         ],
         [
           "feed-active",
-          { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 89 },
+          {
+            feed_id: "feed-active",
+            latest_article_at: null,
+            last_seen_article_at: null,
+            starred_count: 0,
+            recent_article_count: 89,
+          },
         ],
       ]),
       folderNameById: new Map([["folder-work", "Work"]]),
@@ -1038,12 +1057,45 @@ describe("subscriptions index helpers", () => {
   it("keeps the frequent card count consistent with the filtered list and does not hide deferred overloaded feeds", () => {
     const overloadedFeeds = [{ ...feeds[1], unread_count: 100 }, feeds[0], feeds[2], feeds[3]];
     const frequentSummaryMap = new Map([
-      ["feed-active", { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 90 }],
-      ["feed-mid", { feed_id: "feed-mid", latest_article_at: null, starred_count: 0, recent_article_count: 95 }],
-      ["feed-stale", { feed_id: "feed-stale", latest_article_at: null, starred_count: 0, recent_article_count: 95 }],
+      [
+        "feed-active",
+        {
+          feed_id: "feed-active",
+          latest_article_at: null,
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 90,
+        },
+      ],
+      [
+        "feed-mid",
+        {
+          feed_id: "feed-mid",
+          latest_article_at: null,
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 95,
+        },
+      ],
+      [
+        "feed-stale",
+        {
+          feed_id: "feed-stale",
+          latest_article_at: null,
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 95,
+        },
+      ],
       [
         "feed-dormant",
-        { feed_id: "feed-dormant", latest_article_at: null, starred_count: 0, recent_article_count: 95 },
+        {
+          feed_id: "feed-dormant",
+          latest_article_at: null,
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 95,
+        },
       ],
     ]);
     const rows = buildSubscriptionListRows({
@@ -1203,24 +1255,28 @@ describe("subscriptions index helpers", () => {
         {
           feed_id: "feed-invalid-z",
           latest_article_at: "not-a-date",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-valid",
           latest_article_at: "2026-04-01T09:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-invalid-a",
           latest_article_at: "",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-invalid-b",
           latest_article_at: "invalid-date",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -1258,6 +1314,7 @@ describe("subscriptions index helpers", () => {
         tieFeeds.map((feed) => ({
           feed_id: feed.id,
           latest_article_at: "2026-04-01T09:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         })),

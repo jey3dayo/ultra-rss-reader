@@ -4,6 +4,7 @@ import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
   buildSubscriptionReviewReasonFacts,
+  resolveLatestKnownArticleAt,
   resolveSubscriptionCleanupRecommendation,
   resolveSubscriptionReviewReasonFactTranslationKey,
   resolveSubscriptionReviewSummaryTranslationKey,
@@ -65,18 +66,21 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
   {
     feed_id: "feed-stale",
     latest_article_at: "2025-11-01T10:00:00Z",
+    last_seen_article_at: null,
     starred_count: 1,
     recent_article_count: 0,
   },
   {
     feed_id: "feed-active",
     latest_article_at: "2026-04-01T09:00:00Z",
+    last_seen_article_at: null,
     starred_count: 1,
     recent_article_count: 0,
   },
   {
     feed_id: "feed-mid",
     latest_article_at: "2026-01-01T12:00:00Z",
+    last_seen_article_at: null,
     starred_count: 0,
     recent_article_count: 0,
   },
@@ -102,12 +106,14 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-duplicate-folder",
           latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-blank-folder",
           latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -160,12 +166,14 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-duplicate-summary",
           latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-duplicate-summary",
           latest_article_at: "2025-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 7,
           recent_article_count: 0,
         },
@@ -234,12 +242,14 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-stale-boundary",
           latest_article_at: "2026-01-05T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-recent-boundary",
           latest_article_at: "2026-01-06T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -273,36 +283,42 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-quiet-boundary",
           latest_article_at: "2026-03-06T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-recent-unread-boundary",
           latest_article_at: "2026-03-07T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-quiet-with-unread",
           latest_article_at: "2026-03-06T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-review-boundary",
           latest_article_at: "2026-02-04T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-review-recent-boundary",
           latest_article_at: "2026-02-05T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-review-with-unread",
           latest_article_at: "2026-02-04T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
@@ -353,12 +369,14 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-stale",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-future",
           latest_article_at: "2026-04-06T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -398,12 +416,14 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-dst-boundary",
           latest_article_at: "2026-03-08T05:30:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-timezone-boundary",
           latest_article_at: "2026-01-05T23:30:00-05:00",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -430,6 +450,7 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-invalid-date",
           latest_article_at: "not-a-date",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -484,18 +505,21 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-hidden-critical",
           latest_article_at: "2025-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-visible-medium",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-visible-low",
           latest_article_at: "2026-03-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -561,6 +585,7 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-negative-signals",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: -3,
           recent_article_count: -3,
         },
@@ -612,30 +637,35 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-low-reasons",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 2,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-more-reasons",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 2,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-fewer-unread",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 0,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-fewer-stars",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 10,
           recent_article_count: 0,
         },
         {
           feed_id: "feed-title-tie",
           latest_article_at: "2026-01-01T00:00:00Z",
+          last_seen_article_at: null,
           starred_count: 1,
           recent_article_count: 0,
         },
@@ -787,5 +817,103 @@ describe("buildSubscriptionReviewCandidates", () => {
   it("resolves review reason fact translation keys", () => {
     expect(resolveSubscriptionReviewReasonFactTranslationKey("stale_days")).toBe("fact_stale_days");
     expect(resolveSubscriptionReviewReasonFactTranslationKey("unread_count")).toBe("fact_unread_count");
+  });
+  it("marks a feed as stale from last_seen_article_at when its stored articles were purged", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        {
+          id: "feed-purged",
+          account_id: "acc-1",
+          folder_id: null,
+          remote_id: null,
+          title: "Purged Feed",
+          url: "https://example.com/purged.xml",
+          site_url: "https://example.com/purged",
+          icon_url: null,
+          unread_count: 0,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-purged",
+          latest_article_at: null,
+          last_seen_article_at: "2023-01-01T00:00:00Z",
+          starred_count: 0,
+          recent_article_count: 0,
+        },
+      ],
+      now: new Date("2026-11-18T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates[0]).toMatchObject({
+      feedId: "feed-purged",
+      latestArticleAt: "2023-01-01T00:00:00Z",
+      reasonKeys: ["stale_90d", "quiet_no_unread"],
+    });
+    expect(summarizeSubscriptionReviewCandidate(candidates[0])).toMatchObject({
+      tone: "high",
+      titleKey: "review_now",
+      summaryKey: "stale_and_inactive",
+    });
+  });
+
+  it("does not mark a feed as a review candidate when no article was ever observed", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        {
+          id: "feed-never-fetched",
+          account_id: "acc-1",
+          folder_id: null,
+          remote_id: null,
+          title: "Never Fetched Feed",
+          url: "https://example.com/never.xml",
+          site_url: "https://example.com/never",
+          icon_url: null,
+          unread_count: 0,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-never-fetched",
+          latest_article_at: null,
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 0,
+        },
+      ],
+      now: new Date("2026-11-18T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates[0]).toMatchObject({
+      feedId: "feed-never-fetched",
+      latestArticleAt: null,
+      reasonKeys: [],
+    });
+  });
+
+  it("resolveLatestKnownArticleAt picks the newer of latest and last seen", () => {
+    expect(
+      resolveLatestKnownArticleAt({
+        latest_article_at: "2026-04-01T00:00:00Z",
+        last_seen_article_at: "2026-03-01T00:00:00Z",
+      }),
+    ).toBe("2026-04-01T00:00:00Z");
+    expect(
+      resolveLatestKnownArticleAt({
+        latest_article_at: "2026-03-01T00:00:00Z",
+        last_seen_article_at: "2026-04-01T00:00:00Z",
+      }),
+    ).toBe("2026-04-01T00:00:00Z");
+    expect(resolveLatestKnownArticleAt({ latest_article_at: null, last_seen_article_at: null })).toBeNull();
+    expect(resolveLatestKnownArticleAt(null)).toBeNull();
+    expect(resolveLatestKnownArticleAt(undefined)).toBeNull();
   });
 });

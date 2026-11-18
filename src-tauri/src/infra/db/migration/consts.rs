@@ -45,6 +45,8 @@ pub(super) const MIGRATION_V25: &str =
     include_str!("../../../../migrations/V25__folder_name_scope.sql");
 pub(super) const MIGRATION_V26: &str =
     include_str!("../../../../migrations/V26__sanitizer_version_backfill_index.sql");
+pub(super) const MIGRATION_V30: &str =
+    include_str!("../../../../migrations/V30__feed_last_seen_article_at.sql");
 #[cfg(test)]
 pub(super) const MIGRATION_V27: &str =
     include_str!("../../../../migrations/V27__account_folder_order_mode.sql");

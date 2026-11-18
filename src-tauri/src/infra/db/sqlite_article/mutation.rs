@@ -45,7 +45,16 @@ pub(crate) fn upsert_articles_with_conn(
            thumbnail = excluded.thumbnail,
            fetched_at = excluded.fetched_at",
     )?;
+    let mut affected_feeds = HashSet::new();
+    let mut existing_feed_stmt = conn.prepare("SELECT feed_id FROM articles WHERE id = ?1")?;
     for article in articles {
+        if let Some(feed_id) = existing_feed_stmt
+            .query_row(params![article.id.0], |row| row.get::<_, String>(0))
+            .optional()?
+        {
+            affected_feeds.insert(feed_id);
+        }
+        affected_feeds.insert(article.feed_id.0.clone());
         stmt.execute(params![
             article.id.0,
             article.feed_id.0,
@@ -65,6 +74,44 @@ pub(crate) fn upsert_articles_with_conn(
             article_body_text(&article.content_sanitized, article.summary.as_deref()),
         ])?;
     }
+
+    for feed_id in affected_feeds {
+        conn.execute(
+            "UPDATE feeds
+             SET last_seen_article_at = (
+                 SELECT CASE
+                     WHEN latest IS NULL THEN last_seen_unstored_article_at
+                     WHEN julianday(last_seen_unstored_article_at) > julianday(latest)
+                         THEN last_seen_unstored_article_at
+                     ELSE latest
+                 END
+                 FROM (SELECT MAX(published_at) AS latest FROM articles WHERE feed_id = ?1)
+             )
+             WHERE id = ?1",
+            params![feed_id],
+        )?;
+    }
+    Ok(())
+}
+
+/// Records activity observed without materializing an article, preserving it across later upserts.
+pub(crate) fn record_feed_last_seen_article_at_with_conn(
+    conn: &Connection,
+    feed_id: &FeedId,
+    published_at: &chrono::DateTime<Utc>,
+) -> DomainResult<()> {
+    conn.execute(
+        "UPDATE feeds
+         SET last_seen_article_at = CASE
+                 WHEN last_seen_article_at IS NULL OR julianday(last_seen_article_at) < julianday(?2)
+                     THEN ?2 ELSE last_seen_article_at END,
+             last_seen_unstored_article_at = CASE
+                 WHEN last_seen_unstored_article_at IS NULL
+                     OR julianday(last_seen_unstored_article_at) < julianday(?2)
+                     THEN ?2 ELSE last_seen_unstored_article_at END
+         WHERE id = ?1",
+        params![feed_id.0, published_at.to_rfc3339()],
+    )?;
     Ok(())
 }
 

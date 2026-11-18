@@ -28,6 +28,7 @@ const makeFeedArticleSummary = (
   overrides: Partial<FeedArticleSummaryDto> & { feed_id: string },
 ): FeedArticleSummaryDto => ({
   latest_article_at: null,
+  last_seen_article_at: null,
   starred_count: 0,
   recent_article_count: 0,
   ...overrides,

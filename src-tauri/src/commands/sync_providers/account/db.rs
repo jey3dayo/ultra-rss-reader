@@ -19,7 +19,9 @@ use crate::domain::folder::Folder;
 use crate::domain::provider::{RemoteFolder, GREADER_FEED_ID_PREFIX};
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
-use crate::infra::db::sqlite_article::SqliteArticleRepository;
+use crate::infra::db::sqlite_article::{
+    record_feed_last_seen_article_at_with_conn, SqliteArticleRepository,
+};
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
@@ -131,6 +133,57 @@ pub(super) fn load_account_feeds(
     let db_guard = lock_db(db)?;
     let feed_repo = SqliteFeedRepository::new(db_guard.reader());
     Ok(feed_repo.find_by_account(account_id)?)
+}
+
+/// Read feeds with unknown activity whose best-effort recovery has not completed.
+pub(super) fn load_feed_ids_missing_last_seen(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<Vec<FeedId>, AppError> {
+    let db_guard = lock_db(db)?;
+    let conn = db_guard.reader();
+    let mut stmt = conn
+        .prepare(
+            "SELECT id FROM feeds WHERE account_id = ?1 AND last_seen_article_at IS NULL
+             AND last_seen_article_probe_completed = 0",
+        )
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    let rows = stmt
+        .query_map(rusqlite::params![account_id.0], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    let ids = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    Ok(ids.into_iter().map(FeedId).collect())
+}
+
+/// Raise the known activity time, or finish recovery without inventing a timestamp.
+pub(super) fn record_feed_last_seen_article_probe(
+    db: &Mutex<DbManager>,
+    feed_id: &FeedId,
+    published_at: Option<&chrono::DateTime<chrono::Utc>>,
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    match published_at {
+        Some(published_at) => {
+            record_feed_last_seen_article_at_with_conn(db_guard.writer(), feed_id, published_at)?;
+        }
+        None => {
+            db_guard
+                .writer()
+                .execute(
+                    "UPDATE feeds SET last_seen_article_probe_completed = 1 WHERE id = ?1",
+                    rusqlite::params![feed_id.0],
+                )
+                .map_err(crate::domain::error::DomainError::from)?;
+        }
+    }
+    Ok(())
 }
 
 /// Recalculate unread counts for the GReader provider-managed subset of

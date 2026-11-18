@@ -161,18 +161,21 @@ describe("SubscriptionsIndexPage", () => {
             {
               feed_id: "feed-1",
               latest_article_at: "2024-01-01T10:00:00Z",
+              last_seen_article_at: null,
               starred_count: 0,
               recent_article_count: 0,
             },
             {
               feed_id: "feed-2",
               latest_article_at: "2099-04-01T10:00:00Z",
+              last_seen_article_at: null,
               starred_count: 1,
               recent_article_count: 0,
             },
             {
               feed_id: "feed-3",
               latest_article_at: "2026-03-15T10:00:00Z",
+              last_seen_article_at: null,
               starred_count: 0,
               recent_article_count: 0,
             },
@@ -945,6 +948,7 @@ describe("SubscriptionsIndexPage", () => {
             {
               feed_id: "feed-boundary",
               latest_article_at: "2026-01-01T00:00:00Z",
+              last_seen_article_at: null,
               starred_count: 1,
               recent_article_count: 0,
             },
@@ -1006,6 +1010,7 @@ describe("SubscriptionsIndexPage", () => {
             {
               feed_id: "feed-boundary",
               latest_article_at: "2026-01-01T00:00:00Z",
+              last_seen_article_at: null,
               starred_count: 1,
               recent_article_count: 0,
             },

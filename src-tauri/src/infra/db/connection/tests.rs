@@ -995,43 +995,30 @@ fn migration_success_keeps_latest_three_backups_and_reconciles_startup_repairs()
     let db_path = dir.path().join("retention-reconcile.db");
 
     {
-        let db = DbManager::new(&db_path).unwrap();
-        db.writer()
-            .execute("DROP INDEX idx_pending_mutations_unique_entry_type", [])
-            .unwrap();
-        db.writer()
-            .execute("DROP INDEX idx_articles_feed_published_fetched_id", [])
-            .unwrap();
-        db.writer()
-            .execute("DELETE FROM schema_version", [])
-            .unwrap();
-        db.writer()
-            .execute("INSERT INTO schema_version (version) VALUES (17)", [])
-            .unwrap();
-        db.writer()
-            .execute(
-                "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
-                [],
-            )
-            .unwrap();
-        db.writer()
+        let conn = Connection::open(&db_path).unwrap();
+        super::super::migration::migrate_to_v17(&conn);
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+            [],
+        )
+        .unwrap();
+        conn
             .execute(
                 "INSERT INTO feeds (id, account_id, title, url, unread_count) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 0)",
                 [],
             )
             .unwrap();
-        db.writer()
-            .execute(
-                "INSERT INTO articles (
+        conn.execute(
+            "INSERT INTO articles (
                     id, feed_id, title, content_raw, content_sanitized, content_text,
                     sanitizer_version, published_at, fetched_at, is_read
                  ) VALUES (
                     'art-1', 'f1', 'Unread', '', '<p>Readable body</p>', '',
                     1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0
                  )",
-                [],
-            )
-            .unwrap();
+            [],
+        )
+        .unwrap();
     }
 
     let backup_dir = crate::infra::db::backup::backup_path(&db_path, 17)

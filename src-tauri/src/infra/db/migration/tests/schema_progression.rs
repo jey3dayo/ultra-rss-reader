@@ -1,6 +1,6 @@
 use super::super::consts::*;
 use super::super::*;
-use super::{migrate_to_v19, open_in_memory};
+use super::{migrate_to_v19, migrate_to_v29, open_in_memory};
 
 #[test]
 fn version_skip_v1_to_latest() {
@@ -225,5 +225,53 @@ fn v20_repairs_existing_article_account_id_mismatches() {
             ("article-null".to_string(), "acc-b".to_string()),
             ("article-wrong".to_string(), "acc-a".to_string())
         ]
+    );
+}
+
+#[test]
+fn v30_backfills_last_seen_article_at_from_stored_articles() {
+    let mut conn = open_in_memory();
+    migrate_to_v29(&conn);
+    assert_eq!(get_schema_version(&conn), 29);
+
+    conn.execute_batch(
+        "INSERT INTO accounts (id, kind, name) VALUES ('acc-1', 'FreshRSS', 'Test');
+         INSERT INTO feeds (id, account_id, title, url, site_url)
+         VALUES ('feed-stale', 'acc-1', 'Stale', 'https://example.com/stale.xml', 'https://example.com');
+         INSERT INTO feeds (id, account_id, title, url, site_url)
+         VALUES ('feed-empty', 'acc-1', 'Empty', 'https://example.com/empty.xml', 'https://example.com');
+         INSERT INTO articles (id, account_id, feed_id, title, published_at, fetched_at)
+         VALUES ('a1', 'acc-1', 'feed-stale', 'Old', '2023-01-01T00:00:00+00:00', '2023-01-02T00:00:00+00:00'),
+                ('a2', 'acc-1', 'feed-stale', 'Newer old', '2023-06-01T00:00:00+00:00', '2023-06-02T00:00:00+00:00');",
+    )
+    .unwrap();
+
+    let result = run_migrations(&mut conn).unwrap();
+    assert_eq!(result.from_version, 29);
+    assert_eq!(result.to_version, 30);
+
+    let stale_last_seen: Option<String> = conn
+        .query_row(
+            "SELECT last_seen_article_at FROM feeds WHERE id = 'feed-stale'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        stale_last_seen.as_deref(),
+        Some("2023-06-01T00:00:00+00:00"),
+        "backfill must take the newest stored article per feed"
+    );
+
+    let empty_last_seen: Option<String> = conn
+        .query_row(
+            "SELECT last_seen_article_at FROM feeds WHERE id = 'feed-empty'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        empty_last_seen, None,
+        "a feed with no stored articles stays unknown until a sync observes one"
     );
 }

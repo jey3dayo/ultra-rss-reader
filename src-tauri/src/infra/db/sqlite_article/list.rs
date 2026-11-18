@@ -30,6 +30,7 @@ impl ArticleListRepository for SqliteArticleRepository<'_> {
             "SELECT
                 f.id,
                 MAX(CASE WHEN {article_visible_clause} THEN a.published_at ELSE NULL END) AS latest_article_at,
+                f.last_seen_article_at AS last_seen_article_at,
                 COALESCE(SUM(CASE WHEN {article_visible_clause} AND a.is_starred = 1 THEN 1 ELSE 0 END), 0) AS starred_count,
                 COALESCE(SUM(CASE WHEN {article_visible_clause} AND {recent_window_clause} THEN 1 ELSE 0 END), 0) AS recent_article_count
              FROM feeds f
@@ -44,8 +45,9 @@ impl ArticleListRepository for SqliteArticleRepository<'_> {
                 Ok(FeedArticleSummary {
                     feed_id: FeedId(row.get(0)?),
                     latest_article_at: row.get(1)?,
-                    starred_count: row.get(2)?,
-                    recent_article_count: row.get(3)?,
+                    last_seen_article_at: row.get(2)?,
+                    starred_count: row.get(3)?,
+                    recent_article_count: row.get(4)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;

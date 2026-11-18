@@ -794,8 +794,20 @@ describe("Sidebar", () => {
     ];
     sidebarSourceOverrides.feedArticleSummariesEnabled = true;
     sidebarSourceOverrides.feedArticleSummariesData = [
-      { feed_id: "feed-starred", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
-      { feed_id: "feed-plain", latest_article_at: null, starred_count: 0, recent_article_count: 0 },
+      {
+        feed_id: "feed-starred",
+        latest_article_at: null,
+        last_seen_article_at: null,
+        starred_count: 1,
+        recent_article_count: 0,
+      },
+      {
+        feed_id: "feed-plain",
+        latest_article_at: null,
+        last_seen_article_at: null,
+        starred_count: 0,
+        recent_article_count: 0,
+      },
     ];
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -827,7 +839,13 @@ describe("Sidebar", () => {
     const user = userEvent.setup();
     sidebarSourceOverrides.feedArticleSummariesEnabled = true;
     sidebarSourceOverrides.feedArticleSummariesData = [
-      { feed_id: "feed-1", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
+      {
+        feed_id: "feed-1",
+        latest_article_at: null,
+        last_seen_article_at: null,
+        starred_count: 1,
+        recent_article_count: 0,
+      },
     ];
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -851,7 +869,13 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.foldersData = [];
     sidebarSourceOverrides.feedArticleSummariesEnabled = true;
     sidebarSourceOverrides.feedArticleSummariesData = [
-      { feed_id: "feed-starred", latest_article_at: null, starred_count: 1, recent_article_count: 0 },
+      {
+        feed_id: "feed-starred",
+        latest_article_at: null,
+        last_seen_article_at: null,
+        starred_count: 1,
+        recent_article_count: 0,
+      },
     ];
     useUiStore.setState({
       ...useUiStore.getInitialState(),

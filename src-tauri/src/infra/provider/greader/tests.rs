@@ -3731,3 +3731,78 @@ async fn rename_folder_rejects_http_and_non_acknowledgement_responses() {
         request.remove_async().await;
     }
 }
+
+#[tokio::test]
+async fn fetch_first_stream_entry_published_at_returns_first_item_time_or_none() {
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("POST", "/api/greader.php/accounts/ClientLogin")
+        .with_status(200)
+        .with_body("Auth=tok\n")
+        .create_async()
+        .await;
+    let stale_mock = server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Fstale.xml",
+        )
+        .match_query(mockito::Matcher::AllOf(vec![
+            mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+            mockito::Matcher::UrlEncoded("n".into(), "1".into()),
+        ]))
+        .with_greader_response(ProviderHttpResponseFixture::json(
+            r#"{
+                "items": [
+                    {
+                        "id": "entry-old",
+                        "title": "Last post",
+                        "published": 1672531200,
+                        "updated": 1672531200,
+                        "origin": { "streamId": "feed/https://example.com/stale.xml" },
+                        "categories": ["user/-/state/com.google/reading-list", "user/-/state/com.google/read"]
+                    }
+                ]
+            }"#,
+        ))
+        .create_async()
+        .await;
+    let empty_mock = server
+        .mock(
+            "GET",
+            "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Fempty.xml",
+        )
+        .match_query(mockito::Matcher::AllOf(vec![
+            mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+            mockito::Matcher::UrlEncoded("n".into(), "1".into()),
+        ]))
+        .with_greader_response(ProviderHttpResponseFixture::json(r#"{ "items": [] }"#))
+        .create_async()
+        .await;
+
+    let mut provider = GReaderProvider::try_for_freshrss(&server.url()).unwrap();
+    provider
+        .authenticate(&Credentials {
+            password: Some("p".into()),
+            token: Some("u".into()),
+        })
+        .await
+        .unwrap();
+
+    let stale = provider
+        .fetch_first_stream_entry_published_at("feed/https://example.com/stale.xml")
+        .await
+        .unwrap();
+    assert_eq!(
+        stale.map(|ts| ts.to_rfc3339()),
+        Some("2023-01-01T00:00:00+00:00".to_string())
+    );
+
+    let empty = provider
+        .fetch_first_stream_entry_published_at("feed/https://example.com/empty.xml")
+        .await
+        .unwrap();
+    assert_eq!(empty, None);
+
+    stale_mock.assert_async().await;
+    empty_mock.assert_async().await;
+}

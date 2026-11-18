@@ -102,7 +102,7 @@ fn upsert_inserts_provided_published_at_on_first_insert() {
 }
 
 #[test]
-fn upsert_preserves_older_published_at_on_update() {
+fn upsert_preserves_older_published_at_and_feed_last_seen_on_update() {
     let db = test_db();
     let account_id = insert_test_account(&db);
     let feed_id = insert_test_feed(&db, &account_id);
@@ -122,17 +122,24 @@ fn upsert_preserves_older_published_at_on_update() {
     article.published_at = t2;
     repo.upsert(std::slice::from_ref(&article)).unwrap();
 
-    let published_at: String = db
+    let (published_at, last_seen_article_at): (String, Option<String>) = db
         .reader()
         .query_row(
-            "SELECT published_at FROM articles WHERE id = ?1",
+            "SELECT a.published_at, f.last_seen_article_at
+             FROM articles a JOIN feeds f ON f.id = a.feed_id
+             WHERE a.id = ?1",
             params![article.id.0],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .unwrap();
     assert_eq!(
         published_at, "2026-01-01T00:00:00+00:00",
         "existing older published_at should be preserved across re-sync"
+    );
+    assert_eq!(
+        last_seen_article_at.as_deref(),
+        Some("2026-01-01T00:00:00+00:00"),
+        "a synthesized newer date should not advance the feed's last activity"
     );
 }
 
@@ -169,6 +176,15 @@ fn upsert_accepts_older_real_published_at_on_update() {
         published_at, "2026-01-01T00:00:00+00:00",
         "an older real published_at delivered later should replace the synthesized value"
     );
+    let last_seen: Option<String> = db
+        .reader()
+        .query_row(
+            "SELECT last_seen_article_at FROM feeds WHERE id = ?1",
+            params![feed_id.0],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(last_seen.as_deref(), Some("2026-01-01T00:00:00+00:00"));
 }
 
 #[test]
@@ -411,4 +427,166 @@ fn mark_many_as_read_with_empty_ids_is_repository_noop() {
     let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
     assert_eq!(found.len(), 1);
     assert!(found[0].is_read);
+}
+
+#[test]
+fn upsert_preserves_feed_last_seen_when_backfilling_an_independent_older_article() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let feed_id = insert_test_feed(&db, &account_id);
+    let repo = SqliteArticleRepository::new(db.writer());
+
+    let mut older = make_article(&feed_id, "Older");
+    older.published_at = DateTime::parse_from_rfc3339("2025-01-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    let mut newest = make_article(&feed_id, "Newest");
+    newest.published_at = DateTime::parse_from_rfc3339("2025-02-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    repo.upsert(&[older, newest]).unwrap();
+
+    let read_last_seen = |db: &DbManager| -> Option<String> {
+        db.reader()
+            .query_row(
+                "SELECT last_seen_article_at FROM feeds WHERE id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap()
+    };
+    assert_eq!(
+        read_last_seen(&db).as_deref(),
+        Some("2025-02-01T00:00:00+00:00")
+    );
+
+    // A later batch carrying only an older article (e.g. a backfill page of
+    // an old feed) must not move the feed's last activity backwards.
+    let mut oldest = make_article(&feed_id, "Oldest");
+    oldest.published_at = DateTime::parse_from_rfc3339("2024-06-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    repo.upsert(&[oldest]).unwrap();
+    assert_eq!(
+        read_last_seen(&db).as_deref(),
+        Some("2025-02-01T00:00:00+00:00")
+    );
+}
+
+#[test]
+fn upsert_tracks_final_published_at_for_duplicate_article_ids() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let feed_id = insert_test_feed(&db, &account_id);
+    let repo = SqliteArticleRepository::new(db.writer());
+
+    let mut synthesized = make_article(&feed_id, "Duplicate article");
+    synthesized.published_at = DateTime::parse_from_rfc3339("2026-06-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    let mut corrected = synthesized.clone();
+    corrected.published_at = DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    let article_id = corrected.id.clone();
+    let mut latest = make_article(&feed_id, "Latest stored article");
+    latest.published_at = DateTime::parse_from_rfc3339("2026-02-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+
+    repo.upsert(&[synthesized, corrected, latest]).unwrap();
+
+    let (published_at, last_seen_article_at): (String, Option<String>) = db
+        .reader()
+        .query_row(
+            "SELECT a.published_at, f.last_seen_article_at
+             FROM articles a JOIN feeds f ON f.id = a.feed_id
+             WHERE a.id = ?1",
+            params![article_id.0],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(published_at, "2026-01-01T00:00:00+00:00");
+    assert_eq!(
+        last_seen_article_at.as_deref(),
+        Some("2026-02-01T00:00:00+00:00"),
+        "only final stored dates should contribute to feed activity within a batch"
+    );
+}
+
+#[test]
+fn upsert_date_correction_preserves_newer_live_and_unstored_activity() {
+    for history in ["live", "purged", "probed"] {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let mut article = make_article(&feed_id, "Corrected article");
+        article.published_at = DateTime::parse_from_rfc3339("2026-06-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        let mut newer = make_article(&feed_id, "Newer activity");
+        newer.published_at = DateTime::parse_from_rfc3339("2026-02-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        if history == "probed" {
+            record_feed_last_seen_article_at_with_conn(db.writer(), &feed_id, &newer.published_at)
+                .unwrap();
+        } else {
+            repo.upsert(std::slice::from_ref(&newer)).unwrap();
+            if history == "purged" {
+                db.writer()
+                    .execute("DELETE FROM articles WHERE id = ?1", params![newer.id.0])
+                    .unwrap();
+            }
+        }
+        article.published_at = DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        repo.upsert(&[article]).unwrap();
+        let last_seen: Option<String> = db
+            .reader()
+            .query_row(
+                "SELECT last_seen_article_at FROM feeds WHERE id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            last_seen.as_deref(),
+            Some("2026-02-01T00:00:00+00:00"),
+            "{history}"
+        );
+    }
+}
+
+#[test]
+fn upsert_moving_article_refreshes_both_feed_activity_dates() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let original_feed = insert_test_feed(&db, &account_id);
+    let destination_feed = insert_test_feed(&db, &account_id);
+    let repo = SqliteArticleRepository::new(db.writer());
+    let mut article = make_article(&original_feed, "Moved article");
+    article.published_at = DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    repo.upsert(std::slice::from_ref(&article)).unwrap();
+    article.feed_id = destination_feed.clone();
+    repo.upsert(&[article]).unwrap();
+    let activity = |feed_id: &FeedId| -> Option<String> {
+        db.reader()
+            .query_row(
+                "SELECT last_seen_article_at FROM feeds WHERE id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap()
+    };
+    assert_eq!(activity(&original_feed), None);
+    assert_eq!(
+        activity(&destination_feed).as_deref(),
+        Some("2026-01-01T00:00:00+00:00")
+    );
 }

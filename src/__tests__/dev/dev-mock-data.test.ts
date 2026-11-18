@@ -42,6 +42,7 @@ function buildMockFeedArticleSummaries() {
     return {
       feed_id: feed.id,
       latest_article_at: latestArticleAt ?? null,
+      last_seen_article_at: latestArticleAt ?? null,
       starred_count: feedArticles.filter((article) => article.is_starred).length,
       recent_article_count: feedArticles.length,
     };

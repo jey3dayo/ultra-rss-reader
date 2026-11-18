@@ -819,6 +819,7 @@ describe("DTO schemas", () => {
     const data = {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
+      last_seen_article_at: "2026-04-01T10:00:00Z",
       starred_count: 2,
       recent_article_count: 12,
     };
@@ -827,11 +828,16 @@ describe("DTO schemas", () => {
       ...data,
       latest_article_at: null,
     });
+    expect(parse(FeedArticleSummaryDtoSchema, { ...data, last_seen_article_at: null })).toEqual({
+      ...data,
+      last_seen_article_at: null,
+    });
   });
   it("rejects invalid feed summary starred counts", () => {
     const data = {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
+      last_seen_article_at: "2026-04-01T10:00:00Z",
       starred_count: 0,
       recent_article_count: 0,
     };
@@ -867,6 +873,7 @@ describe("DTO schemas", () => {
     const data = {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
+      last_seen_article_at: "2026-04-01T10:00:00Z",
       starred_count: 0,
       recent_article_count: 0,
     };

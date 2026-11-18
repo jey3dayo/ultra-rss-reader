@@ -68,6 +68,7 @@ const SYNC_PROVIDERS_REL_DIR = "commands/sync_providers";
 const SYNC_PROVIDERS_LOCK_DB_ALLOWLIST: ReadonlyArray<readonly [string, string]> = [
   ["commands/sync_providers/account/db.rs", "delete_pending_mutation"],
   ["commands/sync_providers/account/db.rs", "load_account_feeds"],
+  ["commands/sync_providers/account/db.rs", "load_feed_ids_missing_last_seen"],
   ["commands/sync_providers/account/db.rs", "load_feed_sync_state"],
   ["commands/sync_providers/account/db.rs", "load_folder_remote_id_map"],
   ["commands/sync_providers/account/db.rs", "load_pending_mutations_for_account"],
@@ -77,6 +78,7 @@ const SYNC_PROVIDERS_LOCK_DB_ALLOWLIST: ReadonlyArray<readonly [string, string]>
   ["commands/sync_providers/account/db.rs", "recalculate_feed_unread_counts"],
   ["commands/sync_providers/account/db.rs", "recalculate_provider_managed_feed_unread_counts"],
   ["commands/sync_providers/account/db.rs", "recalculate_single_feed_unread_count"],
+  ["commands/sync_providers/account/db.rs", "record_feed_last_seen_article_probe"],
   ["commands/sync_providers/account/db.rs", "save_feed_sync_state"],
   ["commands/sync_providers/account/db.rs", "save_greader_folders_snapshot"],
   ["commands/sync_providers/account/remote_state.rs", "apply_remote_state_with_protection"],

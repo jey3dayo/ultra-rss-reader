@@ -892,18 +892,21 @@ describe("setupDevMocks", () => {
       {
         feed_id: "feed-automaton",
         latest_article_at: accountArticles[0]?.published_at,
+        last_seen_article_at: accountArticles[0]?.published_at,
         starred_count: 0,
         recent_article_count: 3,
       },
       {
         feed_id: "feed-hatima",
         latest_article_at: null,
+        last_seen_article_at: null,
         starred_count: 0,
         recent_article_count: 0,
       },
       {
         feed_id: "feed-yumenavi",
         latest_article_at: null,
+        last_seen_article_at: null,
         starred_count: 0,
         recent_article_count: 0,
       },

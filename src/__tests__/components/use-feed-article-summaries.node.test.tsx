@@ -22,13 +22,17 @@ describe("useFeedArticleSummaries", () => {
 
   it("keeps the query disabled without an account id and clears previous account data", async () => {
     const initialProps: HookProps = { accountId: "acc-1" };
-    const listFeedArticleSummariesSpy = vi
-      .spyOn(tauriCommands, "listFeedArticleSummaries")
-      .mockResolvedValue(
-        Result.succeed([
-          { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
-        ]),
-      );
+    const listFeedArticleSummariesSpy = vi.spyOn(tauriCommands, "listFeedArticleSummaries").mockResolvedValue(
+      Result.succeed([
+        {
+          feed_id: "feed-1",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 2,
+          recent_article_count: 0,
+        },
+      ]),
+    );
 
     const { result, rerender } = renderHook(({ accountId }: HookProps) => useFeedArticleSummaries(accountId), {
       initialProps,
@@ -37,7 +41,13 @@ describe("useFeedArticleSummaries", () => {
 
     await waitFor(() => {
       expect(result.current.data).toEqual([
-        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
+        {
+          feed_id: "feed-1",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 2,
+          recent_article_count: 0,
+        },
       ]);
     });
 
@@ -62,13 +72,17 @@ describe("useFeedArticleSummaries", () => {
   });
 
   it("trims a valid account id before building the query and command call", async () => {
-    const listFeedArticleSummariesSpy = vi
-      .spyOn(tauriCommands, "listFeedArticleSummaries")
-      .mockResolvedValue(
-        Result.succeed([
-          { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
-        ]),
-      );
+    const listFeedArticleSummariesSpy = vi.spyOn(tauriCommands, "listFeedArticleSummaries").mockResolvedValue(
+      Result.succeed([
+        {
+          feed_id: "feed-1",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 2,
+          recent_article_count: 0,
+        },
+      ]),
+    );
 
     const { result, rerender } = renderHook(({ accountId }: HookProps) => useFeedArticleSummaries(accountId), {
       initialProps: { accountId: " acc-1 " },
@@ -77,7 +91,13 @@ describe("useFeedArticleSummaries", () => {
 
     await waitFor(() => {
       expect(result.current.data).toEqual([
-        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
+        {
+          feed_id: "feed-1",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 2,
+          recent_article_count: 0,
+        },
       ]);
     });
 
@@ -94,7 +114,13 @@ describe("useFeedArticleSummaries", () => {
       .spyOn(tauriCommands, "listFeedArticleSummaries")
       .mockResolvedValueOnce(
         Result.succeed([
-          { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
+          {
+            feed_id: "feed-1",
+            latest_article_at: "2026-04-01T00:00:00Z",
+            last_seen_article_at: null,
+            starred_count: 2,
+            recent_article_count: 0,
+          },
         ]),
       )
       .mockImplementationOnce(
@@ -111,7 +137,13 @@ describe("useFeedArticleSummaries", () => {
 
     await waitFor(() => {
       expect(result.current.data).toEqual([
-        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
+        {
+          feed_id: "feed-1",
+          latest_article_at: "2026-04-01T00:00:00Z",
+          last_seen_article_at: null,
+          starred_count: 2,
+          recent_article_count: 0,
+        },
       ]);
     });
 
@@ -121,12 +153,26 @@ describe("useFeedArticleSummaries", () => {
     expect(result.current.fetchStatus).toBe("fetching");
 
     resolveSecondAccount(
-      Result.succeed([{ feed_id: "feed-2", latest_article_at: null, starred_count: 0, recent_article_count: 0 }]),
+      Result.succeed([
+        {
+          feed_id: "feed-2",
+          latest_article_at: null,
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 0,
+        },
+      ]),
     );
 
     await waitFor(() => {
       expect(result.current.data).toEqual([
-        { feed_id: "feed-2", latest_article_at: null, starred_count: 0, recent_article_count: 0 },
+        {
+          feed_id: "feed-2",
+          latest_article_at: null,
+          last_seen_article_at: null,
+          starred_count: 0,
+          recent_article_count: 0,
+        },
       ]);
     });
     expect(listFeedArticleSummariesSpy).toHaveBeenCalledWith("acc-1");

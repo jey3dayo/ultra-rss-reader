@@ -1,5 +1,5 @@
 import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { parseDateInput } from "@/lib/datetime";
+import { getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-count";
 
 export type SubscriptionReviewReasonKey = "attention_30d" | "stale_90d" | "quiet_no_unread";
@@ -218,6 +218,31 @@ function resolveSubscriptionReviewReasonKeys({
   return reasonKeys;
 }
 
+/** Includes activity retained after the latest locally stored article was purged. */
+export function resolveLatestKnownArticleAt(
+  summary: Pick<FeedArticleSummaryDto, "latest_article_at" | "last_seen_article_at"> | null | undefined,
+): string | null {
+  const latestArticleAt = summary?.latest_article_at ?? null;
+  const lastSeenArticleAt = summary?.last_seen_article_at ?? null;
+  if (latestArticleAt === null) {
+    return lastSeenArticleAt;
+  }
+  if (lastSeenArticleAt === null) {
+    return latestArticleAt;
+  }
+
+  const latestTime = getDateInputTimeMs(latestArticleAt);
+  const lastSeenTime = getDateInputTimeMs(lastSeenArticleAt);
+  if (latestTime === null) {
+    return lastSeenArticleAt;
+  }
+  if (lastSeenTime === null) {
+    return latestArticleAt;
+  }
+
+  return lastSeenTime > latestTime ? lastSeenArticleAt : latestArticleAt;
+}
+
 export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
@@ -235,7 +260,7 @@ export function buildSubscriptionReviewCandidates({
     }
 
     const summary = summaryByFeedId.get(feed.id);
-    const latestArticleAt = summary?.latest_article_at ?? null;
+    const latestArticleAt = resolveLatestKnownArticleAt(summary);
 
     const latestArticleDate = parseDateInput(latestArticleAt);
     const staleDays = latestArticleDate === null ? null : calculateSubscriptionReviewStaleDays(now, latestArticleDate);
