@@ -412,3 +412,47 @@ fn mark_many_as_read_with_empty_ids_is_repository_noop() {
     assert_eq!(found.len(), 1);
     assert!(found[0].is_read);
 }
+
+#[test]
+fn upsert_records_feed_last_seen_article_at_and_never_lowers_it() {
+    let db = test_db();
+    let account_id = insert_test_account(&db);
+    let feed_id = insert_test_feed(&db, &account_id);
+    let repo = SqliteArticleRepository::new(db.writer());
+
+    let mut older = make_article(&feed_id, "Older");
+    older.published_at = DateTime::parse_from_rfc3339("2025-01-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    let mut newest = make_article(&feed_id, "Newest");
+    newest.published_at = DateTime::parse_from_rfc3339("2025-02-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    repo.upsert(&[older, newest]).unwrap();
+
+    let read_last_seen = |db: &DbManager| -> Option<String> {
+        db.reader()
+            .query_row(
+                "SELECT last_seen_article_at FROM feeds WHERE id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap()
+    };
+    assert_eq!(
+        read_last_seen(&db).as_deref(),
+        Some("2025-02-01T00:00:00+00:00")
+    );
+
+    // A later batch carrying only an older article (e.g. a backfill page of
+    // an old feed) must not move the feed's last activity backwards.
+    let mut oldest = make_article(&feed_id, "Oldest");
+    oldest.published_at = DateTime::parse_from_rfc3339("2024-06-01T00:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+    repo.upsert(&[oldest]).unwrap();
+    assert_eq!(
+        read_last_seen(&db).as_deref(),
+        Some("2025-02-01T00:00:00+00:00")
+    );
+}

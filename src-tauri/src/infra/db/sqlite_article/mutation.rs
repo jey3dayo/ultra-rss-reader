@@ -65,6 +65,53 @@ pub(crate) fn upsert_articles_with_conn(
             article_body_text(&article.content_sanitized, article.summary.as_deref()),
         ])?;
     }
+    record_last_seen_article_at_for_batch(conn, articles)?;
+    Ok(())
+}
+
+/// Raises each feed's `last_seen_article_at` to the newest publication time
+/// in the batch. The value lives on the feed row so retention purges of read
+/// articles cannot erase the feed's last known activity.
+fn record_last_seen_article_at_for_batch(
+    conn: &Connection,
+    articles: &[Article],
+) -> DomainResult<()> {
+    let mut latest_by_feed: std::collections::HashMap<&str, &Article> =
+        std::collections::HashMap::new();
+    for article in articles {
+        match latest_by_feed.get(article.feed_id.0.as_str()) {
+            Some(current) if current.published_at >= article.published_at => {}
+            _ => {
+                latest_by_feed.insert(article.feed_id.0.as_str(), article);
+            }
+        }
+    }
+    for (feed_id, article) in latest_by_feed {
+        record_feed_last_seen_article_at_with_conn(
+            conn,
+            &FeedId(feed_id.to_string()),
+            &article.published_at,
+        )?;
+    }
+    Ok(())
+}
+
+/// Raises one feed's `last_seen_article_at` when `published_at` is newer
+/// than the stored value. Never lowers it: an older article observed later
+/// (e.g. a backfill page) must not move the feed's last activity backwards.
+pub(crate) fn record_feed_last_seen_article_at_with_conn(
+    conn: &Connection,
+    feed_id: &FeedId,
+    published_at: &chrono::DateTime<Utc>,
+) -> DomainResult<()> {
+    conn.execute(
+        "UPDATE feeds
+         SET last_seen_article_at = ?2
+         WHERE id = ?1
+           AND (last_seen_article_at IS NULL
+                OR julianday(last_seen_article_at) < julianday(?2))",
+        params![feed_id.0, published_at.to_rfc3339()],
+    )?;
     Ok(())
 }
 

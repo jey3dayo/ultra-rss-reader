@@ -40,6 +40,23 @@ fn migrate_to_v19(conn: &Connection) {
     conn.execute_batch(MIGRATION_V19).unwrap();
 }
 
+fn migrate_to_v29(conn: &Connection) {
+    use super::consts::*;
+    use super::repairs::*;
+
+    migrate_to_v19(conn);
+    apply_v20_article_account_ordered_indexes(conn).unwrap();
+    conn.execute_batch(MIGRATION_V21).unwrap();
+    apply_v22_local_account_sync_export_state(conn).unwrap();
+    conn.execute_batch(MIGRATION_V23).unwrap();
+    apply_v24_feed_icon_url(conn).unwrap();
+    conn.execute_batch(MIGRATION_V25).unwrap();
+    conn.execute_batch(MIGRATION_V26).unwrap();
+    apply_v27_account_folder_order_mode(conn).unwrap();
+    apply_v28_article_state_change_times(conn).unwrap();
+    apply_v29_local_sync_entity_change_times(conn).unwrap();
+}
+
 fn normalize_sql(sql: &str) -> String {
     sql.split_whitespace().collect::<Vec<_>>().join(" ")
 }

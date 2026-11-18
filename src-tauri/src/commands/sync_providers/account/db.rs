@@ -19,7 +19,9 @@ use crate::domain::folder::Folder;
 use crate::domain::provider::{RemoteFolder, GREADER_FEED_ID_PREFIX};
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
-use crate::infra::db::sqlite_article::SqliteArticleRepository;
+use crate::infra::db::sqlite_article::{
+    record_feed_last_seen_article_at_with_conn, SqliteArticleRepository,
+};
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
@@ -131,6 +133,44 @@ pub(super) fn load_account_feeds(
     let db_guard = lock_db(db)?;
     let feed_repo = SqliteFeedRepository::new(db_guard.reader());
     Ok(feed_repo.find_by_account(account_id)?)
+}
+
+/// Read the ids of feeds in the account whose `last_seen_article_at` is
+/// still unknown, inside a single reader lock scope.
+pub(super) fn load_feed_ids_missing_last_seen(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<Vec<FeedId>, AppError> {
+    let db_guard = lock_db(db)?;
+    let conn = db_guard.reader();
+    let mut stmt = conn
+        .prepare("SELECT id FROM feeds WHERE account_id = ?1 AND last_seen_article_at IS NULL")
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    let rows = stmt
+        .query_map(rusqlite::params![account_id.0], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    let ids = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    Ok(ids.into_iter().map(FeedId).collect())
+}
+
+/// Record an observed publication time as one feed's last seen article
+/// time, inside a single writer lock scope. Raise-only: an older probe
+/// result never moves the stored value backwards.
+pub(super) fn record_feed_last_seen_article_at(
+    db: &Mutex<DbManager>,
+    feed_id: &FeedId,
+    published_at: &chrono::DateTime<chrono::Utc>,
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    record_feed_last_seen_article_at_with_conn(db_guard.writer(), feed_id, published_at)?;
+    Ok(())
 }
 
 /// Recalculate unread counts for the GReader provider-managed subset of

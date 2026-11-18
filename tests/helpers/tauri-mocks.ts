@@ -198,6 +198,12 @@ function createDefaultHandler(): MockHandler {
                     .map((article) => article.published_at)
                     .toSorted()
                     .slice(-1)[0] ?? null,
+                last_seen_article_at:
+                  mockArticles
+                    .filter((article) => article.feed_id === feed.id)
+                    .map((article) => article.published_at)
+                    .toSorted()
+                    .slice(-1)[0] ?? null,
                 starred_count: mockArticles.filter((article) => article.feed_id === feed.id && article.is_starred)
                   .length,
                 // Deterministic stand-in for the backend's 30-day windowed count:

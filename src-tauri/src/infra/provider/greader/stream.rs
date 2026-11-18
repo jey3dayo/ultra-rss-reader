@@ -1,4 +1,4 @@
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use std::collections::{HashMap, HashSet};
 
 use super::super::normalizer::normalize_trusted_backend_article_url;
@@ -59,6 +59,36 @@ impl GReaderProvider {
                 )
             })
             .collect())
+    }
+
+    /// Fetches only the newest entry of one feed's own stream and returns
+    /// its publication time. Used to recover a feed's last known activity
+    /// when no entry for it has ever been materialized locally (e.g. its
+    /// read articles were all purged before last-seen tracking existed).
+    pub(crate) async fn fetch_latest_entry_published_at(
+        &self,
+        remote_id: &str,
+    ) -> DomainResult<Option<DateTime<Utc>>> {
+        let stream_url = self.api_url(&format!(
+            "/reader/api/0/stream/contents/{}",
+            urlencoded(remote_id)
+        ));
+        let url = format!("{stream_url}?output=json&n=1");
+        let response = self
+            .request(reqwest::Method::GET, &url)?
+            .header("Authorization", self.auth_header()?)
+            .send()
+            .await
+            .map_err(|error| self.map_request_error(error))
+            .and_then(Self::ensure_success_response)?;
+        let response: StreamContentsResponse = Self::read_json_response(response).await?;
+
+        Ok(response
+            .items
+            .into_iter()
+            .filter_map(|item| Self::map_item_to_entry(item, Some(remote_id)))
+            .filter_map(|entry| entry.published_at)
+            .max())
     }
 
     pub(super) async fn pull_entries_for_stream(

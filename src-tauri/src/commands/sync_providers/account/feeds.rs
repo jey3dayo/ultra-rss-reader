@@ -31,14 +31,71 @@ use super::super::{
     redacted_feed_host_class, GReaderSession, ProviderSyncOutcome, ProviderSyncWarning,
 };
 use super::db::{
-    delete_pending_mutation, load_account_feeds, load_folder_remote_id_map,
-    load_pending_mutations_for_account, provider_managed_feed_snapshots,
+    delete_pending_mutation, load_account_feeds, load_feed_ids_missing_last_seen,
+    load_folder_remote_id_map, load_pending_mutations_for_account, provider_managed_feed_snapshots,
     recalculate_feed_unread_counts, recalculate_single_feed_unread_count,
+    record_feed_last_seen_article_at,
 };
 use super::entries::{sync_greader_account_entries, sync_greader_feed_entries};
 use super::remote_state::apply_remote_state_with_protection;
 use super::warnings::{dropped_pending_mutation_warning, pending_mutation_retry_warning};
 use super::GReaderAccountEntriesSyncOutcome;
+
+/// Recovers `last_seen_article_at` for provider-managed feeds that have no
+/// local trace of their last activity (their articles were purged before
+/// last-seen tracking existed, so entry syncs never observe them again).
+/// Each unknown feed's own stream is probed once for its newest entry;
+/// afterwards the regular entry sync keeps the value current. Probe and
+/// record failures are logged and skipped so one unreachable feed cannot
+/// fail the account sync.
+async fn backfill_missing_greader_last_seen(
+    db: &Mutex<DbManager>,
+    provider: &GReaderProvider,
+    account: &Account,
+    provider_managed_feeds: &[Feed],
+) {
+    let missing_feed_ids = match load_feed_ids_missing_last_seen(db, &account.id) {
+        Ok(ids) => ids.into_iter().collect::<HashSet<_>>(),
+        Err(error) => {
+            warn!(
+                account_id = %account.id.as_ref(),
+                "Failed to load feeds missing last seen article time: {error}"
+            );
+            return;
+        }
+    };
+    if missing_feed_ids.is_empty() {
+        return;
+    }
+
+    for feed in provider_managed_feeds
+        .iter()
+        .filter(|feed| missing_feed_ids.contains(&feed.id))
+    {
+        let Some(remote_id) = feed.remote_id.as_deref() else {
+            continue;
+        };
+        match provider.fetch_latest_entry_published_at(remote_id).await {
+            Ok(Some(published_at)) => {
+                if let Err(error) = record_feed_last_seen_article_at(db, &feed.id, &published_at) {
+                    warn!(
+                        account_id = %account.id.as_ref(),
+                        feed_id = %feed.id.as_ref(),
+                        "Failed to record last seen article time: {error}"
+                    );
+                }
+            }
+            Ok(None) => {}
+            Err(error) => {
+                warn!(
+                    account_id = %account.id.as_ref(),
+                    feed_id = %feed.id.as_ref(),
+                    "Failed to probe latest entry for last seen backfill: {error}"
+                );
+            }
+        }
+    }
+}
 
 pub(crate) async fn sync_greader_feed(
     db: &Mutex<DbManager>,
@@ -297,6 +354,15 @@ pub(crate) async fn sync_greader_feeds(
         entries_upserted = account_entries_outcome.entries_upserted,
         delta_pages = account_entries_outcome.delta_pages,
         skipped_entries = account_entries_outcome.skipped_entries,
+        "FreshRSS sync phase completed"
+    );
+
+    let last_seen_started_at = Instant::now();
+    backfill_missing_greader_last_seen(db, provider, account, &provider_managed_feeds).await;
+    info!(
+        account_id = %account.id.as_ref(),
+        phase = "last_seen_backfill",
+        elapsed_ms = last_seen_started_at.elapsed().as_millis() as u64,
         "FreshRSS sync phase completed"
     );
 

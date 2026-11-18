@@ -4,6 +4,7 @@ import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   buildSubscriptionReviewReasonFacts,
+  resolveLatestKnownArticleAt,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscriptions/subscription-review-candidates";
 import type {
@@ -167,7 +168,7 @@ export function buildSubscriptionDetailMetrics({
   articles: ArticleDto[];
   feedArticleSummary: FeedArticleSummaryDto | null;
 }): SubscriptionDetailMetrics {
-  let latestArticleAt: string | null = feedArticleSummary?.latest_article_at ?? null;
+  let latestArticleAt: string | null = resolveLatestKnownArticleAt(feedArticleSummary);
   let starredCount = feedArticleSummary?.starred_count ?? 0;
   // recentArticleCount is only sourced from the summary DTO (the backend computes
   // the 30-day window). Unlike latestArticleAt/starredCount, it is not recomputed

@@ -72,6 +72,7 @@ const feedsByAccount: Record<string, FeedDto[]> = {
 const summaries: FeedArticleSummaryDto[] = ["a-error", "a-keep", "a-later", "b-error", "b-review"].map((feedId) => ({
   feed_id: feedId,
   latest_article_at: "2025-01-01T10:00:00Z",
+  last_seen_article_at: null,
   starred_count: 0,
   recent_article_count: 0,
 }));
@@ -211,6 +212,7 @@ describe("fetch error toast navigation", () => {
       {
         feed_id: "a-new",
         latest_article_at: "2025-01-01T10:00:00Z",
+        last_seen_article_at: null,
         starred_count: 0,
         recent_article_count: 0,
       },

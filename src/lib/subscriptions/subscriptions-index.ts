@@ -4,6 +4,7 @@ import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-cou
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   hasSubscriptionReviewReason,
+  resolveLatestKnownArticleAt,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscriptions/subscription-review-candidates";
 import { isOverloaded } from "@/lib/subscriptions/subscription-update-frequency";
@@ -365,7 +366,7 @@ export function buildSubscriptionListRows({
 }): SubscriptionListRow[] {
   return feeds.map((feed) => {
     const feedArticleSummary = feedArticleSummaryMap.get(feed.id);
-    const latestArticleAt = feedArticleSummary?.latest_article_at ?? null;
+    const latestArticleAt = resolveLatestKnownArticleAt(feedArticleSummary);
     const recentArticleCount = feedArticleSummary?.recent_article_count ?? 0;
     const folderName = feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null;
     const status = resolveSubscriptionRowStatus({

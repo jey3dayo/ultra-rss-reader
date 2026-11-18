@@ -32,7 +32,7 @@ mod tests;
 pub(in crate::infra::db) use mutation::article_body_text;
 pub(crate) use mutation::{
     mark_muted_unread_as_read_for_feed_with_conn, mark_muted_unread_as_read_with_conn,
-    upsert_articles_with_conn,
+    record_feed_last_seen_article_at_with_conn, upsert_articles_with_conn,
 };
 
 pub struct SqliteArticleRepository<'a> {
