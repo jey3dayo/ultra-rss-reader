@@ -837,6 +837,8 @@ describe("release repository contract", { timeout: 30_000 }, () => {
   });
 
   it("limits Store submissions to published releases whose tags match the checked-out commit", () => {
+    const storeSubmissionScript = readText("scripts/release/submit-store.ps1");
+
     expect(storeMsixWorkflow).toContain("release:");
     expect(storeMsixWorkflow).toContain("types: [published]");
     expect(storeMsixWorkflow).toContain("workflow_run:");
@@ -858,17 +860,22 @@ describe("release repository contract", { timeout: 30_000 }, () => {
     expect(storeMsixWorkflow).toContain('[[ "$release_http_status" == "404" ]]');
 
     for (const secretName of ["MSSTORE_TENANT_ID", "MSSTORE_CLIENT_ID", "MSSTORE_CLIENT_SECRET"]) {
-      expect(storeMsixWorkflow).toContain(`secrets.${secretName} != ''`);
       expect(storeMsixWorkflow).toContain([secretName, ": $", "{{ secrets.", secretName, " }}"].join(""));
     }
-    expect(storeMsixWorkflow).toContain("should_submit=false");
+    expect(storeMsixWorkflow).toContain('echo "should_submit=$submit_requested"');
     expect(storeMsixWorkflow).toContain("node ./scripts/release/validate-release-config.ts");
     expect(storeMsixWorkflow).toContain('GetEntry("AppxManifest.xml")');
     expect(storeMsixWorkflow).toContain("$identity.Version -ne $expectedVersion");
     expect(storeMsixWorkflow).toContain(`MSSTORE_PRICE_ID: \${{ vars.MSSTORE_PRICE_ID }}`);
-    expect(storeMsixWorkflow).toMatch(/if \(\$env:MSSTORE_PRICE_ID -cnotmatch '\\ATier\[0-9\]\+\\z'\) \{\s+throw /);
-    expect(storeMsixWorkflow).toContain("steps.intent.outputs.submit_requested == 'true'");
-    expect(storeMsixWorkflow.indexOf("name: Validate Store price tier")).toBeGreaterThan(
+    expect(storeSubmissionScript).toContain("[string]$PriceId = $env:MSSTORE_PRICE_ID");
+    expect(storeSubmissionScript).toMatch(/if \(\$PriceId -cnotmatch '\\ATier\[0-9\]\+\\z'\) \{\s+throw /);
+    expect(storeSubmissionScript.indexOf("if ($PriceId -cnotmatch")).toBeLessThan(
+      storeSubmissionScript.indexOf("$missingCredentials = @("),
+    );
+    expect(storeSubmissionScript.indexOf("if ($PriceId -cnotmatch")).toBeLessThan(
+      storeSubmissionScript.indexOf("Invoke-WebRequest"),
+    );
+    expect(storeMsixWorkflow.indexOf("name: Submit and verify Store package")).toBeGreaterThan(
       storeMsixWorkflow.indexOf("uses: actions/upload-artifact@"),
     );
     expect(storeMsixWorkflow).toContain("auto_commit:");

@@ -59,9 +59,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
-          MSSTORE_TENANT_ID_SET: ${{ secrets.MSSTORE_TENANT_ID != '' }}
-          MSSTORE_CLIENT_ID_SET: ${{ secrets.MSSTORE_CLIENT_ID != '' }}
-          MSSTORE_CLIENT_SECRET_SET: ${{ secrets.MSSTORE_CLIENT_SECRET != '' }}
         run: |
           set -euo pipefail
 
@@ -126,22 +123,8 @@ jobs:
             exit 1
           fi
 
-          missing=()
-          for secret_name in MSSTORE_TENANT_ID MSSTORE_CLIENT_ID MSSTORE_CLIENT_SECRET; do
-            secret_status_name="${secret_name}_SET"
-            if [[ "${!secret_status_name}" != "true" ]]; then
-              missing+=("$secret_name")
-            fi
-          done
-
-          should_submit="$submit_requested"
-          if [[ "$submit_requested" == "true" && ${#missing[@]} -gt 0 ]]; then
-            should_submit=false
-            echo "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets: $(IFS=,; echo "${missing[*]}")"
-          fi
           {
-            echo "submit_requested=$submit_requested"
-            echo "should_submit=$should_submit"
+            echo "should_submit=$submit_requested"
             echo "release_tag=$release_tag"
           } >> "$GITHUB_OUTPUT"
 
@@ -229,16 +212,6 @@ jobs:
           path: msix-out/
           if-no-files-found: error
           retention-days: 14
-
-      - name: Validate Store price tier
-        if: steps.intent.outputs.submit_requested == 'true'
-        shell: pwsh
-        env:
-          MSSTORE_PRICE_ID: ${{ vars.MSSTORE_PRICE_ID }}
-        run: |
-          if ($env:MSSTORE_PRICE_ID -cnotmatch '\ATier[0-9]+\z') {
-            throw "MSSTORE_PRICE_ID must be configured as Tier<number>, such as Tier1052. The MSIX artifact has been preserved."
-          }
 
       - name: Checkout Store submission tooling
         if: steps.intent.outputs.should_submit == 'true'

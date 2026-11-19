@@ -12,10 +12,16 @@ if ($PriceId -cnotmatch '\ATier[0-9]+\z') {
 if ($ReleaseTag -cnotmatch '\Av(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\z') {
     throw 'Store submission requires a stable vX.Y.Z release tag.'
 }
-foreach ($name in @('MSSTORE_TENANT_ID', 'MSSTORE_CLIENT_ID', 'MSSTORE_CLIENT_SECRET')) {
-    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
-        throw "Missing Store credential: $name."
+$missingCredentials = @(
+    foreach ($name in @('MSSTORE_TENANT_ID', 'MSSTORE_CLIENT_ID', 'MSSTORE_CLIENT_SECRET')) {
+        if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+            $name
+        }
     }
+)
+if ($missingCredentials.Count -gt 0) {
+    Write-Host "::notice::Store package submission skipped; configure the missing microsoft-store environment secrets: $($missingCredentials -join ',')"
+    return
 }
 if ($env:MSSTORE_TENANT_ID -notmatch '\A[0-9a-fA-F-]{36}\z') {
     throw 'MSSTORE_TENANT_ID must be a tenant GUID.'
