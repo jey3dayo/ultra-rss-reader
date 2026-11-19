@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { Check, Clock3, Trash2 } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
@@ -159,9 +159,6 @@ export function WorkspaceFilterClusterSpecimen() {
               </LabelChip>
             </ControlChipButton>
           ))}
-          <ControlChipButton pressed={false} size="comfortable" className="rounded-md px-3.5">
-            あとで確認を表示
-          </ControlChipButton>
         </div>
       </div>
       <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
@@ -313,10 +310,6 @@ export function WorkspaceActionClusterSpecimen() {
             <Check className="size-4" />
             Keep selected
           </DecisionButton>
-          <DecisionButton intent="defer" className={denseDecisionButtonClassName} aria-label="Defer selected">
-            <Clock3 className="size-4" />
-            Defer selected
-          </DecisionButton>
           <DecisionButton intent="delete" className={denseDecisionButtonClassName} aria-label="Delete selected">
             <Trash2 className="size-4" />
             Delete selected
@@ -324,8 +317,7 @@ export function WorkspaceActionClusterSpecimen() {
         </div>
       </div>
       <p className="mt-3 text-xs leading-[1.45] text-foreground/72">
-        dense toolbar では action width を揃え、keep / defer / delete の順で置く。destructive
-        は最後に寄せ、視線の終点に置く。
+        dense toolbar では action width を揃え、keep / delete の順で置く。destructive は最後に寄せ、視線の終点に置く。
       </p>
     </SurfaceCard>
   );

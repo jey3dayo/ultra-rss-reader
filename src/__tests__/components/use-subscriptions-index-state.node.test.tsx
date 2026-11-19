@@ -187,7 +187,6 @@ describe("useSubscriptionsIndexState", () => {
         initialSummaryFilter: "stale",
         initialSelectedFeedId: "feed-review",
         initialKeptFeedIds: ["feed-review"],
-        initialDeferredFeedIds: [],
       }),
     );
 
@@ -303,34 +302,6 @@ describe("useSubscriptionsIndexState", () => {
 
     expect(result.current.searchQuery).toBe("first");
     expect(result.current.listScrollTop).toBe(0);
-  });
-
-  it("keeps kept and deferred decisions mutually exclusive for the selected row", () => {
-    const reviewRow = makeRow("feed-review", {
-      tone: "medium",
-      labelKey: "review",
-    });
-    const { result } = renderHook(() =>
-      useSubscriptionsIndexState([reviewRow], {
-        initialSelectedFeedId: "feed-review",
-        initialKeptFeedIds: ["feed-review"],
-        initialDeferredFeedIds: [],
-      }),
-    );
-
-    act(() => {
-      result.current.markSelectedFeedDeferred();
-    });
-
-    expect(result.current.deferredFeedIds.has("feed-review")).toBe(true);
-    expect(result.current.keptFeedIds.has("feed-review")).toBe(false);
-
-    act(() => {
-      result.current.markSelectedFeedKept();
-    });
-
-    expect(result.current.keptFeedIds.has("feed-review")).toBe(true);
-    expect(result.current.deferredFeedIds.has("feed-review")).toBe(false);
   });
 
   describe("bulk selection", () => {
@@ -454,7 +425,7 @@ describe("useSubscriptionsIndexState", () => {
       expect(result.current.allVisibleCheckState).toBe("all");
     });
 
-    it("unchecks the focused feed when it is marked kept or deferred and stays in selection mode", () => {
+    it("unchecks the focused feed when it is marked kept and stays in selection mode", () => {
       const { result } = renderHook(() => useSubscriptionsIndexState(rows, { initialSelectedFeedId: "alpha" }));
 
       act(() => {
@@ -470,23 +441,12 @@ describe("useSubscriptionsIndexState", () => {
       expect(result.current.keptFeedIds.has("alpha")).toBe(true);
       expect([...result.current.checkedFeedIds].sort()).toEqual(["beta", "gamma"]);
       expect(result.current.bulkSelectionMode).toBe(true);
-
-      act(() => {
-        result.current.setSelectedFeedId("beta");
-      });
-      act(() => {
-        result.current.markSelectedFeedDeferred();
-      });
-
-      expect(result.current.deferredFeedIds.has("beta")).toBe(true);
-      expect([...result.current.checkedFeedIds]).toEqual(["gamma"]);
     });
 
-    it("drops only succeeded feeds from checked, kept and deferred, and keeps failed and hidden selections", () => {
+    it("drops only succeeded feeds from checked and kept, and keeps failed and hidden selections", () => {
       const { result } = renderHook(() =>
         useSubscriptionsIndexState([alpha, beta, gamma], {
-          initialKeptFeedIds: ["alpha", "beta"],
-          initialDeferredFeedIds: ["gamma"],
+          initialKeptFeedIds: ["alpha", "beta", "gamma"],
         }),
       );
 
@@ -504,7 +464,6 @@ describe("useSubscriptionsIndexState", () => {
       expect([...result.current.checkedFeedIds]).toEqual(["beta"]);
       expect(result.current.hiddenCheckedCount).toBe(1);
       expect([...result.current.keptFeedIds]).toEqual(["beta"]);
-      expect([...result.current.deferredFeedIds]).toEqual([]);
       expect(result.current.bulkSelectionMode).toBe(true);
     });
 

@@ -144,7 +144,6 @@ export function useSubscriptionsIndexViewProps({
     initialSelectedFeedId: scopedIndexReturnState?.selectedFeedId,
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
-    initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
     initialSearchQuery: scopedIndexReturnState?.searchQuery,
     initialListScrollState: scopedIndexReturnState?.listScrollTop,
     viewportHeight,
@@ -170,7 +169,6 @@ export function useSubscriptionsIndexViewProps({
       ),
     },
     keptFeedIds: [...state.keptFeedIds],
-    deferredFeedIds: [...state.deferredFeedIds],
     searchQuery: state.searchQuery,
   });
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
@@ -259,16 +257,11 @@ export function useSubscriptionsIndexViewProps({
     isFlagged: state.selectedRow ? isSubscriptionRowFlagged(state.selectedRow.status) : false,
     labels: {
       keep: t("decision_keep"),
-      defer: t("decision_defer"),
       delete: tc("delete"),
     },
     onKeep: (selectedRow) => {
       state.markSelectedFeedKept();
       showToast(t("decision_kept", { title: selectedRow.feed.title }));
-    },
-    onDefer: (selectedRow) => {
-      state.markSelectedFeedDeferred();
-      showToast(t("decision_deferred", { title: selectedRow.feed.title }));
     },
     onDelete: () => {
       if (state.selectedRow) {

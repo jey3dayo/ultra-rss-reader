@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { Check, ChevronLeft, Clock3, ExternalLink, Plus, RefreshCw, Save, Share, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ExternalLink, Plus, RefreshCw, Save, Share, Trash2, X } from "lucide-react";
 import { type CSSProperties, useEffect, useReducer, useState } from "react";
 import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
 import { TagOptionRowButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
@@ -117,7 +117,7 @@ const BUTTON_FAMILY_GUIDE = [
   },
   {
     family: "DecisionButton / DeleteButton",
-    context: "Meaningful review, defer, keep, and destructive actions.",
+    context: "Meaningful review, keep, and destructive actions.",
     example: "Delete selected",
   },
   {
@@ -263,10 +263,6 @@ export function SemanticActionButtonsSpecimen() {
         <DecisionButton intent="keep" className={denseDecisionButtonClassName} aria-label="Keep selected">
           <Check className="size-4" />
           Keep selected
-        </DecisionButton>
-        <DecisionButton intent="defer" className={denseDecisionButtonClassName} aria-label="Defer selected">
-          <Clock3 className="size-4" />
-          Defer selected
         </DecisionButton>
         <DecisionButton intent="delete" className={denseDecisionButtonClassName} aria-label="Delete selected">
           <Trash2 className="size-4" />

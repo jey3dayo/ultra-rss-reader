@@ -581,25 +581,16 @@ describe("SubscriptionsIndexPage", () => {
     const keepButton = within(detailPane).getByRole("button", {
       name: /^(残す|decision_keep)$/,
     });
-    const deferButton = within(detailPane).getByRole("button", {
-      name: /^(あとで|decision_defer)$/,
-    });
     const deleteButton = within(detailPane).getByRole("button", {
       name: /^(削除|delete)$/,
     });
     expect(keepButton).toBeVisible();
-    expect(deferButton).toBeVisible();
     expect(deleteButton).toBeVisible();
     expect(keepButton.querySelector("svg")).toHaveClass("size-4");
-    expect(deferButton.querySelector("svg")).toHaveClass("size-4");
     expect(deleteButton.querySelector("svg")).toHaveClass("size-4");
 
     await user.click(keepButton);
     expect(useUiStore.getState().toastMessage?.message).toMatch(/^(Example Feed を残すにしました|decision_kept)$/);
-    await user.click(deferButton);
-    expect(useUiStore.getState().toastMessage?.message).toMatch(
-      /^(Example Feed をあとで確認にしました|decision_deferred)$/,
-    );
     await user.click(deleteButton);
     const unsubscribeDialog = await screen.findByRole("dialog");
     expect(unsubscribeDialog).toBeInTheDocument();
@@ -623,7 +614,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ })).toBeInTheDocument();
   });
 
-  it("removes deferred feeds from the active stale filter and clears the detail pane", async () => {
+  it("removes kept feeds from the active stale filter and clears the detail pane", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -634,7 +625,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    await user.click(within(detailPane).getByRole("button", { name: "あとで" }));
+    await user.click(within(detailPane).getByRole("button", { name: "残す" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
@@ -702,7 +693,6 @@ describe("SubscriptionsIndexPage", () => {
             viewportHeight: window.innerHeight,
           },
           keptFeedIds: [],
-          deferredFeedIds: [],
         },
       },
     });
@@ -751,7 +741,6 @@ describe("SubscriptionsIndexPage", () => {
             viewportHeight: window.innerHeight,
           },
           keptFeedIds: [],
-          deferredFeedIds: [],
         },
       },
     });
@@ -806,7 +795,6 @@ describe("SubscriptionsIndexPage", () => {
             viewportHeight: originalInnerHeight,
           },
           keptFeedIds: [],
-          deferredFeedIds: [],
         },
       },
     });
@@ -858,7 +846,6 @@ describe("SubscriptionsIndexPage", () => {
             viewportHeight: window.innerHeight,
           },
           keptFeedIds: ["feed-1"],
-          deferredFeedIds: [],
         },
       },
     });
@@ -887,7 +874,6 @@ describe("SubscriptionsIndexPage", () => {
             viewportHeight: window.innerHeight,
           },
           keptFeedIds: ["feed-1"],
-          deferredFeedIds: [],
         },
       },
     });
